@@ -377,162 +377,197 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if req.Credits.IsSpecified() {
-			// Check if we should delete the credit record
-			// This happens when: credits is NULL, or when credits.remaining is explicitly NULL
-			shouldDelete := req.Credits.IsNull()
-			if !shouldDelete && !req.Credits.IsNull() {
-				creditsValue := req.Credits.MustGet()
-				if creditsValue.Remaining.IsSpecified() && creditsValue.Remaining.IsNull() {
-					shouldDelete = true
-				}
-			}
+			// Delete credit if set to null
+			if req.Credits.IsNull() {
+				if identity.CreditID.Valid {
+					if err := db.Query.DeleteCredit(ctx, tx, identity.CreditID.String); err != nil {
+						// nolint:exhaustruct
+						return txResult{}, fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("failed to delete credit"),
+							fault.Public("Failed to update credits."),
+						)
+					}
 
-			if shouldDelete && identity.CreditID.Valid {
-				// Delete credit record if it exists (NULL means unlimited/no tracking)
-				err := db.Query.DeleteCredit(ctx, tx, identity.CreditID.String)
-				if err != nil {
-					// nolint:exhaustruct
-					return txResult{}, fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("failed to delete credit"),
-						fault.Public("Failed to update credits."),
-					)
-				}
+					// Update identity to reflect deletion
+					identity.CreditID = sql.NullString{Valid: false}
+					identity.CreditRemaining = sql.NullInt32{Valid: false}
+					identity.CreditRefillAmount = sql.NullInt32{Valid: false}
+					identity.CreditRefillDay = sql.NullInt16{Valid: false}
+					identity.CreditRefilledAt = sql.NullInt64{Valid: false}
 
-				// Update identity to reflect deletion
-				identity.CreditID = sql.NullString{Valid: false}
-				identity.CreditRemaining = sql.NullInt32{Valid: false}
-				identity.CreditRefillAmount = sql.NullInt32{Valid: false}
-				identity.CreditRefillDay = sql.NullInt16{Valid: false}
-				identity.CreditRefilledAt = sql.NullInt64{Valid: false}
-
-				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Event:       auditlog.IdentityUpdateEvent,
-					Display:     fmt.Sprintf("Removed credits from identity %s", identity.ID),
-					ActorID:     auth.Key.ID,
-					ActorName:   "root key",
-					ActorType:   auditlog.RootKeyActor,
-					ActorMeta:   map[string]any{},
-					RemoteIP:    s.Location(),
-					UserAgent:   s.UserAgent(),
-					Resources: []auditlog.AuditLogResource{
-						{
-							ID:          identity.ID,
-							Type:        auditlog.IdentityResourceType,
-							Name:        identity.ExternalID,
-							DisplayName: identity.ExternalID,
-							Meta:        nil,
+					auditLogs = append(auditLogs, auditlog.AuditLog{
+						WorkspaceID: auth.AuthorizedWorkspaceID,
+						Event:       auditlog.IdentityUpdateEvent,
+						Display:     fmt.Sprintf("Removed credits from identity %s", identity.ID),
+						ActorID:     auth.Key.ID,
+						ActorName:   "root key",
+						ActorType:   auditlog.RootKeyActor,
+						ActorMeta:   map[string]any{},
+						RemoteIP:    s.Location(),
+						UserAgent:   s.UserAgent(),
+						Resources: []auditlog.AuditLogResource{
+							{
+								ID:          identity.ID,
+								Type:        auditlog.IdentityResourceType,
+								Name:        identity.ExternalID,
+								DisplayName: identity.ExternalID,
+								Meta:        nil,
+							},
 						},
-					},
-				})
-			} else if !shouldDelete {
+					})
+				}
+			} else {
 				// Upsert credits
 				creditsValue := req.Credits.MustGet()
-				now := time.Now().UnixMilli()
 
-				// Prepare refill configuration
-				var refillAmount sql.NullInt32
-				var refillDay sql.NullInt16
-				var refillAmountSpecified, refillDaySpecified int64
-
-				if creditsValue.Refill.IsSpecified() {
-					if creditsValue.Refill.IsNull() {
-						// Clear refill configuration
-						refillAmountSpecified = 1
-						refillDaySpecified = 1
-						refillAmount = sql.NullInt32{Valid: false}
-						refillDay = sql.NullInt16{Valid: false}
-					} else {
-						// Set refill configuration
-						refillConfig := creditsValue.Refill.MustGet()
-						refillAmountSpecified = 1
-						refillAmount = sql.NullInt32{Valid: true, Int32: int32(refillConfig.Amount)}
-
-						if refillConfig.Interval == openapi.Monthly {
-							refillDaySpecified = 1
-							refillDay = sql.NullInt16{Valid: true, Int16: int16(ptr.SafeDeref(refillConfig.RefillDay, 1))}
-						} else {
-							refillDaySpecified = 1
-							refillDay = sql.NullInt16{Valid: false}
+				// Delete credit if remaining set to null
+				if creditsValue.Remaining.IsSpecified() && creditsValue.Remaining.IsNull() {
+					if identity.CreditID.Valid {
+						if err := db.Query.DeleteCredit(ctx, tx, identity.CreditID.String); err != nil {
+							// nolint:exhaustruct
+							return txResult{}, fault.Wrap(err,
+								fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+								fault.Internal("failed to delete credit"),
+								fault.Public("Failed to update credits."),
+							)
 						}
+
+						// Update identity to reflect deletion
+						identity.CreditID = sql.NullString{Valid: false}
+						identity.CreditRemaining = sql.NullInt32{Valid: false}
+						identity.CreditRefillAmount = sql.NullInt32{Valid: false}
+						identity.CreditRefillDay = sql.NullInt16{Valid: false}
+						identity.CreditRefilledAt = sql.NullInt64{Valid: false}
+
+						auditLogs = append(auditLogs, auditlog.AuditLog{
+							WorkspaceID: auth.AuthorizedWorkspaceID,
+							Event:       auditlog.IdentityUpdateEvent,
+							Display:     fmt.Sprintf("Removed credits from identity %s", identity.ID),
+							ActorID:     auth.Key.ID,
+							ActorName:   "root key",
+							ActorType:   auditlog.RootKeyActor,
+							ActorMeta:   map[string]any{},
+							RemoteIP:    s.Location(),
+							UserAgent:   s.UserAgent(),
+							Resources: []auditlog.AuditLogResource{
+								{
+									ID:          identity.ID,
+									Type:        auditlog.IdentityResourceType,
+									Name:        identity.ExternalID,
+									DisplayName: identity.ExternalID,
+									Meta:        nil,
+								},
+							},
+						})
 					}
 				} else {
-					// Don't touch refill configuration
-					refillAmountSpecified = 0
-					refillDaySpecified = 0
-				}
+					// Actually upsert the credits
+					now := time.Now().UnixMilli()
 
-				// Prepare remaining credits
-				var remaining int32
-				var remainingSpecified int64
+					// Prepare refill configuration
+					var refillAmount sql.NullInt32
+					var refillDay sql.NullInt16
+					var refillAmountSpecified, refillDaySpecified int64
 
-				if creditsValue.Remaining.IsSpecified() && !creditsValue.Remaining.IsNull() {
-					// Note: NULL remaining is handled above by deleting the credit record
-					remainingSpecified = 1
-					remaining = int32(creditsValue.Remaining.MustGet())
-				} else {
-					remainingSpecified = 0
-					remaining = 0 // Will be ignored due to specified flag
-				}
+					if creditsValue.Refill.IsSpecified() {
+						if creditsValue.Refill.IsNull() {
+							// Clear refill configuration
+							refillAmountSpecified = 1
+							refillDaySpecified = 1
+							refillAmount = sql.NullInt32{Valid: false}
+							refillDay = sql.NullInt16{Valid: false}
+						} else {
+							// Set refill configuration
+							refillConfig := creditsValue.Refill.MustGet()
+							refillAmountSpecified = 1
+							refillAmount = sql.NullInt32{Valid: true, Int32: int32(refillConfig.Amount)}
 
-				creditID := uid.New(uid.CreditPrefix)
-				upsertErr := db.Query.UpsertCredit(ctx, tx, db.UpsertCreditParams{
-					ID:                    creditID,
-					WorkspaceID:           auth.AuthorizedWorkspaceID,
-					KeyID:                 sql.NullString{Valid: false},
-					IdentityID:            sql.NullString{String: identity.ID, Valid: true},
-					Remaining:             remaining,
-					RemainingSpecified:    remainingSpecified,
-					RefillAmount:          refillAmount,
-					RefillAmountSpecified: refillAmountSpecified,
-					RefillDay:             refillDay,
-					RefillDaySpecified:    refillDaySpecified,
-					CreatedAt:             now,
-					UpdatedAt:             sql.NullInt64{Valid: true, Int64: now},
-					RefilledAt:            sql.NullInt64{Valid: false},
-				})
-				if upsertErr != nil {
-					// nolint:exhaustruct
-					return txResult{}, fault.Wrap(upsertErr,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("failed to upsert credit"),
-						fault.Public("Failed to update credits."),
-					)
-				}
+							if refillConfig.Interval == openapi.Monthly {
+								refillDaySpecified = 1
+								refillDay = sql.NullInt16{Valid: true, Int16: int16(ptr.SafeDeref(refillConfig.RefillDay, 1))}
+							} else {
+								refillDaySpecified = 1
+								refillDay = sql.NullInt16{Valid: false}
+							}
+						}
+					} else {
+						// Don't touch refill configuration
+						refillAmountSpecified = 0
+						refillDaySpecified = 0
+					}
 
-				// Update identity to reflect the upserted values
-				identity.CreditID = sql.NullString{Valid: true, String: creditID}
-				if remainingSpecified == 1 {
-					identity.CreditRemaining = sql.NullInt32{Valid: true, Int32: remaining}
-				}
-				if refillAmountSpecified == 1 {
-					identity.CreditRefillAmount = refillAmount
-				}
-				if refillDaySpecified == 1 {
-					identity.CreditRefillDay = refillDay
-				}
+					// Prepare remaining credits
+					var remaining int32
+					var remainingSpecified int64
 
-				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Event:       auditlog.IdentityUpdateEvent,
-					Display:     fmt.Sprintf("Updated credits for identity %s", identity.ID),
-					ActorID:     auth.Key.ID,
-					ActorName:   "root key",
-					ActorType:   auditlog.RootKeyActor,
-					ActorMeta:   map[string]any{},
-					RemoteIP:    s.Location(),
-					UserAgent:   s.UserAgent(),
-					Resources: []auditlog.AuditLogResource{
-						{
-							ID:          identity.ID,
-							Type:        auditlog.IdentityResourceType,
-							Name:        identity.ExternalID,
-							DisplayName: identity.ExternalID,
-							Meta:        nil,
+					if creditsValue.Remaining.IsSpecified() && !creditsValue.Remaining.IsNull() {
+						// Note: NULL remaining is handled above by deleting the credit record
+						remainingSpecified = 1
+						remaining = int32(creditsValue.Remaining.MustGet())
+					} else {
+						remainingSpecified = 0
+						remaining = 0 // Will be ignored due to specified flag
+					}
+
+					creditID := uid.New(uid.CreditPrefix)
+					upsertErr := db.Query.UpsertCredit(ctx, tx, db.UpsertCreditParams{
+						ID:                    creditID,
+						WorkspaceID:           auth.AuthorizedWorkspaceID,
+						KeyID:                 sql.NullString{Valid: false},
+						IdentityID:            sql.NullString{String: identity.ID, Valid: true},
+						Remaining:             remaining,
+						RemainingSpecified:    remainingSpecified,
+						RefillAmount:          refillAmount,
+						RefillAmountSpecified: refillAmountSpecified,
+						RefillDay:             refillDay,
+						RefillDaySpecified:    refillDaySpecified,
+						CreatedAt:             now,
+						UpdatedAt:             sql.NullInt64{Valid: true, Int64: now},
+						RefilledAt:            sql.NullInt64{Valid: false},
+					})
+					if upsertErr != nil {
+						// nolint:exhaustruct
+						return txResult{}, fault.Wrap(upsertErr,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("failed to upsert credit"),
+							fault.Public("Failed to update credits."),
+						)
+					}
+
+					// Update identity to reflect the upserted values
+					identity.CreditID = sql.NullString{Valid: true, String: creditID}
+					if remainingSpecified == 1 {
+						identity.CreditRemaining = sql.NullInt32{Valid: true, Int32: remaining}
+					}
+					if refillAmountSpecified == 1 {
+						identity.CreditRefillAmount = refillAmount
+					}
+					if refillDaySpecified == 1 {
+						identity.CreditRefillDay = refillDay
+					}
+
+					auditLogs = append(auditLogs, auditlog.AuditLog{
+						WorkspaceID: auth.AuthorizedWorkspaceID,
+						Event:       auditlog.IdentityUpdateEvent,
+						Display:     fmt.Sprintf("Updated credits for identity %s", identity.ID),
+						ActorID:     auth.Key.ID,
+						ActorName:   "root key",
+						ActorType:   auditlog.RootKeyActor,
+						ActorMeta:   map[string]any{},
+						RemoteIP:    s.Location(),
+						UserAgent:   s.UserAgent(),
+						Resources: []auditlog.AuditLogResource{
+							{
+								ID:          identity.ID,
+								Type:        auditlog.IdentityResourceType,
+								Name:        identity.ExternalID,
+								DisplayName: identity.ExternalID,
+								Meta:        nil,
+							},
 						},
-					},
-				})
+					})
+				}
 			}
 		}
 
