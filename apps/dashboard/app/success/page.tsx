@@ -57,7 +57,9 @@ function SuccessContent() {
 
     const processStripeSession = async () => {
       try {
-        if (!isMounted) return;
+        if (!isMounted) {
+          return;
+        }
         setLoading(true);
 
         // Get checkout session
@@ -67,7 +69,9 @@ function SuccessContent() {
 
         if (!sessionResponse) {
           console.warn("Stripe session not found");
-          if (!isMounted) return;
+          if (!isMounted) {
+            return;
+          }
           setProcessedData({});
           setLoading(false);
           return;
@@ -76,7 +80,9 @@ function SuccessContent() {
         const workspaceId = sessionResponse.client_reference_id;
         if (!workspaceId) {
           console.warn("Stripe session client_reference_id not found");
-          if (!isMounted) return;
+          if (!isMounted) {
+            return;
+          }
           setProcessedData({});
           setLoading(false);
           return;
@@ -87,12 +93,16 @@ function SuccessContent() {
           workspaceId: workspaceId,
         });
 
-        if (!isMounted) return;
+        if (!isMounted) {
+          return;
+        }
 
         // Check if we have customer and setup intent
         if (!sessionResponse.customer || !sessionResponse.setup_intent) {
           console.warn("Stripe customer or setup intent not found");
-          if (!isMounted) return;
+          if (!isMounted) {
+            return;
+          }
           setProcessedData({ workspaceSlug: workspace.slug });
           setLoading(false);
           return;
@@ -103,18 +113,24 @@ function SuccessContent() {
           customerId: sessionResponse.customer,
         });
 
-        if (!isMounted) return;
+        if (!isMounted) {
+          return;
+        }
 
         // Get setup intent details
         const setupIntent = await trpcUtils.stripe.getSetupIntent.fetch({
           setupIntentId: sessionResponse.setup_intent,
         });
 
-        if (!isMounted) return;
+        if (!isMounted) {
+          return;
+        }
 
         if (!customer || !setupIntent?.payment_method) {
           console.warn("Customer or payment method not found");
-          if (!isMounted) return;
+          if (!isMounted) {
+            return;
+          }
           setProcessedData({ workspaceSlug: workspace.slug });
           setLoading(false);
           return;
@@ -127,7 +143,9 @@ function SuccessContent() {
             paymentMethod: setupIntent.payment_method,
           });
 
-          if (!isMounted) return;
+          if (!isMounted) {
+            return;
+          }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : "Unknown error";
           console.error("Failed to update customer with payment method:", {
@@ -135,7 +153,9 @@ function SuccessContent() {
             customerId: "redacted", // Don't log PII
             hasPaymentMethod: !!setupIntent.payment_method,
           });
-          if (!isMounted) return;
+          if (!isMounted) {
+            return;
+          }
           setError(`Failed to set up payment method: ${errorMessage}`);
           setLoading(false);
           return;
@@ -147,12 +167,16 @@ function SuccessContent() {
             stripeCustomerId: customer.id,
           });
 
-          if (!isMounted) return;
+          if (!isMounted) {
+            return;
+          }
 
           await trpcUtils.workspace.invalidate();
         } catch (error) {
           console.error("Failed to update workspace:", error);
-          if (!isMounted) return;
+          if (!isMounted) {
+            return;
+          }
           setError("Failed to update workspace with payment information");
           setLoading(false);
           return;
@@ -162,7 +186,9 @@ function SuccessContent() {
         try {
           const billingInfo = await trpcUtils.stripe.getBillingInfo.fetch();
 
-          if (!isMounted) return;
+          if (!isMounted) {
+            return;
+          }
 
           const isFirstTimeUser = !billingInfo.hasPreviousSubscriptions;
 
@@ -171,7 +197,9 @@ function SuccessContent() {
             try {
               const products = await trpcUtils.stripe.getProducts.fetch();
 
-              if (!isMounted) return;
+              if (!isMounted) {
+                return;
+              }
 
               setProcessedData({
                 workspaceSlug: workspace.slug,
@@ -181,25 +209,35 @@ function SuccessContent() {
             } catch (error) {
               console.error("Failed to load products:", error);
               // Fall back to regular billing page if products fail to load
-              if (!isMounted) return;
+              if (!isMounted) {
+                return;
+              }
               setProcessedData({ workspaceSlug: workspace.slug });
             }
           } else {
-            if (!isMounted) return;
+            if (!isMounted) {
+              return;
+            }
             setProcessedData({ workspaceSlug: workspace.slug });
           }
         } catch (error) {
           console.error("Failed to get billing info:", error);
           // Fall back to regular billing page
-          if (!isMounted) return;
+          if (!isMounted) {
+            return;
+          }
           setProcessedData({ workspaceSlug: workspace.slug });
         }
 
-        if (!isMounted) return;
+        if (!isMounted) {
+          return;
+        }
         setLoading(false);
       } catch (error) {
         console.error("Error processing Stripe session:", error);
-        if (!isMounted) return;
+        if (!isMounted) {
+          return;
+        }
         setError("Failed to process payment session");
         setLoading(false);
       }

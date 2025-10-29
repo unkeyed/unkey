@@ -1,7 +1,7 @@
 "use client";
 import { Button, SettingCard } from "@unkey/ui";
-import type { Stripe } from "stripe";
 import { useRouter } from "next/navigation";
+import type { Stripe } from "stripe";
 
 export const SubscriptionStatus: React.FC<{
   status: Stripe.Subscription.Status;
@@ -23,11 +23,7 @@ export const SubscriptionStatus: React.FC<{
           <Button
             variant="primary"
             size="lg"
-            onClick={() =>
-              router.push(
-                `/${props.workspaceSlug}/settings/billing/stripe/portal`
-              )
-            }
+            onClick={() => router.push(`/${props.workspaceSlug}/settings/billing/stripe/portal`)}
           >
             Open Portal
           </Button>

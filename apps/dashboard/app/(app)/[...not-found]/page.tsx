@@ -8,9 +8,7 @@ export default function NotFound() {
   return (
     <Empty>
       <Empty.Title>404 Not Found</Empty.Title>
-      <Empty.Description>
-        We couldn't find the page that you're looking for!
-      </Empty.Description>
+      <Empty.Description>We couldn't find the page that you're looking for!</Empty.Description>
       <Empty.Actions>
         <Button
           variant="default"
