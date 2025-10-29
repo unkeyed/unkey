@@ -239,14 +239,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				if req.Value.IsNull() {
 					// Setting to null means unlimited
 					if err := db.Query.UpdateKey(ctx, tx, db.UpdateKeyParams{
-						ID:                  key.ID,
-						Now:                 sql.NullInt64{Valid: true, Int64: now.UnixMilli()},
-						NameSpecified:       0,
-						IdentityIDSpecified: 0,
-						EnabledSpecified:    0,
-						MetaSpecified:       0,
-						ExpiresSpecified:    0,
-						RemainingRequests:   sql.NullInt32{Valid: false},
+						ID:                         key.ID,
+						Now:                        sql.NullInt64{Valid: true, Int64: now.UnixMilli()},
+						NameSpecified:              0,
+						IdentityIDSpecified:        0,
+						EnabledSpecified:           0,
+						MetaSpecified:              0,
+						ExpiresSpecified:           0,
+						RemainingRequests:          sql.NullInt32{Valid: false},
+						RemainingRequestsSpecified: 1,
 					}); err != nil {
 						return db.Credit{}, fault.Wrap(err,
 							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -259,14 +260,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				} else {
 					remaining := int32(reqVal)
 					if err := db.Query.UpdateKey(ctx, tx, db.UpdateKeyParams{
-						ID:                  key.ID,
-						Now:                 sql.NullInt64{Valid: true, Int64: now.UnixMilli()},
-						NameSpecified:       0,
-						IdentityIDSpecified: 0,
-						EnabledSpecified:    0,
-						MetaSpecified:       0,
-						ExpiresSpecified:    0,
-						RemainingRequests:   sql.NullInt32{Valid: true, Int32: remaining},
+						ID:                         key.ID,
+						Now:                        sql.NullInt64{Valid: true, Int64: now.UnixMilli()},
+						NameSpecified:              0,
+						IdentityIDSpecified:        0,
+						EnabledSpecified:           0,
+						MetaSpecified:              0,
+						ExpiresSpecified:           0,
+						RemainingRequests:          sql.NullInt32{Valid: true, Int32: remaining},
+						RemainingRequestsSpecified: 1,
 					}); err != nil {
 						return db.Credit{}, fault.Wrap(err,
 							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

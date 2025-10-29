@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
@@ -181,13 +180,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		keyData.Roles = ptr.P(key.Roles)
 	}
 
-	// Return credits from identity if available, otherwise from key (priority logic)
+	// Return credits from identity if available, otherwise from key, otherwise from legacy (priority logic)
 	if key.IdentityCredits != nil {
 		keyData.Credits = ptr.P(key.IdentityCredits.Remaining)
 	} else if key.KeyCredits != nil {
 		keyData.Credits = ptr.P(key.KeyCredits.Remaining)
+	} else if key.Key.RemainingRequests.Valid {
+		// Legacy credits stored directly on keys table
+		keyData.Credits = ptr.P(key.Key.RemainingRequests.Int32)
 	}
-	// If neither, keyData.Credits remains nil (unlimited)
+	// If none, keyData.Credits remains nil (unlimited)
 
 	if key.Key.Expires.Valid {
 		keyData.Expires = ptr.P(key.Key.Expires.Time.UnixMilli())
@@ -204,7 +206,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if key.Key.IdentityID.Valid {
-		keyData.Identity = &openapi.Identity{
+		keyData.Identity = &openapi.VerifyKeyIdentity{
 			Id:         key.Key.IdentityID.String,
 			ExternalId: key.Key.ExternalID.String,
 			Ratelimits: nil,
@@ -237,28 +239,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					fault.Internal("unable to unmarshal identity meta"),
 					fault.Public("We encountered an error while trying to unmarshal the identity meta data."),
 				)
-			}
-		}
-
-		// Add identity credits if they exist
-		if key.IdentityCredits != nil {
-			keyData.Identity.Credits = &openapi.Credits{
-				Remaining: nullable.NewNullableWithValue(int64(key.IdentityCredits.Remaining)),
-			}
-
-			if key.IdentityCredits.RefillAmount.Valid {
-				var refillDay *int
-				interval := openapi.Daily
-				if key.IdentityCredits.RefillDay.Valid {
-					interval = openapi.Monthly
-					refillDay = ptr.P(int(key.IdentityCredits.RefillDay.Int16))
-				}
-
-				keyData.Identity.Credits.Refill = &openapi.CreditsRefill{
-					Amount:    int64(key.IdentityCredits.RefillAmount.Int32),
-					Interval:  interval,
-					RefillDay: refillDay,
-				}
 			}
 		}
 	}
