@@ -137,11 +137,6 @@ sqlc version                # Uses global install
    - Use `go tool sqlc generate` not `sqlc generate`
    - Update your muscle memory and shell aliases
 
-3. **Mixing global and managed tools**
-
-   - Don't rely on globally installed versions
-   - Consider uninstalling global tools to catch mistakes: `rm $(which sqlc)`
-
-4. **Forgetting to commit `tools/go.sum`**
+3. **Forgetting to commit `tools/go.sum`**
    - Always commit both `tools/go.mod` and `tools/go.sum`
    - They work together to ensure reproducible builds
