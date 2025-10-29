@@ -1,4 +1,4 @@
-.PHONY: install tools fmt test-unit test-integration test-integration-long test-stress test build generate pull up clean k8s-check k8s-up k8s-down k8s-reset k8s-status start-mysql start-ctrl start-all dev
+.PHONY: install setup tools fmt test-unit test-integration test-integration-long test-stress test build generate pull up clean k8s-check k8s-up k8s-down k8s-reset k8s-status start-mysql start-ctrl start-all dev
 
 # Detect OS and set GOMAXPROCS accordingly
 UNAME_S := $(shell uname -s)
@@ -13,27 +13,25 @@ endif
 GOMAXPROCS_VAL := $(or $(GOMAXPROCS),$(DETECTED_PROCS))
 PARALLEL_PROCS := $(shell if [ $(GOMAXPROCS_VAL) -gt 1 ]; then expr $(GOMAXPROCS_VAL) / 2; else echo 1; fi)
 
-BUF_VERSION := 1.59.0
-GOLANGCI_VERSION := 2.5.0
-SQLC_VERSION := 1.29.0
-
 GOBIN := $(shell go env GOPATH)/bin
 
-install: tools
+# One-time setup for new developers
+setup:
+	@[ -f go.work ] || go work init . tools
+
+install: setup
 	go mod tidy
 
+tools: setup
+	@echo "Tools are ready. Usage:"
+	@echo "  go tool buf <args>"
+	@echo "  go tool golangci-lint <args>"
+	@echo "  go tool sqlc <args>"
+	@echo "  go tool protoc-gen-go-restate <args>"
 
-tools:
-	# Check if tool is installed with correct version via grep. If not found (grep fails), install it.
-	@buf --version 2>/dev/null | grep -q "$(BUF_VERSION)" || (echo "Installing buf@$(BUF_VERSION)..." && GOBIN=$(GOBIN) go install github.com/bufbuild/buf/cmd/buf@v$(BUF_VERSION))
-	@echo "Installing protoc-gen-go-restate@latest..."
-	@GOBIN=$(GOBIN) go install github.com/restatedev/sdk-go/protoc-gen-go-restate@latest
-	@golangci-lint --version 2>/dev/null | grep -q "$(GOLANGCI_VERSION)" || (echo "Installing golangci-lint@$(GOLANGCI_VERSION)..." && curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(GOBIN) v$(GOLANGCI_VERSION))
-	@sqlc version 2>/dev/null | grep -q "$(SQLC_VERSION)" || (echo "Installing sqlc@$(SQLC_VERSION)..." && GOBIN=$(GOBIN) go install github.com/sqlc-dev/sqlc/cmd/sqlc@v$(SQLC_VERSION))
-
-fmt: tools
+fmt: setup
 	go fmt ./...
-	golangci-lint run
+	go tool golangci-lint run
 
 pull:
 	@docker compose -f ../deployment/docker-compose.yaml pull
@@ -48,9 +46,9 @@ clean:
 build:
 	go build -o unkey ./main.go
 
-generate: tools
-	buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/ctrl" --path "./proto/krane" --path "./proto/partition" --path "./proto/vault"
-	buf generate --template ./buf.gen.restate.yaml --path "./proto/hydra"
+generate: setup
+	go tool buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/ctrl" --path "./proto/krane" --path "./proto/partition" --path "./proto/vault"
+	go tool buf generate --template ./buf.gen.restate.yaml --path "./proto/hydra"
 	go generate ./...
 	go fmt ./...
 
