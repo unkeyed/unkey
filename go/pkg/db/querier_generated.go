@@ -427,10 +427,10 @@ type Querier interface {
 	//  WHERE key_id = ?
 	//    AND role_id = ?
 	FindKeyRoleByKeyAndRoleID(ctx context.Context, db DBTX, arg FindKeyRoleByKeyAndRoleIDParams) ([]KeysRole, error)
-	//FindKeyringByID
+	//FindKeySpaceByID
 	//
 	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
-	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
+	FindKeySpaceByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
 	//FindLiveApiByID
 	//
 	//  SELECT apis.id, apis.name, apis.workspace_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
@@ -1182,7 +1182,7 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertKeyRole(ctx context.Context, db DBTX, arg InsertKeyRoleParams) error
-	//InsertKeyring
+	//InsertKeySpace
 	//
 	//  INSERT INTO `key_auth` (
 	//      id,
@@ -1203,7 +1203,7 @@ type Querier interface {
 	//      0,
 	//      0
 	//  )
-	InsertKeyring(ctx context.Context, db DBTX, arg InsertKeyringParams) error
+	InsertKeySpace(ctx context.Context, db DBTX, arg InsertKeySpaceParams) error
 	//InsertPermission
 	//
 	//  INSERT INTO permissions (
@@ -1388,7 +1388,7 @@ type Querier interface {
 	//
 	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id IN (/*SLICE:ids*/?)
 	ListIdentityRatelimitsByIDs(ctx context.Context, db DBTX, ids []sql.NullString) ([]Ratelimit, error)
-	//ListKeysByKeyAuthID
+	//ListKeysByKeySpaceID
 	//
 	//  SELECT
 	//    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
@@ -1407,8 +1407,8 @@ type Querier interface {
 	//  AND k.deleted_at_m IS NULL
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
-	ListKeysByKeyAuthID(ctx context.Context, db DBTX, arg ListKeysByKeyAuthIDParams) ([]ListKeysByKeyAuthIDRow, error)
-	//ListLiveKeysByKeyAuthID
+	ListKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListKeysByKeySpaceIDParams) ([]ListKeysByKeySpaceIDRow, error)
+	//ListLiveKeysByKeySpaceID
 	//
 	//  SELECT k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
 	//         i.id                 as identity_table_id,
@@ -1503,7 +1503,7 @@ type Querier interface {
 	//    AND ws.deleted_at_m IS NULL
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
-	ListLiveKeysByKeyAuthID(ctx context.Context, db DBTX, arg ListLiveKeysByKeyAuthIDParams) ([]ListLiveKeysByKeyAuthIDRow, error)
+	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
 	//ListPermissions
 	//
 	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -1660,13 +1660,13 @@ type Querier interface {
 	//
 	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?
 	SoftDeleteKeyByID(ctx context.Context, db DBTX, arg SoftDeleteKeyByIDParams) error
-	//SoftDeleteManyKeysByKeyAuthID
+	//SoftDeleteManyKeysByKeySpaceID
 	//
 	//  UPDATE `keys`
 	//  SET deleted_at_m = ?
 	//  WHERE key_auth_id = ?
 	//  AND deleted_at_m IS NULL
-	SoftDeleteManyKeysByKeyAuthID(ctx context.Context, db DBTX, arg SoftDeleteManyKeysByKeyAuthIDParams) error
+	SoftDeleteManyKeysByKeySpaceID(ctx context.Context, db DBTX, arg SoftDeleteManyKeysByKeySpaceIDParams) error
 	//SoftDeleteRatelimitNamespace
 	//
 	//  UPDATE `ratelimit_namespaces`
@@ -1806,10 +1806,10 @@ type Querier interface {
 	//  SET remaining_requests = ?
 	//  WHERE id = ?
 	UpdateKeyCreditsSet(ctx context.Context, db DBTX, arg UpdateKeyCreditsSetParams) error
-	//UpdateKeyringKeyEncryption
+	//UpdateKeySpaceKeyEncryption
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
-	UpdateKeyringKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeyringKeyEncryptionParams) error
+	UpdateKeySpaceKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeySpaceKeyEncryptionParams) error
 	//UpdateProjectDeployments
 	//
 	//  UPDATE projects

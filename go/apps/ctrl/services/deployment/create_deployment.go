@@ -168,14 +168,14 @@ func (s *Service) CreateDeployment(
 
 	// Start the deployment workflow
 	keyspaceID := req.Msg.GetKeyspaceId()
-	var keyAuthID *string
+	var keySpaceID *string
 	if keyspaceID != "" {
-		keyAuthID = &keyspaceID
+		keySpaceID = &keyspaceID
 	}
 
 	deployReq := &hydrav1.DeployRequest{
 		DeploymentId: deploymentID,
-		KeyAuthId:    keyAuthID,
+		KeyAuthId:    keySpaceID,
 	}
 
 	switch source := req.Msg.GetSource().(type) {

@@ -40,7 +40,7 @@ func TestRerollKeyUnauthorized(t *testing.T) {
 	key := h.CreateKey(seed.CreateKeyRequest{
 		Disabled:    false,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 	})
 
 	// Basic request body
