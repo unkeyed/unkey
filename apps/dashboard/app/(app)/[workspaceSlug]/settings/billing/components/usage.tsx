@@ -6,7 +6,10 @@ import { SettingCard } from "@unkey/ui";
 export const Usage: React.FC<{
   quota: number;
 }> = ({ quota }) => {
-  const { data: usage, isLoading, error, refetch } = trpc.billing.queryUsage.useQuery();
+  const { data: usage, isLoading, error, refetch } = trpc.billing.queryUsage.useQuery(undefined, {
+    // Ensure fresh data when workspace changes
+    staleTime: 0,
+  });
 
   if (isLoading) {
     return (

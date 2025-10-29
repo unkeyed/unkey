@@ -22,11 +22,15 @@ export const Client: React.FC = () => {
   const [showPlanModal, setShowPlanModal] = useState(false);
 
   // Fetch billing info using new tRPC route
+  // Query is automatically keyed by workspace context and will refetch on workspace change
   const {
     data: billingInfo,
     isLoading: billingLoading,
     error: billingError,
-  } = trpc.stripe.getBillingInfo.useQuery();
+  } = trpc.stripe.getBillingInfo.useQuery(undefined, {
+    // Ensure fresh data when workspace changes
+    staleTime: 0,
+  });
 
   // Handle loading states
   if (billingLoading) {
@@ -50,7 +54,8 @@ export const Client: React.FC = () => {
         <Empty>
           <Empty.Title>Failed to load billing information</Empty.Title>
           <Empty.Description>
-            There was an error loading your billing information. Please try again later.
+            There was an error loading your billing information. Please try
+            again later.
           </Empty.Description>
         </Empty>
       </div>
@@ -63,11 +68,15 @@ export const Client: React.FC = () => {
   const currentProductId = billingInfo?.currentProductId;
   // const currentProduct =
 
-  const allowUpdate = subscription && ["active", "trialing"].includes(subscription.status);
+  const allowUpdate =
+    subscription && ["active", "trialing"].includes(subscription.status);
 
   const isFreeTier = !subscription || subscription.status !== "active";
-  const allowCancel = subscription && subscription.status === "active" && !subscription.cancelAt;
-  const currentProduct = allowUpdate ? products.find((p) => p.id === currentProductId) : undefined;
+  const allowCancel =
+    subscription && subscription.status === "active" && !subscription.cancelAt;
+  const currentProduct = allowUpdate
+    ? products.find((p) => p.id === currentProductId)
+    : undefined;
 
   return (
     <div>
@@ -75,7 +84,6 @@ export const Client: React.FC = () => {
       <Shell>
         {subscription ? (
           <SubscriptionStatus
-            workspaceId={workspace.id}
             workspaceSlug={workspace.slug}
             status={subscription.status as Stripe.Subscription.Status}
           />
@@ -111,7 +119,9 @@ export const Client: React.FC = () => {
           >
             <div className="flex justify-end w-full">
               <Button variant="primary">
-                <Link href={`/${workspace.slug}/settings/billing/stripe/checkout`}>
+                <Link
+                  href={`/${workspace.slug}/settings/billing/stripe/checkout`}
+                >
                   Add payment method
                 </Link>
               </Button>
@@ -128,7 +138,11 @@ export const Client: React.FC = () => {
           >
             <div className="w-full flex h-full items-center justify-end gap-4">
               <Button variant="outline" size="lg">
-                <Link href={`/${workspace.slug}/settings/billing/stripe/portal`}>Open Portal</Link>
+                <Link
+                  href={`/${workspace.slug}/settings/billing/stripe/portal`}
+                >
+                  Open Portal
+                </Link>
               </Button>
             </div>
           </SettingCard>

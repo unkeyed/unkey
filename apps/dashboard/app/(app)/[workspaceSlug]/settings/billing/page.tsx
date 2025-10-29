@@ -1,5 +1,5 @@
 "use client";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { Button, Empty, Input, Loading, SettingCard } from "@unkey/ui";
@@ -9,19 +9,42 @@ import { Client } from "./client";
 import { Shell } from "./components/shell";
 
 export default function BillingPage() {
-  const workspace = useWorkspaceNavigation();
+  const { workspace, isLoading: isWorkspaceLoading } = useWorkspace();
 
-  // Check for legacy subscriptions
-  const isLegacy = workspace?.subscriptions && Object.keys(workspace.subscriptions).length > 0;
+  // Wait for workspace to load before proceeding
+  if (isWorkspaceLoading || !workspace) {
+    return (
+      <Empty>
+        <Loading />
+      </Empty>
+    );
+  }
 
-  const { data: usage, isLoading: usageLoading } = trpc.billing.queryUsage.useQuery(undefined, {
-    enabled: Boolean(isLegacy),
-  });
+  // Check for legacy subscriptions only after workspace is loaded
+  const isLegacy =
+    workspace.subscriptions && Object.keys(workspace.subscriptions).length > 0;
+
+  const { data: usage, isLoading: usageLoading, isError, error } =
+    trpc.billing.queryUsage.useQuery(undefined, {
+      // Only enable query when workspace is loaded AND it's a legacy subscription
+      enabled: Boolean(isLegacy),
+    });
 
   if (usageLoading) {
     return (
       <Empty>
         <Loading />
+      </Empty>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Empty>
+        <Empty.Title>Failed to load usage data</Empty.Title>
+        <Empty.Description>
+          {error?.message || "There was an error loading your usage information. Please try again later."}
+        </Empty.Description>
       </Empty>
     );
   }
@@ -62,9 +85,13 @@ export default function BillingPage() {
           description={
             <>
               <p>
-                You are on the legacy usage-based plan. You can stay on this plan if you want but
-                it's likely more expensive than our new{" "}
-                <Link href="https://unkey.com/pricing" className="underline" target="_blank">
+                You are on the legacy usage-based plan. You can stay on this
+                plan if you want but it's likely more expensive than our new{" "}
+                <Link
+                  href="https://unkey.com/pricing"
+                  className="underline"
+                  target="_blank"
+                >
                   tiered pricing
                 </Link>
                 .

@@ -32,19 +32,16 @@ export const PlanSelectionModal = ({
   currentProductId,
   isChangingPlan = false,
 }: PlanSelectionModalProps) => {
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(currentProductId ?? null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const router = useRouter();
   const trpcUtils = trpc.useUtils();
 
-  // Initialize selectedProductId after mount to prevent hydration mismatch
+  // Set hasMounted flag after initial mount to prevent hydration mismatch
   useEffect(() => {
     setHasMounted(true);
-    if (currentProductId) {
-      setSelectedProductId(currentProductId);
-    }
-  }, [currentProductId]);
+  }, []);
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
