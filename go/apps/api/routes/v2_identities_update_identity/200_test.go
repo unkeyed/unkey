@@ -543,11 +543,8 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 
-		// Verify unlimited credits (remaining should be -1 or some indicator)
-		require.NotNil(t, res.Body.Data.Credits)
-		// The API might represent unlimited differently - adjust based on actual implementation
-		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
-		assert.Equal(t, int64(0), res.Body.Data.Credits.Remaining.MustGet())
+		// Verify unlimited credits
+		require.Nil(t, res.Body.Data.Credits)
 	})
 
 	t.Run("update credits with metadata in same request", func(t *testing.T) {
