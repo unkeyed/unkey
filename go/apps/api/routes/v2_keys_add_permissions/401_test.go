@@ -47,7 +47,6 @@ func TestAuthenticationErrors(t *testing.T) {
 		Disabled:    false,
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Remaining:   nil,
 		IdentityID:  nil,
 		Meta:        nil,
 	})

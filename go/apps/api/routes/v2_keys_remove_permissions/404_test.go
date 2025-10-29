@@ -151,7 +151,7 @@ func TestNotFoundErrors(t *testing.T) {
 		keyString := "test_" + uid.New("")
 		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:             keyID,
-			KeySpaceID:     keyAuthID,
+			KeySpaceID:     keySpaceID,
 			Hash:           hash.Sha256(keyString),
 			Start:          keyString[:4],
 			WorkspaceID:    workspace.ID,
