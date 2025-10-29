@@ -53,7 +53,6 @@ func TestAuthorizationErrors(t *testing.T) {
 		Expires:     nil,
 		Name:        nil,
 		Deleted:     false,
-
 		Permissions: nil,
 		Roles:       nil,
 		Ratelimits:  nil,
