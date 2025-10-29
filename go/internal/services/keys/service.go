@@ -20,7 +20,7 @@ type Config struct {
 	Region       string                // Geographic region identifier
 	UsageLimiter usagelimiter.Service  // Redis Counter for usage limiting
 
-	KeyCache cache.Cache[string, db.FindKeyForVerificationRow] // Cache for key lookups
+	KeyCache cache.Cache[string, db.CachedKeyData] // Cache for key lookups with pre-parsed data
 }
 
 type service struct {
@@ -32,8 +32,8 @@ type service struct {
 	clickhouse   clickhouse.ClickHouse
 	region       string
 
-	// hash -> key
-	keyCache cache.Cache[string, db.FindKeyForVerificationRow]
+	// hash -> cached key data (includes pre-parsed IP whitelist)
+	keyCache cache.Cache[string, db.CachedKeyData]
 }
 
 // New creates a new keys service instance with the provided configuration.

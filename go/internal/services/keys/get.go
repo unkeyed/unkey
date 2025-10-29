@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/internal/services/caches"
@@ -67,13 +68,32 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	}
 
 	h := hash.Sha256(rawKey)
-	key, hit, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.FindKeyForVerificationRow, error) {
+	key, hit, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.CachedKeyData, error) {
 		// Use database retry with exponential backoff, skipping non-transient errors
-		return db.WithRetry(func() (db.FindKeyForVerificationRow, error) {
+		row, err := db.WithRetryContext(ctx, func() (db.FindKeyForVerificationRow, error) {
 			return db.Query.FindKeyForVerification(ctx, s.db.RO(), h)
 		})
-	}, caches.DefaultFindFirstOp)
+		if err != nil {
+			return db.CachedKeyData{}, err
+		}
 
+		// Parse IP whitelist once during cache population for performance
+		parsedIPWhitelist := make(map[string]struct{})
+		if row.IpWhitelist.Valid && row.IpWhitelist.String != "" {
+			ips := strings.Split(row.IpWhitelist.String, ",")
+			for _, ip := range ips {
+				trimmed := strings.TrimSpace(ip)
+				if trimmed != "" {
+					parsedIPWhitelist[trimmed] = struct{}{}
+				}
+			}
+		}
+
+		return db.CachedKeyData{
+			FindKeyForVerificationRow: row,
+			ParsedIPWhitelist:         parsedIPWhitelist,
+		}, nil
+	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		if db.IsNotFound(err) {
 			// nolint:exhaustruct
@@ -107,14 +127,24 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		}, emptyLog, nil
 	}
 
-	kv := &KeyVerifier{
-		Status:  StatusWorkspaceDisabled,
-		message: "workspace is disabled",
-		region:  s.region,
-	}
-
+	// Workspace is disabled or the key is not allowed to be used for workspace operations
 	if !key.WorkspaceEnabled || (key.ForWorkspaceEnabled.Valid && !key.ForWorkspaceEnabled.Bool) {
 		// nolint:exhaustruct
+		kv := &KeyVerifier{
+			Status:                StatusWorkspaceDisabled,
+			message:               "workspace is disabled",
+			session:               sess,
+			rBAC:                  s.rbac,
+			region:                s.region,
+			logger:                s.logger,
+			clickhouse:            s.clickhouse,
+			rateLimiter:           s.raterLimiter,
+			usageLimiter:          s.usageLimiter,
+			AuthorizedWorkspaceID: key.WorkspaceID,
+			isRootKey:             key.ForWorkspaceID.Valid,
+			Key:                   key.FindKeyForVerificationRow,
+		}
+
 		return kv, kv.log, nil
 	}
 
@@ -170,8 +200,8 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		}
 	}
 
-	kv = &KeyVerifier{
-		Key:                   key,
+	kv := &KeyVerifier{
+		Key:                   key.FindKeyForVerificationRow,
 		clickhouse:            s.clickhouse,
 		rateLimiter:           s.raterLimiter,
 		usageLimiter:          s.usageLimiter,
@@ -184,11 +214,12 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		isRootKey:             key.ForWorkspaceID.Valid,
 
 		// By default we assume the key is valid unless proven otherwise
-		Status:           StatusValid,
-		ratelimitConfigs: ratelimitConfigs,
-		Roles:            roles,
-		Permissions:      permissions,
-		RatelimitResults: nil,
+		Status:            StatusValid,
+		ratelimitConfigs:  ratelimitConfigs,
+		parsedIPWhitelist: key.ParsedIPWhitelist, // Use pre-parsed IPs from cache
+		Roles:             roles,
+		Permissions:       permissions,
+		RatelimitResults:  nil,
 	}
 
 	if key.DeletedAtM.Valid {

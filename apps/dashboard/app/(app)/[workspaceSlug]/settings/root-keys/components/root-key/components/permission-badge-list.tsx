@@ -17,7 +17,11 @@ type Props = {
   removePermission: (permission: UnkeyPermission) => void;
 };
 
-type PermissionInfo = { permission: UnkeyPermission; category: string; action: string }[];
+type PermissionInfo = {
+  permission: UnkeyPermission;
+  category: string;
+  action: string;
+}[];
 
 const PermissionBadgeList = ({
   apiId,
@@ -69,7 +73,10 @@ const PermissionBadgeList = ({
 const ListBadges = ({
   info,
   removePermission,
-}: { info: PermissionInfo; removePermission: (permission: UnkeyPermission) => void }) => {
+}: {
+  info: PermissionInfo;
+  removePermission: (permission: UnkeyPermission) => void;
+}) => {
   // Stop propagation to prevent triggering parent collapsible when removing permissions
   const handleRemovePermissionClick = (id: string) => {
     const permission = info.find((p) => p.permission === id);
@@ -87,7 +94,7 @@ const ListBadges = ({
       }))}
       gridCols={2}
       onRemoveItem={handleRemovePermissionClick}
-      renderIcon={() => <Key2 size="sm-regular" className="text-grayA-11" aria-hidden="true" />}
+      renderIcon={() => <Key2 iconSize="sm-regular" className="text-grayA-11" aria-hidden="true" />}
       enableTransitions
       renderPrimaryText={(permission) => permission.name}
       renderSecondaryText={(permission) => permission.id}
@@ -135,7 +142,11 @@ const ListTitle = ({
   title,
   count,
   category,
-}: { title: string; count: number; category: string }) => {
+}: {
+  title: string;
+  count: number;
+  category: string;
+}) => {
   return (
     <span className="text-[13px] flex-1 text-grayA-10 text-left flex items-center">
       {title}
@@ -162,8 +173,14 @@ const findPermission = (
     .map((permission) => {
       return allPermissions.find((p) => p.permission === permission);
     })
-    .filter((item): item is { permission: UnkeyPermission; category: string; action: string } =>
-      Boolean(item),
+    .filter(
+      (
+        item,
+      ): item is {
+        permission: UnkeyPermission;
+        category: string;
+        action: string;
+      } => Boolean(item),
     );
 };
 

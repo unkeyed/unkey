@@ -89,15 +89,35 @@ const INTERVALS: Record<string, TimeInterval> = {
     step: "HOURS",
     stepSize: 6,
   },
+  twelveHours: {
+    table: "default.ratelimits_per_hour_v2",
+    step: "HOUR",
+    stepSize: 12,
+  },
   day: {
     table: "default.ratelimits_per_day_v2",
     step: "DAY",
     stepSize: 1,
   },
+  threeDays: {
+    table: "default.ratelimits_per_day_v2",
+    step: "DAY",
+    stepSize: 3,
+  },
+  week: {
+    table: "default.ratelimits_per_day_v2",
+    step: "DAY",
+    stepSize: 7,
+  },
   month: {
     table: "default.ratelimits_per_month_v2",
     step: "MONTH",
     stepSize: 1,
+  },
+  quarter: {
+    table: "default.ratelimits_per_month_v2",
+    step: "MONTH",
+    stepSize: 3,
   },
 } as const;
 
@@ -206,8 +226,12 @@ export const getHourlyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.ho
 export const getTwoHourlyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.twoHours);
 export const getFourHourlyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.fourHours);
 export const getSixHourlyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.sixHours);
+export const getTwelveHourlyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.twelveHours);
 export const getDailyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.day);
+export const getThreeDayRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.threeDays);
+export const getWeeklyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.week);
 export const getMonthlyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.month);
+export const getQuarterlyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.quarter);
 
 const getRatelimitLastUsedParameters = z.object({
   workspaceId: z.string(),
@@ -743,6 +767,26 @@ const LATENCY_INTERVALS: Record<string, TimeInterval> = {
     step: "DAY",
     stepSize: 1,
   },
+  threeDays: {
+    table: "default.ratelimits_identifier_latency_stats_per_day_v2",
+    step: "DAY",
+    stepSize: 3,
+  },
+  week: {
+    table: "default.ratelimits_identifier_latency_stats_per_week_v2",
+    step: "WEEK",
+    stepSize: 1,
+  },
+  month: {
+    table: "default.ratelimits_identifier_latency_stats_per_month_v2",
+    step: "MONTH",
+    stepSize: 1,
+  },
+  threeMonths: {
+    table: "default.ratelimits_identifier_latency_stats_per_month_v2",
+    step: "MONTH",
+    stepSize: 3,
+  },
 } as const;
 
 function createLatencyTimeseriesQuery(interval: TimeInterval, whereClause: string) {
@@ -862,4 +906,15 @@ export const getFourHourlyLatencyTimeseries = createLatencyTimeseriesQuerier(
 export const getSixHourlyLatencyTimeseries = createLatencyTimeseriesQuerier(
   LATENCY_INTERVALS.sixHours,
 );
+export const getTwelveHourlyLatencyTimeseries = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.twelveHours,
+);
 export const getDailyLatencyTimeseries = createLatencyTimeseriesQuerier(LATENCY_INTERVALS.day);
+export const getThreeDayLatencyTimeseries = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.threeDays,
+);
+export const getWeeklyLatencyTimeseries = createLatencyTimeseriesQuerier(LATENCY_INTERVALS.week);
+export const getMonthlyLatencyTimeseries = createLatencyTimeseriesQuerier(LATENCY_INTERVALS.month);
+export const getQuarterlyLatencyTimeseries = createLatencyTimeseriesQuerier(
+  LATENCY_INTERVALS.quarter,
+);

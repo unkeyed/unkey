@@ -33,7 +33,7 @@ export function OnboardingFallback() {
             steps={[
               {
                 name: "Workspace",
-                icon: <StackPerspective2 size="sm-regular" className="text-gray-11" />,
+                icon: <StackPerspective2 iconSize="sm-regular" className="text-gray-11" />,
                 body: (
                   <form>
                     <div className="flex flex-col">
@@ -54,12 +54,11 @@ export function OnboardingFallback() {
                 requiredFieldCount: 1,
                 buttonText: "Continue",
                 description: "Set up your workspace to get started",
-                onStepNext: () => {},
                 onStepBack: () => {},
               },
             ]}
-            onComplete={() => {}}
-            onStepChange={() => {}}
+            currentStepIndex={0}
+            setCurrentStepIndex={() => {}}
           />
         </div>
       </div>

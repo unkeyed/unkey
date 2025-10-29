@@ -208,7 +208,7 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("with ip whitelist", func(t *testing.T) {
-		ipWhitelistApi := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, IpWhitelist: "127.0.0.1"})
+		ipWhitelistApi := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, IpWhitelist: "123.123.123.123"})
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeyAuthID:   ipWhitelistApi.KeyAuthID.String,
@@ -217,11 +217,30 @@ func TestSuccess(t *testing.T) {
 		req := handler.Request{
 			Key: key.Key,
 		}
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+
+		// First request with wrong IP - should be forbidden
+		headersWithWrongIP := http.Header{
+			"Content-Type":   {"application/json"},
+			"Authorization":  {fmt.Sprintf("Bearer %s", rootKey)},
+			"X-Forwarded-For": {"192.168.1.1"},
+		}
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersWithWrongIP, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 		require.Equal(t, openapi.FORBIDDEN, res.Body.Data.Code, "Key should be forbidden but got %s", res.Body.Data.Code)
 		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+
+		// Second request with correct IP - should be valid
+		headersWithCorrectIP := http.Header{
+			"Content-Type":   {"application/json"},
+			"Authorization":  {fmt.Sprintf("Bearer %s", rootKey)},
+			"X-Forwarded-For": {"123.123.123.123"},
+		}
+		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headersWithCorrectIP, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+		require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
 	})
 
 	t.Run("key with permissions", func(t *testing.T) {
@@ -591,7 +610,7 @@ func TestSuccess(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeyAuthID:   api.KeyAuthID.String,
-			IdentityID:  ptr.P(identity),
+			IdentityID:  ptr.P(identity.ID),
 		})
 
 		req := handler.Request{
@@ -626,7 +645,7 @@ func TestSuccess(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeyAuthID:   api.KeyAuthID.String,
-			IdentityID:  ptr.P(identity),
+			IdentityID:  ptr.P(identity.ID),
 			Name:        ptr.P(keyName),
 			Roles: []seed.CreateRoleRequest{{
 				Name:        "read-writer",
@@ -663,7 +682,7 @@ func TestSuccess(t *testing.T) {
 		require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
 		require.Len(t, ptr.SafeDeref(res.Body.Data.Roles), 1, "Key should have 1 role")
 		require.Len(t, ptr.SafeDeref(res.Body.Data.Permissions), 3, "Key should have 3 permissions")
-		require.EqualValues(t, openapi.Identity{Id: identity, ExternalId: externalId, Meta: &meta, Ratelimits: nil}, ptr.SafeDeref(res.Body.Data.Identity))
+		require.EqualValues(t, openapi.Identity{Id: identity.ID, ExternalId: externalId, Meta: &meta, Ratelimits: nil}, ptr.SafeDeref(res.Body.Data.Identity))
 		require.Equal(t, keyName, ptr.SafeDeref(res.Body.Data.Name), "Key should have the same name")
 	})
 

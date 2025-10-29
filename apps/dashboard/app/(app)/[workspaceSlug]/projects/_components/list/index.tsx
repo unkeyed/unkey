@@ -1,4 +1,5 @@
-import { collection } from "@/lib/collections";
+import { ProximityPrefetch } from "@/components/proximity-prefetch";
+import { collection, collectionManager } from "@/lib/collections";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
@@ -76,31 +77,39 @@ export const ProjectsList = () => {
         }}
       >
         {projects.data.map((project) => (
-          <ProjectCard
-            projectId={project.id}
+          <ProximityPrefetch
+            distance={300}
+            debounceDelay={150}
             key={project.id}
-            name={project.name}
-            domain={project.domain}
-            commitTitle={project.commitTitle}
-            commitTimestamp={project.commitTimestamp}
-            branch={project.branch}
-            author={project.author}
-            authorAvatar={project.authorAvatar}
-            regions={project.regions}
-            repository={project.gitRepositoryUrl || undefined}
-            actions={
-              <ProjectActions projectId={project.id}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="mb-auto shrink-0"
-                  title="Project actions"
-                >
-                  <Dots size="sm-regular" />
-                </Button>
-              </ProjectActions>
-            }
-          />
+            onEnterProximity={() => {
+              collectionManager.preloadProject(project.id);
+            }}
+          >
+            <ProjectCard
+              projectId={project.id}
+              name={project.name}
+              domain={project.domain}
+              commitTitle={project.commitTitle}
+              commitTimestamp={project.commitTimestamp}
+              branch={project.branch}
+              author={project.author}
+              authorAvatar={project.authorAvatar}
+              regions={project.regions}
+              repository={project.gitRepositoryUrl || undefined}
+              actions={
+                <ProjectActions projectId={project.id}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="mb-auto shrink-0"
+                    title="Project actions"
+                  >
+                    <Dots iconSize="sm-regular" />
+                  </Button>
+                </ProjectActions>
+              }
+            />
+          </ProximityPrefetch>
         ))}
       </div>
     </div>

@@ -25,7 +25,7 @@ export const FilterButton = ({
     )}
     onClick={onClick}
   >
-    <Icon size="sm-regular" className={isActive ? "" : "text-grayA-9"} />
+    <Icon iconSize="sm-regular" className={isActive ? "" : "text-grayA-9 !size-3"} />
     <span className={isActive ? "" : "text-grayA-9"}>{label}</span>
     <div className="rounded w-[22px] h-[18px] flex items-center justify-center text-[10px] leading-4 bg-gray-6 text-black dark:text-white">
       {count}

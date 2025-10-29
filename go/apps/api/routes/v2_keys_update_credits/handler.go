@@ -31,7 +31,7 @@ type Handler struct {
 	DB           db.Database
 	Keys         keys.KeyService
 	Auditlogs    auditlogs.AuditLogService
-	KeyCache     cache.Cache[string, db.FindKeyForVerificationRow]
+	KeyCache     cache.Cache[string, db.CachedKeyData]
 	LiveKeyCache cache.Cache[string, db.FindLiveKeyByIDRow]
 	UsageLimiter usagelimiter.Service
 }

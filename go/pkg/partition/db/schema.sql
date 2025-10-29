@@ -12,7 +12,7 @@ CREATE TABLE gateways (
   `workspace_id` varchar(255) NOT NULL,
   `deployment_id` varchar(255) NOT NULL,
   `hostname` varchar(255) NOT NULL,
-  `config` blob NOT NULL,   -- Protobuf with all configuration including deployment_id, workspace_id
+  `config` longblob NOT NULL,   -- Protobuf with all configuration including deployment_id, workspace_id
   PRIMARY KEY (`id`),
   UNIQUE KEY `gateways_pk` (`hostname`),
   INDEX idx_deployment_id (deployment_id)

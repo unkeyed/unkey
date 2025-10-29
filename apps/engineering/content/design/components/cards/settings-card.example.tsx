@@ -60,7 +60,7 @@ export const SettingsCardsWithSharedEdge = () => {
       defaultValue={"Key_1234567890"}
       rightIcon={
         <button type="button">
-          <Clone size="sm-regular" />
+          <Clone iconSize="sm-regular" />
         </button>
       }
     />
@@ -91,7 +91,7 @@ export const SettingsCardsWithSharedEdge = () => {
             defaultValue={"Key_1234567890"}
             rightIcon={
               <button type="button">
-                <Clone size="sm-regular" />
+                <Clone iconSize="sm-regular" />
               </button>
             }
           />
@@ -129,7 +129,7 @@ export const SettingsCardsWithDivider = () => {
       defaultValue={"Key_1234567890"}
       rightIcon={
         <button type="button">
-          <Clone size="sm-regular" />
+          <Clone iconSize="sm-regular" />
         </button>
       }
     />
@@ -161,7 +161,7 @@ export const SettingsCardsWithDivider = () => {
             defaultValue={"Key_1234567890"}
             rightIcon={
               <button type="button">
-                <Clone size="sm-regular" />
+                <Clone iconSize="sm-regular" />
               </button>
             }
           />

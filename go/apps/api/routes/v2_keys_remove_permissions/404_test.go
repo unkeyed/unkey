@@ -46,7 +46,7 @@ func TestNotFoundErrors(t *testing.T) {
 	t.Run("key not found", func(t *testing.T) {
 		// Create a permission that exists using testutil helper
 		permissionDescription := "Read documents permission"
-		permissionID := h.CreatePermission(seed.CreatePermissionRequest{
+		permission := h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
 			Name:        "documents.read.remove.404keynotfound",
 			Slug:        "documents.read.remove.404keynotfound",
@@ -58,7 +58,7 @@ func TestNotFoundErrors(t *testing.T) {
 
 		req := handler.Request{
 			KeyId:       nonExistentKeyID,
-			Permissions: []string{permissionID},
+			Permissions: []string{permission.ID},
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](

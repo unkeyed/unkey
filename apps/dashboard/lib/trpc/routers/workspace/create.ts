@@ -30,48 +30,59 @@ export const createWorkspace = t.procedure
       });
     }
 
-    if (env().AUTH_PROVIDER === "local") {
-      // Check if this user already has a workspace
-      const existingWorkspaces = await db.query.workspaces.findMany({
-        where: (workspaces, { eq }) => eq(workspaces.orgId, ctx.tenant.id),
-      });
-
-      if (existingWorkspaces.length > 0) {
-        throw new TRPCError({
-          code: "METHOD_NOT_SUPPORTED",
-          message:
-            "You cannot create additional workspaces in local development mode. Use workOS auth provider if you need to test multi-workspace functionality.",
-        });
-      }
-    }
-
-    const orgId = await authProvider.createTenant({
-      name: input.name,
-      userId,
-    });
-
-    const workspace: Workspace = {
-      id: newId("workspace"),
-      orgId: orgId,
-      name: input.name,
-      slug: input.slug,
-      plan: "free",
-      tier: "Free",
-      stripeCustomerId: null,
-      stripeSubscriptionId: null,
-      features: {},
-      betaFeatures: {},
-      subscriptions: {},
-      enabled: true,
-      deleteProtection: true,
-      createdAtM: Date.now(),
-      updatedAtM: null,
-      deletedAtM: null,
-      partitionId: null,
-    };
-
-    await db
+    const orgId = await db
       .transaction(async (tx) => {
+        if (env().AUTH_PROVIDER === "local") {
+          // Check if this user already has a workspace
+          const existingWorkspaces = await tx.query.workspaces.findMany({
+            where: (workspaces, { eq }) => eq(workspaces.orgId, ctx.tenant.id),
+          });
+
+          if (existingWorkspaces.length > 0) {
+            throw new TRPCError({
+              code: "METHOD_NOT_SUPPORTED",
+              message:
+                "You cannot create additional workspaces in local development mode. Use workOS auth provider if you need to test multi-workspace functionality.",
+            });
+          }
+        }
+
+        const duplicateSlug = await tx.query.workspaces.findFirst({
+          where: (workspaces, { eq }) => eq(workspaces.slug, input.slug),
+        });
+
+        if (duplicateSlug) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "A workspace with this slug already exists.",
+          });
+        }
+
+        const orgId = await authProvider.createTenant({
+          name: input.name,
+          userId,
+        });
+
+        const workspace: Workspace = {
+          id: newId("workspace"),
+          orgId: orgId,
+          name: input.name,
+          slug: input.slug,
+          plan: "free",
+          tier: "Free",
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          features: {},
+          betaFeatures: {},
+          subscriptions: {},
+          enabled: true,
+          deleteProtection: true,
+          createdAtM: Date.now(),
+          updatedAtM: null,
+          deletedAtM: null,
+          partitionId: null,
+        };
+
         await tx.insert(schema.workspaces).values(workspace);
         await tx.insert(schema.quotas).values({
           workspaceId: workspace.id,
@@ -103,8 +114,13 @@ export const createWorkspace = t.procedure
         // The current user's orgId needs invalidation since they're switching away
         await invalidateWorkspaceCache(orgId);
         await invalidateWorkspaceCache(ctx.tenant.id);
+        return orgId;
       })
-      .catch((_err) => {
+      .catch((err) => {
+        if (err instanceof TRPCError) {
+          throw err;
+        }
+        console.error(err);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
@@ -113,7 +129,6 @@ export const createWorkspace = t.procedure
       });
 
     return {
-      workspace,
-      organizationId: orgId,
+      orgId,
     };
   });

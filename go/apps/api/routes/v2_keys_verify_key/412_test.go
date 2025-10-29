@@ -52,7 +52,7 @@ func TestPreconditionFailed(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeyAuthID:   api.KeyAuthID.String,
-			IdentityID:  ptr.P(identity),
+			IdentityID:  ptr.P(identity.ID),
 		})
 
 		req := handler.Request{
@@ -70,7 +70,7 @@ func TestPreconditionFailed(t *testing.T) {
 		// Should contain useful error message about missing ratelimit for key and identity
 		expectedMsg := fmt.Sprintf("ratelimit 'does-not-exist' was requested but does not exist for key '%s' nor identity", key.KeyID)
 		require.Contains(t, res.Body.Error.Detail, expectedMsg)
-		require.Contains(t, res.Body.Error.Detail, identity)
+		require.Contains(t, res.Body.Error.Detail, identity.ID)
 		require.Contains(t, res.Body.Error.Detail, "test-missing-ratelimit")
 	})
 

@@ -1,7 +1,6 @@
 "use client";
 import { ChevronLeft, ChevronRight } from "@unkey/icons";
 import { Button, CircleProgress, Separator } from "@unkey/ui";
-import { useEffect, useRef, useState } from "react";
 
 export type OnboardingStep = {
   /** Display name of the step shown in the navigation */
@@ -40,16 +39,16 @@ export type OnboardingStep = {
 export type OnboardingWizardProps = {
   /** Array of steps to display in the wizard. Must contain at least one step. */
   steps: OnboardingStep[];
-  /** Callback fired when the wizard is completed (user clicks continue on last step) */
-  onComplete?: () => void;
   /** Callback fired whenever the current step changes */
-  onStepChange?: (stepIndex: number) => void;
+  currentStepIndex: number;
+  setCurrentStepIndex: (index: number) => void;
 };
 
-export const OnboardingWizard = ({ steps, onComplete, onStepChange }: OnboardingWizardProps) => {
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const previousLoadingRef = useRef<boolean>(false);
-
+export const OnboardingWizard = ({
+  steps,
+  currentStepIndex,
+  setCurrentStepIndex,
+}: OnboardingWizardProps) => {
   if (steps.length === 0) {
     throw new Error("OnboardingWizard requires at least one step");
   }
@@ -58,31 +57,6 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === steps.length - 1;
   const isLoading = currentStep.isLoading || false;
-
-  // Auto-advance when loading ends
-  useEffect(() => {
-    if (previousLoadingRef.current && !isLoading) {
-      // Loading just ended, advance to next step
-      if (isLastStep) {
-        onComplete?.();
-      } else {
-        setCurrentStepIndex(currentStepIndex + 1);
-      }
-    }
-    previousLoadingRef.current = isLoading;
-  }, [isLoading, isLastStep, currentStepIndex, onComplete]);
-
-  useEffect(() => {
-    onStepChange?.(currentStepIndex);
-  }, [currentStepIndex, onStepChange]);
-
-  const advanceStep = () => {
-    if (isLastStep) {
-      onComplete?.();
-    } else {
-      setCurrentStepIndex(currentStepIndex + 1);
-    }
-  };
 
   const handleBack = () => {
     if (!isFirstStep && !isLoading) {
@@ -96,15 +70,7 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
       return;
     }
 
-    // If no callback provided, advance immediately
-    if (!currentStep.onStepNext) {
-      advanceStep();
-      return;
-    }
-
-    // Trigger callback, step should handle its own advancement via loading state
-    // or by calling the wizard's advance function passed to the callback
-    currentStep.onStepNext(currentStepIndex);
+    currentStep.onStepNext?.(currentStepIndex);
   };
 
   const handleSkip = () => {
@@ -141,7 +107,7 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
             disabled={isFirstStep || isLoading || isLastStep}
           >
             <div className="flex items-center gap-1">
-              <ChevronLeft size="sm-regular" className="text-gray-12 !w-3 !h-3 flex-shrink-0" />
+              <ChevronLeft iconSize="sm-regular" className="text-gray-12 !w-3 !h-3 flex-shrink-0" />
               <span className="font-medium text-gray-12 text-xs">Back</span>
             </div>
           </Button>
@@ -164,7 +130,7 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
                 <CircleProgress
                   value={currentStep.validFieldCount}
                   total={currentStep.requiredFieldCount}
-                  size="sm-medium"
+                  iconSize="sm-medium"
                 />
               </div>
             </div>
@@ -180,7 +146,7 @@ export const OnboardingWizard = ({ steps, onComplete, onStepChange }: Onboarding
                 <div className="flex items-center gap-1">
                   <span className="font-medium text-gray-12 text-xs">Skip step</span>
                   <ChevronRight
-                    size="sm-regular"
+                    iconSize="sm-regular"
                     className="text-gray-12 !w-3 !h-3 flex-shrink-0"
                   />
                 </div>
