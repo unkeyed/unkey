@@ -2,7 +2,8 @@ package db
 
 import (
 	"database/sql"
-	"encoding/json"
+
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // KeyData represents the complete data for a key including all relationships
@@ -26,31 +27,31 @@ type KeyRow interface {
 }
 
 // ToKeyData converts either query result into KeyData using generics
-func ToKeyData[T KeyRow](row T) *KeyData {
+func ToKeyData[T KeyRow](row T, logger logging.Logger) *KeyData {
 	switch r := any(row).(type) {
 	case FindLiveKeyByHashRow:
-		return buildKeyData(&r)
+		return buildKeyData(&r, logger)
 	case *FindLiveKeyByHashRow:
-		return buildKeyData(r)
+		return buildKeyData(r, logger)
 	case FindLiveKeyByIDRow:
-		return buildKeyDataFromID(&r)
+		return buildKeyDataFromID(&r, logger)
 	case *FindLiveKeyByIDRow:
-		return buildKeyDataFromID(r)
+		return buildKeyDataFromID(r, logger)
 	case ListLiveKeysByKeyAuthIDRow:
-		return buildKeyDataFromKeyAuth(&r)
+		return buildKeyDataFromKeyAuth(&r, logger)
 	case *ListLiveKeysByKeyAuthIDRow:
-		return buildKeyDataFromKeyAuth(r)
+		return buildKeyDataFromKeyAuth(r, logger)
 	default:
 		return nil
 	}
 }
 
-func buildKeyDataFromID(r *FindLiveKeyByIDRow) *KeyData {
+func buildKeyDataFromID(r *FindLiveKeyByIDRow, logger logging.Logger) *KeyData {
 	hr := FindLiveKeyByHashRow(*r) // safe value copy
-	return buildKeyData(&hr)
+	return buildKeyData(&hr, logger)
 }
 
-func buildKeyDataFromKeyAuth(r *ListLiveKeysByKeyAuthIDRow) *KeyData {
+func buildKeyDataFromKeyAuth(r *ListLiveKeysByKeyAuthIDRow, logger logging.Logger) *KeyData {
 	kd := &KeyData{
 		Key: Key{
 			ID:                r.ID,
@@ -82,11 +83,11 @@ func buildKeyDataFromKeyAuth(r *ListLiveKeysByKeyAuthIDRow) *KeyData {
 		Workspace:       Workspace{}, // Empty Workspace since not in this query
 		EncryptedKey:    r.EncryptedKey,
 		EncryptionKeyID: r.EncryptionKeyID,
-		Roles:           nil,
-		Permissions:     nil,
-		RolePermissions: nil,
-		Ratelimits:      nil,
-	} //nolint:exhaustruct
+		Roles:           UnmarshalNullableJSONTo[[]RoleInfo](r.Roles, logger),
+		Permissions:     UnmarshalNullableJSONTo[[]PermissionInfo](r.Permissions, logger),
+		RolePermissions: UnmarshalNullableJSONTo[[]PermissionInfo](r.RolePermissions, logger),
+		Ratelimits:      UnmarshalNullableJSONTo[[]RatelimitInfo](r.Ratelimits, logger),
+	}
 
 	if r.IdentityID.Valid {
 		kd.Identity = &Identity{
@@ -97,24 +98,10 @@ func buildKeyDataFromKeyAuth(r *ListLiveKeysByKeyAuthIDRow) *KeyData {
 		}
 	}
 
-	// It's fine to fail here
-	if roleBytes, ok := r.Roles.([]byte); ok && roleBytes != nil {
-		_ = json.Unmarshal(roleBytes, &kd.Roles) // Ignore error, default to empty array
-	}
-	if permissionsBytes, ok := r.Permissions.([]byte); ok && permissionsBytes != nil {
-		_ = json.Unmarshal(permissionsBytes, &kd.Permissions) // Ignore error, default to empty array
-	}
-	if rolePermissionsBytes, ok := r.RolePermissions.([]byte); ok && rolePermissionsBytes != nil {
-		_ = json.Unmarshal(rolePermissionsBytes, &kd.RolePermissions) // Ignore error, default to empty array
-	}
-	if ratelimitsBytes, ok := r.Ratelimits.([]byte); ok && ratelimitsBytes != nil {
-		_ = json.Unmarshal(ratelimitsBytes, &kd.Ratelimits) // Ignore error, default to empty array
-	}
-
 	return kd
 }
 
-func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
+func buildKeyData(r *FindLiveKeyByHashRow, logger logging.Logger) *KeyData {
 	kd := &KeyData{
 		Key: Key{
 			ID:                r.ID,
@@ -146,11 +133,11 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 		Workspace:       r.Workspace,
 		EncryptedKey:    r.EncryptedKey,
 		EncryptionKeyID: r.EncryptionKeyID,
-		Roles:           nil,
-		Permissions:     nil,
-		RolePermissions: nil,
-		Ratelimits:      nil,
-	} //nolint:exhaustruct
+		Roles:           UnmarshalNullableJSONTo[[]RoleInfo](r.Roles, logger),
+		Permissions:     UnmarshalNullableJSONTo[[]PermissionInfo](r.Permissions, logger),
+		RolePermissions: UnmarshalNullableJSONTo[[]PermissionInfo](r.RolePermissions, logger),
+		Ratelimits:      UnmarshalNullableJSONTo[[]RatelimitInfo](r.Ratelimits, logger),
+	}
 
 	if r.IdentityTableID.Valid {
 		kd.Identity = &Identity{
@@ -159,20 +146,6 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 			WorkspaceID: r.WorkspaceID,
 			Meta:        r.IdentityMeta,
 		}
-	}
-
-	// It's fine to fail here
-	if roleBytes, ok := r.Roles.([]byte); ok && roleBytes != nil {
-		_ = json.Unmarshal(roleBytes, &kd.Roles) // Ignore error, default to empty array
-	}
-	if permissionsBytes, ok := r.Permissions.([]byte); ok && permissionsBytes != nil {
-		_ = json.Unmarshal(permissionsBytes, &kd.Permissions) // Ignore error, default to empty array
-	}
-	if rolePermissionsBytes, ok := r.RolePermissions.([]byte); ok && rolePermissionsBytes != nil {
-		_ = json.Unmarshal(rolePermissionsBytes, &kd.RolePermissions) // Ignore error, default to empty array
-	}
-	if ratelimitsBytes, ok := r.Ratelimits.([]byte); ok && ratelimitsBytes != nil {
-		_ = json.Unmarshal(ratelimitsBytes, &kd.Ratelimits) // Ignore error, default to empty array
 	}
 
 	return kd

@@ -228,7 +228,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Transform to response format
 	responseData := make([]openapi.KeyResponseData, len(keyResults))
 	for i, key := range keyResults {
-		keyData := db.ToKeyData(key)
+		keyData := db.ToKeyData(key, h.Logger)
 		response, err := h.buildKeyResponseData(keyData, plaintextMap[key.ID])
 		if err != nil {
 			return err
@@ -304,11 +304,8 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 		}
 
 		if len(keyData.Identity.Meta) > 0 {
-			var identityMeta map[string]any
-			_ = json.Unmarshal(keyData.Identity.Meta, &identityMeta) // Ignore error, default to nil
-			if identityMeta != nil {
-				response.Identity.Meta = &identityMeta
-			}
+			meta := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta, h.Logger)
+			response.Identity.Meta = &meta
 		}
 	}
 

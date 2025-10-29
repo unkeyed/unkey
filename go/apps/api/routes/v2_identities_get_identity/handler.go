@@ -96,19 +96,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Parse metadata
-	var metaMap map[string]any
-	if len(identity.Meta) > 0 {
-		err = json.Unmarshal(identity.Meta, &metaMap)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("unable to unmarshal metadata"), fault.Public("We're unable to parse the identity's metadata."),
-			)
-		}
-	} else {
-		metaMap = make(map[string]any)
-	}
-
+	metaMap := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta, h.Logger)
 	// Format ratelimits for the response
 	responseRatelimits := make([]openapi.RatelimitResponse, 0, len(ratelimits))
 	for _, r := range ratelimits {

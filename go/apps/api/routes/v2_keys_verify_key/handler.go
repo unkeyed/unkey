@@ -21,8 +21,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2KeysVerifyKeyRequestBody
-type Response = openapi.V2KeysVerifyKeyResponseBody
+type (
+	Request  = openapi.V2KeysVerifyKeyRequestBody
+	Response = openapi.V2KeysVerifyKeyResponseBody
+)
 
 const DefaultCost = 1
 
@@ -228,12 +230,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if len(key.Key.IdentityMeta) > 0 {
-			err = json.Unmarshal(key.Key.IdentityMeta, &keyData.Identity.Meta)
-			if err != nil {
-				return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-					fault.Internal("unable to unmarshal identity meta"),
-					fault.Public("We encountered an error while trying to unmarshal the identity meta data."),
-				)
+			meta := db.UnmarshalNullableJSONTo[map[string]any](key.Key.IdentityMeta, h.Logger)
+			if len(meta) > 0 {
+				keyData.Identity.Meta = &meta
 			}
 		}
 	}

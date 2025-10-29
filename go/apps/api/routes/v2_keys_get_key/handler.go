@@ -77,7 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	keyData := db.ToKeyData(key)
+	keyData := db.ToKeyData(key, h.Logger)
 
 	// Validate key belongs to authorized workspace
 	if keyData.Key.WorkspaceID != auth.AuthorizedWorkspaceID {
@@ -158,7 +158,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	// Set identity
 	if keyData.Identity != nil {
 		response.Identity = &openapi.Identity{
 			Id:         keyData.Identity.ID,
@@ -166,12 +165,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if len(keyData.Identity.Meta) > 0 {
-			var identityMeta map[string]any
-			if err := json.Unmarshal(keyData.Identity.Meta, &identityMeta); err != nil {
-				h.Logger.Error("failed to unmarshal identity meta", "error", err)
-			} else {
-				response.Identity.Meta = &identityMeta
-			}
+			identityMeta := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta, h.Logger)
+			response.Identity.Meta = &identityMeta
 		}
 	}
 
