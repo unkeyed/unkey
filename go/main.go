@@ -10,6 +10,7 @@ import (
 	dev "github.com/unkeyed/unkey/go/cmd/dev"
 	gateway "github.com/unkeyed/unkey/go/cmd/gw"
 	"github.com/unkeyed/unkey/go/cmd/healthcheck"
+	"github.com/unkeyed/unkey/go/cmd/migrate"
 	"github.com/unkeyed/unkey/go/cmd/quotacheck"
 	"github.com/unkeyed/unkey/go/cmd/run"
 	"github.com/unkeyed/unkey/go/cmd/version"
@@ -35,6 +36,7 @@ func main() {
 			gateway.Cmd,
 			clickhouseUser.Cmd,
 			dev.Cmd,
+			migrate.Cmd,
 		},
 	}
 
