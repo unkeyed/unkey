@@ -289,7 +289,7 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 		initialCredits := int32(100)
 		legacyKey := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:             workspace.ID,
-			KeyAuthID:               api.KeyAuthID.String,
+			KeySpaceID:              api.KeyAuthID.String,
 			Name:                    ptr.P("legacy-update-test"),
 			LegacyRemainingRequests: &initialCredits,
 		})
@@ -325,7 +325,7 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 		initialCredits := int32(150)
 		legacyKey := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:             workspace.ID,
-			KeyAuthID:               api.KeyAuthID.String,
+			KeySpaceID:              api.KeyAuthID.String,
 			Name:                    ptr.P("legacy-unlimited-test"),
 			LegacyRemainingRequests: &initialCredits,
 		})
@@ -358,7 +358,7 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 		initialCredits := int32(100)
 		legacyKey := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:             workspace.ID,
-			KeyAuthID:               api.KeyAuthID.String,
+			KeySpaceID:              api.KeyAuthID.String,
 			Name:                    ptr.P("legacy-refill-test"),
 			LegacyRemainingRequests: &initialCredits,
 		})
@@ -393,7 +393,7 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 		initialCredits := int32(100)
 		legacyKey := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:             workspace.ID,
-			KeyAuthID:               api.KeyAuthID.String,
+			KeySpaceID:              api.KeyAuthID.String,
 			Name:                    ptr.P("legacy-monthly-refill-test"),
 			LegacyRemainingRequests: &initialCredits,
 		})
@@ -432,7 +432,7 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 		refillAmount := int32(50)
 		legacyKey := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:             workspace.ID,
-			KeyAuthID:               api.KeyAuthID.String,
+			KeySpaceID:              api.KeyAuthID.String,
 			Name:                    ptr.P("legacy-clear-refill-test"),
 			LegacyRemainingRequests: &initialCredits,
 			LegacyRefillAmount:      &refillAmount,

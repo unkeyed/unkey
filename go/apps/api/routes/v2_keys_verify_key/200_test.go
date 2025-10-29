@@ -378,7 +378,7 @@ func TestSuccess(t *testing.T) {
 			initialCredits := int32(5)
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:             workspace.ID,
-				KeyAuthID:               api.KeyAuthID.String,
+				KeySpaceID:              api.KeyAuthID.String,
 				LegacyRemainingRequests: &initialCredits,
 			})
 
@@ -398,7 +398,7 @@ func TestSuccess(t *testing.T) {
 			initialCredits := int32(0)
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:             workspace.ID,
-				KeyAuthID:               api.KeyAuthID.String,
+				KeySpaceID:              api.KeyAuthID.String,
 				LegacyRemainingRequests: &initialCredits,
 			})
 
@@ -418,7 +418,7 @@ func TestSuccess(t *testing.T) {
 			initialCredits := int32(5)
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:             workspace.ID,
-				KeyAuthID:               api.KeyAuthID.String,
+				KeySpaceID:              api.KeyAuthID.String,
 				LegacyRemainingRequests: &initialCredits,
 			})
 
@@ -441,7 +441,7 @@ func TestSuccess(t *testing.T) {
 			initialCredits := int32(2)
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:             workspace.ID,
-				KeyAuthID:               api.KeyAuthID.String,
+				KeySpaceID:              api.KeyAuthID.String,
 				LegacyRemainingRequests: &initialCredits,
 			})
 
@@ -464,7 +464,7 @@ func TestSuccess(t *testing.T) {
 			initialCredits := int32(0)
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:             workspace.ID,
-				KeyAuthID:               api.KeyAuthID.String,
+				KeySpaceID:              api.KeyAuthID.String,
 				LegacyRemainingRequests: &initialCredits,
 			})
 
@@ -487,7 +487,7 @@ func TestSuccess(t *testing.T) {
 			initialCredits := int32(100)
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:             workspace.ID,
-				KeyAuthID:               api.KeyAuthID.String,
+				KeySpaceID:              api.KeyAuthID.String,
 				LegacyRemainingRequests: &initialCredits,
 			})
 
@@ -508,7 +508,7 @@ func TestSuccess(t *testing.T) {
 			refillAmount := int32(50)
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:             workspace.ID,
-				KeyAuthID:               api.KeyAuthID.String,
+				KeySpaceID:              api.KeyAuthID.String,
 				LegacyRemainingRequests: &initialCredits,
 				LegacyRefillAmount:      &refillAmount,
 			})
@@ -531,7 +531,7 @@ func TestSuccess(t *testing.T) {
 			refillDay := int16(15)
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:             workspace.ID,
-				KeyAuthID:               api.KeyAuthID.String,
+				KeySpaceID:              api.KeyAuthID.String,
 				LegacyRemainingRequests: &initialCredits,
 				LegacyRefillAmount:      &refillAmount,
 				LegacyRefillDay:         &refillDay,

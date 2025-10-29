@@ -221,7 +221,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		initialCredits := int32(100)
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:             workspace.ID,
-			KeyAuthID:               api.KeyAuthID.String,
+			KeySpaceID:              api.KeyAuthID.String,
 			Name:                    ptr.P("legacy-set-test"),
 			LegacyRemainingRequests: &initialCredits,
 		})
@@ -258,7 +258,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		initialCredits := int32(75)
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:             workspace.ID,
-			KeyAuthID:               api.KeyAuthID.String,
+			KeySpaceID:              api.KeyAuthID.String,
 			Name:                    ptr.P("legacy-null-test"),
 			LegacyRemainingRequests: &initialCredits,
 		})
@@ -287,7 +287,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		initialCredits := int32(rand.IntN(100) + 50)
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:             workspace.ID,
-			KeyAuthID:               api.KeyAuthID.String,
+			KeySpaceID:              api.KeyAuthID.String,
 			Name:                    ptr.P("legacy-increment-test"),
 			LegacyRemainingRequests: &initialCredits,
 		})
@@ -317,7 +317,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		initialCredits := int32(rand.IntN(100) + 100)
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:             workspace.ID,
-			KeyAuthID:               api.KeyAuthID.String,
+			KeySpaceID:              api.KeyAuthID.String,
 			Name:                    ptr.P("legacy-decrement-test"),
 			LegacyRemainingRequests: &initialCredits,
 		})
@@ -347,7 +347,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		initialCredits := int32(10)
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:             workspace.ID,
-			KeyAuthID:               api.KeyAuthID.String,
+			KeySpaceID:              api.KeyAuthID.String,
 			Name:                    ptr.P("legacy-decrement-negative-test"),
 			LegacyRemainingRequests: &initialCredits,
 		})
@@ -379,7 +379,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		refillDay := int16(15)
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:             workspace.ID,
-			KeyAuthID:               api.KeyAuthID.String,
+			KeySpaceID:              api.KeyAuthID.String,
 			Name:                    ptr.P("legacy-refill-test"),
 			LegacyRemainingRequests: &initialCredits,
 			LegacyRefillAmount:      &refillAmount,
