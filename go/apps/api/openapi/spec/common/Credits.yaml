@@ -7,8 +7,8 @@ properties:
       - "null"
     format: int64
     minimum: 0
-    maximum: 9223372036854775807
-    description: Number of credits remaining (null for unlimited).
+    maximum: 2147483647
+    description: Number of credits remaining (null for unlimited). Maximum value is 2147483647 (int32 limit).
     example: 1000
   refill:
     "$ref": "./CreditsRefill.yaml"

@@ -93,9 +93,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Convert to KeyData to access credits
 	keyData := db.ToKeyData(key)
 
+	// Check all credit sources: new credits table, or legacy fields
+	hasNewCredits := keyData.KeyCredits != nil
+	hasLegacyCredits := key.RemainingRequests.Valid
+
 	// Save the old credit ID for cache invalidation later (before it potentially gets deleted/changed in the transaction)
 	oldCreditID := ""
-	if keyData.KeyCredits != nil {
+	if hasNewCredits {
 		oldCreditID = keyData.KeyCredits.ID
 	}
 
@@ -243,12 +247,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			// Handle credits updates
 			if req.Credits.IsSpecified() {
-				keyData := db.ToKeyData(key)
 				now := time.Now().UnixMilli()
 
-				if req.Credits.IsNull() {
-					// Setting credits to null means unlimited - delete the credit record
-					if keyData.KeyCredits != nil {
+				// Work with whichever credit system the key is using (no migration)
+				if hasNewCredits {
+					// Key uses new credits table
+					if req.Credits.IsNull() {
+						// Setting credits to null means unlimited - delete the credit record
 						if err := db.Query.DeleteCredit(ctx, tx, keyData.KeyCredits.ID); err != nil {
 							return fault.Wrap(err,
 								fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -256,12 +261,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 								fault.Public("Failed to update key credits."),
 							)
 						}
-					}
-				} else {
-					credits := req.Credits.MustGet()
-					if credits.Remaining.IsSpecified() && credits.Remaining.IsNull() {
-						// Setting remaining to null means unlimited - delete the credit record
-						if keyData.KeyCredits != nil {
+					} else {
+						credits := req.Credits.MustGet()
+						if credits.Remaining.IsSpecified() && credits.Remaining.IsNull() {
+							// Setting remaining to null means unlimited - delete the credit record
 							if err := db.Query.DeleteCredit(ctx, tx, keyData.KeyCredits.ID); err != nil {
 								return fault.Wrap(err,
 									fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -269,93 +272,223 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 									fault.Public("Failed to update key credits."),
 								)
 							}
-						}
-					} else {
-						// Upsert credits with three-state logic
-						var remaining int32
-						var remainingSpecified int64
-						var refillDay sql.NullInt16
-						var refillDaySpecified int64
-						var refillAmount sql.NullInt32
-						var refillAmountSpecified int64
+						} else {
+							// Upsert credits with three-state logic
+							var remaining int32
+							var remainingSpecified int64
+							var refillDay sql.NullInt16
+							var refillDaySpecified int64
+							var refillAmount sql.NullInt32
+							var refillAmountSpecified int64
 
-						if credits.Remaining.IsSpecified() {
-							remainingSpecified = 1
-							remaining = int32(credits.Remaining.MustGet()) // nolint:gosec
-						}
-						// If not specified, remainingSpecified stays 0 and DB keeps existing value
+							if credits.Remaining.IsSpecified() {
+								remainingSpecified = 1
+								remaining = int32(credits.Remaining.MustGet()) // nolint:gosec
+							}
 
-						if credits.Refill.IsSpecified() {
-							if credits.Refill.IsNull() {
-								// Clear refill configuration
-								refillDaySpecified = 1
-								refillAmountSpecified = 1
-								refillDay = sql.NullInt16{Valid: false}
-								refillAmount = sql.NullInt32{Valid: false}
-							} else {
-								refill := credits.Refill.MustGet()
-								refillAmountSpecified = 1
-								refillAmount = sql.NullInt32{
-									Valid: true,
-									Int32: int32(refill.Amount), // nolint:gosec
-								}
-
-								refillDaySpecified = 1
-								switch refill.Interval {
-								case openapi.Monthly:
-									if refill.RefillDay == nil {
-										return fault.New("missing refillDay",
-											fault.Code(codes.App.Validation.InvalidInput.URN()),
-											fault.Internal("refillDay required for monthly interval"),
-											fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
-										)
-									}
-
-									refillDay = sql.NullInt16{
-										Valid: true,
-										Int16: int16(*refill.RefillDay), // nolint:gosec
-									}
-								case openapi.Daily:
-									if refill.RefillDay != nil {
-										return fault.New("invalid refillDay",
-											fault.Code(codes.App.Validation.InvalidInput.URN()),
-											fault.Internal("refillDay cannot be set for daily interval"),
-											fault.Public("`refillDay` must not be provided when the refill interval is `daily`."),
-										)
-									}
-
-									// For daily, refill_day should remain NULL
+							if credits.Refill.IsSpecified() {
+								if credits.Refill.IsNull() {
+									refillDaySpecified = 1
+									refillAmountSpecified = 1
 									refillDay = sql.NullInt16{Valid: false}
+									refillAmount = sql.NullInt32{Valid: false}
+								} else {
+									refill := credits.Refill.MustGet()
+									refillAmountSpecified = 1
+									refillAmount = sql.NullInt32{
+										Valid: true,
+										Int32: int32(refill.Amount), // nolint:gosec
+									}
+
+									refillDaySpecified = 1
+									switch refill.Interval {
+									case openapi.Monthly:
+										if refill.RefillDay == nil {
+											return fault.New("missing refillDay",
+												fault.Code(codes.App.Validation.InvalidInput.URN()),
+												fault.Internal("refillDay required for monthly interval"),
+												fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
+											)
+										}
+
+										refillDay = sql.NullInt16{
+											Valid: true,
+											Int16: int16(*refill.RefillDay), // nolint:gosec
+										}
+									case openapi.Daily:
+										if refill.RefillDay != nil {
+											return fault.New("invalid refillDay",
+												fault.Code(codes.App.Validation.InvalidInput.URN()),
+												fault.Internal("refillDay cannot be set for daily interval"),
+												fault.Public("`refillDay` must not be provided when the refill interval is `daily`."),
+											)
+										}
+
+										refillDay = sql.NullInt16{Valid: false}
+									}
 								}
 							}
-						}
-						// If not specified, refill specified flags stay 0 and DB keeps existing values
 
+							err = db.Query.UpsertCredit(ctx, tx, db.UpsertCreditParams{
+								ID:                    keyData.KeyCredits.ID,
+								WorkspaceID:           key.WorkspaceID,
+								KeyID:                 sql.NullString{Valid: true, String: key.ID},
+								IdentityID:            sql.NullString{Valid: false},
+								Remaining:             remaining,
+								RefillDay:             refillDay,
+								RefillAmount:          refillAmount,
+								CreatedAt:             now,
+								UpdatedAt:             sql.NullInt64{Valid: true, Int64: now},
+								RefilledAt:            sql.NullInt64{Valid: false},
+								RemainingSpecified:    remainingSpecified,
+								RefillDaySpecified:    refillDaySpecified,
+								RefillAmountSpecified: refillAmountSpecified,
+							})
+							if err != nil {
+								return fault.Wrap(err,
+									fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+									fault.Internal("database error"),
+									fault.Public("Failed to update key credits."),
+								)
+							}
+						}
+					}
+				} else if hasLegacyCredits {
+					// Key uses legacy fields - update them directly
+					credits := req.Credits.MustGet()
+
+					updateKeyParams := db.UpdateKeyParams{
+						ID:                  key.ID,
+						Now:                 sql.NullInt64{Valid: true, Int64: now},
+						NameSpecified:       0,
+						IdentityIDSpecified: 0,
+						EnabledSpecified:    0,
+						MetaSpecified:       0,
+						ExpiresSpecified:    0,
+					}
+
+					if credits.Remaining.IsSpecified() {
+						if credits.Remaining.IsNull() {
+							// Set to unlimited (NULL)
+							updateKeyParams.RemainingRequests = sql.NullInt32{Valid: false}
+						} else {
+							updateKeyParams.RemainingRequests = sql.NullInt32{
+								Valid: true,
+								Int32: int32(credits.Remaining.MustGet()), // nolint:gosec
+							}
+						}
+					}
+
+					if credits.Refill.IsSpecified() {
+						if credits.Refill.IsNull() {
+							// Clear refill
+							updateKeyParams.RefillAmount = sql.NullInt32{Valid: false}
+							updateKeyParams.RefillDay = sql.NullInt16{Valid: false}
+						} else {
+							refill := credits.Refill.MustGet()
+							updateKeyParams.RefillAmount = sql.NullInt32{
+								Valid: true,
+								Int32: int32(refill.Amount), // nolint:gosec
+							}
+
+							switch refill.Interval {
+							case openapi.Monthly:
+								if refill.RefillDay == nil {
+									return fault.New("missing refillDay",
+										fault.Code(codes.App.Validation.InvalidInput.URN()),
+										fault.Internal("refillDay required for monthly interval"),
+										fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
+									)
+								}
+
+								updateKeyParams.RefillDay = sql.NullInt16{
+									Valid: true,
+									Int16: int16(*refill.RefillDay), // nolint:gosec
+								}
+							case openapi.Daily:
+								if refill.RefillDay != nil {
+									return fault.New("invalid refillDay",
+										fault.Code(codes.App.Validation.InvalidInput.URN()),
+										fault.Internal("refillDay cannot be set for daily interval"),
+										fault.Public("`refillDay` must not be provided when the refill interval is `daily`."),
+									)
+								}
+
+								updateKeyParams.RefillDay = sql.NullInt16{Valid: false}
+							}
+						}
+					}
+
+					// Apply the update
+					err = db.Query.UpdateKey(ctx, tx, updateKeyParams)
+					if err != nil {
+						return fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("database error"),
+							fault.Public("Failed to update key credits."),
+						)
+					}
+				} else {
+					// No existing credits - create new credits in new table
+					credits := req.Credits.MustGet()
+					if !credits.Remaining.IsNull() {
 						creditID := uid.New(uid.CreditPrefix)
-						if keyData.KeyCredits != nil {
-							creditID = keyData.KeyCredits.ID
+						remaining := int32(credits.Remaining.MustGet())
+
+						var refillDay sql.NullInt16
+						var refillAmount sql.NullInt32
+
+						if credits.Refill != nil && !credits.Refill.IsNull() {
+							refill := credits.Refill.MustGet()
+							refillAmount = sql.NullInt32{
+								Valid: true,
+								Int32: int32(refill.Amount), // nolint:gosec
+							}
+
+							switch refill.Interval {
+							case openapi.Monthly:
+								if refill.RefillDay == nil {
+									return fault.New("missing refillDay",
+										fault.Code(codes.App.Validation.InvalidInput.URN()),
+										fault.Internal("refillDay required for monthly interval"),
+										fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
+									)
+								}
+
+								refillDay = sql.NullInt16{
+									Valid: true,
+									Int16: int16(*refill.RefillDay), // nolint:gosec
+								}
+							case openapi.Daily:
+								if refill.RefillDay != nil {
+									return fault.New("invalid refillDay",
+										fault.Code(codes.App.Validation.InvalidInput.URN()),
+										fault.Internal("refillDay cannot be set for daily interval"),
+										fault.Public("`refillDay` must not be provided when the refill interval is `daily`."),
+									)
+								}
+
+								refillDay = sql.NullInt16{Valid: false}
+							}
 						}
 
-						err = db.Query.UpsertCredit(ctx, tx, db.UpsertCreditParams{
-							ID:                    creditID,
-							WorkspaceID:           key.WorkspaceID,
-							KeyID:                 sql.NullString{Valid: true, String: key.ID},
-							IdentityID:            sql.NullString{Valid: false},
-							Remaining:             remaining,
-							RefillDay:             refillDay,
-							RefillAmount:          refillAmount,
-							CreatedAt:             now,
-							UpdatedAt:             sql.NullInt64{Valid: true, Int64: now},
-							RefilledAt:            sql.NullInt64{Valid: false},
-							RemainingSpecified:    remainingSpecified,
-							RefillDaySpecified:    refillDaySpecified,
-							RefillAmountSpecified: refillAmountSpecified,
+						err = db.Query.InsertCredit(ctx, tx, db.InsertCreditParams{
+							ID:           creditID,
+							WorkspaceID:  key.WorkspaceID,
+							KeyID:        sql.NullString{Valid: true, String: key.ID},
+							IdentityID:   sql.NullString{Valid: false},
+							Remaining:    remaining,
+							RefillDay:    refillDay,
+							RefillAmount: refillAmount,
+							CreatedAt:    now,
+							UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
+							RefilledAt:   sql.NullInt64{Valid: false},
 						})
 						if err != nil {
 							return fault.Wrap(err,
 								fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 								fault.Internal("database error"),
-								fault.Public("Failed to update key credits."),
+								fault.Public("Failed to create key credits."),
 							)
 						}
 					}

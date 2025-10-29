@@ -88,12 +88,24 @@ SELECT k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
                     WHERE rl.identity_id = i.id
                 ) AS combined_rl),
                JSON_ARRAY()
-       )                    AS ratelimits
+       )                    AS ratelimits,
+       -- Key credits from new credits table
+       kc.id                as credit_id,
+       kc.remaining         as credit_remaining,
+       kc.refill_day        as credit_refill_day,
+       kc.refill_amount     as credit_refill_amount,
+       -- Identity credits from new credits table
+       ic.id                as identity_credit_id,
+       ic.remaining         as identity_credit_remaining,
+       ic.refill_day        as identity_credit_refill_day,
+       ic.refill_amount     as identity_credit_refill_amount
 FROM ` + "`" + `keys` + "`" + ` k
          JOIN key_auth ka ON ka.id = k.key_auth_id
          JOIN workspaces ws ON ws.id = k.workspace_id
          LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
          LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+         LEFT JOIN credits kc ON kc.key_id = k.id
+         LEFT JOIN credits ic ON ic.identity_id = i.id
 WHERE k.key_auth_id = ?
   AND k.id >= ?
   AND (
@@ -114,38 +126,46 @@ type ListLiveKeysByKeySpaceIDParams struct {
 }
 
 type ListLiveKeysByKeySpaceIDRow struct {
-	ID                 string         `db:"id"`
-	KeyAuthID          string         `db:"key_auth_id"`
-	Hash               string         `db:"hash"`
-	Start              string         `db:"start"`
-	WorkspaceID        string         `db:"workspace_id"`
-	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
-	Name               sql.NullString `db:"name"`
-	OwnerID            sql.NullString `db:"owner_id"`
-	IdentityID         sql.NullString `db:"identity_id"`
-	Meta               sql.NullString `db:"meta"`
-	Expires            sql.NullTime   `db:"expires"`
-	CreatedAtM         int64          `db:"created_at_m"`
-	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
-	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
-	RefillDay          sql.NullInt16  `db:"refill_day"`
-	RefillAmount       sql.NullInt32  `db:"refill_amount"`
-	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
-	Enabled            bool           `db:"enabled"`
-	RemainingRequests  sql.NullInt32  `db:"remaining_requests"`
-	RatelimitAsync     sql.NullBool   `db:"ratelimit_async"`
-	RatelimitLimit     sql.NullInt32  `db:"ratelimit_limit"`
-	RatelimitDuration  sql.NullInt64  `db:"ratelimit_duration"`
-	Environment        sql.NullString `db:"environment"`
-	IdentityTableID    sql.NullString `db:"identity_table_id"`
-	IdentityExternalID sql.NullString `db:"identity_external_id"`
-	IdentityMeta       []byte         `db:"identity_meta"`
-	EncryptedKey       sql.NullString `db:"encrypted_key"`
-	EncryptionKeyID    sql.NullString `db:"encryption_key_id"`
-	Roles              interface{}    `db:"roles"`
-	Permissions        interface{}    `db:"permissions"`
-	RolePermissions    interface{}    `db:"role_permissions"`
-	Ratelimits         interface{}    `db:"ratelimits"`
+	ID                         string         `db:"id"`
+	KeyAuthID                  string         `db:"key_auth_id"`
+	Hash                       string         `db:"hash"`
+	Start                      string         `db:"start"`
+	WorkspaceID                string         `db:"workspace_id"`
+	ForWorkspaceID             sql.NullString `db:"for_workspace_id"`
+	Name                       sql.NullString `db:"name"`
+	OwnerID                    sql.NullString `db:"owner_id"`
+	IdentityID                 sql.NullString `db:"identity_id"`
+	Meta                       sql.NullString `db:"meta"`
+	Expires                    sql.NullTime   `db:"expires"`
+	CreatedAtM                 int64          `db:"created_at_m"`
+	UpdatedAtM                 sql.NullInt64  `db:"updated_at_m"`
+	DeletedAtM                 sql.NullInt64  `db:"deleted_at_m"`
+	RefillDay                  sql.NullInt16  `db:"refill_day"`
+	RefillAmount               sql.NullInt32  `db:"refill_amount"`
+	LastRefillAt               sql.NullTime   `db:"last_refill_at"`
+	Enabled                    bool           `db:"enabled"`
+	RemainingRequests          sql.NullInt32  `db:"remaining_requests"`
+	RatelimitAsync             sql.NullBool   `db:"ratelimit_async"`
+	RatelimitLimit             sql.NullInt32  `db:"ratelimit_limit"`
+	RatelimitDuration          sql.NullInt64  `db:"ratelimit_duration"`
+	Environment                sql.NullString `db:"environment"`
+	IdentityTableID            sql.NullString `db:"identity_table_id"`
+	IdentityExternalID         sql.NullString `db:"identity_external_id"`
+	IdentityMeta               []byte         `db:"identity_meta"`
+	EncryptedKey               sql.NullString `db:"encrypted_key"`
+	EncryptionKeyID            sql.NullString `db:"encryption_key_id"`
+	Roles                      interface{}    `db:"roles"`
+	Permissions                interface{}    `db:"permissions"`
+	RolePermissions            interface{}    `db:"role_permissions"`
+	Ratelimits                 interface{}    `db:"ratelimits"`
+	CreditID                   sql.NullString `db:"credit_id"`
+	CreditRemaining            sql.NullInt32  `db:"credit_remaining"`
+	CreditRefillDay            sql.NullInt16  `db:"credit_refill_day"`
+	CreditRefillAmount         sql.NullInt32  `db:"credit_refill_amount"`
+	IdentityCreditID           sql.NullString `db:"identity_credit_id"`
+	IdentityCreditRemaining    sql.NullInt32  `db:"identity_credit_remaining"`
+	IdentityCreditRefillDay    sql.NullInt16  `db:"identity_credit_refill_day"`
+	IdentityCreditRefillAmount sql.NullInt32  `db:"identity_credit_refill_amount"`
 }
 
 // ListLiveKeysByKeySpaceID
@@ -227,12 +247,24 @@ type ListLiveKeysByKeySpaceIDRow struct {
 //	                    WHERE rl.identity_id = i.id
 //	                ) AS combined_rl),
 //	               JSON_ARRAY()
-//	       )                    AS ratelimits
+//	       )                    AS ratelimits,
+//	       -- Key credits from new credits table
+//	       kc.id                as credit_id,
+//	       kc.remaining         as credit_remaining,
+//	       kc.refill_day        as credit_refill_day,
+//	       kc.refill_amount     as credit_refill_amount,
+//	       -- Identity credits from new credits table
+//	       ic.id                as identity_credit_id,
+//	       ic.remaining         as identity_credit_remaining,
+//	       ic.refill_day        as identity_credit_refill_day,
+//	       ic.refill_amount     as identity_credit_refill_amount
 //	FROM `keys` k
 //	         JOIN key_auth ka ON ka.id = k.key_auth_id
 //	         JOIN workspaces ws ON ws.id = k.workspace_id
 //	         LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
 //	         LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+//	         LEFT JOIN credits kc ON kc.key_id = k.id
+//	         LEFT JOIN credits ic ON ic.identity_id = i.id
 //	WHERE k.key_auth_id = ?
 //	  AND k.id >= ?
 //	  AND (
@@ -292,6 +324,14 @@ func (q *Queries) ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg Lis
 			&i.Permissions,
 			&i.RolePermissions,
 			&i.Ratelimits,
+			&i.CreditID,
+			&i.CreditRemaining,
+			&i.CreditRefillDay,
+			&i.CreditRefillAmount,
+			&i.IdentityCreditID,
+			&i.IdentityCreditRemaining,
+			&i.IdentityCreditRefillDay,
+			&i.IdentityCreditRefillAmount,
 		); err != nil {
 			return nil, err
 		}

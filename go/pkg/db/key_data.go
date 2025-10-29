@@ -106,6 +106,32 @@ func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
 		}
 	}
 
+	// Populate key credits if they exist
+	if r.CreditID.Valid {
+		kd.KeyCredits = &Credit{
+			ID:           r.CreditID.String,
+			WorkspaceID:  r.WorkspaceID,
+			KeyID:        sql.NullString{Valid: true, String: r.ID},
+			IdentityID:   sql.NullString{Valid: false},
+			Remaining:    r.CreditRemaining.Int32,
+			RefillDay:    r.CreditRefillDay,
+			RefillAmount: r.CreditRefillAmount,
+		}
+	}
+
+	// Populate identity credits if they exist
+	if r.IdentityCreditID.Valid {
+		kd.IdentityCredits = &Credit{
+			ID:           r.IdentityCreditID.String,
+			WorkspaceID:  r.WorkspaceID,
+			KeyID:        sql.NullString{Valid: false},
+			IdentityID:   r.IdentityID,
+			Remaining:    r.IdentityCreditRemaining.Int32,
+			RefillDay:    r.IdentityCreditRefillDay,
+			RefillAmount: r.IdentityCreditRefillAmount,
+		}
+	}
+
 	// It's fine to fail here
 	if roleBytes, ok := r.Roles.([]byte); ok && roleBytes != nil {
 		_ = json.Unmarshal(roleBytes, &kd.Roles) // Ignore error, default to empty array

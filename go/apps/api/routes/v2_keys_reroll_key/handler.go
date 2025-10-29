@@ -282,9 +282,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		// Copy credits from the old key to the new key
+		// Copy/migrate credits from the old key to the new key (always write to new table)
+		var creditParams *db.InsertCreditParams
 		if keyData.KeyCredits != nil {
-			err = db.Query.InsertCredit(ctx, tx, db.InsertCreditParams{
+			// Copy from new credits table
+			creditParams = &db.InsertCreditParams{
 				ID:           uid.New(uid.CreditPrefix),
 				WorkspaceID:  key.WorkspaceID,
 				KeyID:        sql.NullString{Valid: true, String: keyID},
@@ -294,8 +296,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RefillAmount: keyData.KeyCredits.RefillAmount,
 				CreatedAt:    now,
 				UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
-				RefilledAt:   sql.NullInt64{Valid: false}, // Don't copy refill timestamp - this is a new key
-			})
+				RefilledAt:   sql.NullInt64{Valid: false},
+			}
+		} else if key.RemainingRequests.Valid {
+			// Migrate from legacy credits
+			creditParams = &db.InsertCreditParams{
+				ID:           uid.New(uid.CreditPrefix),
+				WorkspaceID:  key.WorkspaceID,
+				KeyID:        sql.NullString{Valid: true, String: keyID},
+				IdentityID:   sql.NullString{Valid: false},
+				Remaining:    key.RemainingRequests.Int32,
+				RefillDay:    key.RefillDay,
+				RefillAmount: key.RefillAmount,
+				CreatedAt:    now,
+				UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
+				RefilledAt:   sql.NullInt64{Valid: false},
+			}
+		}
+
+		if creditParams != nil {
+			err = db.Query.InsertCredit(ctx, tx, *creditParams)
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

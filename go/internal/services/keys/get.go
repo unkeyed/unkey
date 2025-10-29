@@ -224,6 +224,30 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		RatelimitResults:  nil,
 	}
 
+	// Populate key credits if they exist
+	if key.KeyCreditID.Valid {
+		kv.KeyCredits = &db.Credit{
+			ID:           key.KeyCreditID.String,
+			WorkspaceID:  key.WorkspaceID,
+			Remaining:    key.KeyCreditRemaining.Int32,
+			RefillDay:    key.KeyCreditRefillDay,
+			RefillAmount: key.KeyCreditRefillAmount,
+			RefilledAt:   key.KeyCreditRefilledAt,
+		}
+	}
+
+	// Populate identity credits if they exist
+	if key.IdentityCreditID.Valid {
+		kv.IdentityCredits = &db.Credit{
+			ID:           key.IdentityCreditID.String,
+			WorkspaceID:  key.WorkspaceID,
+			Remaining:    key.IdentityCreditRemaining.Int32,
+			RefillDay:    key.IdentityCreditRefillDay,
+			RefillAmount: key.IdentityCreditRefillAmount,
+			RefilledAt:   key.IdentityCreditRefilledAt,
+		}
+	}
+
 	if key.DeletedAtM.Valid {
 		kv.setInvalid(StatusNotFound, "key is deleted")
 		return kv, kv.log, nil

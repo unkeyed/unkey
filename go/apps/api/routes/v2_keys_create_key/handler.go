@@ -271,16 +271,29 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				insertKeyParams.Expires = sql.NullTime{Time: time.UnixMilli(*req.Expires), Valid: true}
 			}
 
-			if req.Credits != nil {
-				if req.Credits.Remaining.IsSpecified() {
-					insertKeyParams.RemainingRequests = sql.NullInt32{
-						Int32: int32(req.Credits.Remaining.MustGet()), // nolint:gosec
-						Valid: true,
-					}
-				}
+			// Set enabled status (default true)
+			if req.Enabled != nil {
+				insertKeyParams.Enabled = *req.Enabled
+			}
+
+			err = db.Query.InsertKey(ctx, tx, insertKeyParams)
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to create key."),
+				)
+			}
+
+			// Create credits in new credits table if specified
+			if req.Credits != nil && req.Credits.Remaining.IsSpecified() {
+				creditID := uid.New(uid.CreditPrefix)
+				remaining := int32(req.Credits.Remaining.MustGet())
+
+				var refillDay sql.NullInt16
+				var refillAmount sql.NullInt32
 
 				if req.Credits.Refill != nil {
-					insertKeyParams.RefillAmount = sql.NullInt32{
+					refillAmount = sql.NullInt32{
 						Int32: int32(req.Credits.Refill.Amount), // nolint:gosec
 						Valid: true,
 					}
@@ -294,25 +307,35 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 							)
 						}
 
-						insertKeyParams.RefillDay = sql.NullInt16{
+						refillDay = sql.NullInt16{
 							Int16: int16(*req.Credits.Refill.RefillDay), // nolint:gosec
 							Valid: true,
 						}
+					} else {
+						// Daily interval - refill_day should be NULL
+						refillDay = sql.NullInt16{Valid: false}
 					}
 				}
-			}
 
-			// Set enabled status (default true)
-			if req.Enabled != nil {
-				insertKeyParams.Enabled = *req.Enabled
-			}
-
-			err = db.Query.InsertKey(ctx, tx, insertKeyParams)
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to create key."),
-				)
+				err = db.Query.InsertCredit(ctx, tx, db.InsertCreditParams{
+					ID:           creditID,
+					WorkspaceID:  auth.AuthorizedWorkspaceID,
+					KeyID:        sql.NullString{String: keyID, Valid: true},
+					IdentityID:   sql.NullString{Valid: false},
+					Remaining:    remaining,
+					RefillDay:    refillDay,
+					RefillAmount: refillAmount,
+					CreatedAt:    now,
+					UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
+					RefilledAt:   sql.NullInt64{Valid: false},
+				})
+				if err != nil {
+					return fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"),
+						fault.Public("Failed to create key credits."),
+					)
+				}
 			}
 
 			if encryption != nil {
