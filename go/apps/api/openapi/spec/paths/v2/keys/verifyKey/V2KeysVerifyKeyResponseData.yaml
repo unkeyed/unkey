@@ -86,7 +86,7 @@ properties:
       of permissions that grant access to specific functionality. Only returned
       when permissions were checked during verification.
   identity:
-    "$ref": "../../../../common/Identity.yaml"
+    "$ref": "./VerifyKeyIdentity.yaml"
     description: |
       Information about the identity associated with this key. Identities
       allow multiple keys to share resources (like rate limits) and represent

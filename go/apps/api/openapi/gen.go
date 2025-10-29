@@ -1501,8 +1501,8 @@ type V2KeysVerifyKeyResponseData struct {
 	// Expires Unix timestamp (in milliseconds) when the key will expire.
 	// If null or not present, the key has no expiration. You can use this to
 	// warn users about upcoming expirations or to understand the validity period.
-	Expires  *int64    `json:"expires,omitempty"`
-	Identity *Identity `json:"identity,omitempty"`
+	Expires  *int64             `json:"expires,omitempty"`
+	Identity *VerifyKeyIdentity `json:"identity,omitempty"`
 
 	// KeyId The unique identifier of the verified key in Unkey's system.
 	// Use this ID for operations like updating or revoking the key. This field
@@ -2075,6 +2075,21 @@ type ValidationError struct {
 
 	// Message Detailed error message explaining what validation rule was violated. This provides specific information about why the field or parameter was rejected, such as format errors, invalid values, or constraint violations.
 	Message string `json:"message"`
+}
+
+// VerifyKeyIdentity defines model for VerifyKeyIdentity.
+type VerifyKeyIdentity struct {
+	// ExternalId External identity ID
+	ExternalId string `json:"externalId"`
+
+	// Id Identity ID
+	Id string `json:"id"`
+
+	// Meta Identity metadata
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Ratelimits Identity ratelimits
+	Ratelimits *[]RatelimitResponse `json:"ratelimits,omitempty"`
 }
 
 // VerifyKeyRatelimitData defines model for VerifyKeyRatelimitData.

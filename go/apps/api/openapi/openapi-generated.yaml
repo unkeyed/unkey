@@ -2945,7 +2945,7 @@ components:
                         of permissions that grant access to specific functionality. Only returned
                         when permissions were checked during verification.
                 identity:
-                    "$ref": "#/components/schemas/Identity"
+                    "$ref": "#/components/schemas/VerifyKeyIdentity"
                     description: |
                         Information about the identity associated with this key. Identities
                         allow multiple keys to share resources (like rate limits) and represent
@@ -2958,6 +2958,27 @@ components:
             required:
                 - valid
                 - code
+        VerifyKeyIdentity:
+            type: object
+            properties:
+                id:
+                    type: string
+                    description: Identity ID
+                externalId:
+                    type: string
+                    description: External identity ID
+                meta:
+                    type: object
+                    additionalProperties: true
+                    description: Identity metadata
+                ratelimits:
+                    type: array
+                    description: Identity ratelimits
+                    items:
+                        "$ref": "#/components/schemas/RatelimitResponse"
+            required:
+                - externalId
+                - id
         VerifyKeyRatelimitData:
             type: object
             properties:
