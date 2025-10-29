@@ -26,11 +26,12 @@ type Response = openapi.V2KeysSetRolesResponseBody
 
 // Handler implements zen.Route interface for the v2 keys set roles endpoint
 type Handler struct {
-	Logger    logging.Logger
-	DB        db.Database
-	Keys      keys.KeyService
-	Auditlogs auditlogs.AuditLogService
-	KeyCache  cache.Cache[string, db.FindKeyForVerificationRow]
+	Logger       logging.Logger
+	DB           db.Database
+	Keys         keys.KeyService
+	Auditlogs    auditlogs.AuditLogService
+	KeyCache     cache.Cache[string, db.FindKeyForVerificationRow]
+	LiveKeyCache cache.Cache[string, db.FindLiveKeyByIDRow]
 }
 
 // Method returns the HTTP method this route responds to
@@ -58,7 +59,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
+	key, _, err := h.LiveKeyCache.SWR(ctx, req.KeyId, func(ctx context.Context) (db.FindLiveKeyByIDRow, error) {
+		return db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
+	}, func(err error) cache.Op {
+		if err == nil {
+			return cache.WriteValue
+		}
+		if db.IsNotFound(err) {
+			return cache.WriteNull
+		}
+		return cache.Noop
+	})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("key not found",
@@ -265,6 +276,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	h.KeyCache.Remove(ctx, key.Hash)
+	h.LiveKeyCache.Remove(ctx, key.ID)
 
 	responseData := make(openapi.V2KeysSetRolesResponseData, 0)
 	for _, role := range foundRoles {

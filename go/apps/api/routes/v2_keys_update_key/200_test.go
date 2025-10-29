@@ -32,6 +32,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 		Logger:       h.Logger,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
+		LiveKeyCache: h.Caches.LiveKeyByID,
 		UsageLimiter: h.UsageLimiter,
 	}
 
@@ -135,6 +136,7 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 		Logger:       h.Logger,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
+		LiveKeyCache: h.Caches.LiveKeyByID,
 		UsageLimiter: h.UsageLimiter,
 	}
 

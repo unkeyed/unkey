@@ -36,6 +36,7 @@ type Handler struct {
 	Keys         keys.KeyService
 	Auditlogs    auditlogs.AuditLogService
 	KeyCache     cache.Cache[string, db.FindKeyForVerificationRow]
+	LiveKeyCache cache.Cache[string, db.FindLiveKeyByIDRow]
 	UsageLimiter usagelimiter.Service
 }
 
@@ -64,7 +65,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
+	key, _, err := h.LiveKeyCache.SWR(ctx, req.KeyId, func(ctx context.Context) (db.FindLiveKeyByIDRow, error) {
+		return db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
+	}, func(err error) cache.Op {
+		if err == nil {
+			return cache.WriteValue
+		}
+		if db.IsNotFound(err) {
+			return cache.WriteNull
+		}
+		return cache.Noop
+	})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(
@@ -615,6 +626,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	h.KeyCache.Remove(ctx, key.Hash)
+	h.LiveKeyCache.Remove(ctx, key.ID)
 	if req.Credits.IsSpecified() {
 		if err := h.UsageLimiter.Invalidate(ctx, key.ID); err != nil {
 			h.Logger.Error("Failed to invalidate usage limit",
