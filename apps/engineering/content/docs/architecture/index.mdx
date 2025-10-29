@@ -1,4 +1,44 @@
 ---
 title: Overview
-description: What do we run where and how?
+description: System architecture and deployment model
 ---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+Unkey runs on AWS across multiple regions, using Kubernetes for container orchestration. The architecture is split between the control plane that manages customer deployments and the data plane that serves traffic.
+
+## Core Services
+
+<Cards>
+  <Card 
+    title="Control Plane (Ctrl)" 
+    description="Orchestrates deployments, builds containers via Depot, provisions TLS certificates, and configures routing using durable Restate workflows"
+    href="./services/ctrl"
+  />
+  <Card 
+    title="Krane" 
+    description="Kubernetes deployment abstraction that manages StatefulSets across multiple clusters and regions without replicating control plane logic"
+    href="./services/krane"
+  />
+  <Card 
+    title="API" 
+    description="Handles key verification, analytics queries, and management operations in Go. Deployed to multiple AWS regions behind Global Accelerator"
+    href="./services/api/config"
+  />
+  <Card 
+    title="Gateway (GW)" 
+    description="Routes traffic to customer deployments by querying the partition database, terminating TLS, and proxying requests to Kubernetes pods"
+    href="./services/gateway"
+  />
+  <Card 
+    title="ClickHouse" 
+    description="Stores analytics events for key verification logs, API usage metrics, and audit trails with automatic scaling and replication"
+    href="./services/clickhouse"
+  />
+  <Card 
+    title="Vault" 
+    description="Encrypts sensitive data using envelope encryption with AWS KMS, decrypting on demand without storing plaintext secrets"
+    href="./services/vault"
+  />
+</Cards>
+

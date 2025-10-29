@@ -1,0 +1,161 @@
+---
+title: Krane
+description: Kubernetes deployment orchestration service
+---
+
+import { Mermaid } from "@/app/components/mermaid"
+
+**Location:** `go/apps/krane/`  
+**CLI Command:** [`unkey run krane`](/cli/run/krane)  
+**Protocol:** Connect RPC (HTTP/2)  
+**Proto:** `go/proto/krane/v1/deployment.proto`
+
+## What It Does
+
+Krane is the deployment backend for ctrl. When ctrl needs to deploy a container, it calls Krane instead of talking directly to Kubernetes or Docker. This abstraction lets us deploy containers into multiple clusters across regions without replicating the heavy control plane.
+
+Krane handles three operations: create deployments with resource limits, query deployment status, and delete deployments. Deployments are labeled for easy management and cleanup.
+
+## Architecture
+
+### Backend Abstraction
+
+Krane supports two backends with the same RPC interface. Kubernetes uses StatefulSets and headless Services for production multi-node clusters. Docker uses the Engine API for single-node local development.
+
+Ctrl doesn't know which backend Krane uses. It calls `CreateDeployment` with an image and resources, and Krane handles the platform details.
+
+### Why StatefulSets Instead of Deployments?
+
+We use StatefulSets for stateless containers, which is unusual. Ctrl and gateways expect each instance to have a stable DNS address that doesn't change when pods restart.
+
+StatefulSets guarantee this. Each pod gets a predictable name (`dep-abc-0`) and DNS record (`dep-abc-0.dep-abc.unkey.svc.cluster.local`). Ctrl registers these addresses in the database for gateway routing.
+
+Standard Deployments use random pod names and changing DNS addresses. This works fine behind a load balancer, but our current architecture needs stable instance addressing.
+
+This is a known design compromise. Future versions might move instance addressing to service meshes instead of requiring stable DNS.
+
+## Deployment Flow
+
+<Mermaid chart={`sequenceDiagram
+    autonumber
+    participant Ctrl as Control Plane
+    participant Krane
+    participant K8s as Kubernetes API
+    participant Pod
+    
+    Ctrl->>Krane: CreateDeployment(image, replicas, resources)
+    Krane->>K8s: Create headless Service
+    K8s->>Krane: Service created
+    Krane->>K8s: Create StatefulSet
+    K8s->>Krane: StatefulSet created
+    Krane->>Ctrl: Status: PENDING
+    
+    K8s->>K8s: Schedule pods
+    K8s->>Pod: Pull image & start container
+    Pod->>Pod: Running
+    
+    loop Poll every second
+        Ctrl->>Krane: GetDeployment()
+        Krane->>K8s: Get StatefulSet status
+        K8s->>Krane: AvailableReplicas: 0/1
+        Krane->>K8s: List pods
+        K8s->>Krane: Pod status: Pending
+        Krane->>Ctrl: Instances: [{id, addr, status: PENDING}]
+    end
+    
+    Pod->>Pod: Container ready
+    
+    Ctrl->>Krane: GetDeployment()
+    Krane->>K8s: Get StatefulSet status
+    K8s->>Krane: AvailableReplicas: 1/1
+    Krane->>K8s: List pods
+    K8s->>Krane: Pod status: Running
+    Krane->>Ctrl: Instances: [{id, addr, status: RUNNING}]
+`} />
+
+## Kubernetes Backend
+
+The Kubernetes backend runs inside a cluster with appropriate RBAC permissions. It uses in-cluster config to authenticate with the API server.
+
+### Resource Creation
+
+Creating a deployment creates two resources:
+
+**Headless Service** with `ClusterIP: None` and `publishNotReadyAddresses: true` for DNS-based discovery. Each pod gets a DNS record even before it's ready. The Service selector matches `unkey.deployment.id`.
+
+**StatefulSet** with the specified replicas, CPU, and memory. Resource requests and limits are set to the same value for predictable scheduling. Image pull secrets are automatically added for Depot registry images. Restart policy is always.
+
+Resource limits are enforced at the pod level. Exceeding memory kills the pod. Exceeding CPU throttles it.
+
+## Docker Backend
+
+The Docker backend provides a lightweight alternative for local development and testing. It manages containers directly through the Docker Engine API, communicating with the Docker daemon via its Unix socket. This backend doesn't support multi-node clusters or advanced networking features, but it's simple to set up and doesn't require Kubernetes infrastructure.
+
+### Container Management
+
+When creating a deployment, the Docker backend pulls the container image from the registry, authenticating if credentials were provided during startup. It then creates containers with the specified resource limits, port mappings exposing container port 8080 to a random host port, the container name following a predictable pattern, and restart policy to always restart unless explicitly stopped.
+
+The Docker backend supports a subset of Krane's features. It can create, query, and delete deployments, but it doesn't support true multi-replica deployments since there's no built-in load balancing. Each "deployment" is actually a single container on the local machine. This limitation is acceptable for local development where developers typically run one instance at a time.
+
+### Instance Addressing
+
+Since Docker containers don't have Kubernetes-style DNS service discovery, the Docker backend returns instance addresses using localhost with the randomly assigned port. For example, `localhost:32768`. This works for local development where the control plane and containers run on the same machine, but it wouldn't work in a distributed production environment.
+
+The control plane doesn't need to be aware of these addressing differences. It receives instance addresses from Krane and stores them in the database. When using the Docker backend locally, gateway configurations point to localhost addresses. When using Kubernetes in production, they point to cluster DNS addresses.
+
+
+## RBAC Requirements
+
+The Kubernetes backend requires specific RBAC permissions to function. Krane needs the ability to create, read, and delete StatefulSets in the Apps API group, create, read, and delete Services in the Core API group, and list and read Pods in the Core API group to query status.
+
+A typical RBAC configuration looks like this:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: krane
+  namespace: unkey
+rules:
+- apiGroups: ["apps"]
+  resources: ["statefulsets"]
+  verbs: ["create", "get", "list", "delete"]
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["create", "get", "delete"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+```
+
+Without these permissions, Krane cannot manage deployments and will return permission denied errors.
+
+## Labels and Management
+
+All resources created by Krane are labeled with `unkey.managed.by=krane` and `unkey.deployment.id={deployment_id}`. These labels serve multiple purposes: they identify resources managed by Krane for filtering and querying, they enable automatic cleanup during eviction scans, and they prevent Krane from interfering with non-Krane resources in shared namespaces.
+
+When querying deployments, Krane verifies the `unkey.managed.by` label matches `krane`. This prevents it from returning information about deployments created by other tools or controllers in the same namespace.
+
+## Local Development
+
+For local development without Kubernetes, run Krane with the Docker backend:
+
+```bash
+# Ensure Docker is running
+docker ps
+
+# Run Krane with Docker backend
+unkey run krane \
+  --backend=docker \
+  --docker-socket=/var/run/docker.sock \
+  --http-port=8080
+```
+
+The control plane can then create deployments that run as Docker containers on your local machine. This provides a fast inner development loop without requiring a full Kubernetes cluster.
+
+## Future Improvements
+
+The current StatefulSet-based implementation is acknowledged as a design compromise in the codebase. Future improvements might include switching to standard Deployments with service meshes for instance addressing, implementing native load balancing instead of requiring stable instance DNS, adopting more cloud-native patterns for service discovery, and potentially supporting additional orchestration platforms beyond Kubernetes and Docker.
+
+These changes would require coordinated updates to the control plane, gateway, and partition database to remove the assumption of stable instance addresses. The abstraction layer Krane provides makes such changes possible without affecting the rest of the system.
+

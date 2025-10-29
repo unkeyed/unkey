@@ -1,0 +1,94 @@
+---
+title: Control Plane (Ctrl)
+description: The control plane service for managing deployments and infrastructure
+---
+
+import { Mermaid } from "@/app/components/mermaid"
+
+**Location:** `go/apps/ctrl/`  
+**CLI Command:** [`unkey run ctrl`](/cli/run/ctrl)  
+**Protocol:** Connect RPC (HTTP/2)
+
+## What It Does
+
+The ctrl service provides a deployment platform similar to Vercel, Railway, or Fly.io. When a customer deploys their application, ctrl:
+
+1. **Builds** container images from source code using Depot.dev
+2. **Deploys** containers to Kubernetes via Krane
+3. **Assigns** domains to route traffic and configure gateways
+4. **Secures** applications with automatic TLS certificate provisioning
+
+All multi-step operations are durable, using Restate workflows to ensure consistency even during failures, network partitions, or process crashes.
+
+## Architecture
+
+### Service Composition
+
+The ctrl service is composed of several specialized services and workflows. The RPC services handle synchronous operations like container image building through `BuildService`, deployment creation and management through `DeploymentService`, ACME challenge coordination through `AcmeService`, OpenAPI spec management through `OpenApiService`, and health checks through `CtrlService`.
+
+Running alongside these are the Restate workflows that provide durable orchestration. The `DeploymentService` workflow orchestrates the full deployment lifecycle, the `RoutingService` workflow manages domain and gateway configuration, and the `CertificateService` workflow handles TLS certificate provisioning through the ACME protocol.
+
+### Technology Stack
+
+The ctrl service is built on Connect RPC for service-to-service communication using HTTP/2. Restate provides durable workflow orchestration with exactly-once semantics, ensuring operations complete reliably even during failures. Two MySQL databases store persistent state: the main database for projects, deployments, and domains, and the partition database for VM instances and gateway configurations. S3 stores build contexts and encrypted vault data. Krane provides a Kubernetes deployment abstraction, and Depot.dev handles remote container image building with persistent layer caching.
+
+## Services
+
+### Build Service
+
+The build service manages container image building for customer deployments. It supports two backends: Depot for production deployments, which provides remote BuildKit with persistent layer caching for fast rebuilds, and Docker for local development, which uses standard Docker builds on the local machine.
+
+The service provides two key operations. `GenerateUploadURL` returns a presigned S3 URL where the CLI can upload a tarball of the build context. `CreateBuild` then builds a Docker image from that uploaded source, coordinating with either Depot or Docker depending on configuration.
+
+[Read detailed Build System docs →](./build)
+
+### Deployment Service
+
+The deployment service orchestrates the complete deployment lifecycle through durable workflows. It provides four key operations: `CreateDeployment` initiates a new deployment, `GetDeployment` queries the current status, `Promote` promotes a deployment to live, and `Rollback` rolls back to a previous deployment.
+
+The deployment workflow progresses through several phases. It first builds the container image if building from source, then creates the deployment in Krane, our Kubernetes abstraction layer. Next it polls for instance readiness for up to 5 minutes, checking every second whether all pods are running. Once instances are ready, it registers them in the partition database so gateways can route traffic to them. It attempts to scrape an OpenAPI spec from the running service, though this is optional. Finally, it assigns domains and creates gateway configurations via the routing service, then marks the deployment as ready.
+
+Each phase is durable. If ctrl crashes during deployment, Restate resumes from the last completed phase rather than restarting from the beginning. This ensures deployments complete reliably even during system failures.
+
+Deployments are keyed by `project_id` in Restate's virtual object model. This ensures only one deployment operation per project runs at a time, preventing race conditions during concurrent deploy, rollback, or promote operations that could leave the system in an inconsistent state.
+
+[Read detailed Deployment Workflow docs →](/docs/architecture/workflows/deployment-service)
+
+### ACME Service
+
+The ACME service handles ACME protocol coordination for TLS certificate provisioning. It provides three key operations: `CreateACMEUser` registers an ACME account for a workspace, `ValidateDomain` validates domain ownership, and `GetCertificate` retrieves issued certificates.
+
+The service coordinates with the Certificate workflow for actual certificate issuance. It supports both HTTP-01 challenges for custom domains and DNS-01 challenges via the Cloudflare provider for wildcard certificates on the default domain.
+
+Private keys are encrypted using the vault service before storage. Certificates are stored in the partition database for fast gateway access without encryption overhead. Challenge records track certificate expiry with 90-day validity periods.
+
+[Read detailed Certificate docs →](./certificates)
+
+### OpenAPI Service
+
+The OpenAPI service manages OpenAPI specifications scraped from deployed applications. It provides two key operations: `GetDiff` compares OpenAPI specs between deployments to detect breaking changes, and `GetSpec` retrieves the spec for a specific deployment.
+
+Specs are scraped from `GET /openapi.yaml` on running instances during the deployment workflow. They're stored in the database and used for API documentation generation, request validation in gateways, and breaking change detection between deployments.
+
+### Ctrl Service
+
+The ctrl service provides health checks and instance metadata. Its primary operation is `Liveness`, which serves as a health check endpoint for Kubernetes probes. This service is minimal by design, handling only operational concerns rather than business logic.
+
+## Workflows
+
+Workflows are implemented as Restate services for durable execution. The Deployment Workflow handles deploy, rollback, and promote operations. The Routing Workflow manages domain assignment and gateway configuration. The Certificate Workflow processes ACME challenges for TLS certificate provisioning. See the individual workflow documentation pages for detailed implementation specifics.
+
+## Database Schema
+
+The ctrl service uses two MySQL databases. The main database (`unkey`) stores projects, environments, and workspaces, along with deployments and deployment history, domains and SSL certificates, and ACME users and challenges. The partition database (`partition_*`) stores VMs representing container instances, gateway configurations as JSON blobs, and certificate storage in PEM format.
+
+The partition database is designed for horizontal sharding. Each partition can live on a separate database server, and gateway instances only need access to their assigned partition. This reduces the blast radius if a partition is compromised and allows scaling the gateway infrastructure independently.
+
+## Monitoring
+
+The ctrl service exposes metrics and logs through OpenTelemetry. Key metrics include deployment duration broken down by phase, build success and failure rates, the number of Krane poll iterations required for deployments to become ready, domain assignment latency, and ACME challenge success rates.
+
+All operations include structured logging fields for correlation and debugging. Common fields include `deployment_id`, `project_id`, and `workspace_id` across all operations. Build operations add `build_id` and `depot_project_id`. System-level logs include `instance_id`, `region`, and `platform` to identify which ctrl instance handled the operation.
+
+Logs are shipped to Grafana Loki in production for centralized log aggregation and querying.
+
