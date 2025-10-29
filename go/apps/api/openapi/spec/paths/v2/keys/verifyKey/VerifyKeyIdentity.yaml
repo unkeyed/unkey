@@ -1,0 +1,20 @@
+type: object
+properties:
+  id:
+    type: string
+    description: Identity ID
+  externalId:
+    type: string
+    description: External identity ID
+  meta:
+    type: object
+    additionalProperties: true
+    description: Identity metadata
+  ratelimits:
+    type: array
+    description: Identity ratelimits
+    items:
+      "$ref": "../../../../common/RatelimitResponse.yaml"
+required:
+  - externalId
+  - id
