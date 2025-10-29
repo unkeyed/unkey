@@ -373,6 +373,183 @@ func TestSuccess(t *testing.T) {
 		})
 	})
 
+	t.Run("key with legacy credits", func(t *testing.T) {
+		t.Run("allowed default credit cost", func(t *testing.T) {
+			initialCredits := int32(5)
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID:             workspace.ID,
+				KeyAuthID:               api.KeyAuthID.String,
+				LegacyRemainingRequests: &initialCredits,
+			})
+
+			req := handler.Request{
+				Key: key.Key,
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(4), "Key should have 4 credits but got %d", *res.Body.Data.Credits)
+		})
+
+		t.Run("exceeding with default credit cost", func(t *testing.T) {
+			initialCredits := int32(0)
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID:             workspace.ID,
+				KeyAuthID:               api.KeyAuthID.String,
+				LegacyRemainingRequests: &initialCredits,
+			})
+
+			req := handler.Request{
+				Key: key.Key,
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.USAGEEXCEEDED, res.Body.Data.Code, "Key should show usage exceeded but got %s", res.Body.Data.Code)
+			require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits but got %d", *res.Body.Data.Credits)
+		})
+
+		t.Run("allowed custom credit cost", func(t *testing.T) {
+			initialCredits := int32(5)
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID:             workspace.ID,
+				KeyAuthID:               api.KeyAuthID.String,
+				LegacyRemainingRequests: &initialCredits,
+			})
+
+			req := handler.Request{
+				Key: key.Key,
+				Credits: &openapi.KeysVerifyKeyCredits{
+					Cost: 3,
+				},
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(2), "Key should have 2 credits remaining but got %d", *res.Body.Data.Credits)
+		})
+
+		t.Run("exceeding with custom credit cost", func(t *testing.T) {
+			initialCredits := int32(2)
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID:             workspace.ID,
+				KeyAuthID:               api.KeyAuthID.String,
+				LegacyRemainingRequests: &initialCredits,
+			})
+
+			req := handler.Request{
+				Key: key.Key,
+				Credits: &openapi.KeysVerifyKeyCredits{
+					Cost: 10,
+				},
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.USAGEEXCEEDED, res.Body.Data.Code, "Key should be usage exceeded but got %s", res.Body.Data.Code)
+			require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(2), "Key should have 2 credits remaining but got %d", *res.Body.Data.Credits)
+		})
+
+		t.Run("allow credits 0 even when remaining 0", func(t *testing.T) {
+			initialCredits := int32(0)
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID:             workspace.ID,
+				KeyAuthID:               api.KeyAuthID.String,
+				LegacyRemainingRequests: &initialCredits,
+			})
+
+			req := handler.Request{
+				Key: key.Key,
+				Credits: &openapi.KeysVerifyKeyCredits{
+					Cost: 0,
+				},
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be code valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(0), "Key should have 0 credits remaining but got %d", *res.Body.Data.Credits)
+		})
+
+		t.Run("legacy credits with high remaining", func(t *testing.T) {
+			initialCredits := int32(100)
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID:             workspace.ID,
+				KeyAuthID:               api.KeyAuthID.String,
+				LegacyRemainingRequests: &initialCredits,
+			})
+
+			req := handler.Request{
+				Key: key.Key,
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(99), "Key should have 99 credits but got %d", *res.Body.Data.Credits)
+		})
+
+		t.Run("legacy credits with refill configuration", func(t *testing.T) {
+			initialCredits := int32(100)
+			refillAmount := int32(50)
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID:             workspace.ID,
+				KeyAuthID:               api.KeyAuthID.String,
+				LegacyRemainingRequests: &initialCredits,
+				LegacyRefillAmount:      &refillAmount,
+			})
+
+			req := handler.Request{
+				Key: key.Key,
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(99), "Key should have 99 credits but got %d", *res.Body.Data.Credits)
+		})
+
+		t.Run("legacy credits with monthly refill", func(t *testing.T) {
+			initialCredits := int32(100)
+			refillAmount := int32(75)
+			refillDay := int16(15)
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID:             workspace.ID,
+				KeyAuthID:               api.KeyAuthID.String,
+				LegacyRemainingRequests: &initialCredits,
+				LegacyRefillAmount:      &refillAmount,
+				LegacyRefillDay:         &refillDay,
+			})
+
+			req := handler.Request{
+				Key: key.Key,
+			}
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+			require.NotNil(t, res.Body)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+			require.EqualValues(t, *res.Body.Data.Credits, int32(99), "Key should have 99 credits but got %d", *res.Body.Data.Credits)
+		})
+	})
+
 	t.Run("with ip whitelist", func(t *testing.T) {
 		ipWhitelistApi := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, IpWhitelist: "123.123.123.123"})
 		key := h.CreateKey(seed.CreateKeyRequest{
@@ -848,7 +1025,7 @@ func TestSuccess(t *testing.T) {
 		require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
 		require.Len(t, ptr.SafeDeref(res.Body.Data.Roles), 1, "Key should have 1 role")
 		require.Len(t, ptr.SafeDeref(res.Body.Data.Permissions), 3, "Key should have 3 permissions")
-		require.EqualValues(t, openapi.Identity{Id: identity.ID, ExternalId: externalId, Meta: &meta, Ratelimits: nil}, ptr.SafeDeref(res.Body.Data.Identity))
+		require.EqualValues(t, openapi.VerifyKeyIdentity{Id: identity.ID, ExternalId: externalId, Meta: &meta, Ratelimits: nil}, ptr.SafeDeref(res.Body.Data.Identity))
 		require.Equal(t, keyName, ptr.SafeDeref(res.Body.Data.Name), "Key should have the same name")
 	})
 

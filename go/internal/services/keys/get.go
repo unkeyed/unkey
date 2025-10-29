@@ -224,7 +224,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		RatelimitResults:  nil,
 	}
 
-	// Populate key credits if they exist
+	// Populate key credits if they exist (new system only)
 	if key.KeyCreditID.Valid {
 		kv.KeyCredits = &db.Credit{
 			ID:           key.KeyCreditID.String,

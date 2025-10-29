@@ -14,6 +14,7 @@ import (
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_credits"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/zen"
@@ -212,5 +213,211 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 
 		require.NotNil(t, authAfter.KeyCredits)
 		require.EqualValues(t, newCredits-1, authAfter.KeyCredits.Remaining)
+	})
+
+	// Test legacy credit system operations
+	t.Run("set legacy credits to specific value", func(t *testing.T) {
+		// Create key with legacy credits
+		initialCredits := int32(100)
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID:             workspace.ID,
+			KeyAuthID:               api.KeyAuthID.String,
+			Name:                    ptr.P("legacy-set-test"),
+			LegacyRemainingRequests: &initialCredits,
+		})
+
+		// Verify it's using legacy system
+		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+		require.NoError(t, err)
+		require.True(t, key.RemainingRequests.Valid)
+		require.EqualValues(t, initialCredits, key.RemainingRequests.Int32)
+
+		// Update to a new value
+		newValue := int64(250)
+		req := handler.Request{
+			KeyId:     keyResponse.KeyID,
+			Operation: openapi.Set,
+			Value:     nullable.NewNullableWithValue(newValue),
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+
+		remaining, err := res.Body.Data.Remaining.Get()
+		require.NoError(t, err)
+		require.Equal(t, newValue, remaining)
+
+		// Verify in database (still using legacy field)
+		key, err = db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+		require.NoError(t, err)
+		require.True(t, key.RemainingRequests.Valid)
+		require.EqualValues(t, newValue, key.RemainingRequests.Int32)
+	})
+
+	t.Run("set legacy credits to unlimited (null)", func(t *testing.T) {
+		initialCredits := int32(75)
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID:             workspace.ID,
+			KeyAuthID:               api.KeyAuthID.String,
+			Name:                    ptr.P("legacy-null-test"),
+			LegacyRemainingRequests: &initialCredits,
+		})
+
+		// Set to null (unlimited)
+		nullValue := nullable.Nullable[int64]{}
+		nullValue.SetNull()
+
+		req := handler.Request{
+			KeyId:     keyResponse.KeyID,
+			Operation: openapi.Set,
+			Value:     nullValue,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+		require.True(t, res.Body.Data.Remaining.IsNull())
+
+		// Verify legacy field is cleared
+		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+		require.NoError(t, err)
+		require.False(t, key.RemainingRequests.Valid)
+	})
+
+	t.Run("increment legacy credits", func(t *testing.T) {
+		initialCredits := int32(rand.IntN(100) + 50)
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID:             workspace.ID,
+			KeyAuthID:               api.KeyAuthID.String,
+			Name:                    ptr.P("legacy-increment-test"),
+			LegacyRemainingRequests: &initialCredits,
+		})
+
+		increaseBy := int64(rand.IntN(50) + 1)
+		req := handler.Request{
+			KeyId:     keyResponse.KeyID,
+			Operation: openapi.Increment,
+			Value:     nullable.NewNullableWithValue(increaseBy),
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+
+		remaining, err := res.Body.Data.Remaining.Get()
+		require.NoError(t, err)
+		require.Equal(t, int64(initialCredits)+increaseBy, remaining)
+
+		// Verify in database
+		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+		require.NoError(t, err)
+		require.True(t, key.RemainingRequests.Valid)
+		require.EqualValues(t, int64(initialCredits)+increaseBy, key.RemainingRequests.Int32)
+	})
+
+	t.Run("decrement legacy credits", func(t *testing.T) {
+		initialCredits := int32(rand.IntN(100) + 100)
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID:             workspace.ID,
+			KeyAuthID:               api.KeyAuthID.String,
+			Name:                    ptr.P("legacy-decrement-test"),
+			LegacyRemainingRequests: &initialCredits,
+		})
+
+		decreaseBy := int64(rand.IntN(50) + 1)
+		req := handler.Request{
+			KeyId:     keyResponse.KeyID,
+			Operation: openapi.Decrement,
+			Value:     nullable.NewNullableWithValue(decreaseBy),
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+
+		remaining, err := res.Body.Data.Remaining.Get()
+		require.NoError(t, err)
+		require.Equal(t, int64(initialCredits)-decreaseBy, remaining)
+
+		// Verify in database
+		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+		require.NoError(t, err)
+		require.True(t, key.RemainingRequests.Valid)
+		require.EqualValues(t, int64(initialCredits)-decreaseBy, key.RemainingRequests.Int32)
+	})
+
+	t.Run("decrement legacy credits below zero sets to zero", func(t *testing.T) {
+		initialCredits := int32(10)
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID:             workspace.ID,
+			KeyAuthID:               api.KeyAuthID.String,
+			Name:                    ptr.P("legacy-decrement-negative-test"),
+			LegacyRemainingRequests: &initialCredits,
+		})
+
+		decreaseBy := int64(50) // More than current
+		req := handler.Request{
+			KeyId:     keyResponse.KeyID,
+			Operation: openapi.Decrement,
+			Value:     nullable.NewNullableWithValue(decreaseBy),
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+
+		remaining, err := res.Body.Data.Remaining.Get()
+		require.NoError(t, err)
+		require.Equal(t, int64(0), remaining)
+
+		// Verify in database
+		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+		require.NoError(t, err)
+		require.True(t, key.RemainingRequests.Valid)
+		require.EqualValues(t, 0, key.RemainingRequests.Int32)
+	})
+
+	t.Run("legacy credits with refill configuration", func(t *testing.T) {
+		initialCredits := int32(100)
+		refillAmount := int32(200)
+		refillDay := int16(15)
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID:             workspace.ID,
+			KeyAuthID:               api.KeyAuthID.String,
+			Name:                    ptr.P("legacy-refill-test"),
+			LegacyRemainingRequests: &initialCredits,
+			LegacyRefillAmount:      &refillAmount,
+			LegacyRefillDay:         &refillDay,
+		})
+
+		// Verify refill configuration exists
+		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+		require.NoError(t, err)
+		require.True(t, key.RefillAmount.Valid)
+		require.EqualValues(t, refillAmount, key.RefillAmount.Int32)
+		require.True(t, key.RefillDay.Valid)
+		require.EqualValues(t, refillDay, key.RefillDay.Int16)
+
+		// Update credits - refill should be preserved
+		newValue := int64(150)
+		req := handler.Request{
+			KeyId:     keyResponse.KeyID,
+			Operation: openapi.Set,
+			Value:     nullable.NewNullableWithValue(newValue),
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+
+		// Verify response includes refill
+		require.NotNil(t, res.Body.Data.Refill)
+		require.Equal(t, int64(refillAmount), res.Body.Data.Refill.Amount)
+		require.Equal(t, openapi.Monthly, res.Body.Data.Refill.Interval)
+		require.NotNil(t, res.Body.Data.Refill.RefillDay)
+		require.Equal(t, int(refillDay), *res.Body.Data.Refill.RefillDay)
+
+		// Verify refill still exists in database
+		key, err = db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
+		require.NoError(t, err)
+		require.True(t, key.RefillAmount.Valid)
+		require.EqualValues(t, refillAmount, key.RefillAmount.Int32)
+		require.True(t, key.RefillDay.Valid)
+		require.EqualValues(t, refillDay, key.RefillDay.Int16)
 	})
 }

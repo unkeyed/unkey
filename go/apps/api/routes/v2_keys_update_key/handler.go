@@ -358,16 +358,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					credits := req.Credits.MustGet()
 
 					updateKeyParams := db.UpdateKeyParams{
-						ID:                  key.ID,
-						Now:                 sql.NullInt64{Valid: true, Int64: now},
-						NameSpecified:       0,
-						IdentityIDSpecified: 0,
-						EnabledSpecified:    0,
-						MetaSpecified:       0,
-						ExpiresSpecified:    0,
+						ID:                         key.ID,
+						Now:                        sql.NullInt64{Valid: true, Int64: now},
+						NameSpecified:              0,
+						IdentityIDSpecified:        0,
+						EnabledSpecified:           0,
+						MetaSpecified:              0,
+						ExpiresSpecified:           0,
+						RemainingRequestsSpecified: 0,
+						RefillAmountSpecified:      0,
+						RefillDaySpecified:         0,
 					}
 
 					if credits.Remaining.IsSpecified() {
+						updateKeyParams.RemainingRequestsSpecified = 1
 						if credits.Remaining.IsNull() {
 							// Set to unlimited (NULL)
 							updateKeyParams.RemainingRequests = sql.NullInt32{Valid: false}
@@ -380,6 +384,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					}
 
 					if credits.Refill.IsSpecified() {
+						updateKeyParams.RefillAmountSpecified = 1
+						updateKeyParams.RefillDaySpecified = 1
 						if credits.Refill.IsNull() {
 							// Clear refill
 							updateKeyParams.RefillAmount = sql.NullInt32{Valid: false}
