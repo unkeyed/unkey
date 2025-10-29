@@ -40,10 +40,10 @@ func TestSuccess(t *testing.T) {
 	// Create a root key with appropriate permissions
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.read_api", "api.*.decrypt_key")
 
-	// Create a keyAuth (keyring) for the API
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:            keyAuthID,
+	// Create a keySpace for the API
+	keySpaceID := uid.New(uid.KeySpacePrefix)
+	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+		ID:            keySpaceID,
 		WorkspaceID:   workspace.ID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false},
@@ -51,8 +51,8 @@ func TestSuccess(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = db.Query.UpdateKeyringKeyEncryption(ctx, h.DB.RW(), db.UpdateKeyringKeyEncryptionParams{
-		ID:                 keyAuthID,
+	err = db.Query.UpdateKeySpaceKeyEncryption(ctx, h.DB.RW(), db.UpdateKeySpaceKeyEncryptionParams{
+		ID:                 keySpaceID,
 		StoreEncryptedKeys: true,
 	})
 	require.NoError(t, err)
@@ -64,7 +64,7 @@ func TestSuccess(t *testing.T) {
 		Name:        "Test API",
 		WorkspaceID: workspace.ID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
+		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
@@ -153,7 +153,7 @@ func TestSuccess(t *testing.T) {
 
 		insertParams := db.InsertKeyParams{
 			ID:                keyData.id,
-			KeyringID:         keyAuthID,
+			KeySpaceID:        keySpaceID,
 			Hash:              hash.Sha256(key),
 			Start:             keyData.start,
 			WorkspaceID:       workspace.ID,
@@ -429,9 +429,9 @@ func TestSuccess(t *testing.T) {
 
 	t.Run("empty API returns empty result", func(t *testing.T) {
 		// Create a new API with no keys
-		emptyKeyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:          emptyKeyAuthID,
+		emptyKeySpaceID := uid.New(uid.KeySpacePrefix)
+		err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+			ID:          emptyKeySpaceID,
 			WorkspaceID: workspace.ID,
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
@@ -443,7 +443,7 @@ func TestSuccess(t *testing.T) {
 			Name:        "Empty API",
 			WorkspaceID: workspace.ID,
 			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-			KeyAuthID:   sql.NullString{Valid: true, String: emptyKeyAuthID},
+			KeyAuthID:   sql.NullString{Valid: true, String: emptyKeySpaceID},
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
@@ -496,7 +496,7 @@ func TestSuccess(t *testing.T) {
 		keyWithRatelimits := uid.New("key")
 		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:                keyWithRatelimits,
-			KeyringID:         keyAuthID,
+			KeySpaceID:        keySpaceID,
 			Hash:              hash.Sha256(uid.New("test")),
 			Start:             "rl_test_",
 			WorkspaceID:       workspace.ID,
@@ -516,7 +516,7 @@ func TestSuccess(t *testing.T) {
 		keyWithoutRatelimits := uid.New("key")
 		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:                keyWithoutRatelimits,
-			KeyringID:         keyAuthID,
+			KeySpaceID:        keySpaceID,
 			Hash:              hash.Sha256("no_rl_test_" + uid.New("")),
 			Start:             "no_rl_test_",
 			WorkspaceID:       workspace.ID,

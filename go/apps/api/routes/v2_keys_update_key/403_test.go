@@ -53,7 +53,7 @@ func TestUpdateKeyCorrectPermissions(t *testing.T) {
 			// Create key using helper
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: h.Resources().UserWorkspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Name:        ptr.P("test"),
 			})
 
@@ -106,7 +106,7 @@ func TestUpdateKeyInsufficientPermissions(t *testing.T) {
 	// Create key using helper
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        ptr.P("test"),
 	})
 
@@ -152,7 +152,7 @@ func TestUpdateKeyCrossWorkspaceIsolation(t *testing.T) {
 	// Create key using helper in user workspace
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        ptr.P("test"),
 	})
 

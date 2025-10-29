@@ -60,7 +60,7 @@ func runPerformanceTest(t *testing.T, nodeCount int, totalCredits, cost int64) {
 
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:   api.KeyAuthID.String,
 		Remaining:   ptr.P(int32(totalCredits)),
 	})
 
@@ -127,7 +127,7 @@ func TestUsageLimitThroughput(t *testing.T) {
 	totalCredits := int64(100000) // Large number to not run out
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:   api.KeyAuthID.String,
 		Remaining:   ptr.P(int32(totalCredits)),
 	})
 
