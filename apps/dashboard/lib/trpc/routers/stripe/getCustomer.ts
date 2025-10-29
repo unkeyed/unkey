@@ -41,11 +41,23 @@ export const getCustomer = t.procedure
     try {
       const customer = await stripe.customers.retrieve(input.customerId);
 
-      if (!customer || customer.deleted) {
+      if (customer.deleted) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Customer not found or has been deleted",
+          message: "Customer has been deleted",
         });
+      }
+
+      // Extract default payment method ID, handling both string and expanded object
+      let defaultPaymentMethodId: string | null = null;
+      if (customer.invoice_settings?.default_payment_method) {
+        const paymentMethod = customer.invoice_settings.default_payment_method;
+        if (typeof paymentMethod === "string") {
+          defaultPaymentMethodId = paymentMethod;
+        } else if (typeof paymentMethod === "object" && paymentMethod.id) {
+          // Expanded PaymentMethod object
+          defaultPaymentMethodId = paymentMethod.id;
+        }
       }
 
       return {
@@ -54,9 +66,7 @@ export const getCustomer = t.procedure
         name: customer.name ?? null,
         invoice_settings: customer.invoice_settings
           ? {
-              default_payment_method: customer.invoice_settings.default_payment_method
-                ? customer.invoice_settings.default_payment_method.toString()
-                : null,
+              default_payment_method: defaultPaymentMethodId,
             }
           : null,
       };

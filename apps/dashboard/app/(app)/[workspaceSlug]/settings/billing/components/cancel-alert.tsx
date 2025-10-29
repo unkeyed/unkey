@@ -16,11 +16,18 @@ export const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
       toast.info("Subscription resumed");
     },
     onError: (err) => {
-      toast.error(err.message);
+      toast.error("Failed to resume subscription. Please try again or contact support@unkey.dev.");
+      console.error("Subscription resumption error:", err);
     },
   });
 
   if (!props.cancelAt) {
+    return null;
+  }
+
+  const timeRemaining = props.cancelAt - Date.now();
+  // If cancellation date has passed, don't show the alert
+  if (timeRemaining <= 0) {
     return null;
   }
 
@@ -30,9 +37,8 @@ export const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
       description={
         <p>
           Your subscription ends in
-          <span className="text-accent-12"> {ms(props.cancelAt - Date.now(), { long: true })}</span>{" "}
-          on <span className="text-accent-12">{new Date(props.cancelAt).toLocaleDateString()}</span>
-          .
+          <span className="text-accent-12"> {ms(timeRemaining, { long: true })}</span> on{" "}
+          <span className="text-accent-12">{new Date(props.cancelAt).toLocaleDateString()}</span>.
         </p>
       }
       border="both"

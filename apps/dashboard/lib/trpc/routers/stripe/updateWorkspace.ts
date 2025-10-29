@@ -22,20 +22,13 @@ export const updateWorkspaceStripeCustomer = t.procedure
           .set({
             stripeCustomerId: input.stripeCustomerId,
           })
-          .where(eq(schema.workspaces.id, ctx.workspace.id))
-          .catch((_err) => {
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message:
-                "We are unable to update the workspace Stripe customer. Please try again or contact support@unkey.dev",
-            });
-          });
+          .where(eq(schema.workspaces.id, ctx.workspace.id));
 
         await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "workspace.update",
-          description: `Updated Stripe customer ID to ${input.stripeCustomerId}`,
+          description: "Updated Stripe customer ID",
           resources: [
             {
               type: "workspace",

@@ -68,7 +68,6 @@ export const PlanSelectionModal = ({
       setIsLoading(false);
       toast.success("Plan activated successfully!");
       await revalidateData();
-      await trpcUtils.workspace.getCurrent.refetch();
       router.push(`/${workspaceSlug}/settings/billing`);
     },
     onError: (err) => {
@@ -83,7 +82,6 @@ export const PlanSelectionModal = ({
       setIsLoading(false);
       toast.success("Plan changed successfully!");
       await revalidateData();
-      await trpcUtils.workspace.getCurrent.refetch();
     },
     onError: (err) => {
       setIsLoading(false);

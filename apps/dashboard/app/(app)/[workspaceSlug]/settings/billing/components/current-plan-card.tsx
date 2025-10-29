@@ -7,7 +7,7 @@ type CurrentPlanCardProps = {
   currentProduct?: {
     name: string;
     dollar: number;
-    quotas: { requestsPerMonth: number };
+    quotas?: { requestsPerMonth: number };
   };
   onChangePlan?: () => void;
 };
@@ -44,7 +44,7 @@ type ProductHelperProps = {
   currentProduct?: {
     name: string;
     dollar: number;
-    quotas: { requestsPerMonth: number };
+    quotas?: { requestsPerMonth: number };
   };
 };
 const ProductHelper: React.FC<ProductHelperProps> = ({ currentProduct }) => {
@@ -56,9 +56,9 @@ const ProductHelper: React.FC<ProductHelperProps> = ({ currentProduct }) => {
       </div>
       <div className="flex items-center gap-4 text-sm text-gray-11">
         <span>
-          {formatNumber(currentProduct?.quotas.requestsPerMonth || 150000)} requests/month
+          {formatNumber(currentProduct?.quotas?.requestsPerMonth ?? 150000)} requests/month
         </span>
-        <span className="font-medium text-gray-12">${currentProduct?.dollar || 0}/mo</span>
+        <span className="font-medium text-gray-12">${currentProduct?.dollar ?? 0}/mo</span>
       </div>
     </div>
   );

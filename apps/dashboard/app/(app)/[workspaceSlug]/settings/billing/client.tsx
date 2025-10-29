@@ -61,6 +61,7 @@ export const Client: React.FC = () => {
   const products = billingInfo?.products ?? [];
   const subscription = billingInfo?.subscription;
   const currentProductId = billingInfo?.currentProductId;
+  // const currentProduct =
 
   const allowUpdate = subscription && ["active", "trialing"].includes(subscription.status);
 
@@ -82,7 +83,7 @@ export const Client: React.FC = () => {
 
         <CancelAlert cancelAt={subscription?.cancelAt} />
         {isFreeTier ? <FreeTierAlert /> : null}
-        <Usage quota={currentProduct?.quotas?.requestsPerMonth || MAX_QUOTA} />
+        <Usage quota={currentProduct?.quotas?.requestsPerMonth ?? MAX_QUOTA} />
 
         {workspace.stripeCustomerId ? (
           <>
