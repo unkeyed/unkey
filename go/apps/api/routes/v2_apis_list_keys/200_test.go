@@ -1,27 +1,19 @@
 package handler_test
 
 import (
-	"context"
-	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_list_keys"
-	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
-
-	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 )
 
 func TestSuccess(t *testing.T) {
-	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
@@ -40,156 +32,80 @@ func TestSuccess(t *testing.T) {
 	// Create a root key with appropriate permissions
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.read_api", "api.*.decrypt_key")
 
-	// Create a keySpace for the API
-	keySpaceID := uid.New(uid.KeySpacePrefix)
-	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
-		ID:            keySpaceID,
+	// Create a test API with encrypted keys enabled
+	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID:   workspace.ID,
-		CreatedAtM:    time.Now().UnixMilli(),
-		DefaultPrefix: sql.NullString{Valid: false},
-		DefaultBytes:  sql.NullInt32{Valid: false},
+		IpWhitelist:   "",
+		EncryptedKeys: true,
+		Name:          ptr.P("Test API"),
+		CreatedAt:     nil,
+		DefaultPrefix: nil,
+		DefaultBytes:  nil,
 	})
-	require.NoError(t, err)
+	apiID := api.ID
+	keyAuthID := api.KeyAuthID.String
 
-	err = db.Query.UpdateKeySpaceKeyEncryption(ctx, h.DB.RW(), db.UpdateKeySpaceKeyEncryptionParams{
-		ID:                 keySpaceID,
-		StoreEncryptedKeys: true,
-	})
-	require.NoError(t, err)
-
-	// Create a test API
-	apiID := uid.New("api")
-	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-		ID:          apiID,
-		Name:        "Test API",
+	identity1 := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
-		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
-		CreatedAtM:  time.Now().UnixMilli(),
-	})
-	require.NoError(t, err)
-
-	// Create test identities
-	identity1ID := uid.New("identity")
-	identity1ExternalID := "test_user_1"
-	err = db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-		ID:          identity1ID,
-		ExternalID:  identity1ExternalID,
-		WorkspaceID: workspace.ID,
-		Environment: "",
-		CreatedAt:   time.Now().UnixMilli(),
+		ExternalID:  "test_user_1",
 		Meta:        []byte(`{"role": "admin"}`),
+		Ratelimits:  nil,
+		Credits:     nil,
 	})
-	require.NoError(t, err)
-
-	identity2ID := uid.New("identity")
-	identity2ExternalID := "test_user_2"
-	err = db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-		ID:          identity2ID,
-		ExternalID:  identity2ExternalID,
+	identity2 := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
-		Environment: "",
-		CreatedAt:   time.Now().UnixMilli(),
+		ExternalID:  "test_user_2",
 		Meta:        []byte(`{"role": "user"}`),
+		Ratelimits:  nil,
+		Credits:     nil,
 	})
-	require.NoError(t, err)
 
-	encryptedKeysMap := make(map[string]struct{})
-	// Create test keys with various configurations
-	testKeys := []struct {
-		id         string
-		start      string
-		name       string
-		identityID *string
-		meta       map[string]interface{}
-		expires    *time.Time
-		enabled    bool
-	}{
-		{
-			id:         uid.New("key"),
-			start:      "test_key1_",
-			name:       "Test Key 1",
-			identityID: &identity1ID,
-			meta:       map[string]interface{}{"env": "production", "team": "backend"},
-			enabled:    true,
-		},
-		{
-			id:         uid.New("key"),
-			start:      "test_key2_",
-			name:       "Test Key 2",
-			identityID: &identity1ID,
-			meta:       map[string]interface{}{"env": "staging"},
-			enabled:    true,
-		},
-		{
-			id:         uid.New("key"),
-			start:      "test_key3_",
-			name:       "Test Key 3",
-			identityID: &identity2ID,
-			meta:       map[string]interface{}{"env": "development"},
-			enabled:    true,
-		},
-		{
-			id:      uid.New("key"),
-			start:   "test_key4_",
-			name:    "Test Key 4 (No Identity)",
-			enabled: true,
-		},
-		{
-			id:      uid.New("key"),
-			start:   "test_key5_",
-			name:    "Test Key 5 (Disabled)",
-			enabled: false,
-		},
-	}
+	// Create test keys with various configurations using seeder
+	h.CreateKey(seed.CreateKeyRequest{
+		Disabled:    false,
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  keyAuthID,
+		IdentityID:  &identity1.ID,
+		Meta:        ptr.P(`{"env": "production", "team": "backend"}`),
+		Name:        ptr.P("Test Key 1"),
+		Recoverable: true,
+	})
 
-	for _, keyData := range testKeys {
-		metaBytes := []byte("{}")
-		if keyData.meta != nil {
-			metaBytes, _ = json.Marshal(keyData.meta)
-		}
+	h.CreateKey(seed.CreateKeyRequest{
+		Disabled:    false,
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  keyAuthID,
+		IdentityID:  &identity2.ID,
+		Meta:        ptr.P(`{"env": "staging"}`),
+		Name:        ptr.P("Test Key 2"),
+		Recoverable: true,
+	})
 
-		key := keyData.start + uid.New("")
+	h.CreateKey(seed.CreateKeyRequest{
+		Disabled:    false,
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  keyAuthID,
+		IdentityID:  &identity1.ID,
+		Meta:        ptr.P(`{"env": "development"}`),
+		Name:        ptr.P("Test Key 3"),
+		Recoverable: true,
+	})
 
-		insertParams := db.InsertKeyParams{
-			ID:             keyData.id,
-			KeySpaceID:     keySpaceID,
-			Hash:           hash.Sha256(key),
-			Start:          keyData.start,
-			WorkspaceID:    workspace.ID,
-			ForWorkspaceID: sql.NullString{Valid: false},
-			Name:           sql.NullString{Valid: true, String: keyData.name},
-			Meta:           sql.NullString{Valid: true, String: string(metaBytes)},
-			Expires:        sql.NullTime{Valid: false},
-			CreatedAtM:     time.Now().UnixMilli(),
-			Enabled:        keyData.enabled,
-		}
+	h.CreateKey(seed.CreateKeyRequest{
+		Disabled:    false,
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  keyAuthID,
+		Name:        ptr.P("Test Key 4 (No Identity)"),
+		Recoverable: true,
+	})
 
-		if keyData.identityID != nil {
-			insertParams.IdentityID = sql.NullString{Valid: true, String: *keyData.identityID}
-		} else {
-			insertParams.IdentityID = sql.NullString{Valid: false}
-		}
-
-		err := db.Query.InsertKey(ctx, h.DB.RW(), insertParams)
-		require.NoError(t, err)
-
-		encryption, err := h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
-			Keyring: h.Resources().UserWorkspace.ID,
-			Data:    key,
-		})
-		require.NoError(t, err)
-
-		err = db.Query.InsertKeyEncryption(ctx, h.DB.RW(), db.InsertKeyEncryptionParams{
-			WorkspaceID:     h.Resources().UserWorkspace.ID,
-			KeyID:           keyData.id,
-			CreatedAt:       time.Now().UnixMilli(),
-			Encrypted:       encryption.GetEncrypted(),
-			EncryptionKeyID: encryption.GetKeyId(),
-		})
-		require.NoError(t, err)
-		encryptedKeysMap[keyData.id] = struct{}{}
-	}
+	h.CreateKey(seed.CreateKeyRequest{
+		Disabled:    true,
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  keyAuthID,
+		Name:        ptr.P("Test Key 5 (Disabled)"),
+		Recoverable: true,
+	})
 
 	// Set up request headers
 	headers := http.Header{
@@ -302,7 +218,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("filter by external ID", func(t *testing.T) {
 		req := handler.Request{
 			ApiId:      apiID,
-			ExternalId: &identity1ExternalID,
+			ExternalId: &identity1.ExternalID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -318,7 +234,7 @@ func TestSuccess(t *testing.T) {
 
 		for _, key := range res.Body.Data {
 			require.NotNil(t, key.Identity)
-			require.Equal(t, identity1ExternalID, key.Identity.ExternalId)
+			require.Equal(t, identity1.ExternalID, key.Identity.ExternalId)
 		}
 	})
 
@@ -378,7 +294,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("verify identity information is included", func(t *testing.T) {
 		req := handler.Request{
 			ApiId:      apiID,
-			ExternalId: &identity1ExternalID,
+			ExternalId: &identity1.ExternalID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
@@ -393,7 +309,7 @@ func TestSuccess(t *testing.T) {
 
 		key := res.Body.Data[0]
 		require.NotNil(t, key.Identity)
-		require.Equal(t, identity1ExternalID, key.Identity.ExternalId)
+		require.Equal(t, identity1.ExternalID, key.Identity.ExternalId)
 		require.NotNil(t, key.Identity.Meta)
 
 		// Verify identity metadata
@@ -428,24 +344,13 @@ func TestSuccess(t *testing.T) {
 
 	t.Run("empty API returns empty result", func(t *testing.T) {
 		// Create a new API with no keys
-		emptyKeySpaceID := uid.New(uid.KeySpacePrefix)
-		err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
-			ID:          emptyKeySpaceID,
-			WorkspaceID: workspace.ID,
-			CreatedAtM:  time.Now().UnixMilli(),
+		emptyApi := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   workspace.ID,
+			IpWhitelist:   "",
+			EncryptedKeys: false,
+			Name:          ptr.P("Empty API"),
 		})
-		require.NoError(t, err)
-
-		emptyApiID := uid.New("api")
-		err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          emptyApiID,
-			Name:        "Empty API",
-			WorkspaceID: workspace.ID,
-			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-			KeyAuthID:   sql.NullString{Valid: true, String: emptyKeySpaceID},
-			CreatedAtM:  time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
+		emptyApiID := emptyApi.ID
 
 		req := handler.Request{
 			ApiId: emptyApiID,
@@ -492,56 +397,29 @@ func TestSuccess(t *testing.T) {
 
 	t.Run("verify ratelimits are returned correctly", func(t *testing.T) {
 		// Create a key with ratelimits
-		keyWithRatelimits := uid.New("key")
-		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyWithRatelimits,
-			KeySpaceID:        keySpaceID,
-			Hash:              hash.Sha256(uid.New("test")),
-			Start:             "rl_test_",
-			WorkspaceID:       workspace.ID,
-			Name:              sql.NullString{Valid: true, String: "Key with Ratelimits"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-
-			IdentityID: sql.NullString{Valid: false},
+		keyWithRatelimitsResp := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  keyAuthID,
+			Name:        ptr.P("Key with Ratelimits"),
+			Ratelimits: []seed.CreateRatelimitRequest{
+				{
+					Name:        "requests",
+					WorkspaceID: workspace.ID,
+					AutoApply:   false,
+					Duration:    60000,
+					Limit:       100,
+				},
+			},
 		})
-		require.NoError(t, err)
+		keyWithRatelimits := keyWithRatelimitsResp.KeyID
 
 		// Create a key without ratelimits
-		keyWithoutRatelimits := uid.New("key")
-		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyWithoutRatelimits,
-			KeySpaceID:        keySpaceID,
-			Hash:              hash.Sha256("no_rl_test_" + uid.New("")),
-			Start:             "no_rl_test_",
-			WorkspaceID:       workspace.ID,
-			Name:              sql.NullString{Valid: true, String: "Key without Ratelimits"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
-
-			IdentityID: sql.NullString{Valid: false},
-		})
-		require.NoError(t, err)
-
-		// Add ratelimits to the first key only
-		err = db.Query.InsertKeyRatelimit(ctx, h.DB.RW(), db.InsertKeyRatelimitParams{
-			ID:          uid.New("ratelimit"),
+		keyWithoutRatelimitsResp := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyID:       sql.NullString{Valid: true, String: keyWithRatelimits},
-			Name:        "requests",
-			Limit:       100,
-			Duration:    60000,
-			CreatedAt:   time.Now().UnixMilli(),
+			KeySpaceID:  keyAuthID,
+			Name:        ptr.P("Key without Ratelimits"),
 		})
-		require.NoError(t, err)
+		keyWithoutRatelimits := keyWithoutRatelimitsResp.KeyID
 
 		// Call the endpoint
 		req := handler.Request{
@@ -602,13 +480,463 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body.Data)
 
+		// All keys created with Recoverable: true should have plaintext
 		for _, key := range res.Body.Data {
-			_, exists := encryptedKeysMap[key.KeyId]
-			if !exists {
-				continue
+			if key.Plaintext != nil {
+				require.NotEmpty(t, *key.Plaintext, "Decrypted key should have non-empty plaintext")
 			}
-
-			require.NotEmpty(t, ptr.SafeDeref(key.Plaintext), "Key should be decrypted and have plaintext")
 		}
+	})
+
+	t.Run("verify key with new credits system", func(t *testing.T) {
+		// Create a key with credits in the new credits table
+		keyWithNewCredits := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  keyAuthID,
+			Credits: &seed.CreditRequest{
+				Remaining: 100,
+			},
+		})
+
+		req := handler.Request{
+			ApiId: apiID,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body.Data)
+
+		// Find the key with new credits
+		var foundKey bool
+		for _, key := range res.Body.Data {
+			if key.KeyId == keyWithNewCredits.KeyID {
+				foundKey = true
+				require.NotNil(t, key.Credits, "Key should have credits field")
+				remaining, err := key.Credits.Remaining.Get()
+				require.NoError(t, err)
+				require.Equal(t, int64(100), remaining, "Credits remaining should be 100")
+				require.Nil(t, key.Credits.Refill, "Key should have no refill configuration")
+				break
+			}
+		}
+		require.True(t, foundKey, "Should find the key with new credits in response")
+	})
+
+	t.Run("verify key with new credits and daily refill", func(t *testing.T) {
+		refillAmount := int32(100)
+		keyWithRefill := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			Credits: &seed.CreditRequest{
+				Remaining:    50,
+				RefillAmount: &refillAmount,
+			},
+		})
+
+		req := handler.Request{
+			ApiId: apiID,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body.Data)
+
+		var foundKey bool
+		for _, key := range res.Body.Data {
+			if key.KeyId == keyWithRefill.KeyID {
+				foundKey = true
+				require.NotNil(t, key.Credits, "Key should have credits field")
+				remaining, err := key.Credits.Remaining.Get()
+				require.NoError(t, err)
+				require.Equal(t, int64(50), remaining)
+				require.NotNil(t, key.Credits.Refill, "Key should have refill configuration")
+				require.Equal(t, int64(100), key.Credits.Refill.Amount)
+				require.Equal(t, "daily", string(key.Credits.Refill.Interval))
+				require.Nil(t, key.Credits.Refill.RefillDay, "Daily refill should have no refill day")
+				break
+			}
+		}
+		require.True(t, foundKey, "Should find the key with refill in response")
+	})
+
+	t.Run("verify key with new credits and monthly refill", func(t *testing.T) {
+		refillAmount := int32(200)
+		refillDay := int16(15)
+		keyWithMonthlyRefill := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			Credits: &seed.CreditRequest{
+				Remaining:    75,
+				RefillAmount: &refillAmount,
+				RefillDay:    &refillDay,
+			},
+		})
+
+		req := handler.Request{
+			ApiId: apiID,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body.Data)
+
+		var foundKey bool
+		for _, key := range res.Body.Data {
+			if key.KeyId == keyWithMonthlyRefill.KeyID {
+				foundKey = true
+				require.NotNil(t, key.Credits, "Key should have credits field")
+				remaining, err := key.Credits.Remaining.Get()
+				require.NoError(t, err)
+				require.Equal(t, int64(75), remaining)
+				require.NotNil(t, key.Credits.Refill, "Key should have refill configuration")
+				require.Equal(t, int64(200), key.Credits.Refill.Amount)
+				require.Equal(t, "monthly", string(key.Credits.Refill.Interval))
+				require.NotNil(t, key.Credits.Refill.RefillDay, "Monthly refill should have refill day")
+				require.Equal(t, 15, *key.Credits.Refill.RefillDay)
+				break
+			}
+		}
+		require.True(t, foundKey, "Should find the key with monthly refill in response")
+	})
+
+	t.Run("verify key with legacy credits system", func(t *testing.T) {
+		// Create a key with credits in the legacy keys.remaining_requests field
+		keyWithLegacyCreditsResp := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID:             workspace.ID,
+			KeySpaceID:              keyAuthID,
+			Name:                    ptr.P("Key with Legacy Credits"),
+			LegacyRemainingRequests: ptr.P(int32(250)),
+		})
+		keyWithLegacyCredits := keyWithLegacyCreditsResp.KeyID
+
+		req := handler.Request{
+			ApiId: apiID,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body.Data)
+
+		// Find the key with legacy credits
+		var foundKey bool
+		for _, key := range res.Body.Data {
+			if key.KeyId == keyWithLegacyCredits {
+				foundKey = true
+				require.NotNil(t, key.Credits, "Key should have credits field")
+				remaining, err := key.Credits.Remaining.Get()
+				require.NoError(t, err)
+				require.Equal(t, int64(250), remaining, "Legacy credits remaining should be 250")
+				require.Nil(t, key.Credits.Refill, "Legacy key should have no refill configuration")
+				break
+			}
+		}
+		require.True(t, foundKey, "Should find the key with legacy credits in response")
+	})
+
+	t.Run("verify key with legacy credits and refill", func(t *testing.T) {
+		keyWithLegacyRefillResp := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID:             workspace.ID,
+			KeySpaceID:              keyAuthID,
+			Name:                    ptr.P("Key with Legacy Refill"),
+			LegacyRemainingRequests: ptr.P(int32(150)),
+			LegacyRefillAmount:      ptr.P(int32(300)),
+			LegacyRefillDay:         ptr.P(int16(1)),
+		})
+		keyWithLegacyRefill := keyWithLegacyRefillResp.KeyID
+
+		req := handler.Request{
+			ApiId: apiID,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body.Data)
+
+		var foundKey bool
+		for _, key := range res.Body.Data {
+			if key.KeyId == keyWithLegacyRefill {
+				foundKey = true
+				require.NotNil(t, key.Credits, "Key should have credits field")
+				remaining, err := key.Credits.Remaining.Get()
+				require.NoError(t, err)
+				require.Equal(t, int64(150), remaining)
+				require.NotNil(t, key.Credits.Refill, "Legacy key should have refill configuration")
+				require.Equal(t, int64(300), key.Credits.Refill.Amount)
+				require.Equal(t, "monthly", string(key.Credits.Refill.Interval))
+				require.NotNil(t, key.Credits.Refill.RefillDay, "Monthly refill should have refill day")
+				require.Equal(t, 1, *key.Credits.Refill.RefillDay)
+				break
+			}
+		}
+		require.True(t, foundKey, "Should find the key with legacy refill in response")
+	})
+
+	t.Run("verify key with unlimited credits (no credits field)", func(t *testing.T) {
+		// Create a key with no credits (unlimited)
+		keyUnlimited := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+		})
+
+		req := handler.Request{
+			ApiId: apiID,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body.Data)
+
+		var foundKey bool
+		for _, key := range res.Body.Data {
+			if key.KeyId == keyUnlimited.KeyID {
+				foundKey = true
+				require.Nil(t, key.Credits, "Key with unlimited credits should have nil credits field")
+				break
+			}
+		}
+		require.True(t, foundKey, "Should find the key with unlimited credits in response")
+	})
+
+	t.Run("verify key with identity credits", func(t *testing.T) {
+		// Create identity with credits
+		identity := h.CreateIdentity(seed.CreateIdentityRequest{
+			WorkspaceID: workspace.ID,
+			ExternalID:  uid.New(""),
+			Credits: &seed.CreditRequest{
+				Remaining: 150,
+			},
+		})
+
+		// Create key linked to identity
+		keyWithIdentityCredits := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			IdentityID:  &identity.ID,
+		})
+
+		req := handler.Request{
+			ApiId: apiID,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body.Data)
+
+		var foundKey bool
+		for _, key := range res.Body.Data {
+			if key.KeyId == keyWithIdentityCredits.KeyID {
+				foundKey = true
+				require.NotNil(t, key.Identity, "Key should have identity")
+				require.Equal(t, identity.ID, key.Identity.Id)
+				require.NotNil(t, key.Identity.Credits, "Identity should have credits")
+				remaining, err := key.Identity.Credits.Remaining.Get()
+				require.NoError(t, err)
+				require.Equal(t, int64(150), remaining, "Identity credits remaining should be 150")
+				require.Nil(t, key.Identity.Credits.Refill, "Identity should have no refill configuration")
+				break
+			}
+		}
+		require.True(t, foundKey, "Should find the key with identity credits in response")
+	})
+
+	t.Run("verify key with identity credits and daily refill", func(t *testing.T) {
+		refillAmount := int32(500)
+		identity := h.CreateIdentity(seed.CreateIdentityRequest{
+			WorkspaceID: workspace.ID,
+			ExternalID:  uid.New(""),
+			Credits: &seed.CreditRequest{
+				Remaining:    300,
+				RefillAmount: &refillAmount,
+			},
+		})
+
+		keyWithIdentityCredits := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			IdentityID:  &identity.ID,
+		})
+
+		req := handler.Request{
+			ApiId: apiID,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body.Data)
+
+		var foundKey bool
+		for _, key := range res.Body.Data {
+			if key.KeyId == keyWithIdentityCredits.KeyID {
+				foundKey = true
+				require.NotNil(t, key.Identity, "Key should have identity")
+				require.NotNil(t, key.Identity.Credits, "Identity should have credits")
+				remaining, err := key.Identity.Credits.Remaining.Get()
+				require.NoError(t, err)
+				require.Equal(t, int64(300), remaining)
+				require.NotNil(t, key.Identity.Credits.Refill, "Identity should have refill configuration")
+				require.Equal(t, int64(500), key.Identity.Credits.Refill.Amount)
+				require.Equal(t, "daily", string(key.Identity.Credits.Refill.Interval))
+				require.Nil(t, key.Identity.Credits.Refill.RefillDay, "Daily refill should have no refill day")
+				break
+			}
+		}
+		require.True(t, foundKey, "Should find the key with identity credits and daily refill")
+	})
+
+	t.Run("verify key with identity credits and monthly refill", func(t *testing.T) {
+		refillAmount := int32(1000)
+		refillDay := int16(1)
+		identity := h.CreateIdentity(seed.CreateIdentityRequest{
+			WorkspaceID: workspace.ID,
+			ExternalID:  uid.New(""),
+			Credits: &seed.CreditRequest{
+				Remaining:    750,
+				RefillAmount: &refillAmount,
+				RefillDay:    &refillDay,
+			},
+		})
+
+		keyWithIdentityCredits := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			IdentityID:  &identity.ID,
+		})
+
+		req := handler.Request{
+			ApiId: apiID,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body.Data)
+
+		var foundKey bool
+		for _, key := range res.Body.Data {
+			if key.KeyId == keyWithIdentityCredits.KeyID {
+				foundKey = true
+				require.NotNil(t, key.Identity, "Key should have identity")
+				require.NotNil(t, key.Identity.Credits, "Identity should have credits")
+				remaining, err := key.Identity.Credits.Remaining.Get()
+				require.NoError(t, err)
+				require.Equal(t, int64(750), remaining)
+				require.NotNil(t, key.Identity.Credits.Refill, "Identity should have refill configuration")
+				require.Equal(t, int64(1000), key.Identity.Credits.Refill.Amount)
+				require.Equal(t, "monthly", string(key.Identity.Credits.Refill.Interval))
+				require.NotNil(t, key.Identity.Credits.Refill.RefillDay, "Monthly refill should have refill day")
+				require.Equal(t, 1, *key.Identity.Credits.Refill.RefillDay)
+				break
+			}
+		}
+		require.True(t, foundKey, "Should find the key with identity credits and monthly refill")
+	})
+
+	t.Run("verify key with both key and identity credits", func(t *testing.T) {
+		// Create identity with credits
+		identity := h.CreateIdentity(seed.CreateIdentityRequest{
+			WorkspaceID: workspace.ID,
+			ExternalID:  uid.New(""),
+			Credits: &seed.CreditRequest{
+				Remaining: 500,
+			},
+		})
+
+		// Create key with its own credits linked to identity
+		keyWithBothCredits := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			IdentityID:  &identity.ID,
+			Credits: &seed.CreditRequest{
+				Remaining: 100,
+			},
+		})
+
+		req := handler.Request{
+			ApiId: apiID,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body.Data)
+
+		var foundKey bool
+		for _, key := range res.Body.Data {
+			if key.KeyId == keyWithBothCredits.KeyID {
+				foundKey = true
+				// Key should have its own credits
+				require.NotNil(t, key.Credits, "Key should have credits field")
+				keyRemaining, err := key.Credits.Remaining.Get()
+				require.NoError(t, err)
+				require.Equal(t, int64(100), keyRemaining, "Key credits remaining should be 100")
+
+				// Key should also have identity with credits
+				require.NotNil(t, key.Identity, "Key should have identity")
+				require.NotNil(t, key.Identity.Credits, "Identity should have credits")
+				identityRemaining, err := key.Identity.Credits.Remaining.Get()
+				require.NoError(t, err)
+				require.Equal(t, int64(500), identityRemaining, "Identity credits remaining should be 500")
+				break
+			}
+		}
+		require.True(t, foundKey, "Should find the key with both key and identity credits")
 	})
 }

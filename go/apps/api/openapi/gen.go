@@ -131,7 +131,7 @@ type Credits struct {
 	// Refill Configuration for automatic credit refill behavior.
 	Refill *CreditsRefill `json:"refill,omitempty"`
 
-	// Remaining Number of credits remaining (null for unlimited).
+	// Remaining Number of credits remaining (null for unlimited). Maximum value is 2147483647 (int32 limit).
 	Remaining nullable.Nullable[int64] `json:"remaining"`
 }
 

@@ -228,7 +228,8 @@ func TestBadRequests(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "Credit value must be between 0 and 2147483647")
+		// OpenAPI schema validation returns generic message
+		require.Contains(t, res.Body.Error.Detail, "failed to validate schema")
 	})
 
 	t.Run("invalid credit value - negative", func(t *testing.T) {

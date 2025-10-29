@@ -275,8 +275,9 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 		response.Expires = ptr.P(keyData.Key.Expires.Time.UnixMilli())
 	}
 
-	// Set credits
+	// Set credits - check both new credits table and legacy fields
 	if keyData.KeyCredits != nil {
+		// New credits system
 		response.Credits = &openapi.Credits{
 			Remaining: nullable.NewNullableWithValue(int64(keyData.KeyCredits.Remaining)),
 		}
@@ -291,6 +292,26 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 
 			response.Credits.Refill = &openapi.CreditsRefill{
 				Amount:    int64(keyData.KeyCredits.RefillAmount.Int32),
+				Interval:  interval,
+				RefillDay: refillDay,
+			}
+		}
+	} else if keyData.Key.RemainingRequests.Valid {
+		// Legacy credits system
+		response.Credits = &openapi.Credits{
+			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int32)),
+		}
+
+		if keyData.Key.RefillAmount.Valid {
+			var refillDay *int
+			interval := openapi.Daily
+			if keyData.Key.RefillDay.Valid {
+				interval = openapi.Monthly
+				refillDay = ptr.P(int(keyData.Key.RefillDay.Int16))
+			}
+
+			response.Credits.Refill = &openapi.CreditsRefill{
+				Amount:    int64(keyData.Key.RefillAmount.Int32),
 				Interval:  interval,
 				RefillDay: refillDay,
 			}
