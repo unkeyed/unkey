@@ -259,7 +259,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					}
 				} else {
 					credits := req.Credits.MustGet()
-
 					if credits.Remaining.IsSpecified() && credits.Remaining.IsNull() {
 						// Setting remaining to null means unlimited - delete the credit record
 						if keyData.KeyCredits != nil {
@@ -283,10 +282,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						if credits.Remaining.IsSpecified() {
 							remainingSpecified = 1
 							remaining = int32(credits.Remaining.MustGet()) // nolint:gosec
-						} else if keyData.KeyCredits != nil {
-							// Keep existing remaining value
-							remaining = keyData.KeyCredits.Remaining
 						}
+						// If not specified, remainingSpecified stays 0 and DB keeps existing value
 
 						if credits.Refill.IsSpecified() {
 							if credits.Refill.IsNull() {
@@ -331,11 +328,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 									refillDay = sql.NullInt16{Valid: false}
 								}
 							}
-						} else if keyData.KeyCredits != nil {
-							// Keep existing refill configuration
-							refillDay = keyData.KeyCredits.RefillDay
-							refillAmount = keyData.KeyCredits.RefillAmount
 						}
+						// If not specified, refill specified flags stay 0 and DB keeps existing values
 
 						creditID := uid.New(uid.CreditPrefix)
 						if keyData.KeyCredits != nil {

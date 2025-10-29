@@ -273,10 +273,12 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 			if err != nil {
 				return 0, err
 			}
+
 			if !remaining.Valid {
 				// No usage limit configured - this shouldn't be called
 				return 0, sql.ErrNoRows
 			}
+
 			return remaining.Int32, nil
 		})
 	} else {
@@ -287,6 +289,7 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 		if db.IsNotFound(err) {
 			return UsageResponse{Valid: false, Remaining: 0}, nil
 		}
+
 		return UsageResponse{Valid: false, Remaining: 0}, err
 	}
 

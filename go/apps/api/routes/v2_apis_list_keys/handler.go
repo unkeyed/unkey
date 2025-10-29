@@ -216,6 +216,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Keyring:   key.WorkspaceID,
 					Encrypted: key.EncryptedKey.String,
 				})
+
 				if decryptErr != nil {
 					h.Logger.Error("failed to decrypt key",
 						"keyId", key.ID,
