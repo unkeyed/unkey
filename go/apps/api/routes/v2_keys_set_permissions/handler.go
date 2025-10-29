@@ -22,8 +22,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2KeysSetPermissionsRequestBody
-type Response = openapi.V2KeysSetPermissionsResponseBody
+type (
+	Request  = openapi.V2KeysSetPermissionsRequestBody
+	Response = openapi.V2KeysSetPermissionsResponseBody
+)
 
 // Handler implements zen.Route interface for the v2 keys set permissions endpoint
 type Handler struct {
@@ -145,9 +147,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		delete(missingPermissions, permission.Slug)
 	}
 
-	for _, permission := range foundPermissions {
-		permissionsToSet = append(permissionsToSet, permission)
-	}
+	permissionsToSet = append(permissionsToSet, foundPermissions...)
 
 	if len(missingPermissions) > 0 {
 		err = auth.VerifyRootKey(ctx, keys.WithPermissions(
@@ -181,6 +181,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Slug:        perm,
 			Description: dbtype.NullString{String: "", Valid: false},
 			CreatedAtM:  now,
+			UpdatedAtM:  sql.NullInt64{Int64: now, Valid: true},
 		})
 	}
 
@@ -219,7 +220,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				KeyID: req.KeyId,
 				Ids:   permissionsToRemove,
 			})
-
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -278,7 +278,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 							ID:          toCreate.PermissionID,
 							Name:        toCreate.Slug,
 							DisplayName: toCreate.Name,
-							Meta: map[string]interface{}{
+							Meta: map[string]any{
 								"name": toCreate.Name,
 								"slug": toCreate.Slug,
 							},

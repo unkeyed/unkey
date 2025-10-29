@@ -116,8 +116,11 @@ var DeployFlags = []cli.Flag{
 // WARNING: Changing the "Description" part will also affect generated MDX.
 // Cmd defines the deploy CLI command
 var Cmd = &cli.Command{
-	Name:  "deploy",
-	Usage: "Deploy a new version or initialize configuration",
+	Version:  "",
+	Commands: []*cli.Command{},
+	Aliases:  []string{},
+	Name:     "deploy",
+	Usage:    "Deploy a new version or initialize configuration",
 	Description: `Build and deploy a new version of your application, or initialize configuration.
 
 The deploy command handles the complete deployment lifecycle: from building Docker images to deploying them on Unkey's infrastructure. It automatically detects your Git context, builds containers, and manages the deployment process with real-time status updates.
@@ -236,7 +239,8 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	} else {
 		// Build from context
 		ui.Print(MsgUploadingBuildContext)
-		buildContextPath, err := controlPlane.UploadBuildContext(ctx, opts.Context)
+		var buildContextPath string
+		buildContextPath, err = controlPlane.UploadBuildContext(ctx, opts.Context)
 		if err != nil {
 			ui.PrintError(MsgFailedToUploadContext)
 			ui.PrintErrorDetails(err.Error())
@@ -259,6 +263,7 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 
 	// Handle deployment status changes
 	onStatusChange := func(event DeploymentStatusEvent) error {
+		// nolint: exhaustive // We just need those two for now
 		switch event.CurrentStatus {
 		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED:
 			return handleDeploymentFailure(controlPlane, event.Deployment, ui)

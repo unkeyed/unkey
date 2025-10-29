@@ -34,11 +34,11 @@ type newDomain struct {
 // The sticky behavior ensures branch and environment domains automatically update to point
 // to new deployments, while commit domains remain immutable.
 func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchName, apex string, source ctrlv1.SourceType) []newDomain {
-
 	// Deploying via CLI often sends the same git sha, and we want to make them unique,
 	// to prevent changes from overwriting each other.
 	randomSuffix := ""
 	if source == ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD {
+		//nolint: gosec
 		randomSuffix = fmt.Sprintf("-%d", 1000+rand.IntN(9000))
 	}
 
@@ -53,6 +53,7 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 		domains = append(domains,
 			newDomain{
 				domain: fmt.Sprintf("%s-git-%s-%s.%s", projectSlug, short, workspaceSlug, apex),
+				//nolint: exhaustruct
 				sticky: db.NullDomainsSticky{Valid: false},
 			},
 		)
@@ -76,11 +77,12 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 		},
 	)
 	return domains
-
 }
 
-var nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9\s]`)
-var multipleSpacesRegex = regexp.MustCompile(`\s+`)
+var (
+	nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9\s]`)
+	multipleSpacesRegex  = regexp.MustCompile(`\s+`)
+)
 
 // sluggify converts a string into a URL-safe slug.
 //

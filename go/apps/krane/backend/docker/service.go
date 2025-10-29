@@ -68,13 +68,16 @@ func New(logger logging.Logger, cfg Config) (*docker, error) {
 	logger.Info("Docker client initialized successfully", "socket", cfg.SocketPath)
 
 	d := &docker{
-		logger: logger,
-		client: dockerClient,
+		registryAuth:                          "",
+		UnimplementedDeploymentServiceHandler: kranev1connect.UnimplementedDeploymentServiceHandler{},
+		logger:                                logger,
+		client:                                dockerClient,
 	}
 
 	// Encode registry credentials if provided.
 	// These will be passed to ImagePull for authentication.
 	if cfg.RegistryURL != "" && cfg.RegistryUsername != "" && cfg.RegistryPassword != "" {
+		//nolint: exhaustruct
 		authConfig := registry.AuthConfig{
 			Username:      cfg.RegistryUsername,
 			Password:      cfg.RegistryPassword,
@@ -118,6 +121,7 @@ func (d *docker) ensureImageExists(ctx context.Context, imageName string) error 
 		"using_registry_auth", hasAuth)
 
 	// Pass registry auth if we have it
+	// nolint: exhaustruct
 	pullOpts := image.PullOptions{
 		RegistryAuth: d.registryAuth,
 	}

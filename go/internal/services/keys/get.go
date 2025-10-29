@@ -70,7 +70,8 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	h := hash.Sha256(rawKey)
 	key, hit, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.CachedKeyData, error) {
 		// Use database retry with exponential backoff, skipping non-transient errors
-		row, err := db.WithRetryContext(ctx, func() (db.FindKeyForVerificationRow, error) {
+		var row db.FindKeyForVerificationRow
+		row, err = db.WithRetryContext(ctx, func() (db.FindKeyForVerificationRow, error) {
 			return db.Query.FindKeyForVerification(ctx, s.db.RO(), h)
 		})
 		if err != nil {
@@ -201,6 +202,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	}
 
 	kv := &KeyVerifier{
+		tags:                  []string{},
 		Key:                   key.FindKeyForVerificationRow,
 		clickhouse:            s.clickhouse,
 		rateLimiter:           s.raterLimiter,

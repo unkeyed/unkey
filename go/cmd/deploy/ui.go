@@ -32,7 +32,12 @@ type UI struct {
 }
 
 func NewUI() *UI {
-	return &UI{}
+	return &UI{
+		mu:           sync.Mutex{},
+		spinning:     false,
+		currentStep:  "",
+		stepSpinning: false,
+	}
 }
 
 func (ui *UI) Print(message string) {

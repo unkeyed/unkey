@@ -10,8 +10,11 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Name:  "krane",
-	Usage: "Run the k8s management service",
+	Version:  "",
+	Aliases:  []string{},
+	Commands: []*cli.Command{},
+	Name:     "krane",
+	Usage:    "Run the k8s management service",
 	Description: `krane (/kreɪn/) is the kubernetes deployment service for Unkey infrastructure.
 It manages the lifecycle of deployments in a kubernetes cluster:
 
@@ -54,6 +57,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	config := krane.Config{
+		Clock:                 nil,
 		HttpPort:              cmd.Int("http-port"),
 		Backend:               backend,
 		Platform:              cmd.String("platform"),

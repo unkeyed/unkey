@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -36,14 +35,14 @@ func NewGenerator() *Generator {
 }
 
 // Generate processes the plugin request and generates bulk insert functions.
-func (g *Generator) Generate(ctx context.Context, req *plugin.GenerateRequest) (*plugin.GenerateResponse, error) {
+func (g *Generator) Generate(req *plugin.GenerateRequest) (*plugin.GenerateResponse, error) {
 	var files []*plugin.File
 
 	// Collect all bulk functions for interface generation
 	var bulkFunctions []BulkFunction
 
 	// Generate bulk insert functions for each existing insert function
-	for _, query := range req.Queries {
+	for _, query := range req.GetQueries() {
 		if !g.isInsertQuery(query) {
 			continue
 		}
@@ -53,8 +52,8 @@ func (g *Generator) Generate(ctx context.Context, req *plugin.GenerateRequest) (
 			files = append(files, bulkFunction)
 
 			// Generate pluralized function name for interface
-			bulkFunctionName := query.Name
-			entityName, isInsert := strings.CutPrefix(query.Name, "Insert")
+			bulkFunctionName := query.GetName()
+			entityName, isInsert := strings.CutPrefix(query.GetName(), "Insert")
 			if isInsert {
 				pluralizedEntity := pluralize(entityName)
 				bulkFunctionName = "Insert" + pluralizedEntity
@@ -63,7 +62,7 @@ func (g *Generator) Generate(ctx context.Context, req *plugin.GenerateRequest) (
 			// Track function signature for interface
 			bulkFunctions = append(bulkFunctions, BulkFunction{
 				Name:         bulkFunctionName,
-				ParamsStruct: fmt.Sprintf("%sParams", query.Name),
+				ParamsStruct: fmt.Sprintf("%sParams", query.GetName()),
 			})
 		}
 	}
@@ -83,32 +82,28 @@ func (g *Generator) Generate(ctx context.Context, req *plugin.GenerateRequest) (
 
 // isInsertQuery checks if a query is an INSERT query that should have a bulk function generated.
 func (g *Generator) isInsertQuery(query *plugin.Query) bool {
-	return query.InsertIntoTable != nil && len(query.Params) > 0
+	return query.GetInsertIntoTable() != nil && len(query.GetParams()) > 0
 }
 
 // generateBulkInsertFunction generates a bulk insert function for the given query.
 func (g *Generator) generateBulkInsertFunction(query *plugin.Query) *plugin.File {
-	originalName := query.Name
+	originalName := query.GetName()
 	paramsStructName := fmt.Sprintf("%sParams", originalName)
 
 	// Generate pluralized function name
 	// If the function name starts with "Insert", replace it with pluralized version
 	bulkFunctionName := originalName
-	if strings.HasPrefix(originalName, "Insert") {
-		entityName := strings.TrimPrefix(originalName, "Insert")
+	if entityName, ok := strings.CutPrefix(originalName, "Insert"); ok {
 		pluralizedEntity := pluralize(entityName)
 		bulkFunctionName = "Insert" + pluralizedEntity
 	}
 
 	// Parse the SQL query
 	parser := NewSQLParser()
-	parsedQuery, err := parser.Parse(query)
-	if err != nil {
-		return nil
-	}
+	parsedQuery := parser.Parse(query)
 
 	// Extract field names from query parameters
-	fields := g.extractFieldNames(query.Params)
+	fields := g.extractFieldNames(query.GetParams())
 
 	// Determine which fields are used in VALUES clause vs ON DUPLICATE KEY UPDATE
 	// sqlc guarantees that parameters are ordered as they appear in the SQL query.
@@ -158,8 +153,8 @@ func (g *Generator) extractFieldNames(params []*plugin.Parameter) []string {
 	var fields []string
 
 	for _, param := range params {
-		if param.Column != nil {
-			fieldName := ToCamelCase(param.Column.Name)
+		if param.GetColumn() != nil {
+			fieldName := ToCamelCase(param.GetColumn().GetName())
 			fields = append(fields, fieldName)
 		}
 	}

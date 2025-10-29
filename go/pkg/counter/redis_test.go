@@ -515,11 +515,11 @@ func TestRedisCounterDecrement(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(numWorkers)
 
-		for i := 0; i < numWorkers; i++ {
+		for range numWorkers {
 			go func() {
 				defer wg.Done()
-				for j := 0; j < decrementsPerWorker; j++ {
-					_, err := ctr.Decrement(ctx, key, 2)
+				for range decrementsPerWorker {
+					_, err = ctr.Decrement(ctx, key, 2)
 					if err != nil {
 						t.Errorf("decrement error: %v", err)
 						return
@@ -618,10 +618,12 @@ func TestRedisCounterDecrementIfExists(t *testing.T) {
 		var mu sync.Mutex
 
 		wg.Add(numWorkers)
-		for i := 0; i < numWorkers; i++ {
+		for range numWorkers {
 			go func() {
 				defer wg.Done()
-				_, existed, success, err := ctr.DecrementIfExists(ctx, key, 1)
+				var existed, success bool
+
+				_, existed, success, err = ctr.DecrementIfExists(ctx, key, 1)
 				if err != nil {
 					t.Errorf("DecrementIfExists error: %v", err)
 					return
@@ -804,14 +806,15 @@ func TestRedisCounterDecrementLogic(t *testing.T) {
 		startBarrier := make(chan struct{})
 
 		for range numGoroutines {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-
+			wg.Go(func() {
 				// Wait for all goroutines to be ready
 				<-startBarrier
 
-				remaining, existed, success, err := ctr.DecrementIfExists(ctx, key, decrementAmount)
+				var remaining int64
+				var existed bool
+				var success bool
+
+				remaining, existed, success, err = ctr.DecrementIfExists(ctx, key, decrementAmount)
 				require.NoError(t, err)
 				require.True(t, existed)
 				require.GreaterOrEqual(t, remaining, int64(0), "decrement should always return non-negative actual count")
@@ -819,7 +822,7 @@ func TestRedisCounterDecrementLogic(t *testing.T) {
 				// We don't need to check success here since this is a concurrent test
 				// The final counter value verification is what matters
 				_ = success
-			}()
+			})
 		}
 
 		// Release all goroutines at once
@@ -877,19 +880,21 @@ func TestRedisCounterDecrementLogic(t *testing.T) {
 		var wg sync.WaitGroup
 		startBarrier := make(chan struct{})
 
-		for i := 0; i < numGoroutines; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+		for range numGoroutines {
+			wg.Go(func() {
 				<-startBarrier
 
-				remaining, existed, success, err := ctr.DecrementIfExists(ctx, key, decrementAmount)
+				var remaining int64
+				var existed bool
+				var success bool
+
+				remaining, existed, success, err = ctr.DecrementIfExists(ctx, key, decrementAmount)
 				require.NoError(t, err)
 				require.True(t, existed)
 				require.GreaterOrEqual(t, remaining, int64(0), "should always return non-negative actual count")
 
 				results <- success
-			}()
+			})
 		}
 
 		close(startBarrier)

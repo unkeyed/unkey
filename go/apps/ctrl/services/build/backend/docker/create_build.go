@@ -29,9 +29,14 @@ func (d *Docker) CreateBuild(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateBuildRequest],
 ) (*connect.Response[ctrlv1.CreateBuildResponse], error) {
+	buildContextPath := req.Msg.GetBuildContextPath()
+	unkeyProjectID := req.Msg.GetUnkeyProjectId()
+	deploymentID := req.Msg.GetDeploymentId()
+
 	if err := assert.All(
-		assert.NotEmpty(req.Msg.BuildContextPath, "build_context_path is required"),
-		assert.NotEmpty(req.Msg.UnkeyProjectId, "unkey_project_id is required"),
+		assert.NotEmpty(buildContextPath, "build_context_path is required"),
+		assert.NotEmpty(unkeyProjectID, "unkey_project_id is required"),
+		assert.NotEmpty(deploymentID, "deploymentID is required"),
 	); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
@@ -41,17 +46,17 @@ func (d *Docker) CreateBuild(
 	architecture := d.buildPlatform.Architecture
 
 	d.logger.Info("Getting presigned URL for build context",
-		"build_context_path", req.Msg.BuildContextPath,
-		"unkey_project_id", req.Msg.UnkeyProjectId,
+		"build_context_path", buildContextPath,
+		"unkey_project_id", unkeyProjectID,
 		"platform", platform,
 		"architecture", architecture)
 
-	contextURL, err := d.storage.GenerateDownloadURL(ctx, req.Msg.BuildContextPath, 15*time.Minute)
+	contextURL, err := d.storage.GenerateDownloadURL(ctx, buildContextPath, 15*time.Minute)
 	if err != nil {
 		d.logger.Error("Failed to get presigned URL",
 			"error", err,
-			"build_context_path", req.Msg.BuildContextPath,
-			"unkey_project_id", req.Msg.UnkeyProjectId)
+			"build_context_path", buildContextPath,
+			"unkey_project_id", unkeyProjectID)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to get presigned URL: %w", err))
 	}
@@ -63,7 +68,7 @@ func (d *Docker) CreateBuild(
 	if err != nil {
 		d.logger.Error("Failed to create docker client",
 			"error", err,
-			"unkey_project_id", req.Msg.UnkeyProjectId)
+			"unkey_project_id", unkeyProjectID)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to create docker client: %w", err))
 	}
@@ -71,8 +76,8 @@ func (d *Docker) CreateBuild(
 
 	// Docker requires lowercase repository names
 	imageName := strings.ToLower(fmt.Sprintf("%s-%s",
-		req.Msg.UnkeyProjectId,
-		req.Msg.DeploymentId,
+		unkeyProjectID,
+		deploymentID,
 	))
 
 	dockerfilePath := req.Msg.GetDockerfilePath()
@@ -85,8 +90,9 @@ func (d *Docker) CreateBuild(
 		"dockerfile", dockerfilePath,
 		"platform", platform,
 		"architecture", architecture,
-		"unkey_project_id", req.Msg.UnkeyProjectId)
+		"unkey_project_id", unkeyProjectID)
 
+	//nolint: exhaustruct
 	buildOptions := build.ImageBuildOptions{
 		Tags:          []string{imageName},
 		Dockerfile:    dockerfilePath,
@@ -101,7 +107,7 @@ func (d *Docker) CreateBuild(
 			"error", err,
 			"image_name", imageName,
 			"dockerfile", dockerfilePath,
-			"unkey_project_id", req.Msg.UnkeyProjectId)
+			"unkey_project_id", unkeyProjectID)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to start build: %w", err))
 	}
@@ -121,7 +127,7 @@ func (d *Docker) CreateBuild(
 			d.logger.Error("Build failed",
 				"error", resp.ErrorDetail.Message,
 				"image_name", imageName,
-				"unkey_project_id", req.Msg.UnkeyProjectId)
+				"unkey_project_id", unkeyProjectID)
 			break
 		}
 	}
@@ -130,7 +136,7 @@ func (d *Docker) CreateBuild(
 		d.logger.Error("Failed to read build output",
 			"error", err,
 			"image_name", imageName,
-			"unkey_project_id", req.Msg.UnkeyProjectId)
+			"unkey_project_id", unkeyProjectID)
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to read build output: %w", err))
 	}
@@ -146,10 +152,11 @@ func (d *Docker) CreateBuild(
 		"build_id", buildID,
 		"platform", platform,
 		"architecture", architecture,
-		"unkey_project_id", req.Msg.UnkeyProjectId)
+		"unkey_project_id", unkeyProjectID)
 
 	return connect.NewResponse(&ctrlv1.CreateBuildResponse{
-		ImageName: imageName,
-		BuildId:   buildID,
+		DepotProjectId: "",
+		ImageName:      imageName,
+		BuildId:        buildID,
 	}), nil
 }

@@ -11,9 +11,12 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Name:  "ctrl",
-	Usage: "Run the Unkey control plane service for managing infrastructure and services",
-
+	Version:     "",
+	Commands:    []*cli.Command{},
+	Aliases:     []string{},
+	Description: "",
+	Name:        "ctrl",
+	Usage:       "Run the Unkey control plane service for managing infrastructure and services",
 	Flags: []cli.Flag{
 		// Server Configuration
 		cli.Int("http-port", "HTTP port for the control plane server to listen on. Default: 8080",
@@ -168,6 +171,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Vault configuration
 		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
 		VaultS3: ctrl.S3Config{
+			ExternalURL:     cmd.String(""),
 			URL:             cmd.String("vault-s3-url"),
 			Bucket:          cmd.String("vault-s3-bucket"),
 			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),

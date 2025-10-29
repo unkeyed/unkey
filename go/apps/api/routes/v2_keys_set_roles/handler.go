@@ -21,8 +21,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2KeysSetRolesRequestBody
-type Response = openapi.V2KeysSetRolesResponseBody
+type (
+	Request  = openapi.V2KeysSetRolesRequestBody
+	Response = openapi.V2KeysSetRolesResponseBody
+)
 
 // Handler implements zen.Route interface for the v2 keys set roles endpoint
 type Handler struct {
@@ -283,6 +285,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if permBytes, ok := role.Permissions.([]byte); ok && permBytes != nil {
 			// AIDEV-SAFETY: On JSON parse failure, we default to empty permissions list
 			// to maintain least-privilege security posture rather than failing open
+			// nolint: musttag
 			if err := json.Unmarshal(permBytes, &rolePermissions); err != nil {
 				h.Logger.Debug("failed to parse role permissions JSON, defaulting to empty list",
 					"roleId", role.ID,

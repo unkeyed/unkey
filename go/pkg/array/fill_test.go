@@ -170,13 +170,13 @@ func ExampleFill_withRandom() {
 // Benchmark tests for Fill function
 func BenchmarkFill(b *testing.B) {
 	b.Run("Fill_1000_ints", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			Fill(1000, func() int { return rand.Intn(1000) })
 		}
 	})
 
 	b.Run("Fill_10000_strings", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			Fill(10000, func() string {
 				return fmt.Sprintf("item_%d", rand.Intn(10000))
 			})
@@ -184,7 +184,7 @@ func BenchmarkFill(b *testing.B) {
 	})
 
 	b.Run("Fill_1000000_ints", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for i := 0; b.Loop(); i++ {
 			Fill(1000000, func() int { return i })
 		}
 	})
@@ -195,26 +195,27 @@ func BenchmarkFillVsManual(b *testing.B) {
 	const size = 100000
 
 	b.Run("Fill", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			Fill(size, func() int { return rand.Intn(1000) })
 		}
 	})
 
 	b.Run("Manual_make_and_loop", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			slice := make([]int, size)
-			for j := 0; j < size; j++ {
+			for j := range size {
 				slice[j] = rand.Intn(1000)
 			}
 		}
 	})
 
 	b.Run("Append_based", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			var slice []int
-			for j := 0; j < size; j++ {
+			for range size {
 				slice = append(slice, rand.Intn(1000))
 			}
+			_ = slice
 		}
 	})
 }

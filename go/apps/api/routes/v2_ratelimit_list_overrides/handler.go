@@ -15,8 +15,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2RatelimitListOverridesRequestBody
-type Response = openapi.V2RatelimitListOverridesResponseBody
+type (
+	Request  = openapi.V2RatelimitListOverridesRequestBody
+	Response = openapi.V2RatelimitListOverridesResponseBody
+)
 
 // Handler implements zen.Route interface for the v2 ratelimit list overrides endpoint
 type Handler struct {
@@ -95,10 +97,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	overrides, err := db.Query.ListRatelimitOverridesByNamespaceID(ctx, h.DB.RO(), db.ListRatelimitOverridesByNamespaceIDParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		NamespaceID: namespace.ID,
-		Limit:       int32(limit) + 1,
-		CursorID:    ptr.SafeDeref(req.Cursor, ""),
+		//nolint:gosec
+		Limit:    int32(limit) + 1,
+		CursorID: ptr.SafeDeref(req.Cursor, ""),
 	})
-
 	if err != nil {
 		return err
 	}

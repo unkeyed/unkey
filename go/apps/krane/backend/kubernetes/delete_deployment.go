@@ -26,14 +26,15 @@ func (k *k8s) DeleteDeployment(ctx context.Context, req *connect.Request[kranev1
 		"deployment_id", k8sDeploymentID,
 	)
 
+	//nolint: exhaustruct
 	err := k.clientset.CoreV1().Services(req.Msg.GetNamespace()).Delete(ctx, k8sDeploymentID, metav1.DeleteOptions{
 		PropagationPolicy: ptr.P(metav1.DeletePropagationBackground),
 	})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete service: %w", err))
-
 	}
 
+	//nolint: exhaustruct
 	err = k.clientset.AppsV1().StatefulSets(req.Msg.GetNamespace()).Delete(ctx, k8sDeploymentID, metav1.DeleteOptions{
 		PropagationPolicy: ptr.P(metav1.DeletePropagationBackground),
 	})

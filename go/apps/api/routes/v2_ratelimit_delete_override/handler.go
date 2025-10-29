@@ -61,7 +61,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.Namespace},
 		func(ctx context.Context) (db.FindRatelimitNamespace, error) {
 			result := db.FindRatelimitNamespace{} // nolint:exhaustruct
-			response, err := db.WithRetryContext(ctx, func() (db.FindRatelimitNamespaceRow, error) {
+			var response db.FindRatelimitNamespaceRow
+			response, err = db.WithRetryContext(ctx, func() (db.FindRatelimitNamespaceRow, error) {
 				return db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Namespace:   req.Namespace,

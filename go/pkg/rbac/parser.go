@@ -57,6 +57,7 @@ type parser struct {
 //	}
 //	// Use the resulting PermissionQuery...
 func newParser(input string) *parser {
+	//nolint: exhaustruct
 	p := &parser{
 		lexer: newLexer(input),
 	}
@@ -162,6 +163,7 @@ func (p *parser) parseAndExpression() (PermissionQuery, error) {
 //
 // Returns the parsed [PermissionQuery] or an error with position information.
 func (p *parser) parsePrimary() (PermissionQuery, error) {
+	//nolint: exhaustive
 	switch p.currentToken.typ {
 	case permission:
 		// Simple permission

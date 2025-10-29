@@ -8,7 +8,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
-const hardcodedNamespace = "unkey" // TODO change to workspace scope
+const hardcodedNamespace = "unkey"
 
 // Workflow orchestrates deployment lifecycle operations.
 //
@@ -56,11 +56,12 @@ type Config struct {
 // New creates a new deployment workflow instance.
 func New(cfg Config) *Workflow {
 	return &Workflow{
-		db:            cfg.DB,
-		partitionDB:   cfg.PartitionDB,
-		logger:        cfg.Logger,
-		krane:         cfg.Krane,
-		buildClient:   cfg.BuildClient,
-		defaultDomain: cfg.DefaultDomain,
+		UnimplementedDeploymentServiceServer: hydrav1.UnimplementedDeploymentServiceServer{},
+		db:                                   cfg.DB,
+		partitionDB:                          cfg.PartitionDB,
+		logger:                               cfg.Logger,
+		krane:                                cfg.Krane,
+		buildClient:                          cfg.BuildClient,
+		defaultDomain:                        cfg.DefaultDomain,
 	}
 }

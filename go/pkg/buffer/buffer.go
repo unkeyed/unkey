@@ -53,6 +53,9 @@ type Config struct {
 //	})
 func New[T any](config Config) *Buffer[T] {
 	b := &Buffer[T]{
+		mu:          sync.RWMutex{},
+		closeOnce:   sync.Once{},
+		isClosed:    false,
 		c:           make(chan T, config.Capacity),
 		drop:        config.Drop,
 		name:        config.Name,
@@ -115,7 +118,6 @@ func (b *Buffer[T]) Buffer(t T) {
 		b.c <- t
 		metrics.BufferState.WithLabelValues(b.name, "buffered").Inc()
 	}
-
 }
 
 // Consume returns a receive-only channel that can be used to read elements from the buffer.

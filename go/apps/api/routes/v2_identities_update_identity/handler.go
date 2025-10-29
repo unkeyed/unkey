@@ -147,7 +147,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	result, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (txResult, error) {
-
 		auditLogs := []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
@@ -348,7 +347,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				finalRatelimits = append(finalRatelimits, openapi.RatelimitResponse{
 					Id:        ratelimitID,
 					Name:      newRL.Name,
-					Limit:     int64(newRL.Limit),
+					Limit:     newRL.Limit,
 					Duration:  newRL.Duration,
 					AutoApply: newRL.AutoApply,
 				})

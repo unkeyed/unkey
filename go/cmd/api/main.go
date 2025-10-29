@@ -11,8 +11,12 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Name:  "api",
-	Usage: "Run the Unkey API server for validating and managing API keys",
+	Aliases:     []string{},
+	Description: "",
+	Version:     "",
+	Commands:    []*cli.Command{},
+	Name:        "api",
+	Usage:       "Run the Unkey API server for validating and managing API keys",
 
 	Flags: []cli.Flag{
 		// Server Configuration

@@ -18,8 +18,11 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Name:  "quotacheck",
-	Usage: "Check for exceeded quotas",
+	Version:  "",
+	Commands: []*cli.Command{},
+	Aliases:  []string{},
+	Name:     "quotacheck",
+	Usage:    "Check for exceeded quotas",
 	Description: `Check for exceeded quotas and optionally send Slack notifications.
 
 This command monitors quota usage by querying ClickHouse for current usage metrics and comparing them against configured limits in the primary database. When quotas are exceeded, it can automatically send notifications via Slack webhook.

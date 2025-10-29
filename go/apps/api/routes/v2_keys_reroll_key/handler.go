@@ -162,7 +162,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Keyring: key.WorkspaceID,
 			Data:    keyResult.Key,
 		})
-
 		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -206,7 +205,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Encrypted:       encryption.GetEncrypted(),
 				EncryptionKeyID: encryption.GetKeyId(),
 			})
-
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -299,6 +297,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			expiration = time.Now()
 		}
 
+		//nolint: exhaustruct
 		err = db.Query.UpdateKey(ctx, tx, db.UpdateKeyParams{
 			ID:               req.KeyId,
 			ExpiresSpecified: 1,

@@ -21,14 +21,14 @@ func TestReduce(t *testing.T) {
 
 	t.Run("finds maximum value", func(t *testing.T) {
 		values := []float64{3.14, 2.71, 1.41, 4.67, 2.23}
-		max := Reduce(values, func(acc, val float64) float64 {
+		maxVal := Reduce(values, func(acc, val float64) float64 {
 			if val > acc {
 				return val
 			}
 			return acc
 		}, math.Inf(-1))
 
-		require.Equal(t, 4.67, max)
+		require.Equal(t, 4.67, maxVal)
 	})
 
 	t.Run("finds minimum value", func(t *testing.T) {

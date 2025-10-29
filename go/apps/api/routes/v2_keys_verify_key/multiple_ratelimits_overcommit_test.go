@@ -16,7 +16,7 @@ import (
 
 // TestMultipleRatelimitsCounterLeakBug tests the critical bug where multiple rate limits
 // cause incorrect counter decrements when one limit is triggered.
-//
+// nolint: godox
 // Bug description:
 // When a key has multiple rate limits (e.g., 12/minute and 200/month), and the first
 // limit gets checked and incremented, then the second limit is triggered, the first
@@ -52,7 +52,6 @@ func TestMultipleRatelimitsCounterLeakBug(t *testing.T) {
 	}
 
 	t.Run("monthly counter should be incremented when minute limit is hit", func(t *testing.T) {
-
 		// Create a key with a per-minute rate limit (12 requests per minute)
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
@@ -220,5 +219,4 @@ func TestMultipleRatelimitsCounterLeakBug(t *testing.T) {
 		require.True(t, monthLimitExceeded,
 			"The monthly limit should be exceeded after exactly 50 valid requests")
 	})
-
 }

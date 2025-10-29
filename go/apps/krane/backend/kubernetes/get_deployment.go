@@ -19,10 +19,9 @@ import (
 // It returns detailed information about each pod instance including stable
 // DNS addresses, current status, and resource allocation.
 func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.GetDeploymentRequest]) (*connect.Response[kranev1.GetDeploymentResponse], error) {
-
 	err := assert.All(
-		assert.NotEmpty(req.Msg.Namespace),
-		assert.NotEmpty(req.Msg.DeploymentId),
+		assert.NotEmpty(req.Msg.GetNamespace()),
+		assert.NotEmpty(req.Msg.GetDeploymentId()),
 	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
@@ -33,7 +32,8 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 	k.logger.Info("getting deployment", "deployment_id", k8sDeploymentID)
 
 	// Get the Job by name (deployment_id)
-	sfs, err := k.clientset.AppsV1().StatefulSets(req.Msg.Namespace).Get(ctx, k8sDeploymentID, metav1.GetOptions{})
+	// nolint: exhaustruct
+	sfs, err := k.clientset.AppsV1().StatefulSets(req.Msg.GetNamespace()).Get(ctx, k8sDeploymentID, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", k8sDeploymentID))
@@ -56,21 +56,24 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 	}
 
 	// Get the service to retrieve port info
+	// nolint: exhaustruct
 	service, err := k.clientset.CoreV1().Services(req.Msg.GetNamespace()).Get(ctx, k8sDeploymentID, metav1.GetOptions{})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not load service: %s", k8sDeploymentID))
 	}
 	var port int32 = 8080 // default
-	if err == nil && len(service.Spec.Ports) > 0 {
+	if len(service.Spec.Ports) > 0 {
 		port = service.Spec.Ports[0].Port
 	}
 
 	// Get all pods belonging to this stateful set
 	labelSelector := metav1.FormatLabelSelector(&metav1.LabelSelector{
-		MatchLabels: sfs.Spec.Selector.MatchLabels,
+		MatchExpressions: nil,
+		MatchLabels:      sfs.Spec.Selector.MatchLabels,
 	})
 
-	pods, err := k.clientset.CoreV1().Pods(req.Msg.Namespace).List(ctx, metav1.ListOptions{
+	//nolint: exhaustruct
+	pods, err := k.clientset.CoreV1().Pods(req.Msg.GetNamespace()).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -89,10 +92,14 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 			podStatus = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING
 		case corev1.PodFailed:
 			podStatus = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_TERMINATING
+		case corev1.PodSucceeded:
+			// Handling to handle at this point
+		case corev1.PodUnknown:
+			podStatus = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
 		default:
 			podStatus = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
 		}
-		//pod-1.my-headless-service.default.svc.cluster.local
+		// pod-1.my-headless-service.default.svc.cluster.local
 
 		// Create DNS entry for the pod
 		// For StatefulSets, pods have predictable DNS names: <pod-name>.<service-name>.<namespace>.svc.cluster.local

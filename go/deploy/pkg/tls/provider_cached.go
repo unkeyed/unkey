@@ -41,6 +41,7 @@ func newCachedFileProvider(cfg Config, cacheTTL time.Duration) (Provider, error)
 		return nil, fmt.Errorf("unexpected provider type")
 	}
 
+	//nolint: exhaustruct
 	return &cachedFileProvider{
 		fileProvider: fp,
 		cacheTTL:     cacheTTL,
@@ -50,9 +51,10 @@ func newCachedFileProvider(cfg Config, cacheTTL time.Duration) (Provider, error)
 // loadTLSConfigCached returns cached TLS configuration or loads fresh certificates.
 func (p *cachedFileProvider) loadTLSConfigCached() (*tls.Config, error) {
 	if p.certFile == "" || p.keyFile == "" {
-		return nil, nil
+		return nil, nil //nolint: all
 	}
 
+	//nolint: exhaustruct
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS13,
 		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
@@ -119,12 +121,6 @@ func (p *cachedFileProvider) ServerTLSConfig() (*tls.Config, error) {
 
 func (p *cachedFileProvider) ClientTLSConfig() (*tls.Config, error) {
 	return p.loadTLSConfigCached()
-}
-
-// cacheMetrics tracks cache performance statistics.
-type cacheMetrics struct {
-	hits   uint64
-	misses uint64
 }
 
 // GetCacheMetrics returns cache hit and miss counts for monitoring.

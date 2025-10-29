@@ -38,7 +38,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 
 	t.Run("delete identity by external ID", func(t *testing.T) {
 		externalID := "test_user_1"
-		identity := h.CreateIdentity(seed.CreateIdentityRequest{
+		_ = h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			ExternalID:  externalID,
 			Meta:        []byte("{}"),

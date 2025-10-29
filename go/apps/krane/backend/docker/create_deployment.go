@@ -44,10 +44,10 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 	}
 
 	// Configure resource limits
-	cpuNanos := int64(deployment.GetCpuMillicores()) * 1_000_000 // Convert millicores to nanoseconds
-	memoryBytes := int64(deployment.GetMemorySizeMib()) * 1024 * 1024
+	cpuNanos := int64(deployment.GetCpuMillicores()) * 1_000_000      // Convert millicores to nanoseconds
+	memoryBytes := int64(deployment.GetMemorySizeMib()) * 1024 * 1024 //nolint:gosec // Intentional conversion
 
-	// Container configuration
+	//nolint:exhaustruct // Docker SDK types have many optional fields
 	containerConfig := &container.Config{
 		Image: deployment.GetImage(),
 		Labels: map[string]string{
@@ -60,7 +60,7 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 		},
 	}
 
-	// Host configuration
+	//nolint:exhaustruct // Docker SDK types have many optional fields
 	hostConfig := &container.HostConfig{
 		PortBindings: portBindings,
 		RestartPolicy: container.RestartPolicy{
@@ -72,12 +72,13 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 		},
 	}
 
-	// Network configuration
+	//nolint:exhaustruct // Docker SDK types have many optional fields
 	networkConfig := &network.NetworkingConfig{}
 
 	// Create container
 
-	for i := range req.Msg.Deployment.Replicas {
+	for i := range req.Msg.GetDeployment().GetReplicas() {
+		//nolint:exhaustruct // Docker SDK types have many optional fields
 		resp, err := d.client.ContainerCreate(
 			ctx,
 			containerConfig,
@@ -90,7 +91,7 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create container: %w", err))
 		}
 
-		// Start container
+		//nolint:exhaustruct // Docker SDK types have many optional fields
 		err = d.client.ContainerStart(ctx, resp.ID, container.StartOptions{})
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to start container: %w", err))

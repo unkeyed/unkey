@@ -148,7 +148,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 
 	// Update project's live deployment
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		err := db.Query.UpdateProjectDeployments(stepCtx, w.db.RW(), db.UpdateProjectDeploymentsParams{
+		err = db.Query.UpdateProjectDeployments(stepCtx, w.db.RW(), db.UpdateProjectDeploymentsParams{
 			ID:               project.ID,
 			LiveDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
 			IsRolledBack:     true,

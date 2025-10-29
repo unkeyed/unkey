@@ -210,7 +210,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				externalID := *req.ExternalId
 
 				// Try to find existing identity
-				identity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
+				var identity db.Identity
+				identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					ExternalID:  externalID,
 					Deleted:     false,
@@ -342,6 +343,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						Limit:       int32(ratelimit.Limit), // nolint:gosec
 						Duration:    ratelimit.Duration,
 						CreatedAt:   now,
+						UpdatedAt:   sql.NullInt64{Int64: 0, Valid: false},
 						AutoApply:   ratelimit.AutoApply,
 					}
 				}
@@ -357,7 +359,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			var auditLogs []auditlog.AuditLog
 			if req.Permissions != nil {
-				existingPermissions, err := db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
+				var existingPermissions []db.Permission
+				existingPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Slugs:       *req.Permissions,
 				})
@@ -468,7 +471,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if req.Roles != nil {
-				existingRoles, err := db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
+				var existingRoles []db.FindRolesByNamesRow
+				existingRoles, err = db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Names:       *req.Roles,
 				})

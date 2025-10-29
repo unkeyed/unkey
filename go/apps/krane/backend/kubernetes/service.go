@@ -47,8 +47,9 @@ func New(cfg Config) (*k8s, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes clientset: %w", err)
 	}
 	k := &k8s{
-		logger:    cfg.Logger,
-		clientset: clientset,
+		UnimplementedDeploymentServiceHandler: kranev1connect.UnimplementedDeploymentServiceHandler{},
+		logger:                                cfg.Logger,
+		clientset:                             clientset,
 	}
 
 	if cfg.DeploymentEvictionTTL > 0 {

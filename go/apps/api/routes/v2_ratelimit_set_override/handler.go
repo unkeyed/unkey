@@ -21,8 +21,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2RatelimitSetOverrideRequestBody
-type Response = openapi.V2RatelimitSetOverrideResponseBody
+type (
+	Request  = openapi.V2RatelimitSetOverrideRequestBody
+	Response = openapi.V2RatelimitSetOverrideResponseBody
+)
 
 // Handler implements zen.Route interface for the v2 ratelimit set override endpoint
 type Handler struct {
@@ -58,7 +60,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	overrideID, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
-		namespace, err := db.Query.FindRatelimitNamespace(ctx, tx, db.FindRatelimitNamespaceParams{
+		var namespace db.FindRatelimitNamespaceRow
+		namespace, err = db.Query.FindRatelimitNamespace(ctx, tx, db.FindRatelimitNamespaceParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Namespace:   req.Namespace,
 		})
@@ -95,7 +98,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return "", err
 		}
 
-		override, err := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
+		var override db.RatelimitOverride
+		override, err = db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			NamespaceID: namespace.ID,
 			Identifier:  req.Identifier,
