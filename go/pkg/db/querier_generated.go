@@ -96,9 +96,10 @@ type Querier interface {
 	DeleteManyRolePermissionsByRoleID(ctx context.Context, db DBTX, roleID string) error
 	//DeleteOldIdentityByExternalID
 	//
-	//  DELETE i, rl
+	//  DELETE i, rl, c
 	//  FROM identities i
 	//  LEFT JOIN ratelimits rl ON rl.identity_id = i.id
+	//  LEFT JOIN credits c ON c.identity_id = i.id
 	//  WHERE i.workspace_id = ?
 	//    AND i.external_id = ?
 	//    AND i.id != ?
@@ -106,9 +107,10 @@ type Querier interface {
 	DeleteOldIdentityByExternalID(ctx context.Context, db DBTX, arg DeleteOldIdentityByExternalIDParams) error
 	//DeleteOldIdentityWithRatelimits
 	//
-	//  DELETE i, rl
+	//  DELETE i, rl, c
 	//  FROM identities i
 	//  LEFT JOIN ratelimits rl ON rl.identity_id = i.id
+	//  LEFT JOIN credits c ON c.identity_id = i.id
 	//  WHERE i.workspace_id = ?
 	//    AND (i.id = ? OR i.external_id = ?)
 	//    AND i.deleted = true
