@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 
@@ -54,50 +53,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Find the identity (credits are included via JOIN in FindIdentity query)
-	type IdentityResult struct {
-		Identity   db.FindIdentityRow
-		Ratelimits []db.Ratelimit
-	}
-
-	result, err := db.TxWithResult(ctx, h.DB.RO(), func(ctx context.Context, tx db.DBTX) (IdentityResult, error) {
-		identity, err := db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
-			Identity:    req.Identity,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Deleted:     false,
-		})
-		if err != nil {
-			if db.IsNotFound(err) {
-				return IdentityResult{}, fault.New("identity not found",
-					fault.Code(codes.Data.Identity.NotFound.URN()),
-					fault.Internal("identity not found"),
-					fault.Public("This identity does not exist."),
-				)
-			}
-
-			return IdentityResult{}, fault.Wrap(err,
-				fault.Internal("unable to find identity"),
-				fault.Public("We're unable to retrieve the identity."),
-			)
-		}
-
-		// Get the ratelimits for this identity
-		ratelimits, listErr := db.Query.ListIdentityRatelimitsByID(ctx, tx, sql.NullString{Valid: true, String: identity.ID})
-		if listErr != nil && !db.IsNotFound(listErr) {
-			return IdentityResult{}, fault.Wrap(listErr,
-				fault.Internal("unable to fetch ratelimits"),
-				fault.Public("We're unable to retrieve the identity's ratelimits."),
-			)
-		}
-
-		return IdentityResult{Identity: identity, Ratelimits: ratelimits}, nil
+	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		Identity:    req.Identity,
+		Deleted:     false,
 	})
 	if err != nil {
-		return err
+		if db.IsNotFound(err) {
+			return fault.New("identity not found",
+				fault.Code(codes.Data.Identity.NotFound.URN()),
+				fault.Internal("identity not found"),
+				fault.Public("This identity does not exist."),
+			)
+		}
+
+		return fault.Wrap(err,
+			fault.Internal("unable to find identity"),
+			fault.Public("We're unable to retrieve the identity."),
+		)
 	}
 
-	identity := result.Identity
-	ratelimits := result.Ratelimits
+	// Parse ratelimits JSON
+	var ratelimits []db.RatelimitInfo
+	if ratelimitBytes, ok := identity.Ratelimits.([]byte); ok && ratelimitBytes != nil {
+		_ = json.Unmarshal(ratelimitBytes, &ratelimits) // Ignore error, default to empty array
+	}
 
 	// Check permissions using either wildcard or the specific identity ID
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
@@ -129,14 +109,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		metaMap = make(map[string]any)
 	}
 
-	data := openapi.Identity{
-		Id:         identity.ID,
-		ExternalId: identity.ExternalID,
-		Meta:       &metaMap,
-		Credits:    nil,
-		Ratelimits: nil,
-	}
-
 	// Format ratelimits for the response
 	responseRatelimits := make([]openapi.RatelimitResponse, 0, len(ratelimits))
 	for _, r := range ratelimits {
@@ -149,12 +121,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	if len(responseRatelimits) == 0 {
-		responseRatelimits = nil
-	}
-
+	var credits *openapi.Credits
 	if identity.CreditID.Valid {
-		data.Credits = &openapi.Credits{
+		credits = &openapi.Credits{
 			Remaining: nullable.NewNullableWithValue(int64(identity.CreditRemaining.Int32)),
 			Refill:    nil,
 		}
@@ -167,7 +136,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				refillDay = ptr.P(int(identity.CreditRefillDay.Int16))
 			}
 
-			data.Credits.Refill = &openapi.CreditsRefill{
+			credits.Refill = &openapi.CreditsRefill{
 				Amount:    int64(identity.CreditRefillAmount.Int32),
 				Interval:  interval,
 				RefillDay: refillDay,
@@ -179,6 +148,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: data,
+		Data: openapi.Identity{
+			Id:         identity.ID,
+			ExternalId: identity.ExternalID,
+			Meta:       &metaMap,
+			Ratelimits: &responseRatelimits,
+			Credits:    credits,
+		},
 	})
 }

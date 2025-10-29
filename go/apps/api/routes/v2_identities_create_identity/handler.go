@@ -123,15 +123,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Handle credits if specified
 		if req.Credits != nil && req.Credits.Remaining.IsSpecified() && !req.Credits.Remaining.IsNull() {
 			creditID := uid.New(uid.CreditPrefix)
-			remaining, _ := req.Credits.Remaining.Get()
-
-			// Validate that the value fits in int32
-			if remaining > 2147483647 || remaining < 0 {
-				return fault.New("invalid credit value",
-					fault.Code(codes.App.Validation.InvalidInput.URN()),
-					fault.Public("Credit value must be between 0 and 2147483647"),
-				)
-			}
+			remaining := req.Credits.Remaining.MustGet()
 
 			creditParams := db.InsertCreditParams{
 				ID:          creditID,
@@ -146,20 +138,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if req.Credits.Refill != nil {
 				refill := *req.Credits.Refill
 				creditParams.RefillAmount = sql.NullInt32{Int32: int32(refill.Amount), Valid: true}
-
 				if refill.Interval == openapi.Monthly && refill.RefillDay != nil {
-					if *refill.RefillDay < 1 || *refill.RefillDay > 31 {
-						return fault.New("invalid refill day",
-							fault.Code(codes.App.Validation.InvalidInput.URN()),
-							fault.Public("Refill day must be between 1 and 31"),
-						)
-					}
-
 					creditParams.RefillDay = sql.NullInt16{Int16: int16(*refill.RefillDay), Valid: true}
 				}
 			}
 
-			if err := db.Query.InsertCredit(ctx, tx, creditParams); err != nil {
+			err := db.Query.InsertCredit(ctx, tx, creditParams)
+			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database error"),
@@ -242,7 +227,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 			if err != nil {
 				return fault.Wrap(err,
-					fault.Internal("unable to create ratelimit"), fault.Public("We're unable to create a ratelimit for the identity."),
+					fault.Internal("unable to create ratelimit"),
+					fault.Public("We're unable to create a ratelimit for the identity."),
 				)
 			}
 		}
