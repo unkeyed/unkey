@@ -13,8 +13,6 @@ endif
 GOMAXPROCS_VAL := $(or $(GOMAXPROCS),$(DETECTED_PROCS))
 PARALLEL_PROCS := $(shell if [ $(GOMAXPROCS_VAL) -gt 1 ]; then expr $(GOMAXPROCS_VAL) / 2; else echo 1; fi)
 
-GOBIN := $(shell go env GOPATH)/bin
-
 # One-time setup for new developers
 setup:
 	@[ -f go.work ] || go work init . tools
