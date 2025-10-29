@@ -71,12 +71,43 @@ export const getCustomer = t.procedure
           : null,
       };
     } catch (error) {
+      // If error is already a TRPCError, rethrow unchanged
+      if (error instanceof TRPCError) {
+        throw error;
+      }
+
+      // Map Stripe errors to appropriate TRPC error codes
       if (error instanceof Stripe.errors.StripeError) {
+        const stripeError = error;
+        let code: TRPCError["code"];
+
+        // Map Stripe error types to TRPC error codes
+        if (error instanceof Stripe.errors.StripeAuthenticationError) {
+          code = "UNAUTHORIZED";
+        } else if (error instanceof Stripe.errors.StripeRateLimitError) {
+          code = "TOO_MANY_REQUESTS";
+        } else if (error instanceof Stripe.errors.StripeInvalidRequestError) {
+          code = "BAD_REQUEST";
+        } else if (error instanceof Stripe.errors.StripePermissionError) {
+          code = "FORBIDDEN";
+        } else if (stripeError.statusCode === 404 || stripeError.code === "resource_missing") {
+          code = "NOT_FOUND";
+        } else if (error instanceof Stripe.errors.StripeAPIError) {
+          code = "INTERNAL_SERVER_ERROR";
+        } else if (error instanceof Stripe.errors.StripeConnectionError) {
+          code = "INTERNAL_SERVER_ERROR";
+        } else {
+          // Default for other Stripe errors
+          code = "INTERNAL_SERVER_ERROR";
+        }
+
         throw new TRPCError({
-          code: "NOT_FOUND",
-          message: `Stripe error: ${error.message}`,
+          code,
+          message: `Stripe error: ${stripeError.message}`,
         });
       }
+
+      // Handle unknown errors
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to retrieve customer",

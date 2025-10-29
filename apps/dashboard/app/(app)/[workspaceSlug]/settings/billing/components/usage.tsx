@@ -7,8 +7,9 @@ export const Usage: React.FC<{
   quota: number;
 }> = ({ quota }) => {
   const { data: usage, isLoading, error, refetch } = trpc.billing.queryUsage.useQuery(undefined, {
-    // Ensure fresh data when workspace changes
-    staleTime: 0,
+    // Cache for 30 seconds to reduce unnecessary refetches
+    // TRPC automatically scopes by workspace via requireWorkspace middleware
+    staleTime: 30_000, // 30 seconds
   });
 
   if (isLoading) {
@@ -52,11 +53,35 @@ export const Usage: React.FC<{
   }
 
   if (!usage) {
-    return null;
+    return (
+      <SettingCard
+        title="Usage this month"
+        description="Valid key verifications and ratelimits."
+        border="both"
+        className="w-full"
+        contentWidth="w-full lg:w-[320px]"
+      >
+        <div className="w-full flex flex-col gap-2" role="status" aria-live="polite">
+          <p className="text-sm text-gray-11">No usage data available</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="text-sm text-accent-11 hover:text-accent-12 transition-colors text-left"
+          >
+            Retry
+          </button>
+        </div>
+      </SettingCard>
+    );
   }
 
-  const verifications = usage.billableVerifications;
-  const ratelimits = usage.billableRatelimits;
+  // Safely extract and validate numeric values with fallbacks
+  const verifications = typeof usage.billableVerifications === "number" && !Number.isNaN(usage.billableVerifications)
+    ? usage.billableVerifications
+    : 0;
+  const ratelimits = typeof usage.billableRatelimits === "number" && !Number.isNaN(usage.billableRatelimits)
+    ? usage.billableRatelimits
+    : 0;
   const current = verifications + ratelimits;
   const max = quota;
   const percent = max > 0 ? Math.round((current / max) * 100) : 0;

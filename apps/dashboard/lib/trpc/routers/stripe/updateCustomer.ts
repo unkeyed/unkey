@@ -50,12 +50,20 @@ export const updateCustomer = t.procedure
         id: customer.id,
       };
     } catch (error) {
+      // If error is already a TRPCError, rethrow unchanged
+      if (error instanceof TRPCError) {
+        throw error;
+      }
+
+      // Handle Stripe errors
       if (error instanceof Stripe.errors.StripeError) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: `Stripe error: ${error.message}`,
         });
       }
+
+      // Handle unknown errors
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to update customer",

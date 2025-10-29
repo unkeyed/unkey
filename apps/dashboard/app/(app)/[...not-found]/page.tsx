@@ -1,5 +1,5 @@
+"use client";
 import { Button, Empty } from "@unkey/ui";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function NotFound() {

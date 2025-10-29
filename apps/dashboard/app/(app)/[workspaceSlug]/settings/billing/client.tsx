@@ -28,8 +28,9 @@ export const Client: React.FC = () => {
     isLoading: billingLoading,
     error: billingError,
   } = trpc.stripe.getBillingInfo.useQuery(undefined, {
-    // Ensure fresh data when workspace changes
-    staleTime: 0,
+    // Cache for 30 seconds to reduce unnecessary refetches
+    // TRPC automatically scopes by workspace via requireWorkspace middleware
+    staleTime: 30_000, // 30 seconds
   });
 
   // Handle loading states
