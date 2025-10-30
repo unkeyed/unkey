@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -19,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
@@ -112,100 +114,263 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if (req.Operation == openapi.Decrement || req.Operation == openapi.Increment) && !key.RemainingRequests.Valid {
+	// Check if credits exist - from new credits table or legacy fields
+	hasNewCredits := key.CreditID.Valid
+	hasLegacyCredits := key.RemainingRequests.Valid
+	hasCredits := hasNewCredits || hasLegacyCredits
+
+	if (req.Operation == openapi.Decrement || req.Operation == openapi.Increment) && !hasCredits {
 		return fault.New("wrong operation usage",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Public("You cannot increment or decrement a key with unlimited credits."),
 		)
 	}
 
-	credits := sql.NullInt32{Int32: 0, Valid: false}
-
 	// The only errors that can be returned here are isNull or notSpecified
 	// which firstly is wanted and secondly doesn't matter
 	reqVal, _ := req.Value.Get()
 
-	// Value has been set as not null
-	if !req.Value.IsNull() && req.Value.IsSpecified() {
-		credits = sql.NullInt32{Int32: int32(reqVal), Valid: true} // nolint:gosec
-	}
+	updatedCredits, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.Credit, error) {
+		now := time.Now()
+		var result db.Credit
+		var auditLogMessage string
 
-	key, err = db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindLiveKeyByIDRow, error) {
-		switch req.Operation {
-		case openapi.Set:
-			err = db.Query.UpdateKeyCreditsSet(ctx, tx, db.UpdateKeyCreditsSetParams{
-				ID:      key.ID,
-				Credits: credits,
-			})
-		case openapi.Increment:
-			err = db.Query.UpdateKeyCreditsIncrement(ctx, tx, db.UpdateKeyCreditsIncrementParams{
-				ID:      key.ID,
-				Credits: credits,
-			})
-		case openapi.Decrement:
-			err = db.Query.UpdateKeyCreditsDecrement(ctx, tx, db.UpdateKeyCreditsDecrementParams{
-				ID:      key.ID,
-				Credits: credits,
-			})
-		default:
-			return db.FindLiveKeyByIDRow{}, fault.New("invalid operation",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal(fmt.Sprintf("invalid operation: %s", req.Operation)),
-				fault.Public("Invalid operation specified."),
-			)
-		}
-		if err != nil {
-			return db.FindLiveKeyByIDRow{}, fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to update key credits."),
-			)
-		}
+		// Execute database operation based on which system the key uses
+		if hasNewCredits {
+			// Work with new credits table
+			creditID := key.CreditID.String
+			currentRemaining := key.CreditRemaining.Int32
 
-		// Reset the Refill data since it's not needed anymore
-		if req.Value.IsNull() {
-			err = db.Query.UpdateKeyCreditsRefill(ctx, tx, db.UpdateKeyCreditsRefillParams{
-				ID:           key.ID,
-				RefillAmount: sql.NullInt32{Int32: 0, Valid: false},
-				RefillDay:    sql.NullInt16{Int16: 0, Valid: false},
-			})
-			if err != nil {
-				return db.FindLiveKeyByIDRow{}, fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"),
-					fault.Public("Failed to reset key refill data."),
+			switch req.Operation {
+			case openapi.Set:
+				if req.Value.IsNull() {
+					// Setting to null means unlimited - delete the credit record
+					if err := db.Query.DeleteCredit(ctx, tx, creditID); err != nil {
+						return db.Credit{}, fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("database error"),
+							fault.Public("Failed to update key credits."),
+						)
+					}
+					auditLogMessage = "unlimited"
+					result = db.Credit{}
+				} else {
+					remaining := int32(reqVal)
+					if err := db.Query.UpsertCredit(ctx, tx, db.UpsertCreditParams{
+						ID:                    creditID,
+						WorkspaceID:           key.WorkspaceID,
+						KeyID:                 sql.NullString{Valid: true, String: key.ID},
+						IdentityID:            sql.NullString{Valid: false},
+						Remaining:             remaining,
+						RefillDay:             sql.NullInt16{Valid: false},
+						RefillAmount:          sql.NullInt32{Valid: false},
+						CreatedAt:             now.UnixMilli(),
+						UpdatedAt:             sql.NullInt64{Valid: true, Int64: now.UnixMilli()},
+						RefilledAt:            sql.NullInt64{Valid: false},
+						RemainingSpecified:    1,
+						RefillDaySpecified:    0,
+						RefillAmountSpecified: 0,
+					}); err != nil {
+						return db.Credit{}, fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("database error"),
+							fault.Public("Failed to update key credits."),
+						)
+					}
+					result.ID = creditID
+					result.Remaining = remaining
+					result.RefillDay = key.CreditRefillDay
+					result.RefillAmount = key.CreditRefillAmount
+					auditLogMessage = fmt.Sprintf("%d", remaining)
+				}
+
+			case openapi.Increment:
+				if err := db.Query.UpdateCreditIncrement(ctx, tx, db.UpdateCreditIncrementParams{
+					ID:      creditID,
+					Credits: int32(reqVal),
+				}); err != nil {
+					return db.Credit{}, fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"),
+						fault.Public("Failed to update key credits."),
+					)
+				}
+				newRemaining := currentRemaining + int32(reqVal)
+				result.ID = creditID
+				result.Remaining = newRemaining
+				result.RefillDay = key.CreditRefillDay
+				result.RefillAmount = key.CreditRefillAmount
+				auditLogMessage = fmt.Sprintf("%d", newRemaining)
+
+			case openapi.Decrement:
+				if err := db.Query.UpdateCreditDecrement(ctx, tx, db.UpdateCreditDecrementParams{
+					ID:      creditID,
+					Credits: int32(reqVal),
+				}); err != nil {
+					return db.Credit{}, fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"),
+						fault.Public("Failed to update key credits."),
+					)
+				}
+				newRemaining := currentRemaining - int32(reqVal)
+				if newRemaining < 0 {
+					newRemaining = 0
+				}
+				result.ID = creditID
+				result.Remaining = newRemaining
+				result.RefillDay = key.CreditRefillDay
+				result.RefillAmount = key.CreditRefillAmount
+				auditLogMessage = fmt.Sprintf("%d", newRemaining)
+
+			default:
+				return db.Credit{}, fault.New("invalid operation",
+					fault.Code(codes.App.Validation.InvalidInput.URN()),
+					fault.Internal(fmt.Sprintf("invalid operation: %s", req.Operation)),
+					fault.Public("Invalid operation specified."),
+				)
+			}
+		} else if hasLegacyCredits {
+			// Work with legacy keys.remaining_requests field
+			currentRemaining := key.RemainingRequests.Int32
+
+			switch req.Operation {
+			case openapi.Set:
+				if req.Value.IsNull() {
+					// Setting to null means unlimited
+					if err := db.Query.UpdateKey(ctx, tx, db.UpdateKeyParams{
+						ID:                         key.ID,
+						Now:                        sql.NullInt64{Valid: true, Int64: now.UnixMilli()},
+						NameSpecified:              0,
+						IdentityIDSpecified:        0,
+						EnabledSpecified:           0,
+						MetaSpecified:              0,
+						ExpiresSpecified:           0,
+						RemainingRequests:          sql.NullInt32{Valid: false},
+						RemainingRequestsSpecified: 1,
+					}); err != nil {
+						return db.Credit{}, fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("database error"),
+							fault.Public("Failed to update key credits."),
+						)
+					}
+					auditLogMessage = "unlimited"
+					result = db.Credit{}
+				} else {
+					remaining := int32(reqVal)
+					if err := db.Query.UpdateKey(ctx, tx, db.UpdateKeyParams{
+						ID:                         key.ID,
+						Now:                        sql.NullInt64{Valid: true, Int64: now.UnixMilli()},
+						NameSpecified:              0,
+						IdentityIDSpecified:        0,
+						EnabledSpecified:           0,
+						MetaSpecified:              0,
+						ExpiresSpecified:           0,
+						RemainingRequests:          sql.NullInt32{Valid: true, Int32: remaining},
+						RemainingRequestsSpecified: 1,
+					}); err != nil {
+						return db.Credit{}, fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("database error"),
+							fault.Public("Failed to update key credits."),
+						)
+					}
+					result.Remaining = remaining
+					result.RefillDay = key.RefillDay
+					result.RefillAmount = key.RefillAmount
+					auditLogMessage = fmt.Sprintf("%d", remaining)
+				}
+
+			case openapi.Increment:
+				if err := db.Query.UpdateKeyCreditsIncrement(ctx, tx, db.UpdateKeyCreditsIncrementParams{
+					ID:      key.ID,
+					Credits: sql.NullInt32{Valid: true, Int32: int32(reqVal)},
+				}); err != nil {
+					return db.Credit{}, fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"),
+						fault.Public("Failed to update key credits."),
+					)
+				}
+				newRemaining := currentRemaining + int32(reqVal)
+				result.Remaining = newRemaining
+				result.RefillDay = key.RefillDay
+				result.RefillAmount = key.RefillAmount
+				auditLogMessage = fmt.Sprintf("%d", newRemaining)
+
+			case openapi.Decrement:
+				if err := db.Query.UpdateKeyCreditsDecrement(ctx, tx, db.UpdateKeyCreditsDecrementParams{
+					ID:      key.ID,
+					Credits: sql.NullInt32{Valid: true, Int32: int32(reqVal)},
+				}); err != nil {
+					return db.Credit{}, fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"),
+						fault.Public("Failed to update key credits."),
+					)
+				}
+				newRemaining := currentRemaining - int32(reqVal)
+				if newRemaining < 0 {
+					newRemaining = 0
+				}
+				result.Remaining = newRemaining
+				result.RefillDay = key.RefillDay
+				result.RefillAmount = key.RefillAmount
+				auditLogMessage = fmt.Sprintf("%d", newRemaining)
+
+			default:
+				return db.Credit{}, fault.New("invalid operation",
+					fault.Code(codes.App.Validation.InvalidInput.URN()),
+					fault.Internal(fmt.Sprintf("invalid operation: %s", req.Operation)),
+					fault.Public("Invalid operation specified."),
+				)
+			}
+		} else {
+			// Key currently has unlimited credits (no credit record)
+			// Only SET operation with non-null value is allowed
+			if req.Operation == openapi.Set && !req.Value.IsNull() {
+				// Create a new credit record in the new credits table
+				creditID := uid.New(uid.CreditPrefix)
+				remaining := int32(reqVal)
+
+				if err := db.Query.InsertCredit(ctx, tx, db.InsertCreditParams{
+					ID:           creditID,
+					WorkspaceID:  key.WorkspaceID,
+					KeyID:        sql.NullString{Valid: true, String: key.ID},
+					IdentityID:   sql.NullString{Valid: false},
+					Remaining:    remaining,
+					RefillDay:    sql.NullInt16{Valid: false},
+					RefillAmount: sql.NullInt32{Valid: false},
+					CreatedAt:    now.UnixMilli(),
+					UpdatedAt:    sql.NullInt64{Valid: true, Int64: now.UnixMilli()},
+					RefilledAt:   sql.NullInt64{Valid: false},
+				}); err != nil {
+					return db.Credit{}, fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"),
+						fault.Public("Failed to create key credits."),
+					)
+				}
+
+				result.ID = creditID
+				result.Remaining = remaining
+				auditLogMessage = fmt.Sprintf("%d", remaining)
+			} else {
+				return db.Credit{}, fault.New("no credits configured",
+					fault.Code(codes.App.Validation.InvalidInput.URN()),
+					fault.Internal("key has no credits configured"),
+					fault.Public("This key has unlimited credits."),
 				)
 			}
 		}
 
-		keyAfterUpdate, keyErr := db.Query.FindLiveKeyByID(ctx, tx, req.KeyId)
-		if keyErr != nil {
-			if db.IsNotFound(keyErr) {
-				return db.FindLiveKeyByIDRow{}, fault.Wrap(
-					keyErr,
-					fault.Code(codes.Data.Key.NotFound.URN()),
-					fault.Internal("key got deleted after update"),
-					fault.Public("We could not find the requested key."),
-				)
-			}
-
-			return db.FindLiveKeyByIDRow{}, fault.Wrap(keyErr,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to retrieve key information."),
-			)
-		}
-
-		remaining := "unlimited"
-		if keyAfterUpdate.RemainingRequests.Valid {
-			remaining = fmt.Sprintf("%d", keyAfterUpdate.RemainingRequests.Int32)
-		}
-
-		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+		// Create audit log once at the end
+		if err := h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.KeyUpdateEvent,
-				Display:     fmt.Sprintf("Updated Key %s, set remaining to %s.", key.ID, remaining),
+				Display:     fmt.Sprintf("Updated Key %s, set remaining to %s.", key.ID, auditLogMessage),
 				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
@@ -229,49 +394,65 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					},
 				},
 			},
-		})
+		}); err != nil {
+			return db.Credit{}, err
+		}
 
-		return keyAfterUpdate, err
+		return result, nil
 	})
 
 	if err != nil {
 		return err
 	}
 
-	null := nullable.Nullable[int64]{}
-	null.SetNull()
-
-	responseData := openapi.KeyCreditsData{
+	responseData := openapi.Credits{
 		Refill:    nil,
-		Remaining: null,
+		Remaining: nullable.NewNullNullable[int64](),
 	}
 
-	if key.RemainingRequests.Valid {
-		responseData.Remaining = nullable.NewNullableWithValue(int64(key.RemainingRequests.Int32))
-	}
+	// If set to unlimited (null), remaining stays null
+	if !(req.Operation == openapi.Set && req.Value.IsNull()) {
+		// Has credits - set the value
+		responseData.Remaining = nullable.NewNullableWithValue(int64(updatedCredits.Remaining))
 
-	if key.RefillAmount.Valid {
-		var day *int
-		interval := openapi.KeyCreditsRefillIntervalDaily
+		// Add refill config if exists
+		if updatedCredits.RefillAmount.Valid {
+			var day *int
+			interval := openapi.Daily
 
-		if key.RefillDay.Valid {
-			interval = openapi.KeyCreditsRefillIntervalMonthly
-			day = ptr.P(int(key.RefillDay.Int16))
-		}
+			if updatedCredits.RefillDay.Valid {
+				interval = openapi.Monthly
+				day = ptr.P(int(updatedCredits.RefillDay.Int16))
+			}
 
-		responseData.Refill = &openapi.KeyCreditsRefill{
-			Amount:    int64(key.RefillAmount.Int32),
-			Interval:  interval,
-			RefillDay: day,
+			responseData.Refill = &openapi.CreditsRefill{
+				Amount:    int64(updatedCredits.RefillAmount.Int32),
+				Interval:  interval,
+				RefillDay: day,
+			}
 		}
 	}
 
 	h.KeyCache.Remove(ctx, key.Hash)
-	if err := h.UsageLimiter.Invalidate(ctx, key.ID); err != nil {
-		h.Logger.Error("Failed to invalidate usage limit",
-			"error", err.Error(),
-			"key_id", key.ID,
-		)
+
+	// Invalidate cache - need to use the credit ID that was valid before the update
+	// For set-to-unlimited, we delete the credit, so we need the old credit ID
+	// For other operations, updatedCredits.ID will be set
+	// Legacy credits don't have a credit ID in the credits table to invalidate
+	creditIDToInvalidate := ""
+	if updatedCredits.ID != "" {
+		creditIDToInvalidate = updatedCredits.ID
+	} else if hasNewCredits {
+		creditIDToInvalidate = key.CreditID.String
+	}
+
+	if creditIDToInvalidate != "" {
+		if err := h.UsageLimiter.Invalidate(ctx, creditIDToInvalidate); err != nil {
+			h.Logger.Error("Failed to invalidate usage limit",
+				"error", err.Error(),
+				"credit_id", creditIDToInvalidate,
+			)
+		}
 	}
 
 	return s.JSON(http.StatusOK, Response{

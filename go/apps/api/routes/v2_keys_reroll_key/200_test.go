@@ -69,18 +69,20 @@ func TestRerollKeySuccess(t *testing.T) {
 	t.Run("successfully rerolled key with all options", func(t *testing.T) {
 		t.Parallel()
 		key := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID:  workspace.ID,
-			Disabled:     false,
-			KeySpaceID:   api.KeyAuthID.String,
-			Remaining:    ptr.P(int32(16)),
-			IdentityID:   ptr.P(identity.ID),
-			Meta:         nil,
-			Expires:      nil,
-			Name:         ptr.P("Test-Key"),
-			Deleted:      false,
-			Recoverable:  true,
-			RefillAmount: ptr.P(int32(100)),
-			RefillDay:    ptr.P(int16(1)),
+			WorkspaceID: workspace.ID,
+			Disabled:    false,
+			KeySpaceID:  api.KeyAuthID.String,
+			Credits: &seed.CreditRequest{
+				Remaining:    16,
+				RefillAmount: ptr.P(int32(100)),
+				RefillDay:    ptr.P(int16(1)),
+			},
+			IdentityID:  ptr.P(identity.ID),
+			Meta:        nil,
+			Expires:     nil,
+			Name:        ptr.P("Test-Key"),
+			Deleted:     false,
+			Recoverable: true,
 			Permissions: []seed.CreatePermissionRequest{
 				{
 					Name:        "Read documents",
@@ -142,9 +144,10 @@ func TestRerollKeySuccess(t *testing.T) {
 		require.Equal(t, createdKeyRow.Name.String, rolledKeyRow.Name.String)
 		require.Equal(t, createdKeyRow.IdentityID.String, rolledKeyRow.IdentityID.String)
 		require.Equal(t, createdKeyRow.Meta, rolledKeyRow.Meta)
-		require.Equal(t, createdKeyRow.RefillDay.Int16, rolledKeyRow.RefillDay.Int16)
-		require.Equal(t, createdKeyRow.RefillAmount.Int32, rolledKeyRow.RefillAmount.Int32)
-		require.Equal(t, createdKeyRow.RemainingRequests.Int32, rolledKeyRow.RemainingRequests.Int32)
+		require.NotEqual(t, createdKeyRow.CreditID, rolledKeyRow.CreditID)
+		require.Equal(t, createdKeyRow.CreditRefillDay.Int16, rolledKeyRow.CreditRefillDay.Int16)
+		require.Equal(t, createdKeyRow.CreditRefillAmount.Int32, rolledKeyRow.CreditRefillAmount.Int32)
+		require.Equal(t, createdKeyRow.CreditRemaining.Int32, rolledKeyRow.CreditRemaining.Int32)
 
 		// The first key should expire
 		require.True(t, createdKeyRow.Expires.Valid)

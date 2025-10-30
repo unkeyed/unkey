@@ -213,6 +213,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Keyring:   key.WorkspaceID,
 					Encrypted: key.EncryptedKey.String,
 				})
+
 				if decryptErr != nil {
 					h.Logger.Error("failed to decrypt key",
 						"keyId", key.ID,
@@ -274,21 +275,42 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 		response.Expires = ptr.P(keyData.Key.Expires.Time.UnixMilli())
 	}
 
-	// Set credits
-	if keyData.Key.RemainingRequests.Valid {
-		response.Credits = &openapi.KeyCreditsData{
+	// Set credits - check both new credits table and legacy fields
+	if keyData.KeyCredits != nil {
+		// New credits system
+		response.Credits = &openapi.Credits{
+			Remaining: nullable.NewNullableWithValue(int64(keyData.KeyCredits.Remaining)),
+		}
+
+		if keyData.KeyCredits.RefillAmount.Valid {
+			var refillDay *int
+			interval := openapi.Daily
+			if keyData.KeyCredits.RefillDay.Valid {
+				interval = openapi.Monthly
+				refillDay = ptr.P(int(keyData.KeyCredits.RefillDay.Int16))
+			}
+
+			response.Credits.Refill = &openapi.CreditsRefill{
+				Amount:    int64(keyData.KeyCredits.RefillAmount.Int32),
+				Interval:  interval,
+				RefillDay: refillDay,
+			}
+		}
+	} else if keyData.Key.RemainingRequests.Valid {
+		// Legacy credits system
+		response.Credits = &openapi.Credits{
 			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int32)),
 		}
 
 		if keyData.Key.RefillAmount.Valid {
 			var refillDay *int
-			interval := openapi.KeyCreditsRefillIntervalDaily
+			interval := openapi.Daily
 			if keyData.Key.RefillDay.Valid {
-				interval = openapi.KeyCreditsRefillIntervalMonthly
+				interval = openapi.Monthly
 				refillDay = ptr.P(int(keyData.Key.RefillDay.Int16))
 			}
 
-			response.Credits.Refill = &openapi.KeyCreditsRefill{
+			response.Credits.Refill = &openapi.CreditsRefill{
 				Amount:    int64(keyData.Key.RefillAmount.Int32),
 				Interval:  interval,
 				RefillDay: refillDay,
@@ -308,6 +330,28 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 			_ = json.Unmarshal(keyData.Identity.Meta, &identityMeta) // Ignore error, default to nil
 			if identityMeta != nil {
 				response.Identity.Meta = &identityMeta
+			}
+		}
+
+		// Add identity credits if they exist
+		if keyData.IdentityCredits != nil {
+			response.Identity.Credits = &openapi.Credits{
+				Remaining: nullable.NewNullableWithValue(int64(keyData.IdentityCredits.Remaining)),
+			}
+
+			if keyData.IdentityCredits.RefillAmount.Valid {
+				var refillDay *int
+				interval := openapi.Daily
+				if keyData.IdentityCredits.RefillDay.Valid {
+					interval = openapi.Monthly
+					refillDay = ptr.P(int(keyData.IdentityCredits.RefillDay.Int16))
+				}
+
+				response.Identity.Credits.Refill = &openapi.CreditsRefill{
+					Amount:    int64(keyData.IdentityCredits.RefillAmount.Int32),
+					Interval:  interval,
+					RefillDay: refillDay,
+				}
 			}
 		}
 	}

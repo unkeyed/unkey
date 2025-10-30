@@ -76,12 +76,24 @@ SELECT k.*,
                     WHERE rl.identity_id = i.id
                 ) AS combined_rl),
                JSON_ARRAY()
-       )                    AS ratelimits
+       )                    AS ratelimits,
+       -- Key credits from new credits table
+       kc.id                as credit_id,
+       kc.remaining         as credit_remaining,
+       kc.refill_day        as credit_refill_day,
+       kc.refill_amount     as credit_refill_amount,
+       -- Identity credits from new credits table
+       ic.id                as identity_credit_id,
+       ic.remaining         as identity_credit_remaining,
+       ic.refill_day        as identity_credit_refill_day,
+       ic.refill_amount     as identity_credit_refill_amount
 FROM `keys` k
          JOIN key_auth ka ON ka.id = k.key_auth_id
          JOIN workspaces ws ON ws.id = k.workspace_id
          LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
          LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+         LEFT JOIN credits kc ON kc.key_id = k.id
+         LEFT JOIN credits ic ON ic.identity_id = i.id
 WHERE k.key_auth_id = sqlc.arg(key_space_id)
   AND k.id >= sqlc.arg(id_cursor)
   AND (

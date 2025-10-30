@@ -189,22 +189,30 @@ type CreateKeyRequest struct {
 	Disabled       bool
 	WorkspaceID    string
 	KeySpaceID     string
-	Remaining      *int32
 	IdentityID     *string
 	Meta           *string
 	Expires        *time.Time
 	Name           *string
 	Deleted        bool
 	ForWorkspaceID *string // For creating root keys that target a specific workspace
+	Recoverable    bool
 
-	Recoverable bool
+	Credits *CreditRequest
 
-	RefillAmount *int32
-	RefillDay    *int16
+	// Legacy credits fields (stored directly on keys table)
+	LegacyRemainingRequests *int32
+	LegacyRefillAmount      *int32
+	LegacyRefillDay         *int16
 
 	Permissions []CreatePermissionRequest
 	Roles       []CreateRoleRequest
 	Ratelimits  []CreateRatelimitRequest
+}
+
+type CreditRequest struct {
+	Remaining    int32
+	RefillAmount *int32
+	RefillDay    *int16
 }
 
 type CreateKeyResponse struct {
@@ -233,11 +241,27 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		Meta:              sql.NullString{String: ptr.SafeDeref(req.Meta, ""), Valid: req.Meta != nil},
 		IdentityID:        sql.NullString{String: ptr.SafeDeref(req.IdentityID, ""), Valid: req.IdentityID != nil},
 		Expires:           sql.NullTime{Time: ptr.SafeDeref(req.Expires, time.Time{}), Valid: req.Expires != nil},
-		RemainingRequests: sql.NullInt32{Int32: ptr.SafeDeref(req.Remaining, 0), Valid: req.Remaining != nil},
-		RefillAmount:      sql.NullInt32{Int32: ptr.SafeDeref(req.RefillAmount, 0), Valid: req.RefillAmount != nil},
-		RefillDay:         sql.NullInt16{Int16: ptr.SafeDeref(req.RefillDay, 0), Valid: req.RefillDay != nil},
+		RemainingRequests: sql.NullInt32{Int32: ptr.SafeDeref(req.LegacyRemainingRequests), Valid: req.LegacyRemainingRequests != nil},
+		RefillAmount:      sql.NullInt32{Int32: ptr.SafeDeref(req.LegacyRefillAmount), Valid: req.LegacyRefillAmount != nil},
+		RefillDay:         sql.NullInt16{Int16: ptr.SafeDeref(req.LegacyRefillDay), Valid: req.LegacyRefillDay != nil},
 	})
 	require.NoError(s.t, err)
+
+	if req.Credits != nil {
+		err = db.Query.InsertCredit(ctx, s.DB.RW(), db.InsertCreditParams{
+			ID:           uid.New(uid.CreditPrefix),
+			WorkspaceID:  req.WorkspaceID,
+			KeyID:        sql.NullString{String: keyID, Valid: true},
+			IdentityID:   sql.NullString{String: "", Valid: false},
+			Remaining:    req.Credits.Remaining,
+			RefillDay:    sql.NullInt16{Int16: ptr.SafeDeref(req.Credits.RefillDay), Valid: req.Credits.RefillDay != nil},
+			RefillAmount: sql.NullInt32{Int32: ptr.SafeDeref(req.Credits.RefillAmount), Valid: req.Credits.RefillAmount != nil},
+			CreatedAt:    time.Now().UnixMilli(),
+			UpdatedAt:    sql.NullInt64{Int64: 0, Valid: false},
+			RefilledAt:   sql.NullInt64{Int64: 0, Valid: false},
+		})
+		require.NoError(s.t, err)
+	}
 
 	res := CreateKeyResponse{
 		KeyID: keyID,
@@ -366,6 +390,8 @@ type CreateIdentityRequest struct {
 	ExternalID  string
 	Meta        []byte
 	Ratelimits  []CreateRatelimitRequest
+
+	Credits *CreditRequest
 }
 
 func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) db.Identity {
@@ -387,6 +413,22 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 		Meta:        metaBytes,
 	})
 	require.NoError(s.t, err)
+
+	if req.Credits != nil {
+		err = db.Query.InsertCredit(ctx, s.DB.RW(), db.InsertCreditParams{
+			ID:           uid.New(uid.CreditPrefix),
+			WorkspaceID:  req.WorkspaceID,
+			KeyID:        sql.NullString{String: "", Valid: false},
+			IdentityID:   sql.NullString{String: identityId, Valid: true},
+			Remaining:    req.Credits.Remaining,
+			RefillDay:    sql.NullInt16{Int16: ptr.SafeDeref(req.Credits.RefillDay), Valid: req.Credits.RefillDay != nil},
+			RefillAmount: sql.NullInt32{Int32: ptr.SafeDeref(req.Credits.RefillAmount), Valid: req.Credits.RefillAmount != nil},
+			CreatedAt:    time.Now().UnixMilli(),
+			UpdatedAt:    sql.NullInt64{Int64: 0, Valid: false},
+			RefilledAt:   sql.NullInt64{Int64: 0, Valid: false},
+		})
+		require.NoError(s.t, err)
+	}
 
 	for _, ratelimit := range req.Ratelimits {
 		ratelimit.IdentityID = ptr.P(identityId)

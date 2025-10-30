@@ -120,6 +120,39 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
+		// Handle credits if specified
+		if req.Credits != nil && req.Credits.Remaining.IsSpecified() && !req.Credits.Remaining.IsNull() {
+			creditID := uid.New(uid.CreditPrefix)
+			remaining := req.Credits.Remaining.MustGet()
+
+			creditParams := db.InsertCreditParams{
+				ID:          creditID,
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				IdentityID:  sql.NullString{String: identityID, Valid: true},
+				Remaining:   int32(remaining),
+				CreatedAt:   time.Now().UnixMilli(),
+				UpdatedAt:   sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+			}
+
+			// Handle refill configuration
+			if req.Credits.Refill != nil {
+				refill := *req.Credits.Refill
+				creditParams.RefillAmount = sql.NullInt32{Int32: int32(refill.Amount), Valid: true}
+				if refill.Interval == openapi.Monthly && refill.RefillDay != nil {
+					creditParams.RefillDay = sql.NullInt16{Int16: int16(*refill.RefillDay), Valid: true}
+				}
+			}
+
+			err := db.Query.InsertCredit(ctx, tx, creditParams)
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"),
+					fault.Public("Failed to create identity credits."),
+				)
+			}
+		}
+
 		auditLogs := []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
@@ -194,7 +227,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 			if err != nil {
 				return fault.Wrap(err,
-					fault.Internal("unable to create ratelimit"), fault.Public("We're unable to create a ratelimit for the identity."),
+					fault.Internal("unable to create ratelimit"),
+					fault.Public("We're unable to create a ratelimit for the identity."),
 				)
 			}
 		}

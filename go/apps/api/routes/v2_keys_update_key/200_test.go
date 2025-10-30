@@ -169,10 +169,10 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 		Meta:       nullable.NewNullableWithValue(map[string]any{"new": "meta"}),
 		Expires:    nullable.NewNullNullable[int64](),
 		Enabled:    ptr.P(true),
-		Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
+		Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
 			Remaining: nullable.NewNullableWithValue(int64(100)),
-			Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
-				Interval: openapi.UpdateKeyCreditsRefillIntervalDaily,
+			Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
+				Interval: openapi.Daily,
 				Amount:   50,
 			}),
 		}),
@@ -190,12 +190,18 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "newName", key.Name.String)
 	require.True(t, key.IdentityID.Valid, "Should have identity ID set")
-	require.Equal(t, int32(100), key.RemainingRequests.Int32)
-	require.Equal(t, int32(50), key.RefillAmount.Int32)
+
+	// Verify credits were created
+	credits, err := db.Query.FindCreditsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
+	require.NoError(t, err)
+	require.Equal(t, int32(100), credits.Remaining)
+	require.True(t, credits.RefillAmount.Valid)
+	require.Equal(t, int32(50), credits.RefillAmount.Int32)
+	require.False(t, credits.RefillDay.Valid, "daily interval should not have refill day")
 
 	// Verify identity was created with correct external ID
-	identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
-		IdentityID:  key.IdentityID.String,
+	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+		Identity:    key.IdentityID.String,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
 	require.NoError(t, err)
@@ -233,7 +239,9 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
 		Name:        &keyName,
-		Remaining:   &initialCredits,
+		Credits: &seed.CreditRequest{
+			Remaining: initialCredits,
+		},
 	})
 
 	// Create a root key with appropriate permissions
@@ -249,17 +257,17 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	err = authBefore.Verify(ctx, keys.WithCredits(1))
 	require.NoError(t, err)
 
-	require.True(t, authBefore.Key.RemainingRequests.Valid)
-	require.Equal(t, initialCredits-1, authBefore.Key.RemainingRequests.Int32)
+	require.NotNil(t, authBefore.KeyCredits)
+	require.Equal(t, int32(initialCredits)-1, authBefore.KeyCredits.Remaining)
 
 	// Update the key's credits
 	newCredits := int64(50)
 
 	req := handler.Request{
 		KeyId: key.KeyID,
-		Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
-			Refill:    nullable.NewNullNullable[openapi.UpdateKeyCreditsRefill](),
-			Remaining: nullable.NewNullableWithValue[int64](newCredits),
+		Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+			Refill:    nullable.NewNullNullable[openapi.UpdateCreditsRefill](),
+			Remaining: nullable.NewNullableWithValue(newCredits),
 		}),
 	}
 
@@ -273,7 +281,187 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	err = authAfter.Verify(ctx, keys.WithCredits(1))
 	require.NoError(t, err)
 
-	require.True(t, authAfter.Key.RemainingRequests.Valid)
-	require.Equal(t, int32(newCredits)-1, authAfter.Key.RemainingRequests.Int32)
+	require.NotNil(t, authAfter.KeyCredits)
+	require.EqualValues(t, newCredits-1, authAfter.KeyCredits.Remaining)
+
+	t.Run("update legacy credits to specific value", func(t *testing.T) {
+		// Create key with legacy credits
+		initialCredits := int32(100)
+		legacyKey := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID:             workspace.ID,
+			KeySpaceID:              api.KeyAuthID.String,
+			Name:                    ptr.P("legacy-update-test"),
+			LegacyRemainingRequests: &initialCredits,
+		})
+
+		// Verify it's using legacy system
+		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), legacyKey.KeyID)
+		require.NoError(t, err)
+		require.True(t, key.RemainingRequests.Valid)
+		require.EqualValues(t, initialCredits, key.RemainingRequests.Int32)
+
+		// Update to new value via updateKey
+		newValue := int64(250)
+		req := handler.Request{
+			KeyId: legacyKey.KeyID,
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+				Remaining: nullable.NewNullableWithValue(newValue),
+				Refill:    nullable.NewNullNullable[openapi.UpdateCreditsRefill](),
+			}),
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+
+		// Verify in database (still using legacy field)
+		key, err = db.Query.FindKeyByID(ctx, h.DB.RO(), legacyKey.KeyID)
+		require.NoError(t, err)
+		require.True(t, key.RemainingRequests.Valid)
+		require.EqualValues(t, newValue, key.RemainingRequests.Int32)
+	})
+
+	t.Run("update legacy credits to unlimited (null)", func(t *testing.T) {
+		// Create key with legacy credits
+		initialCredits := int32(150)
+		legacyKey := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID:             workspace.ID,
+			KeySpaceID:              api.KeyAuthID.String,
+			Name:                    ptr.P("legacy-unlimited-test"),
+			LegacyRemainingRequests: &initialCredits,
+		})
+
+		// Verify it's using legacy system
+		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), legacyKey.KeyID)
+		require.NoError(t, err)
+		require.True(t, key.RemainingRequests.Valid)
+
+		// Set to unlimited (null)
+		req := handler.Request{
+			KeyId: legacyKey.KeyID,
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+				Remaining: nullable.NewNullNullable[int64](),
+				Refill:    nullable.NewNullNullable[openapi.UpdateCreditsRefill](),
+			}),
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+
+		// Verify field is now null
+		key, err = db.Query.FindKeyByID(ctx, h.DB.RO(), legacyKey.KeyID)
+		require.NoError(t, err)
+		require.False(t, key.RemainingRequests.Valid, "RemainingRequests should be null for unlimited")
+	})
+
+	t.Run("update legacy credits with refill configuration", func(t *testing.T) {
+		// Create key with legacy credits
+		initialCredits := int32(100)
+		legacyKey := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID:             workspace.ID,
+			KeySpaceID:              api.KeyAuthID.String,
+			Name:                    ptr.P("legacy-refill-test"),
+			LegacyRemainingRequests: &initialCredits,
+		})
+
+		// Update with daily refill
+		req := handler.Request{
+			KeyId: legacyKey.KeyID,
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+				Remaining: nullable.NewNullableWithValue(int64(200)),
+				Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
+					Interval: openapi.Daily,
+					Amount:   50,
+				}),
+			}),
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+
+		// Verify in database (legacy fields)
+		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), legacyKey.KeyID)
+		require.NoError(t, err)
+		require.True(t, key.RemainingRequests.Valid)
+		require.EqualValues(t, 200, key.RemainingRequests.Int32)
+		require.True(t, key.RefillAmount.Valid)
+		require.EqualValues(t, 50, key.RefillAmount.Int32)
+		require.False(t, key.RefillDay.Valid, "daily refill should not have refillDay")
+	})
+
+	t.Run("update legacy credits with monthly refill", func(t *testing.T) {
+		// Create key with legacy credits
+		initialCredits := int32(100)
+		legacyKey := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID:             workspace.ID,
+			KeySpaceID:              api.KeyAuthID.String,
+			Name:                    ptr.P("legacy-monthly-refill-test"),
+			LegacyRemainingRequests: &initialCredits,
+		})
+
+		// Update with monthly refill
+		refillDay := 15
+		req := handler.Request{
+			KeyId: legacyKey.KeyID,
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+				Remaining: nullable.NewNullableWithValue(int64(300)),
+				Refill: nullable.NewNullableWithValue(openapi.UpdateCreditsRefill{
+					Interval:  openapi.Monthly,
+					Amount:    75,
+					RefillDay: &refillDay,
+				}),
+			}),
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+
+		// Verify in database (legacy fields)
+		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), legacyKey.KeyID)
+		require.NoError(t, err)
+		require.True(t, key.RemainingRequests.Valid)
+		require.EqualValues(t, 300, key.RemainingRequests.Int32)
+		require.True(t, key.RefillAmount.Valid)
+		require.EqualValues(t, 75, key.RefillAmount.Int32)
+		require.True(t, key.RefillDay.Valid)
+		require.EqualValues(t, 15, key.RefillDay.Int16)
+	})
+
+	t.Run("clear legacy refill configuration", func(t *testing.T) {
+		// Create key with legacy credits and refill
+		initialCredits := int32(100)
+		refillAmount := int32(50)
+		legacyKey := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID:             workspace.ID,
+			KeySpaceID:              api.KeyAuthID.String,
+			Name:                    ptr.P("legacy-clear-refill-test"),
+			LegacyRemainingRequests: &initialCredits,
+			LegacyRefillAmount:      &refillAmount,
+		})
+
+		// Verify initial state
+		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), legacyKey.KeyID)
+		require.NoError(t, err)
+		require.True(t, key.RefillAmount.Valid)
+
+		// Clear refill by setting to null
+		req := handler.Request{
+			KeyId: legacyKey.KeyID,
+			Credits: nullable.NewNullableWithValue(openapi.UpdateCredits{
+				Remaining: nullable.NewNullableWithValue(int64(150)),
+				Refill:    nullable.NewNullNullable[openapi.UpdateCreditsRefill](),
+			}),
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+
+		// Verify refill fields are cleared
+		key, err = db.Query.FindKeyByID(ctx, h.DB.RO(), legacyKey.KeyID)
+		require.NoError(t, err)
+		require.True(t, key.RemainingRequests.Valid)
+		require.EqualValues(t, 150, key.RemainingRequests.Int32)
+		require.False(t, key.RefillAmount.Valid, "refill amount should be cleared")
+		require.False(t, key.RefillDay.Valid, "refill day should be cleared")
+	})
 
 }

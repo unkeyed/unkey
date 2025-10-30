@@ -5,9 +5,9 @@ go 1.25
 toolchain go1.25.1
 
 require (
-	buf.build/gen/go/depot/api/connectrpc/go v1.19.0-20250915125527-3af9e416de91.1
+	buf.build/gen/go/depot/api/connectrpc/go v1.19.1-20250915125527-3af9e416de91.2
 	buf.build/gen/go/depot/api/protocolbuffers/go v1.36.10-20250915125527-3af9e416de91.1
-	connectrpc.com/connect v1.19.0
+	connectrpc.com/connect v1.19.1
 	github.com/ClickHouse/clickhouse-go/v2 v2.40.1
 	github.com/aws/aws-sdk-go-v2 v1.36.6
 	github.com/aws/aws-sdk-go-v2/config v1.29.18
@@ -26,7 +26,7 @@ require (
 	github.com/golangci/golangci-lint/v2 v2.4.0
 	github.com/lmittmann/tint v1.1.1
 	github.com/maypok86/otter v1.2.4
-	github.com/moby/buildkit v0.25.0
+	github.com/moby/buildkit v0.25.1
 	github.com/oapi-codegen/nullable v1.1.0
 	github.com/oapi-codegen/oapi-codegen/v2 v2.5.0
 	github.com/oasdiff/oasdiff v1.11.4

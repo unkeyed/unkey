@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -119,6 +121,29 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
+	var credits *openapi.Credits
+	if identity.CreditID.Valid {
+		credits = &openapi.Credits{
+			Remaining: nullable.NewNullableWithValue(int64(identity.CreditRemaining.Int32)),
+			Refill:    nil,
+		}
+
+		if identity.CreditRefillAmount.Valid {
+			var refillDay *int
+			interval := openapi.Daily
+			if identity.CreditRefillDay.Valid {
+				interval = openapi.Monthly
+				refillDay = ptr.P(int(identity.CreditRefillDay.Int16))
+			}
+
+			credits.Refill = &openapi.CreditsRefill{
+				Amount:    int64(identity.CreditRefillAmount.Int32),
+				Interval:  interval,
+				RefillDay: refillDay,
+			}
+		}
+	}
+
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
@@ -128,6 +153,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ExternalId: identity.ExternalID,
 			Meta:       &metaMap,
 			Ratelimits: &responseRatelimits,
+			Credits:    credits,
 		},
 	})
 }

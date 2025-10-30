@@ -44,20 +44,18 @@ func TestForbidden(t *testing.T) {
 	})
 
 	key := h.CreateKey(seed.CreateKeyRequest{
-		Disabled:     false,
-		WorkspaceID:  workspace.ID,
-		KeySpaceID:   api.KeyAuthID.String,
-		Remaining:    nil,
-		IdentityID:   nil,
-		Meta:         nil,
-		Expires:      nil,
-		Name:         nil,
-		Deleted:      false,
-		RefillAmount: nil,
-		RefillDay:    nil,
-		Permissions:  nil,
-		Roles:        nil,
-		Ratelimits:   nil,
+		Disabled:    false,
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		Credits:     nil,
+		IdentityID:  nil,
+		Meta:        nil,
+		Expires:     nil,
+		Name:        nil,
+		Deleted:     false,
+		Permissions: nil,
+		Roles:       nil,
+		Ratelimits:  nil,
 	})
 
 	permissionID := uid.New(uid.PermissionPrefix)

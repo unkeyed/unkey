@@ -103,19 +103,18 @@ func TestAuthorizationErrors(t *testing.T) {
 		keyID := uid.New(uid.KeyPrefix)
 		keyString := "test_" + uid.New("")
 		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
-			ID:                keyID,
-			KeySpaceID:        keySpaceID,
-			Hash:              hash.Sha256(keyString),
-			Start:             keyString[:4],
-			WorkspaceID:       workspace2.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: "Test Key"},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           true,
-			IdentityID:        sql.NullString{Valid: false},
-			Meta:              sql.NullString{Valid: false},
-			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
+			ID:             keyID,
+			KeySpaceID:     keySpaceID,
+			Hash:           hash.Sha256(keyString),
+			Start:          keyString[:4],
+			WorkspaceID:    workspace2.ID,
+			ForWorkspaceID: sql.NullString{Valid: false},
+			Name:           sql.NullString{Valid: true, String: "Test Key"},
+			CreatedAtM:     time.Now().UnixMilli(),
+			Enabled:        true,
+			IdentityID:     sql.NullString{Valid: false},
+			Meta:           sql.NullString{Valid: false},
+			Expires:        sql.NullTime{Valid: false},
 		})
 		require.NoError(t, err)
 

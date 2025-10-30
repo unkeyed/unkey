@@ -8,10 +8,14 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
+	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/go/pkg/array"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -30,10 +34,12 @@ type (
 // Handler implements zen.Route interface for the v2 identities update identity endpoint
 type Handler struct {
 	// Services as public fields
-	Logger    logging.Logger
-	DB        db.Database
-	Keys      keys.KeyService
-	Auditlogs auditlogs.AuditLogService
+	Logger       logging.Logger
+	DB           db.Database
+	Keys         keys.KeyService
+	Auditlogs    auditlogs.AuditLogService
+	UsageLimiter usagelimiter.Service
+	KeyCache     cache.Cache[string, db.CachedKeyData]
 }
 
 const (
@@ -113,7 +119,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Use UNION query to find identity + ratelimits in one query (fast!)
-	identityRow, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
+	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		Identity:    req.Identity,
 		Deleted:     false,
@@ -135,22 +141,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Parse existing ratelimits from JSON
 	var existingRatelimits []db.RatelimitInfo
-	if ratelimitBytes, ok := identityRow.Ratelimits.([]byte); ok && ratelimitBytes != nil {
+	if ratelimitBytes, ok := identity.Ratelimits.([]byte); ok && ratelimitBytes != nil {
 		_ = json.Unmarshal(ratelimitBytes, &existingRatelimits) // Ignore error, default to empty array
 	}
 
-	type txResult struct {
-		identity        db.FindIdentityRow
-		finalRatelimits []openapi.RatelimitResponse
-	}
-
 	result, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (txResult, error) {
-
 		auditLogs := []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.IdentityUpdateEvent,
-				Display:     fmt.Sprintf("Updated identity %s", identityRow.ID),
+				Display:     fmt.Sprintf("Updated identity %s", identity.ID),
 				ActorID:     auth.Key.ID,
 				ActorName:   "root key",
 				ActorType:   auditlog.RootKeyActor,
@@ -159,10 +159,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				UserAgent:   s.UserAgent(),
 				Resources: []auditlog.AuditLogResource{
 					{
-						ID:          identityRow.ID,
+						ID:          identity.ID,
 						Type:        auditlog.IdentityResourceType,
-						Name:        identityRow.ExternalID,
-						DisplayName: identityRow.ExternalID,
+						Name:        identity.ExternalID,
+						DisplayName: identity.ExternalID,
 						Meta:        nil,
 					},
 				},
@@ -171,7 +171,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		if req.Meta != nil {
 			err = db.Query.UpdateIdentity(ctx, tx, db.UpdateIdentityParams{
-				ID:   identityRow.ID,
+				ID:   identity.ID,
 				Meta: metaBytes,
 			})
 			if err != nil {
@@ -225,10 +225,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					UserAgent:   s.UserAgent(),
 					Resources: []auditlog.AuditLogResource{
 						{
-							ID:          identityRow.ID,
+							ID:          identity.ID,
 							Type:        auditlog.IdentityResourceType,
-							DisplayName: identityRow.ExternalID,
-							Name:        identityRow.ExternalID,
+							DisplayName: identity.ExternalID,
+							Name:        identity.ExternalID,
 							Meta:        nil,
 						},
 						{
@@ -263,7 +263,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					rateLimitsToInsert = append(rateLimitsToInsert, db.InsertIdentityRatelimitParams{
 						ID:          existingRL.ID,
 						WorkspaceID: auth.AuthorizedWorkspaceID,
-						IdentityID:  sql.NullString{String: identityRow.ID, Valid: true},
+						IdentityID:  sql.NullString{String: identity.ID, Valid: true},
 						Name:        newRL.Name,
 						Limit:       int32(newRL.Limit), // nolint:gosec
 						Duration:    newRL.Duration,
@@ -283,10 +283,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						UserAgent:   s.UserAgent(),
 						Resources: []auditlog.AuditLogResource{
 							{
-								ID:          identityRow.ID,
+								ID:          identity.ID,
 								Type:        auditlog.IdentityResourceType,
-								Name:        identityRow.ExternalID,
-								DisplayName: identityRow.ExternalID,
+								Name:        identity.ExternalID,
+								DisplayName: identity.ExternalID,
 								Meta:        nil,
 							},
 							{
@@ -304,7 +304,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					rateLimitsToInsert = append(rateLimitsToInsert, db.InsertIdentityRatelimitParams{
 						ID:          ratelimitID,
 						WorkspaceID: auth.AuthorizedWorkspaceID,
-						IdentityID:  sql.NullString{String: identityRow.ID, Valid: true},
+						IdentityID:  sql.NullString{String: identity.ID, Valid: true},
 						Name:        newRL.Name,
 						Limit:       int32(newRL.Limit), // nolint:gosec
 						Duration:    newRL.Duration,
@@ -325,10 +325,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						UserAgent:   s.UserAgent(),
 						Resources: []auditlog.AuditLogResource{
 							{
-								ID:          identityRow.ID,
+								ID:          identity.ID,
 								Type:        auditlog.IdentityResourceType,
-								DisplayName: identityRow.ExternalID,
-								Name:        identityRow.ExternalID,
+								DisplayName: identity.ExternalID,
+								Name:        identity.ExternalID,
 								Meta:        nil,
 							},
 							{
@@ -376,6 +376,201 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
+		if req.Credits.IsSpecified() {
+			// Delete credit if set to null
+			if req.Credits.IsNull() {
+				if identity.CreditID.Valid {
+					if err := db.Query.DeleteCredit(ctx, tx, identity.CreditID.String); err != nil {
+						// nolint:exhaustruct
+						return txResult{}, fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("failed to delete credit"),
+							fault.Public("Failed to update credits."),
+						)
+					}
+
+					// Update identity to reflect deletion
+					identity.CreditID = sql.NullString{Valid: false}
+					identity.CreditRemaining = sql.NullInt32{Valid: false}
+					identity.CreditRefillAmount = sql.NullInt32{Valid: false}
+					identity.CreditRefillDay = sql.NullInt16{Valid: false}
+					identity.CreditRefilledAt = sql.NullInt64{Valid: false}
+
+					auditLogs = append(auditLogs, auditlog.AuditLog{
+						WorkspaceID: auth.AuthorizedWorkspaceID,
+						Event:       auditlog.IdentityUpdateEvent,
+						Display:     fmt.Sprintf("Removed credits from identity %s", identity.ID),
+						ActorID:     auth.Key.ID,
+						ActorName:   "root key",
+						ActorType:   auditlog.RootKeyActor,
+						ActorMeta:   map[string]any{},
+						RemoteIP:    s.Location(),
+						UserAgent:   s.UserAgent(),
+						Resources: []auditlog.AuditLogResource{
+							{
+								ID:          identity.ID,
+								Type:        auditlog.IdentityResourceType,
+								Name:        identity.ExternalID,
+								DisplayName: identity.ExternalID,
+								Meta:        nil,
+							},
+						},
+					})
+				}
+			} else {
+				// Upsert credits
+				creditsValue := req.Credits.MustGet()
+
+				// Delete credit if remaining set to null
+				if creditsValue.Remaining.IsSpecified() && creditsValue.Remaining.IsNull() {
+					if identity.CreditID.Valid {
+						if err := db.Query.DeleteCredit(ctx, tx, identity.CreditID.String); err != nil {
+							// nolint:exhaustruct
+							return txResult{}, fault.Wrap(err,
+								fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+								fault.Internal("failed to delete credit"),
+								fault.Public("Failed to update credits."),
+							)
+						}
+
+						// Update identity to reflect deletion
+						identity.CreditID = sql.NullString{Valid: false}
+						identity.CreditRemaining = sql.NullInt32{Valid: false}
+						identity.CreditRefillAmount = sql.NullInt32{Valid: false}
+						identity.CreditRefillDay = sql.NullInt16{Valid: false}
+						identity.CreditRefilledAt = sql.NullInt64{Valid: false}
+
+						auditLogs = append(auditLogs, auditlog.AuditLog{
+							WorkspaceID: auth.AuthorizedWorkspaceID,
+							Event:       auditlog.IdentityUpdateEvent,
+							Display:     fmt.Sprintf("Removed credits from identity %s", identity.ID),
+							ActorID:     auth.Key.ID,
+							ActorName:   "root key",
+							ActorType:   auditlog.RootKeyActor,
+							ActorMeta:   map[string]any{},
+							RemoteIP:    s.Location(),
+							UserAgent:   s.UserAgent(),
+							Resources: []auditlog.AuditLogResource{
+								{
+									ID:          identity.ID,
+									Type:        auditlog.IdentityResourceType,
+									Name:        identity.ExternalID,
+									DisplayName: identity.ExternalID,
+									Meta:        nil,
+								},
+							},
+						})
+					}
+				} else {
+					// Actually upsert the credits
+					now := time.Now().UnixMilli()
+
+					// Prepare refill configuration
+					var refillAmount sql.NullInt32
+					var refillDay sql.NullInt16
+					var refillAmountSpecified, refillDaySpecified int64
+
+					if creditsValue.Refill.IsSpecified() {
+						if creditsValue.Refill.IsNull() {
+							// Clear refill configuration
+							refillAmountSpecified = 1
+							refillDaySpecified = 1
+							refillAmount = sql.NullInt32{Valid: false}
+							refillDay = sql.NullInt16{Valid: false}
+						} else {
+							// Set refill configuration
+							refillConfig := creditsValue.Refill.MustGet()
+							refillAmountSpecified = 1
+							refillAmount = sql.NullInt32{Valid: true, Int32: int32(refillConfig.Amount)}
+
+							if refillConfig.Interval == openapi.Monthly {
+								refillDaySpecified = 1
+								refillDay = sql.NullInt16{Valid: true, Int16: int16(ptr.SafeDeref(refillConfig.RefillDay, 1))}
+							} else {
+								refillDaySpecified = 1
+								refillDay = sql.NullInt16{Valid: false}
+							}
+						}
+					} else {
+						// Don't touch refill configuration
+						refillAmountSpecified = 0
+						refillDaySpecified = 0
+					}
+
+					// Prepare remaining credits
+					var remaining int32
+					var remainingSpecified int64
+
+					if creditsValue.Remaining.IsSpecified() && !creditsValue.Remaining.IsNull() {
+						// Note: NULL remaining is handled above by deleting the credit record
+						remainingSpecified = 1
+						remaining = int32(creditsValue.Remaining.MustGet())
+					} else {
+						remainingSpecified = 0
+						remaining = 0 // Will be ignored due to specified flag
+					}
+
+					creditID := uid.New(uid.CreditPrefix)
+					upsertErr := db.Query.UpsertCredit(ctx, tx, db.UpsertCreditParams{
+						ID:                    creditID,
+						WorkspaceID:           auth.AuthorizedWorkspaceID,
+						KeyID:                 sql.NullString{Valid: false},
+						IdentityID:            sql.NullString{String: identity.ID, Valid: true},
+						Remaining:             remaining,
+						RemainingSpecified:    remainingSpecified,
+						RefillAmount:          refillAmount,
+						RefillAmountSpecified: refillAmountSpecified,
+						RefillDay:             refillDay,
+						RefillDaySpecified:    refillDaySpecified,
+						CreatedAt:             now,
+						UpdatedAt:             sql.NullInt64{Valid: true, Int64: now},
+						RefilledAt:            sql.NullInt64{Valid: false},
+					})
+					if upsertErr != nil {
+						// nolint:exhaustruct
+						return txResult{}, fault.Wrap(upsertErr,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("failed to upsert credit"),
+							fault.Public("Failed to update credits."),
+						)
+					}
+
+					// Update identity to reflect the upserted values
+					identity.CreditID = sql.NullString{Valid: true, String: creditID}
+					if remainingSpecified == 1 {
+						identity.CreditRemaining = sql.NullInt32{Valid: true, Int32: remaining}
+					}
+					if refillAmountSpecified == 1 {
+						identity.CreditRefillAmount = refillAmount
+					}
+					if refillDaySpecified == 1 {
+						identity.CreditRefillDay = refillDay
+					}
+
+					auditLogs = append(auditLogs, auditlog.AuditLog{
+						WorkspaceID: auth.AuthorizedWorkspaceID,
+						Event:       auditlog.IdentityUpdateEvent,
+						Display:     fmt.Sprintf("Updated credits for identity %s", identity.ID),
+						ActorID:     auth.Key.ID,
+						ActorName:   "root key",
+						ActorType:   auditlog.RootKeyActor,
+						ActorMeta:   map[string]any{},
+						RemoteIP:    s.Location(),
+						UserAgent:   s.UserAgent(),
+						Resources: []auditlog.AuditLogResource{
+							{
+								ID:          identity.ID,
+								Type:        auditlog.IdentityResourceType,
+								Name:        identity.ExternalID,
+								DisplayName: identity.ExternalID,
+								Meta:        nil,
+							},
+						},
+					})
+				}
+			}
+		}
+
 		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
 			// nolint:exhaustruct
@@ -383,7 +578,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		return txResult{
-			identity:        identityRow,
+			identity:        identity,
 			finalRatelimits: finalRatelimits,
 		}, nil
 	})
@@ -397,10 +592,62 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		ExternalId: result.identity.ExternalID,
 		Meta:       req.Meta,
 		Ratelimits: nil,
+		Credits:    nil,
 	}
 
 	if len(result.finalRatelimits) > 0 {
 		identityData.Ratelimits = ptr.P(result.finalRatelimits)
+	}
+
+	if result.identity.CreditID.Valid {
+		// Build credits response from identity row (updated in transaction)
+		identityData.Credits = &openapi.Credits{
+			Remaining: nullable.NewNullableWithValue(int64(result.identity.CreditRemaining.Int32)),
+			Refill:    nil,
+		}
+
+		if result.identity.CreditRefillAmount.Valid {
+			var refillDay *int
+			interval := openapi.Daily
+			if result.identity.CreditRefillDay.Valid {
+				interval = openapi.Monthly
+				refillDay = ptr.P(int(result.identity.CreditRefillDay.Int16))
+			}
+
+			identityData.Credits.Refill = &openapi.CreditsRefill{
+				Amount:    int64(result.identity.CreditRefillAmount.Int32),
+				Interval:  interval,
+				RefillDay: refillDay,
+			}
+		}
+	}
+
+	// Invalidate cache for identity credits if they were updated
+	if req.Credits.IsSpecified() && result.identity.CreditID.Valid {
+		if invalidateErr := h.UsageLimiter.Invalidate(ctx, result.identity.CreditID.String); invalidateErr != nil {
+			h.Logger.Error("Failed to invalidate usage limit for identity credit",
+				"error", invalidateErr.Error(),
+				"credit_id", result.identity.CreditID.String,
+				"identity_id", identity.ID,
+			)
+		}
+
+		// Find and invalidate all keys belonging to this identity
+		keys, err := db.Query.ListKeysByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
+		if err != nil {
+			h.Logger.Error("Failed to find keys for identity",
+				"error", err.Error(),
+				"identity_id", identity.ID,
+			)
+		}
+
+		if len(keys) > 0 {
+			hashes := array.Map(keys, func(key db.ListKeysByIdentityIDRow) string {
+				return key.Hash
+			})
+
+			h.KeyCache.Remove(ctx, hashes...)
+		}
 	}
 
 	response := Response{
@@ -411,4 +658,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	return s.JSON(http.StatusOK, response)
+}
+
+type txResult struct {
+	identity        db.FindIdentityRow
+	finalRatelimits []openapi.RatelimitResponse
 }

@@ -24,7 +24,7 @@ import (
 type Request = openapi.V2KeysVerifyKeyRequestBody
 type Response = openapi.V2KeysVerifyKeyResponseBody
 
-const DefaultCost = 1
+const DefaultCost int32 = 1
 
 // Handler implements zen.Route interface for the v2 keys.verify endpoint
 type Handler struct {
@@ -127,11 +127,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// If a custom cost was specified, use it, otherwise use a DefaultCost of 1
+	cost := DefaultCost
 	if req.Credits != nil {
-		opts = append(opts, keys.WithCredits(req.Credits.Cost))
-	} else if key.Key.RemainingRequests.Valid {
-		opts = append(opts, keys.WithCredits(DefaultCost))
+		cost = req.Credits.Cost
 	}
+	opts = append(opts, keys.WithCredits(cost))
 
 	if req.Ratelimits != nil {
 		opts = append(opts, keys.WithRateLimits(*req.Ratelimits))
@@ -141,7 +141,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if req.Permissions != nil {
-		// Parse the permissions query string using the RBAC parser
 		query, parseErr := rbac.ParseQuery(*req.Permissions)
 		if parseErr != nil {
 			return fault.Wrap(parseErr,
@@ -181,10 +180,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		keyData.Roles = ptr.P(key.Roles)
 	}
 
-	remaining := key.Key.RemainingRequests
-	if remaining.Valid {
-		keyData.Credits = ptr.P(remaining.Int32)
+	// Return credits from identity if available, otherwise from key, otherwise from legacy (priority logic)
+	if key.IdentityCredits != nil {
+		keyData.Credits = ptr.P(key.IdentityCredits.Remaining)
+	} else if key.KeyCredits != nil {
+		keyData.Credits = ptr.P(key.KeyCredits.Remaining)
+	} else if key.Key.RemainingRequests.Valid {
+		// Legacy credits stored directly on keys table
+		keyData.Credits = ptr.P(key.Key.RemainingRequests.Int32)
 	}
+	// If none, keyData.Credits remains nil (unlimited)
 
 	if key.Key.Expires.Valid {
 		keyData.Expires = ptr.P(key.Key.Expires.Time.UnixMilli())
@@ -201,7 +206,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if key.Key.IdentityID.Valid {
-		keyData.Identity = &openapi.Identity{
+		keyData.Identity = &openapi.VerifyKeyIdentity{
 			Id:         key.Key.IdentityID.String,
 			ExternalId: key.Key.ExternalID.String,
 			Ratelimits: nil,
