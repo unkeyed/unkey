@@ -36,6 +36,10 @@ ON DUPLICATE KEY UPDATE
         WHEN CAST(? AS UNSIGNED) = 1 THEN VALUES(refill_amount)
         ELSE refill_amount
     END,
+    refilled_at = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN VALUES(refilled_at)
+        ELSE refilled_at
+    END,
     updated_at = VALUES(updated_at)
 `
 
@@ -53,6 +57,7 @@ type UpsertCreditParams struct {
 	RemainingSpecified    int64          `db:"remaining_specified"`
 	RefillDaySpecified    int64          `db:"refill_day_specified"`
 	RefillAmountSpecified int64          `db:"refill_amount_specified"`
+	RefilledAtSpecified   int64          `db:"refilled_at_specified"`
 }
 
 // UpsertCredit
@@ -82,6 +87,10 @@ type UpsertCreditParams struct {
 //	        WHEN CAST(? AS UNSIGNED) = 1 THEN VALUES(refill_amount)
 //	        ELSE refill_amount
 //	    END,
+//	    refilled_at = CASE
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN VALUES(refilled_at)
+//	        ELSE refilled_at
+//	    END,
 //	    updated_at = VALUES(updated_at)
 func (q *Queries) UpsertCredit(ctx context.Context, db DBTX, arg UpsertCreditParams) error {
 	_, err := db.ExecContext(ctx, upsertCredit,
@@ -98,6 +107,7 @@ func (q *Queries) UpsertCredit(ctx context.Context, db DBTX, arg UpsertCreditPar
 		arg.RemainingSpecified,
 		arg.RefillDaySpecified,
 		arg.RefillAmountSpecified,
+		arg.RefilledAtSpecified,
 	)
 	return err
 }
