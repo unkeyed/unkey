@@ -1,0 +1,96 @@
+---
+title: Credits
+description: "Identities can be used to share credits across multiple keys"
+---
+
+<Tip>
+ Identities are in public beta, please report any issues you encounter: [support](mailto:support@unkey.dev).
+</Tip>
+
+## Sharing credits
+
+Identities allow you to share credits across multiple keys. Let's say you want to give a user 1000 credits per month:
+If you just set each key to `1000 credits` then the user can consume `1000 * number of keys` credits, which probably isn't what you want. Of course you could limit the number of keys a user can have or do some math to divide 1000 by the number of keys they have, but that's not fixing the actual problem, it's just a workaround.
+
+Instead, you should create an identity for the user, set the credits on the identity to `1000` and then associate all keys of the user with the identity. This way, the user can only consume `1000 credits` across all of their keys.
+
+## How it works
+
+When you configure credits on an identity:
+
+1. **Shared counter**: All keys associated with the identity draw from the same credit counter
+2. **Automatic refills**: You can configure automatic refills (daily or monthly) to reset credits periodically
+
+When a key with identity credits is verified, the credit cost is deducted from the shared identity counter, ensuring consistent usage tracking across all of the user's keys.
+
+## Example use case
+
+Let's say you're building a SaaS product with different subscription tiers:
+
+- **Free tier**: 100 credits per day
+- **Pro tier**: 10,000 credits per month
+- **Enterprise**: Unlimited (no credits configured)
+
+When a user signs up for the Pro tier:
+
+```typescript
+// Create the identity with credits
+const identity = await unkey.identities.createIdentity({
+  externalId: user.id,
+  credits: {
+    remaining: 10000,
+    refill: {
+      interval: "monthly",
+      amount: 10000,
+      refillDay: 1 // Refill on the 1st of each month
+    }
+  }
+})
+
+// Create keys for the user
+const key1 = await unkey.keys.create({
+  apiId: "api_123",
+  identityId: identity.id
+})
+
+const key2 = await unkey.keys.create({
+  apiId: "api_123",
+  identityId: identity.id
+})
+```
+
+Now both `key1` and `key2` share the same 10,000 credits. If the user consumes 3,000 credits with `key1`, they'll have 7,000 credits remaining for both keys combined.
+
+### Updating tiers
+
+When a user upgrades or downgrades their subscription, you can update their credits accordingly:
+
+```typescript
+// User upgrades from Pro to Enterprise (unlimited)
+await unkey.identities.updateIdentity({
+  identityId: identity.id,
+  credits: null // Remove credit limits for unlimited usage
+})
+
+// User downgrades from Pro to Free tier
+await unkey.identities.updateIdentity({
+  identityId: identity.id,
+  credits: {
+    remaining: 100,
+    refill: {
+      interval: "daily",
+      amount: 100
+    }
+  }
+})
+```
+
+When you update the credits configuration, all keys associated with the identity will immediately use the new credit limits. This makes it easy to handle subscription changes without having to update each individual key.
+
+<Info>
+  API reference for creating identities: [/api-reference/v2/identities/create-identity](https://www.unkey.com/docs/api-reference/v2/identities/create-identity)
+
+  API reference for creating keys: [/api-reference/v2/keys/create-api-key](https://www.unkey.com/docs/api-reference/v2/keys/create-api-key)
+
+  API reference for verifying keys: [/api-reference/v2/keys/verify-api-key](https://www.unkey.com/docs/api-reference/v2/keys/verify-api-key)
+</Info>
