@@ -28,22 +28,25 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
     const BUCKET_NAME = "unkey_mutations";
 
     // If refillDay is after last day of month, refillDay will be today.
-    const creditsToRefill = await step.do("fetch credits", async () => {
-      const { and, or, eq, isNull, isNotNull, gt } = await import("@unkey/db");
+    const creditsToRefill = await step.do("fetch credits from credits table", async () => {
+      const { and, or, eq, isNull, isNotNull, gt, sql } = await import("@unkey/db");
 
       // Build the refill conditions
-      let refillConditions = and(
+      const baseConditions = [
         isNotNull(schema.credits.refillAmount),
+        isNotNull(schema.credits.remaining),
         gt(schema.credits.refillAmount, schema.credits.remaining),
         or(isNull(schema.credits.refillDay), eq(schema.credits.refillDay, today)),
-      );
+      ];
 
       if (today === lastDayOfMonth) {
-        refillConditions = and(refillConditions, gt(schema.credits.refillDay, today));
+        baseConditions.push(gt(schema.credits.refillDay, today));
       }
 
+      const refillConditions = and(...baseConditions);
+
       // Query with joins to filter out deleted keys/identities at DB level
-      const results = await db
+      const query = db
         .select({
           id: schema.credits.id,
           workspaceId: schema.credits.workspaceId,
@@ -66,30 +69,90 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
           ),
         );
 
+      const results = await query;
+
       return results.map((c) => ({
         id: c.id,
         workspaceId: c.workspaceId,
         keyId: c.keyId,
         identityId: c.identityId,
         refillAmount: c.refillAmount as number,
+        isLegacy: false,
       }));
     });
 
-    console.info(`found ${creditsToRefill.length} credits with refill set for today`);
+    // Also fetch legacy keys that still use the old remaining fields
+    const legacyKeysToRefill = await step.do("fetch legacy keys with refill", async () => {
+      const { and, or, eq, isNull, isNotNull, gt } = await import("@unkey/db");
 
-    for (const credit of creditsToRefill) {
+      // Build the refill conditions for legacy keys
+      const baseConditions = [
+        isNotNull(schema.keys.refillAmount),
+        isNotNull(schema.keys.remaining),
+        gt(schema.keys.refillAmount, schema.keys.remaining),
+        or(isNull(schema.keys.refillDay), eq(schema.keys.refillDay, today)),
+      ];
+
+      if (today === lastDayOfMonth) {
+        baseConditions.push(gt(schema.keys.refillDay, today));
+      }
+
+      const refillConditions = and(...baseConditions);
+
+      // Only get keys that DON'T have a credits entry (to avoid double refill)
+      const results = await db
+        .select({
+          id: schema.keys.id,
+          workspaceId: schema.keys.workspaceId,
+          refillAmount: schema.keys.refillAmount,
+        })
+        .from(schema.keys)
+        .leftJoin(schema.credits, eq(schema.keys.id, schema.credits.keyId))
+        .where(
+          and(
+            refillConditions,
+            isNull(schema.keys.deletedAtM),
+            isNull(schema.credits.id), // Key doesn't have a credits entry
+          ),
+        );
+
+      return results.map((k) => ({
+        id: k.id,
+        workspaceId: k.workspaceId,
+        keyId: k.id,
+        identityId: null,
+        refillAmount: k.refillAmount as number,
+        isLegacy: true,
+      }));
+    });
+
+    const allToRefill = [...creditsToRefill, ...legacyKeysToRefill];
+
+    for (const credit of allToRefill) {
       const resourceType = credit.keyId ? "key" : "identity";
       const resourceId = credit.keyId || credit.identityId;
       await step.do(`refilling ${credit.id} (${resourceType})`, async () => {
         await db.transaction(async (tx) => {
-          await tx
-            .update(schema.credits)
-            .set({
-              remaining: credit.refillAmount,
-              refilledAt: now.getTime(),
-              updatedAt: now.getTime(),
-            })
-            .where(eq(schema.credits.id, credit.id));
+          if (credit.isLegacy) {
+            // Update legacy key remaining field
+            await tx
+              .update(schema.keys)
+              .set({
+                remaining: credit.refillAmount,
+                lastRefillAt: now,
+              })
+              .where(eq(schema.keys.id, credit.id));
+          } else {
+            // Update credits table
+            await tx
+              .update(schema.credits)
+              .set({
+                remaining: credit.refillAmount,
+                refilledAt: now.getTime(),
+                updatedAt: now.getTime(),
+              })
+              .where(eq(schema.credits.id, credit.id));
+          }
 
           const auditLogId = newId("auditLog");
           const auditLogTargets = [
@@ -151,6 +214,7 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
 
     return {
       refillCreditIds: creditsToRefill.map((c) => c.id),
+      refillLegacyKeyIds: legacyKeysToRefill.map((k) => k.id),
     };
   }
 }
