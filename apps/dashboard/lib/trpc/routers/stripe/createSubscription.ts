@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
+import { clearWorkspaceCache } from "../workspace/getCurrent";
 export const createSubscription = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
@@ -119,4 +120,7 @@ export const createSubscription = t.procedure
 
     // Invalidate workspace cache after subscription creation
     await invalidateWorkspaceCache(ctx.tenant.id);
+
+    // Also clear the tRPC workspace cache to ensure fresh data on next request
+    clearWorkspaceCache(ctx.tenant.id);
   });

@@ -1,7 +1,91 @@
+"use client";
 import { formatNumber } from "@/lib/fmt";
+import { trpc } from "@/lib/trpc/client";
 import { SettingCard } from "@unkey/ui";
 
-export const Usage: React.FC<{ current: number; max: number }> = ({ current, max }) => {
+export const Usage: React.FC<{
+  quota: number;
+}> = ({ quota }) => {
+  const {
+    data: usage,
+    isLoading,
+    error,
+    refetch,
+  } = trpc.billing.queryUsage.useQuery(undefined, {
+    // Cache for 30 seconds to reduce unnecessary refetches
+    // TRPC automatically scopes by workspace via requireWorkspace middleware
+    staleTime: 30_000, // 30 seconds
+  });
+
+  if (isLoading) {
+    return (
+      <SettingCard
+        title="Usage this month"
+        description="Valid key verifications and ratelimits."
+        border="both"
+        className="w-full"
+        contentWidth="w-full lg:w-[320px]"
+      >
+        <div className="w-full flex h-full items-center justify-end gap-4">
+          <div className="h-5 w-32 bg-gray-4 animate-pulse rounded" />
+          <div className="h-6 w-6 bg-gray-4 animate-pulse rounded-full" />
+        </div>
+      </SettingCard>
+    );
+  }
+
+  if (error) {
+    return (
+      <SettingCard
+        title="Usage this month"
+        description="Valid key verifications and ratelimits."
+        border="both"
+        className="w-full"
+        contentWidth="w-full lg:w-[320px]"
+      >
+        <div className="w-full flex flex-col gap-2">
+          <p className="text-sm text-red-11">Failed to load usage: {error.message}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="text-sm text-accent-11 hover:text-accent-12 transition-colors text-left"
+          >
+            Retry
+          </button>
+        </div>
+      </SettingCard>
+    );
+  }
+
+  if (!usage) {
+    return (
+      <SettingCard
+        title="Usage this month"
+        description="Valid key verifications and ratelimits."
+        border="both"
+        className="w-full"
+        contentWidth="w-full lg:w-[320px]"
+      >
+        <div className="w-full flex flex-col gap-2">
+          <p className="text-sm text-gray-11">No usage data available</p>
+        </div>
+      </SettingCard>
+    );
+  }
+
+  // Safely extract and validate numeric values with fallbacks
+  const verifications =
+    typeof usage.billableVerifications === "number" && !Number.isNaN(usage.billableVerifications)
+      ? usage.billableVerifications
+      : 0;
+  const ratelimits =
+    typeof usage.billableRatelimits === "number" && !Number.isNaN(usage.billableRatelimits)
+      ? usage.billableRatelimits
+      : 0;
+  const current = verifications + ratelimits;
+  const max = quota;
+  const percent = max > 0 ? Math.round((current / max) * 100) : 0;
+
   return (
     <SettingCard
       title="Usage this month"
@@ -12,7 +96,7 @@ export const Usage: React.FC<{ current: number; max: number }> = ({ current, max
     >
       <div className="w-full flex h-full items-center justify-end gap-4">
         <p className="text-sm font-semibold text-gray-12">
-          {formatNumber(current)} / {formatNumber(max)} ({Math.round((current / max) * 100)}%)
+          {formatNumber(current)} / {formatNumber(max)} ({percent}%)
         </p>
 
         <ProgressCircle max={max} value={current} />
@@ -34,7 +118,7 @@ export const ProgressCircle: React.FC<{
   const strokeWidth = 3;
   const normalizedRadius = radius - strokeWidth / 2;
   const circumference = normalizedRadius * 2 * Math.PI;
-  const offset = circumference - (safeValue / max) * circumference;
+  const offset = max > 0 ? circumference - (safeValue / max) * circumference : circumference;
   return (
     <>
       <div className="relative flex items-center justify-center">
