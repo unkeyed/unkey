@@ -64,6 +64,7 @@ export type CacheNamespaces = {
         roles: string[];
         identity: CachedIdentity | null;
         ratelimits: Ratelimit[];
+        credits: Credits | null;
       }
     >;
     total: number;

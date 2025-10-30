@@ -404,3 +404,160 @@ test("retrieves a key in plain text", async (t) => {
   expect(listKeysRes.status).toBe(200);
   expect(listKeysRes.body.keys.at(0)?.plaintext).toEqual(key);
 });
+
+test("returns credits from new credits table", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  const keyId = newId("test");
+  const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+
+  // Create key
+  await h.db.primary.insert(schema.keys).values({
+    id: keyId,
+    keyAuthId: h.resources.userKeyAuth.id,
+    hash: await sha256(key),
+    start: key.slice(0, 8),
+    workspaceId: h.resources.userWorkspace.id,
+    createdAtM: Date.now(),
+  });
+
+  // Create credits in new table
+  const creditId = newId("credit");
+  await h.db.primary.insert(schema.credits).values({
+    id: creditId,
+    keyId,
+    workspaceId: h.resources.userWorkspace.id,
+    remaining: 1000,
+    refillAmount: 500,
+    refillDay: 15, // monthly refill
+    createdAt: Date.now(),
+    refilledAt: Date.now(),
+    identityId: null,
+    updatedAt: null,
+  });
+
+  await revalidateKeyCount(h.db.primary, h.resources.userKeyAuth.id);
+
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.read_api`,
+    `api.${h.resources.userApi.id}.read_key`,
+  ]);
+
+  const res = await h.get<V1ApisListKeysResponse>({
+    url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}`,
+    headers: {
+      Authorization: `Bearer ${root.key}`,
+    },
+  });
+
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+  const foundKey = res.body.keys.find((k) => k.id === keyId);
+  expect(foundKey).toBeDefined();
+  expect(foundKey!.remaining).toBe(1000);
+  expect(foundKey!.refill).toBeDefined();
+  expect(foundKey!.refill!.interval).toBe("monthly");
+  expect(foundKey!.refill!.amount).toBe(500);
+  expect(foundKey!.refill!.refillDay).toBe(15);
+  expect(foundKey!.refill!.lastRefillAt).toBeDefined();
+});
+
+test("returns credits from legacy remaining field when no credits table entry", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  const keyId = newId("test");
+  const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+
+  // Create key with legacy credits fields
+  await h.db.primary.insert(schema.keys).values({
+    id: keyId,
+    keyAuthId: h.resources.userKeyAuth.id,
+    hash: await sha256(key),
+    start: key.slice(0, 8),
+    workspaceId: h.resources.userWorkspace.id,
+    createdAtM: Date.now(),
+    remaining: 750,
+    refillAmount: 100,
+    refillDay: null, // daily refill
+  });
+
+  await revalidateKeyCount(h.db.primary, h.resources.userKeyAuth.id);
+
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.read_api`,
+    `api.${h.resources.userApi.id}.read_key`,
+  ]);
+
+  const res = await h.get<V1ApisListKeysResponse>({
+    url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}`,
+    headers: {
+      Authorization: `Bearer ${root.key}`,
+    },
+  });
+
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+  const foundKey = res.body.keys.find((k) => k.id === keyId);
+  expect(foundKey).toBeDefined();
+  expect(foundKey!.remaining).toBe(750);
+  expect(foundKey!.refill).toBeDefined();
+  expect(foundKey!.refill!.interval).toBe("daily");
+  expect(foundKey!.refill!.amount).toBe(100);
+});
+
+test("prefers new credits table over legacy remaining field", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  const keyId = newId("test");
+  const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+
+  // Create key with legacy credits fields
+  await h.db.primary.insert(schema.keys).values({
+    id: keyId,
+    keyAuthId: h.resources.userKeyAuth.id,
+    hash: await sha256(key),
+    start: key.slice(0, 8),
+    workspaceId: h.resources.userWorkspace.id,
+    createdAtM: Date.now(),
+    remaining: 999, // This should be ignored
+    refillAmount: 99, // This should be ignored
+  });
+
+  // Create credits in new table (should take precedence)
+  const creditId = newId("credit");
+  await h.db.primary.insert(schema.credits).values({
+    id: creditId,
+    keyId,
+    workspaceId: h.resources.userWorkspace.id,
+    remaining: 2000,
+    refillAmount: 1000,
+    refillDay: null, // daily refill
+    createdAt: Date.now(),
+    refilledAt: Date.now(),
+    identityId: null,
+    updatedAt: null,
+  });
+
+  await revalidateKeyCount(h.db.primary, h.resources.userKeyAuth.id);
+
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.read_api`,
+    `api.${h.resources.userApi.id}.read_key`,
+  ]);
+
+  const res = await h.get<V1ApisListKeysResponse>({
+    url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}`,
+    headers: {
+      Authorization: `Bearer ${root.key}`,
+    },
+  });
+
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+  const foundKey = res.body.keys.find((k) => k.id === keyId);
+  expect(foundKey).toBeDefined();
+  // Should use values from credits table, not legacy fields
+  expect(foundKey!.remaining).toBe(2000);
+  expect(foundKey!.refill).toBeDefined();
+  expect(foundKey!.refill!.amount).toBe(1000);
+});
