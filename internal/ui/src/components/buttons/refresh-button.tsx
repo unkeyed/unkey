@@ -49,12 +49,23 @@ const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButt
     disabled: !isEnabled,
   });
 
+  // Determine tooltip content based on state
+  const tooltipContent = !isEnabled
+    ? "Refresh unavailable - please select a relative time filter in the 'Since' dropdown"
+    : (
+        <div className="flex items-center gap-2">
+          <span>Refresh data</span>
+          <KeyboardButton shortcut="⌥+⇧+W" />
+        </div>
+      );
+
   return (
     <InfoTooltip
-      content="Refresh unavailable - please select a relative time filter in the 'Since' dropdown"
-      variant="inverted"
+      content={tooltipContent}
+      variant={!isEnabled ? "inverted" : "primary"}
       position={{ side: "bottom", align: "center" }}
-      disabled={isEnabled && !isLoading}
+      delayDuration={300}
+      disabled={isLoading}
       asChild
     >
       <div>
@@ -62,16 +73,12 @@ const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButt
           onClick={handleRefresh}
           variant="ghost"
           size="md"
-          title={isEnabled ? "Refresh data (Shortcut: ⌥+⇧+W)" : ""}
           disabled={!isEnabled || isLoading}
           loading={isLoading}
-          className="flex w-full items-center justify-center rounded-lg border border-gray-4 group overflow-hidden"
+          className="flex w-full items-center justify-center rounded-lg border border-gray-4 overflow-hidden"
         >
           <Refresh3 className="size-4" />
           <span className="font-medium text-[13px] relative z-10">Refresh</span>
-          <div className="max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
-            <KeyboardButton shortcut="⌥+⇧+W" className="ml-1" />
-          </div>
         </Button>
       </div>
     </InfoTooltip>
