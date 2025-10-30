@@ -31,23 +31,29 @@ actions:
   - target: $["components"]["schemas"]["V2KeysUpdateKeyRequestBody"]["properties"]["expires"]
     update:
       nullable: true
-  - target: $["components"]["schemas"]["KeyCreditsData"]["properties"]["remaining"]["type"]
+  # Credits overlays (now consolidated)
+  - target: $["components"]["schemas"]["Credits"]["properties"]["remaining"]["type"]
     update: integer
-  - target: $["components"]["schemas"]["KeyCreditsData"]["properties"]["remaining"]
+  - target: $["components"]["schemas"]["Credits"]["properties"]["remaining"]
     update:
       nullable: true
-  - target: $["components"]["schemas"]["UpdateKeyCreditsData"]["type"]
+  - target: $["components"]["schemas"]["UpdateCredits"]["type"]
     update: object
-  - target: $["components"]["schemas"]["UpdateKeyCreditsData"]
+  - target: $["components"]["schemas"]["UpdateCredits"]
     update:
       nullable: true
-  - target: $["components"]["schemas"]["UpdateKeyCreditsData"]["properties"]["remaining"]["type"]
+  - target: $["components"]["schemas"]["UpdateCredits"]["properties"]["remaining"]["type"]
     update: integer
-  - target: $["components"]["schemas"]["UpdateKeyCreditsData"]["properties"]["remaining"]
+  - target: $["components"]["schemas"]["UpdateCredits"]["properties"]["remaining"]
     update:
       nullable: true
-  - target: $["components"]["schemas"]["UpdateKeyCreditsRefill"]["type"]
+  - target: $["components"]["schemas"]["UpdateCreditsRefill"]["type"]
     update: object
-  - target: $["components"]["schemas"]["UpdateKeyCreditsRefill"]
+  - target: $["components"]["schemas"]["UpdateCreditsRefill"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2IdentitiesUpdateCreditsRequestBody"]["properties"]["value"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["V2IdentitiesUpdateCreditsRequestBody"]["properties"]["value"]
     update:
       nullable: true

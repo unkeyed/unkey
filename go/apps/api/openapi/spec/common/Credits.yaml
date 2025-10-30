@@ -1,5 +1,5 @@
 type: object
-description: Credit configuration and remaining balance for this key.
+description: Credit configuration and remaining balance.
 properties:
   remaining:
     type:
@@ -11,7 +11,7 @@ properties:
     description: Number of credits remaining (null for unlimited).
     example: 1000
   refill:
-    "$ref": "./KeyCreditsRefill.yaml"
+    "$ref": "./CreditsRefill.yaml"
 required:
   - remaining
 additionalProperties: false

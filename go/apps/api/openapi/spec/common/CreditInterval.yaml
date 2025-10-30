@@ -1,0 +1,6 @@
+type: string
+enum:
+  - daily
+  - monthly
+description: How often credits are automatically refilled.
+example: monthly

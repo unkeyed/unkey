@@ -14,9 +14,7 @@ properties:
     type: array
     description: Identity ratelimits
     items:
-      "$ref": "./RatelimitResponse.yaml"
-  credits:
-    "$ref": "./Credits.yaml"
+      "$ref": "../../../../common/RatelimitResponse.yaml"
 required:
   - externalId
   - id

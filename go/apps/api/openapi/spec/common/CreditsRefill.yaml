@@ -1,15 +1,8 @@
-type:
-  - object
-  - null
+type: object
 description: Configuration for automatic credit refill behavior.
 properties:
   interval:
-    type: string
-    enum:
-      - daily
-      - monthly
-    description: How often credits are automatically refilled.
-    example: daily
+    "$ref": "./CreditInterval.yaml"
   amount:
     type: integer
     format: int64
