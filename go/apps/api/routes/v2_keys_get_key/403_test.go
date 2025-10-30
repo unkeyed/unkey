@@ -23,11 +23,12 @@ func TestGetKeyForbidden(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
-		DB:        h.DB,
-		Keys:      h.Keys,
-		Logger:    h.Logger,
-		Auditlogs: h.Auditlogs,
-		Vault:     h.Vault,
+		DB:           h.DB,
+		Keys:         h.Keys,
+		Logger:       h.Logger,
+		Auditlogs:    h.Auditlogs,
+		Vault:        h.Vault,
+		LiveKeyCache: h.Caches.LiveKeyByID,
 	}
 
 	h.Register(route)

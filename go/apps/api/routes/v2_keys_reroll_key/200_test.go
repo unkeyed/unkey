@@ -21,11 +21,13 @@ func TestRerollKeySuccess(t *testing.T) {
 	ctx := t.Context()
 
 	route := &handler.Handler{
-		Logger:    h.Logger,
-		DB:        h.DB,
-		Keys:      h.Keys,
-		Auditlogs: h.Auditlogs,
-		Vault:     h.Vault,
+		Logger:       h.Logger,
+		DB:           h.DB,
+		Keys:         h.Keys,
+		Auditlogs:    h.Auditlogs,
+		Vault:        h.Vault,
+		KeyCache:     h.Caches.VerificationKeyByHash,
+		LiveKeyCache: h.Caches.LiveKeyByID,
 	}
 
 	h.Register(route)

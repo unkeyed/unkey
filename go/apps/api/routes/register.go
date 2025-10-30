@@ -396,11 +396,13 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysRerollKey.Handler{
-			Logger:    svc.Logger,
-			DB:        svc.Database,
-			Keys:      svc.Keys,
-			Auditlogs: svc.Auditlogs,
-			Vault:     svc.Vault,
+			Logger:       svc.Logger,
+			DB:           svc.Database,
+			Keys:         svc.Keys,
+			Auditlogs:    svc.Auditlogs,
+			Vault:        svc.Vault,
+			KeyCache:     svc.Caches.VerificationKeyByHash,
+			LiveKeyCache: svc.Caches.LiveKeyByID,
 		},
 	)
 
@@ -408,11 +410,12 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysDeleteKey.Handler{
-			KeyCache:  svc.Caches.VerificationKeyByHash,
-			Logger:    svc.Logger,
-			DB:        svc.Database,
-			Keys:      svc.Keys,
-			Auditlogs: svc.Auditlogs,
+			KeyCache:     svc.Caches.VerificationKeyByHash,
+			LiveKeyCache: svc.Caches.LiveKeyByID,
+			Logger:       svc.Logger,
+			DB:           svc.Database,
+			Keys:         svc.Keys,
+			Auditlogs:    svc.Auditlogs,
 		},
 	)
 
@@ -434,11 +437,12 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysGetKey.Handler{
-			Logger:    svc.Logger,
-			DB:        svc.Database,
-			Keys:      svc.Keys,
-			Auditlogs: svc.Auditlogs,
-			Vault:     svc.Vault,
+			Logger:       svc.Logger,
+			DB:           svc.Database,
+			Keys:         svc.Keys,
+			Auditlogs:    svc.Auditlogs,
+			Vault:        svc.Vault,
+			LiveKeyCache: svc.Caches.LiveKeyByID,
 		},
 	)
 
@@ -485,11 +489,12 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysSetPermissions.Handler{
-			Logger:    svc.Logger,
-			DB:        svc.Database,
-			Keys:      svc.Keys,
-			Auditlogs: svc.Auditlogs,
-			KeyCache:  svc.Caches.VerificationKeyByHash,
+			Logger:       svc.Logger,
+			DB:           svc.Database,
+			Keys:         svc.Keys,
+			Auditlogs:    svc.Auditlogs,
+			KeyCache:     svc.Caches.VerificationKeyByHash,
+			LiveKeyCache: svc.Caches.LiveKeyByID,
 		},
 	)
 
@@ -497,11 +502,12 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysAddPermissions.Handler{
-			Logger:    svc.Logger,
-			DB:        svc.Database,
-			Keys:      svc.Keys,
-			Auditlogs: svc.Auditlogs,
-			KeyCache:  svc.Caches.VerificationKeyByHash,
+			Logger:       svc.Logger,
+			DB:           svc.Database,
+			Keys:         svc.Keys,
+			Auditlogs:    svc.Auditlogs,
+			KeyCache:     svc.Caches.VerificationKeyByHash,
+			LiveKeyCache: svc.Caches.LiveKeyByID,
 		},
 	)
 
@@ -509,11 +515,12 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysAddRoles.Handler{
-			Logger:    svc.Logger,
-			DB:        svc.Database,
-			Keys:      svc.Keys,
-			Auditlogs: svc.Auditlogs,
-			KeyCache:  svc.Caches.VerificationKeyByHash,
+			Logger:       svc.Logger,
+			DB:           svc.Database,
+			Keys:         svc.Keys,
+			Auditlogs:    svc.Auditlogs,
+			KeyCache:     svc.Caches.VerificationKeyByHash,
+			LiveKeyCache: svc.Caches.LiveKeyByID,
 		},
 	)
 
@@ -521,11 +528,12 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysRemovePermissions.Handler{
-			Logger:    svc.Logger,
-			DB:        svc.Database,
-			Keys:      svc.Keys,
-			Auditlogs: svc.Auditlogs,
-			KeyCache:  svc.Caches.VerificationKeyByHash,
+			Logger:       svc.Logger,
+			DB:           svc.Database,
+			Keys:         svc.Keys,
+			Auditlogs:    svc.Auditlogs,
+			KeyCache:     svc.Caches.VerificationKeyByHash,
+			LiveKeyCache: svc.Caches.LiveKeyByID,
 		},
 	)
 
@@ -533,11 +541,12 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysRemoveRoles.Handler{
-			Logger:    svc.Logger,
-			DB:        svc.Database,
-			Keys:      svc.Keys,
-			Auditlogs: svc.Auditlogs,
-			KeyCache:  svc.Caches.VerificationKeyByHash,
+			Logger:       svc.Logger,
+			DB:           svc.Database,
+			Keys:         svc.Keys,
+			Auditlogs:    svc.Auditlogs,
+			KeyCache:     svc.Caches.VerificationKeyByHash,
+			LiveKeyCache: svc.Caches.LiveKeyByID,
 		},
 	)
 

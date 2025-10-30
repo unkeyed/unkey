@@ -10,6 +10,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 
@@ -67,15 +68,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	key, _, err := h.LiveKeyCache.SWR(ctx, req.KeyId, func(ctx context.Context) (db.FindLiveKeyByIDRow, error) {
 		return db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
-	}, func(err error) cache.Op {
-		if err == nil {
-			return cache.WriteValue
-		}
-		if db.IsNotFound(err) {
-			return cache.WriteNull
-		}
-		return cache.Noop
-	})
+	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(
