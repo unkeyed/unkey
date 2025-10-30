@@ -10,9 +10,10 @@ import (
 )
 
 const deleteOldIdentityWithRatelimits = `-- name: DeleteOldIdentityWithRatelimits :exec
-DELETE i, rl
+DELETE i, rl, c
 FROM identities i
 LEFT JOIN ratelimits rl ON rl.identity_id = i.id
+LEFT JOIN credits c ON c.identity_id = i.id
 WHERE i.workspace_id = ?
   AND (i.id = ? OR i.external_id = ?)
   AND i.deleted = true
@@ -25,9 +26,10 @@ type DeleteOldIdentityWithRatelimitsParams struct {
 
 // DeleteOldIdentityWithRatelimits
 //
-//	DELETE i, rl
+//	DELETE i, rl, c
 //	FROM identities i
 //	LEFT JOIN ratelimits rl ON rl.identity_id = i.id
+//	LEFT JOIN credits c ON c.identity_id = i.id
 //	WHERE i.workspace_id = ?
 //	  AND (i.id = ? OR i.external_id = ?)
 //	  AND i.deleted = true
