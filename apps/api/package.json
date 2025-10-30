@@ -39,7 +39,7 @@
     "@unkey/schema": "workspace:^",
     "@unkey/validation": "workspace:^",
     "@unkey/worker-logging": "workspace:^",
-    "hono": "^4.6.3",
+    "hono": "^4.10.4",
     "superjson": "^2.2.1",
     "zod": "^3.23.5"
   }
