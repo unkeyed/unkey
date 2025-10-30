@@ -148,22 +148,18 @@ export const registerV1KeysGetKey = (app: App) =>
 
     const ratelimit = key.ratelimits.find((rl) => rl.name === "default");
 
-    let refill = undefined;
-    if (data.credits?.refillAmount) {
-      refill = {
-        interval: data.credits.refillDay ? ("monthly" as const) : ("daily" as const),
-        amount: data.credits.refillAmount,
-        refillDay: data.credits.refillDay ?? null,
-        lastRefillAt: data.credits.refilledAt || undefined,
-      };
-    }
+    // Prefer new credits table over legacy fields
+    const refillAmount = data.credits?.refillAmount ?? key.refillAmount;
+    const refillDay = data.credits?.refillDay ?? key.refillDay;
+    const lastRefillAt = data.credits?.refilledAt ?? key.lastRefillAt?.getTime();
 
-    if (key.refillAmount) {
+    let refill = undefined;
+    if (refillAmount) {
       refill = {
-        interval: key.refillDay ? ("monthly" as const) : ("daily" as const),
-        amount: key.refillAmount,
-        refillDay: key.refillDay ?? null,
-        lastRefillAt: key.lastRefillAt?.getTime() || undefined,
+        interval: refillDay ? ("monthly" as const) : ("daily" as const),
+        amount: refillAmount,
+        refillDay: refillDay ?? null,
+        lastRefillAt: lastRefillAt ?? undefined,
       };
     }
 
@@ -178,7 +174,7 @@ export const registerV1KeysGetKey = (app: App) =>
       createdAt: key.createdAtM,
       updatedAt: key.updatedAtM ?? undefined,
       expires: key.expires?.getTime() ?? undefined,
-      remaining: (key.remaining || data.credits?.remaining) ?? undefined,
+      remaining: data.credits?.remaining ?? key.remaining ?? undefined,
       refill: refill,
       ratelimit: ratelimit
         ? {

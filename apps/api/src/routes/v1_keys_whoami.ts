@@ -243,7 +243,7 @@ export const registerV1KeysWhoAmI = (app: App) =>
     return c.json({
       id: key.id,
       name: key.name ?? undefined,
-      remaining: (key.remaining || data?.credits?.remaining) ?? undefined,
+      remaining: data?.credits?.remaining ?? key.remaining ?? undefined,
       identity: data.identity
         ? {
             id: data.identity.id,

@@ -1094,6 +1094,7 @@ test("update ratelimit should not disable it", async (t) => {
   expect(verify.body.ratelimit!.limit).toBe(5);
   expect(verify.body.ratelimit!.remaining).toBe(4);
 });
+
 describe("When refillDay is omitted.", () => {
   test("should provide default value", async (t) => {
     const h = await IntegrationHarness.init(t);
