@@ -3,6 +3,7 @@ package validation
 import (
 	"context"
 	"net/http"
+	"sync"
 
 	"github.com/pb33f/libopenapi"
 	validator "github.com/pb33f/libopenapi-validator"
@@ -23,6 +24,9 @@ type OpenAPIValidator interface {
 
 type Validator struct {
 	validator validator.Validator
+	// mu protects concurrent access to the validator to work around race conditions
+	// in the underlying libopenapi-validator library (v0.9.0 and earlier)
+	mu sync.Mutex
 }
 
 func New() (*Validator, error) {
@@ -59,7 +63,11 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 	_, validationSpan := tracing.Start(ctx, "openapi.Validate")
 	defer validationSpan.End()
 
+	// Lock to protect concurrent access to the validator
+	// This works around race conditions in libopenapi-validator v0.9.0 and earlier
+	v.mu.Lock()
 	valid, errors := v.validator.ValidateHttpRequest(r)
+	v.mu.Unlock()
 
 	if valid {
 		// nolint:exhaustruct

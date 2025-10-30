@@ -88,11 +88,12 @@ func TestPreconditionError(t *testing.T) {
 		})
 
 		route := &handler.Handler{
-			Logger:    h.Logger,
-			DB:        h.DB,
-			Keys:      h.Keys,
-			Auditlogs: h.Auditlogs,
-			Vault:     h.Vault,
+			Logger:       h.Logger,
+			DB:           h.DB,
+			Keys:         h.Keys,
+			Auditlogs:    h.Auditlogs,
+			Vault:        h.Vault,
+			LiveKeyCache: h.Caches.LiveKeyByID,
 		}
 		h.Register(route)
 
@@ -139,11 +140,12 @@ func TestPreconditionError(t *testing.T) {
 
 		// Create route with nil vault
 		routeNoVault := &handler.Handler{
-			Logger:    h.Logger,
-			DB:        h.DB,
-			Keys:      h.Keys,
-			Auditlogs: h.Auditlogs,
-			Vault:     nil, // No vault
+			Logger:       h.Logger,
+			DB:           h.DB,
+			Keys:         h.Keys,
+			Auditlogs:    h.Auditlogs,
+			Vault:        nil, // No vault
+			LiveKeyCache: h.Caches.LiveKeyByID,
 		}
 		h.Register(routeNoVault)
 

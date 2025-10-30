@@ -107,6 +107,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// Remove from cache BEFORE the database transaction to prevent race conditions
+	// where another goroutine reads stale cached data after the DB transaction commits
+	// but before cache removal
+	h.KeyCache.Remove(ctx, key.Hash)
+	h.LiveKeyCache.Remove(ctx, key.ID)
+
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (err error) {
 		description := "Deleted"
 		if ptr.SafeDeref(req.Permanent) {
@@ -155,9 +161,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-
-	h.KeyCache.Remove(ctx, key.Hash)
-	h.LiveKeyCache.Remove(ctx, key.ID)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
