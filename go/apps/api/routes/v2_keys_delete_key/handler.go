@@ -107,9 +107,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Remove from cache BEFORE the database transaction to prevent race conditions
-	// where another goroutine reads stale cached data after the DB transaction commits
-	// but before cache removal
+	// Evict caches BEFORE transaction to minimize the window where stale data is served.
+	// We evict again after the transaction to handle repopulation during the transaction.
 	h.KeyCache.Remove(ctx, key.Hash)
 	h.LiveKeyCache.Remove(ctx, key.ID)
 
@@ -161,6 +160,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+
+	// Re-evict caches after transaction commits to handle the race where another
+	// goroutine repopulated the cache while the transaction was running.
+	// This ensures the deleted key cannot remain cached during the SWR staleness window.
+	h.KeyCache.Remove(ctx, key.Hash)
+	h.LiveKeyCache.Remove(ctx, key.ID)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
