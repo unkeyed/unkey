@@ -29,18 +29,25 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
 
     // If refillDay is after last day of month, refillDay will be today.
     const creditsToRefill = await step.do("fetch credits from credits table", async () => {
-      const { and, or, eq, isNull, isNotNull, gt, sql } = await import("@unkey/db");
+      const { and, or, eq, isNull, isNotNull, gt, gte } = await import("@unkey/db");
 
       // Build the refill conditions
       const baseConditions = [
         isNotNull(schema.credits.refillAmount),
         isNotNull(schema.credits.remaining),
         gt(schema.credits.refillAmount, schema.credits.remaining),
-        or(isNull(schema.credits.refillDay), eq(schema.credits.refillDay, today)),
       ];
 
       if (today === lastDayOfMonth) {
-        baseConditions.push(gt(schema.credits.refillDay, today));
+        // On last day of month: refill daily (null) OR refillDay >= today (catches impossible days like 31, 32, etc.)
+        baseConditions.push(
+          or(isNull(schema.credits.refillDay), gte(schema.credits.refillDay, today)),
+        );
+      } else {
+        // Regular day: refill daily (null) OR refillDay === today
+        baseConditions.push(
+          or(isNull(schema.credits.refillDay), eq(schema.credits.refillDay, today)),
+        );
       }
 
       const refillConditions = and(...baseConditions);
@@ -60,11 +67,19 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
         .where(
           and(
             refillConditions,
-            // Filter: if it's a key credit, key must not be deleted
-            // OR if it's an identity credit, identity must not be deleted
+            // Filter: if it's a key credit, key must exist and not be deleted
+            // OR if it's an identity credit, identity must exist and not be deleted
             or(
-              and(isNotNull(schema.credits.keyId), isNull(schema.keys.deletedAtM)),
-              and(isNotNull(schema.credits.identityId), eq(schema.identities.deleted, false)),
+              and(
+                isNotNull(schema.credits.keyId),
+                isNotNull(schema.keys.id),
+                isNull(schema.keys.deletedAtM),
+              ),
+              and(
+                isNotNull(schema.credits.identityId),
+                isNotNull(schema.identities.id),
+                eq(schema.identities.deleted, false),
+              ),
             ),
           ),
         );
@@ -83,18 +98,23 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
 
     // Also fetch legacy keys that still use the old remaining fields
     const legacyKeysToRefill = await step.do("fetch legacy keys with refill", async () => {
-      const { and, or, eq, isNull, isNotNull, gt } = await import("@unkey/db");
+      const { and, or, eq, isNull, isNotNull, gt, gte } = await import("@unkey/db");
 
       // Build the refill conditions for legacy keys
       const baseConditions = [
         isNotNull(schema.keys.refillAmount),
         isNotNull(schema.keys.remaining),
         gt(schema.keys.refillAmount, schema.keys.remaining),
-        or(isNull(schema.keys.refillDay), eq(schema.keys.refillDay, today)),
       ];
 
       if (today === lastDayOfMonth) {
-        baseConditions.push(gt(schema.keys.refillDay, today));
+        // On last day of month: refill daily (null) OR refillDay >= today (catches impossible days like 31, 32, etc.)
+        baseConditions.push(
+          or(isNull(schema.keys.refillDay), gte(schema.keys.refillDay, today)),
+        );
+      } else {
+        // Regular day: refill daily (null) OR refillDay === today
+        baseConditions.push(or(isNull(schema.keys.refillDay), eq(schema.keys.refillDay, today)));
       }
 
       const refillConditions = and(...baseConditions);
