@@ -76,11 +76,23 @@ jobs:
             dashboard:
               - 'apps/dashboard/**/!(*.md|*.txt)'
               - 'apps/dashboard/!(*.md|*.txt)'
-              - 'internal/ui/**'
+              - 'internal/billing/**'
+              - 'internal/clickhouse/**'
+              - 'internal/db/**'
+              - 'internal/encryption/**'
+              - 'internal/events/**'
+              - 'internal/hash/**'
               - 'internal/icons/**'
+              - 'internal/id/**'
+              - 'internal/keys/**'
+              - 'internal/proto/**'
               - 'internal/resend/**'
+              - 'internal/schema/**'
+              - 'internal/ui/**'
               - 'internal/validation/**'
               - 'internal/vercel/**'
+              - 'packages/error/**'
+              - 'packages/rbac/**'
 
             # Agent application (Go-based)
             agent:
