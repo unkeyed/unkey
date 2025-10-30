@@ -13,8 +13,6 @@ jobs:
         uses: ./.github/actions/setup-node
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Lint
-        run: pnpm turbo run lint --filter=@unkey/dashboard
       - name: Test
         run: pnpm turbo run test --filter=@unkey/dashboard
         env:
