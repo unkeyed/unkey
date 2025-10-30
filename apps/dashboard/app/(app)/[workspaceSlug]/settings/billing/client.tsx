@@ -2,7 +2,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { Button, Empty, SettingCard } from "@unkey/ui";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type Stripe from "stripe";
 import { WorkspaceNavbar } from "../workspace-navbar";
@@ -18,6 +18,7 @@ import { Usage } from "./components/usage";
 const MAX_QUOTA = 150000;
 
 export const Client: React.FC = () => {
+  const router = useRouter();
   const workspace = useWorkspaceNavigation();
   const [showPlanModal, setShowPlanModal] = useState(false);
 
@@ -114,10 +115,10 @@ export const Client: React.FC = () => {
             contentWidth="w-full"
           >
             <div className="flex justify-end w-full">
-              <Button variant="primary">
-                <Link href={`/${workspace.slug}/settings/billing/stripe/checkout`}>
-                  Add payment method
-                </Link>
+              <Button variant="primary" aria-label="Add payment method" onClick={() => {
+                router.push(`/${workspace.slug}/settings/billing/stripe/checkout`);
+              }}>
+                Add payment method
               </Button>
             </div>
           </SettingCard>
@@ -131,8 +132,10 @@ export const Client: React.FC = () => {
             contentWidth="w-full lg:w-[320px]"
           >
             <div className="w-full flex h-full items-center justify-end gap-4">
-              <Button variant="outline" size="lg">
-                <Link href={`/${workspace.slug}/settings/billing/stripe/portal`}>Open Portal</Link>
+              <Button variant="outline" size="lg" aria-label="Open billing portal" onClick={() => {
+                router.push(`/${workspace.slug}/settings/billing/stripe/portal`);
+              }}>
+                Open Portal
               </Button>
             </div>
           </SettingCard>
