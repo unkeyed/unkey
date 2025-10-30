@@ -189,6 +189,7 @@ export const registerV1ApisListKeys = (app: App) =>
             with: {
               identity: true,
               encrypted: true,
+              credits: true,
               roles: {
                 with: {
                   role: {
@@ -216,7 +217,10 @@ export const registerV1ApisListKeys = (app: App) =>
       });
 
       if (!keySpace) {
-        throw new UnkeyApiError({ code: "NOT_FOUND", message: "keyspace not found" });
+        throw new UnkeyApiError({
+          code: "NOT_FOUND",
+          message: "keyspace not found",
+        });
       }
 
       /**
@@ -230,6 +234,7 @@ export const registerV1ApisListKeys = (app: App) =>
             ...k.permissions.map((p) => p.permission.slug),
             ...k.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.slug)),
           ]);
+
           return {
             ...k,
             identity: k.identity
@@ -242,6 +247,7 @@ export const registerV1ApisListKeys = (app: App) =>
             permissions: Array.from(permissions.values()),
             roles: k.roles.map((r) => r.role.name),
             ratelimits: k.ratelimits,
+            credits: k.credits ?? null,
           };
         }),
         total: keySpace.sizeApprox,
@@ -306,6 +312,11 @@ export const registerV1ApisListKeys = (app: App) =>
     return c.json({
       keys: data.keys.map((k) => {
         const ratelimit = k.ratelimits.find((rl) => rl.name === "default");
+        const remaining = k.credits?.remaining ?? k.remaining ?? undefined;
+        const refillAmount = k.credits?.refillAmount ?? k.refillAmount ?? undefined;
+        const refillDay = k.credits?.refillDay ?? k.refillDay ?? null;
+        const lastRefillAt = k.credits?.refilledAt ?? k.lastRefillAt?.getTime();
+
         return {
           id: k.id,
           start: k.start,
@@ -326,14 +337,13 @@ export const registerV1ApisListKeys = (app: App) =>
                 refillInterval: ratelimit.duration,
               }
             : undefined,
-
-          remaining: k.remaining ?? undefined,
-          refill: k.refillAmount
+          remaining,
+          refill: refillAmount
             ? {
-                interval: k.refillDay ? ("monthly" as const) : ("daily" as const),
-                amount: k.refillAmount,
-                refillDay: k.refillDay,
-                lastRefillAt: k.lastRefillAt?.getTime(),
+                interval: refillDay ? ("monthly" as const) : ("daily" as const),
+                amount: refillAmount,
+                refillDay,
+                lastRefillAt: lastRefillAt,
               }
             : undefined,
           environment: k.environment ?? undefined,
