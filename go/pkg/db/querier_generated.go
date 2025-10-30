@@ -2124,6 +2124,10 @@ type Querier interface {
 	//          WHEN CAST(? AS UNSIGNED) = 1 THEN VALUES(refill_amount)
 	//          ELSE refill_amount
 	//      END,
+	//      refilled_at = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN VALUES(refilled_at)
+	//          ELSE refilled_at
+	//      END,
 	//      updated_at = VALUES(updated_at)
 	UpsertCredit(ctx context.Context, db DBTX, arg UpsertCreditParams) error
 }

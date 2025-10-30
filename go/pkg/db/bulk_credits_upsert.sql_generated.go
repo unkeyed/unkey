@@ -22,6 +22,10 @@ const bulkUpsertCredit = `INSERT INTO ` + "`" + `credits` + "`" + ` ( id, worksp
         WHEN CAST(? AS UNSIGNED) = 1 THEN VALUES(refill_amount)
         ELSE refill_amount
     END,
+    refilled_at = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN VALUES(refilled_at)
+        ELSE refilled_at
+    END,
     updated_at = VALUES(updated_at)`
 
 // UpsertCredit performs bulk insert in a single query
@@ -59,6 +63,7 @@ func (q *BulkQueries) UpsertCredit(ctx context.Context, db DBTX, args []UpsertCr
 		allArgs = append(allArgs, args[0].RemainingSpecified)
 		allArgs = append(allArgs, args[0].RefillDaySpecified)
 		allArgs = append(allArgs, args[0].RefillAmountSpecified)
+		allArgs = append(allArgs, args[0].RefilledAtSpecified)
 	}
 
 	// Execute the bulk insert

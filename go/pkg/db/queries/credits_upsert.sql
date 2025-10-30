@@ -24,4 +24,8 @@ ON DUPLICATE KEY UPDATE
         WHEN CAST(sqlc.arg('refill_amount_specified') AS UNSIGNED) = 1 THEN VALUES(refill_amount)
         ELSE refill_amount
     END,
+    refilled_at = CASE
+        WHEN CAST(sqlc.arg('refilled_at_specified') AS UNSIGNED) = 1 THEN VALUES(refilled_at)
+        ELSE refilled_at
+    END,
     updated_at = VALUES(updated_at);
