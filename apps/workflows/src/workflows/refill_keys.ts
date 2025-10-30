@@ -109,9 +109,7 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
 
       if (today === lastDayOfMonth) {
         // On last day of month: refill daily (null) OR refillDay >= today (catches impossible days like 31, 32, etc.)
-        baseConditions.push(
-          or(isNull(schema.keys.refillDay), gte(schema.keys.refillDay, today)),
-        );
+        baseConditions.push(or(isNull(schema.keys.refillDay), gte(schema.keys.refillDay, today)));
       } else {
         // Regular day: refill daily (null) OR refillDay === today
         baseConditions.push(or(isNull(schema.keys.refillDay), eq(schema.keys.refillDay, today)));
