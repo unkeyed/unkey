@@ -336,6 +336,15 @@ export async function completeOrgSelection(
     for (const cookie of result.cookies) {
       cookies().set(cookie.name, cookie.value, cookie.options);
     }
+
+    // Store the last used organization ID in a cookie for auto-selection on next login
+    cookies().set("unkey_last_org_used", orgId, {
+      httpOnly: false, // Allow client-side access
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 Days
+    });
   }
 
   return result;
@@ -350,6 +359,16 @@ export async function switchOrg(orgId: string): Promise<{ success: boolean; erro
       throw new Error("Invalid session data returned from auth provider");
     }
     await setSessionCookie({ token: newToken, expiresAt });
+
+    // Store the last used organization ID in a cookie for auto-selection on next login
+    cookies().set("unkey_last_org_used", orgId, {
+      httpOnly: false, // Allow client-side access
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 Days
+    });
+
     return { success: true };
   } catch (error) {
     console.error("Organization switch failed:", {

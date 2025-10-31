@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSidebar } from "@/components/ui/sidebar";
-import { setSessionCookie } from "@/lib/auth/cookies";
+import { setCookie, setSessionCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 
@@ -44,7 +44,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   );
 
   const changeWorkspace = trpc.user.switchOrg.useMutation({
-    async onSuccess(sessionData) {
+    async onSuccess(sessionData, orgId) {
       if (!sessionData.token || !sessionData.expiresAt) {
         toast.error("Failed to switch workspace. Invalid session data.");
         return;
@@ -55,6 +55,20 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
           token: sessionData.token,
           expiresAt: sessionData.expiresAt,
         });
+
+        // Store the last used organization ID in a cookie for auto-selection on next login
+        await setCookie({
+          name: "unkey_last_org_used",
+          value: orgId,
+          options: {
+            httpOnly: false, // Allow client-side access
+            secure: true,
+            sameSite: "lax",
+            path: "/",
+            maxAge: 60 * 60 * 24 * 30, // 30 Days
+          },
+        });
+
         // Instead of messing with the cache, we can simply redirect the user and we will refetch the user data.
         window.location.replace("/");
       } catch (error) {
