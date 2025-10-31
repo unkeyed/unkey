@@ -13,7 +13,7 @@ import { EmailCode } from "../email-code";
 import { EmailSignIn } from "../email-signin";
 import { EmailVerify } from "../email-verify";
 import { OAuthSignIn } from "../oauth-signin";
-import { OrgSelectorImproved } from "../org-selector-improved";
+import { OrgSelector } from "../org-selector";
 
 function SignInContent() {
   const {
@@ -94,9 +94,7 @@ function SignInContent() {
 
   return (
     <div className="flex flex-col gap-10">
-      {hasPendingAuth && (
-        <OrgSelectorImproved organizations={orgs} onError={setError} />
-      )}
+      {hasPendingAuth && <OrgSelector organizations={orgs} />}
 
       {accountNotFound && (
         <WarnBanner>
