@@ -51,12 +51,23 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
       }
 
       try {
+        // Critical: Set the session cookie to complete the workspace switch
         await setSessionCookie({
           token: sessionData.token,
           expiresAt: sessionData.expiresAt,
         });
 
-        // Store the last used organization ID in a cookie for auto-selection on next login
+        // Instead of messing with the cache, we can simply redirect the user and we will refetch the user data.
+        window.location.replace("/");
+      } catch (error) {
+        console.error("Failed to set session cookie:", error);
+        toast.error("Failed to complete workspace switch. Please try again.");
+        return;
+      }
+
+      // Non-critical: Store the last used organization ID in a cookie for auto-selection on next login
+      // This runs after the critical operations, and failures won't block the workspace switch
+      try {
         await setCookie({
           name: "unkey_last_org_used",
           value: orgId,
@@ -68,12 +79,9 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
             maxAge: 60 * 60 * 24 * 30, // 30 Days
           },
         });
-
-        // Instead of messing with the cache, we can simply redirect the user and we will refetch the user data.
-        window.location.replace("/");
       } catch (error) {
-        console.error("Failed to set session cookie:", error);
-        toast.error("Failed to complete workspace switch. Please try again.");
+        // Swallow the error with a debug log - preference storage failure should not interrupt user flow
+        console.debug("Failed to store last used workspace preference:", error);
       }
     },
     onError(error) {

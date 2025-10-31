@@ -45,9 +45,9 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
   }, [organizations]);
 
   const submit = useCallback(
-    async (orgId: string) => {
+    async (orgId: string): Promise<boolean> => {
       if (isLoading || !orgId) {
-        return;
+        return false;
       }
 
       try {
@@ -57,8 +57,10 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
         if (!result.success) {
           setError(result.message);
           setIsLoading(false);
+          return false;
         }
         // On success, the page will redirect, so we don't need to reset loading state
+        return true;
       } catch (error) {
         const errorMessage =
           error instanceof Error
@@ -67,9 +69,10 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
 
         setError(errorMessage);
         setIsLoading(false);
+        return false;
       }
     },
-    [isLoading, setError]
+    [setError, completeOrgSelection]
   );
 
   const handleSubmit = useCallback(() => {
@@ -102,21 +105,28 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
 
     if (lastUsedOrgId) {
       // Check if the stored orgId exists in the current list of organizations
-      const orgExists = organizations.some((org) => org.id === lastUsedOrgId);
+      const orgExists = orgOptions.some((opt) => opt.value === lastUsedOrgId);
 
       if (orgExists) {
-        // Auto-submit this organization
-        submit(lastUsedOrgId);
+        // Auto-submit this organization and handle failure by reopening the dialog
+        submit(lastUsedOrgId).then((success) => {
+          if (!success) {
+            // If auto-submit fails, pre-select the last used org and open the dialog for manual selection
+            setSelectedOrgId(lastUsedOrgId);
+            setIsOpen(true);
+          }
+        });
         return;
       }
     }
 
-    // If no auto-selection, show the modal with first org pre-selected
-    if (organizations.length > 0) {
-      setSelectedOrgId(organizations[0].id);
+    // If no auto-selection, show the modal with first org pre-selected (from sorted array)
+    // Use orgOptions[0].value to ensure the pre-selected value matches the displayed first option
+    if (orgOptions.length > 0 && orgOptions[0]?.value) {
+      setSelectedOrgId(orgOptions[0].value);
     }
     setIsOpen(true);
-  }, [clientReady, organizations, hasAttemptedAutoSelection, submit]);
+  }, [clientReady, orgOptions, hasAttemptedAutoSelection, submit]);
 
   return (
     <DialogContainer
