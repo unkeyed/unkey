@@ -9,6 +9,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
 	"github.com/unkeyed/unkey/go/pkg/cache"
@@ -26,11 +27,12 @@ type Response = openapi.V2KeysDeleteKeyResponseBody
 
 // Handler implements zen.Route interface for the v2 keys.deleteKey endpoint
 type Handler struct {
-	Logger    logging.Logger
-	DB        db.Database
-	Keys      keys.KeyService
-	Auditlogs auditlogs.AuditLogService
-	KeyCache  cache.Cache[string, db.CachedKeyData]
+	Logger       logging.Logger
+	DB           db.Database
+	Keys         keys.KeyService
+	Auditlogs    auditlogs.AuditLogService
+	KeyCache     cache.Cache[string, db.CachedKeyData]
+	LiveKeyCache cache.Cache[string, db.FindLiveKeyByIDRow]
 }
 
 // Method returns the HTTP method this route responds to
@@ -59,7 +61,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
+	key, _, err := h.LiveKeyCache.SWR(ctx, req.KeyId, func(ctx context.Context) (db.FindLiveKeyByIDRow, error) {
+		return db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
+	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(
@@ -102,6 +106,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+
+	// Evict caches BEFORE transaction to minimize the window where stale data is served.
+	// We evict again after the transaction to handle repopulation during the transaction.
+	h.KeyCache.Remove(ctx, key.Hash)
+	h.LiveKeyCache.Remove(ctx, key.ID)
 
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (err error) {
 		description := "Deleted"
@@ -152,7 +161,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// Re-evict caches after transaction commits to handle the race where another
+	// goroutine repopulated the cache while the transaction was running.
+	// This ensures the deleted key cannot remain cached during the SWR staleness window.
 	h.KeyCache.Remove(ctx, key.Hash)
+	h.LiveKeyCache.Remove(ctx, key.ID)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
