@@ -30,7 +30,7 @@ func (q *BulkQueries) InsertKeys(ctx context.Context, db DBTX, args []InsertKeyP
 	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ID)
-		allArgs = append(allArgs, arg.KeyringID)
+		allArgs = append(allArgs, arg.KeySpaceID)
 		allArgs = append(allArgs, arg.Hash)
 		allArgs = append(allArgs, arg.Start)
 		allArgs = append(allArgs, arg.WorkspaceID)

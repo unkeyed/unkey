@@ -46,7 +46,7 @@ func TestUpdateKeyInvalidRefillConfig(t *testing.T) {
 	// Create key using helper
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        ptr.P("test"),
 	})
 

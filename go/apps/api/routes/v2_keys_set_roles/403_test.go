@@ -42,7 +42,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	roleDescription := "Test role"
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        &keyName,
 		Roles: []seed.CreateRoleRequest{
 			{

@@ -48,7 +48,7 @@ func TestSuccess(t *testing.T) {
 
 		roleName := "editor_single_name"
 		key := h.CreateKey(seed.CreateKeyRequest{
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			WorkspaceID: workspace.ID,
 			Roles: []seed.CreateRoleRequest{
 				{
@@ -92,7 +92,7 @@ func TestSuccess(t *testing.T) {
 		})
 
 		key := h.CreateKey(seed.CreateKeyRequest{
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			WorkspaceID: workspace.ID,
 		})
 

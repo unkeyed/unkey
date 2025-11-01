@@ -58,7 +58,7 @@ func TestUpdateKeyNotFound(t *testing.T) {
 		// Create key using helper then delete it
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        ptr.P("test"),
 			Deleted:     true, // This will mark the key as deleted
 		})

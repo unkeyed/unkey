@@ -41,7 +41,7 @@ func TestUpdateKeyUnauthorized(t *testing.T) {
 
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: api.WorkspaceID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 	})
 
 	req := handler.Request{KeyId: key.KeyID}

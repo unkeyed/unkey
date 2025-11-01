@@ -7,7 +7,7 @@ const (
 	APIResourceType                AuditLogResourceType = "api"
 	AuditLogBucketResourceType     AuditLogResourceType = "auditLogBucket"
 	IdentityResourceType           AuditLogResourceType = "identity"
-	KeyAuthResourceType            AuditLogResourceType = "keyAuth"
+	KeySpaceResourceType           AuditLogResourceType = "keySpace"
 	KeyResourceType                AuditLogResourceType = "key"
 	PermissionResourceType         AuditLogResourceType = "permission"
 	RatelimitResourceType          AuditLogResourceType = "ratelimit"

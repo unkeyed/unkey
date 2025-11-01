@@ -48,7 +48,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 	initialCredits := int32(rand.IntN(50))
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        &keyName,
 		Remaining:   &initialCredits,
 	})
@@ -174,7 +174,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		initialCredits := int32(100)
 		cacheTestKey := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 			Remaining:   &initialCredits,
 		})

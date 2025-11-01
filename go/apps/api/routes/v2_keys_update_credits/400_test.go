@@ -41,7 +41,7 @@ func TestKeyUpdateCreditsBadRequest(t *testing.T) {
 	keyName := "test-key"
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        &keyName,
 	})
 	keyID := keyResponse.KeyID
