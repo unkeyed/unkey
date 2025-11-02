@@ -50,19 +50,19 @@ const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButt
   });
 
   // Determine tooltip content based on state
-  const tooltipContent = !isEnabled
-    ? "Refresh unavailable - please select a relative time filter in the 'Since' dropdown"
-    : (
-        <div className="flex items-center gap-2">
-          <span>Refresh data</span>
-          <KeyboardButton shortcut="⌥+⇧+W" />
-        </div>
-      );
+  const tooltipContent = isEnabled ? (
+    <div className="flex items-center gap-2">
+      <span>Refresh data</span>
+      <KeyboardButton shortcut="⌥+⇧+W" />
+    </div>
+  ) : (
+    "Refresh unavailable - please select a relative time filter in the 'Since' dropdown"
+  );
 
   return (
     <InfoTooltip
       content={tooltipContent}
-      variant={!isEnabled ? "inverted" : "primary"}
+      variant={isEnabled ? "primary" : "inverted"}
       position={{ side: "bottom", align: "center" }}
       delayDuration={300}
       disabled={isLoading}
