@@ -108,7 +108,7 @@ export const UsageSetup = ({
           description="Turn on to limit how many times this key can be used. Once the limit
             is reached, the key will be disabled."
           title="Credits"
-          icon={<ChartPie className="text-gray-12" size="sm-regular" />}
+          icon={<ChartPie className="text-gray-12" iconSize="sm-regular" />}
           checked={limitEnabled}
           onCheckedChange={handleSwitchChange}
           {...register("limit.enabled")}

@@ -12,10 +12,17 @@
 
 import type React from "react";
 
-import type { IconProps } from "../props";
-export const Pulse: React.FC<IconProps> = (props) => {
+import { type IconProps, sizeMap } from "../props";
+export const Pulse: React.FC<IconProps> = ({ iconSize = "xl-thin", ...props }) => {
+  const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
   return (
-    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      height={pixelSize}
+      width={pixelSize}
+      viewBox="0 0 18 18"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
       <g fill="currentColor" strokeLinecap="butt" strokeLinejoin="miter">
         <path
           d="M0.76 9.12h3.8l2.28-6.08 4.56 12.16 2.28-6.08h3.8"
@@ -23,7 +30,7 @@ export const Pulse: React.FC<IconProps> = (props) => {
           stroke="currentColor"
           strokeLinecap="round"
           strokeMiterlimit="10"
-          strokeWidth="1.5"
+          strokeWidth={strokeWidth}
         />
       </g>
     </svg>

@@ -56,7 +56,7 @@ func TestSuccess(t *testing.T) {
 		permissionDescription := "Write documents permission"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 			Permissions: []seed.CreatePermissionRequest{
 				{
@@ -106,7 +106,7 @@ func TestSuccess(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID
@@ -114,7 +114,7 @@ func TestSuccess(t *testing.T) {
 		// Create permissions using testutil helpers
 		permission1Description := "Read documents permission"
 		permission1Name := "documents.read.remove.multiple"
-		permission1ID := h.CreatePermission(seed.CreatePermissionRequest{
+		permission1 := h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
 			Name:        permission1Name,
 			Slug:        permission1Name,
@@ -123,7 +123,7 @@ func TestSuccess(t *testing.T) {
 
 		permission2Description := "Write documents permission"
 		permission2Name := "documents.write.remove.multiple"
-		permission2ID := h.CreatePermission(seed.CreatePermissionRequest{
+		permission2 := h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
 			Name:        permission2Name,
 			Slug:        permission2Name,
@@ -133,7 +133,7 @@ func TestSuccess(t *testing.T) {
 		// Add both permissions to key first
 		err := db.Query.InsertKeyPermission(ctx, h.DB.RW(), db.InsertKeyPermissionParams{
 			KeyID:        keyID,
-			PermissionID: permission1ID,
+			PermissionID: permission1.ID,
 			WorkspaceID:  workspace.ID,
 			CreatedAt:    time.Now().UnixMilli(),
 		})
@@ -141,7 +141,7 @@ func TestSuccess(t *testing.T) {
 
 		err = db.Query.InsertKeyPermission(ctx, h.DB.RW(), db.InsertKeyPermissionParams{
 			KeyID:        keyID,
-			PermissionID: permission2ID,
+			PermissionID: permission2.ID,
 			WorkspaceID:  workspace.ID,
 			CreatedAt:    time.Now().UnixMilli(),
 		})
@@ -183,7 +183,7 @@ func TestSuccess(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID
@@ -244,7 +244,7 @@ func TestSuccess(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID
@@ -325,7 +325,7 @@ func TestSuccess(t *testing.T) {
 		keyName := "Test Key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 		})
 		keyID := keyResponse.KeyID
@@ -333,7 +333,7 @@ func TestSuccess(t *testing.T) {
 		// Create multiple permissions using testutil helpers
 		permission1Description := "Read documents permission"
 		permission1Name := "documents.read.remove.all.1"
-		permission1ID := h.CreatePermission(seed.CreatePermissionRequest{
+		permission1 := h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
 			Name:        permission1Name,
 			Slug:        permission1Name,
@@ -342,7 +342,7 @@ func TestSuccess(t *testing.T) {
 
 		permission2Description := "Write documents permission"
 		permission2Name := "documents.write.remove.all.2"
-		permission2ID := h.CreatePermission(seed.CreatePermissionRequest{
+		permission2 := h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
 			Name:        permission2Name,
 			Slug:        permission2Name,
@@ -351,7 +351,7 @@ func TestSuccess(t *testing.T) {
 
 		permission3Description := "Delete documents permission"
 		permission3Name := "documents.delete.remove.all.3"
-		permission3ID := h.CreatePermission(seed.CreatePermissionRequest{
+		permission3 := h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
 			Name:        permission3Name,
 			Slug:        permission3Name,
@@ -361,7 +361,7 @@ func TestSuccess(t *testing.T) {
 		// Add all permissions to key
 		err := db.Query.InsertKeyPermission(ctx, h.DB.RW(), db.InsertKeyPermissionParams{
 			KeyID:        keyID,
-			PermissionID: permission1ID,
+			PermissionID: permission1.ID,
 			WorkspaceID:  workspace.ID,
 			CreatedAt:    time.Now().UnixMilli(),
 		})
@@ -369,7 +369,7 @@ func TestSuccess(t *testing.T) {
 
 		err = db.Query.InsertKeyPermission(ctx, h.DB.RW(), db.InsertKeyPermissionParams{
 			KeyID:        keyID,
-			PermissionID: permission2ID,
+			PermissionID: permission2.ID,
 			WorkspaceID:  workspace.ID,
 			CreatedAt:    time.Now().UnixMilli(),
 		})
@@ -377,7 +377,7 @@ func TestSuccess(t *testing.T) {
 
 		err = db.Query.InsertKeyPermission(ctx, h.DB.RW(), db.InsertKeyPermissionParams{
 			KeyID:        keyID,
-			PermissionID: permission3ID,
+			PermissionID: permission3.ID,
 			WorkspaceID:  workspace.ID,
 			CreatedAt:    time.Now().UnixMilli(),
 		})

@@ -77,7 +77,7 @@ func TestSuccess(t *testing.T) {
 		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
 
 		createKey := h.CreateKey(seed.CreateKeyRequest{
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 		})
 

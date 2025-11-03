@@ -189,7 +189,7 @@ const NavigableDialogNav = <TStepName extends string>({
             {IconComponent && (
               <div>
                 <IconComponent
-                  size="md-regular"
+                  iconSize="md-medium"
                   className={cn(
                     isDisabled ? "text-gray-7" : isActive ? "text-gray-12" : "text-gray-9",
                   )}

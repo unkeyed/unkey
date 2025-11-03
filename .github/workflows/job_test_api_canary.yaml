@@ -21,7 +21,7 @@ jobs:
     environment: Canary
     name: API Test Canary
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     strategy:
       fail-fast: false
       matrix:

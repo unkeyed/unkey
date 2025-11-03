@@ -1,9 +1,10 @@
 "use client";
 
+import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ArrowRight, Magnifier } from "@unkey/icons";
-import { Loader } from "lucide-react";
+import { Loading } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ProjectContentWrapper } from "../components/project-content-wrapper";
@@ -58,7 +59,7 @@ export default function DiffPage() {
     if (liveDeploymentId) {
       const exists = sortedDeployments.some((d) => d.deployment.id === liveDeploymentId);
       if (exists) {
-        setSelectedToDeployment(liveDeploymentId);
+        setSelectedFromDeployment(liveDeploymentId);
       }
     }
   }, [liveDeploymentId, sortedDeployments, deployments.isLoading, searchParams]);
@@ -84,12 +85,7 @@ export default function DiffPage() {
         return deploymentId;
       }
 
-      const commitSha =
-        deployment.deployment.gitCommitSha?.substring(0, 7) ||
-        deployment.deployment.id.substring(0, 7);
-      const branch = deployment.deployment.gitBranch || "unknown";
-
-      return `${branch}:${commitSha}`;
+      return shortenId(deploymentId);
     },
     [sortedDeployments],
   );
@@ -132,7 +128,7 @@ export default function DiffPage() {
                 disabledDeploymentId={selectedToDeployment}
               />
 
-              <ArrowRight className="shrink-0 text-gray-9 size-[14px]" size="sm-regular" />
+              <ArrowRight className="shrink-0 text-gray-9 size-[14px]" iconSize="sm-regular" />
 
               <DeploymentSelect
                 value={selectedToDeployment}
@@ -175,19 +171,34 @@ export default function DiffPage() {
           {showContent && (
             <>
               {diffLoading && (
-                <div className="text-center py-12 mx-3 mb-3">
-                  <Loader className="w-6 h-6 mx-auto mb-3 animate-spin text-grayA-9" />
+                <div className="text-center py-12 px-8">
+                  <Loading className="w-6 h-6 mx-auto mb-3 text-grayA-9" />
                   <p className="text-[13px] text-grayA-11 font-medium">Analyzing changes...</p>
                   <p className="text-xs text-grayA-9 mt-1">Comparing API specifications</p>
                 </div>
               )}
 
               {diffError && (
-                <div className="mx-3 mb-3 border border-error-6 rounded-md p-4 bg-error-2">
-                  <div className="text-[13px] text-error-11 font-medium mb-1.5">
-                    Failed to generate diff
+                <div className="p-3 pt-0">
+                  <div className="flex flex-col items-center gap-4 px-8 py-12 text-center border border-error-6 rounded-lg bg-error-2">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-error-4 to-error-3 rounded-full blur-xl opacity-20 transition-opacity duration-300 animate-pulse" />
+                      <div className="relative bg-error-3 rounded-full p-3 transition-all duration-200">
+                        <Magnifier
+                          className="text-error-9 size-6 transition-all duration-200 animate-pulse"
+                          style={{ animationDuration: "2s" }}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-error-11 font-medium text-sm">
+                        Unable to compare deployments
+                      </h3>
+                      <p className="text-error-11 text-xs max-w-[280px] leading-relaxed opacity-90">
+                        {diffError.message}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-xs text-error-11 leading-relaxed">{diffError.message}</p>
                 </div>
               )}
 

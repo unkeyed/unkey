@@ -45,7 +45,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 	// Create key using helper
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        ptr.P("test"),
 	})
 
@@ -148,7 +148,7 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 	// Create key using helper
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: api.WorkspaceID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        ptr.P("test"),
 	})
 
@@ -194,8 +194,8 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 	require.Equal(t, int32(50), key.RefillAmount.Int32)
 
 	// Verify identity was created with correct external ID
-	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
-		Identity:    key.IdentityID.String,
+	identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		IdentityID:  key.IdentityID.String,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
 	require.NoError(t, err)
@@ -231,7 +231,7 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	initialCredits := int32(100)
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        &keyName,
 		Remaining:   &initialCredits,
 	})

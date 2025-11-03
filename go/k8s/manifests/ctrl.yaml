@@ -67,7 +67,61 @@ spec:
               value: "minio_root_user"
             - name: UNKEY_VAULT_S3_ACCESS_KEY_SECRET
               value: "minio_root_password"
-            # Additional Configuration
+            # Build Configuration
+            - name: UNKEY_BUILD_BACKEND
+              value: "depot"
+            - name: UNKEY_BUILD_PLATFORM
+              value: "linux/amd64"
+            # Build S3 Storage (from depot-credentials secret)
+            #kubectl create secret generic depot-credentials \
+            # --from-literal=token=xxxx \
+            # --from-literal=s3-url=xxx \
+            # --from-literal=s3-access-key-id=xxx \
+            # --from-literal=s3-access-key-secret=xxx \
+            #   --namespace=unkey
+            - name: UNKEY_BUILD_S3_URL
+              valueFrom:
+                secretKeyRef:
+                  name: depot-credentials
+                  key: s3-url
+            - name: UNKEY_BUILD_S3_EXTERNAL_URL
+              valueFrom:
+                secretKeyRef:
+                  name: depot-credentials
+                  key: s3-url
+            - name: UNKEY_BUILD_S3_BUCKET
+              value: "build-contexts"
+            - name: UNKEY_BUILD_S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: depot-credentials
+                  key: s3-access-key-id
+            - name: UNKEY_BUILD_S3_ACCESS_KEY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: depot-credentials
+                  key: s3-access-key-secret
+            # Registry Configuration (used by both Docker and Depot backends)
+            #kubectl create secret docker-registry depot-registry \
+            # --docker-server=registry.depot.dev \
+            # --docker-username=x-token \
+            # --docker-password=xxx \
+            # --namespace=unkey
+            - name: UNKEY_REGISTRY_URL
+              value: "registry.depot.dev"
+            - name: UNKEY_REGISTRY_USERNAME
+              value: "x-token"
+            - name: UNKEY_REGISTRY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: depot-credentials
+                  key: token
+            # Depot-Specific Configuration (only used when UNKEY_BUILD_BACKEND=depot)
+            - name: UNKEY_DEPOT_API_URL
+              value: "https://api.depot.dev"
+            - name: UNKEY_DEPOT_PROJECT_REGION
+              value: "us-east-1"
+            # ACME Configuration
             - name: UNKEY_ACME_ENABLED
               value: "false"
 
@@ -84,7 +138,7 @@ spec:
             - name: UNKEY_RESTATE_REGISTER_AS
               value: "http://ctrl:9080"
 
-            # Additional Configuration
+            # API Key
             - name: UNKEY_API_KEY
               value: "your-local-dev-key"
 

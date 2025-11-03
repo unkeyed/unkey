@@ -390,13 +390,16 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               />
             </tbody>
           </table>
-          <LoadMoreFooter
-            {...loadMoreFooterProps}
-            onLoadMore={onLoadMore}
-            isFetchingNextPage={isFetchingNextPage}
-            totalVisible={virtualizer.getVirtualItems().length}
-            totalCount={tableData.getTotalLength()}
-          />
+          {/* Without this check bottom status section blinks in the UI and disappears */}
+          {loadMoreFooterProps && (
+            <LoadMoreFooter
+              {...loadMoreFooterProps}
+              onLoadMore={onLoadMore}
+              isFetchingNextPage={isFetchingNextPage}
+              totalVisible={virtualizer.getVirtualItems().length}
+              totalCount={tableData.getTotalLength()}
+            />
+          )}
         </div>
       </div>
     );
@@ -408,9 +411,9 @@ function SortIcon({ direction }: { direction?: SortDirection | null }) {
     return <CaretExpandY className="color-gray-9" />;
   }
   return direction === "asc" ? (
-    <CaretUp className="color-gray-9" size="sm-thin" />
+    <CaretUp className="color-gray-9" iconSize="sm-thin" />
   ) : (
-    <CaretDown className="color-gray-9" size="sm-thin" />
+    <CaretDown className="color-gray-9" iconSize="sm-thin" />
   );
 }
 

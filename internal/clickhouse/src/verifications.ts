@@ -270,6 +270,11 @@ const INTERVALS: Record<string, TimeInterval> = {
     step: "MINUTE",
     stepSize: 5,
   },
+  fifteenMinutes: {
+    table: "default.key_verifications_per_minute_v2",
+    step: "MINUTE",
+    stepSize: 15,
+  },
   thirtyMinutes: {
     table: "default.key_verifications_per_minute_v2",
     step: "MINUTE",
@@ -611,6 +616,9 @@ export const getMinutelyVerificationTimeseries =
 export const getFiveMinutelyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.fiveMinutes, args);
+export const getFifteenMinutelyVerificationTimeseries =
+  (ch: Querier) => (args: VerificationTimeseriesParams) =>
+    batchVerificationTimeseries(ch, INTERVALS.fifteenMinutes, args);
 export const getThirtyMinutelyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.thirtyMinutes, args);
@@ -647,3 +655,6 @@ export const getWeeklyVerificationTimeseries =
 export const getMonthlyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.month, args);
+export const getQuarterlyVerificationTimeseries =
+  (ch: Querier) => (args: VerificationTimeseriesParams) =>
+    batchVerificationTimeseries(ch, INTERVALS.quarter, args);

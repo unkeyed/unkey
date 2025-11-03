@@ -98,7 +98,7 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
         {...rest}
         color="default"
       >
-        <Plus size="lg-regular" className="w-4 h-4 " />
+        <Plus iconSize="lg-regular" className="w-4 h-4 " />
         Invite Member
       </Button>
       <DialogContainer

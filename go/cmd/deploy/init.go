@@ -40,12 +40,6 @@ func handleInit(cmd *cli.Command, ui *UI) error {
 	// Interactive prompts for configuration
 	fmt.Printf("Please provide the following configuration details:\n\n")
 
-	fmt.Printf("Workspace ID: ")
-	workspaceID := readLine()
-	if workspaceID == "" {
-		return fmt.Errorf("workspace ID is required")
-	}
-
 	fmt.Printf("Project ID: ")
 	projectID := readLine()
 	if projectID == "" {
@@ -62,7 +56,7 @@ func handleInit(cmd *cli.Command, ui *UI) error {
 
 	// Create configuration with user input
 	ui.Print("Creating configuration file")
-	if err := createConfigWithValues(configDir, workspaceID, projectID, context); err != nil {
+	if err := createConfigWithValues(configDir, projectID, context); err != nil {
 		ui.PrintError("Failed to create config file")
 		return fmt.Errorf("failed to create config file: %w", err)
 	}
@@ -80,7 +74,7 @@ func printInitNextSteps() {
 	fmt.Printf("  unkey deploy\n")
 	fmt.Printf("\n")
 	fmt.Printf("Or override specific values:\n")
-	fmt.Printf("  unkey deploy --workspace-id=ws_different\n")
+	fmt.Printf("  unkey deploy --project-id=proj_different\n")
 	fmt.Printf("  unkey deploy --context=./other-app\n")
 }
 

@@ -50,7 +50,7 @@ export const LogsTableAction = ({
       {
         id: "logs",
         label: "Go to logs",
-        icon: <Layers3 size="md-regular" />,
+        icon: <Layers3 iconSize="md-medium" />,
         onClick: (e) => {
           e.stopPropagation();
           router.push(`/${workspace.slug}/ratelimits/${namespaceId}/logs?${getTimeParams()}`);
@@ -59,7 +59,7 @@ export const LogsTableAction = ({
       {
         id: "copy",
         label: "Copy identifier",
-        icon: <Clone size="md-regular" />,
+        icon: <Clone iconSize="md-medium" />,
         onClick: (e) => {
           e.stopPropagation();
           navigator.clipboard
@@ -78,7 +78,7 @@ export const LogsTableAction = ({
       {
         id: "override",
         label: overrideDetails ? "Update Override" : "Override Identifier",
-        icon: <PenWriting3 size="md-regular" className="text-orange-11" />,
+        icon: <PenWriting3 iconSize="md-medium" className="text-orange-11" />,
         className: "text-orange-11 hover:bg-orange-2 focus:bg-orange-3",
         ActionComponent: (props) => (
           <IdentifierDialog
@@ -94,7 +94,7 @@ export const LogsTableAction = ({
       {
         id: "delete",
         label: "Delete Override",
-        icon: <Trash size="md-regular" className="text-error-10" />,
+        icon: <Trash iconSize="md-medium" className="text-error-10" />,
         className: overrideDetails?.overrideId
           ? "text-error-10 hover:bg-error-3 focus:bg-error-3"
           : "text-error-10 cursor-not-allowed bg-error-3",

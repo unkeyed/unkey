@@ -40,7 +40,7 @@ export function createRoleOptions({
           <TooltipTrigger asChild>
             <div className="flex w-full text-accent-8 text-xs gap-4 py-0.5 items-center group flex-row">
               <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
-                <Tag size="sm-regular" className="text-grayA-11" />
+                <Tag iconSize="sm-regular" className="text-grayA-11" />
               </div>
               <div className="flex gap-1 flex-col truncate">
                 <div className="flex gap-2 items-center">
@@ -50,7 +50,7 @@ export function createRoleOptions({
                     <StatusBadge
                       variant="locked"
                       text="Already assigned"
-                      icon={<Lock size="sm-thin" />}
+                      icon={<Lock iconSize="sm-thin" />}
                     />
                   )}
                 </div>
@@ -109,7 +109,7 @@ export function createRoleOptions({
       <div className="flex w-full text-accent-8 text-xs gap-1.5 py-0.5 items-center">
         <div className="flex items-center justify-center gap-2">
           <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
-            <Tag size="sm-regular" className="text-grayA-11" />
+            <Tag iconSize="sm-regular" className="text-grayA-11" />
           </div>
           <span className="text-accent-12 font-medium text-xs w-[120px] truncate text-left">
             {role.name}

@@ -28,7 +28,7 @@ type Handler struct {
 	DB        db.Database
 	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
-	KeyCache  cache.Cache[string, db.FindKeyForVerificationRow]
+	KeyCache  cache.Cache[string, db.CachedKeyData]
 }
 
 // Method returns the HTTP method this route responds to

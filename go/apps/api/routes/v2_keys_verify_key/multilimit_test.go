@@ -39,7 +39,7 @@ func TestMultiLimit(t *testing.T) {
 		t.Run("returns valid with multiple limits", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Ratelimits: []seed.CreateRatelimitRequest{
 					{
 						Name:        "10/10s",
@@ -74,7 +74,7 @@ func TestMultiLimit(t *testing.T) {
 		t.Run("returns RATE_LIMITED when one limit exceeded", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Ratelimits: []seed.CreateRatelimitRequest{
 					{
 						Name:        "10/10s-test",
@@ -130,8 +130,8 @@ func TestMultiLimit(t *testing.T) {
 
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity),
+				KeySpaceID:  api.KeyAuthID.String,
+				IdentityID:  ptr.P(identity.ID),
 				Ratelimits: []seed.CreateRatelimitRequest{
 					{
 						Name:        "limit1",
@@ -180,8 +180,8 @@ func TestMultiLimit(t *testing.T) {
 
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity),
+				KeySpaceID:  api.KeyAuthID.String,
+				IdentityID:  ptr.P(identity.ID),
 				Ratelimits: []seed.CreateRatelimitRequest{
 					{
 						Name:        "limit1-reject",
@@ -235,8 +235,8 @@ func TestMultiLimit(t *testing.T) {
 
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity),
+				KeySpaceID:  api.KeyAuthID.String,
+				IdentityID:  ptr.P(identity.ID),
 				Ratelimits: []seed.CreateRatelimitRequest{
 					{
 						Name:        "limit1-fallback",
@@ -295,14 +295,14 @@ func TestMultiLimit(t *testing.T) {
 			// Create multiple keys with same identity
 			key1 := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity),
+				KeySpaceID:  api.KeyAuthID.String,
+				IdentityID:  ptr.P(identity.ID),
 			})
 
 			key2 := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity),
+				KeySpaceID:  api.KeyAuthID.String,
+				IdentityID:  ptr.P(identity.ID),
 			})
 
 			// Use up some quota with key1
@@ -354,7 +354,7 @@ func TestMultiLimit(t *testing.T) {
 		t.Run("should use auto-applied default limit", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Ratelimits: []seed.CreateRatelimitRequest{
 					{
 						Name:        "default-auto",
@@ -410,8 +410,8 @@ func TestMultiLimit(t *testing.T) {
 
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity),
+				KeySpaceID:  api.KeyAuthID.String,
+				IdentityID:  ptr.P(identity.ID),
 			})
 
 			// First request with cost 4 should pass

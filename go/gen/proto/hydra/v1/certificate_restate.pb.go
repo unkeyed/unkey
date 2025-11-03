@@ -9,6 +9,8 @@ package hydrav1
 import (
 	fmt "fmt"
 	sdk_go "github.com/restatedev/sdk-go"
+	encoding "github.com/restatedev/sdk-go/encoding"
+	ingress "github.com/restatedev/sdk-go/ingress"
 )
 
 // CertificateServiceClient is the client API for hydra.v1.CertificateService service.
@@ -40,6 +42,34 @@ func (c *certificateServiceClient) ProcessChallenge(opts ...sdk_go.ClientOption)
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
 	return sdk_go.WithRequestType[*ProcessChallengeRequest](sdk_go.Object[*ProcessChallengeResponse](c.ctx, "hydra.v1.CertificateService", c.key, "ProcessChallenge", cOpts...))
+}
+
+// CertificateServiceIngressClient is the ingress client API for hydra.v1.CertificateService service.
+//
+// This client is used to call the service from outside of a Restate context.
+type CertificateServiceIngressClient interface {
+	// ProcessChallenge handles the complete ACME certificate challenge flow
+	// Key: domain name (ensures only one challenge per domain at a time)
+	ProcessChallenge() ingress.Requester[*ProcessChallengeRequest, *ProcessChallengeResponse]
+}
+
+type certificateServiceIngressClient struct {
+	client      *ingress.Client
+	serviceName string
+	key         string
+}
+
+func NewCertificateServiceIngressClient(client *ingress.Client, key string) CertificateServiceIngressClient {
+	return &certificateServiceIngressClient{
+		client,
+		"hydra.v1.CertificateService",
+		key,
+	}
+}
+
+func (c *certificateServiceIngressClient) ProcessChallenge() ingress.Requester[*ProcessChallengeRequest, *ProcessChallengeResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*ProcessChallengeRequest, *ProcessChallengeResponse](c.client, c.serviceName, "ProcessChallenge", &c.key, &codec)
 }
 
 // CertificateServiceServer is the server API for hydra.v1.CertificateService service.

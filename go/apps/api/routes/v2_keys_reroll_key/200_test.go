@@ -44,7 +44,7 @@ func TestRerollKeySuccess(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 
-	identityID := h.CreateIdentity(seed.CreateIdentityRequest{
+	identity := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
 		ExternalID:  "test_123",
 		Meta:        []byte(`{"name": "Test User"}`),
@@ -71,9 +71,9 @@ func TestRerollKeySuccess(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:  workspace.ID,
 			Disabled:     false,
-			KeyAuthID:    api.KeyAuthID.String,
+			KeySpaceID:   api.KeyAuthID.String,
 			Remaining:    ptr.P(int32(16)),
-			IdentityID:   ptr.P(identityID),
+			IdentityID:   ptr.P(identity.ID),
 			Meta:         nil,
 			Expires:      nil,
 			Name:         ptr.P("Test-Key"),
@@ -223,7 +223,7 @@ func TestRerollKeySuccess(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			Disabled:    false,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 		}) // nolint:exhaustruct
 
 		req := handler.Request{
