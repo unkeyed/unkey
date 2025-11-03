@@ -94,6 +94,9 @@ func TestAPI_ConsumesInvalidationEvents(t *testing.T) {
 	require.NoError(t, err, "Should be able to create topic")
 	defer topic.Close()
 
+	// Wait for topic metadata to propagate across Kafka cluster
+	time.Sleep(1 * time.Second)
+
 	producer := topic.NewProducer()
 
 	// Send invalidation event for the API

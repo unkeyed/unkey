@@ -61,8 +61,8 @@ func TestAPI_ProducesInvalidationEvents(t *testing.T) {
 		return nil
 	})
 
-	// Wait for consumer to be ready and positioned at latest offset
-	time.Sleep(5 * time.Second)
+	// Wait briefly for consumer to be ready and positioned at latest offset
+	time.Sleep(1 * time.Second)
 
 	// Now start API node AFTER consumer is ready at latest offset
 	h := integration.New(t, integration.Config{NumNodes: 1})
