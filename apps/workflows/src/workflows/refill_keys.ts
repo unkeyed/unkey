@@ -34,20 +34,24 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
       // Build the refill conditions
       const baseConditions = [
         isNotNull(schema.credits.refillAmount),
-        isNotNull(schema.credits.remaining),
         gt(schema.credits.refillAmount, schema.credits.remaining),
       ];
 
       if (today === lastDayOfMonth) {
         // On last day of month: refill daily (null) OR refillDay >= today (catches impossible days like 31, 32, etc.)
-        baseConditions.push(
-          or(isNull(schema.credits.refillDay), gte(schema.credits.refillDay, today)),
+        const condition = or(
+          isNull(schema.credits.refillDay),
+          gte(schema.credits.refillDay, today),
         );
+        if (condition) {
+          baseConditions.push(condition);
+        }
       } else {
         // Regular day: refill daily (null) OR refillDay === today
-        baseConditions.push(
-          or(isNull(schema.credits.refillDay), eq(schema.credits.refillDay, today)),
-        );
+        const condition = or(isNull(schema.credits.refillDay), eq(schema.credits.refillDay, today));
+        if (condition) {
+          baseConditions.push(condition);
+        }
       }
 
       const refillConditions = and(...baseConditions);
@@ -109,10 +113,16 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
 
       if (today === lastDayOfMonth) {
         // On last day of month: refill daily (null) OR refillDay >= today (catches impossible days like 31, 32, etc.)
-        baseConditions.push(or(isNull(schema.keys.refillDay), gte(schema.keys.refillDay, today)));
+        const condition = or(isNull(schema.keys.refillDay), gte(schema.keys.refillDay, today));
+        if (condition) {
+          baseConditions.push(condition);
+        }
       } else {
         // Regular day: refill daily (null) OR refillDay === today
-        baseConditions.push(or(isNull(schema.keys.refillDay), eq(schema.keys.refillDay, today)));
+        const condition = or(isNull(schema.keys.refillDay), eq(schema.keys.refillDay, today));
+        if (condition) {
+          baseConditions.push(condition);
+        }
       }
 
       const refillConditions = and(...baseConditions);
