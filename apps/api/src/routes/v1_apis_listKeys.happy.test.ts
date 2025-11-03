@@ -560,4 +560,6 @@ test("prefers new credits table over legacy remaining field", async (t) => {
   expect(foundKey!.remaining).toBe(2000);
   expect(foundKey!.refill).toBeDefined();
   expect(foundKey!.refill!.amount).toBe(1000);
+  expect(foundKey!.refill!.interval).toBe("daily");
+  expect(foundKey!.refill!.lastRefillAt).toBeDefined();
 });

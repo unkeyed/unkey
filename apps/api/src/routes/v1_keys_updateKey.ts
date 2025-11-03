@@ -386,6 +386,7 @@ export const registerV1KeysUpdate = (app: App) =>
     }
 
     let creditDeleted = false;
+    let creditCreatedId: string | undefined = undefined;
 
     if (typeof req.remaining !== "undefined") {
       // Key has new credit system.
@@ -401,8 +402,10 @@ export const registerV1KeysUpdate = (app: App) =>
         changes.remaining = req.remaining;
       } else {
         // Key doesn't have old system so we use new system from the getgo
+        const newCreditId = newId("credit");
+        creditCreatedId = newCreditId;
         await db.primary.insert(schema.credits).values({
-          id: newId("credit"),
+          id: newCreditId,
           keyId: key.id,
           workspaceId: auth.authorizedWorkspaceId,
           createdAt: Date.now(),
@@ -529,15 +532,20 @@ export const registerV1KeysUpdate = (app: App) =>
     });
 
     // Revalidate usage limiter with appropriate ID based on which credit system is in use
-    const keyAfterUpdate = await db.readonly.query.keys.findFirst({
-      where: (table, { eq }) => eq(table.id, key.id),
-      with: {
-        credits: true,
-      },
-    });
+    // Determine credit state from in-memory tracking to avoid stale reads from db.readonly
+    let creditIdForRevalidation: string | undefined;
+    if (creditCreatedId) {
+      // A new credit was created
+      creditIdForRevalidation = creditCreatedId;
+    } else if (hasNewCredits && !creditDeleted) {
+      // Credit existed and wasn't deleted
+      creditIdForRevalidation = key.credits.id;
+    }
+    // else: credit was deleted or never existed, use keyId
+
     c.executionCtx.waitUntil(
       usageLimiter.revalidate(
-        keyAfterUpdate?.credits ? { creditId: keyAfterUpdate.credits.id } : { keyId: key.id },
+        creditIdForRevalidation ? { creditId: creditIdForRevalidation } : { keyId: key.id },
       ),
     );
     c.executionCtx.waitUntil(cache.keyByHash.remove(key.hash));

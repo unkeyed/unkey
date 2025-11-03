@@ -5,7 +5,6 @@ import {
   and,
   createConnection,
   eq,
-  gt,
   schema,
   sql,
 } from "@/pkg/db";
@@ -103,20 +102,22 @@ export class DurableObjectUsagelimiter implements DurableObject {
             });
           }
 
-          this.credit.remaining = Math.max(0, currentRemaining - req.cost);
+          if (req.cost !== 0) {
+            this.credit.remaining = Math.max(0, currentRemaining - req.cost);
 
-          this.state.waitUntil(
-            this.db
-              .update(schema.credits)
-              .set({ remaining: sql`${schema.credits.remaining}-${req.cost}` })
-              .where(
-                and(
-                  eq(schema.credits.id, this.credit.id),
-                  gt(schema.credits.remaining, 0), // prevent negative remaining
-                ),
-              )
-              .execute(),
-          );
+            this.state.waitUntil(
+              this.db
+                .update(schema.credits)
+                .set({ remaining: sql`${schema.credits.remaining}-${req.cost}` })
+                .where(
+                  and(
+                    eq(schema.credits.id, this.credit.id),
+                    sql`${schema.credits.remaining} >= ${req.cost}`, // ensure sufficient credits
+                  ),
+                )
+                .execute(),
+            );
+          }
 
           // revalidate every minute
           if (Date.now() - this.lastRevalidate > 60_000) {
@@ -184,20 +185,22 @@ export class DurableObjectUsagelimiter implements DurableObject {
           });
         }
 
-        this.key.remaining = Math.max(0, currentRemaining - req.cost);
+        if (req.cost !== 0) {
+          this.key.remaining = Math.max(0, currentRemaining - req.cost);
 
-        this.state.waitUntil(
-          this.db
-            .update(schema.keys)
-            .set({ remaining: sql`${schema.keys.remaining}-${req.cost}` })
-            .where(
-              and(
-                eq(schema.keys.id, this.key.id),
-                gt(schema.keys.remaining, 0), // prevent negative remaining
-              ),
-            )
-            .execute(),
-        );
+          this.state.waitUntil(
+            this.db
+              .update(schema.keys)
+              .set({ remaining: sql`${schema.keys.remaining}-${req.cost}` })
+              .where(
+                and(
+                  eq(schema.keys.id, this.key.id),
+                  sql`${schema.keys.remaining} >= ${req.cost}`, // ensure sufficient credits
+                ),
+              )
+              .execute(),
+          );
+        }
 
         // revalidate every minute
         if (Date.now() - this.lastRevalidate > 60_000) {

@@ -180,14 +180,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
         break;
       }
       case "set": {
-        if (hasOldCredits) {
-          await db.primary
-            .update(schema.keys)
-            .set({
-              remaining: req.value,
-            })
-            .where(eq(schema.keys.id, req.keyId));
-        } else if (hasNewCredits) {
+        if (hasNewCredits) {
           if (req.value === null) {
             await db.primary.delete(schema.credits).where(eq(schema.credits.id, key.credits.id));
           } else {
@@ -198,6 +191,13 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
               })
               .where(eq(schema.credits.id, key.credits.id));
           }
+        } else if (hasOldCredits) {
+          await db.primary
+            .update(schema.keys)
+            .set({
+              remaining: req.value,
+            })
+            .where(eq(schema.keys.id, req.keyId));
         } else if (req.value !== null) {
           await db.primary.insert(schema.credits).values({
             id: newId("credit"),
