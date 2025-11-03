@@ -106,6 +106,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	// Format ratelimits for the response
 	responseRatelimits := make([]openapi.RatelimitResponse, 0, len(ratelimits))
 	for _, r := range ratelimits {
 		responseRatelimits = append(responseRatelimits, openapi.RatelimitResponse{

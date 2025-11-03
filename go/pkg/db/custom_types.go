@@ -57,9 +57,14 @@ func UnmarshalNullableJSONTo[T any](data any) (T, error) {
 		return zero, nil
 	}
 
-	bytes, ok := data.([]byte)
-	if !ok {
-		return zero, fmt.Errorf("type assertion failed during unmarshal: expected []byte, got %T", data)
+	var bytes []byte
+	switch v := data.(type) {
+	case []byte:
+		bytes = v
+	case string:
+		bytes = []byte(v)
+	default:
+		return zero, fmt.Errorf("type assertion failed during unmarshal: expected []byte or string, got %T", data)
 	}
 
 	if len(bytes) == 0 {
