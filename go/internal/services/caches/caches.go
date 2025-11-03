@@ -38,6 +38,7 @@ type Caches struct {
 
 // Close shuts down the caches and cleans up resources.
 func (c *Caches) Close() error {
+	// Close the dispatcher to stop consuming invalidation events
 	if c.dispatcher != nil {
 		return c.dispatcher.Close()
 	}

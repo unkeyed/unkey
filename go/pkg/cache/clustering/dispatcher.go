@@ -28,29 +28,6 @@ type InvalidationDispatcher struct {
 	handlers map[string]InvalidationHandler // keyed by cache name
 	consumer eventstream.Consumer[*cachev1.CacheInvalidationEvent]
 	logger   logging.Logger
-	ctx      context.Context
-	cancel   context.CancelFunc
-}
-
-// noopDispatcher is a no-op implementation that does nothing.
-// Used when clustering is disabled.
-type noopDispatcher struct{}
-
-func (n *noopDispatcher) Register(handler InvalidationHandler) {}
-func (n *noopDispatcher) Close() error                         { return nil }
-func (n *noopDispatcher) handleEvent(ctx context.Context, event *cachev1.CacheInvalidationEvent) error {
-	return nil
-}
-
-// NewNoopDispatcher creates a dispatcher that does nothing.
-// Use this when clustering is disabled.
-func NewNoopDispatcher() *InvalidationDispatcher {
-	return &InvalidationDispatcher{
-		handlers: make(map[string]InvalidationHandler),
-		logger:   logging.NewNoop(),
-		ctx:      context.Background(),
-		cancel:   func() {},
-	}
 }
 
 // NewInvalidationDispatcher creates a new dispatcher that routes invalidation
@@ -66,17 +43,13 @@ func NewInvalidationDispatcher(topic *eventstream.Topic[*cachev1.CacheInvalidati
 		return nil, err
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-
 	d := &InvalidationDispatcher{
 		handlers: make(map[string]InvalidationHandler),
 		logger:   logger,
-		ctx:      ctx,
-		cancel:   cancel,
 	}
 
 	d.consumer = topic.NewConsumer()
-	d.consumer.Consume(ctx, d.handleEvent)
+	d.consumer.Consume(context.Background(), d.handleEvent)
 
 	return d, nil
 }
@@ -107,11 +80,8 @@ func (d *InvalidationDispatcher) Register(handler InvalidationHandler) {
 
 // Close stops the dispatcher and cleans up resources.
 func (d *InvalidationDispatcher) Close() error {
-	d.cancel()
-
 	if d.consumer != nil {
 		return d.consumer.Close()
 	}
-
 	return nil
 }
