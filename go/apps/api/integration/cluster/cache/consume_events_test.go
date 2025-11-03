@@ -88,7 +88,7 @@ func TestAPI_ConsumesInvalidationEvents(t *testing.T) {
 	})
 
 	// Ensure topic exists before producing
-	err = topic.EnsureExists(1)
+	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err, "Should be able to create topic")
 	defer topic.Close()
 

@@ -35,7 +35,7 @@ func TestEventStreamIntegration(t *testing.T) {
 	topic := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](config)
 
 	// Ensure topic exists
-	err := topic.EnsureExists(1)
+	err := topic.EnsureExists(1, 1)
 	require.NoError(t, err, "Failed to create test topic")
 	defer topic.Close()
 
@@ -106,7 +106,7 @@ func TestEventStreamMultipleMessages(t *testing.T) {
 
 	topic := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](config)
 
-	err := topic.EnsureExists(1)
+	err := topic.EnsureExists(1, 1)
 	require.NoError(t, err)
 	defer topic.Close()
 

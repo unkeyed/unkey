@@ -85,6 +85,10 @@ var Cmd = &cli.Command{
 		// Request Body Configuration
 		cli.Int64("max-request-body-size", "Maximum allowed request body size in bytes. Set to 0 or negative to disable limit. Default: 10485760 (10MB)",
 			cli.Default(int64(10485760)), cli.EnvVar("UNKEY_MAX_REQUEST_BODY_SIZE")),
+
+		// Debug Configuration
+		cli.Bool("debug-cache-headers", "Enable cache debug headers (X-Unkey-Debug-Cache) in HTTP responses for debugging cache behavior",
+			cli.Default(false), cli.EnvVar("UNKEY_DEBUG_CACHE_HEADERS")),
 	},
 
 	Action: action,
@@ -160,6 +164,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Request body configuration
 		MaxRequestBodySize: cmd.Int64("max-request-body-size"),
+
+		// Debug configuration
+		DebugCacheHeaders: cmd.Bool("debug-cache-headers"),
 	}
 
 	err := config.Validate()

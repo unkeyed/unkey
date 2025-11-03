@@ -21,6 +21,10 @@ func TestRecordCacheHitWithoutSession(t *testing.T) {
 }
 
 func TestRecordCacheHitWithSession(t *testing.T) {
+	// Enable cache headers for this test
+	EnableCacheHeaders()
+	defer DisableCacheHeaders()
+
 	tests := []struct {
 		name      string
 		cacheName string
@@ -102,6 +106,10 @@ func TestRecordCacheHitWithSession(t *testing.T) {
 }
 
 func TestRecordCacheHitMultipleOperations(t *testing.T) {
+	// Enable cache headers for this test
+	EnableCacheHeaders()
+	defer DisableCacheHeaders()
+
 	// Test that multiple cache operations result in multiple headers
 	req := httptest.NewRequest(http.MethodPost, "/test", nil)
 	recorder := httptest.NewRecorder()
@@ -130,6 +138,10 @@ func TestRecordCacheHitMultipleOperations(t *testing.T) {
 }
 
 func TestRecordCacheHitSessionRetrieval(t *testing.T) {
+	// Enable cache headers for this test
+	EnableCacheHeaders()
+	defer DisableCacheHeaders()
+
 	// Test that the context session retrieval works correctly
 	req := httptest.NewRequest(http.MethodPost, "/test", nil)
 	recorder := httptest.NewRecorder()
@@ -226,6 +238,10 @@ func TestFormatDuration(t *testing.T) {
 }
 
 func TestCacheHeaderName(t *testing.T) {
+	// Enable cache headers for this test
+	EnableCacheHeaders()
+	defer DisableCacheHeaders()
+
 	// Test that the correct header name is used
 	req := httptest.NewRequest(http.MethodPost, "/test", nil)
 	recorder := httptest.NewRecorder()

@@ -3,10 +3,43 @@ package debug
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
+
+// cacheHeadersEnabled controls whether cache debug headers are written to HTTP responses.
+// Use EnableCacheHeaders() and DisableCacheHeaders() to modify this value safely.
+var cacheHeadersEnabled atomic.Bool
+
+// EnableCacheHeaders enables writing cache debug headers (X-Unkey-Debug-Cache) to HTTP responses.
+// When enabled, cache operations will add headers showing cache hit/miss status and latency.
+//
+// This should typically be called once during application startup based on configuration:
+//
+//	if config.DebugCacheHeaders {
+//	    debug.EnableCacheHeaders()
+//	}
+//
+// Thread-safe and can be called from multiple goroutines.
+func EnableCacheHeaders() {
+	cacheHeadersEnabled.Store(true)
+}
+
+// DisableCacheHeaders disables writing cache debug headers to HTTP responses.
+// This is the default state - headers are disabled unless explicitly enabled.
+//
+// Thread-safe and can be called from multiple goroutines.
+func DisableCacheHeaders() {
+	cacheHeadersEnabled.Store(false)
+}
+
+// CacheHeadersEnabled returns whether cache debug headers are currently enabled.
+// This can be used to check the current state without modifying it.
+func CacheHeadersEnabled() bool {
+	return cacheHeadersEnabled.Load()
+}
 
 // RecordCacheHit records a cache operation result and immediately writes it as
 // an HTTP response header for debugging and observability purposes.
@@ -78,10 +111,15 @@ import (
 // and caching behavior. This functionality should typically only be enabled
 // in development environments or for specific debugging scenarios in production.
 func RecordCacheHit(ctx context.Context, cacheName, status string, latency time.Duration) {
+	// Fast path: check if cache headers are enabled globally
+	if !cacheHeadersEnabled.Load() {
+		return
+	}
+
 	// Try to get a session from context
 	session, ok := zen.SessionFromContext(ctx)
 	if !ok {
-		// No session in context, cache debug not enabled
+		// No session in context, can't write headers
 		return
 	}
 

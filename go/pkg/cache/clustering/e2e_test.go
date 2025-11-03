@@ -32,7 +32,7 @@ func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 		Logger:     logging.NewNoop(),
 	})
 
-	err := topic.EnsureExists(1)
+	err := topic.EnsureExists(1, 1)
 	require.NoError(t, err)
 	defer topic.Close()
 
