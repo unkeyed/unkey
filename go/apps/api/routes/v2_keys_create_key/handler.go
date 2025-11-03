@@ -106,12 +106,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	keyAuth, err := db.Query.FindKeyringByID(ctx, h.DB.RO(), api.KeyAuthID.String)
+	keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("api not set up for keys",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("api not set up for keys, keyauth not found"), fault.Public("The requested API is not set up to handle keys."),
+				fault.Internal("api not set up for keys, keyspace not found"), fault.Public("The requested API is not set up to handle keys."),
 			)
 		}
 
@@ -157,7 +157,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
-		if !keyAuth.StoreEncryptedKeys {
+		if !keySpace.StoreEncryptedKeys {
 			return fault.New("api not set up for key encryption",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.Internal("api not set up for key encryption"), fault.Public("This API does not support key encryption."),
@@ -178,418 +178,442 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	now := time.Now().UnixMilli()
 
-	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		insertKeyParams := db.InsertKeyParams{
-			ID:                keyID,
-			KeyringID:         api.KeyAuthID.String,
-			Hash:              keyResult.Hash,
-			Start:             keyResult.Start,
-			WorkspaceID:       auth.AuthorizedWorkspaceID,
-			ForWorkspaceID:    sql.NullString{String: "", Valid: false},
-			CreatedAtM:        now,
-			Enabled:           true,
-			RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
-			RefillDay:         sql.NullInt16{Int16: 0, Valid: false},
-			RefillAmount:      sql.NullInt32{Int32: 0, Valid: false},
-			Name:              sql.NullString{String: "", Valid: false},
-			IdentityID:        sql.NullString{String: "", Valid: false},
-			Meta:              sql.NullString{String: "", Valid: false},
-			Expires:           sql.NullTime{Time: time.Time{}, Valid: false},
-		}
+	// Retry transaction up to 2 times on deadlock or identity creation race
+	var txErr error
+	for attempt := range 3 {
+		txErr = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+			insertKeyParams := db.InsertKeyParams{
+				ID:                keyID,
+				KeySpaceID:        api.KeyAuthID.String,
+				Hash:              keyResult.Hash,
+				Start:             keyResult.Start,
+				WorkspaceID:       auth.AuthorizedWorkspaceID,
+				ForWorkspaceID:    sql.NullString{String: "", Valid: false},
+				CreatedAtM:        now,
+				Enabled:           true,
+				RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
+				RefillDay:         sql.NullInt16{Int16: 0, Valid: false},
+				RefillAmount:      sql.NullInt32{Int32: 0, Valid: false},
+				Name:              sql.NullString{String: "", Valid: false},
+				IdentityID:        sql.NullString{String: "", Valid: false},
+				Meta:              sql.NullString{String: "", Valid: false},
+				Expires:           sql.NullTime{Time: time.Time{}, Valid: false},
+			}
 
-		// Set optional fields
-		if req.Name != nil {
-			insertKeyParams.Name = sql.NullString{String: *req.Name, Valid: true}
-		}
+			// Set optional fields
+			if req.Name != nil {
+				insertKeyParams.Name = sql.NullString{String: *req.Name, Valid: true}
+			}
 
-		// Handle identity creation/lookup from externalId
-		if req.ExternalId != nil {
-			externalID := *req.ExternalId
+			// Handle identity creation/lookup from externalId
+			if req.ExternalId != nil {
+				externalID := *req.ExternalId
 
-			// Try to find existing identity
-			identity, err := db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Identity:    externalID,
-				Deleted:     false,
-			})
-
-			if err != nil {
-				if !db.IsNotFound(err) {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("failed to find identity"),
-						fault.Public("Failed to find identity."),
-					)
-				}
-
-				// Create new identity
-				identityID := uid.New(uid.IdentityPrefix)
-				err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
-					ID:          identityID,
-					ExternalID:  externalID,
+				// Try to find existing identity
+				identity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Environment: "default",
-					CreatedAt:   now,
-					Meta:        []byte("{}"),
+					ExternalID:  externalID,
+					Deleted:     false,
 				})
+
 				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("failed to create identity"),
-						fault.Public("Failed to create identity."),
-					)
-				}
-				insertKeyParams.IdentityID = sql.NullString{Valid: true, String: identityID}
-			} else {
-				// Use existing identity
-				insertKeyParams.IdentityID = sql.NullString{Valid: true, String: identity.ID}
-			}
-		}
-
-		// Note: owner_id is set to null in the SQL query, so we skip setting it here
-		if req.Meta != nil {
-			metaBytes, marshalErr := json.Marshal(*req.Meta)
-			if marshalErr != nil {
-				return fault.Wrap(marshalErr,
-					fault.Code(codes.App.Validation.InvalidInput.URN()),
-					fault.Internal("failed to marshal meta"), fault.Public("Invalid metadata format."),
-				)
-			}
-
-			insertKeyParams.Meta = sql.NullString{String: string(metaBytes), Valid: true}
-		}
-
-		if req.Expires != nil {
-			insertKeyParams.Expires = sql.NullTime{Time: time.UnixMilli(*req.Expires), Valid: true}
-		}
-
-		if req.Credits != nil {
-			if req.Credits.Remaining.IsSpecified() {
-				insertKeyParams.RemainingRequests = sql.NullInt32{
-					Int32: int32(req.Credits.Remaining.MustGet()), // nolint:gosec
-					Valid: true,
-				}
-			}
-
-			if req.Credits.Refill != nil {
-				insertKeyParams.RefillAmount = sql.NullInt32{
-					Int32: int32(req.Credits.Refill.Amount), // nolint:gosec
-					Valid: true,
-				}
-
-				if req.Credits.Refill.Interval == openapi.KeyCreditsRefillIntervalMonthly {
-					if req.Credits.Refill.RefillDay == nil {
-						return fault.New("missing refillDay",
-							fault.Code(codes.App.Validation.InvalidInput.URN()),
-							fault.Internal("refillDay required for monthly interval"),
-							fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
+					if !db.IsNotFound(err) {
+						return fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("failed to find identity"),
+							fault.Public("Failed to find identity."),
 						)
 					}
 
-					insertKeyParams.RefillDay = sql.NullInt16{
-						Int16: int16(*req.Credits.Refill.RefillDay), // nolint:gosec
+					// Create new identity
+					identityID := uid.New(uid.IdentityPrefix)
+					err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
+						ID:          identityID,
+						ExternalID:  externalID,
+						WorkspaceID: auth.AuthorizedWorkspaceID,
+						Environment: "default",
+						CreatedAt:   now,
+						Meta:        []byte("{}"),
+					})
+					if err != nil {
+						// Don't wrap duplicate key or deadlock errors - let retry loop handle them
+						if db.IsDuplicateKeyError(err) || db.IsDeadlockError(err) {
+							return err
+						}
+						return fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("failed to create identity"),
+							fault.Public("Failed to create identity."),
+						)
+					}
+
+					insertKeyParams.IdentityID = sql.NullString{Valid: true, String: identityID}
+				} else {
+					// Use existing identity
+					insertKeyParams.IdentityID = sql.NullString{Valid: true, String: identity.ID}
+				}
+			}
+
+			if req.Meta != nil {
+				metaBytes, marshalErr := json.Marshal(*req.Meta)
+				if marshalErr != nil {
+					return fault.Wrap(marshalErr,
+						fault.Code(codes.App.Validation.InvalidInput.URN()),
+						fault.Internal("failed to marshal meta"), fault.Public("Invalid metadata format."),
+					)
+				}
+
+				insertKeyParams.Meta = sql.NullString{String: string(metaBytes), Valid: true}
+			}
+
+			if req.Expires != nil {
+				insertKeyParams.Expires = sql.NullTime{Time: time.UnixMilli(*req.Expires), Valid: true}
+			}
+
+			if req.Credits != nil {
+				if req.Credits.Remaining.IsSpecified() {
+					insertKeyParams.RemainingRequests = sql.NullInt32{
+						Int32: int32(req.Credits.Remaining.MustGet()), // nolint:gosec
 						Valid: true,
 					}
 				}
-			}
-		}
 
-		// Set enabled status (default true)
-		if req.Enabled != nil {
-			insertKeyParams.Enabled = *req.Enabled
-		}
+				if req.Credits.Refill != nil {
+					insertKeyParams.RefillAmount = sql.NullInt32{
+						Int32: int32(req.Credits.Refill.Amount), // nolint:gosec
+						Valid: true,
+					}
 
-		err = db.Query.InsertKey(ctx, tx, insertKeyParams)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"), fault.Public("Failed to create key."),
-			)
-		}
+					if req.Credits.Refill.Interval == openapi.KeyCreditsRefillIntervalMonthly {
+						if req.Credits.Refill.RefillDay == nil {
+							return fault.New("missing refillDay",
+								fault.Code(codes.App.Validation.InvalidInput.URN()),
+								fault.Internal("refillDay required for monthly interval"),
+								fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
+							)
+						}
 
-		if encryption != nil {
-			err = db.Query.InsertKeyEncryption(ctx, tx, db.InsertKeyEncryptionParams{
-				WorkspaceID:     auth.AuthorizedWorkspaceID,
-				KeyID:           keyID,
-				CreatedAt:       now,
-				Encrypted:       encryption.GetEncrypted(),
-				EncryptionKeyID: encryption.GetKeyId(),
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to create key encryption."),
-				)
-			}
-		}
-
-		if req.Ratelimits != nil && len(*req.Ratelimits) > 0 {
-			ratelimitsToInsert := make([]db.InsertKeyRatelimitParams, len(*req.Ratelimits))
-			for i, ratelimit := range *req.Ratelimits {
-				ratelimitID := uid.New(uid.RatelimitPrefix)
-				ratelimitsToInsert[i] = db.InsertKeyRatelimitParams{
-					ID:          ratelimitID,
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					KeyID:       sql.NullString{String: keyID, Valid: true},
-					Name:        ratelimit.Name,
-					Limit:       int32(ratelimit.Limit), // nolint:gosec
-					Duration:    ratelimit.Duration,
-					CreatedAt:   now,
-					AutoApply:   ratelimit.AutoApply,
+						insertKeyParams.RefillDay = sql.NullInt16{
+							Int16: int16(*req.Credits.Refill.RefillDay), // nolint:gosec
+							Valid: true,
+						}
+					}
 				}
 			}
 
-			err = db.BulkQuery.InsertKeyRatelimits(ctx, tx, ratelimitsToInsert)
+			// Set enabled status (default true)
+			if req.Enabled != nil {
+				insertKeyParams.Enabled = *req.Enabled
+			}
+
+			err = db.Query.InsertKey(ctx, tx, insertKeyParams)
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"), fault.Public("Failed to create rate limit."),
+					fault.Internal("database error"), fault.Public("Failed to create key."),
 				)
 			}
-		}
 
-		// 11. Handle permissions if provided - with auto-creation
-		var auditLogs []auditlog.AuditLog
-		if req.Permissions != nil {
-			existingPermissions, err := db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
+			if encryption != nil {
+				err = db.Query.InsertKeyEncryption(ctx, tx, db.InsertKeyEncryptionParams{
+					WorkspaceID:     auth.AuthorizedWorkspaceID,
+					KeyID:           keyID,
+					CreatedAt:       now,
+					Encrypted:       encryption.GetEncrypted(),
+					EncryptionKeyID: encryption.GetKeyId(),
+				})
+				if err != nil {
+					return fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"), fault.Public("Failed to create key encryption."),
+					)
+				}
+			}
+
+			if req.Ratelimits != nil && len(*req.Ratelimits) > 0 {
+				ratelimitsToInsert := make([]db.InsertKeyRatelimitParams, len(*req.Ratelimits))
+				for i, ratelimit := range *req.Ratelimits {
+					ratelimitID := uid.New(uid.RatelimitPrefix)
+					ratelimitsToInsert[i] = db.InsertKeyRatelimitParams{
+						ID:          ratelimitID,
+						WorkspaceID: auth.AuthorizedWorkspaceID,
+						KeyID:       sql.NullString{String: keyID, Valid: true},
+						Name:        ratelimit.Name,
+						Limit:       int32(ratelimit.Limit), // nolint:gosec
+						Duration:    ratelimit.Duration,
+						CreatedAt:   now,
+						AutoApply:   ratelimit.AutoApply,
+					}
+				}
+
+				err = db.BulkQuery.InsertKeyRatelimits(ctx, tx, ratelimitsToInsert)
+				if err != nil {
+					return fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"), fault.Public("Failed to create rate limit."),
+					)
+				}
+			}
+
+			var auditLogs []auditlog.AuditLog
+			if req.Permissions != nil {
+				existingPermissions, err := db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Slugs:       *req.Permissions,
+				})
+				if err != nil {
+					return fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"),
+						fault.Public("Failed to retrieve permissions."),
+					)
+				}
+
+				existingPermMap := make(map[string]db.Permission)
+				for _, p := range existingPermissions {
+					existingPermMap[p.Slug] = p
+				}
+
+				permissionsToCreate := []db.InsertPermissionParams{}
+				requestedPermissions := []db.Permission{}
+
+				for _, requestedSlug := range *req.Permissions {
+					existingPerm, exists := existingPermMap[requestedSlug]
+					if exists {
+						requestedPermissions = append(requestedPermissions, existingPerm)
+						continue
+					}
+
+					newPermID := uid.New(uid.PermissionPrefix)
+					permissionsToCreate = append(permissionsToCreate, db.InsertPermissionParams{
+						PermissionID: newPermID,
+						WorkspaceID:  auth.AuthorizedWorkspaceID,
+						Name:         requestedSlug,
+						Slug:         requestedSlug,
+						Description:  dbtype.NullString{String: "", Valid: false},
+						CreatedAtM:   now,
+					})
+
+					requestedPermissions = append(requestedPermissions, db.Permission{
+						ID:          newPermID,
+						Name:        requestedSlug,
+						Slug:        requestedSlug,
+						CreatedAtM:  now,
+						WorkspaceID: auth.AuthorizedWorkspaceID,
+						Description: dbtype.NullString{String: "", Valid: false},
+						UpdatedAtM:  sql.NullInt64{Int64: 0, Valid: false},
+					})
+				}
+
+				if len(permissionsToCreate) > 0 {
+					err = db.BulkQuery.InsertPermissions(ctx, tx, permissionsToCreate)
+					if err != nil {
+						return fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("database error"),
+							fault.Public("Failed to create permissions."),
+						)
+					}
+				}
+
+				permissionsToInsert := []db.InsertKeyPermissionParams{}
+				for _, reqPerm := range requestedPermissions {
+					permissionsToInsert = append(permissionsToInsert, db.InsertKeyPermissionParams{
+						KeyID:        keyID,
+						PermissionID: reqPerm.ID,
+						WorkspaceID:  auth.AuthorizedWorkspaceID,
+						CreatedAt:    now,
+						UpdatedAt:    sql.NullInt64{Valid: false, Int64: 0},
+					})
+
+					auditLogs = append(auditLogs, auditlog.AuditLog{
+						WorkspaceID: auth.AuthorizedWorkspaceID,
+						Event:       auditlog.AuthConnectPermissionKeyEvent,
+						ActorType:   auditlog.RootKeyActor,
+						ActorID:     auth.Key.ID,
+						ActorName:   "root key",
+						ActorMeta:   map[string]any{},
+						Display:     fmt.Sprintf("Added permission %s to key %s", reqPerm.Slug, keyID),
+						RemoteIP:    s.Location(),
+						UserAgent:   s.UserAgent(),
+						Resources: []auditlog.AuditLogResource{
+							{
+								Type:        auditlog.KeyResourceType,
+								ID:          keyID,
+								Name:        insertKeyParams.Name.String,
+								DisplayName: insertKeyParams.Name.String,
+								Meta:        map[string]any{},
+							},
+							{
+								Type:        auditlog.PermissionResourceType,
+								ID:          reqPerm.ID,
+								Name:        reqPerm.Slug,
+								DisplayName: reqPerm.Slug,
+								Meta:        map[string]any{},
+							},
+						},
+					})
+				}
+
+				if len(permissionsToInsert) > 0 {
+					err = db.BulkQuery.InsertKeyPermissions(ctx, tx, permissionsToInsert)
+					if err != nil {
+						return fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("database error"),
+							fault.Public("Failed to assign permissions."),
+						)
+					}
+				}
+			}
+
+			if req.Roles != nil {
+				existingRoles, err := db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Names:       *req.Roles,
+				})
+				if err != nil {
+					return fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"),
+						fault.Public("Failed to retrieve roles."),
+					)
+				}
+
+				// Find which roles need to be created
+				existingRoleMap := make(map[string]db.FindRolesByNamesRow)
+				for _, r := range existingRoles {
+					existingRoleMap[r.Name] = r
+				}
+
+				// Create missing roles in bulk and build final list
+				requestedRoles := []db.FindRolesByNamesRow{}
+
+				for _, requestedName := range *req.Roles {
+					existingRole, exists := existingRoleMap[requestedName]
+					if exists {
+						requestedRoles = append(requestedRoles, existingRole)
+						continue
+					}
+
+					return fault.New("role not found",
+						fault.Code(codes.Data.Role.NotFound.URN()),
+						fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role '%s' was not found.", requestedName)),
+					)
+				}
+
+				// Insert all requested roles
+				rolesToInsert := []db.InsertKeyRoleParams{}
+				for _, reqRole := range requestedRoles {
+					rolesToInsert = append(rolesToInsert, db.InsertKeyRoleParams{
+						KeyID:       keyID,
+						RoleID:      reqRole.ID,
+						WorkspaceID: auth.AuthorizedWorkspaceID,
+						CreatedAtM:  now,
+					})
+
+					auditLogs = append(auditLogs, auditlog.AuditLog{
+						WorkspaceID: auth.AuthorizedWorkspaceID,
+						Event:       auditlog.AuthConnectRoleKeyEvent,
+						ActorType:   auditlog.RootKeyActor,
+						ActorID:     auth.Key.ID,
+						ActorName:   "root key",
+						ActorMeta:   map[string]any{},
+						Display:     fmt.Sprintf("Connected role %s to key %s", reqRole.Name, keyID),
+						RemoteIP:    s.Location(),
+						UserAgent:   s.UserAgent(),
+						Resources: []auditlog.AuditLogResource{
+							{
+								Type:        auditlog.KeyResourceType,
+								ID:          keyID,
+								DisplayName: insertKeyParams.Name.String,
+								Name:        insertKeyParams.Name.String,
+								Meta:        map[string]any{},
+							},
+							{
+								Type:        auditlog.RoleResourceType,
+								ID:          reqRole.ID,
+								DisplayName: reqRole.Name,
+								Name:        reqRole.Name,
+								Meta:        map[string]any{},
+							},
+						},
+					})
+				}
+
+				if len(rolesToInsert) > 0 {
+					err = db.BulkQuery.InsertKeyRoles(ctx, tx, rolesToInsert)
+					if err != nil {
+						return fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("database error"),
+							fault.Public("Failed to assign roles."),
+						)
+					}
+				}
+			}
+
+			auditLogs = append(auditLogs, auditlog.AuditLog{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Slugs:       *req.Permissions,
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"),
-					fault.Public("Failed to retrieve permissions."),
-				)
-			}
-
-			existingPermMap := make(map[string]db.Permission)
-			for _, p := range existingPermissions {
-				existingPermMap[p.Slug] = p
-			}
-
-			permissionsToCreate := []db.InsertPermissionParams{}
-			requestedPermissions := []db.Permission{}
-
-			for _, requestedSlug := range *req.Permissions {
-				existingPerm, exists := existingPermMap[requestedSlug]
-				if exists {
-					requestedPermissions = append(requestedPermissions, existingPerm)
-					continue
-				}
-
-				newPermID := uid.New(uid.PermissionPrefix)
-				permissionsToCreate = append(permissionsToCreate, db.InsertPermissionParams{
-					PermissionID: newPermID,
-					WorkspaceID:  auth.AuthorizedWorkspaceID,
-					Name:         requestedSlug,
-					Slug:         requestedSlug,
-					Description:  dbtype.NullString{String: "", Valid: false},
-					CreatedAtM:   now,
-				})
-
-				requestedPermissions = append(requestedPermissions, db.Permission{
-					ID:          newPermID,
-					Name:        requestedSlug,
-					Slug:        requestedSlug,
-					CreatedAtM:  now,
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Description: dbtype.NullString{String: "", Valid: false},
-					UpdatedAtM:  sql.NullInt64{Int64: 0, Valid: false},
-				})
-			}
-
-			if len(permissionsToCreate) > 0 {
-				err = db.BulkQuery.InsertPermissions(ctx, tx, permissionsToCreate)
-				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database error"),
-						fault.Public("Failed to create permissions."),
-					)
-				}
-			}
-
-			permissionsToInsert := []db.InsertKeyPermissionParams{}
-			for _, reqPerm := range requestedPermissions {
-				permissionsToInsert = append(permissionsToInsert, db.InsertKeyPermissionParams{
-					KeyID:        keyID,
-					PermissionID: reqPerm.ID,
-					WorkspaceID:  auth.AuthorizedWorkspaceID,
-					CreatedAt:    now,
-					UpdatedAt:    sql.NullInt64{Valid: false, Int64: 0},
-				})
-
-				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Event:       auditlog.AuthConnectPermissionKeyEvent,
-					ActorType:   auditlog.RootKeyActor,
-					ActorID:     auth.Key.ID,
-					ActorName:   "root key",
-					ActorMeta:   map[string]any{},
-					Display:     fmt.Sprintf("Added permission %s to key %s", reqPerm.Slug, keyID),
-					RemoteIP:    s.Location(),
-					UserAgent:   s.UserAgent(),
-					Resources: []auditlog.AuditLogResource{
-						{
-							Type:        auditlog.KeyResourceType,
-							ID:          keyID,
-							Name:        insertKeyParams.Name.String,
-							DisplayName: insertKeyParams.Name.String,
-							Meta:        map[string]any{},
-						},
-						{
-							Type:        auditlog.PermissionResourceType,
-							ID:          reqPerm.ID,
-							Name:        reqPerm.Slug,
-							DisplayName: reqPerm.Slug,
-							Meta:        map[string]any{},
-						},
+				Event:       auditlog.KeyCreateEvent,
+				ActorType:   auditlog.RootKeyActor,
+				ActorID:     auth.Key.ID,
+				ActorName:   "root key",
+				ActorMeta:   map[string]any{},
+				Display:     fmt.Sprintf("Created key %s", keyID),
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        auditlog.KeyResourceType,
+						ID:          keyID,
+						DisplayName: keyID,
+						Name:        keyID,
+						Meta:        map[string]any{},
 					},
-				})
-			}
-
-			if len(permissionsToInsert) > 0 {
-				err = db.BulkQuery.InsertKeyPermissions(ctx, tx, permissionsToInsert)
-				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database error"),
-						fault.Public("Failed to assign permissions."),
-					)
-				}
-			}
-		}
-
-		// 12. Handle roles if provided - with auto-creation
-		if req.Roles != nil {
-			existingRoles, err := db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Names:       *req.Roles,
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"),
-					fault.Public("Failed to retrieve roles."),
-				)
-			}
-
-			// Find which roles need to be created
-			existingRoleMap := make(map[string]db.FindRolesByNamesRow)
-			for _, r := range existingRoles {
-				existingRoleMap[r.Name] = r
-			}
-
-			// Create missing roles in bulk and build final list
-			requestedRoles := []db.FindRolesByNamesRow{}
-
-			for _, requestedName := range *req.Roles {
-				existingRole, exists := existingRoleMap[requestedName]
-				if exists {
-					requestedRoles = append(requestedRoles, existingRole)
-					continue
-				}
-
-				return fault.New("role not found",
-					fault.Code(codes.Data.Role.NotFound.URN()),
-					fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role '%s' was not found.", requestedName)),
-				)
-			}
-
-			// Insert all requested roles
-			rolesToInsert := []db.InsertKeyRoleParams{}
-			for _, reqRole := range requestedRoles {
-				rolesToInsert = append(rolesToInsert, db.InsertKeyRoleParams{
-					KeyID:       keyID,
-					RoleID:      reqRole.ID,
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					CreatedAtM:  now,
-				})
-
-				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Event:       auditlog.AuthConnectRoleKeyEvent,
-					ActorType:   auditlog.RootKeyActor,
-					ActorID:     auth.Key.ID,
-					ActorName:   "root key",
-					ActorMeta:   map[string]any{},
-					Display:     fmt.Sprintf("Connected role %s to key %s", reqRole.Name, keyID),
-					RemoteIP:    s.Location(),
-					UserAgent:   s.UserAgent(),
-					Resources: []auditlog.AuditLogResource{
-						{
-							Type:        auditlog.KeyResourceType,
-							ID:          keyID,
-							DisplayName: insertKeyParams.Name.String,
-							Name:        insertKeyParams.Name.String,
-							Meta:        map[string]any{},
-						},
-						{
-							Type:        auditlog.RoleResourceType,
-							ID:          reqRole.ID,
-							DisplayName: reqRole.Name,
-							Name:        reqRole.Name,
-							Meta:        map[string]any{},
-						},
+					{
+						Type:        auditlog.APIResourceType,
+						ID:          req.ApiId,
+						DisplayName: api.Name,
+						Name:        api.Name,
+						Meta:        map[string]any{},
 					},
-				})
+				},
+			})
+
+			err = h.Auditlogs.Insert(ctx, tx, auditLogs)
+			if err != nil {
+				return err
 			}
 
-			if len(rolesToInsert) > 0 {
-				err = db.BulkQuery.InsertKeyRoles(ctx, tx, rolesToInsert)
-				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database error"),
-						fault.Public("Failed to assign roles."),
-					)
-				}
-			}
-		}
-
-		// 13. Create main audit log for key creation
-		auditLogs = append(auditLogs, auditlog.AuditLog{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       auditlog.KeyCreateEvent,
-			ActorType:   auditlog.RootKeyActor,
-			ActorID:     auth.Key.ID,
-			ActorName:   "root key",
-			ActorMeta:   map[string]any{},
-			Display:     fmt.Sprintf("Created key %s", keyID),
-			RemoteIP:    s.Location(),
-			UserAgent:   s.UserAgent(),
-			Resources: []auditlog.AuditLogResource{
-				{
-					Type:        auditlog.KeyResourceType,
-					ID:          keyID,
-					DisplayName: keyID,
-					Name:        keyID,
-					Meta:        map[string]any{},
-				},
-				{
-					Type:        auditlog.APIResourceType,
-					ID:          req.ApiId,
-					DisplayName: api.Name,
-					Name:        api.Name,
-					Meta:        map[string]any{},
-				},
-			},
+			return nil
 		})
 
-		// 14. Insert audit logs
-		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
-		if err != nil {
-			return err
+		// Break if successful
+		if txErr == nil {
+			break
 		}
 
-		return nil
-	})
-	if err != nil {
-		return err
+		// Check if error is retryable (deadlock or identity race condition)
+		isRetryable := db.IsDeadlockError(txErr) || (db.IsDuplicateKeyError(txErr) && attempt < 2)
+
+		if !isRetryable {
+			break
+		}
 	}
 
-	// 16. Return success response
+	if txErr != nil {
+		// Wrap retryable errors with appropriate message after exhausting retries
+		if db.IsDuplicateKeyError(txErr) || db.IsDeadlockError(txErr) {
+			return fault.Wrap(txErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("failed to create key after retries"),
+				fault.Public("Failed to create key."),
+			)
+		}
+		return txErr
+	}
+
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),

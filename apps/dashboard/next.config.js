@@ -34,24 +34,6 @@ const nextConfig = {
       },
     ];
   },
-  rewrites: () => [
-    {
-      source: "/docs",
-      destination: "https://unkey.mintlify.dev/docs",
-    },
-    {
-      source: "/docs/:match*",
-      destination: "https://unkey.mintlify.dev/docs/:match*",
-    },
-    {
-      source: "/engineering",
-      destination: "https://unkey-engineering.mintlify.dev/engineering",
-    },
-    {
-      source: "/engineering/:match*",
-      destination: "https://unkey-engineering.mintlify.dev/engineering/:match*",
-    },
-  ],
 };
 
 module.exports = nextConfig;

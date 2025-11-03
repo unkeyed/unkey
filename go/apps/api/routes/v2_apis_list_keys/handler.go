@@ -168,14 +168,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Query keys by key_auth_id instead of api_id
-	keyResults, err := db.Query.ListLiveKeysByKeyAuthID(
+	keyResults, err := db.Query.ListLiveKeysByKeySpaceID(
 		ctx,
 		h.DB.RO(),
-		db.ListLiveKeysByKeyAuthIDParams{
-			KeyAuthID: api.KeyAuthID.String,
-			IDCursor:  cursor,
-			Identity:  identityFilter,
-			Limit:     int32(limit + 1), // nolint:gosec
+		db.ListLiveKeysByKeySpaceIDParams{
+			KeySpaceID: api.KeyAuthID.String,
+			IDCursor:   cursor,
+			Identity:   identityFilter,
+			Limit:      int32(limit + 1), // nolint:gosec
 		},
 	)
 	if err != nil {

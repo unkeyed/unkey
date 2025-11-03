@@ -35,7 +35,7 @@ export class DurableRateLimiter implements RateLimiter {
     const now = Date.now();
     const window = Math.floor(now / req.interval);
 
-    return [req.identifier, window, req.shard].join("::");
+    return [req.identifier, window, req.name, req.shard].join("::");
   }
 
   private setCacheMax(id: string, i: number): number {

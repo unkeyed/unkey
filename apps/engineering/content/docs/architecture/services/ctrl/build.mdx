@@ -1,0 +1,96 @@
+---
+title: Build System
+description: Container image building for customer deployments
+---
+
+import { Mermaid } from "@/app/components/mermaid"
+
+
+When a customer deploys their application, the following process occurs:
+
+The CLI first requests a deployment from the control plane, which returns a presigned S3 URL. The CLI packages the source code into a tarball and uploads it directly to S3, bypassing the control plane for efficient transfer. Once uploaded, the CLI triggers the build by sending the S3 path to the control plane.
+
+The control plane retrieves or creates a dedicated Depot project for the customer, then initiates a build with Depot. Depot provisions an isolated BuildKit machine, downloads the build context from S3, executes the Docker build, and pushes the resulting image to its registry. The image name is returned to the control plane.
+
+With the built image ready, the control plane instructs Krane to create a deployment with specified resources (replicas, CPU, memory). Krane creates the necessary Kubernetes resources (StatefulSet and Service) and K8s begins scheduling pods.
+
+The control plane polls Krane every second (for up to 5 minutes) to check instance status. As instances become ready, their details are registered in the partition database. Once all instances are running, the control plane attempts to scrape an OpenAPI specification from the deployed service.
+
+Finally, the control plane calls the RoutingService to atomically assign domains and create gateway configurations, and marks the deployment as ready in the database. Meanwhile, the CLI continuously polls the control plane every 2 seconds to check the deployment status until it becomes ready.
+
+<Mermaid chart={`sequenceDiagram
+    autonumber
+    participant CLI
+    participant Ctrl as Ctrl Plane
+    participant S3
+    participant Depot
+    participant Krane
+    participant K8s as Kubernetes
+    participant DB as Partition DB
+    
+    CLI->>Ctrl: Create Deployment
+    Ctrl->>CLI: Presigned S3 upload URL
+    CLI->>S3: PUT tar file directly
+    S3->>CLI: Upload complete
+    
+    CLI->>Ctrl: CreateBuild(s3_path)
+    Ctrl->>Depot: Get/Create Depot Project
+    Depot->>Ctrl: Project ID
+    Ctrl->>Depot: Create Build
+    Depot->>Ctrl: Build ID
+    
+    Depot->>S3: Download build context
+    Depot->>Depot: Execute Docker build & push to registry
+    Depot->>Ctrl: Image name & build ID
+    
+    Ctrl->>Krane: CreateDeployment(image, replicas, resources)
+    Krane->>K8s: Create StatefulSet & Service
+    K8s->>K8s: Schedule & start pods
+    
+    loop Poll until ready (max 5 min)
+        Ctrl->>Krane: GetDeployment()
+        Krane->>K8s: AppsV1.StatefulSets.Get
+        K8s->>Krane: Instances: [{id, addr, status}]
+        Krane->>Ctrl: Instances: [{id, addr, status}]
+        Ctrl->>DB: Upsert VM records
+    end
+    
+    K8s->>K8s: Pods running
+    
+    Ctrl->>K8s: HTTP GET /openapi.yaml
+    K8s->>Ctrl: OpenAPI spec
+    
+    Ctrl->>Ctrl: AssignDomains (RoutingService)<br/>- Create gateway configs<br/>- Assign domains
+    
+    Ctrl->>DB: Update deployment status: READY
+    
+    loop CLI polls every 2s
+        CLI->>Ctrl: GetDeployment()
+        Ctrl->>CLI: Deployment status
+    end
+    
+    CLI->>CLI: Status = READY, deployment complete
+`} />
+
+## Build Backends
+
+We support two build backends, configurable via the `BUILD_BACKEND` environment variable.
+
+### Depot (Production)
+
+Depot.dev provides isolated, cached, and high-performance container builds. Builds are fast thanks to persistent layer caching across builds. Each customer project gets an isolated build environment with its own cache. No local Docker daemon is required since builds run on remote BuildKit machines. Multi-architecture support allows building for both amd64 and arm64. Registry integration is built-in, pushing images directly to Depot's registry after the build completes.
+
+**Location:** `go/apps/ctrl/services/build/backend/depot/`
+
+### Docker (Local Development)
+
+The Docker backend uses standard Docker builds for local testing. It connects to the local Docker daemon and builds images on the host machine. This backend is simpler to set up for development but lacks the caching and isolation benefits of Depot.
+
+**Location:** `go/apps/ctrl/services/build/backend/docker/`
+
+## Storage
+
+Build contexts are stored in S3-compatible storage. The upload process gives customers presigned URLs to directly upload their build context, bypassing the control plane for efficient transfer. During the build, Depot receives presigned download URLs to fetch the context from S3. Build contexts are retained for the lifecycle of the deployment, allowing rebuilds and rollbacks when needed.
+
+**Location:** `go/apps/ctrl/services/build/storage/s3.go`
+

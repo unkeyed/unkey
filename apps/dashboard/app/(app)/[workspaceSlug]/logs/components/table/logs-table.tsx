@@ -81,7 +81,7 @@ const getSelectedClassName = (log: Log, isSelected: boolean) => {
 
 const WarningIcon = ({ status }: { status: number }) => (
   <TriangleWarning2
-    size="md-regular"
+    iconSize="md-medium"
     className={cn(
       WARNING_ICON_STYLES.base,
       status < 300 && "invisible",

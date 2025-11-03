@@ -4,7 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -15,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/git"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 )
 
 // DeploymentStatusEvent represents a status change event
@@ -34,48 +39,191 @@ type DeploymentStepEvent struct {
 
 // ControlPlaneClient handles API operations with the control plane
 type ControlPlaneClient struct {
-	client ctrlv1connect.DeploymentServiceClient
-	opts   DeployOptions
+	deploymentClient ctrlv1connect.DeploymentServiceClient
+	buildClient      ctrlv1connect.BuildServiceClient
+	opts             DeployOptions
 }
 
 // NewControlPlaneClient creates a new control plane client
 func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
 	httpClient := &http.Client{}
-	client := ctrlv1connect.NewDeploymentServiceClient(httpClient, opts.ControlPlaneURL)
+	deploymentClient := ctrlv1connect.NewDeploymentServiceClient(httpClient, opts.ControlPlaneURL)
+	buildClient := ctrlv1connect.NewBuildServiceClient(httpClient, opts.ControlPlaneURL)
 
 	return &ControlPlaneClient{
-		client: client,
-		opts:   opts,
+		deploymentClient: deploymentClient,
+		buildClient:      buildClient,
+		opts:             opts,
 	}
 }
 
-// CreateDeployment creates a new deployment in the control plane
-func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage string) (string, error) {
-	// Get git commit information
-	commitInfo := git.GetInfo()
-	createReq := connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
-		WorkspaceId:              c.opts.WorkspaceID,
-		ProjectId:                c.opts.ProjectID,
-		KeyspaceId:               &c.opts.KeyspaceID,
-		Branch:                   c.opts.Branch,
-		SourceType:               ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
-		EnvironmentSlug:          c.opts.Environment,
-		DockerImage:              dockerImage,
-		GitCommitSha:             commitInfo.CommitSHA,
-		GitCommitMessage:         commitInfo.Message,
-		GitCommitAuthorHandle:    commitInfo.AuthorHandle,
-		GitCommitAuthorAvatarUrl: commitInfo.AuthorAvatarURL,
-		GitCommitTimestamp:       commitInfo.CommitTimestamp,
+// UploadBuildContext uploads the build context to S3 and returns the context key
+func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath string) (string, error) {
+	uploadReq := connect.NewRequest(&ctrlv1.GenerateUploadURLRequest{
+		UnkeyProjectId: c.opts.ProjectID,
 	})
 
-	// Use API key for authentication if provided, fallback to auth token
+	authHeader := c.opts.APIKey
+	if authHeader == "" {
+		authHeader = c.opts.AuthToken
+	}
+	uploadReq.Header().Set("Authorization", "Bearer "+authHeader)
+
+	uploadResp, err := c.buildClient.GenerateUploadURL(ctx, uploadReq)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate upload URL: %w", err)
+	}
+
+	uploadURL := uploadResp.Msg.GetUploadUrl()
+	buildContextPath := uploadResp.Msg.GetBuildContextPath()
+
+	if uploadURL == "" || buildContextPath == "" {
+		return "", fmt.Errorf("empty upload URL or context key returned")
+	}
+
+	tarPath, err := createContextTar(contextPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create tar archive: %w", err)
+	}
+	defer os.Remove(tarPath)
+
+	if err := uploadToPresignedURL(ctx, uploadURL, tarPath); err != nil {
+		return "", fmt.Errorf("failed to upload build context: %w", err)
+	}
+
+	return buildContextPath, nil
+}
+
+// uploadToPresignedURL uploads a file to a presigned S3 URL
+func uploadToPresignedURL(ctx context.Context, presignedURL, filePath string) error {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to stat file: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "PUT", presignedURL, file)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.ContentLength = stat.Size()
+	req.Header.Set("Content-Type", "application/gzip")
+
+	client := &http.Client{
+		Timeout: 5 * time.Minute,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("upload request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// createContextTar creates a tar.gz from the given directory path
+// and returns the absolute path to the created tar file
+func createContextTar(contextPath string) (string, error) {
+	info, err := os.Stat(contextPath)
+	if err != nil {
+		return "", fmt.Errorf("context path does not exist: %w", err)
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("context path must be a directory: %s", contextPath)
+	}
+
+	absContextPath, err := filepath.Abs(contextPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to get absolute context path: %w", err)
+	}
+
+	sharedDir := "/tmp/ctrl"
+	if err := os.MkdirAll(sharedDir, 0o777); err != nil {
+		return "", fmt.Errorf("failed to create shared dir: %w", err)
+	}
+
+	tmpFile, err := os.CreateTemp(sharedDir, "build-context-*.tar.gz")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tmpFile.Close()
+	tarPath := tmpFile.Name()
+
+	if err := os.Chmod(tarPath, 0o666); err != nil {
+		os.Remove(tarPath)
+		return "", fmt.Errorf("failed to set file permissions: %w", err)
+	}
+
+	cmd := exec.Command("tar", "-czf", tarPath, "-C", absContextPath, ".")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		os.Remove(tarPath)
+		return "", fmt.Errorf("tar command failed: %w\nOutput: %s", err, string(output))
+	}
+
+	return tarPath, nil
+}
+
+// CreateDeployment creates a new deployment in the control plane
+// Pass either buildContextPath (for build from source) or dockerImage (for prebuilt image), not both
+func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, buildContextPath, dockerImage string) (string, error) {
+	commitInfo := git.GetInfo()
+
+	dockerfilePath := c.opts.Dockerfile
+	if dockerfilePath == "" {
+		dockerfilePath = "Dockerfile"
+	}
+
+	req := &ctrlv1.CreateDeploymentRequest{
+		ProjectId:       c.opts.ProjectID,
+		KeyspaceId:      &c.opts.KeyspaceID,
+		Branch:          c.opts.Branch,
+		EnvironmentSlug: c.opts.Environment,
+		GitCommit: &ctrlv1.GitCommitInfo{
+			CommitSha:       commitInfo.CommitSHA,
+			CommitMessage:   commitInfo.Message,
+			AuthorHandle:    commitInfo.AuthorHandle,
+			AuthorAvatarUrl: commitInfo.AuthorAvatarURL,
+			Timestamp:       commitInfo.CommitTimestamp,
+		},
+	}
+
+	if buildContextPath != "" {
+		req.Source = &ctrlv1.CreateDeploymentRequest_BuildContext{
+			BuildContext: &ctrlv1.BuildContext{
+				BuildContextPath: buildContextPath,
+				DockerfilePath:   ptr.P(dockerfilePath),
+			},
+		}
+	} else if dockerImage != "" {
+		req.Source = &ctrlv1.CreateDeploymentRequest_DockerImage{
+			DockerImage: dockerImage,
+		}
+	} else {
+		return "", fmt.Errorf("either buildContextPath or dockerImage must be provided")
+	}
+
+	createReq := connect.NewRequest(req)
+
 	authHeader := c.opts.APIKey
 	if authHeader == "" {
 		authHeader = c.opts.AuthToken
 	}
 	createReq.Header().Set("Authorization", "Bearer "+authHeader)
 
-	createResp, err := c.client.CreateDeployment(ctx, createReq)
+	createResp, err := c.deploymentClient.CreateDeployment(ctx, createReq)
 	if err != nil {
 		return "", c.handleCreateDeploymentError(err)
 	}
@@ -89,18 +237,18 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage s
 }
 
 // GetDeployment retrieves deployment information from the control plane
-func (c *ControlPlaneClient) GetDeployment(ctx context.Context, deploymentId string) (*ctrlv1.Deployment, error) {
+func (c *ControlPlaneClient) GetDeployment(ctx context.Context, deploymentID string) (*ctrlv1.Deployment, error) {
 	getReq := connect.NewRequest(&ctrlv1.GetDeploymentRequest{
-		DeploymentId: deploymentId,
+		DeploymentId: deploymentID,
 	})
-	// Use API key for authentication if provided, fallback to auth token
+
 	authHeader := c.opts.APIKey
 	if authHeader == "" {
 		authHeader = c.opts.AuthToken
 	}
 	getReq.Header().Set("Authorization", "Bearer "+authHeader)
 
-	getResp, err := c.client.GetDeployment(ctx, getReq)
+	getResp, err := c.deploymentClient.GetDeployment(ctx, getReq)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +262,6 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 	logger logging.Logger,
 	deploymentID string,
 	onStatusChange func(DeploymentStatusEvent) error,
-	onStepUpdate func(DeploymentStepEvent) error,
 ) error {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
@@ -122,7 +269,6 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 	defer timeout.Stop()
 
 	// Track processed steps by creation time to avoid duplicates
-	processedSteps := make(map[int64]bool)
 	lastStatus := ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
 
 	for {
@@ -134,13 +280,14 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 		case <-ticker.C:
 			deployment, err := c.GetDeployment(ctx, deploymentID)
 			if err != nil {
-				logger.Debug("Failed to get deployment status", "error", err, "deployment_id", deploymentID)
+				logger.Debug("Failed to get deployment status",
+					"error", err,
+					"deployment_id", deploymentID)
 				continue
 			}
 
 			currentStatus := deployment.GetStatus()
 
-			// Handle deployment status changes
 			if currentStatus != lastStatus {
 				event := DeploymentStatusEvent{
 					DeploymentID:   deploymentID,
@@ -155,11 +302,6 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 				lastStatus = currentStatus
 			}
 
-			// Process new step updates
-			if err := c.processNewSteps(deploymentID, deployment.GetSteps(), processedSteps, currentStatus, onStepUpdate); err != nil {
-				return err
-			}
-
 			// Check for completion
 			if currentStatus == ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY {
 				return nil
@@ -168,58 +310,12 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 	}
 }
 
-// processNewSteps processes new deployment steps and calls the event handler
-func (c *ControlPlaneClient) processNewSteps(
-	deploymentID string,
-	steps []*ctrlv1.DeploymentStep,
-	processedSteps map[int64]bool,
-	currentStatus ctrlv1.DeploymentStatus,
-	onStepUpdate func(DeploymentStepEvent) error,
-) error {
-	for _, step := range steps {
-		// Creation timestamp as unique identifier
-		stepTimestamp := step.GetCreatedAt()
-
-		if processedSteps[stepTimestamp] {
-			continue // Already processed this step
-		}
-
-		// Handle step errors first
-		if step.GetErrorMessage() != "" {
-			return fmt.Errorf("deployment failed: %s", step.GetErrorMessage())
-		}
-
-		// Call step update handler
-		if step.GetMessage() != "" {
-			event := DeploymentStepEvent{
-				DeploymentID: deploymentID,
-				Step:         step,
-				Status:       currentStatus,
-			}
-			if err := onStepUpdate(event); err != nil {
-				return err
-			}
-
-			// INFO: This is for demo purposes only.
-			// Adding a small delay between deployment steps to make the progression
-			// visually observable during demos. This allows viewers to see each
-			// individual step (VM boot, rootfs loading, etc.) rather than having
-			// everything complete too quickly to follow.
-			time.Sleep(800 * time.Millisecond)
-		}
-		// Mark this step as processed
-		processedSteps[stepTimestamp] = true
-	}
-	return nil
-}
-
 // getFailureMessage extracts failure message from version
 func (c *ControlPlaneClient) getFailureMessage(deployment *ctrlv1.Deployment) string {
 	if deployment.GetErrorMessage() != "" {
 		return deployment.GetErrorMessage()
 	}
 
-	// Check for error in steps
 	for _, step := range deployment.GetSteps() {
 		if step.GetErrorMessage() != "" {
 			return step.GetErrorMessage()
@@ -231,7 +327,6 @@ func (c *ControlPlaneClient) getFailureMessage(deployment *ctrlv1.Deployment) st
 
 // handleCreateDeploymentError provides specific error handling for deployment creation
 func (c *ControlPlaneClient) handleCreateDeploymentError(err error) error {
-	// Check if it's a connection error
 	if strings.Contains(err.Error(), "connection refused") {
 		return fault.Wrap(err,
 			fault.Code(codes.UnkeyAppErrorsInternalServiceUnavailable),
@@ -240,10 +335,8 @@ func (c *ControlPlaneClient) handleCreateDeploymentError(err error) error {
 		)
 	}
 
-	// Check if it's an auth error
 	if connectErr := new(connect.Error); errors.As(err, &connectErr) {
 		if connectErr.Code() == connect.CodeUnauthenticated {
-			// Determine which auth method was used for better error message
 			authMethod := "API key"
 			if c.opts.APIKey == "" {
 				authMethod = "auth token"
@@ -256,7 +349,6 @@ func (c *ControlPlaneClient) handleCreateDeploymentError(err error) error {
 		}
 	}
 
-	// Generic API error
 	return fault.Wrap(err,
 		fault.Code(codes.UnkeyAppErrorsInternalUnexpectedError),
 		fault.Internal(fmt.Sprintf("CreateDeployment API call failed: %v", err)),

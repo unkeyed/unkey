@@ -42,7 +42,7 @@ const PermissionToggle = forwardRef<HTMLDivElement, PermissionToggleProps>(
             <span id={`${id}-label`} className="text-sm w-fit">
               {category}
             </span>
-            <ChevronRight size="sm-regular" className="text-grayA-8" />
+            <ChevronRight iconSize="sm-regular" className="text-grayA-8" />
             {<span className="text-sm w-full">{label}</span>}
           </div>
           <InfoTooltip content={description} className="w-full text-left">

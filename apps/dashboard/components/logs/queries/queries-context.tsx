@@ -176,7 +176,7 @@ export const defaultFormatValues = (
 export const defaultGetIcon = (field: string): React.ReactNode => {
   const Icon = iconsPerField[field] || ChartActivity2;
   return React.createElement(Icon, {
-    size: "md-regular",
+    iconSize: "md-regular",
     className: "justify-center",
   });
 };

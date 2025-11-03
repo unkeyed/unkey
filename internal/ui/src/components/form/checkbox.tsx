@@ -198,7 +198,7 @@ const VARIANT_MAP: Record<string, { variant: CheckboxVariant; color?: CheckboxCo
   destructive: { variant: "primary", color: "danger" },
 };
 
-const getIconSize = (size: CheckboxSize | undefined): IconProps["size"] => {
+const getIconSize = (size: CheckboxSize | undefined): IconProps["iconSize"] => {
   switch (size) {
     case "sm":
       return "sm-regular";
@@ -317,8 +317,8 @@ const Checkbox = React.forwardRef<React.ElementRef<typeof CheckboxPrimitive.Root
         {...props}
       >
         <CheckboxPrimitive.Indicator className={cn(checkmarkVariants(), checkmarkColor)}>
-          <Check size={iconSize} className="hidden group-data-[state=checked]:block" />
-          <Minus size={iconSize} className="hidden group-data-[state=indeterminate]:block" />
+          <Check iconSize={iconSize} className="hidden group-data-[state=checked]:block" />
+          <Minus iconSize={iconSize} className="hidden group-data-[state=indeterminate]:block" />
         </CheckboxPrimitive.Indicator>
       </CheckboxPrimitive.Root>
     );

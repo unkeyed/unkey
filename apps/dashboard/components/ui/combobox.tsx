@@ -145,7 +145,7 @@ export function Combobox({
             ) : (
               placeholder
             )}
-            <ChevronExpandY className="absolute right-3" size="sm-regular" />
+            <ChevronExpandY className="absolute right-3" iconSize="sm-regular" />
           </Button>
         </PopoverTrigger>
       </div>
@@ -177,7 +177,7 @@ export function Combobox({
                   {option.label}
                   <Check
                     className={cn("ml-auto", value === option.value ? "opacity-100" : "opacity-0")}
-                    size="sm-regular"
+                    iconSize="sm-regular"
                   />
                 </CommandItem>
               ))}

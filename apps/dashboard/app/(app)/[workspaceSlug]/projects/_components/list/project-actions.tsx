@@ -1,6 +1,7 @@
 "use client";
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { Clone, Gear, Layers3, Trash } from "@unkey/icons";
 
 import { toast } from "@unkey/ui";
@@ -14,17 +15,23 @@ type ProjectActionsProps = {
 
 export const ProjectActions = ({ projectId, children }: PropsWithChildren<ProjectActionsProps>) => {
   const router = useRouter();
-  const menuItems = getProjectActionItems(projectId, router);
+  const { workspace } = useWorkspace();
+  // biome-ignore lint/style/noNonNullAssertion: This cannot be null
+  const menuItems = getProjectActionItems(projectId, workspace?.slug!, router);
 
   return <TableActionPopover items={menuItems}>{children}</TableActionPopover>;
 };
 
-const getProjectActionItems = (projectId: string, router: AppRouterInstance): MenuItem[] => {
+const getProjectActionItems = (
+  projectId: string,
+  workspaceSlug: string,
+  router: AppRouterInstance,
+): MenuItem[] => {
   return [
     {
       id: "favorite-project",
       label: "Add favorite",
-      icon: <Gear size="md-regular" />,
+      icon: <Gear iconSize="md-medium" />,
       onClick: () => {},
       divider: true,
     },
@@ -32,7 +39,7 @@ const getProjectActionItems = (projectId: string, router: AppRouterInstance): Me
       id: "copy-project-id",
       label: "Copy project ID",
       className: "mt-1",
-      icon: <Clone size="md-regular" />,
+      icon: <Clone iconSize="md-medium" />,
       onClick: () => {
         navigator.clipboard
           .writeText(projectId)
@@ -48,18 +55,16 @@ const getProjectActionItems = (projectId: string, router: AppRouterInstance): Me
     },
     {
       id: "view-log",
-      label: "View logs",
-      icon: <Layers3 size="md-regular" />,
+      label: "View gateway logs",
+      icon: <Layers3 iconSize="md-regular" />,
       onClick: () => {
-        //INFO: This will change soon
-        const fakeDeploymentId = "idk";
-        router.push(`/projects/${projectId}/deployments/${fakeDeploymentId}/logs`);
+        router.push(`/${workspaceSlug}/projects/${projectId}/gateway-logs`);
       },
     },
     {
       id: "project-settings",
       label: "Project settings",
-      icon: <Gear size="md-regular" />,
+      icon: <Gear iconSize="md-medium" />,
       onClick: () => {
         //INFO: This will change soon
         const fakeDeploymentId = "idk";
@@ -70,7 +75,7 @@ const getProjectActionItems = (projectId: string, router: AppRouterInstance): Me
     {
       id: "delete-project",
       label: "Delete project",
-      icon: <Trash size="md-regular" />,
+      icon: <Trash iconSize="md-medium" />,
       ActionComponent: () => null,
     },
   ];

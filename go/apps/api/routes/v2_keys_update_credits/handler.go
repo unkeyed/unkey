@@ -31,7 +31,7 @@ type Handler struct {
 	DB           db.Database
 	Keys         keys.KeyService
 	Auditlogs    auditlogs.AuditLogService
-	KeyCache     cache.Cache[string, db.FindKeyForVerificationRow]
+	KeyCache     cache.Cache[string, db.CachedKeyData]
 	UsageLimiter usagelimiter.Service
 }
 
@@ -215,7 +215,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Resources: []auditlog.AuditLogResource{
 					{
 						ID:          key.KeyAuthID,
-						Type:        auditlog.KeyAuthResourceType,
+						Type:        auditlog.KeySpaceResourceType,
 						Name:        "",
 						DisplayName: "",
 						Meta:        nil,

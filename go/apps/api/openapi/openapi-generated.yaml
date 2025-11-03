@@ -2306,6 +2306,7 @@ components:
                     description: External identity ID
                 meta:
                     type: object
+                    additionalProperties: true
                     description: Identity metadata
                 ratelimits:
                     type: array
@@ -3776,7 +3777,7 @@ paths:
                             basic:
                                 summary: Delete identity
                                 value:
-                                    externalId: user_123
+                                    identity: user_123
                         schema:
                             $ref: '#/components/schemas/V2IdentitiesDeleteIdentityRequestBody'
                 required: true
@@ -3862,7 +3863,7 @@ paths:
                             basic:
                                 summary: Get identity
                                 value:
-                                    externalId: user_123
+                                    identity: user_123
                         schema:
                             $ref: '#/components/schemas/V2IdentitiesGetIdentityRequestBody'
                 required: true

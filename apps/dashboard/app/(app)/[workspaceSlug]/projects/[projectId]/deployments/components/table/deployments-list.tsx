@@ -116,7 +116,7 @@ export const DeploymentsList = () => {
         render: ({ deployment }) => (
           <div className="flex items-center min-h-[52px]">
             <DomainList
-              key={`${deployment.id}-${liveDeployment}-${project?.isRolledBack}`}
+              key={`${deployment.id}-${liveDeployment}-${project?.isRolledBack}-${project?.latestDeploymentId}`}
               deploymentId={deployment.id}
             />
           </div>
@@ -132,7 +132,7 @@ export const DeploymentsList = () => {
               render: ({ deployment }: { deployment: Deployment }) => {
                 return (
                   <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-                    <Cube className="text-gray-12" size="sm-regular" />
+                    <Cube className="text-gray-12" iconSize="sm-regular" />
                     <div className="flex gap-0.5">
                       <span className="font-semibold text-grayA-12 tabular-nums">
                         {deployment.runtimeConfig.regions.reduce(
@@ -153,7 +153,7 @@ export const DeploymentsList = () => {
               render: ({ deployment }: { deployment: Deployment }) => {
                 return (
                   <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-                    <Cube className="text-gray-12" size="sm-regular" />
+                    <Cube className="text-gray-12" iconSize="sm-regular" />
                     <div className="flex gap-1">
                       <div className="flex gap-0.5">
                         <span className="font-semibold text-grayA-12 tabular-nums">
@@ -189,7 +189,7 @@ export const DeploymentsList = () => {
                 isSelected && "bg-grayA-5",
               )}
             >
-              <CodeBranch size="sm-regular" className="text-gray-12" />
+              <CodeBranch iconSize="sm-regular" className="text-gray-12" />
             </div>
           );
           return (

@@ -264,7 +264,7 @@ func (s *Seeder) createKeysBatched(ctx context.Context, workspaceID, keyAuthID, 
 
 		keyParams[i] = db.InsertKeyParams{
 			ID:                keyID,
-			KeyringID:         keyAuthID,
+			KeySpaceID:        keyAuthID,
 			Hash:              keyResult.Hash,
 			Start:             keyResult.Start,
 			WorkspaceID:       workspaceID,

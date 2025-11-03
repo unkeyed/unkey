@@ -735,6 +735,7 @@ type Project struct {
 	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
 	IsRolledBack     bool           `db:"is_rolled_back"`
 	DefaultBranch    sql.NullString `db:"default_branch"`
+	DepotProjectID   sql.NullString `db:"depot_project_id"`
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`

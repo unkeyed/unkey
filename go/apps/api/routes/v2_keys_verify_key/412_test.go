@@ -51,8 +51,8 @@ func TestPreconditionFailed(t *testing.T) {
 
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-			IdentityID:  ptr.P(identity),
+			KeySpaceID:  api.KeyAuthID.String,
+			IdentityID:  ptr.P(identity.ID),
 		})
 
 		req := handler.Request{
@@ -70,14 +70,14 @@ func TestPreconditionFailed(t *testing.T) {
 		// Should contain useful error message about missing ratelimit for key and identity
 		expectedMsg := fmt.Sprintf("ratelimit 'does-not-exist' was requested but does not exist for key '%s' nor identity", key.KeyID)
 		require.Contains(t, res.Body.Error.Detail, expectedMsg)
-		require.Contains(t, res.Body.Error.Detail, identity)
+		require.Contains(t, res.Body.Error.Detail, identity.ID)
 		require.Contains(t, res.Body.Error.Detail, "test-missing-ratelimit")
 	})
 
 	t.Run("without identity - missing ratelimit", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "existing-ratelimit",
@@ -108,7 +108,7 @@ func TestPreconditionFailed(t *testing.T) {
 	t.Run("invalid ratelimit configuration", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 		})
 
 		req := handler.Request{

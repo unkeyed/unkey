@@ -43,7 +43,7 @@ func TestKeyVerifications(t *testing.T) {
 	numIdentities := max(1, min(numRecords/500, 200))
 
 	keys := array.Fill(numKeys, func() string { return uid.New(uid.KeyPrefix) })
-	keySpaces := array.Fill(numKeySpaces, func() string { return uid.New(uid.KeyAuthPrefix) })
+	keySpaces := array.Fill(numKeySpaces, func() string { return uid.New(uid.KeySpacePrefix) })
 	identities := array.Fill(numIdentities, func() string { return uid.New(uid.IdentityPrefix) })
 
 	// Map each identity to an external_id (1:1 mapping to ensure external_id uniqueness per identity)

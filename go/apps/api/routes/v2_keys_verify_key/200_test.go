@@ -46,7 +46,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("verifies key as valid", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 		})
 
 		req := handler.Request{
@@ -62,7 +62,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("verifies expired key as valid and then invalid", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Expires:     ptr.P(time.Now().Add(time.Second * 3)),
 		})
 
@@ -87,7 +87,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("disabled key", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Disabled:    true,
 		})
 
@@ -105,7 +105,7 @@ func TestSuccess(t *testing.T) {
 		t.Run("allowed default credit cost", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Remaining:   ptr.P(int32(5)),
 			})
 
@@ -124,7 +124,7 @@ func TestSuccess(t *testing.T) {
 		t.Run("exceeding with default credit cost", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Remaining:   ptr.P(int32(0)),
 			})
 
@@ -143,7 +143,7 @@ func TestSuccess(t *testing.T) {
 		t.Run("allowed custom credit cost", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Remaining:   ptr.P(int32(5)),
 			})
 
@@ -165,7 +165,7 @@ func TestSuccess(t *testing.T) {
 		t.Run("exceeding with custom credit cost", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Remaining:   ptr.P(int32(5)),
 			})
 
@@ -187,7 +187,7 @@ func TestSuccess(t *testing.T) {
 		t.Run("allow credits 0 even when remaining 0", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Remaining:   ptr.P(int32(0)),
 			})
 
@@ -208,27 +208,46 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("with ip whitelist", func(t *testing.T) {
-		ipWhitelistApi := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, IpWhitelist: "127.0.0.1"})
+		ipWhitelistApi := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, IpWhitelist: "123.123.123.123"})
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   ipWhitelistApi.KeyAuthID.String,
+			KeySpaceID:  ipWhitelistApi.KeyAuthID.String,
 		})
 
 		req := handler.Request{
 			Key: key.Key,
 		}
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+
+		// First request with wrong IP - should be forbidden
+		headersWithWrongIP := http.Header{
+			"Content-Type":    {"application/json"},
+			"Authorization":   {fmt.Sprintf("Bearer %s", rootKey)},
+			"X-Forwarded-For": {"192.168.1.1"},
+		}
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersWithWrongIP, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 		require.Equal(t, openapi.FORBIDDEN, res.Body.Data.Code, "Key should be forbidden but got %s", res.Body.Data.Code)
 		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+
+		// Second request with correct IP - should be valid
+		headersWithCorrectIP := http.Header{
+			"Content-Type":    {"application/json"},
+			"Authorization":   {fmt.Sprintf("Bearer %s", rootKey)},
+			"X-Forwarded-For": {"123.123.123.123"},
+		}
+		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headersWithCorrectIP, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
+		require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
 	})
 
 	t.Run("key with permissions", func(t *testing.T) {
 		t.Run("with role permission valid", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Roles: []seed.CreateRoleRequest{{
 					Name:        "test-role",
 					Description: nil,
@@ -257,7 +276,7 @@ func TestSuccess(t *testing.T) {
 		t.Run("with direct permission valid", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Permissions: []seed.CreatePermissionRequest{{
 					Name:        "domain.read",
 					Slug:        "domain.read",
@@ -281,7 +300,7 @@ func TestSuccess(t *testing.T) {
 		t.Run("missing permissions", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 			})
 
 			req := handler.Request{
@@ -298,7 +317,7 @@ func TestSuccess(t *testing.T) {
 		t.Run("with complex permissions query", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Permissions: []seed.CreatePermissionRequest{
 					{
 						Name:        "api.read",
@@ -329,7 +348,7 @@ func TestSuccess(t *testing.T) {
 		t.Run("with wildcard permission query", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Permissions: []seed.CreatePermissionRequest{
 					{
 						Name:        "All endpoints",
@@ -360,7 +379,7 @@ func TestSuccess(t *testing.T) {
 		t.Run("with colon namespace permissions", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Permissions: []seed.CreatePermissionRequest{
 					{
 						Name:        "System Admin Read",
@@ -397,7 +416,7 @@ func TestSuccess(t *testing.T) {
 		t.Run("with mixed characters including colons and asterisks", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Permissions: []seed.CreatePermissionRequest{
 					{
 						Name:        "All System Admin",
@@ -429,7 +448,7 @@ func TestSuccess(t *testing.T) {
 			// Create a key with 25 permissions
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Permissions: []seed.CreatePermissionRequest{
 					{Name: "read.users", Slug: "read.users", WorkspaceID: workspace.ID},
 					{Name: "write.users", Slug: "write.users", WorkspaceID: workspace.ID},
@@ -482,7 +501,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("key with auto applied ratelimit", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "auto-apply",
@@ -514,7 +533,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("key with specified ratelimit", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "requests",
@@ -548,7 +567,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("key with custom ratelimit", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 		})
 
 		req := handler.Request{
@@ -590,8 +609,8 @@ func TestSuccess(t *testing.T) {
 
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-			IdentityID:  ptr.P(identity),
+			KeySpaceID:  api.KeyAuthID.String,
+			IdentityID:  ptr.P(identity.ID),
 		})
 
 		req := handler.Request{
@@ -625,8 +644,8 @@ func TestSuccess(t *testing.T) {
 
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
-			IdentityID:  ptr.P(identity),
+			KeySpaceID:  api.KeyAuthID.String,
+			IdentityID:  ptr.P(identity.ID),
 			Name:        ptr.P(keyName),
 			Roles: []seed.CreateRoleRequest{{
 				Name:        "read-writer",
@@ -663,7 +682,7 @@ func TestSuccess(t *testing.T) {
 		require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
 		require.Len(t, ptr.SafeDeref(res.Body.Data.Roles), 1, "Key should have 1 role")
 		require.Len(t, ptr.SafeDeref(res.Body.Data.Permissions), 3, "Key should have 3 permissions")
-		require.EqualValues(t, openapi.Identity{Id: identity, ExternalId: externalId, Meta: &meta, Ratelimits: nil}, ptr.SafeDeref(res.Body.Data.Identity))
+		require.EqualValues(t, openapi.Identity{Id: identity.ID, ExternalId: externalId, Meta: &meta, Ratelimits: nil}, ptr.SafeDeref(res.Body.Data.Identity))
 		require.Equal(t, keyName, ptr.SafeDeref(res.Body.Data.Name), "Key should have the same name")
 	})
 
@@ -671,7 +690,7 @@ func TestSuccess(t *testing.T) {
 		api2 := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api2.KeyAuthID.String,
+			KeySpaceID:  api2.KeyAuthID.String,
 		})
 		rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("api.%s.verify_key", api.ID))
 
@@ -691,7 +710,7 @@ func TestSuccess(t *testing.T) {
 
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 	})
 
 	t.Run("root key without sufficient permissions", func(t *testing.T) {

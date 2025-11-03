@@ -2,6 +2,8 @@
 package retry
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -12,7 +14,7 @@ type retry struct {
 	attempts int
 
 	// backoff is a function that returns the duration to wait before the next retry
-	// based on the current attempt number (zero-based)
+	// based on the current attempt number (starting at 1)
 	backoff func(n int) time.Duration
 
 	// shouldRetry is a function that determines if an error is retryable
@@ -24,14 +26,14 @@ type retry struct {
 	sleep func(d time.Duration)
 }
 
-// Build creates a new retry instance with default configuration.
+// New creates a new retry instance with default configuration.
 // Default configuration:
 //   - 3 retry attempts
 //   - Linear backoff starting at 100ms, increasing by 100ms per attempt
 //
 // Example:
 //
-//	r := retry.Build()
+//	r := retry.New()
 //	err := r.Do(func() error {
 //		// Simulate an operation that might fail
 //		resp, err := http.Get("https://api.example.com")
@@ -52,7 +54,7 @@ type retry struct {
 //
 // The retry behavior can be customized using Attempts() and Backoff():
 //
-// r := retry.Build(
+// r := retry.New(
 //
 //	retry.Attempts(5),
 //	retry.Backoff(func(n int) time.Duration {
@@ -90,7 +92,6 @@ func Attempts(attempts int) Apply {
 // should return the duration to wait before the next attempt.
 func Backoff(backoff func(n int) time.Duration) Apply {
 	return func(r *retry) *retry {
-
 		r.backoff = backoff
 		return r
 	}
@@ -153,4 +154,110 @@ func (r *retry) Do(fn func() error) error {
 	}
 
 	return err
+}
+
+// DoWithResult executes the given function with configured retry behavior and returns a result.
+// Works like Do() but for functions that return a value along with an error.
+// On failure, returns the result from the last attempt along with the final error.
+//
+// Example:
+//
+//	r := retry.New(retry.Attempts(3))
+//	user, err := retry.DoWithResult(r, func() (*User, error) {
+//		return fetchUserFromAPI(userID)
+//	})
+//	if err != nil {
+//		log.Printf("failed to fetch user after 3 attempts: %v", err)
+//	}
+func DoWithResult[T any](r *retry, fn func() (T, error)) (T, error) {
+	var result T
+	err := r.Do(func() error {
+		var retryErr error
+		result, retryErr = fn()
+		return retryErr
+	})
+	return result, err
+}
+
+// DoContext executes the given function with configured retry behavior while respecting context cancellation and deadlines.
+// The function is retried until it succeeds, the maximum number of attempts is reached, or the context is cancelled/expired.
+//
+// Context awareness:
+//   - Checks context before each attempt and returns immediately if cancelled or deadline exceeded
+//   - Uses select during backoff sleep to detect context cancellation without waiting for full sleep duration
+//   - Returns context.Canceled if context was cancelled, or context.DeadlineExceeded if deadline passed
+//
+// Returns nil if the operation succeeds, the context error if context is done, or the last error encountered if all retries fail
+// or if the error is non-retryable according to shouldRetry.
+// Returns an error if attempts is configured to less than 1.
+//
+// Example:
+//
+//	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+//	defer cancel()
+//
+//	r := retry.New(retry.Attempts(3))
+//	err := r.DoContext(ctx, func() error {
+//		return someNetworkCall()
+//	})
+func (r *retry) DoContext(ctx context.Context, fn func() error) error {
+	if r.attempts < 1 {
+		return fmt.Errorf("attempts must be greater than 0")
+	}
+
+	var err error
+	for i := 1; i <= r.attempts; i++ {
+		// Check BEFORE attempt for context.Canceled or context.DeadlineExceeded errors
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
+		}
+
+		err = fn()
+		if err == nil {
+			return nil
+		}
+
+		// Without this check there is no way to catch derived context cancellations. E.g.
+		//
+		// ctx := context.Background()
+		// err := retrier.DoContext(ctx, func() error {
+		// 	derivedCtx, cancel := context.WithTimeout(ctx, 1*time.Nanosecond) ----> We can't catch this
+		// 	defer cancel()
+		// 	return derivedCtx.Err()
+		// })
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return err
+		}
+
+		// Check if we should retry this error
+		if r.shouldRetry != nil && !r.shouldRetry(err) {
+			// Error is not retryable, return immediately
+			return err
+		}
+
+		if i < r.attempts {
+			timer := time.NewTimer(r.backoff(i))
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return ctx.Err()
+			case <-timer.C:
+			}
+		}
+	}
+
+	return err
+}
+
+// DoWithResultContext executes the given function with configured retry behavior, context support, and returns a result.
+// Works like DoContext() but for functions that return a value along with an error.
+// On failure, returns the result from the last attempt along with the final error.
+func DoWithResultContext[T any](r *retry, ctx context.Context, fn func() (T, error)) (T, error) {
+	var result T
+	err := r.DoContext(ctx, func() error {
+		var retryErr error
+		result, retryErr = fn()
+		return retryErr
+	})
+	return result, err
 }

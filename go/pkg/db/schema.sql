@@ -333,6 +333,7 @@ CREATE TABLE `projects` (
 	`live_deployment_id` varchar(256),
 	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`default_branch` varchar(256) DEFAULT 'main',
+	`depot_project_id` varchar(255),
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -352,7 +353,7 @@ CREATE TABLE `deployments` (
 	`git_commit_author_avatar_url` varchar(512),
 	`git_commit_timestamp` bigint,
 	`runtime_config` json NOT NULL,
-	`openapi_spec` text,
+	`openapi_spec` longblob,
 	`status` enum('pending','building','deploying','network','ready','failed') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -435,3 +436,4 @@ CREATE INDEX `project_idx` ON `domains` (`project_id`);
 CREATE INDEX `deployment_idx` ON `domains` (`deployment_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
 CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
+

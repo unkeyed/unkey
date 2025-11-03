@@ -71,7 +71,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
           <div className="inline-flex gap-2">
             <span>Delete API </span>
             {api.deleteProtection && (
-              <StatusBadge variant={"locked"} text={"Locked"} icon={<Lock size="sm-thin" />} />
+              <StatusBadge variant={"locked"} text={"Locked"} icon={<Lock iconSize="sm-thin" />} />
             )}
           </div>
         }
