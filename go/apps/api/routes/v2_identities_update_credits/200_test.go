@@ -102,7 +102,7 @@ func TestIdentityUpdateCreditsSuccess(t *testing.T) {
 
 	increaseBy := int64(rand.IntN(50) + 1)
 	t.Run(fmt.Sprintf("increase credits by %d", increaseBy), func(t *testing.T) {
-		// Get current credits before decrement
+		// Get current credits before increment
 		credits, err := db.Query.FindCreditsByIdentityID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
 		require.NoError(t, err)
 		currentCredits := int64(credits.Remaining)

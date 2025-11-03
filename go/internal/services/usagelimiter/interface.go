@@ -8,12 +8,12 @@ type Service interface {
 	// If the given Identifier has exceeded its usage limit, an error is returned.
 	Limit(ctx context.Context, req UsageRequest) (UsageResponse, error)
 
-	// Invalidate removes the cached limit for the given Identifier.
-	// The Identifier parameter accepts either a KeyID (for legacy key-based credits)
+	// Invalidate removes the cached limit for the given identifier.
+	// The identifier parameter accepts either a KeyID (for legacy key-based credits)
 	// or a CreditID (for new credits system). The implementation attempts to invalidate
 	// both formats since the caller may not know which system is in use.
 	// Examples: "key_123abc" or "credit_456def"
-	Invalidate(ctx context.Context, Identifier string) error
+	Invalidate(ctx context.Context, identifier string) error
 
 	// Close gracefully shuts down the usage limiter service.
 	Close() error

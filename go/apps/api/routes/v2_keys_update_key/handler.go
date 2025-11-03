@@ -417,8 +417,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 							}
 						}
 					}
-				} else {
-					// No existing credits - create new credits in new table
+				} else if !hasLegacyCredits && !req.Credits.IsNull() {
+					// No existing credits (neither new nor legacy) - create new credits in new table
 					credits := req.Credits.MustGet()
 					if credits.Remaining.IsSpecified() && !credits.Remaining.IsNull() {
 						creditID := uid.New(uid.CreditPrefix)
@@ -427,7 +427,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						var refillDay sql.NullInt16
 						var refillAmount sql.NullInt32
 
-						if credits.Refill != nil && !credits.Refill.IsNull() {
+						if credits.Refill.IsSpecified() && !credits.Refill.IsNull() {
 							refill := credits.Refill.MustGet()
 							refillAmount = sql.NullInt32{
 								Valid: true,

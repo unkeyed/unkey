@@ -618,6 +618,19 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 
 		// Check metadata
 		require.NotNil(t, identity.Meta)
+		var dbMeta map[string]any
+		err = json.Unmarshal(identity.Meta, &dbMeta)
+		require.NoError(t, err)
+		require.Equal(t, "enterprise", dbMeta["plan"])
+		require.Equal(t, float64(3), dbMeta["tier"])
+
+		// Check ratelimits
+		rateLimits, err := db.Query.ListIdentityRatelimitsByID(ctx, h.DB.RO(), sql.NullString{String: identity.ID, Valid: true})
+		require.NoError(t, err)
+		require.Len(t, rateLimits, 1)
+		require.Equal(t, "api_requests", rateLimits[0].Name)
+		require.Equal(t, int32(1000), rateLimits[0].Limit)
+		require.Equal(t, int64(60000), rateLimits[0].Duration)
 
 		// Check credits
 		require.True(t, identity.CreditID.Valid)
