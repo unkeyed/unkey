@@ -209,7 +209,6 @@ func (c *consumer[T]) consumeLoop(ctx context.Context) {
 			if err != nil {
 				// Check if context was cancelled
 				if ctx.Err() != nil {
-					c.logger.Info("Consumer loop stopped - context cancelled", "topic", c.topic)
 					return
 				}
 
@@ -234,8 +233,6 @@ func (c *consumer[T]) consumeLoop(ctx context.Context) {
 				c.logger.Warn("Failed to deserialize protobuf message", "error", err.Error(), "topic", c.topic)
 				continue
 			}
-
-			c.logger.Info("Received event from Kafka", "topic", c.topic, "partition", msg.Partition, "offset", msg.Offset, "event", fmt.Sprintf("%#v", t))
 
 			// Call handler
 			if c.handler != nil {
