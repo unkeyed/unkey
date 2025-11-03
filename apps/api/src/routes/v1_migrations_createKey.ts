@@ -493,7 +493,11 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             keyId: key.keyId,
             identityId: null,
             refillAmount: key.refill?.amount ?? null,
-            refillDay: key.refill?.interval === "daily" ? null : (key?.refill?.refillDay ?? 1),
+            refillDay: key.refill
+              ? key.refill.interval === "daily"
+                ? null
+                : (key.refill.refillDay ?? 1)
+              : null,
             refilledAt: key.refill?.interval ? Date.now() : null,
             updatedAt: null,
           });

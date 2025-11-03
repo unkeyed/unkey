@@ -199,18 +199,27 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
             })
             .where(eq(schema.keys.id, req.keyId));
         } else if (req.value !== null) {
-          await db.primary.insert(schema.credits).values({
-            id: newId("credit"),
-            keyId: req.keyId,
-            remaining: req.value,
-            workspaceId: auth.authorizedWorkspaceId,
-            createdAt: Date.now(),
-            refilledAt: Date.now(),
-            identityId: null,
-            refillAmount: null,
-            refillDay: null,
-            updatedAt: null,
-          });
+          // Use upsert to prevent race condition with concurrent set operations
+          await db.primary
+            .insert(schema.credits)
+            .values({
+              id: newId("credit"),
+              keyId: req.keyId,
+              remaining: req.value,
+              workspaceId: auth.authorizedWorkspaceId,
+              createdAt: Date.now(),
+              refilledAt: Date.now(),
+              identityId: null,
+              refillAmount: null,
+              refillDay: null,
+              updatedAt: null,
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                remaining: req.value,
+                updatedAt: Date.now(),
+              },
+            });
         }
         break;
       }

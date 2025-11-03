@@ -404,22 +404,38 @@ export const registerV1KeysUpdate = (app: App) =>
         // Key doesn't have old system so we use new system from the getgo
         const newCreditId = newId("credit");
         creditCreatedId = newCreditId;
-        await db.primary.insert(schema.credits).values({
-          id: newCreditId,
-          keyId: key.id,
-          workspaceId: auth.authorizedWorkspaceId,
-          createdAt: Date.now(),
-          refilledAt: Date.now(),
-          remaining: req.remaining as number,
-          identityId: null,
-          refillAmount: req.refill?.amount ?? null,
-          refillDay: req.refill
-            ? req.refill.interval === "monthly"
-              ? (req.refill.refillDay ?? 1)
-              : null
-            : null,
-          updatedAt: null,
-        });
+        // Use upsert to prevent race condition with concurrent updates
+        await db.primary
+          .insert(schema.credits)
+          .values({
+            id: newCreditId,
+            keyId: key.id,
+            workspaceId: auth.authorizedWorkspaceId,
+            createdAt: Date.now(),
+            refilledAt: Date.now(),
+            remaining: req.remaining as number,
+            identityId: null,
+            refillAmount: req.refill?.amount ?? null,
+            refillDay: req.refill
+              ? req.refill.interval === "monthly"
+                ? (req.refill.refillDay ?? 1)
+                : null
+              : null,
+            updatedAt: null,
+          })
+          .onDuplicateKeyUpdate({
+            set: {
+              remaining: req.remaining as number,
+              refillAmount: req.refill?.amount ?? null,
+              refillDay: req.refill
+                ? req.refill.interval === "monthly"
+                  ? (req.refill.refillDay ?? 1)
+                  : null
+                : null,
+              refilledAt: req.refill?.interval ? Date.now() : null,
+              updatedAt: Date.now(),
+            },
+          });
       }
     }
 
