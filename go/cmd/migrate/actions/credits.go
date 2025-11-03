@@ -31,8 +31,8 @@ unkey migrate credits --batch-size 1000  # Run migration with custom batch size`
 	Flags: []cli.Flag{
 		cli.Bool("dry-run", "Preview migration without making changes"),
 		cli.Int("batch-size", "Number of keys to process in each batch", cli.Default(1000)),
-		cli.String("primary-dsn", "Primary database DSN", cli.Required()),
-		cli.String("readonly-dsn", "Read-only database DSN (optional)"),
+		cli.String("database-primary", "MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true",
+			cli.Required(), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
 	},
 	Action: migrateCredits,
 }
@@ -43,8 +43,7 @@ func migrateCredits(ctx context.Context, cmd *cli.Command) error {
 	// Parse flags
 	dryRun := cmd.Bool("dry-run")
 	batchSize := cmd.Int("batch-size")
-	primaryDSN := cmd.String("primary-dsn")
-	readonlyDSN := cmd.String("readonly-dsn")
+	primaryDSN := cmd.String("database-primary")
 
 	if dryRun {
 		logger.Info("Running in dry-run mode - no changes will be made")
@@ -53,7 +52,7 @@ func migrateCredits(ctx context.Context, cmd *cli.Command) error {
 	// Initialize database
 	database, err := db.New(db.Config{
 		PrimaryDSN:  primaryDSN,
-		ReadOnlyDSN: readonlyDSN,
+		ReadOnlyDSN: "",
 		Logger:      logger,
 	})
 	if err != nil {
@@ -103,15 +102,9 @@ func migrateCredits(ctx context.Context, cmd *cli.Command) error {
 					remaining = key.RemainingRequests.Int32
 				}
 
-				// Handle refilled_at - convert from interface{} (can be nil or int64)
 				var refilledAt sql.NullInt64
-				if key.LastRefillAtUnix != nil {
-					if unixTime, ok := key.LastRefillAtUnix.(int64); ok {
-						refilledAt = sql.NullInt64{
-							Int64: unixTime,
-							Valid: true,
-						}
-					}
+				if key.LastRefillAt.Valid {
+					refilledAt = sql.NullInt64{Int64: key.LastRefillAt.Time.UnixMilli(), Valid: true}
 				}
 
 				creditParams = append(creditParams, db.InsertCreditParams{

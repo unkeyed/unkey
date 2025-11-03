@@ -11,22 +11,17 @@ import (
 )
 
 const findKeysWithoutCredits = `-- name: FindKeysWithoutCredits :many
-SELECT 
+SELECT
     k.id,
     k.workspace_id,
     k.remaining_requests,
     k.refill_day,
     k.refill_amount,
-    CASE 
-        WHEN k.last_refill_at IS NULL THEN NULL 
-        ELSE UNIX_TIMESTAMP(k.last_refill_at) * 1000 
-    END as last_refill_at_unix,
-    k.created_at_m,
-    k.updated_at_m
+    k.last_refill_at,
+    k.created_at_m
 FROM ` + "`" + `keys` + "`" + ` k
 LEFT JOIN ` + "`" + `credits` + "`" + ` c ON c.key_id = k.id
-WHERE k.deleted_at_m IS NULL
-    AND k.remaining_requests IS NOT NULL
+WHERE k.remaining_requests IS NOT NULL
     AND c.id IS NULL
 ORDER BY k.created_at_m DESC
 LIMIT ?
@@ -44,9 +39,8 @@ type FindKeysWithoutCreditsRow struct {
 	RemainingRequests sql.NullInt32 `db:"remaining_requests"`
 	RefillDay         sql.NullInt16 `db:"refill_day"`
 	RefillAmount      sql.NullInt32 `db:"refill_amount"`
-	LastRefillAtUnix  interface{}   `db:"last_refill_at_unix"`
+	LastRefillAt      sql.NullTime  `db:"last_refill_at"`
 	CreatedAtM        int64         `db:"created_at_m"`
-	UpdatedAtM        sql.NullInt64 `db:"updated_at_m"`
 }
 
 // FindKeysWithoutCredits
@@ -57,16 +51,11 @@ type FindKeysWithoutCreditsRow struct {
 //	    k.remaining_requests,
 //	    k.refill_day,
 //	    k.refill_amount,
-//	    CASE
-//	        WHEN k.last_refill_at IS NULL THEN NULL
-//	        ELSE UNIX_TIMESTAMP(k.last_refill_at) * 1000
-//	    END as last_refill_at_unix,
-//	    k.created_at_m,
-//	    k.updated_at_m
+//	    k.last_refill_at,
+//	    k.created_at_m
 //	FROM `keys` k
 //	LEFT JOIN `credits` c ON c.key_id = k.id
-//	WHERE k.deleted_at_m IS NULL
-//	    AND k.remaining_requests IS NOT NULL
+//	WHERE k.remaining_requests IS NOT NULL
 //	    AND c.id IS NULL
 //	ORDER BY k.created_at_m DESC
 //	LIMIT ?
@@ -86,9 +75,8 @@ func (q *Queries) FindKeysWithoutCredits(ctx context.Context, db DBTX, arg FindK
 			&i.RemainingRequests,
 			&i.RefillDay,
 			&i.RefillAmount,
-			&i.LastRefillAtUnix,
+			&i.LastRefillAt,
 			&i.CreatedAtM,
-			&i.UpdatedAtM,
 		); err != nil {
 			return nil, err
 		}
