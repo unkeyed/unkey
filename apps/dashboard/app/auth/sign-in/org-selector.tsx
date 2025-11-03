@@ -1,6 +1,13 @@
 "use client";
 
-import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
+import {
+  Empty,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@unkey/ui";
 import type { Organization } from "@/lib/auth/types";
 import { Button, DialogContainer, Loading } from "@unkey/ui";
 import type React from "react";
@@ -10,9 +17,13 @@ import { SignInContext } from "../context/signin-context";
 
 interface OrgSelectorProps {
   organizations: Organization[];
+  lastOrgId?: string;
 }
 
-export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
+export const OrgSelector: React.FC<OrgSelectorProps> = ({
+  organizations,
+  lastOrgId,
+}) => {
   const context = useContext(SignInContext);
   if (!context) {
     throw new Error("OrgSelector must be used within SignInProvider");
@@ -20,6 +31,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
   const { setError } = context;
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAttemptingAutoSignIn, setIsAttemptingAutoSignIn] = useState(false);
   const [clientReady, setClientReady] = useState(false);
   const [selectedOrgId, setSelectedOrgId] = useState("");
   const [hasAttemptedAutoSelection, setHasAttemptedAutoSelection] =
@@ -29,19 +41,13 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
     setClientReady(true);
   }, []);
 
-  const orgOptions: ComboboxOption[] = useMemo(() => {
+  const sortedOrgs = useMemo(() => {
     // Sort: recently created first (as proxy for recently used until we track that)
-    const sorted = [...organizations].sort((a, b) => {
+    return [...organizations].sort((a, b) => {
       const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return bDate - aDate; // Newest first
     });
-
-    return sorted.map((org) => ({
-      label: org.name,
-      value: org.id,
-      searchValue: org.name.toLowerCase(),
-    }));
   }, [organizations]);
 
   const submit = useCallback(
@@ -59,7 +65,8 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
           setIsLoading(false);
           return false;
         }
-        // On success, the page will redirect, so we don't need to reset loading state
+        // On success, redirect to the dashboard
+        window.location.href = result.redirectTo;
         return true;
       } catch (error) {
         const errorMessage =
@@ -72,47 +79,33 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
         return false;
       }
     },
-    [setError, completeOrgSelection]
+    [isLoading]
   );
 
   const handleSubmit = useCallback(() => {
     submit(selectedOrgId);
   }, [submit, selectedOrgId]);
 
-  // Helper function to get cookie value on client side
-  const getCookie = (name: string): string | null => {
-    if (typeof document === "undefined") {
-      return null;
-    }
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) {
-      return parts.pop()?.split(";").shift() || null;
-    }
-    return null;
-  };
-
   // Auto-select last used organization if available
   useEffect(() => {
-    if (!clientReady || hasAttemptedAutoSelection) {
+    if (!clientReady) {
       return;
     }
 
     setHasAttemptedAutoSelection(true);
 
-    // Get the last used organization ID from cookie
-    const lastUsedOrgId = getCookie("unkey_last_org_used");
-
-    if (lastUsedOrgId) {
+    if (lastOrgId) {
       // Check if the stored orgId exists in the current list of organizations
-      const orgExists = orgOptions.some((opt) => opt.value === lastUsedOrgId);
+      const orgExists = sortedOrgs.some((org) => org.id === lastOrgId);
 
       if (orgExists) {
+        // Show loading state while attempting auto sign-in
+        setIsAttemptingAutoSignIn(true);
         // Auto-submit this organization and handle failure by reopening the dialog
-        submit(lastUsedOrgId).then((success) => {
+        submit(lastOrgId).then((success) => {
           if (!success) {
             // If auto-submit fails, pre-select the last used org and open the dialog for manual selection
-            setSelectedOrgId(lastUsedOrgId);
+            setSelectedOrgId(lastOrgId);
             setIsOpen(true);
           }
         });
@@ -121,65 +114,75 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations }) => {
     }
 
     // If no auto-selection, show the modal with first org pre-selected (from sorted array)
-    // Use orgOptions[0].value to ensure the pre-selected value matches the displayed first option
-    if (orgOptions.length > 0 && orgOptions[0]?.value) {
-      setSelectedOrgId(orgOptions[0].value);
+    // Use sortedOrgs[0].id to ensure the pre-selected value matches the displayed first option
+    if (sortedOrgs.length > 0 && sortedOrgs[0]?.id) {
+      setSelectedOrgId(sortedOrgs[0].id);
     }
-    setIsOpen(true);
-  }, [clientReady, orgOptions, hasAttemptedAutoSelection, submit]);
+  }, [clientReady, sortedOrgs, hasAttemptedAutoSelection, submit, lastOrgId]);
 
   return (
-    <DialogContainer
-      className="dark bg-black"
-      isOpen={clientReady && isOpen}
-      onOpenChange={(open) => {
-        setIsOpen(open);
-      }}
-      title="Select your workspace"
-      footer={
-        <div className="flex items-center justify-center text-sm w-full text-content-subtle">
-          Select a workspace to sign in.
-        </div>
-      }
-    >
-      <div className="flex flex-col gap-6 w-full">
-        {/* Workspace selector */}
-        <div className="flex flex-col gap-4">
-          <label
-            htmlFor="workspace-selector"
-            className="text-sm font-medium text-content"
-          >
-            Workspace
-          </label>
-          <Combobox
-            id="workspace-selector"
-            options={orgOptions}
-            value={selectedOrgId}
-            onSelect={setSelectedOrgId}
-            placeholder="Select a workspace..."
-            searchPlaceholder="Search workspaces..."
-            emptyMessage="No workspaces found."
-            disabled={isLoading}
-          />
-        </div>
-
-        {/* Submit button */}
-        <Button
-          onClick={handleSubmit}
-          disabled={isLoading || !selectedOrgId}
-          className="w-full"
-          size="lg"
-        >
-          {isLoading ? (
-            <div className="flex items-center justify-center gap-2">
-              <Loading type="dots" size={20} />
-              <span>Signing in...</span>
+    !isAttemptingAutoSignIn && (
+      <DialogContainer
+        className="dark bg-black"
+        isOpen={clientReady && isOpen}
+        onOpenChange={(open) => {
+          setIsOpen(open);
+        }}
+        title={!isAttemptingAutoSignIn ? "Select your workspace" : ""}
+        footer={
+          !isAttemptingAutoSignIn && (
+            <div className="flex items-center justify-center text-sm w-full text-content-subtle">
+              Select a workspace to sign in.
             </div>
-          ) : (
-            "Continue"
-          )}
-        </Button>
-      </div>
-    </DialogContainer>
+          )
+        }
+      >
+        <div className="flex flex-col gap-6 w-full">
+          {/* Workspace selector */}
+
+          <div className="flex flex-col gap-4">
+            <label
+              htmlFor="workspace-selector"
+              className="text-sm font-medium text-content"
+            >
+              Workspace
+            </label>
+            <Select
+              value={selectedOrgId}
+              onValueChange={setSelectedOrgId}
+              disabled={isLoading}
+            >
+              <SelectTrigger id="workspace-selector">
+                <SelectValue placeholder="Select a workspace..." />
+              </SelectTrigger>
+              <SelectContent>
+                {sortedOrgs.map((org) => (
+                  <SelectItem key={org.id} value={org.id}>
+                    {org.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Submit button */}
+          <Button
+            onClick={handleSubmit}
+            disabled={isLoading || !selectedOrgId}
+            className="w-full"
+            size="lg"
+          >
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2">
+                <Loading type="spinner" size={100} />
+                <span>Signing in...</span>
+              </div>
+            ) : (
+              "Continue"
+            )}
+          </Button>
+        </div>
+      </DialogContainer>
+    )
   );
 };

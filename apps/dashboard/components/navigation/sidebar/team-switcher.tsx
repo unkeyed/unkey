@@ -56,9 +56,6 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
           token: sessionData.token,
           expiresAt: sessionData.expiresAt,
         });
-
-        // Instead of messing with the cache, we can simply redirect the user and we will refetch the user data.
-        window.location.replace("/");
       } catch (error) {
         console.error("Failed to set session cookie:", error);
         toast.error("Failed to complete workspace switch. Please try again.");
@@ -83,6 +80,9 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
         // Swallow the error with a debug log - preference storage failure should not interrupt user flow
         console.debug("Failed to store last used workspace preference:", error);
       }
+
+      // Instead of messing with the cache, we can simply redirect the user and we will refetch the user data.
+      window.location.replace("/");
     },
     onError(error) {
       console.error("Failed to switch workspace: ", error);

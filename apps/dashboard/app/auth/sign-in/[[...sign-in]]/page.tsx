@@ -2,12 +2,13 @@
 
 import { FadeIn } from "@/components/landing/fade-in";
 import { ArrowRight } from "@unkey/icons";
-import { Loading } from "@unkey/ui";
+import { Loading, Empty } from "@unkey/ui";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ErrorBanner, WarnBanner } from "../../banners";
 import { SignInProvider } from "../../context/signin-context";
+import { completeOrgSelection } from "../../actions";
 import { useSignIn } from "../../hooks";
 import { EmailCode } from "../email-code";
 import { EmailSignIn } from "../email-signin";
@@ -30,13 +31,40 @@ function SignInContent() {
   const verifyParam = searchParams?.get("verify");
   const invitationToken = searchParams?.get("invitation_token");
   const invitationEmail = searchParams?.get("email");
-
   // Initialize isLoading as false
   const [isLoading, setIsLoading] = useState(false);
 
   // Add clientReady state to handle hydration
   const [clientReady, setClientReady] = useState(false);
   const hasAttemptedSignIn = useRef(false);
+
+  // Helper function to get cookie value on client side
+  const getCookie = (name: string): string | null => {
+    if (typeof document === "undefined") {
+      return null;
+    }
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+      return parts.pop()?.split(";").shift() || null;
+    }
+    return null;
+  };
+
+  const lastUsedOrgId = getCookie("unkey_last_org_used");
+  if (hasPendingAuth && lastUsedOrgId) {
+    setIsLoading(true);
+    completeOrgSelection(lastUsedOrgId).then((result) => {
+      if (!result.success) {
+        setError(result.message);
+        setIsLoading(false);
+        return false;
+      }
+      // On success, redirect to the dashboard
+      window.location.href = result.redirectTo;
+      return true;
+    });
+  }
 
   // Set clientReady to true after hydration
   useEffect(() => {
@@ -87,15 +115,19 @@ function SignInContent() {
     handleSignInViaEmail,
   ]);
 
-  // Show a loading indicator only when isLoading is true AND client has hydrated
-  if (clientReady && isLoading) {
-    return <Loading />;
+  // // Show a loading indicator only when isLoading is true AND client has hydrated
+  // if (clientReady && isLoading) {
+  //   return <Loading />;
+  // }
+  if (isLoading && clientReady) {
+    <Empty>
+      <Loading type="spinner" />
+    </Empty>;
   }
-
-  return (
+  return hasPendingAuth ? (
+    <OrgSelector organizations={orgs} lastOrgId={lastUsedOrgId || undefined} />
+  ) : (
     <div className="flex flex-col gap-10">
-      {hasPendingAuth && <OrgSelector organizations={orgs} />}
-
       {accountNotFound && (
         <WarnBanner>
           <div className="flex items-center justify-between w-full gap-2">
