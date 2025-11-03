@@ -50,12 +50,12 @@ func (t *Topic[T]) NewProducer() Producer[T] {
 			Addr:         kafka.TCP(t.brokers...),
 			Topic:        t.topic,
 			Balancer:     &kafka.LeastBytes{},
-			RequiredAcks: kafka.RequireNone, // Fire-and-forget for maximum speed
-			Async:        true,               // Async for better performance
-			ReadTimeout:  1 * time.Second,  // Reduced from 10s
-			WriteTimeout: 1 * time.Second,  // Reduced from 10s
-			BatchSize:    100,              // Batch up to 100 messages
-			BatchBytes:   1048576,          // Batch up to 1MB
+			RequiredAcks: kafka.RequireNone,     // Fire-and-forget for maximum speed
+			Async:        true,                  // Async for better performance
+			ReadTimeout:  1 * time.Second,       // Reduced from 10s
+			WriteTimeout: 1 * time.Second,       // Reduced from 10s
+			BatchSize:    100,                   // Batch up to 100 messages
+			BatchBytes:   1048576,               // Batch up to 1MB
 			BatchTimeout: 10 * time.Millisecond, // Send batch after 10ms even if not full
 		},
 		instanceID: t.instanceID,
@@ -123,21 +123,17 @@ func (t *Topic[T]) NewProducer() Producer[T] {
 //	    return err
 //	}
 func (p *producer[T]) Produce(ctx context.Context, events ...T) error {
-	start := time.Now()
-	defer func() {
-		p.logger.Info("Producer duration", "took", time.Since(start))
-	}()
-
 	if len(events) == 0 {
 		return nil
 	}
 
 	// Create messages for all events
 	messages := make([]kafka.Message, 0, len(events))
-	for _, event := range events {
+	for i, event := range events {
 		// Serialize event to protobuf
 		data, err := proto.Marshal(event)
 		if err != nil {
+			p.logger.Error("Failed to serialize event", "error", err.Error(), "topic", p.topic, "event_index", i)
 			return err
 		}
 
@@ -153,7 +149,13 @@ func (p *producer[T]) Produce(ctx context.Context, events ...T) error {
 	}
 
 	// Publish all messages in a single batch
-	return p.writer.WriteMessages(ctx, messages...)
+	err := p.writer.WriteMessages(ctx, messages...)
+	if err != nil {
+		p.logger.Error("Failed to publish events to Kafka", "error", err.Error(), "topic", p.topic, "event_count", len(events))
+		return err
+	}
+
+	return nil
 }
 
 // Close gracefully shuts down the producer and releases its resources.

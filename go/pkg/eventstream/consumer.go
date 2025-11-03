@@ -209,7 +209,7 @@ func (c *consumer[T]) consumeLoop(ctx context.Context) {
 				if !isEOF(err) {
 					c.logger.Warn("Failed to read message from Kafka", "error", err.Error(), "topic", c.topic)
 				}
-				
+
 				continue
 			}
 
