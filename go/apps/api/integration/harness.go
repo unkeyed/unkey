@@ -102,7 +102,6 @@ func New(t *testing.T, config Config) *Harness {
 
 	// Create dynamic API container cluster for chaos testing
 	kafkaBrokers := containers.Kafka(t)
-	t.Logf("DEBUG: Kafka brokers from containers: %#v", kafkaBrokers)
 
 	cluster := h.RunAPI(ApiConfig{
 		Nodes:         config.NumNodes,

@@ -71,6 +71,11 @@ func (t *Topic[T]) NewConsumer(opts ...ConsumerOption) Consumer[T] {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
+	// Return noop consumer if brokers are not configured
+	if len(t.brokers) == 0 {
+		return newNoopConsumer[T]()
+	}
+
 	consumer := &consumer[T]{
 		brokers:       t.brokers,
 		topic:         t.topic,

@@ -40,6 +40,11 @@ func (t *Topic[T]) NewProducer() Producer[T] {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
+	// Return noop producer if brokers are not configured
+	if len(t.brokers) == 0 {
+		return newNoopProducer[T]()
+	}
+
 	producer := &producer[T]{
 		writer: &kafka.Writer{
 			Addr:         kafka.TCP(t.brokers...),

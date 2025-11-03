@@ -233,6 +233,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 		// Register topic for graceful shutdown
 		shutdowns.Register(cacheInvalidationTopic.Close)
+	} else {
+		// Use noop topic when Kafka is not configured
+		cacheInvalidationTopic = eventstream.NewNoopTopic[*cachev1.CacheInvalidationEvent]()
 	}
 
 	caches, err := caches.New(caches.Config{
