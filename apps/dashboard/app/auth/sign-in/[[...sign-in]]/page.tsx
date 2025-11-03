@@ -2,13 +2,13 @@
 
 import { FadeIn } from "@/components/landing/fade-in";
 import { ArrowRight } from "@unkey/icons";
-import { Loading, Empty } from "@unkey/ui";
+import { Empty, Loading } from "@unkey/ui";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { completeOrgSelection } from "../../actions";
 import { ErrorBanner, WarnBanner } from "../../banners";
 import { SignInProvider } from "../../context/signin-context";
-import { completeOrgSelection } from "../../actions";
 import { useSignIn } from "../../hooks";
 import { EmailCode } from "../email-code";
 import { EmailSignIn } from "../email-signin";
@@ -31,12 +31,12 @@ function SignInContent() {
   const verifyParam = searchParams?.get("verify");
   const invitationToken = searchParams?.get("invitation_token");
   const invitationEmail = searchParams?.get("email");
-  // Initialize isLoading as false
-  const [isLoading, setIsLoading] = useState(false);
 
   // Add clientReady state to handle hydration
   const [clientReady, setClientReady] = useState(false);
   const hasAttemptedSignIn = useRef(false);
+  const hasAttemptedAutoOrgSelection = useRef(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Helper function to get cookie value on client side
   const getCookie = (name: string): string | null => {
@@ -51,25 +51,39 @@ function SignInContent() {
     return null;
   };
 
-  const lastUsedOrgId = getCookie("unkey_last_org_used");
-  if (hasPendingAuth && lastUsedOrgId) {
-    setIsLoading(true);
-    completeOrgSelection(lastUsedOrgId).then((result) => {
-      if (!result.success) {
-        setError(result.message);
-        setIsLoading(false);
-        return false;
-      }
-      // On success, redirect to the dashboard
-      window.location.href = result.redirectTo;
-      return true;
-    });
-  }
-
   // Set clientReady to true after hydration
   useEffect(() => {
     setClientReady(true);
   }, []);
+
+  // Handle auto org selection when returning from OAuth
+  useEffect(() => {
+    if (!clientReady || !hasPendingAuth || hasAttemptedAutoOrgSelection.current) {
+      return;
+    }
+
+    const lastUsedOrgId = getCookie("unkey_last_org_used");
+    if (lastUsedOrgId) {
+      hasAttemptedAutoOrgSelection.current = true;
+      setIsLoading(true);
+
+      completeOrgSelection(lastUsedOrgId)
+        .then((result) => {
+          if (!result.success) {
+            setError(result.message);
+            setIsLoading(false);
+            return;
+          }
+          // On success, redirect to the dashboard
+          window.location.href = result.redirectTo;
+        })
+        .catch((err) => {
+          console.error("Auto org selection failed:", err);
+          setError("Failed to automatically sign in. Please select your workspace.");
+          setIsLoading(false);
+        });
+    }
+  }, [clientReady, hasPendingAuth, setError]);
 
   // Handle auto sign-in with invitation token and email
   useEffect(() => {
@@ -115,25 +129,23 @@ function SignInContent() {
     handleSignInViaEmail,
   ]);
 
-  // // Show a loading indicator only when isLoading is true AND client has hydrated
-  // if (clientReady && isLoading) {
-  //   return <Loading />;
-  // }
+  // Show a loading indicator when auto-selecting org
   if (isLoading && clientReady) {
-    <Empty>
-      <Loading type="spinner" />
-    </Empty>;
+    return (
+      <Empty>
+        <Loading type="spinner" />
+        <p className="text-sm text-white/60 mt-4">Signing you in...</p>
+      </Empty>
+    );
   }
   return hasPendingAuth ? (
-    <OrgSelector organizations={orgs} lastOrgId={lastUsedOrgId || undefined} />
+    <OrgSelector organizations={orgs} lastOrgId={getCookie("unkey_last_org_used") || undefined} />
   ) : (
     <div className="flex flex-col gap-10">
       {accountNotFound && (
         <WarnBanner>
           <div className="flex items-center justify-between w-full gap-2">
-            <p className="text-xs">
-              Account not found, did you mean to sign up?
-            </p>
+            <p className="text-xs">Account not found, did you mean to sign up?</p>
             <Link href={`/auth/sign-up?email=${encodeURIComponent(email)}`}>
               <div className="border text-center text-xs border-transparent hover:border-[#FFD55D]/50 text-[#FFD55D] duration-200 p-1 rounded-lg">
                 <ArrowRight iconSize="md-regular" />
@@ -158,10 +170,7 @@ function SignInContent() {
             <h1 className="text-4xl text-white">Sign In</h1>
             <p className="mt-4 text-sm text-md text-white/50">
               New to Unkey?{" "}
-              <Link
-                href="/auth/sign-up"
-                className="ml-2 text-white hover:underline"
-              >
+              <Link href="/auth/sign-up" className="ml-2 text-white hover:underline">
                 Create new account
               </Link>
             </p>
@@ -173,9 +182,7 @@ function SignInContent() {
                 <span className="w-full border-t border-white/20" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-black text-white/40">
-                  or continue using email
-                </span>
+                <span className="px-2 bg-black text-white/40">or continue using email</span>
               </div>
             </div>
             <EmailSignIn />

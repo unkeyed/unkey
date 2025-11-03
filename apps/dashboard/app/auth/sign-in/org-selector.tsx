@@ -1,14 +1,7 @@
 "use client";
 
-import {
-  Empty,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@unkey/ui";
 import type { Organization } from "@/lib/auth/types";
+import { Empty, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { Button, DialogContainer, Loading } from "@unkey/ui";
 import type React from "react";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
@@ -20,10 +13,7 @@ interface OrgSelectorProps {
   lastOrgId?: string;
 }
 
-export const OrgSelector: React.FC<OrgSelectorProps> = ({
-  organizations,
-  lastOrgId,
-}) => {
+export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrgId }) => {
   const context = useContext(SignInContext);
   if (!context) {
     throw new Error("OrgSelector must be used within SignInProvider");
@@ -31,11 +21,9 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({
   const { setError } = context;
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isAttemptingAutoSignIn, setIsAttemptingAutoSignIn] = useState(false);
   const [clientReady, setClientReady] = useState(false);
   const [selectedOrgId, setSelectedOrgId] = useState("");
-  const [hasAttemptedAutoSelection, setHasAttemptedAutoSelection] =
-    useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
   // Set client ready after hydration
   useEffect(() => {
     setClientReady(true);
@@ -79,110 +67,116 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({
         return false;
       }
     },
-    [isLoading]
+    [isLoading],
   );
 
   const handleSubmit = useCallback(() => {
     submit(selectedOrgId);
   }, [submit, selectedOrgId]);
 
-  // Auto-select last used organization if available
+  // Initialize org selector when client is ready
   useEffect(() => {
-    if (!clientReady) {
+    if (!clientReady || hasInitialized) {
       return;
     }
 
-    setHasAttemptedAutoSelection(true);
+    // Pre-select the last used org if it exists in the list, otherwise first org
+    const preselectedOrgId =
+      lastOrgId && sortedOrgs.some((org) => org.id === lastOrgId)
+        ? lastOrgId
+        : sortedOrgs[0]?.id || "";
 
-    if (lastOrgId) {
-      // Check if the stored orgId exists in the current list of organizations
-      const orgExists = sortedOrgs.some((org) => org.id === lastOrgId);
-
-      if (orgExists) {
-        // Show loading state while attempting auto sign-in
-        setIsAttemptingAutoSignIn(true);
-        // Auto-submit this organization and handle failure by reopening the dialog
-        submit(lastOrgId).then((success) => {
-          if (!success) {
-            // If auto-submit fails, pre-select the last used org and open the dialog for manual selection
-            setSelectedOrgId(lastOrgId);
-            setIsOpen(true);
-          }
-        });
-        return;
-      }
-    }
-
-    // If no auto-selection, show the modal with first org pre-selected (from sorted array)
-    // Use sortedOrgs[0].id to ensure the pre-selected value matches the displayed first option
-    if (sortedOrgs.length > 0 && sortedOrgs[0]?.id) {
-      setSelectedOrgId(sortedOrgs[0].id);
-    }
-  }, [clientReady, sortedOrgs, hasAttemptedAutoSelection, submit, lastOrgId]);
+    setSelectedOrgId(preselectedOrgId);
+    setIsOpen(true); // Always show the modal for manual selection
+    setHasInitialized(true);
+  }, [clientReady, sortedOrgs, lastOrgId, hasInitialized]);
 
   return (
-    !isAttemptingAutoSignIn && (
-      <DialogContainer
-        className="dark bg-black"
-        isOpen={clientReady && isOpen}
-        onOpenChange={(open) => {
-          setIsOpen(open);
-        }}
-        title={!isAttemptingAutoSignIn ? "Select your workspace" : ""}
-        footer={
-          !isAttemptingAutoSignIn && (
-            <div className="flex items-center justify-center text-sm w-full text-content-subtle">
-              Select a workspace to sign in.
-            </div>
-          )
-        }
-      >
-        <div className="flex flex-col gap-6 w-full">
-          {/* Workspace selector */}
-
-          <div className="flex flex-col gap-4">
-            <label
-              htmlFor="workspace-selector"
-              className="text-sm font-medium text-content"
-            >
-              Workspace
-            </label>
-            <Select
-              value={selectedOrgId}
-              onValueChange={setSelectedOrgId}
-              disabled={isLoading}
-            >
-              <SelectTrigger id="workspace-selector">
-                <SelectValue placeholder="Select a workspace..." />
-              </SelectTrigger>
-              <SelectContent>
-                {sortedOrgs.map((org) => (
-                  <SelectItem key={org.id} value={org.id}>
-                    {org.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Submit button */}
-          <Button
-            onClick={handleSubmit}
-            disabled={isLoading || !selectedOrgId}
-            className="w-full"
-            size="lg"
-          >
-            {isLoading ? (
-              <div className="flex items-center justify-center gap-2">
-                <Loading type="spinner" size={100} />
-                <span>Signing in...</span>
-              </div>
-            ) : (
-              "Continue"
-            )}
-          </Button>
+    <DialogContainer
+      className="dark bg-black"
+      isOpen={clientReady && isOpen}
+      onOpenChange={(open) => {
+        setIsOpen(open);
+      }}
+      title="Select your workspace"
+      footer={
+        <div className="flex items-center justify-center text-sm w-full text-content-subtle">
+          Select a workspace to sign in.
         </div>
-      </DialogContainer>
-    )
+      }
+    >
+      <div className="flex flex-col gap-6 w-full">
+        {/* Workspace selector */}
+        {sortedOrgs.length === 0 ? (
+          <Empty>
+            <div className="flex flex-col items-center gap-4 text-center">
+              <h3 className="text-lg font-medium text-content">No workspaces found</h3>
+              <p className="text-sm text-content-subtle max-w-md">
+                You don't have access to any workspaces. Please contact your administrator or create
+                a new workspace.
+              </p>
+              <div className="flex flex-col gap-2 w-full max-w-sm">
+                <Button
+                  onClick={() => {
+                    window.location.href = "mailto:support@unkey.dev";
+                  }}
+                  className="w-full"
+                  size="lg"
+                >
+                  Contact Support
+                </Button>
+                <Button
+                  onClick={() => {
+                    window.location.href = "/auth/sign-out";
+                  }}
+                  variant="outline"
+                  className="w-full"
+                  size="lg"
+                >
+                  Sign Out
+                </Button>
+              </div>
+            </div>
+          </Empty>
+        ) : (
+          <>
+            <div className="flex flex-col gap-4">
+              <label htmlFor="workspace-selector" className="text-sm font-medium text-content">
+                Workspace
+              </label>
+              <Select value={selectedOrgId} onValueChange={setSelectedOrgId} disabled={isLoading}>
+                <SelectTrigger id="workspace-selector">
+                  <SelectValue placeholder="Select a workspace..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {sortedOrgs.map((org) => (
+                    <SelectItem key={org.id} value={org.id}>
+                      {org.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Submit button */}
+            <Button
+              onClick={handleSubmit}
+              disabled={isLoading || !selectedOrgId}
+              className="w-full"
+              size="lg"
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Loading type="spinner" />
+                  <span>Signing in...</span>
+                </div>
+              ) : (
+                "Continue"
+              )}
+            </Button>
+          </>
+        )}
+      </div>
+    </DialogContainer>
   );
 };

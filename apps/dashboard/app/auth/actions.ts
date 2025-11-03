@@ -68,7 +68,7 @@ export async function verifyAuthCode(params: {
 
             if (orgSelectionResult.success) {
               // Try to get organization name for better UX in success page
-              const redirectUrl = "/apis";
+              let redirectUrl = "/apis";
               try {
                 const org = await auth.getOrg(invitation.organizationId);
                 if (org?.name) {
@@ -76,7 +76,7 @@ export async function verifyAuthCode(params: {
                     from_invite: "true",
                     org_name: org.name,
                   });
-                  `/join/success?${params.toString()}`;
+                  redirectUrl = `/join/success?${params.toString()}`;
                 }
               } catch (error) {
                 // Don't fail the redirect if we can't get org name
@@ -126,7 +126,7 @@ export async function verifyAuthCode(params: {
           }
 
           // Try to get organization name for better UX
-          const redirectUrl = result.redirectTo;
+          let redirectUrl = result.redirectTo;
           try {
             const org = await auth.getOrg(invitation.organizationId);
             if (org?.name) {
@@ -134,16 +134,16 @@ export async function verifyAuthCode(params: {
                 from_invite: "true",
                 org_name: org.name,
               });
-              `/join/success?${params.toString()}`;
+              redirectUrl = `/join/success?${params.toString()}`;
             } else {
               const params = new URLSearchParams({ from_invite: "true" });
-              `/join/success?${params.toString()}`;
+              redirectUrl = `/join/success?${params.toString()}`;
             }
           } catch (error) {
             // Don't fail if we can't get org name, just use join success without org name
             console.warn("Could not fetch organization name for new user success page:", error);
             const params = new URLSearchParams({ from_invite: "true" });
-            `/join/success?${params.toString()}`;
+            redirectUrl = `/join/success?${params.toString()}`;
           }
 
           return {
@@ -338,6 +338,7 @@ export async function completeOrgSelection(
     }
 
     // Store the last used organization ID in a cookie for auto-selection on next login
+    // This doesn't work on Safari.
     cookies().set("unkey_last_org_used", orgId, {
       httpOnly: false, // Allow client-side access
       secure: true,
