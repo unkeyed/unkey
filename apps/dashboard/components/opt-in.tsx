@@ -1,7 +1,6 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { PostHogEvent } from "@/providers/PostHogProvider";
 import type { Workspace } from "@unkey/db";
 import { Button, Empty, toast } from "@unkey/ui";
 import Link from "next/link";
@@ -17,17 +16,7 @@ type Props = {
 export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
   const router = useRouter();
   const optIn = trpc.workspace.optIntoBeta.useMutation({
-    onMutate() {
-      PostHogEvent({
-        name: "self-serve-opt-in",
-        properties: { feature },
-      });
-    },
     onSuccess() {
-      PostHogEvent({
-        name: "self-serve-opt-in",
-        properties: { feature },
-      });
       toast.success("Successfully opted in");
       router.refresh();
     },

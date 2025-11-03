@@ -73,7 +73,7 @@ export const LoadMoreFooter = ({
               className="[&_svg]:size-[14px] transition-all duration-200 rounded hover:bg-gray-3 transform hover:scale-110"
               title="Maximize"
             >
-              <ArrowsToAllDirections size="sm-regular" />
+              <ArrowsToAllDirections iconSize="sm-regular" />
             </Button>
           </div>
         </button>
@@ -151,7 +151,7 @@ export const LoadMoreFooter = ({
                   onClick={handleClose}
                   title="Minimize"
                 >
-                  <ArrowsToCenter size="lg-regular" />
+                  <ArrowsToCenter iconSize="lg-regular" />
                 </Button>
               </div>
             </div>

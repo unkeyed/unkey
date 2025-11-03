@@ -70,7 +70,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 	h := hash.Sha256(rawKey)
 	key, hit, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.CachedKeyData, error) {
 		// Use database retry with exponential backoff, skipping non-transient errors
-		row, err := db.WithRetry(func() (db.FindKeyForVerificationRow, error) {
+		row, err := db.WithRetryContext(ctx, func() (db.FindKeyForVerificationRow, error) {
 			return db.Query.FindKeyForVerification(ctx, s.db.RO(), h)
 		})
 		if err != nil {
@@ -94,7 +94,6 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 			ParsedIPWhitelist:         parsedIPWhitelist,
 		}, nil
 	}, caches.DefaultFindFirstOp)
-
 	if err != nil {
 		if db.IsNotFound(err) {
 			// nolint:exhaustruct

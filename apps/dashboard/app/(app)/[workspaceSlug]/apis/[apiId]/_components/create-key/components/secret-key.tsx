@@ -31,7 +31,7 @@ export const SecretKey = ({
     >
       <div className="flex items-center justify-between w-full gap-3 pointer-events-auto">
         <div className="flex-shrink-0">
-          <CircleLock size="sm-regular" className="text-gray-12" />
+          <CircleLock iconSize="sm-regular" className="text-gray-12" />
         </div>
         <div className="flex-1 overflow-x-auto min-w-0">
           {" "}

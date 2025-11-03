@@ -80,7 +80,7 @@ export const ProjectDetailsExpandable = ({
           {/* Details Header */}
           <div className="h-10 flex items-center justify-between border-b border-grayA-4 px-4 bg-gray-1 sticky top-0 z-10">
             <div className="items-center flex gap-2.5 pl-0.5 py-2">
-              <Book2 size="md-medium" />
+              <Book2 iconSize="md-medium" />
               <span className="text-accent-12 font-medium text-sm">Details</span>
             </div>
             <InfoTooltip
@@ -93,7 +93,7 @@ export const ProjectDetailsExpandable = ({
             >
               <Button variant="ghost" size="icon" onClick={onClose}>
                 <DoubleChevronRight
-                  size="lg-medium"
+                  iconSize="lg-medium"
                   className="text-gray-8 transition-transform duration-300 ease-out group-hover:text-gray-12"
                 />
               </Button>
@@ -117,7 +117,7 @@ export const ProjectDetailsExpandable = ({
                   variant="outline"
                   className="size-12 p-0 bg-grayA-3 border border-grayA-3 rounded-xl"
                 >
-                  <Cube size="2xl-medium" className="!size-[20px]" />
+                  <Cube iconSize="2xl-medium" className="!size-[20px]" />
                 </Button>
                 <div className="flex flex-col gap-1">
                   <span className="text-accent-12 font-medium text-sm truncate">

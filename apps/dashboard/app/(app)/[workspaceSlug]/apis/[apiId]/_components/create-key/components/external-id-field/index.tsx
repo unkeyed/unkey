@@ -120,7 +120,7 @@ export const ExternalIdField = ({
                   "text-warning-11",
                 )}
               >
-                <TriangleWarning2 size="sm-regular" />
+                <TriangleWarning2 iconSize="sm-regular" />
               </div>
               <span className="text-[13px] text-gray-12 ">
                 <span className="text-accent-10 font-normal">Create</span> "{trimmedSearchValue}"
@@ -178,7 +178,7 @@ export const ExternalIdField = ({
                     "transition-colors duration-200",
                   )}
                 >
-                  <TriangleWarning2 size="sm-regular" />
+                  <TriangleWarning2 iconSize="sm-regular" />
                 </div>
                 <div className="font-medium text-[13px] leading-7 text-gray-12">
                   External ID not found

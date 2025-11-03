@@ -84,7 +84,7 @@ func TestSuccess(t *testing.T) {
 		keyID := uid.New(uid.KeyPrefix)
 		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:          keyID,
-			KeyringID:   workspace.ID, // Using workspace ID as keyring ID for test
+			KeySpaceID:  workspace.ID, // Using workspace ID as keyring ID for test
 			Hash:        hash.Sha256(uid.New(uid.TestPrefix)),
 			Start:       "test_",
 			WorkspaceID: workspace.ID,

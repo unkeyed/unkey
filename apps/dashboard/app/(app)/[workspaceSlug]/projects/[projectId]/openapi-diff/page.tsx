@@ -4,7 +4,7 @@ import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ArrowRight, Magnifier } from "@unkey/icons";
-import { Loader } from "lucide-react";
+import { Loading } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ProjectContentWrapper } from "../components/project-content-wrapper";
@@ -128,7 +128,7 @@ export default function DiffPage() {
                 disabledDeploymentId={selectedToDeployment}
               />
 
-              <ArrowRight className="shrink-0 text-gray-9 size-[14px]" size="sm-regular" />
+              <ArrowRight className="shrink-0 text-gray-9 size-[14px]" iconSize="sm-regular" />
 
               <DeploymentSelect
                 value={selectedToDeployment}
@@ -172,7 +172,7 @@ export default function DiffPage() {
             <>
               {diffLoading && (
                 <div className="text-center py-12 px-8">
-                  <Loader className="w-6 h-6 mx-auto mb-3 animate-spin text-grayA-9" />
+                  <Loading className="w-6 h-6 mx-auto mb-3 text-grayA-9" />
                   <p className="text-[13px] text-grayA-11 font-medium">Analyzing changes...</p>
                   <p className="text-xs text-grayA-9 mt-1">Comparing API specifications</p>
                 </div>

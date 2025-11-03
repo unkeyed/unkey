@@ -135,7 +135,7 @@ All button variants and color schemes can be combined with different sizes to fi
 Button includes additional features that enhance usability and interaction.
 
 #### With Icons
-Buttons can include icons from the Lucide library for enhanced visual meaning. Icons can be placed before or after text.
+Buttons can include icons from the `@unkey/icons` or Lucide library for enhanced visual meaning. Icons can be placed before or after text.
 
 <WithIconsExample />
 
@@ -150,7 +150,7 @@ For special layouts, buttons can use the `shape` prop.
 - **Color Schemes**: Five color options (default, danger, warning, success, info) for semantic meaning
 - **Size Options**: Five sizes (sm, md, lg, xlg, 2xlg) for different contexts
 - **Interactive States**: Loading, disabled, hover, and focus states
-- **Icon Support**: Built-in support for Lucide icons
+- **Icon Support**: Built-in support for icons
 - **Accessibility**: Full accessibility support with proper ARIA attributes
 - **Responsive Design**: Adapts to different screen sizes
 - **Dark Mode Support**: Consistent appearance in light and dark themes
@@ -241,7 +241,7 @@ The Button component includes default styling with:
 You can customize the appearance using the className prop:
 
 ```tsx
-<Button 
+<Button
   variant="primary"
   color="success"
   className="custom-button-class"

@@ -56,7 +56,7 @@ func TestNotFoundErrors(t *testing.T) {
 	keyName := "Valid Test Key"
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        &keyName,
 	})
 	validKeyID := keyResponse.KeyID
@@ -158,9 +158,9 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create a keyring and key in the other workspace
-		otherKeyAuthID := uid.New(uid.KeyAuthPrefix)
-		err = db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:                 otherKeyAuthID,
+		otherKeySpaceID := uid.New(uid.KeySpacePrefix)
+		err = db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+			ID:                 otherKeySpaceID,
 			WorkspaceID:        otherWorkspaceID,
 			StoreEncryptedKeys: false,
 			DefaultPrefix:      sql.NullString{Valid: true, String: "other"},
@@ -173,7 +173,7 @@ func TestNotFoundErrors(t *testing.T) {
 		otherKeyString := "other_" + uid.New("")
 		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:                otherKeyID,
-			KeyringID:         otherKeyAuthID,
+			KeySpaceID:        otherKeySpaceID,
 			Hash:              hash.Sha256(otherKeyString),
 			Start:             otherKeyString[:4],
 			WorkspaceID:       otherWorkspaceID,

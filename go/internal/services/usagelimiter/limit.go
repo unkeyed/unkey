@@ -13,7 +13,7 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 	ctx, span := tracing.Start(ctx, "usagelimiter.Limit")
 	defer span.End()
 
-	limit, err := db.WithRetry(func() (sql.NullInt32, error) {
+	limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
 		return db.Query.FindKeyCredits(ctx, s.db.RO(), req.KeyId)
 	})
 	if err != nil {

@@ -84,7 +84,7 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
                   disabled={!liveDeploymentId}
                   onClick={() => setIsDetailsOpen(!isDetailsOpen)}
                 >
-                  <DoubleChevronLeft size="lg-medium" className="text-gray-13" />
+                  <DoubleChevronLeft iconSize="lg-medium" className="text-gray-13" />
                 </Button>
               </InfoTooltip>
             }

@@ -76,7 +76,7 @@ func TestDecrementAccuracy(t *testing.T) {
 
 			keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:   api.KeyAuthID.String,
 				Remaining:   ptr.P(int32(tc.totalCredits)),
 			})
 
@@ -225,7 +225,7 @@ func TestDecrementEdgeCases(t *testing.T) {
 
 		keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:   api.KeyAuthID.String,
 			Remaining:   ptr.P(int32(0)),
 		})
 
@@ -261,7 +261,7 @@ func TestDecrementEdgeCases(t *testing.T) {
 
 		keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:   api.KeyAuthID.String,
 			Remaining:   ptr.P(int32(10)),
 		})
 
@@ -311,7 +311,7 @@ func TestDecrementEdgeCases(t *testing.T) {
 
 		keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:   api.KeyAuthID.String,
 			Remaining:   ptr.P(int32(25)),
 		})
 

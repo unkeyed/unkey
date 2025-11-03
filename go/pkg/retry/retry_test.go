@@ -1,7 +1,9 @@
 package retry
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -121,6 +123,7 @@ func TestRetry(t *testing.T) {
 
 // failNTimes returns a function that will fail n times and then return the finalError.
 // If finalError is nil, it will return success after n failures.
+
 func failNTimes(n int) func() error {
 	attempt := 0
 	return func() error {
@@ -291,4 +294,206 @@ func TestDoWithResult(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDoContext(t *testing.T) {
+	tests := []struct {
+		name          string
+		retry         *retry
+		fn            func() error
+		setupContext  func() (context.Context, context.CancelFunc)
+		cancelAfter   time.Duration
+		expectedCalls int
+		expectedError error
+	}{
+		{
+			name:  "context already cancelled before first attempt",
+			retry: New(),
+			fn: func() error {
+				return errors.New("should not be called")
+			},
+			setupContext: func() (context.Context, context.CancelFunc) {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel()
+				return ctx, cancel
+			},
+			expectedCalls: 0,
+			expectedError: context.Canceled,
+		},
+		{
+			name: "context cancelled during backoff sleep",
+			retry: New(
+				Attempts(3),
+				Backoff(func(n int) time.Duration {
+					return time.Duration(n) * 100 * time.Millisecond // 100ms, 200ms, 300ms
+				}),
+			),
+			fn: func() error {
+				return errors.New("temporary error")
+			},
+			setupContext: func() (context.Context, context.CancelFunc) {
+				return context.WithCancel(context.Background())
+			},
+			cancelAfter:   50 * time.Millisecond, // cancel after 50ms, during first sleep(100ms)
+			expectedCalls: 1,
+			expectedError: context.Canceled,
+		},
+		{
+			name: "context deadline exceeded during retry",
+			retry: New(
+				Attempts(3),
+				Backoff(func(n int) time.Duration {
+					return time.Duration(n) * 100 * time.Millisecond // 100ms, 200ms, 300ms
+				}),
+			),
+			fn: func() error {
+				return errors.New("temporary error")
+			},
+			setupContext: func() (context.Context, context.CancelFunc) {
+				// 50ms timeout: enough for attempt1, but deadline exceeded during first sleep(100ms)
+				return context.WithTimeout(context.Background(), 50*time.Millisecond)
+			},
+			expectedCalls: 1,
+			expectedError: context.DeadlineExceeded,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := tt.setupContext()
+			defer cancel()
+
+			// Use fake sleep that respects context cancellation
+			tt.retry.sleep = func(d time.Duration) {
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(d):
+					return
+				}
+			}
+
+			if tt.cancelAfter > 0 {
+				time.AfterFunc(tt.cancelAfter, cancel)
+			}
+
+			calls := 0
+			err := tt.retry.DoContext(ctx, func() error {
+				calls++
+				return tt.fn()
+			})
+
+			require.Equal(t, tt.expectedCalls, calls, "unexpected number of calls")
+			require.ErrorIs(t, err, tt.expectedError)
+		})
+	}
+}
+
+func TestDoWithResultContext(t *testing.T) {
+	t.Run("returns result with context cancelled", func(t *testing.T) {
+		retrier := New(Attempts(3))
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		result, err := DoWithResultContext(retrier, ctx, func() (string, error) {
+			return "should not return", errors.New("should not be called")
+		})
+
+		require.Equal(t, "", result)
+		require.ErrorIs(t, err, context.Canceled)
+	})
+
+	t.Run("returns first result when context deadline hits during first backoff", func(t *testing.T) {
+		retrier := New(
+			Attempts(3),
+			Backoff(func(n int) time.Duration {
+				return time.Duration(n) * 100 * time.Millisecond
+			}),
+		)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+		defer cancel()
+
+		attempts := 0
+		result, err := DoWithResultContext(retrier, ctx, func() (string, error) {
+			attempts++
+			return fmt.Sprintf("attempt%d", attempts), errors.New("temporary error")
+		})
+
+		require.Equal(t, "attempt1", result)
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+	})
+
+	t.Run("returns result from 3rd attempt when 4 attempts configured", func(t *testing.T) {
+		retrier := New(
+			Attempts(4),
+			Backoff(func(n int) time.Duration {
+				return time.Duration(n) * 100 * time.Millisecond
+			}),
+		)
+		retrier.sleep = func(d time.Duration) {
+			time.Sleep(d)
+		}
+
+		// 350ms: attempt1 + sleep(100ms) + attempt2 + sleep(200ms) + attempt3, cancelled during third sleep(300ms)
+		ctx, cancel := context.WithTimeout(context.Background(), 350*time.Millisecond)
+		defer cancel()
+
+		attempts := 0
+		result, err := DoWithResultContext(retrier, ctx, func() (string, error) {
+			attempts++
+			return fmt.Sprintf("attempt%d", attempts), errors.New("temporary error")
+		})
+
+		require.Equal(t, "attempt3", result)
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+	})
+}
+
+func TestContextErrorsAreNonRetryable(t *testing.T) {
+	t.Run("fn returns context.Canceled from derived context - should not retry", func(t *testing.T) {
+		retrier := New(Attempts(3))
+
+		// Mock sleep to track calls
+		totalSleep := time.Duration(0)
+		retrier.sleep = func(d time.Duration) {
+			totalSleep += d
+		}
+
+		ctx := context.Background()
+
+		calls := 0
+		err := retrier.DoContext(ctx, func() error {
+			calls++
+			derivedCtx, cancel := context.WithTimeout(ctx, 1*time.Nanosecond)
+			defer cancel()
+			time.Sleep(1 * time.Millisecond)
+			return derivedCtx.Err()
+		})
+
+		require.Equal(t, 1, calls, "should not retry context errors")
+		require.Equal(t, time.Duration(0), totalSleep, "should not sleep/backoff")
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+	})
+
+	t.Run("fn returns wrapped context.Canceled - should not retry", func(t *testing.T) {
+		retrier := New(Attempts(3))
+
+		totalSleep := time.Duration(0)
+		retrier.sleep = func(d time.Duration) {
+			totalSleep += d
+		}
+
+		ctx := context.Background()
+
+		calls := 0
+		err := retrier.DoContext(ctx, func() error {
+			calls++
+			return fmt.Errorf("operation failed: %w", context.Canceled)
+		})
+
+		require.Equal(t, 1, calls, "should not retry wrapped context errors")
+		require.Equal(t, time.Duration(0), totalSleep, "should not sleep/backoff")
+		require.ErrorIs(t, err, context.Canceled)
+	})
 }

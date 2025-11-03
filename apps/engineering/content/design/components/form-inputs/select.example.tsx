@@ -2,6 +2,7 @@
 
 import { RenderComponentWithSnippet } from "@/app/components/render";
 import { Row } from "@/app/components/row";
+import { CircleCheck, CircleWarning, Envelope, TriangleWarning } from "@unkey/icons";
 import {
   Select,
   SelectContent,
@@ -11,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
-import { AlertCircle, AlertTriangle, CheckCircle2, Mail } from "lucide-react";
 import { useState } from "react";
 
 export function SelectExample() {
@@ -38,7 +38,7 @@ export function SelectExample() {
 <div className="space-y-2">
   <h3 className="text-sm font-medium">Select with Left Icon</h3>
   <Select>
-    <SelectTrigger variant="default" leftIcon={<Mail className="w-4 h-4" />}>
+    <SelectTrigger variant="default" leftIcon={<Envelope className="w-4 h-4" />}>
       <SelectValue placeholder="Select 1" />
     </SelectTrigger>
     <SelectContent>
@@ -106,7 +106,7 @@ export function SelectExample() {
         <div className="space-y-2">
           <h3 className="text-sm font-medium">Select with Left Icon</h3>
           <Select>
-            <SelectTrigger variant="default" leftIcon={<Mail className="w-4 h-4" />}>
+            <SelectTrigger variant="default" leftIcon={<Envelope className="w-4 h-4" />}>
               <SelectValue placeholder="Select 1" />
             </SelectTrigger>
             <SelectContent>
@@ -164,7 +164,7 @@ export function SelectExampleVariants() {
       customCodeSnippet={`{/* Select with Variants */}
 <div className="flex flex-row justify-between w-full gap-4">
   <Select>
-    <SelectTrigger variant="success" leftIcon={<CheckCircle2 className="w-4 h-4" />}>
+    <SelectTrigger variant="success" leftIcon={<CircleCheck className="w-4 h-4" />}>
       <SelectValue placeholder="Success state" />
     </SelectTrigger>
     <SelectContent>
@@ -174,7 +174,7 @@ export function SelectExampleVariants() {
   </Select>
 
   <Select>
-    <SelectTrigger variant="warning" leftIcon={<AlertTriangle className="w-4 h-4" />}>
+    <SelectTrigger variant="warning" leftIcon={<TriangleWarning className="w-4 h-4" />}>
       <SelectValue placeholder="Warning state" />
     </SelectTrigger>
     <SelectContent>
@@ -184,7 +184,7 @@ export function SelectExampleVariants() {
   </Select>
 
   <Select>
-    <SelectTrigger variant="error" leftIcon={<AlertCircle className="w-4 h-4" />}>
+    <SelectTrigger variant="error" leftIcon={<CircleeWarning className="w-4 h-4" />}>
       <SelectValue placeholder="Error state" />
     </SelectTrigger>
     <SelectContent>
@@ -198,7 +198,7 @@ export function SelectExampleVariants() {
         {/* Select with Variants */}
         <div className="flex flex-row justify-between w-full gap-4">
           <Select>
-            <SelectTrigger variant="success" leftIcon={<CheckCircle2 className="w-4 h-4" />}>
+            <SelectTrigger variant="success" leftIcon={<CircleCheck className="w-4 h-4" />}>
               <SelectValue placeholder="Success state" />
             </SelectTrigger>
             <SelectContent>
@@ -208,7 +208,7 @@ export function SelectExampleVariants() {
           </Select>
 
           <Select>
-            <SelectTrigger variant="warning" leftIcon={<AlertTriangle className="w-4 h-4" />}>
+            <SelectTrigger variant="warning" leftIcon={<TriangleWarning className="w-4 h-4" />}>
               <SelectValue placeholder="Warning state" />
             </SelectTrigger>
             <SelectContent>
@@ -218,7 +218,7 @@ export function SelectExampleVariants() {
           </Select>
 
           <Select>
-            <SelectTrigger variant="error" leftIcon={<AlertCircle className="w-4 h-4" />}>
+            <SelectTrigger variant="error" leftIcon={<CircleWarning className="w-4 h-4" />}>
               <SelectValue placeholder="Error state" />
             </SelectTrigger>
             <SelectContent>
