@@ -6,6 +6,7 @@ import (
 	"time"
 
 	cachev1 "github.com/unkeyed/unkey/go/gen/proto/cache/v1"
+	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/eventstream"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -33,6 +34,10 @@ type Config[K comparable, V any] struct {
 	// Topic for broadcasting invalidations
 	Topic *eventstream.Topic[*cachev1.CacheInvalidationEvent]
 
+	// Dispatcher routes invalidation events to this cache
+	// Required for receiving invalidations from other nodes
+	Dispatcher *InvalidationDispatcher
+
 	// Logger for debugging and error reporting
 	Logger logging.Logger
 
@@ -51,6 +56,15 @@ type Config[K comparable, V any] struct {
 // New creates a new ClusterCache that automatically handles
 // distributed cache invalidation across cluster nodes.
 func New[K comparable, V any](config Config[K, V]) (*ClusterCache[K, V], error) {
+	// Validate required config
+	err := assert.All(
+		assert.NotNil(config.Topic, "Topic is required for ClusterCache"),
+		assert.NotNil(config.Dispatcher, "Dispatcher is required for ClusterCache"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	// Set default key converters if not provided
 	keyToString := config.KeyToString
 	if keyToString == nil {
@@ -89,11 +103,11 @@ func New[K comparable, V any](config Config[K, V]) (*ClusterCache[K, V], error) 
 		},
 	}
 
-	// Create a reusable producer if topic is provided
-	if config.Topic != nil {
-		c.producer = config.Topic.NewProducer()
-		GetManager().Register(c)
-	}
+	// Create a reusable producer from the topic
+	c.producer = config.Topic.NewProducer()
+
+	// Register with dispatcher to receive invalidation events
+	config.Dispatcher.Register(c)
 
 	return c, nil
 }
@@ -157,9 +171,9 @@ func (c *ClusterCache[K, V]) Name() string {
 	return c.cacheName
 }
 
-// ProcessInvalidationEvent processes a cache invalidation event.
+// HandleInvalidation processes a cache invalidation event.
 // Returns true if the event was handled by this cache.
-func (c *ClusterCache[K, V]) ProcessInvalidationEvent(ctx context.Context, event *cachev1.CacheInvalidationEvent) bool {
+func (c *ClusterCache[K, V]) HandleInvalidation(ctx context.Context, event *cachev1.CacheInvalidationEvent) bool {
 	// Ignore our own events to avoid loops
 	if event.SourceInstance == c.nodeID {
 		return false

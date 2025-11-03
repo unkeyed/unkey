@@ -30,6 +30,19 @@ type Caches struct {
 	// LiveApiByID caches live API lookups by ID.
 	// Keys are string (ID) and values are db.FindLiveApiByIDRow.
 	LiveApiByID cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
+
+	// dispatcher handles routing of invalidation events to all caches in this process.
+	// This is not exported as it's an internal implementation detail.
+	dispatcher *clustering.InvalidationDispatcher
+}
+
+// Close shuts down the caches and cleans up resources.
+func (c *Caches) Close() error {
+	if c.dispatcher != nil {
+		return c.dispatcher.Close()
+	}
+
+	return nil
 }
 
 // Config defines the configuration options for initializing caches.
@@ -69,6 +82,7 @@ type Config struct {
 //   - error: An error if cache creation failed
 func createCache[K comparable, V any](
 	config Config,
+	dispatcher *clustering.InvalidationDispatcher,
 	cacheConfig cache.Config[K, V],
 	keyToString func(K) string,
 	stringToKey func(string) (K, error),
@@ -79,16 +93,19 @@ func createCache[K comparable, V any](
 		return nil, err
 	}
 
-	// If no clustering topic is provided, return the local cache
-	if config.CacheInvalidationTopic == nil {
+	// If no clustering is enabled, return the local cache directly.
+	// This avoids the ClusterCache wrapper overhead when clustering isn't needed,
+	// keeping cache operations (Get/Set/etc) as fast as possible on the hot path.
+	if dispatcher == nil {
 		return localCache, nil
 	}
 
 	// Wrap with clustering for distributed invalidation
-	// The cluster cache will automatically subscribe to invalidation events
+	// The cluster cache will automatically register with the dispatcher
 	clusterCache, err := clustering.New(clustering.Config[K, V]{
 		LocalCache:  localCache,
 		Topic:       config.CacheInvalidationTopic,
+		Dispatcher:  dispatcher,
 		Logger:      config.Logger,
 		NodeID:      config.NodeID,
 		KeyToString: keyToString,
@@ -145,14 +162,19 @@ func New(config Config) (Caches, error) {
 		config.NodeID = fmt.Sprintf("%s-%s", hostname, uid.New("node"))
 	}
 
-	// Start the global invalidation manager if clustering is enabled
+	// Create invalidation dispatcher if clustering is enabled.
+	// We intentionally leave dispatcher as nil when clustering is disabled to avoid
+	// wrapping caches with ClusterCache. This eliminates wrapper overhead on the hot path
+	// (cache Get/Set operations) when clustering isn't needed.
+	var dispatcher *clustering.InvalidationDispatcher
 	if config.CacheInvalidationTopic != nil {
-		clustering.GetManager().Start(config.CacheInvalidationTopic, config.Logger)
+		dispatcher = clustering.NewInvalidationDispatcher(config.CacheInvalidationTopic, config.Logger)
 	}
 
 	// Create ratelimit namespace cache (uses ScopedKey)
 	ratelimitNamespace, err := createCache(
 		config,
+		dispatcher,
 		cache.Config[cache.ScopedKey, db.FindRatelimitNamespace]{
 			Fresh:    time.Minute,
 			Stale:    24 * time.Hour,
@@ -171,6 +193,7 @@ func New(config Config) (Caches, error) {
 	// Create verification key cache (uses string keys, no conversion needed)
 	verificationKeyByHash, err := createCache(
 		config,
+		dispatcher,
 		cache.Config[string, db.CachedKeyData]{
 			Fresh:    10 * time.Second,
 			Stale:    10 * time.Minute,
@@ -189,6 +212,7 @@ func New(config Config) (Caches, error) {
 	// Create API cache (uses ScopedKey)
 	liveApiByID, err := createCache(
 		config,
+		dispatcher,
 		cache.Config[cache.ScopedKey, db.FindLiveApiByIDRow]{
 			Fresh:    10 * time.Second,
 			Stale:    24 * time.Hour,
@@ -208,5 +232,6 @@ func New(config Config) (Caches, error) {
 		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
 		LiveApiByID:           middleware.WithTracing(liveApiByID),
 		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
+		dispatcher:            dispatcher,
 	}, nil
 }

@@ -81,8 +81,8 @@ func TestClusterCache_ProducesInvalidationOnSetAndSetNull(t *testing.T) {
 		return nil
 	})
 
-	// Wait for consumer to be ready
-	time.Sleep(500 * time.Millisecond)
+	// Wait for consumer to be ready and actually positioned
+	time.Sleep(5 * time.Second)
 
 	// Test Set operation produces invalidation event
 	clusterCache.Set(ctx, "key1", "value1")

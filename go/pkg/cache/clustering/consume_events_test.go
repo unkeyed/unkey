@@ -84,8 +84,8 @@ func TestClusterCache_ConsumesInvalidationAndRemovesFromCache(t *testing.T) {
 		return nil
 	})
 
-	// Wait for consumer to be ready
-	time.Sleep(500 * time.Millisecond)
+	// Wait for consumer to be ready and actually positioned
+	time.Sleep(5 * time.Second)
 
 	// Produce an invalidation event
 	producer := topic.NewProducer()

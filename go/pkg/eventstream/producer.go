@@ -2,6 +2,7 @@ package eventstream
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -123,6 +124,8 @@ func (t *Topic[T]) NewProducer() Producer[T] {
 //	    return err
 //	}
 func (p *producer[T]) Produce(ctx context.Context, events ...T) error {
+	p.logger.Info("Produce() called", "topic", p.topic, "event_count", len(events))
+
 	if len(events) == 0 {
 		return nil
 	}
@@ -136,6 +139,9 @@ func (p *producer[T]) Produce(ctx context.Context, events ...T) error {
 			p.logger.Error("Failed to serialize event", "error", err.Error(), "topic", p.topic, "event_index", i)
 			return err
 		}
+
+		// Log the event being published
+		p.logger.Info("Publishing event to Kafka", "topic", p.topic, "event_index", i, "event", fmt.Sprintf("%#v", event))
 
 		// Create message
 		msg := kafka.Message{
@@ -155,6 +161,7 @@ func (p *producer[T]) Produce(ctx context.Context, events ...T) error {
 		return err
 	}
 
+	p.logger.Info("Successfully published events to Kafka", "topic", p.topic, "event_count", len(events))
 	return nil
 }
 

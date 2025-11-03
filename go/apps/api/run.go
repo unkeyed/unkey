@@ -223,7 +223,7 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	// Initialize cache invalidation topic
-	var cacheInvalidationTopic *eventstream.Topic[*cachev1.CacheInvalidationEvent]
+	cacheInvalidationTopic := eventstream.NewNoopTopic[*cachev1.CacheInvalidationEvent]()
 	if len(cfg.KafkaBrokers) > 0 {
 		logger.Info("Initializing cache invalidation topic", "brokers", cfg.KafkaBrokers, "instanceID", cfg.InstanceID)
 
@@ -244,9 +244,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 		// Register topic for graceful shutdown
 		shutdowns.Register(cacheInvalidationTopic.Close)
-	} else {
-		// Use noop topic when Kafka is not configured
-		cacheInvalidationTopic = eventstream.NewNoopTopic[*cachev1.CacheInvalidationEvent]()
 	}
 
 	caches, err := caches.New(caches.Config{

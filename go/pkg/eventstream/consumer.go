@@ -179,18 +179,20 @@ func (c *consumer[T]) Consume(ctx context.Context, handler func(context.Context,
 	c.handler = handler
 	c.subscribed = true
 
+	startOffset := kafka.LastOffset
+	if c.fromBeginning {
+		startOffset = kafka.FirstOffset
+	}
+
 	readerConfig := kafka.ReaderConfig{
 		Brokers:     c.brokers,
 		Topic:       c.topic,
 		GroupID:     fmt.Sprintf("%s::%s", c.topic, c.instanceID),
-		StartOffset: kafka.LastOffset,
-	}
-
-	if c.fromBeginning {
-		readerConfig.StartOffset = kafka.FirstOffset
+		StartOffset: startOffset,
 	}
 
 	c.reader = kafka.NewReader(readerConfig)
+
 	// Start consuming in a goroutine
 	go c.consumeLoop(ctx)
 }
@@ -205,6 +207,12 @@ func (c *consumer[T]) consumeLoop(ctx context.Context) {
 		default:
 			msg, err := c.reader.ReadMessage(ctx)
 			if err != nil {
+				// Check if context was cancelled
+				if ctx.Err() != nil {
+					c.logger.Info("Consumer loop stopped - context cancelled", "topic", c.topic)
+					return
+				}
+
 				// EOF is expected when there are no more messages - don't log it
 				if !isEOF(err) {
 					c.logger.Warn("Failed to read message from Kafka", "error", err.Error(), "topic", c.topic)
@@ -226,6 +234,8 @@ func (c *consumer[T]) consumeLoop(ctx context.Context) {
 				c.logger.Warn("Failed to deserialize protobuf message", "error", err.Error(), "topic", c.topic)
 				continue
 			}
+
+			c.logger.Info("Received event from Kafka", "topic", c.topic, "partition", msg.Partition, "offset", msg.Offset, "event", fmt.Sprintf("%#v", t))
 
 			// Call handler
 			if c.handler != nil {
