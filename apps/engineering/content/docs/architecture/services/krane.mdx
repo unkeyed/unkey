@@ -3,11 +3,11 @@ title: Krane
 description: Kubernetes deployment orchestration service
 ---
 
-import { Mermaid } from "@/app/components/mermaid"
+import { Mermaid } from "@/app/components/mermaid";
 
-**Location:** `go/apps/krane/`  
-**CLI Command:** [`unkey run krane`](/cli/run/krane)  
-**Protocol:** Connect RPC (HTTP/2)  
+**Location:** `go/apps/krane/`
+**CLI Command:** [`unkey run krane`](/cli/run/krane)
+**Protocol:** Connect RPC (HTTP/2)
 **Proto:** `go/proto/krane/v1/deployment.proto`
 
 ## What It Does
@@ -42,18 +42,18 @@ This is a known design compromise. Future versions might move instance addressin
     participant Krane
     participant K8s as Kubernetes API
     participant Pod
-    
+
     Ctrl->>Krane: CreateDeployment(image, replicas, resources)
     Krane->>K8s: Create headless Service
     K8s->>Krane: Service created
     Krane->>K8s: Create StatefulSet
     K8s->>Krane: StatefulSet created
     Krane->>Ctrl: Status: PENDING
-    
+
     K8s->>K8s: Schedule pods
     K8s->>Pod: Pull image & start container
     Pod->>Pod: Running
-    
+
     loop Poll every second
         Ctrl->>Krane: GetDeployment()
         Krane->>K8s: Get StatefulSet status
@@ -62,20 +62,38 @@ This is a known design compromise. Future versions might move instance addressin
         K8s->>Krane: Pod status: Pending
         Krane->>Ctrl: Instances: [{id, addr, status: PENDING}]
     end
-    
+
     Pod->>Pod: Container ready
-    
+
     Ctrl->>Krane: GetDeployment()
     Krane->>K8s: Get StatefulSet status
     K8s->>Krane: AvailableReplicas: 1/1
     Krane->>K8s: List pods
     K8s->>Krane: Pod status: Running
     Krane->>Ctrl: Instances: [{id, addr, status: RUNNING}]
+
 `} />
 
 ## Kubernetes Backend
 
 The Kubernetes backend runs inside a cluster with appropriate RBAC permissions. It uses in-cluster config to authenticate with the API server.
+
+These need to be fine tuned, but they work for now.
+
+```yaml
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["pods", "services"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["statefulsets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+```
 
 ### Resource Creation
 
@@ -103,7 +121,6 @@ Since Docker containers don't have Kubernetes-style DNS service discovery, the D
 
 The control plane doesn't need to be aware of these addressing differences. It receives instance addresses from Krane and stores them in the database. When using the Docker backend locally, gateway configurations point to localhost addresses. When using Kubernetes in production, they point to cluster DNS addresses.
 
-
 ## RBAC Requirements
 
 The Kubernetes backend requires specific RBAC permissions to function. Krane needs the ability to create, read, and delete StatefulSets in the Apps API group, create, read, and delete Services in the Core API group, and list and read Pods in the Core API group to query status.
@@ -117,15 +134,15 @@ metadata:
   name: krane
   namespace: unkey
 rules:
-- apiGroups: ["apps"]
-  resources: ["statefulsets"]
-  verbs: ["create", "get", "list", "delete"]
-- apiGroups: [""]
-  resources: ["services"]
-  verbs: ["create", "get", "delete"]
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    verbs: ["create", "get", "list", "delete"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["create", "get", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
 ```
 
 Without these permissions, Krane cannot manage deployments and will return permission denied errors.
@@ -158,4 +175,3 @@ The control plane can then create deployments that run as Docker containers on y
 The current StatefulSet-based implementation is acknowledged as a design compromise in the codebase. Future improvements might include switching to standard Deployments with service meshes for instance addressing, implementing native load balancing instead of requiring stable instance DNS, adopting more cloud-native patterns for service discovery, and potentially supporting additional orchestration platforms beyond Kubernetes and Docker.
 
 These changes would require coordinated updates to the control plane, gateway, and partition database to remove the assumption of stable instance addresses. The abstraction layer Krane provides makes such changes possible without affecting the rest of the system.
-

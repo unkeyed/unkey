@@ -3,10 +3,10 @@ title: Control Plane (Ctrl)
 description: The control plane service for managing deployments and infrastructure
 ---
 
-import { Mermaid } from "@/app/components/mermaid"
+import { Mermaid } from "@/app/components/mermaid";
 
-**Location:** `go/apps/ctrl/`  
-**CLI Command:** [`unkey run ctrl`](/cli/run/ctrl)  
+**Location:** `go/apps/ctrl/`
+**CLI Command:** [`unkey run ctrl`](/cli/run/ctrl)
 **Protocol:** Connect RPC (HTTP/2)
 
 ## What It Does
@@ -48,7 +48,7 @@ The deployment service orchestrates the complete deployment lifecycle through du
 
 The deployment workflow progresses through several phases. It first builds the container image if building from source, then creates the deployment in Krane, our Kubernetes abstraction layer. Next it polls for instance readiness for up to 5 minutes, checking every second whether all pods are running. Once instances are ready, it registers them in the partition database so gateways can route traffic to them. It attempts to scrape an OpenAPI spec from the running service, though this is optional. Finally, it assigns domains and creates gateway configurations via the routing service, then marks the deployment as ready.
 
-Each phase is durable. If ctrl crashes during deployment, Restate resumes from the last completed phase rather than restarting from the beginning. This ensures deployments complete reliably even during system failures.
+Restate implements [durable executions](https://www.restate.dev/what-is-durable-execution) by recording progress in a distributed persistent log. The log is managed by the Restate server. If ctrl crashes during deployment, Restate resumes from the last completed phase rather than restarting from the beginning. This ensures deployments complete reliably even during system failures.
 
 Deployments are keyed by `project_id` in Restate's virtual object model. This ensures only one deployment operation per project runs at a time, preventing race conditions during concurrent deploy, rollback, or promote operations that could leave the system in an inconsistent state.
 
@@ -70,10 +70,6 @@ The OpenAPI service manages OpenAPI specifications scraped from deployed applica
 
 Specs are scraped from `GET /openapi.yaml` on running instances during the deployment workflow. They're stored in the database and used for API documentation generation, request validation in gateways, and breaking change detection between deployments.
 
-### Ctrl Service
-
-The ctrl service provides health checks and instance metadata. Its primary operation is `Liveness`, which serves as a health check endpoint for Kubernetes probes. This service is minimal by design, handling only operational concerns rather than business logic.
-
 ## Workflows
 
 Workflows are implemented as Restate services for durable execution. The Deployment Workflow handles deploy, rollback, and promote operations. The Routing Workflow manages domain assignment and gateway configuration. The Certificate Workflow processes ACME challenges for TLS certificate provisioning. See the individual workflow documentation pages for detailed implementation specifics.
@@ -91,4 +87,3 @@ The ctrl service exposes metrics and logs through OpenTelemetry. Key metrics inc
 All operations include structured logging fields for correlation and debugging. Common fields include `deployment_id`, `project_id`, and `workspace_id` across all operations. Build operations add `build_id` and `depot_project_id`. System-level logs include `instance_id`, `region`, and `platform` to identify which ctrl instance handled the operation.
 
 Logs are shipped to Grafana Loki in production for centralized log aggregation and querying.
-
