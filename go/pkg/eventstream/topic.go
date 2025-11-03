@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"google.golang.org/protobuf/proto"
 )
@@ -52,7 +53,18 @@ type Topic[T proto.Message] struct {
 //		Logger:     logger,
 //	}
 //	topic := eventstream.NewTopic[*MyEvent](cfg)
-func NewTopic[T proto.Message](config TopicConfig) *Topic[T] {
+func NewTopic[T proto.Message](config TopicConfig) (*Topic[T], error) {
+	// Validate required fields
+	err := assert.All(
+		assert.NotNilAndNotZero(config.Logger, "logger is required when creating a topic"),
+		assert.True(len(config.Brokers) > 0, "brokers list cannot be empty"),
+		assert.NotEmpty(config.Topic, "topic name cannot be empty"),
+		assert.NotEmpty(config.InstanceID, "instance ID cannot be empty"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	topic := &Topic[T]{
 		brokers:    config.Brokers,
 		topic:      config.Topic,
@@ -60,7 +72,7 @@ func NewTopic[T proto.Message](config TopicConfig) *Topic[T] {
 		logger:     config.Logger,
 	}
 
-	return topic
+	return topic, nil
 }
 
 // EnsureExists creates the Kafka topic if it doesn't already exist.

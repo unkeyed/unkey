@@ -2,7 +2,9 @@ package eventstream
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"sync"
 	"time"
@@ -11,6 +13,11 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"google.golang.org/protobuf/proto"
 )
+
+// isEOF checks if an error is an EOF error from Kafka
+func isEOF(err error) bool {
+	return errors.Is(err, io.EOF)
+}
 
 // consumer handles consuming events from Kafka topics
 type consumer[T proto.Message] struct {
@@ -23,6 +30,7 @@ type consumer[T proto.Message] struct {
 	mu            sync.Mutex
 	subscribed    bool
 	fromBeginning bool
+	isPointerType bool // Cached check to avoid reflection on every message
 }
 
 // NewConsumer creates a new consumer for receiving events from this topic.
@@ -76,12 +84,16 @@ func (t *Topic[T]) NewConsumer(opts ...ConsumerOption) Consumer[T] {
 		return newNoopConsumer[T]()
 	}
 
+	// Check once if T is a pointer type to avoid reflection on every message
+	isPointerType := reflect.TypeOf((*T)(nil)).Elem().Kind() == reflect.Ptr
+
 	consumer := &consumer[T]{
 		brokers:       t.brokers,
 		topic:         t.topic,
 		instanceID:    t.instanceID,
 		logger:        t.logger,
 		fromBeginning: cfg.fromBeginning,
+		isPointerType: isPointerType,
 	}
 
 	// Track consumer for cleanup
@@ -193,30 +205,36 @@ func (c *consumer[T]) consumeLoop(ctx context.Context) {
 		default:
 			msg, err := c.reader.ReadMessage(ctx)
 			if err != nil {
+				// EOF is expected when there are no more messages - don't log it
+				if !isEOF(err) {
+					c.logger.Warn("Failed to read message from Kafka", "error", err.Error(), "topic", c.topic)
+				}
+				
 				continue
 			}
 
 			// Create new instance of the event type
 			var t T
 			// For pointer types, we need to allocate a new instance
-			if reflect.TypeOf(t).Kind() == reflect.Ptr {
+			// Use cached isPointerType to avoid reflection on every message
+			if c.isPointerType {
 				t = reflect.New(reflect.TypeOf(t).Elem()).Interface().(T)
 			}
 
 			// Deserialize protobuf event
 			if err := proto.Unmarshal(msg.Value, t); err != nil {
+				c.logger.Warn("Failed to deserialize protobuf message", "error", err.Error(), "topic", c.topic)
 				continue
 			}
 
 			// Call handler
 			if c.handler != nil {
-				handlerCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-				err := c.handler(handlerCtx, t)
-				if err != nil {
-					c.logger.Error("Error handling event", "err", err, "event", t, "topic", c.topic)
-				}
+				handlerCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+				defer cancel()
 
-				cancel()
+				if err := c.handler(handlerCtx, t); err != nil {
+					c.logger.Error("Error handling event", "error", err.Error(), "topic", c.topic)
+				}
 			}
 		}
 	}

@@ -61,31 +61,33 @@ func TestAPI_ConsumesInvalidationEvents(t *testing.T) {
 	cacheHeaders := resp2.Headers.Values("X-Unkey-Debug-Cache")
 	require.NotEmpty(t, cacheHeaders, "Should have cache debug headers")
 
-	// Look for api_by_id cache with FRESH status
+	// Look for live_api_by_id cache with FRESH status
 	foundFresh := false
 	for _, headerValue := range cacheHeaders {
 		parsedHeader, err := debug.ParseCacheHeader(headerValue)
 		if err != nil {
 			continue // Skip invalid headers
 		}
-		if parsedHeader.CacheName == "api_by_id" && parsedHeader.Status == "FRESH" {
+		t.Logf("Cache header: cache=%s, latency=%v, status=%s", parsedHeader.CacheName, parsedHeader.Latency, parsedHeader.Status)
+		if parsedHeader.CacheName == "live_api_by_id" && parsedHeader.Status == "FRESH" {
 			foundFresh = true
 			t.Logf("Found FRESH cache: cache=%s, latency=%v, status=%s", parsedHeader.CacheName, parsedHeader.Latency, parsedHeader.Status)
 			break
 		}
 	}
-	require.True(t, foundFresh, "Cache should show FRESH status for api_by_id on second call")
+	require.True(t, foundFresh, "Cache should show FRESH status for live_api_by_id on second call")
 
 	// Step 2: Produce invalidation event externally (simulating another node's action)
 	brokers := containers.Kafka(t)
 	topicName := "cache-invalidations"
 
-	topic := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
+	topic, err := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
 		Brokers:    brokers,
 		Topic:      topicName,
 		InstanceID: uid.New(uid.TestPrefix), // Use unique ID to avoid conflicts with API node
 		Logger:     logging.NewNoop(),
 	})
+	require.NoError(t, err)
 
 	// Ensure topic exists before producing
 	err = topic.EnsureExists(1, 1)
@@ -96,7 +98,7 @@ func TestAPI_ConsumesInvalidationEvents(t *testing.T) {
 
 	// Send invalidation event for the API
 	invalidationEvent := &cachev1.CacheInvalidationEvent{
-		CacheName:      "api_by_id",
+		CacheName:      "live_api_by_id",
 		CacheKey:       api.ID,
 		Timestamp:      time.Now().UnixMilli(),
 		SourceInstance: "external-node",
@@ -126,13 +128,13 @@ func TestAPI_ConsumesInvalidationEvents(t *testing.T) {
 			return false
 		}
 
-		// Look for api_by_id cache that's no longer FRESH (should be MISS or STALE)
+		// Look for live_api_by_id cache that's no longer FRESH (should be MISS or STALE)
 		for _, headerValue := range cacheHeaders {
 			parsedHeader, err := debug.ParseCacheHeader(headerValue)
 			if err != nil {
 				continue // Skip invalid headers
 			}
-			if parsedHeader.CacheName == "api_by_id" {
+			if parsedHeader.CacheName == "live_api_by_id" {
 				// Cache should no longer be FRESH after invalidation
 				if parsedHeader.Status != "FRESH" {
 					t.Logf("Found invalidated cache: cache=%s, latency=%v, status=%s",

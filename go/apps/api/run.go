@@ -232,12 +232,15 @@ func Run(ctx context.Context, cfg Config) error {
 			topicName = DefaultCacheInvalidationTopic
 		}
 
-		cacheInvalidationTopic = eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
+		cacheInvalidationTopic, err = eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
 			Brokers:    cfg.KafkaBrokers,
 			Topic:      topicName,
 			InstanceID: cfg.InstanceID,
 			Logger:     logger,
 		})
+		if err != nil {
+			return fmt.Errorf("unable to create cache invalidation topic: %w", err)
+		}
 
 		// Register topic for graceful shutdown
 		shutdowns.Register(cacheInvalidationTopic.Close)

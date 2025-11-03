@@ -1,6 +1,8 @@
 package caches
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	cachev1 "github.com/unkeyed/unkey/go/gen/proto/cache/v1"
@@ -11,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/eventstream"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 // Caches holds all cache instances used throughout the application.
@@ -40,7 +43,7 @@ type Config struct {
 	// Topic for distributed cache invalidation
 	CacheInvalidationTopic *eventstream.Topic[*cachev1.CacheInvalidationEvent]
 
-	// NodeID identifies this node in the cluster (defaults to hostname)
+	// NodeID identifies this node in the cluster (defaults to hostname-uniqueid to ensure uniqueness)
 	NodeID string
 }
 
@@ -131,6 +134,17 @@ func createCache[K comparable, V any](
 //	// Use the caches - invalidation is automatic
 //	key, err := caches.KeyByHash.Get(ctx, "some-hash")
 func New(config Config) (Caches, error) {
+	// Apply default NodeID if not provided
+	// Format: hostname-uniqueid to ensure uniqueness across nodes
+	if config.NodeID == "" {
+		hostname, err := os.Hostname()
+		if err != nil {
+			hostname = "unknown"
+		}
+		// Add unique ID to prevent collisions when multiple nodes have same hostname
+		config.NodeID = fmt.Sprintf("%s-%s", hostname, uid.New("node"))
+	}
+
 	// Start the global invalidation manager if clustering is enabled
 	if config.CacheInvalidationTopic != nil {
 		clustering.GetManager().Start(config.CacheInvalidationTopic, config.Logger)

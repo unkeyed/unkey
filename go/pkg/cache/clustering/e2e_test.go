@@ -25,14 +25,15 @@ func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 	topicName := fmt.Sprintf("test-clustering-e2e-%d", time.Now().UnixNano())
 
 	// Create eventstream topic
-	topic := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
+	topic, err := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
 		Brokers:    brokers,
 		Topic:      topicName,
 		InstanceID: "test-e2e",
 		Logger:     logging.NewNoop(),
 	})
+	require.NoError(t, err)
 
-	err := topic.EnsureExists(1, 1)
+	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err)
 	defer topic.Close()
 

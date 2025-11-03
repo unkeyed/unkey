@@ -28,15 +28,16 @@ func TestAPI_ProducesInvalidationEvents(t *testing.T) {
 	topicName := "cache-invalidations" // Use same topic as API nodes
 
 	// Create topic
-	topic := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
+	topic, err := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
 		Brokers:    brokers,
 		Topic:      topicName,
 		InstanceID: uid.New(uid.TestPrefix),
 		Logger:     logging.NewNoop(),
 	})
+	require.NoError(t, err)
 
 	// Ensure topic exists
-	err := topic.EnsureExists(1, 1)
+	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err, "Should be able to create topic")
 	defer topic.Close()
 
@@ -100,14 +101,14 @@ func TestAPI_ProducesInvalidationEvents(t *testing.T) {
 	// Look for api_by_id cache invalidation event
 	var apiByIdEvent *cachev1.CacheInvalidationEvent
 	for _, event := range receivedEvents {
-		if event.CacheName == "api_by_id" && event.CacheKey == api.ID {
+		if event.CacheName == "live_api_by_id" && event.CacheKey == api.ID {
 			apiByIdEvent = event
 			break
 		}
 	}
 
 	require.NotNil(t, apiByIdEvent, "Should receive api_by_id invalidation event")
-	require.Equal(t, "api_by_id", apiByIdEvent.CacheName, "Event should be for api_by_id cache")
+	require.Equal(t, "live_api_by_id", apiByIdEvent.CacheName, "Event should be for api_by_id cache")
 	require.Equal(t, api.ID, apiByIdEvent.CacheKey, "Event should be for correct API ID")
 	require.NotEmpty(t, apiByIdEvent.SourceInstance, "Event should have source instance")
 	require.Greater(t, apiByIdEvent.Timestamp, int64(0), "Event should have valid timestamp")

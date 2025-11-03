@@ -32,10 +32,11 @@ func TestEventStreamIntegration(t *testing.T) {
 	}
 
 	// Create topic instance
-	topic := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](config)
+	topic, err := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](config)
+	require.NoError(t, err)
 
 	// Ensure topic exists
-	err := topic.EnsureExists(1, 1)
+	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err, "Failed to create test topic")
 	defer topic.Close()
 
@@ -88,7 +89,7 @@ func TestEventStreamIntegration(t *testing.T) {
 	require.Equal(t, testEvent.Timestamp, receivedEvent.Timestamp, "Timestamp should match")
 	require.Equal(t, testEvent.SourceInstance, receivedEvent.SourceInstance, "Source instance should match")
 
-	t.Log("✅ Event stream integration test passed - message produced and consumed successfully")
+	t.Log("Event stream integration test passed - message produced and consumed successfully")
 }
 
 func TestEventStreamMultipleMessages(t *testing.T) {
@@ -104,9 +105,10 @@ func TestEventStreamMultipleMessages(t *testing.T) {
 		Logger:     logging.NewNoop(),
 	}
 
-	topic := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](config)
+	topic, err := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](config)
+	require.NoError(t, err)
 
-	err := topic.EnsureExists(1, 1)
+	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err)
 	defer topic.Close()
 
@@ -160,10 +162,10 @@ func TestEventStreamMultipleMessages(t *testing.T) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	for i := 0; i < numMessages; i++ {
+	for i := range numMessages {
 		expectedKey := fmt.Sprintf("test-key-%d", i)
 		require.True(t, receivedKeys[expectedKey], "Should receive key %s", expectedKey)
 	}
 
-	t.Logf("✅ Multiple messages test passed - sent and received %d messages", numMessages)
+	t.Logf("Multiple messages test passed - sent and received %d messages", numMessages)
 }
