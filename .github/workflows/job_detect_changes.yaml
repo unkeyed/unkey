@@ -112,13 +112,9 @@ jobs:
               - 'internal/clickhouse/**'
               - 'go/internal/clickhouse/**'
 
-            # Documentation
+            # Documentation (apps/docs only - .md files ARE content)
             docs:
               - 'apps/docs/**'
-              - 'apps/engineering/**'
-              - '*.md'
-              - 'README*'
-              - 'CHANGELOG*'
 
             # GitHub workflows and CI/CD
             workflows:
