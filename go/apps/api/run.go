@@ -242,12 +242,6 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to create cache invalidation topic: %w", err)
 		}
 
-		// Ensure topic exists before starting to produce events
-		err = cacheInvalidationTopic.EnsureExists(1, 1)
-		if err != nil {
-			return fmt.Errorf("unable to ensure cache invalidation topic exists: %w", err)
-		}
-
 		// Register topic for graceful shutdown
 		shutdowns.Register(cacheInvalidationTopic.Close)
 	} else {
