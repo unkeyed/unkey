@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	dbtype "github.com/unkeyed/unkey/go/pkg/db/types"
-	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // RoleInfo  types mirror the database models and support JSON serialization and deserialization.
@@ -38,53 +37,39 @@ type RatelimitInfo struct {
 // to be deserialized into structs, slices, or maps.
 //
 // The function accepts 'any' type because database drivers return interface{} for JSON columns,
-// even though the underlying value is typically []byte. We perform a type assertion to safely
-// extract the bytes before unmarshaling.
+// even though the underlying value is typically []byte.
 //
-// Returns zero value if:
-//   - data is nil
-//   - data is not []byte (logs warning about unexpected type)
-//   - byte slice is empty
-//   - JSON unmarshaling fails (logs error with details)
-//
-// This fail-safe behavior prevents panics and allows callers to continue execution with
-// empty values when JSON data is malformed or missing.
+// Returns:
+//   - (T, nil) on successful unmarshal
+//   - (zero, nil) if data is nil or empty []byte (these are valid null/empty states)
+//   - (zero, error) if type assertion fails or JSON unmarshal fails
 //
 // Example usage:
 //
-//	roles := UnmarshalNullableJSONTo[[]RoleInfo](row.Roles, logger)
-//	meta := UnmarshalNullableJSONTo[map[string]any](row.Meta, logger)
-func UnmarshalNullableJSONTo[T any](data any, logger logging.Logger) T {
+//	roles, err := UnmarshalNullableJSONTo[[]RoleInfo](row.Roles)
+//	if err != nil {
+//	    logger.Error("failed to unmarshal roles", "error", err)
+//	    return err
+//	}
+func UnmarshalNullableJSONTo[T any](data any) (T, error) {
 	var zero T
-
 	if data == nil {
-		return zero
+		return zero, nil
 	}
 
 	bytes, ok := data.([]byte)
 	if !ok {
-		if logger != nil {
-			logger.Warn("type assertion failed during unmarshal",
-				"expected", "[]byte",
-				"got", fmt.Sprintf("%T", data),
-			)
-		}
-		return zero
+		return zero, fmt.Errorf("type assertion failed during unmarshal: expected []byte, got %T", data)
 	}
+
 	if len(bytes) == 0 {
-		return zero
+		return zero, nil
 	}
 
 	var result T
-	err := json.Unmarshal(bytes, &result)
-	if err != nil {
-		if logger != nil {
-			logger.Error("failed to unmarshal JSON",
-				"error", err,
-			)
-		}
-		return zero
+	if err := json.Unmarshal(bytes, &result); err != nil {
+		return zero, fmt.Errorf("json unmarshal failed: %w", err)
 	}
 
-	return result
+	return result, nil
 }

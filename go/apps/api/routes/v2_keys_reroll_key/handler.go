@@ -79,7 +79,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	keyData := db.ToKeyData(key, h.Logger)
+	keyData := db.ToKeyData(key)
 
 	checks := rbac.Or(
 		rbac.T(rbac.Tuple{

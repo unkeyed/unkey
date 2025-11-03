@@ -136,8 +136,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// Add metadata if available
-		metaMap := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta, h.Logger)
-		if len(metaMap) > 0 {
+		metaMap, err := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta)
+		if err != nil {
+			h.Logger.Error("failed to unmarshal identity meta",
+				"identityId", identity.ID,
+				"error", err,
+			)
+			// Continue with empty meta
+		} else {
 			newIdentity.Meta = &metaMap
 		}
 

@@ -155,8 +155,8 @@ func TestRerollKeySuccess(t *testing.T) {
 		require.True(t, rolledKeyRow.EncryptedKey.Valid)
 		require.True(t, rolledKeyRow.EncryptionKeyID.Valid)
 
-		createdKey := db.ToKeyData(createdKeyRow, nil)
-		rolledKey := db.ToKeyData(rolledKeyRow, nil)
+		createdKey := db.ToKeyData(createdKeyRow)
+		rolledKey := db.ToKeyData(rolledKeyRow)
 
 		// Compare permissions - build sets of all permission slugs (direct + from roles)
 		createdPermSet := make(map[string]struct{})

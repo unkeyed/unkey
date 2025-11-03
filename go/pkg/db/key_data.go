@@ -2,8 +2,6 @@ package db
 
 import (
 	"database/sql"
-
-	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // KeyData represents the complete data for a key including all relationships
@@ -27,31 +25,31 @@ type KeyRow interface {
 }
 
 // ToKeyData converts either query result into KeyData using generics
-func ToKeyData[T KeyRow](row T, logger logging.Logger) *KeyData {
+func ToKeyData[T KeyRow](row T) *KeyData {
 	switch r := any(row).(type) {
 	case FindLiveKeyByHashRow:
-		return buildKeyData(&r, logger)
+		return buildKeyData(&r)
 	case *FindLiveKeyByHashRow:
-		return buildKeyData(r, logger)
+		return buildKeyData(r)
 	case FindLiveKeyByIDRow:
-		return buildKeyDataFromID(&r, logger)
+		return buildKeyDataFromID(&r)
 	case *FindLiveKeyByIDRow:
-		return buildKeyDataFromID(r, logger)
+		return buildKeyDataFromID(r)
 	case ListLiveKeysByKeySpaceIDRow:
-		return buildKeyDataFromKeySpace(&r, logger)
+		return buildKeyDataFromKeySpace(&r)
 	case *ListLiveKeysByKeySpaceIDRow:
-		return buildKeyDataFromKeySpace(r, logger)
+		return buildKeyDataFromKeySpace(r)
 	default:
 		return nil
 	}
 }
 
-func buildKeyDataFromID(r *FindLiveKeyByIDRow, logger logging.Logger) *KeyData {
+func buildKeyDataFromID(r *FindLiveKeyByIDRow) *KeyData {
 	hr := FindLiveKeyByHashRow(*r) // safe value copy
-	return buildKeyData(&hr, logger)
+	return buildKeyData(&hr)
 }
 
-func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow, logger logging.Logger) *KeyData {
+func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
 	kd := &KeyData{
 		Key: Key{
 			ID:                r.ID,
@@ -83,11 +81,11 @@ func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow, logger logging.Log
 		Workspace:       Workspace{}, // Empty Workspace since not in this query
 		EncryptedKey:    r.EncryptedKey,
 		EncryptionKeyID: r.EncryptionKeyID,
-		Roles:           UnmarshalNullableJSONTo[[]RoleInfo](r.Roles, logger),
-		Permissions:     UnmarshalNullableJSONTo[[]PermissionInfo](r.Permissions, logger),
-		RolePermissions: UnmarshalNullableJSONTo[[]PermissionInfo](r.RolePermissions, logger),
-		Ratelimits:      UnmarshalNullableJSONTo[[]RatelimitInfo](r.Ratelimits, logger),
-	}
+		Roles:           nil,
+		Permissions:     nil,
+		RolePermissions: nil,
+		Ratelimits:      nil,
+	} //nolint:exhaustruct
 
 	if r.IdentityID.Valid {
 		kd.Identity = &Identity{
@@ -98,10 +96,23 @@ func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow, logger logging.Log
 		}
 	}
 
+	// Unmarshal JSON fields, silently ignoring errors
+	roles, _ := UnmarshalNullableJSONTo[[]RoleInfo](r.Roles)
+	kd.Roles = roles
+
+	permissions, _ := UnmarshalNullableJSONTo[[]PermissionInfo](r.Permissions)
+	kd.Permissions = permissions
+
+	rolePermissions, _ := UnmarshalNullableJSONTo[[]PermissionInfo](r.RolePermissions)
+	kd.RolePermissions = rolePermissions
+
+	ratelimits, _ := UnmarshalNullableJSONTo[[]RatelimitInfo](r.Ratelimits)
+	kd.Ratelimits = ratelimits
+
 	return kd
 }
 
-func buildKeyData(r *FindLiveKeyByHashRow, logger logging.Logger) *KeyData {
+func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 	kd := &KeyData{
 		Key: Key{
 			ID:                r.ID,
@@ -133,11 +144,11 @@ func buildKeyData(r *FindLiveKeyByHashRow, logger logging.Logger) *KeyData {
 		Workspace:       r.Workspace,
 		EncryptedKey:    r.EncryptedKey,
 		EncryptionKeyID: r.EncryptionKeyID,
-		Roles:           UnmarshalNullableJSONTo[[]RoleInfo](r.Roles, logger),
-		Permissions:     UnmarshalNullableJSONTo[[]PermissionInfo](r.Permissions, logger),
-		RolePermissions: UnmarshalNullableJSONTo[[]PermissionInfo](r.RolePermissions, logger),
-		Ratelimits:      UnmarshalNullableJSONTo[[]RatelimitInfo](r.Ratelimits, logger),
-	}
+		Roles:           nil,
+		Permissions:     nil,
+		RolePermissions: nil,
+		Ratelimits:      nil,
+	} //nolint:exhaustruct
 
 	if r.IdentityTableID.Valid {
 		kd.Identity = &Identity{
@@ -147,6 +158,19 @@ func buildKeyData(r *FindLiveKeyByHashRow, logger logging.Logger) *KeyData {
 			Meta:        r.IdentityMeta,
 		}
 	}
+
+	// Unmarshal JSON fields, silently ignoring errors
+	roles, _ := UnmarshalNullableJSONTo[[]RoleInfo](r.Roles)
+	kd.Roles = roles
+
+	permissions, _ := UnmarshalNullableJSONTo[[]PermissionInfo](r.Permissions)
+	kd.Permissions = permissions
+
+	rolePermissions, _ := UnmarshalNullableJSONTo[[]PermissionInfo](r.RolePermissions)
+	kd.RolePermissions = rolePermissions
+
+	ratelimits, _ := UnmarshalNullableJSONTo[[]RatelimitInfo](r.Ratelimits)
+	kd.Ratelimits = ratelimits
 
 	return kd
 }

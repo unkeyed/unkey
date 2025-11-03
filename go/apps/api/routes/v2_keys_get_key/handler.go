@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"sort"
 
@@ -77,7 +76,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	keyData := db.ToKeyData(key, h.Logger)
+	keyData := db.ToKeyData(key)
 
 	// Validate key belongs to authorized workspace
 	if keyData.Key.WorkspaceID != auth.AuthorizedWorkspaceID {
@@ -164,8 +163,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ExternalId: keyData.Identity.ExternalID,
 		}
 
-		if len(keyData.Identity.Meta) > 0 {
-			identityMeta := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta, h.Logger)
+		if identityMeta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta); err != nil {
+			h.Logger.Error("failed to unmarshal identity meta",
+				"identityId", keyData.Identity.ID,
+				"error", err,
+			)
+		} else {
 			response.Identity.Meta = &identityMeta
 		}
 	}
@@ -232,9 +235,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Set meta
 	if keyData.Key.Meta.Valid {
-		var meta map[string]any
-		if err := json.Unmarshal([]byte(keyData.Key.Meta.String), &meta); err != nil {
-			h.Logger.Error("failed to unmarshal key meta", "error", err)
+		meta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Key.Meta.String)
+		if err != nil {
+			h.Logger.Error("failed to unmarshal key meta",
+				"keyId", keyData.Key.ID,
+				"error", err,
+			)
 		} else {
 			response.Meta = &meta
 		}

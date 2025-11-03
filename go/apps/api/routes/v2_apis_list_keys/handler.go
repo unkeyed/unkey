@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
 	"github.com/oapi-codegen/nullable"
@@ -228,7 +227,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Transform to response format
 	responseData := make([]openapi.KeyResponseData, len(keyResults))
 	for i, key := range keyResults {
-		keyData := db.ToKeyData(key, h.Logger)
+		keyData := db.ToKeyData(key)
 		response, err := h.buildKeyResponseData(keyData, plaintextMap[key.ID])
 		if err != nil {
 			return err
@@ -303,9 +302,10 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 			ExternalId: keyData.Identity.ExternalID,
 		}
 
-		if len(keyData.Identity.Meta) > 0 {
-			meta := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta, h.Logger)
-			response.Identity.Meta = &meta
+		if identityMeta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta); err != nil {
+			h.Logger.Error("failed to unmarshal identity meta", "error", err)
+		} else {
+			response.Identity.Meta = &identityMeta
 		}
 	}
 
@@ -370,9 +370,13 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 
 	// Set meta
 	if keyData.Key.Meta.Valid {
-		var meta map[string]any
-		_ = json.Unmarshal([]byte(keyData.Key.Meta.String), &meta) // Ignore error, default to nil
-		if meta != nil {
+		meta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Key.Meta.String)
+		if err != nil {
+			h.Logger.Error("failed to unmarshal key meta",
+				"keyId", keyData.Key.ID,
+				"error", err,
+			)
+		} else {
 			response.Meta = &meta
 		}
 	}

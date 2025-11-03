@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -193,13 +192,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if key.Key.Meta.Valid {
-		err = json.Unmarshal([]byte(key.Key.Meta.String), &keyData.Meta)
+		meta, err := db.UnmarshalNullableJSONTo[map[string]any](key.Key.Meta.String)
 		if err != nil {
-			return fault.Wrap(err, fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("unable to unmarshal key meta"),
-				fault.Public("We encountered an error while trying to unmarshal the key meta data."),
+			h.Logger.Error("failed to unmarshal key meta",
+				"keyId", key.Key.ID,
+				"error", err,
 			)
+			// Continue with empty meta (zero value)
 		}
+		keyData.Meta = &meta
 	}
 
 	if key.Key.IdentityID.Valid {
@@ -229,12 +230,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			keyData.Identity.Ratelimits = ptr.P(identityRatelimits)
 		}
 
-		if len(key.Key.IdentityMeta) > 0 {
-			meta := db.UnmarshalNullableJSONTo[map[string]any](key.Key.IdentityMeta, h.Logger)
-			if len(meta) > 0 {
-				keyData.Identity.Meta = &meta
-			}
+		meta, err := db.UnmarshalNullableJSONTo[map[string]any](key.Key.IdentityMeta)
+		if err != nil {
+			h.Logger.Error("failed to unmarshal identity meta",
+				"identityId", key.Key.IdentityID.String,
+				"error", err,
+			)
+			// Continue with empty meta
 		}
+		keyData.Identity.Meta = &meta
 	}
 
 	if len(key.RatelimitResults) > 0 {
