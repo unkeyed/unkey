@@ -23,7 +23,7 @@ type KeyData struct {
 
 // KeyRow constraint for types that can be converted to KeyData
 type KeyRow interface {
-	FindLiveKeyByHashRow | FindLiveKeyByIDRow | ListLiveKeysByKeyAuthIDRow
+	FindLiveKeyByHashRow | FindLiveKeyByIDRow | ListLiveKeysByKeySpaceIDRow
 }
 
 // ToKeyData converts either query result into KeyData using generics
@@ -37,10 +37,10 @@ func ToKeyData[T KeyRow](row T, logger logging.Logger) *KeyData {
 		return buildKeyDataFromID(&r, logger)
 	case *FindLiveKeyByIDRow:
 		return buildKeyDataFromID(r, logger)
-	case ListLiveKeysByKeyAuthIDRow:
-		return buildKeyDataFromKeyAuth(&r, logger)
-	case *ListLiveKeysByKeyAuthIDRow:
-		return buildKeyDataFromKeyAuth(r, logger)
+	case ListLiveKeysByKeySpaceIDRow:
+		return buildKeyDataFromKeySpace(&r, logger)
+	case *ListLiveKeysByKeySpaceIDRow:
+		return buildKeyDataFromKeySpace(r, logger)
 	default:
 		return nil
 	}
@@ -51,7 +51,7 @@ func buildKeyDataFromID(r *FindLiveKeyByIDRow, logger logging.Logger) *KeyData {
 	return buildKeyData(&hr, logger)
 }
 
-func buildKeyDataFromKeyAuth(r *ListLiveKeysByKeyAuthIDRow, logger logging.Logger) *KeyData {
+func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow, logger logging.Logger) *KeyData {
 	kd := &KeyData{
 		Key: Key{
 			ID:                r.ID,
