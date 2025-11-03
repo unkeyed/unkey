@@ -121,6 +121,7 @@ func TestEventStreamMultipleMessages(t *testing.T) {
 	receivedKeys := make(map[string]bool)
 	var mu sync.Mutex // protect receivedKeys map
 
+	// Create consumer
 	consumer := topic.NewConsumer()
 	defer consumer.Close()
 

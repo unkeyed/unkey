@@ -189,6 +189,7 @@ func (c *ClusterCache[K, V]) ProcessInvalidationEvent(ctx context.Context, event
 }
 
 // broadcastInvalidation sends cache invalidation events to other cluster nodes
+// This runs asynchronously to avoid blocking the caller
 func (c *ClusterCache[K, V]) broadcastInvalidation(ctx context.Context, keys ...K) {
 	if c.producer == nil || len(keys) == 0 {
 		return
@@ -205,12 +206,18 @@ func (c *ClusterCache[K, V]) broadcastInvalidation(ctx context.Context, keys ...
 		}
 	}
 
-	// Send all events in a single batch
-	if err := c.producer.Produce(ctx, events...); err != nil {
-		c.logger.Error("Failed to broadcast cache invalidations",
-			"error", err,
-			"cache", c.cacheName,
-			"keys", keys)
-		// Don't fail the operation if broadcasting fails
-	}
+	// Send events asynchronously to avoid blocking the caller
+	go func() {
+		// Use background context since we don't want to be cancelled if caller's context ends
+		produceCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := c.producer.Produce(produceCtx, events...); err != nil {
+			c.logger.Error("Failed to broadcast cache invalidations",
+				"error", err,
+				"cache", c.cacheName,
+				"keys", keys)
+			// Don't fail the operation if broadcasting fails
+		}
+	}()
 }

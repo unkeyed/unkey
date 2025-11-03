@@ -16,19 +16,22 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 	testutil.SkipUnlessIntegration(t)
 
 	brokers := containers.Kafka(t)
-	topicName := fmt.Sprintf("test-clustering-e2e-%d", time.Now().UnixNano())
+
+	// Create unique topic and instance ID for this test run to ensure fresh consumer group
+	topicName := fmt.Sprintf("test-clustering-e2e-%s", uid.New(uid.TestPrefix))
 
 	// Create eventstream topic
 	topic, err := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
 		Brokers:    brokers,
 		Topic:      topicName,
-		InstanceID: "test-e2e",
+		InstanceID: uid.New(uid.TestPrefix),
 		Logger:     logging.NewNoop(),
 	})
 	require.NoError(t, err)
