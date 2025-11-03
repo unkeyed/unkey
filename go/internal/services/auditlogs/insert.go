@@ -18,7 +18,7 @@ import (
 // and querying purposes, with "unkey_mutations" serving as the standard bucket
 // for most operational audit events.
 const (
-	DEFAULT_BUCKET = "unkey_mutations"
+	DEFAULT_BUCKET = "unkey_mutations_go_only"
 )
 
 // Insert implements AuditLogService.Insert, persisting audit logs and their
