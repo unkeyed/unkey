@@ -116,6 +116,7 @@ func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
 			Remaining:    r.CreditRemaining.Int32,
 			RefillDay:    r.CreditRefillDay,
 			RefillAmount: r.CreditRefillAmount,
+			RefilledAt:   r.CreditRefilledAt,
 		}
 	}
 
@@ -129,6 +130,7 @@ func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
 			Remaining:    r.IdentityCreditRemaining.Int32,
 			RefillDay:    r.IdentityCreditRefillDay,
 			RefillAmount: r.IdentityCreditRefillAmount,
+			RefilledAt:   r.IdentityCreditRefilledAt,
 		}
 	}
 

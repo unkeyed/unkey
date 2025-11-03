@@ -77,7 +77,13 @@ func (s *service) processLimit(ctx context.Context, remaining int32, cost int32,
 	// Check if enough remaining to cover the request cost
 	if cost > 0 && remaining < cost {
 		metrics.UsagelimiterDecisions.WithLabelValues("db", "denied").Inc()
-		return UsageResponse{Valid: false, Remaining: 0}, nil
+		return UsageResponse{Valid: false, Remaining: remaining}, nil
+	}
+
+	// Skip decrement for zero cost requests - just return current remaining
+	if cost == 0 {
+		metrics.UsagelimiterDecisions.WithLabelValues("db", "allowed").Inc()
+		return UsageResponse{Valid: true, Remaining: remaining}, nil
 	}
 
 	// Decrement the credits/remaining

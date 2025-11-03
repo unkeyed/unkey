@@ -14,7 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestKeyUpdateCreditsForbidden(t *testing.T) {
+func TestIdentityUpdateCreditsForbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
@@ -54,7 +54,7 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 	})
 
 	t.Run("wrong permission - has create but not update", func(t *testing.T) {
-		// Create root key with read permission instead of create
+		// Create root key with create_key permission instead of required update_key
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
 
 		headers := http.Header{
@@ -72,7 +72,7 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 		differentWorkspace := h.CreateWorkspace()
 
 		// Create a root key for the different workspace with full permissions
-		rootKey := h.CreateRootKey(differentWorkspace.ID, "api.*.update_key")
+		rootKey := h.CreateRootKey(differentWorkspace.ID, "identity.*.update_identity")
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

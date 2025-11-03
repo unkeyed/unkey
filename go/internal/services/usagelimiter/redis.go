@@ -200,6 +200,7 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 	}
 
 	// Attempt decrement if key already exists in Redis
+	// The Lua script handles cost=0 by returning current value without decrementing
 	remaining, exists, success, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
 	if err != nil {
 		return s.dbFallback.Limit(ctx, req)
@@ -233,12 +234,15 @@ func (s *counterService) keyRedisKey(keyID string) string {
 // This eliminates ambiguity in determining whether the operation succeeded or failed.
 func (s *counterService) handleResult(req UsageRequest, remaining int64, success bool) UsageResponse {
 	if success {
-		// decrement succeeded - buffer the change for async database sync
-		s.replayBuffer.Buffer(CreditChange{
-			KeyID:    req.KeyID,
-			CreditID: req.CreditID,
-			Cost:     req.Cost,
-		})
+		// Only buffer the change for async database sync if cost > 0
+		// Zero cost requests don't need to be replayed to the database
+		if req.Cost > 0 {
+			s.replayBuffer.Buffer(CreditChange{
+				KeyID:    req.KeyID,
+				CreditID: req.CreditID,
+				Cost:     req.Cost,
+			})
+		}
 
 		metrics.UsagelimiterDecisions.WithLabelValues("redis", "allowed").Inc()
 		return UsageResponse{Valid: true, Remaining: int32(remaining)} //nolint: gosec

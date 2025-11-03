@@ -201,12 +201,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					)
 				}
 
-				result = db.Credit{
-					ID:          creditID,
-					WorkspaceID: identity.WorkspaceID,
-					IdentityID:  sql.NullString{Valid: true, String: identity.ID},
-					KeyID:       sql.NullString{Valid: false},
-					Remaining:   remaining,
+				// Start with existing credit data to preserve refill metadata
+				if hasCredits {
+					result = currentCredits
+					result.Remaining = remaining
+				} else {
+					// New credit record without refill configuration
+					result = db.Credit{
+						ID:          creditID,
+						WorkspaceID: identity.WorkspaceID,
+						IdentityID:  sql.NullString{Valid: true, String: identity.ID},
+						KeyID:       sql.NullString{Valid: false},
+						Remaining:   remaining,
+					}
 				}
 				auditLogMessage = fmt.Sprintf("%d", remaining)
 			}

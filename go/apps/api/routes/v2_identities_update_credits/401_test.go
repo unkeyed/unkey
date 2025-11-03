@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 )
 
-func TestUnauthorized(t *testing.T) {
+func TestIdentityUpdateCreditsUnauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
 		Logger:       h.Logger,

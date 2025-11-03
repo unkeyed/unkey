@@ -82,11 +82,13 @@ SELECT k.*,
        kc.remaining         as credit_remaining,
        kc.refill_day        as credit_refill_day,
        kc.refill_amount     as credit_refill_amount,
+       kc.refilled_at       as credit_refilled_at,
        -- Identity credits from new credits table
        ic.id                as identity_credit_id,
        ic.remaining         as identity_credit_remaining,
        ic.refill_day        as identity_credit_refill_day,
-       ic.refill_amount     as identity_credit_refill_amount
+       ic.refill_amount     as identity_credit_refill_amount,
+       ic.refilled_at       as identity_credit_refilled_at       
 FROM `keys` k
          JOIN key_auth ka ON ka.id = k.key_auth_id
          JOIN workspaces ws ON ws.id = k.workspace_id

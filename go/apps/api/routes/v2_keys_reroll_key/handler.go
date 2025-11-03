@@ -296,7 +296,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RefillAmount: keyData.KeyCredits.RefillAmount,
 				CreatedAt:    now,
 				UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
-				RefilledAt:   sql.NullInt64{Valid: false},
+				RefilledAt:   sql.NullInt64{Valid: keyData.KeyCredits.RefilledAt.Valid, Int64: keyData.KeyCredits.RefilledAt.Int64},
 			}
 		} else if key.RemainingRequests.Valid {
 			// Migrate from legacy credits
@@ -310,7 +310,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RefillAmount: key.RefillAmount,
 				CreatedAt:    now,
 				UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
-				RefilledAt:   sql.NullInt64{Valid: false},
+				RefilledAt:   sql.NullInt64{Valid: key.CreditRefilledAt.Valid, Int64: key.CreditRefilledAt.Int64},
 			}
 		}
 

@@ -16,7 +16,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestNotFound(t *testing.T) {
+func TestIdentityUpdateCreditsNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
 		Logger:       h.Logger,

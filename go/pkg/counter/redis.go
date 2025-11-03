@@ -19,6 +19,7 @@ const (
 	//
 	// Decrement Logic:
 	// - If key doesn't exist: return {0, 0, 0} (value=0, existed=false, success=false)
+	// - If decrement is 0: return {current, 1, 1} (unchanged value, existed=true, success=true)
 	// - If insufficient credits: return {current, 1, 0} (unchanged value, existed=true, success=false)
 	// - If sufficient credits: return {new_value, 1, 1} (decremented value, existed=true, success=true)
 	//
@@ -35,6 +36,12 @@ const (
 		end
 
 		current = tonumber(current)
+
+		-- Early return for zero cost - no decrement needed
+		if decrement == 0 then
+			return {current, 1, 1}  -- {current_unchanged, existed=true, success=true}
+		end
+
 		-- Check if we have sufficient credits before decrementing
 		if current < decrement then
 			return {current, 1, 0}  -- {current_unchanged, existed=true, success=false}

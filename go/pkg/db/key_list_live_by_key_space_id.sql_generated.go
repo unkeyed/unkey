@@ -94,11 +94,13 @@ SELECT k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
        kc.remaining         as credit_remaining,
        kc.refill_day        as credit_refill_day,
        kc.refill_amount     as credit_refill_amount,
+       kc.refilled_at       as credit_refilled_at,
        -- Identity credits from new credits table
        ic.id                as identity_credit_id,
        ic.remaining         as identity_credit_remaining,
        ic.refill_day        as identity_credit_refill_day,
-       ic.refill_amount     as identity_credit_refill_amount
+       ic.refill_amount     as identity_credit_refill_amount,
+       ic.refilled_at       as identity_credit_refilled_at       
 FROM ` + "`" + `keys` + "`" + ` k
          JOIN key_auth ka ON ka.id = k.key_auth_id
          JOIN workspaces ws ON ws.id = k.workspace_id
@@ -162,10 +164,12 @@ type ListLiveKeysByKeySpaceIDRow struct {
 	CreditRemaining            sql.NullInt32  `db:"credit_remaining"`
 	CreditRefillDay            sql.NullInt16  `db:"credit_refill_day"`
 	CreditRefillAmount         sql.NullInt32  `db:"credit_refill_amount"`
+	CreditRefilledAt           sql.NullInt64  `db:"credit_refilled_at"`
 	IdentityCreditID           sql.NullString `db:"identity_credit_id"`
 	IdentityCreditRemaining    sql.NullInt32  `db:"identity_credit_remaining"`
 	IdentityCreditRefillDay    sql.NullInt16  `db:"identity_credit_refill_day"`
 	IdentityCreditRefillAmount sql.NullInt32  `db:"identity_credit_refill_amount"`
+	IdentityCreditRefilledAt   sql.NullInt64  `db:"identity_credit_refilled_at"`
 }
 
 // ListLiveKeysByKeySpaceID
@@ -253,11 +257,13 @@ type ListLiveKeysByKeySpaceIDRow struct {
 //	       kc.remaining         as credit_remaining,
 //	       kc.refill_day        as credit_refill_day,
 //	       kc.refill_amount     as credit_refill_amount,
+//	       kc.refilled_at       as credit_refilled_at,
 //	       -- Identity credits from new credits table
 //	       ic.id                as identity_credit_id,
 //	       ic.remaining         as identity_credit_remaining,
 //	       ic.refill_day        as identity_credit_refill_day,
-//	       ic.refill_amount     as identity_credit_refill_amount
+//	       ic.refill_amount     as identity_credit_refill_amount,
+//	       ic.refilled_at       as identity_credit_refilled_at
 //	FROM `keys` k
 //	         JOIN key_auth ka ON ka.id = k.key_auth_id
 //	         JOIN workspaces ws ON ws.id = k.workspace_id
@@ -328,10 +334,12 @@ func (q *Queries) ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg Lis
 			&i.CreditRemaining,
 			&i.CreditRefillDay,
 			&i.CreditRefillAmount,
+			&i.CreditRefilledAt,
 			&i.IdentityCreditID,
 			&i.IdentityCreditRemaining,
 			&i.IdentityCreditRefillDay,
 			&i.IdentityCreditRefillAmount,
+			&i.IdentityCreditRefilledAt,
 		); err != nil {
 			return nil, err
 		}

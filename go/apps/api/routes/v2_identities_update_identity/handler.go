@@ -145,6 +145,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		_ = json.Unmarshal(ratelimitBytes, &existingRatelimits) // Ignore error, default to empty array
 	}
 
+	// Capture existing credit ID before transaction for cache invalidation
+	oldCreditID := identity.CreditID
+
 	result, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (txResult, error) {
 		auditLogs := []auditlog.AuditLog{
 			{
@@ -510,7 +513,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						remaining = 0 // Will be ignored due to specified flag
 					}
 
-					creditID := uid.New(uid.CreditPrefix)
+					// Preserve existing credit ID if present, otherwise generate a new one
+					var creditID string
+					if identity.CreditID.Valid {
+						creditID = identity.CreditID.String
+					} else {
+						creditID = uid.New(uid.CreditPrefix)
+					}
+
 					upsertErr := db.Query.UpsertCredit(ctx, tx, db.UpsertCreditParams{
 						ID:                    creditID,
 						WorkspaceID:           auth.AuthorizedWorkspaceID,
@@ -623,13 +633,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Invalidate cache for identity credits if they were updated
-	if req.Credits.IsSpecified() && result.identity.CreditID.Valid {
-		if invalidateErr := h.UsageLimiter.Invalidate(ctx, result.identity.CreditID.String); invalidateErr != nil {
-			h.Logger.Error("Failed to invalidate usage limit for identity credit",
-				"error", invalidateErr.Error(),
-				"credit_id", result.identity.CreditID.String,
-				"identity_id", identity.ID,
-			)
+	if req.Credits.IsSpecified() && (oldCreditID.Valid || result.identity.CreditID.Valid) {
+		// Case 1: Credits were deleted (oldCreditID was set, now it's not)
+		// Case 2: Credits exist and were updated (oldCreditID == result.identity.CreditID)
+		if oldCreditID.Valid {
+			if invalidateErr := h.UsageLimiter.Invalidate(ctx, oldCreditID.String); invalidateErr != nil {
+				h.Logger.Error("Failed to invalidate usage limit for identity credit",
+					"error", invalidateErr.Error(),
+					"credit_id", oldCreditID.String,
+					"identity_id", identity.ID,
+				)
+			}
+		}
+
+		// Case 3: Credits were newly created (oldCreditID was empty, now has a new credit ID)
+		if result.identity.CreditID.Valid && !oldCreditID.Valid {
+			if invalidateErr := h.UsageLimiter.Invalidate(ctx, result.identity.CreditID.String); invalidateErr != nil {
+				h.Logger.Error("Failed to invalidate usage limit for identity credit",
+					"error", invalidateErr.Error(),
+					"credit_id", result.identity.CreditID.String,
+					"identity_id", identity.ID,
+				)
+			}
 		}
 
 		// Find and invalidate all keys belonging to this identity

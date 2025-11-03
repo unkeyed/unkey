@@ -21,7 +21,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-func TestKeyUpdateCreditsSuccess(t *testing.T) {
+func TestIdentityUpdateCreditsSuccess(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := context.Background()
 

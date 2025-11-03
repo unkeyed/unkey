@@ -144,7 +144,12 @@ func TestRerollKeySuccess(t *testing.T) {
 		require.Equal(t, createdKeyRow.Name.String, rolledKeyRow.Name.String)
 		require.Equal(t, createdKeyRow.IdentityID.String, rolledKeyRow.IdentityID.String)
 		require.Equal(t, createdKeyRow.Meta, rolledKeyRow.Meta)
-		require.NotEqual(t, createdKeyRow.CreditID, rolledKeyRow.CreditID)
+
+		// Ensure both credit IDs are valid before comparing them
+		require.True(t, createdKeyRow.CreditID.Valid, "createdKeyRow should have a valid CreditID")
+		require.True(t, rolledKeyRow.CreditID.Valid, "rolledKeyRow should have a valid CreditID")
+		require.NotEqual(t, createdKeyRow.CreditID.String, rolledKeyRow.CreditID.String)
+
 		require.Equal(t, createdKeyRow.CreditRefillDay.Int16, rolledKeyRow.CreditRefillDay.Int16)
 		require.Equal(t, createdKeyRow.CreditRefillAmount.Int32, rolledKeyRow.CreditRefillAmount.Int32)
 		require.Equal(t, createdKeyRow.CreditRemaining.Int32, rolledKeyRow.CreditRemaining.Int32)

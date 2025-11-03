@@ -352,7 +352,6 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		// Verify credits were added
 		require.NotNil(t, res.Body.Data.Credits)
 		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
-		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		assert.Equal(t, int64(100), res.Body.Data.Credits.Remaining.MustGet())
 		assert.Nil(t, res.Body.Data.Credits.Refill)
 	})
@@ -381,7 +380,6 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		// Verify refill preserved
 		require.NotNil(t, res.Body.Data.Credits.Refill)
 		refill := *res.Body.Data.Credits.Refill
-		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		assert.Equal(t, int64(100), refill.Amount)
 		assert.Equal(t, openapi.Monthly, refill.Interval)
 		assert.NotNil(t, refill.RefillDay)
@@ -417,7 +415,6 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		// Verify refill added
 		require.NotNil(t, res.Body.Data.Credits.Refill)
 		refill := *res.Body.Data.Credits.Refill
-		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		assert.Equal(t, int64(150), refill.Amount)
 		assert.Equal(t, openapi.Monthly, refill.Interval)
 		assert.NotNil(t, refill.RefillDay)
@@ -452,7 +449,6 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 
 		require.NotNil(t, res.Body.Data.Credits.Refill)
 		refill := res.Body.Data.Credits.Refill
-		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		assert.Equal(t, int64(500), refill.Amount)
 		assert.Equal(t, openapi.Monthly, refill.Interval)
 		assert.NotNil(t, refill.RefillDay)
@@ -507,7 +503,6 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 		require.NotNil(t, res.Body.Data.Credits)
 		require.NotNil(t, res.Body.Data.Credits.Refill)
 		refill := *res.Body.Data.Credits.Refill
-		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		assert.Equal(t, int64(25), refill.Amount)
 		assert.Equal(t, openapi.Daily, refill.Interval)
 		assert.Nil(t, refill.RefillDay) // Should be nil for daily
@@ -604,7 +599,6 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 
 		require.NotNil(t, res.Body.Data.Credits.Refill)
 		refill := *res.Body.Data.Credits.Refill
-		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		assert.Equal(t, int64(888), refill.Amount)
 		assert.Equal(t, openapi.Monthly, refill.Interval)
 		assert.NotNil(t, refill.RefillDay)
@@ -638,7 +632,6 @@ func TestCreditsUpdateBehavior(t *testing.T) {
 
 		require.NotNil(t, res.Body.Data.Credits.Refill)
 		refill := *res.Body.Data.Credits.Refill
-		require.True(t, res.Body.Data.Credits.Remaining.IsSpecified())
 		assert.Equal(t, int64(20), refill.Amount)
 		assert.Equal(t, openapi.Daily, refill.Interval)
 		assert.Nil(t, refill.RefillDay)

@@ -164,7 +164,7 @@ func TestSuccess(t *testing.T) {
 			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 			require.NotNil(t, res.Body)
 			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
-			require.True(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
 			require.EqualValues(t, *res.Body.Data.Credits, int32(2), "Key should have 2 credits remaining but got %d", *res.Body.Data.Credits)
 		})
 

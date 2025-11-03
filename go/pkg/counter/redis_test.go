@@ -919,4 +919,42 @@ func TestRedisCounterDecrementLogic(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, int64(0), finalValue, "final value should be 0")
 	})
+
+	t.Run("ZeroCostDecrement", func(t *testing.T) {
+		key := fmt.Sprintf("test-zero-cost-%d", time.Now().UnixNano())
+
+		// Initialize with 100 credits
+		_, err := ctr.Increment(ctx, key, 100)
+		require.NoError(t, err)
+
+		// Decrement by 0 - should succeed and return current value without modifying it
+		remaining, existed, success, err := ctr.DecrementIfExists(ctx, key, 0)
+		require.NoError(t, err)
+		require.True(t, existed, "key should exist")
+		require.True(t, success, "zero cost decrement should succeed")
+		require.Equal(t, int64(100), remaining, "should return current value unchanged")
+
+		// Verify counter value is still 100
+		actualVal, err := ctr.Get(ctx, key)
+		require.NoError(t, err)
+		require.Equal(t, int64(100), actualVal, "counter should remain unchanged after zero cost decrement")
+
+		// Do another decrement by 0 to verify idempotency
+		remaining, existed, success, err = ctr.DecrementIfExists(ctx, key, 0)
+		require.NoError(t, err)
+		require.True(t, existed)
+		require.True(t, success)
+		require.Equal(t, int64(100), remaining)
+	})
+
+	t.Run("ZeroCostDecrementNonExistent", func(t *testing.T) {
+		key := fmt.Sprintf("test-zero-cost-nonexistent-%d", time.Now().UnixNano())
+
+		// Try to decrement non-existent key by 0
+		remaining, existed, success, err := ctr.DecrementIfExists(ctx, key, 0)
+		require.NoError(t, err)
+		require.False(t, existed, "key should not exist")
+		require.False(t, success, "should fail when key doesn't exist")
+		require.Equal(t, int64(0), remaining, "should return 0 when key doesn't exist")
+	})
 }
