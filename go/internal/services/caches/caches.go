@@ -168,7 +168,11 @@ func New(config Config) (Caches, error) {
 	// (cache Get/Set operations) when clustering isn't needed.
 	var dispatcher *clustering.InvalidationDispatcher
 	if config.CacheInvalidationTopic != nil {
-		dispatcher = clustering.NewInvalidationDispatcher(config.CacheInvalidationTopic, config.Logger)
+		var err error
+		dispatcher, err = clustering.NewInvalidationDispatcher(config.CacheInvalidationTopic, config.Logger)
+		if err != nil {
+			return Caches{}, err
+		}
 	}
 
 	// Create ratelimit namespace cache (uses ScopedKey)

@@ -35,20 +35,18 @@ func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 		Logger:     logger,
 	})
 	require.NoError(t, err)
-	t.Logf("Created topic: %s", topicName)
 
 	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err)
 	defer topic.Close()
 
 	// Create dispatcher (one per process in production)
-	dispatcher := clustering.NewInvalidationDispatcher(topic, logger)
+	dispatcher, err := clustering.NewInvalidationDispatcher(topic, logger)
+	require.NoError(t, err)
 	defer dispatcher.Close()
 
 	// Wait for dispatcher's consumer to be ready
-	t.Logf("Waiting 5s for dispatcher consumer to be ready...")
 	time.Sleep(5 * time.Second)
-	t.Logf("Dispatcher consumer should be ready now")
 
 	// Create two cache instances (simulating two nodes)
 	createCache := func(nodeID string) (*clustering.ClusterCache[string, string], cache.Cache[string, string], error) {
@@ -107,14 +105,9 @@ func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 
 	// Wait for invalidation to propagate through Manager
 	// Need time for: async broadcast goroutine + kafka write + consumer read + Manager routing
-	t.Logf("Waiting for node 2's cache to be invalidated via Manager...")
 	require.Eventually(t, func() bool {
 		_, hit := localCache2.Get(ctx, "shared-key")
-		invalidated := hit == cache.Miss
-		if invalidated {
-			t.Logf("Node 2's cache was invalidated!")
-		}
-		return invalidated
+		return hit == cache.Miss
 	}, 10*time.Second, 100*time.Millisecond, "Node 2's cache should be invalidated within 10 seconds")
 
 	// Verify Node 1 still has the data (it set it and ignores its own invalidation events)

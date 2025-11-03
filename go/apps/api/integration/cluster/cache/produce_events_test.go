@@ -37,7 +37,6 @@ func TestAPI_ProducesInvalidationEvents(t *testing.T) {
 		InstanceID: testInstanceID,
 		Logger:     logging.NewNoop(),
 	})
-	t.Logf("Test consumer instance ID: %s", testInstanceID)
 	require.NoError(t, err)
 
 	// Ensure topic exists

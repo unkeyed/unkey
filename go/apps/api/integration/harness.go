@@ -138,8 +138,6 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		clickhouseHostDSN := containers.ClickHouse(h.t)
 		redisHostAddr := containers.Redis(h.t)
 		kafkaBrokers := containers.Kafka(h.t)
-		h.t.Logf("DEBUG: Kafka brokers for node %d: %#v", i, kafkaBrokers)
-
 		apiConfig := api.Config{
 			Platform:                "test",
 			Image:                   "test",

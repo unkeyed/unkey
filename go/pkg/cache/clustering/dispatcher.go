@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	cachev1 "github.com/unkeyed/unkey/go/gen/proto/cache/v1"
+	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/eventstream"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
@@ -55,13 +56,14 @@ func NewNoopDispatcher() *InvalidationDispatcher {
 // NewInvalidationDispatcher creates a new dispatcher that routes invalidation
 // events to registered caches.
 //
-// Panics if topic or logger is nil - use NewNoopDispatcher() if clustering is disabled.
-func NewInvalidationDispatcher(topic *eventstream.Topic[*cachev1.CacheInvalidationEvent], logger logging.Logger) *InvalidationDispatcher {
-	if topic == nil {
-		panic("topic is required for InvalidationDispatcher - use NewNoopDispatcher() if clustering is disabled")
-	}
-	if logger == nil {
-		panic("logger is required for InvalidationDispatcher")
+// Returns an error if topic or logger is nil - use NewNoopDispatcher() if clustering is disabled.
+func NewInvalidationDispatcher(topic *eventstream.Topic[*cachev1.CacheInvalidationEvent], logger logging.Logger) (*InvalidationDispatcher, error) {
+	err := assert.All(
+		assert.NotNil(topic, "topic is required for InvalidationDispatcher - use NewNoopDispatcher() if clustering is disabled"),
+		assert.NotNil(logger, "logger is required for InvalidationDispatcher"),
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -76,7 +78,7 @@ func NewInvalidationDispatcher(topic *eventstream.Topic[*cachev1.CacheInvalidati
 	d.consumer = topic.NewConsumer()
 	d.consumer.Consume(ctx, d.handleEvent)
 
-	return d
+	return d, nil
 }
 
 // handleEvent processes a single invalidation event by routing it to

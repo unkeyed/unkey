@@ -68,10 +68,8 @@ func TestAPI_ConsumesInvalidationEvents(t *testing.T) {
 		if err != nil {
 			continue // Skip invalid headers
 		}
-		t.Logf("Cache header: cache=%s, latency=%v, status=%s", parsedHeader.CacheName, parsedHeader.Latency, parsedHeader.Status)
 		if parsedHeader.CacheName == "live_api_by_id" && parsedHeader.Status == "FRESH" {
 			foundFresh = true
-			t.Logf("Found FRESH cache: cache=%s, latency=%v, status=%s", parsedHeader.CacheName, parsedHeader.Latency, parsedHeader.Status)
 			break
 		}
 	}
@@ -140,8 +138,6 @@ func TestAPI_ConsumesInvalidationEvents(t *testing.T) {
 			if parsedHeader.CacheName == "live_api_by_id" {
 				// Cache should no longer be FRESH after invalidation
 				if parsedHeader.Status != "FRESH" {
-					t.Logf("Found invalidated cache: cache=%s, latency=%v, status=%s",
-						parsedHeader.CacheName, parsedHeader.Latency, parsedHeader.Status)
 					cacheInvalidated.Store(true)
 					return true
 				}
