@@ -46,7 +46,18 @@ export const updateKeyRemaining = t.procedure
           const refillDay = refill.interval === "monthly" ? refill.refillDay : null;
           const refillAmount = refill.interval !== "none" ? refill.amount : null;
 
-          if (hasOldCredits) {
+          if (hasNewCredits) {
+            await tx
+              .update(schema.credits)
+              .set({
+                remaining: input.limit.data.remaining,
+                refillDay,
+                refillAmount,
+                refilledAt: Date.now(),
+                updatedAt: Date.now(),
+              })
+              .where(eq(schema.credits.id, key.credits.id));
+          } else if (hasOldCredits) {
             await tx
               .update(schema.keys)
               .set({
@@ -58,17 +69,6 @@ export const updateKeyRemaining = t.procedure
               .where(
                 and(eq(schema.keys.id, key.id), eq(schema.keys.workspaceId, ctx.workspace.id)),
               );
-          } else if (hasNewCredits) {
-            await tx
-              .update(schema.credits)
-              .set({
-                remaining: input.limit.data.remaining,
-                refillDay,
-                refillAmount,
-                refilledAt: Date.now(),
-                updatedAt: Date.now(),
-              })
-              .where(eq(schema.credits.id, key.credits.id));
           } else {
             await tx.insert(schema.credits).values({
               id: newId("credit"),
@@ -84,7 +84,9 @@ export const updateKeyRemaining = t.procedure
             });
           }
         } else {
-          if (hasOldCredits) {
+          if (hasNewCredits) {
+            await tx.delete(schema.credits).where(eq(schema.credits.id, key.credits.id));
+          } else if (hasOldCredits) {
             await tx
               .update(schema.keys)
               .set({
@@ -96,8 +98,6 @@ export const updateKeyRemaining = t.procedure
               .where(
                 and(eq(schema.keys.id, key.id), eq(schema.keys.workspaceId, ctx.workspace.id)),
               );
-          } else {
-            await tx.delete(schema.credits).where(eq(schema.credits.id, key.credits.id));
           }
         }
 
