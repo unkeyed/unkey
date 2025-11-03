@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestEventStreamIntegration(t *testing.T) {
@@ -22,12 +23,12 @@ func TestEventStreamIntegration(t *testing.T) {
 	// Get Kafka brokers from test containers
 	brokers := containers.Kafka(t)
 
-	// Create topic configuration
-	topicName := fmt.Sprintf("test-eventstream-%d", time.Now().UnixNano())
+	// Create unique topic and instance ID for this test run to ensure fresh consumer group
+	topicName := fmt.Sprintf("test-eventstream-%s", uid.New(uid.TestPrefix))
 	config := eventstream.TopicConfig{
 		Brokers:    brokers,
 		Topic:      topicName,
-		InstanceID: "test-instance",
+		InstanceID: uid.New(uid.TestPrefix),
 		Logger:     logging.NewNoop(),
 	}
 
@@ -96,12 +97,14 @@ func TestEventStreamMultipleMessages(t *testing.T) {
 	testutil.SkipUnlessIntegration(t)
 
 	brokers := containers.Kafka(t)
-	topicName := fmt.Sprintf("test-multiple-%d", time.Now().UnixNano())
+
+	// Create unique topic and instance ID for this test run to ensure fresh consumer group
+	topicName := fmt.Sprintf("test-multiple-%s", uid.New(uid.TestPrefix))
 
 	config := eventstream.TopicConfig{
 		Brokers:    brokers,
 		Topic:      topicName,
-		InstanceID: "test-multiple",
+		InstanceID: uid.New(uid.TestPrefix),
 		Logger:     logging.NewNoop(),
 	}
 
