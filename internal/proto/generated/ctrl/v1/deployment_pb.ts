@@ -2,15 +2,18 @@
 // @generated from file ctrl/v1/deployment.proto (package ctrl.v1, syntax proto3)
 /* eslint-disable */
 
+import type { Message } from "@bufbuild/protobuf";
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/deployment.proto.
  */
-export const file_ctrl_v1_deployment: GenFile = /*@__PURE__*/
-  fileDesc("ChhjdHJsL3YxL2RlcGxveW1lbnQucHJvdG8SB2N0cmwudjEi8QIKF0NyZWF0ZURlcGxveW1lbnRSZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEg4KBmJyYW5jaBgDIAEoCRIYChBlbnZpcm9ubWVudF9zbHVnGAQgASgJEigKC3NvdXJjZV90eXBlGAUgASgOMhMuY3RybC52MS5Tb3VyY2VUeXBlEhQKDGRvY2tlcl9pbWFnZRgGIAEoCRIWCg5naXRfY29tbWl0X3NoYRgHIAEoCRIaChJnaXRfY29tbWl0X21lc3NhZ2UYCCABKAkSIAoYZ2l0X2NvbW1pdF9hdXRob3JfaGFuZGxlGAkgASgJEiQKHGdpdF9jb21taXRfYXV0aG9yX2F2YXRhcl91cmwYCiABKAkSHAoUZ2l0X2NvbW1pdF90aW1lc3RhbXAYCyABKAMSGAoLa2V5c3BhY2VfaWQYDCABKAlIAIgBAUIOCgxfa2V5c3BhY2VfaWQiXAoYQ3JlYXRlRGVwbG95bWVudFJlc3BvbnNlEhUKDWRlcGxveW1lbnRfaWQYASABKAkSKQoGc3RhdHVzGAIgASgOMhkuY3RybC52MS5EZXBsb3ltZW50U3RhdHVzIi0KFEdldERlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkiQAoVR2V0RGVwbG95bWVudFJlc3BvbnNlEicKCmRlcGxveW1lbnQYASABKAsyEy5jdHJsLnYxLkRlcGxveW1lbnQiiAUKCkRlcGxveW1lbnQSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSFgoOZW52aXJvbm1lbnRfaWQYBCABKAkSFgoOZ2l0X2NvbW1pdF9zaGEYBSABKAkSEgoKZ2l0X2JyYW5jaBgGIAEoCRIpCgZzdGF0dXMYByABKA4yGS5jdHJsLnYxLkRlcGxveW1lbnRTdGF0dXMSFQoNZXJyb3JfbWVzc2FnZRgIIAEoCRJMChVlbnZpcm9ubWVudF92YXJpYWJsZXMYCSADKAsyLS5jdHJsLnYxLkRlcGxveW1lbnQuRW52aXJvbm1lbnRWYXJpYWJsZXNFbnRyeRIjCgh0b3BvbG9neRgKIAEoCzIRLmN0cmwudjEuVG9wb2xvZ3kSEgoKY3JlYXRlZF9hdBgLIAEoAxISCgp1cGRhdGVkX2F0GAwgASgDEhEKCWhvc3RuYW1lcxgNIAMoCRIXCg9yb290ZnNfaW1hZ2VfaWQYDiABKAkSEAoIYnVpbGRfaWQYDyABKAkSJgoFc3RlcHMYECADKAsyFy5jdHJsLnYxLkRlcGxveW1lbnRTdGVwEhoKEmdpdF9jb21taXRfbWVzc2FnZRgRIAEoCRIgChhnaXRfY29tbWl0X2F1dGhvcl9oYW5kbGUYEiABKAkSJAocZ2l0X2NvbW1pdF9hdXRob3JfYXZhdGFyX3VybBgTIAEoCRIcChRnaXRfY29tbWl0X3RpbWVzdGFtcBgUIAEoAxo7ChlFbnZpcm9ubWVudFZhcmlhYmxlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiXAoORGVwbG95bWVudFN0ZXASDgoGc3RhdHVzGAEgASgJEg8KB21lc3NhZ2UYAiABKAkSFQoNZXJyb3JfbWVzc2FnZRgDIAEoCRISCgpjcmVhdGVkX2F0GAQgASgDIqYBCghUb3BvbG9neRIWCg5jcHVfbWlsbGljb3JlcxgBIAEoBRIRCgltZW1vcnlfbWIYAiABKAUSKAoHcmVnaW9ucxgDIAMoCzIXLmN0cmwudjEuUmVnaW9uYWxDb25maWcSHAoUaWRsZV90aW1lb3V0X3NlY29uZHMYBCABKAUSGQoRaGVhbHRoX2NoZWNrX3BhdGgYBSABKAkSDAoEcG9ydBgGIAEoBSJOCg5SZWdpb25hbENvbmZpZxIOCgZyZWdpb24YASABKAkSFQoNbWluX2luc3RhbmNlcxgCIAEoBRIVCg1tYXhfaW5zdGFuY2VzGAMgASgFIk0KD1JvbGxiYWNrUmVxdWVzdBIcChRzb3VyY2VfZGVwbG95bWVudF9pZBgBIAEoCRIcChR0YXJnZXRfZGVwbG95bWVudF9pZBgCIAEoCSISChBSb2xsYmFja1Jlc3BvbnNlIi4KDlByb21vdGVSZXF1ZXN0EhwKFHRhcmdldF9kZXBsb3ltZW50X2lkGAEgASgJIhEKD1Byb21vdGVSZXNwb25zZSrvAQoQRGVwbG95bWVudFN0YXR1cxIhCh1ERVBMT1lNRU5UX1NUQVRVU19VTlNQRUNJRklFRBAAEh0KGURFUExPWU1FTlRfU1RBVFVTX1BFTkRJTkcQARIeChpERVBMT1lNRU5UX1NUQVRVU19CVUlMRElORxACEh8KG0RFUExPWU1FTlRfU1RBVFVTX0RFUExPWUlORxADEh0KGURFUExPWU1FTlRfU1RBVFVTX05FVFdPUksQBBIbChdERVBMT1lNRU5UX1NUQVRVU19SRUFEWRAFEhwKGERFUExPWU1FTlRfU1RBVFVTX0ZBSUxFRBAGKloKClNvdXJjZVR5cGUSGwoXU09VUkNFX1RZUEVfVU5TUEVDSUZJRUQQABITCg9TT1VSQ0VfVFlQRV9HSVQQARIaChZTT1VSQ0VfVFlQRV9DTElfVVBMT0FEEAIywwIKEURlcGxveW1lbnRTZXJ2aWNlElkKEENyZWF0ZURlcGxveW1lbnQSIC5jdHJsLnYxLkNyZWF0ZURlcGxveW1lbnRSZXF1ZXN0GiEuY3RybC52MS5DcmVhdGVEZXBsb3ltZW50UmVzcG9uc2UiABJQCg1HZXREZXBsb3ltZW50Eh0uY3RybC52MS5HZXREZXBsb3ltZW50UmVxdWVzdBoeLmN0cmwudjEuR2V0RGVwbG95bWVudFJlc3BvbnNlIgASQQoIUm9sbGJhY2sSGC5jdHJsLnYxLlJvbGxiYWNrUmVxdWVzdBoZLmN0cmwudjEuUm9sbGJhY2tSZXNwb25zZSIAEj4KB1Byb21vdGUSFy5jdHJsLnYxLlByb21vdGVSZXF1ZXN0GhguY3RybC52MS5Qcm9tb3RlUmVzcG9uc2UiAEKRAQoLY29tLmN0cmwudjFCD0RlcGxveW1lbnRQcm90b1ABWjRnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw");
+export const file_ctrl_v1_deployment: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "ChhjdHJsL3YxL2RlcGxveW1lbnQucHJvdG8SB2N0cmwudjEi8QIKF0NyZWF0ZURlcGxveW1lbnRSZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEg4KBmJyYW5jaBgDIAEoCRIYChBlbnZpcm9ubWVudF9zbHVnGAQgASgJEigKC3NvdXJjZV90eXBlGAUgASgOMhMuY3RybC52MS5Tb3VyY2VUeXBlEhQKDGRvY2tlcl9pbWFnZRgGIAEoCRIWCg5naXRfY29tbWl0X3NoYRgHIAEoCRIaChJnaXRfY29tbWl0X21lc3NhZ2UYCCABKAkSIAoYZ2l0X2NvbW1pdF9hdXRob3JfaGFuZGxlGAkgASgJEiQKHGdpdF9jb21taXRfYXV0aG9yX2F2YXRhcl91cmwYCiABKAkSHAoUZ2l0X2NvbW1pdF90aW1lc3RhbXAYCyABKAMSGAoLa2V5c3BhY2VfaWQYDCABKAlIAIgBAUIOCgxfa2V5c3BhY2VfaWQiXAoYQ3JlYXRlRGVwbG95bWVudFJlc3BvbnNlEhUKDWRlcGxveW1lbnRfaWQYASABKAkSKQoGc3RhdHVzGAIgASgOMhkuY3RybC52MS5EZXBsb3ltZW50U3RhdHVzIi0KFEdldERlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkiQAoVR2V0RGVwbG95bWVudFJlc3BvbnNlEicKCmRlcGxveW1lbnQYASABKAsyEy5jdHJsLnYxLkRlcGxveW1lbnQiiAUKCkRlcGxveW1lbnQSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSFgoOZW52aXJvbm1lbnRfaWQYBCABKAkSFgoOZ2l0X2NvbW1pdF9zaGEYBSABKAkSEgoKZ2l0X2JyYW5jaBgGIAEoCRIpCgZzdGF0dXMYByABKA4yGS5jdHJsLnYxLkRlcGxveW1lbnRTdGF0dXMSFQoNZXJyb3JfbWVzc2FnZRgIIAEoCRJMChVlbnZpcm9ubWVudF92YXJpYWJsZXMYCSADKAsyLS5jdHJsLnYxLkRlcGxveW1lbnQuRW52aXJvbm1lbnRWYXJpYWJsZXNFbnRyeRIjCgh0b3BvbG9neRgKIAEoCzIRLmN0cmwudjEuVG9wb2xvZ3kSEgoKY3JlYXRlZF9hdBgLIAEoAxISCgp1cGRhdGVkX2F0GAwgASgDEhEKCWhvc3RuYW1lcxgNIAMoCRIXCg9yb290ZnNfaW1hZ2VfaWQYDiABKAkSEAoIYnVpbGRfaWQYDyABKAkSJgoFc3RlcHMYECADKAsyFy5jdHJsLnYxLkRlcGxveW1lbnRTdGVwEhoKEmdpdF9jb21taXRfbWVzc2FnZRgRIAEoCRIgChhnaXRfY29tbWl0X2F1dGhvcl9oYW5kbGUYEiABKAkSJAocZ2l0X2NvbW1pdF9hdXRob3JfYXZhdGFyX3VybBgTIAEoCRIcChRnaXRfY29tbWl0X3RpbWVzdGFtcBgUIAEoAxo7ChlFbnZpcm9ubWVudFZhcmlhYmxlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiXAoORGVwbG95bWVudFN0ZXASDgoGc3RhdHVzGAEgASgJEg8KB21lc3NhZ2UYAiABKAkSFQoNZXJyb3JfbWVzc2FnZRgDIAEoCRISCgpjcmVhdGVkX2F0GAQgASgDIqYBCghUb3BvbG9neRIWCg5jcHVfbWlsbGljb3JlcxgBIAEoBRIRCgltZW1vcnlfbWIYAiABKAUSKAoHcmVnaW9ucxgDIAMoCzIXLmN0cmwudjEuUmVnaW9uYWxDb25maWcSHAoUaWRsZV90aW1lb3V0X3NlY29uZHMYBCABKAUSGQoRaGVhbHRoX2NoZWNrX3BhdGgYBSABKAkSDAoEcG9ydBgGIAEoBSJOCg5SZWdpb25hbENvbmZpZxIOCgZyZWdpb24YASABKAkSFQoNbWluX2luc3RhbmNlcxgCIAEoBRIVCg1tYXhfaW5zdGFuY2VzGAMgASgFIk0KD1JvbGxiYWNrUmVxdWVzdBIcChRzb3VyY2VfZGVwbG95bWVudF9pZBgBIAEoCRIcChR0YXJnZXRfZGVwbG95bWVudF9pZBgCIAEoCSISChBSb2xsYmFja1Jlc3BvbnNlIi4KDlByb21vdGVSZXF1ZXN0EhwKFHRhcmdldF9kZXBsb3ltZW50X2lkGAEgASgJIhEKD1Byb21vdGVSZXNwb25zZSrvAQoQRGVwbG95bWVudFN0YXR1cxIhCh1ERVBMT1lNRU5UX1NUQVRVU19VTlNQRUNJRklFRBAAEh0KGURFUExPWU1FTlRfU1RBVFVTX1BFTkRJTkcQARIeChpERVBMT1lNRU5UX1NUQVRVU19CVUlMRElORxACEh8KG0RFUExPWU1FTlRfU1RBVFVTX0RFUExPWUlORxADEh0KGURFUExPWU1FTlRfU1RBVFVTX05FVFdPUksQBBIbChdERVBMT1lNRU5UX1NUQVRVU19SRUFEWRAFEhwKGERFUExPWU1FTlRfU1RBVFVTX0ZBSUxFRBAGKloKClNvdXJjZVR5cGUSGwoXU09VUkNFX1RZUEVfVU5TUEVDSUZJRUQQABITCg9TT1VSQ0VfVFlQRV9HSVQQARIaChZTT1VSQ0VfVFlQRV9DTElfVVBMT0FEEAIywwIKEURlcGxveW1lbnRTZXJ2aWNlElkKEENyZWF0ZURlcGxveW1lbnQSIC5jdHJsLnYxLkNyZWF0ZURlcGxveW1lbnRSZXF1ZXN0GiEuY3RybC52MS5DcmVhdGVEZXBsb3ltZW50UmVzcG9uc2UiABJQCg1HZXREZXBsb3ltZW50Eh0uY3RybC52MS5HZXREZXBsb3ltZW50UmVxdWVzdBoeLmN0cmwudjEuR2V0RGVwbG95bWVudFJlc3BvbnNlIgASQQoIUm9sbGJhY2sSGC5jdHJsLnYxLlJvbGxiYWNrUmVxdWVzdBoZLmN0cmwudjEuUm9sbGJhY2tSZXNwb25zZSIAEj4KB1Byb21vdGUSFy5jdHJsLnYxLlByb21vdGVSZXF1ZXN0GhguY3RybC52MS5Qcm9tb3RlUmVzcG9uc2UiAEKRAQoLY29tLmN0cmwudjFCD0RlcGxveW1lbnRQcm90b1ABWjRnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw",
+  );
 
 /**
  * @generated from message ctrl.v1.CreateDeploymentRequest
@@ -93,7 +96,8 @@ export type CreateDeploymentRequest = Message<"ctrl.v1.CreateDeploymentRequest">
  * Describes the message ctrl.v1.CreateDeploymentRequest.
  * Use `create(CreateDeploymentRequestSchema)` to create a new message.
  */
-export const CreateDeploymentRequestSchema: GenMessage<CreateDeploymentRequest> = /*@__PURE__*/
+export const CreateDeploymentRequestSchema: GenMessage<CreateDeploymentRequest> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_deployment, 0);
 
 /**
@@ -117,7 +121,8 @@ export type CreateDeploymentResponse = Message<"ctrl.v1.CreateDeploymentResponse
  * Describes the message ctrl.v1.CreateDeploymentResponse.
  * Use `create(CreateDeploymentResponseSchema)` to create a new message.
  */
-export const CreateDeploymentResponseSchema: GenMessage<CreateDeploymentResponse> = /*@__PURE__*/
+export const CreateDeploymentResponseSchema: GenMessage<CreateDeploymentResponse> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_deployment, 1);
 
 /**
@@ -134,7 +139,8 @@ export type GetDeploymentRequest = Message<"ctrl.v1.GetDeploymentRequest"> & {
  * Describes the message ctrl.v1.GetDeploymentRequest.
  * Use `create(GetDeploymentRequestSchema)` to create a new message.
  */
-export const GetDeploymentRequestSchema: GenMessage<GetDeploymentRequest> = /*@__PURE__*/
+export const GetDeploymentRequestSchema: GenMessage<GetDeploymentRequest> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_deployment, 2);
 
 /**
@@ -151,7 +157,8 @@ export type GetDeploymentResponse = Message<"ctrl.v1.GetDeploymentResponse"> & {
  * Describes the message ctrl.v1.GetDeploymentResponse.
  * Use `create(GetDeploymentResponseSchema)` to create a new message.
  */
-export const GetDeploymentResponseSchema: GenMessage<GetDeploymentResponse> = /*@__PURE__*/
+export const GetDeploymentResponseSchema: GenMessage<GetDeploymentResponse> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_deployment, 3);
 
 /**
@@ -287,7 +294,8 @@ export type Deployment = Message<"ctrl.v1.Deployment"> & {
  * Describes the message ctrl.v1.Deployment.
  * Use `create(DeploymentSchema)` to create a new message.
  */
-export const DeploymentSchema: GenMessage<Deployment> = /*@__PURE__*/
+export const DeploymentSchema: GenMessage<Deployment> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_deployment, 4);
 
 /**
@@ -319,7 +327,8 @@ export type DeploymentStep = Message<"ctrl.v1.DeploymentStep"> & {
  * Describes the message ctrl.v1.DeploymentStep.
  * Use `create(DeploymentStepSchema)` to create a new message.
  */
-export const DeploymentStepSchema: GenMessage<DeploymentStep> = /*@__PURE__*/
+export const DeploymentStepSchema: GenMessage<DeploymentStep> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_deployment, 5);
 
 /**
@@ -367,7 +376,8 @@ export type Topology = Message<"ctrl.v1.Topology"> & {
  * Describes the message ctrl.v1.Topology.
  * Use `create(TopologySchema)` to create a new message.
  */
-export const TopologySchema: GenMessage<Topology> = /*@__PURE__*/
+export const TopologySchema: GenMessage<Topology> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_deployment, 6);
 
 /**
@@ -394,7 +404,8 @@ export type RegionalConfig = Message<"ctrl.v1.RegionalConfig"> & {
  * Describes the message ctrl.v1.RegionalConfig.
  * Use `create(RegionalConfigSchema)` to create a new message.
  */
-export const RegionalConfigSchema: GenMessage<RegionalConfig> = /*@__PURE__*/
+export const RegionalConfigSchema: GenMessage<RegionalConfig> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_deployment, 7);
 
 /**
@@ -416,20 +427,21 @@ export type RollbackRequest = Message<"ctrl.v1.RollbackRequest"> & {
  * Describes the message ctrl.v1.RollbackRequest.
  * Use `create(RollbackRequestSchema)` to create a new message.
  */
-export const RollbackRequestSchema: GenMessage<RollbackRequest> = /*@__PURE__*/
+export const RollbackRequestSchema: GenMessage<RollbackRequest> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_deployment, 8);
 
 /**
  * @generated from message ctrl.v1.RollbackResponse
  */
-export type RollbackResponse = Message<"ctrl.v1.RollbackResponse"> & {
-};
+export type RollbackResponse = Message<"ctrl.v1.RollbackResponse"> & {};
 
 /**
  * Describes the message ctrl.v1.RollbackResponse.
  * Use `create(RollbackResponseSchema)` to create a new message.
  */
-export const RollbackResponseSchema: GenMessage<RollbackResponse> = /*@__PURE__*/
+export const RollbackResponseSchema: GenMessage<RollbackResponse> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_deployment, 9);
 
 /**
@@ -446,20 +458,21 @@ export type PromoteRequest = Message<"ctrl.v1.PromoteRequest"> & {
  * Describes the message ctrl.v1.PromoteRequest.
  * Use `create(PromoteRequestSchema)` to create a new message.
  */
-export const PromoteRequestSchema: GenMessage<PromoteRequest> = /*@__PURE__*/
+export const PromoteRequestSchema: GenMessage<PromoteRequest> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_deployment, 10);
 
 /**
  * @generated from message ctrl.v1.PromoteResponse
  */
-export type PromoteResponse = Message<"ctrl.v1.PromoteResponse"> & {
-};
+export type PromoteResponse = Message<"ctrl.v1.PromoteResponse"> & {};
 
 /**
  * Describes the message ctrl.v1.PromoteResponse.
  * Use `create(PromoteResponseSchema)` to create a new message.
  */
-export const PromoteResponseSchema: GenMessage<PromoteResponse> = /*@__PURE__*/
+export const PromoteResponseSchema: GenMessage<PromoteResponse> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_deployment, 11);
 
 /**
@@ -507,7 +520,8 @@ export enum DeploymentStatus {
 /**
  * Describes the enum ctrl.v1.DeploymentStatus.
  */
-export const DeploymentStatusSchema: GenEnum<DeploymentStatus> = /*@__PURE__*/
+export const DeploymentStatusSchema: GenEnum<DeploymentStatus> =
+  /*@__PURE__*/
   enumDesc(file_ctrl_v1_deployment, 0);
 
 /**
@@ -535,7 +549,8 @@ export enum SourceType {
 /**
  * Describes the enum ctrl.v1.SourceType.
  */
-export const SourceTypeSchema: GenEnum<SourceType> = /*@__PURE__*/
+export const SourceTypeSchema: GenEnum<SourceType> =
+  /*@__PURE__*/
   enumDesc(file_ctrl_v1_deployment, 1);
 
 /**
@@ -551,7 +566,7 @@ export const DeploymentService: GenService<{
     methodKind: "unary";
     input: typeof CreateDeploymentRequestSchema;
     output: typeof CreateDeploymentResponseSchema;
-  },
+  };
   /**
    * Get deployment details
    *
@@ -561,7 +576,7 @@ export const DeploymentService: GenService<{
     methodKind: "unary";
     input: typeof GetDeploymentRequestSchema;
     output: typeof GetDeploymentResponseSchema;
-  },
+  };
   /**
    * Reassign the sticky domains of the projects live deployment to the target deployment
    *
@@ -571,7 +586,7 @@ export const DeploymentService: GenService<{
     methodKind: "unary";
     input: typeof RollbackRequestSchema;
     output: typeof RollbackResponseSchema;
-  },
+  };
   /**
    * Promote the deployment to the live environment
    *
@@ -581,7 +596,5 @@ export const DeploymentService: GenService<{
     methodKind: "unary";
     input: typeof PromoteRequestSchema;
     output: typeof PromoteResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_ctrl_v1_deployment, 0);
-
+  };
+}> = /*@__PURE__*/ serviceDesc(file_ctrl_v1_deployment, 0);
