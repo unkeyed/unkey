@@ -540,17 +540,15 @@ type V2AnalyticsGetVerificationsRequestBody struct {
 
 // V2AnalyticsGetVerificationsResponseBody defines model for V2AnalyticsGetVerificationsResponseBody.
 type V2AnalyticsGetVerificationsResponseBody struct {
+	// Data Array of verification rows returned by the query. Fields vary based on the SQL SELECT clause.
 	Data V2AnalyticsGetVerificationsResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
 
-// V2AnalyticsGetVerificationsResponseData defines model for V2AnalyticsGetVerificationsResponseData.
-type V2AnalyticsGetVerificationsResponseData struct {
-	// Verifications Array of verification rows returned by the query. Fields vary based on the SQL SELECT clause.
-	Verifications []map[string]interface{} `json:"verifications"`
-}
+// V2AnalyticsGetVerificationsResponseData Array of verification rows returned by the query. Fields vary based on the SQL SELECT clause.
+type V2AnalyticsGetVerificationsResponseData = []map[string]interface{}
 
 // V2ApisCreateApiRequestBody defines model for V2ApisCreateApiRequestBody.
 type V2ApisCreateApiRequestBody struct {

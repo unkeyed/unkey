@@ -2092,24 +2092,19 @@ components:
             type: object
             description: Individual validation error details. Each validation error provides precise information about what failed, where it failed, and how to fix it, enabling efficient error resolution.
         V2AnalyticsGetVerificationsResponseData:
-            type: object
-            required:
-                - verifications
-            properties:
-                verifications:
-                    type: array
-                    description: Array of verification rows returned by the query. Fields vary based on the SQL SELECT clause.
-                    items:
-                        type: object
-                        additionalProperties: true
-                        description: Dynamic row with fields determined by the query. Can include any combination of fields like time, outcome, count, key_id, etc.
-                    example:
-                        - outcome: "VALID"
-                          count: 1234
-                          time: 1696118400000
-                        - outcome: "RATE_LIMITED"
-                          count: 56
-                          time: 1696118400000
+            type: array
+            description: Array of verification rows returned by the query. Fields vary based on the SQL SELECT clause.
+            items:
+                type: object
+                additionalProperties: true
+                description: Dynamic row with fields determined by the query. Can include any combination of fields like time, outcome, count, key_id, etc.
+            example:
+                - outcome: "VALID"
+                  count: 1234
+                  time: 1696118400000
+                - outcome: "RATE_LIMITED"
+                  count: 56
+                  time: 1696118400000
         V2ApisCreateApiResponseData:
             type: object
             properties:

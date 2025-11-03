@@ -67,7 +67,7 @@ func Test200_Success(t *testing.T) {
 	t.Logf("Status: %d, RawBody: %s", res.Status, res.RawBody)
 	require.Equal(t, 200, res.Status)
 	require.NotNil(t, res.Body)
-	require.Len(t, res.Body.Data.Verifications, 1)
+	require.Len(t, res.Body.Data, 1)
 }
 
 func Test200_PermissionFiltersByApiId(t *testing.T) {
@@ -142,10 +142,10 @@ func Test200_PermissionFiltersByApiId(t *testing.T) {
 		res := testutil.CallRoute[Request, Response](h, route, headers, req)
 		require.Equal(c, 200, res.Status)
 		require.NotNil(c, res.Body)
-		require.Len(c, res.Body.Data.Verifications, 1)
+		require.Len(c, res.Body.Data, 1)
 
 		// Verify the count is 3 (only api1's verifications), not 8 (api1 + api2)
-		count, ok := res.Body.Data.Verifications[0]["count"]
+		count, ok := res.Body.Data[0]["count"]
 		require.True(c, ok, "count field should exist")
 		require.Equal(c, float64(3), count, "should only return verifications for api1")
 	}, 30*time.Second, time.Second)
@@ -226,15 +226,15 @@ func Test200_PermissionFiltersByKeySpaceId(t *testing.T) {
 		require.NotNil(c, res.Body)
 
 		// Should only return 1 group (api1's key_space_id), not 2
-		require.Len(c, res.Body.Data.Verifications, 1)
+		require.Len(c, res.Body.Data, 1)
 
 		// Verify it's api1's key_space_id
-		keySpaceID, ok := res.Body.Data.Verifications[0]["key_space_id"]
+		keySpaceID, ok := res.Body.Data[0]["key_space_id"]
 		require.True(c, ok, "key_space_id field should exist")
 		require.Equal(c, api1.KeyAuthID.String, keySpaceID)
 
 		// Verify the count is 3
-		count, ok := res.Body.Data.Verifications[0]["count"]
+		count, ok := res.Body.Data[0]["count"]
 		require.True(c, ok, "count field should exist")
 		require.Equal(c, float64(3), count)
 	}, 30*time.Second, time.Second)

@@ -27,6 +27,24 @@ type Request = openapi.V2AnalyticsGetVerificationsRequestBody
 type Response = openapi.V2AnalyticsGetVerificationsResponseBody
 type ResponseData = openapi.V2AnalyticsGetVerificationsResponseData
 
+var (
+	tableAliases = map[string]string{
+		"key_verifications_v1":            "default.key_verifications_raw_v2",
+		"key_verifications_per_minute_v1": "default.key_verifications_per_minute_v2",
+		"key_verifications_per_hour_v1":   "default.key_verifications_per_hour_v2",
+		"key_verifications_per_day_v1":    "default.key_verifications_per_day_v2",
+		"key_verifications_per_month_v1":  "default.key_verifications_per_month_v2",
+	}
+
+	allowedTables = []string{
+		"default.key_verifications_raw_v2",
+		"default.key_verifications_per_minute_v2",
+		"default.key_verifications_per_hour_v2",
+		"default.key_verifications_per_day_v2",
+		"default.key_verifications_per_month_v2",
+	}
+)
+
 // Handler implements zen.Route interface for the v2 Analytics get verifications endpoint
 type Handler struct {
 	Logger                     logging.Logger
@@ -117,20 +135,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		WorkspaceID:     auth.AuthorizedWorkspaceID,
 		Limit:           int(settings.MaxQueryResultRows),
 		SecurityFilters: securityFilters,
-		TableAliases: map[string]string{
-			"key_verifications_v1":            "default.key_verifications_raw_v2",
-			"key_verifications_per_minute_v1": "default.key_verifications_per_minute_v2",
-			"key_verifications_per_hour_v1":   "default.key_verifications_per_hour_v2",
-			"key_verifications_per_day_v1":    "default.key_verifications_per_day_v2",
-			"key_verifications_per_month_v1":  "default.key_verifications_per_month_v2",
-		},
-		AllowedTables: []string{
-			"default.key_verifications_raw_v2",
-			"default.key_verifications_per_minute_v2",
-			"default.key_verifications_per_hour_v2",
-			"default.key_verifications_per_day_v2",
-			"default.key_verifications_per_month_v2",
-		},
+		TableAliases:    tableAliases,
+		AllowedTables:   allowedTables,
 	})
 
 	parsedQuery, err := parser.Parse(ctx, req.Query)
@@ -224,9 +230,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: ResponseData{
-			Verifications: verifications,
-		},
+		Data: verifications,
 	})
 }
 

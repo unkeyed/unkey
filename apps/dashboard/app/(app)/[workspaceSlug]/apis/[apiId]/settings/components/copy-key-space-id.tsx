@@ -5,9 +5,7 @@ export const CopyKeySpaceId = ({ keySpaceId }: { keySpaceId: string }) => {
   return (
     <SettingCard
       title={"KeySpace ID"}
-      description={
-        <div className="max-w-[380px]">Identifier for the underlying keyspace.</div>
-      }
+      description={<div className="max-w-[380px]">Identifier for the underlying keyspace.</div>}
       border="bottom"
       contentWidth="w-full lg:w-[420px] justify-end"
     >
