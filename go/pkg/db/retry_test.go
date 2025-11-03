@@ -210,7 +210,7 @@ func TestWithRetryContext_Integration(t *testing.T) {
 
 	// Create test data using sqlc statements
 	workspaceID := uid.New(uid.WorkspacePrefix)
-	keyringID := uid.New(uid.KeyAuthPrefix)
+	keySpaceID := uid.New(uid.KeySpacePrefix)
 
 	// Insert workspace using sqlc
 	err = Query.InsertWorkspace(ctx, dbInstance.RW(), InsertWorkspaceParams{
@@ -222,9 +222,9 @@ func TestWithRetryContext_Integration(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Insert keyring using sqlc
-	err = Query.InsertKeyring(ctx, dbInstance.RW(), InsertKeyringParams{
-		ID:          keyringID,
+	// Insert key space using sqlc
+	err = Query.InsertKeySpace(ctx, dbInstance.RW(), InsertKeySpaceParams{
+		ID:          keySpaceID,
 		WorkspaceID: workspaceID,
 		CreatedAtM:  time.Now().UnixMilli(),
 	})
@@ -244,7 +244,7 @@ func TestWithRetryContext_Integration(t *testing.T) {
 			keyID := uid.New(uid.KeyPrefix)
 			err := Query.InsertKey(ctx, dbInstance.RW(), InsertKeyParams{
 				ID:                keyID,
-				KeyringID:         keyringID,
+				KeySpaceID:        keySpaceID,
 				Hash:              hash.Sha256(keyID),
 				Start:             "retry_start",
 				WorkspaceID:       workspaceID,
@@ -274,7 +274,7 @@ func TestWithRetryContext_Integration(t *testing.T) {
 
 		keyParams := InsertKeyParams{
 			ID:                keyID,
-			KeyringID:         keyringID,
+			KeySpaceID:        keySpaceID,
 			Hash:              hash.Sha256(keyID),
 			Start:             "dup_start",
 			WorkspaceID:       workspaceID,
@@ -341,7 +341,7 @@ func TestWithRetryContext_Integration(t *testing.T) {
 			keyID := uid.New(uid.KeyPrefix)
 			err := Query.InsertKey(ctx, dbInstance.RW(), InsertKeyParams{
 				ID:                keyID,
-				KeyringID:         keyringID,
+				KeySpaceID:        keySpaceID,
 				Hash:              hash.Sha256(keyID),
 				Start:             "cancelled_key",
 				WorkspaceID:       workspaceID,

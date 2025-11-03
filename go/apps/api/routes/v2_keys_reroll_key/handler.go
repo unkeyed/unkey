@@ -175,7 +175,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.Query.InsertKey(ctx, tx, db.InsertKeyParams{
 			ID:                keyID,
-			KeyringID:         key.KeyAuthID,
+			KeySpaceID:        key.KeyAuthID,
 			Hash:              keyResult.Hash,
 			Start:             keyResult.Start,
 			WorkspaceID:       key.WorkspaceID,

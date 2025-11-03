@@ -64,7 +64,7 @@ func TestGetKeyByKeyID(t *testing.T) {
 	keyName := "test-key"
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        &keyName,
 		IdentityID:  &identity.ID,
 	})
@@ -166,7 +166,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		keyName := "complex-meta-key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 			Meta:        &metaString,
 		})
@@ -192,7 +192,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		futureDate := time.Now().Add(24 * time.Hour).Truncate(time.Hour)
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Expires:     &futureDate,
 		})
 
@@ -211,7 +211,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 	t.Run("key with credits and daily refill", func(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:  workspace.ID,
-			KeyAuthID:    api.KeyAuthID.String,
+			KeySpaceID:   api.KeyAuthID.String,
 			Remaining:    ptr.P(int32(50)),
 			RefillAmount: ptr.P(int32(100)),
 		})
@@ -234,7 +234,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 	t.Run("key with monthly refill", func(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:  workspace.ID,
-			KeyAuthID:    api.KeyAuthID.String,
+			KeySpaceID:   api.KeyAuthID.String,
 			Remaining:    ptr.P(int32(50)),
 			RefillAmount: ptr.P(int32(100)),
 			RefillDay:    ptr.P(int16(1)),
@@ -257,7 +257,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 	t.Run("key with roles and permissions", func(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Permissions: []seed.CreatePermissionRequest{{
 				Name:        "read_data",
 				Slug:        "read_data",
@@ -300,7 +300,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 	t.Run("key with ratelimits", func(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "api_calls",
@@ -361,7 +361,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 	t.Run("disabled key", func(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Disabled:    true,
 		})
 

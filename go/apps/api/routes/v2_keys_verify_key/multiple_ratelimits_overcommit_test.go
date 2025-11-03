@@ -55,7 +55,7 @@ func TestMultipleRatelimitsCounterLeakBug(t *testing.T) {
 		// Create a key with a per-minute rate limit (12 requests per minute)
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "requests-per-month",
@@ -132,7 +132,7 @@ func TestMultipleRatelimitsCounterLeakBug(t *testing.T) {
 
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "test-minute",

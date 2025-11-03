@@ -55,7 +55,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		// Create key with initial name
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        ptr.P("initial-name"),
 		})
 
@@ -122,7 +122,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		// Create key with initial meta
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Meta:        ptr.P(`{"initial": "value"}`),
 		})
 
@@ -188,7 +188,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		futureTime := time.Now().Add(24 * time.Hour)
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Expires:     ptr.P(futureTime),
 		})
 
@@ -255,7 +255,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		// Create key without identity initially
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        ptr.P("identity-test-key"),
 		})
 
@@ -336,7 +336,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
-				KeyAuthID:    api.KeyAuthID.String,
+				KeySpaceID:   api.KeyAuthID.String,
 				Name:         ptr.P("credits-null-test"),
 				Remaining:    ptr.P(int32(100)),
 				RefillAmount: ptr.P(int32(50)),
@@ -375,7 +375,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
-				KeyAuthID:    api.KeyAuthID.String,
+				KeySpaceID:   api.KeyAuthID.String,
 				Name:         ptr.P("remaining-null-test"),
 				Remaining:    ptr.P(int32(200)),
 				RefillAmount: ptr.P(int32(75)),
@@ -416,7 +416,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
-				KeyAuthID:    api.KeyAuthID.String,
+				KeySpaceID:   api.KeyAuthID.String,
 				Name:         ptr.P("refill-null-test"),
 				Remaining:    ptr.P(int32(300)),
 				RefillAmount: ptr.P(int32(100)),
@@ -458,7 +458,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
-				KeyAuthID:    api.KeyAuthID.String,
+				KeySpaceID:   api.KeyAuthID.String,
 				Name:         ptr.P("update-refill-only"),
 				Remaining:    ptr.P(int32(500)),
 				RefillAmount: ptr.P(int32(50)),
@@ -496,7 +496,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
-				KeyAuthID:    api.KeyAuthID.String,
+				KeySpaceID:   api.KeyAuthID.String,
 				Name:         ptr.P("update-remaining-only"),
 				Remaining:    ptr.P(int32(100)),
 				RefillAmount: ptr.P(int32(200)),
@@ -530,7 +530,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
-				KeyAuthID:    api.KeyAuthID.String,
+				KeySpaceID:   api.KeyAuthID.String,
 				Name:         ptr.P("undefined-credits-test"),
 				Remaining:    ptr.P(int32(777)),
 				RefillAmount: ptr.P(int32(111)),
@@ -564,7 +564,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: h.Resources().UserWorkspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Name:        ptr.P("daily-refill-test"),
 				Remaining:   ptr.P(int32(50)),
 			})
@@ -599,7 +599,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: h.Resources().UserWorkspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 				Name:        ptr.P("complex-sequence"),
 			})
 
@@ -675,7 +675,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		// Create key with initial values
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        ptr.P("initial-name"),
 			Meta:        ptr.P(`{"initial": "value"}`),
 			Expires:     ptr.P(time.Now().Add(24 * time.Hour)),
