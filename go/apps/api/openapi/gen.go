@@ -2156,8 +2156,8 @@ type IdentitiesGetIdentityJSONRequestBody = V2IdentitiesGetIdentityRequestBody
 // IdentitiesListIdentitiesJSONRequestBody defines body for IdentitiesListIdentities for application/json ContentType.
 type IdentitiesListIdentitiesJSONRequestBody = V2IdentitiesListIdentitiesRequestBody
 
-// UpdateIdentityCreditsJSONRequestBody defines body for UpdateIdentityCredits for application/json ContentType.
-type UpdateIdentityCreditsJSONRequestBody = V2IdentitiesUpdateCreditsRequestBody
+// IdentitiesUpdateCreditsJSONRequestBody defines body for IdentitiesUpdateCredits for application/json ContentType.
+type IdentitiesUpdateCreditsJSONRequestBody = V2IdentitiesUpdateCreditsRequestBody
 
 // V2IdentitiesUpdateIdentityJSONRequestBody defines body for V2IdentitiesUpdateIdentity for application/json ContentType.
 type V2IdentitiesUpdateIdentityJSONRequestBody = V2IdentitiesUpdateIdentityRequestBody
@@ -2192,8 +2192,8 @@ type SetPermissionsJSONRequestBody = V2KeysSetPermissionsRequestBody
 // SetRolesJSONRequestBody defines body for SetRoles for application/json ContentType.
 type SetRolesJSONRequestBody = V2KeysSetRolesRequestBody
 
-// UpdateKeyCreditsJSONRequestBody defines body for UpdateKeyCredits for application/json ContentType.
-type UpdateKeyCreditsJSONRequestBody = V2KeysUpdateCreditsRequestBody
+// UpdateCreditsJSONRequestBody defines body for UpdateCredits for application/json ContentType.
+type UpdateCreditsJSONRequestBody = V2KeysUpdateCreditsRequestBody
 
 // UpdateKeyJSONRequestBody defines body for UpdateKey for application/json ContentType.
 type UpdateKeyJSONRequestBody = V2KeysUpdateKeyRequestBody

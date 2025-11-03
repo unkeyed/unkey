@@ -20,8 +20,8 @@ post:
     **Side Effects**
 
     Credit updates take effect immediately. Setting credits to unlimited automatically clears any existing refill settings. Changes propagate instantly but may take up to 30 seconds to reach all edge regions.
-  operationId: updateIdentityCredits
-  x-speakeasy-name-override: updateIdentityCredits
+  operationId: identities.updateCredits
+  x-speakeasy-name-override: updateCredits
   security:
     - rootKey: []
   requestBody:

@@ -18,8 +18,8 @@ post:
     **Side Effects**
 
     Credit updates remove the key from cache immediately. Setting credits to unlimited automatically clears any existing refill settings. Changes take effect instantly but may take up to 30 seconds to propagate to all edge regions.
-  operationId: updateKeyCredits
-  x-speakeasy-name-override: updateKeyCredits
+  operationId: updateCredits
+  x-speakeasy-name-override: updateCredits
   security:
     - rootKey: []
   requestBody:

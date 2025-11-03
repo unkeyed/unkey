@@ -3964,7 +3964,7 @@ paths:
                             basic:
                                 summary: Get identity
                                 value:
-                                    externalId: user_123
+                                    identity: user_123
                         schema:
                             $ref: '#/components/schemas/V2IdentitiesGetIdentityRequestBody'
                 required: true
@@ -4174,7 +4174,7 @@ paths:
                 **Side Effects**
 
                 Credit updates take effect immediately. Setting credits to unlimited automatically clears any existing refill settings. Changes propagate instantly but may take up to 30 seconds to reach all edge regions.
-            operationId: updateIdentityCredits
+            operationId: identities.updateCredits
             requestBody:
                 content:
                     application/json:
@@ -4224,7 +4224,7 @@ paths:
             summary: Update identity credits
             tags:
                 - identities
-            x-speakeasy-name-override: updateIdentityCredits
+            x-speakeasy-name-override: updateCredits
     /v2/identities.updateIdentity:
         post:
             description: |
@@ -5029,7 +5029,7 @@ paths:
                 **Side Effects**
 
                 Credit updates remove the key from cache immediately. Setting credits to unlimited automatically clears any existing refill settings. Changes take effect instantly but may take up to 30 seconds to propagate to all edge regions.
-            operationId: updateKeyCredits
+            operationId: updateCredits
             requestBody:
                 content:
                     application/json:
@@ -5079,7 +5079,7 @@ paths:
             summary: Update key credits
             tags:
                 - keys
-            x-speakeasy-name-override: updateKeyCredits
+            x-speakeasy-name-override: updateCredits
     /v2/keys.updateKey:
         post:
             description: |
