@@ -104,22 +104,21 @@ func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 	require.Equal(t, cache.Hit, hit2, "node-2 should have cached data initially")
 	require.Equal(t, "initial-value", value2, "node-2 should have correct initial value")
 
-	// Node 1 updates the cache (this should invalidate Node 2's cache via Manager)
-	t.Logf("Node 1 calling Set() - should broadcast invalidation")
-	clusterCache1.Set(ctx, "shared-key", "updated-value")
-	t.Logf("Node 1 Set() returned")
+	// Node 1 removes the key (simulating a database deletion)
+	// This should invalidate Node 2's cache via dispatcher
+	t.Logf("Node 1 calling Remove() - should broadcast invalidation")
+	clusterCache1.Remove(ctx, "shared-key")
+	t.Logf("Node 1 Remove() returned")
 
-	// Wait for invalidation to propagate through Manager
-	// Need time for: async broadcast goroutine + kafka write + consumer read + Manager routing
+	// Wait for invalidation to propagate through dispatcher
 	require.Eventually(t, func() bool {
 		_, hit := localCache2.Get(ctx, "shared-key")
 		return hit == cache.Miss
 	}, 10*time.Second, 100*time.Millisecond, "Node 2's cache should be invalidated within 10 seconds")
 
-	// Verify Node 1 still has the data (it set it and ignores its own invalidation events)
-	value1After, hit1After := localCache1.Get(ctx, "shared-key")
-	require.Equal(t, cache.Hit, hit1After, "Node 1 should retain the data it set")
-	require.Equal(t, "updated-value", value1After, "Node 1 should have the updated value")
+	// Verify Node 1 also has the key removed
+	_, hit1After := localCache1.Get(ctx, "shared-key")
+	require.Equal(t, cache.Miss, hit1After, "Node 1 should have removed the key")
 
 	// Verify Node 2's cache was invalidated (already checked in Eventually above)
 	_, hit2After := localCache2.Get(ctx, "shared-key")

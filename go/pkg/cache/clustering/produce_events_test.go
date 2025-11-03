@@ -20,7 +20,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestClusterCache_ProducesInvalidationOnSetAndSetNull(t *testing.T) {
+func TestClusterCache_ProducesInvalidationOnRemoveAndSetNull(t *testing.T) {
 	testutil.SkipUnlessIntegration(t)
 
 	brokers := containers.Kafka(t)
@@ -96,8 +96,9 @@ func TestClusterCache_ProducesInvalidationOnSetAndSetNull(t *testing.T) {
 	// Wait for consumer to be ready and actually positioned
 	time.Sleep(5 * time.Second)
 
-	// Test Set operation produces invalidation event
-	clusterCache.Set(ctx, "key1", "value1")
+	// Test Remove operation produces invalidation event
+	clusterCache.Set(ctx, "key1", "value1") // populate cache first
+	clusterCache.Remove(ctx, "key1")        // then remove it
 
 	// Test SetNull operation produces invalidation event
 	clusterCache.SetNull(ctx, "key2")
@@ -105,7 +106,7 @@ func TestClusterCache_ProducesInvalidationOnSetAndSetNull(t *testing.T) {
 	// Wait for both events to be received
 	require.Eventually(t, func() bool {
 		return receivedEventCount.Load() == 2
-	}, 5*time.Second, 100*time.Millisecond, "ClusterCache should produce invalidation events for Set and SetNull operations within 5 seconds")
+	}, 5*time.Second, 100*time.Millisecond, "ClusterCache should produce invalidation events for Remove and SetNull operations within 5 seconds")
 
 	// Verify events
 	eventsMutex.Lock()
@@ -114,19 +115,19 @@ func TestClusterCache_ProducesInvalidationOnSetAndSetNull(t *testing.T) {
 	require.Len(t, receivedEvents, 2, "Should receive exactly 2 events")
 
 	// Find events by key
-	var setEvent, setNullEvent *cachev1.CacheInvalidationEvent
+	var removeEvent, setNullEvent *cachev1.CacheInvalidationEvent
 	for _, event := range receivedEvents {
 		if event.CacheKey == "key1" {
-			setEvent = event
+			removeEvent = event
 		} else if event.CacheKey == "key2" {
 			setNullEvent = event
 		}
 	}
 
-	require.NotNil(t, setEvent, "Set operation should produce invalidation event")
-	require.Equal(t, "test-cache", setEvent.CacheName, "Set event should have correct cache name")
-	require.Equal(t, "key1", setEvent.CacheKey, "Set event should have correct cache key")
-	require.Equal(t, "test-node-1", setEvent.SourceInstance, "Set event should have correct source instance")
+	require.NotNil(t, removeEvent, "Remove operation should produce invalidation event")
+	require.Equal(t, "test-cache", removeEvent.CacheName, "Remove event should have correct cache name")
+	require.Equal(t, "key1", removeEvent.CacheKey, "Remove event should have correct cache key")
+	require.Equal(t, "test-node-1", removeEvent.SourceInstance, "Remove event should have correct source instance")
 
 	require.NotNil(t, setNullEvent, "SetNull operation should produce invalidation event")
 	require.Equal(t, "test-cache", setNullEvent.CacheName, "SetNull event should have correct cache name")
