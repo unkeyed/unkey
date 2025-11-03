@@ -335,17 +335,11 @@ export async function completeOrgSelection(
     cookies().delete(PENDING_SESSION_COOKIE);
     for (const cookie of result.cookies) {
       cookies().set(cookie.name, cookie.value, cookie.options);
+      // Store the last used organization ID in a cookie for auto-selection on next login
+      cookies().set("unkey_last_org_used", orgId, cookie.options);
     }
 
-    // Store the last used organization ID in a cookie for auto-selection on next login
     // This doesn't work on Safari.
-    cookies().set("unkey_last_org_used", orgId, {
-      httpOnly: false, // Allow client-side access
-      secure: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30, // 30 Days
-    });
   }
 
   return result;

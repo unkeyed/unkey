@@ -1,7 +1,15 @@
 "use client";
 
 import type { Organization } from "@/lib/auth/types";
-import { Empty, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
+import {
+  Empty,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  toast,
+} from "@unkey/ui";
 import { Button, DialogContainer, Loading } from "@unkey/ui";
 import type React from "react";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
@@ -51,8 +59,10 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
         if (!result.success) {
           setError(result.message);
           setIsLoading(false);
+          toast.error(result.message);
           return false;
         }
+
         // On success, redirect to the dashboard
         window.location.href = result.redirectTo;
         return true;
@@ -61,13 +71,15 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
           error instanceof Error
             ? error.message
             : "Failed to complete organization selection. Please re-authenticate or contact support@unkey.dev";
-
+        toast.error(
+          "Failed to complete organization selection. Please re-authenticate or contact support@unkey.dev",
+        );
         setError(errorMessage);
         setIsLoading(false);
         return false;
       }
     },
-    [isLoading],
+    [isLoading, setError],
   );
 
   const handleSubmit = useCallback(() => {
@@ -96,7 +108,9 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
       className="dark bg-black"
       isOpen={clientReady && isOpen}
       onOpenChange={(open) => {
-        setIsOpen(open);
+        if (!isLoading) {
+          setIsOpen(open);
+        }
       }}
       title="Select your workspace"
       footer={

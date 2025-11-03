@@ -1,6 +1,8 @@
 "use client";
 
 import { FadeIn } from "@/components/landing/fade-in";
+import { getCookie } from "@/lib/auth/cookies";
+import { UNKEY_LAST_ORG_COOKIE } from "@/lib/auth/types";
 import { ArrowRight } from "@unkey/icons";
 import { Empty, Loading } from "@unkey/ui";
 import Link from "next/link";
@@ -31,29 +33,22 @@ function SignInContent() {
   const verifyParam = searchParams?.get("verify");
   const invitationToken = searchParams?.get("invitation_token");
   const invitationEmail = searchParams?.get("email");
-
+  const [lastUsedOrgId, setLastUsedOrgId] = useState<string | undefined>(undefined);
   // Add clientReady state to handle hydration
   const [clientReady, setClientReady] = useState(false);
   const hasAttemptedSignIn = useRef(false);
   const hasAttemptedAutoOrgSelection = useRef(false);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Helper function to get cookie value on client side
-  const getCookie = (name: string): string | null => {
-    if (typeof document === "undefined") {
-      return null;
-    }
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) {
-      return parts.pop()?.split(";").shift() || null;
-    }
-    return null;
-  };
+  const [isLoading, setIsLoading] = useState(true);
 
   // Set clientReady to true after hydration
   useEffect(() => {
-    setClientReady(true);
+    getCookie(UNKEY_LAST_ORG_COOKIE).then((value) => {
+      if (value) {
+        setLastUsedOrgId(value);
+      }
+      setClientReady(true);
+      setIsLoading(false);
+    });
   }, []);
 
   // Handle auto org selection when returning from OAuth
@@ -62,7 +57,6 @@ function SignInContent() {
       return;
     }
 
-    const lastUsedOrgId = getCookie("unkey_last_org_used");
     if (lastUsedOrgId) {
       hasAttemptedAutoOrgSelection.current = true;
       setIsLoading(true);
@@ -83,7 +77,7 @@ function SignInContent() {
           setIsLoading(false);
         });
     }
-  }, [clientReady, hasPendingAuth, setError]);
+  }, [clientReady, hasPendingAuth, setError, lastUsedOrgId]);
 
   // Handle auto sign-in with invitation token and email
   useEffect(() => {
@@ -105,7 +99,7 @@ function SignInContent() {
         hasAttemptedSignIn.current = true;
 
         // Set loading state to true
-        setIsLoading(true);
+        // setIsLoading(true);
 
         try {
           // Attempt sign-in with the provided email
@@ -139,7 +133,7 @@ function SignInContent() {
     );
   }
   return hasPendingAuth ? (
-    <OrgSelector organizations={orgs} lastOrgId={getCookie("unkey_last_org_used") || undefined} />
+    <OrgSelector organizations={orgs} lastOrgId={lastUsedOrgId} />
   ) : (
     <div className="flex flex-col gap-10">
       {accountNotFound && (

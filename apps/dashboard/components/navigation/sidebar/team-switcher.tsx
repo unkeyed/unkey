@@ -71,7 +71,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
           options: {
             httpOnly: false, // Allow client-side access
             secure: true,
-            sameSite: "lax",
+            sameSite: "strict",
             path: "/",
             maxAge: 60 * 60 * 24 * 30, // 30 Days
           },
