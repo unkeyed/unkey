@@ -1,8 +1,10 @@
 package eventstream
 
 import (
+	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/segmentio/kafka-go"
 	"github.com/unkeyed/unkey/go/pkg/assert"
@@ -140,6 +142,36 @@ func (t *Topic[T]) EnsureExists(partitions int, replicationFactor int) error {
 		return fmt.Errorf("failed to connect to any broker: %w", lastErr)
 	}
 	return fmt.Errorf("no brokers configured")
+}
+
+// WaitUntilReady polls Kafka to verify the topic exists and is ready for use.
+// It checks every 100ms until the topic is found or the context is cancelled.
+func (t *Topic[T]) WaitUntilReady(ctx context.Context) error {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			// Try to connect to a broker and check if topic exists
+			for _, broker := range t.brokers {
+				conn, err := kafka.Dial("tcp", broker)
+				if err != nil {
+					continue
+				}
+
+				partitions, err := conn.ReadPartitions(t.topic)
+				conn.Close()
+
+				if err == nil && len(partitions) > 0 {
+					// Topic exists and has partitions
+					return nil
+				}
+			}
+		}
+	}
 }
 
 // ConsumerOption configures consumer behavior

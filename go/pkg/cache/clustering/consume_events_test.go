@@ -39,6 +39,13 @@ func TestClusterCache_ConsumesInvalidationAndRemovesFromCache(t *testing.T) {
 	require.NoError(t, err)
 	defer topic.Close()
 
+	// Wait for topic to be fully created in Kafka
+	ctx := context.Background()
+	waitCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	err = topic.WaitUntilReady(waitCtx)
+	require.NoError(t, err)
+
 	// Create local cache and populate it
 	localCache, err := cache.New(cache.Config[string, string]{
 		Fresh:    5 * time.Minute,
@@ -49,8 +56,6 @@ func TestClusterCache_ConsumesInvalidationAndRemovesFromCache(t *testing.T) {
 		Clock:    clock.New(),
 	})
 	require.NoError(t, err)
-
-	ctx := context.Background()
 
 	// Populate cache with test data
 	localCache.Set(ctx, "key1", "value1")

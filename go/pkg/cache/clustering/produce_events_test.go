@@ -41,6 +41,17 @@ func TestClusterCache_ProducesInvalidationOnSetAndSetNull(t *testing.T) {
 	require.NoError(t, err)
 	defer topic.Close()
 
+	// Wait for topic to be fully created in Kafka
+	ctx := context.Background()
+	waitCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	err = topic.WaitUntilReady(waitCtx)
+	require.NoError(t, err)
+
+	// Create dispatcher with noop - we won't use it to consume, just need it for ClusterCache creation
+	dispatcher := clustering.NewNoopDispatcher()
+	defer dispatcher.Close()
+
 	// Create local cache
 	localCache, err := cache.New(cache.Config[string, string]{
 		Fresh:    5 * time.Minute,
@@ -52,10 +63,11 @@ func TestClusterCache_ProducesInvalidationOnSetAndSetNull(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Create cluster cache
+	// Create cluster cache - this will produce events when we call Set/SetNull
 	clusterCache, err := clustering.New(clustering.Config[string, string]{
 		LocalCache: localCache,
 		Topic:      topic,
+		Dispatcher: dispatcher,
 		NodeID:     "test-node-1",
 		Logger:     logging.NewNoop(),
 	})
@@ -69,10 +81,10 @@ func TestClusterCache_ProducesInvalidationOnSetAndSetNull(t *testing.T) {
 	consumer := topic.NewConsumer()
 	defer consumer.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	consumerCtx, cancelConsumer := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelConsumer()
 
-	consumer.Consume(ctx, func(ctx context.Context, event *cachev1.CacheInvalidationEvent) error {
+	consumer.Consume(consumerCtx, func(ctx context.Context, event *cachev1.CacheInvalidationEvent) error {
 		eventsMutex.Lock()
 		receivedEvents = append(receivedEvents, event)
 		eventsMutex.Unlock()

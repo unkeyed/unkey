@@ -58,8 +58,8 @@ type Config[K comparable, V any] struct {
 func New[K comparable, V any](config Config[K, V]) (*ClusterCache[K, V], error) {
 	// Validate required config
 	err := assert.All(
-		assert.NotNil(config.Topic, "Topic is required for ClusterCache"),
-		assert.NotNil(config.Dispatcher, "Dispatcher is required for ClusterCache"),
+		assert.NotNilAndNotZero(config.Topic, "Topic is required for ClusterCache"),
+		assert.NotNilAndNotZero(config.Dispatcher, "Dispatcher is required for ClusterCache"),
 	)
 	if err != nil {
 		return nil, err
