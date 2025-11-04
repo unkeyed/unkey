@@ -6,6 +6,7 @@ import { BookBookmark, Tag } from "@unkey/icons";
 import { Button, Checkbox, Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useCallback, useMemo, useState } from "react";
+import { EditRole } from "./components/actions/components/edit-role";
 import { RolesTableActions } from "./components/actions/keys-table-action.popover.constants";
 import { AssignedItemsCell } from "./components/assigned-items-cell";
 import { LastUpdated } from "./components/last-updated";
@@ -22,7 +23,8 @@ import { useRolesListQuery } from "./hooks/use-roles-list-query";
 import { getRowClassName } from "./utils/get-row-class";
 
 export const RolesList = () => {
-  const { roles, isLoading, isLoadingMore, loadMore, totalCount, hasMore } = useRolesListQuery();
+  const { roles, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
+    useRolesListQuery();
   const [selectedRole, setSelectedRole] = useState<RoleBasic | null>(null);
   const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
   const [hoveredRoleName, setHoveredRoleName] = useState<string | null>(null);
@@ -53,18 +55,35 @@ export const RolesList = () => {
           const iconContainer = (
             <div
               className={cn(
-                "size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100",
+                "size-5 rounded flex items-center justify-center border border-grayA-3 transition-all duration-100",
                 "bg-grayA-3",
-                isSelected && "bg-grayA-5",
+                isSelected && "bg-grayA-5"
               )}
               onMouseEnter={() => setHoveredRoleName(role.name)}
               onMouseLeave={() => setHoveredRoleName(null)}
             >
-              {!isSelected && !isHovered && <Tag iconSize="sm-regular" className="text-gray-12" />}
+              {!isSelected && !isHovered && (
+                <Button
+                  type="button"
+                  className="flex w-full h-full items-center justify-center bg-transparent border-gray-6 group-hover:bg-transparent group-hover:border-none"
+                  aria-label="Select permission"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSelection(role.roleId);
+                  }}
+                >
+                  <Tag
+                    iconSize="sm-regular"
+                    className="text-gray-12 cursor-pointer"
+                  />
+                </Button>
+              )}
               {(isSelected || isHovered) && (
                 <Checkbox
                   checked={isSelected}
                   className="size-4 [&_svg]:size-3"
+                  onClick={(e) => e.stopPropagation()}
                   onCheckedChange={() => toggleSelection(role.roleId)}
                 />
               )}
@@ -143,85 +162,98 @@ export const RolesList = () => {
         },
       },
     ],
-    [selectedRoles, toggleSelection, hoveredRoleName, selectedRole?.roleId],
+    [selectedRoles, toggleSelection, hoveredRoleName, selectedRole?.roleId]
   );
 
   return (
-    <VirtualTable
-      data={roles}
-      isLoading={isLoading}
-      isFetchingNextPage={isLoadingMore}
-      onLoadMore={loadMore}
-      columns={columns}
-      onRowClick={setSelectedRole}
-      selectedItem={selectedRole}
-      keyExtractor={(role) => role.roleId}
-      rowClassName={(role) => getRowClassName(role, selectedRole)}
-      loadMoreFooterProps={{
-        hide: isLoading,
-        buttonText: "Load more roles",
-        hasMore,
-        headerContent: (
-          <SelectionControls selectedRoles={selectedRoles} setSelectedRoles={setSelectedRoles} />
-        ),
-        countInfoText: (
-          <div className="flex gap-2">
-            <span>Showing</span> <span className="text-accent-12">{roles.length}</span>
-            <span>of</span>
-            {totalCount}
-            <span>roles</span>
+    <>
+      <VirtualTable
+        data={roles}
+        isLoading={isLoading}
+        isFetchingNextPage={isLoadingMore}
+        onLoadMore={loadMore}
+        columns={columns}
+        onRowClick={setSelectedRole}
+        selectedItem={selectedRole}
+        keyExtractor={(role) => role.roleId}
+        rowClassName={(role) => getRowClassName(role, selectedRole)}
+        loadMoreFooterProps={{
+          hide: isLoading,
+          buttonText: "Load more roles",
+          hasMore,
+          headerContent: (
+            <SelectionControls
+              selectedRoles={selectedRoles}
+              setSelectedRoles={setSelectedRoles}
+            />
+          ),
+          countInfoText: (
+            <div className="flex gap-2">
+              <span>Showing</span>{" "}
+              <span className="text-accent-12">{roles.length}</span>
+              <span>of</span>
+              {totalCount}
+              <span>roles</span>
+            </div>
+          ),
+        }}
+        emptyState={
+          <div className="w-full flex justify-center items-center h-full">
+            <Empty className="w-[400px] flex items-start">
+              <Empty.Icon className="w-auto" />
+              <Empty.Title>No Roles Found</Empty.Title>
+              <Empty.Description className="text-left">
+                There are no roles configured yet. Create your first role to
+                start managing permissions and access control.
+              </Empty.Description>
+              <Empty.Actions className="mt-4 justify-start">
+                <a
+                  href="https://www.unkey.com/docs/security/roles"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button size="md">
+                    <BookBookmark />
+                    Learn about Roles
+                  </Button>
+                </a>
+              </Empty.Actions>
+            </Empty>
           </div>
-        ),
-      }}
-      emptyState={
-        <div className="w-full flex justify-center items-center h-full">
-          <Empty className="w-[400px] flex items-start">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>No Roles Found</Empty.Title>
-            <Empty.Description className="text-left">
-              There are no roles configured yet. Create your first role to start managing
-              permissions and access control.
-            </Empty.Description>
-            <Empty.Actions className="mt-4 justify-start">
-              <a
-                href="https://www.unkey.com/docs/security/roles"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button size="md">
-                  <BookBookmark />
-                  Learn about Roles
-                </Button>
-              </a>
-            </Empty.Actions>
-          </Empty>
-        </div>
-      }
-      config={{
-        rowHeight: 52,
-        layoutMode: "grid",
-        rowBorders: true,
-        containerPadding: "px-0",
-      }}
-      renderSkeletonRow={({ columns, rowHeight }) =>
-        columns.map((column) => (
-          <td
-            key={column.key}
-            className={cn(
-              "text-xs align-middle whitespace-nowrap",
-              column.key === "role" ? "py-[6px]" : "py-1",
-            )}
-            style={{ height: `${rowHeight}px` }}
-          >
-            {column.key === "role" && <RoleColumnSkeleton />}
-            {column.key === "slug" && <SlugColumnSkeleton />}
-            {column.key === "assignedKeys" && <AssignedKeysColumnSkeleton />}
-            {column.key === "permissions" && <PermissionsColumnSkeleton />}
-            {column.key === "last_updated" && <LastUpdatedColumnSkeleton />}
-            {column.key === "action" && <ActionColumnSkeleton />}
-          </td>
-        ))
-      }
-    />
+        }
+        config={{
+          rowHeight: 52,
+          layoutMode: "grid",
+          rowBorders: true,
+          containerPadding: "px-0",
+        }}
+        renderSkeletonRow={({ columns, rowHeight }) =>
+          columns.map((column) => (
+            <td
+              key={column.key}
+              className={cn(
+                "text-xs align-middle whitespace-nowrap",
+                column.key === "role" ? "py-[6px]" : "py-1"
+              )}
+              style={{ height: `${rowHeight}px` }}
+            >
+              {column.key === "role" && <RoleColumnSkeleton />}
+              {column.key === "slug" && <SlugColumnSkeleton />}
+              {column.key === "assignedKeys" && <AssignedKeysColumnSkeleton />}
+              {column.key === "permissions" && <PermissionsColumnSkeleton />}
+              {column.key === "last_updated" && <LastUpdatedColumnSkeleton />}
+              {column.key === "action" && <ActionColumnSkeleton />}
+            </td>
+          ))
+        }
+      />
+      {selectedRole && (
+        <EditRole
+          role={selectedRole}
+          isOpen={!!selectedRole}
+          onClose={() => setSelectedRole(null)}
+        />
+      )}
+    </>
   );
 };
