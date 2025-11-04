@@ -3,8 +3,19 @@ package clickhouse
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	driver "github.com/ClickHouse/clickhouse-go/v2"
+)
+
+var (
+	// validIdentifier matches safe ClickHouse identifiers (usernames, policy names, quota names, profile names)
+	// Allows alphanumeric characters and underscores only
+	validIdentifier = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+
+	// validTableName matches safe ClickHouse table names in database.table format
+	// Allows alphanumeric characters and underscores in both database and table parts
+	validTableName = regexp.MustCompile(`^[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+$`)
 )
 
 // UserConfig contains configuration for creating/updating a ClickHouse user
@@ -27,20 +38,40 @@ type UserConfig struct {
 	MaxQueryResultRows    int32
 }
 
+// validateIdentifiers checks that all identifiers in the config are safe to use in SQL statements.
+// This prevents SQL injection since ClickHouse identifiers cannot be parameterized.
+func validateIdentifiers(config UserConfig) error {
+	// Validate username
+	if !validIdentifier.MatchString(config.Username) {
+		return fmt.Errorf("invalid username: must contain only alphanumeric characters and underscores, got %q", config.Username)
+	}
+
+	// Validate workspace ID (used in policy/quota/profile names and WHERE clauses)
+	if !validIdentifier.MatchString(config.WorkspaceID) {
+		return fmt.Errorf("invalid workspace_id: must contain only alphanumeric characters and underscores, got %q", config.WorkspaceID)
+	}
+
+	// Validate all table names
+	for _, table := range config.AllowedTables {
+		if !validTableName.MatchString(table) {
+			return fmt.Errorf("invalid table name: must be in format 'database.table' with alphanumeric characters and underscores only, got %q", table)
+		}
+	}
+
+	return nil
+}
+
 // ConfigureUser creates or updates a ClickHouse user with all necessary permissions, quotas, and settings.
 // This is idempotent - it can be run multiple times to update settings.
-//
-// Steps:
-// 1. Create/alter user with password
-// 2. Revoke all existing permissions
-// 3. Grant SELECT on specified tables
-// 4. Create row-level security policies (filters by workspace_id)
-// 5. Create/update quota (max queries and execution time per window)
-// 6. Create/update settings profile (per-query limits)
 func (c *clickhouse) ConfigureUser(ctx context.Context, config UserConfig) error {
 	logger := c.logger.With("workspace_id", config.WorkspaceID, "username", config.Username)
 
-	// 1. Create or alter ClickHouse user
+	// Validate all identifiers to prevent SQL injection
+	if err := validateIdentifiers(config); err != nil {
+		return fmt.Errorf("identifier validation failed: %w", err)
+	}
+
+	// Create or alter ClickHouse user
 	logger.Info("creating/updating clickhouse user")
 	createUserSQL := fmt.Sprintf("CREATE USER IF NOT EXISTS %s IDENTIFIED WITH sha256_password BY {password:String}", config.Username)
 	err := c.Exec(ctx, createUserSQL, driver.Named("password", config.Password))
@@ -48,7 +79,7 @@ func (c *clickhouse) ConfigureUser(ctx context.Context, config UserConfig) error
 		return fmt.Errorf("failed to create user: %w", err)
 	}
 
-	// 2. Revoke all permissions
+	// Revoke all permissions
 	logger.Info("revoking all permissions")
 	revokeSQL := fmt.Sprintf("REVOKE ALL ON *.* FROM %s", config.Username)
 	err = c.Exec(ctx, revokeSQL)
@@ -56,7 +87,7 @@ func (c *clickhouse) ConfigureUser(ctx context.Context, config UserConfig) error
 		logger.Warn("failed to revoke permissions (user may be new)", "error", err)
 	}
 
-	// 3. Grant SELECT on specified tables
+	// Grant SELECT on specified tables
 	for _, table := range config.AllowedTables {
 		logger.Debug("granting SELECT permission", "table", table)
 		grantSQL := fmt.Sprintf("GRANT SELECT ON %s TO %s", table, config.Username)
@@ -66,7 +97,7 @@ func (c *clickhouse) ConfigureUser(ctx context.Context, config UserConfig) error
 		}
 	}
 
-	// 4. Create row-level security (RLS) policies
+	// Create row-level security (RLS) policies
 	policyName := fmt.Sprintf("workspace_%s_rls", config.WorkspaceID)
 	for _, table := range config.AllowedTables {
 		logger.Debug("creating row policy", "table", table, "policy", policyName)
@@ -81,7 +112,7 @@ func (c *clickhouse) ConfigureUser(ctx context.Context, config UserConfig) error
 		}
 	}
 
-	// 5. Create or replace quota
+	// Create or replace quota
 	quotaName := fmt.Sprintf("workspace_%s_quota", config.WorkspaceID)
 	logger.Info("creating/updating quota", "name", quotaName)
 
@@ -107,7 +138,7 @@ func (c *clickhouse) ConfigureUser(ctx context.Context, config UserConfig) error
 		return fmt.Errorf("failed to create/replace quota: %w", err)
 	}
 
-	// 6. Create or replace settings profile
+	// Create or replace settings profile
 	profileName := fmt.Sprintf("workspace_%s_profile", config.WorkspaceID)
 	logger.Info("creating/updating settings profile", "name", profileName)
 

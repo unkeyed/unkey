@@ -202,6 +202,24 @@ components:
                 - Cache results where appropriate to reduce request frequency
                 - Check the error detail message for specific quota information
                 - Contact support if you need a higher quota for your use case
+        ServiceUnavailableErrorResponse:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BaseError"
+            description: |-
+                Error response when a required service is temporarily unavailable. This indicates that the service exists but cannot be reached or is not responding.
+
+                When you encounter this error:
+                - The service is likely experiencing temporary issues
+                - Retrying the request after a short delay may succeed
+                - If the error persists, the service may be undergoing maintenance
+                - Contact Unkey support if the issue continues
         V2ApisCreateApiRequestBody:
             type: object
             required:
@@ -3388,6 +3406,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Query execution failed
+                "503":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ServiceUnavailableErrorResponse'
+                    description: Connection to the database failed
             security:
                 - rootKey: []
             summary: Query key verification data

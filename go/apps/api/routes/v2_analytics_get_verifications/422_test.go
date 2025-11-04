@@ -19,6 +19,7 @@ func Test422_ExceedsMaxMemory(t *testing.T) {
 	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
 	})
+
 	// Set up analytics with very low MaxQueryMemoryBytes (10KB - very restrictive)
 	h.SetupAnalytics(workspace.ID, testutil.WithMaxQueryMemoryBytes(10_000))
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
@@ -26,7 +27,7 @@ func Test422_ExceedsMaxMemory(t *testing.T) {
 	now := h.Clock.Now().UnixMilli()
 
 	// Buffer many verifications to ensure memory usage exceeds limit
-	for i := 0; i < 50_000; i++ {
+	for i := range 50_000 {
 		h.ClickHouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),

@@ -1,6 +1,8 @@
 package queryparser
 
 import (
+	"strings"
+
 	clickhouse "github.com/AfterShip/clickhouse-sql-parser/parser"
 )
 
@@ -36,11 +38,11 @@ func (p *Parser) buildCTERegistry() {
 			continue
 		}
 
-		p.cteNames[ident.Name] = true
+		p.cteNames[strings.ToLower(ident.Name)] = true
 	}
 }
 
 // isCTE checks if a table name is a CTE
 func (p *Parser) isCTE(tableName string) bool {
-	return p.cteNames[tableName]
+	return p.cteNames[strings.ToLower(tableName)]
 }

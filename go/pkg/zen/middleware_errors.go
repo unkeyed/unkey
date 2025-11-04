@@ -303,7 +303,14 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 
 			// Service Unavailable errors
 			case codes.UnkeyDataErrorsAnalyticsConnectionFailed:
-				return s.JSON(http.StatusServiceUnavailable, openapi.InternalServerErrorResponse{
+				logger.Error(
+					"analytics connection error",
+					"error", err.Error(),
+					"requestId", s.RequestID(),
+					"publicMessage", fault.UserFacingMessage(err),
+				)
+
+				return s.JSON(http.StatusServiceUnavailable, openapi.ServiceUnavailableErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
