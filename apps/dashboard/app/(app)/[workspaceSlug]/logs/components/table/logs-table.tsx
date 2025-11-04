@@ -165,6 +165,7 @@ export const LogsTable = () => {
         render: (log) => {
           const style = getStatusStyle(log.response_status);
           const isSelected = selectedLog?.request_id === log.request_id;
+          const code = extractResponseField(log, "code");
           return (
             <Badge
               className={cn(
@@ -173,7 +174,7 @@ export const LogsTable = () => {
               )}
             >
               {log.response_status}{" "}
-              {extractResponseField(log, "code") ? `| ${extractResponseField(log, "code")}` : ""}
+              {code ? `| ${code}` : ""}
             </Badge>
           );
         },
