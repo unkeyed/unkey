@@ -10,6 +10,7 @@ import {
   type OAuthResult,
   PENDING_SESSION_COOKIE,
   type SignInViaOAuthOptions,
+  UNKEY_LAST_ORG_COOKIE,
   type UserData,
   type VerificationResult,
   errorMessages,
@@ -336,10 +337,14 @@ export async function completeOrgSelection(
     for (const cookie of result.cookies) {
       cookies().set(cookie.name, cookie.value, cookie.options);
       // Store the last used organization ID in a cookie for auto-selection on next login
-      cookies().set("unkey_last_org_used", orgId, cookie.options);
+      cookies().set(UNKEY_LAST_ORG_COOKIE, orgId, {
+        httpOnly: false, // Allow client-side access
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30, // 30 Days
+      });
     }
-
-    // This doesn't work on Safari.
   }
 
   return result;
@@ -356,7 +361,7 @@ export async function switchOrg(orgId: string): Promise<{ success: boolean; erro
     await setSessionCookie({ token: newToken, expiresAt });
 
     // Store the last used organization ID in a cookie for auto-selection on next login
-    cookies().set("unkey_last_org_used", orgId, {
+    cookies().set(UNKEY_LAST_ORG_COOKIE, orgId, {
       httpOnly: false, // Allow client-side access
       secure: true,
       sameSite: "lax",
