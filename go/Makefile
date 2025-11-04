@@ -40,8 +40,8 @@ up: pull
 clean:
 	@docker compose -f ../deployment/docker-compose.yaml down --volumes
 
-build:
-	go build -o unkey ./main.go
+build: setup
+	go build -o unkey .
 
 generate: setup
 	go tool buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/ctrl" --path "./proto/krane" --path "./proto/partition" --path "./proto/vault"
