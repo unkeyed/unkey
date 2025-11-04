@@ -174,8 +174,11 @@ func (s *Service) CreateDeployment(
 	}
 
 	deployReq := &hydrav1.DeployRequest{
-		DeploymentId: deploymentID,
-		KeyAuthId:    keySpaceID,
+		BuildContextPath: nil,
+		DockerfilePath:   nil,
+		DockerImage:      nil,
+		DeploymentId:     deploymentID,
+		KeyAuthId:        keySpaceID,
 	}
 
 	switch source := req.Msg.GetSource().(type) {

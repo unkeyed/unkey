@@ -29,6 +29,9 @@ type Cache[K comparable, V any] interface {
 
 	// Clear removes all entries from the cache.
 	Clear(ctx context.Context)
+
+	// Name returns the name of this cache instance.
+	Name() string
 }
 
 type Key interface {
@@ -38,14 +41,12 @@ type Key interface {
 type CacheHit int
 
 const (
-	//
+	// Null indicates the entry exists but has a null value
 	Null CacheHit = iota
-	// The entry was in the cache and can be used
+	// Hit indicates the entry was in the cache and can be used
 	Hit
-	// The entry was not in the cache
+	// Miss indicates the entry was not in the cache
 	Miss
-	// The entry did not exist in the origin
-
 )
 
 type Op int

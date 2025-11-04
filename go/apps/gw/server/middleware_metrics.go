@@ -63,6 +63,8 @@ func WithMetrics(eventBuffer EventBuffer, region string) Middleware {
 				}
 
 				eventBuffer.BufferApiRequest(schema.ApiRequestV2{
+					QueryString:     "",
+					QueryParams:     map[string][]string{},
 					WorkspaceID:     s.WorkspaceID,
 					RequestID:       s.RequestID(),
 					Time:            s.startTime.UnixMilli(),
@@ -71,7 +73,7 @@ func WithMetrics(eventBuffer EventBuffer, region string) Middleware {
 					Path:            s.r.URL.Path,
 					RequestHeaders:  requestHeaders,
 					RequestBody:     string(s.requestBody),
-					ResponseStatus:  int32(s.responseStatus),
+					ResponseStatus:  int32(s.responseStatus), //nolint: gosec
 					ResponseHeaders: responseHeaders,
 					ResponseBody:    string(s.responseBody),
 					Error:           getErrorMessage(s.error),

@@ -81,7 +81,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	var vaultSvc *vault.Service
 	if len(cfg.VaultMasterKeys) > 0 {
-		vaultStorage, err := storage.NewS3(storage.S3Config{
+		var vaultStorage storage.Storage
+		vaultStorage, err = storage.NewS3(storage.S3Config{
 			Logger:            logger,
 			S3URL:             cfg.VaultS3.URL,
 			S3Bucket:          cfg.VaultS3.Bucket,
@@ -186,6 +187,7 @@ func Run(ctx context.Context, cfg Config) error {
 	switch cfg.BuildBackend {
 	case BuildBackendDocker:
 		buildService = docker.New(docker.Config{
+			InstanceID:    cfg.InstanceID,
 			DB:            database,
 			Logger:        logger,
 			BuildPlatform: docker.BuildPlatform(cfg.GetBuildPlatform()),
@@ -263,7 +265,7 @@ func Run(ctx context.Context, cfg Config) error {
 			)
 
 			err := retrier.Do(func() error {
-				req, err := http.NewRequestWithContext(ctx, "POST", registerURL, bytes.NewBufferString(payload))
+				req, err := http.NewRequestWithContext(ctx, http.MethodPost, registerURL, bytes.NewBufferString(payload))
 				if err != nil {
 					return fmt.Errorf("failed to create registration request: %w", err)
 				}
