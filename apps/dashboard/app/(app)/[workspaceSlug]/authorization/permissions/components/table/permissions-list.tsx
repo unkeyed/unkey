@@ -23,22 +23,11 @@ import { usePermissionsListQuery } from "./hooks/use-permissions-list-query";
 import { getRowClassName } from "./utils/get-row-class";
 
 export const PermissionsList = () => {
-  const {
-    permissions,
-    isLoading,
-    isLoadingMore,
-    loadMore,
-    totalCount,
-    hasMore,
-  } = usePermissionsListQuery();
-  const [selectedPermission, setSelectedPermission] =
-    useState<Permission | null>(null);
-  const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(
-    new Set()
-  );
-  const [hoveredPermissionName, setHoveredPermissionName] = useState<
-    string | null
-  >(null);
+  const { permissions, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
+    usePermissionsListQuery();
+  const [selectedPermission, setSelectedPermission] = useState<Permission | null>(null);
+  const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(new Set());
+  const [hoveredPermissionName, setHoveredPermissionName] = useState<string | null>(null);
 
   const toggleSelection = useCallback((permissionId: string) => {
     setSelectedPermissions((prevSelected) => {
@@ -68,7 +57,7 @@ export const PermissionsList = () => {
               className={cn(
                 "size-5 rounded flex items-center justify-center border border-grayA-3 transition-all duration-100",
                 "bg-grayA-3",
-                isSelected && "bg-grayA-5"
+                isSelected && "bg-grayA-5",
               )}
               onMouseEnter={() => setHoveredPermissionName(permission.name)}
               onMouseLeave={() => setHoveredPermissionName(null)}
@@ -84,10 +73,7 @@ export const PermissionsList = () => {
                     toggleSelection(permission.permissionId);
                   }}
                 >
-                  <Page2
-                    iconSize="sm-regular"
-                    className="text-gray-12 cursor-pointer"
-                  />
+                  <Page2 iconSize="sm-regular" className="text-gray-12 cursor-pointer" />
                 </Button>
               )}
               {(isSelected || isHovered) && (
@@ -95,9 +81,7 @@ export const PermissionsList = () => {
                   checked={isSelected}
                   className="size-4 [&_svg]:size-3"
                   onClick={(e) => e.stopPropagation()}
-                  onCheckedChange={() =>
-                    toggleSelection(permission.permissionId)
-                  }
+                  onCheckedChange={() => toggleSelection(permission.permissionId)}
                 />
               )}
             </div>
@@ -137,9 +121,7 @@ export const PermissionsList = () => {
           <AssignedItemsCell
             kind="slug"
             value={permission.slug}
-            isSelected={
-              permission.permissionId === selectedPermission?.permissionId
-            }
+            isSelected={permission.permissionId === selectedPermission?.permissionId}
           />
         ),
       },
@@ -151,9 +133,7 @@ export const PermissionsList = () => {
           <AssignedItemsCell
             kind="roles"
             totalCount={permission.totalConnectedRoles}
-            isSelected={
-              permission.permissionId === selectedPermission?.permissionId
-            }
+            isSelected={permission.permissionId === selectedPermission?.permissionId}
           />
         ),
       },
@@ -165,9 +145,7 @@ export const PermissionsList = () => {
           <AssignedItemsCell
             kind="keys"
             totalCount={permission.totalConnectedKeys}
-            isSelected={
-              permission.permissionId === selectedPermission?.permissionId
-            }
+            isSelected={permission.permissionId === selectedPermission?.permissionId}
           />
         ),
       },
@@ -179,9 +157,7 @@ export const PermissionsList = () => {
           return (
             <LastUpdated
               lastUpdated={permission.lastUpdated}
-              isSelected={
-                permission.permissionId === selectedPermission?.permissionId
-              }
+              isSelected={permission.permissionId === selectedPermission?.permissionId}
             />
           );
         },
@@ -195,12 +171,7 @@ export const PermissionsList = () => {
         },
       },
     ],
-    [
-      selectedPermissions,
-      toggleSelection,
-      hoveredPermissionName,
-      selectedPermission?.permissionId,
-    ]
+    [selectedPermissions, toggleSelection, hoveredPermissionName, selectedPermission?.permissionId],
   );
 
   return (
@@ -214,9 +185,7 @@ export const PermissionsList = () => {
         onRowClick={setSelectedPermission}
         selectedItem={selectedPermission}
         keyExtractor={(permission) => permission.permissionId}
-        rowClassName={(permission) =>
-          getRowClassName(permission, selectedPermission)
-        }
+        rowClassName={(permission) => getRowClassName(permission, selectedPermission)}
         loadMoreFooterProps={{
           hide: isLoading,
           buttonText: "Load more permissions",
@@ -229,8 +198,7 @@ export const PermissionsList = () => {
           ),
           countInfoText: (
             <div className="flex gap-2">
-              <span>Showing</span>{" "}
-              <span className="text-accent-12">{permissions.length}</span>
+              <span>Showing</span> <span className="text-accent-12">{permissions.length}</span>
               <span>of</span>
               {totalCount}
               <span>permissions</span>
@@ -243,8 +211,8 @@ export const PermissionsList = () => {
               <Empty.Icon className="w-auto" />
               <Empty.Title>No Permissions Found</Empty.Title>
               <Empty.Description className="text-left">
-                There are no permissions configured yet. Create your first
-                permission to start managing permissions and access control.
+                There are no permissions configured yet. Create your first permission to start
+                managing permissions and access control.
               </Empty.Description>
               <Empty.Actions className="mt-4 justify-start">
                 <a
@@ -273,16 +241,14 @@ export const PermissionsList = () => {
               key={column.key}
               className={cn(
                 "text-xs align-middle whitespace-nowrap",
-                column.key === "permission" ? "py-[6px]" : "py-1"
+                column.key === "permission" ? "py-[6px]" : "py-1",
               )}
               style={{ height: `${rowHeight}px` }}
             >
               {column.key === "permission" && <RoleColumnSkeleton />}
               {column.key === "slug" && <SlugColumnSkeleton />}
               {column.key === "used_in_roles" && <AssignedKeysColumnSkeleton />}
-              {column.key === "assigned_to_keys" && (
-                <AssignedToKeysColumnSkeleton />
-              )}
+              {column.key === "assigned_to_keys" && <AssignedToKeysColumnSkeleton />}
               {column.key === "last_updated" && <LastUpdatedColumnSkeleton />}
               {column.key === "action" && <ActionColumnSkeleton />}
             </td>
