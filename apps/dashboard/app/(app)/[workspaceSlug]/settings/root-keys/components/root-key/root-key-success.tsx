@@ -35,7 +35,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
       }}
     >
       <DialogContent
-        className="drop-shadow-2xl border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0 w-full max-w-[760px] max-h-[90vh] overflow-y-auto"
+        className="drop-shadow-2xl transform-gpu border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0 w-full max-w-[760px] max-h-[90vh] overflow-y-auto"
         showCloseWarning
         onAttemptClose={handleCloseAttempt}
         aria-labelledby={dialogTitleId}
