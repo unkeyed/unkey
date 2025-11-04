@@ -2065,8 +2065,8 @@ type ChproxyRatelimitsJSONRequestBody = ChproxyRatelimitsRequestBody
 // ChproxyVerificationsJSONRequestBody defines body for ChproxyVerifications for application/json ContentType.
 type ChproxyVerificationsJSONRequestBody = ChproxyVerificationsRequestBody
 
-// GetVerificationsJSONRequestBody defines body for GetVerifications for application/json ContentType.
-type GetVerificationsJSONRequestBody = V2AnalyticsGetVerificationsRequestBody
+// AnalyticsGetVerificationsJSONRequestBody defines body for AnalyticsGetVerifications for application/json ContentType.
+type AnalyticsGetVerificationsJSONRequestBody = V2AnalyticsGetVerificationsRequestBody
 
 // CreateApiJSONRequestBody defines body for CreateApi for application/json ContentType.
 type CreateApiJSONRequestBody = V2ApisCreateApiRequestBody

@@ -6,7 +6,9 @@ post:
   # Hides from mintlify
   x-hidden: true
   x-speakeasy-name-override: getVerifications
-  operationId: getVerifications
+  # Hides from sdk generation
+  x-speakeasy-ignore: true
+  operationId: analytics.getVerifications
   summary: Query key verification data
   description: |
     Execute custom SQL queries against your key verification analytics.
