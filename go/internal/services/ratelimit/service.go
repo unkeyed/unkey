@@ -183,7 +183,7 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 	// Build and sort keys first (before getting buckets)
 	reqsWithKeys := make([]reqWithKey, len(reqs))
 	for i, req := range reqs {
-		key := bucketKey{req.Identifier, req.Limit, req.Duration}
+		key := bucketKey{req.Name, req.Identifier, req.Limit, req.Duration}
 		reqsWithKeys[i] = reqWithKey{
 			req:   req,
 			key:   key,
@@ -274,6 +274,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 	err := assert.All(
 		assert.NotEmpty(req.Identifier, "ratelimit identifier must not be empty"),
+		assert.NotEmpty(req.Name, "ratelimit name must not be empty"),
 		assert.Greater(req.Limit, 0, "ratelimit limit must be greater than zero"),
 		assert.GreaterOrEqual(req.Cost, 0, "ratelimit cost must not be negative"),
 		assert.GreaterOrEqual(req.Duration.Milliseconds(), 1000, "ratelimit duration must be at least 1s"),
@@ -283,7 +284,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 		return RatelimitResponse{}, err
 	}
 
-	key := bucketKey{req.Identifier, req.Limit, req.Duration}
+	key := bucketKey{req.Name, req.Identifier, req.Limit, req.Duration}
 	span.SetAttributes(attribute.String("key", key.toString()))
 	b, _ := s.getOrCreateBucket(key)
 	b.mu.Lock()
