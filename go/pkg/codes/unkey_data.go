@@ -20,6 +20,12 @@ type dataApi struct {
 	NotFound Code
 }
 
+// dataKeySpace defines errors related to key space operations.
+type dataKeySpace struct {
+	// NotFound indicates the requested key space was not found.
+	NotFound Code
+}
+
 // dataPermission defines errors related to permission operations.
 type dataPermission struct {
 	// Duplicate indicates the requested permission already exists.
@@ -73,6 +79,15 @@ type dataAuditLog struct {
 	NotFound Code
 }
 
+// dataAnalytics defines errors related to analytics operations.
+type dataAnalytics struct {
+	// NotConfigured indicates analytics is not configured for the workspace.
+	NotConfigured Code
+
+	// ConnectionFailed indicates the connection to the analytics database failed.
+	ConnectionFailed Code
+}
+
 // UnkeyDataErrors defines all data-related errors in the Unkey system.
 // These errors generally relate to CRUD operations on domain entities.
 type UnkeyDataErrors struct {
@@ -80,6 +95,7 @@ type UnkeyDataErrors struct {
 	Key                dataKey
 	Workspace          dataWorkspace
 	Api                dataApi
+	KeySpace           dataKeySpace
 	Permission         dataPermission
 	Role               dataRole
 	KeyAuth            dataKeyAuth
@@ -87,6 +103,7 @@ type UnkeyDataErrors struct {
 	RatelimitOverride  dataRatelimitOverride
 	Identity           dataIdentity
 	AuditLog           dataAuditLog
+	Analytics          dataAnalytics
 }
 
 // Data contains all predefined data-related error codes.
@@ -103,6 +120,10 @@ var Data = UnkeyDataErrors{
 
 	Api: dataApi{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "api_not_found"},
+	},
+
+	KeySpace: dataKeySpace{
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "key_space_not_found"},
 	},
 
 	Permission: dataPermission{
@@ -135,5 +156,10 @@ var Data = UnkeyDataErrors{
 
 	AuditLog: dataAuditLog{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "audit_log_not_found"},
+	},
+
+	Analytics: dataAnalytics{
+		NotConfigured:    Code{SystemUnkey, CategoryUnkeyData, "analytics_not_configured"},
+		ConnectionFailed: Code{SystemUnkey, CategoryUnkeyData, "analytics_connection_failed"},
 	},
 }

@@ -1,0 +1,134 @@
+---
+title: "query_rows_limit_exceeded"
+description: "Your query tried to scan more rows than allowed."
+---
+
+<Danger>`err:user:unprocessable_entity:query_rows_limit_exceeded`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_4dgzrNP3Je5mU1tD"
+  },
+  "error": {
+    "detail": "Query exceeded the maximum rows to scan limit of 100 million",
+    "status": 422,
+    "title": "Unprocessable Entity",
+    "type": "https://unkey.com/docs/errors/user/unprocessable_entity/query_rows_limit_exceeded"
+  }
+}
+```
+
+## What Happened?
+
+Your query tried to scan more than 100 million rows! We limit the number of rows that can be scanned to keep queries fast and prevent resource exhaustion.
+
+This happens when you query large time ranges or don't filter your data enough, causing ClickHouse to scan millions of rows even if the final result is small.
+
+## How to Fix It
+
+### 1. Add Time Range Filters
+
+Always filter by time to limit the number of rows scanned:
+
+<CodeGroup>
+
+```sql Scans Too Many Rows
+SELECT COUNT(*)
+FROM key_verifications_v1
+WHERE outcome = 'VALID'
+```
+
+```sql Limited Scan
+SELECT COUNT(*)
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 7 DAY
+  AND outcome = 'VALID'
+```
+
+</CodeGroup>
+
+### 2. Use More Selective Filters
+
+Add filters that reduce the data before aggregation:
+
+<CodeGroup>
+
+```sql Scans Everything
+SELECT api_id, COUNT(*) as total
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 90 DAY
+GROUP BY api_id
+```
+
+```sql Scans Less
+SELECT api_id, COUNT(*) as total
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 7 DAY
+  AND api_id IN ('api_123', 'api_456')
+GROUP BY api_id
+```
+
+</CodeGroup>
+
+### 3. Use Pre-Aggregated Tables
+
+For historical queries, use aggregated tables that have fewer rows:
+
+<CodeGroup>
+
+```sql Raw Table - 100M+ rows
+SELECT
+  toStartOfDay(time) as day,
+  COUNT(*) as total
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 90 DAY
+GROUP BY day
+```
+
+```sql Aggregated Table - 2K rows
+SELECT
+  time as day,
+  SUM(count) as total
+FROM key_verifications_v1_per_day_v1
+WHERE time >= now() - INTERVAL 90 DAY
+GROUP BY day
+```
+
+</CodeGroup>
+
+### 4. Query in Smaller Batches
+
+Instead of one large query, break it into smaller time windows:
+
+```javascript
+// Instead of querying 90 days at once
+const results = [];
+for (let i = 0; i < 90; i += 7) {
+  const start = `now() - INTERVAL ${i + 7} DAY`;
+  const end = `now() - INTERVAL ${i} DAY`;
+
+  const result = await query(`
+    SELECT COUNT(*) as total
+    FROM key_verifications_v1
+    WHERE time >= ${start} AND time < ${end}
+  `);
+
+  results.push(result);
+}
+```
+
+## Need Higher Row Limits?
+
+<Note>
+**Have a legitimate need to scan more rows?** Contact our support team!
+
+[Reach out to support](mailto:support@unkey.dev) and tell us:
+
+- What you're trying to analyze
+- Why you need to scan more than 100 million rows
+- An example of the query you're running
+
+We'll review your use case and help optimize your query or adjust limits if needed.
+
+</Note>

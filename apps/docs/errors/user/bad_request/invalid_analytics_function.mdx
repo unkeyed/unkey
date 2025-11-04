@@ -1,0 +1,124 @@
+---
+title: "invalid_analytics_function"
+description: "Your query uses a function that isn't allowed for security reasons."
+---
+
+<Danger>`err:user:bad_request:invalid_analytics_function`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_4dgzrNP3Je5mU1tD"
+  },
+  "error": {
+    "detail": "Function 'file' is not allowed",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "https://unkey.com/docs/errors/user/bad_request/invalid_analytics_function"
+  }
+}
+```
+
+## What Happened?
+
+Your query tried to use a function that's blocked for security reasons!
+
+For security, only safe functions are allowed in analytics queries. Functions that could:
+- Read files from the server (`file`, `executable`)
+- Make network requests (`url`, `remote`)
+- Access external systems (`mysql`, `postgresql`, `s3`, `hdfs`)
+- Modify data or system state
+
+...are all blocked.
+
+## How to Fix It
+
+### 1. Use Allowed Functions
+
+Stick to standard analytics functions:
+
+<CodeGroup>
+
+```sql Wrong - Blocked function
+SELECT file('/etc/passwd') FROM key_verifications_v1
+```
+
+```sql Correct - Safe analytics functions
+SELECT
+  toStartOfHour(time) as hour,
+  COUNT(*) as total,
+  AVG(response_time) as avg_response
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 7 DAY
+GROUP BY hour
+```
+
+</CodeGroup>
+
+### 2. Common Safe Functions
+
+These are examples of allowed functions:
+
+**Aggregate functions:**
+- `COUNT()`, `SUM()`, `AVG()`, `MIN()`, `MAX()`
+- `uniq()`, `groupArray()`
+
+**Date/time functions:**
+- `now()`, `today()`, `yesterday()`
+- `toStartOfHour()`, `toStartOfDay()`, `toStartOfWeek()`
+- `toDate()`, `toDateTime()`
+
+**String functions:**
+- `concat()`, `substring()`, `lower()`, `upper()`
+- `length()`, `position()`
+
+**Mathematical functions:**
+- `round()`, `floor()`, `ceil()`
+- `abs()`, `sqrt()`, `pow()`
+
+**Conditional functions:**
+- `if()`, `multiIf()`
+- `CASE WHEN ... THEN ... END`
+
+### 3. Remove Dangerous Functions
+
+<CodeGroup>
+
+```sql Blocked - File access
+SELECT file('/path/to/file') FROM key_verifications_v1
+```
+
+```sql Blocked - Network access
+SELECT * FROM url('http://example.com/data')
+```
+
+```sql Blocked - External DB
+SELECT * FROM mysql('host:port', 'db', 'table', 'user', 'pass')
+```
+
+```sql Safe Alternative - Use only your analytics data
+SELECT
+  api_id,
+  COUNT(*) as verifications
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 1 DAY
+GROUP BY api_id
+```
+
+</CodeGroup>
+
+## Commonly Blocked Functions
+
+These functions are blocked for security:
+
+| Function | Why Blocked |
+|----------|-------------|
+| `file()`, `executable()` | File system access |
+| `url()`, `remote()` | Network requests |
+| `mysql()`, `postgresql()`, `mongodb()` | External database access |
+| `s3()`, `hdfs()`, `azureBlobStorage()` | External storage access |
+| `dictGet()`, `dictGetOrDefault()` | Dictionary access |
+
+<Note>
+Need a specific function that's blocked? [Contact support](mailto:support@unkey.dev) to discuss your use case - we may be able to safely enable it!
+</Note>

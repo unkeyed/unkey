@@ -53,6 +53,11 @@ type Config struct {
 	// ClickhouseURL is the ClickHouse database connection string
 	ClickhouseURL string
 
+	// ClickhouseAnalyticsURL is the base URL for workspace-specific analytics connections
+	// Workspace credentials are injected programmatically at connection time
+	// Examples: "http://clickhouse:8123/default", "clickhouse://clickhouse:9000/default"
+	ClickhouseAnalyticsURL string
+
 	// --- Database configuration ---
 
 	// DatabasePrimary is the primary database connection string for read and write operations
