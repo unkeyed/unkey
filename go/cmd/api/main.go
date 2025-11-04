@@ -75,6 +75,10 @@ var Cmd = &cli.Command{
 		cli.String("vault-s3-access-key-secret", "S3 secret access key",
 			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 
+		// Kafka Configuration
+		cli.StringSlice("kafka-brokers", "Comma-separated list of Kafka broker addresses for distributed cache invalidation",
+			cli.EnvVar("UNKEY_KAFKA_BROKERS")),
+
 		// ClickHouse Proxy Service Configuration
 		cli.String(
 			"chproxy-auth-token",
@@ -85,6 +89,10 @@ var Cmd = &cli.Command{
 		// Request Body Configuration
 		cli.Int64("max-request-body-size", "Maximum allowed request body size in bytes. Set to 0 or negative to disable limit. Default: 10485760 (10MB)",
 			cli.Default(int64(10485760)), cli.EnvVar("UNKEY_MAX_REQUEST_BODY_SIZE")),
+
+		// Debug Configuration
+		cli.Bool("debug-cache-headers", "Enable cache debug headers (X-Unkey-Debug-Cache) in HTTP responses for debugging cache behavior",
+			cli.Default(false), cli.EnvVar("UNKEY_DEBUG_CACHE_HEADERS")),
 	},
 
 	Action: action,
@@ -152,11 +160,17 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
 		VaultS3:         vaultS3Config,
 
+		// Kafka configuration
+		KafkaBrokers: cmd.StringSlice("kafka-brokers"),
+
 		// ClickHouse proxy configuration
 		ChproxyToken: cmd.String("chproxy-auth-token"),
 
 		// Request body configuration
 		MaxRequestBodySize: cmd.Int64("max-request-body-size"),
+
+		// Debug configuration
+		DebugCacheHeaders: cmd.Bool("debug-cache-headers"),
 	}
 
 	err := config.Validate()
