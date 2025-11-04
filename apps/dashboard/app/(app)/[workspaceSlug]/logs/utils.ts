@@ -18,10 +18,10 @@ type V1ResponseBody = {
 };
 
 type V2ResponseBody = {
-    data: V1ResponseBody
-}
+  data: V1ResponseBody;
+};
 
-export type ResponseBody = V1ResponseBody | V2ResponseBody
+export type ResponseBody = V1ResponseBody | V2ResponseBody;
 
 export const extractResponseField = <K extends keyof V1ResponseBody>(
   log: Log | RatelimitLog,
@@ -36,7 +36,7 @@ export const extractResponseField = <K extends keyof V1ResponseBody>(
     const parsedBody = JSON.parse(log.response_body) as ResponseBody;
 
     // Check if it's v2 (nested under data)
-    if ('data' in parsedBody) {
+    if ("data" in parsedBody) {
       return parsedBody.data[fieldName];
     }
 

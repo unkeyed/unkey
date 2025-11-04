@@ -173,8 +173,7 @@ export const LogsTable = () => {
                 isSelected ? style.badge.selected : style.badge.default,
               )}
             >
-              {log.response_status}{" "}
-              {code ? `| ${code}` : ""}
+              {log.response_status} {code ? `| ${code}` : ""}
             </Badge>
           );
         },
