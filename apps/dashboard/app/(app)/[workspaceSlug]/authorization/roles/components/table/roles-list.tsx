@@ -65,7 +65,7 @@ export const RolesList = () => {
                 <Button
                   type="button"
                   className="flex w-full h-full items-center justify-center bg-transparent border-gray-6 group-hover:bg-transparent group-hover:border-none"
-                  aria-label="Select permission"
+                  aria-label="Select role"
                   variant="ghost"
                   onClick={(e) => {
                     e.stopPropagation();
