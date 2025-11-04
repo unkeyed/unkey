@@ -1,6 +1,8 @@
 package caches
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	cachev1 "github.com/unkeyed/unkey/go/gen/proto/cache/v1"
@@ -11,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/eventstream"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 // Caches holds all cache instances used throughout the application.
@@ -39,6 +42,20 @@ type Caches struct {
 	// ApiToKeyAuthRow caches api_id to key_auth row mappings.
 	// Keys are string (api_id) and values are db.FindKeyAuthsByIdsRow (has both KeyAuthID and ApiID).
 	ApiToKeyAuthRow cache.Cache[cache.ScopedKey, db.FindKeyAuthsByIdsRow]
+
+	// dispatcher handles routing of invalidation events to all caches in this process.
+	// This is not exported as it's an internal implementation detail.
+	dispatcher *clustering.InvalidationDispatcher
+}
+
+// Close shuts down the caches and cleans up resources.
+func (c *Caches) Close() error {
+	// Close the dispatcher to stop consuming invalidation events
+	if c.dispatcher != nil {
+		return c.dispatcher.Close()
+	}
+
+	return nil
 }
 
 // Config defines the configuration options for initializing caches.
@@ -52,7 +69,7 @@ type Config struct {
 	// Topic for distributed cache invalidation
 	CacheInvalidationTopic *eventstream.Topic[*cachev1.CacheInvalidationEvent]
 
-	// NodeID identifies this node in the cluster (defaults to hostname)
+	// NodeID identifies this node in the cluster (defaults to hostname-uniqueid to ensure uniqueness)
 	NodeID string
 }
 
@@ -78,6 +95,7 @@ type Config struct {
 //   - error: An error if cache creation failed
 func createCache[K comparable, V any](
 	config Config,
+	dispatcher *clustering.InvalidationDispatcher,
 	cacheConfig cache.Config[K, V],
 	keyToString func(K) string,
 	stringToKey func(string) (K, error),
@@ -88,16 +106,19 @@ func createCache[K comparable, V any](
 		return nil, err
 	}
 
-	// If no clustering topic is provided, return the local cache
-	if config.CacheInvalidationTopic == nil {
+	// If no clustering is enabled, return the local cache directly.
+	// This avoids the ClusterCache wrapper overhead when clustering isn't needed,
+	// keeping cache operations (Get/Set/etc) as fast as possible on the hot path.
+	if dispatcher == nil {
 		return localCache, nil
 	}
 
 	// Wrap with clustering for distributed invalidation
-	// The cluster cache will automatically subscribe to invalidation events
+	// The cluster cache will automatically register with the dispatcher
 	clusterCache, err := clustering.New(clustering.Config[K, V]{
 		LocalCache:  localCache,
 		Topic:       config.CacheInvalidationTopic,
+		Dispatcher:  dispatcher,
 		Logger:      config.Logger,
 		NodeID:      config.NodeID,
 		KeyToString: keyToString,
@@ -143,14 +164,34 @@ func createCache[K comparable, V any](
 //	// Use the caches - invalidation is automatic
 //	key, err := caches.KeyByHash.Get(ctx, "some-hash")
 func New(config Config) (Caches, error) {
-	// Start the global invalidation manager if clustering is enabled
+	// Apply default NodeID if not provided
+	// Format: hostname-uniqueid to ensure uniqueness across nodes
+	if config.NodeID == "" {
+		hostname, err := os.Hostname()
+		if err != nil {
+			hostname = "unknown"
+		}
+		// Add unique ID to prevent collisions when multiple nodes have same hostname
+		config.NodeID = fmt.Sprintf("%s-%s", hostname, uid.New("node"))
+	}
+
+	// Create invalidation dispatcher if clustering is enabled.
+	// We intentionally leave dispatcher as nil when clustering is disabled to avoid
+	// wrapping caches with ClusterCache. This eliminates wrapper overhead on the hot path
+	// (cache Get/Set operations) when clustering isn't needed.
+	var dispatcher *clustering.InvalidationDispatcher
 	if config.CacheInvalidationTopic != nil {
-		clustering.GetManager().Start(config.CacheInvalidationTopic, config.Logger)
+		var err error
+		dispatcher, err = clustering.NewInvalidationDispatcher(config.CacheInvalidationTopic, config.Logger)
+		if err != nil {
+			return Caches{}, err
+		}
 	}
 
 	// Create ratelimit namespace cache (uses ScopedKey)
 	ratelimitNamespace, err := createCache(
 		config,
+		dispatcher,
 		cache.Config[cache.ScopedKey, db.FindRatelimitNamespace]{
 			Fresh:    time.Minute,
 			Stale:    24 * time.Hour,
@@ -169,6 +210,7 @@ func New(config Config) (Caches, error) {
 	// Create verification key cache (uses string keys, no conversion needed)
 	verificationKeyByHash, err := createCache(
 		config,
+		dispatcher,
 		cache.Config[string, db.CachedKeyData]{
 			Fresh:    10 * time.Second,
 			Stale:    10 * time.Minute,
@@ -187,6 +229,7 @@ func New(config Config) (Caches, error) {
 	// Create API cache (uses ScopedKey)
 	liveApiByID, err := createCache(
 		config,
+		dispatcher,
 		cache.Config[cache.ScopedKey, db.FindLiveApiByIDRow]{
 			Fresh:    10 * time.Second,
 			Stale:    24 * time.Hour,
@@ -204,6 +247,7 @@ func New(config Config) (Caches, error) {
 
 	clickhouseSetting, err := createCache(
 		config,
+		dispatcher,
 		cache.Config[string, db.ClickhouseWorkspaceSetting]{
 			Fresh:    time.Minute,
 			Stale:    24 * time.Hour,
@@ -222,6 +266,7 @@ func New(config Config) (Caches, error) {
 	// Create key_auth_id -> api row cache
 	keyAuthToApiRow, err := createCache(
 		config,
+		dispatcher,
 		cache.Config[cache.ScopedKey, db.FindKeyAuthsByKeyAuthIdsRow]{
 			Fresh:    10 * time.Minute,
 			Stale:    24 * time.Hour,
@@ -240,6 +285,7 @@ func New(config Config) (Caches, error) {
 	// Create api_id -> key_auth row cache
 	apiToKeyAuthRow, err := createCache(
 		config,
+		dispatcher,
 		cache.Config[cache.ScopedKey, db.FindKeyAuthsByIdsRow]{
 			Fresh:    10 * time.Minute,
 			Stale:    24 * time.Hour,
@@ -262,5 +308,6 @@ func New(config Config) (Caches, error) {
 		ClickhouseSetting:     middleware.WithTracing(clickhouseSetting),
 		KeyAuthToApiRow:       middleware.WithTracing(keyAuthToApiRow),
 		ApiToKeyAuthRow:       middleware.WithTracing(apiToKeyAuthRow),
+		dispatcher:            dispatcher,
 	}, nil
 }

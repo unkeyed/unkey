@@ -1,9 +1,13 @@
 package eventstream
 
 import (
+	"context"
+	"fmt"
 	"sync"
+	"time"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"google.golang.org/protobuf/proto"
 )
@@ -51,7 +55,18 @@ type Topic[T proto.Message] struct {
 //		Logger:     logger,
 //	}
 //	topic := eventstream.NewTopic[*MyEvent](cfg)
-func NewTopic[T proto.Message](config TopicConfig) *Topic[T] {
+func NewTopic[T proto.Message](config TopicConfig) (*Topic[T], error) {
+	// Validate required fields
+	err := assert.All(
+		assert.NotNilAndNotZero(config.Logger, "logger is required when creating a topic"),
+		assert.True(len(config.Brokers) > 0, "brokers list cannot be empty"),
+		assert.NotEmpty(config.Topic, "topic name cannot be empty"),
+		assert.NotEmpty(config.InstanceID, "instance ID cannot be empty"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	topic := &Topic[T]{
 		brokers:    config.Brokers,
 		topic:      config.Topic,
@@ -59,21 +74,22 @@ func NewTopic[T proto.Message](config TopicConfig) *Topic[T] {
 		logger:     config.Logger,
 	}
 
-	return topic
+	return topic, nil
 }
 
 // EnsureExists creates the Kafka topic if it doesn't already exist.
 //
 // This method connects to the Kafka cluster, checks if the topic exists,
-// and creates it with the given number of partitions if it doesn't.
+// and creates it with the given number of partitions and replication factor if it doesn't.
 // This is typically called during application startup to ensure required
 // topics are available before producers and consumers start operating.
 //
 // Parameters:
 //   - partitions: Number of partitions for the topic (affects parallelism)
+//   - replicationFactor: Number of replicas for fault tolerance (typically 3 for production)
 //
 // Topic configuration:
-//   - Replication factor: 1 (suitable for development, increase for production)
+//   - Replication factor: As specified by caller (use 3 for production, 1 for development)
 //   - Partition count: As specified by caller
 //   - Default retention and cleanup policies
 //
@@ -82,6 +98,7 @@ func NewTopic[T proto.Message](config TopicConfig) *Topic[T] {
 //   - Insufficient permissions to create topics
 //   - Invalid topic name (contains invalid characters)
 //   - Cluster controller unavailable
+//   - All brokers unreachable
 //
 // Performance considerations:
 //
@@ -92,19 +109,69 @@ func NewTopic[T proto.Message](config TopicConfig) *Topic[T] {
 //
 //	In production environments, topics are often pre-created by operations
 //	teams rather than created automatically by applications.
-func (t *Topic[T]) EnsureExists(partitions int) error {
-	conn, err := kafka.Dial("tcp", t.brokers[0])
-	if err != nil {
+//
+// Example:
+//
+//	// Development (single broker, no replication)
+//	err := topic.EnsureExists(3, 1)
+//
+//	// Production (high availability)
+//	err := topic.EnsureExists(6, 3)
+func (t *Topic[T]) EnsureExists(partitions int, replicationFactor int) error {
+	// Try to connect to each broker until one succeeds
+	var lastErr error
+	for _, broker := range t.brokers {
+		conn, err := kafka.Dial("tcp", broker)
+		if err != nil {
+			lastErr = err
+			continue // Try next broker
+		}
+		defer conn.Close()
+
+		// Successfully connected, create the topic
+		err = conn.CreateTopics(kafka.TopicConfig{
+			Topic:             t.topic,
+			NumPartitions:     partitions,
+			ReplicationFactor: replicationFactor,
+		})
 		return err
 	}
-	defer conn.Close()
 
-	err = conn.CreateTopics(kafka.TopicConfig{
-		Topic:             t.topic,
-		NumPartitions:     partitions,
-		ReplicationFactor: 1,
-	})
-	return err
+	// All brokers failed
+	if lastErr != nil {
+		return fmt.Errorf("failed to connect to any broker: %w", lastErr)
+	}
+	return fmt.Errorf("no brokers configured")
+}
+
+// WaitUntilReady polls Kafka to verify the topic exists and is ready for use.
+// It checks every 100ms until the topic is found or the context is cancelled.
+func (t *Topic[T]) WaitUntilReady(ctx context.Context) error {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			// Try to connect to a broker and check if topic exists
+			for _, broker := range t.brokers {
+				conn, err := kafka.Dial("tcp", broker)
+				if err != nil {
+					continue
+				}
+
+				partitions, err := conn.ReadPartitions(t.topic)
+				conn.Close()
+
+				if err == nil && len(partitions) > 0 {
+					// Topic exists and has partitions
+					return nil
+				}
+			}
+		}
+	}
 }
 
 // ConsumerOption configures consumer behavior
@@ -168,7 +235,9 @@ func (t *Topic[T]) Close() error {
 	// Close all consumers
 	for _, consumer := range t.consumers {
 		if err := consumer.Close(); err != nil {
-			t.logger.Error("Failed to close consumer", "error", err, "topic", t.topic)
+			if t.logger != nil {
+				t.logger.Error("Failed to close consumer", "error", err, "topic", t.topic)
+			}
 			lastErr = err
 		}
 	}
@@ -176,7 +245,9 @@ func (t *Topic[T]) Close() error {
 	// Close all producers
 	for _, producer := range t.producers {
 		if err := producer.Close(); err != nil {
-			t.logger.Error("Failed to close producer", "error", err, "topic", t.topic)
+			if t.logger != nil {
+				t.logger.Error("Failed to close producer", "error", err, "topic", t.topic)
+			}
 			lastErr = err
 		}
 	}

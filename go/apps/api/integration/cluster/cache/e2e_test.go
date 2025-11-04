@@ -104,7 +104,7 @@ func TestDistributedCacheInvalidation_EndToEnd(t *testing.T) {
 			cacheHeaders := resp.Headers.Values("X-Unkey-Debug-Cache")
 			for _, headerValue := range cacheHeaders {
 				parsedHeader, err := debug.ParseCacheHeader(headerValue)
-				if err == nil && parsedHeader.CacheName == "api_by_id" {
+				if err == nil && parsedHeader.CacheName == "live_api_by_id" {
 					t.Logf("Node %d: api_by_id cache status: %s (latency: %v)", i, parsedHeader.Status, parsedHeader.Latency)
 				}
 			}
@@ -191,7 +191,7 @@ func TestCacheDebugHeaders(t *testing.T) {
 		if err != nil {
 			continue // Already validated above, but be defensive
 		}
-		if parsedHeader.CacheName == "api_by_id" {
+		if parsedHeader.CacheName == "live_api_by_id" {
 			foundApiCache = true
 			t.Logf("Found api_by_id cache entry: latency=%v, status=%s",
 				parsedHeader.Latency, parsedHeader.Status)

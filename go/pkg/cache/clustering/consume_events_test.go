@@ -15,25 +15,36 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 func TestClusterCache_ConsumesInvalidationAndRemovesFromCache(t *testing.T) {
 	testutil.SkipUnlessIntegration(t)
 
 	brokers := containers.Kafka(t)
-	topicName := fmt.Sprintf("test-clustering-consume-%d", time.Now().UnixNano())
+
+	// Create unique topic and instance ID for this test run to ensure fresh consumer group
+	topicName := fmt.Sprintf("test-clustering-consume-%s", uid.New(uid.TestPrefix))
 
 	// Create eventstream topic
-	topic := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
+	topic, err := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
 		Brokers:    brokers,
 		Topic:      topicName,
-		InstanceID: "test-consumer-node",
+		InstanceID: uid.New(uid.TestPrefix),
 		Logger:     logging.NewNoop(),
 	})
+	require.NoError(t, err)
 
-	err := topic.EnsureExists(1)
+	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err)
 	defer topic.Close()
+
+	// Wait for topic to be fully created in Kafka
+	ctx := context.Background()
+	waitCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	err = topic.WaitUntilReady(waitCtx)
+	require.NoError(t, err)
 
 	// Create local cache and populate it
 	localCache, err := cache.New(cache.Config[string, string]{
@@ -45,8 +56,6 @@ func TestClusterCache_ConsumesInvalidationAndRemovesFromCache(t *testing.T) {
 		Clock:    clock.New(),
 	})
 	require.NoError(t, err)
-
-	ctx := context.Background()
 
 	// Populate cache with test data
 	localCache.Set(ctx, "key1", "value1")
@@ -80,8 +89,8 @@ func TestClusterCache_ConsumesInvalidationAndRemovesFromCache(t *testing.T) {
 		return nil
 	})
 
-	// Wait for consumer to be ready
-	time.Sleep(500 * time.Millisecond)
+	// Wait for consumer to be ready and actually positioned
+	time.Sleep(5 * time.Second)
 
 	// Produce an invalidation event
 	producer := topic.NewProducer()

@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/integration"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	cachev1 "github.com/unkeyed/unkey/go/gen/proto/cache/v1"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/eventstream"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
@@ -27,16 +28,19 @@ func TestAPI_ProducesInvalidationEvents(t *testing.T) {
 	brokers := containers.Kafka(t)
 	topicName := "cache-invalidations" // Use same topic as API nodes
 
-	// Create topic
-	topic := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
+	// Create topic with unique instance ID for this test run
+	// This ensures we get a unique consumer group and don't resume from previous test runs
+	testInstanceID := uid.New(uid.TestPrefix)
+	topic, err := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
 		Brokers:    brokers,
 		Topic:      topicName,
-		InstanceID: uid.New(uid.TestPrefix),
+		InstanceID: testInstanceID,
 		Logger:     logging.NewNoop(),
 	})
+	require.NoError(t, err)
 
 	// Ensure topic exists
-	err := topic.EnsureExists(1)
+	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err, "Should be able to create topic")
 	defer topic.Close()
 
@@ -44,7 +48,8 @@ func TestAPI_ProducesInvalidationEvents(t *testing.T) {
 	var receivedEvents []*cachev1.CacheInvalidationEvent
 	var eventsMutex sync.Mutex
 
-	consumer := topic.NewConsumer(eventstream.WithStartFromBeginning())
+	// Start consumer from latest offset to avoid old test events
+	consumer := topic.NewConsumer()
 	defer consumer.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -54,14 +59,14 @@ func TestAPI_ProducesInvalidationEvents(t *testing.T) {
 		eventsMutex.Lock()
 		receivedEvents = append(receivedEvents, event)
 		eventsMutex.Unlock()
-
 		return nil
 	})
 
-	// Wait for consumer to be ready
-	time.Sleep(2 * time.Second)
+	// Wait for consumer to be ready and positioned at latest offset
+	// Consumer needs time to join group and subscribe to partitions
+	time.Sleep(3 * time.Second)
 
-	// Now start API node AFTER consumer is ready
+	// Now start API node
 	h := integration.New(t, integration.Config{NumNodes: 1})
 	addr := h.GetClusterAddrs()[0]
 
@@ -97,18 +102,32 @@ func TestAPI_ProducesInvalidationEvents(t *testing.T) {
 
 	require.Greater(t, len(receivedEvents), 0, "Should receive at least one invalidation event")
 
-	// Look for api_by_id cache invalidation event
+	// Log all received events for debugging
+	t.Logf("Received %d invalidation events:", len(receivedEvents))
+	for i, event := range receivedEvents {
+		t.Logf("  Event %d: CacheName=%s, CacheKey=%s, SourceInstance=%s",
+			i, event.CacheName, event.CacheKey, event.SourceInstance)
+	}
+
+	// Look for live_api_by_id cache invalidation event
+	// The cache key is scoped with format "workspaceID:apiID"
+	expectedCacheKey := cache.ScopedKey{
+		WorkspaceID: api.WorkspaceID,
+		Key:         api.ID,
+	}.String()
 	var apiByIdEvent *cachev1.CacheInvalidationEvent
 	for _, event := range receivedEvents {
-		if event.CacheName == "api_by_id" && event.CacheKey == api.ID {
+		if event.CacheName == "live_api_by_id" && event.CacheKey == expectedCacheKey {
 			apiByIdEvent = event
 			break
 		}
 	}
 
-	require.NotNil(t, apiByIdEvent, "Should receive api_by_id invalidation event")
-	require.Equal(t, "api_by_id", apiByIdEvent.CacheName, "Event should be for api_by_id cache")
-	require.Equal(t, api.ID, apiByIdEvent.CacheKey, "Event should be for correct API ID")
+	t.Logf("Looking for cache key: %s", expectedCacheKey)
+
+	require.NotNil(t, apiByIdEvent, "Should receive live_api_by_id invalidation event")
+	require.Equal(t, "live_api_by_id", apiByIdEvent.CacheName, "Event should be for live_api_by_id cache")
+	require.Equal(t, expectedCacheKey, apiByIdEvent.CacheKey, "Event should be for correct scoped cache key")
 	require.NotEmpty(t, apiByIdEvent.SourceInstance, "Event should have source instance")
 	require.Greater(t, apiByIdEvent.Timestamp, int64(0), "Event should have valid timestamp")
 }

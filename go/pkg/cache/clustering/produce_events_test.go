@@ -17,25 +17,40 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestClusterCache_ProducesInvalidationOnSetAndSetNull(t *testing.T) {
+func TestClusterCache_ProducesInvalidationOnRemoveAndSetNull(t *testing.T) {
 	testutil.SkipUnlessIntegration(t)
 
 	brokers := containers.Kafka(t)
-	topicName := fmt.Sprintf("test-clustering-produce-%d", time.Now().UnixNano())
+
+	// Create unique topic and instance ID for this test run to ensure fresh consumer group
+	topicName := fmt.Sprintf("test-clustering-produce-%s", uid.New(uid.TestPrefix))
 
 	// Create eventstream topic
-	topic := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
+	topic, err := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
 		Brokers:    brokers,
 		Topic:      topicName,
-		InstanceID: "test-producer-node",
+		InstanceID: uid.New(uid.TestPrefix),
 		Logger:     logging.NewNoop(),
 	})
+	require.NoError(t, err)
 
-	err := topic.EnsureExists(1)
+	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err)
 	defer topic.Close()
+
+	// Wait for topic to be fully created in Kafka
+	ctx := context.Background()
+	waitCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	err = topic.WaitUntilReady(waitCtx)
+	require.NoError(t, err)
+
+	// Create dispatcher with noop - we won't use it to consume, just need it for ClusterCache creation
+	dispatcher := clustering.NewNoopDispatcher()
+	defer dispatcher.Close()
 
 	// Create local cache
 	localCache, err := cache.New(cache.Config[string, string]{
@@ -48,10 +63,11 @@ func TestClusterCache_ProducesInvalidationOnSetAndSetNull(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Create cluster cache
+	// Create cluster cache - this will produce events when we call Set/SetNull
 	clusterCache, err := clustering.New(clustering.Config[string, string]{
 		LocalCache: localCache,
 		Topic:      topic,
+		Dispatcher: dispatcher,
 		NodeID:     "test-node-1",
 		Logger:     logging.NewNoop(),
 	})
@@ -65,10 +81,10 @@ func TestClusterCache_ProducesInvalidationOnSetAndSetNull(t *testing.T) {
 	consumer := topic.NewConsumer()
 	defer consumer.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	consumerCtx, cancelConsumer := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelConsumer()
 
-	consumer.Consume(ctx, func(ctx context.Context, event *cachev1.CacheInvalidationEvent) error {
+	consumer.Consume(consumerCtx, func(ctx context.Context, event *cachev1.CacheInvalidationEvent) error {
 		eventsMutex.Lock()
 		receivedEvents = append(receivedEvents, event)
 		eventsMutex.Unlock()
@@ -77,11 +93,12 @@ func TestClusterCache_ProducesInvalidationOnSetAndSetNull(t *testing.T) {
 		return nil
 	})
 
-	// Wait for consumer to be ready
-	time.Sleep(500 * time.Millisecond)
+	// Wait for consumer to be ready and actually positioned
+	time.Sleep(5 * time.Second)
 
-	// Test Set operation produces invalidation event
-	clusterCache.Set(ctx, "key1", "value1")
+	// Test Remove operation produces invalidation event
+	clusterCache.Set(ctx, "key1", "value1") // populate cache first
+	clusterCache.Remove(ctx, "key1")        // then remove it
 
 	// Test SetNull operation produces invalidation event
 	clusterCache.SetNull(ctx, "key2")
@@ -89,7 +106,7 @@ func TestClusterCache_ProducesInvalidationOnSetAndSetNull(t *testing.T) {
 	// Wait for both events to be received
 	require.Eventually(t, func() bool {
 		return receivedEventCount.Load() == 2
-	}, 5*time.Second, 100*time.Millisecond, "ClusterCache should produce invalidation events for Set and SetNull operations within 5 seconds")
+	}, 5*time.Second, 100*time.Millisecond, "ClusterCache should produce invalidation events for Remove and SetNull operations within 5 seconds")
 
 	// Verify events
 	eventsMutex.Lock()
@@ -98,19 +115,19 @@ func TestClusterCache_ProducesInvalidationOnSetAndSetNull(t *testing.T) {
 	require.Len(t, receivedEvents, 2, "Should receive exactly 2 events")
 
 	// Find events by key
-	var setEvent, setNullEvent *cachev1.CacheInvalidationEvent
+	var removeEvent, setNullEvent *cachev1.CacheInvalidationEvent
 	for _, event := range receivedEvents {
 		if event.CacheKey == "key1" {
-			setEvent = event
+			removeEvent = event
 		} else if event.CacheKey == "key2" {
 			setNullEvent = event
 		}
 	}
 
-	require.NotNil(t, setEvent, "Set operation should produce invalidation event")
-	require.Equal(t, "test-cache", setEvent.CacheName, "Set event should have correct cache name")
-	require.Equal(t, "key1", setEvent.CacheKey, "Set event should have correct cache key")
-	require.Equal(t, "test-node-1", setEvent.SourceInstance, "Set event should have correct source instance")
+	require.NotNil(t, removeEvent, "Remove operation should produce invalidation event")
+	require.Equal(t, "test-cache", removeEvent.CacheName, "Remove event should have correct cache name")
+	require.Equal(t, "key1", removeEvent.CacheKey, "Remove event should have correct cache key")
+	require.Equal(t, "test-node-1", removeEvent.SourceInstance, "Remove event should have correct source instance")
 
 	require.NotNil(t, setNullEvent, "SetNull operation should produce invalidation event")
 	require.Equal(t, "test-cache", setNullEvent.CacheName, "SetNull event should have correct cache name")

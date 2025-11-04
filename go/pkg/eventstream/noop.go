@@ -41,3 +41,17 @@ func (n *noopConsumer[T]) Consume(ctx context.Context, handler func(context.Cont
 func (n *noopConsumer[T]) Close() error {
 	return nil
 }
+
+// NewNoopTopic creates a new no-op topic that can be safely used when event streaming is disabled.
+// All operations (NewProducer, NewConsumer, Close) are no-ops and safe to call.
+// The returned Topic will create noop producers and consumers.
+func NewNoopTopic[T proto.Message]() *Topic[T] {
+	return &Topic[T]{
+		brokers:    nil,
+		topic:      "",
+		instanceID: "",
+		logger:     nil,
+		consumers:  nil,
+		producers:  nil,
+	}
+}

@@ -6,6 +6,8 @@ import (
 	"time"
 
 	cachev1 "github.com/unkeyed/unkey/go/gen/proto/cache/v1"
+	"github.com/unkeyed/unkey/go/pkg/assert"
+	"github.com/unkeyed/unkey/go/pkg/batch"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/eventstream"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -23,6 +25,9 @@ type ClusterCache[K comparable, V any] struct {
 	keyToString    func(K) string
 	stringToKey    func(string) (K, error)
 	onInvalidation func(ctx context.Context, key K)
+
+	// Batch processor for broadcasting invalidation events
+	batchProcessor *batch.BatchProcessor[*cachev1.CacheInvalidationEvent]
 }
 
 // Config configures a ClusterCache instance
@@ -32,6 +37,10 @@ type Config[K comparable, V any] struct {
 
 	// Topic for broadcasting invalidations
 	Topic *eventstream.Topic[*cachev1.CacheInvalidationEvent]
+
+	// Dispatcher routes invalidation events to this cache
+	// Required for receiving invalidations from other nodes
+	Dispatcher *InvalidationDispatcher
 
 	// Logger for debugging and error reporting
 	Logger logging.Logger
@@ -51,6 +60,15 @@ type Config[K comparable, V any] struct {
 // New creates a new ClusterCache that automatically handles
 // distributed cache invalidation across cluster nodes.
 func New[K comparable, V any](config Config[K, V]) (*ClusterCache[K, V], error) {
+	// Validate required config
+	err := assert.All(
+		assert.NotNilAndNotZero(config.Topic, "Topic is required for ClusterCache"),
+		assert.NotNilAndNotZero(config.Dispatcher, "Dispatcher is required for ClusterCache"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	// Set default key converters if not provided
 	keyToString := config.KeyToString
 	if keyToString == nil {
@@ -89,11 +107,31 @@ func New[K comparable, V any](config Config[K, V]) (*ClusterCache[K, V], error) 
 		},
 	}
 
-	// Create a reusable producer if topic is provided
-	if config.Topic != nil {
-		c.producer = config.Topic.NewProducer()
-		GetManager().Register(c)
-	}
+	// Create a reusable producer from the topic
+	c.producer = config.Topic.NewProducer()
+
+	// Create batch processor for broadcasting invalidations
+	// This avoids creating a goroutine for every cache write
+	c.batchProcessor = batch.New(batch.Config[*cachev1.CacheInvalidationEvent]{
+		Name:          fmt.Sprintf("cache_invalidations_%s", c.cacheName),
+		Drop:          false,
+		BatchSize:     1_00,
+		BufferSize:    1_000,
+		FlushInterval: 100 * time.Millisecond,
+		Consumers:     2,
+		Flush: func(ctx context.Context, events []*cachev1.CacheInvalidationEvent) {
+			err := c.producer.Produce(ctx, events...)
+			if err != nil {
+				c.logger.Error("Failed to broadcast cache invalidations",
+					"error", err,
+					"cache", c.cacheName,
+					"event_count", len(events))
+			}
+		},
+	})
+
+	// Register with dispatcher to receive invalidation events
+	config.Dispatcher.Register(c)
 
 	return c, nil
 }
@@ -110,12 +148,12 @@ func (c *ClusterCache[K, V]) GetMany(ctx context.Context, keys []K) (values map[
 
 // Set stores a value in the local cache and broadcasts an invalidation event
 // to other nodes in the cluster
+// Set stores a value in the local cache without broadcasting.
+// This is used when populating the cache after a database read.
+// The stale/fresh timers handle cache expiration, so there's no need to
+// invalidate other nodes when we're just caching a value we read from the DB.
 func (c *ClusterCache[K, V]) Set(ctx context.Context, key K, value V) {
-	// Update local cache first
 	c.localCache.Set(ctx, key, value)
-
-	// Broadcast invalidation to other nodes
-	c.broadcastInvalidation(ctx, key)
 }
 
 // SetMany stores multiple values in the local cache and broadcasts invalidation events
@@ -191,9 +229,9 @@ func (c *ClusterCache[K, V]) Name() string {
 	return c.cacheName
 }
 
-// ProcessInvalidationEvent processes a cache invalidation event.
+// HandleInvalidation processes a cache invalidation event.
 // Returns true if the event was handled by this cache.
-func (c *ClusterCache[K, V]) ProcessInvalidationEvent(ctx context.Context, event *cachev1.CacheInvalidationEvent) bool {
+func (c *ClusterCache[K, V]) HandleInvalidation(ctx context.Context, event *cachev1.CacheInvalidationEvent) bool {
 	// Ignore our own events to avoid loops
 	if event.SourceInstance == c.nodeID {
 		return false
@@ -222,29 +260,29 @@ func (c *ClusterCache[K, V]) ProcessInvalidationEvent(ctx context.Context, event
 	return true
 }
 
-// broadcastInvalidation sends cache invalidation events to other cluster nodes
+// Close gracefully shuts down the cluster cache and flushes any pending invalidation events.
+func (c *ClusterCache[K, V]) Close() error {
+	if c.batchProcessor != nil {
+		c.batchProcessor.Close()
+	}
+	return nil
+}
+
+// broadcastInvalidation sends cache invalidation events to other cluster nodes.
+// Events are batched and sent asynchronously via the batch processor to avoid
+// creating a goroutine for every cache write operation.
 func (c *ClusterCache[K, V]) broadcastInvalidation(ctx context.Context, keys ...K) {
-	if c.producer == nil || len(keys) == 0 {
+	if c.batchProcessor == nil || len(keys) == 0 {
 		return
 	}
 
-	// Create invalidation events for all keys
-	events := make([]*cachev1.CacheInvalidationEvent, len(keys))
-	for i, key := range keys {
-		events[i] = &cachev1.CacheInvalidationEvent{
+	// Buffer events to be batched and sent by the background worker
+	for _, key := range keys {
+		c.batchProcessor.Buffer(&cachev1.CacheInvalidationEvent{
 			CacheName:      c.cacheName,
 			CacheKey:       c.keyToString(key),
 			Timestamp:      time.Now().UnixMilli(),
 			SourceInstance: c.nodeID,
-		}
-	}
-
-	// Send all events in a single batch
-	if err := c.producer.Produce(ctx, events...); err != nil {
-		c.logger.Error("Failed to broadcast cache invalidations",
-			"error", err,
-			"cache", c.cacheName,
-			"keys", keys)
-		// Don't fail the operation if broadcasting fails
+		})
 	}
 }

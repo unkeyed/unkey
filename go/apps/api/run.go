@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/counter"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	debugpkg "github.com/unkeyed/unkey/go/pkg/debug"
 	"github.com/unkeyed/unkey/go/pkg/eventstream"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -85,6 +86,12 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("TLS is enabled, server will use HTTPS")
 	}
 
+	// Enable debug cache headers if configured
+	if cfg.DebugCacheHeaders {
+		debugpkg.EnableCacheHeaders()
+		logger.Info("Debug cache headers enabled - X-Unkey-Debug-Cache headers will be added to responses")
+	}
+
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
 		if r := recover(); r != nil {
@@ -113,6 +120,7 @@ func Run(ctx context.Context, cfg Config) error {
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
+
 		go func() {
 			promListener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
 			if err != nil {
@@ -215,7 +223,7 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	// Initialize cache invalidation topic
-	var cacheInvalidationTopic *eventstream.Topic[*cachev1.CacheInvalidationEvent]
+	cacheInvalidationTopic := eventstream.NewNoopTopic[*cachev1.CacheInvalidationEvent]()
 	if len(cfg.KafkaBrokers) > 0 {
 		logger.Info("Initializing cache invalidation topic", "brokers", cfg.KafkaBrokers, "instanceID", cfg.InstanceID)
 
@@ -224,12 +232,15 @@ func Run(ctx context.Context, cfg Config) error {
 			topicName = DefaultCacheInvalidationTopic
 		}
 
-		cacheInvalidationTopic = eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
+		cacheInvalidationTopic, err = eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
 			Brokers:    cfg.KafkaBrokers,
 			Topic:      topicName,
 			InstanceID: cfg.InstanceID,
 			Logger:     logger,
 		})
+		if err != nil {
+			return fmt.Errorf("unable to create cache invalidation topic: %w", err)
+		}
 
 		// Register topic for graceful shutdown
 		shutdowns.Register(cacheInvalidationTopic.Close)
