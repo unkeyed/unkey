@@ -44,9 +44,10 @@ type Config struct {
 // New creates a new certificate service instance.
 func New(cfg Config) *Service {
 	return &Service{
-		db:          cfg.DB,
-		partitionDB: cfg.PartitionDB,
-		vault:       cfg.Vault,
-		logger:      cfg.Logger,
+		UnimplementedCertificateServiceServer: hydrav1.UnimplementedCertificateServiceServer{},
+		db:                                    cfg.DB,
+		partitionDB:                           cfg.PartitionDB,
+		vault:                                 cfg.Vault,
+		logger:                                cfg.Logger,
 	}
 }

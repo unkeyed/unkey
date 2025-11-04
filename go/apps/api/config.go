@@ -8,6 +8,11 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/tls"
 )
 
+const (
+	// DefaultCacheInvalidationTopic is the default Kafka topic name for cache invalidation events
+	DefaultCacheInvalidationTopic = "cache-invalidations"
+)
+
 type S3Config struct {
 	URL             string
 	Bucket          string
@@ -74,6 +79,15 @@ type Config struct {
 	VaultMasterKeys []string
 	VaultS3         *S3Config
 
+	// --- Kafka configuration ---
+
+	// KafkaBrokers is the list of Kafka broker addresses
+	KafkaBrokers []string
+
+	// CacheInvalidationTopic is the Kafka topic name for cache invalidation events
+	// If empty, defaults to DefaultCacheInvalidationTopic
+	CacheInvalidationTopic string
+
 	// --- ClickHouse proxy configuration ---
 
 	// ChproxyToken is the authentication token for ClickHouse proxy endpoints
@@ -83,12 +97,16 @@ type Config struct {
 	// If 0 or negative, no limit is enforced. Default is 0 (no limit).
 	// This helps prevent DoS attacks from excessively large request bodies.
 	MaxRequestBodySize int64
+
+	// DebugCacheHeaders enables cache debug headers (X-Unkey-Debug-Cache) in responses.
+	// When enabled, cache operations add headers showing hit/miss status and latency.
+	// Should typically only be enabled in development or specific production debugging.
+	DebugCacheHeaders bool
 }
 
 func (c Config) Validate() error {
 	// TLS configuration is validated when it's created from files
 	// Other validations may be added here in the future
-
 	if c.VaultS3 != nil {
 		err := assert.All(
 			assert.NotEmpty(c.VaultS3.URL, "vault s3 url is empty"),

@@ -43,15 +43,15 @@ func New(config Config) (*Service, error) {
 // Validate implements the Validator interface.
 func (s *Service) Validate(ctx context.Context, sess *server.Session, config *partitionv1.GatewayConfig) error {
 	// Skip validation if not enabled
-	if config.ValidationConfig == nil {
+	if config.GetValidationConfig() == nil {
 		return nil
 	}
 
 	// Skip if no OpenAPI spec is configured
-	if config.ValidationConfig.OpenapiSpec == "" {
+	if config.GetValidationConfig().GetOpenapiSpec() == "" {
 		s.logger.Warn("validation enabled but no OpenAPI spec configured",
 			"requestId", sess.RequestID(),
-			"deploymentId", config.Deployment.Id,
+			"deploymentId", config.GetDeployment().GetId(),
 		)
 		return nil
 	}
@@ -61,12 +61,11 @@ func (s *Service) Validate(ctx context.Context, sess *server.Session, config *pa
 	defer span.End()
 
 	// Get or create validator for this spec
-	v, err := s.getOrCreateValidator(ctx, config.Deployment.Id, config.ValidationConfig.OpenapiSpec)
-
+	v, err := s.getOrCreateValidator(ctx, config.GetDeployment().GetId(), config.GetValidationConfig().GetOpenapiSpec())
 	if err != nil {
 		s.logger.Error("failed to get validator",
 			"requestId", sess.RequestID(),
-			"deploymentId", config.Deployment.Id,
+			"deploymentId", config.GetDeployment().GetId(),
 			"error", err.Error(),
 		)
 		// Don't fail the request if we can't create a validator
@@ -81,7 +80,7 @@ func (s *Service) Validate(ctx context.Context, sess *server.Session, config *pa
 	if valid {
 		s.logger.Debug("request validation passed",
 			"requestId", sess.RequestID(),
-			"deploymentId", config.Deployment.Id,
+			"deploymentId", config.GetDeployment().GetId(),
 			"method", req.Method,
 			"path", req.URL.Path,
 		)
@@ -93,7 +92,7 @@ func (s *Service) Validate(ctx context.Context, sess *server.Session, config *pa
 
 	s.logger.Warn("request validation failed",
 		"requestId", sess.RequestID(),
-		"deploymentId", config.Deployment.Id,
+		"deploymentId", config.GetDeployment().GetId(),
 		"method", req.Method,
 		"path", req.URL.Path,
 		"errors", len(validationErr.Errors),
@@ -195,6 +194,7 @@ func (s *Service) buildValidationError(validationErrors []*errors.ValidationErro
 		if len(err.SchemaValidationErrors) > 0 {
 			for _, schemaErr := range err.SchemaValidationErrors {
 				fe := FieldError{
+					Fix:     nil,
 					Field:   schemaErr.Location,
 					Message: schemaErr.Reason,
 				}
@@ -203,6 +203,7 @@ func (s *Service) buildValidationError(validationErrors []*errors.ValidationErro
 		} else {
 			// Handle general validation error
 			fe := FieldError{
+				Fix:     nil,
 				Field:   err.ValidationType,
 				Message: err.Reason,
 			}

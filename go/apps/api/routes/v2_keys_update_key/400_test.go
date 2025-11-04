@@ -45,11 +45,12 @@ func TestUpdateKeyInvalidRefillConfig(t *testing.T) {
 	// Create key using helper
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        ptr.P("test"),
 	})
 
 	t.Run("reject invalid refill config", func(t *testing.T) {
+		t.Parallel()
 		req := handler.Request{
 			KeyId: keyResponse.KeyID,
 			Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{

@@ -54,8 +54,10 @@ func generateLocalCertificate(ctx context.Context, cfg LocalCertConfig) error {
 	}
 
 	// Create certificate template
+	//nolint: exhaustruct
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(1),
+		//nolint: exhaustruct
 		Subject: pkix.Name{
 			Organization: []string{"Unkey"},
 			Country:      []string{"US"},
@@ -80,30 +82,32 @@ func generateLocalCertificate(ctx context.Context, cfg LocalCertConfig) error {
 
 	// Encode certificate to PEM
 	certPEM := pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: certBytes,
+		Headers: map[string]string{},
+		Type:    "CERTIFICATE",
+		Bytes:   certBytes,
 	})
 
 	// Encode private key to PEM
 	privateKeyPEM := pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+		Headers: map[string]string{},
+		Type:    "RSA PRIVATE KEY",
+		Bytes:   x509.MarshalPKCS1PrivateKey(privateKey),
 	})
 
 	// Save to files for backup and user trust installation
 	certDir := "./certs"
-	if err := os.MkdirAll(certDir, 0755); err != nil {
+	if err = os.MkdirAll(certDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create cert directory: %w", err)
 	}
 
 	certFile := fmt.Sprintf("%s/unkey.local.crt", certDir)
 	keyFile := fmt.Sprintf("%s/unkey.local.key", certDir)
 
-	if err := os.WriteFile(certFile, certPEM, 0644); err != nil {
+	if err = os.WriteFile(certFile, certPEM, 0o600); err != nil {
 		return fmt.Errorf("failed to write certificate file: %w", err)
 	}
 
-	if err := os.WriteFile(keyFile, privateKeyPEM, 0600); err != nil {
+	if err = os.WriteFile(keyFile, privateKeyPEM, 0o600); err != nil {
 		return fmt.Errorf("failed to write private key file: %w", err)
 	}
 
@@ -122,11 +126,10 @@ func generateLocalCertificate(ctx context.Context, cfg LocalCertConfig) error {
 		WorkspaceID:         cfg.WorkspaceID,
 		Hostname:            cfg.Hostname,
 		Certificate:         string(certPEM),
-		EncryptedPrivateKey: encryptResp.Encrypted,
+		EncryptedPrivateKey: encryptResp.GetEncrypted(),
 		CreatedAt:           now,
 		UpdatedAt:           sql.NullInt64{Valid: true, Int64: now},
 	})
-
 	if err != nil {
 		return fmt.Errorf("failed to insert certificate: %w", err)
 	}

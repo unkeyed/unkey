@@ -55,7 +55,7 @@ func (s *Service) AssignDomains(ctx restate.ObjectContext, req *hydrav1.AssignDo
 
 					// Domain does not exist, create it
 					sticky := parseDomainSticky(domain.GetSticky())
-					err := db.Query.InsertDomain(txCtx, tx, db.InsertDomainParams{
+					err = db.Query.InsertDomain(txCtx, tx, db.InsertDomainParams{
 						ID:            uid.New("domain"),
 						WorkspaceID:   req.GetWorkspaceId(),
 						ProjectID:     sql.NullString{Valid: true, String: req.GetProjectId()},
@@ -98,7 +98,6 @@ func (s *Service) AssignDomains(ctx restate.ObjectContext, req *hydrav1.AssignDo
 
 			return wasChanged, err
 		}, restate.WithName(fmt.Sprintf("upsert-domain-%s", domain.GetName())))
-
 		if err != nil {
 			return nil, err
 		}
@@ -147,7 +146,6 @@ func (s *Service) AssignDomains(ctx restate.ObjectContext, req *hydrav1.AssignDo
 
 		return restate.Void{}, nil
 	}, restate.WithName("create-gateway-configs"))
-
 	if err != nil {
 		return nil, err
 	}
