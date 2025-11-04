@@ -224,28 +224,6 @@ func isAuthenticationError(err error) bool {
 		strings.Contains(errStr, "code: 517") // Wrong password
 }
 
-// Shutdown gracefully closes the ClickHouse client, ensuring that any
-// pending batches are flushed before shutting down.
-//
-// This method should be called during application shutdown to prevent
-// data loss. It will wait for all batch processors to complete their
-// current work and close their channels.
-//
-// Example:
-//
-//	err := clickhouse.Shutdown(ctx)
-//	if err != nil {
-//	    logger.Error("failed to shutdown clickhouse client", err)
-//	}
-func (c *clickhouse) Shutdown(ctx context.Context) error {
-	c.requests.Close()
-	err := c.conn.Close()
-	if err != nil {
-		return fault.Wrap(err, fault.Internal("clickhouse couldn't shut down"))
-	}
-	return nil
-}
-
 // BufferRequest adds an API request event to the buffer for batch processing.
 // The event will be flushed to ClickHouse automatically based on the configured
 // batch size and flush interval.
@@ -383,12 +361,9 @@ func (c *clickhouse) QueryToMaps(ctx context.Context, query string, args ...any)
 		}
 
 		if err := rows.Scan(valuePtrs...); err != nil {
-			return nil, fault.Wrap(err,
-				fault.Public("Failed to read query results"),
-			)
+			return nil, fault.Wrap(err, fault.Public("Failed to read query results"))
 		}
 
-		// Build map from column names to values
 		row := make(map[string]any)
 		for i, col := range columns {
 			row[col] = values[i]
@@ -414,7 +389,20 @@ func (c *clickhouse) Ping(ctx context.Context) error {
 	return c.conn.Ping(ctx)
 }
 
-// Close closes the underlying ClickHouse connection.
+// Close gracefully shuts down the ClickHouse client.
+// It closes all batch processors (waiting for them to flush remaining data),
+// then closes the underlying ClickHouse connection.
 func (c *clickhouse) Close() error {
-	return c.conn.Close()
+	c.requests.Close()
+	c.apiRequests.Close()
+	c.keyVerifications.Close()
+	c.keyVerificationsV2.Close()
+	c.ratelimits.Close()
+
+	err := c.conn.Close()
+	if err != nil {
+		return fault.Wrap(err, fault.Internal("clickhouse couldn't shut down"))
+	}
+
+	return nil
 }

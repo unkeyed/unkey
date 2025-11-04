@@ -32,7 +32,7 @@ var verificationsCmd = &cli.Command{
 		cli.Int("days-back", "Number of days back to generate data", cli.Default(30)),
 		cli.Int("days-forward", "Number of days forward to generate data", cli.Default(30)),
 		cli.String("clickhouse-url", "ClickHouse URL", cli.Default("clickhouse://default:password@127.0.0.1:9000")),
-		cli.String("mysql-dsn", "MySQL DSN", cli.Default("unkey:password@tcp(127.0.0.1:3306)/unkey?parseTime=true&interpolateParams=true")),
+		cli.String("database-primary", "MySQL database DSN", cli.Default("unkey:password@tcp(127.0.0.1:3306)/unkey?parseTime=true&interpolateParams=true"), cli.EnvVar("UNKEY_DATABASE_PRIMARY"), cli.Required()),
 	},
 	Action: seedVerifications,
 }
@@ -42,11 +42,9 @@ const chunkSize = 50_000
 func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 	logger := logging.New()
 
-	mysqlDSN := cmd.String("mysql-dsn")
-
 	// Connect to MySQL
 	database, err := db.New(db.Config{
-		PrimaryDSN: mysqlDSN,
+		PrimaryDSN: cmd.RequireString("database-primary"),
 		Logger:     logger,
 	})
 	if err != nil {
@@ -487,7 +485,10 @@ func (s *Seeder) generateVerifications(ctx context.Context, workspaceID string, 
 
 	log.Printf("  Buffered all %d verifications, waiting for flush...", s.numVerifications)
 
-	s.clickhouse.Close()
+	err := s.clickhouse.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close clickhouse: %w", err)
+	}
 
 	log.Printf("  All verifications sent to ClickHouse")
 	return nil
@@ -495,6 +496,11 @@ func (s *Seeder) generateVerifications(ctx context.Context, workspaceID string, 
 
 // normalDistribution returns a random value from a normal distribution
 func normalDistribution(mean, stdDev, min, max float64) float64 {
+	// If min == max, just return that value to avoid infinite loop
+	if min >= max {
+		return min
+	}
+
 	for {
 		// Box-Muller transform
 		u1 := rand.Float64()
