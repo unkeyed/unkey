@@ -98,6 +98,8 @@ security:
   - rootKey: []
 
 tags:
+  - name: analytics
+    description: Analytics query operations
   - name: apis
     description: API management operations
   - name: identities
@@ -115,6 +117,10 @@ paths:
   # Health Endpoints
   /v2/liveness:
     $ref: "./spec/paths/v2/liveness/index.yaml"
+
+  # Analytics Endpoints
+  /v2/analytics.getVerifications:
+    $ref: "./spec/paths/v2/analytics/getVerifications/index.yaml"
 
   # API Endpoints
   /v2/apis.createApi:

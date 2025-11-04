@@ -1,0 +1,76 @@
+post:
+  tags:
+    - analytics
+  security:
+    - rootKey: []
+  # Hides from mintlify
+  x-hidden: true
+  x-speakeasy-name-override: getVerifications
+  # Hides from sdk generation
+  x-speakeasy-ignore: true
+  operationId: analytics.getVerifications
+  summary: Query key verification data
+  description: |
+    Execute custom SQL queries against your key verification analytics.
+    For complete documentation including available tables, columns, data types, query examples, see the schema reference in the API documentation.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2AnalyticsGetVerificationsRequestBody.yaml"
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2AnalyticsGetVerificationsResponseBody.yaml"
+      description: Query executed successfully
+    "400":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+      description: Invalid SQL query or blocked operation
+    "401":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+      description: Missing or invalid authentication
+    "403":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+      description: Insufficient permissions
+    "404":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/NotFoundErrorResponse.yaml"
+      description: Referenced API or identity not found
+    "422":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnprocessableEntityErrorResponse.yaml"
+      description: Query exceeds resource limits (timeout, memory, rows scanned, or result size)
+    "429":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+      description: Query quota exceeded
+    "500":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"
+      description: Query execution failed
+    "503":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ServiceUnavailableErrorResponse.yaml"
+      description: Connection to the database failed

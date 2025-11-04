@@ -24,7 +24,7 @@ pull:
 	@docker compose -f ../deployment/docker-compose.yaml pull
 
 up: pull
-	@docker compose -f ../deployment/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka restate
+	@docker compose -f ../deployment/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka restate --wait
 
 clean:
 	@docker compose -f ../deployment/docker-compose.yaml down --volumes
@@ -34,8 +34,8 @@ build:
 
 generate:
 	go install github.com/restatedev/sdk-go/protoc-gen-go-restate@latest
-	buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/ctrl" --path "./proto/krane" --path "./proto/partition" --path "./proto/vault"
-	buf generate --template ./buf.gen.restate.yaml --path "./proto/hydra"
+	go run github.com/bufbuild/buf/cmd/buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/cache" --path "./proto/ctrl" --path "./proto/krane" --path "./proto/partition" --path "./proto/vault"
+	go run github.com/bufbuild/buf/cmd/buf generate --template ./buf.gen.restate.yaml --path "./proto/hydra"
 	go generate ./...
 	go fmt ./...
 
