@@ -64,7 +64,8 @@ func TestAPI_ConsumesInvalidationEvents(t *testing.T) {
 	// Look for live_api_by_id cache with FRESH status
 	foundFresh := false
 	for _, headerValue := range cacheHeaders {
-		parsedHeader, err := debug.ParseCacheHeader(headerValue)
+		var parsedHeader debug.CacheHeader
+		parsedHeader, err = debug.ParseCacheHeader(headerValue)
 		if err != nil {
 			continue // Skip invalid headers
 		}
@@ -118,7 +119,6 @@ func TestAPI_ConsumesInvalidationEvents(t *testing.T) {
 			headers,
 			openapi.V2ApisGetApiRequestBody{ApiId: api.ID},
 		)
-
 		if err != nil {
 			return false
 		}

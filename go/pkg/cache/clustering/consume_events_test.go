@@ -81,8 +81,8 @@ func TestClusterCache_ConsumesInvalidationAndRemovesFromCache(t *testing.T) {
 
 	consumer.Consume(consumerCtx, func(ctx context.Context, event *cachev1.CacheInvalidationEvent) error {
 		// Simulate the cache invalidation logic that would be in the main application
-		if event.CacheName == "test-cache" {
-			localCache.Remove(ctx, event.CacheKey)
+		if event.GetCacheName() == "test-cache" {
+			localCache.Remove(ctx, event.GetCacheKey())
 		}
 
 		invalidationProcessed.Store(true)

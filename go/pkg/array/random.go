@@ -24,5 +24,6 @@ func Random[T any](slice []T) T {
 	if len(slice) == 0 {
 		panic("cannot select random element from empty slice")
 	}
+	//nolint:gosec // G404: Non-cryptographic random selection is appropriate here
 	return slice[rand.Intn(len(slice))]
 }

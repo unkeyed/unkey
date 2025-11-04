@@ -68,6 +68,9 @@ func NewTopic[T proto.Message](config TopicConfig) (*Topic[T], error) {
 	}
 
 	topic := &Topic[T]{
+		mu:         sync.Mutex{},
+		consumers:  nil,
+		producers:  nil,
 		brokers:    config.Brokers,
 		topic:      config.Topic,
 		instanceID: config.InstanceID,
@@ -130,9 +133,11 @@ func (t *Topic[T]) EnsureExists(partitions int, replicationFactor int) error {
 
 		// Successfully connected, create the topic
 		err = conn.CreateTopics(kafka.TopicConfig{
-			Topic:             t.topic,
-			NumPartitions:     partitions,
-			ReplicationFactor: replicationFactor,
+			ReplicaAssignments: nil,
+			ConfigEntries:      nil,
+			Topic:              t.topic,
+			NumPartitions:      partitions,
+			ReplicationFactor:  replicationFactor,
 		})
 		return err
 	}

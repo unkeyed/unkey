@@ -76,7 +76,7 @@ func (k *KeyVerifier) withIPWhitelist() error {
 // withPermissions validates that the key has the required RBAC permissions.
 // It uses the configured RBAC system to evaluate the permission query against the key's permissions.
 func (k *KeyVerifier) withPermissions(ctx context.Context, query rbac.PermissionQuery) error {
-	ctx, span := tracing.Start(ctx, "verify.withPermissions")
+	_, span := tracing.Start(ctx, "verify.withPermissions")
 	defer span.End()
 
 	if k.Status != StatusValid {

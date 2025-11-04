@@ -56,7 +56,8 @@ func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 
 	// Create two cache instances (simulating two nodes)
 	createCache := func(nodeID string) (*clustering.ClusterCache[string, string], cache.Cache[string, string], error) {
-		localCache, err := cache.New(cache.Config[string, string]{
+		var localCache cache.Cache[string, string]
+		localCache, err = cache.New(cache.Config[string, string]{
 			Fresh:    5 * time.Minute,
 			Stale:    10 * time.Minute,
 			MaxSize:  1000,
@@ -68,7 +69,8 @@ func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 			return nil, nil, err
 		}
 
-		clusterCache, err := clustering.New(clustering.Config[string, string]{
+		var clusterCache *clustering.ClusterCache[string, string]
+		clusterCache, err = clustering.New(clustering.Config[string, string]{
 			LocalCache: localCache,
 			Topic:      topic,
 			Dispatcher: dispatcher,

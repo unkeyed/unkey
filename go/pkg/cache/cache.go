@@ -95,7 +95,6 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 
 	c.registerMetrics()
 	return c, nil
-
 }
 
 func (c *cache[K, V]) registerMetrics() {
@@ -269,7 +268,6 @@ func (c *cache[K, V]) SWR(
 				// If we don't uncancel the context, the revalidation will get canceled when
 				// the api response is returned
 				c.revalidate(context.WithoutCancel(ctx), key, refreshFromOrigin, op)
-
 			}
 			debug.RecordCacheHit(ctx, c.resource, "STALE", time.Since(start))
 			return e.Value, e.Hit, nil
@@ -300,6 +298,8 @@ func (c *cache[K, V]) SWR(
 	// Determine cache hit status based on the operation
 	var hit CacheHit
 	switch op(err) {
+	case Noop:
+		// Skip
 	case WriteValue:
 		hit = Hit
 	case WriteNull:

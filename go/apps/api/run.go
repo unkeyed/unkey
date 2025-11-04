@@ -121,7 +121,8 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		go func() {
-			promListener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+			var promListener net.Listener
+			promListener, err = net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
 			if err != nil {
 				panic(err)
 			}
@@ -196,7 +197,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	var vaultSvc *vault.Service
 	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {
-		vaultStorage, err := storage.NewS3(storage.S3Config{
+		var vaultStorage storage.Storage
+		vaultStorage, err = storage.NewS3(storage.S3Config{
 			Logger:            logger,
 			S3URL:             cfg.VaultS3.URL,
 			S3Bucket:          cfg.VaultS3.Bucket,
@@ -290,7 +292,7 @@ func Run(ctx context.Context, cfg Config) error {
 		// Create listener from HttpPort (production)
 		cfg.Listener, err = net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
 		if err != nil {
-			return fmt.Errorf("Unable to listen on port %d: %w", cfg.HttpPort, err)
+			return fmt.Errorf("unable to listen on port %d: %w", cfg.HttpPort, err)
 		}
 	}
 

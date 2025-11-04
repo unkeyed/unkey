@@ -26,14 +26,13 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
-
-	"log"
 
 	"github.com/unkeyed/unkey/go/deploy/pkg/spiffe"
 )
@@ -126,11 +125,11 @@ func NewProvider(ctx context.Context, cfg Config) (Provider, error) {
 type disabledProvider struct{}
 
 func (p *disabledProvider) ServerTLSConfig() (*tls.Config, error) {
-	return nil, nil
+	return nil, nil //nolint: all
 }
 
 func (p *disabledProvider) ClientTLSConfig() (*tls.Config, error) {
-	return nil, nil
+	return nil, nil //nolint: all
 }
 
 func (p *disabledProvider) HTTPClient() *http.Client {
@@ -207,9 +206,10 @@ func validateFilePath(path string) error {
 // loadTLSConfig loads certificates from disk to support rotation.
 func (p *fileProvider) loadTLSConfig() (*tls.Config, error) {
 	if p.certFile == "" || p.keyFile == "" {
-		return nil, nil
+		return nil, nil //nolint:all
 	}
 
+	//nolint:exhaustruct
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS13,
 		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
@@ -257,6 +257,7 @@ func (p *fileProvider) HTTPClient() *http.Client {
 	tlsConfig, _ := p.loadTLSConfig()
 	transport := &http.Transport{
 		TLSClientConfig: tlsConfig,
+		//nolint:exhaustruct // net.Dialer's zero values are intentional and recommended
 		DialContext: (&net.Dialer{
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,

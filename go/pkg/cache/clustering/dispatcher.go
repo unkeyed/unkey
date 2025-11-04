@@ -44,6 +44,8 @@ func NewInvalidationDispatcher(topic *eventstream.Topic[*cachev1.CacheInvalidati
 	}
 
 	d := &InvalidationDispatcher{
+		mu:       sync.RWMutex{},
+		consumer: nil,
 		handlers: make(map[string]InvalidationHandler),
 		logger:   logger,
 	}
@@ -58,7 +60,7 @@ func NewInvalidationDispatcher(topic *eventstream.Topic[*cachev1.CacheInvalidati
 // the appropriate cache handler.
 func (d *InvalidationDispatcher) handleEvent(ctx context.Context, event *cachev1.CacheInvalidationEvent) error {
 	d.mu.RLock()
-	handler, exists := d.handlers[event.CacheName]
+	handler, exists := d.handlers[event.GetCacheName()]
 	d.mu.RUnlock()
 
 	// If we don't have a handler for this cache, skip it
