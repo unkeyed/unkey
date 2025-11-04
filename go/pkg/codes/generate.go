@@ -1,3 +1,4 @@
+//nolint: all
 //go:build ignore
 // +build ignore
 

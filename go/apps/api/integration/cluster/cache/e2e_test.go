@@ -63,8 +63,6 @@ func TestDistributedCacheInvalidation_EndToEnd(t *testing.T) {
 
 	// Step 3: Verify cache invalidation propagates to all nodes within 5 seconds
 	for i, addr := range clusterAddrs {
-		i, addr := i, addr // capture for closure
-
 		var nodeInvalidated atomic.Bool
 
 		require.Eventually(t, func() bool {
@@ -74,7 +72,6 @@ func TestDistributedCacheInvalidation_EndToEnd(t *testing.T) {
 				headers,
 				openapi.V2ApisGetApiRequestBody{ApiId: api.ID},
 			)
-
 			if err != nil {
 				t.Logf("Node %d: Error calling API: %v", i, err)
 				return false

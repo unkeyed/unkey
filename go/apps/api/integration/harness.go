@@ -139,6 +139,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		redisHostAddr := containers.Redis(h.t)
 		kafkaBrokers := containers.Kafka(h.t)
 		apiConfig := api.Config{
+			CacheInvalidationTopic:  "",
 			MaxRequestBodySize:      0,
 			HttpPort:                7070,
 			ChproxyToken:            "",

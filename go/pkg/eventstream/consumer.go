@@ -71,7 +71,9 @@ type consumer[T proto.Message] struct {
 //	})
 //	defer consumer.Close()
 func (t *Topic[T]) NewConsumer(opts ...ConsumerOption) Consumer[T] {
-	cfg := &consumerConfig{}
+	cfg := &consumerConfig{
+		fromBeginning: false,
+	}
 	for _, opt := range opts {
 		opt(cfg)
 	}
@@ -87,6 +89,7 @@ func (t *Topic[T]) NewConsumer(opts ...ConsumerOption) Consumer[T] {
 	// Check once if T is a pointer type to avoid reflection on every message
 	isPointerType := reflect.TypeOf((*T)(nil)).Elem().Kind() == reflect.Ptr
 
+	//nolint: exhaustruct
 	consumer := &consumer[T]{
 		brokers:       t.brokers,
 		topic:         t.topic,
@@ -184,6 +187,7 @@ func (c *consumer[T]) Consume(ctx context.Context, handler func(context.Context,
 		startOffset = kafka.FirstOffset
 	}
 
+	//nolint: exhaustruct
 	readerConfig := kafka.ReaderConfig{
 		Brokers:     c.brokers,
 		Topic:       c.topic,
@@ -225,7 +229,13 @@ func (c *consumer[T]) consumeLoop(ctx context.Context) {
 			// For pointer types, we need to allocate a new instance
 			// Use cached isPointerType to avoid reflection on every message
 			if c.isPointerType {
-				t = reflect.New(reflect.TypeOf(t).Elem()).Interface().(T)
+				newInstance := reflect.New(reflect.TypeOf(t).Elem()).Interface()
+				var ok bool
+				t, ok = newInstance.(T)
+				if !ok {
+					c.logger.Error("Failed to cast reflected type to expected type", "topic", c.topic)
+					continue
+				}
 			}
 
 			// Deserialize protobuf event

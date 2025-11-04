@@ -106,7 +106,7 @@ func TestAPI_ProducesInvalidationEvents(t *testing.T) {
 	t.Logf("Received %d invalidation events:", len(receivedEvents))
 	for i, event := range receivedEvents {
 		t.Logf("  Event %d: CacheName=%s, CacheKey=%s, SourceInstance=%s",
-			i, event.CacheName, event.CacheKey, event.SourceInstance)
+			i, event.GetCacheName(), event.GetCacheKey(), event.GetSourceInstance())
 	}
 
 	// Look for live_api_by_id cache invalidation event
@@ -115,19 +115,19 @@ func TestAPI_ProducesInvalidationEvents(t *testing.T) {
 		WorkspaceID: api.WorkspaceID,
 		Key:         api.ID,
 	}.String()
-	var apiByIdEvent *cachev1.CacheInvalidationEvent
+	var apiByIDEvent *cachev1.CacheInvalidationEvent
 	for _, event := range receivedEvents {
-		if event.CacheName == "live_api_by_id" && event.CacheKey == expectedCacheKey {
-			apiByIdEvent = event
+		if event.GetCacheName() == "live_api_by_id" && event.GetCacheKey() == expectedCacheKey {
+			apiByIDEvent = event
 			break
 		}
 	}
 
 	t.Logf("Looking for cache key: %s", expectedCacheKey)
 
-	require.NotNil(t, apiByIdEvent, "Should receive live_api_by_id invalidation event")
-	require.Equal(t, "live_api_by_id", apiByIdEvent.CacheName, "Event should be for live_api_by_id cache")
-	require.Equal(t, expectedCacheKey, apiByIdEvent.CacheKey, "Event should be for correct scoped cache key")
-	require.NotEmpty(t, apiByIdEvent.SourceInstance, "Event should have source instance")
-	require.Greater(t, apiByIdEvent.Timestamp, int64(0), "Event should have valid timestamp")
+	require.NotNil(t, apiByIDEvent, "Should receive live_api_by_id invalidation event")
+	require.Equal(t, "live_api_by_id", apiByIDEvent.GetCacheName(), "Event should be for live_api_by_id cache")
+	require.Equal(t, expectedCacheKey, apiByIDEvent.GetCacheKey(), "Event should be for correct scoped cache key")
+	require.NotEmpty(t, apiByIDEvent.GetSourceInstance(), "Event should have source instance")
+	require.Greater(t, apiByIDEvent.GetTimestamp(), int64(0), "Event should have valid timestamp")
 }

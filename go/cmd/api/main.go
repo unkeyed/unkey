@@ -128,9 +128,10 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 	config := api.Config{
 		// Basic configuration
-		Platform: cmd.String("platform"),
-		Image:    cmd.String("image"),
-		Region:   cmd.String("region"),
+		CacheInvalidationTopic: "",
+		Platform:               cmd.String("platform"),
+		Image:                  cmd.String("image"),
+		Region:                 cmd.String("region"),
 
 		// Database configuration
 		DatabasePrimary:         cmd.String("database-primary"),

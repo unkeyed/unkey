@@ -46,6 +46,7 @@ func (t *Topic[T]) NewProducer() Producer[T] {
 	}
 
 	producer := &producer[T]{
+		//nolint: exhaustruct
 		writer: &kafka.Writer{
 			Addr:         kafka.TCP(t.brokers...),
 			Topic:        t.topic,
@@ -138,6 +139,7 @@ func (p *producer[T]) Produce(ctx context.Context, events ...T) error {
 		}
 
 		// Create message
+		// nolint: exhaustruct
 		msg := kafka.Message{
 			Value: data,
 			Headers: []kafka.Header{

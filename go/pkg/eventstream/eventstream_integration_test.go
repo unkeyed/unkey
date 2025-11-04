@@ -72,7 +72,7 @@ func TestEventStreamIntegration(t *testing.T) {
 	t.Logf("Starting consumer.Consume()...")
 	consumer.Consume(ctx, func(ctx context.Context, event *cachev1.CacheInvalidationEvent) error {
 		t.Logf("HANDLER CALLED: Received event: cache=%s, key=%s, timestamp=%d, source=%s",
-			event.CacheName, event.CacheKey, event.Timestamp, event.SourceInstance)
+			event.GetCacheName(), event.GetCacheKey(), event.GetTimestamp(), event.GetSourceInstance())
 
 		receivedEvent = event
 		return nil
@@ -88,7 +88,7 @@ func TestEventStreamIntegration(t *testing.T) {
 	producer := topic.NewProducer()
 
 	t.Logf("Producing event: cache=%s, key=%s, timestamp=%d, source=%s",
-		testEvent.CacheName, testEvent.CacheKey, testEvent.Timestamp, testEvent.SourceInstance)
+		testEvent.GetCacheName(), testEvent.GetCacheKey(), testEvent.GetTimestamp(), testEvent.GetSourceInstance())
 
 	err = producer.Produce(ctx, testEvent)
 	require.NoError(t, err, "Failed to produce test event")
@@ -100,10 +100,10 @@ func TestEventStreamIntegration(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond, "Event should be received within 10 seconds")
 
 	// Verify the received event
-	require.Equal(t, testEvent.CacheName, receivedEvent.CacheName, "Cache name should match")
-	require.Equal(t, testEvent.CacheKey, receivedEvent.CacheKey, "Cache key should match")
-	require.Equal(t, testEvent.Timestamp, receivedEvent.Timestamp, "Timestamp should match")
-	require.Equal(t, testEvent.SourceInstance, receivedEvent.SourceInstance, "Source instance should match")
+	require.Equal(t, testEvent.GetCacheName(), receivedEvent.GetCacheName(), "Cache name should match")
+	require.Equal(t, testEvent.GetCacheKey(), receivedEvent.GetCacheKey(), "Cache key should match")
+	require.Equal(t, testEvent.GetTimestamp(), receivedEvent.GetTimestamp(), "Timestamp should match")
+	require.Equal(t, testEvent.GetSourceInstance(), receivedEvent.GetSourceInstance(), "Source instance should match")
 
 	t.Log("Event stream integration test passed - message produced and consumed successfully")
 }
@@ -144,10 +144,10 @@ func TestEventStreamMultipleMessages(t *testing.T) {
 	defer cancel()
 
 	consumer.Consume(ctx, func(ctx context.Context, event *cachev1.CacheInvalidationEvent) error {
-		t.Logf("Received event: cache=%s, key=%s", event.CacheName, event.CacheKey)
+		t.Logf("Received event: cache=%s, key=%s", event.GetCacheName(), event.GetCacheKey())
 
 		mu.Lock()
-		receivedKeys[event.CacheKey] = true
+		receivedKeys[event.GetCacheKey()] = true
 		mu.Unlock()
 
 		receivedCount.Add(1)
@@ -160,7 +160,7 @@ func TestEventStreamMultipleMessages(t *testing.T) {
 	producer := topic.NewProducer()
 
 	// Send multiple events
-	for i := 0; i < numMessages; i++ {
+	for i := range numMessages {
 		event := &cachev1.CacheInvalidationEvent{
 			CacheName:      "test-cache",
 			CacheKey:       fmt.Sprintf("test-key-%d", i),

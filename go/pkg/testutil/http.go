@@ -74,8 +74,10 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	caches, err := caches.New(caches.Config{
-		Logger: logger,
-		Clock:  clk,
+		CacheInvalidationTopic: nil,
+		NodeID:                 "",
+		Logger:                 logger,
+		Clock:                  clk,
 	})
 	require.NoError(t, err)
 
