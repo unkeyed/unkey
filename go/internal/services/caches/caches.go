@@ -297,9 +297,6 @@ func New(config Config) (Caches, error) {
 		cache.ScopedKeyToString,
 		cache.ScopedKeyFromString,
 	)
-	if err != nil {
-		return Caches{}, err
-	}
 
 	return Caches{
 		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),

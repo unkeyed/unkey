@@ -39,7 +39,7 @@ require (
 	github.com/shirou/gopsutil/v4 v4.25.8
 	github.com/spiffe/go-spiffe/v2 v2.6.0
 	github.com/sqlc-dev/plugin-sdk-go v1.23.0
-	github.com/sqlc-dev/sqlc v1.30.0
+	github.com/sqlc-dev/sqlc v1.29.0
 	github.com/stretchr/testify v1.11.1
 	github.com/unkeyed/unkey/go/deploy/pkg/spiffe v0.0.0-20250929110415-ca2de7336e18
 	go.opentelemetry.io/contrib/bridges/otelslog v0.13.0
@@ -214,6 +214,7 @@ require (
 	github.com/oasdiff/yaml v0.0.0-20250309154309-f31be36b4037 // indirect
 	github.com/oasdiff/yaml3 v0.0.0-20250309153720-d2182401db90 // indirect
 	github.com/onsi/ginkgo/v2 v2.25.3 // indirect
+	github.com/onsi/gomega v1.38.2 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/paulmach/orb v0.12.0 // indirect
@@ -329,5 +330,11 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
+
+// Yaml parsing errors
+replace github.com/dprotaso/go-yit => github.com/dprotaso/go-yit v0.0.0-20191028211022-135eb7262960
+
+// Sqlc engine errors
+replace github.com/pingcap/tidb/pkg/parser => github.com/pingcap/tidb/pkg/parser v0.0.0-20250806091815-327a22d5ebf8
 
 tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
