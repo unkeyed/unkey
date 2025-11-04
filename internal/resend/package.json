@@ -31,7 +31,7 @@
     "@react-email/tailwind": "0.1.0",
     "@react-email/text": "^0.0.7",
     "react": "^18.2.0",
-    "react-email": "2.1.1",
+    "react-email": "4.3.2",
     "resend": "^4.4.0"
   }
 }
