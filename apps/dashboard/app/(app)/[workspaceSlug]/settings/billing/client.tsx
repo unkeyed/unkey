@@ -115,9 +115,13 @@ export const Client: React.FC = () => {
             contentWidth="w-full"
           >
             <div className="flex justify-end w-full">
-              <Button variant="primary" aria-label="Add payment method" onClick={() => {
-                router.push(`/${workspace.slug}/settings/billing/stripe/checkout`);
-              }}>
+              <Button
+                variant="primary"
+                aria-label="Add payment method"
+                onClick={() => {
+                  router.push(`/${workspace.slug}/settings/billing/stripe/checkout`);
+                }}
+              >
                 Add payment method
               </Button>
             </div>
@@ -132,9 +136,14 @@ export const Client: React.FC = () => {
             contentWidth="w-full lg:w-[320px]"
           >
             <div className="w-full flex h-full items-center justify-end gap-4">
-              <Button variant="outline" size="lg" aria-label="Open billing portal" onClick={() => {
-                router.push(`/${workspace.slug}/settings/billing/stripe/portal`);
-              }}>
+              <Button
+                variant="outline"
+                size="lg"
+                aria-label="Open billing portal"
+                onClick={() => {
+                  router.push(`/${workspace.slug}/settings/billing/stripe/portal`);
+                }}
+              >
                 Open Portal
               </Button>
             </div>
