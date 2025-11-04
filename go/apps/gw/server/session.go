@@ -93,6 +93,8 @@ func (s *Session) ResponseWriter() http.ResponseWriter {
 // It returns the wrapper and a function to retrieve the captured data.
 func (s *Session) CaptureResponseWriter() (http.ResponseWriter, func()) {
 	wrapper := &captureResponseWriter{
+		body:           []byte{},
+		written:        false,
 		ResponseWriter: s.w,
 		statusCode:     http.StatusOK, // Default to 200 if not set
 	}
@@ -215,31 +217,6 @@ func (s *Session) reset() {
 	s.responseStatus = 0
 	s.responseBody = nil
 	s.error = nil
-}
-
-// wrapResponseWriter wraps http.ResponseWriter to capture the status code.
-type wrapResponseWriter struct {
-	http.ResponseWriter
-	statusCode int
-	written    bool
-}
-
-func (w *wrapResponseWriter) WriteHeader(code int) {
-	if w.written {
-		return // Already written, don't write again
-	}
-
-	w.statusCode = code
-	w.written = true
-	w.ResponseWriter.WriteHeader(code)
-}
-
-func (w *wrapResponseWriter) Write(b []byte) (int, error) {
-	if !w.written {
-		w.WriteHeader(http.StatusOK)
-	}
-
-	return w.ResponseWriter.Write(b)
 }
 
 // captureResponseWriter wraps http.ResponseWriter to capture the status code and response body.

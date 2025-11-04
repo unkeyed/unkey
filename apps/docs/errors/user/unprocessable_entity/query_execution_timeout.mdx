@@ -1,0 +1,124 @@
+---
+title: "query_execution_timeout"
+description: "Your query took longer than the maximum execution time allowed."
+---
+
+<Danger>`err:user:unprocessable_entity:query_execution_timeout`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_4dgzrNP3Je5mU1tD"
+  },
+  "error": {
+    "detail": "Query exceeded the maximum execution time of 30 seconds",
+    "status": 422,
+    "title": "Unprocessable Entity",
+    "type": "https://unkey.com/docs/errors/user/unprocessable_entity/query_execution_timeout"
+  }
+}
+```
+
+## What Happened?
+
+Your analytics query took too long to execute! We limit queries to 30 seconds to keep the analytics service responsive for everyone.
+
+This usually happens when you're querying a large time range or complex data without enough filters.
+
+## How to Fix It
+
+### 1. Query Smaller Time Ranges
+
+The most common fix is to reduce the time range:
+
+<CodeGroup>
+
+```sql Too Long
+SELECT COUNT(*)
+FROM key_verifications
+WHERE time >= now() - INTERVAL 1 YEAR
+GROUP BY toStartOfDay(time)
+```
+
+```sql Better
+SELECT COUNT(*)
+FROM key_verifications
+WHERE time >= now() - INTERVAL 7 DAY
+GROUP BY toStartOfDay(time)
+```
+
+</CodeGroup>
+
+### 2. Add More Filters
+
+Filter your data to reduce the amount of work the query needs to do:
+
+<CodeGroup>
+
+```sql Slow
+SELECT api_id, COUNT(*) as total
+FROM key_verifications
+GROUP BY api_id
+```
+
+```sql Faster
+SELECT api_id, COUNT(*) as total
+FROM key_verifications
+WHERE time >= now() - INTERVAL 1 DAY
+  AND outcome = 'VALID'
+GROUP BY api_id
+```
+
+</CodeGroup>
+
+### 3. Use Aggregated Tables
+
+For historical data, use pre-aggregated tables instead of raw events:
+
+<CodeGroup>
+
+```sql Slow - Scans millions of raw events
+SELECT
+  toStartOfHour(time) as hour,
+  COUNT(*) as total
+FROM key_verifications_raw_v2
+WHERE time >= now() - INTERVAL 30 DAY
+GROUP BY hour
+```
+
+```sql Fast - Uses pre-aggregated data
+SELECT
+  time as hour,
+  SUM(count) as total
+FROM key_verifications_per_hour_v1
+WHERE time >= now() - INTERVAL 30 DAY
+GROUP BY hour
+```
+
+</CodeGroup>
+
+### 4. Limit Result Size
+
+Add a LIMIT clause to stop processing once you have enough data:
+
+```sql
+SELECT api_id, COUNT(*) as total
+FROM key_verifications
+WHERE time >= now() - INTERVAL 7 DAY
+GROUP BY api_id
+ORDER BY total DESC
+LIMIT 100
+```
+
+## Need Longer Execution Time?
+
+<Note>
+**Have a legitimate need for longer-running queries?** Contact our support team!
+
+[Reach out to support](mailto:support@unkey.dev) and tell us:
+- What you're trying to analyze
+- Why the query needs more than 30 seconds
+- An example of the query you're running
+
+We'll review your use case and see if we can accommodate your needs.
+</Note>

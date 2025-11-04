@@ -22,7 +22,7 @@ import (
 // Resources represents seed data created for tests
 type Resources struct {
 	RootWorkspace db.Workspace
-	RootKeyring   db.KeyAuth
+	RootKeySpace  db.KeyAuth
 	RootApi       db.Api
 	UserWorkspace db.Workspace
 }
@@ -76,9 +76,9 @@ func (s *Seeder) Seed(ctx context.Context) {
 		DefaultPrefix: nil,
 		DefaultBytes:  nil,
 	})
-	keyring, err := db.Query.FindKeyringByID(ctx, s.DB.RW(), s.Resources.RootApi.KeyAuthID.String)
+	keySpace, err := db.Query.FindKeySpaceByID(ctx, s.DB.RW(), s.Resources.RootApi.KeyAuthID.String)
 	require.NoError(s.t, err)
-	s.Resources.RootKeyring = keyring
+	s.Resources.RootKeySpace = keySpace
 }
 
 type CreateApiRequest struct {
@@ -92,9 +92,9 @@ type CreateApiRequest struct {
 }
 
 func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, s.DB.RW(), db.InsertKeyringParams{
-		ID:                 keyAuthID,
+	keySpaceID := uid.New(uid.KeySpacePrefix)
+	err := db.Query.InsertKeySpace(ctx, s.DB.RW(), db.InsertKeySpaceParams{
+		ID:                 keySpaceID,
 		WorkspaceID:        req.WorkspaceID,
 		CreatedAtM:         time.Now().UnixMilli(),
 		DefaultPrefix:      sql.NullString{String: ptr.SafeDeref(req.DefaultPrefix), Valid: req.DefaultPrefix != nil},
@@ -110,7 +110,7 @@ func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 		WorkspaceID: req.WorkspaceID,
 		IpWhitelist: sql.NullString{String: req.IpWhitelist, Valid: req.IpWhitelist != ""},
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
+		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  ptr.SafeDeref(req.CreatedAt, time.Now().UnixMilli()),
 	})
 	require.NoError(s.t, err)
@@ -130,7 +130,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 		Hash:              hash.Sha256(key),
 		WorkspaceID:       s.Resources.RootWorkspace.ID,
 		ForWorkspaceID:    sql.NullString{String: workspaceID, Valid: true},
-		KeyringID:         s.Resources.RootKeyring.ID,
+		KeySpaceID:        s.Resources.RootKeySpace.ID,
 		Start:             key[:4],
 		CreatedAtM:        time.Now().UnixMilli(),
 		Enabled:           true,
@@ -177,6 +177,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 				KeyID:        insertKeyParams.ID,
 				WorkspaceID:  s.Resources.RootWorkspace.ID,
 				CreatedAt:    time.Now().UnixMilli(),
+				UpdatedAt:    sql.NullInt64{Int64: 0, Valid: false},
 			})
 			require.NoError(s.t, err)
 		}
@@ -188,7 +189,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 type CreateKeyRequest struct {
 	Disabled       bool
 	WorkspaceID    string
-	KeyAuthID      string
+	KeySpaceID     string
 	Remaining      *int32
 	IdentityID     *string
 	Meta           *string
@@ -222,7 +223,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 
 	err := db.Query.InsertKey(ctx, s.DB.RW(), db.InsertKeyParams{
 		ID:                keyID,
-		KeyringID:         req.KeyAuthID,
+		KeySpaceID:        req.KeySpaceID,
 		WorkspaceID:       req.WorkspaceID,
 		CreatedAtM:        time.Now().UnixMilli(),
 		Hash:              hash.Sha256(key),
@@ -240,8 +241,10 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 	require.NoError(s.t, err)
 
 	res := CreateKeyResponse{
-		KeyID: keyID,
-		Key:   key,
+		KeyID:         keyID,
+		Key:           key,
+		RolesIds:      []string{},
+		PermissionIds: []string{},
 	}
 
 	if req.Deleted {
@@ -254,12 +257,12 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 	}
 
 	if req.Recoverable && s.Vault != nil {
-		encryption, err := s.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
+		var encryption *vaultv1.EncryptResponse
+		encryption, err = s.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
 			Keyring: req.WorkspaceID,
 			Data:    key,
 		})
 		require.NoError(s.t, err)
-
 		err = db.Query.InsertKeyEncryption(ctx, s.DB.RW(), db.InsertKeyEncryptionParams{
 			WorkspaceID:     req.WorkspaceID,
 			KeyID:           keyID,
@@ -267,7 +270,6 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 			Encrypted:       encryption.GetEncrypted(),
 			EncryptionKeyID: encryption.GetKeyId(),
 		})
-
 		require.NoError(s.t, err)
 	}
 
@@ -290,6 +292,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 			PermissionID: perm.ID,
 			WorkspaceID:  req.WorkspaceID,
 			CreatedAt:    time.Now().UnixMilli(),
+			UpdatedAt:    sql.NullInt64{Int64: 0, Valid: false},
 		})
 
 		require.NoError(s.t, err)
@@ -341,6 +344,7 @@ func (s *Seeder) CreateRatelimit(ctx context.Context, req CreateRatelimitRequest
 			Limit:       req.Limit,
 			Duration:    req.Duration,
 			AutoApply:   req.AutoApply,
+			UpdatedAt:   sql.NullInt64{Int64: 0, Valid: false},
 			CreatedAt:   createdAt,
 		})
 	}
@@ -352,7 +356,7 @@ func (s *Seeder) CreateRatelimit(ctx context.Context, req CreateRatelimitRequest
 		Name:        req.Name,
 		WorkspaceID: req.WorkspaceID,
 		CreatedAt:   createdAt,
-		UpdatedAt:   sql.NullInt64{Valid: false},
+		UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
 		KeyID:       sql.NullString{String: ptr.SafeDeref(req.KeyID, ""), Valid: req.KeyID != nil},
 		IdentityID:  sql.NullString{String: ptr.SafeDeref(req.IdentityID, ""), Valid: req.IdentityID != nil},
 		Limit:       req.Limit,
@@ -401,7 +405,7 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 		Meta:        metaBytes,
 		Deleted:     false,
 		CreatedAt:   time.Now().UnixMilli(),
-		UpdatedAt:   sql.NullInt64{Valid: false},
+		UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
 	}
 }
 
@@ -446,7 +450,7 @@ func (s *Seeder) CreateRole(ctx context.Context, req CreateRoleRequest) db.Role 
 		Name:        req.Name,
 		Description: sql.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
 		CreatedAtM:  createdAt,
-		UpdatedAtM:  sql.NullInt64{Valid: false},
+		UpdatedAtM:  sql.NullInt64{Valid: false, Int64: 0},
 	}
 }
 
@@ -482,6 +486,6 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 		Slug:        req.Slug,
 		Description: dbtype.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
 		CreatedAtM:  createdAt,
-		UpdatedAtM:  sql.NullInt64{Valid: false},
+		UpdatedAtM:  sql.NullInt64{Valid: false, Int64: 0},
 	}
 }

@@ -23,27 +23,69 @@ func (mw *tracingMiddleware[K, V]) Get(ctx context.Context, key K) (V, cache.Cac
 	span.SetAttributes(attribute.String("key", fmt.Sprintf("%+v", key)))
 
 	value, hit := mw.next.Get(ctx, key)
+
 	span.SetAttributes(
 		attribute.Bool("hit", hit != cache.Miss),
 	)
+
 	return value, hit
 }
+
+func (mw *tracingMiddleware[K, V]) GetMany(ctx context.Context, keys []K) (map[K]V, map[K]cache.CacheHit) {
+	ctx, span := tracing.Start(ctx, "cache.GetMany")
+	defer span.End()
+	span.SetAttributes(
+		attribute.Int("count", len(keys)),
+	)
+
+	values, hits := mw.next.GetMany(ctx, keys)
+
+	hitCount := 0
+	for _, hit := range hits {
+		if hit != cache.Miss {
+			hitCount++
+		}
+	}
+	span.SetAttributes(
+		attribute.Int("hits", hitCount),
+		attribute.Int("misses", len(keys)-hitCount),
+	)
+
+	return values, hits
+}
+
 func (mw *tracingMiddleware[K, V]) Set(ctx context.Context, key K, value V) {
 	ctx, span := tracing.Start(ctx, "cache.Set")
 	defer span.End()
 	span.SetAttributes(attribute.String("key", fmt.Sprintf("%+v", key)))
 
 	mw.next.Set(ctx, key, value)
-
 }
+
+func (mw *tracingMiddleware[K, V]) SetMany(ctx context.Context, values map[K]V) {
+	ctx, span := tracing.Start(ctx, "cache.SetMany")
+	defer span.End()
+	span.SetAttributes(attribute.Int("count", len(values)))
+
+	mw.next.SetMany(ctx, values)
+}
+
 func (mw *tracingMiddleware[K, V]) SetNull(ctx context.Context, key K) {
 	ctx, span := tracing.Start(ctx, "cache.SetNull")
 	defer span.End()
 
 	span.SetAttributes(attribute.String("key", fmt.Sprintf("%+v", key)))
 	mw.next.SetNull(ctx, key)
-
 }
+
+func (mw *tracingMiddleware[K, V]) SetNullMany(ctx context.Context, keys []K) {
+	ctx, span := tracing.Start(ctx, "cache.SetNullMany")
+	defer span.End()
+	span.SetAttributes(attribute.Int("count", len(keys)))
+
+	mw.next.SetNullMany(ctx, keys)
+}
+
 func (mw *tracingMiddleware[K, V]) Remove(ctx context.Context, keys ...K) {
 	ctx, span := tracing.Start(ctx, "cache.Remove")
 	defer span.End()
@@ -63,6 +105,7 @@ func (mw *tracingMiddleware[K, V]) Dump(ctx context.Context) ([]byte, error) {
 	if err != nil {
 		tracing.RecordError(span, err)
 	}
+
 	// nolint:wrapcheck
 	return b, err
 }
@@ -86,6 +129,10 @@ func (mw *tracingMiddleware[K, V]) Clear(ctx context.Context) {
 	mw.next.Clear(ctx)
 }
 
+func (mw *tracingMiddleware[K, V]) Name() string {
+	return mw.next.Name()
+}
+
 func (mw *tracingMiddleware[K, V]) SWR(ctx context.Context, key K, refreshFromOrigin func(ctx context.Context) (V, error), op func(err error) cache.Op) (V, cache.CacheHit, error) {
 	ctx, span := tracing.Start(ctx, "cache.SWR")
 	defer span.End()
@@ -96,9 +143,40 @@ func (mw *tracingMiddleware[K, V]) SWR(ctx context.Context, key K, refreshFromOr
 		defer innerSpan.End()
 		return refreshFromOrigin(innerCtx)
 	}, op)
+
 	if err != nil {
 		tracing.RecordError(span, err)
 	}
 
 	return value, hit, err
+}
+
+func (mw *tracingMiddleware[K, V]) SWRMany(ctx context.Context, keys []K, refreshFromOrigin func(ctx context.Context, keys []K) (map[K]V, error), op func(err error) cache.Op) (map[K]V, map[K]cache.CacheHit, error) {
+	ctx, span := tracing.Start(ctx, "cache.SWRMany")
+	defer span.End()
+	span.SetAttributes(attribute.Int("count", len(keys)))
+
+	values, hits, err := mw.next.SWRMany(ctx, keys, func(innerCtx context.Context, innerKeys []K) (map[K]V, error) {
+		innerCtx, innerSpan := tracing.Start(innerCtx, "refreshFromOrigin")
+		defer innerSpan.End()
+		innerSpan.SetAttributes(attribute.Int("keys", len(innerKeys)))
+		return refreshFromOrigin(innerCtx, innerKeys)
+	}, op)
+
+	if err != nil {
+		tracing.RecordError(span, err)
+	}
+
+	hitCount := 0
+	for _, hit := range hits {
+		if hit != cache.Miss {
+			hitCount++
+		}
+	}
+	span.SetAttributes(
+		attribute.Int("hits", hitCount),
+		attribute.Int("misses", len(keys)-hitCount),
+	)
+
+	return values, hits, err
 }

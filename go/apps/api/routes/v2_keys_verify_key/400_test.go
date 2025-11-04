@@ -52,7 +52,7 @@ func TestBadRequest(t *testing.T) {
 		t.Run("invalid cost value", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 			})
 
 			req := handler.Request{
@@ -76,7 +76,7 @@ func TestBadRequest(t *testing.T) {
 		t.Run("invalid credits cost", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeyAuthID:   api.KeyAuthID.String,
+				KeySpaceID:  api.KeyAuthID.String,
 			})
 
 			req := handler.Request{
@@ -96,7 +96,7 @@ func TestBadRequest(t *testing.T) {
 	t.Run("invalid permissions query syntax", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 		})
 
 		testCases := []struct {

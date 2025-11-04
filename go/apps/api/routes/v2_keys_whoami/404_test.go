@@ -66,9 +66,9 @@ func TestGetKeyForbidden(t *testing.T) {
 	h.Register(route)
 
 	// Create API for testing
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:            keyAuthID,
+	keySpaceID := uid.New(uid.KeySpacePrefix)
+	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+		ID:            keySpaceID,
 		WorkspaceID:   h.Resources().UserWorkspace.ID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false, String: ""},
@@ -82,15 +82,15 @@ func TestGetKeyForbidden(t *testing.T) {
 		Name:        "test-api",
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
+		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
 
 	// Create another API for cross-API testing
-	otherKeyAuthID := uid.New(uid.KeyAuthPrefix)
-	err = db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:            otherKeyAuthID,
+	otherKeySpaceID := uid.New(uid.KeySpacePrefix)
+	err = db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+		ID:            otherKeySpaceID,
 		WorkspaceID:   h.Resources().UserWorkspace.ID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false, String: ""},
@@ -104,7 +104,7 @@ func TestGetKeyForbidden(t *testing.T) {
 		Name:        "other-api",
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: otherKeyAuthID},
+		KeyAuthID:   sql.NullString{Valid: true, String: otherKeySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
@@ -112,9 +112,9 @@ func TestGetKeyForbidden(t *testing.T) {
 	// Create another Workspace for cross-API testing
 	otherWorkspace := h.CreateWorkspace()
 
-	otherWsKeyAuthID := uid.New(uid.KeyAuthPrefix)
-	err = db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:            otherWsKeyAuthID,
+	otherWsKeySpaceID := uid.New(uid.KeySpacePrefix)
+	err = db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+		ID:            otherWsKeySpaceID,
 		WorkspaceID:   otherWorkspace.ID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false, String: ""},
@@ -128,7 +128,7 @@ func TestGetKeyForbidden(t *testing.T) {
 		Name:        "test-api",
 		WorkspaceID: otherWorkspace.ID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: otherWsKeyAuthID},
+		KeyAuthID:   sql.NullString{Valid: true, String: otherWsKeySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
@@ -138,7 +138,7 @@ func TestGetKeyForbidden(t *testing.T) {
 	keyString := "test_" + uid.New("")
 	err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 		ID:                keyID,
-		KeyringID:         keyAuthID,
+		KeySpaceID:        keySpaceID,
 		Hash:              hash.Sha256(keyString),
 		Start:             keyString[:4],
 		WorkspaceID:       h.Resources().UserWorkspace.ID,

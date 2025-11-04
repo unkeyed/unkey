@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	clickhouseUser "github.com/unkeyed/unkey/go/cmd/create-clickhouse-user"
 	"github.com/unkeyed/unkey/go/cmd/deploy"
+	dev "github.com/unkeyed/unkey/go/cmd/dev"
 	gateway "github.com/unkeyed/unkey/go/cmd/gw"
 	"github.com/unkeyed/unkey/go/cmd/healthcheck"
 	"github.com/unkeyed/unkey/go/cmd/quotacheck"
@@ -17,6 +19,9 @@ import (
 
 func main() {
 	app := &cli.Command{
+		Flags:       []cli.Flag{},
+		Aliases:     []string{},
+		Action:      nil,
 		Name:        "unkey",
 		Usage:       "Run unkey",
 		Description: `Unkey CLI – deploy, run and administer Unkey services.`,
@@ -28,6 +33,8 @@ func main() {
 			healthcheck.Cmd,
 			quotacheck.Cmd,
 			gateway.Cmd,
+			clickhouseUser.Cmd,
+			dev.Cmd,
 		},
 	}
 

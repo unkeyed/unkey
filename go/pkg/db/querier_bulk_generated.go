@@ -11,17 +11,19 @@ type BulkQuerier interface {
 	InsertApis(ctx context.Context, db DBTX, args []InsertApiParams) error
 	InsertAuditLogs(ctx context.Context, db DBTX, args []InsertAuditLogParams) error
 	InsertAuditLogTargets(ctx context.Context, db DBTX, args []InsertAuditLogTargetParams) error
+	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
 	InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error
 	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
 	InsertDomains(ctx context.Context, db DBTX, args []InsertDomainParams) error
 	InsertIdentities(ctx context.Context, db DBTX, args []InsertIdentityParams) error
 	InsertIdentityRatelimits(ctx context.Context, db DBTX, args []InsertIdentityRatelimitParams) error
+	InsertKeyAuths(ctx context.Context, db DBTX, args []InsertKeyAuthParams) error
 	InsertKeyEncryptions(ctx context.Context, db DBTX, args []InsertKeyEncryptionParams) error
 	InsertKeys(ctx context.Context, db DBTX, args []InsertKeyParams) error
 	InsertKeyRatelimits(ctx context.Context, db DBTX, args []InsertKeyRatelimitParams) error
 	InsertKeyPermissions(ctx context.Context, db DBTX, args []InsertKeyPermissionParams) error
 	InsertKeyRoles(ctx context.Context, db DBTX, args []InsertKeyRoleParams) error
-	InsertKeyrings(ctx context.Context, db DBTX, args []InsertKeyringParams) error
+	InsertKeySpaces(ctx context.Context, db DBTX, args []InsertKeySpaceParams) error
 	InsertPermissions(ctx context.Context, db DBTX, args []InsertPermissionParams) error
 	InsertProjects(ctx context.Context, db DBTX, args []InsertProjectParams) error
 	InsertRatelimitNamespaces(ctx context.Context, db DBTX, args []InsertRatelimitNamespaceParams) error

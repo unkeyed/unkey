@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"time"
 )
 
 func privateKeyToString(privateKey *ecdsa.PrivateKey) (string, error) {
@@ -17,8 +16,9 @@ func privateKeyToString(privateKey *ecdsa.PrivateKey) (string, error) {
 
 	// Encode to PEM format
 	privKeyPEM := pem.EncodeToMemory(&pem.Block{
-		Type:  "EC PRIVATE KEY",
-		Bytes: privKeyBytes,
+		Headers: map[string]string{},
+		Type:    "EC PRIVATE KEY",
+		Bytes:   privKeyBytes,
 	})
 
 	return string(privKeyPEM), nil
@@ -38,18 +38,4 @@ func stringToPrivateKey(pemString string) (*ecdsa.PrivateKey, error) {
 	}
 
 	return privateKey, nil
-}
-
-func getCertificateExpiry(certPEM string) (time.Time, error) {
-	block, _ := pem.Decode([]byte(certPEM))
-	if block == nil {
-		return time.Time{}, fmt.Errorf("failed to decode PEM block")
-	}
-
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("failed to parse certificate: %w", err)
-	}
-
-	return cert.NotAfter, nil
 }

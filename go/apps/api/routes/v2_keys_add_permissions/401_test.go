@@ -46,7 +46,7 @@ func TestAuthenticationErrors(t *testing.T) {
 	key := h.CreateKey(seed.CreateKeyRequest{
 		Disabled:    false,
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Remaining:   nil,
 		IdentityID:  nil,
 		Meta:        nil,

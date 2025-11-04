@@ -148,6 +148,11 @@ type Querier interface {
 	//  JOIN audit_log ON audit_log.id = audit_log_target.audit_log_id
 	//  WHERE audit_log_target.id = ?
 	FindAuditLogTargetByID(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIDRow, error)
+	//FindClickhouseWorkspaceSettingsByWorkspaceID
+	//
+	//  SELECT workspace_id, username, password_encrypted, quota_duration_seconds, max_queries_per_window, max_execution_time_per_window, max_query_execution_time, max_query_memory_bytes, max_query_result_rows, created_at, updated_at FROM `clickhouse_workspace_settings`
+	//  WHERE workspace_id = ?
+	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (ClickhouseWorkspaceSetting, error)
 	//FindDeploymentById
 	//
 	//  SELECT
@@ -265,6 +270,14 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (FindEnvironmentByProjectIdAndSlugRow, error)
+	//FindIdentities
+	//
+	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+	//  FROM identities
+	//  WHERE workspace_id = ?
+	//   AND deleted = ?
+	//   AND (external_id IN(/*SLICE:identities*/?) OR id IN (/*SLICE:identities*/?))
+	FindIdentities(ctx context.Context, db DBTX, arg FindIdentitiesParams) ([]Identity, error)
 	//FindIdentityByExternalID
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -328,6 +341,26 @@ type Querier interface {
 	//    AND i.deleted = ?
 	//  LIMIT 1
 	FindIdentityWithRatelimits(ctx context.Context, db DBTX, arg FindIdentityWithRatelimitsParams) ([]FindIdentityWithRatelimitsRow, error)
+	//FindKeyAuthsByIds
+	//
+	//  SELECT ka.id as key_auth_id, a.id as api_id
+	//  FROM apis a
+	//  JOIN key_auth as ka ON ka.id = a.key_auth_id
+	//  WHERE a.workspace_id = ?
+	//      AND a.id IN (/*SLICE:api_ids*/?)
+	//      AND ka.deleted_at_m IS NULL
+	//      AND a.deleted_at_m IS NULL
+	FindKeyAuthsByIds(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsParams) ([]FindKeyAuthsByIdsRow, error)
+	//FindKeyAuthsByKeyAuthIds
+	//
+	//  SELECT ka.id as key_auth_id, a.id as api_id
+	//  FROM key_auth as ka
+	//  JOIN apis a ON a.key_auth_id = ka.id
+	//  WHERE a.workspace_id = ?
+	//      AND ka.id IN (/*SLICE:key_auth_ids*/?)
+	//      AND ka.deleted_at_m IS NULL
+	//      AND a.deleted_at_m IS NULL
+	FindKeyAuthsByKeyAuthIds(ctx context.Context, db DBTX, arg FindKeyAuthsByKeyAuthIdsParams) ([]FindKeyAuthsByKeyAuthIdsRow, error)
 	//FindKeyByID
 	//
 	//  SELECT id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, ratelimit_async, ratelimit_limit, ratelimit_duration, environment FROM `keys` k
@@ -427,10 +460,10 @@ type Querier interface {
 	//  WHERE key_id = ?
 	//    AND role_id = ?
 	FindKeyRoleByKeyAndRoleID(ctx context.Context, db DBTX, arg FindKeyRoleByKeyAndRoleIDParams) ([]KeysRole, error)
-	//FindKeyringByID
+	//FindKeySpaceByID
 	//
 	//  SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
-	FindKeyringByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
+	FindKeySpaceByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
 	//FindLiveApiByID
 	//
 	//  SELECT apis.id, apis.name, apis.workspace_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
@@ -836,6 +869,19 @@ type Querier interface {
 	//  SELECT id, org_id, name, slug, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
+	//GetKeyAuthByID
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      created_at_m,
+	//      default_prefix,
+	//      default_bytes,
+	//      store_encrypted_keys
+	//  FROM key_auth
+	//  WHERE id = ?
+	//    AND deleted_at_m IS NULL
+	GetKeyAuthByID(ctx context.Context, db DBTX, id string) (GetKeyAuthByIDRow, error)
 	//HardDeleteWorkspace
 	//
 	//  DELETE FROM `workspaces`
@@ -954,6 +1000,35 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertAuditLogTarget(ctx context.Context, db DBTX, arg InsertAuditLogTargetParams) error
+	//InsertClickhouseWorkspaceSettings
+	//
+	//  INSERT INTO `clickhouse_workspace_settings` (
+	//      workspace_id,
+	//      username,
+	//      password_encrypted,
+	//      quota_duration_seconds,
+	//      max_queries_per_window,
+	//      max_execution_time_per_window,
+	//      max_query_execution_time,
+	//      max_query_memory_bytes,
+	//      max_query_result_rows,
+	//      created_at,
+	//      updated_at
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertClickhouseWorkspaceSettings(ctx context.Context, db DBTX, arg InsertClickhouseWorkspaceSettingsParams) error
 	//InsertDeployment
 	//
 	//  INSERT INTO `deployments` (
@@ -1121,6 +1196,24 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertKey(ctx context.Context, db DBTX, arg InsertKeyParams) error
+	//InsertKeyAuth
+	//
+	//  INSERT INTO key_auth (
+	//      id,
+	//      workspace_id,
+	//      created_at_m,
+	//      default_prefix,
+	//      default_bytes,
+	//      store_encrypted_keys
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      false
+	//  )
+	InsertKeyAuth(ctx context.Context, db DBTX, arg InsertKeyAuthParams) error
 	//InsertKeyEncryption
 	//
 	//  INSERT INTO encrypted_keys
@@ -1182,7 +1275,7 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertKeyRole(ctx context.Context, db DBTX, arg InsertKeyRoleParams) error
-	//InsertKeyring
+	//InsertKeySpace
 	//
 	//  INSERT INTO `key_auth` (
 	//      id,
@@ -1203,7 +1296,7 @@ type Querier interface {
 	//      0,
 	//      0
 	//  )
-	InsertKeyring(ctx context.Context, db DBTX, arg InsertKeyringParams) error
+	InsertKeySpace(ctx context.Context, db DBTX, arg InsertKeySpaceParams) error
 	//InsertPermission
 	//
 	//  INSERT INTO permissions (
@@ -1388,7 +1481,7 @@ type Querier interface {
 	//
 	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id IN (/*SLICE:ids*/?)
 	ListIdentityRatelimitsByIDs(ctx context.Context, db DBTX, ids []sql.NullString) ([]Ratelimit, error)
-	//ListKeysByKeyAuthID
+	//ListKeysByKeySpaceID
 	//
 	//  SELECT
 	//    k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
@@ -1407,8 +1500,8 @@ type Querier interface {
 	//  AND k.deleted_at_m IS NULL
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
-	ListKeysByKeyAuthID(ctx context.Context, db DBTX, arg ListKeysByKeyAuthIDParams) ([]ListKeysByKeyAuthIDRow, error)
-	//ListLiveKeysByKeyAuthID
+	ListKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListKeysByKeySpaceIDParams) ([]ListKeysByKeySpaceIDRow, error)
+	//ListLiveKeysByKeySpaceID
 	//
 	//  SELECT k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment,
 	//         i.id                 as identity_table_id,
@@ -1503,7 +1596,7 @@ type Querier interface {
 	//    AND ws.deleted_at_m IS NULL
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
-	ListLiveKeysByKeyAuthID(ctx context.Context, db DBTX, arg ListLiveKeysByKeyAuthIDParams) ([]ListLiveKeysByKeyAuthIDRow, error)
+	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
 	//ListPermissions
 	//
 	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -1660,13 +1753,13 @@ type Querier interface {
 	//
 	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?
 	SoftDeleteKeyByID(ctx context.Context, db DBTX, arg SoftDeleteKeyByIDParams) error
-	//SoftDeleteManyKeysByKeyAuthID
+	//SoftDeleteManyKeysByKeySpaceID
 	//
 	//  UPDATE `keys`
 	//  SET deleted_at_m = ?
 	//  WHERE key_auth_id = ?
 	//  AND deleted_at_m IS NULL
-	SoftDeleteManyKeysByKeyAuthID(ctx context.Context, db DBTX, arg SoftDeleteManyKeysByKeyAuthIDParams) error
+	SoftDeleteManyKeysByKeySpaceID(ctx context.Context, db DBTX, arg SoftDeleteManyKeysByKeySpaceIDParams) error
 	//SoftDeleteRatelimitNamespace
 	//
 	//  UPDATE `ratelimit_namespaces`
@@ -1722,6 +1815,19 @@ type Querier interface {
 	//  SET delete_protection = ?
 	//  WHERE id = ?
 	UpdateApiDeleteProtection(ctx context.Context, db DBTX, arg UpdateApiDeleteProtectionParams) error
+	//UpdateClickhouseWorkspaceSettingsLimits
+	//
+	//  UPDATE `clickhouse_workspace_settings`
+	//  SET
+	//      quota_duration_seconds = ?,
+	//      max_queries_per_window = ?,
+	//      max_execution_time_per_window = ?,
+	//      max_query_execution_time = ?,
+	//      max_query_memory_bytes = ?,
+	//      max_query_result_rows = ?,
+	//      updated_at = ?
+	//  WHERE workspace_id = ?
+	UpdateClickhouseWorkspaceSettingsLimits(ctx context.Context, db DBTX, arg UpdateClickhouseWorkspaceSettingsLimitsParams) error
 	//UpdateDeploymentOpenapiSpec
 	//
 	//  UPDATE deployments
@@ -1806,10 +1912,10 @@ type Querier interface {
 	//  SET remaining_requests = ?
 	//  WHERE id = ?
 	UpdateKeyCreditsSet(ctx context.Context, db DBTX, arg UpdateKeyCreditsSetParams) error
-	//UpdateKeyringKeyEncryption
+	//UpdateKeySpaceKeyEncryption
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
-	UpdateKeyringKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeyringKeyEncryptionParams) error
+	UpdateKeySpaceKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeySpaceKeyEncryptionParams) error
 	//UpdateProjectDeployments
 	//
 	//  UPDATE projects

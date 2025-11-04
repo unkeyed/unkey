@@ -112,6 +112,7 @@ type lexer struct {
 //	}
 func newLexer(input string) *lexer {
 	l := &lexer{
+		ch:    0,
 		input: input,
 		pos:   0,
 	}
