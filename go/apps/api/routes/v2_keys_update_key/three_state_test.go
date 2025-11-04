@@ -118,6 +118,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 	})
 
 	t.Run("Meta field three-state logic", func(t *testing.T) {
+		t.Parallel()
 		// Create key with initial meta
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
@@ -182,6 +183,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 	})
 
 	t.Run("Expires field three-state logic", func(t *testing.T) {
+		t.Parallel()
 		// Create key with initial expiration
 		futureTime := time.Now().Add(24 * time.Hour)
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
@@ -249,6 +251,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 	})
 
 	t.Run("Identity field three-state logic", func(t *testing.T) {
+		t.Parallel()
 		// Create key without identity initially
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
@@ -327,8 +330,10 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 	})
 
 	t.Run("Credits field three-state logic", func(t *testing.T) {
+		t.Parallel()
 		// Test Case 1: Create key with credits and refill -> Set credits object to null => everything is gone
 		t.Run("Set credits object to null clears everything", func(t *testing.T) {
+			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
@@ -367,6 +372,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 
 		// Test Case 2: Set credits.remaining to null => everything is gone (remaining + refill)
 		t.Run("Set credits.remaining to null clears everything", func(t *testing.T) {
+			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
@@ -407,6 +413,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 
 		// Test Case 3: Set credits.refill to null => ONLY clears refill (amount and day), keeps remaining
 		t.Run("Set credits.refill to null only clears refill, keeps remaining", func(t *testing.T) {
+			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
@@ -448,6 +455,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 
 		// Test Case 4: Update refill without touching remaining
 		t.Run("Update refill without touching remaining", func(t *testing.T) {
+			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
@@ -485,6 +493,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 
 		// Test Case 5: Update remaining without touching refill
 		t.Run("Update remaining without touching refill", func(t *testing.T) {
+			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
@@ -518,6 +527,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 
 		// Test Case 6: Undefined credits (not specified) keeps everything
 		t.Run("Undefined credits keeps everything", func(t *testing.T) {
+			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
@@ -551,6 +561,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 
 		// Test Case 7: Daily refill (no refillDay)
 		t.Run("Daily refill without refillDay", func(t *testing.T) {
+			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: h.Resources().UserWorkspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
@@ -585,6 +596,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 
 		// Test Case 8: Complex sequence of updates
 		t.Run("Complex sequence of updates", func(t *testing.T) {
+			t.Parallel()
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: h.Resources().UserWorkspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
@@ -659,6 +671,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 	})
 
 	t.Run("All fields simultaneously", func(t *testing.T) {
+		t.Parallel()
 		// Create key with initial values
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,

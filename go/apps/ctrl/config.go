@@ -118,7 +118,6 @@ type Config struct {
 	KraneAddress string
 
 	// APIKey is the API key for simple authentication (demo purposes only)
-	// TODO: Replace with JWT authentication when moving to private IP
 	APIKey string
 
 	// SPIFFESocketPath is the path to the SPIFFE agent socket for mTLS authentication

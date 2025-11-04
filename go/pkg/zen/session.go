@@ -47,7 +47,7 @@ type Session struct {
 	logRequestToClickHouse bool
 }
 
-func (s *Session) init(w http.ResponseWriter, r *http.Request, maxBodySize int64) error {
+func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64) error {
 	s.requestID = uid.New(uid.RequestPrefix)
 	s.w = w
 	s.r = r

@@ -18,7 +18,7 @@ func main() {
 }
 
 // Generate processes the sqlc plugin request and generates bulk insert functions.
-func Generate(ctx context.Context, req *plugin.GenerateRequest) (*plugin.GenerateResponse, error) {
+func Generate(_ context.Context, req *plugin.GenerateRequest) (*plugin.GenerateResponse, error) {
 	generator := NewGenerator()
-	return generator.Generate(ctx, req)
+	return generator.Generate(req)
 }

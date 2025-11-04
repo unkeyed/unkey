@@ -10,8 +10,12 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Name:  "gw",
-	Usage: "Run the Unkey Gateway server",
+	Version:     "",
+	Commands:    []*cli.Command{},
+	Aliases:     []string{},
+	Description: "",
+	Name:        "gw",
+	Usage:       "Run the Unkey Gateway server",
 	Flags: []cli.Flag{
 		// Server Configuration
 		cli.Int("http-port", "HTTP port for the GW server to listen on. Default: 6060",
@@ -98,6 +102,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 	var vaultS3Config *storage.S3Config
 	if cmd.String("vault-s3-url") != "" {
 		vaultS3Config = &storage.S3Config{
+			Logger:            nil,
 			S3URL:             cmd.String("vault-s3-url"),
 			S3Bucket:          cmd.String("vault-s3-bucket"),
 			S3AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
