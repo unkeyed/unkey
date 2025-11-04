@@ -62,7 +62,7 @@ type ScopedKey struct {
 }
 
 func (k ScopedKey) String() string {
-	return strings.ToLower(k.WorkspaceID) + ":" + strings.ToLower(k.Key)
+	return k.WorkspaceID + ":" + k.Key
 }
 
 // ParseScopedKey parses a string in the format "workspace_id:key" into a ScopedKey.
