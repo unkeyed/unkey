@@ -328,16 +328,18 @@ func TestKeyVerifications(t *testing.T) {
 		t.Parallel()
 		// Test that external_id is correctly stored for each identity across all aggregation tables
 		for _, identityID := range identities[:10] {
-			expectedExternalID := identityToExternalID[identityID]
+			id := identityID
+			expectedExternalID := identityToExternalID[id]
 
 			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
-				t.Run(table, func(t *testing.T) {
+				tbl := table
+				t.Run(tbl, func(t *testing.T) {
 					t.Parallel()
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedExternalID string
-						err := conn.QueryRow(ctx, "SELECT external_id FROM ? WHERE workspace_id = ? AND identity_id = ? LIMIT 1;", table, workspaceID, identityID).Scan(&queriedExternalID)
+						err := conn.QueryRow(ctx, "SELECT external_id FROM ? WHERE workspace_id = ? AND identity_id = ? LIMIT 1;", tbl, workspaceID, id).Scan(&queriedExternalID)
 						require.NoError(c, err)
-						require.Equal(c, expectedExternalID, queriedExternalID, "external_id should match for identity %s in table %s", identityID, table)
+						require.Equal(c, expectedExternalID, queriedExternalID, "external_id should match for identity %s in table %s", id, tbl)
 					}, time.Minute, time.Second)
 				})
 			}
@@ -348,22 +350,24 @@ func TestKeyVerifications(t *testing.T) {
 		t.Parallel()
 		// Pick a random identity and verify filtering by external_id returns correct count
 		for _, identityID := range identities[:10] {
-			externalID := identityToExternalID[identityID]
+			id := identityID
+			extID := identityToExternalID[id]
 			expectedCount := array.Reduce(verifications, func(acc int, v schema.KeyVerificationV2) int {
-				if v.ExternalID == externalID {
+				if v.ExternalID == extID {
 					acc++
 				}
 				return acc
 			}, 0)
 
 			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
-				t.Run(table, func(t *testing.T) {
+				tbl := table
+				t.Run(tbl, func(t *testing.T) {
 					t.Parallel()
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedCount int64
-						err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND external_id = ?;", table, workspaceID, externalID).Scan(&queriedCount)
+						err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND external_id = ?;", tbl, workspaceID, extID).Scan(&queriedCount)
 						require.NoError(c, err)
-						require.Equal(c, expectedCount, int(queriedCount), "count should match for external_id %s in table %s", externalID, table)
+						require.Equal(c, expectedCount, int(queriedCount), "count should match for external_id %s in table %s", extID, tbl)
 					}, time.Minute, time.Second)
 				})
 			}
@@ -374,24 +378,28 @@ func TestKeyVerifications(t *testing.T) {
 		t.Parallel()
 		// Test that we can group by external_id and outcome correctly
 		for _, identityID := range identities[:10] {
-			externalID := identityToExternalID[identityID]
+			id := identityID
+			extID := identityToExternalID[id]
 
 			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerificationV2) map[string]int {
-				if v.ExternalID == externalID {
+				if v.ExternalID == extID {
 					acc[v.Outcome]++
 				}
 				return acc
 			}, map[string]int{})
 
 			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
-				t.Run(table, func(t *testing.T) {
+				tbl := table
+				t.Run(tbl, func(t *testing.T) {
 					t.Parallel()
 					for outcome, expectedCount := range countByOutcome {
+						out := outcome
+						expCount := expectedCount
 						require.EventuallyWithT(t, func(c *assert.CollectT) {
 							var queriedCount int64
-							err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND external_id = ? AND outcome = ?;", table, workspaceID, externalID, outcome).Scan(&queriedCount)
+							err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND external_id = ? AND outcome = ?;", tbl, workspaceID, extID, out).Scan(&queriedCount)
 							require.NoError(c, err)
-							require.Equal(c, expectedCount, int(queriedCount), "count for external_id %s and outcome %s should match in table %s", externalID, outcome, table)
+							require.Equal(c, expCount, int(queriedCount), "count for external_id %s and outcome %s should match in table %s", extID, out, tbl)
 						}, time.Minute, time.Second)
 					}
 				})
@@ -403,29 +411,31 @@ func TestKeyVerifications(t *testing.T) {
 		t.Parallel()
 		// Verify that each external_id is always paired with the same identity_id
 		for _, identityID := range identities[:10] {
-			externalID := identityToExternalID[identityID]
+			id := identityID
+			extID := identityToExternalID[id]
 
 			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
-				t.Run(table, func(t *testing.T) {
+				tbl := table
+				t.Run(tbl, func(t *testing.T) {
 					t.Parallel()
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						// Count should be zero when querying for this external_id with a different identity_id
 						var countWithWrongIdentity int64
-						wrongIdentityID := identities[(slices.Index(identities, identityID)+1)%len(identities)]
-						if wrongIdentityID == identityID {
-							wrongIdentityID = identities[(slices.Index(identities, identityID)+2)%len(identities)]
+						wrongIdentityID := identities[(slices.Index(identities, id)+1)%len(identities)]
+						if wrongIdentityID == id {
+							wrongIdentityID = identities[(slices.Index(identities, id)+2)%len(identities)]
 						}
 
-						err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND external_id = ? AND identity_id = ?;", table, workspaceID, externalID, wrongIdentityID).Scan(&countWithWrongIdentity)
+						err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND external_id = ? AND identity_id = ?;", tbl, workspaceID, extID, wrongIdentityID).Scan(&countWithWrongIdentity)
 						if err != nil {
 							// It's OK if there are no rows, that means the mapping is correct
 							if errors.Is(err, sql.ErrNoRows) {
 								countWithWrongIdentity = 0
 							} else {
-								require.NoError(c, err, "unexpected error querying for wrong identity mapping in table %s", table)
+								require.NoError(c, err, "unexpected error querying for wrong identity mapping in table %s", tbl)
 							}
 						}
-						require.Equal(c, int64(0), countWithWrongIdentity, "external_id %s should never be paired with identity_id %s in table %s", externalID, wrongIdentityID, table)
+						require.Equal(c, int64(0), countWithWrongIdentity, "external_id %s should never be paired with identity_id %s in table %s", extID, wrongIdentityID, tbl)
 					}, time.Minute, time.Second)
 				})
 			}
@@ -435,22 +445,24 @@ func TestKeyVerifications(t *testing.T) {
 	t.Run("credits spent per external_id are correct", func(t *testing.T) {
 		t.Parallel()
 		for _, identityID := range identities[:10] {
-			externalID := identityToExternalID[identityID]
+			id := identityID
+			extID := identityToExternalID[id]
 			expectedCredits := array.Reduce(verifications, func(acc int64, v schema.KeyVerificationV2) int64 {
-				if v.ExternalID == externalID {
+				if v.ExternalID == extID {
 					acc += v.SpentCredits
 				}
 				return acc
 			}, int64(0))
 
 			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
-				t.Run(table, func(t *testing.T) {
+				tbl := table
+				t.Run(tbl, func(t *testing.T) {
 					t.Parallel()
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedCredits int64
-						err := conn.QueryRow(ctx, "SELECT SUM(spent_credits) FROM ? WHERE workspace_id = ? AND external_id = ?;", table, workspaceID, externalID).Scan(&queriedCredits)
+						err := conn.QueryRow(ctx, "SELECT SUM(spent_credits) FROM ? WHERE workspace_id = ? AND external_id = ?;", tbl, workspaceID, extID).Scan(&queriedCredits)
 						require.NoError(c, err)
-						require.Equal(c, expectedCredits, queriedCredits, "spent_credits for external_id %s should match in table %s", externalID, table)
+						require.Equal(c, expectedCredits, queriedCredits, "spent_credits for external_id %s should match in table %s", extID, tbl)
 					}, time.Minute, time.Second)
 				})
 			}

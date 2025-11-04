@@ -26,7 +26,7 @@ export const workspacePermissions = {
       permission: "api.*.delete_api",
     },
     read_analytics: {
-      description: "Query analytics data for this API using SQL.",
+      description: "Query analytics data for any API in this workspace using SQL.",
       permission: "api.*.read_analytics",
     },
   },
