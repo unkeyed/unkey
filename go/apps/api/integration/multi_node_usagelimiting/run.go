@@ -36,15 +36,18 @@ func RunUsageLimitTest(
 	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "api.*.verify_key")
 
 	// Create API using seed
+	// nolint: exhaustruct
 	api := h.Seed.CreateAPI(ctx, seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
 	})
 
 	// Create key with specified credit limit using seed
+	// nolint: exhaustruct
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Remaining:   ptr.P(int32(totalCredits)),
+		//nolint: gosec
+		Remaining: ptr.P(int32(totalCredits)),
 	})
 
 	keyStart := keyResponse.Key
@@ -68,8 +71,12 @@ func RunUsageLimitTest(
 
 	// Prepare the key verification request
 	req := handler.Request{
-		Key: keyStart,
+		Ratelimits:  nil,
+		Permissions: nil,
+		Tags:        nil,
+		Key:         keyStart,
 		Credits: &openapi.KeysVerifyKeyCredits{
+			//nolint: gosec
 			Cost: int32(costPerRequest),
 		},
 	}
@@ -98,7 +105,7 @@ func RunUsageLimitTest(
 
 	// Track successful requests and remaining credits
 	successCount := 0
-	var lastRemaining int64 = totalCredits
+	lastRemaining := totalCredits
 
 	// Create a load balancer to distribute requests across nodes
 	lb := integration.NewLoadbalancer(h)
@@ -180,11 +187,15 @@ func RunUsageLimitTest(
 			return false
 		}
 		chStats = data[0]
+		//nolint: gosec
 		return int(chStats.TotalRequests) == totalRequests
 	}, 15*time.Second, 100*time.Millisecond)
 
+	//nolint: gosec
 	require.Equal(t, totalRequests, int(chStats.SuccessCount+chStats.FailureCount))
+	//nolint: gosec
 	require.Equal(t, totalRequests, int(chStats.TotalRequests))
+	//nolint: gosec
 	require.Equal(t, successCount, int(chStats.SuccessCount))
 
 	// Step 7: Verify Clickhouse Metrics Data
@@ -197,6 +208,7 @@ func RunUsageLimitTest(
 		err := row.Scan(&metricsCount, &uniqueCount)
 		require.NoError(t, err)
 
+		//nolint: gosec
 		return metricsCount == uint64(totalRequests) && uniqueCount == uint64(totalRequests)
 	}, 15*time.Second, 100*time.Millisecond)
 }

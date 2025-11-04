@@ -19,6 +19,9 @@ import (
 
 func main() {
 	app := &cli.Command{
+		Flags:       []cli.Flag{},
+		Aliases:     []string{},
+		Action:      nil,
 		Name:        "unkey",
 		Usage:       "Run unkey",
 		Description: `Unkey CLI – deploy, run and administer Unkey services.`,

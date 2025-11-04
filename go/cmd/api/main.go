@@ -11,8 +11,12 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Name:  "api",
-	Usage: "Run the Unkey API server for validating and managing API keys",
+	Aliases:     []string{},
+	Description: "",
+	Version:     "",
+	Commands:    []*cli.Command{},
+	Name:        "api",
+	Usage:       "Run the Unkey API server for validating and managing API keys",
 
 	Flags: []cli.Flag{
 		// Server Configuration
@@ -126,9 +130,10 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 	config := api.Config{
 		// Basic configuration
-		Platform: cmd.String("platform"),
-		Image:    cmd.String("image"),
-		Region:   cmd.String("region"),
+		CacheInvalidationTopic: "",
+		Platform:               cmd.String("platform"),
+		Image:                  cmd.String("image"),
+		Region:                 cmd.String("region"),
 
 		// Database configuration
 		DatabasePrimary:         cmd.String("database-primary"),

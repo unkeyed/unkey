@@ -14,7 +14,7 @@ import (
 
 func (s *Service) GetOpenApiDiff(ctx context.Context, req *connect.Request[ctrlv1.GetOpenApiDiffRequest]) (*connect.Response[ctrlv1.GetOpenApiDiffResponse], error) {
 	// Load old version spec
-	oldSpec, err := s.loadOpenApiSpec(ctx, req.Msg.OldDeploymentId)
+	oldSpec, err := s.loadOpenApiSpec(ctx, req.Msg.GetOldDeploymentId())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, fault.Wrap(err,
 			fault.Internal("failed to load old version spec"),
@@ -23,7 +23,7 @@ func (s *Service) GetOpenApiDiff(ctx context.Context, req *connect.Request[ctrlv
 	}
 
 	// Load new version spec
-	newSpec, err := s.loadOpenApiSpec(ctx, req.Msg.NewDeploymentId)
+	newSpec, err := s.loadOpenApiSpec(ctx, req.Msg.GetNewDeploymentId())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, fault.Wrap(err,
 			fault.Internal("failed to load new version spec"),
@@ -68,6 +68,7 @@ func (s *Service) GetOpenApiDiff(ctx context.Context, req *connect.Request[ctrlv
 	}
 
 	// Generate diff report
+	// nolint: exhaustruct
 	diffReport, err := diff.Get(&diff.Config{}, s1, s2)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fault.Wrap(err,

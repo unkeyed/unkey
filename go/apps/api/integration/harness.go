@@ -127,7 +127,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 	// Start each API node as a goroutine
 	for i := 0; i < config.Nodes; i++ {
 		// Create ephemeral listener
-		ln, err := net.Listen("tcp", ":0")
+		ln, err := net.Listen("tcp", ":0") //nolint: gosec
 		require.NoError(h.t, err, "Failed to create ephemeral listener")
 
 		cluster.Addrs[i] = fmt.Sprintf("http://%s", ln.Addr().String())
@@ -139,6 +139,10 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		redisHostAddr := containers.Redis(h.t)
 		kafkaBrokers := containers.Kafka(h.t)
 		apiConfig := api.Config{
+			CacheInvalidationTopic:  "",
+			MaxRequestBodySize:      0,
+			HttpPort:                7070,
+			ChproxyToken:            "",
 			Platform:                "test",
 			Image:                   "test",
 			Listener:                ln,
@@ -203,7 +207,8 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		// Wait for server to start
 		maxAttempts := 30
 		healthURL := fmt.Sprintf("http://%s/v2/liveness", ln.Addr().String())
-		for attempt := 0; attempt < maxAttempts; attempt++ {
+		for attempt := range maxAttempts {
+			//nolint:gosec // Health check URL is constructed from controlled Docker container address
 			resp, err := http.Get(healthURL)
 			if err == nil {
 				resp.Body.Close()

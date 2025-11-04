@@ -69,10 +69,7 @@ INSERT INTO users (
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := parser.Parse(tt.query)
-			if err != nil {
-				t.Fatalf("Parse() error = %v", err)
-			}
+			result := parser.Parse(tt.query)
 
 			if result.InsertPart != tt.expected.InsertPart {
 				t.Errorf("InsertPart = %q, want %q", result.InsertPart, tt.expected.InsertPart)

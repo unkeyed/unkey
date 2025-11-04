@@ -95,13 +95,15 @@ func New[K comparable, V any](config Config[K, V]) (*ClusterCache[K, V], error) 
 	}
 
 	c := &ClusterCache[K, V]{
-		localCache:  config.LocalCache,
-		topic:       config.Topic,
-		cacheName:   config.LocalCache.Name(),
-		nodeID:      config.NodeID,
-		logger:      config.Logger,
-		keyToString: keyToString,
-		stringToKey: stringToKey,
+		producer:       nil,
+		batchProcessor: nil,
+		localCache:     config.LocalCache,
+		topic:          config.Topic,
+		cacheName:      config.LocalCache.Name(),
+		nodeID:         config.NodeID,
+		logger:         config.Logger,
+		keyToString:    keyToString,
+		stringToKey:    stringToKey,
 		onInvalidation: func(ctx context.Context, key K) {
 			config.LocalCache.Remove(ctx, key)
 		},
@@ -233,22 +235,22 @@ func (c *ClusterCache[K, V]) Name() string {
 // Returns true if the event was handled by this cache.
 func (c *ClusterCache[K, V]) HandleInvalidation(ctx context.Context, event *cachev1.CacheInvalidationEvent) bool {
 	// Ignore our own events to avoid loops
-	if event.SourceInstance == c.nodeID {
+	if event.GetSourceInstance() == c.nodeID {
 		return false
 	}
 
 	// Only process events for this specific cache
-	if event.CacheName != c.cacheName {
+	if event.GetCacheName() != c.cacheName {
 		return false
 	}
 
 	// Convert string key back to K type
-	key, err := c.stringToKey(event.CacheKey)
+	key, err := c.stringToKey(event.GetCacheKey())
 	if err != nil {
 		c.logger.Warn(
 			"Failed to convert cache key",
 			"cache", c.cacheName,
-			"key", event.CacheKey,
+			"key", event.GetCacheKey(),
 			"error", err,
 		)
 

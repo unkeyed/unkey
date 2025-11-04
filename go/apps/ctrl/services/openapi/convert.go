@@ -12,9 +12,9 @@ func convertSummaryToProto(summary *diff.Summary) *ctrlv1.DiffSummary {
 	getCounts := func(name string) *ctrlv1.DiffCounts {
 		if details, exists := summary.Details[diff.DetailName(name)]; exists {
 			return &ctrlv1.DiffCounts{
-				Added:    int32(details.Added),
-				Deleted:  int32(details.Deleted),
-				Modified: int32(details.Modified),
+				Added:    int32(details.Added),    //nolint: gosec
+				Deleted:  int32(details.Deleted),  //nolint: gosec
+				Modified: int32(details.Modified), //nolint: gosec
 			}
 		}
 		return &ctrlv1.DiffCounts{Added: 0, Deleted: 0, Modified: 0}
@@ -36,6 +36,7 @@ func convertChangesToProto(changes checker.Changes) []*ctrlv1.ChangelogEntry {
 
 	for i, change := range changes {
 		level := int32(1) // INFO
+		//nolint: exhaustive
 		switch change.GetLevel() {
 		case checker.WARN:
 			level = 2

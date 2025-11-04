@@ -78,13 +78,16 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	caches, err := caches.New(caches.Config{
-		Logger: logger,
-		Clock:  clk,
+		CacheInvalidationTopic: nil,
+		NodeID:                 "",
+		Logger:                 logger,
+		Clock:                  clk,
 	})
 	require.NoError(t, err)
 
 	srv, err := zen.New(zen.Config{
-		Logger: logger,
+		MaxRequestBodySize: 0,
+		Logger:             logger,
 		Flags: &zen.Flags{
 			TestMode: true,
 		},
@@ -377,7 +380,6 @@ func CallRaw[Res any](h *Harness, req *http.Request) TestResponse[Res] {
 	res.Body = &responseBody
 
 	return res
-
 }
 
 func CallRoute[Req any, Res any](h *Harness, route zen.Route, headers http.Header, req Req) TestResponse[Res] {

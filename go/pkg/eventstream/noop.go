@@ -2,6 +2,7 @@ package eventstream
 
 import (
 	"context"
+	"sync"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -47,6 +48,7 @@ func (n *noopConsumer[T]) Close() error {
 // The returned Topic will create noop producers and consumers.
 func NewNoopTopic[T proto.Message]() *Topic[T] {
 	return &Topic[T]{
+		mu:         sync.Mutex{},
 		brokers:    nil,
 		topic:      "",
 		instanceID: "",

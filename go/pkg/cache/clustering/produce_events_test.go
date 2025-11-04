@@ -117,20 +117,21 @@ func TestClusterCache_ProducesInvalidationOnRemoveAndSetNull(t *testing.T) {
 	// Find events by key
 	var removeEvent, setNullEvent *cachev1.CacheInvalidationEvent
 	for _, event := range receivedEvents {
-		if event.CacheKey == "key1" {
+		switch event.GetCacheKey() {
+		case "key1":
 			removeEvent = event
-		} else if event.CacheKey == "key2" {
+		case "key2":
 			setNullEvent = event
 		}
 	}
 
 	require.NotNil(t, removeEvent, "Remove operation should produce invalidation event")
-	require.Equal(t, "test-cache", removeEvent.CacheName, "Remove event should have correct cache name")
-	require.Equal(t, "key1", removeEvent.CacheKey, "Remove event should have correct cache key")
-	require.Equal(t, "test-node-1", removeEvent.SourceInstance, "Remove event should have correct source instance")
+	require.Equal(t, "test-cache", removeEvent.GetCacheName(), "Remove event should have correct cache name")
+	require.Equal(t, "key1", removeEvent.GetCacheKey(), "Remove event should have correct cache key")
+	require.Equal(t, "test-node-1", removeEvent.GetSourceInstance(), "Remove event should have correct source instance")
 
 	require.NotNil(t, setNullEvent, "SetNull operation should produce invalidation event")
-	require.Equal(t, "test-cache", setNullEvent.CacheName, "SetNull event should have correct cache name")
-	require.Equal(t, "key2", setNullEvent.CacheKey, "SetNull event should have correct cache key")
-	require.Equal(t, "test-node-1", setNullEvent.SourceInstance, "SetNull event should have correct source instance")
+	require.Equal(t, "test-cache", setNullEvent.GetCacheName(), "SetNull event should have correct cache name")
+	require.Equal(t, "key2", setNullEvent.GetCacheKey(), "SetNull event should have correct cache key")
+	require.Equal(t, "test-node-1", setNullEvent.GetSourceInstance(), "SetNull event should have correct source instance")
 }

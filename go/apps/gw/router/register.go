@@ -92,7 +92,7 @@ func Register(srv *server.Server, svc *Services, region string, serverType Serve
 		// Return health status
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok","service":"gateway"}`))
+		_, _ = w.Write([]byte(`{"status":"ok","service":"gateway"}`))
 	})
 
 	// HTTP server configuration for ACME challenges
