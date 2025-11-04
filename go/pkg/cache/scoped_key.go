@@ -1,5 +1,10 @@
 package cache
 
+import (
+	"fmt"
+	"strings"
+)
+
 // ScopedKey represents a cache key that is scoped to a specific workspace.
 //
 // This type is designed for caching data where keys are only unique within
@@ -55,3 +60,23 @@ type ScopedKey struct {
 	// Different workspaces may have resources with the same key value.
 	Key string
 }
+
+func (k ScopedKey) String() string {
+	return strings.ToLower(k.WorkspaceID) + ":" + strings.ToLower(k.Key)
+}
+
+// ParseScopedKey parses a string in the format "workspace_id:key" into a ScopedKey.
+// Returns an error if the string is not in the expected format.
+func ParseScopedKey(s string) (ScopedKey, error) {
+	parts := strings.SplitN(s, ":", 2)
+	if len(parts) != 2 {
+		return ScopedKey{}, fmt.Errorf("invalid scoped key format: expected 'workspace_id:key', got %q", s)
+	}
+	return ScopedKey{
+		WorkspaceID: parts[0],
+		Key:         parts[1],
+	}, nil
+}
+
+var ScopedKeyToString = func(k ScopedKey) string { return k.String() }
+var ScopedKeyFromString = func(s string) (ScopedKey, error) { return ParseScopedKey(s) }

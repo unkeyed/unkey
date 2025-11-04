@@ -103,7 +103,7 @@ func TestBearer_Integration(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	sess := &Session{}
-	err := sess.init(w, req, 0)
+	err := sess.Init(w, req, 0)
 	require.NoError(t, err)
 
 	token, err := Bearer(sess)
