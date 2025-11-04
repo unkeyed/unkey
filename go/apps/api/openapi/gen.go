@@ -461,6 +461,36 @@ type Role struct {
 	Permissions *[]Permission `json:"permissions,omitempty"`
 }
 
+// ServiceUnavailableErrorResponse Error response when a required service is temporarily unavailable. This indicates that the service exists but cannot be reached or is not responding.
+//
+// When you encounter this error:
+// - The service is likely experiencing temporary issues
+// - Retrying the request after a short delay may succeed
+// - If the error persists, the service may be undergoing maintenance
+// - Contact Unkey support if the issue continues
+type ServiceUnavailableErrorResponse struct {
+	// Error Base error structure following Problem Details for HTTP APIs (RFC 7807). This provides a standardized way to carry machine-readable details of errors in HTTP response content.
+	Error BaseError `json:"error"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// TooManyRequestsErrorResponse Error response when the client has sent too many requests in a given time period. This occurs when you've exceeded a rate limit or quota for the resource you're accessing.
+//
+// The rate limit resets automatically after the time window expires. To avoid this error:
+// - Implement exponential backoff when retrying requests
+// - Cache results where appropriate to reduce request frequency
+// - Check the error detail message for specific quota information
+// - Contact support if you need a higher quota for your use case
+type TooManyRequestsErrorResponse struct {
+	// Error Base error structure following Problem Details for HTTP APIs (RFC 7807). This provides a standardized way to carry machine-readable details of errors in HTTP response content.
+	Error BaseError `json:"error"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // UnauthorizedErrorResponse Error response when authentication has failed or credentials are missing. This occurs when:
 // - No authentication token is provided in the request
 // - The provided token is invalid, expired, or malformed
@@ -468,6 +498,21 @@ type Role struct {
 //
 // To resolve this error, ensure you're including a valid root key in the Authorization header.
 type UnauthorizedErrorResponse struct {
+	// Error Base error structure following Problem Details for HTTP APIs (RFC 7807). This provides a standardized way to carry machine-readable details of errors in HTTP response content.
+	Error BaseError `json:"error"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// UnprocessableEntityErrorResponse Error response when the request is syntactically valid but cannot be processed due to semantic constraints or resource limitations. This occurs when:
+// - A query exceeds execution time limits
+// - A query uses more memory than allowed
+// - A query scans too many rows
+// - A query result exceeds size limits
+//
+// The request syntax is correct, but the operation cannot be completed due to business rules or resource constraints. Review the error details for specific limitations and adjust your request accordingly.
+type UnprocessableEntityErrorResponse struct {
 	// Error Base error structure following Problem Details for HTTP APIs (RFC 7807). This provides a standardized way to carry machine-readable details of errors in HTTP response content.
 	Error BaseError `json:"error"`
 
@@ -500,6 +545,25 @@ type UpdateKeyCreditsRefill struct {
 
 // UpdateKeyCreditsRefillInterval How often credits are automatically refilled.
 type UpdateKeyCreditsRefillInterval string
+
+// V2AnalyticsGetVerificationsRequestBody defines model for V2AnalyticsGetVerificationsRequestBody.
+type V2AnalyticsGetVerificationsRequestBody struct {
+	// Query SQL query to execute against your analytics data.
+	// Only SELECT queries are allowed.
+	Query string `json:"query"`
+}
+
+// V2AnalyticsGetVerificationsResponseBody defines model for V2AnalyticsGetVerificationsResponseBody.
+type V2AnalyticsGetVerificationsResponseBody struct {
+	// Data Array of verification rows returned by the query. Fields vary based on the SQL SELECT clause.
+	Data V2AnalyticsGetVerificationsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2AnalyticsGetVerificationsResponseData Array of verification rows returned by the query. Fields vary based on the SQL SELECT clause.
+type V2AnalyticsGetVerificationsResponseData = []map[string]interface{}
 
 // V2ApisCreateApiRequestBody defines model for V2ApisCreateApiRequestBody.
 type V2ApisCreateApiRequestBody struct {
@@ -2015,6 +2079,9 @@ type ChproxyRatelimitsJSONRequestBody = ChproxyRatelimitsRequestBody
 
 // ChproxyVerificationsJSONRequestBody defines body for ChproxyVerifications for application/json ContentType.
 type ChproxyVerificationsJSONRequestBody = ChproxyVerificationsRequestBody
+
+// AnalyticsGetVerificationsJSONRequestBody defines body for AnalyticsGetVerifications for application/json ContentType.
+type AnalyticsGetVerificationsJSONRequestBody = V2AnalyticsGetVerificationsRequestBody
 
 // CreateApiJSONRequestBody defines body for CreateApi for application/json ContentType.
 type CreateApiJSONRequestBody = V2ApisCreateApiRequestBody
