@@ -5,13 +5,9 @@ description: 'Per key and per API analytics'
 
 Unkey offers both per key and per API analytics that allow you to drive business decisions.
 
-<Warning>
-  **Advanced Analytics with SQL is now available!**
-
-  Query your verification data with SQL for custom dashboards, usage-based billing, and advanced reporting.
-
-  This feature is currently in private beta and opt-in only. [Learn more →](/analytics/overview)
-</Warning>
+<Note>
+  We're currently working on a v2 API for analytics with advanced SQL querying capabilities. This feature is opt-in only and not yet publicly available.
+</Note>
 
 ## Per API Analytics
 
@@ -21,7 +17,6 @@ Our per API analytics offer a broad overview of the usage for a specific API wit
   <img src="/images/per-api-analytics.png" alt="Per API Analytics"/>
 </Frame>
 
-
 ## Per Key Analytics
 
 Our per key analytics give you a deep dive into each individual key, giving usage data, key data and where the requests originated from. This data can be useful for finding your top users, and where verifications are coming from.
@@ -29,26 +24,6 @@ Our per key analytics give you a deep dive into each individual key, giving usag
 <Frame caption="Per key Analytics">
   <img src="/images/per-key-analytics.png" alt="Per key analytics"/>
 </Frame>
-
-
-## Advanced Analytics (SQL)
-
-For more advanced use cases like usage-based billing, custom dashboards, or complex reporting, you can query your verification data directly with SQL.
-
-<CardGroup cols={2}>
-  <Card title="Overview" icon="chart-bar" href="/analytics/overview">
-    Learn about SQL-based analytics
-  </Card>
-  <Card title="Getting Started" icon="rocket" href="/analytics/getting-started">
-    Request access and run your first query
-  </Card>
-  <Card title="Query Examples" icon="code" href="/analytics/query-examples">
-    Explore common SQL patterns
-  </Card>
-  <Card title="Schema Reference" icon="table" href="/analytics/schema-reference">
-    Browse tables and columns
-  </Card>
-</CardGroup>
 
 ## Tags
 
@@ -102,4 +77,4 @@ curl --request POST \
 
 ### Querying tags
 
-Tags can be filtered and aggregated using our SQL-based analytics. See the [Tag-Based Analytics](/analytics/query-examples#tag-based-analytics) documentation for examples on filtering, grouping, and aggregating by tags.
+Tags can be used to filter and aggregate data in your analytics.
