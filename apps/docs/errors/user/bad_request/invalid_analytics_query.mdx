@@ -24,6 +24,7 @@ description: "Your SQL query has a syntax error."
 Your SQL query has a syntax error! The query parser found invalid SQL syntax that prevents it from being executed.
 
 Common causes include:
+
 - Missing or extra commas
 - Unclosed quotes or parentheses
 - Typos in SQL keywords
@@ -39,14 +40,14 @@ Common causes include:
 SELECT
   api_id
   COUNT(*) as total
-FROM key_verifications_v1_v1
+FROM key_verifications_v1
 ```
 
 ```sql Correct
 SELECT
   api_id,
   COUNT(*) as total
-FROM key_verifications_v1_v1
+FROM key_verifications_v1
 ```
 
 </CodeGroup>
@@ -56,11 +57,11 @@ FROM key_verifications_v1_v1
 <CodeGroup>
 
 ```sql Wrong - Unclosed quote
-SELECT * FROM key_verifications_v1_v1 WHERE api_id = 'api_123
+SELECT * FROM key_verifications_v1 WHERE api_id = 'api_123
 ```
 
 ```sql Correct
-SELECT * FROM key_verifications_v1_v1 WHERE api_id = 'api_123'
+SELECT * FROM key_verifications_v1 WHERE api_id = 'api_123'
 ```
 
 </CodeGroup>
@@ -99,5 +100,6 @@ If you're stuck with a syntax error:
 3. **Use a SQL validator** - Many online tools can help spot syntax errors
 
 <Note>
-For more examples and available columns, check out our [Analytics Schema Documentation](https://unkey.com/docs/analytics/schema).
+  For more examples and available columns, check out our [Analytics Schema
+  Documentation](https://unkey.com/docs/analytics/schema).
 </Note>

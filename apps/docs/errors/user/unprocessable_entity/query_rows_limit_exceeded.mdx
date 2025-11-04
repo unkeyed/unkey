@@ -81,7 +81,7 @@ For historical queries, use aggregated tables that have fewer rows:
 SELECT
   toStartOfDay(time) as day,
   COUNT(*) as total
-FROM key_verifications_v1_v1
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 90 DAY
 GROUP BY day
 ```
@@ -124,9 +124,11 @@ for (let i = 0; i < 90; i += 7) {
 **Have a legitimate need to scan more rows?** Contact our support team!
 
 [Reach out to support](mailto:support@unkey.dev) and tell us:
+
 - What you're trying to analyze
 - Why you need to scan more than 100 million rows
 - An example of the query you're running
 
 We'll review your use case and help optimize your query or adjust limits if needed.
+
 </Note>
