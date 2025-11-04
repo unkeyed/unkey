@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { StackPerspective2 } from "@unkey/icons";
 import { Button, FormInput, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import type { OnboardingStep } from "../components/onboarding-wizard";
@@ -36,13 +36,22 @@ type Props = {
 export const useWorkspaceStep = (props: Props): OnboardingStep => {
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [workspaceCreated, setWorkspaceCreated] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
   const utils = trpc.useUtils();
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const form = useForm<WorkspaceFormData>({
     resolver: zodResolver(workspaceSchema),
     mode: "onChange",
+    defaultValues: {
+      workspaceName: "",
+      slug: "",
+    },
   });
 
   const switchOrgMutation = trpc.user.switchOrg.useMutation({
@@ -118,15 +127,18 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
     });
   };
 
-  const validFieldCount = Object.keys(form.getValues()).filter((field) => {
-    const fieldName = field as keyof WorkspaceFormData;
+  // Watch form values to ensure consistent hydration
+  const workspaceName = form.watch("workspaceName");
+  const slug = form.watch("slug");
+
+  const validFieldCount = (["workspaceName", "slug"] as const).filter((fieldName) => {
     const hasError = Boolean(form.formState.errors[fieldName]);
-    const hasValue = Boolean(form.getValues(fieldName));
+    const value = fieldName === "workspaceName" ? workspaceName : slug;
+    const hasValue = Boolean(value);
     return !hasError && hasValue;
   }).length;
 
   const isLoading = createWorkspace.isLoading;
-
   return {
     name: "Workspace",
     icon: <StackPerspective2 iconSize="sm-regular" className="text-gray-11" />,
@@ -135,39 +147,52 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
         <div className="flex flex-col">
           <div className="space-y-4 p-1">
             <FormInput
-              {...form.register("workspaceName")}
+              {...form.register("workspaceName", {
+                onChange: (evt) => {
+                  // Re-validate on change to update validFieldCount
+                  form.trigger("workspaceName");
+
+                  // Only auto-generate if not manually edited
+                  if (!slugManuallyEdited) {
+                    if (evt.target.value.length >= 3) {
+                      form.setValue("slug", slugify(evt.target.value), {
+                        shouldValidate: true,
+                      });
+                    } else {
+                      // Clear slug when workspace name is too short
+                      form.setValue("slug", "", {
+                        shouldValidate: false,
+                      });
+                    }
+                  }
+                },
+              })}
               placeholder="Enter workspace name"
               label="Workspace name"
-              onBlur={(evt) => {
-                const currentSlug = form.getValues("slug");
-                const isSlugDirty = form.formState.dirtyFields.slug;
-
-                // Only auto-generate if slug is empty, not dirty, and hasn't been manually edited
-                if (!currentSlug && !isSlugDirty && !slugManuallyEdited) {
-                  form.setValue("slug", slugify(evt.currentTarget.value), {
-                    shouldValidate: true,
-                  });
-                }
-              }}
               required
               error={form.formState.errors.workspaceName?.message}
               disabled={isLoading || workspaceCreated}
             />
             <FormInput
-              {...form.register("slug")}
-              placeholder="enter-a-handle"
+              {...form.register("slug", {
+                onChange: (evt) => {
+                  // If we don't clear the manually set error, it will persist even if the user clears
+                  // or changes the input
+                  form.clearErrors("slug");
+                  const v = evt.currentTarget.value;
+                  setSlugManuallyEdited(v.length > 0);
+                  form.setValue("slug", slugify(v), {
+                    shouldValidate: true,
+                  });
+                  form.trigger("slug");
+                },
+              })}
+              placeholder={isMounted ? "enter-a-handle" : ""}
               label="Workspace URL handle"
               required
               error={form.formState.errors.slug?.message}
               prefix="app.unkey.com/"
               maxLength={64}
-              onChange={(evt) => {
-                // If we don't clear the manually set error, it will persist even if the user clears
-                // or changes the input
-                form.clearErrors("slug");
-                const v = evt.currentTarget.value;
-                setSlugManuallyEdited(v.length > 0);
-              }}
             />
           </div>
         </div>
