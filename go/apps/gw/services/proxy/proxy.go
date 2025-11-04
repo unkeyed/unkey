@@ -115,6 +115,7 @@ func (p *proxy) Forward(ctx context.Context, target url.URL, w http.ResponseWrit
 	var err error
 
 	// Create reverse proxy
+	// nolint: exhaustruct
 	proxy := &httputil.ReverseProxy{
 		Director: func(req *http.Request) {
 			// Update the request to point to the target

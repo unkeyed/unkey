@@ -59,11 +59,6 @@ type Config struct {
 	// The path must be accessible by the krane process with appropriate permissions.
 	DockerSocketPath string
 
-	// DepotToken is the authentication token for Depot's build infrastructure.
-	// Required when BuildBackend is BuildBackendDepot.
-	// Obtain from https://depot.dev and store securely (e.g., environment variable).
-	DepotToken string
-
 	// RegistryURL is the URL of the container registry for pulling images.
 	// Example: "registry.depot.dev"
 	RegistryURL string

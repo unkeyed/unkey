@@ -17,16 +17,15 @@ import (
 // continuously in a background goroutine, scanning for deployments that
 // exceed the configured time-to-live threshold.
 func (k *k8s) autoEvictDeployments(ttl time.Duration) {
-
 	k.logger.Info(fmt.Sprintf("Krane setup to auto-evict deployments after %s", ttl.String()))
 	repeat.Every(time.Minute, func() {
 		ctx := context.Background()
 		k.logger.Info("evicting old deployments")
 
+		//nolint: exhaustruct
 		deployments, err := k.clientset.AppsV1().StatefulSets("unkey").List(ctx, metav1.ListOptions{
 			LabelSelector: "unkey.managed.by=krane",
 		})
-
 		if err != nil {
 			k.logger.Error("failed to list deployments",
 				"error", err.Error(),
@@ -36,14 +35,13 @@ func (k *k8s) autoEvictDeployments(ttl time.Duration) {
 		}
 
 		for _, deployment := range deployments.Items {
-
 			if time.Since(deployment.GetCreationTimestamp().Time) > ttl {
 				k.logger.Info("deployment is old and will be deleted",
 					"name", deployment.Name,
 				)
 
+				//nolint: exhaustruct
 				err = k.clientset.AppsV1().StatefulSets("unkey").Delete(ctx, deployment.Name, metav1.DeleteOptions{
-
 					PropagationPolicy: ptr.P(metav1.DeletePropagationBackground),
 				})
 				if err != nil {
@@ -55,6 +53,5 @@ func (k *k8s) autoEvictDeployments(ttl time.Duration) {
 				}
 			}
 		}
-
 	})
 }

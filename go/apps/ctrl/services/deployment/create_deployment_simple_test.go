@@ -421,6 +421,7 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 			}
 
 			// Simulate the mapping logic from create_deployment.go
+			// nolint: all
 			params := db.InsertDeploymentParams{
 				ID:                       "test_deployment_id",
 				WorkspaceID:              "ws_test123",
@@ -434,8 +435,6 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 				GitCommitTimestamp:       sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
 				RuntimeConfig:            []byte("{}"),
 				OpenapiSpec:              sql.NullString{String: "", Valid: false},
-				Status:                   db.DeploymentsStatusPending,
-				CreatedAt:                1724251845000,
 				UpdatedAt:                sql.NullInt64{Int64: 1724251845000, Valid: true},
 			}
 

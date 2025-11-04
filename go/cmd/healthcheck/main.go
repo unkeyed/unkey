@@ -9,8 +9,12 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Name:  "healthcheck",
-	Usage: "Perform an HTTP healthcheck against a given URL",
+	Aliases:  []string{},
+	Version:  "",
+	Commands: []*cli.Command{},
+	Flags:    []cli.Flag{},
+	Name:     "healthcheck",
+	Usage:    "Perform an HTTP healthcheck against a given URL",
 	Description: `This command sends an HTTP GET request to the specified URL and validates the response. It exits with code 0 if the server returns a 200 status code, otherwise exits with code 1.
 
 USE CASES:
@@ -34,7 +38,7 @@ func runAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("you must provide a url like so: 'unkey healthcheck <url>'")
 	}
 
-	res, err := http.Get(url)
+	res, err := http.Get(url) //nolint: gosec
 	if err != nil {
 		return fmt.Errorf("failed to perform healthcheck: %w", err)
 	}

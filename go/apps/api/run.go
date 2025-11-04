@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/routes"
+	cachev1 "github.com/unkeyed/unkey/go/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
@@ -18,6 +19,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/counter"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	debugpkg "github.com/unkeyed/unkey/go/pkg/debug"
+	"github.com/unkeyed/unkey/go/pkg/eventstream"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/prometheus"
@@ -82,6 +85,12 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("TLS is enabled, server will use HTTPS")
 	}
 
+	// Enable debug cache headers if configured
+	if cfg.DebugCacheHeaders {
+		debugpkg.EnableCacheHeaders()
+		logger.Info("Debug cache headers enabled - X-Unkey-Debug-Cache headers will be added to responses")
+	}
+
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
 		if r := recover(); r != nil {
@@ -110,8 +119,10 @@ func Run(ctx context.Context, cfg Config) error {
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
+
 		go func() {
-			promListener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+			var promListener net.Listener
+			promListener, err = net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
 			if err != nil {
 				panic(err)
 			}
@@ -133,13 +144,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	caches, err := caches.New(caches.Config{
-		Logger: logger,
-		Clock:  clk,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create caches: %w", err)
-	}
+	// Caches will be created after invalidation consumer is set up
 
 	srv, err := zen.New(zen.Config{
 		Logger: logger,
@@ -177,6 +182,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
 	}
 
+	// Key service will be created after caches
 	shutdowns.Register(rlSvc.Close)
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
@@ -189,26 +195,10 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create usage limiter service: %w", err)
 	}
 
-	keySvc, err := keys.New(keys.Config{
-		Logger:       logger,
-		DB:           db,
-		KeyCache:     caches.VerificationKeyByHash,
-		RateLimiter:  rlSvc,
-		RBAC:         rbac.New(),
-		Clickhouse:   ch,
-		Region:       cfg.Region,
-		UsageLimiter: ulSvc,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create key service: %w", err)
-	}
-
-	shutdowns.Register(keySvc.Close)
-	shutdowns.Register(ctr.Close)
-
 	var vaultSvc *vault.Service
 	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {
-		vaultStorage, err := storage.NewS3(storage.S3Config{
+		var vaultStorage storage.Storage
+		vaultStorage, err = storage.NewS3(storage.S3Config{
 			Logger:            logger,
 			S3URL:             cfg.VaultS3.URL,
 			S3Bucket:          cfg.VaultS3.Bucket,
@@ -234,6 +224,57 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:     db,
 	})
 
+	// Initialize cache invalidation topic
+	cacheInvalidationTopic := eventstream.NewNoopTopic[*cachev1.CacheInvalidationEvent]()
+	if len(cfg.KafkaBrokers) > 0 {
+		logger.Info("Initializing cache invalidation topic", "brokers", cfg.KafkaBrokers, "instanceID", cfg.InstanceID)
+
+		topicName := cfg.CacheInvalidationTopic
+		if topicName == "" {
+			topicName = DefaultCacheInvalidationTopic
+		}
+
+		cacheInvalidationTopic, err = eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
+			Brokers:    cfg.KafkaBrokers,
+			Topic:      topicName,
+			InstanceID: cfg.InstanceID,
+			Logger:     logger,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create cache invalidation topic: %w", err)
+		}
+
+		// Register topic for graceful shutdown
+		shutdowns.Register(cacheInvalidationTopic.Close)
+	}
+
+	caches, err := caches.New(caches.Config{
+		Logger:                 logger,
+		Clock:                  clk,
+		CacheInvalidationTopic: cacheInvalidationTopic,
+		NodeID:                 cfg.InstanceID,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create caches: %w", err)
+	}
+
+	keySvc, err := keys.New(keys.Config{
+		Logger:       logger,
+		DB:           db,
+		KeyCache:     caches.VerificationKeyByHash,
+		RateLimiter:  rlSvc,
+		RBAC:         rbac.New(),
+		Clickhouse:   ch,
+		Region:       cfg.Region,
+		UsageLimiter: ulSvc,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create key service: %w", err)
+	}
+
+	shutdowns.Register(keySvc.Close)
+	shutdowns.Register(ctr.Close)
+
 	routes.Register(srv, &routes.Services{
 		Logger:       logger,
 		Database:     db,
@@ -251,7 +292,7 @@ func Run(ctx context.Context, cfg Config) error {
 		// Create listener from HttpPort (production)
 		cfg.Listener, err = net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
 		if err != nil {
-			return fmt.Errorf("Unable to listen on port %d: %w", cfg.HttpPort, err)
+			return fmt.Errorf("unable to listen on port %d: %w", cfg.HttpPort, err)
 		}
 	}
 

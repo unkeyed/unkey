@@ -97,7 +97,8 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		go func() {
-			promListener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+			var promListener net.Listener
+			promListener, err = net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
 			if err != nil {
 				panic(err)
 			}
@@ -110,7 +111,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	var vaultSvc *vault.Service
 	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {
-		vaultStorage, err := storage.NewS3(storage.S3Config{
+		var vaultStorage storage.Storage
+		vaultStorage, err = storage.NewS3(storage.S3Config{
 			Logger:            logger,
 			S3URL:             cfg.VaultS3.S3URL,
 			S3Bucket:          cfg.VaultS3.S3Bucket,
@@ -151,7 +153,7 @@ func Run(ctx context.Context, cfg Config) error {
 			WorkspaceID:   "unkey",
 		}
 
-		err := generateLocalCertificate(ctx, localCertCfg)
+		err = generateLocalCertificate(ctx, localCertCfg)
 		if err != nil {
 			return fmt.Errorf("failed to generate local certificate: %w", err)
 		}
@@ -270,9 +272,10 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create HTTP server for ACME challenges
 	challengeSrv, err := server.New(server.Config{
-		Logger:    logger,
-		Handler:   nil,
-		EnableTLS: false,
+		CertManager: nil,
+		Logger:      logger,
+		Handler:     nil,
+		EnableTLS:   false,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create challenge server: %w", err)
