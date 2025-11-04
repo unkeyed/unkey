@@ -2,7 +2,10 @@
 
 import type { Organization } from "@/lib/auth/types";
 import {
+  Button,
+  DialogContainer,
   Empty,
+  Loading,
   Select,
   SelectContent,
   SelectItem,
@@ -10,7 +13,6 @@ import {
   SelectValue,
   toast,
 } from "@unkey/ui";
-import { Button, DialogContainer, Loading } from "@unkey/ui";
 import type React from "react";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { completeOrgSelection } from "../actions";
@@ -19,9 +21,10 @@ import { SignInContext } from "../context/signin-context";
 interface OrgSelectorProps {
   organizations: Organization[];
   lastOrgId?: string;
+  onClose?: () => void;
 }
 
-export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrgId }) => {
+export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrgId, onClose }) => {
   const context = useContext(SignInContext);
   if (!context) {
     throw new Error("OrgSelector must be used within SignInProvider");
@@ -110,6 +113,10 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
       onOpenChange={(open) => {
         if (!isLoading) {
           setIsOpen(open);
+          // If dialog is being closed, notify parent
+          if (!open && onClose) {
+            onClose();
+          }
         }
       }}
       title="Select your workspace"
@@ -162,7 +169,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
                 <SelectTrigger id="workspace-selector">
                   <SelectValue placeholder="Select a workspace..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="overflow-y-auto max-h-[400px]">
                   {sortedOrgs.map((org) => (
                     <SelectItem key={org.id} value={org.id}>
                       {org.name}

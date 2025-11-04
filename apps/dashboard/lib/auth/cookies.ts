@@ -117,6 +117,27 @@ export async function setSessionCookie(params: {
   });
 }
 
+/**
+ * Encapsulates the logic for storing the last used organization ID in a cookie
+ * This cookie is used for auto-selection on next login
+ * @param params
+ */
+export async function setLastUsedOrgCookie(params: { orgId: string }): Promise<void> {
+  const { orgId } = params;
+
+  await setCookie({
+    name: "unkey_last_org_used",
+    value: orgId,
+    options: {
+      httpOnly: false, // Allow client-side access
+      secure: true,
+      sameSite: "strict",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 Days
+    },
+  });
+}
+
 export async function getCookieOptionsAsString(
   options: Partial<CookieOptions> = {},
 ): Promise<string> {

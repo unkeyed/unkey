@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSidebar } from "@/components/ui/sidebar";
-import { setCookie, setSessionCookie } from "@/lib/auth/cookies";
+import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 
@@ -65,17 +65,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
       // Non-critical: Store the last used organization ID in a cookie for auto-selection on next login
       // This runs after the critical operations, and failures won't block the workspace switch
       try {
-        await setCookie({
-          name: "unkey_last_org_used",
-          value: orgId,
-          options: {
-            httpOnly: false, // Allow client-side access
-            secure: true,
-            sameSite: "strict",
-            path: "/",
-            maxAge: 60 * 60 * 24 * 30, // 30 Days
-          },
-        });
+        await setLastUsedOrgCookie({ orgId });
       } catch (error) {
         // Swallow the error with a debug log - preference storage failure should not interrupt user flow
         console.debug("Failed to store last used workspace preference:", error);

@@ -2,11 +2,11 @@
 
 import { FadeIn } from "@/components/landing/fade-in";
 import { getCookie } from "@/lib/auth/cookies";
-import { UNKEY_LAST_ORG_COOKIE } from "@/lib/auth/types";
+import { PENDING_SESSION_COOKIE, UNKEY_LAST_ORG_COOKIE } from "@/lib/auth/types";
 import { ArrowRight } from "@unkey/icons";
 import { Empty, Loading } from "@unkey/ui";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { completeOrgSelection } from "../../actions";
 import { ErrorBanner, WarnBanner } from "../../banners";
@@ -29,6 +29,7 @@ function SignInContent() {
     handleSignInViaEmail,
     setError,
   } = useSignIn();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const verifyParam = searchParams?.get("verify");
   const invitationToken = searchParams?.get("invitation_token");
@@ -123,6 +124,30 @@ function SignInContent() {
     handleSignInViaEmail,
   ]);
 
+  // Check for session expiration when org selector is shown
+  useEffect(() => {
+    if (!clientReady || !hasPendingAuth) {
+      return;
+    }
+
+    const checkSessionValidity = async () => {
+      const pendingSession = await getCookie(PENDING_SESSION_COOKIE);
+      if (!pendingSession) {
+        setError("Your session has expired. Please sign in again.");
+        // Clear the orgs query parameter to reset to sign-in form
+        router.push("/auth/sign-in");
+      }
+    };
+
+    // Check immediately when org selector is shown
+    checkSessionValidity();
+
+    // Then check periodically (every 30 seconds)
+    const interval = setInterval(checkSessionValidity, 30000);
+
+    return () => clearInterval(interval);
+  }, [clientReady, hasPendingAuth, router, setError]);
+
   // Show a loading indicator when auto-selecting org
   if (isLoading && clientReady) {
     return (
@@ -132,8 +157,13 @@ function SignInContent() {
       </Empty>
     );
   }
+  const handleOrgSelectorClose = () => {
+    // When user closes the org selector, navigate back to clean sign-in page
+    router.push("/auth/sign-in");
+  };
+
   return hasPendingAuth ? (
-    <OrgSelector organizations={orgs} lastOrgId={lastUsedOrgId} />
+    <OrgSelector organizations={orgs} lastOrgId={lastUsedOrgId} onClose={handleOrgSelectorClose} />
   ) : (
     <div className="flex flex-col gap-10">
       {accountNotFound && (
