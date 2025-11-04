@@ -461,6 +461,21 @@ type Role struct {
 	Permissions *[]Permission `json:"permissions,omitempty"`
 }
 
+// ServiceUnavailableErrorResponse Error response when a required service is temporarily unavailable. This indicates that the service exists but cannot be reached or is not responding.
+//
+// When you encounter this error:
+// - The service is likely experiencing temporary issues
+// - Retrying the request after a short delay may succeed
+// - If the error persists, the service may be undergoing maintenance
+// - Contact Unkey support if the issue continues
+type ServiceUnavailableErrorResponse struct {
+	// Error Base error structure following Problem Details for HTTP APIs (RFC 7807). This provides a standardized way to carry machine-readable details of errors in HTTP response content.
+	Error BaseError `json:"error"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // TooManyRequestsErrorResponse Error response when the client has sent too many requests in a given time period. This occurs when you've exceeded a rate limit or quota for the resource you're accessing.
 //
 // The rate limit resets automatically after the time window expires. To avoid this error:

@@ -310,7 +310,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					"publicMessage", fault.UserFacingMessage(err),
 				)
 
-				return s.JSON(http.StatusServiceUnavailable, openapi.InternalServerErrorResponse{
+				return s.JSON(http.StatusServiceUnavailable, openapi.ServiceUnavailableErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},

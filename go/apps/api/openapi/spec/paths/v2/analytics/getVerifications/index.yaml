@@ -68,3 +68,9 @@ post:
           schema:
             $ref: "../../../../error/InternalServerErrorResponse.yaml"
       description: Query execution failed
+    "503":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ServiceUnavailableErrorResponse.yaml"
+      description: Connection to the database failed
