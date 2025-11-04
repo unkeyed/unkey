@@ -167,7 +167,7 @@ func NewHarness(t *testing.T) *Harness {
 		Database:      db,
 		Logger:        logger,
 		Clock:         clk,
-		BaseURL:       "clickhouse://localhost:9000/default?secure=false&skip_verify=true&dial_timeout=10s",
+		BaseURL:       chDSN,
 		Vault:         v,
 	})
 	require.NoError(t, err)

@@ -639,7 +639,7 @@ FROM (
   SELECT
     time as date,
     SUM(count) as verifications
-  FROM key_verifications_per_day
+  FROM key_verifications_per_day_v1
   WHERE time >= now() - INTERVAL 60 DAY
   GROUP BY date
 )

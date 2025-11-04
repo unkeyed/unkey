@@ -2,6 +2,8 @@ package clickhouse_test
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"math/rand"
 	"slices"
 	"testing"
@@ -417,7 +419,11 @@ func TestKeyVerifications(t *testing.T) {
 						err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND external_id = ? AND identity_id = ?;", table, workspaceID, externalID, wrongIdentityID).Scan(&countWithWrongIdentity)
 						if err != nil {
 							// It's OK if there are no rows, that means the mapping is correct
-							countWithWrongIdentity = 0
+							if errors.Is(err, sql.ErrNoRows) {
+								countWithWrongIdentity = 0
+							} else {
+								require.NoError(c, err, "unexpected error querying for wrong identity mapping in table %s", table)
+							}
 						}
 						require.Equal(c, int64(0), countWithWrongIdentity, "external_id %s should never be paired with identity_id %s in table %s", externalID, wrongIdentityID, table)
 					}, time.Minute, time.Second)
