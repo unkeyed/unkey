@@ -17,7 +17,7 @@ To get started:
    - Your use case (billing, dashboards, reporting, etc.)
    - Expected query volume
 
-We'll enable analytics for your workspace within 24 hours and send you confirmation.
+We'll enable analytics for your workspace and send you confirmation.
 
 ## Authentication
 
@@ -128,24 +128,24 @@ Analytics queries return data as an array of objects:
   "meta": {
     "requestId": "req_xxx"
   },
-  "data": {
-    "verifications": [
-      { "outcome": "VALID", "count": 1234 },
-      { "outcome": "RATE_LIMITED", "count": 56 },
-      { "outcome": "USAGE_EXCEEDED", "count": 12 }
-    ]
-  }
+  "data": [
+    { "outcome": "VALID", "count": 1234 },
+    { "outcome": "RATE_LIMITED", "count": 56 },
+    { "outcome": "USAGE_EXCEEDED", "count": 12 }
+  ]
 }
 ```
 
-Each object in the `verifications` array contains fields from your SELECT clause. The field names match the column names or aliases you specified in your query.
+Each object in the `data` array contains fields from your SELECT clause. The field names match the column names or aliases you specified in your query.
 
 ## Filtering by API or User
 
 You can filter queries to specific APIs or users. Use `key_space_id` to filter by API (find this identifier in your API settings) and `external_id` to filter by user. These fields support standard SQL operators: `=`, `!=`, `IN`, `NOT IN`, `<`, `>`, etc.
 
 <Note>
-  Queries are subject to resource limits (execution time, memory, result size, and quota). See [Query Restrictions](/analytics/query-restrictions) for complete details on limits and error codes.
+  Queries are subject to resource limits (execution time, memory, result size,
+  and quota). See [Query Restrictions](/analytics/query-restrictions) for
+  complete details on limits and error codes.
 </Note>
 
 ## Next Steps
@@ -161,7 +161,11 @@ You can filter queries to specific APIs or users. Use `key_space_id` to filter b
   >
     Browse available tables, columns, and data types
   </Card>
-  <Card title="Query Restrictions" icon="shield-check" href="/analytics/query-restrictions">
+  <Card
+    title="Query Restrictions"
+    icon="shield-check"
+    href="/analytics/query-restrictions"
+  >
     View limits, quotas, and permissions
   </Card>
 </CardGroup>
