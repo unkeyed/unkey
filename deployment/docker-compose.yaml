@@ -108,12 +108,11 @@ services:
       start_period: 10s
       interval: 5s
 
-  # Bufstream - Kafka compatible event streaming
+  # The Kafka broker, available at localhost:9092
   kafka:
     container_name: kafka
     image: bufbuild/bufstream:0.4.4
-    ports:
-      - 9092:9092
+    network_mode: host
     command: ["serve", "--inmemory"]
 
   agent:
