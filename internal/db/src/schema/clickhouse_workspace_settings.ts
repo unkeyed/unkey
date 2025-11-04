@@ -25,7 +25,6 @@ export const clickhouseWorkspaceSettings = mysqlTable("clickhouse_workspace_sett
     .notNull()
     .default(1_000_000_000), // 1GB
   maxQueryResultRows: int("max_query_result_rows").notNull().default(10_000),
-  maxRowsToRead: bigint("max_rows_to_read", { mode: "number" }).notNull().default(10_000_000), // 10M rows
 
   ...lifecycleDatesV2,
 });

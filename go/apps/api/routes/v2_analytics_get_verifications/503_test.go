@@ -33,7 +33,6 @@ func Test503_ClickHouseConnectionFailure(t *testing.T) {
 		MaxQueryExecutionTime:     30,
 		MaxQueryMemoryBytes:       1_000_000_000,
 		MaxQueryResultRows:        10_000_000,
-		MaxRowsToRead:             10_000_000,
 		CreatedAt:                 now,
 		UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
 	})

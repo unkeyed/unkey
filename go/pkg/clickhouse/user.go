@@ -25,7 +25,6 @@ type UserConfig struct {
 	MaxQueryExecutionTime int32
 	MaxQueryMemoryBytes   int64
 	MaxQueryResultRows    int32
-	MaxRowsToRead         int64
 }
 
 // ConfigureUser creates or updates a ClickHouse user with all necessary permissions, quotas, and settings.
@@ -117,7 +116,6 @@ func (c *clickhouse) ConfigureUser(ctx context.Context, config UserConfig) error
 			max_execution_time = %d,
 			max_memory_usage = %d,
 			max_result_rows = %d,
-			max_rows_to_read = %d,
 			readonly = 2
 		TO %s
 	`,
@@ -125,7 +123,6 @@ func (c *clickhouse) ConfigureUser(ctx context.Context, config UserConfig) error
 		config.MaxQueryExecutionTime,
 		config.MaxQueryMemoryBytes,
 		config.MaxQueryResultRows,
-		config.MaxRowsToRead,
 		config.Username,
 	)
 	err = c.Exec(ctx, createOrReplaceProfileSQL)

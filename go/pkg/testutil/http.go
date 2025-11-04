@@ -254,7 +254,6 @@ type SetupAnalyticsOption func(*setupAnalyticsConfig)
 
 type setupAnalyticsConfig struct {
 	MaxQueryResultRows        int32
-	MaxRowsToRead             int64
 	MaxQueryMemoryBytes       int64
 	MaxQueriesPerWindow       int32
 	MaxExecutionTimePerWindow int32
@@ -265,12 +264,6 @@ type setupAnalyticsConfig struct {
 func WithMaxQueryResultRows(rows int32) SetupAnalyticsOption {
 	return func(c *setupAnalyticsConfig) {
 		c.MaxQueryResultRows = rows
-	}
-}
-
-func WithMaxRowsToRead(rows int64) SetupAnalyticsOption {
-	return func(c *setupAnalyticsConfig) {
-		c.MaxRowsToRead = rows
 	}
 }
 
@@ -298,7 +291,6 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 	// Defaults
 	config := setupAnalyticsConfig{
 		MaxQueryResultRows:        10_000_000,
-		MaxRowsToRead:             10_000_000,
 		MaxQueryMemoryBytes:       1_000_000_000,
 		MaxQueriesPerWindow:       1_000,
 		MaxExecutionTimePerWindow: 1_800,
@@ -333,7 +325,6 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 		MaxQueryExecutionTime:     config.MaxQueryExecutionTime,
 		MaxQueryMemoryBytes:       config.MaxQueryMemoryBytes,
 		MaxQueryResultRows:        config.MaxQueryResultRows,
-		MaxRowsToRead:             config.MaxRowsToRead,
 	})
 	require.NoError(h.t, err)
 
@@ -349,7 +340,6 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 		MaxQueryExecutionTime:     config.MaxQueryExecutionTime,
 		MaxQueryMemoryBytes:       config.MaxQueryMemoryBytes,
 		MaxQueryResultRows:        config.MaxQueryResultRows,
-		MaxRowsToRead:             config.MaxRowsToRead,
 		CreatedAt:                 now,
 		UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
 	})

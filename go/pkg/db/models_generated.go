@@ -576,7 +576,6 @@ type ClickhouseWorkspaceSetting struct {
 	MaxQueryExecutionTime     int32         `db:"max_query_execution_time"`
 	MaxQueryMemoryBytes       int64         `db:"max_query_memory_bytes"`
 	MaxQueryResultRows        int32         `db:"max_query_result_rows"`
-	MaxRowsToRead             int64         `db:"max_rows_to_read"`
 	CreatedAt                 int64         `db:"created_at"`
 	UpdatedAt                 sql.NullInt64 `db:"updated_at"`
 }

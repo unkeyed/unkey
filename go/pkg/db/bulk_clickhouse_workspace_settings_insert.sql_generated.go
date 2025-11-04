@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertClickhouseWorkspaceSettings is the base query for bulk insert
-const bulkInsertClickhouseWorkspaceSettings = `INSERT INTO ` + "`" + `clickhouse_workspace_settings` + "`" + ` ( workspace_id, username, password_encrypted, quota_duration_seconds, max_queries_per_window, max_execution_time_per_window, max_query_execution_time, max_query_memory_bytes, max_query_result_rows, max_rows_to_read, created_at, updated_at ) VALUES %s`
+const bulkInsertClickhouseWorkspaceSettings = `INSERT INTO ` + "`" + `clickhouse_workspace_settings` + "`" + ` ( workspace_id, username, password_encrypted, quota_duration_seconds, max_queries_per_window, max_execution_time_per_window, max_query_execution_time, max_query_memory_bytes, max_query_result_rows, created_at, updated_at ) VALUES %s`
 
 // InsertClickhouseWorkspaceSettingses performs bulk insert in a single query
 func (q *BulkQueries) InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertClickhouseWorkspaceSettingses(ctx context.Context, d
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertClickhouseWorkspaceSettings, strings.Join(valueClauses, ", "))
@@ -38,7 +38,6 @@ func (q *BulkQueries) InsertClickhouseWorkspaceSettingses(ctx context.Context, d
 		allArgs = append(allArgs, arg.MaxQueryExecutionTime)
 		allArgs = append(allArgs, arg.MaxQueryMemoryBytes)
 		allArgs = append(allArgs, arg.MaxQueryResultRows)
-		allArgs = append(allArgs, arg.MaxRowsToRead)
 		allArgs = append(allArgs, arg.CreatedAt)
 		allArgs = append(allArgs, arg.UpdatedAt)
 	}

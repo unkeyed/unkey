@@ -19,7 +19,6 @@ SET
     max_query_execution_time = ?,
     max_query_memory_bytes = ?,
     max_query_result_rows = ?,
-    max_rows_to_read = ?,
     updated_at = ?
 WHERE workspace_id = ?
 `
@@ -31,7 +30,6 @@ type UpdateClickhouseWorkspaceSettingsLimitsParams struct {
 	MaxQueryExecutionTime     int32         `db:"max_query_execution_time"`
 	MaxQueryMemoryBytes       int64         `db:"max_query_memory_bytes"`
 	MaxQueryResultRows        int32         `db:"max_query_result_rows"`
-	MaxRowsToRead             int64         `db:"max_rows_to_read"`
 	UpdatedAt                 sql.NullInt64 `db:"updated_at"`
 	WorkspaceID               string        `db:"workspace_id"`
 }
@@ -46,7 +44,6 @@ type UpdateClickhouseWorkspaceSettingsLimitsParams struct {
 //	    max_query_execution_time = ?,
 //	    max_query_memory_bytes = ?,
 //	    max_query_result_rows = ?,
-//	    max_rows_to_read = ?,
 //	    updated_at = ?
 //	WHERE workspace_id = ?
 func (q *Queries) UpdateClickhouseWorkspaceSettingsLimits(ctx context.Context, db DBTX, arg UpdateClickhouseWorkspaceSettingsLimitsParams) error {
@@ -57,7 +54,6 @@ func (q *Queries) UpdateClickhouseWorkspaceSettingsLimits(ctx context.Context, d
 		arg.MaxQueryExecutionTime,
 		arg.MaxQueryMemoryBytes,
 		arg.MaxQueryResultRows,
-		arg.MaxRowsToRead,
 		arg.UpdatedAt,
 		arg.WorkspaceID,
 	)

@@ -154,8 +154,7 @@ go run ./cmd/create-clickhouse-user \
   --quota-duration-seconds 3600 \
   --max-query-execution-time 30 \
   --max-query-memory-bytes 1073741824 \
-  --max-query-result-rows 10000 \
-  --max-rows-to-read 10000000
+  --max-query-result-rows 10000
 ```
 
 ### ClickHouse QUOTA
@@ -182,7 +181,6 @@ SETTINGS
     max_execution_time = 30,           -- Max 30 seconds per query
     max_memory_usage = 1073741824,     -- Max 1GB memory per query
     max_result_rows = 10000,           -- Max 10k rows returned
-    max_rows_to_read = 10000000,       -- Max 10M rows scanned
     readonly = 2                       -- Read-only, can set query-level settings
 TO workspace_ws_xxx_user
 ```

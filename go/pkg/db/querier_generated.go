@@ -150,7 +150,7 @@ type Querier interface {
 	FindAuditLogTargetByID(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIDRow, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
-	//  SELECT workspace_id, username, password_encrypted, quota_duration_seconds, max_queries_per_window, max_execution_time_per_window, max_query_execution_time, max_query_memory_bytes, max_query_result_rows, max_rows_to_read, created_at, updated_at FROM `clickhouse_workspace_settings`
+	//  SELECT workspace_id, username, password_encrypted, quota_duration_seconds, max_queries_per_window, max_execution_time_per_window, max_query_execution_time, max_query_memory_bytes, max_query_result_rows, created_at, updated_at FROM `clickhouse_workspace_settings`
 	//  WHERE workspace_id = ?
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (ClickhouseWorkspaceSetting, error)
 	//FindDeploymentById
@@ -1012,12 +1012,10 @@ type Querier interface {
 	//      max_query_execution_time,
 	//      max_query_memory_bytes,
 	//      max_query_result_rows,
-	//      max_rows_to_read,
 	//      created_at,
 	//      updated_at
 	//  )
 	//  VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1827,7 +1825,6 @@ type Querier interface {
 	//      max_query_execution_time = ?,
 	//      max_query_memory_bytes = ?,
 	//      max_query_result_rows = ?,
-	//      max_rows_to_read = ?,
 	//      updated_at = ?
 	//  WHERE workspace_id = ?
 	UpdateClickhouseWorkspaceSettingsLimits(ctx context.Context, db DBTX, arg UpdateClickhouseWorkspaceSettingsLimitsParams) error

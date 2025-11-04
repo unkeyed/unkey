@@ -60,7 +60,6 @@ unkey create-clickhouse-user --workspace-id ws_123 --username custom_user --max-
 		cli.Int("max-query-execution-time", "Max single query execution time in seconds", cli.Default(30)),
 		cli.Int64("max-query-memory-bytes", "Max memory per query in bytes", cli.Default(int64(1_000_000_000))),
 		cli.Int("max-query-result-rows", "Max result rows per query", cli.Default(10_000_000)),
-		cli.Int64("max-rows-to-read", "Max rows to read per query", cli.Default(int64(10_000_000))),
 	},
 	Action: run,
 }
@@ -178,7 +177,6 @@ func run(ctx context.Context, cmd *cli.Command) error {
 			MaxQueryExecutionTime:     int32(cmd.Int("max-query-execution-time")),
 			MaxQueryMemoryBytes:       cmd.Int64("max-query-memory-bytes"),
 			MaxQueryResultRows:        int32(cmd.Int("max-query-result-rows")),
-			MaxRowsToRead:             cmd.Int64("max-rows-to-read"),
 			CreatedAt:                 now,
 			UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
 		})
@@ -210,7 +208,6 @@ func run(ctx context.Context, cmd *cli.Command) error {
 			MaxQueryExecutionTime:     int32(cmd.Int("max-query-execution-time")),
 			MaxQueryMemoryBytes:       cmd.Int64("max-query-memory-bytes"),
 			MaxQueryResultRows:        int32(cmd.Int("max-query-result-rows")),
-			MaxRowsToRead:             cmd.Int64("max-rows-to-read"),
 			UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
 		})
 		if err != nil {
@@ -232,7 +229,6 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		MaxQueryExecutionTime:     int32(cmd.Int("max-query-execution-time")),
 		MaxQueryMemoryBytes:       cmd.Int64("max-query-memory-bytes"),
 		MaxQueryResultRows:        int32(cmd.Int("max-query-result-rows")),
-		MaxRowsToRead:             cmd.Int64("max-rows-to-read"),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to configure clickhouse user: %w", err)
