@@ -1,0 +1,104 @@
+---
+title: "precondition_failed"
+description: "PreconditionFailed indicates a precondition check failed."
+---
+
+<Danger>`err:unkey:application:precondition_failed`</Danger>
+
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Vault hasn't been set up.",
+    "status": 412,
+    "title": "Precondition Failed",
+    "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/application/precondition_failed"
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when your request is valid, but a precondition required to fulfill it is not met. Unlike validation errors where your input is invalid, precondition failures indicate that the system or resource is not configured correctly to handle your request.
+
+Common scenarios that trigger this error:
+
+- **API not configured for keys**: The API you're trying to create keys for doesn't have key authentication set up
+- **Vault not configured**: You're trying to create recoverable keys or decrypt keys, but the vault service isn't set up for your workspace
+- **Encryption not enabled**: You're requesting key encryption/decryption on an API that doesn't have encryption enabled
+- **Rate limit configuration missing**: You're checking a rate limit that doesn't exist for the key or its associated identity
+
+Here's an example of a request that would trigger this error:
+
+```bash
+# Attempting to create a recoverable key when vault isn't configured
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_ROOT_KEY" \
+  -d '{
+    "apiId": "api_1234567890",
+    "prefix": "test",
+    "recoverable": true
+  }'
+```
+
+## How To Fix
+
+The fix depends on which precondition failed. Check the error's `detail` field for specific information:
+
+### Vault Not Set Up
+
+If you see "Vault hasn't been set up", you have two options:
+
+1. **Configure the vault service** for your workspace (contact Unkey support if you need assistance)
+2. **Remove the encryption requirement** from your request:
+
+```bash
+# Create a non-recoverable key instead
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_ROOT_KEY" \
+  -d '{
+    "apiId": "api_1234567890",
+    "prefix": "test",
+    "recoverable": false
+  }'
+```
+
+### API Not Set Up for Keys
+
+If you see "The requested API is not set up to handle keys", you need to:
+
+1. Verify the API ID is correct
+2. Ensure the API has key authentication configured in your Unkey dashboard
+3. Create or configure the key authentication settings for your API
+
+### API Not Set Up for Encryption
+
+If you see "This API does not support key encryption", either:
+
+1. Enable encrypted key storage for the API in your Unkey dashboard settings
+2. Remove the `recoverable: true` option or `decrypt: true` parameter from your request
+
+### Rate Limit Not Found
+
+If you see a message about a requested rate limit not existing:
+
+1. Verify the rate limit name is correct
+2. Create the rate limit configuration for the key or its identity
+3. Ensure the rate limit is associated with the correct resource
+
+## Common Mistakes
+
+- **Assuming features are enabled by default**: Features like vault encryption and rate limits require explicit configuration
+- **Wrong API configuration**: Trying to use encryption features on an API that wasn't set up for it
+- **Missing rate limit setup**: Referencing rate limits that haven't been created yet
+- **Workspace-level configuration issues**: Some features need to be enabled at the workspace level before they can be used
+
+## Related Errors
+- [err:unkey:application:invalid_input](./invalid_input) - When your request input fails validation
+- [err:unkey:data:api_not_found](../data/api_not_found) - When the API itself doesn't exist
+- [err:unkey:application:service_unavailable](./service_unavailable) - When a required service is temporarily unavailable

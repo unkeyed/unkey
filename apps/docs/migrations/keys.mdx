@@ -25,7 +25,7 @@ The root key used for migrating must have the `api.*.encrypt_key` permission to 
 Extracting keys from your current system is likely the hardest part. It depends on how your keys are stored and how you can access them.
 Some providers have APIs to list all keys, while others require you to manually export them, some can provide the real key, and some only provide a hashed version.
 
-Regardless of how you get your keys, you will need to provide either the plaintext key or the hash, as well as other settings to Unkey via the [migrations.createKeys](/api-reference/migrations/create-keys) endpoint.
+Regardless of how you get your keys, you will need to provide either the plaintext key or the hash, as well as other settings to Unkey via the [migrations.createKeys](/api-reference/v1/migration/keys) endpoint.
 
 
 ## Nodejs Example

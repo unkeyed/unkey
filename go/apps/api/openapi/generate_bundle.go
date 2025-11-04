@@ -57,12 +57,9 @@ func main() {
 	}
 
 	// Build the OpenAPI v3 model
-	v3Model, errs := document.BuildV3Model()
-	if len(errs) > 0 {
-		for _, e := range errs {
-			log.Printf("Error building model: %v", e)
-		}
-		log.Fatal("Failed to build v3 model")
+	v3Model, err := document.BuildV3Model()
+	if err != nil {
+		log.Fatalf("Failed to build v3 model: %v", err)
 	}
 
 	log.Printf("Model built successfully using version %s", v3Model.Model.Version)

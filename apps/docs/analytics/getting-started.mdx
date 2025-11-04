@@ -1,0 +1,171 @@
+---
+title: Getting Started
+description: "Request access and run your first analytics query"
+---
+
+## Request Access
+
+<Warning>
+  **Analytics is currently in private beta and available by request only.**
+</Warning>
+
+To get started:
+
+1. **Find your workspace ID** in the Unkey dashboard settings
+2. **Email us** at [support@unkey.dev](mailto:support@unkey.dev) with:
+   - Your workspace ID
+   - Your use case (billing, dashboards, reporting, etc.)
+   - Expected query volume
+
+We'll enable analytics for your workspace and send you confirmation.
+
+## Authentication
+
+Analytics queries require a root key with analytics permissions. Create one in your dashboard:
+
+1. Go to **Settings** → **Root Keys**
+2. Click **Create New Root Key**
+3. Select permissions: `api.*.read_analytics` OR `api.<api_id>.read_analytics`
+4. Copy and securely store your root key
+
+<Warning>
+  Root keys have powerful permissions. Store them securely and never commit them
+  to version control.
+</Warning>
+
+## Your First Query
+
+Once you have access, execute your first analytics query using the `/v2/analytics.getVerifications` endpoint.
+
+### Count Total Verifications
+
+```sql
+SELECT COUNT(*) as total
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 7 DAY
+```
+
+Execute this query with curl:
+
+```bash
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT COUNT(*) as total FROM key_verifications_v1 WHERE time >= now() - INTERVAL 7 DAY"
+  }'
+```
+
+### Break Down by Outcome
+
+```sql
+SELECT
+  outcome,
+  COUNT(*) as count
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 24 HOUR
+GROUP BY outcome
+ORDER BY count DESC
+```
+
+Execute this query with curl:
+
+```bash
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT outcome, COUNT(*) as count FROM key_verifications_v1 WHERE time >= now() - INTERVAL 24 HOUR GROUP BY outcome ORDER BY count DESC"
+  }'
+```
+
+### Top Users by Usage
+
+```sql
+SELECT
+  external_id,
+  SUM(count) as verifications
+FROM key_verifications_per_day_v1
+WHERE time >= now() - INTERVAL 30 DAY
+GROUP BY external_id
+ORDER BY verifications DESC
+LIMIT 10
+```
+
+Execute this query with curl:
+
+```bash
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT external_id, SUM(count) as verifications FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY external_id ORDER BY verifications DESC LIMIT 10"
+  }'
+```
+
+<Tip>
+  **Performance tip:** For longer time ranges, use pre-aggregated tables instead of the raw table:
+  - `key_verifications_per_minute_v1` - For queries spanning hours
+  - `key_verifications_per_hour_v1` - For queries spanning days
+  - `key_verifications_per_day_v1` - For queries spanning weeks/months
+  - `key_verifications_per_month_v1` - For queries spanning years
+
+Use `SUM(count)` instead of `COUNT(*)` with aggregated tables. They scan far fewer rows and are much faster.
+
+</Tip>
+
+<Tip>
+  Check out the [Query Examples](/analytics/query-examples) page for 30+
+  ready-to-use queries covering billing, monitoring, and analytics use cases.
+</Tip>
+
+## Understanding the Response
+
+Analytics queries return data as an array of objects:
+
+```json
+{
+  "meta": {
+    "requestId": "req_xxx"
+  },
+  "data": [
+    { "outcome": "VALID", "count": 1234 },
+    { "outcome": "RATE_LIMITED", "count": 56 },
+    { "outcome": "USAGE_EXCEEDED", "count": 12 }
+  ]
+}
+```
+
+Each object in the `data` array contains fields from your SELECT clause. The field names match the column names or aliases you specified in your query.
+
+## Filtering by API or User
+
+You can filter queries to specific APIs or users. Use `key_space_id` to filter by API (find this identifier in your API settings) and `external_id` to filter by user. These fields support standard SQL operators: `=`, `!=`, `IN`, `NOT IN`, `<`, `>`, etc.
+
+<Note>
+  Queries are subject to resource limits (execution time, memory, result size,
+  and quota). See [Query Restrictions](/analytics/query-restrictions) for
+  complete details on limits and error codes.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Query Examples" icon="code" href="/analytics/query-examples">
+    Explore common SQL patterns for analytics and billing
+  </Card>
+  <Card
+    title="Schema Reference"
+    icon="table"
+    href="/analytics/schema-reference"
+  >
+    Browse available tables, columns, and data types
+  </Card>
+  <Card
+    title="Query Restrictions"
+    icon="shield-check"
+    href="/analytics/query-restrictions"
+  >
+    View limits, quotas, and permissions
+  </Card>
+</CardGroup>

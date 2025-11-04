@@ -10,6 +10,7 @@ import (
 
 	"github.com/unkeyed/unkey/go/apps/api/routes"
 	cachev1 "github.com/unkeyed/unkey/go/gen/proto/cache/v1"
+	"github.com/unkeyed/unkey/go/internal/services/analytics"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
@@ -145,7 +146,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Caches will be created after invalidation consumer is set up
-
 	srv, err := zen.New(zen.Config{
 		Logger: logger,
 		Flags: &zen.Flags{
@@ -275,19 +275,37 @@ func Run(ctx context.Context, cfg Config) error {
 	shutdowns.Register(keySvc.Close)
 	shutdowns.Register(ctr.Close)
 
+	// Initialize analytics connection manager
+	analyticsConnMgr := analytics.NewNoopConnectionManager()
+	if cfg.ClickhouseAnalyticsURL != "" && vaultSvc != nil {
+		analyticsConnMgr, err = analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
+			SettingsCache: caches.ClickhouseSetting,
+			Database:      db,
+			Logger:        logger,
+			Clock:         clk,
+			BaseURL:       cfg.ClickhouseAnalyticsURL,
+			Vault:         vaultSvc,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create analytics connection manager: %w", err)
+		}
+	}
+
 	routes.Register(srv, &routes.Services{
-		Logger:       logger,
-		Database:     db,
-		ClickHouse:   ch,
-		Keys:         keySvc,
-		Validator:    validator,
-		Ratelimit:    rlSvc,
-		Auditlogs:    auditlogSvc,
-		Caches:       caches,
-		Vault:        vaultSvc,
-		ChproxyToken: cfg.ChproxyToken,
-		UsageLimiter: ulSvc,
+		Logger:                     logger,
+		Database:                   db,
+		ClickHouse:                 ch,
+		Keys:                       keySvc,
+		Validator:                  validator,
+		Ratelimit:                  rlSvc,
+		Auditlogs:                  auditlogSvc,
+		Caches:                     caches,
+		Vault:                      vaultSvc,
+		ChproxyToken:               cfg.ChproxyToken,
+		UsageLimiter:               ulSvc,
+		AnalyticsConnectionManager: analyticsConnMgr,
 	})
+
 	if cfg.Listener == nil {
 		// Create listener from HttpPort (production)
 		cfg.Listener, err = net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
