@@ -163,8 +163,35 @@ func (s *Depot) CreateBuild(
 		"build_id", buildResp.ID,
 		"unkey_project_id", unkeyProjectID)
 
-	//nolint: exhaustruct
-	solverOptions := client.SolveOpt{
+	buildStatusCh := make(chan *client.SolveStatus, 100)
+	go s.processBuildStatus(buildStatusCh, req.Msg.GetWorkspaceId(), unkeyProjectID, deploymentID)
+
+	solverOptions := s.buildSolverOptions(platform, contextURL, dockerfilePath, imageName)
+	_, buildErr = buildkitClient.Solve(ctx, nil, solverOptions, buildStatusCh)
+	if buildErr != nil {
+		s.logger.Error("Build failed",
+			"error", buildErr,
+			"image_name", imageName,
+			"build_id", buildResp.ID,
+			"depot_project_id", depotProjectID,
+			"unkey_project_id", unkeyProjectID)
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("build failed: %w", buildErr))
+	}
+
+	s.logger.Info("Build completed successfully")
+
+	return connect.NewResponse(&ctrlv1.CreateBuildResponse{
+		ImageName:      imageName,
+		BuildId:        buildResp.ID,
+		DepotProjectId: depotProjectID,
+	}), nil
+}
+
+func (s *Depot) buildSolverOptions(
+	platform, contextURL, dockerfilePath, imageName string,
+) client.SolveOpt {
+	return client.SolveOpt{
 		Frontend: "dockerfile.v0",
 		FrontendAttrs: map[string]string{
 			"platform": platform,
@@ -196,49 +223,6 @@ func (s *Depot) CreateBuild(
 			},
 		},
 	}
-
-	buildStatusCh := make(chan *client.SolveStatus, 10)
-	aggregator := NewBuildStepAggregator()
-
-	go func() {
-		for status := range buildStatusCh {
-			aggregator.ProcessStatus(
-				status,
-				req.Msg.GetWorkspaceId(),
-				unkeyProjectID,
-				deploymentID,
-				s.clickhouse.BufferBuildStep,
-				s.clickhouse.BufferBuildStepLog,
-			)
-		}
-	}()
-
-	_, buildErr = buildkitClient.Solve(ctx, nil, solverOptions, buildStatusCh)
-	if buildErr != nil {
-		s.logger.Error("Build failed",
-			"error", buildErr,
-			"image_name", imageName,
-			"build_id", buildResp.ID,
-			"depot_project_id", depotProjectID,
-			"unkey_project_id", unkeyProjectID)
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("build failed: %w", buildErr))
-	}
-
-	s.logger.Info("Build completed successfully",
-		"image_name", imageName,
-		"build_id", buildResp.ID,
-		"build_token", buildResp.Token,
-		"depot_project_id", depotProjectID,
-		"platform", platform,
-		"architecture", architecture,
-		"unkey_project_id", unkeyProjectID)
-
-	return connect.NewResponse(&ctrlv1.CreateBuildResponse{
-		ImageName:      imageName,
-		BuildId:        buildResp.ID,
-		DepotProjectId: depotProjectID,
-	}), nil
 }
 
 // getOrCreateDepotProject retrieves or creates a Depot project for the given Unkey project.
@@ -310,15 +294,32 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 	return depotProjectID, nil
 }
 
+func (s *Depot) processBuildStatus(
+	statusCh <-chan *client.SolveStatus,
+	workspaceID, projectID, deploymentID string,
+) {
+	aggregator := NewBuildStepAggregator()
+	for status := range statusCh {
+		aggregator.ProcessStatus(
+			status,
+			workspaceID,
+			projectID,
+			deploymentID,
+			s.clickhouse.BufferBuildStep,
+			s.clickhouse.BufferBuildStepLog,
+		)
+	}
+}
+
 type BuildStepAggregator struct {
-	completed map[digest.Digest]bool
-	logsSent  map[digest.Digest]int
+	completed        map[digest.Digest]bool
+	verticesWithLogs map[digest.Digest]bool
 }
 
 func NewBuildStepAggregator() *BuildStepAggregator {
 	return &BuildStepAggregator{
-		completed: make(map[digest.Digest]bool),
-		logsSent:  make(map[digest.Digest]int),
+		completed:        make(map[digest.Digest]bool),
+		verticesWithLogs: make(map[digest.Digest]bool),
 	}
 }
 
@@ -328,7 +329,10 @@ func (a *BuildStepAggregator) ProcessStatus(
 	cbStep func(schema.BuildStepV1),
 	cbLog func(schema.BuildStepLogV1),
 ) {
-	// Process completed steps
+	for _, log := range status.Logs {
+		a.verticesWithLogs[log.Vertex] = true
+	}
+
 	for _, vertex := range status.Vertexes {
 		if vertex.Completed != nil && !a.completed[vertex.Digest] {
 			a.completed[vertex.Digest] = true
@@ -343,27 +347,19 @@ func (a *BuildStepAggregator) ProcessStatus(
 				StepID:       string(vertex.Digest),
 				Name:         vertex.Name,
 				Cache:        vertex.Cached,
-				HasLogs:      len(status.Logs) > 0, // will be true if any logs exist
+				HasLogs:      a.verticesWithLogs[vertex.Digest],
 			})
 		}
 	}
 
-	// Send all new logs
 	for _, log := range status.Logs {
-		// Track which logs we've already sent for this vertex
-		sentCount := a.logsSent[log.Vertex]
-		a.logsSent[log.Vertex]++
-
-		// Only send if this is a new log we haven't seen
-		if sentCount < a.logsSent[log.Vertex] {
-			cbLog(schema.BuildStepLogV1{
-				WorkspaceID:  workspaceID,
-				ProjectID:    projectID,
-				DeploymentID: deploymentID,
-				StepID:       string(log.Vertex),
-				Time:         log.Timestamp.UnixMilli(),
-				Message:      string(log.Data),
-			})
-		}
+		cbLog(schema.BuildStepLogV1{
+			WorkspaceID:  workspaceID,
+			ProjectID:    projectID,
+			DeploymentID: deploymentID,
+			StepID:       string(log.Vertex),
+			Time:         log.Timestamp.UnixMilli(),
+			Message:      string(log.Data),
+		})
 	}
 }
