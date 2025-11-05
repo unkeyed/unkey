@@ -100,7 +100,8 @@ jobs:
 
             # Logdrain application
             logdrain:
-              - 'apps/logdrain/**'
+              - 'apps/logdrain/**/!(*.md|*.txt)'
+              - 'apps/logdrain/!(*.md|*.txt)'
 
             # Go services (API v2, Ctrl, Deploy services)
             go:
@@ -112,13 +113,9 @@ jobs:
               - 'internal/clickhouse/**'
               - 'go/internal/clickhouse/**'
 
-            # Documentation
+            # Documentation (apps/docs only - .md files ARE content)
             docs:
               - 'apps/docs/**'
-              - 'apps/engineering/**'
-              - '*.md'
-              - 'README*'
-              - 'CHANGELOG*'
 
             # GitHub workflows and CI/CD
             workflows:

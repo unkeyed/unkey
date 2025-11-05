@@ -64,7 +64,8 @@ jobs:
   mintlify_deployment:
     runs-on: depot-ubuntu-24.04-4
     needs:
-      - api_production_deployment
+      - detect_changes
+    if: needs.detect_changes.outputs.docs == 'true'
     name: Deploy docs
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
