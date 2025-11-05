@@ -27,11 +27,15 @@ type clickhouse struct {
 	keyVerifications   *batch.BatchProcessor[schema.KeyVerificationRequestV1]
 	keyVerificationsV2 *batch.BatchProcessor[schema.KeyVerificationV2]
 	ratelimits         *batch.BatchProcessor[schema.RatelimitRequestV1]
+	buildSteps         *batch.BatchProcessor[schema.BuildStepV1]
+	buildStepLogs      *batch.BatchProcessor[schema.BuildStepLogV1]
 }
 
-var _ Bufferer = (*clickhouse)(nil)
-var _ Querier = (*clickhouse)(nil)
-var _ ClickHouse = (*clickhouse)(nil)
+var (
+	_ Bufferer   = (*clickhouse)(nil)
+	_ Querier    = (*clickhouse)(nil)
+	_ ClickHouse = (*clickhouse)(nil)
+)
 
 // Config contains the configuration options for the ClickHouse client.
 type Config struct {
@@ -79,7 +83,6 @@ func New(config Config) (*clickhouse, error) {
 	conn, err := ch.Open(opts)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("opening clickhouse failed"))
-
 	}
 
 	err = retry.New(
@@ -202,6 +205,48 @@ func New(config Config) (*clickhouse, error) {
 					}
 				},
 			}),
+
+		buildSteps: batch.New(
+			batch.Config[schema.BuildStepV1]{
+				Name:          "build_steps_v1",
+				Drop:          true,
+				BatchSize:     50_000,
+				BufferSize:    200_000,
+				FlushInterval: 2 * time.Second,
+				Consumers:     1,
+				Flush: func(ctx context.Context, rows []schema.BuildStepV1) {
+					table := "default.build_steps_v1"
+					err := flush(ctx, conn, table, rows)
+					if err != nil {
+						config.Logger.Error("failed to flush batch",
+							"table", table,
+							"error", err.Error(),
+						)
+					}
+				},
+			},
+		),
+
+		buildStepLogs: batch.New(
+			batch.Config[schema.BuildStepLogV1]{
+				Name:          "build_step_logs_v1",
+				Drop:          true,
+				BatchSize:     50_000,
+				BufferSize:    200_000,
+				FlushInterval: 2 * time.Second,
+				Consumers:     1,
+				Flush: func(ctx context.Context, rows []schema.BuildStepLogV1) {
+					table := "default.build_step_logs_v1"
+					err := flush(ctx, conn, table, rows)
+					if err != nil {
+						config.Logger.Error("failed to flush batch",
+							"table", table,
+							"error", err.Error(),
+						)
+					}
+				},
+			},
+		),
 	}
 
 	return c, nil

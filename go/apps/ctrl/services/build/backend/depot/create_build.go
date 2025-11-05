@@ -3,22 +3,26 @@ package depot
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
+	"buf.build/gen/go/depot/api/connectrpc/go/depot/build/v1/buildv1connect"
 	"buf.build/gen/go/depot/api/connectrpc/go/depot/core/v1/corev1connect"
+	buildv1 "buf.build/gen/go/depot/api/protocolbuffers/go/depot/build/v1"
+	corev1 "buf.build/gen/go/depot/api/protocolbuffers/go/depot/core/v1"
 	"connectrpc.com/connect"
 	"github.com/depot/depot-go/build"
 	"github.com/depot/depot-go/machine"
+	cliv1 "github.com/depot/depot-go/proto/depot/cli/v1"
 	"github.com/docker/cli/cli/config/configfile"
 	"github.com/docker/cli/cli/config/types"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth/authprovider"
 
-	corev1 "buf.build/gen/go/depot/api/protocolbuffers/go/depot/core/v1"
-	cliv1 "github.com/depot/depot-go/proto/depot/cli/v1"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -194,8 +198,15 @@ func (s *Depot) CreateBuild(
 			},
 		},
 	}
-
-	_, buildErr = buildkitClient.Solve(ctx, nil, solverOptions, nil)
+	buildStatusCh := make(chan *client.SolveStatus, 10)
+	go func() {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		for status := range buildStatusCh {
+			_ = enc.Encode(status)
+		}
+	}()
+	_, buildErr = buildkitClient.Solve(ctx, nil, solverOptions, buildStatusCh)
 	if buildErr != nil {
 		s.logger.Error("Build failed",
 			"error", buildErr,
@@ -210,16 +221,82 @@ func (s *Depot) CreateBuild(
 	s.logger.Info("Build completed successfully",
 		"image_name", imageName,
 		"build_id", buildResp.ID,
+		"build_token", buildResp.Token,
 		"depot_project_id", depotProjectID,
 		"platform", platform,
 		"architecture", architecture,
 		"unkey_project_id", unkeyProjectID)
+
+	// Fetch and print build steps and logs from Depot API
+	if err := s.printBuildLogs(ctx, buildResp.ID, buildResp.Token, depotProjectID); err != nil {
+		s.logger.Error("Failed to fetch build logs from Depot",
+			"error", err,
+			"build_id", buildResp.ID)
+		// Don't fail the request - logs are optional
+	}
 
 	return connect.NewResponse(&ctrlv1.CreateBuildResponse{
 		ImageName:      imageName,
 		BuildId:        buildResp.ID,
 		DepotProjectId: depotProjectID,
 	}), nil
+}
+
+// printBuildLogs fetches build steps and their logs from Depot API and prints them
+func (s *Depot) printBuildLogs(ctx context.Context, buildID, buildToken, projectID string) error {
+	httpClient := &http.Client{}
+	authInterceptor := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			req.Header().Set("Authorization", "Bearer "+s.registryConfig.Password) // Depot org token
+			return next(ctx, req)
+		}
+	})
+
+	buildClient := buildv1connect.NewBuildServiceClient(
+		httpClient,
+		s.depotConfig.APIUrl,
+		connect.WithInterceptors(authInterceptor),
+	)
+
+	// Get build steps
+	stepsResp, err := buildClient.GetBuildSteps(ctx, connect.NewRequest(&buildv1.GetBuildStepsRequest{
+		BuildId:   buildID,
+		ProjectId: projectID,
+	}))
+	if err != nil {
+		return fmt.Errorf("failed to get build steps: %w", err)
+	}
+
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+
+	fmt.Println("\n=== BUILD STEPS ===")
+	if err := enc.Encode(stepsResp.Msg); err != nil {
+		return fmt.Errorf("failed to encode steps: %w", err)
+	}
+
+	for _, step := range stepsResp.Msg.GetBuildSteps() {
+		logsResp, err := buildClient.GetBuildStepLogs(ctx, connect.NewRequest(&buildv1.GetBuildStepLogsRequest{
+			BuildId:         buildID,
+			ProjectId:       projectID,
+			BuildStepDigest: step.GetDigest(),
+		}))
+		if err != nil {
+			s.logger.Error("Failed to get logs for step",
+				"error", err,
+				"build_id", buildID,
+				"digest", step.GetDigest())
+			continue
+		}
+
+		fmt.Printf("\n=== LOGS FOR STEP %s ===\n", step.GetDigest())
+		if err := enc.Encode(logsResp.Msg.GetLogs()); err != nil {
+			s.logger.Error("Failed to encode logs for step",
+				"error", err)
+		}
+	}
+
+	return nil
 }
 
 // getOrCreateDepotProject retrieves or creates a Depot project for the given Unkey project.
