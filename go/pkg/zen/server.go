@@ -223,6 +223,70 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	return nil
 }
 
+// RegisterCatchAll registers a handler for a path pattern that handles all HTTP methods.
+// This is useful for proxies, ACME challenges, or any endpoint that should handle all methods.
+//
+// Example:
+//
+//	// Handle ACME challenges for all methods
+//	server.RegisterCatchAll(
+//	    []zen.Middleware{zen.WithLogging(logger)},
+//	    "/.well-known/acme-challenge/{token}",
+//	    acmeHandler,
+//	)
+//
+//	// Proxy all requests
+//	server.RegisterCatchAll(
+//	    []zen.Middleware{zen.WithErrorHandling(logger)},
+//	    "/{path...}",
+//	    proxyHandler,
+//	)
+func (s *Server) RegisterCatchAll(middlewares []Middleware, pathPattern string, handleFn HandleFunc) {
+	s.logger.Info("registering catch-all route", "path", pathPattern)
+
+	s.mux.HandleFunc(pathPattern, func(w http.ResponseWriter, r *http.Request) {
+		sess, ok := s.getSession().(*Session)
+		if !ok {
+			panic("Unable to cast session")
+		}
+
+		defer func() {
+			sess.reset()
+			s.returnSession(sess)
+		}()
+
+		err := sess.Init(w, r, s.config.MaxRequestBodySize)
+		if err != nil {
+			s.logger.Error("failed to init session", "error", err)
+
+			// Apply error handling middleware for session initialization errors
+			errorHandler := WithErrorHandling(s.logger)
+			handleErrFn := func(ctx context.Context, session *Session) error {
+				return err // Return the session init error
+			}
+			wrappedHandler := errorHandler(handleErrFn)
+			_ = wrappedHandler(r.Context(), sess)
+
+			return
+		}
+
+		// Apply middleware
+		var handle HandleFunc = handleFn
+
+		// Reverses the middlewares to run in the desired order.
+		// If middlewares are [A, B, C], this writes [C, B, A] to s.middlewares.
+		for i := len(middlewares) - 1; i >= 0; i-- {
+			handle = middlewares[i](handle)
+		}
+
+		err = handle(WithSession(r.Context(), sess), sess)
+
+		if err != nil {
+			panic(err)
+		}
+	})
+}
+
 // RegisterRoute adds an HTTP route to the server with the specified middleware chain.
 // Routes are matched by both method and path.
 //

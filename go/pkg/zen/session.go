@@ -383,6 +383,20 @@ func (s *Session) send(status int, body []byte) error {
 	return nil
 }
 
+// HTML sends an HTML response with the given status code.
+func (s *Session) HTML(status int, body []byte) error {
+	s.w.Header().Set("Content-Type", "text/html")
+
+	return s.send(status, body)
+}
+
+// Plain sends a plain text response with the given status code.
+func (s *Session) Plain(status int, body []byte) error {
+	s.w.Header().Set("Content-Type", "text/plain")
+
+	return s.send(status, body)
+}
+
 // JSON sets the response status code and sends a JSON-encoded response.
 // It automatically sets the Content-Type header to application/json.
 //
