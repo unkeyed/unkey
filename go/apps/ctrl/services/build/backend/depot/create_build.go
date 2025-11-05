@@ -3,13 +3,10 @@ package depot
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
-	"buf.build/gen/go/depot/api/connectrpc/go/depot/build/v1/buildv1connect"
 	"buf.build/gen/go/depot/api/connectrpc/go/depot/core/v1/corev1connect"
 	corev1 "buf.build/gen/go/depot/api/protocolbuffers/go/depot/core/v1"
 	"connectrpc.com/connect"
@@ -227,63 +224,6 @@ func (s *Depot) buildSolverOptions(
 			},
 		},
 	}
-}
-
-// printBuildLogs fetches build steps and their logs from Depot API and prints them
-func (s *Depot) printBuildLogs(ctx context.Context, buildID, buildToken, projectID string) error {
-	httpClient := &http.Client{}
-	authInterceptor := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-			req.Header().Set("Authorization", "Bearer "+s.registryConfig.Password) // Depot org token
-			return next(ctx, req)
-		}
-	})
-
-	buildClient := buildv1connect.NewBuildServiceClient(
-		httpClient,
-		s.depotConfig.APIUrl,
-		connect.WithInterceptors(authInterceptor),
-	)
-
-	// Get build steps
-	stepsResp, err := buildClient.GetBuildSteps(ctx, connect.NewRequest(&buildv1.GetBuildStepsRequest{
-		BuildId:   buildID,
-		ProjectId: projectID,
-	}))
-	if err != nil {
-		return fmt.Errorf("failed to get build steps: %w", err)
-	}
-
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "  ")
-
-	fmt.Println("\n=== BUILD STEPS ===")
-	if err := enc.Encode(stepsResp.Msg); err != nil {
-		return fmt.Errorf("failed to encode steps: %w", err)
-	}
-
-	for _, step := range stepsResp.Msg.GetBuildSteps() {
-		logsResp, err := buildClient.GetBuildStepLogs(ctx, connect.NewRequest(&buildv1.GetBuildStepLogsRequest{
-			BuildId:         buildID,
-			ProjectId:       projectID,
-			BuildStepDigest: step.GetDigest(),
-		}))
-		if err != nil {
-			s.logger.Error("Failed to get logs for step",
-				"error", err,
-				"build_id", buildID,
-				"digest", step.GetDigest())
-			continue
-		}
-
-		fmt.Printf("\n=== LOGS FOR STEP %s ===\n", step.GetDigest())
-		if err := enc.Encode(logsResp.Msg.GetLogs()); err != nil {
-			s.logger.Error("Failed to encode logs for step",
-				"error", err)
-		}
-	}
-
-	return nil
 }
 
 // getOrCreateDepotProject retrieves or creates a Depot project for the given Unkey project.
