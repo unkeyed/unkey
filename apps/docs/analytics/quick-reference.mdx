@@ -1,0 +1,210 @@
+---
+title: Quick Reference
+description: "Fast lookup for common analytics query patterns and table selection"
+---
+
+# Analytics Quick Reference
+
+## Essential Query Patterns
+
+### Usage Analytics
+
+**Use for**: High-level usage metrics and health monitoring
+
+```sql
+-- Total verifications (last 7 days)
+SELECT SUM(count) as total
+FROM key_verifications_per_day_v1
+WHERE time >= now() - INTERVAL 7 DAY
+
+-- Verifications by outcome (last 30 days)
+SELECT outcome, SUM(count) as count
+FROM key_verifications_per_day_v1
+WHERE time >= now() - INTERVAL 30 DAY
+GROUP BY outcome
+ORDER BY count DESC
+
+-- Daily usage trend (last 30 days)
+SELECT time as date, SUM(count) as verifications
+FROM key_verifications_per_day_v1
+WHERE time >= now() - INTERVAL 30 DAY
+GROUP BY date
+ORDER BY date
+```
+
+### User Analytics
+
+**Use for**: Understanding user behavior and identifying power users
+
+```sql
+-- Top users by usage (last 30 days)
+SELECT external_id, SUM(count) as total_verifications
+FROM key_verifications_per_day_v1
+WHERE time >= now() - INTERVAL 30 DAY
+  AND external_id != ''
+GROUP BY external_id
+ORDER BY total_verifications DESC
+LIMIT 10
+
+-- Specific user activity (last 30 days)
+SELECT SUM(count) as total_verifications,
+       SUM(CASE WHEN outcome = 'VALID' THEN count ELSE 0 END) as successful
+FROM key_verifications_per_day_v1
+WHERE external_id = 'user_123'
+  AND time >= now() - INTERVAL 30 DAY
+```
+
+### API Analytics
+
+**Use for**: Comparing API performance and usage
+
+```sql
+-- Usage per API (last 30 days)
+SELECT key_space_id, SUM(count) as total_verifications
+FROM key_verifications_per_day_v1
+WHERE time >= now() - INTERVAL 30 DAY
+GROUP BY key_space_id
+ORDER BY total_verifications DESC
+
+-- API success rate comparison (last 7 days)
+SELECT key_space_id,
+       SUM(count) as verifications,
+       round(SUM(CASE WHEN outcome = 'VALID' THEN count ELSE 0 END) / SUM(count) * 100, 2) as success_rate
+FROM key_verifications_per_day_v1
+WHERE key_space_id IN ('ks_1234', 'ks_5678')
+  AND time >= now() - INTERVAL 7 DAY
+GROUP BY key_space_id
+```
+
+### Billing Queries
+
+**Use for**: Usage-based billing and credit tracking
+
+```sql
+-- Monthly credits per user
+SELECT external_id,
+       toStartOfMonth(time) as month,
+       SUM(spent_credits) as total_credits
+FROM key_verifications_per_day_v1
+WHERE external_id != ''
+  AND time >= toStartOfMonth(now())
+GROUP BY external_id, month
+ORDER BY total_credits DESC
+
+-- User tier calculation (current month)
+SELECT external_id, SUM(spent_credits) as total_credits,
+       CASE
+         WHEN total_credits <= 1000 THEN 'free'
+         WHEN total_credits <= 10000 THEN 'starter'
+         WHEN total_credits <= 100000 THEN 'pro'
+         ELSE 'enterprise'
+       END as tier
+FROM key_verifications_per_day_v1
+WHERE time >= toStartOfMonth(now())
+  AND external_id = 'user_123'
+GROUP BY external_id
+```
+
+### Tag-Based Filtering
+
+**Use for**: Custom metadata filtering and endpoint analysis
+
+```sql
+-- Filter by single tag
+SELECT SUM(count) as total
+FROM key_verifications_per_day_v1
+WHERE has(tags, 'path=/api/v1/users')
+  AND time >= now() - INTERVAL 7 DAY
+
+-- Filter by multiple tags (OR)
+SELECT SUM(count) as total
+FROM key_verifications_per_day_v1
+WHERE hasAny(tags, ['path=/api/v1/users', 'path=/api/v1/posts'])
+  AND time >= now() - INTERVAL 7 DAY
+
+-- Group by endpoint (using path tags)
+SELECT arrayJoin(arrayFilter(x -> startsWith(x, 'path='), tags)) as endpoint,
+       COUNT(*) as requests
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 24 HOUR
+GROUP BY endpoint
+ORDER BY requests DESC
+```
+
+## Table Selection Guide
+
+Choose the right table based on your time range:
+
+| Time Range     | Recommended Table                 | When to Use                               |
+| -------------- | --------------------------------- | ----------------------------------------- |
+| **< 1 hour**   | `key_verifications_v1`            | Real-time analysis, detailed debugging    |
+| **< 24 hours** | `key_verifications_per_minute_v1` | Hourly/daily trends, recent activity      |
+| **< 30 days**  | `key_verifications_per_hour_v1`   | Daily/weekly analysis, user behavior      |
+| **< 1 year**   | `key_verifications_per_day_v1`    | Monthly/quarterly reports, billing cycles |
+| **> 1 year**   | `key_verifications_per_month_v1`  | Annual trends, long-term analytics        |
+
+**Performance Tips:**
+
+- Always filter by time first (uses indexes)
+- Use `SUM(count)` with aggregated tables, not `COUNT(*)`
+- Add `LIMIT` clauses to prevent large result sets
+- Filter before grouping when possible
+
+## Common Filters
+
+### Time Ranges
+
+```sql
+-- Relative time ranges
+WHERE time >= now() - INTERVAL 7 DAY    -- Last 7 days
+WHERE time >= now() - INTERVAL 24 HOUR   -- Last 24 hours
+WHERE time >= toStartOfDay(now())         -- Today
+WHERE time >= toStartOfMonth(now())       -- This month
+```
+
+### User & API Filters
+
+```sql
+-- Specific user
+WHERE external_id = 'user_123'
+
+-- Multiple users
+WHERE external_id IN ('user_123', 'user_456')
+
+-- Specific API
+WHERE key_space_id = 'ks_1234'
+
+-- Multiple APIs
+WHERE key_space_id IN ('ks_1234', 'ks_5678')
+```
+
+### Tag Filters
+
+```sql
+-- Has specific tag
+WHERE has(tags, 'environment=production')
+
+-- Has any of multiple tags
+WHERE hasAny(tags, ['team=backend', 'team=frontend'])
+
+-- Has all specified tags
+WHERE hasAll(tags, ['environment=prod', 'tier=premium'])
+```
+
+### Outcome Filters
+
+```sql
+-- Only successful verifications
+WHERE outcome = 'VALID'
+
+-- Only errors
+WHERE outcome != 'VALID'
+
+-- Specific error types
+WHERE outcome IN ('RATE_LIMITED', 'USAGE_EXCEEDED')
+```
+
+## Need More Functions?
+
+→ [ClickHouse Function Reference](https://clickhouse.com/docs/en/sql-reference/functions)  
+→ [ClickHouse SQL Documentation](https://clickhouse.com/docs/en/sql-reference)
