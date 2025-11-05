@@ -5,8 +5,8 @@ import { OnboardingContent } from "./components/onboarding-content";
 import { OnboardingFallback } from "./components/onboarding-fallback";
 
 export default async function OnboardingPage() {
-  // ensure we have an authenticated user
-  // we don't actually need any user data though
+  // Ensure we have an authenticated user before proceeding
+  // We don't actually need any user data though
   await getAuth();
 
   return (
