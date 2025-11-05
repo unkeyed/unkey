@@ -54,12 +54,13 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 			for _, subcmd := range c.Commands {
 				if subcmd.Name == arg {
 					subcmd.parent = c
-					return subcmd.parse(ctx, args[i+1:])
+					return subcmd.parse(ctx, args[i+1:]) //nolint: gosec
+
 				}
 				// Check aliases
 				if slices.Contains(subcmd.Aliases, arg) {
 					subcmd.parent = c
-					return subcmd.parse(ctx, args[i+1:])
+					return subcmd.parse(ctx, args[i+1:]) //nolint: gosec
 				}
 			}
 

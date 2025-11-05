@@ -52,6 +52,8 @@ import (
 	v2KeysVerifyKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_verify_key"
 	v2KeysWhoami "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_whoami"
 
+	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/go/apps/api/routes/v2_analytics_get_verifications"
+
 	zen "github.com/unkeyed/unkey/go/pkg/zen"
 )
 
@@ -251,6 +253,7 @@ func Register(srv *zen.Server, svc *Services) {
 			Logger: svc.Logger,
 			DB:     svc.Database,
 			Keys:   svc.Keys,
+			Caches: svc.Caches,
 		},
 	)
 
@@ -535,6 +538,22 @@ func Register(srv *zen.Server, svc *Services) {
 			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 			KeyCache:  svc.Caches.VerificationKeyByHash,
+		},
+	)
+
+	// ---------------------------------------------------------------------------
+	// v2/analytics
+
+	// v2/analytics.getVerifications
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2AnalyticsGetVerifications.Handler{
+			Logger:                     svc.Logger,
+			DB:                         svc.Database,
+			Keys:                       svc.Keys,
+			ClickHouse:                 svc.ClickHouse,
+			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
+			Caches:                     svc.Caches,
 		},
 	)
 

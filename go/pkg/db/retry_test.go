@@ -297,7 +297,7 @@ func TestWithRetryContext_Integration(t *testing.T) {
 			callCount++
 
 			// Try to insert duplicate key - should not be retried
-			err := Query.InsertKey(ctx, dbInstance.RW(), keyParams)
+			err = Query.InsertKey(ctx, dbInstance.RW(), keyParams)
 			return "success", err
 		})
 

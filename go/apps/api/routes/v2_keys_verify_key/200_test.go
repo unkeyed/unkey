@@ -220,8 +220,8 @@ func TestSuccess(t *testing.T) {
 
 		// First request with wrong IP - should be forbidden
 		headersWithWrongIP := http.Header{
-			"Content-Type":   {"application/json"},
-			"Authorization":  {fmt.Sprintf("Bearer %s", rootKey)},
+			"Content-Type":    {"application/json"},
+			"Authorization":   {fmt.Sprintf("Bearer %s", rootKey)},
 			"X-Forwarded-For": {"192.168.1.1"},
 		}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersWithWrongIP, req)
@@ -232,8 +232,8 @@ func TestSuccess(t *testing.T) {
 
 		// Second request with correct IP - should be valid
 		headersWithCorrectIP := http.Header{
-			"Content-Type":   {"application/json"},
-			"Authorization":  {fmt.Sprintf("Bearer %s", rootKey)},
+			"Content-Type":    {"application/json"},
+			"Authorization":   {fmt.Sprintf("Bearer %s", rootKey)},
 			"X-Forwarded-For": {"123.123.123.123"},
 		}
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headersWithCorrectIP, req)

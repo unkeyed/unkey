@@ -57,19 +57,19 @@ const buttonVariants = cva(
         destructive: "", // This is only required for mapping from destructive-> danger. We rely on this for type generation because CVA types are hard to mutate.
         primary: [
           "p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md font-medium border border-grayA-4",
-          "focus:ring focus:ring-gray-5 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
+          "focus:ring focus:ring-gray-5 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button transform-gpu",
           "disabled:border disabled:border-solid disabled:bg-grayA-6 disabled:border-grayA-4 disabled:text-white/85 disabled:dark:text-white/85",
           "active:bg-accent-12/80",
         ],
         outline: [
           "p-2 text-gray-12 bg-transparent border border-grayA-6 hover:bg-grayA-2 rounded-md",
-          "focus:border-grayA-12 focus:ring focus:ring-gray-5 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
+          "focus:border-grayA-12 focus:ring focus:ring-gray-5 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button transform-gpu",
           "disabled:border disabled:border-solid disabled:border-grayA-5 disabled:text-grayA-7",
           "active:bg-grayA-3",
         ],
         ghost: [
           "p-2 text-gray-12 bg-transparent hover:bg-grayA-4 rounded-md focus:hover:bg-transparent",
-          "focus:border-grayA-12 focus:ring focus:ring-gray-5 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button",
+          "focus:border-grayA-12 focus:ring focus:ring-gray-5 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button transform-gpu",
           "disabled:border disabled:border-grayA-4 disabled:text-grayA-7",
           "active:bg-grayA-5",
         ],

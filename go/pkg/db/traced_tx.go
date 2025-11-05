@@ -10,6 +10,11 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
+const (
+	statusSuccess = "success"
+	statusError   = "error"
+)
+
 // WrapTxWithContext wraps a standard sql.Tx with our DBTx interface for tracing, using the provided context
 func WrapTxWithContext(tx *sql.Tx, mode string, ctx context.Context) DBTx {
 	return &TracedTx{
@@ -30,7 +35,7 @@ type TracedTx struct {
 var _ DBTx = (*TracedTx)(nil)
 
 // ExecContext executes a SQL statement within the transaction with tracing
-func (t *TracedTx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (t *TracedTx) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	ctx, span := tracing.Start(ctx, "Tx.ExecContext")
 	defer span.End()
 	span.SetAttributes(
@@ -42,9 +47,9 @@ func (t *TracedTx) ExecContext(ctx context.Context, query string, args ...interf
 	result, err := t.tx.ExecContext(ctx, query, args...)
 
 	duration := time.Since(start).Seconds()
-	status := "success"
+	status := statusSuccess
 	if err != nil {
-		status = "error"
+		status = statusError
 	}
 
 	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "exec", status).Observe(duration)
@@ -63,12 +68,13 @@ func (t *TracedTx) PrepareContext(ctx context.Context, query string) (*sql.Stmt,
 	)
 
 	start := time.Now()
+	//nolint:sqlclosecheck // Rows returned to caller, who must close them
 	stmt, err := t.tx.PrepareContext(ctx, query)
 
 	duration := time.Since(start).Seconds()
-	status := "success"
+	status := statusSuccess
 	if err != nil {
-		status = "error"
+		status = statusError
 	}
 
 	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "prepare", status).Observe(duration)
@@ -78,7 +84,7 @@ func (t *TracedTx) PrepareContext(ctx context.Context, query string) (*sql.Stmt,
 }
 
 // QueryContext executes a SQL query within the transaction with tracing
-func (t *TracedTx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (t *TracedTx) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
 	ctx, span := tracing.Start(ctx, "Tx.QueryContext")
 	defer span.End()
 	span.SetAttributes(
@@ -87,12 +93,13 @@ func (t *TracedTx) QueryContext(ctx context.Context, query string, args ...inter
 	)
 
 	start := time.Now()
+	//nolint:sqlclosecheck // Rows returned to caller, who must close them
 	rows, err := t.tx.QueryContext(ctx, query, args...)
 
 	duration := time.Since(start).Seconds()
-	status := "success"
+	status := statusSuccess
 	if err != nil {
-		status = "error"
+		status = statusError
 	}
 
 	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "query", status).Observe(duration)
@@ -102,7 +109,7 @@ func (t *TracedTx) QueryContext(ctx context.Context, query string, args ...inter
 }
 
 // QueryRowContext executes a SQL query that returns a single row within the transaction with tracing
-func (t *TracedTx) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+func (t *TracedTx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
 	ctx, span := tracing.Start(ctx, "Tx.QueryRowContext")
 	defer span.End()
 	span.SetAttributes(
@@ -114,7 +121,7 @@ func (t *TracedTx) QueryRowContext(ctx context.Context, query string, args ...in
 	row := t.tx.QueryRowContext(ctx, query, args...)
 
 	duration := time.Since(start).Seconds()
-	status := "success"
+	status := statusSuccess
 
 	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "query_row", status).Observe(duration)
 	metrics.DatabaseOperationsTotal.WithLabelValues(t.mode, "query_row", status).Inc()
@@ -132,9 +139,9 @@ func (t *TracedTx) Commit() error {
 	err := t.tx.Commit()
 
 	duration := time.Since(start).Seconds()
-	status := "success"
+	status := statusSuccess
 	if err != nil {
-		status = "error"
+		status = statusError
 	}
 
 	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "commit", status).Observe(duration)
@@ -153,9 +160,9 @@ func (t *TracedTx) Rollback() error {
 	err := t.tx.Rollback()
 
 	duration := time.Since(start).Seconds()
-	status := "success"
+	status := statusSuccess
 	if err != nil {
-		status = "error"
+		status = statusError
 	}
 
 	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "rollback", status).Observe(duration)

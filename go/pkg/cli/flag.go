@@ -410,14 +410,16 @@ func Default(value any) FlagOption {
 		}
 
 		if err != nil {
-			Exit(fmt.Sprintf("Configuration error: %s", err.Error()), 1)
+			_ = Exit(fmt.Sprintf("Configuration error: %s", err.Error()), 1)
 		}
 	}
 }
 
 // String creates a new string flag with optional configuration
 func String(name, usage string, opts ...FlagOption) *StringFlag {
+	// nolint: exhaustruct
 	flag := &StringFlag{
+		// nolint: exhaustruct
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -437,7 +439,7 @@ func String(name, usage string, opts ...FlagOption) *StringFlag {
 			// Apply validation to environment variable values
 			if flag.validate != nil {
 				if err := flag.validate(envValue); err != nil {
-					Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
+					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
 						flag.envVar, envValue, err), 1)
 				}
 			}
@@ -452,7 +454,9 @@ func String(name, usage string, opts ...FlagOption) *StringFlag {
 
 // Duration creates a new duration flag with optional configuration
 func Duration(name, usage string, opts ...FlagOption) *DurationFlag {
+	// nolint: exhaustruct
 	flag := &DurationFlag{
+		// nolint: exhaustruct
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -471,13 +475,13 @@ func Duration(name, usage string, opts ...FlagOption) *DurationFlag {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
 			parsed, err := time.ParseDuration(envValue)
 			if err != nil {
-				Exit(fmt.Sprintf("Environment variable error: invalid duration value in %s=%q: %v",
+				_ = Exit(fmt.Sprintf("Environment variable error: invalid duration value in %s=%q: %v",
 					flag.envVar, envValue, err), 1)
 			}
 			// Apply validation to environment variable values
 			if flag.validate != nil {
 				if err := flag.validate(envValue); err != nil {
-					Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
+					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
 						flag.envVar, envValue, err), 1)
 				}
 			}
@@ -491,7 +495,9 @@ func Duration(name, usage string, opts ...FlagOption) *DurationFlag {
 
 // Bool creates a new boolean flag with optional configuration
 func Bool(name, usage string, opts ...FlagOption) *BoolFlag {
+	// nolint: exhaustruct
 	flag := &BoolFlag{
+		// nolint: exhaustruct
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -510,13 +516,13 @@ func Bool(name, usage string, opts ...FlagOption) *BoolFlag {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
 			parsed, err := strconv.ParseBool(envValue)
 			if err != nil {
-				Exit(fmt.Sprintf("Environment variable error: invalid boolean value in %s=%q: %v",
+				_ = Exit(fmt.Sprintf("Environment variable error: invalid boolean value in %s=%q: %v",
 					flag.envVar, envValue, err), 1)
 			}
 			// Apply validation to environment variable values
 			if flag.validate != nil {
 				if err := flag.validate(envValue); err != nil {
-					Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
+					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
 						flag.envVar, envValue, err), 1)
 				}
 			}
@@ -530,7 +536,9 @@ func Bool(name, usage string, opts ...FlagOption) *BoolFlag {
 
 // Int creates a new integer flag with optional configuration
 func Int(name, usage string, opts ...FlagOption) *IntFlag {
+	// nolint: exhaustruct
 	flag := &IntFlag{
+		// nolint: exhaustruct
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -549,13 +557,13 @@ func Int(name, usage string, opts ...FlagOption) *IntFlag {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
 			parsed, err := strconv.Atoi(envValue)
 			if err != nil {
-				Exit(fmt.Sprintf("Environment variable error: invalid integer value in %s=%q: %v",
+				_ = Exit(fmt.Sprintf("Environment variable error: invalid integer value in %s=%q: %v",
 					flag.envVar, envValue, err), 1)
 			}
 			// Apply validation to environment variable values
 			if flag.validate != nil {
 				if err := flag.validate(envValue); err != nil {
-					Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
+					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
 						flag.envVar, envValue, err), 1)
 				}
 			}
@@ -570,7 +578,9 @@ func Int(name, usage string, opts ...FlagOption) *IntFlag {
 
 // Float creates a new float flag with optional configuration
 func Float(name, usage string, opts ...FlagOption) *FloatFlag {
+	// nolint: exhaustruct
 	flag := &FloatFlag{
+		// nolint: exhaustruct
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -589,13 +599,13 @@ func Float(name, usage string, opts ...FlagOption) *FloatFlag {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
 			parsed, err := strconv.ParseFloat(envValue, 64)
 			if err != nil {
-				Exit(fmt.Sprintf("Environment variable error: invalid float value in %s=%q: %v",
+				_ = Exit(fmt.Sprintf("Environment variable error: invalid float value in %s=%q: %v",
 					flag.envVar, envValue, err), 1)
 			}
 			// Apply validation to environment variable values
 			if flag.validate != nil {
 				if err := flag.validate(envValue); err != nil {
-					Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
+					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
 						flag.envVar, envValue, err), 1)
 				}
 			}
@@ -610,7 +620,9 @@ func Float(name, usage string, opts ...FlagOption) *FloatFlag {
 
 // StringSlice creates a new string slice flag with optional configuration
 func StringSlice(name, usage string, opts ...FlagOption) *StringSliceFlag {
+	// nolint: exhaustruct
 	flag := &StringSliceFlag{
+		// nolint: exhaustruct
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -630,7 +642,7 @@ func StringSlice(name, usage string, opts ...FlagOption) *StringSliceFlag {
 			// Apply validation to environment variable values
 			if flag.validate != nil {
 				if err := flag.validate(envValue); err != nil {
-					Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
+					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
 						flag.envVar, envValue, err), 1)
 				}
 			}
@@ -645,7 +657,9 @@ func StringSlice(name, usage string, opts ...FlagOption) *StringSliceFlag {
 
 // Int64 creates a new int64 flag with optional configuration
 func Int64(name, usage string, opts ...FlagOption) *Int64Flag {
+	// nolint: exhaustruct
 	flag := &Int64Flag{
+		// nolint: exhaustruct
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -664,13 +678,13 @@ func Int64(name, usage string, opts ...FlagOption) *Int64Flag {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
 			parsed, err := strconv.ParseInt(envValue, 10, 64)
 			if err != nil {
-				Exit(fmt.Sprintf("Environment variable error: invalid int64 value in %s=%q: %v",
+				_ = Exit(fmt.Sprintf("Environment variable error: invalid int64 value in %s=%q: %v",
 					flag.envVar, envValue, err), 1)
 			}
 			// Apply validation to environment variable values
 			if flag.validate != nil {
 				if err := flag.validate(envValue); err != nil {
-					Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
+					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
 						flag.envVar, envValue, err), 1)
 				}
 			}
