@@ -169,6 +169,7 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 		}
 
 		err := assert.All(
+			assert.NotEmpty(reqs[i].Name, "ratelimit name must not be empty"),
 			assert.NotEmpty(reqs[i].Identifier, "ratelimit identifier must not be empty"),
 			assert.Greater(reqs[i].Limit, 0, "ratelimit limit must be greater than zero"),
 			assert.GreaterOrEqual(reqs[i].Cost, 0, "ratelimit cost must not be negative"),
