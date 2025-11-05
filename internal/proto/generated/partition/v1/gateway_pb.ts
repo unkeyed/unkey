@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file partition/v1/gateway.proto.
  */
 export const file_partition_v1_gateway: GenFile = /*@__PURE__*/
-  fileDesc("ChpwYXJ0aXRpb24vdjEvZ2F0ZXdheS5wcm90bxIMcGFydGl0aW9uLnYxIp4CCg1HYXRld2F5Q29uZmlnEiYKB3Byb2plY3QYASABKAsyFS5wYXJ0aXRpb24udjEuUHJvamVjdBIsCgpkZXBsb3ltZW50GAIgASgLMhgucGFydGl0aW9uLnYxLkRlcGxveW1lbnQSHQoDdm1zGAMgAygLMhAucGFydGl0aW9uLnYxLlZNEjIKC2F1dGhfY29uZmlnGAQgASgLMhgucGFydGl0aW9uLnYxLkF1dGhDb25maWdIAIgBARI+ChF2YWxpZGF0aW9uX2NvbmZpZxgFIAEoCzIeLnBhcnRpdGlvbi52MS5WYWxpZGF0aW9uQ29uZmlnSAGIAQFCDgoMX2F1dGhfY29uZmlnQhQKEl92YWxpZGF0aW9uX2NvbmZpZyIsCgpEZXBsb3ltZW50EgoKAmlkGAEgASgJEhIKCmlzX2VuYWJsZWQYAiABKAgiKQoHUHJvamVjdBIKCgJpZBgBIAEoCRISCgppc19lbmFibGVkGAIgASgIIhAKAlZNEgoKAmlkGAEgASgJIiEKCkF1dGhDb25maWcSEwoLa2V5X2F1dGhfaWQYASABKAkiKAoQVmFsaWRhdGlvbkNvbmZpZxIUCgxvcGVuYXBpX3NwZWMYASABKAlCsQEKEGNvbS5wYXJ0aXRpb24udjFCDEdhdGV3YXlQcm90b1ABWj5naXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL3BhcnRpdGlvbi92MTtwYXJ0aXRpb252MaICA1BYWKoCDFBhcnRpdGlvbi5WMcoCDFBhcnRpdGlvblxWMeICGFBhcnRpdGlvblxWMVxHUEJNZXRhZGF0YeoCDVBhcnRpdGlvbjo6VjFiBnByb3RvMw");
+  fileDesc("ChpwYXJ0aXRpb24vdjEvZ2F0ZXdheS5wcm90bxIMcGFydGl0aW9uLnYxIqoCCg1HYXRld2F5Q29uZmlnEiYKB3Byb2plY3QYASABKAsyFS5wYXJ0aXRpb24udjEuUHJvamVjdBIsCgpkZXBsb3ltZW50GAIgASgLMhgucGFydGl0aW9uLnYxLkRlcGxveW1lbnQSKQoJaW5zdGFuY2VzGAMgAygLMhYucGFydGl0aW9uLnYxLkluc3RhbmNlEjIKC2F1dGhfY29uZmlnGAQgASgLMhgucGFydGl0aW9uLnYxLkF1dGhDb25maWdIAIgBARI+ChF2YWxpZGF0aW9uX2NvbmZpZxgFIAEoCzIeLnBhcnRpdGlvbi52MS5WYWxpZGF0aW9uQ29uZmlnSAGIAQFCDgoMX2F1dGhfY29uZmlnQhQKEl92YWxpZGF0aW9uX2NvbmZpZyJlCgpEZXBsb3ltZW50EgoKAmlkGAEgASgJEhIKCmlzX2VuYWJsZWQYAiABKAgSGAoQazhzX3NlcnZpY2VfbmFtZRgDIAEoCRIOCgZyZWdpb24YBCABKAkSDQoFaW1hZ2UYBSABKAkiKQoHUHJvamVjdBIKCgJpZBgBIAEoCRISCgppc19lbmFibGVkGAIgASgIIhYKCEluc3RhbmNlEgoKAmlkGAEgASgJIiEKCkF1dGhDb25maWcSEwoLa2V5X2F1dGhfaWQYASABKAkiKAoQVmFsaWRhdGlvbkNvbmZpZxIUCgxvcGVuYXBpX3NwZWMYASABKAlCsQEKEGNvbS5wYXJ0aXRpb24udjFCDEdhdGV3YXlQcm90b1ABWj5naXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL3BhcnRpdGlvbi92MTtwYXJ0aXRpb252MaICA1BYWKoCDFBhcnRpdGlvbi5WMcoCDFBhcnRpdGlvblxWMeICGFBhcnRpdGlvblxWMVxHUEJNZXRhZGF0YeoCDVBhcnRpdGlvbjo6VjFiBnByb3RvMw");
 
 /**
  * GatewayConfig contains all configuration needed for a hostname
@@ -32,9 +32,9 @@ export type GatewayConfig = Message<"partition.v1.GatewayConfig"> & {
   deployment?: Deployment;
 
   /**
-   * @generated from field: repeated partition.v1.VM vms = 3;
+   * @generated from field: repeated partition.v1.Instance instances = 3;
    */
-  vms: VM[];
+  instances: Instance[];
 
   /**
    * Middleware configurations
@@ -69,6 +69,21 @@ export type Deployment = Message<"partition.v1.Deployment"> & {
    * @generated from field: bool is_enabled = 2;
    */
   isEnabled: boolean;
+
+  /**
+   * @generated from field: string k8s_service_name = 3;
+   */
+  k8sServiceName: string;
+
+  /**
+   * @generated from field: string region = 4;
+   */
+  region: string;
+
+  /**
+   * @generated from field: string image = 5;
+   */
+  image: string;
 };
 
 /**
@@ -101,9 +116,9 @@ export const ProjectSchema: GenMessage<Project> = /*@__PURE__*/
   messageDesc(file_partition_v1_gateway, 2);
 
 /**
- * @generated from message partition.v1.VM
+ * @generated from message partition.v1.Instance
  */
-export type VM = Message<"partition.v1.VM"> & {
+export type Instance = Message<"partition.v1.Instance"> & {
   /**
    * @generated from field: string id = 1;
    */
@@ -111,10 +126,10 @@ export type VM = Message<"partition.v1.VM"> & {
 };
 
 /**
- * Describes the message partition.v1.VM.
- * Use `create(VMSchema)` to create a new message.
+ * Describes the message partition.v1.Instance.
+ * Use `create(InstanceSchema)` to create a new message.
  */
-export const VMSchema: GenMessage<VM> = /*@__PURE__*/
+export const InstanceSchema: GenMessage<Instance> = /*@__PURE__*/
   messageDesc(file_partition_v1_gateway, 3);
 
 /**

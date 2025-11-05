@@ -343,11 +343,11 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			Id:        deployment.ID,
 			IsEnabled: true,
 		},
-		Vms: make([]*partitionv1.VM, len(createdInstances)),
+		Instances: make([]*partitionv1.Instance, len(createdInstances)),
 	}
 
 	for i, vm := range createdInstances {
-		gatewayConfig.Vms[i] = &partitionv1.VM{
+		gatewayConfig.Instances[i] = &partitionv1.Instance{
 			Id: vm.GetId(),
 		}
 	}

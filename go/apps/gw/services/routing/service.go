@@ -102,19 +102,19 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 		return nil, fmt.Errorf("gateway %s is disabled", config.GetDeployment().GetId())
 	}
 
-	if len(config.GetVms()) == 0 {
+	if len(config.GetInstances()) == 0 {
 		return nil, fmt.Errorf("no VMs available for gateway %s", config.GetDeployment().GetId())
 	}
 
-	availableVms := make([]pdb.Vm, 0)
-	for _, vm := range config.GetVms() {
-		dbVm, hit, err := s.vmCache.SWR(ctx, vm.GetId(), func(ctx context.Context) (pdb.Vm, error) {
+	availableInstances := make([]pdb.Vm, 0)
+	for _, instance := range config.GetInstances() {
+		dbVm, hit, err := s.vmCache.SWR(ctx, instance.GetId(), func(ctx context.Context) (pdb.Vm, error) {
 			// refactor: this is bad BAD, we should really add a getMany method to the cache
-			return pdb.Query.FindVMById(ctx, s.db.RO(), vm.GetId())
+			return pdb.Query.FindVMById(ctx, s.db.RO(), instance.GetId())
 		}, caches.DefaultFindFirstOp)
 		if err != nil {
 			if db.IsNotFound(err) {
-				s.logger.Warn("failed to load VM from cache", slog.String("vm_id", vm.GetId()), slog.String("error", err.Error()))
+				s.logger.Warn("failed to load VM from cache", slog.String("vm_id", instance.GetId()), slog.String("error", err.Error()))
 				continue
 			}
 
@@ -129,16 +129,16 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 			continue
 		}
 
-		availableVms = append(availableVms, dbVm)
+		availableInstances = append(availableInstances, dbVm)
 	}
 
-	if len(availableVms) == 0 {
+	if len(availableInstances) == 0 {
 		return nil, fmt.Errorf("no available VMs for gateway %s", config.GetDeployment().GetId())
 	}
 
 	// select random VM
 	//nolint:gosec // G404: Non-cryptographic random selection for load balancing
-	selectedVM := availableVms[rand.Intn(len(availableVms))]
+	selectedVM := availableInstances[rand.Intn(len(availableInstances))]
 
 	fullUrl := fmt.Sprintf("http://%s", selectedVM.Address.String)
 

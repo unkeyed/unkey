@@ -7,54 +7,26 @@ USE `partition_001`;
 
 -- Gateway configuration per hostname
 -- Contains all middleware configuration (auth, rate limiting, validation, etc.) as protobuf
-CREATE TABLE gateways (
+CREATE TABLE `gateways` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `workspace_id` varchar(255) NOT NULL,
   `deployment_id` varchar(255) NOT NULL,
   `hostname` varchar(255) NOT NULL,
-  `config` longblob NOT NULL,   -- Protobuf with all configuration including deployment_id, workspace_id
+  `config` longblob NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `gateways_pk` (`hostname`),
-  INDEX idx_deployment_id (deployment_id)
+  KEY `idx_deployment_id` (`deployment_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Instances tracking
+CREATE TABLE `instance` (
+  `id` varchar(255) NOT NULL,
+  `deployment_id` varchar(255) NOT NULL,
+  `status` enum('allocated','provisioning','starting','running','stopping','stopped','failed') NOT NULL,
+  `config` longblob NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_deployment_id` (`deployment_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
--- Virtual machine instances
--- Tracks complete VM lifecycle from allocation to termination
-CREATE TABLE vms (
-    id VARCHAR(255) NOT NULL PRIMARY KEY,
-    deployment_id VARCHAR(255) NOT NULL,
-    metal_host_id VARCHAR(255),  -- NULL until assigned to a host
-    -- metalhost ip and port
-    address VARCHAR(255),                    -- NULL until provisioned
-    cpu_millicores INT NOT NULL,
-    memory_mb INT NOT NULL,
-    status ENUM('allocated', 'provisioning', 'starting', 'running', 'stopping', 'stopped', 'failed') NOT NULL,
-    UNIQUE KEY unique_address (address),
-    INDEX idx_deployment_id (deployment_id)
-);
-
--- Metal host instances running metald
--- Tracks EC2 metal instances and their capacity for VM provisioning
-CREATE TABLE metal_hosts (
-    id VARCHAR(255) NOT NULL PRIMARY KEY,
-    region VARCHAR(255) NOT NULL,
-    availability_zone VARCHAR(255) NOT NULL,
-    instance_type VARCHAR(255) NOT NULL,
-    ec2_instance_id VARCHAR(255) NOT NULL,
-    private_ip VARCHAR(45) NOT NULL,
-    status ENUM('provisioning', 'active', 'draining', 'terminated') NOT NULL,
-    capacity_cpu_millicores INT NOT NULL,
-    capacity_memory_mb INT NOT NULL,
-    allocated_cpu_millicores INT NOT NULL DEFAULT 0,
-    allocated_memory_mb INT NOT NULL DEFAULT 0,
-    last_heartbeat BIGINT NOT NULL,
-
-    INDEX idx_region_status (region, status),
-    INDEX idx_az (availability_zone),
-    INDEX idx_status (status),
-    INDEX idx_heartbeat (last_heartbeat),
-    UNIQUE KEY unique_ec2_instance (ec2_instance_id)
-);
 
 
 -- TLS certificates for hostname routing

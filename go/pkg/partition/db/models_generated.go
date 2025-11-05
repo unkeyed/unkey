@@ -10,50 +10,6 @@ import (
 	"fmt"
 )
 
-type MetalHostsStatus string
-
-const (
-	MetalHostsStatusProvisioning MetalHostsStatus = "provisioning"
-	MetalHostsStatusActive       MetalHostsStatus = "active"
-	MetalHostsStatusDraining     MetalHostsStatus = "draining"
-	MetalHostsStatusTerminated   MetalHostsStatus = "terminated"
-)
-
-func (e *MetalHostsStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = MetalHostsStatus(s)
-	case string:
-		*e = MetalHostsStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for MetalHostsStatus: %T", src)
-	}
-	return nil
-}
-
-type NullMetalHostsStatus struct {
-	MetalHostsStatus MetalHostsStatus
-	Valid            bool // Valid is true if MetalHostsStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullMetalHostsStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.MetalHostsStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.MetalHostsStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullMetalHostsStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.MetalHostsStatus), nil
-}
-
 type VmsStatus string
 
 const (
@@ -117,21 +73,6 @@ type Gateway struct {
 	DeploymentID string `db:"deployment_id"`
 	Hostname     string `db:"hostname"`
 	Config       []byte `db:"config"`
-}
-
-type MetalHost struct {
-	ID                     string           `db:"id"`
-	Region                 string           `db:"region"`
-	AvailabilityZone       string           `db:"availability_zone"`
-	InstanceType           string           `db:"instance_type"`
-	Ec2InstanceID          string           `db:"ec2_instance_id"`
-	PrivateIp              string           `db:"private_ip"`
-	Status                 MetalHostsStatus `db:"status"`
-	CapacityCpuMillicores  int32            `db:"capacity_cpu_millicores"`
-	CapacityMemoryMb       int32            `db:"capacity_memory_mb"`
-	AllocatedCpuMillicores int32            `db:"allocated_cpu_millicores"`
-	AllocatedMemoryMb      int32            `db:"allocated_memory_mb"`
-	LastHeartbeat          int64            `db:"last_heartbeat"`
 }
 
 type Vm struct {

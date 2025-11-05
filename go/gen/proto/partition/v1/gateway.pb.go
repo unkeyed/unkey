@@ -28,7 +28,7 @@ type GatewayConfig struct {
 	Project *Project               `protobuf:"bytes,1,opt,name=project,proto3" json:"project,omitempty"`
 	// Deployment information
 	Deployment *Deployment `protobuf:"bytes,2,opt,name=deployment,proto3" json:"deployment,omitempty"`
-	Vms        []*VM       `protobuf:"bytes,3,rep,name=vms,proto3" json:"vms,omitempty"`
+	Instances  []*Instance `protobuf:"bytes,3,rep,name=instances,proto3" json:"instances,omitempty"`
 	// Middleware configurations
 	AuthConfig       *AuthConfig       `protobuf:"bytes,4,opt,name=auth_config,json=authConfig,proto3,oneof" json:"auth_config,omitempty"`
 	ValidationConfig *ValidationConfig `protobuf:"bytes,5,opt,name=validation_config,json=validationConfig,proto3,oneof" json:"validation_config,omitempty"`
@@ -80,9 +80,9 @@ func (x *GatewayConfig) GetDeployment() *Deployment {
 	return nil
 }
 
-func (x *GatewayConfig) GetVms() []*VM {
+func (x *GatewayConfig) GetInstances() []*Instance {
 	if x != nil {
-		return x.Vms
+		return x.Instances
 	}
 	return nil
 }
@@ -102,11 +102,14 @@ func (x *GatewayConfig) GetValidationConfig() *ValidationConfig {
 }
 
 type Deployment struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	IsEnabled     bool                   `protobuf:"varint,2,opt,name=is_enabled,json=isEnabled,proto3" json:"is_enabled,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	IsEnabled      bool                   `protobuf:"varint,2,opt,name=is_enabled,json=isEnabled,proto3" json:"is_enabled,omitempty"`
+	K8SServiceName string                 `protobuf:"bytes,3,opt,name=k8s_service_name,json=k8sServiceName,proto3" json:"k8s_service_name,omitempty"`
+	Region         string                 `protobuf:"bytes,4,opt,name=region,proto3" json:"region,omitempty"`
+	Image          string                 `protobuf:"bytes,5,opt,name=image,proto3" json:"image,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Deployment) Reset() {
@@ -151,6 +154,27 @@ func (x *Deployment) GetIsEnabled() bool {
 		return x.IsEnabled
 	}
 	return false
+}
+
+func (x *Deployment) GetK8SServiceName() string {
+	if x != nil {
+		return x.K8SServiceName
+	}
+	return ""
+}
+
+func (x *Deployment) GetRegion() string {
+	if x != nil {
+		return x.Region
+	}
+	return ""
+}
+
+func (x *Deployment) GetImage() string {
+	if x != nil {
+		return x.Image
+	}
+	return ""
 }
 
 type Project struct {
@@ -205,27 +229,27 @@ func (x *Project) GetIsEnabled() bool {
 	return false
 }
 
-type VM struct {
+type Instance struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *VM) Reset() {
-	*x = VM{}
+func (x *Instance) Reset() {
+	*x = Instance{}
 	mi := &file_partition_v1_gateway_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *VM) String() string {
+func (x *Instance) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*VM) ProtoMessage() {}
+func (*Instance) ProtoMessage() {}
 
-func (x *VM) ProtoReflect() protoreflect.Message {
+func (x *Instance) ProtoReflect() protoreflect.Message {
 	mi := &file_partition_v1_gateway_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -237,12 +261,12 @@ func (x *VM) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use VM.ProtoReflect.Descriptor instead.
-func (*VM) Descriptor() ([]byte, []int) {
+// Deprecated: Use Instance.ProtoReflect.Descriptor instead.
+func (*Instance) Descriptor() ([]byte, []int) {
 	return file_partition_v1_gateway_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *VM) GetId() string {
+func (x *Instance) GetId() string {
 	if x != nil {
 		return x.Id
 	}
@@ -344,28 +368,31 @@ var File_partition_v1_gateway_proto protoreflect.FileDescriptor
 
 const file_partition_v1_gateway_proto_rawDesc = "" +
 	"\n" +
-	"\x1apartition/v1/gateway.proto\x12\fpartition.v1\"\xd6\x02\n" +
+	"\x1apartition/v1/gateway.proto\x12\fpartition.v1\"\xe8\x02\n" +
 	"\rGatewayConfig\x12/\n" +
 	"\aproject\x18\x01 \x01(\v2\x15.partition.v1.ProjectR\aproject\x128\n" +
 	"\n" +
 	"deployment\x18\x02 \x01(\v2\x18.partition.v1.DeploymentR\n" +
-	"deployment\x12\"\n" +
-	"\x03vms\x18\x03 \x03(\v2\x10.partition.v1.VMR\x03vms\x12>\n" +
+	"deployment\x124\n" +
+	"\tinstances\x18\x03 \x03(\v2\x16.partition.v1.InstanceR\tinstances\x12>\n" +
 	"\vauth_config\x18\x04 \x01(\v2\x18.partition.v1.AuthConfigH\x00R\n" +
 	"authConfig\x88\x01\x01\x12P\n" +
 	"\x11validation_config\x18\x05 \x01(\v2\x1e.partition.v1.ValidationConfigH\x01R\x10validationConfig\x88\x01\x01B\x0e\n" +
 	"\f_auth_configB\x14\n" +
-	"\x12_validation_config\";\n" +
+	"\x12_validation_config\"\x93\x01\n" +
 	"\n" +
 	"Deployment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
-	"is_enabled\x18\x02 \x01(\bR\tisEnabled\"8\n" +
+	"is_enabled\x18\x02 \x01(\bR\tisEnabled\x12(\n" +
+	"\x10k8s_service_name\x18\x03 \x01(\tR\x0ek8sServiceName\x12\x16\n" +
+	"\x06region\x18\x04 \x01(\tR\x06region\x12\x14\n" +
+	"\x05image\x18\x05 \x01(\tR\x05image\"8\n" +
 	"\aProject\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
-	"is_enabled\x18\x02 \x01(\bR\tisEnabled\"\x14\n" +
-	"\x02VM\x12\x0e\n" +
+	"is_enabled\x18\x02 \x01(\bR\tisEnabled\"\x1a\n" +
+	"\bInstance\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\",\n" +
 	"\n" +
 	"AuthConfig\x12\x1e\n" +
@@ -391,14 +418,14 @@ var file_partition_v1_gateway_proto_goTypes = []any{
 	(*GatewayConfig)(nil),    // 0: partition.v1.GatewayConfig
 	(*Deployment)(nil),       // 1: partition.v1.Deployment
 	(*Project)(nil),          // 2: partition.v1.Project
-	(*VM)(nil),               // 3: partition.v1.VM
+	(*Instance)(nil),         // 3: partition.v1.Instance
 	(*AuthConfig)(nil),       // 4: partition.v1.AuthConfig
 	(*ValidationConfig)(nil), // 5: partition.v1.ValidationConfig
 }
 var file_partition_v1_gateway_proto_depIdxs = []int32{
 	2, // 0: partition.v1.GatewayConfig.project:type_name -> partition.v1.Project
 	1, // 1: partition.v1.GatewayConfig.deployment:type_name -> partition.v1.Deployment
-	3, // 2: partition.v1.GatewayConfig.vms:type_name -> partition.v1.VM
+	3, // 2: partition.v1.GatewayConfig.instances:type_name -> partition.v1.Instance
 	4, // 3: partition.v1.GatewayConfig.auth_config:type_name -> partition.v1.AuthConfig
 	5, // 4: partition.v1.GatewayConfig.validation_config:type_name -> partition.v1.ValidationConfig
 	5, // [5:5] is the sub-list for method output_type

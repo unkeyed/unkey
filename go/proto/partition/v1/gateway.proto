@@ -12,7 +12,7 @@ message GatewayConfig {
   // Deployment information
   Deployment deployment = 2;
 
-  repeated VM vms = 3;
+  repeated Instance instances = 3;
 
   // Middleware configurations
   optional AuthConfig auth_config = 4;
@@ -23,6 +23,12 @@ message Deployment {
   string id = 1;
 
   bool is_enabled = 2;
+
+  string k8s_service_name = 3;
+
+  string region = 4;
+
+  string image = 5;
 }
 
 message Project {
@@ -31,7 +37,7 @@ message Project {
   bool is_enabled = 2;
 }
 
-message VM {
+message Instance {
   string id = 1;
 }
 
