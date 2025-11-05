@@ -1,0 +1,361 @@
+---
+title: Ingressway
+description: Per-tenant ingressway and workload execution service
+---
+
+import { Mermaid } from "@/app/components/mermaid";
+
+**Location:** `go/apps/ingressway/`
+**CLI Command:** [`unkey run ingressway`](/cli/run/ingressway)
+**Protocol:** HTTPS with mTLS (SPIRE)
+**Isolation:** Per-tenant (one Ingressway per deployment)
+
+## What It Does
+
+Ingressway is the per-tenant ingressway service that executes customer workloads in isolation. Each deployment gets its own dedicated Ingressway instance, providing strong tenant isolation and independent scaling.
+
+Ingressway handles:
+1. **Request Processing**: Receives requests from Ingress via mTLS
+2. **API Key Verification**: Validates API keys using the keys service
+3. **Rate Limiting**: Enforces rate limits per API key
+4. **Workload Execution**: Executes customer code in isolated environment
+5. **Response Handling**: Returns results back to Ingress
+
+## Architecture
+
+### Per-Tenant Isolation
+
+Unlike Ingress (which is multi-tenant), Ingressway provides complete tenant isolation:
+- Each workspace/deployment gets a dedicated Ingressway instance
+- Resources (CPU, memory) are scoped to the deployment
+- No shared state between tenants
+- Independent scaling per deployment
+
+### Deployment Model
+
+Ingressway instances are created dynamically by Krane when a deployment is created:
+
+<Mermaid chart={`sequenceDiagram
+    autonumber
+    participant User
+    participant Ctrl as Control Plane
+    participant Krane
+    participant K8s as Kubernetes
+    participant Ingressway
+
+    User->>Ctrl: Create Deployment
+    Ctrl->>Krane: CreateDeployment(image, resources)
+    Krane->>K8s: Create StatefulSet (ingressway)
+    K8s->>Ingressway: Start Pod
+    Ingressway->>Ingressway: Initialize (connect to DBs)
+    Ingressway->>Ctrl: Ready (via health check)
+    Ctrl->>Ctrl: Register ingressway address in DB
+    Note over Ctrl: d-abc123.ws-xyz.svc.cluster.local:8080
+`} />
+
+### Service Identity
+
+Each Ingressway gets a unique SPIRE identity:
+
+```bash
+# Ingressway identity
+spiffe://unkey.io/ingressway/d-abc123
+
+# Can be accessed by
+spiffe://unkey.io/ingress
+```
+
+This ensures that only authorized Ingress instances can communicate with Ingressway, and provides automatic certificate rotation.
+
+## Request Flow
+
+<Mermaid chart={`sequenceDiagram
+    autonumber
+    participant Ingress
+    participant Ingressway
+    participant DB as Keys DB
+    participant RL as Rate Limiter
+    participant Customer as Customer Code
+
+    Ingress->>Ingressway: POST /v1/keys.verifyKey (mTLS)
+    Ingressway->>DB: Lookup API key
+    DB->>Ingressway: Key details + permissions
+
+    Ingressway->>RL: Check rate limit
+    RL->>Ingressway: OK / Rate limited
+
+    alt Rate limit OK
+        Ingressway->>Customer: Execute workload
+        Customer->>Ingressway: Result
+        Ingressway->>Ingress: 200 OK + result
+    else Rate limited
+        Ingressway->>Ingress: 429 Too Many Requests
+    end
+`} />
+
+## Database Access
+
+Ingressway connects to two databases:
+
+### Partition Database
+Used for ingressway-specific configuration:
+```sql
+-- Ingressway configuration
+SELECT * FROM ingressway_config WHERE deployment_id = ?
+
+-- Custom domain routing
+SELECT * FROM custom_domains WHERE deployment_id = ?
+```
+
+### Main Database (Keys Service)
+Used for API key operations:
+```sql
+-- Key verification
+SELECT * FROM keys WHERE hash = ?
+
+-- Rate limit config
+SELECT * FROM key_ratelimits WHERE key_id = ?
+
+-- Usage tracking
+INSERT INTO key_verifications (key_id, timestamp, ...)
+```
+
+## Services Integration
+
+Ingressway integrates with several internal services:
+
+### Keys Service
+Handles API key verification:
+```go
+keySvc, _ := keys.New(keys.Config{
+    DB:           mainDB,
+    KeyCache:     caches.VerificationKeyByHash,
+    RateLimiter:  rlSvc,
+    RBAC:         rbac.New(),
+    UsageLimiter: ulSvc,
+    Clickhouse:   ch,
+    Region:       cfg.Region,
+})
+
+result := keySvc.VerifyKey(ctx, keyHash)
+```
+
+### Rate Limiter
+Enforces per-key rate limits:
+```go
+rlSvc, _ := ratelimit.New(ratelimit.Config{
+    Logger:  logger,
+    Clock:   clk,
+    Counter: ctr, // Redis-backed counter
+})
+
+allowed, _ := rlSvc.Limit(ctx, keyID, limit, window)
+```
+
+### Usage Limiter
+Tracks and enforces usage quotas:
+```go
+ulSvc, _ := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
+    Logger:  logger,
+    DB:      mainDB,
+    Counter: ctr,
+    TTL:     30 * time.Second,
+})
+
+allowed, _ := ulSvc.Check(ctx, workspaceID)
+```
+
+## Security Model
+
+### mTLS with SPIRE
+
+Ingressway uses SPIRE for all incoming connections from Ingress:
+
+```go
+// Ingressway server with mTLS
+source, _ := workloadapi.NewX509Source(ctx)
+
+tlsConfig := tlsconfig.MTLSServerConfig(
+    source,
+    source,
+    tlsconfig.AuthorizeID(
+        spiffeid.RequireFromString("spiffe://unkey.io/ingress"),
+    ),
+)
+
+server := &http.Server{
+    Addr:      ":8443",
+    Handler:   handler,
+    TLSConfig: tlsConfig,
+}
+```
+
+Benefits:
+- **Automatic cert rotation**: No manual certificate management
+- **Strong authentication**: Cryptographic proof of Ingress identity
+- **Zero-trust networking**: Ingressway only accepts connections from verified Ingress instances
+
+### Workload Isolation
+
+Future iterations will add additional workload isolation:
+- **Network policies**: Restrict egress to approved destinations
+- **Resource limits**: CPU/memory quotas per deployment
+- **Seccomp/AppArmor**: Syscall filtering for customer code
+- **Read-only filesystems**: Prevent tampering
+
+## Resource Management
+
+Ingressway instances have configurable resource limits:
+
+```yaml
+# Krane creates Ingressway with resource limits
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"
+```
+
+These limits ensure:
+- Fair resource allocation across tenants
+- Protection against resource exhaustion
+- Predictable pricing per deployment
+
+## Observability
+
+Ingressway emits detailed metrics and traces:
+
+### Metrics
+```
+ingressway_requests_total{deployment_id="d-abc123", status="200"} 1000
+ingressway_key_verifications_total{deployment_id="d-abc123"} 950
+ingressway_rate_limited_total{deployment_id="d-abc123"} 50
+ingressway_workload_duration_seconds{deployment_id="d-abc123", p99="0.050"}
+```
+
+### Traces
+Each request generates a trace through:
+1. Ingress → Ingressway (mTLS handshake)
+2. Ingressway → Keys DB (key lookup)
+3. Ingressway → Rate Limiter (limit check)
+4. Ingressway → Customer Code (execution)
+5. Ingressway → ClickHouse (analytics)
+
+### Logs
+Structured logging with deployment context:
+```json
+{
+  "level": "info",
+  "ingresswayID": "ingressway_xyz",
+  "deploymentID": "d-abc123",
+  "workspaceID": "ws-xyz",
+  "msg": "key verified",
+  "keyID": "key_123",
+  "duration_ms": 5
+}
+```
+
+## Scaling Strategy
+
+### Horizontal Scaling
+Ingressway uses Kubernetes StatefulSets for stable identity:
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: d-abc123
+spec:
+  replicas: 2  # Scale based on load
+  serviceName: d-abc123
+```
+
+### Auto-scaling
+Future iterations will add auto-scaling based on:
+- Request rate (requests/second)
+- CPU utilization (> 70%)
+- Memory pressure (> 80%)
+- Custom metrics (workload-specific)
+
+### Right-sizing
+Ingressway instances can be right-sized per deployment:
+- **Starter**: 250m CPU, 256Mi RAM
+- **Growth**: 500m CPU, 512Mi RAM
+- **Business**: 1000m CPU, 1Gi RAM
+- **Enterprise**: Custom sizing
+
+## Health Checks
+
+Ingressway exposes health endpoints:
+
+```go
+// Liveness: Is the process alive?
+GET /_internal/liveness
+// Returns 200 if server is running
+
+// Readiness: Can it handle traffic?
+GET /_internal/readiness
+// Returns 200 if:
+// - Database connections are healthy
+// - Redis is reachable
+// - SPIRE agent is connected
+```
+
+Kubernetes uses these for pod lifecycle management:
+```yaml
+livenessProbe:
+  httpGet:
+    path: /_internal/liveness
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /_internal/readiness
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+```
+
+## Future Improvements
+
+### Planned Features
+
+1. **Customer Code Execution**: Full customer workload runtime
+2. **Enhanced Isolation**: Additional security boundaries (gVisor, Firecracker)
+3. **Multi-region Replication**: Deploy Ingressway across regions for low latency
+4. **Advanced Caching**: Cache customer code artifacts
+5. **Custom Metrics**: Allow customers to emit custom metrics
+
+### Performance Optimizations
+
+1. **Connection Pooling**: Reuse database connections
+2. **Batch Processing**: Batch analytics writes to ClickHouse
+3. **Local Caching**: In-memory cache for hot keys
+4. **Async Processing**: Non-blocking writes for analytics
+5. **HTTP/2 Multiplexing**: Reduce connection overhead
+
+## Deployment Lifecycle
+
+### Creation
+1. Ctrl calls Krane to create deployment
+2. Krane creates StatefulSet + Service
+3. Ingressway pod starts and connects to databases
+4. Health checks pass
+5. Ctrl registers ingressway address in partition DB
+6. Ingress can now route traffic to Ingressway
+
+### Updates
+1. Ctrl triggers rolling update via Krane
+2. Krane updates StatefulSet with new image
+3. New pods start, old pods drain connections
+4. Zero-downtime deployment
+
+### Deletion
+1. Ctrl calls Krane to delete deployment
+2. Krane marks StatefulSet for deletion
+3. Pods receive SIGTERM
+4. Graceful shutdown (drain connections)
+5. Resources cleaned up
