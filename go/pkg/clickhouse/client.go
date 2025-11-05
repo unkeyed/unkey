@@ -379,6 +379,14 @@ func (c *clickhouse) BufferRatelimit(req schema.RatelimitRequestV1) {
 	c.ratelimits.Buffer(req)
 }
 
+func (c *clickhouse) BufferBuildStep(req schema.BuildStepV1) {
+	c.buildSteps.Buffer(req)
+}
+
+func (c *clickhouse) BufferBuildStepLog(req schema.BuildStepLogV1) {
+	c.buildStepLogs.Buffer(req)
+}
+
 func (c *clickhouse) Conn() ch.Conn {
 	return c.conn
 }

@@ -4,6 +4,7 @@ package depot
 import (
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/build/storage"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
@@ -32,6 +33,7 @@ type Depot struct {
 	depotConfig    DepotConfig
 	registryConfig RegistryConfig
 	buildPlatform  BuildPlatform
+	clickhouse     clickhouse.ClickHouse
 	logger         logging.Logger
 }
 
@@ -40,6 +42,7 @@ type Config struct {
 	DB             db.Database
 	Storage        *storage.S3
 	DepotConfig    DepotConfig
+	Clickhouse     clickhouse.ClickHouse // Clickhouse for telemetry
 	RegistryConfig RegistryConfig
 	BuildPlatform  BuildPlatform
 	Logger         logging.Logger
@@ -52,6 +55,7 @@ func New(cfg Config) *Depot {
 		db:                               cfg.DB,
 		storage:                          cfg.Storage,
 		depotConfig:                      cfg.DepotConfig,
+		clickhouse:                       cfg.Clickhouse,
 		registryConfig:                   cfg.RegistryConfig,
 		buildPlatform:                    cfg.BuildPlatform,
 		logger:                           cfg.Logger,
