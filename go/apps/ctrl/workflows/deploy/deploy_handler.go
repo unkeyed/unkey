@@ -123,6 +123,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 			buildReq := connect.NewRequest(&ctrlv1.CreateBuildRequest{
 				UnkeyProjectId:   deployment.ProjectID,
+				WorkspaceId:      deployment.WorkspaceID,
 				DeploymentId:     deployment.ID,
 				BuildContextPath: req.GetBuildContextPath(),
 				DockerfilePath:   proto.String(req.GetDockerfilePath()),
