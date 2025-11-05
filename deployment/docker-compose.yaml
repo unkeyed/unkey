@@ -394,6 +394,8 @@ services:
       UNKEY_DEPOT_API_URL: "https://api.depot.dev"
       UNKEY_DEPOT_PROJECT_REGION: "us-east-1"
 
+      UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+
   otel:
     networks:
       - default

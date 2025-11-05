@@ -33,6 +33,14 @@ type Bufferer interface {
 	// BufferRatelimit adds a ratelimit event to the buffer.
 	// These represent API ratelimit operations with their outcome.
 	BufferRatelimit(schema.RatelimitRequestV1)
+
+	// BufferRatelimit adds a ratelimit event to the buffer.
+	// These represent API ratelimit operations with their outcome.
+	BufferBuildStep(schema.BuildStepV1)
+
+	// BufferRatelimit adds a ratelimit event to the buffer.
+	// These represent API ratelimit operations with their outcome.
+	BufferBuildStepLog(schema.BuildStepLogV1)
 }
 
 type Querier interface {
