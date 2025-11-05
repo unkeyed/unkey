@@ -100,7 +100,8 @@ jobs:
 
             # Logdrain application
             logdrain:
-              - 'apps/logdrain/**'
+              - 'apps/logdrain/**/!(*.md|*.txt)'
+              - 'apps/logdrain/!(*.md|*.txt)'
 
             # Go services (API v2, Ctrl, Deploy services)
             go:
