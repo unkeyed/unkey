@@ -5,12 +5,6 @@ description: "Limits, quotas, and permissions for analytics queries"
 
 This page explains the restrictions, resource limits, and permissions for analytics queries.
 
-## Workspace Isolation
-
-Every query is automatically scoped to your workspace. You can only access your own verification data - it's impossible to view data from other workspaces.
-
-## Query Restrictions
-
 ### Only SELECT Allowed
 
 Only `SELECT` queries are permitted. All other SQL statement types return a `query_not_supported` error.
@@ -40,31 +34,35 @@ Only explicitly approved functions are allowed. Any function not on this list wi
 <AccordionGroup>
 
 <Accordion title="Aggregates">
-`count`, `sum`, `avg`, `min`, `max`, `any`, `groupArray`, `groupUniqArray`, `uniq`, `uniqExact`, `quantile`, `countIf`
+  `count`, `sum`, `avg`, `min`, `max`, `any`, `groupArray`, `groupUniqArray`,
+  `uniq`, `uniqExact`, `quantile`, `countIf`
 </Accordion>
 
 <Accordion title="Date/Time">
-`now`, `now64`, `today`, `toDate`, `toDateTime`, `toDateTime64`, `toStartOfDay`, `toStartOfWeek`, `toStartOfMonth`, `toStartOfYear`, `toStartOfHour`, `toStartOfMinute`, `date_trunc`, `formatDateTime`, `fromUnixTimestamp64Milli`, `toUnixTimestamp64Milli`, `toIntervalDay`, `toIntervalWeek`, `toIntervalMonth`, `toIntervalYear`, `toIntervalHour`, `toIntervalMinute`, `toIntervalSecond`, `toIntervalMillisecond`, `toIntervalMicrosecond`, `toIntervalNanosecond`, `toIntervalQuarter`
+  `now`, `now64`, `today`, `toDate`, `toDateTime`, `toDateTime64`,
+  `toStartOfDay`, `toStartOfWeek`, `toStartOfMonth`, `toStartOfYear`,
+  `toStartOfHour`, `toStartOfMinute`, `date_trunc`, `formatDateTime`,
+  `fromUnixTimestamp64Milli`, `toUnixTimestamp64Milli`, `toIntervalDay`,
+  `toIntervalWeek`, `toIntervalMonth`, `toIntervalYear`, `toIntervalHour`,
+  `toIntervalMinute`, `toIntervalSecond`, `toIntervalMillisecond`,
+  `toIntervalMicrosecond`, `toIntervalNanosecond`, `toIntervalQuarter`
 </Accordion>
 
 <Accordion title="String">
-`lower`, `upper`, `substring`, `concat`, `length`, `trim`, `startsWith`, `endsWith`
+  `lower`, `upper`, `substring`, `concat`, `length`, `trim`, `startsWith`,
+  `endsWith`
 </Accordion>
 
-<Accordion title="Math">
-`round`, `floor`, `ceil`, `abs`
-</Accordion>
+<Accordion title="Math">`round`, `floor`, `ceil`, `abs`</Accordion>
 
-<Accordion title="Conditional">
-`if`, `case`, `coalesce`
-</Accordion>
+<Accordion title="Conditional">`if`, `case`, `coalesce`</Accordion>
 
 <Accordion title="Type Conversion">
-`toString`, `toInt32`, `toInt64`, `toFloat64`
+  `toString`, `toInt32`, `toInt64`, `toFloat64`
 </Accordion>
 
 <Accordion title="Array">
-`has`, `hasAny`, `hasAll`, `arrayJoin`, `arrayFilter`
+  `has`, `hasAny`, `hasAll`, `arrayJoin`, `arrayFilter`
 </Accordion>
 
 </AccordionGroup>
@@ -96,7 +94,8 @@ To ensure fair usage and prevent abuse, queries are subject to resource limits:
 
 <Note>
   If you need higher limits for your use case, please contact us at
-  [support@unkey.dev](mailto:support@unkey.dev).
+  [support@unkey.dev](mailto:support@unkey.dev) with details about your specific
+  requirements and expected query volume.
 </Note>
 
 ### Error Codes
@@ -107,60 +106,5 @@ When limits are exceeded, you'll receive specific error codes:
 | ----------------------------- | --------------------------------- | ---------------------------------------------------------- |
 | `query_execution_timeout`     | Query took longer than 30 seconds | Add more filters, reduce time range, use aggregated tables |
 | `query_memory_limit_exceeded` | Query used more than 1GB memory   | Reduce result set size, add LIMIT clause, use aggregation  |
-| `query_result_rows_exceeded`  | Query returned more than 10M rows | Add LIMIT clause, use aggregation, reduce time range        |
+| `query_result_rows_exceeded`  | Query returned more than 10M rows | Add LIMIT clause, use aggregation, reduce time range       |
 | `query_quota_exceeded`        | Exceeded 1000 queries per hour    | Wait for quota to reset, optimize query frequency          |
-
-## Authentication
-
-Analytics queries require a root key with specific permissions:
-
-### Required Permissions
-
-You need to grant analytics access for per API or for all APIs:
-
-**Workspace-level access** (all APIs):
-
-```
-api.*.read_analytics
-```
-
-**Per-API access** (specific API):
-
-```
-api.<api_id>.read_analytics
-```
-
-Choose workspace-level for broad access or per-API for fine-grained control.
-
-### Root Key Best Practices
-
-1. **Use environment variables** - Never hardcode root keys
-2. **Rotate keys regularly** - Create new keys and revoke old ones
-3. **Limit permissions** - Only grant `read_analytics` permission
-4. **Use separate keys** - Different keys for different services
-5. **Monitor usage** - Track which keys are making queries
-
-<Tip>
-  See [Getting Started](/analytics/getting-started) for step-by-step instructions on creating an analytics root key.
-</Tip>
-
-## Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Getting Started" icon="rocket" href="/analytics/getting-started">
-    Create a root key and run your first query
-  </Card>
-  <Card title="Query Examples" icon="code" href="/analytics/query-examples">
-    Explore common query patterns
-  </Card>
-  <Card
-    title="Schema Reference"
-    icon="table"
-    href="/analytics/schema-reference"
-  >
-    Browse available tables and columns
-  </Card>
-  <Card title="Error Codes" icon="triangle-exclamation" href="/errors/overview">
-    View all error codes and responses
-  </Card>
-</CardGroup>
