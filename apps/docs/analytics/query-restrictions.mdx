@@ -44,7 +44,7 @@ Only explicitly approved functions are allowed. Any function not on this list wi
 </Accordion>
 
 <Accordion title="Date/Time">
-`now`, `now64`, `today`, `toDate`, `toDateTime`, `toDateTime64`, `toStartOfDay`, `toStartOfWeek`, `toStartOfMonth`, `toStartOfYear`, `toStartOfHour`, `toStartOfMinute`, `date_trunc`, `formatDateTime`, `fromUnixTimestamp64Milli`, `toUnixTimestamp64Milli`, `toIntervalDay`, `toIntervalWeek`, `toIntervalMonth`, `toIntervalYear`, `toIntervalHour`, `toIntervalMinute`, `toIntervalSecond`
+`now`, `now64`, `today`, `toDate`, `toDateTime`, `toDateTime64`, `toStartOfDay`, `toStartOfWeek`, `toStartOfMonth`, `toStartOfYear`, `toStartOfHour`, `toStartOfMinute`, `date_trunc`, `formatDateTime`, `fromUnixTimestamp64Milli`, `toUnixTimestamp64Milli`, `toIntervalDay`, `toIntervalWeek`, `toIntervalMonth`, `toIntervalYear`, `toIntervalHour`, `toIntervalMinute`, `toIntervalSecond`, `toIntervalMillisecond`, `toIntervalMicrosecond`, `toIntervalNanosecond`, `toIntervalQuarter`
 </Accordion>
 
 <Accordion title="String">
@@ -64,7 +64,7 @@ Only explicitly approved functions are allowed. Any function not on this list wi
 </Accordion>
 
 <Accordion title="Array">
-`has`, `hasAny`, `hasAll`, `arrayJoin`, `arrayFilter`, `length`
+`has`, `hasAny`, `hasAll`, `arrayJoin`, `arrayFilter`
 </Accordion>
 
 </AccordionGroup>
@@ -86,7 +86,6 @@ To ensure fair usage and prevent abuse, queries are subject to resource limits:
 | Max execution time              | 30 seconds            | Prevent long-running queries  |
 | Max execution time (per window) | 1800 seconds (30 min) | Total execution time per hour |
 | Max memory usage                | 1 GB                  | Prevent memory exhaustion     |
-| Max rows to read                | 10 million            | Limit data scanned            |
 | Max result rows                 | 10 million            | Limit result set size         |
 
 ### Query Quotas
@@ -108,7 +107,7 @@ When limits are exceeded, you'll receive specific error codes:
 | ----------------------------- | --------------------------------- | ---------------------------------------------------------- |
 | `query_execution_timeout`     | Query took longer than 30 seconds | Add more filters, reduce time range, use aggregated tables |
 | `query_memory_limit_exceeded` | Query used more than 1GB memory   | Reduce result set size, add LIMIT clause, use aggregation  |
-| `query_rows_limit_exceeded`   | Query scanned more than 10M rows  | Add time filters, use aggregated tables (hour/day/month)   |
+| `query_result_rows_exceeded`  | Query returned more than 10M rows | Add LIMIT clause, use aggregation, reduce time range        |
 | `query_quota_exceeded`        | Exceeded 1000 queries per hour    | Wait for quota to reset, optimize query frequency          |
 
 ## Authentication

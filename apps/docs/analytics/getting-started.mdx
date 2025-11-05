@@ -39,15 +39,16 @@ Once you have access, execute your first analytics query using the `/v2/analytic
 
 ### Count Total Verifications
 
-```sql
+Count the total number of key verifications in the last 7 days across all your APIs to get a high-level view of your overall usage volume.
+
+<CodeGroup>
+```sql SQL
 SELECT COUNT(*) as total
 FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
 ```
 
-Execute this query with curl:
-
-```bash
+```bash cURL
 curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
   -H "Content-Type: application/json" \
@@ -55,10 +56,14 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
     "query": "SELECT COUNT(*) as total FROM key_verifications_v1 WHERE time >= now() - INTERVAL 7 DAY"
   }'
 ```
+</CodeGroup>
 
 ### Break Down by Outcome
 
-```sql
+Group verifications by their outcome (`VALID`, `RATE_LIMITED`, `USAGE_EXCEEDED`, etc.) over the last 24 hours to understand the distribution of successful vs. failed requests.
+
+<CodeGroup>
+```sql SQL
 SELECT
   outcome,
   COUNT(*) as count
@@ -68,9 +73,7 @@ GROUP BY outcome
 ORDER BY count DESC
 ```
 
-Execute this query with curl:
-
-```bash
+```bash cURL
 curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
   -H "Content-Type: application/json" \
@@ -78,10 +81,14 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
     "query": "SELECT outcome, COUNT(*) as count FROM key_verifications_v1 WHERE time >= now() - INTERVAL 24 HOUR GROUP BY outcome ORDER BY count DESC"
   }'
 ```
+</CodeGroup>
 
 ### Top Users by Usage
 
-```sql
+Identify your most active users by counting their total verifications over the last 30 days to spot power users or potential abuse patterns.
+
+<CodeGroup>
+```sql SQL
 SELECT
   external_id,
   SUM(count) as verifications
@@ -92,9 +99,7 @@ ORDER BY verifications DESC
 LIMIT 10
 ```
 
-Execute this query with curl:
-
-```bash
+```bash cURL
 curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
   -H "Content-Type: application/json" \
@@ -102,6 +107,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
     "query": "SELECT external_id, SUM(count) as verifications FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY external_id ORDER BY verifications DESC LIMIT 10"
   }'
 ```
+</CodeGroup>
 
 <Tip>
   **Performance tip:** For longer time ranges, use pre-aggregated tables instead of the raw table:

@@ -9,21 +9,22 @@ This guide provides SQL query examples for common analytics scenarios covering a
 
 When making API requests, you need to format the SQL query as a JSON string on a single line. Here's how:
 
-**Readable format (for documentation):**
-
-```sql
+<CodeGroup>
+```sql SQL
 SELECT COUNT(*) as total
 FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
 ```
 
-**JSON format (for API requests):**
-
-```json
-{
-  "query": "SELECT COUNT(*) as total FROM key_verifications_v1 WHERE time >= now() - INTERVAL 7 DAY"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT COUNT(*) as total FROM key_verifications_v1 WHERE time >= now() - INTERVAL 7 DAY"
+  }'
 ```
+</CodeGroup>
 
 <Tip>
   Each example below shows both the readable multi-line SQL and the single-line
@@ -32,51 +33,58 @@ WHERE time >= now() - INTERVAL 7 DAY
 
 ## Usage Analytics
 
-<AccordionGroup>
+### Total verifications in the last 7 days
 
-<Accordion title="Total verifications in the last 7 days">
+Count total verifications across all APIs in the last 7 days.
 
-```sql
-SELECT COUNT(*) as total_verifications
-FROM key_verifications_v1
+<CodeGroup>
+```sql SQL
+SELECT SUM(count) as total_verifications
+FROM key_verifications_per_day_v1
 WHERE time >= now() - INTERVAL 7 DAY
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT COUNT(*) as total_verifications FROM key_verifications_v1 WHERE time >= now() - INTERVAL 7 DAY"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT SUM(count) as total_verifications FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 7 DAY"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Verifications by outcome
 
-<Accordion title="Verifications by outcome">
+Break down verifications by outcome to understand success vs failure rates.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   outcome,
-  COUNT(*) as count
-FROM key_verifications_v1
+  SUM(count) as count
+FROM key_verifications_per_day_v1
 WHERE time >= now() - INTERVAL 30 DAY
 GROUP BY outcome
 ORDER BY count DESC
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT outcome, COUNT(*) as count FROM key_verifications_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY outcome ORDER BY count DESC"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT outcome, SUM(count) as count FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY outcome ORDER BY count DESC"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Daily verification trend
 
-<Accordion title="Daily verification trend">
+Track daily verification patterns over the last 30 days.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   time as date,
   SUM(count) as verifications
@@ -86,19 +94,22 @@ GROUP BY date
 ORDER BY date
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT time as date, SUM(count) as verifications FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT time as date, SUM(count) as verifications FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Hourly breakdown for today
 
-<Accordion title="Hourly breakdown for today">
+Analyze hourly verification patterns for today with outcome breakdown.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   time as hour,
   outcome,
@@ -109,252 +120,270 @@ GROUP BY time, outcome
 ORDER BY time, outcome
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT time as hour, outcome, SUM(count) as verifications FROM key_verifications_per_hour_v1 WHERE time >= toStartOfDay(now()) GROUP BY time, outcome ORDER BY time, outcome"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT time as hour, outcome, SUM(count) as verifications FROM key_verifications_per_hour_v1 WHERE time >= toStartOfDay(now()) GROUP BY time, outcome ORDER BY time, outcome"
+  }'
 ```
-
-</Accordion>
-
-</AccordionGroup>
+</CodeGroup>
 
 ## Usage by User
 
-<AccordionGroup>
+### All users ranked by usage
 
-<Accordion title="All users ranked by usage">
+Rank all users by their total verification usage over the last 30 days.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   external_id,
-  COUNT(*) as total_verifications,
-  countIf(outcome = 'VALID') as successful,
-  countIf(outcome = 'RATE_LIMITED') as rate_limited
-FROM key_verifications_v1
+  SUM(count) as total_verifications,
+  SUM(CASE WHEN outcome = 'VALID' THEN count ELSE 0 END) as successful,
+  SUM(CASE WHEN outcome = 'RATE_LIMITED' THEN count ELSE 0 END) as rate_limited
+FROM key_verifications_per_day_v1
 WHERE time >= now() - INTERVAL 30 DAY
   AND external_id != ''
-  GROUP BY external_id
+GROUP BY external_id
 ORDER BY total_verifications DESC
 LIMIT 100
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT external_id, COUNT(*) as total_verifications, countIf(outcome = 'VALID') as successful, countIf(outcome = 'RATE_LIMITED') as rate_limited FROM key_verifications_v1 WHERE time >= now() - INTERVAL 30 DAY AND external_id != '' GROUP BY external_id ORDER BY total_verifications DESC LIMIT 100"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT external_id, SUM(count) as total_verifications, SUM(CASE WHEN outcome = '\''VALID'\'' THEN count ELSE 0 END) as successful, SUM(CASE WHEN outcome = '\''RATE_LIMITED'\'' THEN count ELSE 0 END) as rate_limited FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 30 DAY AND external_id != '\'''\'' GROUP BY external_id ORDER BY total_verifications DESC LIMIT 100"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Usage for a specific user
 
-<Accordion title="Usage for a specific user">
+Analyze usage patterns for a specific user over the last 30 days.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
-  COUNT(*) as total_verifications,
-  countIf(outcome = 'VALID') as successful,
-  countIf(outcome = 'RATE_LIMITED') as rate_limited
-FROM key_verifications_v1
+  SUM(count) as total_verifications,
+  SUM(CASE WHEN outcome = 'VALID' THEN count ELSE 0 END) as successful,
+  SUM(CASE WHEN outcome = 'RATE_LIMITED' THEN count ELSE 0 END) as rate_limited
+FROM key_verifications_per_day_v1
 WHERE external_id = 'user_123'
   AND time >= now() - INTERVAL 30 DAY
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT COUNT(*) as total_verifications, countIf(outcome = 'VALID') as successful, countIf(outcome = 'RATE_LIMITED') as rate_limited FROM key_verifications_v1 WHERE external_id = 'user_123' AND time >= now() - INTERVAL 30 DAY"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT SUM(count) as total_verifications, SUM(CASE WHEN outcome = '\''VALID'\'' THEN count ELSE 0 END) as successful, SUM(CASE WHEN outcome = '\''RATE_LIMITED'\'' THEN count ELSE 0 END) as rate_limited FROM key_verifications_per_day_v1 WHERE external_id = '\''user_123'\'' AND time >= now() - INTERVAL 30 DAY"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Top 10 users by API usage
 
-<Accordion title="Top 10 users by API usage">
+Identify your most active users by verification count.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   external_id,
-  COUNT(*) as total_verifications
-FROM key_verifications_v1
+  SUM(count) as total_verifications
+FROM key_verifications_per_day_v1
 WHERE time >= now() - INTERVAL 30 DAY
   AND external_id != ''
-  GROUP BY external_id
+GROUP BY external_id
 ORDER BY total_verifications DESC
 LIMIT 10
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT external_id, COUNT(*) as total_verifications FROM key_verifications_v1 WHERE time >= now() - INTERVAL 30 DAY AND external_id != '' GROUP BY external_id ORDER BY total_verifications DESC LIMIT 10"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT external_id, SUM(count) as total_verifications FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 30 DAY AND external_id != '\'''\'' GROUP BY external_id ORDER BY total_verifications DESC LIMIT 10"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Daily usage per user
 
-<Accordion title="Daily usage per user">
+Track daily verification patterns for each user over 30 days.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   external_id,
-  toDate(time) as date,
-  COUNT(*) as verifications
-FROM key_verifications_v1
+  time as date,
+  SUM(count) as verifications
+FROM key_verifications_per_day_v1
 WHERE time >= now() - INTERVAL 30 DAY
 GROUP BY external_id, date
 ORDER BY external_id, date
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT external_id, toDate(time) as date, COUNT(*) as verifications FROM key_verifications_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY external_id, date ORDER BY external_id, date"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT external_id, time as date, SUM(count) as verifications FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY external_id, date ORDER BY external_id, date"
+  }'
 ```
-
-</Accordion>
-
-</AccordionGroup>
+</CodeGroup>
 
 ## API Analytics
 
-<AccordionGroup>
+### Usage per API
 
-<Accordion title="Usage per API">
+Compare usage across all APIs to identify most active endpoints.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   key_space_id,
-  COUNT(*) as total_verifications,
-  countIf(outcome = 'VALID') as successful
-FROM key_verifications_v1
+  SUM(count) as total_verifications,
+  SUM(CASE WHEN outcome = 'VALID' THEN count ELSE 0 END) as successful
+FROM key_verifications_per_day_v1
 WHERE time >= now() - INTERVAL 30 DAY
 GROUP BY key_space_id
 ORDER BY total_verifications DESC
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT key_space_id, COUNT(*) as total_verifications, countIf(outcome = 'VALID') as successful FROM key_verifications_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY key_space_id ORDER BY total_verifications DESC"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT key_space_id, SUM(count) as total_verifications, SUM(CASE WHEN outcome = '\''VALID'\'' THEN count ELSE 0 END) as successful FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY key_space_id ORDER BY total_verifications DESC"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Usage for a specific API
 
-<Accordion title="Usage for a specific API">
+Analyze detailed usage patterns for a specific API over 30 days.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
-  COUNT(*) as total_verifications,
-  countIf(outcome = 'VALID') as successful,
-  countIf(outcome = 'RATE_LIMITED') as rate_limited,
-  countIf(outcome = 'INVALID') as invalid
-FROM key_verifications_v1
+  SUM(count) as total_verifications,
+  SUM(CASE WHEN outcome = 'VALID' THEN count ELSE 0 END) as successful,
+  SUM(CASE WHEN outcome = 'RATE_LIMITED' THEN count ELSE 0 END) as rate_limited,
+  SUM(CASE WHEN outcome = 'INVALID' THEN count ELSE 0 END) as invalid
+FROM key_verifications_per_day_v1
 WHERE key_space_id = 'ks_1234'
   AND time >= now() - INTERVAL 30 DAY
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT COUNT(*) as total_verifications, countIf(outcome = 'VALID') as successful, countIf(outcome = 'RATE_LIMITED') as rate_limited, countIf(outcome = 'INVALID') as invalid FROM key_verifications_v1 WHERE key_space_id = 'ks_1234' AND time >= now() - INTERVAL 30 DAY"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT SUM(count) as total_verifications, SUM(CASE WHEN outcome = '\''VALID'\'' THEN count ELSE 0 END) as successful, SUM(CASE WHEN outcome = '\''RATE_LIMITED'\'' THEN count ELSE 0 END) as rate_limited, SUM(CASE WHEN outcome = '\''INVALID'\'' THEN count ELSE 0 END) as invalid FROM key_verifications_per_day_v1 WHERE key_space_id = '\''ks_1234'\'' AND time >= now() - INTERVAL 30 DAY"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Compare multiple APIs
 
-<Accordion title="Compare multiple APIs">
+Calculate success rates for multiple APIs to compare performance.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   key_space_id,
-  COUNT(*) as verifications,
-  round(countIf(outcome = 'VALID') / COUNT(*) * 100, 2) as success_rate
-FROM key_verifications_v1
+  SUM(count) as verifications,
+  round(SUM(CASE WHEN outcome = 'VALID' THEN count ELSE 0 END) / SUM(count) * 100, 2) as success_rate
+FROM key_verifications_per_day_v1
 WHERE key_space_id IN ('ks_1234', 'ks_5678')
   AND time >= now() - INTERVAL 7 DAY
 GROUP BY key_space_id
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT key_space_id, COUNT(*) as verifications, round(countIf(outcome = 'VALID') / COUNT(*) * 100, 2) as success_rate FROM key_verifications_v1 WHERE key_space_id IN ('ks_1234', 'ks_5678') AND time >= now() - INTERVAL 7 DAY GROUP BY key_space_id"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT key_space_id, SUM(count) as verifications, round(SUM(CASE WHEN outcome = '\''VALID'\'' THEN count ELSE 0 END) / SUM(count) * 100, 2) as success_rate FROM key_verifications_per_day_v1 WHERE key_space_id IN ('\''ks_1234'\'', '\''ks_5678'\'') AND time >= now() - INTERVAL 7 DAY GROUP BY key_space_id"
+  }'
 ```
-
-</Accordion>
-
-</AccordionGroup>
+</CodeGroup>
 
 ## Key Analytics
 
-<AccordionGroup>
+### Usage per key
 
-<Accordion title="Usage per key">
+Identify your most frequently used API keys over the last 30 days.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   key_id,
-  COUNT(*) as total_verifications,
-  countIf(outcome = 'VALID') as successful
-FROM key_verifications_v1
+  SUM(count) as total_verifications,
+  SUM(CASE WHEN outcome = 'VALID' THEN count ELSE 0 END) as successful
+FROM key_verifications_per_day_v1
 WHERE time >= now() - INTERVAL 30 DAY
 GROUP BY key_id
 ORDER BY total_verifications DESC
 LIMIT 100
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT key_id, COUNT(*) as total_verifications, countIf(outcome = 'VALID') as successful FROM key_verifications_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY key_id ORDER BY total_verifications DESC LIMIT 100"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT key_id, SUM(count) as total_verifications, SUM(CASE WHEN outcome = '\''VALID'\'' THEN count ELSE 0 END) as successful FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY key_id ORDER BY total_verifications DESC LIMIT 100"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Usage for a specific key
 
-<Accordion title="Usage for a specific key">
+Analyze detailed usage patterns for a specific API key.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
-  COUNT(*) as total_verifications,
-  countIf(outcome = 'VALID') as successful,
-  countIf(outcome = 'RATE_LIMITED') as rate_limited
-FROM key_verifications_v1
+  SUM(count) as total_verifications,
+  SUM(CASE WHEN outcome = 'VALID' THEN count ELSE 0 END) as successful,
+  SUM(CASE WHEN outcome = 'RATE_LIMITED' THEN count ELSE 0 END) as rate_limited
+FROM key_verifications_per_day_v1
 WHERE key_id = 'key_1234'
   AND time >= now() - INTERVAL 30 DAY
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT COUNT(*) as total_verifications, countIf(outcome = 'VALID') as successful, countIf(outcome = 'RATE_LIMITED') as rate_limited FROM key_verifications_v1 WHERE key_id = 'key_1234' AND time >= now() - INTERVAL 30 DAY"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT SUM(count) as total_verifications, SUM(CASE WHEN outcome = '\''VALID'\'' THEN count ELSE 0 END) as successful, SUM(CASE WHEN outcome = '\''RATE_LIMITED'\'' THEN count ELSE 0 END) as rate_limited FROM key_verifications_per_day_v1 WHERE key_id = '\''key_1234'\'' AND time >= now() - INTERVAL 30 DAY"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Keys with most errors
 
-<Accordion title="Keys with most errors">
+Find API keys that are generating the most errors.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   key_id,
-  COUNT(*) as total_errors,
+  SUM(count) as total_errors,
   groupArray(DISTINCT outcome) as error_types
-FROM key_verifications_v1
+FROM key_verifications_per_day_v1
 WHERE outcome != 'VALID'
   AND time >= now() - INTERVAL 7 DAY
 GROUP BY key_id
@@ -362,107 +391,118 @@ ORDER BY total_errors DESC
 LIMIT 20
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT key_id, COUNT(*) as total_errors, groupArray(DISTINCT outcome) as error_types FROM key_verifications_v1 WHERE outcome != 'VALID' AND time >= now() - INTERVAL 7 DAY GROUP BY key_id ORDER BY total_errors DESC LIMIT 20"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT key_id, SUM(count) as total_errors, groupArray(DISTINCT outcome) as error_types FROM key_verifications_per_day_v1 WHERE outcome != '\''VALID'\'' AND time >= now() - INTERVAL 7 DAY GROUP BY key_id ORDER BY total_errors DESC LIMIT 20"
+  }'
 ```
-
-</Accordion>
-
-</AccordionGroup>
+</CodeGroup>
 
 ## Tag-Based Analytics
 
 Tags allow you to add custom metadata to verification requests for filtering and aggregation.
 
-<AccordionGroup>
+### Filter by single tag
 
-<Accordion title="Filter by single tag">
+Count verifications for requests with a specific tag.
 
-```sql
-SELECT COUNT(*) as total
-FROM key_verifications_v1
+<CodeGroup>
+```sql SQL
+SELECT SUM(count) as total
+FROM key_verifications_per_day_v1
 WHERE has(tags, 'path=/api/v1/users')
   AND time >= now() - INTERVAL 7 DAY
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT COUNT(*) as total FROM key_verifications_v1 WHERE has(tags, 'path=/api/v1/users') AND time >= now() - INTERVAL 7 DAY"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT SUM(count) as total FROM key_verifications_per_day_v1 WHERE has(tags, '\''path=/api/v1/users'\'') AND time >= now() - INTERVAL 7 DAY"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Filter by multiple tags (OR)
 
-<Accordion title="Filter by multiple tags (OR)">
+Count verifications matching any of multiple tags.
 
-```sql
-SELECT COUNT(*) as total
-FROM key_verifications_v1
+<CodeGroup>
+```sql SQL
+SELECT SUM(count) as total
+FROM key_verifications_per_day_v1
 WHERE hasAny(tags, ['path=/api/v1/users', 'path=/api/v1/posts'])
   AND time >= now() - INTERVAL 7 DAY
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT COUNT(*) as total FROM key_verifications_v1 WHERE hasAny(tags, ['path=/api/v1/users', 'path=/api/v1/posts']) AND time >= now() - INTERVAL 7 DAY"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT SUM(count) as total FROM key_verifications_per_day_v1 WHERE hasAny(tags, ['\''path=/api/v1/users'\'', '\''path=/api/v1/posts'\'']) AND time >= now() - INTERVAL 7 DAY"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Filter by multiple tags (AND)
 
-<Accordion title="Filter by multiple tags (AND)">
+Count verifications matching all specified tags.
 
-```sql
-SELECT COUNT(*) as total
-FROM key_verifications_v1
+<CodeGroup>
+```sql SQL
+SELECT SUM(count) as total
+FROM key_verifications_per_day_v1
 WHERE hasAll(tags, ['environment=production', 'team=backend'])
   AND time >= now() - INTERVAL 7 DAY
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT COUNT(*) as total FROM key_verifications_v1 WHERE hasAll(tags, ['environment=production', 'team=backend']) AND time >= now() - INTERVAL 7 DAY"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT SUM(count) as total FROM key_verifications_per_day_v1 WHERE hasAll(tags, ['\''environment=production'\'', '\''team=backend'\'']) AND time >= now() - INTERVAL 7 DAY"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Group by tag
 
-<Accordion title="Group by tag">
+Aggregate verifications by individual tags to see usage patterns.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   arrayJoin(tags) as tag,
-  COUNT(*) as verifications
-FROM key_verifications_v1
+  SUM(count) as verifications
+FROM key_verifications_per_day_v1
 WHERE time >= now() - INTERVAL 7 DAY
 GROUP BY tag
 ORDER BY verifications DESC
 LIMIT 20
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT arrayJoin(tags) as tag, COUNT(*) as verifications FROM key_verifications_v1 WHERE time >= now() - INTERVAL 7 DAY GROUP BY tag ORDER BY verifications DESC LIMIT 20"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT arrayJoin(tags) as tag, SUM(count) as verifications FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 7 DAY GROUP BY tag ORDER BY verifications DESC LIMIT 20"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Breakdown by endpoint (using path tag)
 
-<Accordion title="Breakdown by endpoint (using path tag)">
+Analyze request volume by API endpoint over the last 24 hours.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   arrayJoin(arrayFilter(x -> startsWith(x, 'path='), tags)) as endpoint,
   COUNT(*) as requests
@@ -472,72 +512,77 @@ GROUP BY endpoint
 ORDER BY requests DESC
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT arrayJoin(arrayFilter(x -> startsWith(x, 'path='), tags)) as endpoint, COUNT(*) as requests FROM key_verifications_v1 WHERE time >= now() - INTERVAL 24 HOUR GROUP BY endpoint ORDER BY requests DESC"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT arrayJoin(arrayFilter(x -> startsWith(x, '\''path='\''), tags)) as endpoint, COUNT(*) as requests FROM key_verifications_v1 WHERE time >= now() - INTERVAL 24 HOUR GROUP BY endpoint ORDER BY requests DESC"
+  }'
 ```
-
-</Accordion>
-
-</AccordionGroup>
+</CodeGroup>
 
 ## Billing & Usage-Based Pricing
 
-<AccordionGroup>
+### Monthly credits per user
 
-<Accordion title="Monthly credits per user">
+Calculate monthly credit consumption per user for billing.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   external_id,
   toStartOfMonth(time) as month,
   SUM(spent_credits) as total_credits
-FROM key_verifications_v1
+FROM key_verifications_per_day_v1
 WHERE external_id != ''
   AND time >= toStartOfMonth(now())
 GROUP BY external_id, month
 ORDER BY total_credits DESC
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT external_id, toStartOfMonth(time) as month, SUM(spent_credits) as total_credits FROM key_verifications_v1 WHERE external_id != '' AND time >= toStartOfMonth(now()) GROUP BY external_id, month ORDER BY total_credits DESC"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT external_id, toStartOfMonth(time) as month, SUM(spent_credits) as total_credits FROM key_verifications_per_day_v1 WHERE external_id != '\'''\'' AND time >= toStartOfMonth(now()) GROUP BY external_id, month ORDER BY total_credits DESC"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Current billing period credits
 
-<Accordion title="Current billing period credits">
+Calculate credit usage for a specific billing period.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   external_id,
   SUM(spent_credits) as credits_this_period
-FROM key_verifications_v1
+FROM key_verifications_per_day_v1
 WHERE external_id = 'user_123'
   AND time >= 1704067200000  -- Start of billing period (Unix millis)
   AND time < 1706745600000   -- End of billing period (Unix millis)
 GROUP BY external_id
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT external_id, SUM(spent_credits) as credits_this_period FROM key_verifications_v1 WHERE external_id = 'user_123' AND time >= 1704067200000 AND time < 1706745600000 GROUP BY external_id"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT external_id, SUM(spent_credits) as credits_this_period FROM key_verifications_per_day_v1 WHERE external_id = '\''user_123'\'' AND time >= 1704067200000 AND time < 1706745600000 GROUP BY external_id"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Credit-based tier calculation
 
-<Accordion title="Credit-based tier calculation">
+Determine user tiers based on monthly credit consumption.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   external_id,
   SUM(spent_credits) as total_credits,
@@ -547,87 +592,92 @@ SELECT
     WHEN total_credits <= 100000 THEN 'pro'
     ELSE 'enterprise'
   END as tier
-FROM key_verifications_v1
+FROM key_verifications_per_day_v1
 WHERE time >= toStartOfMonth(now())
   AND external_id = 'user_123'
 GROUP BY external_id
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT external_id, SUM(spent_credits) as total_credits, CASE WHEN total_credits <= 1000 THEN 'free' WHEN total_credits <= 10000 THEN 'starter' WHEN total_credits <= 100000 THEN 'pro' ELSE 'enterprise' END as tier FROM key_verifications_v1 WHERE time >= toStartOfMonth(now()) AND external_id = 'user_123' GROUP BY external_id"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT external_id, SUM(spent_credits) as total_credits, CASE WHEN total_credits <= 1000 THEN '\''free'\'' WHEN total_credits <= 10000 THEN '\''starter'\'' WHEN total_credits <= 100000 THEN '\''pro'\'' ELSE '\''enterprise'\'' END as tier FROM key_verifications_per_day_v1 WHERE time >= toStartOfMonth(now()) AND external_id = '\''user_123'\'' GROUP BY external_id"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Daily credit usage and cost
 
-<Accordion title="Daily credit usage and cost">
+Track daily credit consumption and calculate estimated costs.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
-  toDate(time) as date,
+  time as date,
   SUM(spent_credits) as credits_used,
   credits_used * 0.001 as estimated_cost  -- $0.001 per credit
-FROM key_verifications_v1
+FROM key_verifications_per_day_v1
 WHERE external_id = 'user_123'
   AND time >= now() - INTERVAL 30 DAY
 GROUP BY date
 ORDER BY date
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT toDate(time) as date, SUM(spent_credits) as credits_used, credits_used * 0.001 as estimated_cost FROM key_verifications_v1 WHERE external_id = 'user_123' AND time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT time as date, SUM(spent_credits) as credits_used, credits_used * 0.001 as estimated_cost FROM key_verifications_per_day_v1 WHERE external_id = '\''user_123'\'' AND time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"
+  }'
 ```
-
-</Accordion>
-
-</AccordionGroup>
+</CodeGroup>
 
 ## Advanced Queries
 
-<AccordionGroup>
+### Cohort analysis: New vs returning users
 
-<Accordion title="Cohort analysis: New vs returning users">
+Perform cohort analysis to understand user retention patterns.
 
-```sql
+<CodeGroup>
+```sql SQL
 WITH first_seen AS (
   SELECT
     external_id,
     min(time) as first_verification
-  FROM key_verifications_v1
+  FROM key_verifications_per_day_v1
   WHERE external_id != ''
   GROUP BY external_id
 )
 SELECT
   toDate(kv.time) as date,
-  countIf(kv.time = fs.first_verification) as new_users,
-  countIf(kv.time > fs.first_verification) as returning_users
-FROM key_verifications_v1 kv
+  SUM(CASE WHEN kv.time = fs.first_verification THEN kv.count ELSE 0 END) as new_users,
+  SUM(CASE WHEN kv.time > fs.first_verification THEN kv.count ELSE 0 END) as returning_users
+FROM key_verifications_per_day_v1 kv
 JOIN first_seen fs ON kv.external_id = fs.external_id
 WHERE kv.time >= now() - INTERVAL 30 DAY
 GROUP BY date
 ORDER BY date
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "WITH first_seen AS ( SELECT external_id, min(time) as first_verification FROM key_verifications_v1 WHERE external_id != '' GROUP BY external_id ) SELECT toDate(kv.time) as date, countIf(kv.time = fs.first_verification) as new_users, countIf(kv.time > fs.first_verification) as returning_users FROM key_verifications_v1 kv JOIN first_seen fs ON kv.external_id = fs.external_id WHERE kv.time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "WITH first_seen AS ( SELECT external_id, min(time) as first_verification FROM key_verifications_per_day_v1 WHERE external_id != '\'''\'' GROUP BY external_id ) SELECT toDate(kv.time) as date, SUM(CASE WHEN kv.time = fs.first_verification THEN kv.count ELSE 0 END) as new_users, SUM(CASE WHEN kv.time > fs.first_verification THEN kv.count ELSE 0 END) as returning_users FROM key_verifications_per_day_v1 kv JOIN first_seen fs ON kv.external_id = fs.external_id WHERE kv.time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Moving average (7-day)
 
-<Accordion title="Moving average (7-day)">
+Calculate 7-day moving average to smooth out daily fluctuations.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   date,
   verifications,
@@ -646,27 +696,26 @@ FROM (
 ORDER BY date
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT date, verifications, avg(verifications) OVER ( ORDER BY date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW ) as moving_avg_7d FROM ( SELECT time as date, SUM(count) as verifications FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 60 DAY GROUP BY date ) ORDER BY date"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT date, verifications, avg(verifications) OVER ( ORDER BY date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW ) as moving_avg_7d FROM ( SELECT time as date, SUM(count) as verifications FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 60 DAY GROUP BY date ) ORDER BY date"
+  }'
 ```
-
-</Accordion>
-
-</AccordionGroup>
+</CodeGroup>
 
 ## Using Aggregated Tables
 
 For better performance on large time ranges, use pre-aggregated tables:
 
-<AccordionGroup>
+### Hourly aggregates
 
-<Accordion title="Hourly aggregates">
+Query hourly verification counts for the last 7 days.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   time,
   SUM(count) as total
@@ -676,19 +725,22 @@ GROUP BY time
 ORDER BY time
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT time, SUM(count) as total FROM key_verifications_per_hour_v1 WHERE time >= toStartOfHour(now() - INTERVAL 7 DAY) GROUP BY time ORDER BY time"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT time, SUM(count) as total FROM key_verifications_per_hour_v1 WHERE time >= toStartOfHour(now() - INTERVAL 7 DAY) GROUP BY time ORDER BY time"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Daily aggregates
 
-<Accordion title="Daily aggregates">
+Query daily verification counts for the last 30 days.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   time,
   SUM(count) as total
@@ -698,19 +750,22 @@ GROUP BY time
 ORDER BY time
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT time, SUM(count) as total FROM key_verifications_per_day_v1 WHERE time >= toStartOfDay(now() - INTERVAL 30 DAY) GROUP BY time ORDER BY time"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT time, SUM(count) as total FROM key_verifications_per_day_v1 WHERE time >= toStartOfDay(now() - INTERVAL 30 DAY) GROUP BY time ORDER BY time"
+  }'
 ```
+</CodeGroup>
 
-</Accordion>
+### Monthly aggregates
 
-<Accordion title="Monthly aggregates">
+Query monthly verification counts for the last year.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   time,
   SUM(count) as total
@@ -720,17 +775,15 @@ GROUP BY time
 ORDER BY time
 ```
 
-**JSON format:**
-
-```json
-{
-  "query": "SELECT time, SUM(count) as total FROM key_verifications_per_month_v1 WHERE time >= toStartOfMonth(now() - INTERVAL 12 MONTH) GROUP BY time ORDER BY time"
-}
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT time, SUM(count) as total FROM key_verifications_per_month_v1 WHERE time >= toStartOfMonth(now() - INTERVAL 12 MONTH) GROUP BY time ORDER BY time"
+  }'
 ```
-
-</Accordion>
-
-</AccordionGroup>
+</CodeGroup>
 
 ## Tips for Efficient Queries
 
