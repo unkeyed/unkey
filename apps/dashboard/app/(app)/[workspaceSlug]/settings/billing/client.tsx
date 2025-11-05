@@ -71,7 +71,7 @@ export const Client: React.FC = () => {
 
   const allowUpdate = subscription && ["active", "trialing"].includes(subscription.status);
 
-  const isFreeTier = !subscription || subscription.status !== "active";
+  const isFreeTier = !subscription || !["active", "trialing"].includes(subscription.status);
   const allowCancel = subscription && subscription.status === "active" && !subscription.cancelAt;
   const currentProduct = allowUpdate ? products.find((p) => p.id === currentProductId) : undefined;
 
@@ -103,7 +103,7 @@ export const Client: React.FC = () => {
               products={products}
               currentProductId={currentProductId}
               workspaceSlug={workspace.slug}
-              isChangingPlan={true}
+              isChangingPlan={Boolean(subscription)}
             />
           </>
         ) : (
@@ -150,7 +150,7 @@ export const Client: React.FC = () => {
           </SettingCard>
         ) : null}
 
-        {subscription && allowCancel ? <CancelPlan /> : null}
+        {allowCancel ? <CancelPlan /> : null}
       </Shell>
     </div>
   );
