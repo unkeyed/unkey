@@ -70,7 +70,7 @@ const app = new Hono<{
   };
 }>({});
 app.all("*", async (c) => {
-  console.info("incoming", c.req.url);
+  console.info("incoming request", c.req.url);
   const authorization = c.req.header("Authorization");
   if (!authorization || authorization !== c.env.AUTHORIZATION) {
     return c.text("unauthorized", { status: 403 });
