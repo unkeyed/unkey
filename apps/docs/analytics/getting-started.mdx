@@ -39,49 +39,58 @@ Once you have access, execute your first analytics query using the `/v2/analytic
 
 ### Count Total Verifications
 
-```sql
-SELECT COUNT(*) as total
-FROM key_verifications_v1
+Count the total number of key verifications in the last 7 days across all your APIs to get a high-level view of your overall usage volume.
+
+<CodeGroup>
+```sql SQL
+SELECT SUM(count) as total
+FROM key_verifications_per_day_v1
 WHERE time >= now() - INTERVAL 7 DAY
 ```
 
-Execute this query with curl:
-
-```bash
+```bash cURL
 curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "SELECT COUNT(*) as total FROM key_verifications_v1 WHERE time >= now() - INTERVAL 7 DAY"
+    "query": "SELECT SUM(count) as total FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 7 DAY"
   }'
 ```
 
+</CodeGroup>
+
 ### Break Down by Outcome
 
-```sql
+Group verifications by their outcome (`VALID`, `RATE_LIMITED`, `USAGE_EXCEEDED`, etc.) over the last 24 hours to understand the distribution of successful vs. failed requests.
+
+<CodeGroup>
+```sql SQL
 SELECT
   outcome,
-  COUNT(*) as count
-FROM key_verifications_v1
+  SUM(count) as count
+FROM key_verifications_per_hour_v1
 WHERE time >= now() - INTERVAL 24 HOUR
 GROUP BY outcome
 ORDER BY count DESC
 ```
 
-Execute this query with curl:
-
-```bash
+```bash cURL
 curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "SELECT outcome, COUNT(*) as count FROM key_verifications_v1 WHERE time >= now() - INTERVAL 24 HOUR GROUP BY outcome ORDER BY count DESC"
+    "query": "SELECT outcome, SUM(count) as count FROM key_verifications_per_hour_v1 WHERE time >= now() - INTERVAL 24 HOUR GROUP BY outcome ORDER BY count DESC"
   }'
 ```
 
+</CodeGroup>
+
 ### Top Users by Usage
 
-```sql
+Identify your most active users by counting their total verifications over the last 30 days to spot power users or potential abuse patterns.
+
+<CodeGroup>
+```sql SQL
 SELECT
   external_id,
   SUM(count) as verifications
@@ -92,9 +101,7 @@ ORDER BY verifications DESC
 LIMIT 10
 ```
 
-Execute this query with curl:
-
-```bash
+```bash cURL
 curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
   -H "Content-Type: application/json" \
@@ -102,6 +109,8 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
     "query": "SELECT external_id, SUM(count) as verifications FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY external_id ORDER BY verifications DESC LIMIT 10"
   }'
 ```
+
+</CodeGroup>
 
 <Tip>
   **Performance tip:** For longer time ranges, use pre-aggregated tables instead of the raw table:
@@ -147,25 +156,3 @@ You can filter queries to specific APIs or users. Use `key_space_id` to filter b
   and quota). See [Query Restrictions](/analytics/query-restrictions) for
   complete details on limits and error codes.
 </Note>
-
-## Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Query Examples" icon="code" href="/analytics/query-examples">
-    Explore common SQL patterns for analytics and billing
-  </Card>
-  <Card
-    title="Schema Reference"
-    icon="table"
-    href="/analytics/schema-reference"
-  >
-    Browse available tables, columns, and data types
-  </Card>
-  <Card
-    title="Query Restrictions"
-    icon="shield-check"
-    href="/analytics/query-restrictions"
-  >
-    View limits, quotas, and permissions
-  </Card>
-</CardGroup>
