@@ -51,5 +51,5 @@ ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
 EXPOSE 3000
 
-# Run in development mode for now
-CMD ["pnpm","start", "--hostname", "0.0.0.0"]
+# Run in production mode
+CMD ["pnpm", "--filter", "@unkey/dashboard", "start"]

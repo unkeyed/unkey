@@ -156,7 +156,7 @@ export const FilterItem = ({
       </Drover.Trigger>
       <Drover.Content
         ref={contentRef}
-        className="min-w-60 w-full bg-gray-1 dark:bg-black drop-shadow-2xl p-0 border-gray-6 rounded-lg"
+        className="min-w-60 w-full bg-gray-1 dark:bg-black drop-shadow-2xl transform-gpu p-0 border-gray-6 rounded-lg"
         side="right"
         align="start"
         sideOffset={12}
