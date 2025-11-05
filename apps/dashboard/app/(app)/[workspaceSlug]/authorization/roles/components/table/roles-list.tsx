@@ -174,7 +174,8 @@ export const RolesList = () => {
           ),
           countInfoText: (
             <div className="flex gap-2">
-              <span>Showing</span> <span className="text-accent-12">{new Intl.NumberFormat().format(roles.length)}</span>
+              <span>Showing</span>{" "}
+              <span className="text-accent-12">{new Intl.NumberFormat().format(roles.length)}</span>
               <span>of</span>
               {new Intl.NumberFormat().format(totalCount)}
               <span>roles</span>
