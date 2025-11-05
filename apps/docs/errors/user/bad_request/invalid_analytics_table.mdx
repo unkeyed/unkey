@@ -1,0 +1,76 @@
+---
+title: "invalid_analytics_table"
+description: "Your query references a table that doesn't exist or isn't allowed."
+---
+
+<Danger>`err:user:bad_request:invalid_analytics_table`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_4dgzrNP3Je5mU1tD"
+  },
+  "error": {
+    "detail": "Access to table 'system.tables' is not allowed",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "https://unkey.com/docs/errors/user/bad_request/invalid_analytics_table"
+  }
+}
+```
+
+## What Happened?
+
+Your query tried to access a table that either doesn't exist or isn't allowed for security reasons.
+
+For security, only specific analytics tables are accessible:
+- `key_verifications_v1` - Raw key verification events
+- `key_verifications_per_minute_v1` - Minute-level aggregates
+- `key_verifications_per_hour_v1` - Hour-level aggregates
+- `key_verifications_per_day_v1` - Day-level aggregates
+- `key_verifications_per_month_v1` - Month-level aggregates
+
+System tables (like `system.*`) and other database tables are blocked.
+
+## How to Fix It
+
+### 1. Use the Correct Table Name
+
+<CodeGroup>
+
+```sql Wrong - System table
+SELECT * FROM system.tables
+```
+
+```sql Correct - Analytics table
+SELECT * FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 7 DAY
+```
+
+</CodeGroup>
+
+### 2. Fix Typos in Table Names
+
+<CodeGroup>
+
+```sql Wrong - Typo
+SELECT * FROM key_verification
+WHERE time >= now() - INTERVAL 1 DAY
+```
+
+```sql Correct
+SELECT * FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 1 DAY
+```
+
+</CodeGroup>
+
+## Available Tables
+
+| Table Name | Description |
+|------------|-------------|
+| `key_verifications_v1` | Raw verification events |
+| `key_verifications_per_minute_v1` | Minute-level aggregates |
+| `key_verifications_per_hour_v1` | Hour-level aggregates |
+| `key_verifications_per_day_v1` | Day-level aggregates |
+| `key_verifications_per_month_v1` | Month-level aggregates |

@@ -1,7 +1,7 @@
 import type { Log } from "@unkey/clickhouse/src/logs";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 
-export type ResponseBody = {
+type V1ResponseBody = {
   keyId: string;
   valid: boolean;
   meta: Record<string, unknown>;
@@ -17,10 +17,16 @@ export type ResponseBody = {
     | "INSUFFICIENT_PERMISSIONS";
 };
 
-export const extractResponseField = <K extends keyof ResponseBody>(
+type V2ResponseBody = {
+  data: V1ResponseBody;
+};
+
+export type ResponseBody = V1ResponseBody | V2ResponseBody;
+
+export const extractResponseField = <K extends keyof V1ResponseBody>(
   log: Log | RatelimitLog,
   fieldName: K,
-): ResponseBody[K] | null => {
+): V1ResponseBody[K] | null => {
   if (!log?.response_body) {
     console.error("Invalid log or missing response_body");
     return null;
@@ -29,6 +35,12 @@ export const extractResponseField = <K extends keyof ResponseBody>(
   try {
     const parsedBody = JSON.parse(log.response_body) as ResponseBody;
 
+    // Check if it's v2 (nested under data)
+    if ("data" in parsedBody) {
+      return parsedBody.data[fieldName];
+    }
+
+    // Otherwise it's v1 (flat structure)
     return parsedBody[fieldName];
   } catch {
     return null;

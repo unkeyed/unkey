@@ -1,0 +1,106 @@
+---
+title: "query_quota_exceeded"
+description: "You've exceeded your workspace's analytics query quota for the current time window."
+---
+
+<Danger>`err:user:too_many_requests:query_quota_exceeded`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_4dgzrNP3Je5mU1tD"
+  },
+  "error": {
+    "detail": "Workspace has exceeded the analytics query quota of 1000 queries per hour",
+    "status": 429,
+    "title": "Too Many Requests",
+    "type": "https://unkey.com/docs/errors/user/too_many_requests/query_quota_exceeded"
+  }
+}
+```
+
+## What Happened?
+
+Your workspace has made too many analytics queries in a short period! We limit the number of queries you can run per hour to keep the analytics service fast and reliable for everyone.
+
+This is a rate limit on the **number of queries**, not about individual query complexity.
+
+## How to Fix It
+
+### 1. Wait and Retry
+
+The quota resets every hour. Wait a bit and try your query again.
+
+### 2. Cache Your Results
+
+Instead of running the same query repeatedly, cache the results in your application:
+
+<CodeGroup>
+
+```typescript Bad - Queries on Every Request
+app.get('/dashboard', async (req, res) => {
+  // This runs a query EVERY time someone loads the dashboard
+  const stats = await fetch('https://api.unkey.com/v1/analytics', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer unkey_XXX' },
+    body: JSON.stringify({ query: 'SELECT COUNT(*) FROM key_verifications' })
+  })
+  res.json(stats)
+})
+```
+
+```typescript Better - Cache for 5 Minutes
+import { Cache } from 'your-cache-library'
+
+const cache = new Cache()
+
+app.get('/dashboard', async (req, res) => {
+  // Check cache first
+  let stats = cache.get('dashboard-stats')
+
+  if (!stats) {
+    // Only query if cache is empty
+    stats = await fetch('https://api.unkey.com/v1/analytics', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer unkey_XXX' },
+      body: JSON.stringify({ query: 'SELECT COUNT(*) FROM key_verifications' })
+    })
+
+    // Cache for 5 minutes
+    cache.set('dashboard-stats', stats, { ttl: 300 })
+  }
+
+  res.json(stats)
+})
+```
+
+</CodeGroup>
+
+### 3. Batch Your Queries
+
+If you're making multiple queries, try to combine them into a single query with JOINs or subqueries.
+
+### 4. Use Webhooks Instead
+
+For real-time updates, consider using webhooks instead of polling the analytics API repeatedly.
+
+## Default Quota
+
+| Plan | Queries per Hour |
+|------|------------------|
+| Free | 1,000 |
+| Pro | 10,000 |
+| Enterprise | Custom |
+
+## Need a Higher Quota?
+
+<Note>
+**Running into limits often?** We can increase your quota!
+
+[Contact our support team](mailto:support@unkey.dev) and tell us:
+- What you're building
+- Why you need more queries per hour
+- Your current usage patterns
+
+We'll work with you to find the right quota for your needs, or help optimize your query patterns.
+</Note>

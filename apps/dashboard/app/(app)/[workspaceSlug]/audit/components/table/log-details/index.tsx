@@ -35,7 +35,7 @@ export const AuditLogDetails = ({ distanceToTop, selectedLog, setSelectedLog }: 
   return (
     <ResizablePanel
       onClose={handleClose}
-      className="absolute right-0 bg-gray-1 dark:bg-black font-mono drop-shadow-2xl overflow-y-auto z-20 p-4"
+      className="absolute right-0 bg-gray-1 dark:bg-black font-mono drop-shadow-2xl transform-gpu overflow-y-auto z-20 p-4"
       style={panelStyle}
     >
       <LogHeader log={selectedLog} onClose={handleClose} />
