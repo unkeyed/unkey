@@ -1,5 +1,8 @@
 # logdrainv2
 
+## Overview
+This is a Cloudflare Worker that receives and processes logs.
+
 To install dependencies:
 
 ```bash
