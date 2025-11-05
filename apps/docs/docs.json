@@ -174,9 +174,11 @@
                 "pages": [
                   "analytics/overview",
                   "analytics/getting-started",
+                  "analytics/quick-reference",
                   "analytics/query-examples",
                   "analytics/schema-reference",
-                  "analytics/query-restrictions"
+                  "analytics/query-restrictions",
+                  "analytics/troubleshooting"
                 ]
               }
             ]

@@ -34,10 +34,10 @@ description: "Common issues and solutions for analytics queries"
 
 ```sql
 -- Instead of raw table for long ranges:
--- ❌ Slow for 7+ days
+-- Slow for 7+ days
 SELECT COUNT(*) FROM key_verifications_v1 WHERE time >= now() - INTERVAL 7 DAY
 
--- ✅ Fast for 7+ days
+-- Fast for 7+ days
 SELECT SUM(count) FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 7 DAY
 ```
 
@@ -68,10 +68,10 @@ LIMIT 100  -- Add LIMIT for large datasets
 ### Missing Property 'query'
 
 ```json
-// ❌ Wrong field name
+// Wrong field name
 {"sql": "SELECT COUNT(*) FROM key_verifications_v1"}
 
-// ✅ Correct field name
+// Correct field name
 {"query": "SELECT COUNT(*) FROM key_verifications_v1"}
 ```
 
@@ -118,13 +118,13 @@ See [invalid_input](/errors/unkey/application/invalid_input) for API request for
 ### Filter Before Grouping
 
 ```sql
--- ❌ Less efficient
+-- Less efficient
 SELECT external_id, SUM(count) as usage
 FROM key_verifications_per_day_v1
 GROUP BY external_id
 HAVING SUM(count) > 1000
 
--- ✅ More efficient
+-- More efficient
 SELECT external_id, SUM(count) as usage
 FROM key_verifications_per_day_v1
 WHERE time >= now() - INTERVAL 30 DAY  -- Filter first
