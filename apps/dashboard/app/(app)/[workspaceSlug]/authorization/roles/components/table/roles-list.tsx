@@ -62,18 +62,10 @@ export const RolesList = () => {
               onMouseLeave={() => setHoveredRoleName(null)}
             >
               {!isSelected && !isHovered && (
-                <Button
-                  type="button"
-                  className="flex w-full h-full items-center justify-center bg-transparent border-gray-6 group-hover:bg-transparent group-hover:border-none"
-                  aria-label="Select permission"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleSelection(role.roleId);
-                  }}
-                >
-                  <Tag iconSize="sm-regular" className="text-gray-12 cursor-pointer" />
-                </Button>
+                <Tag
+                  iconSize="sm-regular"
+                  className="text-gray-12 cursor-pointer w-[12px] h-[12px]"
+                />
               )}
               {(isSelected || isHovered) && (
                 <Checkbox
