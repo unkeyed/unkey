@@ -86,9 +86,10 @@ export const RootKeysList = () => {
       hasMore,
       countInfoText: (
         <div className="flex gap-2">
-          <span>Showing</span> <span className="text-accent-12">{rootKeys.length}</span>
+          <span>Showing</span>{" "}
+          <span className="text-accent-12">{new Intl.NumberFormat().format(rootKeys.length)}</span>
           <span>of</span>
-          {totalCount}
+          {new Intl.NumberFormat().format(totalCount)}
           <span>root keys</span>
         </div>
       ),

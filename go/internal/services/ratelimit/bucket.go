@@ -31,6 +31,9 @@ type bucket struct {
 	// mu protects all bucket operations
 	mu sync.RWMutex
 
+	// name is the name of the bucket
+	name string
+
 	// identifier is the rate limit subject (user ID, API key, etc)
 	identifier string
 
@@ -53,6 +56,7 @@ type bucket struct {
 
 func (b *bucket) key() bucketKey {
 	return bucketKey{
+		name:       b.name,
 		identifier: b.identifier,
 		limit:      b.limit,
 		duration:   b.duration,
@@ -76,6 +80,9 @@ func (b *bucket) key() bucketKey {
 //	}
 //	bucketID := key.toString()
 type bucketKey struct {
+	// name is an arbitrary name for the bucket
+	name string
+
 	// identifier is the rate limit subject (user ID, API key, etc)
 	identifier string
 
@@ -87,7 +94,7 @@ type bucketKey struct {
 }
 
 func (b bucketKey) toString() string {
-	return fmt.Sprintf("%s-%d-%d", b.identifier, b.limit, b.duration.Milliseconds())
+	return fmt.Sprintf("%s-%s-%d-%d", b.name, b.identifier, b.limit, b.duration.Milliseconds())
 }
 
 // getOrCreateBucket retrieves a rate limiting bucket for the given key.
@@ -112,6 +119,7 @@ func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 		metrics.RatelimitBucketsCreated.Inc()
 		b = &bucket{
 			mu:          sync.RWMutex{},
+			name:        key.name,
 			identifier:  key.identifier,
 			limit:       key.limit,
 			duration:    key.duration,

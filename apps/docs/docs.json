@@ -169,7 +169,7 @@
               },
               {
                 "group": "Analytics",
-                "hidden": true,
+                "hidden": false,
                 "icon": "chart-bar",
                 "pages": [
                   "analytics/overview",

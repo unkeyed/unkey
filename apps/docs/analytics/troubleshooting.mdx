@@ -1,0 +1,145 @@
+---
+title: Troubleshooting
+description: "Common issues and solutions for analytics queries"
+---
+
+# Analytics Troubleshooting
+
+## Getting Empty Results?
+
+**Check these common causes:**
+
+### Time Range Issues
+
+- Your workspace might be new with no verification data yet
+- Try a shorter time range: `WHERE time >= now() - INTERVAL 1 HOUR`
+- Verify your time filters are working: `SELECT MAX(time) as latest FROM key_verifications_v1`
+
+### Filter Problems
+
+- Wrong `key_space_id` - Find your API ID in dashboard settings
+- Empty `external_id` values - Filter them out: `WHERE external_id != ''`
+- Case sensitivity - Check exact values: `SELECT DISTINCT external_id FROM key_verifications_v1 LIMIT 10`
+
+### Data Availability
+
+- Analytics may have a few minutes delay
+- Check recent data: `SELECT COUNT(*) FROM key_verifications_v1 WHERE time >= now() - INTERVAL 1 HOUR`
+
+## Queries Timing Out?
+
+**Try these optimizations:**
+
+### Use Aggregated Tables
+
+```sql
+-- Instead of raw table for long ranges:
+-- ❌ Slow for 7+ days
+SELECT COUNT(*) FROM key_verifications_v1 WHERE time >= now() - INTERVAL 7 DAY
+
+-- ✅ Fast for 7+ days
+SELECT SUM(count) FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 7 DAY
+```
+
+### Add Time Filters First
+
+```sql
+-- Always filter by time early (uses indexes)
+WHERE time >= now() - INTERVAL 7 DAY
+  AND external_id = 'user_123'  -- Additional filters after time
+```
+
+### Limit Result Size
+
+```sql
+-- Prevent large result sets
+SELECT external_id, SUM(count) as usage
+FROM key_verifications_per_day_v1
+WHERE time >= now() - INTERVAL 30 DAY
+GROUP BY external_id
+ORDER BY usage DESC
+LIMIT 100  -- Add LIMIT for large datasets
+```
+
+## API Errors?
+
+**Common fixes:**
+
+### Missing Property 'query'
+
+```json
+// ❌ Wrong field name
+{"sql": "SELECT COUNT(*) FROM key_verifications_v1"}
+
+// ✅ Correct field name
+{"query": "SELECT COUNT(*) FROM key_verifications_v1"}
+```
+
+See [invalid_input](/errors/unkey/application/invalid_input) for API request format issues.
+
+### Permission Denied
+
+- Ensure your root key has `api.*.read_analytics` or `api.<api_id>.read_analytics`
+- Check key is not expired or revoked
+- Verify workspace ID matches your key's permissions
+  See [forbidden](/errors/unkey/authorization/forbidden) for permission issues.
+
+### Invalid Function Error
+
+- Check [Query Restrictions](/analytics/query-restrictions#function-allow-list) for allowed functions
+- Some ClickHouse functions are blocked for security
+- Use alternative approaches from [Quick Reference](/analytics/quick-reference)
+- See [invalid_analytics_function](/errors/user/bad_request/invalid_analytics_function) for details
+
+### Invalid Table Error
+
+- Only analytics tables are accessible (no `system.*` or `information_schema.*`)
+- Use table names from [Schema Reference](/analytics/schema-reference)
+- See [invalid_analytics_table](/errors/user/bad_request/invalid_analytics_table) for details
+
+### Query Not Supported
+
+- Only SELECT queries are allowed in analytics
+- INSERT, UPDATE, DELETE, etc. are blocked
+- See [invalid_analytics_query_type](/errors/user/bad_request/invalid_analytics_query_type) for details
+
+## Performance Problems?
+
+**Optimization tips:**
+
+### Choose Right Table
+
+- `< 1 hour`: `key_verifications_v1` (raw)
+- `< 24 hours`: `key_verifications_per_minute_v1`
+- `< 30 days`: `key_verifications_per_hour_v1`
+- `< 1 year`: `key_verifications_per_day_v1`
+- `> 1 year`: `key_verifications_per_month_v1`
+
+### Filter Before Grouping
+
+```sql
+-- ❌ Less efficient
+SELECT external_id, SUM(count) as usage
+FROM key_verifications_per_day_v1
+GROUP BY external_id
+HAVING SUM(count) > 1000
+
+-- ✅ More efficient
+SELECT external_id, SUM(count) as usage
+FROM key_verifications_per_day_v1
+WHERE time >= now() - INTERVAL 30 DAY  -- Filter first
+GROUP BY external_id
+HAVING SUM(count) > 1000
+```
+
+### Avoid SELECT \*
+
+- Only select columns you need
+- Reduces memory usage and network transfer
+
+<Note>
+  For complete error reference, see the [Error Documentation](/errors/overview).
+  If you continue having issues, contact us at
+  [support@unkey.dev](mailto:support@unkey.dev) with your query and error
+  details.
+</Note>

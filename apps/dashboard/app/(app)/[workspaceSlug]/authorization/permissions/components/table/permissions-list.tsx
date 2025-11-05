@@ -187,9 +187,9 @@ export const PermissionsList = () => {
           ),
           countInfoText: (
             <div className="flex gap-2">
-              <span>Showing</span> <span className="text-accent-12">{permissions.length}</span>
+              <span>Showing</span> <span className="text-accent-12">{new Intl.NumberFormat().format(permissions.length)}</span>
               <span>of</span>
-              {totalCount}
+              {new Intl.NumberFormat().format(totalCount)}
               <span>permissions</span>
             </div>
           ),
