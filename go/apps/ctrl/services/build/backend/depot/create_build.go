@@ -18,11 +18,9 @@ import (
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth/authprovider"
-	"github.com/opencontainers/go-digest"
 
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/assert"
-	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
@@ -100,8 +98,7 @@ func (s *Depot) CreateBuild(
 			"error", err,
 			"depot_project_id", depotProjectID,
 			"unkey_project_id", unkeyProjectID)
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to create build: %w", err))
+		return nil, wrapBuildError(err, connect.CodeInternal, "failed to create build")
 	}
 
 	s.logger.Info("Depot build created",
@@ -125,8 +122,7 @@ func (s *Depot) CreateBuild(
 			"build_id", buildResp.ID,
 			"depot_project_id", depotProjectID,
 			"unkey_project_id", unkeyProjectID)
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to acquire machine: %w", buildErr))
+		return nil, wrapBuildError(buildErr, connect.CodeInternal, "failed to acquire machine")
 	}
 	//nolint: all
 	defer buildkit.Release()
@@ -143,8 +139,7 @@ func (s *Depot) CreateBuild(
 			"build_id", buildResp.ID,
 			"depot_project_id", depotProjectID,
 			"unkey_project_id", unkeyProjectID)
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to connect to buildkit: %w", buildErr))
+		return nil, wrapBuildError(buildErr, connect.CodeInternal, "failed to connect to buildkit")
 	}
 	defer buildkitClient.Close()
 
@@ -163,7 +158,7 @@ func (s *Depot) CreateBuild(
 		"build_id", buildResp.ID,
 		"unkey_project_id", unkeyProjectID)
 
-	buildStatusCh := make(chan *client.SolveStatus, 100)
+	buildStatusCh := make(chan *client.SolveStatus, 10)
 	go s.processBuildStatus(buildStatusCh, req.Msg.GetWorkspaceId(), unkeyProjectID, deploymentID)
 
 	solverOptions := s.buildSolverOptions(platform, contextURL, dockerfilePath, imageName)
@@ -175,8 +170,7 @@ func (s *Depot) CreateBuild(
 			"build_id", buildResp.ID,
 			"depot_project_id", depotProjectID,
 			"unkey_project_id", unkeyProjectID)
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("build failed: %w", buildErr))
+		return nil, wrapBuildError(buildErr, connect.CodeInternal, "build failed")
 	}
 
 	s.logger.Info("Build completed successfully")
@@ -233,7 +227,9 @@ func (s *Depot) buildSolverOptions(
 //	Create new Depot project if not found
 //	Store project mapping in database
 func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID string) (string, error) {
-	project, err := db.Query.FindProjectById(ctx, s.db.RO(), unkeyProjectID)
+	project, err := db.WithRetryContext(ctx, func() (db.FindProjectByIdRow, error) {
+		return db.Query.FindProjectById(ctx, s.db.RO(), unkeyProjectID)
+	})
 	if err != nil {
 		return "", fmt.Errorf("failed to query project: %w", err)
 	}
@@ -274,13 +270,16 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 	depotProjectID := createResp.Msg.GetProject().GetProjectId()
 
 	now := time.Now().UnixMilli()
-	err = db.Query.UpdateProjectDepotID(ctx, s.db.RW(), db.UpdateProjectDepotIDParams{
-		DepotProjectID: sql.NullString{
-			String: depotProjectID,
-			Valid:  true,
-		},
-		UpdatedAt: sql.NullInt64{Int64: now, Valid: true},
-		ID:        unkeyProjectID,
+	_, err = db.WithRetryContext(ctx, func() (struct{}, error) {
+		err := db.Query.UpdateProjectDepotID(ctx, s.db.RW(), db.UpdateProjectDepotIDParams{
+			DepotProjectID: sql.NullString{
+				String: depotProjectID,
+				Valid:  true,
+			},
+			UpdatedAt: sql.NullInt64{Int64: now, Valid: true},
+			ID:        unkeyProjectID,
+		})
+		return struct{}{}, err
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to update depot_project_id: %w", err)
@@ -292,74 +291,4 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 		"project_name", projectName)
 
 	return depotProjectID, nil
-}
-
-func (s *Depot) processBuildStatus(
-	statusCh <-chan *client.SolveStatus,
-	workspaceID, projectID, deploymentID string,
-) {
-	aggregator := NewBuildStepAggregator()
-	for status := range statusCh {
-		aggregator.ProcessStatus(
-			status,
-			workspaceID,
-			projectID,
-			deploymentID,
-			s.clickhouse.BufferBuildStep,
-			s.clickhouse.BufferBuildStepLog,
-		)
-	}
-}
-
-type BuildStepAggregator struct {
-	completed        map[digest.Digest]bool
-	verticesWithLogs map[digest.Digest]bool
-}
-
-func NewBuildStepAggregator() *BuildStepAggregator {
-	return &BuildStepAggregator{
-		completed:        make(map[digest.Digest]bool),
-		verticesWithLogs: make(map[digest.Digest]bool),
-	}
-}
-
-func (a *BuildStepAggregator) ProcessStatus(
-	status *client.SolveStatus,
-	workspaceID, projectID, deploymentID string,
-	cbStep func(schema.BuildStepV1),
-	cbLog func(schema.BuildStepLogV1),
-) {
-	for _, log := range status.Logs {
-		a.verticesWithLogs[log.Vertex] = true
-	}
-
-	for _, vertex := range status.Vertexes {
-		if vertex.Completed != nil && !a.completed[vertex.Digest] {
-			a.completed[vertex.Digest] = true
-
-			cbStep(schema.BuildStepV1{
-				Error:        vertex.Error,
-				StartedAt:    vertex.Started.UnixMilli(),
-				CompletedAt:  vertex.Completed.UnixMilli(),
-				WorkspaceID:  workspaceID,
-				ProjectID:    projectID,
-				DeploymentID: deploymentID,
-				StepID:       string(vertex.Digest),
-				Name:         vertex.Name,
-				Cache:        vertex.Cached,
-				HasLogs:      a.verticesWithLogs[vertex.Digest],
-			})
-		}
-	}
-
-	for _, log := range status.Logs {
-		cbLog(schema.BuildStepLogV1{
-			WorkspaceID:  workspaceID,
-			ProjectID:    projectID,
-			DeploymentID: deploymentID,
-			StepID:       string(log.Vertex),
-			Time:         log.Timestamp.UnixMilli(),
-			Message:      string(log.Data),
-		})
-	}
 }

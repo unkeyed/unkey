@@ -143,6 +143,17 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			return imageName, nil
 		}, restate.WithName("building docker image"))
 		if err != nil {
+			if restate.IsTerminalError(err) {
+				w.logger.Error("docker build failed with terminal error - not retrying",
+					"deployment_id", deployment.ID,
+					"error", err,
+					"reason", "error indicates a permanent failure (e.g. invalid Dockerfile, missing files, permission issues)")
+				return nil, fmt.Errorf("docker build failed permanently: %w", err)
+			}
+
+			w.logger.Error("docker build failed - will be retried by restate",
+				"deployment_id", deployment.ID,
+				"error", err)
 			return nil, fmt.Errorf("failed to build docker image: %w", err)
 		}
 
