@@ -1,9 +1,10 @@
 "use client";
 
+import { PageLoading } from "@/components/dashboard/page-loading";
 import { trpc } from "@/lib/trpc/client";
-import { Empty, Loading } from "@unkey/ui";
+import { Empty } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { SuccessClient } from "./client";
 
 type ProcessedData = {
@@ -34,17 +35,6 @@ function SuccessContent() {
 
   const trpcUtils = trpc.useUtils();
 
-  const updateCustomer = useCallback(
-    (data: { customerId: string; paymentMethod: string }) =>
-      updateCustomerMutation.mutateAsync(data),
-    [updateCustomerMutation.mutateAsync],
-  );
-
-  const updateWorkspaceStripeCustomer = useCallback(
-    (data: { stripeCustomerId: string }) => updateWorkspaceStripeCustomerMutation.mutateAsync(data),
-    [updateWorkspaceStripeCustomerMutation.mutateAsync],
-  );
-
   useEffect(() => {
     // Track if component is still mounted to prevent state updates after unmount
     let isMounted = true;
@@ -55,7 +45,10 @@ function SuccessContent() {
       return;
     }
 
-    const processStripeSession = async () => {
+    const processStripeSession = async (
+      updateCustomerFn: typeof updateCustomerMutation.mutateAsync,
+      updateWorkspaceFn: typeof updateWorkspaceStripeCustomerMutation.mutateAsync,
+    ) => {
       try {
         if (!isMounted) {
           return;
@@ -138,7 +131,7 @@ function SuccessContent() {
 
         // Update customer with default payment method
         try {
-          await updateCustomer({
+          await updateCustomerFn({
             customerId: customer.id,
             paymentMethod: setupIntent.payment_method,
           });
@@ -163,7 +156,7 @@ function SuccessContent() {
 
         // Update workspace with stripe customer ID
         try {
-          await updateWorkspaceStripeCustomer({
+          await updateWorkspaceFn({
             stripeCustomerId: customer.id,
           });
 
@@ -173,7 +166,8 @@ function SuccessContent() {
 
           await trpcUtils.workspace.invalidate();
         } catch (error) {
-          console.error("Failed to update workspace:", error);
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+          console.error("Failed to update workspace with payment method:", { error: errorMessage });
           if (!isMounted) {
             return;
           }
@@ -243,20 +237,24 @@ function SuccessContent() {
       }
     };
 
-    processStripeSession();
+    processStripeSession(
+      updateCustomerMutation.mutateAsync,
+      updateWorkspaceStripeCustomerMutation.mutateAsync,
+    );
 
     // Cleanup function to prevent state updates after unmount
     return () => {
       isMounted = false;
     };
-  }, [sessionId, trpcUtils, updateCustomer, updateWorkspaceStripeCustomer]);
+  }, [
+    sessionId,
+    trpcUtils,
+    updateCustomerMutation.mutateAsync,
+    updateWorkspaceStripeCustomerMutation.mutateAsync,
+  ]);
 
   if (loading) {
-    return (
-      <Empty className="flex items-center justify-center h-screen w-full">
-        <Loading type="spinner" size={40} />
-      </Empty>
-    );
+    return <PageLoading message="Processing payment..." />;
   }
 
   if (error) {
@@ -281,13 +279,7 @@ function SuccessContent() {
 
 export default function SuccessPage() {
   return (
-    <Suspense
-      fallback={
-        <Empty className="flex items-center justify-center h-screen w-full">
-          <Loading type="spinner" size={40} />
-        </Empty>
-      }
-    >
+    <Suspense fallback={<PageLoading message="Loading..." />}>
       <SuccessContent />
     </Suspense>
   );

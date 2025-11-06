@@ -1,8 +1,9 @@
 "use client";
+import { PageLoading } from "@/components/dashboard/page-loading";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Button, Empty, Input, Loading, SettingCard } from "@unkey/ui";
+import { Button, Empty, Input, SettingCard } from "@unkey/ui";
 import Link from "next/link";
 import { WorkspaceNavbar } from "../workspace-navbar";
 import { Client } from "./client";
@@ -11,17 +12,8 @@ import { Shell } from "./components/shell";
 export default function BillingPage() {
   const { workspace, isLoading: isWorkspaceLoading } = useWorkspace();
 
-  // Wait for workspace to load before proceeding
-  if (isWorkspaceLoading || !workspace) {
-    return (
-      <Empty>
-        <Loading />
-      </Empty>
-    );
-  }
-
-  // Check for legacy subscriptions only after workspace is loaded
-  const isLegacy = workspace.subscriptions && Object.keys(workspace.subscriptions).length > 0;
+  // Derive isLegacy from workspace data
+  const isLegacy = workspace?.subscriptions && Object.keys(workspace.subscriptions).length > 0;
 
   const {
     data: usage,
@@ -30,15 +22,15 @@ export default function BillingPage() {
     error,
   } = trpc.billing.queryUsage.useQuery(undefined, {
     // Only enable query when workspace is loaded AND it's a legacy subscription
-    enabled: Boolean(isLegacy),
+    enabled: Boolean(workspace && isLegacy),
   });
 
-  if (usageLoading) {
-    return (
-      <Empty>
-        <Loading />
-      </Empty>
-    );
+  // Derive loading state: loading if workspace is loading OR (if legacy, usage is loading)
+  const isLoading = isWorkspaceLoading || !workspace || (isLegacy && usageLoading);
+
+  // Wait for workspace to load before proceeding
+  if (isLoading) {
+    return <PageLoading message="Loading billing..." />;
   }
 
   if (isError) {

@@ -212,7 +212,7 @@ export const PlanSelectionModal = ({
                 onChange={() => setSelectedProductId(product.id)}
                 className="sr-only"
               />
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between py-1">
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
                     <div
@@ -228,13 +228,15 @@ export const PlanSelectionModal = ({
                       )}
                     </div>
                     <div>
-                      <div className="flex flex-row items-center gap-3 py-1">
-                        <h3 className="font-semibold text-gray-12">{product.name}</h3>
-                        <p className="text-[13px] text-gray-11">
+                      <div className="flex flex-row items-center gap-3">
+                        <h3 className="w-[120px] font-medium text-gray-12 text-[15px]">
+                          {product.name}
+                        </h3>
+                        <p className="text-[12px] text-gray-11 text-center mt-[2px]">
                           {formatNumber(product.quotas.requestsPerMonth)} requests/month
                         </p>
                         {currentProductId === product.id && (
-                          <span className="text-[13px] bg-info-3 text-info-11 px-2 rounded-full">
+                          <span className="text-[12px] bg-info-3 text-info-11 px-2 rounded-full mt-[1px]">
                             Current
                           </span>
                         )}
@@ -242,10 +244,10 @@ export const PlanSelectionModal = ({
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="font-semibold text-gray-12">
+                <div className="text-right mt-[2px]">
+                  <div className="font-medium text-[15px] text-gray-12">
                     ${product.dollar}
-                    <span className="text-sm font-normal text-gray-11">/mo</span>
+                    <span className="text-[12px] font-normal text-gray-11">/mo</span>
                   </div>
                 </div>
               </div>

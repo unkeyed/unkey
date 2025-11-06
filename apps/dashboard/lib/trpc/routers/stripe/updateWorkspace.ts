@@ -41,12 +41,6 @@ export const updateWorkspaceStripeCustomer = t.procedure
             userAgent: ctx.audit.userAgent,
           },
         });
-
-        // Invalidate workspace cache after successful update
-        await invalidateWorkspaceCache(ctx.tenant.id);
-
-        // Also clear the tRPC workspace cache to ensure fresh data on next request
-        clearWorkspaceCache(ctx.tenant.id);
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -55,6 +49,11 @@ export const updateWorkspaceStripeCustomer = t.procedure
             "We are unable to update the workspace Stripe customer. Please try again or contact support@unkey.dev",
         });
       });
+    // Invalidate workspace cache after successful update
+    await invalidateWorkspaceCache(ctx.tenant.id);
+
+    // Also clear the tRPC workspace cache to ensure fresh data on next request
+    clearWorkspaceCache(ctx.tenant.id);
     return {
       success: true,
     };

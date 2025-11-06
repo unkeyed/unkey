@@ -34,8 +34,8 @@ export const Client: React.FC = () => {
     staleTime: 30_000, // 30 seconds
   });
 
-  // Handle loading states
-  if (billingLoading) {
+  // Handle loading states - don't render until we have billing info
+  if (billingLoading || !billingInfo) {
     return (
       <div className="animate-pulse">
         <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
@@ -64,10 +64,9 @@ export const Client: React.FC = () => {
   }
 
   // Extract data from tRPC responses
-  const products = billingInfo?.products ?? [];
-  const subscription = billingInfo?.subscription;
-  const currentProductId = billingInfo?.currentProductId;
-  // const currentProduct =
+  const products = billingInfo.products;
+  const subscription = billingInfo.subscription;
+  const currentProductId = billingInfo.currentProductId;
 
   const allowUpdate = subscription && ["active", "trialing"].includes(subscription.status);
 

@@ -1,7 +1,7 @@
 import { stripeEnv } from "@/lib/env";
+import { getStripeClient } from "@/lib/stripe";
 import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import Stripe from "stripe";
 import { z } from "zod";
 import { mapProduct } from "../utils/stripe";
 
@@ -35,6 +35,7 @@ export const getBillingInfo = t.procedure
   .use(withRatelimit(ratelimit.read))
   .output(billingInfoSchema)
   .query(async ({ ctx }) => {
+    const stripe = getStripeClient();
     const e = stripeEnv();
     if (!e) {
       throw new TRPCError({
@@ -42,11 +43,6 @@ export const getBillingInfo = t.procedure
         message: "Stripe is not configured",
       });
     }
-
-    const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
-      apiVersion: "2023-10-16",
-      typescript: true,
-    });
 
     const [products, subscription, hasPreviousSubscriptions] = await Promise.all([
       stripe.products

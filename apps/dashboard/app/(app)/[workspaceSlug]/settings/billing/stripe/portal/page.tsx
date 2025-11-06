@@ -1,9 +1,9 @@
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { stripeEnv } from "@/lib/env";
+import { getStripeClient } from "@/lib/stripe";
 import { Code, Empty } from "@unkey/ui";
 import { redirect } from "next/navigation";
-import Stripe from "stripe";
+import type Stripe from "stripe";
 
 export const dynamic = "force-dynamic";
 
@@ -22,9 +22,10 @@ export default async function StripeRedirect() {
     return redirect("/new");
   }
 
-  const e = stripeEnv();
-
-  if (!e) {
+  let stripe: Stripe;
+  try {
+    stripe = getStripeClient();
+  } catch (_error) {
     return (
       <Empty>
         <Empty.Title>Stripe is not configured</Empty.Title>
@@ -34,11 +35,6 @@ export default async function StripeRedirect() {
       </Empty>
     );
   }
-
-  const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
-    apiVersion: "2023-10-16",
-    typescript: true,
-  });
 
   const baseUrl = process.env.VERCEL
     ? process.env.VERCEL_TARGET_ENV === "production"

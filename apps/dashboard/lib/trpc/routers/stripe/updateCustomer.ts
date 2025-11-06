@@ -1,4 +1,5 @@
-import { stripeEnv } from "@/lib/env";
+import { getStripeClient } from "@/lib/stripe";
+import { handleStripeError } from "@/lib/trpc/routers/utils/stripe";
 import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
@@ -19,18 +20,7 @@ export const updateCustomer = t.procedure
   .input(updateCustomerInputSchema)
   .output(customerSchema)
   .mutation(async ({ input }) => {
-    const e = stripeEnv();
-    if (!e) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Stripe is not configured",
-      });
-    }
-
-    const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
-      apiVersion: "2023-10-16",
-      typescript: true,
-    });
+    const stripe = getStripeClient();
 
     try {
       const customer = await stripe.customers.update(input.customerId, {
@@ -57,10 +47,7 @@ export const updateCustomer = t.procedure
 
       // Handle Stripe errors
       if (error instanceof Stripe.errors.StripeError) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Stripe error: ${error.message}`,
-        });
+        handleStripeError(error);
       }
 
       // Handle unknown errors

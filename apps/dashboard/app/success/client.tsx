@@ -32,17 +32,18 @@ type Props = {
 
 export function SuccessClient({ workSpaceSlug, showPlanSelection, products }: Props) {
   const router = useRouter();
-  const [showModal, setShowModal] = useState(true);
+  const [showModal, setShowModal] = useState(!!(showPlanSelection && products && workSpaceSlug));
 
   useEffect(() => {
+    // If showing modal, don't redirect
     if (showPlanSelection && products && workSpaceSlug) {
-      // Show plan selection modal for first-time users
-      setShowModal(true);
-    } else if (workSpaceSlug) {
-      // Regular redirect for existing users
+      return;
+    }
+
+    // Redirect based on workspace availability
+    if (workSpaceSlug) {
       router.push(`/${workSpaceSlug}/settings/billing`);
     } else {
-      // Redirect to root when no workspace slug is available
       router.push("/");
     }
   }, [router, workSpaceSlug, showPlanSelection, products]);

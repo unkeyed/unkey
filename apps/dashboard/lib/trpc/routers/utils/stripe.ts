@@ -1,4 +1,5 @@
-import type Stripe from "stripe";
+import { TRPCError } from "@trpc/server";
+import Stripe from "stripe";
 
 export const mapProduct = (p: Stripe.Product) => {
   if (!p.default_price) {
@@ -43,4 +44,34 @@ export const mapProduct = (p: Stripe.Product) => {
       requestsPerMonth: quotaValue,
     },
   };
+};
+
+export const handleStripeError = (error: Stripe.errors.StripeError) => {
+  const stripeError = error;
+  let code: TRPCError["code"];
+
+  // Map Stripe error types to TRPC error codes
+  if (error instanceof Stripe.errors.StripeAuthenticationError) {
+    code = "UNAUTHORIZED";
+  } else if (error instanceof Stripe.errors.StripeRateLimitError) {
+    code = "TOO_MANY_REQUESTS";
+  } else if (error instanceof Stripe.errors.StripeInvalidRequestError) {
+    code = "BAD_REQUEST";
+  } else if (error instanceof Stripe.errors.StripePermissionError) {
+    code = "FORBIDDEN";
+  } else if (stripeError.statusCode === 404 || stripeError.code === "resource_missing") {
+    code = "NOT_FOUND";
+  } else if (error instanceof Stripe.errors.StripeAPIError) {
+    code = "INTERNAL_SERVER_ERROR";
+  } else if (error instanceof Stripe.errors.StripeConnectionError) {
+    code = "INTERNAL_SERVER_ERROR";
+  } else {
+    // Default for other Stripe errors
+    code = "INTERNAL_SERVER_ERROR";
+  }
+
+  throw new TRPCError({
+    code,
+    message: `Stripe error: ${stripeError.message}`,
+  });
 };
