@@ -169,7 +169,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
                 <SelectTrigger id="workspace-selector">
                   <SelectValue placeholder="Select a workspace..." />
                 </SelectTrigger>
-                <SelectContent className="overflow-y-auto max-h-[400px]">
+                <SelectContent className="dark overflow-y-auto max-h-[400px]">
                   {sortedOrgs.map((org) => (
                     <SelectItem key={org.id} value={org.id}>
                       {org.name}
