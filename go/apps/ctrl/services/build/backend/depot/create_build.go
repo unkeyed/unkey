@@ -101,8 +101,7 @@ func (s *Depot) CreateBuild(
 			"error", err,
 			"depot_project_id", depotProjectID,
 			"unkey_project_id", unkeyProjectID)
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to create build: %w", err))
+		return nil, wrapBuildError(err, connect.CodeInternal, "failed to create build")
 	}
 
 	s.logger.Info("Depot build created",
@@ -126,8 +125,7 @@ func (s *Depot) CreateBuild(
 			"build_id", buildResp.ID,
 			"depot_project_id", depotProjectID,
 			"unkey_project_id", unkeyProjectID)
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to acquire machine: %w", buildErr))
+		return nil, wrapBuildError(buildErr, connect.CodeInternal, "failed to acquire machine")
 	}
 	//nolint: all
 	defer buildkit.Release()
@@ -144,8 +142,7 @@ func (s *Depot) CreateBuild(
 			"build_id", buildResp.ID,
 			"depot_project_id", depotProjectID,
 			"unkey_project_id", unkeyProjectID)
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to connect to buildkit: %w", buildErr))
+		return nil, wrapBuildError(buildErr, connect.CodeInternal, "failed to connect to buildkit")
 	}
 	defer buildkitClient.Close()
 
@@ -164,7 +161,7 @@ func (s *Depot) CreateBuild(
 		"build_id", buildResp.ID,
 		"unkey_project_id", unkeyProjectID)
 
-	buildStatusCh := make(chan *client.SolveStatus, 100)
+	buildStatusCh := make(chan *client.SolveStatus, 10)
 	go s.processBuildStatus(buildStatusCh, req.Msg.GetWorkspaceId(), unkeyProjectID, deploymentID)
 
 	solverOptions := s.buildSolverOptions(platform, contextURL, dockerfilePath, imageName)
@@ -176,8 +173,7 @@ func (s *Depot) CreateBuild(
 			"build_id", buildResp.ID,
 			"depot_project_id", depotProjectID,
 			"unkey_project_id", unkeyProjectID)
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("build failed: %w", buildErr))
+		return nil, wrapBuildError(buildErr, connect.CodeInternal, "build failed")
 	}
 
 	s.logger.Info("Build completed successfully")
@@ -234,7 +230,9 @@ func (s *Depot) buildSolverOptions(
 //	Create new Depot project if not found
 //	Store project mapping in database
 func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID string) (string, error) {
-	project, err := db.Query.FindProjectById(ctx, s.db.RO(), unkeyProjectID)
+	project, err := db.WithRetryContext(ctx, func() (db.FindProjectByIdRow, error) {
+		return db.Query.FindProjectById(ctx, s.db.RO(), unkeyProjectID)
+	})
 	if err != nil {
 		return "", fmt.Errorf("failed to query project: %w", err)
 	}
@@ -275,13 +273,16 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 	depotProjectID := createResp.Msg.GetProject().GetProjectId()
 
 	now := time.Now().UnixMilli()
-	err = db.Query.UpdateProjectDepotID(ctx, s.db.RW(), db.UpdateProjectDepotIDParams{
-		DepotProjectID: sql.NullString{
-			String: depotProjectID,
-			Valid:  true,
-		},
-		UpdatedAt: sql.NullInt64{Int64: now, Valid: true},
-		ID:        unkeyProjectID,
+	_, err = db.WithRetryContext(ctx, func() (struct{}, error) {
+		err := db.Query.UpdateProjectDepotID(ctx, s.db.RW(), db.UpdateProjectDepotIDParams{
+			DepotProjectID: sql.NullString{
+				String: depotProjectID,
+				Valid:  true,
+			},
+			UpdatedAt: sql.NullInt64{Int64: now, Valid: true},
+			ID:        unkeyProjectID,
+		})
+		return struct{}{}, err
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to update depot_project_id: %w", err)
