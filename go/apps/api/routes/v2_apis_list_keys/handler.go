@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
 	"github.com/oapi-codegen/nullable"
@@ -317,9 +316,9 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) op
 		}
 
 		if len(keyData.Identity.Meta) > 0 {
-			var identityMeta map[string]any
-			_ = json.Unmarshal(keyData.Identity.Meta, &identityMeta) // Ignore error, default to nil
-			if identityMeta != nil {
+			if identityMeta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta); err != nil {
+				h.Logger.Error("failed to unmarshal identity meta", "error", err)
+			} else {
 				response.Identity.Meta = &identityMeta
 			}
 		}
@@ -386,9 +385,13 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) op
 
 	// Set meta
 	if keyData.Key.Meta.Valid {
-		var meta map[string]any
-		_ = json.Unmarshal([]byte(keyData.Key.Meta.String), &meta) // Ignore error, default to nil
-		if meta != nil {
+		meta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Key.Meta.String)
+		if err != nil {
+			h.Logger.Error("failed to unmarshal key meta",
+				"keyId", keyData.Key.ID,
+				"error", err,
+			)
+		} else {
 			response.Meta = &meta
 		}
 	}

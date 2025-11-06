@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -74,9 +73,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	identity := results[0]
 
 	// Parse ratelimits JSON
-	var ratelimits []db.RatelimitInfo
-	if ratelimitBytes, ok := identity.Ratelimits.([]byte); ok && ratelimitBytes != nil {
-		_ = json.Unmarshal(ratelimitBytes, &ratelimits) // Ignore error, default to empty array
+	ratelimits, err := db.UnmarshalNullableJSONTo[[]db.RatelimitInfo](identity.Ratelimits)
+	if err != nil {
+		h.Logger.Error("failed to unmarshal ratelimits",
+			"identityId", identity.ID,
+			"error", err,
+		)
 	}
 
 	// Check permissions using either wildcard or the specific identity ID
@@ -96,17 +98,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Parse metadata
-	var metaMap map[string]any
-	if len(identity.Meta) > 0 {
-		err = json.Unmarshal(identity.Meta, &metaMap)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("unable to unmarshal metadata"), fault.Public("We're unable to parse the identity's metadata."),
-			)
-		}
-	} else {
-		metaMap = make(map[string]any)
+	metaMap, err := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta)
+	if err != nil {
+		h.Logger.Error("failed to unmarshal identity meta",
+			"identityId", identity.ID,
+			"error", err,
+		)
 	}
 
 	// Format ratelimits for the response
