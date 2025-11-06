@@ -35,6 +35,9 @@ on:
       configs:
         description: "Whether config files have changed"
         value: ${{ jobs.build.outputs.configs }}
+      planetfall:
+        description: "Whether Planetfall has changed"
+        value: ${{ jobs.build.outputs.planetfall }}
 permissions:
   contents: read
 jobs:
@@ -53,6 +56,7 @@ jobs:
       dependencies: ${{ steps.changes.outputs.dependencies }}
       packages: ${{ steps.changes.outputs.packages }}
       configs: ${{ steps.changes.outputs.configs }}
+      planetfall: ${{ steps.changes.outputs.planetfall }}
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
@@ -148,3 +152,8 @@ jobs:
               - 'biome.json'
               - 'turbo.json'
               - 'vitest.workspace.json'
+
+            # Planetfall application
+            planetfall:
+              - 'apps/planetfall/**/!(*.md|*.txt)'
+              - 'apps/planetfall/!(*.md|*.txt)'

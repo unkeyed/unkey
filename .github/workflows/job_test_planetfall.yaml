@@ -1,0 +1,19 @@
+name: Test Planetfall
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  test:
+    name: Test Planetfall
+    runs-on: depot-ubuntu-24.04-4
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build Check
+        run: pnpm turbo run build --filter=@unkey/planetfall
+        env:
+          CI: 1
