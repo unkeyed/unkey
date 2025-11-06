@@ -17,6 +17,8 @@ var terminalErrorPatterns = []string{
 	"internal error",              // This is mostly thrown by depot. It means something is wrong on their end.
 	"permission denied",           // This is on us we either pass wrong depot token or organization/project mismatch
 	"unauthenticated",             // Wrong depot token
+	"unknown key: platforms",      // Depot only allows "us-east-1" and "eu-central-1"
+	"dockerfile parse error on line",
 }
 
 // isTerminalBuildError returns true if the error is terminal and Restate should NOT retry.
