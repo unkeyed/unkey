@@ -54,6 +54,9 @@ type Service interface {
 //
 // Thread Safety: This type is immutable and safe for concurrent use.
 type RatelimitRequest struct {
+	// Name is an arbitrary string that identifies the rate limit topic.
+	Name string
+
 	// Identifier uniquely identifies the rate limit subject.
 	// This could be:
 	//   - A user ID

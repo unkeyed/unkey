@@ -188,6 +188,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 	for name, config := range ratelimitsToCheck {
 		names = append(names, name)
 		ratelimitRequests = append(ratelimitRequests, ratelimit.RatelimitRequest{
+			Name:       config.Name,
 			Identifier: config.Identifier, // Use the pre-determined identifier
 			Limit:      config.Limit,
 			Duration:   config.Duration,

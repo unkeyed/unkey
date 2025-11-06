@@ -333,9 +333,10 @@ export const KeysList = ({
           ),
           countInfoText: (
             <div className="flex gap-2">
-              <span>Showing</span> <span className="text-accent-12">{keys.length}</span>
+              <span>Showing</span>{" "}
+              <span className="text-accent-12">{new Intl.NumberFormat().format(keys.length)}</span>
               <span>of</span>
-              {totalCount}
+              {new Intl.NumberFormat().format(totalCount)}
               <span>keys</span>
             </div>
           ),

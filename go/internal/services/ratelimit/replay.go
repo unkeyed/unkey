@@ -60,6 +60,7 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 	}
 
 	key := bucketKey{
+		name:       req.Name,
 		identifier: req.Identifier,
 		limit:      req.Limit,
 		duration:   req.Duration,

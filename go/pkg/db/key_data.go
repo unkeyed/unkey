@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"encoding/json"
 )
 
 // KeyData represents the complete data for a key including all relationships
@@ -104,19 +103,18 @@ func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
 		}
 	}
 
-	// It's fine to fail here
-	if roleBytes, ok := r.Roles.([]byte); ok && roleBytes != nil {
-		_ = json.Unmarshal(roleBytes, &kd.Roles) // Ignore error, default to empty array
-	}
-	if permissionsBytes, ok := r.Permissions.([]byte); ok && permissionsBytes != nil {
-		_ = json.Unmarshal(permissionsBytes, &kd.Permissions) // Ignore error, default to empty array
-	}
-	if rolePermissionsBytes, ok := r.RolePermissions.([]byte); ok && rolePermissionsBytes != nil {
-		_ = json.Unmarshal(rolePermissionsBytes, &kd.RolePermissions) // Ignore error, default to empty array
-	}
-	if ratelimitsBytes, ok := r.Ratelimits.([]byte); ok && ratelimitsBytes != nil {
-		_ = json.Unmarshal(ratelimitsBytes, &kd.Ratelimits) // Ignore error, default to empty array
-	}
+	// Unmarshal JSON fields, silently ignoring errors
+	roles, _ := UnmarshalNullableJSONTo[[]RoleInfo](r.Roles)
+	kd.Roles = roles
+
+	permissions, _ := UnmarshalNullableJSONTo[[]PermissionInfo](r.Permissions)
+	kd.Permissions = permissions
+
+	rolePermissions, _ := UnmarshalNullableJSONTo[[]PermissionInfo](r.RolePermissions)
+	kd.RolePermissions = rolePermissions
+
+	ratelimits, _ := UnmarshalNullableJSONTo[[]RatelimitInfo](r.Ratelimits)
+	kd.Ratelimits = ratelimits
 
 	return kd
 }
@@ -170,19 +168,18 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 		}
 	}
 
-	// It's fine to fail here
-	if roleBytes, ok := r.Roles.([]byte); ok && roleBytes != nil {
-		_ = json.Unmarshal(roleBytes, &kd.Roles) // Ignore error, default to empty array
-	}
-	if permissionsBytes, ok := r.Permissions.([]byte); ok && permissionsBytes != nil {
-		_ = json.Unmarshal(permissionsBytes, &kd.Permissions) // Ignore error, default to empty array
-	}
-	if rolePermissionsBytes, ok := r.RolePermissions.([]byte); ok && rolePermissionsBytes != nil {
-		_ = json.Unmarshal(rolePermissionsBytes, &kd.RolePermissions) // Ignore error, default to empty array
-	}
-	if ratelimitsBytes, ok := r.Ratelimits.([]byte); ok && ratelimitsBytes != nil {
-		_ = json.Unmarshal(ratelimitsBytes, &kd.Ratelimits) // Ignore error, default to empty array
-	}
+	// Unmarshal JSON fields, silently ignoring errors
+	roles, _ := UnmarshalNullableJSONTo[[]RoleInfo](r.Roles)
+	kd.Roles = roles
+
+	permissions, _ := UnmarshalNullableJSONTo[[]PermissionInfo](r.Permissions)
+	kd.Permissions = permissions
+
+	rolePermissions, _ := UnmarshalNullableJSONTo[[]PermissionInfo](r.RolePermissions)
+	kd.RolePermissions = rolePermissions
+
+	ratelimits, _ := UnmarshalNullableJSONTo[[]RatelimitInfo](r.Ratelimits)
+	kd.Ratelimits = ratelimits
 
 	return kd
 }

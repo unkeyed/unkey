@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"sort"
 
@@ -178,8 +177,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if len(keyData.Identity.Meta) > 0 {
-			var identityMeta map[string]any
-			if err := json.Unmarshal(keyData.Identity.Meta, &identityMeta); err != nil {
+			if identityMeta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta); err != nil {
 				h.Logger.Error("failed to unmarshal identity meta", "error", err)
 			} else {
 				response.Identity.Meta = &identityMeta
@@ -249,9 +247,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Set meta
 	if keyData.Key.Meta.Valid {
-		var meta map[string]any
-		if err := json.Unmarshal([]byte(keyData.Key.Meta.String), &meta); err != nil {
-			h.Logger.Error("failed to unmarshal key meta", "error", err)
+		meta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Key.Meta.String)
+		if err != nil {
+			h.Logger.Error("failed to unmarshal key meta",
+				"keyId", keyData.Key.ID,
+				"error", err,
+			)
 		} else {
 			response.Meta = &meta
 		}
