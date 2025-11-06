@@ -94,7 +94,7 @@ Identify your most active users by counting their total verifications over the l
 SELECT
   external_id,
   SUM(count) as verifications
-FROM key_verifications_per_day_v2
+FROM key_verifications_per_day_v1
 WHERE time >= now() - INTERVAL 30 DAY
 GROUP BY external_id
 ORDER BY verifications DESC
@@ -114,10 +114,10 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 
 <Tip>
   **Performance tip:** For longer time ranges, use pre-aggregated tables instead of the raw table:
-  - `key_verifications_per_minute_v2` - For queries spanning hours
-  - `key_verifications_per_hour_v2` - For queries spanning days
-  - `key_verifications_per_day_v2` - For queries spanning weeks/months
-  - `key_verifications_per_month_v2` - For queries spanning years
+  - `key_verifications_per_minute_v1` - For queries spanning hours
+  - `key_verifications_per_hour_v1` - For queries spanning days
+  - `key_verifications_per_day_v1` - For queries spanning weeks/months
+  - `key_verifications_per_month_v1` - For queries spanning years
 
 Use `SUM(count)` instead of `COUNT(*)` with aggregated tables. They scan far fewer rows and are much faster.
 
