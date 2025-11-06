@@ -21,6 +21,14 @@ type Handler struct {
 	BaseDomain        string
 }
 
+func (h *Handler) Method() string {
+	return zen.CATCHALL
+}
+
+func (h *Handler) Path() string {
+	return "/{path...}"
+}
+
 // Handle routes incoming requests to either:
 // 1. Local gateway (if deployment is in current region) - forwards to HTTP
 // 2. Remote ingress (if deployment is elsewhere) - forwards to HTTPS

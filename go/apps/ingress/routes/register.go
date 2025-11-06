@@ -36,23 +36,21 @@ func Register(srv *zen.Server, svc *Services) {
 	)
 
 	// ACME challenge endpoint for Let's Encrypt (/.well-known/acme-challenge/*)
-	srv.RegisterCatchAll(
+	srv.RegisterRoute(
 		defaultMiddlewares,
-		"/.well-known/acme-challenge/{token}",
-		(&acme.Handler{
+		&acme.Handler{
 			Logger: svc.Logger,
-		}).Handle,
+		},
 	)
 
 	// Catch-all proxy route (must be registered last)
-	srv.RegisterCatchAll(
+	srv.RegisterRoute(
 		defaultMiddlewares,
-		"/{path...}",
-		(&proxy.Handler{
+		&proxy.Handler{
 			Logger:            svc.Logger,
 			DeploymentService: svc.DeploymentService,
 			CurrentRegion:     svc.CurrentRegion,
 			BaseDomain:        svc.BaseDomain,
-		}).Handle,
+		},
 	)
 }

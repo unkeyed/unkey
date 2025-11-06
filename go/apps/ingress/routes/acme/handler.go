@@ -11,6 +11,14 @@ type Handler struct {
 	Logger logging.Logger
 }
 
+func (h *Handler) Method() string {
+	return zen.CATCHALL
+}
+
+func (h *Handler) Path() string {
+	return "/.well-known/acme-challenge/{token}"
+}
+
 // Handle processes ACME HTTP-01 challenges for Let's Encrypt certificate issuance
 // TODO: Implement ACME challenge handler
 func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
