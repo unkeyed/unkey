@@ -44,7 +44,7 @@ Count the total number of key verifications in the last 7 days across all your A
 <CodeGroup>
 ```sql SQL
 SELECT SUM(count) as total
-FROM key_verifications_per_day_v2
+FROM key_verifications_per_day_v1
 WHERE time >= now() - INTERVAL 7 DAY
 ```
 
@@ -53,7 +53,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "SELECT SUM(count) as total FROM key_verifications_per_day_v2 WHERE time >= now() - INTERVAL 7 DAY"
+    "query": "SELECT SUM(count) as total FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 7 DAY"
   }'
 ```
 
