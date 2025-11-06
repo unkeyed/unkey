@@ -106,11 +106,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	response := openapi.KeyResponseData{
-		CreatedAt: keyData.Key.CreatedAtM,
-		Enabled:   keyData.Key.Enabled,
-		KeyId:     keyData.Key.ID,
-		Start:     keyData.Key.Start,
-		Plaintext: nil,
+		Meta:        nil,
+		Ratelimits:  nil,
+		UpdatedAt:   nil,
+		Credits:     nil,
+		Expires:     nil,
+		Identity:    nil,
+		Name:        nil,
+		Permissions: nil,
+		Roles:       nil,
+		CreatedAt:   keyData.Key.CreatedAtM,
+		Enabled:     keyData.Key.Enabled,
+		KeyId:       keyData.Key.ID,
+		Start:       keyData.Key.Start,
+		Plaintext:   nil,
 	}
 
 	// Set optional fields
@@ -129,6 +138,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Set credits
 	if keyData.Key.RemainingRequests.Valid {
 		response.Credits = &openapi.KeyCreditsData{
+			Refill:    nil,
 			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int32)),
 		}
 
@@ -150,6 +160,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if keyData.Identity != nil {
 		response.Identity = &openapi.Identity{
+			Meta:       nil,
+			Ratelimits: nil,
 			Id:         keyData.Identity.ID,
 			ExternalId: keyData.Identity.ExternalID,
 		}

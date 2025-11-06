@@ -28,7 +28,7 @@ func BenchmarkGetCertificate(b *testing.B) {
 	// Generate test certificate
 	certFile := filepath.Join(tmpDir, "cert.pem")
 	keyFile := filepath.Join(tmpDir, "key.pem")
-	if err := generateTestCert(certFile, keyFile); err != nil {
+	if err = generateTestCert(certFile, keyFile); err != nil {
 		b.Fatal(err)
 	}
 
@@ -221,7 +221,7 @@ func generateTestCert(certFile, keyFile string) error {
 	}
 	defer certOut.Close()
 
-	if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: certDER}); err != nil {
+	if err = pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: certDER}); err != nil {
 		return err
 	}
 

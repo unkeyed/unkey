@@ -51,10 +51,6 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 		}
 	}
 
-	if !foundUser.RegistrationUri.Valid {
-		// todo: finish registration
-	}
-
 	resp, err := cfg.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
 		Keyring:   cfg.WorkspaceID,
 		Encrypted: foundUser.EncryptedKey,
@@ -63,12 +59,13 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 		return nil, fmt.Errorf("failed to decrypt private key: %w", err)
 	}
 
-	key, err := stringToPrivateKey(string(resp.Plaintext))
+	key, err := stringToPrivateKey(resp.GetPlaintext())
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert private key: %w", err)
 	}
 
 	config := lego.NewConfig(&AcmeUser{
+		//nolint: exhaustruct
 		Registration: &registration.Resource{
 			URI: foundUser.RegistrationUri.String,
 		},
@@ -110,7 +107,7 @@ func register(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
 
 	id, err := db.Query.InsertAcmeUser(ctx, cfg.DB.RW(), db.InsertAcmeUserParams{
 		WorkspaceID:  cfg.WorkspaceID,
-		EncryptedKey: resp.Encrypted,
+		EncryptedKey: resp.GetEncrypted(),
 		CreatedAt:    time.Now().UnixMilli(),
 	})
 	if err != nil {
@@ -129,6 +126,9 @@ func register(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
 	}
 
 	user.Registration = reg
+	if id < 0 {
+		return nil, fmt.Errorf("registration ID cannot be negative")
+	}
 
 	err = db.Query.UpdateAcmeUserRegistrationURI(ctx, cfg.DB.RW(), db.UpdateAcmeUserRegistrationURIParams{
 		ID:              uint64(id),

@@ -26,7 +26,6 @@ func TestWithTimeout(t *testing.T) {
 
 		ctx := context.Background()
 		err := handler(ctx, &Session{})
-
 		if err != nil {
 			t.Errorf("expected no error, got: %v", err)
 		}
@@ -126,7 +125,6 @@ func TestWithTimeout(t *testing.T) {
 
 		ctx := context.Background()
 		err := handler(ctx, &Session{})
-
 		if err != nil {
 			t.Errorf("expected no error, got: %v", err)
 		}
@@ -150,7 +148,7 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 				WithErrorHandling(logger),
 				WithTimeout(50 * time.Millisecond),
 			},
-			NewRoute("GET", "/timeout", func(ctx context.Context, s *Session) error {
+			NewRoute(http.MethodGet, "/timeout", func(ctx context.Context, s *Session) error {
 				// Handler that will timeout
 				select {
 				case <-ctx.Done():
@@ -162,7 +160,7 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 		)
 
 		// Create a test request
-		req := httptest.NewRequest("GET", "/timeout", nil)
+		req := httptest.NewRequest(http.MethodGet, "/timeout", nil)
 		recorder := httptest.NewRecorder()
 
 		// Handle the request
@@ -201,7 +199,7 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 				WithErrorHandling(logger),
 				WithTimeout(200 * time.Millisecond),
 			},
-			NewRoute("GET", "/cancel", func(ctx context.Context, s *Session) error {
+			NewRoute(http.MethodGet, "/cancel", func(ctx context.Context, s *Session) error {
 				// Handler that respects cancellation
 				select {
 				case <-ctx.Done():
@@ -214,7 +212,7 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 
 		// Create a request with a context that gets canceled
 		ctx, cancel := context.WithCancel(context.Background())
-		req := httptest.NewRequest("GET", "/cancel", nil)
+		req := httptest.NewRequest(http.MethodGet, "/cancel", nil)
 		req = req.WithContext(ctx)
 		recorder := httptest.NewRecorder()
 
@@ -260,13 +258,13 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 				WithErrorHandling(logger),
 				WithTimeout(100 * time.Millisecond),
 			},
-			NewRoute("GET", "/success", func(ctx context.Context, s *Session) error {
+			NewRoute(http.MethodGet, "/success", func(ctx context.Context, s *Session) error {
 				return s.JSON(http.StatusOK, map[string]string{"message": "success"})
 			}),
 		)
 
 		// Create a test request
-		req := httptest.NewRequest("GET", "/success", nil)
+		req := httptest.NewRequest(http.MethodGet, "/success", nil)
 		recorder := httptest.NewRecorder()
 
 		// Handle the request

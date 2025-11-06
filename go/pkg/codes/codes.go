@@ -48,6 +48,12 @@ const (
 	// CategoryUserBadRequest represents invalid user input errors.
 	CategoryUserBadRequest Category = "bad_request"
 
+	// CategoryUserUnprocessableEntity represents requests that are syntactically correct but cannot be processed.
+	CategoryUserUnprocessableEntity Category = "unprocessable_entity"
+
+	// CategoryUserTooManyRequests represents rate limit exceeded errors.
+	CategoryUserTooManyRequests Category = "too_many_requests"
+
 	// CategoryNotFound represents resource not found errors.
 	CategoryNotFound Category = "not_found"
 

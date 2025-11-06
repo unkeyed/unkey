@@ -77,7 +77,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	loader := func(ctx context.Context) (db.FindRatelimitNamespace, error) {
 		result := db.FindRatelimitNamespace{} // nolint:exhaustruct
-		response, err := db.WithRetryContext(ctx, func() (db.FindRatelimitNamespaceRow, error) {
+		var response db.FindRatelimitNamespaceRow
+		response, err = db.WithRetryContext(ctx, func() (db.FindRatelimitNamespaceRow, error) {
 			return db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Namespace:   req.Namespace,
@@ -144,11 +145,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		namespace, err = db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindRatelimitNamespace, error) {
+			//nolint: exhaustruct
 			result := db.FindRatelimitNamespace{}
 			now := time.Now().UnixMilli()
 			id := uid.New(uid.RatelimitNamespacePrefix)
 
-			err := db.Query.InsertRatelimitNamespace(ctx, tx, db.InsertRatelimitNamespaceParams{
+			err = db.Query.InsertRatelimitNamespace(ctx, tx, db.InsertRatelimitNamespaceParams{
 				ID:          id,
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Name:        req.Namespace,
@@ -162,7 +164,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if db.IsDuplicateKeyError(err) {
-				namespace, err := loader(ctx)
+				namespace, err = loader(ctx)
 				if err != nil {
 					return result, fault.Wrap(err,
 						fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -255,7 +257,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Apply rate limit
 	limitReq := ratelimit.RatelimitRequest{
-		Identifier: namespace.ID + ":" + req.Identifier,
+		Name:       namespace.ID,
+		Identifier: req.Identifier,
 		Duration:   time.Duration(duration) * time.Millisecond,
 		Limit:      limit,
 		Cost:       ptr.SafeDeref(req.Cost, 1),
@@ -345,5 +348,10 @@ func matchOverride(identifier string, namespace db.FindRatelimitNamespace) (db.F
 		return override, true, nil
 	}
 
-	return db.FindRatelimitNamespaceLimitOverride{}, false, nil
+	return db.FindRatelimitNamespaceLimitOverride{
+		Limit:      0,
+		ID:         "",
+		Identifier: "",
+		Duration:   0,
+	}, false, nil
 }

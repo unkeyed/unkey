@@ -115,11 +115,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	response := openapi.KeyResponseData{
-		CreatedAt: keyData.Key.CreatedAtM,
-		Enabled:   keyData.Key.Enabled,
-		KeyId:     keyData.Key.ID,
-		Start:     keyData.Key.Start,
-		Plaintext: plaintext,
+		Meta:        nil,
+		Ratelimits:  nil,
+		Name:        nil,
+		UpdatedAt:   nil,
+		Credits:     nil,
+		Expires:     nil,
+		Identity:    nil,
+		Permissions: nil,
+		Roles:       nil,
+		CreatedAt:   keyData.Key.CreatedAtM,
+		Enabled:     keyData.Key.Enabled,
+		KeyId:       keyData.Key.ID,
+		Start:       keyData.Key.Start,
+		Plaintext:   plaintext,
 	}
 
 	// Set optional fields
@@ -138,6 +147,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Set credits
 	if keyData.Key.RemainingRequests.Valid {
 		response.Credits = &openapi.KeyCreditsData{
+			Refill:    nil,
 			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int32)),
 		}
 
@@ -159,6 +169,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if keyData.Identity != nil {
 		response.Identity = &openapi.Identity{
+			Meta:       nil,
+			Ratelimits: nil,
 			Id:         keyData.Identity.ID,
 			ExternalId: keyData.Identity.ExternalID,
 		}
@@ -289,7 +301,7 @@ func (h *Handler) decryptKey(ctx context.Context, auth *keys.KeyVerifier, keyDat
 
 	// Only decrypt if the key is actually encrypted
 	if !keyData.EncryptedKey.Valid || !keyData.EncryptionKeyID.Valid {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	decrypted, err := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
@@ -301,7 +313,8 @@ func (h *Handler) decryptKey(ctx context.Context, auth *keys.KeyVerifier, keyDat
 			"keyId", keyData.Key.ID,
 			"error", err,
 		)
-		return nil, nil // Return nil instead of failing the entire request
+		// Return nil instead of failing the entire request
+		return nil, nil //nolint:nilnil
 	}
 
 	return ptr.P(decrypted.GetPlaintext()), nil

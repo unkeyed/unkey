@@ -9,8 +9,12 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Name:  "version",
-	Usage: "Manage API versions",
+	Version: "",
+	Flags:   []cli.Flag{},
+	Action:  nil,
+	Aliases: []string{},
+	Name:    "version",
+	Usage:   "Manage API versions",
 	Description: `Create, list, and manage versions of your API.
 
 Versions are immutable snapshots of your code, configuration, and infrastructure settings. Each version represents a specific deployment state that can be rolled back to at any time.
@@ -27,8 +31,12 @@ AVAILABLE COMMANDS:
 }
 
 var getCmd = &cli.Command{
-	Name:  "get",
-	Usage: "Get details about a version",
+	Flags:    []cli.Flag{},
+	Version:  "",
+	Commands: []*cli.Command{},
+	Aliases:  []string{},
+	Name:     "get",
+	Usage:    "Get details about a version",
 	Description: `Get comprehensive details about a specific version including status, branch, creation time, and associated hostnames.
 
 EXAMPLES:
@@ -58,8 +66,11 @@ unkey version get v_def456ghi789                 # Get details for another versi
 }
 
 var listCmd = &cli.Command{
-	Name:  "list",
-	Usage: "List versions with optional filtering",
+	Version:  "",
+	Commands: []*cli.Command{},
+	Aliases:  []string{},
+	Name:     "list",
+	Usage:    "List versions with optional filtering",
 	Description: `List all versions for the current project with support for filtering by branch, status, and limiting results.
 
 FILTERING OPTIONS:
@@ -92,6 +103,7 @@ unkey version list --branch main --status active --limit 3  # Combine filters`,
 	},
 }
 
+// nolint: exhaustruct
 var rollbackCmd = &cli.Command{
 	Name:  "rollback",
 	Usage: "Rollback to a previous version",

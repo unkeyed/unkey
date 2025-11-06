@@ -76,18 +76,25 @@ func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
 			RatelimitDuration: r.RatelimitDuration,
 			Environment:       r.Environment,
 		},
-		Api:             Api{},       // Empty Api since not in this query
-		KeyAuth:         KeyAuth{},   // Empty KeyAuth since not in this query
-		Workspace:       Workspace{}, // Empty Workspace since not in this query
+		// nolint: exhaustruct
+		Identity: nil,
+		// nolint: exhaustruct
+		Api: Api{}, // Empty Api since not in this query
+		// nolint: exhaustruct
+		KeyAuth: KeyAuth{}, // Empty KeyAuth since not in this query
+		// nolint: exhaustruct
+		Workspace: Workspace{}, // Empty Workspace since not in this query
+
 		EncryptedKey:    r.EncryptedKey,
 		EncryptionKeyID: r.EncryptionKeyID,
 		Roles:           nil,
 		Permissions:     nil,
 		RolePermissions: nil,
 		Ratelimits:      nil,
-	} //nolint:exhaustruct
+	}
 
 	if r.IdentityID.Valid {
+		//nolint:exhaustruct
 		kd.Identity = &Identity{
 			ID:          r.IdentityID.String,
 			ExternalID:  r.IdentityExternalID.String,
@@ -113,6 +120,7 @@ func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
 }
 
 func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
+	//nolint:exhaustruct
 	kd := &KeyData{
 		Key: Key{
 			ID:                r.ID,
@@ -148,9 +156,10 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 		Permissions:     nil,
 		RolePermissions: nil,
 		Ratelimits:      nil,
-	} //nolint:exhaustruct
+	}
 
 	if r.IdentityTableID.Valid {
+		//nolint: exhaustruct
 		kd.Identity = &Identity{
 			ID:          r.IdentityTableID.String,
 			ExternalID:  r.IdentityExternalID.String,

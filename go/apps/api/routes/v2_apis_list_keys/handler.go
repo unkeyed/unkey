@@ -31,7 +31,7 @@ type Handler struct {
 	DB       db.Database
 	Keys     keys.KeyService
 	Vault    *vault.Service
-	ApiCache cache.Cache[string, db.FindLiveApiByIDRow]
+	ApiCache cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
 }
 
 // Method returns the HTTP method this route responds to
@@ -88,7 +88,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	api, hit, err := h.ApiCache.SWR(ctx, req.ApiId, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
+	api, hit, err := h.ApiCache.SWR(ctx, cache.ScopedKey{
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		Key:         req.ApiId,
+	}, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
 		return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiId)
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
@@ -228,10 +231,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	responseData := make([]openapi.KeyResponseData, len(keyResults))
 	for i, key := range keyResults {
 		keyData := db.ToKeyData(key)
-		response, err := h.buildKeyResponseData(keyData, plaintextMap[key.ID])
-		if err != nil {
-			return err
-		}
+		response := h.buildKeyResponseData(keyData, plaintextMap[key.ID])
 		responseData[i] = response
 	}
 
@@ -248,12 +248,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 }
 
 // buildKeyResponseData transforms internal key data into API response format.
-func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (openapi.KeyResponseData, error) {
+func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResponseData {
 	response := openapi.KeyResponseData{
-		CreatedAt: keyData.Key.CreatedAtM,
-		Enabled:   keyData.Key.Enabled,
-		KeyId:     keyData.Key.ID,
-		Start:     keyData.Key.Start,
+		Meta:        nil,
+		Ratelimits:  nil,
+		Name:        nil,
+		UpdatedAt:   nil,
+		Credits:     nil,
+		Expires:     nil,
+		Identity:    nil,
+		Permissions: nil,
+		Roles:       nil,
+		Plaintext:   nil,
+		CreatedAt:   keyData.Key.CreatedAtM,
+		Enabled:     keyData.Key.Enabled,
+		KeyId:       keyData.Key.ID,
+		Start:       keyData.Key.Start,
 	}
 
 	if plaintext != "" {
@@ -276,6 +286,7 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 	// Set credits
 	if keyData.Key.RemainingRequests.Valid {
 		response.Credits = &openapi.KeyCreditsData{
+			Refill:    nil,
 			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int32)),
 		}
 
@@ -298,6 +309,8 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 	// Set identity
 	if keyData.Identity != nil {
 		response.Identity = &openapi.Identity{
+			Meta:       nil,
+			Ratelimits: nil,
 			Id:         keyData.Identity.ID,
 			ExternalId: keyData.Identity.ExternalID,
 		}
@@ -383,5 +396,5 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 		}
 	}
 
-	return response, nil
+	return response
 }
