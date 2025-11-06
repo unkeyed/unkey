@@ -27,3 +27,7 @@ deployment/data/*
 deployment/config/depot.json
 metald.db
 bin/
+
+
+go.work
+go.work.sum

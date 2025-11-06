@@ -25,6 +25,10 @@ export const workspacePermissions = {
       description: "Delete apis in this workspace.",
       permission: "api.*.delete_api",
     },
+    read_analytics: {
+      description: "Query analytics data for any API in this workspace using SQL.",
+      permission: "api.*.read_analytics",
+    },
   },
   Keys: {
     verify_key: {
@@ -169,6 +173,10 @@ export function apiPermissions(apiId: string): {
       update_api: {
         description: "Update this API.",
         permission: `api.${apiId}.update_api`,
+      },
+      read_analytics: {
+        description: "Query analytics data for this API using SQL.",
+        permission: `api.${apiId}.read_analytics`,
       },
     },
     Keys: {

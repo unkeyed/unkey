@@ -31,6 +31,18 @@ type Caches struct {
 	// Keys are string (ID) and values are db.FindLiveApiByIDRow.
 	LiveApiByID cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
 
+	// Clickhouse Configuration caches clickhouse configuration lookups by workspace ID.
+	// Keys are string (workspace ID) and values are db.ClickhouseWorkspaceSetting.
+	ClickhouseSetting cache.Cache[string, db.ClickhouseWorkspaceSetting]
+
+	// KeyAuthToApiRow caches key_auth_id to api row mappings.
+	// Keys are string (key_auth_id) and values are db.FindKeyAuthsByKeyAuthIdsRow (has both KeyAuthID and ApiID).
+	KeyAuthToApiRow cache.Cache[cache.ScopedKey, db.FindKeyAuthsByKeyAuthIdsRow]
+
+	// ApiToKeyAuthRow caches api_id to key_auth row mappings.
+	// Keys are string (api_id) and values are db.FindKeyAuthsByIdsRow (has both KeyAuthID and ApiID).
+	ApiToKeyAuthRow cache.Cache[cache.ScopedKey, db.FindKeyAuthsByIdsRow]
+
 	// dispatcher handles routing of invalidation events to all caches in this process.
 	// This is not exported as it's an internal implementation detail.
 	dispatcher *clustering.InvalidationDispatcher
@@ -233,10 +245,69 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
+	clickhouseSetting, err := createCache(
+		config,
+		dispatcher,
+		cache.Config[string, db.ClickhouseWorkspaceSetting]{
+			Fresh:    time.Minute,
+			Stale:    24 * time.Hour,
+			Logger:   config.Logger,
+			MaxSize:  1_000_000,
+			Resource: "clickhouse_setting",
+			Clock:    config.Clock,
+		},
+		nil,
+		nil,
+	)
+	if err != nil {
+		return Caches{}, err
+	}
+
+	// Create key_auth_id -> api row cache
+	keyAuthToApiRow, err := createCache(
+		config,
+		dispatcher,
+		cache.Config[cache.ScopedKey, db.FindKeyAuthsByKeyAuthIdsRow]{
+			Fresh:    10 * time.Minute,
+			Stale:    24 * time.Hour,
+			Logger:   config.Logger,
+			MaxSize:  1_000_000,
+			Resource: "key_auth_to_api_row",
+			Clock:    config.Clock,
+		},
+		cache.ScopedKeyToString,
+		cache.ScopedKeyFromString,
+	)
+	if err != nil {
+		return Caches{}, err
+	}
+
+	// Create api_id -> key_auth row cache
+	apiToKeyAuthRow, err := createCache(
+		config,
+		dispatcher,
+		cache.Config[cache.ScopedKey, db.FindKeyAuthsByIdsRow]{
+			Fresh:    10 * time.Minute,
+			Stale:    24 * time.Hour,
+			Logger:   config.Logger,
+			MaxSize:  1_000_000,
+			Resource: "api_to_key_auth_row",
+			Clock:    config.Clock,
+		},
+		cache.ScopedKeyToString,
+		cache.ScopedKeyFromString,
+	)
+	if err != nil {
+		return Caches{}, err
+	}
+
 	return Caches{
 		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
 		LiveApiByID:           middleware.WithTracing(liveApiByID),
 		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
+		ClickhouseSetting:     middleware.WithTracing(clickhouseSetting),
+		KeyAuthToApiRow:       middleware.WithTracing(keyAuthToApiRow),
+		ApiToKeyAuthRow:       middleware.WithTracing(apiToKeyAuthRow),
 		dispatcher:            dispatcher,
 	}, nil
 }
