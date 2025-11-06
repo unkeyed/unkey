@@ -158,6 +158,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
+	// Set identity
 	if keyData.Identity != nil {
 		response.Identity = &openapi.Identity{
 			Meta:       nil,
@@ -166,10 +167,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ExternalId: keyData.Identity.ExternalID,
 		}
 
-		if identityMeta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta); err != nil {
-			h.Logger.Error("failed to unmarshal identity meta", "error", err)
-		} else {
-			response.Identity.Meta = &identityMeta
+		if len(keyData.Identity.Meta) > 0 {
+			if identityMeta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta); err != nil {
+				h.Logger.Error("failed to unmarshal identity meta", "error", err)
+			} else {
+				response.Identity.Meta = &identityMeta
+			}
 		}
 	}
 
