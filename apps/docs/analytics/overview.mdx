@@ -6,7 +6,8 @@ description: "Query your verification data with SQL"
 <Warning>
   **Analytics is currently in private beta and available by request only.**
 
-  See [Getting Started](/analytics/getting-started) for access instructions.
+See [Getting Started](/analytics/getting-started) for access instructions.
+
 </Warning>
 
 ## What is Unkey Analytics?
@@ -32,6 +33,7 @@ graph LR
 ```
 
 You can query these tables using standard SQL to:
+
 - Aggregate verification counts by time period
 - Group by API, user, or outcome
 - Filter by region, tags, or custom criteria
@@ -54,23 +56,28 @@ Every verification event contains:
 | `tags`          | Array(String) | Custom tags added during verification                                                                                                     |
 | `spent_credits` | Int64         | Number of credits spent on this verification (0 if no credits were spent)                                                                 |
 
-## Next Steps
+## Use Cases
 
-<CardGroup cols={2}>
-  <Card title="Getting Started" icon="rocket" href="/analytics/getting-started">
-    Learn how to request access and execute your first query
-  </Card>
-  <Card title="Query Examples" icon="code" href="/analytics/query-examples">
-    Explore common SQL patterns for analytics and billing
+<CardGroup cols={3}>
+  <Card
+    title="Billing Teams"
+    icon="credit-card"
+    href="/analytics/query-examples#billing-usage-based-pricing"
+  >
+    Usage-based billing and credit tracking
   </Card>
   <Card
-    title="Schema Reference"
-    icon="table"
-    href="/analytics/schema-reference"
+    title="Monitoring "
+    icon="chart-line"
+    href="/analytics/query-examples#usage-analytics"
   >
-    Browse available tables, columns, and data types
+    API health and performance monitoring
   </Card>
-  <Card title="Query Restrictions" icon="shield-check" href="/analytics/query-restrictions">
-    View limits, quotas, and permissions
+  <Card
+    title="Product Teams"
+    icon="users"
+    href="/analytics/query-examples#usage-by-user"
+  >
+    User behavior and engagement insights
   </Card>
 </CardGroup>

@@ -6,8 +6,8 @@ description: "Tables, columns, and data types in Unkey Analytics"
 Unkey Analytics stores verification events across multiple time-series tables for efficient querying. This reference documents all available tables and their columns.
 
 <Tip>
-  Use aggregated tables (`per_hour`, `per_day`, `per_month`) for queries spanning long time periods
-  to improve performance.
+  Use aggregated tables (`per_hour`, `per_day`, `per_month`) for queries
+  spanning long time periods to improve performance.
 </Tip>
 
 ## Raw Events Table
@@ -52,17 +52,17 @@ Pre-aggregated tables provide better query performance for long time ranges. Eac
 
 `key_verifications_per_minute_v1` - Aggregated by minute
 
-| Column                           | Type     | Description                                     |
-| -------------------------------- | -------- | ----------------------------------------------- |
-| `time`          | DateTime | Timestamp (DateTime for minute/hour, Date for day/month)             |
-| `workspace_id`  | String   | Workspace identifier                                                 |
-| `key_space_id`  | String   | API identifier                                                       |
-| `external_id`   | String   | Your user identifier                                                 |
-| `key_id`        | String   | API key identifier                                                   |
-| `outcome`       | String   | Verification outcome (VALID, RATE_LIMITED, INVALID, etc.)            |
-| `tags`          | Array    | Tags associated with verifications                                   |
-| `count`         | UInt64   | Total verification count for this aggregation                        |
-| `spent_credits` | UInt64   | Total credits spent                                                  |
+| Column          | Type     | Description                                               |
+| --------------- | -------- | --------------------------------------------------------- |
+| `time`          | DateTime | Timestamp (DateTime for minute/hour, Date for day/month)  |
+| `workspace_id`  | String   | Workspace identifier                                      |
+| `key_space_id`  | String   | API identifier                                            |
+| `external_id`   | String   | Your user identifier                                      |
+| `key_id`        | String   | API key identifier                                        |
+| `outcome`       | String   | Verification outcome (VALID, RATE_LIMITED, INVALID, etc.) |
+| `tags`          | Array    | Tags associated with verifications                        |
+| `count`         | UInt64   | Total verification count for this aggregation             |
+| `spent_credits` | UInt64   | Total credits spent                                       |
 
 ### Per Hour Table
 
@@ -259,14 +259,14 @@ WHERE time >= 1704067200000  -- Jan 1, 2024 00:00:00 UTC
 
 ### Array Functions
 
-| Function        | Description        | Example                                             |
-| --------------- | ------------------ | --------------------------------------------------- |
-| `has()`         | Check element      | `WHERE has(tags, 'environment=production')`         |
-| `hasAny()`      | Check any element  | `WHERE hasAny(tags, ['team=backend', 'team=api'])`  |
+| Function        | Description        | Example                                              |
+| --------------- | ------------------ | ---------------------------------------------------- |
+| `has()`         | Check element      | `WHERE has(tags, 'environment=production')`          |
+| `hasAny()`      | Check any element  | `WHERE hasAny(tags, ['team=backend', 'team=api'])`   |
 | `hasAll()`      | Check all elements | `WHERE hasAll(tags, ['environment=prod', 'tier=1'])` |
-| `arrayJoin()`   | Expand array       | `SELECT arrayJoin(tags) as tag`                     |
-| `arrayFilter()` | Filter array       | `arrayFilter(x -> startsWith(x, 'path='), tags)`    |
-| `length()`      | Array length       | `WHERE length(tags) > 0`                            |
+| `arrayJoin()`   | Expand array       | `SELECT arrayJoin(tags) as tag`                      |
+| `arrayFilter()` | Filter array       | `arrayFilter(x -> startsWith(x, 'path='), tags)`     |
+| `length()`      | Array length       | `WHERE length(tags) > 0`                             |
 
 ### Math Functions
 
@@ -302,21 +302,3 @@ WHERE time >= 1704067200000  -- Jan 1, 2024 00:00:00 UTC
 | Queries per hour | 1000       | `query_quota_exceeded`        |
 
 See [Query Restrictions](/analytics/query-restrictions) for more details on query limits and restrictions.
-
-## Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Query Examples" icon="code" href="/analytics/query-examples">
-    Explore common SQL patterns for analytics
-  </Card>
-  <Card title="Query Restrictions" icon="shield-check" href="/analytics/query-restrictions">
-    View limits, quotas, and permissions
-  </Card>
-  <Card
-    title="ClickHouse Docs"
-    icon="book"
-    href="https://clickhouse.com/docs/en/sql-reference"
-  >
-    Browse ClickHouse SQL reference (external)
-  </Card>
-</CardGroup>

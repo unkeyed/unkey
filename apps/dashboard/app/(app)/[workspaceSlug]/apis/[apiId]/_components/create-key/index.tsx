@@ -51,6 +51,7 @@ export const CreateKeyDialog = ({
     id: string;
     name?: string;
   } | null>(null);
+  const [dialogKey, setDialogKey] = useState(0);
 
   const methods = usePersistedForm<FormValues>(
     FORM_STORAGE_KEY,
@@ -104,11 +105,15 @@ export const CreateKeyDialog = ({
     reset(getDefaultValues());
     setIsSettingsOpen(false);
     resetValidSteps();
+    // Force dialog to remount and reset to initial state (general section)
+    setDialogKey((prev) => prev + 1);
   });
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       saveCurrentValues();
+      // Reset to general step when closing, so next time it opens on the first step
+      setDialogKey((prev) => prev + 1);
     }
     setIsSettingsOpen(open);
   };
@@ -161,6 +166,7 @@ export const CreateKeyDialog = ({
       <FormProvider {...methods}>
         <form id="new-key-form" onSubmit={handleSubmit(onSubmit)}>
           <NavigableDialogRoot
+            key={dialogKey}
             isOpen={isSettingsOpen}
             onOpenChange={handleOpenChange}
             dialogClassName="w-[90%] md:w-[70%] lg:w-[70%] xl:w-[50%] 2xl:w-[45%] max-w-[940px] max-h-[90vh] sm:max-h-[90vh] md:max-h-[70vh] lg:max-h-[90vh] xl:max-h-[80vh]"
@@ -177,6 +183,7 @@ export const CreateKeyDialog = ({
                   icon: section.icon as FC<IconProps>,
                 }))}
                 onNavigate={handleSectionNavigation}
+                initialSelectedId="general"
               />
               <NavigableDialogContent
                 items={SECTIONS.map((section) => ({
