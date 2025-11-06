@@ -222,21 +222,21 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
 
     const tables = {
       hour: {
-        name: "verifications.key_verifications_per_hour_v3",
+        name: "default.key_verifications_per_hour_v2",
         fill: `WITH FILL
 FROM toStartOfHour(fromUnixTimestamp64Milli({ start: Int64 }))
 TO toStartOfHour(fromUnixTimestamp64Milli({ end: Int64 }))
 STEP INTERVAL 1 HOUR`,
       },
       day: {
-        name: "verifications.key_verifications_per_day_v3",
+        name: "default.key_verifications_per_day_v2",
         fill: `WITH FILL
 FROM toStartOfDay(fromUnixTimestamp64Milli({ start: Int64 }))
 TO toStartOfDay(fromUnixTimestamp64Milli({ end: Int64 }))
 STEP INTERVAL 1 DAY`,
       },
       month: {
-        name: "verifications.key_verifications_per_month_v3",
+        name: "default.key_verifications_per_month_v2",
         fill: `WITH FILL
 FROM toDateTime(toStartOfMonth(fromUnixTimestamp64Milli({ start: Int64 })))
 TO toDateTime(toStartOfMonth(fromUnixTimestamp64Milli({ end: Int64 })))

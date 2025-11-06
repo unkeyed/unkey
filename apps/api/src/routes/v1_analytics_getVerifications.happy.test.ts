@@ -73,7 +73,7 @@ describe.each([
 
     const inserted = await h.ch.querier.query({
       query:
-        "SELECT COUNT(*) AS count from verifications.raw_key_verifications_v1 WHERE workspace_id={workspaceId:String}",
+        "SELECT COUNT(*) AS count from default.key_verifications_raw_v2 WHERE workspace_id={workspaceId:String}",
       params: z.object({ workspaceId: z.string() }),
       schema: z.object({ count: z.number() }),
     })({

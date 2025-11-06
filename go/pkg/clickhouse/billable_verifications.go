@@ -22,7 +22,7 @@ func (c *clickhouse) GetBillableVerifications(ctx context.Context, workspaceID s
 	query := `
 	SELECT
 		sum(count) as count
-	FROM billing.billable_verifications_per_month_v2
+	FROM billable_verifications_per_month_v2
 	WHERE workspace_id = ?
 	AND year = ?
 	AND month = ?

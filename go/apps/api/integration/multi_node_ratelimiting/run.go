@@ -179,7 +179,7 @@ func RunRateLimitTest(
 		data, selectErr := clickhouse.Select[aggregatedCounts](
 			ctx,
 			h.CH.Conn(),
-			`SELECT count(*) as total_requests, countIf(passed > 0) as success_count, countIf(passed = 0) as failure_count FROM ratelimits.raw_ratelimits_v1 WHERE workspace_id = {workspace_id:String} AND namespace_id = {namespace_id:String}`,
+			`SELECT count(*) as total_requests, countIf(passed > 0) as success_count, countIf(passed = 0) as failure_count FROM default.ratelimits_raw_v2 WHERE workspace_id = {workspace_id:String} AND namespace_id = {namespace_id:String}`,
 			map[string]string{
 				"workspace_id": h.Resources().UserWorkspace.ID,
 				"namespace_id": namespaceID,
@@ -205,7 +205,7 @@ func RunRateLimitTest(
 
 		metricsCount := uint64(0)
 		uniqueCount := uint64(0)
-		row := h.CH.Conn().QueryRow(ctx, fmt.Sprintf(`SELECT count(*) as total_requests, count(DISTINCT request_id) as unique_requests FROM metrics.raw_api_requests_v1 WHERE workspace_id = '%s';`, h.Resources().UserWorkspace.ID))
+		row := h.CH.Conn().QueryRow(ctx, fmt.Sprintf(`SELECT count(*) as total_requests, count(DISTINCT request_id) as unique_requests FROM default.api_requests_raw_v2 WHERE workspace_id = '%s';`, h.Resources().UserWorkspace.ID))
 
 		err = row.Scan(&metricsCount, &uniqueCount)
 

@@ -22,7 +22,7 @@ async function main() {
 
   const query = ch.querier.query({
     query: `
-    SELECT * FROM metrics.raw_api_requests_v1
+    SELECT * FROM api_requests_raw_v2
     WHERE workspace_id = '${workspaceId}'
     AND time > ${start}
     AND time < ${end}

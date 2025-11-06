@@ -48,7 +48,7 @@ export function getBillableVerifications(ch: Querier) {
       query: `
     SELECT
       sum(count) as count
-    FROM default.billable_verifications_per_month_v2
+    FROM billable_verifications_per_month_v2
     WHERE workspace_id = {workspaceId: String}
     AND year = {year: Int64}
     AND month = {month: Int64}
