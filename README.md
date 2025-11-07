@@ -6,7 +6,6 @@
 <div align="center">
   <a href="https://go.unkey.com">unkey.com</a>
 </div>
-
 <br/>
 
 ## Contributing
