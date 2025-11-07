@@ -168,9 +168,9 @@ function SignInContent() {
   }, [clientReady, hasPendingAuth, router, setError]);
 
   if (isAutoSelecting || isLoading) {
-    let message = "Loading last workspace...";
+    let message = "Loading...";
     if (isLoading) {
-      message = "Loading...";
+      message = "Loading last workspace...";
     }
     return (
       <Empty>

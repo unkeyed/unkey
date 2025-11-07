@@ -343,7 +343,7 @@ export async function completeOrgSelection(
       cookies().set(cookie.name, cookie.value, cookie.options);
     }
     // Store the last used organization ID in a cookie for auto-selection on next login
-    setLastUsedOrgCookie({ orgId });
+    await setLastUsedOrgCookie({ orgId });
   }
 
   return result;
