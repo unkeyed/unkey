@@ -170,7 +170,10 @@ jobs:
             
             const timestamp = fs.readFileSync('slack-message-timestamp.txt', 'utf8').trim();
             console.log('Timestamp:', timestamp);
-            console.log('Full event:', JSON.stringify(github.event, null, 2));
+            console.log('Full event:', JSON.stringify(context.payload, null, 2));
+            
+            // Add small delay to ensure API is updated
+            await new Promise(resolve => setTimeout(resolve, 2000));
             
             // Get approval count
             const { data: reviews } = await github.rest.pulls.listReviews({
@@ -179,9 +182,13 @@ jobs:
               pull_number: context.issue.number,
             });
             
+            // Include the current approval from the event
+            const currentApproval = context.payload.review?.state === 'approved' ? 1 : 0;
             const approvals = reviews.filter(review => review.state === 'approved');
-            const approvalCount = approvals.length;
+            const approvalCount = Math.max(approvals.length, currentApproval);
             
+            console.log('All reviews:', reviews.map(r => ({ user: r.user.login, state: r.state })));
+            console.log('Approvals:', approvals.map(a => ({ user: a.user.login, state: a.state })));
             console.log('Total approvals:', approvalCount);
             
             let reaction = '';
