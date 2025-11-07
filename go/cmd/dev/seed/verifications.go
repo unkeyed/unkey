@@ -44,8 +44,9 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 
 	// Connect to MySQL
 	database, err := db.New(db.Config{
-		PrimaryDSN: cmd.RequireString("database-primary"),
-		Logger:     logger,
+		PrimaryDSN:  cmd.RequireString("database-primary"),
+		ReadOnlyDSN: "",
+		Logger:      logger,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)
@@ -62,8 +63,14 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 
 	// Create key service for proper key generation
 	keyService, err := keys.New(keys.Config{
-		DB:     database,
-		Logger: logger,
+		Logger:       logger,
+		DB:           database,
+		RateLimiter:  nil,
+		RBAC:         nil,
+		Clickhouse:   ch,
+		Region:       "test",
+		UsageLimiter: nil,
+		KeyCache:     nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)

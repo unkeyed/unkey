@@ -98,8 +98,9 @@ func run(ctx context.Context, cmd *cli.Command) error {
 
 	// Connect to MySQL
 	database, err := db.New(db.Config{
-		PrimaryDSN: cmd.RequireString("database-primary"),
-		Logger:     logger,
+		PrimaryDSN:  cmd.RequireString("database-primary"),
+		ReadOnlyDSN: "",
+		Logger:      logger,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
