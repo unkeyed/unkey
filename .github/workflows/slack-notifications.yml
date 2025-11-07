@@ -113,6 +113,11 @@ jobs:
             } else {
               core.setFailed('No emoji selected');
             }
+      - name: Read slack message timestamp from cache
+        uses: actions/cache/restore@v3
+        with:
+          path: slack-message-timestamp.txt
+          key: ${{ github.event.pull_request.html_url }}
       - name: Send review notification message
         if: github.event.action == 'submitted' && (github.event.review.state == 'approved' || github.event.review.state == 'changes_requested')
         uses: actions/github-script@v8
@@ -157,11 +162,6 @@ jobs:
               console.error('Failed to send review notification:', data.error);
               core.setFailed('Failed to send review notification');
             }
-      - name: Read slack message timestamp from cache
-        uses: actions/cache/restore@v3
-        with:
-          path: slack-message-timestamp.txt
-          key: ${{ github.event.pull_request.html_url }}
       - name: Clean and add emoji reaction
         uses: actions/github-script@v8
         env:
