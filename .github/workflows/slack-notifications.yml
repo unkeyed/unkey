@@ -86,11 +86,14 @@ jobs:
             });
 
             // Count only currently approved reviews
-            const approvals = Object.values(userReviews).filter(review => review.state === 'approved').length;
+            const approvals = Object.values(userReviews).filter(review => review.state === 'APPROVED').length;
             console.log(`Found ${approvals} active approvals`);
             console.log('All reviews data:', reviews.data);
             console.log('Latest reviews per user:', Object.values(userReviews).map(r => ({ user: r.user.login, state: r.state, submitted_at: r.submitted_at })));
+            console.log('About to return approvals:', approvals);
 
+            console.log('About to return approvals:', approvals);
+            core.setOutput('approval-count', approvals);
             return approvals;
       - name: Decide which emoji to add
         uses: actions/github-script@v8
@@ -109,8 +112,10 @@ jobs:
               // Changes requested takes precedence over approval count
               if (reviewState === 'changes_requested') {
                 emoji = 'x';
-              } else if (reviewState === 'approved') {
-                const approvalCount = '${{ steps.count-approvals.outputs.result }}';
+              } else if (reviewState === 'APPROVED') {
+                const approvalCount = '${{ steps.count-approvals.outputs.approval-count }}';
+                console.log('Raw approval count from step:', approvalCount);
+                console.log('Parsed approval count:', parseInt(approvalCount));
                 if (parseInt(approvalCount) >= 2) {
                   emoji = 'lfg';
                 } else {
