@@ -121,10 +121,13 @@ jobs:
           SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
         with:
           script: |
+            const fs = require('fs');
+            
             const SLACK_TOKEN = process.env.SLACK_BOT_TOKEN;
             const CHANNEL = process.env.SLACK_CHANNEL;
             const reviewState = context.payload.review.state;
             const reviewer = context.payload.review.user.login;
+            const SLACK_TIMESTAMP = fs.readFileSync('slack-message-timestamp.txt', 'utf8').trim();
 
             let message;
             if (reviewState === 'approved') {
@@ -141,6 +144,7 @@ jobs:
               },
               body: JSON.stringify({
                 channel: CHANNEL,
+                thread_ts: SLACK_TIMESTAMP,
                 text: message
               })
             });
