@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"github.com/unkeyed/unkey/go/apps/ingress/services/deployments"
+	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -63,7 +64,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 	if deployment.Region == h.CurrentRegion {
 		// Local gateway - use HTTP (TLS already terminated by ingress)
-		targetAddr = deployment.PortalAddress
+		targetAddr = deployment.K8SServiceName
 		targetScheme = "http"
 		isLocal = true
 
@@ -74,14 +75,44 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		)
 	} else {
 		// Remote ingress - use HTTPS (will re-encrypt)
-		targetAddr = fmt.Sprintf("%s.%s", deployment.Region, h.BaseDomain)
+		// Find the closest region to route through
+		closestRegions := h.DeploymentService.GetClosestRegions(h.CurrentRegion)
+
+		// Determine which region to route to:
+		// 1. If deployment region is in our closest regions list, route there directly
+		// 2. Otherwise, route to the first region in our proximity list (closest hop)
+		targetRegion := deployment.Region
+
+		// Check if we should route through a closer intermediate region
+		foundInProximity := false
+		for _, region := range closestRegions {
+			if region == deployment.Region {
+				foundInProximity = true
+				break
+			}
+		}
+
+		// If deployment region is not in our proximity list or is far down the list,
+		// route to the closest region as an intermediate hop
+		if !foundInProximity && len(closestRegions) > 0 {
+			targetRegion = closestRegions[0]
+			h.Logger.Info("routing through intermediate region",
+				"hostname", hostname,
+				"currentRegion", h.CurrentRegion,
+				"deploymentRegion", deployment.Region,
+				"intermediateRegion", targetRegion,
+			)
+		}
+
+		targetAddr = fmt.Sprintf("%s.%s", targetRegion, h.BaseDomain)
 		targetScheme = "https"
 		isLocal = false
 
 		h.Logger.Info("routing to remote region",
 			"hostname", hostname,
 			"currentRegion", h.CurrentRegion,
-			"targetRegion", deployment.Region,
+			"targetRegion", targetRegion,
+			"deploymentRegion", deployment.Region,
 			"targetAddr", targetAddr,
 		)
 	}
@@ -90,7 +121,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 }
 
 // forward handles proxying to either local gateway or remote ingress
-func (h *Handler) forward(ctx context.Context, sess *zen.Session, scheme, addr string, deployment *deployments.Deployment, isLocal bool) error {
+func (h *Handler) forward(ctx context.Context, sess *zen.Session, scheme, addr string, deployment *partitionv1.Deployment, isLocal bool) error {
 	// Build target URL
 	targetURL, err := url.Parse(fmt.Sprintf("%s://%s", scheme, addr))
 	if err != nil {
@@ -112,7 +143,7 @@ func (h *Handler) forward(ctx context.Context, sess *zen.Session, scheme, addr s
 			// Local gateway - add ingress metadata headers
 			req.Header.Set("X-Forwarded-Proto", "https")
 			req.Header.Set("X-Ingress-Region", h.CurrentRegion)
-			req.Header.Set("X-Ingress-Environment", deployment.Environment)
+			req.Header.Set("X-Deployment-Id", deployment.Id)
 		} else {
 			// Remote ingress - preserve original Host header for routing
 			req.Host = sess.Request().Host
