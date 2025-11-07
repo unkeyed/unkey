@@ -231,15 +231,15 @@ STEP INTERVAL 1 HOUR`,
       day: {
         name: "default.key_verifications_per_day_v2",
         fill: `WITH FILL
-FROM toDateTime(toStartOfDay(fromUnixTimestamp64Milli({ start: Int64 })))
-TO toDateTime(toStartOfDay(fromUnixTimestamp64Milli({ end: Int64 })))
+FROM toDate(toStartOfDay(fromUnixTimestamp64Milli({ start: Int64 })))
+TO toDate(toStartOfDay(fromUnixTimestamp64Milli({ end: Int64 })))
 STEP INTERVAL 1 DAY`,
       },
       month: {
         name: "default.key_verifications_per_month_v2",
         fill: `WITH FILL
-FROM toDateTime(toStartOfMonth(fromUnixTimestamp64Milli({ start: Int64 })))
-TO toDateTime(toStartOfMonth(fromUnixTimestamp64Milli({ end: Int64 })))
+FROM toDate(toStartOfMonth(fromUnixTimestamp64Milli({ start: Int64 })))
+TO toDate(toStartOfMonth(fromUnixTimestamp64Milli({ end: Int64 })))
 STEP INTERVAL 1 MONTH`,
       },
     } as const;

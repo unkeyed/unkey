@@ -85,7 +85,7 @@ describe.each([
     expect(inserted.err).toEqual(undefined);
     expect(inserted.val!.at(0)?.count).toEqual(verifications.length);
 
-    await new Promise((r) => setTimeout(r, 2000));
+    await new Promise((r) => setTimeout(r, 5000));
 
     const root = await h.createRootKey(["api.*.read_api"]);
 
