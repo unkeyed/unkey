@@ -75,8 +75,21 @@ jobs:
               pull_number: context.issue.number
             });
 
-            const approvals = reviews.data.filter(review => review.state === 'approved').length;
-            console.log(`Found ${approvals} approvals`);
+            // Group reviews by user and get their latest state
+            const userReviews = {};
+            reviews.data.forEach(review => {
+              const user = review.user.login;
+              // Only keep the most recent review from each user
+              if (!userReviews[user] || new Date(review.submitted_at) > new Date(userReviews[user].submitted_at)) {
+                userReviews[user] = review;
+              }
+            });
+
+            // Count only currently approved reviews
+            const approvals = Object.values(userReviews).filter(review => review.state === 'approved').length;
+            console.log(`Found ${approvals} active approvals`);
+            console.log('All reviews data:', reviews.data);
+            console.log('Latest reviews per user:', Object.values(userReviews).map(r => ({ user: r.user.login, state: r.state, submitted_at: r.submitted_at })));
 
             return approvals;
       - name: Decide which emoji to add
