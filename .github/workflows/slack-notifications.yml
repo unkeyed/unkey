@@ -114,7 +114,7 @@ jobs:
               // Changes requested takes precedence over approval count
               if (reviewState === 'changes_requested') {
                 emoji = 'x';
-              } else if (reviewState === 'APPROVED') {
+              } else if (reviewState === 'approved') {
                 const approvalCount = '${{ steps.count-approvals.outputs.approval-count }}';
                 console.log('Raw approval count from step:', approvalCount);
                 console.log('Parsed approval count:', parseInt(approvalCount));
