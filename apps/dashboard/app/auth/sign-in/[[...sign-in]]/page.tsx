@@ -62,7 +62,7 @@ function SignInContent() {
         }
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [!hasPendingAuth]);
+  }, [hasPendingAuth]);
 
   // Handle auto org selection when returning from OAuth
   useEffect(() => {
@@ -167,15 +167,19 @@ function SignInContent() {
     return () => clearInterval(interval);
   }, [clientReady, hasPendingAuth, router, setError]);
 
-  // Show a loading indicator when auto-selecting org
-  if (isLoading && clientReady) {
+  if (isAutoSelecting || isLoading) {
+    let message = "Loading last workspace...";
+    if (isLoading) {
+      message = "Loading...";
+    }
     return (
       <Empty>
-        <Loading type="spinner" />
-        <p className="text-sm text-white/60 mt-4">Signing you in...</p>
+        <Loading type="spinner" className="text-gray-6" />
+        <p className="text-sm text-white/60 mt-4">{message}</p>
       </Empty>
     );
   }
+
   const handleOrgSelectorClose = () => {
     // When user closes the org selector, navigate back to clean sign-in page
     router.push("/auth/sign-in");

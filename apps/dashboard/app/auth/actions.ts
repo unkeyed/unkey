@@ -1,6 +1,12 @@
 "use server";
 
-import { deleteCookie, getCookie, setCookies, setSessionCookie, setLastUsedOrgCookie } from "@/lib/auth/cookies";
+import {
+  deleteCookie,
+  getCookie,
+  setCookies,
+  setLastUsedOrgCookie,
+  setSessionCookie,
+} from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import {
   AuthErrorCode,
@@ -10,7 +16,6 @@ import {
   type OAuthResult,
   PENDING_SESSION_COOKIE,
   type SignInViaOAuthOptions,
-  UNKEY_LAST_ORG_COOKIE,
   type UserData,
   type VerificationResult,
   errorMessages,
@@ -257,7 +262,7 @@ export async function resendAuthCode(email: string): Promise<EmailAuthResult> {
 }
 
 export async function signIntoWorkspace(orgId: string): Promise<VerificationResult> {
-  const pendingToken = cookies().get("sess-temp")?.value;
+  const pendingToken = cookies().get(PENDING_SESSION_COOKIE)?.value;
 
   if (!pendingToken) {
     return {
@@ -275,7 +280,7 @@ export async function signIntoWorkspace(orgId: string): Promise<VerificationResu
 
     if (result.success) {
       await setCookies(result.cookies);
-      await deleteCookie("sess-temp");
+      await deleteCookie(PENDING_SESSION_COOKIE);
       redirect(result.redirectTo);
     }
 
@@ -333,14 +338,10 @@ export async function completeOrgSelection(
   });
 
   if (result.success) {
-
     cookies().delete(PENDING_SESSION_COOKIE);
     for (const cookie of result.cookies) {
       cookies().set(cookie.name, cookie.value, cookie.options);
-
-
     }
-
     // Store the last used organization ID in a cookie for auto-selection on next login
     setLastUsedOrgCookie({ orgId });
   }
@@ -359,7 +360,7 @@ export async function switchOrg(orgId: string): Promise<{ success: boolean; erro
     await setSessionCookie({ token: newToken, expiresAt });
 
     // Store the last used organization ID in a cookie for auto-selection on next login
-    await setLastUsedOrgCookie({orgId});
+    await setLastUsedOrgCookie({ orgId });
 
     return { success: true };
   } catch (error) {
@@ -406,4 +407,13 @@ export async function acceptInvitationAndJoin(
       error: error instanceof Error ? error.message : "Failed to join organization",
     };
   }
+}
+
+/**
+ * Check if a pending session exists (for workspace selection flow)
+ * This is needed because PENDING_SESSION_COOKIE is HttpOnly and not accessible from client
+ */
+export async function hasPendingSession(): Promise<boolean> {
+  const pendingToken = cookies().get(PENDING_SESSION_COOKIE);
+  return !!pendingToken?.value;
 }
