@@ -106,7 +106,7 @@ type BuildStepV1 struct {
 	DeploymentID string `ch:"deployment_id" json:"deployment_id"`
 	StepID       string `ch:"step_id" json:"step_id"`
 	Name         string `ch:"name" json:"name"`
-	Cache        bool   `ch:"cache" json:"cache"`
+	Cached       bool   `ch:"cached" json:"cached"`
 	Error        string `ch:"error" json:"error"`
 	HasLogs      bool   `ch:"has_logs" json:"has_logs"`
 }
