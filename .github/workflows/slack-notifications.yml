@@ -84,18 +84,25 @@ jobs:
         id: decide-emoji
         with:
           script: |
-            let emoji;
+            let emoji = 'bugeyes';
 
             if (context.payload.action === 'closed') {
               if (context.payload.pull_request.merged === false) {
                 emoji = 'pr-closed';
               }
             } else if (context.payload.action === 'submitted') {
-              const approvalCount = '${{ steps.count-approvals.outputs.result }}';
-              if (parseInt(approvalCount) >= 2) {
-                emoji = 'lfg';
-              } else {
-                emoji = 'bugeyes';
+              const reviewState = context.payload.review.state;
+
+              // Changes requested takes precedence over approval count
+              if (reviewState === 'changes_requested') {
+                emoji = 'x';
+              } else if (reviewState === 'approved') {
+                const approvalCount = '${{ steps.count-approvals.outputs.result }}';
+                if (parseInt(approvalCount) >= 2) {
+                  emoji = 'lfg';
+                } else {
+                  emoji = 'bugeyes';
+                }
               }
             }
 
@@ -105,6 +112,46 @@ jobs:
               return emoji;
             } else {
               core.setFailed('No emoji selected');
+            }
+      - name: Send review notification message
+        if: github.event.action == 'submitted' && (github.event.review.state == 'approved' || github.event.review.state == 'changes_requested')
+        uses: actions/github-script@v8
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+        with:
+          script: |
+            const SLACK_TOKEN = process.env.SLACK_BOT_TOKEN;
+            const CHANNEL = process.env.SLACK_CHANNEL;
+            const reviewState = context.payload.review.state;
+            const reviewer = context.payload.review.user.login;
+
+            let message;
+            if (reviewState === 'approved') {
+              message = `✅ ${reviewer} approved`;
+            } else if (reviewState === 'changes_requested') {
+              message = `🔄 ${reviewer} requested changes`;
+            }
+
+            const response = await fetch(`https://slack.com/api/chat.postMessage`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${SLACK_TOKEN}`,
+                'Content-Type': 'application/json; charset=utf-8'
+              },
+              body: JSON.stringify({
+                channel: CHANNEL,
+                text: message
+              })
+            });
+
+            const data = await response.json();
+
+            if (data.ok) {
+              console.log('Review notification sent successfully');
+            } else {
+              console.error('Failed to send review notification:', data.error);
+              core.setFailed('Failed to send review notification');
             }
       - name: Read slack message timestamp from cache
         uses: actions/cache/restore@v3
