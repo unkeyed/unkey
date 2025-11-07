@@ -3418,7 +3418,6 @@ paths:
             tags:
                 - analytics
             x-hidden: true
-            x-speakeasy-ignore: true
             x-speakeasy-name-override: getVerifications
     /v2/apis.createApi:
         post:

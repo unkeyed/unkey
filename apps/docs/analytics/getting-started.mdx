@@ -152,6 +152,13 @@ Each object in the `data` array contains fields from your SELECT clause. The fie
 You can filter queries to specific APIs or users. Use `key_space_id` to filter by API (find this identifier in your API settings) and `external_id` to filter by user. These fields support standard SQL operators: `=`, `!=`, `IN`, `NOT IN`, `<`, `>`, etc.
 
 <Note>
+  **Automatic filtering:** All queries are automatically filtered based on your root key's permissions:
+
+  - **Workspace filtering:** All queries are scoped to your workspace. You **do not need** to filter by `workspace_id`.
+  - **API filtering:** If your root key has `api.<api_id>.read_analytics` permissions (scoped to a specific API), queries are automatically filtered to that API's `key_space_id`. If your root key has `api.*.read_analytics` (all APIs), you should filter by `key_space_id` yourself to query specific APIs.
+</Note>
+
+<Note>
   Queries are subject to resource limits (execution time, memory, result size,
   and quota). See [Query Restrictions](/analytics/query-restrictions) for
   complete details on limits and error codes.
