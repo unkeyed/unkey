@@ -127,7 +127,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            
+
             const SLACK_TOKEN = process.env.SLACK_BOT_TOKEN;
             const CHANNEL = process.env.SLACK_CHANNEL;
             const reviewState = context.payload.review.state;
@@ -177,7 +177,7 @@ jobs:
             const EMOJI = process.env.EMOJI;
             const SLACK_TIMESTAMP = fs.readFileSync('slack-message-timestamp.txt', 'utf8').trim();
 
-            const TARGET_EMOJIS = ['lfg', 'x', 'bugeyes', 'speech_balloon', 'pr-closed'];
+            const TARGET_EMOJIS = ['lfg', 'x', 'bugeyes', 'white_tick', 'pr-closed'];
 
             // Get existing reactions
             const reactionsResponse = await fetch(`https://slack.com/api/reactions.get?channel=${CHANNEL}&timestamp=${SLACK_TIMESTAMP}`, {
@@ -190,12 +190,12 @@ jobs:
             const reactionsData = await reactionsResponse.json();
 
             console.log('Getting reactions for timestamp:', SLACK_TIMESTAMP);
-            
+
             if (reactionsData.ok && reactionsData.message && reactionsData.message.reactions) {
               const existingEmojis = reactionsData.message.reactions.flatMap(r => r.name);
               console.log('Existing emojis:', existingEmojis);
               console.log('Target emojis to remove:', TARGET_EMOJIS);
-              
+
               // Remove only existing target emojis
               for (const emoji of TARGET_EMOJIS) {
                 if (existingEmojis.includes(emoji)) {
@@ -212,7 +212,7 @@ jobs:
                       name: emoji
                     })
                   });
-                  
+
                   const removeData = await removeResponse.json();
                   if (!removeData.ok) {
                     console.error(`Failed to remove ${emoji}:`, removeData.error);
@@ -224,7 +224,12 @@ jobs:
                 }
               }
             } else {
-              console.log('No reactions found or failed to get reactions:', reactionsData);
+              if (reactionsData.error === 'missing_scope') {
+                console.log('Missing reactions:read scope - skipping emoji cleanup');
+                console.log('Please add reactions:read scope to your Slack bot token');
+              } else {
+                console.log('No reactions found or failed to get reactions:', reactionsData);
+              }
             }
 
             // Add the new emoji
@@ -246,6 +251,8 @@ jobs:
 
             if (addData.ok) {
               console.log(`Successfully added ${EMOJI}`);
+            } else if (addData.error === 'already_reacted') {
+              console.log(`${EMOJI} already exists - this is fine`);
             } else {
               console.error(`Failed to add ${EMOJI}:`, addData.error);
               core.setFailed(`Failed to add ${EMOJI} reaction`);
