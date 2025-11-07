@@ -10,7 +10,7 @@ async function main() {
   });
 
   const conn = await mysql.createConnection(
-    `mysql://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:3306/unkey?ssl={}`
+    `mysql://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:3306/unkey?ssl={}`,
   );
 
   await conn.ping();
@@ -49,7 +49,7 @@ async function main() {
   console.log(
     `Found ${
       new Set(rows.val.map((r) => r.workspace_id)).size
-    } workspaces across ${rows.val.length} paths`
+    } workspaces across ${rows.val.length} paths`,
   );
   const workspaceToPaths = new Map<string, string[]>();
   for (const row of rows.val) {
@@ -64,9 +64,7 @@ async function main() {
   for (const [workspaceId, paths] of workspaceToPaths.entries()) {
     if (paths.includes("/v1/analytics.getVerifications")) {
       console.warn(
-        `Skipping workspace ${workspaceId} due to analytics endpoint: ${paths.join(
-          ", "
-        )}`
+        `Skipping workspace ${workspaceId} due to analytics endpoint: ${paths.join(", ")}`,
       );
       continue;
     }
