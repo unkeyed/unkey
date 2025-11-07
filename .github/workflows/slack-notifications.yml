@@ -75,9 +75,25 @@ jobs:
               pull_number: context.issue.number
             });
 
-            const approvals = reviews.data.filter(review => review.state === 'approved').length;
-            console.log(`Found ${approvals} approvals`);
+            // Group reviews by user and get their latest state
+            const userReviews = {};
+            reviews.data.forEach(review => {
+              const user = review.user.login;
+              // Only keep the most recent review from each user
+              if (!userReviews[user] || new Date(review.submitted_at) > new Date(userReviews[user].submitted_at)) {
+                userReviews[user] = review;
+              }
+            });
 
+            // Count only currently approved reviews
+            const approvals = Object.values(userReviews).filter(review => review.state === 'APPROVED').length;
+            console.log(`Found ${approvals} active approvals`);
+            console.log('All reviews data:', reviews.data);
+            console.log('Latest reviews per user:', Object.values(userReviews).map(r => ({ user: r.user.login, state: r.state, submitted_at: r.submitted_at })));
+            console.log('About to return approvals:', approvals);
+
+            console.log('About to return approvals:', approvals);
+            core.setOutput('approval-count', approvals);
             return approvals;
       - name: Decide which emoji to add
         uses: actions/github-script@v8
@@ -92,12 +108,16 @@ jobs:
               }
             } else if (context.payload.action === 'submitted') {
               const reviewState = context.payload.review.state;
+              console.log('Current review state:', reviewState);
+              console.log('Full review payload:', context.payload.review);
 
               // Changes requested takes precedence over approval count
               if (reviewState === 'changes_requested') {
                 emoji = 'x';
               } else if (reviewState === 'approved') {
-                const approvalCount = '${{ steps.count-approvals.outputs.result }}';
+                const approvalCount = '${{ steps.count-approvals.outputs.approval-count }}';
+                console.log('Raw approval count from step:', approvalCount);
+                console.log('Parsed approval count:', parseInt(approvalCount));
                 if (parseInt(approvalCount) >= 2) {
                   emoji = 'lfg';
                 } else {
@@ -127,7 +147,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            
+
             const SLACK_TOKEN = process.env.SLACK_BOT_TOKEN;
             const CHANNEL = process.env.SLACK_CHANNEL;
             const reviewState = context.payload.review.state;
@@ -177,7 +197,7 @@ jobs:
             const EMOJI = process.env.EMOJI;
             const SLACK_TIMESTAMP = fs.readFileSync('slack-message-timestamp.txt', 'utf8').trim();
 
-            const TARGET_EMOJIS = ['lfg', 'x', 'bugeyes'];
+            const TARGET_EMOJIS = ['lfg', 'x', 'bugeyes', 'white_tick', 'pr-closed'];
 
             // Get existing reactions
             const reactionsResponse = await fetch(`https://slack.com/api/reactions.get?channel=${CHANNEL}&timestamp=${SLACK_TIMESTAMP}`, {
@@ -189,15 +209,18 @@ jobs:
 
             const reactionsData = await reactionsResponse.json();
 
+            console.log('Getting reactions for timestamp:', SLACK_TIMESTAMP);
+
             if (reactionsData.ok && reactionsData.message && reactionsData.message.reactions) {
               const existingEmojis = reactionsData.message.reactions.flatMap(r => r.name);
               console.log('Existing emojis:', existingEmojis);
+              console.log('Target emojis to remove:', TARGET_EMOJIS);
 
               // Remove only existing target emojis
               for (const emoji of TARGET_EMOJIS) {
                 if (existingEmojis.includes(emoji)) {
                   console.log(`Removing ${emoji}`);
-                  await fetch(`https://slack.com/api/reactions.remove`, {
+                  const removeResponse = await fetch(`https://slack.com/api/reactions.remove`, {
                     method: 'POST',
                     headers: {
                       'Authorization': `Bearer ${SLACK_TOKEN}`,
@@ -209,7 +232,23 @@ jobs:
                       name: emoji
                     })
                   });
+
+                  const removeData = await removeResponse.json();
+                  if (!removeData.ok) {
+                    console.error(`Failed to remove ${emoji}:`, removeData.error);
+                  } else {
+                    console.log(`Successfully removed ${emoji}`);
+                  }
+                } else {
+                  console.log(`${emoji} not found in existing reactions`);
                 }
+              }
+            } else {
+              if (reactionsData.error === 'missing_scope') {
+                console.log('Missing reactions:read scope - skipping emoji cleanup');
+                console.log('Please add reactions:read scope to your Slack bot token');
+              } else {
+                console.log('No reactions found or failed to get reactions:', reactionsData);
               }
             }
 
@@ -232,6 +271,8 @@ jobs:
 
             if (addData.ok) {
               console.log(`Successfully added ${EMOJI}`);
+            } else if (addData.error === 'already_reacted') {
+              console.log(`${EMOJI} already exists - this is fine`);
             } else {
               console.error(`Failed to add ${EMOJI}:`, addData.error);
               core.setFailed(`Failed to add ${EMOJI} reaction`);
