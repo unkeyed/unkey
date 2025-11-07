@@ -82,7 +82,7 @@ jobs:
             }
             
             // Add CI status reaction
-            if (github.event_name === 'pull_request_review' || github.event.action === 'opened') {
+            if (github.event_name === 'pull_request_review' || (github.event_name === 'pull_request' && github.event.action === 'opened')) {
               const { data: checks } = await github.rest.checks.listForRef({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
