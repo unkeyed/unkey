@@ -8,10 +8,15 @@ export const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
   const router = useRouter();
   const trpcUtils = trpc.useUtils();
   const uncancelSubscription = trpc.stripe.uncancelSubscription.useMutation({
-    onSuccess: () => {
-      trpcUtils.workspace.getCurrent.invalidate();
-      trpcUtils.billing.queryUsage.invalidate();
-      trpcUtils.stripe.getBillingInfo.invalidate();
+    onSuccess: async () => {
+      // Revalidate helper: invalidate AND explicitly refetch to ensure UI updates
+      await Promise.all([
+        trpcUtils.workspace.getCurrent.invalidate(),
+        trpcUtils.billing.queryUsage.invalidate(),
+        trpcUtils.stripe.getBillingInfo.invalidate(),
+        trpcUtils.workspace.getCurrent.refetch(),
+        trpcUtils.stripe.getBillingInfo.refetch(),
+      ]);
       router.refresh();
       toast.info("Subscription resumed");
     },

@@ -9,10 +9,15 @@ export const CancelPlan: React.FC = () => {
   const router = useRouter();
 
   const cancelSubscription = trpc.stripe.cancelSubscription.useMutation({
-    onSuccess: () => {
-      trpcUtils.workspace.getCurrent.invalidate();
-      trpcUtils.billing.queryUsage.invalidate();
-      trpcUtils.stripe.getBillingInfo.invalidate();
+    onSuccess: async () => {
+      // Revalidate helper: invalidate AND explicitly refetch to ensure UI updates
+      await Promise.all([
+        trpcUtils.workspace.getCurrent.invalidate(),
+        trpcUtils.billing.queryUsage.invalidate(),
+        trpcUtils.stripe.getBillingInfo.invalidate(),
+        trpcUtils.workspace.getCurrent.refetch(),
+        trpcUtils.stripe.getBillingInfo.refetch(),
+      ]);
       router.refresh();
       toast.info("Subscription cancelled");
     },

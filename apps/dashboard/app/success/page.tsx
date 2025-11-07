@@ -165,6 +165,8 @@ function SuccessContent() {
           }
 
           await trpcUtils.workspace.invalidate();
+          await trpcUtils.stripe.invalidate();
+          await trpcUtils.billing.invalidate();
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : "Unknown error";
           console.error("Failed to update workspace with payment method:", { error: errorMessage });
