@@ -71,6 +71,7 @@ var allowedFunctions = map[string]bool{
 
 	// Conditional functions
 	"if":       true,
+	"sumif":    true,
 	"case":     true,
 	"coalesce": true,
 	"countif":  true,

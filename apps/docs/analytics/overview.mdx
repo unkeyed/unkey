@@ -19,6 +19,10 @@ Unkey Analytics provides a powerful SQL interface to query your API key verifica
 - **Generate reports** on API usage patterns, top users, and performance metrics
 - **Monitor and alert** on verification outcomes, rate limits, and errors
 
+<Note>
+  **Automatic filtering:** All queries are scoped to your workspace automatically. If your root key is scoped to a specific API (`api.<api_id>.read_analytics`), queries are also filtered to that API's `key_space_id`.
+</Note>
+
 ## How it Works
 
 Every key verification request is automatically stored and aggregated across multiple time-series tables:
@@ -43,18 +47,18 @@ You can query these tables using standard SQL to:
 
 Every verification event contains:
 
-| Field           | Type          | Description                                                                                                                               |
-| --------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `request_id`    | String        | Unique identifier for each request                                                                                                        |
-| `time`          | Int64         | Unix millisecond timestamp                                                                                                                |
-| `workspace_id`  | String        | Your workspace identifier (automatically filtered)                                                                                        |
-| `key_space_id`  | String        | Your KeySpace identifier (e.g., `ks_1234`). Find this in your API settings.                                                               |
-| `external_id`   | String        | Your user's identifier (e.g., `user_abc`)                                                                                                 |
-| `key_id`        | String        | Individual key identifier                                                                                                                 |
-| `outcome`       | String        | Verification result: `VALID`, `RATE_LIMITED`, `INVALID`, `EXPIRED`, `DISABLED`, `INSUFFICIENT_PERMISSIONS`, `FORBIDDEN`, `USAGE_EXCEEDED` |
-| `region`        | String        | Unkey region that handled the verification                                                                                                |
-| `tags`          | Array(String) | Custom tags added during verification                                                                                                     |
-| `spent_credits` | Int64         | Number of credits spent on this verification (0 if no credits were spent)                                                                 |
+| Field           | Type          | Description                                                                                                                                |
+| --------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `request_id`    | String        | Unique identifier for each request                                                                                                         |
+| `time`          | Int64         | Unix millisecond timestamp                                                                                                                 |
+| `workspace_id`  | String        | Your workspace identifier (**automatically filtered** - you don't need to filter by this)                                                  |
+| `key_space_id`  | String        | Your KeySpace identifier (e.g., `ks_1234`). **Automatically filtered** if your root key is scoped to a single API.                        |
+| `external_id`   | String        | Your user's identifier (e.g., `user_abc`)                                                                                                  |
+| `key_id`        | String        | Individual key identifier                                                                                                                  |
+| `outcome`       | String        | Verification result: `VALID`, `RATE_LIMITED`, `INVALID`, `EXPIRED`, `DISABLED`, `INSUFFICIENT_PERMISSIONS`, `FORBIDDEN`, `USAGE_EXCEEDED`  |
+| `region`        | String        | Unkey region that handled the verification                                                                                                 |
+| `tags`          | Array(String) | Custom tags added during verification                                                                                                      |
+| `spent_credits` | Int64         | Number of credits spent on this verification (0 if no credits were spent)                                                                  |
 
 ## Use Cases
 
