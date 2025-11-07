@@ -1,0 +1,350 @@
+name: Slack Notifications
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, closed, merged, submitted]
+    branches: [main]
+
+jobs:
+  slack-notify:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Send Slack notification on PR opened or ready for review
+        if: github.event.action == 'opened' || github.event.action == 'ready_for_review'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "📝 Pull Request ${{ github.event.action == 'opened' && 'Created' || 'Ready for Review' }}",
+              "attachments": [
+                {
+                  "color": "${{ github.event.action == 'opened' && '#36a64f' || '#ff9500' }}",
+                  "fields": [
+                    {
+                      "title": "Repository",
+                      "value": "${{ github.repository }}",
+                      "short": true
+                    },
+                    {
+                      "title": "PR Number",
+                      "value": "#${{ github.event.number }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Title",
+                      "value": "${{ github.event.pull_request.title }}",
+                      "short": false
+                    },
+                    {
+                      "title": "Author",
+                      "value": "${{ github.event.pull_request.user.login }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Action",
+                      "value": "${{ github.event.action == 'opened' && 'Opened' || 'Ready for Review' }}",
+                      "short": true
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "button",
+                      "text": "View Pull Request",
+                      "url": "${{ github.event.pull_request.html_url }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL_PR_NOTIFICATIONS: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
+
+      - name: Send Slack notification on PR merged
+        if: github.event.action == 'closed' && github.event.pull_request.merged == true
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "🎉 Pull Request Merged!",
+              "attachments": [
+                {
+                  "color": "#36a64f",
+                  "fields": [
+                    {
+                      "title": "Repository",
+                      "value": "${{ github.repository }}",
+                      "short": true
+                    },
+                    {
+                      "title": "PR Number",
+                      "value": "#${{ github.event.number }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Title",
+                      "value": "${{ github.event.pull_request.title }}",
+                      "short": false
+                    },
+                    {
+                      "title": "Author",
+                      "value": "${{ github.event.pull_request.user.login }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Merged by",
+                      "value": "${{ github.event.pull_request.merged_by.login }}",
+                      "short": true
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "button",
+                      "text": "View Pull Request",
+                      "url": "${{ github.event.pull_request.html_url }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL_PR_NOTIFICATIONS: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
+
+      - name: Send Slack notification on PR closed (not merged)
+        if: github.event.action == 'closed' && github.event.pull_request.merged == false
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "❌ Pull Request Closed",
+              "attachments": [
+                {
+                  "color": "#ff0000",
+                  "fields": [
+                    {
+                      "title": "Repository",
+                      "value": "${{ github.repository }}",
+                      "short": true
+                    },
+                    {
+                      "title": "PR Number",
+                      "value": "#${{ github.event.number }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Title",
+                      "value": "${{ github.event.pull_request.title }}",
+                      "short": false
+                    },
+                    {
+                      "title": "Author",
+                      "value": "${{ github.event.pull_request.user.login }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Closed by",
+                      "value": "${{ github.event.pull_request.user.login }}",
+                      "short": true
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "button",
+                      "text": "View Pull Request",
+                      "url": "${{ github.event.pull_request.html_url }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL_PR_NOTIFICATIONS: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
+  ci-status:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review' || github.event.action == 'synchronize') && github.event.pull_request.draft == false
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Wait for CI to complete
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          check-name: 'test_packages'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+      - name: Get CI status and send notification
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: checks } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.payload.pull_request.head.sha,
+            });
+            
+            const allChecks = checks.check_runs;
+            const completedChecks = allChecks.filter(check => check.status === 'completed');
+            const failedChecks = completedChecks.filter(check => check.conclusion !== 'success');
+            
+            let emoji = '';
+            let status = '';
+            let color = '';
+            
+            if (completedChecks.length === 0) {
+              emoji = '⏳';
+              status = 'CI pending';
+              color = '#ffcc00';
+            } else if (failedChecks.length === 0) {
+              emoji = '✅';
+              status = 'All checks passed';
+              color = '#36a64f';
+            } else {
+              emoji = '❌';
+              status = `${failedChecks.length} check${failedChecks.length !== 1 ? 's' : ''} failed`;
+              color = '#ff0000';
+            }
+            
+            // Send Slack message with CI status
+            const slackWebhook = process.env.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS;
+            if (slackWebhook) {
+              const response = await fetch(slackWebhook, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  text: `${emoji} CI Status for PR #${context.issue.number}`,
+                  attachments: [
+                    {
+                      color: color,
+                      fields: [
+                        {
+                          title: 'Pull Request',
+                          value: `#${context.issue.number} - ${context.payload.pull_request.title}`,
+                          short: false
+                        },
+                        {
+                          title: 'Status',
+                          value: `${status} ${emoji}`,
+                          short: true
+                        },
+                        {
+                          title: 'Checks Completed',
+                          value: `${completedChecks.length}/${allChecks.length}`,
+                          short: true
+                        }
+                      ],
+                      actions: [
+                        {
+                          type: 'button',
+                          text: 'View Pull Request',
+                          url: context.payload.pull_request.html_url
+                        },
+                        {
+                          type: 'button',
+                          text: 'View Checks',
+                          url: `${context.payload.pull_request.html_url}/checks`
+                        }
+                      ]
+                    }
+                  ]
+                })
+              });
+              
+              if (!response.ok) {
+                console.error('Failed to send Slack notification:', await response.text());
+              }
+            }
+        env:
+          SLACK_WEBHOOK_URL_PR_NOTIFICATIONS: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
+
+  approval-reactions:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'submitted' && github.event.review.state == 'approved' && github.event.pull_request.draft == false
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Get approval count and send reaction
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            
+            const approvals = reviews.filter(review => review.state === 'approved' && review.user.login !== context.payload.pull_request.user.login);
+            const approvalCount = approvals.length;
+            
+            let emoji = '';
+            if (approvalCount === 0) {
+              emoji = '👀';
+            } else if (approvalCount === 1) {
+              emoji = '👍';
+            } else if (approvalCount >= 2) {
+              emoji = '✅';
+            }
+            
+            if (emoji) {
+              console.log(`PR has ${approvalCount} approvals, using emoji: ${emoji}`);
+              
+              // Send Slack message with emoji reaction
+              const slackWebhook = process.env.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS;
+              if (slackWebhook) {
+                const response = await fetch(slackWebhook, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    text: `${emoji} PR #${context.issue.number} has ${approvalCount} approval${approvalCount !== 1 ? 's' : ''}`,
+                    attachments: [
+                      {
+                        color: approvalCount >= 2 ? '#36a64f' : approvalCount === 1 ? '#ff9500' : '#ffcc00',
+                        fields: [
+                          {
+                            title: 'Pull Request',
+                            value: `#${context.issue.number} - ${context.payload.pull_request.title}`,
+                            short: false
+                          },
+                          {
+                            title: 'Approvals',
+                            value: `${approvalCount} ${emoji}`,
+                            short: true
+                          },
+                          {
+                            title: 'Latest Approver',
+                            value: context.payload.review.user.login,
+                            short: true
+                          }
+                        ],
+                        actions: [
+                          {
+                            type: 'button',
+                            text: 'View Pull Request',
+                            url: context.payload.pull_request.html_url
+                          }
+                        ]
+                      }
+                    ]
+                  })
+                });
+                
+                if (!response.ok) {
+                  console.error('Failed to send Slack notification:', await response.text());
+                }
+              }
+            }
+        env:
+          SLACK_WEBHOOK_URL_PR_NOTIFICATIONS: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
