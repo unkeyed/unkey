@@ -177,7 +177,7 @@ jobs:
             const EMOJI = process.env.EMOJI;
             const SLACK_TIMESTAMP = fs.readFileSync('slack-message-timestamp.txt', 'utf8').trim();
 
-            const TARGET_EMOJIS = ['lfg', 'x', 'bugeyes'];
+            const TARGET_EMOJIS = ['lfg', 'x', 'bugeyes', 'speech_balloon', 'pr-closed'];
 
             // Get existing reactions
             const reactionsResponse = await fetch(`https://slack.com/api/reactions.get?channel=${CHANNEL}&timestamp=${SLACK_TIMESTAMP}`, {
@@ -189,15 +189,18 @@ jobs:
 
             const reactionsData = await reactionsResponse.json();
 
+            console.log('Getting reactions for timestamp:', SLACK_TIMESTAMP);
+            
             if (reactionsData.ok && reactionsData.message && reactionsData.message.reactions) {
               const existingEmojis = reactionsData.message.reactions.flatMap(r => r.name);
               console.log('Existing emojis:', existingEmojis);
-
+              console.log('Target emojis to remove:', TARGET_EMOJIS);
+              
               // Remove only existing target emojis
               for (const emoji of TARGET_EMOJIS) {
                 if (existingEmojis.includes(emoji)) {
                   console.log(`Removing ${emoji}`);
-                  await fetch(`https://slack.com/api/reactions.remove`, {
+                  const removeResponse = await fetch(`https://slack.com/api/reactions.remove`, {
                     method: 'POST',
                     headers: {
                       'Authorization': `Bearer ${SLACK_TOKEN}`,
@@ -209,8 +212,19 @@ jobs:
                       name: emoji
                     })
                   });
+                  
+                  const removeData = await removeResponse.json();
+                  if (!removeData.ok) {
+                    console.error(`Failed to remove ${emoji}:`, removeData.error);
+                  } else {
+                    console.log(`Successfully removed ${emoji}`);
+                  }
+                } else {
+                  console.log(`${emoji} not found in existing reactions`);
                 }
               }
+            } else {
+              console.log('No reactions found or failed to get reactions:', reactionsData);
             }
 
             // Add the new emoji
