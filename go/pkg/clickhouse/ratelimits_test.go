@@ -141,7 +141,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 			t.Run(table, func(t *testing.T) {
 				require.EventuallyWithT(t, func(c *assert.CollectT) {
 					var queriedPassed, queriedTotal int64
-					err = conn.QueryRow(ctx, "SELECT sum(passed), sum(total) FROM ? WHERE workspace_id = ?", table, workspaceID).Scan(&queriedPassed, &queriedTotal)
+					err = conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ?", table), workspaceID).Scan(&queriedPassed, &queriedTotal)
 					require.NoError(c, err)
 					require.Equal(c, totalPassed, int(queriedPassed), "passed count should match")
 					require.Equal(c, totalRequests, int(queriedTotal), "total count should match")
@@ -166,7 +166,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 						queriedP75 float32
 						queriedP99 float32
 					)
-					err = conn.QueryRow(ctx, "SELECT avgMerge(latency_avg), quantilesTDigestMerge(0.75)(latency_p75)[1], quantilesTDigestMerge(0.99)(latency_p99)[1] FROM ? WHERE workspace_id = ?", table, workspaceID).Scan(&queriedAvg, &queriedP75, &queriedP99)
+					err = conn.QueryRow(ctx, fmt.Sprintf("SELECT avgMerge(latency_avg), quantilesTDigestMerge(0.75)(latency_p75)[1], quantilesTDigestMerge(0.99)(latency_p99)[1] FROM %s WHERE workspace_id = ?", table), workspaceID).Scan(&queriedAvg, &queriedP75, &queriedP99)
 					require.NoError(c, err)
 
 					require.InDelta(c, avg, queriedAvg, 0.01, "average latency should match")
@@ -194,7 +194,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 				for namespaceID, expectedStats := range namespaceStats {
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedPassed, queriedTotal int64
-						err = conn.QueryRow(ctx, "SELECT sum(passed), sum(total) FROM ? WHERE workspace_id = ? AND namespace_id = ?", table, workspaceID, namespaceID).Scan(&queriedPassed, &queriedTotal)
+						err = conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ? AND namespace_id = ?", table), workspaceID, namespaceID).Scan(&queriedPassed, &queriedTotal)
 						require.NoError(c, err)
 						require.Equal(c, expectedStats.passed, int(queriedPassed), "passed count for namespace %s should match", namespaceID)
 						require.Equal(c, expectedStats.total, int(queriedTotal), "total count for namespace %s should match", namespaceID)
@@ -231,7 +231,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedPassed, queriedTotal int64
-						err = conn.QueryRow(ctx, "SELECT sum(passed), sum(total) FROM ? WHERE workspace_id = ? AND identifier = ?", table, workspaceID, identifier).Scan(&queriedPassed, &queriedTotal)
+						err = conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ? AND identifier = ?", table), workspaceID, identifier).Scan(&queriedPassed, &queriedTotal)
 						require.NoError(c, err)
 						require.Equal(c, expectedStats.passed, int(queriedPassed), "passed count for identifier %s should match", identifier)
 						require.Equal(c, expectedStats.total, int(queriedTotal), "total count for identifier %s should match", identifier)
@@ -255,7 +255,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 			t.Run(table, func(t *testing.T) {
 				require.EventuallyWithT(t, func(c *assert.CollectT) {
 					var queriedPassed, queriedTotal int64
-					err = conn.QueryRow(ctx, "SELECT sum(passed), sum(total) FROM ? WHERE workspace_id = ?", table, workspaceID).Scan(&queriedPassed, &queriedTotal)
+					err = conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ?", table), workspaceID).Scan(&queriedPassed, &queriedTotal)
 					require.NoError(c, err)
 
 					require.Equal(c, total, int(queriedTotal), "total queries should match")
@@ -283,7 +283,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 				t.Run(table, func(t *testing.T) {
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedPassed, queriedTotal int64
-						err = conn.QueryRow(ctx, "SELECT sum(passed), sum(total) FROM ? WHERE workspace_id = ? AND identifier = ?", table, workspaceID, identifier).Scan(&queriedPassed, &queriedTotal)
+						err = conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ? AND identifier = ?", table), workspaceID, identifier).Scan(&queriedPassed, &queriedTotal)
 						require.NoError(c, err)
 
 						require.Equal(c, total, int(queriedTotal), "total queries should match")
@@ -313,7 +313,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 				t.Run(table, func(t *testing.T) {
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedPassed, queriedTotal int64
-						err = conn.QueryRow(ctx, "SELECT sum(passed), sum(total) FROM ? WHERE workspace_id = ? AND namespace_id = ?", table, workspaceID, namespace).Scan(&queriedPassed, &queriedTotal)
+						err = conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ? AND namespace_id = ?", table), workspaceID, namespace).Scan(&queriedPassed, &queriedTotal)
 						require.NoError(c, err)
 
 						require.Equal(c, total, int(queriedTotal), "total queries should match")
