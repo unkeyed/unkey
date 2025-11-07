@@ -343,7 +343,14 @@ export async function completeOrgSelection(
       cookies().set(cookie.name, cookie.value, cookie.options);
     }
     // Store the last used organization ID in a cookie for auto-selection on next login
-    await setLastUsedOrgCookie({ orgId });
+    try {
+      await setLastUsedOrgCookie({ orgId });
+    } catch (error) {
+      console.error("Failed to set last used org cookie in completeOrgSelection:", {
+        orgId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
   }
 
   return result;
@@ -360,7 +367,14 @@ export async function switchOrg(orgId: string): Promise<{ success: boolean; erro
     await setSessionCookie({ token: newToken, expiresAt });
 
     // Store the last used organization ID in a cookie for auto-selection on next login
-    await setLastUsedOrgCookie({ orgId });
+    try {
+      await setLastUsedOrgCookie({ orgId });
+    } catch (error) {
+      console.error("Failed to set last used org cookie in switchOrg:", {
+        orgId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
 
     return { success: true };
   } catch (error) {
@@ -395,7 +409,14 @@ export async function acceptInvitationAndJoin(
 
     // Set the session cookie securely on the server side
     await setSessionCookie({ token: newToken, expiresAt });
-    await setLastUsedOrgCookie({ orgId: organizationId });
+    try {
+      await setLastUsedOrgCookie({ orgId: organizationId });
+    } catch (error) {
+      console.error("Failed to set last used org cookie in acceptInvitationAndJoin:", {
+        orgId: organizationId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
 
     return { success: true };
   } catch (error) {
