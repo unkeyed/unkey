@@ -170,7 +170,8 @@ jobs:
             
             const timestamp = fs.readFileSync('slack-message-timestamp.txt', 'utf8').trim();
             console.log('Timestamp:', timestamp);
-            console.log('Review state:', github.event.review.state);
+            console.log('Event name:', github.event_name);
+            console.log('Review state:', github.event.review?.state);
             
             // Get approval count
             const { data: reviews } = await github.rest.pulls.listReviews({
