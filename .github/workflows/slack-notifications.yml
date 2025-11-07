@@ -102,9 +102,12 @@ jobs:
           script: |
             let emoji = 'bugeyes';
 
+            // Merged or closed always takes precedence
             if (context.payload.action === 'closed') {
-              if (context.payload.pull_request.merged === false) {
-                emoji = 'pr-closed';
+              if (context.payload.pull_request.merged === true) {
+                emoji = 'praise-the-unkey';
+              } else {
+                emoji = 'wastebasket';
               }
             } else if (context.payload.action === 'submitted') {
               const reviewState = context.payload.review.state;
@@ -182,6 +185,51 @@ jobs:
               console.error('Failed to send review notification:', data.error);
               core.setFailed('Failed to send review notification');
             }
+      - name: Send PR close/merge notification
+        if: github.event.action == 'closed'
+        uses: actions/github-script@v8
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            const SLACK_TOKEN = process.env.SLACK_BOT_TOKEN;
+            const CHANNEL = process.env.SLACK_CHANNEL;
+            const SLACK_TIMESTAMP = fs.readFileSync('slack-message-timestamp.txt', 'utf8').trim();
+            const isMerged = context.payload.pull_request.merged;
+            const prTitle = context.payload.pull_request.title;
+            const prUrl = context.payload.pull_request.html_url;
+
+            let message;
+            if (isMerged === true) {
+              message = `🎉 **Merged**`;
+            } else {
+              message = `🗑️ **Closed**`;
+            }
+
+            const response = await fetch(`https://slack.com/api/chat.postMessage`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${SLACK_TOKEN}`,
+                'Content-Type': 'application/json; charset=utf-8'
+              },
+              body: JSON.stringify({
+                channel: CHANNEL,
+                thread_ts: SLACK_TIMESTAMP,
+                text: message
+              })
+            });
+
+            const data = await response.json();
+
+            if (data.ok) {
+              console.log('PR close/merge notification sent successfully');
+            } else {
+              console.error('Failed to send PR close/merge notification:', data.error);
+              core.setFailed('Failed to send PR close/merge notification');
+            }
       - name: Clean and add emoji reaction
         uses: actions/github-script@v8
         env:
@@ -197,7 +245,7 @@ jobs:
             const EMOJI = process.env.EMOJI;
             const SLACK_TIMESTAMP = fs.readFileSync('slack-message-timestamp.txt', 'utf8').trim();
 
-            const TARGET_EMOJIS = ['lfg', 'x', 'bugeyes', 'white_tick', 'pr-closed'];
+            const TARGET_EMOJIS = ['lfg', 'x', 'bugeyes', 'wastebasket', 'praise-the-unkey'];
 
             // Get existing reactions
             const reactionsResponse = await fetch(`https://slack.com/api/reactions.get?channel=${CHANNEL}&timestamp=${SLACK_TIMESTAMP}`, {
