@@ -61,7 +61,7 @@ jobs:
   slack-emoji-react:
     runs-on: ubuntu-latest
     name: Adds emoji reaction to slack message when a PR is closed or reviewed
-    if: (github.event.action == 'closed' && github.event.pull_request.merged == false) || github.event.action == 'submitted'
+    if: github.event.action == 'closed' || github.event.action == 'submitted'
     steps:
       - name: Count PR approvals
         id: count-approvals
