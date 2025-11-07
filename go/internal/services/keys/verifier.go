@@ -122,7 +122,7 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 }
 
 func (k *KeyVerifier) log() {
-	k.clickhouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
+	k.clickhouse.BufferKeyVerificationV2(schema.KeyVerificationV2{
 		RequestID:   k.session.RequestID(),
 		WorkspaceID: k.Key.WorkspaceID,
 		Time:        time.Now().UnixMilli(),

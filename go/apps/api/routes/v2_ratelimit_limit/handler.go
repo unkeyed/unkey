@@ -286,7 +286,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if s.ShouldLogRequestToClickHouse() {
-		h.ClickHouse.BufferRatelimit(schema.RatelimitRequestV1{
+		h.ClickHouse.BufferRatelimit(schema.RatelimitV2{
 			RequestID:   s.RequestID(),
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Time:        time.Now().UnixMilli(),
