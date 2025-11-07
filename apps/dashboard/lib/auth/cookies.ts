@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import type { NextRequest, NextResponse } from "next/server";
 import { getDefaultCookieOptions } from "./cookie-security";
-import { UNKEY_SESSION_COOKIE } from "./types";
+import { UNKEY_LAST_ORG_COOKIE, UNKEY_SESSION_COOKIE } from "./types";
 
 export interface CookieOptions {
   httpOnly: boolean;
@@ -126,7 +126,7 @@ export async function setLastUsedOrgCookie(params: { orgId: string }): Promise<v
   const { orgId } = params;
 
   await setCookie({
-    name: "unkey_last_org_used",
+    name: UNKEY_LAST_ORG_COOKIE,
     value: orgId,
     options: {
       httpOnly: false, // Allow client-side access

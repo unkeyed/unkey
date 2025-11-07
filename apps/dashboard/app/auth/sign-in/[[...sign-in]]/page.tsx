@@ -40,17 +40,29 @@ function SignInContent() {
   const hasAttemptedSignIn = useRef(false);
   const hasAttemptedAutoOrgSelection = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAutoSelecting, setIsAutoSelecting] = useState(false);
 
   // Set clientReady to true after hydration
   useEffect(() => {
-    getCookie(UNKEY_LAST_ORG_COOKIE).then((value) => {
-      if (value) {
-        setLastUsedOrgId(value);
-      }
-      setClientReady(true);
-      setIsLoading(false);
-    });
-  }, []);
+    getCookie(UNKEY_LAST_ORG_COOKIE)
+      .then((value) => {
+        if (value) {
+          setLastUsedOrgId(value);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to read last used org cookie:", error);
+      })
+      .finally(() => {
+        setClientReady(true);
+        // Only set isLoading to false if we don't have pending auth
+        // (if we do, the auto-selection effect will handle loading state)
+        if (!hasPendingAuth) {
+          setIsLoading(false);
+        }
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!hasPendingAuth]);
 
   // Handle auto org selection when returning from OAuth
   useEffect(() => {
@@ -61,24 +73,31 @@ function SignInContent() {
     if (lastUsedOrgId) {
       hasAttemptedAutoOrgSelection.current = true;
       setIsLoading(true);
+      setIsAutoSelecting(true);
 
       completeOrgSelection(lastUsedOrgId)
         .then((result) => {
           if (!result.success) {
             setError(result.message);
             setIsLoading(false);
+            setIsAutoSelecting(false);
             return;
           }
           // On success, redirect to the dashboard
-          window.location.href = result.redirectTo;
+          router.push(result.redirectTo);
         })
         .catch((err) => {
           console.error("Auto org selection failed:", err);
           setError("Failed to automatically sign in. Please select your workspace.");
           setIsLoading(false);
+          setIsAutoSelecting(false);
         });
+    } else {
+      // No lastUsedOrgId, so we need to show the org selector manually
+      hasAttemptedAutoOrgSelection.current = true;
+      setIsLoading(false);
     }
-  }, [clientReady, hasPendingAuth, setError, lastUsedOrgId]);
+  }, [clientReady, hasPendingAuth, setError, lastUsedOrgId, router]);
 
   // Handle auto sign-in with invitation token and email
   useEffect(() => {
@@ -100,7 +119,7 @@ function SignInContent() {
         hasAttemptedSignIn.current = true;
 
         // Set loading state to true
-        // setIsLoading(true);
+        setIsLoading(true);
 
         try {
           // Attempt sign-in with the provided email
@@ -162,7 +181,8 @@ function SignInContent() {
     router.push("/auth/sign-in");
   };
 
-  return hasPendingAuth ? (
+  // Only show org selector if we have pending auth and we're not actively auto-selecting
+  return hasPendingAuth && !isAutoSelecting ? (
     <OrgSelector organizations={orgs} lastOrgId={lastUsedOrgId} onClose={handleOrgSelectorClose} />
   ) : (
     <div className="flex flex-col gap-10">

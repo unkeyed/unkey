@@ -1,6 +1,6 @@
 "use server";
 
-import { deleteCookie, getCookie, setCookies, setSessionCookie } from "@/lib/auth/cookies";
+import { deleteCookie, getCookie, setCookies, setSessionCookie, setLastUsedOrgCookie } from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import {
   AuthErrorCode,
@@ -333,18 +333,16 @@ export async function completeOrgSelection(
   });
 
   if (result.success) {
+
     cookies().delete(PENDING_SESSION_COOKIE);
     for (const cookie of result.cookies) {
       cookies().set(cookie.name, cookie.value, cookie.options);
-      // Store the last used organization ID in a cookie for auto-selection on next login
-      cookies().set(UNKEY_LAST_ORG_COOKIE, orgId, {
-        httpOnly: false, // Allow client-side access
-        secure: true,
-        sameSite: "lax",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 30, // 30 Days
-      });
+
+
     }
+
+    // Store the last used organization ID in a cookie for auto-selection on next login
+    setLastUsedOrgCookie({ orgId });
   }
 
   return result;
@@ -361,13 +359,7 @@ export async function switchOrg(orgId: string): Promise<{ success: boolean; erro
     await setSessionCookie({ token: newToken, expiresAt });
 
     // Store the last used organization ID in a cookie for auto-selection on next login
-    cookies().set(UNKEY_LAST_ORG_COOKIE, orgId, {
-      httpOnly: false, // Allow client-side access
-      secure: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30, // 30 Days
-    });
+    await setLastUsedOrgCookie({orgId});
 
     return { success: true };
   } catch (error) {
@@ -402,6 +394,7 @@ export async function acceptInvitationAndJoin(
 
     // Set the session cookie securely on the server side
     await setSessionCookie({ token: newToken, expiresAt });
+    await setLastUsedOrgCookie({ orgId: organizationId });
 
     return { success: true };
   } catch (error) {

@@ -85,8 +85,8 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
     [isLoading, setError],
   );
 
-  const handleSubmit = useCallback(() => {
-    submit(selectedOrgId);
+  const handleSubmit = useCallback(async () => {
+    await submit(selectedOrgId);
   }, [submit, selectedOrgId]);
 
   // Initialize org selector when client is ready
