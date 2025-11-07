@@ -108,6 +108,8 @@ jobs:
               }
             } else if (context.payload.action === 'submitted') {
               const reviewState = context.payload.review.state;
+              console.log('Current review state:', reviewState);
+              console.log('Full review payload:', context.payload.review);
 
               // Changes requested takes precedence over approval count
               if (reviewState === 'changes_requested') {
