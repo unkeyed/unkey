@@ -16,18 +16,18 @@ The `key_verifications_v1` table contains individual verification events as they
 
 ### Columns
 
-| Column          | Type          | Description                                                                                             |
-| --------------- | ------------- | ------------------------------------------------------------------------------------------------------- |
-| `request_id`    | String        | Unique identifier for each verification request                                                         |
-| `time`          | Int64         | Unix timestamp in milliseconds when verification occurred                                               |
-| `workspace_id`  | String        | Workspace identifier (automatically filtered to your workspace)                                         |
-| `key_space_id`  | String        | Your KeySpace identifier (e.g., `ks_1234`) - use this to filter by API. Find this in your API settings. |
-| `external_id`   | String        | Your user's identifier (e.g., `user_abc`) - use this to filter by user                                  |
-| `key_id`        | String        | Individual API key identifier                                                                           |
-| `outcome`       | String        | Verification result (see [Outcome Values](#outcome-values))                                             |
-| `region`        | String        | Unkey region that handled the verification                                                              |
-| `tags`          | Array(String) | Custom tags added during verification                                                                   |
-| `spent_credits` | Int64         | Number of credits spent on this verification (0 if no credits were spent)                               |
+| Column          | Type          | Description                                                                                                                                                |
+| --------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `request_id`    | String        | Unique identifier for each verification request                                                                                                            |
+| `time`          | Int64         | Unix timestamp in milliseconds when verification occurred                                                                                                  |
+| `workspace_id`  | String        | Workspace identifier (**automatically filtered** - you don't need to filter by this)                                                                       |
+| `key_space_id`  | String        | Your KeySpace identifier (e.g., `ks_1234`). **Automatically filtered** if your root key is scoped to a single API, otherwise filter this yourself.        |
+| `external_id`   | String        | Your user's identifier (e.g., `user_abc`) - use this to filter by user                                                                                     |
+| `key_id`        | String        | Individual API key identifier                                                                                                                              |
+| `outcome`       | String        | Verification result (see [Outcome Values](#outcome-values))                                                                                                |
+| `region`        | String        | Unkey region that handled the verification                                                                                                                 |
+| `tags`          | Array(String) | Custom tags added during verification                                                                                                                      |
+| `spent_credits` | Int64         | Number of credits spent on this verification (0 if no credits were spent)                                                                                  |
 
 ### Outcome Values
 
@@ -52,17 +52,17 @@ Pre-aggregated tables provide better query performance for long time ranges. Eac
 
 `key_verifications_per_minute_v1` - Aggregated by minute
 
-| Column          | Type     | Description                                               |
-| --------------- | -------- | --------------------------------------------------------- |
-| `time`          | DateTime | Timestamp (DateTime for minute/hour, Date for day/month)  |
-| `workspace_id`  | String   | Workspace identifier                                      |
-| `key_space_id`  | String   | API identifier                                            |
-| `external_id`   | String   | Your user identifier                                      |
-| `key_id`        | String   | API key identifier                                        |
-| `outcome`       | String   | Verification outcome (VALID, RATE_LIMITED, INVALID, etc.) |
-| `tags`          | Array    | Tags associated with verifications                        |
-| `count`         | UInt64   | Total verification count for this aggregation             |
-| `spent_credits` | UInt64   | Total credits spent                                       |
+| Column          | Type     | Description                                                                                                                                   |
+| --------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `time`          | DateTime/Date | **DateTime** for minute/hour tables, **Date** for day/month tables                                                                       |
+| `workspace_id`  | String   | Workspace identifier (**automatically filtered** - you don't need to filter by this)                                                          |
+| `key_space_id`  | String   | API identifier. **Automatically filtered** if your root key is scoped to a single API, otherwise filter this yourself.                        |
+| `external_id`   | String   | Your user identifier                                                                                                                          |
+| `key_id`        | String   | API key identifier                                                                                                                            |
+| `outcome`       | String   | Verification outcome (VALID, RATE_LIMITED, INVALID, etc.)                                                                                     |
+| `tags`          | Array    | Tags associated with verifications                                                                                                            |
+| `count`         | UInt64   | Total verification count for this aggregation                                                                                                 |
+| `spent_credits` | UInt64   | Total credits spent                                                                                                                           |
 
 ### Per Hour Table
 
@@ -291,6 +291,7 @@ WHERE time >= 1704067200000  -- Jan 1, 2024 00:00:00 UTC
 3. **Limit result sets** - Add LIMIT clauses to prevent large results
 4. **Filter before grouping** - Use WHERE instead of HAVING when possible
 5. **Avoid SELECT \*** - Only select columns you need
+6. **No need to filter workspace_id** - This is handled automatically based on your authentication
 
 ## Query Limits
 
