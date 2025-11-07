@@ -107,7 +107,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 
 	t0 = time.Now()
 
-	batch, err := conn.PrepareBatch(ctx, "INSERT INTO ratelimits_raw_v2")
+	batch, err := conn.PrepareBatch(ctx, "INSERT INTO default.ratelimits_raw_v2")
 	require.NoError(t, err)
 
 	for _, row := range ratelimits {
@@ -121,7 +121,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 	// Wait for raw data to be available
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		rawCount := uint64(0)
-		err = conn.QueryRow(ctx, "SELECT COUNT(*) FROM ratelimits_raw_v2 WHERE workspace_id = ?", workspaceID).Scan(&rawCount)
+		err = conn.QueryRow(ctx, "SELECT COUNT(*) FROM default.ratelimits_raw_v2 WHERE workspace_id = ?", workspaceID).Scan(&rawCount)
 		require.NoError(c, err)
 		require.Equal(c, len(ratelimits), int(rawCount))
 	}, time.Minute, time.Second)
@@ -137,7 +137,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 
 		totalRequests := len(ratelimits)
 
-		for _, table := range []string{"ratelimits_per_minute_v2", "ratelimits_per_hour_v2", "ratelimits_per_day_v2", "ratelimits_per_month_v2"} {
+		for _, table := range []string{"default.ratelimits_per_minute_v2", "default.ratelimits_per_hour_v2", "default.ratelimits_per_day_v2", "default.ratelimits_per_month_v2"} {
 			t.Run(table, func(t *testing.T) {
 				require.EventuallyWithT(t, func(c *assert.CollectT) {
 					var queriedPassed, queriedTotal int64
@@ -158,7 +158,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 		p75 := percentile(latencies, 0.75)
 		p99 := percentile(latencies, 0.99)
 
-		for _, table := range []string{"ratelimits_per_minute_v2", "ratelimits_per_hour_v2", "ratelimits_per_day_v2", "ratelimits_per_month_v2"} {
+		for _, table := range []string{"default.ratelimits_per_minute_v2", "default.ratelimits_per_hour_v2", "default.ratelimits_per_day_v2", "default.ratelimits_per_month_v2"} {
 			t.Run(table, func(t *testing.T) {
 				require.EventuallyWithT(t, func(c *assert.CollectT) {
 					var (
@@ -189,7 +189,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 			return acc
 		}, make(map[string]struct{ passed, total int }))
 
-		for _, table := range []string{"ratelimits_per_minute_v2", "ratelimits_per_hour_v2", "ratelimits_per_day_v2", "ratelimits_per_month_v2"} {
+		for _, table := range []string{"default.ratelimits_per_minute_v2", "default.ratelimits_per_hour_v2", "default.ratelimits_per_day_v2", "default.ratelimits_per_month_v2"} {
 			t.Run(table, func(t *testing.T) {
 				for namespaceID, expectedStats := range namespaceStats {
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -221,7 +221,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 			return array.Random(identifiers)
 		})
 
-		for _, table := range []string{"ratelimits_per_minute_v2", "ratelimits_per_hour_v2", "ratelimits_per_day_v2", "ratelimits_per_month_v2"} {
+		for _, table := range []string{"default.ratelimits_per_minute_v2", "default.ratelimits_per_hour_v2", "default.ratelimits_per_day_v2", "default.ratelimits_per_month_v2"} {
 			t.Run(table, func(t *testing.T) {
 				for _, identifier := range sampleIdentifiers {
 					expectedStats, exists := identifierStats[identifier]
@@ -251,7 +251,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 				passed += 1
 			}
 		}
-		for _, table := range []string{"ratelimits_per_minute_v2", "ratelimits_per_hour_v2", "ratelimits_per_day_v2", "ratelimits_per_month_v2"} {
+		for _, table := range []string{"default.ratelimits_per_minute_v2", "default.ratelimits_per_hour_v2", "default.ratelimits_per_day_v2", "default.ratelimits_per_month_v2"} {
 			t.Run(table, func(t *testing.T) {
 				require.EventuallyWithT(t, func(c *assert.CollectT) {
 					var queriedPassed, queriedTotal int64
@@ -279,7 +279,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 					}
 				}
 			}
-			for _, table := range []string{"ratelimits_per_minute_v2", "ratelimits_per_hour_v2", "ratelimits_per_day_v2", "ratelimits_per_month_v2"} {
+			for _, table := range []string{"default.ratelimits_per_minute_v2", "default.ratelimits_per_hour_v2", "default.ratelimits_per_day_v2", "default.ratelimits_per_month_v2"} {
 				t.Run(table, func(t *testing.T) {
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedPassed, queriedTotal int64
@@ -309,7 +309,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 					}
 				}
 			}
-			for _, table := range []string{"ratelimits_per_minute_v2", "ratelimits_per_hour_v2", "ratelimits_per_day_v2", "ratelimits_per_month_v2"} {
+			for _, table := range []string{"default.ratelimits_per_minute_v2", "default.ratelimits_per_hour_v2", "default.ratelimits_per_day_v2", "default.ratelimits_per_month_v2"} {
 				t.Run(table, func(t *testing.T) {
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedPassed, queriedTotal int64

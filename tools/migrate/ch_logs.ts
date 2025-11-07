@@ -8,7 +8,7 @@ async function main() {
   });
 
   const conn = await mysql.createConnection(
-    `mysql://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:3306/unkey?ssl={}`,
+    `mysql://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:3306/unkey?ssl={}`
   );
 
   await conn.ping();
@@ -22,7 +22,7 @@ async function main() {
 
   const query = ch.querier.query({
     query: `
-    SELECT * FROM api_requests_raw_v2
+    SELECT * FROM default.api_requests_raw_v2
     WHERE workspace_id = '${workspaceId}'
     AND time > ${start}
     AND time < ${end}

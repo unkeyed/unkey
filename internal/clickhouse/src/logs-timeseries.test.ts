@@ -14,7 +14,11 @@ function generateTimeBasedData(n: number, workspaceId: string) {
 
   return Array.from({ length: n }).map(() => {
     const timeRange =
-      Math.random() < 0.6 ? intervals.hour : Math.random() < 0.8 ? intervals.day : intervals.week;
+      Math.random() < 0.6
+        ? intervals.hour
+        : Math.random() < 0.8
+        ? intervals.day
+        : intervals.week;
     const start = now - timeRange;
 
     return {
@@ -24,16 +28,21 @@ function generateTimeBasedData(n: number, workspaceId: string) {
       host: `api${Math.floor(Math.random() * 5)}.example.com`,
       method: ["GET", "POST", "PUT", "DELETE"][Math.floor(Math.random() * 4)],
       path: "/v1/keys.verifyKey",
-      request_headers: ["content-type: application/json", "authorization: Bearer ${randomUUID()}"],
+      request_headers: [
+        "content-type: application/json",
+        "authorization: Bearer ${randomUUID()}",
+      ],
       request_body: JSON.stringify({ data: randomUUID() }),
-      response_status: [200, 201, 400, 401, 403, 500][Math.floor(Math.random() * 6)],
+      response_status: [200, 201, 400, 401, 403, 500][
+        Math.floor(Math.random() * 6)
+      ],
       response_headers: ["content-type: application/json"],
       response_body: JSON.stringify({ status: "success", id: randomUUID() }),
       error: Math.random() < 0.1 ? "Internal server error" : "",
       service_latency: Math.floor(Math.random() * 1000),
       user_agent: "Mozilla/5.0 (compatible; Bot/1.0)",
       ip_address: `${Math.floor(Math.random() * 256)}.${Math.floor(
-        Math.random() * 256,
+        Math.random() * 256
       )}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}`,
     };
   });
@@ -57,7 +66,7 @@ describe.each([10, 100, 1_000, 10_000, 100_000])("with %i requests", (n) => {
       }
 
       const count = await ch.querier.query({
-        query: "SELECT count(*) as count FROM api_requests_raw_v2",
+        query: "SELECT count(*) as count FROM default.api_requests_raw_v2",
         schema: z.object({ count: z.number().int() }),
       })({});
 
@@ -107,10 +116,13 @@ describe.each([10, 100, 1_000, 10_000, 100_000])("with %i requests", (n) => {
 
       // Verifies that buckets have some valid data in it.
       for (const buckets of [hourly.val!, daily.val!, minutely.val!]) {
-        const totalEvents = buckets.reduce((sum, bucket) => sum + bucket.y.total, 0);
+        const totalEvents = buckets.reduce(
+          (sum, bucket) => sum + bucket.y.total,
+          0
+        );
         expect(totalEvents).toBeGreaterThan(0);
       }
     },
-    { timeout: 120_000 },
+    { timeout: 120_000 }
   );
 });

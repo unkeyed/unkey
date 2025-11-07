@@ -44,7 +44,8 @@ describe.each([10, 100, 1_000, 10_000])("with %i verifications", (n) => {
       for (let i = 0; i < expectedOutcomes.RATE_LIMITED; i++) {
         verifications.push({
           request_id: `rate-limited-${i}-${randomUUID()}`,
-          time: start + Math.floor(i * (interval / expectedOutcomes.RATE_LIMITED)),
+          time:
+            start + Math.floor(i * (interval / expectedOutcomes.RATE_LIMITED)),
           workspace_id: workspaceId,
           key_space_id: keySpaceId,
           key_id: keyId,
@@ -90,7 +91,7 @@ describe.each([10, 100, 1_000, 10_000])("with %i verifications", (n) => {
             SELECT
               outcome,
               COUNT(*) as count
-            FROM key_verifications_raw_v2
+            FROM default.key_verifications_raw_v2
             WHERE
               workspace_id = '${workspaceId}' AND
               key_space_id = '${keySpaceId}' AND
@@ -104,12 +105,15 @@ describe.each([10, 100, 1_000, 10_000])("with %i verifications", (n) => {
       })({});
 
       for (const [outcome, expectedCount] of Object.entries(expectedOutcomes)) {
-        const actualCount = rawCounts.val?.find((row) => row.outcome === outcome)?.count || 0;
-        expect(actualCount, `Raw ${outcome} count should match`).toBe(expectedCount);
+        const actualCount =
+          rawCounts.val?.find((row) => row.outcome === outcome)?.count || 0;
+        expect(actualCount, `Raw ${outcome} count should match`).toBe(
+          expectedCount
+        );
       }
 
       await ch.querier.query({
-        query: "OPTIMIZE TABLE key_verifications_per_day_v2 FINAL",
+        query: "OPTIMIZE TABLE default.key_verifications_per_day_v2 FINAL",
         schema: z.any(),
       })({});
 
@@ -119,7 +123,7 @@ describe.each([10, 100, 1_000, 10_000])("with %i verifications", (n) => {
               SELECT
                 outcome,
                 SUM(count) as total
-              FROM key_verifications_per_day_v2
+              FROM default.key_verifications_per_day_v2
               WHERE
                 workspace_id = '${workspaceId}' AND
                 key_space_id = '${keySpaceId}' AND
@@ -135,7 +139,10 @@ describe.each([10, 100, 1_000, 10_000])("with %i verifications", (n) => {
             }),
           })({});
 
-          if (directResult.val && directResult.val.length >= Object.keys(expectedOutcomes).length) {
+          if (
+            directResult.val &&
+            directResult.val.length >= Object.keys(expectedOutcomes).length
+          ) {
             return directResult.val;
           }
 
@@ -181,31 +188,44 @@ describe.each([10, 100, 1_000, 10_000])("with %i verifications", (n) => {
 
           directAggregateData.forEach((row) => {
             if (row.outcome in dbAggregates) {
-              dbAggregates[row.outcome as keyof typeof dbAggregates] = row.total;
+              dbAggregates[row.outcome as keyof typeof dbAggregates] =
+                row.total;
             }
           });
         }
 
         if (apiCounts.VALID === 0 && expectedOutcomes.VALID > 0) {
-          for (const [outcome, expectedCount] of Object.entries(expectedOutcomes)) {
-            const rawCount = rawCounts.val?.find((row) => row.outcome === outcome)?.count || 0;
-            expect(rawCount, `Raw ${outcome} count should match expected`).toBe(expectedCount);
+          for (const [outcome, expectedCount] of Object.entries(
+            expectedOutcomes
+          )) {
+            const rawCount =
+              rawCounts.val?.find((row) => row.outcome === outcome)?.count || 0;
+            expect(rawCount, `Raw ${outcome} count should match expected`).toBe(
+              expectedCount
+            );
           }
         } else {
-          for (const [outcome, expectedCount] of Object.entries(expectedOutcomes)) {
+          for (const [outcome, expectedCount] of Object.entries(
+            expectedOutcomes
+          )) {
             expect(
               apiCounts[outcome as keyof typeof apiCounts],
-              `API ${outcome} count should match expected`,
+              `API ${outcome} count should match expected`
             ).toBe(expectedCount);
           }
         }
       } else {
-        for (const [outcome, expectedCount] of Object.entries(expectedOutcomes)) {
-          const rawCount = rawCounts.val?.find((row) => row.outcome === outcome)?.count || 0;
-          expect(rawCount, `Raw ${outcome} count should match expected`).toBe(expectedCount);
+        for (const [outcome, expectedCount] of Object.entries(
+          expectedOutcomes
+        )) {
+          const rawCount =
+            rawCounts.val?.find((row) => row.outcome === outcome)?.count || 0;
+          expect(rawCount, `Raw ${outcome} count should match expected`).toBe(
+            expectedCount
+          );
         }
       }
     },
-    { timeout: 120_000 },
+    { timeout: 120_000 }
   );
 });
