@@ -231,8 +231,8 @@ STEP INTERVAL 1 HOUR`,
       day: {
         name: "default.key_verifications_per_day_v2",
         fill: `WITH FILL
-FROM toStartOfDay(fromUnixTimestamp64Milli({ start: Int64 }))
-TO toStartOfDay(fromUnixTimestamp64Milli({ end: Int64 }))
+FROM toDateTime(toStartOfDay(fromUnixTimestamp64Milli({ start: Int64 })))
+TO toDateTime(toStartOfDay(fromUnixTimestamp64Milli({ end: Int64 })))
 STEP INTERVAL 1 DAY`,
       },
       month: {

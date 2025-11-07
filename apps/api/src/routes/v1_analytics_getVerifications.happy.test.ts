@@ -71,6 +71,8 @@ describe.each([
     const insert = await h.ch.verifications.insert(verifications);
     expect(insert.err).toEqual(undefined);
 
+    await new Promise((r) => setTimeout(r, 10000));
+
     const inserted = await h.ch.querier.query({
       query:
         "SELECT COUNT(*) AS count from default.key_verifications_raw_v2 WHERE workspace_id={workspaceId:String}",
@@ -79,8 +81,11 @@ describe.each([
     })({
       workspaceId: h.resources.userWorkspace.id,
     });
+
     expect(inserted.err).toEqual(undefined);
     expect(inserted.val!.at(0)?.count).toEqual(verifications.length);
+
+    await new Promise((r) => setTimeout(r, 2000));
 
     const root = await h.createRootKey(["api.*.read_api"]);
 
