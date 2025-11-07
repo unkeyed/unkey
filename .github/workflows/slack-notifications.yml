@@ -62,7 +62,7 @@ jobs:
               ]
             }
         env:
-          SLACK_WEBHOOK_URL_PR_NOTIFICATIONS: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Send Slack notification on PR merged
         if: github.event.action == 'closed' && github.event.pull_request.merged == true
@@ -113,7 +113,7 @@ jobs:
               ]
             }
         env:
-          SLACK_WEBHOOK_URL_PR_NOTIFICATIONS: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Send Slack notification on PR closed (not merged)
         if: github.event.action == 'closed' && github.event.pull_request.merged == false
@@ -164,7 +164,7 @@ jobs:
               ]
             }
         env:
-          SLACK_WEBHOOK_URL_PR_NOTIFICATIONS: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   ci-status:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review' || github.event.action == 'synchronize') && github.event.pull_request.draft == false
@@ -176,7 +176,7 @@ jobs:
         uses: lewagon/wait-on-check-action@v1.3.4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          check-name: 'test_packages'
+          check-name: "test_packages"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 30
       - name: Get CI status and send notification
@@ -189,15 +189,15 @@ jobs:
               repo: context.repo.repo,
               ref: context.payload.pull_request.head.sha,
             });
-            
+
             const allChecks = checks.check_runs;
             const completedChecks = allChecks.filter(check => check.status === 'completed');
             const failedChecks = completedChecks.filter(check => check.conclusion !== 'success');
-            
+
             let emoji = '';
             let status = '';
             let color = '';
-            
+
             if (completedChecks.length === 0) {
               emoji = '⏳';
               status = 'CI pending';
@@ -211,9 +211,9 @@ jobs:
               status = `${failedChecks.length} check${failedChecks.length !== 1 ? 's' : ''} failed`;
               color = '#ff0000';
             }
-            
+
             // Send Slack message with CI status
-            const slackWebhook = process.env.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS;
+            const slackWebhook = process.env.SLACK_WEBHOOK_URL;
             if (slackWebhook) {
               const response = await fetch(slackWebhook, {
                 method: 'POST',
@@ -258,13 +258,13 @@ jobs:
                   ]
                 })
               });
-              
+
               if (!response.ok) {
                 console.error('Failed to send Slack notification:', await response.text());
               }
             }
         env:
-          SLACK_WEBHOOK_URL_PR_NOTIFICATIONS: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   approval-reactions:
     runs-on: ubuntu-latest
@@ -283,10 +283,10 @@ jobs:
               repo: context.repo.repo,
               pull_number: context.issue.number,
             });
-            
+
             const approvals = reviews.filter(review => review.state === 'approved' && review.user.login !== context.payload.pull_request.user.login);
             const approvalCount = approvals.length;
-            
+
             let emoji = '';
             if (approvalCount === 0) {
               emoji = '👀';
@@ -295,12 +295,12 @@ jobs:
             } else if (approvalCount >= 2) {
               emoji = '✅';
             }
-            
+
             if (emoji) {
               console.log(`PR has ${approvalCount} approvals, using emoji: ${emoji}`);
-              
+
               // Send Slack message with emoji reaction
-              const slackWebhook = process.env.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS;
+              const slackWebhook = process.env.SLACK_WEBHOOK_URL;
               if (slackWebhook) {
                 const response = await fetch(slackWebhook, {
                   method: 'POST',
@@ -340,11 +340,11 @@ jobs:
                     ]
                   })
                 });
-                
+
                 if (!response.ok) {
                   console.error('Failed to send Slack notification:', await response.text());
                 }
               }
             }
         env:
-          SLACK_WEBHOOK_URL_PR_NOTIFICATIONS: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
