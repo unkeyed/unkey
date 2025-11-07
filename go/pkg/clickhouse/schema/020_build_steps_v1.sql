@@ -10,7 +10,7 @@ CREATE TABLE build_steps_v1
   deployment_id String,
 
   name String,
-  cache Bool,
+  cached Bool,
   error String,
   has_logs Bool
 )
