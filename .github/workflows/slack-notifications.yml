@@ -62,7 +62,7 @@ jobs:
               ]
             }
         env:
-          SLACK_WEBHOOK_URL_PR_NOTIFICATIONS: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
 
       - name: Send Slack notification on PR merged
         if: github.event.action == 'closed' && github.event.pull_request.merged == true
@@ -113,7 +113,7 @@ jobs:
               ]
             }
         env:
-          SLACK_WEBHOOK_URL_PR_NOTIFICATIONS: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
 
       - name: Send Slack notification on PR closed (not merged)
         if: github.event.action == 'closed' && github.event.pull_request.merged == false
@@ -164,7 +164,7 @@ jobs:
               ]
             }
         env:
-          SLACK_WEBHOOK_URL_PR_NOTIFICATIONS: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
   ci-status:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review' || github.event.action == 'synchronize') && github.event.pull_request.draft == false
@@ -264,7 +264,7 @@ jobs:
               }
             }
         env:
-          SLACK_WEBHOOK_URL_PR_NOTIFICATIONS: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
 
   approval-reactions:
     runs-on: ubuntu-latest
@@ -347,4 +347,4 @@ jobs:
               }
             }
         env:
-          SLACK_WEBHOOK_URL_PR_NOTIFICATIONS: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL_PR_NOTIFICATIONS }}
