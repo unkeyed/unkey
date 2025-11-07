@@ -53,7 +53,7 @@ jobs:
             
             let reactions = [];
             
-            if (github.event.action === 'submitted') {
+            if (github.event_name === 'pull_request_review') {
               // Handle review reactions
               if (github.event.review.state === 'approved') {
                 // Get approval count
@@ -73,7 +73,7 @@ jobs:
               } else if (github.event.review.state === 'commented') {
                 reactions.push('speech_balloon');
               }
-            } else if (github.event.action === 'closed') {
+            } else if (github.event_name === 'pull_request' && github.event.action === 'closed') {
               if (github.event.pull_request.merged) {
                 reactions.push('merged', 'party_parrot');
               } else {
@@ -82,7 +82,7 @@ jobs:
             }
             
             // Add CI status reaction
-            if (github.event.action === 'submitted' || github.event.action === 'opened') {
+            if (github.event_name === 'pull_request_review' || github.event.action === 'opened') {
               const { data: checks } = await github.rest.checks.listForRef({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
