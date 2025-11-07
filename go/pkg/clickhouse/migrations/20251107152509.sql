@@ -17,7 +17,7 @@ CREATE TABLE `default`.`build_steps_v1` (
   `project_id` String,
   `deployment_id` String,
   `name` String,
-  `cache` Bool,
+  `cached` Bool,
   `error` String,
   `has_logs` Bool
 ) ENGINE = MergeTree
