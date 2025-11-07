@@ -19,7 +19,7 @@ jobs:
         uses: actions/github-script@v8
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          SLACK_CHANNEL: CHANNEL
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
         with:
           script: |
             const fs = require('fs');
@@ -115,7 +115,7 @@ jobs:
         uses: actions/github-script@v8
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          SLACK_CHANNEL: CHANNEL
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
           EMOJI: ${{ env.EMOJI }}
         with:
           script: |
