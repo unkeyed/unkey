@@ -59,6 +59,16 @@ func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
 
 // UploadBuildContext uploads the build context to S3 and returns the context key
 func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath string) (string, error) {
+	// Validate Dockerfile exists before uploading
+	dockerfilePath := c.opts.Dockerfile
+	if dockerfilePath == "" {
+		dockerfilePath = "Dockerfile"
+	}
+
+	if err := validateDockerfile(contextPath, dockerfilePath); err != nil {
+		return "", err
+	}
+
 	uploadReq := connect.NewRequest(&ctrlv1.GenerateUploadURLRequest{
 		UnkeyProjectId: c.opts.ProjectID,
 	})
@@ -128,6 +138,29 @@ func uploadToPresignedURL(ctx context.Context, presignedURL, filePath string) er
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// validateDockerfile checks if the Dockerfile exists in the context path
+func validateDockerfile(contextPath, dockerfilePath string) error {
+	absContextPath, err := filepath.Abs(contextPath)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute context path: %w", err)
+	}
+
+	fullDockerfilePath := filepath.Join(absContextPath, dockerfilePath)
+	info, err := os.Stat(fullDockerfilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("dockerfile not found at '%s'\n\nPlease ensure:\n  1. The Dockerfile exists in your build context directory\n  2. The --dockerfile flag points to the correct path (default: 'Dockerfile')\n  3. The --context flag points to the correct directory (default: '.')", fullDockerfilePath)
+		}
+		return fmt.Errorf("failed to check dockerfile: %w", err)
+	}
+
+	if info.IsDir() {
+		return fmt.Errorf("dockerfile path '%s' is a directory, not a file", fullDockerfilePath)
 	}
 
 	return nil
