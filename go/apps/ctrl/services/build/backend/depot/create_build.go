@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"buf.build/gen/go/depot/api/connectrpc/go/depot/core/v1/corev1connect"
@@ -20,6 +19,7 @@ import (
 
 	corev1 "buf.build/gen/go/depot/api/protocolbuffers/go/depot/core/v1"
 	cliv1 "github.com/depot/depot-go/proto/depot/cli/v1"
+	builderrors "github.com/unkeyed/unkey/go/apps/ctrl/services/build/errors"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -204,7 +204,7 @@ func (s *Depot) CreateBuild(
 			"build_id", buildResp.ID,
 			"depot_project_id", depotProjectID,
 			"unkey_project_id", unkeyProjectID)
-		return nil, classifyBuildError(buildErr, dockerfilePath)
+		return nil, builderrors.ClassifyBuildError(buildErr, dockerfilePath)
 	}
 
 	s.logger.Info("Build completed successfully",
@@ -289,28 +289,4 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 		"project_name", projectName)
 
 	return depotProjectID, nil
-}
-
-// classifyBuildError analyzes build errors and returns appropriate error codes and messages
-func classifyBuildError(buildError error, dockerfilePath string) error {
-	errorMsg := buildError.Error()
-
-	// Check for Dockerfile-related errors
-	if strings.Contains(errorMsg, "failed to solve with frontend dockerfile.v0") ||
-		strings.Contains(errorMsg, "failed to read dockerfile") ||
-		strings.Contains(errorMsg, "failed to solve: failed to read dockerfile") ||
-		strings.Contains(errorMsg, "no such file or directory") && strings.Contains(errorMsg, dockerfilePath) {
-		return connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("dockerfile not found: the file '%s' does not exist in the build context. Please check the dockerfile path and ensure it exists", dockerfilePath))
-	}
-
-	// Check for permission errors
-	if strings.Contains(errorMsg, "permission denied") {
-		return connect.NewError(connect.CodePermissionDenied,
-			fmt.Errorf("permission denied: unable to access dockerfile or build context. Please check file permissions"))
-	}
-
-	// Default to internal error for other build failures
-	return connect.NewError(connect.CodeInternal,
-		fmt.Errorf("build failed: %w", buildError))
 }

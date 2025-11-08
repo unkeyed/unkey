@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	builderrors "github.com/unkeyed/unkey/go/apps/ctrl/services/build/errors"
 )
 
 func TestClassifyBuildError(t *testing.T) {
@@ -78,7 +79,7 @@ func TestClassifyBuildError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := classifyBuildError(tt.buildError, tt.dockerfilePath)
+			err := builderrors.ClassifyBuildError(tt.buildError, tt.dockerfilePath)
 
 			// Check error is not nil
 			if err == nil {

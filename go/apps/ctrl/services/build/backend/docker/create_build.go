@@ -11,6 +11,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/docker/docker/api/types/build"
 	"github.com/docker/docker/client"
+	builderrors "github.com/unkeyed/unkey/go/apps/ctrl/services/build/errors"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -142,7 +143,7 @@ func (d *Docker) CreateBuild(
 	}
 
 	if buildError != nil {
-		return nil, classifyBuildError(buildError, dockerfilePath)
+		return nil, builderrors.ClassifyBuildError(buildError, dockerfilePath)
 	}
 
 	buildID := uid.New(uid.BuildPrefix)
@@ -159,27 +160,4 @@ func (d *Docker) CreateBuild(
 		ImageName:      imageName,
 		BuildId:        buildID,
 	}), nil
-}
-
-// classifyBuildError analyzes build errors and returns appropriate error codes and messages
-func classifyBuildError(buildError error, dockerfilePath string) error {
-	errorMsg := buildError.Error()
-
-	// Check for Dockerfile-related errors
-	if strings.Contains(errorMsg, "failed to solve with frontend dockerfile.v0") ||
-		strings.Contains(errorMsg, "failed to read dockerfile") ||
-		strings.Contains(errorMsg, "no such file or directory") && strings.Contains(errorMsg, dockerfilePath) {
-		return connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("dockerfile not found: the file '%s' does not exist in the build context. Please check the dockerfile path and ensure it exists", dockerfilePath))
-	}
-
-	// Check for permission errors
-	if strings.Contains(errorMsg, "permission denied") {
-		return connect.NewError(connect.CodePermissionDenied,
-			fmt.Errorf("permission denied: unable to access dockerfile or build context. Please check file permissions"))
-	}
-
-	// Default to internal error for other build failures
-	return connect.NewError(connect.CodeInternal,
-		fmt.Errorf("build failed: %w", buildError))
 }

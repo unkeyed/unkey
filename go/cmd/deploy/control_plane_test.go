@@ -143,37 +143,37 @@ func TestValidateDockerfile(t *testing.T) {
 func TestValidateDockerfileWithRealPaths(t *testing.T) {
 	// Test with the actual test directories we created
 	tests := []struct {
-		name          string
-		contextPath   string
+		name           string
+		contextPath    string
 		dockerfilePath string
-		shouldError   bool
-		errorContains string
+		shouldError    bool
+		errorContains  string
 	}{
 		{
-			name:          "missing dockerfile directory",
-			contextPath:   "/tmp/test-dockerfile-validation/missing-dockerfile",
+			name:           "missing dockerfile directory",
+			contextPath:    "/tmp/test-dockerfile-validation/missing-dockerfile",
 			dockerfilePath: "Dockerfile",
-			shouldError:   true,
-			errorContains: "dockerfile not found",
+			shouldError:    true,
+			errorContains:  "dockerfile not found",
 		},
 		{
-			name:          "existing dockerfile directory",
-			contextPath:   "/tmp/test-dockerfile-validation/with-dockerfile",
+			name:           "existing dockerfile directory",
+			contextPath:    "/tmp/test-dockerfile-validation/with-dockerfile",
 			dockerfilePath: "Dockerfile",
-			shouldError:   false,
+			shouldError:    false,
 		},
 		{
-			name:          "custom dockerfile wrong path",
-			contextPath:   "/tmp/test-dockerfile-validation/custom-dockerfile",
+			name:           "custom dockerfile wrong path",
+			contextPath:    "/tmp/test-dockerfile-validation/custom-dockerfile",
 			dockerfilePath: "Dockerfile",
-			shouldError:   true,
-			errorContains: "dockerfile not found",
+			shouldError:    true,
+			errorContains:  "dockerfile not found",
 		},
 		{
-			name:          "custom dockerfile correct path",
-			contextPath:   "/tmp/test-dockerfile-validation/custom-dockerfile",
+			name:           "custom dockerfile correct path",
+			contextPath:    "/tmp/test-dockerfile-validation/custom-dockerfile",
 			dockerfilePath: "Dockerfile.custom",
-			shouldError:   false,
+			shouldError:    false,
 		},
 	}
 
