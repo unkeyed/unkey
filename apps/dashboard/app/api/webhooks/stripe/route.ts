@@ -72,7 +72,6 @@ export const POST = async (req: Request): Promise<Response> => {
           typeof price.product === "string" ? price.product : price.product.id,
         );
 
-        // Update workspace tier
         await db
           .update(schema.workspaces)
           .set({
@@ -80,7 +79,6 @@ export const POST = async (req: Request): Promise<Response> => {
           })
           .where(eq(schema.workspaces.id, ws.id));
 
-        // Validate required metadata exists
         const requiredMetadata = [
           "quota_requests_per_month",
           "quota_logs_retention_days",
@@ -95,11 +93,10 @@ export const POST = async (req: Request): Promise<Response> => {
         }
 
         // Parse and validate quotas
-        const requestsPerMonth = Number.parseInt(product.metadata.quota_requests_per_month, 10);
-        const logsRetentionDays = Number.parseInt(product.metadata.quota_logs_retention_days, 10);
+        const requestsPerMonth = Number.parseInt(product.metadata.quota_requests_per_month);
+        const logsRetentionDays = Number.parseInt(product.metadata.quota_logs_retention_days);
         const auditLogsRetentionDays = Number.parseInt(
           product.metadata.quota_audit_logs_retention_days,
-          10,
         );
 
         if (
