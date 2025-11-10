@@ -86,7 +86,14 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
     onSuccess: async ({ orgId }) => {
       setWorkspaceCreated(true);
       await switchOrgMutation.mutateAsync(orgId);
-      await setLastUsedOrgCookie({ orgId });
+      await switchOrgMutation.mutateAsync(orgId);
+      try {
+        await setLastUsedOrgCookie({ orgId });
+      } catch (error) {
+        console.error("Failed to persist last-used workspace:", error);
+        // Continue anyway - cookie is a UX enhancement, not critical
+      }
+      props.advance();
       props.advance();
     },
     onError: (error) => {
