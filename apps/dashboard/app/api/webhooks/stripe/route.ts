@@ -11,6 +11,46 @@ import {
 } from "@/lib/utils/slackAlerts";
 import Stripe from "stripe";
 
+function validateAndParseQuotas(product: Stripe.Product): {
+  valid: boolean;
+  requestsPerMonth?: number;
+  logsRetentionDays?: number;
+  auditLogsRetentionDays?: number;
+} {
+  const requiredMetadata = [
+    "quota_requests_per_month",
+    "quota_logs_retention_days",
+    "quota_audit_logs_retention_days",
+  ];
+
+  for (const field of requiredMetadata) {
+    if (!product.metadata[field]) {
+      console.error(`Missing required metadata field: ${field} for product: ${product.id}`);
+      return { valid: false };
+    }
+  }
+
+  const requestsPerMonth = Number.parseInt(product.metadata.quota_requests_per_month);
+  const logsRetentionDays = Number.parseInt(product.metadata.quota_logs_retention_days);
+  const auditLogsRetentionDays = Number.parseInt(product.metadata.quota_audit_logs_retention_days);
+
+  if (
+    Number.isNaN(requestsPerMonth) ||
+    Number.isNaN(logsRetentionDays) ||
+    Number.isNaN(auditLogsRetentionDays)
+  ) {
+    console.error(`Invalid quota metadata - parsed to NaN for product: ${product.id}`);
+    return { valid: false };
+  }
+
+  return {
+    valid: true,
+    requestsPerMonth,
+    logsRetentionDays,
+    auditLogsRetentionDays,
+  };
+}
+
 export const runtime = "nodejs";
 
 export const POST = async (req: Request): Promise<Response> => {
@@ -96,12 +136,56 @@ export const POST = async (req: Request): Promise<Response> => {
             return new Response("OK");
           }
         }
-        await db
-          .update(schema.workspaces)
-          .set({
-            tier: product.name,
-          })
-          .where(eq(schema.workspaces.id, ws.id));
+
+        // Validate and parse quotas
+        const quotas = validateAndParseQuotas(product);
+        if (!quotas.valid) {
+          return new Response("OK", { status: 200 });
+        }
+
+        const { requestsPerMonth, logsRetentionDays, auditLogsRetentionDays } = quotas;
+
+        await db.transaction(async (tx) => {
+          await tx
+            .update(schema.workspaces)
+            .set({
+              tier: product.name,
+            })
+            .where(eq(schema.workspaces.id, ws.id));
+
+          await tx
+            .insert(schema.quotas)
+            .values({
+              workspaceId: ws.id,
+              requestsPerMonth,
+              logsRetentionDays,
+              auditLogsRetentionDays,
+              team: true,
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                requestsPerMonth,
+                logsRetentionDays,
+                auditLogsRetentionDays,
+                team: true,
+              },
+            });
+
+          await insertAuditLogs(tx, {
+            workspaceId: ws.id,
+            actor: {
+              type: "system",
+              id: "stripe",
+            },
+            event: "workspace.update",
+            description: `Subscription updated to ${product.name} plan.`,
+            resources: [],
+            context: {
+              location: "",
+              userAgent: undefined,
+            },
+          });
+        });
 
         /**
          * To make the updates more useful, we detect if they are downgrading or upgrading their subscription
@@ -141,68 +225,6 @@ export const POST = async (req: Request): Promise<Response> => {
             console.error("Error retrieving previous subscription details:", error);
           }
         }
-
-        const requiredMetadata = [
-          "quota_requests_per_month",
-          "quota_logs_retention_days",
-          "quota_audit_logs_retention_days",
-        ];
-
-        for (const field of requiredMetadata) {
-          if (!product.metadata[field]) {
-            console.error(`Missing required metadata field: ${field} for product: ${product.id}`);
-            return new Response("OK", { status: 200 });
-          }
-        }
-
-        // Parse and validate quotas
-        const requestsPerMonth = Number.parseInt(product.metadata.quota_requests_per_month);
-        const logsRetentionDays = Number.parseInt(product.metadata.quota_logs_retention_days);
-        const auditLogsRetentionDays = Number.parseInt(
-          product.metadata.quota_audit_logs_retention_days,
-        );
-
-        if (
-          Number.isNaN(requestsPerMonth) ||
-          Number.isNaN(logsRetentionDays) ||
-          Number.isNaN(auditLogsRetentionDays)
-        ) {
-          console.error(`Invalid quota metadata - parsed to NaN for product: ${product.id}`);
-          return new Response("OK", { status: 200 });
-        }
-
-        await db
-          .insert(schema.quotas)
-          .values({
-            workspaceId: ws.id,
-            requestsPerMonth,
-            logsRetentionDays,
-            auditLogsRetentionDays,
-            team: true,
-          })
-          .onDuplicateKeyUpdate({
-            set: {
-              requestsPerMonth,
-              logsRetentionDays,
-              auditLogsRetentionDays,
-              team: true,
-            },
-          });
-
-        await insertAuditLogs(db, {
-          workspaceId: ws.id,
-          actor: {
-            type: "system",
-            id: "stripe",
-          },
-          event: "workspace.update",
-          description: `Subscription updated to ${product.name} plan.`,
-          resources: [],
-          context: {
-            location: "",
-            userAgent: undefined,
-          },
-        });
 
         if (customer && !customer.deleted && customer.email) {
           const formattedPrice = formatPrice(price.unit_amount);
@@ -294,7 +316,7 @@ export const POST = async (req: Request): Promise<Response> => {
         ]);
 
         if (!price.product || price.unit_amount === null || price.unit_amount === undefined) {
-          throw new Error("Invalid price data");
+          return new Response("OK");
         }
 
         const product = await stripe.products.retrieve(
@@ -302,8 +324,72 @@ export const POST = async (req: Request): Promise<Response> => {
         );
 
         if (customer.deleted || !customer.email) {
-          throw new Error("Invalid customer data");
+          return new Response("OK");
         }
+
+        // Find workspace by stripe customer ID
+        const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+        const ws = await db.query.workspaces.findFirst({
+          where: (table, { and, eq, isNull }) =>
+            and(eq(table.stripeCustomerId, customerId), isNull(table.deletedAtM)),
+        });
+
+        if (!ws) {
+          console.error("Workspace not found for customer:", customerId);
+          return new Response("OK", { status: 200 });
+        }
+
+        // Validate and parse quotas
+        const quotas = validateAndParseQuotas(product);
+        if (!quotas.valid) {
+          return new Response("OK", { status: 200 });
+        }
+
+        const { requestsPerMonth, logsRetentionDays, auditLogsRetentionDays } = quotas;
+
+        // Update workspace, quotas, and audit log in a transaction
+        await db.transaction(async (tx) => {
+          await tx
+            .update(schema.workspaces)
+            .set({
+              stripeSubscriptionId: sub.id,
+              tier: product.name,
+            })
+            .where(eq(schema.workspaces.id, ws.id));
+
+          await tx
+            .insert(schema.quotas)
+            .values({
+              workspaceId: ws.id,
+              requestsPerMonth,
+              logsRetentionDays,
+              auditLogsRetentionDays,
+              team: true,
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                requestsPerMonth,
+                logsRetentionDays,
+                auditLogsRetentionDays,
+                team: true,
+              },
+            });
+
+          await insertAuditLogs(tx, {
+            workspaceId: ws.id,
+            actor: {
+              type: "system",
+              id: "stripe",
+            },
+            event: "workspace.update",
+            description: `Subscription created for ${product.name} plan.`,
+            resources: [],
+            context: {
+              location: "",
+              userAgent: undefined,
+            },
+          });
+        });
 
         const formattedPrice = formatPrice(price.unit_amount);
 
