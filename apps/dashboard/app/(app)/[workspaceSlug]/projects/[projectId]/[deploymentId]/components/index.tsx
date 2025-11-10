@@ -158,19 +158,12 @@ function GridPattern({
           height={size}
           patternUnits="userSpaceOnUse"
         >
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={dotSize}
-            fill={dotColor}
-            opacity="0.15"
-          >
+          <circle cx={size / 2} cy={size / 2} r={dotSize} fill={dotColor}>
             <animate
               attributeName="opacity"
-              values="0.15;0.25;0.15"
-              dur="8s"
+              values="0.5;0.9;0.5"
+              dur="3s"
               repeatCount="indefinite"
-              calcMode="ease"
             />
           </circle>
         </pattern>

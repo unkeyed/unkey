@@ -191,7 +191,7 @@ function calculateTreeLayout<T extends TreeNode>(
       const position =
         direction === "vertical"
           ? {
-              x: (index - (nodes.length - 1) / 2) * 200, // Rough spacing
+              x: (index - (nodes.length - 1) / 2) * 100, // Rough spacing
               y: level * 150,
             }
           : {
@@ -206,7 +206,6 @@ function calculateTreeLayout<T extends TreeNode>(
   return positioned;
 }
 
-// Dynamic layout with actual node sizes
 // Dynamic layout with actual node sizes
 function calculateDynamicTreeLayout<T extends TreeNode>(
   root: T,
@@ -376,14 +375,14 @@ export function AnimatedConnectionLine({ from, to }: ConnectionLine) {
         ref={pathRef}
         d={pathD}
         className="stroke-gray-3"
-        strokeWidth="2"
+        strokeWidth="2.5"
         fill="none"
         strokeLinecap="round"
       />
       <path
         d={pathD}
         className="stroke-grayA-12"
-        strokeWidth="2"
+        strokeWidth="3"
         fill="none"
         strokeLinecap="round"
         strokeDasharray={dashArray}

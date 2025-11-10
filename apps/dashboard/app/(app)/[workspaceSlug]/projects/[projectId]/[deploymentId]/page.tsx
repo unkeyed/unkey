@@ -171,12 +171,12 @@ const deploymentTree: TreeNode = {
 };
 export default function DeploymentDetailsPage() {
   return (
-    <InfiniteCanvas gridSize={35} gridDotSize={2.5} gridDotColor="#DDDEE4">
+    <InfiniteCanvas gridSize={35} gridDotSize={2.5} gridDotColor="#E5E5EA">
       <TreeLayout
         data={deploymentTree}
         nodeSpacing={{ x: 25, y: 130 }}
         renderNode={(node) => (
-          <div className="w-[500px] h-[70px] border border-grayA-4 rounded-[14px] bg-black text-center">
+          <div className="w-[500px] h-[70px] border border-grayA-4 rounded-[14px] bg-gray-1 text-center">
             {node.label}
           </div>
         )}
@@ -186,7 +186,7 @@ export default function DeploymentDetailsPage() {
           const childCount = parent.children?.length ?? 1;
 
           // Spread children horizontally across parent width
-          const xOffset = (childIndex - (childCount - 1) / 2) * 3;
+          const xOffset = (childIndex - (childCount - 1) / 2) * 5;
 
           return (
             <AnimatedConnectionLine
