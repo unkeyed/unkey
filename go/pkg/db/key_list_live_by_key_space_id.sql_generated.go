@@ -96,12 +96,7 @@ FROM ` + "`" + `keys` + "`" + ` k
          LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
 WHERE k.key_auth_id = ?
   AND k.id >= ?
-  AND (
-    ? = '' OR (
-      i.workspace_id = k.workspace_id
-      AND i.external_id = ?
-    )
-  )
+  AND (? IS NULL OR k.identity_id = ?)
   AND k.deleted_at_m IS NULL
   AND ka.deleted_at_m IS NULL
   AND ws.deleted_at_m IS NULL
@@ -110,10 +105,10 @@ LIMIT ?
 `
 
 type ListLiveKeysByKeySpaceIDParams struct {
-	KeySpaceID string `db:"key_space_id"`
-	IDCursor   string `db:"id_cursor"`
-	ExternalID string `db:"external_id"`
-	Limit      int32  `db:"limit"`
+	KeySpaceID string         `db:"key_space_id"`
+	IDCursor   string         `db:"id_cursor"`
+	IdentityID sql.NullString `db:"identity_id"`
+	Limit      int32          `db:"limit"`
 }
 
 type ListLiveKeysByKeySpaceIDRow struct {
@@ -238,12 +233,7 @@ type ListLiveKeysByKeySpaceIDRow struct {
 //	         LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
 //	WHERE k.key_auth_id = ?
 //	  AND k.id >= ?
-//	  AND (
-//	    ? = '' OR (
-//	      i.workspace_id = k.workspace_id
-//	      AND i.external_id = ?
-//	    )
-//	  )
+//	  AND (? IS NULL OR k.identity_id = ?)
 //	  AND k.deleted_at_m IS NULL
 //	  AND ka.deleted_at_m IS NULL
 //	  AND ws.deleted_at_m IS NULL
@@ -253,8 +243,8 @@ func (q *Queries) ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg Lis
 	rows, err := db.QueryContext(ctx, listLiveKeysByKeySpaceID,
 		arg.KeySpaceID,
 		arg.IDCursor,
-		arg.ExternalID,
-		arg.ExternalID,
+		arg.IdentityID,
+		arg.IdentityID,
 		arg.Limit,
 	)
 	if err != nil {

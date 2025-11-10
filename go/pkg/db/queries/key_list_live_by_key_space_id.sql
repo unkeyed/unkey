@@ -84,12 +84,7 @@ FROM `keys` k
          LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
 WHERE k.key_auth_id = sqlc.arg(key_space_id)
   AND k.id >= sqlc.arg(id_cursor)
-  AND (
-    sqlc.arg(external_id) = '' OR (
-      i.workspace_id = k.workspace_id
-      AND i.external_id = sqlc.arg(external_id)
-    )
-  )
+  AND (sqlc.arg(identity_id) IS NULL OR k.identity_id = sqlc.arg(identity_id))
   AND k.deleted_at_m IS NULL
   AND ka.deleted_at_m IS NULL
   AND ws.deleted_at_m IS NULL

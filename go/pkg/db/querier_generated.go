@@ -1574,12 +1574,7 @@ type Querier interface {
 	//           LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
 	//  WHERE k.key_auth_id = ?
 	//    AND k.id >= ?
-	//    AND (
-	//      ? = '' OR (
-	//        i.workspace_id = k.workspace_id
-	//        AND i.external_id = ?
-	//      )
-	//    )
+	//    AND (? IS NULL OR k.identity_id = ?)
 	//    AND k.deleted_at_m IS NULL
 	//    AND ka.deleted_at_m IS NULL
 	//    AND ws.deleted_at_m IS NULL
