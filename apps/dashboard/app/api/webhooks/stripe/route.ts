@@ -1,7 +1,14 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
+import { formatPrice } from "@/lib/fmt";
 import { freeTierQuotas } from "@/lib/quotas";
+import {
+  alertIsCancellingSubscription,
+  alertSubscriptionCancelled,
+  alertSubscriptionCreation,
+  alertSubscriptionUpdate,
+} from "@/lib/utils/slackAlerts";
 import Stripe from "stripe";
 
 export const runtime = "nodejs";
@@ -51,10 +58,8 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK", { status: 200 });
         }
 
-        // Get previous subscription information from Stripe webhook
         const previousAttributes = event.data.previous_attributes;
 
-        // Get the current subscription item and product
         if (!sub.items?.data?.[0]?.price?.id || !sub.customer) {
           return new Response("OK");
         }
@@ -73,13 +78,14 @@ export const POST = async (req: Request): Promise<Response> => {
         const product = await stripe.products.retrieve(
           typeof price.product === "string" ? price.product : price.product.id,
         );
-        // The subscrtiption is cancelling prior to actually be cancelled.
+
+        /**
+         * In our case, when a user cancels their subscription, it's not in effect until the beginning of the next month.
+         * So we get a subscription updated event, which we should handle accordingly.
+         */
         if (sub.cancel_at) {
           if (customer && !customer.deleted && customer.email) {
-            const formattedPrice = new Intl.NumberFormat("en-US", {
-              style: "currency",
-              currency: "USD",
-            }).format(price.unit_amount / 100);
+            const formattedPrice = formatPrice(price.unit_amount!);
             await alertIsCancellingSubscription(
               product.name,
               formattedPrice,
@@ -97,7 +103,10 @@ export const POST = async (req: Request): Promise<Response> => {
           })
           .where(eq(schema.workspaces.id, ws.id));
 
-        // Determine if this is an upgrade or downgrade using Stripe's previous_attributes
+        /**
+         * To make the updates more useful, we detect if they are downgrading or upgrading their subscription
+         * We can then send a good or bad update based upon it.
+         */
         let changeType = "updated";
         let previousTier: string | undefined;
 
@@ -162,7 +171,6 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK", { status: 200 });
         }
 
-        // Update quotas based on product metadata
         await db
           .insert(schema.quotas)
           .values({
@@ -196,15 +204,11 @@ export const POST = async (req: Request): Promise<Response> => {
           },
         });
 
-        // Send notification for subscription change
         if (customer && !customer.deleted && customer.email) {
-          const formattedPrice = new Intl.NumberFormat("en-US", {
-            style: "currency",
-            currency: "USD",
-          }).format(price.unit_amount / 100);
+          const formattedPrice = formatPrice(price.unit_amount);
 
           // Send notification for any subscription update
-          await alertSlackSubscriptionUpdate(
+          await alertSubscriptionUpdate(
             product.name,
             formattedPrice,
             customer.email,
@@ -269,7 +273,7 @@ export const POST = async (req: Request): Promise<Response> => {
         );
 
         if (customer && !customer.deleted && customer.email) {
-          await alertSlackCancellation(customer.email, customer.name || "Unknown");
+          await alertSubscriptionCancelled(customer.email, customer.name || "Unknown");
         }
       }
       break;
@@ -301,12 +305,14 @@ export const POST = async (req: Request): Promise<Response> => {
           throw new Error("Invalid customer data");
         }
 
-        const formattedPrice = new Intl.NumberFormat("en-US", {
-          style: "currency",
-          currency: "USD",
-        }).format(price.unit_amount / 100);
+        const formattedPrice = formatPrice(price.unit_amount);
 
-        await alertSlack(product.name, formattedPrice, customer.email, customer.name || "Unknown");
+        await alertSubscriptionCreation(
+          product.name,
+          formattedPrice,
+          customer.email,
+          customer.name || "Unknown",
+        );
         break;
       } catch (error) {
         console.error("Webhook error:", error);
@@ -320,174 +326,3 @@ export const POST = async (req: Request): Promise<Response> => {
   }
   return new Response("OK");
 };
-
-async function alertSlack(
-  product: string,
-  price: string,
-  email: string,
-  name?: string,
-): Promise<void> {
-  const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
-  if (!url) {
-    return;
-  }
-
-  await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `:bugeyes: New customer ${name} signed up`,
-          },
-        },
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `A new subscription for the ${product} tier has started at a price of ${price} by ${email} :moneybag: `,
-          },
-        },
-      ],
-    }),
-  }).catch((err: Error) => {
-    console.error(err);
-  });
-}
-
-async function alertSlackSubscriptionUpdate(
-  product: string,
-  price: string,
-  email: string,
-  name?: string,
-  changeType?: string,
-  previousTier?: string,
-): Promise<void> {
-  const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
-  if (!url) {
-    return;
-  }
-
-  // Choose appropriate emoji based on change type
-  let emoji = ":stonks:";
-  let actionText = "updated their subscription";
-
-  if (changeType === "upgraded") {
-    emoji = ":chart_with_upwards_trend:";
-    actionText = "upgraded their subscription";
-  } else if (changeType === "downgraded") {
-    emoji = ":chart_with_downwards_trend:";
-    actionText = "downgraded their subscription";
-  }
-
-  // Build the subscription change message
-  let subscriptionText = `Subscription ${changeType} to the ${product} tier at ${price} by ${email}`;
-  if (previousTier && changeType !== "updated") {
-    subscriptionText = `Subscription ${changeType} from ${previousTier} to ${product} tier at ${price} by ${email}`;
-  }
-
-  await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `${emoji} ${name} ${actionText}`,
-          },
-        },
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: subscriptionText,
-          },
-        },
-      ],
-    }),
-  }).catch((err: Error) => {
-    console.error(err);
-  });
-}
-
-async function alertIsCancellingSubscription(
-  product: string,
-  price: string,
-  email: string,
-  name?: string,
-): Promise<void> {
-  const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
-  if (!url) {
-    return;
-  }
-
-  await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `:warning: ${name} is cancelling their subscription.`,
-          },
-        },
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `Subscription cancellation requested by ${email} - for ${product} at ${price} they will be moved back to the free tier, at the end of the month. We should reach out to find out why they are cancelling.`,
-          },
-        },
-      ],
-    }),
-  }).catch((err: Error) => {
-    console.error(err);
-  });
-}
-
-async function alertSlackCancellation(email: string, name?: string): Promise<void> {
-  const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
-  if (!url) {
-    return;
-  }
-
-  await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `:caleb-sad: ${name} cancelled their subscription`,
-          },
-        },
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `Subscription cancelled by ${email} - they've been moved back to the free tier`,
-          },
-        },
-      ],
-    }),
-  }).catch((err: Error) => {
-    console.error(err);
-  });
-}
