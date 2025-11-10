@@ -5,6 +5,59 @@ import { InfiniteCanvas } from "./components/unkey-flow/components/canvas/infini
 // biome-ignore lint/style/useImportType: <explanation>
 import { TreeNode } from "./components/unkey-flow/types";
 
+const IngressNode = ({ node }: { node: TreeNode }) => (
+  <div className="w-[500px] h-[70px] border-2 border-blue-5 rounded-[14px] bg-blue-2 shadow-lg">
+    <div className="flex items-center justify-between px-4 h-full">
+      <div>
+        <div className="font-semibold text-blue-11">{node.label}</div>
+        <div className="text-xs text-blue-9">{node.metadata.description}</div>
+      </div>
+      <div className="text-xs text-blue-10">
+        {node.metadata.regions} regions
+      </div>
+    </div>
+  </div>
+);
+
+const RegionNode = ({ node }: { node: TreeNode }) => (
+  <div className="w-[500px] h-[70px] border border-grayA-4 rounded-[14px] bg-gray-1">
+    <div className="flex items-center justify-between px-4 h-full">
+      <div>
+        <div className="font-medium">{node.label}</div>
+        <div className="text-xs text-gray-10">{node.metadata.description}</div>
+      </div>
+      <div className="text-xs text-gray-11">
+        {node.metadata.instances} instances
+      </div>
+    </div>
+  </div>
+);
+
+const InstanceNode = ({ node }: { node: TreeNode }) => (
+  <div className="w-[500px] h-[70px] border border-grayA-6 rounded-[14px] bg-gray-2">
+    <div className="flex items-center justify-between px-4 h-full">
+      <div>
+        <div className="font-medium">{node.label}</div>
+        <div className="text-xs text-gray-10">{node.metadata.description}</div>
+      </div>
+      <div className="text-xs text-gray-11">CPU: {node.metadata.cpu}</div>
+    </div>
+  </div>
+);
+
+const DefaultNode = ({ node }: { node: TreeNode }) => (
+  <div className="w-[500px] h-[70px] border border-grayA-4 rounded-[14px] bg-gray-1 flex items-center justify-center">
+    {node.label}
+  </div>
+);
+
+// Object lookup map
+const nodeComponents = {
+  gateway: IngressNode,
+  region: RegionNode,
+  instance: InstanceNode,
+} as const;
+
 const deploymentTree: TreeNode = {
   id: "ingress",
   label: "Ingress",
@@ -178,12 +231,12 @@ export default function DeploymentDetailsPage() {
       <TreeLayout
         data={deploymentTree}
         nodeSpacing={{ x: 25, y: 130 }}
-        renderNode={(node) => (
-          <div className="w-[500px] h-[70px] border border-grayA-4 rounded-[14px] bg-gray-1 text-center flex items-center justify-center">
-            {/*// @ts-expect-error will fix this*/}
-            {node.label}
-          </div>
-        )}
+        renderNode={(node) => {
+          const NodeComponent =
+            nodeComponents[node.metadata.type as keyof typeof nodeComponents] ??
+            DefaultNode;
+          return <NodeComponent node={node} />;
+        }}
         renderConnection={(from, to, parent, child) => {
           const childIndex =
             parent.children?.findIndex((c) => c.id === child.id) ?? 0;
