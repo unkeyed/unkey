@@ -163,7 +163,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	cursor := ptr.SafeDeref(req.Cursor, "")
 
 	// Resolve identity ID if external_id filter is provided
-	var identityID string
+	var identityID sql.NullString
 	if req.ExternalId != nil && *req.ExternalId != "" {
 		identity, identityErr := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
@@ -190,22 +190,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("Failed to retrieve identity."),
 			)
 		}
-		identityID = identity.ID
+		identityID = sql.NullString{String: identity.ID, Valid: true}
 	}
 
 	// Query keys by key_auth_id instead of api_id
-	var identityIDParam sql.NullString
-	if identityID != "" {
-		identityIDParam = sql.NullString{String: identityID, Valid: true}
-	}
-
 	keyResults, err := db.Query.ListLiveKeysByKeySpaceID(
 		ctx,
 		h.DB.RO(),
 		db.ListLiveKeysByKeySpaceIDParams{
 			KeySpaceID: api.KeyAuthID.String,
 			IDCursor:   cursor,
-			IdentityID: identityIDParam,
+			IdentityID: identityID,
 			Limit:      int32(limit + 1), // nolint:gosec
 		},
 	)
