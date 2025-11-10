@@ -72,6 +72,7 @@ export function InfiniteCanvas({
   const handleWheel = useCallback(
     (e: React.WheelEvent<SVGSVGElement>) => {
       e.preventDefault();
+      e.stopPropagation();
 
       const svg = svgRef.current;
       if (!svg) return;
@@ -99,9 +100,17 @@ export function InfiniteCanvas({
   );
 
   useEffect(() => {
-    const handleGlobalMouseUp = () => setIsPanning(false);
-    window.addEventListener("mouseup", handleGlobalMouseUp);
-    return () => window.removeEventListener("mouseup", handleGlobalMouseUp);
+    const svg = svgRef.current;
+    if (!svg) {
+      return;
+    }
+
+    const handleWheelNative = (e: WheelEvent) => {
+      e.preventDefault();
+    };
+
+    svg.addEventListener("wheel", handleWheelNative, { passive: false });
+    return () => svg.removeEventListener("wheel", handleWheelNative);
   }, []);
 
   return (

@@ -46,7 +46,7 @@ export function TreeLayout<T extends TreeNode>({
   // Calculate layout - dynamic if ready, otherwise rough initial layout
   const positionedNodes = layoutReady
     ? calculateDynamicTreeLayout(data, nodeSpacing, direction, nodeSizes)
-    : calculateTreeLayout(data, nodeSpacing, direction);
+    : calculateTreeLayout(data, direction);
 
   // Collect all connections
   const connections: Array<{
@@ -163,7 +163,6 @@ function MeasuredNodeWrapper({
 // Initial rough layout (before measurement)
 function calculateTreeLayout<T extends TreeNode>(
   root: T,
-  spacing: { x: number; y: number },
   direction: "vertical" | "horizontal"
 ): PositionedNode<T>[] {
   const positioned: PositionedNode<T>[] = [];
