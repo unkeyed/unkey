@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_update_identity"
@@ -119,9 +118,9 @@ func TestSuccess(t *testing.T) {
 
 		// Verify metadata
 		require.NotNil(t, res.Body.Data.Meta)
-		meta := *res.Body.Data.Meta
-		assert.Equal(t, "2023-01-01", meta["joined"])
-		assert.Equal(t, true, meta["active"])
+		meta := res.Body.Data.Meta
+		require.Equal(t, "2023-01-01", meta["joined"])
+		require.Equal(t, true, meta["active"])
 
 		// Verify no ratelimits
 		require.Nil(t, res.Body.Data.Ratelimits)
@@ -160,16 +159,16 @@ func TestSuccess(t *testing.T) {
 
 		// Verify exactly 2 ratelimits (should have removed 'special_feature')
 		require.NotNil(t, res.Body.Data.Ratelimits)
-		require.Len(t, *res.Body.Data.Ratelimits, 2)
+		require.Len(t, res.Body.Data.Ratelimits, 2)
 
 		// Check ratelimit values
 		var apiCallsLimit, newFeatureLimit *openapi.RatelimitResponse
-		for i := range *res.Body.Data.Ratelimits {
-			switch (*res.Body.Data.Ratelimits)[i].Name {
+		for i := range res.Body.Data.Ratelimits {
+			switch (res.Body.Data.Ratelimits)[i].Name {
 			case "api_calls":
-				apiCallsLimit = &(*res.Body.Data.Ratelimits)[i]
+				apiCallsLimit = &(res.Body.Data.Ratelimits)[i]
 			case "new_feature":
-				newFeatureLimit = &(*res.Body.Data.Ratelimits)[i]
+				newFeatureLimit = &(res.Body.Data.Ratelimits)[i]
 			}
 		}
 
@@ -177,16 +176,16 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, newFeatureLimit, "new_feature ratelimit not found")
 
 		// Verify updated limit
-		assert.Equal(t, int64(200), apiCallsLimit.Limit)
-		assert.Equal(t, int64(60000), apiCallsLimit.Duration)
+		require.Equal(t, int64(200), apiCallsLimit.Limit)
+		require.Equal(t, int64(60000), apiCallsLimit.Duration)
 
 		// Verify new limit
-		assert.Equal(t, int64(5), newFeatureLimit.Limit)
-		assert.Equal(t, int64(86400000), newFeatureLimit.Duration)
+		require.Equal(t, int64(5), newFeatureLimit.Limit)
+		require.Equal(t, int64(86400000), newFeatureLimit.Duration)
 
 		// Verify 'special_feature' was removed
-		for _, rl := range *res.Body.Data.Ratelimits {
-			assert.NotEqual(t, "special_feature", rl.Name, "special_feature should have been removed")
+		for _, rl := range res.Body.Data.Ratelimits {
+			require.NotEqual(t, "special_feature", rl.Name, "special_feature should have been removed")
 		}
 	})
 
@@ -225,8 +224,7 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, externalID, res.Body.Data.ExternalId)
 
 		// Verify empty metadata
-		require.NotNil(t, res.Body.Data.Meta)
-		assert.Empty(t, *res.Body.Data.Meta)
+		require.Empty(t, res.Body.Data.Meta)
 	})
 
 	t.Run("update both metadata and ratelimits", func(t *testing.T) {
@@ -255,16 +253,16 @@ func TestSuccess(t *testing.T) {
 
 		// Verify metadata
 		require.NotNil(t, res.Body.Data.Meta)
-		meta := *res.Body.Data.Meta
-		assert.Equal(t, "enterprise", meta["plan"])
-		assert.Equal(t, float64(1000), meta["credits"])
+		meta := res.Body.Data.Meta
+		require.Equal(t, "enterprise", meta["plan"])
+		require.Equal(t, float64(1000), meta["credits"])
 
 		// Verify ratelimits
 		require.NotNil(t, res.Body.Data.Ratelimits)
-		require.Len(t, *res.Body.Data.Ratelimits, 1)
-		rlimits := *res.Body.Data.Ratelimits
-		assert.Equal(t, "enterprise_feature", rlimits[0].Name)
-		assert.Equal(t, int64(50), rlimits[0].Limit)
-		assert.Equal(t, int64(3600000), rlimits[0].Duration)
+		require.Len(t, res.Body.Data.Ratelimits, 1)
+		rlimits := res.Body.Data.Ratelimits
+		require.Equal(t, "enterprise_feature", rlimits[0].Name)
+		require.Equal(t, int64(50), rlimits[0].Limit)
+		require.Equal(t, int64(3600000), rlimits[0].Duration)
 	})
 }

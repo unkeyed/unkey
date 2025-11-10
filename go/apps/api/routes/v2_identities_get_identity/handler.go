@@ -125,8 +125,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Data: openapi.Identity{
 			Id:         identity.ID,
 			ExternalId: identity.ExternalID,
-			Meta:       &metaMap,
-			Ratelimits: &responseRatelimits,
+			Meta:       metaMap,
+			Ratelimits: responseRatelimits,
 		},
 	})
 }

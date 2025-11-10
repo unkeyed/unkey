@@ -63,7 +63,7 @@ func TestRatelimitResponse(t *testing.T) {
 
 		// Validate rate limit response fields
 		require.NotNil(t, res.Body.Data.Ratelimits, "Rate limits should be present")
-		ratelimits := *res.Body.Data.Ratelimits
+		ratelimits := res.Body.Data.Ratelimits
 		require.Len(t, ratelimits, 1, "Should have one rate limit")
 
 		rl := ratelimits[0]
@@ -107,7 +107,7 @@ func TestRatelimitResponse(t *testing.T) {
 
 		// Validate rate limit response fields for exceeded limit
 		require.NotNil(t, res.Body.Data.Ratelimits, "Rate limits should be present")
-		ratelimits := *res.Body.Data.Ratelimits
+		ratelimits := res.Body.Data.Ratelimits
 		require.Len(t, ratelimits, 1, "Should have one rate limit")
 
 		rl := ratelimits[0]
@@ -138,7 +138,7 @@ func TestRatelimitResponse(t *testing.T) {
 
 		// Validate custom rate limit response
 		require.NotNil(t, res.Body.Data.Ratelimits, "Rate limits should be present")
-		ratelimits := *res.Body.Data.Ratelimits
+		ratelimits := res.Body.Data.Ratelimits
 		require.Len(t, ratelimits, 1, "Should have one rate limit")
 
 		rl := ratelimits[0]
@@ -190,7 +190,7 @@ func TestRatelimitResponse(t *testing.T) {
 		require.Equal(t, openapi.VALID, res.Body.Data.Code)
 		require.True(t, res.Body.Data.Valid)
 
-		ratelimits := *res.Body.Data.Ratelimits
+		ratelimits := res.Body.Data.Ratelimits
 		require.Len(t, ratelimits, 2, "Should have two rate limits")
 
 		fastLimit := findRatelimit(ratelimits, "fast-limit")
@@ -209,7 +209,7 @@ func TestRatelimitResponse(t *testing.T) {
 		require.Equal(t, openapi.VALID, res.Body.Data.Code)
 		require.True(t, res.Body.Data.Valid)
 
-		ratelimits = *res.Body.Data.Ratelimits
+		ratelimits = res.Body.Data.Ratelimits
 		fastLimit = findRatelimit(ratelimits, "fast-limit")
 		slowLimit = findRatelimit(ratelimits, "slow-limit")
 
@@ -224,7 +224,7 @@ func TestRatelimitResponse(t *testing.T) {
 		require.Equal(t, openapi.VALID, res.Body.Data.Code)
 		require.True(t, res.Body.Data.Valid)
 
-		ratelimits = *res.Body.Data.Ratelimits
+		ratelimits = res.Body.Data.Ratelimits
 		fastLimit = findRatelimit(ratelimits, "fast-limit")
 		slowLimit = findRatelimit(ratelimits, "slow-limit")
 
@@ -239,7 +239,7 @@ func TestRatelimitResponse(t *testing.T) {
 		require.Equal(t, openapi.RATELIMITED, res.Body.Data.Code)
 		require.False(t, res.Body.Data.Valid, "Key should be rate limited")
 
-		ratelimits = *res.Body.Data.Ratelimits
+		ratelimits = res.Body.Data.Ratelimits
 		fastLimit = findRatelimit(ratelimits, "fast-limit")
 		slowLimit = findRatelimit(ratelimits, "slow-limit")
 
@@ -302,7 +302,7 @@ func TestRatelimitResponse(t *testing.T) {
 			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Request %d should be valid", i+1)
 			require.True(t, res.Body.Data.Valid)
 
-			ratelimits := *res.Body.Data.Ratelimits
+			ratelimits := res.Body.Data.Ratelimits
 			require.Len(t, ratelimits, 2, "Should have two identity rate limits")
 
 			apiLimit := findRatelimit(ratelimits, "api_requests")
@@ -323,7 +323,7 @@ func TestRatelimitResponse(t *testing.T) {
 		require.Equal(t, openapi.RATELIMITED, res.Body.Data.Code, "6th request should be rate limited")
 		require.False(t, res.Body.Data.Valid)
 
-		ratelimits := *res.Body.Data.Ratelimits
+		ratelimits := res.Body.Data.Ratelimits
 		apiLimit := findRatelimit(ratelimits, "api_requests")
 		dataLimit := findRatelimit(ratelimits, "data_access")
 

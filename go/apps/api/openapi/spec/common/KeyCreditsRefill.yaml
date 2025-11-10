@@ -24,6 +24,8 @@ properties:
       Only required when interval is 'monthly'.
       For days beyond the month's length, refill occurs on the last day of the month.
     example: 15
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
 required:
   - interval
   - amount

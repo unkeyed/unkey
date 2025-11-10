@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_verify_key"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
@@ -102,7 +101,7 @@ func TestMultipleRatelimitsCounterLeakBug(t *testing.T) {
 		monthLimitExceeded := false
 		var monthLimitRemaining int64
 
-		for _, rl := range ptr.SafeDeref(res.Body.Data.Ratelimits) {
+		for _, rl := range res.Body.Data.Ratelimits {
 			if rl.Name == "requests-per-minute" && rl.Exceeded {
 				minuteLimitExceeded = true
 			}
@@ -206,7 +205,7 @@ func TestMultipleRatelimitsCounterLeakBug(t *testing.T) {
 		require.False(t, res.Body.Data.Valid)
 
 		// Verify it's the monthly limit that's exceeded
-		ratelimits := *res.Body.Data.Ratelimits
+		ratelimits := res.Body.Data.Ratelimits
 		monthLimitExceeded := false
 
 		for _, rl := range ratelimits {

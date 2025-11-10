@@ -83,13 +83,13 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, externalID, res.Body.Data.ExternalId)
 
 		// Verify metadata
-		require.Equal(t, "Test User", (*res.Body.Data.Meta)["name"])
-		require.Equal(t, "test@example.com", (*res.Body.Data.Meta)["email"])
-		require.Equal(t, "pro", (*res.Body.Data.Meta)["plan"])
-		require.Equal(t, float64(100), (*res.Body.Data.Meta)["credits"])
+		require.Equal(t, "Test User", (res.Body.Data.Meta)["name"])
+		require.Equal(t, "test@example.com", (res.Body.Data.Meta)["email"])
+		require.Equal(t, "pro", (res.Body.Data.Meta)["plan"])
+		require.Equal(t, float64(100), (res.Body.Data.Meta)["credits"])
 
 		// Verify ratelimits
-		require.Len(t, *res.Body.Data.Ratelimits, 2)
+		require.Len(t, res.Body.Data.Ratelimits, 2)
 	})
 
 	t.Run("metadata is empty object when not set", func(t *testing.T) {
@@ -122,8 +122,8 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 
 		// Verify meta is an empty object, not null
-		require.NotNil(t, res.Body.Data.Meta)
-		metaMap := *res.Body.Data.Meta
+		require.Empty(t, res.Body.Data.Meta)
+		metaMap := res.Body.Data.Meta
 		require.Equal(t, 0, len(metaMap))
 	})
 
@@ -157,7 +157,7 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 
 		// Verify ratelimits is an empty array
-		require.Empty(t, *res.Body.Data.Ratelimits)
+		require.Empty(t, res.Body.Data.Ratelimits)
 	})
 
 	t.Run("retrieve identity with large metadata", func(t *testing.T) {
@@ -324,11 +324,11 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 
 		// Verify all rate limits were returned
-		require.Len(t, *res.Body.Data.Ratelimits, len(rateLimits))
+		require.Len(t, res.Body.Data.Ratelimits, len(rateLimits))
 
 		// Create a map of rate limits by name to verify each one
 		returnedRateLimits := make(map[string]openapi.RatelimitResponse)
-		for _, rl := range *res.Body.Data.Ratelimits {
+		for _, rl := range res.Body.Data.Ratelimits {
 			returnedRateLimits[rl.Name] = rl
 		}
 

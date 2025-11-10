@@ -36,6 +36,8 @@ properties:
       Include information about what resources can be accessed and what actions can be performed.
       Not visible to end users - this is for internal documentation and team clarity.
     example: "Allows reading user profile information and account details"
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
 required:
   - id
   - name
