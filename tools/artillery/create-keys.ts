@@ -40,13 +40,6 @@ interface CreateKeyResult {
   keyId: string;
 }
 
-interface CreateKeyError {
-  index: number;
-  error: string;
-  statusCode: number;
-  response?: any;
-}
-
 async function createKey(
   rootKey: string,
   apiId: string,
@@ -88,7 +81,7 @@ async function createKey(
     console.error(
       `Failed to create key at index ${index}: ${response.status} ${response.statusText}`,
     );
-    console.error(`Error response body:`, errorBody);
+    console.error("Error response body", errorBody);
     return null;
   }
 
