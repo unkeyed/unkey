@@ -311,6 +311,7 @@ function calculateDynamicTreeLayout<T extends TreeNode>(
 }
 
 // AnimatedConnectionLine component
+
 type ConnectionLine = {
   id: string;
   from: Point;
@@ -318,94 +319,82 @@ type ConnectionLine = {
 };
 
 export function AnimatedConnectionLine({ from, to, id }: ConnectionLine) {
-  const isVertical = Math.abs(from.x - to.x) < 10;
+  const pathRef = useRef<SVGPathElement>(null);
+  const [pathLength, setPathLength] = useState(0);
 
+  useEffect(() => {
+    if (pathRef.current) {
+      setPathLength(pathRef.current.getTotalLength());
+    }
+  }, [from, to]);
+
+  const isVertical = Math.abs(from.x - to.x) < 10;
   let pathD: string;
 
   if (isVertical) {
     pathD = `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
   } else {
-    const cp1Y = from.y + (to.y - from.y) * 0.6;
-    const cp2Y = to.y - (to.y - from.y) * 0.6;
-
+    const radius = 32;
+    const direction = to.x > from.x ? 1 : -1;
+    const verticalHeight = 36;
+    const y1 = from.y + verticalHeight;
+    const corner1CenterY = y1 + radius;
+    const corner1X = from.x + radius * direction;
+    const horizontalEndX = to.x - radius * direction;
+    const corner2Y = to.y - (32 + radius);
     pathD = `
       M ${from.x} ${from.y}
-      C ${from.x} ${cp1Y}, ${to.x} ${cp2Y}, ${to.x} ${to.y}
+      L ${from.x} ${y1}
+      Q ${from.x} ${corner1CenterY} ${corner1X} ${corner1CenterY}
+      L ${horizontalEndX} ${corner1CenterY}
+      Q ${to.x} ${corner1CenterY} ${to.x} ${corner2Y}
+      L ${to.x} ${to.y}
     `
       .replace(/\s+/g, " ")
       .trim();
   }
 
+  const lightBandSize = 40; // pixels
+  const gapSize = pathLength - lightBandSize;
+  const dashArray = `${lightBandSize} ${gapSize}`;
+
+  // Constant velocity
+  const velocity = 100; // px/s
+  const duration = pathLength / velocity;
+
   return (
     <>
-      <defs>
-        <linearGradient
-          id={`flow-gradient-${id}`}
-          x1={from.x}
-          y1={from.y}
-          x2={to.x}
-          y2={to.y}
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop offset="0%" stopColor="#e5e7eb" stopOpacity="0">
-            <animate
-              attributeName="offset"
-              values="-0.3;1.3"
-              dur="3s"
-              repeatCount="indefinite"
-            />
-          </stop>
-          <stop offset="10%" stopColor="#d1d5db" stopOpacity="0.6">
-            <animate
-              attributeName="offset"
-              values="-0.2;1.4"
-              dur="3s"
-              repeatCount="indefinite"
-            />
-          </stop>
-          <stop offset="20%" stopColor="#9ca3af" stopOpacity="1">
-            <animate
-              attributeName="offset"
-              values="-0.1;1.5"
-              dur="3s"
-              repeatCount="indefinite"
-            />
-          </stop>
-          <stop offset="30%" stopColor="#d1d5db" stopOpacity="0.6">
-            <animate
-              attributeName="offset"
-              values="0;1.6"
-              dur="3s"
-              repeatCount="indefinite"
-            />
-          </stop>
-          <stop offset="40%" stopColor="#e5e7eb" stopOpacity="0">
-            <animate
-              attributeName="offset"
-              values="0.1;1.7"
-              dur="3s"
-              repeatCount="indefinite"
-            />
-          </stop>
-        </linearGradient>
-      </defs>
-
+      {/* Base line - dark */}
       <path
+        ref={pathRef}
         d={pathD}
-        stroke="#e5e7eb"
-        strokeWidth="2.5"
-        fill="none"
-        opacity="0.4"
-        strokeLinecap="round"
-      />
-
-      <path
-        d={pathD}
-        stroke={`url(#flow-gradient-${id})`}
-        strokeWidth="3"
+        className="stroke-gray-3"
+        strokeWidth="2"
         fill="none"
         strokeLinecap="round"
       />
+
+      {/* Animated light band */}
+      <path
+        d={pathD}
+        className="stroke-grayA-12"
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
+        strokeDasharray={dashArray}
+        strokeDashoffset={pathLength}
+        style={{
+          opacity: 0.94,
+        }}
+      >
+        <animate
+          attributeName="stroke-dashoffset"
+          from={pathLength}
+          to={0}
+          dur={`${duration}s`}
+          repeatCount="indefinite"
+        />
+      </path>
     </>
   );
 }

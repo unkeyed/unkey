@@ -107,7 +107,7 @@ export function InfiniteCanvas({
   return (
     <svg
       ref={svgRef}
-      className="w-full h-full cursor-grab active:cursor-grabbing"
+      className="w-full h-full cursor-grab active:cursor-grabbing dark:bg-black bg-gray-1"
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -141,11 +141,6 @@ function GridPattern({
   return (
     <>
       <defs>
-        <radialGradient id="dot-gradient">
-          <stop offset="0%" stopColor={dotColor} stopOpacity="0.8" />
-          <stop offset="100%" stopColor={dotColor} stopOpacity="0.2" />
-        </radialGradient>
-
         <pattern
           id="dot-grid"
           x={0}
@@ -158,15 +153,15 @@ function GridPattern({
             cx={size / 2}
             cy={size / 2}
             r={dotSize}
-            fill="url(#dot-gradient)"
+            fill={dotColor}
+            opacity="0.15"
           >
             <animate
               attributeName="opacity"
-              values="0.4;0.7;0.4"
-              dur="6s"
+              values="0.15;0.25;0.15"
+              dur="8s"
               repeatCount="indefinite"
-              calcMode="spline"
-              keySplines="0.4 0 0.6 1; 0.4 0 0.6 1"
+              calcMode="ease"
             />
           </circle>
         </pattern>
