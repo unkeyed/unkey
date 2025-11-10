@@ -90,8 +90,8 @@ SELECT k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
                JSON_ARRAY()
        )                    AS ratelimits
 FROM ` + "`" + `keys` + "`" + ` k
-         JOIN key_auth ka ON ka.id = k.key_auth_id
-         JOIN workspaces ws ON ws.id = k.workspace_id
+         STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
+         STRAIGHT_JOIN workspaces ws ON ws.id = k.workspace_id
          LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
          LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
 WHERE k.key_auth_id = ?
@@ -232,8 +232,8 @@ type ListLiveKeysByKeySpaceIDRow struct {
 //	               JSON_ARRAY()
 //	       )                    AS ratelimits
 //	FROM `keys` k
-//	         JOIN key_auth ka ON ka.id = k.key_auth_id
-//	         JOIN workspaces ws ON ws.id = k.workspace_id
+//	         STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
+//	         STRAIGHT_JOIN workspaces ws ON ws.id = k.workspace_id
 //	         LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
 //	         LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
 //	WHERE k.key_auth_id = ?
