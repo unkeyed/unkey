@@ -37,7 +37,6 @@ export const POST = async (req: Request): Promise<Response> => {
     signature,
     e.STRIPE_WEBHOOK_SECRET,
   );
-
   switch (event.type) {
     case "customer.subscription.updated": {
       try {
@@ -71,7 +70,23 @@ export const POST = async (req: Request): Promise<Response> => {
         const product = await stripe.products.retrieve(
           typeof price.product === "string" ? price.product : price.product.id,
         );
+        // The subscrtiption is cancelling prior to actually be cancelled.
+        if (sub.cancel_at) {
+          if (customer && !customer.deleted && customer.email) {
+            const formattedPrice = new Intl.NumberFormat("en-US", {
+              style: "currency",
+              currency: "USD",
+            }).format(price.unit_amount / 100);
+            await alertIsCancellingSubscription(
+              product.name,
+              formattedPrice,
+              customer.email,
+              customer.name || "Unknown",
+            );
 
+            return new Response("OK");
+          }
+        }
         await db
           .update(schema.workspaces)
           .set({
@@ -326,14 +341,53 @@ async function alertSlackSubscriptionUpdate(
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `:gear: ${name} updated their subscription`,
+            text: `:stonks: ${name} updated their subscription`,
           },
         },
         {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `Subscription updated to the ${product} tier at ${price} by ${email} :arrows_counterclockwise:`,
+            text: `Subscription updated to the ${product} tier at ${price} by ${email}q`,
+          },
+        },
+      ],
+    }),
+  }).catch((err: Error) => {
+    console.error(err);
+  });
+}
+
+async function alertIsCancellingSubscription(
+  product: string,
+  price: string,
+  email: string,
+  name?: string,
+): Promise<void> {
+  const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
+  if (!url) {
+    return;
+  }
+
+  await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `:warning: ${name} is cancelling their subscription.`,
+          },
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `Subscription cancellation requested by ${email} - for ${product} at ${price}, they will be moved back to the free tier, at the end of the month. We should reach out to find out why they are cancelling.`,
           },
         },
       ],
@@ -360,7 +414,7 @@ async function alertSlackCancellation(email: string, name?: string): Promise<voi
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `:warning: ${name} cancelled their subscription`,
+            text: `:caleb-sad: ${name} cancelled their subscription`,
           },
         },
         {
