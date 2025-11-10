@@ -79,7 +79,6 @@ SELECT k.*,
        )                    AS ratelimits
 FROM `keys` k
          STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
-         STRAIGHT_JOIN workspaces ws ON ws.id = k.workspace_id
          LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
          LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
 WHERE k.key_auth_id = sqlc.arg(key_space_id)
@@ -87,6 +86,5 @@ WHERE k.key_auth_id = sqlc.arg(key_space_id)
   AND (sqlc.arg(identity_id) IS NULL OR k.identity_id = sqlc.arg(identity_id))
   AND k.deleted_at_m IS NULL
   AND ka.deleted_at_m IS NULL
-  AND ws.deleted_at_m IS NULL
 ORDER BY k.id ASC
 LIMIT ?;

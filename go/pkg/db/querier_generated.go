@@ -1569,7 +1569,6 @@ type Querier interface {
 	//         )                    AS ratelimits
 	//  FROM `keys` k
 	//           STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
-	//           STRAIGHT_JOIN workspaces ws ON ws.id = k.workspace_id
 	//           LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
 	//           LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
 	//  WHERE k.key_auth_id = ?
@@ -1577,7 +1576,6 @@ type Querier interface {
 	//    AND (? IS NULL OR k.identity_id = ?)
 	//    AND k.deleted_at_m IS NULL
 	//    AND ka.deleted_at_m IS NULL
-	//    AND ws.deleted_at_m IS NULL
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)

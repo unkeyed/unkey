@@ -91,7 +91,6 @@ SELECT k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
        )                    AS ratelimits
 FROM ` + "`" + `keys` + "`" + ` k
          STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
-         STRAIGHT_JOIN workspaces ws ON ws.id = k.workspace_id
          LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
          LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
 WHERE k.key_auth_id = ?
@@ -99,7 +98,6 @@ WHERE k.key_auth_id = ?
   AND (? IS NULL OR k.identity_id = ?)
   AND k.deleted_at_m IS NULL
   AND ka.deleted_at_m IS NULL
-  AND ws.deleted_at_m IS NULL
 ORDER BY k.id ASC
 LIMIT ?
 `
@@ -228,7 +226,6 @@ type ListLiveKeysByKeySpaceIDRow struct {
 //	       )                    AS ratelimits
 //	FROM `keys` k
 //	         STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
-//	         STRAIGHT_JOIN workspaces ws ON ws.id = k.workspace_id
 //	         LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
 //	         LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
 //	WHERE k.key_auth_id = ?
@@ -236,7 +233,6 @@ type ListLiveKeysByKeySpaceIDRow struct {
 //	  AND (? IS NULL OR k.identity_id = ?)
 //	  AND k.deleted_at_m IS NULL
 //	  AND ka.deleted_at_m IS NULL
-//	  AND ws.deleted_at_m IS NULL
 //	ORDER BY k.id ASC
 //	LIMIT ?
 func (q *Queries) ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error) {
