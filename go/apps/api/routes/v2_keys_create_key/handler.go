@@ -272,7 +272,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if req.Credits != nil {
-				if req.Credits.Remaining.IsSpecified() {
+				// If refill is set, remaining must be specified and not null
+				if req.Credits.Refill != nil {
+					if !req.Credits.Remaining.IsSpecified() || req.Credits.Remaining.IsNull() {
+						return fault.New("missing credits.remaining",
+							fault.Code(codes.App.Validation.InvalidInput.URN()),
+							fault.Internal("credits.remaining required when refill is set"),
+							fault.Public("`credits.remaining` must be provided when `credits.refill` is set."),
+						)
+					}
+				}
+
+				if req.Credits.Remaining.IsSpecified() && !req.Credits.Remaining.IsNull() {
 					insertKeyParams.RemainingRequests = sql.NullInt32{
 						Int32: int32(req.Credits.Remaining.MustGet()), // nolint:gosec
 						Valid: true,
@@ -286,7 +297,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					}
 
 					if req.Credits.Refill.Interval == openapi.KeyCreditsRefillIntervalMonthly {
-						if req.Credits.Refill.RefillDay == nil {
+						// 0 is the zero value of int16
+						if req.Credits.Refill.RefillDay == 0 {
 							return fault.New("missing refillDay",
 								fault.Code(codes.App.Validation.InvalidInput.URN()),
 								fault.Internal("refillDay required for monthly interval"),
@@ -295,7 +307,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						}
 
 						insertKeyParams.RefillDay = sql.NullInt16{
-							Int16: int16(*req.Credits.Refill.RefillDay), // nolint:gosec
+							Int16: int16(req.Credits.Refill.RefillDay), // nolint:gosec
 							Valid: true,
 						}
 					}

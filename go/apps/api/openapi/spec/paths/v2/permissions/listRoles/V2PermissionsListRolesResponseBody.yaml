@@ -9,4 +9,6 @@ properties:
     "$ref": "./V2PermissionsListRolesResponseData.yaml"
   pagination:
     "$ref": "../../../../common/Pagination.yaml"
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
 additionalProperties: false

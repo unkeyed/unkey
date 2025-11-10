@@ -10,11 +10,15 @@ properties:
     type: object
     additionalProperties: true
     description: Identity metadata
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   ratelimits:
     type: array
     description: Identity ratelimits
     items:
       "$ref": "./RatelimitResponse.yaml"
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
 required:
   - externalId
   - id

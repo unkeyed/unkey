@@ -170,7 +170,7 @@ If you need to understand or optimize a query:
 1. Use the client's query method directly for custom queries:
    ```typescript
    const result = await ch.querier.query({
-     query: `SELECT count() FROM verifications.raw_key_verifications_v1 WHERE workspace_id = {workspaceId: String}`,
+     query: `SELECT count() FROM raw_key_verifications_raw_v2 WHERE workspace_id = {workspaceId: String}`,
      params: z.object({ workspaceId: z.string() }),
      schema: z.object({ count: z.number() })
    })({ workspaceId: "ws_123" });
@@ -179,7 +179,7 @@ If you need to understand or optimize a query:
 2. Check performance with `EXPLAIN`:
    ```typescript
    const explain = await ch.querier.query({
-     query: `EXPLAIN SELECT * FROM verifications.raw_key_verifications_v1 WHERE workspace_id = {workspaceId: String}`,
+     query: `EXPLAIN SELECT * FROM raw_key_verifications_raw_v2 WHERE workspace_id = {workspaceId: String}`,
      params: z.object({ workspaceId: z.string() }),
      schema: z.object({ explain: z.string() })
    })({ workspaceId: "ws_123" });

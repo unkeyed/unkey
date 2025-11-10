@@ -15,55 +15,51 @@ mode: "wide"
 <Step title="Create Next.js Application">
 Run the following command to init your Next.js project
 
-<Tabs>
-  <Tab title="npm">
-  ```bash
-    npx create-next-app@latest
-  ```
-  </Tab>
-  <Tab title="pnpm">
-  ```bash
-  pnpm create next-app@latest
-    ```
-  </Tab>
-  <Tab title="yarn">
-  ```bash
-    yarn create-next-app@latest
-    ```
-  </Tab>
-  <Tab title="bun">
-  ```bash
-    bunx create-next-app
-    ```
-  </Tab>
-</Tabs>
+<CodeGroup>
+
+```bash npm
+npx create-next-app@latest
+```
+
+```bash pnpm
+pnpm create next-app@latest
+```
+
+```bash yarn
+yarn create-next-app@latest
+```
+
+```bash bun
+bunx create-next-app
+```
+
+</CodeGroup>
+
 </Step>
 <Step  title="Install">
 
 Now install the `@unkey/ratelimit` package
 
-<Tabs>
-  <Tab title="npm">
-  ```bash
-    npm install @unkey/ratelimit
-    ```
-  </Tab>
-  <Tab title="pnpm">
-  ```bash
-    pnpm add @unkey/ratelimit
-    ```
-  </Tab>
-  <Tab title="yarn">
-  ```bash
-    yarn add @unkey/ratelimit
-    ```
-  </Tab>
-  <Tab title="bun">
-  ```bash
-    bun install @unkey/ratelimit
-    ```
-  </Tab>
-</Tabs>
+<CodeGroup>
+
+```bash npm
+npm install @unkey/ratelimit
+```
+
+```bash pnpm
+pnpm add @unkey/ratelimit
+```
+
+```bash yarn
+yarn add @unkey/ratelimit
+```
+
+```bash bun
+bun install @unkey/ratelimit
+```
+
+</CodeGroup>
+
 </Step>
 
 <Step  title="Add Root Key to env">
@@ -106,29 +102,26 @@ export const POST = (async (req) => {
 
 <Step title="Running it">
 
-<Tabs>
- <Tab title="npm">
-  ```bash
-    npm run dev
-    ```
-  </Tab>
-  <Tab title="pnpm">
-  ```bash
-    pnpm run dev
-    ```
-  </Tab>
-  <Tab title="yarn">
-  ```bash
-    yarn run dev
-    ```
-  </Tab>
-  <Tab title="bun">
-  ```bash
-    bun run dev
-    ```
-  </Tab>
-  
-</Tabs>
+<CodeGroup>
+
+```bash npm
+npm run dev
+```
+
+```bash pnpm
+pnpm run dev
+```
+
+```bash yarn
+yarn run dev
+```
+
+```bash bun
+bun run dev
+```
+
+</CodeGroup>
+
 </Step>
 
 <Step  title="Try it out">

@@ -11,6 +11,8 @@ import (
 	chproxyRatelimits "github.com/unkeyed/unkey/go/apps/api/routes/chproxy_ratelimits"
 	chproxyVerifications "github.com/unkeyed/unkey/go/apps/api/routes/chproxy_verifications"
 
+	pprofRoute "github.com/unkeyed/unkey/go/apps/api/routes/pprof"
+
 	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_delete_override"
 	v2RatelimitGetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_get_override"
 	v2RatelimitLimit "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
@@ -60,7 +62,7 @@ import (
 // here we register all of the routes.
 // this function runs during startup.
 func Register(srv *zen.Server, svc *Services) {
-	withTracing := zen.WithTracing()
+	withObservability := zen.WithObservability()
 	withMetrics := zen.WithMetrics(svc.ClickHouse)
 
 	withLogging := zen.WithLogging(svc.Logger)
@@ -71,7 +73,7 @@ func Register(srv *zen.Server, svc *Services) {
 
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
-		withTracing,
+		withObservability,
 		withMetrics,
 		withLogging,
 		withErrorHandling,
@@ -111,6 +113,23 @@ func Register(srv *zen.Server, svc *Services) {
 			ClickHouse: svc.ClickHouse,
 			Logger:     svc.Logger,
 			Token:      svc.ChproxyToken,
+		})
+	}
+
+	// ---------------------------------------------------------------------------
+	// pprof (internal profiling endpoints)
+
+	if svc.PprofEnabled {
+		pprofMiddlewares := []zen.Middleware{
+			withLogging,
+			withPanicRecovery,
+			withErrorHandling,
+		}
+
+		srv.RegisterRoute(pprofMiddlewares, &pprofRoute.Handler{
+			Logger:   svc.Logger,
+			Username: svc.PprofUsername,
+			Password: svc.PprofPassword,
 		})
 	}
 
@@ -561,7 +580,7 @@ func Register(srv *zen.Server, svc *Services) {
 	// misc
 
 	srv.RegisterRoute([]zen.Middleware{
-		withTracing,
+		withObservability,
 		withMetrics,
 		withLogging,
 		withPanicRecovery,
@@ -570,7 +589,7 @@ func Register(srv *zen.Server, svc *Services) {
 		Logger: svc.Logger,
 	})
 	srv.RegisterRoute([]zen.Middleware{
-		withTracing,
+		withObservability,
 		withMetrics,
 		withLogging,
 		withPanicRecovery,

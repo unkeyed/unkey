@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_create_key"
@@ -166,5 +167,23 @@ func TestCreateKeyBadRequest(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
+	})
+
+	t.Run("credits.remaining null with refill should error", func(t *testing.T) {
+		req := handler.Request{
+			ApiId: api.ID,
+			Credits: &openapi.KeyCreditsData{
+				Remaining: nullable.NewNullNullable[int64](),
+				Refill: &openapi.KeyCreditsRefill{
+					Amount:   100,
+					Interval: openapi.KeyCreditsRefillIntervalDaily,
+				},
+			},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+		require.Contains(t, res.Body.Error.Detail, "credits.remaining")
 	})
 }

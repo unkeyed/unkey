@@ -23,12 +23,12 @@ post:
           basic:
             summary: List all overrides
             value:
-              namespaceName: api.requests
+              namespace: api.requests
               limit: 20
           pagination:
             summary: Get next page
             value:
-              namespaceName: api.requests
+              namespace: api.requests
               cursor: cursor_eyJsYXN0SWQiOiJvdnJfM2RITGNOeVN6SnppRHlwMkpla2E5ciJ9
     required: true
   responses:

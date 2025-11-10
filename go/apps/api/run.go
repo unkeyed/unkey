@@ -302,6 +302,9 @@ func Run(ctx context.Context, cfg Config) error {
 		Caches:                     caches,
 		Vault:                      vaultSvc,
 		ChproxyToken:               cfg.ChproxyToken,
+		PprofEnabled:               cfg.PprofEnabled,
+		PprofUsername:              cfg.PprofUsername,
+		PprofPassword:              cfg.PprofPassword,
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
 	})
