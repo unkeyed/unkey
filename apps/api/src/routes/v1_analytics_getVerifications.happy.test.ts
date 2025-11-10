@@ -107,18 +107,51 @@ describe.each([
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
+    // For month/day granularity with Date columns, only count data from buckets
+    // that fall within the query date range (ignoring time component)
+    const queryStartDate = new Date(queryStart);
+    const queryEndDate = new Date(queryEnd);
+    const shouldCountVerification = (v: any) => {
+      if (tc.granularity === "month") {
+        // Get the bucket (month start) for this verification
+        const vDate = new Date(v.time);
+        const bucketDate = new Date(Date.UTC(vDate.getUTCFullYear(), vDate.getUTCMonth(), 1));
+
+        // Compare bucket date against query range (as Date, no time)
+        const startDateOnly = new Date(Date.UTC(queryStartDate.getUTCFullYear(), queryStartDate.getUTCMonth(), queryStartDate.getUTCDate()));
+        const endDateOnly = new Date(Date.UTC(queryEndDate.getUTCFullYear(), queryEndDate.getUTCMonth(), queryEndDate.getUTCDate()));
+
+        return bucketDate >= startDateOnly && bucketDate <= endDateOnly;
+      } else if (tc.granularity === "day") {
+        // Get the bucket (day start) for this verification
+        const vDate = new Date(v.time);
+        const bucketDate = new Date(Date.UTC(vDate.getUTCFullYear(), vDate.getUTCMonth(), vDate.getUTCDate()));
+
+        const startDateOnly = new Date(Date.UTC(queryStartDate.getUTCFullYear(), queryStartDate.getUTCMonth(), queryStartDate.getUTCDate()));
+        const endDateOnly = new Date(Date.UTC(queryEndDate.getUTCFullYear(), queryEndDate.getUTCMonth(), queryEndDate.getUTCDate()));
+
+        return bucketDate >= startDateOnly && bucketDate <= endDateOnly;
+      }
+      return true; // For hour granularity, count all
+    };
+
+    let expectedTotal = 0;
     const outcomes = verifications.reduce(
       (acc, v) => {
+        if (!shouldCountVerification(v)) {
+          return acc;
+        }
         if (!acc[v.outcome]) {
           acc[v.outcome] = 0;
         }
         acc[v.outcome]++;
+        expectedTotal++;
         return acc;
       },
       {} as { [K in (typeof POSSIBLE_OUTCOMES)[number]]: number },
     );
 
-    expect(res.body.reduce((sum, d) => sum + d.total, 0)).toEqual(verifications.length);
+    expect(res.body.reduce((sum, d) => sum + d.total, 0)).toEqual(expectedTotal);
     expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(outcomes.VALID);
     expect(res.body.reduce((sum, d) => sum + (d.notFound ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.forbidden ?? 0), 0)).toEqual(0);
