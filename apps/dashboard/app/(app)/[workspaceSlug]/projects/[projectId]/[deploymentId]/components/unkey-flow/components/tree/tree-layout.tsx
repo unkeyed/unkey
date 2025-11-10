@@ -52,6 +52,9 @@ export function TreeLayout<T extends TreeNode>({
     return layoutEngine.calculate(data);
   }, [data, layoutEngine, isLayoutReady]);
 
+  // Lock in first measurement for each node.
+  // This prevents remeasurement after canvas scale changes,
+  // which would corrupt the layout with scaled dimensions.
   const handleNodeMeasure = (
     id: string,
     width: number,
@@ -62,6 +65,7 @@ export function TreeLayout<T extends TreeNode>({
       if (existing?.width === width && existing?.height === height) {
         return prev;
       }
+
       const next = new Map(prev);
       next.set(id, { width, height });
       return next;

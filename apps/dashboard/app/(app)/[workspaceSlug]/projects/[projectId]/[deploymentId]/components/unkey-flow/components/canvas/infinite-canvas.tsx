@@ -36,14 +36,19 @@ export function InfiniteCanvas({
   overlay,
 }: InfiniteCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+
+  // Start at scale=1 to measure nodes at their natural size.
+  // We'll apply defaultZoom after children measure their dimensions.
   const [canvas, setCanvas] = useState<CanvasState>({
-    scale: 1, // Always start at 1 for measurement
+    scale: 1,
     offset: { x: 0, y: 0 },
   });
+
   const isPanningRef = useRef(false);
   const startPanRef = useRef<Point>({ x: 0, y: 0 });
 
-  // Center canvas and apply default zoom after mount
+  // Apply default zoom and center canvas after mount.
+  // Double requestAnimationFrame ensures children have measured before we zoom.
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) {
@@ -52,19 +57,18 @@ export function InfiniteCanvas({
 
     const rect = svg.getBoundingClientRect();
 
-    // Center canvas and apply default zoom after children are measured.
-    // CRITICAL: Canvas must start at scale=1 so TreeLayout can measure node dimensions accurately.
-    // If we apply defaultZoom immediately, measurements will be scaled and layout calculations will be wrong,
-    // causing nodes to overlap. We defer zoom application until after the first render cycle completes.
+    // Wait two frames: first for initial render, second for measurements
     requestAnimationFrame(() => {
-      setCanvas({
-        scale: defaultZoom,
-        offset: { x: rect.width / 2, y: rect.height / 2 },
+      requestAnimationFrame(() => {
+        setCanvas({
+          scale: defaultZoom,
+          offset: { x: rect.width / 2, y: rect.height / 2 },
+        });
       });
     });
   }, [defaultZoom]);
 
-  // Notify parent of view changes - memoized to prevent unnecessary calls
+  // Notify parent of view changes
   const onViewChangeRef = useRef(onViewChange);
   useEffect(() => {
     onViewChangeRef.current = onViewChange;
@@ -125,7 +129,8 @@ export function InfiniteCanvas({
         maxZoom
       );
 
-      // Zoom towards mouse position
+      // Zoom towards mouse position.
+      // This keeps the point under the cursor stationary while zooming.
       const scaleRatio = newScale / canvas.scale;
       const newOffset = {
         x: mouseX - (mouseX - canvas.offset.x) * scaleRatio,
@@ -137,7 +142,7 @@ export function InfiniteCanvas({
     [canvas, minZoom, maxZoom, zoomSpeed]
   );
 
-  // Prevent default wheel behavior
+  // Prevent browser's default scroll behavior on wheel events
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) {
@@ -177,7 +182,7 @@ export function InfiniteCanvas({
         </g>
       </svg>
 
-      {/* Fixed overlay layer  */}
+      {/* Fixed overlay that doesn't pan/zoom with canvas */}
       {overlay && (
         <div className="absolute inset-0 pointer-events-none">
           <div className="pointer-events-auto">{overlay}</div>

@@ -78,6 +78,10 @@ export class LayoutEngine<T extends TreeNode> {
     return { nodes: positioned, connections };
   }
 
+  clear(): void {
+    this.dimensions.clear();
+  }
+
   /**
    * Flatten tree into linear array using depth-first traversal
    */
@@ -135,11 +139,13 @@ export class LayoutEngine<T extends TreeNode> {
     const positioned: PositionedNode<T>[] = [];
     const levelGroups = this.buildLevelGroups(root);
 
-    // Calculate Y positions
-    const levelYPositions: number[] = [];
+    // Track vertical position as we process each level from top to bottom
     let currentY = 0;
 
     levelGroups.forEach((nodes, level) => {
+      // Find tallest node in this level to determine vertical spacing.
+      // All nodes in a level share the same Y coordinate, but we need
+      // to reserve enough vertical space for the tallest one.
       const maxHeight = Math.max(
         ...nodes.map((n) => {
           const dim = this.dimensions.get(n.id);
@@ -149,20 +155,22 @@ export class LayoutEngine<T extends TreeNode> {
           return dim.height;
         })
       );
-      levelYPositions[level] = currentY;
-      currentY += maxHeight + this.config.spacing.y;
-    });
 
-    // Calculate X positions
-    levelGroups.forEach((nodes, level) => {
-      const totalWidth = nodes.reduce((sum, n) => {
-        const dim = this.dimensions.get(n.id);
-        if (!dim) {
-          throw new Error(`Missing dimensions for node ${n.id}`);
-        }
-        return sum + dim.width + this.config.spacing.x;
-      }, -this.config.spacing.x);
+      // Calculate total horizontal space needed for this level.
+      // Nodes are laid out left-to-right with spacing between them.
+      // Example: [Node1] gap [Node2] gap [Node3] → 3 nodes, 2 gaps
+      const totalWidth =
+        nodes.reduce((sum, n) => {
+          const dim = this.dimensions.get(n.id);
+          if (!dim) {
+            throw new Error(`Missing dimensions for node ${n.id}`);
+          }
+          return sum + dim.width;
+        }, 0) +
+        (nodes.length - 1) * this.config.spacing.x;
 
+      // Start from left edge so the level is centered around X=0.
+      // Negative value means we start to the left of center.
       let currentX = -totalWidth / 2;
 
       nodes.forEach((node) => {
@@ -170,16 +178,25 @@ export class LayoutEngine<T extends TreeNode> {
         if (!dim) {
           throw new Error(`Missing dimensions for node ${node.id}`);
         }
+
+        // Position stores the center point of each node for easier connection drawing.
+        // X: current position + half width = horizontal center
+        // Y: current level position + half height = vertical center
         positioned.push({
           node,
           position: {
             x: currentX + dim.width / 2,
-            y: levelYPositions[level],
+            y: currentY + maxHeight / 2,
           },
           level,
         });
+
+        // Move to next node's starting position (current node width + gap)
         currentX += dim.width + this.config.spacing.x;
       });
+
+      // Move down for next level (tallest node in current level + vertical spacing)
+      currentY += maxHeight + this.config.spacing.y;
     });
 
     return positioned;
