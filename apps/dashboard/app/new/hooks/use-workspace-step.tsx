@@ -1,4 +1,4 @@
-import { setSessionCookie } from "@/lib/auth/cookies";
+import { setSessionCookie, setLastUsedOrgCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { StackPerspective2 } from "@unkey/icons";
@@ -66,11 +66,13 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
         token: sessionData.token,
         expiresAt: sessionData.expiresAt,
       });
+
       // invalidate the user cache and workspace cache.
       await utils.user.getCurrentUser.invalidate();
       await utils.workspace.getCurrent.invalidate();
       await utils.api.invalidate();
       await utils.ratelimit.invalidate();
+      await utils.billing.invalidate();
       // Force a router refresh to ensure the server-side layout
       // re-renders with the new session context and fresh workspace data
       router.refresh();
@@ -84,6 +86,7 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
     onSuccess: async ({ orgId }) => {
       setWorkspaceCreated(true);
       await switchOrgMutation.mutateAsync(orgId);
+      await setLastUsedOrgCookie({orgId});
       props.advance();
     },
     onError: (error) => {
