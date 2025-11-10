@@ -3991,13 +3991,10 @@ func easyjsonC76e1e44DecodeGithubComUnkeyedUnkeyGoAppsApiOpenapi40(in *jlexer.Le
 		in.WantColon()
 		switch key {
 		case "credits":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				if data := in.Raw(); in.Ok() {
-					in.AddError((out.Credits).UnmarshalJSON(data))
-				}
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.Credits).UnmarshalJSON(data))
 			}
+
 		case "enabled":
 			if in.IsNull() {
 				in.Skip()
@@ -4013,21 +4010,15 @@ func easyjsonC76e1e44DecodeGithubComUnkeyedUnkeyGoAppsApiOpenapi40(in *jlexer.Le
 				}
 			}
 		case "expires":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				if data := in.Raw(); in.Ok() {
-					in.AddError((out.Expires).UnmarshalJSON(data))
-				}
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.Expires).UnmarshalJSON(data))
 			}
+
 		case "externalId":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				if data := in.Raw(); in.Ok() {
-					in.AddError((out.ExternalId).UnmarshalJSON(data))
-				}
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.ExternalId).UnmarshalJSON(data))
 			}
+
 		case "keyId":
 			if in.IsNull() {
 				in.Skip()
@@ -4035,21 +4026,15 @@ func easyjsonC76e1e44DecodeGithubComUnkeyedUnkeyGoAppsApiOpenapi40(in *jlexer.Le
 				out.KeyId = string(in.String())
 			}
 		case "meta":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				if data := in.Raw(); in.Ok() {
-					in.AddError((out.Meta).UnmarshalJSON(data))
-				}
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.Meta).UnmarshalJSON(data))
 			}
+
 		case "name":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				if data := in.Raw(); in.Ok() {
-					in.AddError((out.Name).UnmarshalJSON(data))
-				}
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.Name).UnmarshalJSON(data))
 			}
+
 		case "permissions":
 			if in.IsNull() {
 				in.Skip()
@@ -4402,13 +4387,10 @@ func easyjsonC76e1e44DecodeGithubComUnkeyedUnkeyGoAppsApiOpenapi42(in *jlexer.Le
 				out.Operation = V2KeysUpdateCreditsRequestBodyOperation(in.String())
 			}
 		case "value":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				if data := in.Raw(); in.Ok() {
-					in.AddError((out.Value).UnmarshalJSON(data))
-				}
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.Value).UnmarshalJSON(data))
 			}
+
 		default:
 			in.SkipRecursive()
 		}
@@ -9204,21 +9186,15 @@ func easyjsonC76e1e44DecodeGithubComUnkeyedUnkeyGoAppsApiOpenapi89(in *jlexer.Le
 		in.WantColon()
 		switch key {
 		case "refill":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				if data := in.Raw(); in.Ok() {
-					in.AddError((out.Refill).UnmarshalJSON(data))
-				}
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.Refill).UnmarshalJSON(data))
 			}
+
 		case "remaining":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				if data := in.Raw(); in.Ok() {
-					in.AddError((out.Remaining).UnmarshalJSON(data))
-				}
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.Remaining).UnmarshalJSON(data))
 			}
+
 		default:
 			in.SkipRecursive()
 		}
@@ -11102,13 +11078,10 @@ func easyjsonC76e1e44DecodeGithubComUnkeyedUnkeyGoAppsApiOpenapi107(in *jlexer.L
 				}
 			}
 		case "remaining":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				if data := in.Raw(); in.Ok() {
-					in.AddError((out.Remaining).UnmarshalJSON(data))
-				}
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.Remaining).UnmarshalJSON(data))
 			}
+
 		default:
 			in.SkipRecursive()
 		}

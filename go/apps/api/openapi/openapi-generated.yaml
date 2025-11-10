@@ -2336,8 +2336,6 @@ components:
                     example: 1000
                 refill:
                     "$ref": "#/components/schemas/KeyCreditsRefill"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             required:
                 - remaining
             additionalProperties: false

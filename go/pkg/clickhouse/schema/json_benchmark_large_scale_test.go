@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/bytedance/sonic"
+	goccyjson "github.com/goccy/go-json"
 	easyjson "github.com/mailru/easyjson"
 )
 
@@ -76,6 +77,9 @@ func BenchmarkUnmarshal_ApiRequest_1_Easyjson(b *testing.B) {
 func BenchmarkUnmarshal_ApiRequest_1_Sonic(b *testing.B) {
 	benchUnmarshal(b, 1, "sonic")
 }
+func BenchmarkUnmarshal_ApiRequest_1_Goccy(b *testing.B) {
+	benchUnmarshal(b, 1, "goccy")
+}
 
 func BenchmarkUnmarshal_ApiRequest_100_StdlibV1(b *testing.B) {
 	benchUnmarshal(b, 100, "stdlibv1")
@@ -88,6 +92,9 @@ func BenchmarkUnmarshal_ApiRequest_100_Easyjson(b *testing.B) {
 }
 func BenchmarkUnmarshal_ApiRequest_100_Sonic(b *testing.B) {
 	benchUnmarshal(b, 100, "sonic")
+}
+func BenchmarkUnmarshal_ApiRequest_100_Goccy(b *testing.B) {
+	benchUnmarshal(b, 100, "goccy")
 }
 
 func BenchmarkUnmarshal_ApiRequest_10000_StdlibV1(b *testing.B) {
@@ -102,6 +109,9 @@ func BenchmarkUnmarshal_ApiRequest_10000_Easyjson(b *testing.B) {
 func BenchmarkUnmarshal_ApiRequest_10000_Sonic(b *testing.B) {
 	benchUnmarshal(b, 10000, "sonic")
 }
+func BenchmarkUnmarshal_ApiRequest_10000_Goccy(b *testing.B) {
+	benchUnmarshal(b, 10000, "goccy")
+}
 
 func BenchmarkUnmarshal_ApiRequest_100000_StdlibV1(b *testing.B) {
 	benchUnmarshal(b, 100000, "stdlibv1")
@@ -115,6 +125,9 @@ func BenchmarkUnmarshal_ApiRequest_100000_Easyjson(b *testing.B) {
 func BenchmarkUnmarshal_ApiRequest_100000_Sonic(b *testing.B) {
 	benchUnmarshal(b, 100000, "sonic")
 }
+func BenchmarkUnmarshal_ApiRequest_100000_Goccy(b *testing.B) {
+	benchUnmarshal(b, 100000, "goccy")
+}
 
 func BenchmarkUnmarshal_ApiRequest_1000000_StdlibV1(b *testing.B) {
 	benchUnmarshal(b, 1000000, "stdlibv1")
@@ -127,6 +140,9 @@ func BenchmarkUnmarshal_ApiRequest_1000000_Easyjson(b *testing.B) {
 }
 func BenchmarkUnmarshal_ApiRequest_1000000_Sonic(b *testing.B) {
 	benchUnmarshal(b, 1000000, "sonic")
+}
+func BenchmarkUnmarshal_ApiRequest_1000000_Goccy(b *testing.B) {
+	benchUnmarshal(b, 1000000, "goccy")
 }
 
 // Marshal benchmarks
@@ -142,6 +158,9 @@ func BenchmarkMarshal_ApiRequest_1_Easyjson(b *testing.B) {
 func BenchmarkMarshal_ApiRequest_1_Sonic(b *testing.B) {
 	benchMarshal(b, 1, "sonic")
 }
+func BenchmarkMarshal_ApiRequest_1_Goccy(b *testing.B) {
+	benchMarshal(b, 1, "goccy")
+}
 
 func BenchmarkMarshal_ApiRequest_100_StdlibV1(b *testing.B) {
 	benchMarshal(b, 100, "stdlibv1")
@@ -154,6 +173,9 @@ func BenchmarkMarshal_ApiRequest_100_Easyjson(b *testing.B) {
 }
 func BenchmarkMarshal_ApiRequest_100_Sonic(b *testing.B) {
 	benchMarshal(b, 100, "sonic")
+}
+func BenchmarkMarshal_ApiRequest_100_Goccy(b *testing.B) {
+	benchMarshal(b, 100, "goccy")
 }
 
 func BenchmarkMarshal_ApiRequest_10000_StdlibV1(b *testing.B) {
@@ -168,6 +190,9 @@ func BenchmarkMarshal_ApiRequest_10000_Easyjson(b *testing.B) {
 func BenchmarkMarshal_ApiRequest_10000_Sonic(b *testing.B) {
 	benchMarshal(b, 10000, "sonic")
 }
+func BenchmarkMarshal_ApiRequest_10000_Goccy(b *testing.B) {
+	benchMarshal(b, 10000, "goccy")
+}
 
 func BenchmarkMarshal_ApiRequest_100000_StdlibV1(b *testing.B) {
 	benchMarshal(b, 100000, "stdlibv1")
@@ -181,6 +206,9 @@ func BenchmarkMarshal_ApiRequest_100000_Easyjson(b *testing.B) {
 func BenchmarkMarshal_ApiRequest_100000_Sonic(b *testing.B) {
 	benchMarshal(b, 100000, "sonic")
 }
+func BenchmarkMarshal_ApiRequest_100000_Goccy(b *testing.B) {
+	benchMarshal(b, 100000, "goccy")
+}
 
 func BenchmarkMarshal_ApiRequest_1000000_StdlibV1(b *testing.B) {
 	benchMarshal(b, 1000000, "stdlibv1")
@@ -193,6 +221,9 @@ func BenchmarkMarshal_ApiRequest_1000000_Easyjson(b *testing.B) {
 }
 func BenchmarkMarshal_ApiRequest_1000000_Sonic(b *testing.B) {
 	benchMarshal(b, 1000000, "sonic")
+}
+func BenchmarkMarshal_ApiRequest_1000000_Goccy(b *testing.B) {
+	benchMarshal(b, 1000000, "goccy")
 }
 
 // Helper functions
@@ -227,6 +258,13 @@ func benchUnmarshal(b *testing.B, size int, library string) {
 		for i := 0; i < b.N; i++ {
 			var reqs []ApiRequestV1
 			if err := sonic.Unmarshal(data, &reqs); err != nil {
+				b.Fatal(err)
+			}
+		}
+	case "goccy":
+		for i := 0; i < b.N; i++ {
+			var reqs []ApiRequestV1
+			if err := goccyjson.Unmarshal(data, &reqs); err != nil {
 				b.Fatal(err)
 			}
 		}
@@ -266,6 +304,14 @@ func benchMarshal(b *testing.B, size int, library string) {
 	case "sonic":
 		for i := 0; i < b.N; i++ {
 			data, err := sonic.Marshal(reqs)
+			if err != nil {
+				b.Fatal(err)
+			}
+			b.SetBytes(int64(len(data)))
+		}
+	case "goccy":
+		for i := 0; i < b.N; i++ {
+			data, err := goccyjson.Marshal(reqs)
 			if err != nil {
 				b.Fatal(err)
 			}
