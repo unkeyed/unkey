@@ -5,6 +5,16 @@ go 1.25.1
 tool (
 	github.com/bufbuild/buf/cmd/buf
 	github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+	github.com/mailru/easyjson
+	github.com/mailru/easyjson/bootstrap
+	github.com/mailru/easyjson/buffer
+	github.com/mailru/easyjson/easyjson
+	github.com/mailru/easyjson/gen
+	github.com/mailru/easyjson/jlexer
+	github.com/mailru/easyjson/jwriter
+	github.com/mailru/easyjson/opt
+	github.com/mailru/easyjson/parser
+	github.com/mailru/easyjson/tests
 	github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
 	github.com/restatedev/sdk-go/protoc-gen-go-restate
 	github.com/sqlc-dev/sqlc/cmd/sqlc
@@ -184,7 +194,7 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/macabu/inamedparam v0.2.0 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
-	github.com/mailru/easyjson v0.7.7 // indirect
+	github.com/mailru/easyjson v0.9.1 // indirect
 	github.com/manuelarte/embeddedstructfieldcheck v0.4.0 // indirect
 	github.com/manuelarte/funcorder v0.5.0 // indirect
 	github.com/maratori/testableexamples v1.0.0 // indirect

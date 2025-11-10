@@ -2,7 +2,6 @@ package zen
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mailru/easyjson"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -183,15 +183,20 @@ func (s *Session) ResponseWriter() http.ResponseWriter {
 //	}
 //	// Use the parsed user data
 func (s *Session) BindBody(dst any) error {
-	err := json.Unmarshal(s.requestBody, dst)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Internal("failed to unmarshal request body"),
-			fault.Public("The request body was not valid JSON."),
-		)
+	// Try to use easyjson if the type implements it (much faster)
+	if u, ok := dst.(easyjson.Unmarshaler); ok {
+		err := easyjson.Unmarshal(s.requestBody, u)
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Internal("failed to unmarshal request body"),
+				fault.Public("The request body was not valid JSON."),
+			)
+		}
+		return nil
 	}
 
-	return nil
+	// Panic if easyjson is not implemented - all request types should use easyjson
+	panic(fmt.Sprintf("BindBody called with type %T that does not implement easyjson.Unmarshaler - add easyjson support for this type!", dst))
 }
 
 // BindQuery parses URL query parameters into the provided destination struct.
@@ -396,12 +401,22 @@ func (s *Session) send(status int, body []byte) error {
 //	    "token": token,
 //	})
 func (s *Session) JSON(status int, body any) error {
-	b, err := json.Marshal(body)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Internal("json marshal failed"), fault.Public("The response body could not be marshalled to JSON."),
-		)
+	var b []byte
+	var err error
+
+	// Try to use easyjson if the type implements it (much faster)
+	if m, ok := body.(easyjson.Marshaler); ok {
+		b, err = easyjson.Marshal(m)
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Internal("json marshal failed"), fault.Public("The response body could not be marshalled to JSON."),
+			)
+		}
+	} else {
+		// Panic if easyjson is not implemented - all response types should use easyjson
+		panic(fmt.Sprintf("JSON called with type %T that does not implement easyjson.Marshaler - add easyjson support for this type!", body))
 	}
+
 	s.ResponseWriter().Header().Add("Content-Type", "application/json")
 	return s.send(status, b)
 }
