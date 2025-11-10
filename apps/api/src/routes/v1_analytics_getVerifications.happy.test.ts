@@ -78,21 +78,7 @@ describe.each([
     const insert = await h.ch.verifications.insert(verifications);
     expect(insert.err).toEqual(undefined);
 
-    // Check v1 table immediately after insert
-    const v1Count = await h.ch.querier.query({
-      query:
-        "SELECT COUNT(*) AS count from verifications.raw_key_verifications_v1 WHERE workspace_id={workspaceId:String}",
-      params: z.object({ workspaceId: z.string() }),
-      schema: z.object({ count: z.number() }),
-    })({
-      workspaceId: h.resources.userWorkspace.id,
-    });
-    console.log(
-      `[${tc.granularity}] v1 table count after insert: ${v1Count.val!.at(0)?.count}`,
-    );
-
     // Wait for materialized view to sync data from v1 to v2 table
-    console.log(`[${tc.granularity}] Waiting for MV sync...`);
     await new Promise((r) => setTimeout(r, 10000));
 
     const inserted = await h.ch.querier.query({
@@ -105,12 +91,12 @@ describe.each([
     });
 
     expect(inserted.err).toEqual(undefined);
-    console.log(
-      `[${tc.granularity}] v2 table count: expected ${verifications.length}, got ${inserted.val!.at(0)?.count}`,
-    );
     expect(inserted.val!.at(0)?.count).toEqual(verifications.length);
 
-    await new Promise((r) => setTimeout(r, 5000));
+    // For month granularity, wait longer for data to propagate through the MV chain
+    // raw_v2 -> per_minute_v2 -> per_hour_v2 -> per_day_v2 -> per_month_v2
+    const additionalWait = tc.granularity === "month" ? 30000 : 5000;
+    await new Promise((r) => setTimeout(r, additionalWait));
 
     const root = await h.createRootKey(["api.*.read_api"]);
 

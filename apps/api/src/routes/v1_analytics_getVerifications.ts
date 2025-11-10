@@ -389,8 +389,19 @@ STEP INTERVAL 1 MONTH`,
     if (filteredKeyIds && filteredKeyIds.length > 0) {
       where.push("AND key_id IN {keyIds:Array(String)}");
     }
-    where.push("AND time >= fromUnixTimestamp64Milli({start:Int64})");
-    where.push("AND time <= fromUnixTimestamp64Milli({end:Int64})");
+
+    // For month and day tables, the time column is a Date, not DateTime
+    // We need to use toDate() instead of fromUnixTimestamp64Milli() for proper comparison
+    if (table === tables.month) {
+      where.push("AND time >= toDate(toStartOfMonth(fromUnixTimestamp64Milli({start:Int64})))");
+      where.push("AND time <= toDate(toStartOfMonth(fromUnixTimestamp64Milli({end:Int64})))");
+    } else if (table === tables.day) {
+      where.push("AND time >= toDate(toStartOfDay(fromUnixTimestamp64Milli({start:Int64})))");
+      where.push("AND time <= toDate(toStartOfDay(fromUnixTimestamp64Milli({end:Int64})))");
+    } else {
+      where.push("AND time >= fromUnixTimestamp64Milli({start:Int64})");
+      where.push("AND time <= fromUnixTimestamp64Milli({end:Int64})");
+    }
 
     const query: string[] = [];
     query.push(`SELECT ${[...new Set(select)].join(", ")}`);
