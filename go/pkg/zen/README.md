@@ -130,7 +130,7 @@ func main() {
 
 	server.RegisterRoute(
 		[]zen.Middleware{
-			zen.WithTracing(),
+			zen.WithObservability(),
 			zen.WithLogging(logger),
 			zen.WithErrorHandling(logger),
 			zen.WithValidation(validator),
@@ -142,13 +142,13 @@ func main() {
 	logger.Info("starting server",
 		"address", ":8080",
 	)
-	
+
 	// Create a listener
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		log.Fatalf("failed to create listener: %v", err)
 	}
-	
+
 	err = server.Serve(context.Background(), listener)
 	if err != nil {
 		logger.Error("server error", slog.String("error", err.Error()))

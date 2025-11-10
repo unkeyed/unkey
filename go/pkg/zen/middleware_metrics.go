@@ -4,13 +4,11 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
 
 type EventBuffer interface {
@@ -62,13 +60,6 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 			start := time.Now()
 			nextErr := next(ctx, s)
 			serviceLatency := time.Since(start)
-
-			// "method", "path", "status"
-			labelValues := []string{s.r.Method, s.r.URL.Path, strconv.Itoa(s.responseStatus)}
-
-			metrics.HTTPRequestBodySize.WithLabelValues(labelValues...).Observe(float64(len(s.requestBody)))
-			metrics.HTTPRequestTotal.WithLabelValues(labelValues...).Inc()
-			metrics.HTTPRequestLatency.WithLabelValues(labelValues...).Observe(serviceLatency.Seconds())
 
 			// Only log if we should log request to ClickHouse
 			if s.ShouldLogRequestToClickHouse() {
