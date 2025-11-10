@@ -118,18 +118,44 @@ describe.each([
         const bucketDate = new Date(Date.UTC(vDate.getUTCFullYear(), vDate.getUTCMonth(), 1));
 
         // Compare bucket date against query range (as Date, no time)
-        const startDateOnly = new Date(Date.UTC(queryStartDate.getUTCFullYear(), queryStartDate.getUTCMonth(), queryStartDate.getUTCDate()));
-        const endDateOnly = new Date(Date.UTC(queryEndDate.getUTCFullYear(), queryEndDate.getUTCMonth(), queryEndDate.getUTCDate()));
+        const startDateOnly = new Date(
+          Date.UTC(
+            queryStartDate.getUTCFullYear(),
+            queryStartDate.getUTCMonth(),
+            queryStartDate.getUTCDate(),
+          ),
+        );
+        const endDateOnly = new Date(
+          Date.UTC(
+            queryEndDate.getUTCFullYear(),
+            queryEndDate.getUTCMonth(),
+            queryEndDate.getUTCDate(),
+          ),
+        );
 
         return bucketDate >= startDateOnly && bucketDate <= endDateOnly;
       }
       if (tc.granularity === "day") {
         // Get the bucket (day start) for this verification
         const vDate = new Date(v.time);
-        const bucketDate = new Date(Date.UTC(vDate.getUTCFullYear(), vDate.getUTCMonth(), vDate.getUTCDate()));
+        const bucketDate = new Date(
+          Date.UTC(vDate.getUTCFullYear(), vDate.getUTCMonth(), vDate.getUTCDate()),
+        );
 
-        const startDateOnly = new Date(Date.UTC(queryStartDate.getUTCFullYear(), queryStartDate.getUTCMonth(), queryStartDate.getUTCDate()));
-        const endDateOnly = new Date(Date.UTC(queryEndDate.getUTCFullYear(), queryEndDate.getUTCMonth(), queryEndDate.getUTCDate()));
+        const startDateOnly = new Date(
+          Date.UTC(
+            queryStartDate.getUTCFullYear(),
+            queryStartDate.getUTCMonth(),
+            queryStartDate.getUTCDate(),
+          ),
+        );
+        const endDateOnly = new Date(
+          Date.UTC(
+            queryEndDate.getUTCFullYear(),
+            queryEndDate.getUTCMonth(),
+            queryEndDate.getUTCDate(),
+          ),
+        );
 
         return bucketDate >= startDateOnly && bucketDate <= endDateOnly;
       }
