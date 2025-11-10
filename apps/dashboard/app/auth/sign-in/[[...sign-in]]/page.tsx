@@ -61,7 +61,6 @@ function SignInContent() {
           setIsLoading(false);
         }
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasPendingAuth]);
 
   // Handle auto org selection when returning from OAuth
