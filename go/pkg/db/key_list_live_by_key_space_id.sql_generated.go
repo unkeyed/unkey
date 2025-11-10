@@ -90,27 +90,23 @@ SELECT k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
                JSON_ARRAY()
        )                    AS ratelimits
 FROM ` + "`" + `keys` + "`" + ` k
-         JOIN key_auth ka ON ka.id = k.key_auth_id
-         JOIN workspaces ws ON ws.id = k.workspace_id
+         STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
          LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
          LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
 WHERE k.key_auth_id = ?
   AND k.id >= ?
-  AND (
-    ? = '' OR (i.external_id = ? OR i.id = ?)
-  )
+  AND (? IS NULL OR k.identity_id = ?)
   AND k.deleted_at_m IS NULL
   AND ka.deleted_at_m IS NULL
-  AND ws.deleted_at_m IS NULL
 ORDER BY k.id ASC
 LIMIT ?
 `
 
 type ListLiveKeysByKeySpaceIDParams struct {
-	KeySpaceID string `db:"key_space_id"`
-	IDCursor   string `db:"id_cursor"`
-	Identity   string `db:"identity"`
-	Limit      int32  `db:"limit"`
+	KeySpaceID string         `db:"key_space_id"`
+	IDCursor   string         `db:"id_cursor"`
+	IdentityID sql.NullString `db:"identity_id"`
+	Limit      int32          `db:"limit"`
 }
 
 type ListLiveKeysByKeySpaceIDRow struct {
@@ -229,27 +225,22 @@ type ListLiveKeysByKeySpaceIDRow struct {
 //	               JSON_ARRAY()
 //	       )                    AS ratelimits
 //	FROM `keys` k
-//	         JOIN key_auth ka ON ka.id = k.key_auth_id
-//	         JOIN workspaces ws ON ws.id = k.workspace_id
+//	         STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
 //	         LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
 //	         LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
 //	WHERE k.key_auth_id = ?
 //	  AND k.id >= ?
-//	  AND (
-//	    ? = '' OR (i.external_id = ? OR i.id = ?)
-//	  )
+//	  AND (? IS NULL OR k.identity_id = ?)
 //	  AND k.deleted_at_m IS NULL
 //	  AND ka.deleted_at_m IS NULL
-//	  AND ws.deleted_at_m IS NULL
 //	ORDER BY k.id ASC
 //	LIMIT ?
 func (q *Queries) ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error) {
 	rows, err := db.QueryContext(ctx, listLiveKeysByKeySpaceID,
 		arg.KeySpaceID,
 		arg.IDCursor,
-		arg.Identity,
-		arg.Identity,
-		arg.Identity,
+		arg.IdentityID,
+		arg.IdentityID,
 		arg.Limit,
 	)
 	if err != nil {

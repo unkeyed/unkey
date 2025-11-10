@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 
 	"github.com/oapi-codegen/nullable"
@@ -161,9 +162,35 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	limit := ptr.SafeDeref(req.Limit, 100)
 	cursor := ptr.SafeDeref(req.Cursor, "")
 
-	var identityFilter string
+	// Resolve identity ID if external_id filter is provided
+	var identityID sql.NullString
 	if req.ExternalId != nil && *req.ExternalId != "" {
-		identityFilter = *req.ExternalId
+		identity, identityErr := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			ExternalID:  *req.ExternalId,
+			Deleted:     false,
+		})
+		if identityErr != nil {
+			if db.IsNotFound(identityErr) {
+				// Identity doesn't exist, return empty result set
+				return s.JSON(http.StatusOK, Response{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Data: []openapi.KeyResponseData{},
+					Pagination: &openapi.Pagination{
+						Cursor:  nil,
+						HasMore: false,
+					},
+				})
+			}
+			return fault.Wrap(identityErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to retrieve identity."),
+			)
+		}
+		identityID = sql.NullString{String: identity.ID, Valid: true}
 	}
 
 	// Query keys by key_auth_id instead of api_id
@@ -173,7 +200,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		db.ListLiveKeysByKeySpaceIDParams{
 			KeySpaceID: api.KeyAuthID.String,
 			IDCursor:   cursor,
-			Identity:   identityFilter,
+			IdentityID: identityID,
 			Limit:      int32(limit + 1), // nolint:gosec
 		},
 	)

@@ -112,28 +112,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	// Use UNION query to find identity + ratelimits in one query (fast!)
-	results, err := db.Query.FindIdentityWithRatelimits(ctx, h.DB.RO(), db.FindIdentityWithRatelimitsParams{
+	identityRow, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		Identity:    req.Identity,
 		Deleted:     false,
 	})
 	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("identity not found",
+				fault.Code(codes.Data.Identity.NotFound.URN()),
+				fault.Internal("identity not found"), fault.Public("This identity does not exist."),
+			)
+		}
+
 		return fault.Wrap(err,
 			fault.Internal("unable to find identity"),
 			fault.Public("We're unable to retrieve the identity."),
 		)
 	}
-
-	if len(results) == 0 {
-		return fault.New("identity not found",
-			fault.Code(codes.Data.Identity.NotFound.URN()),
-			fault.Internal("identity not found"),
-			fault.Public("Identity not found in this workspace"),
-		)
-	}
-
-	identityRow := results[0]
 
 	// Parse existing ratelimits from JSON
 	var existingRatelimits []db.RatelimitInfo
@@ -142,7 +138,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	type txResult struct {
-		identity        db.FindIdentityWithRatelimitsRow
+		identity        db.FindIdentityRow
 		finalRatelimits []openapi.RatelimitResponse
 	}
 

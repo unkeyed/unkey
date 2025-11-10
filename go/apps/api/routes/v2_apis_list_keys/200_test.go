@@ -3,7 +3,6 @@ package handler_test
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -15,9 +14,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
-
-	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 )
 
 func TestSuccess(t *testing.T) {
@@ -70,127 +68,75 @@ func TestSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create test identities
-	identity1ID := uid.New("identity")
 	identity1ExternalID := "test_user_1"
-	err = db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-		ID:          identity1ID,
-		ExternalID:  identity1ExternalID,
+	identity1 := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
-		Environment: "",
-		CreatedAt:   time.Now().UnixMilli(),
+		ExternalID:  identity1ExternalID,
 		Meta:        []byte(`{"role": "admin"}`),
 	})
-	require.NoError(t, err)
 
-	identity2ID := uid.New("identity")
 	identity2ExternalID := "test_user_2"
-	err = db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-		ID:          identity2ID,
-		ExternalID:  identity2ExternalID,
+	identity2 := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
-		Environment: "",
-		CreatedAt:   time.Now().UnixMilli(),
+		ExternalID:  identity2ExternalID,
 		Meta:        []byte(`{"role": "user"}`),
 	})
-	require.NoError(t, err)
 
-	encryptedKeysMap := make(map[string]struct{})
 	// Create test keys with various configurations
-	testKeys := []struct {
-		id         string
-		start      string
-		name       string
-		identityID *string
-		meta       map[string]interface{}
-		expires    *time.Time
-		enabled    bool
-	}{
-		{
-			id:         uid.New("key"),
-			start:      "test_key1_",
-			name:       "Test Key 1",
-			identityID: &identity1ID,
-			meta:       map[string]interface{}{"env": "production", "team": "backend"},
-			enabled:    true,
-		},
-		{
-			id:         uid.New("key"),
-			start:      "test_key2_",
-			name:       "Test Key 2",
-			identityID: &identity1ID,
-			meta:       map[string]interface{}{"env": "staging"},
-			enabled:    true,
-		},
-		{
-			id:         uid.New("key"),
-			start:      "test_key3_",
-			name:       "Test Key 3",
-			identityID: &identity2ID,
-			meta:       map[string]interface{}{"env": "development"},
-			enabled:    true,
-		},
-		{
-			id:      uid.New("key"),
-			start:   "test_key4_",
-			name:    "Test Key 4 (No Identity)",
-			enabled: true,
-		},
-		{
-			id:      uid.New("key"),
-			start:   "test_key5_",
-			name:    "Test Key 5 (Disabled)",
-			enabled: false,
-		},
-	}
+	// Track encrypted keys for verification
+	encryptedKeys := make(map[string]string) // keyID -> plaintext
 
-	for _, keyData := range testKeys {
-		metaBytes := []byte("{}")
-		if keyData.meta != nil {
-			metaBytes, _ = json.Marshal(keyData.meta)
-		}
+	// Key 1: identity1, production metadata
+	key1 := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  keySpaceID,
+		Name:        ptr.P("Test Key 1"),
+		IdentityID:  ptr.P(identity1.ID),
+		Meta:        ptr.P(`{"env": "production", "team": "backend"}`),
+		Recoverable: true,
+	})
+	encryptedKeys[key1.KeyID] = key1.Key
 
-		key := keyData.start + uid.New("")
+	// Key 2: identity1, staging metadata
+	key2 := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  keySpaceID,
+		Name:        ptr.P("Test Key 2"),
+		IdentityID:  ptr.P(identity1.ID),
+		Meta:        ptr.P(`{"env": "staging"}`),
+		Recoverable: true,
+	})
+	encryptedKeys[key2.KeyID] = key2.Key
 
-		insertParams := db.InsertKeyParams{
-			ID:                keyData.id,
-			KeySpaceID:        keySpaceID,
-			Hash:              hash.Sha256(key),
-			Start:             keyData.start,
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: keyData.name},
-			Meta:              sql.NullString{Valid: true, String: string(metaBytes)},
-			Expires:           sql.NullTime{Valid: false},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           keyData.enabled,
-			RemainingRequests: sql.NullInt32{Valid: false},
-		}
+	// Key 3: identity2, development metadata
+	key3 := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  keySpaceID,
+		Name:        ptr.P("Test Key 3"),
+		IdentityID:  ptr.P(identity2.ID),
+		Meta:        ptr.P(`{"env": "development"}`),
+		Recoverable: true,
+	})
+	encryptedKeys[key3.KeyID] = key3.Key
 
-		if keyData.identityID != nil {
-			insertParams.IdentityID = sql.NullString{Valid: true, String: *keyData.identityID}
-		} else {
-			insertParams.IdentityID = sql.NullString{Valid: false}
-		}
+	// Key 4: no identity
+	key4 := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  keySpaceID,
+		Name:        ptr.P("Test Key 4 (No Identity)"),
+		Recoverable: true,
+	})
+	encryptedKeys[key4.KeyID] = key4.Key
 
-		err := db.Query.InsertKey(ctx, h.DB.RW(), insertParams)
-		require.NoError(t, err)
-
-		encryption, err := h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
-			Keyring: h.Resources().UserWorkspace.ID,
-			Data:    key,
-		})
-		require.NoError(t, err)
-
-		err = db.Query.InsertKeyEncryption(ctx, h.DB.RW(), db.InsertKeyEncryptionParams{
-			WorkspaceID:     h.Resources().UserWorkspace.ID,
-			KeyID:           keyData.id,
-			CreatedAt:       time.Now().UnixMilli(),
-			Encrypted:       encryption.GetEncrypted(),
-			EncryptionKeyID: encryption.GetKeyId(),
-		})
-		require.NoError(t, err)
-		encryptedKeysMap[keyData.id] = struct{}{}
-	}
+	// Key 5: disabled
+	key5 := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  keySpaceID,
+		Name:        ptr.P("Test Key 5 (Disabled)"),
+		Disabled:    true,
+		Recoverable: true,
+	})
+	encryptedKeys[key5.KeyID] = key5.Key
 
 	// Set up request headers
 	headers := http.Header{
@@ -604,12 +550,13 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body.Data)
 
 		for _, key := range res.Body.Data {
-			_, exists := encryptedKeysMap[key.KeyId]
+			expectedPlaintext, exists := encryptedKeys[key.KeyId]
 			if !exists {
 				continue
 			}
 
 			require.NotEmpty(t, key.Plaintext, "Key should be decrypted and have plaintext")
+			require.Equal(t, expectedPlaintext, key.Plaintext, "Key should be decrypted and have correct plaintext")
 		}
 	})
 }
