@@ -60,7 +60,7 @@ import (
 // here we register all of the routes.
 // this function runs during startup.
 func Register(srv *zen.Server, svc *Services) {
-	withObersability := zen.WithObservability()
+	withObservability := zen.WithObservability()
 	withMetrics := zen.WithMetrics(svc.ClickHouse)
 
 	withLogging := zen.WithLogging(svc.Logger)
@@ -71,7 +71,7 @@ func Register(srv *zen.Server, svc *Services) {
 
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
-		withObersability,
+		withObservability,
 		withMetrics,
 		withLogging,
 		withErrorHandling,
@@ -561,7 +561,7 @@ func Register(srv *zen.Server, svc *Services) {
 	// misc
 
 	srv.RegisterRoute([]zen.Middleware{
-		withObersability,
+		withObservability,
 		withMetrics,
 		withLogging,
 		withPanicRecovery,
@@ -570,7 +570,7 @@ func Register(srv *zen.Server, svc *Services) {
 		Logger: svc.Logger,
 	})
 	srv.RegisterRoute([]zen.Middleware{
-		withObersability,
+		withObservability,
 		withMetrics,
 		withLogging,
 		withPanicRecovery,
