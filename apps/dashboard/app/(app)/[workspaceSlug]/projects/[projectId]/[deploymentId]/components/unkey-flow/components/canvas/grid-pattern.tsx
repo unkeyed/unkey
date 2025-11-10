@@ -1,12 +1,20 @@
+type GridPatternProps = {
+  gridSize: number; // Space between dots
+  dotRadius: number; // Size of each dot
+  dotClassName?: string; // Tailwind classes for dot color
+};
+
 export function GridPattern({
-  size,
-  dotSize,
-  dotColor,
-}: {
-  size: number;
-  dotSize: number;
-  dotColor: string;
-}) {
+  gridSize,
+  dotRadius,
+  dotClassName,
+}: GridPatternProps) {
+  const animationDuration = 4;
+  const maxRadiusMultiplier = 1.5;
+  const minOpacity = 0.5;
+  const maxOpacity = 0.8;
+  const randomDelayMax = 2;
+
   return (
     <>
       <defs>
@@ -14,15 +22,30 @@ export function GridPattern({
           id="dot-grid"
           x={0}
           y={0}
-          width={size}
-          height={size}
+          width={gridSize}
+          height={gridSize}
           patternUnits="userSpaceOnUse"
         >
-          <circle cx={size / 2} cy={size / 2} r={dotSize} fill={dotColor}>
+          <circle
+            cx={gridSize / 2}
+            cy={gridSize / 2}
+            r={dotRadius}
+            className={dotClassName}
+          >
+            <animate
+              attributeName="r"
+              values={`${dotRadius};${
+                dotRadius * maxRadiusMultiplier
+              };${dotRadius}`}
+              dur={`${animationDuration}s`}
+              begin={`${Math.random() * randomDelayMax}s`}
+              repeatCount="indefinite"
+            />
             <animate
               attributeName="opacity"
-              values="0.5;0.9;0.5"
-              dur="3s"
+              values={`${minOpacity};${maxOpacity};${minOpacity}`}
+              dur={`${animationDuration}s`}
+              begin={`${Math.random() * randomDelayMax}s`}
               repeatCount="indefinite"
             />
           </circle>

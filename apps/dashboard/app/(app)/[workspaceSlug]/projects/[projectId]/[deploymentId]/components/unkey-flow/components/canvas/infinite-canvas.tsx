@@ -14,8 +14,8 @@ type InfiniteCanvasProps = {
   defaultZoom?: number;
   zoomSpeed?: number;
   gridSize?: number;
-  gridDotSize?: number;
-  gridDotColor?: string;
+  dotRadius?: number;
+  dotClassName?: string;
   showGrid?: boolean;
   onViewChange?: (state: CanvasState) => void;
   children: React.ReactNode;
@@ -29,11 +29,11 @@ type InfiniteCanvasProps = {
 export function InfiniteCanvas({
   minZoom = 0.5,
   maxZoom = 3,
-  defaultZoom = 1,
+  defaultZoom = 0.75,
   zoomSpeed = 0.001,
-  gridSize = 28,
-  gridDotSize = 1.5,
-  gridDotColor = "#e5e7eb",
+  gridSize = 25,
+  dotRadius = 1.5,
+  dotClassName = "fill-grayA-5 ",
   showGrid = true,
   onViewChange,
   children,
@@ -170,9 +170,9 @@ export function InfiniteCanvas({
       >
         {showGrid && (
           <GridPattern
-            size={gridSize}
-            dotSize={gridDotSize}
-            dotColor={gridDotColor}
+            gridSize={gridSize}
+            dotRadius={dotRadius}
+            dotClassName={dotClassName}
           />
         )}
         {children}

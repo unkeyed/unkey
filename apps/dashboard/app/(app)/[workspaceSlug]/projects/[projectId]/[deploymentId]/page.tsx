@@ -174,12 +174,7 @@ const deploymentTree: TreeNode = {
 
 export default function DeploymentDetailsPage() {
   return (
-    <InfiniteCanvas
-      gridSize={35}
-      gridDotSize={2.5}
-      gridDotColor="#E5E5EA"
-      defaultZoom={0.75}
-    >
+    <InfiniteCanvas>
       <TreeLayout
         data={deploymentTree}
         nodeSpacing={{ x: 25, y: 130 }}
