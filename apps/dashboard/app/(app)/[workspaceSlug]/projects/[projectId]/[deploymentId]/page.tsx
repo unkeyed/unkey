@@ -1,7 +1,7 @@
 "use client";
 import { InfiniteCanvas } from "./components";
 import { CanvasNode } from "./components/canvas-node";
-import { TreeLayout } from "./components/tree-layout";
+import { AnimatedConnectionLine, TreeLayout } from "./components/tree-layout";
 import type { TreeNode } from "./components/types";
 
 const complexTree: TreeNode = {
@@ -14,6 +14,7 @@ const complexTree: TreeNode = {
       children: [
         { id: "jwt", label: "JWT Service" },
         { id: "oauth", label: "OAuth Provider" },
+        { id: "oauth-1", label: "OAuth Provider" },
       ],
     },
     // {
@@ -52,14 +53,22 @@ const complexTree: TreeNode = {
 
 export default function DeploymentDetailsPage() {
   return (
-    <InfiniteCanvas>
+    <InfiniteCanvas gridSize={25} gridDotSize={2} gridDotColor="#9ca3af">
       <TreeLayout
         data={complexTree}
-        nodeSpacing={{ x: 200, y: 150 }}
-        renderNode={(node, pos) => (
-          <CanvasNode key={node.id} x={pos.x} y={pos.y}>
-            <div className="bg-white rounded-lg shadow p-4">{node.label}</div>
-          </CanvasNode>
+        nodeSpacing={{ x: 100, y: 150 }}
+        renderNode={(node) => (
+          <div className="w-[500px] h-[70px] border border-grayA-4 rounded-[14px] bg-gray-2">
+            {node.label}
+          </div>
+        )}
+        renderConnection={(from, to, parent, child) => (
+          <AnimatedConnectionLine
+            key={`${parent.id}-${child.id}`}
+            id={`${parent.id}-${child.id}`}
+            from={{ x: from.x, y: from.y + 35 }} // bottom of parent (70/2)
+            to={{ x: to.x, y: to.y - 35 }} // top of child (70/2)
+          />
         )}
       />
     </InfiniteCanvas>

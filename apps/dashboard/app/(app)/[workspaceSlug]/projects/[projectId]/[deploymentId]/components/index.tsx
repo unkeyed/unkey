@@ -141,6 +141,11 @@ function GridPattern({
   return (
     <>
       <defs>
+        <radialGradient id="dot-gradient">
+          <stop offset="0%" stopColor={dotColor} stopOpacity="0.8" />
+          <stop offset="100%" stopColor={dotColor} stopOpacity="0.2" />
+        </radialGradient>
+
         <pattern
           id="dot-grid"
           x={0}
@@ -153,17 +158,24 @@ function GridPattern({
             cx={size / 2}
             cy={size / 2}
             r={dotSize}
-            fill={dotColor}
-            opacity={0.5}
-          />
+            fill="url(#dot-gradient)"
+          >
+            <animate
+              attributeName="opacity"
+              values="0.4;0.7;0.4"
+              dur="6s"
+              repeatCount="indefinite"
+              calcMode="spline"
+              keySplines="0.4 0 0.6 1; 0.4 0 0.6 1"
+            />
+          </circle>
         </pattern>
       </defs>
-
       <rect
-        x={-5000}
-        y={-5000}
-        width={10000}
-        height={10000}
+        x={-10000}
+        y={-10000}
+        width={20000}
+        height={20000}
         fill="url(#dot-grid)"
       />
     </>

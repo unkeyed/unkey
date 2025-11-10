@@ -27,11 +27,14 @@ export function CanvasNode({
       style={{ cursor: onClick ? "pointer" : "default" }}
     >
       <div
-        className={className}
         style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
           transform: "translate(-50%, -50%)",
           ...style,
         }}
+        className={className}
       >
         {children}
       </div>
