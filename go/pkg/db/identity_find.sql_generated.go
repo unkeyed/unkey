@@ -29,19 +29,17 @@ SELECT
         JSON_ARRAY()
     ) as ratelimits
 FROM identities i
-WHERE i.id IN (
+JOIN (
     SELECT id1.id FROM identities id1
     WHERE id1.id = ?
       AND id1.workspace_id = ?
       AND id1.deleted = ?
-    LIMIT 1
     UNION ALL
     SELECT id2.id FROM identities id2
     WHERE id2.workspace_id = ?
       AND id2.external_id = ?
       AND id2.deleted = ?
-    LIMIT 1
-)
+) AS identity_lookup ON i.id = identity_lookup.id
 LIMIT 1
 `
 
@@ -83,19 +81,17 @@ type FindIdentityRow struct {
 //	        JSON_ARRAY()
 //	    ) as ratelimits
 //	FROM identities i
-//	WHERE i.id IN (
+//	JOIN (
 //	    SELECT id1.id FROM identities id1
 //	    WHERE id1.id = ?
 //	      AND id1.workspace_id = ?
 //	      AND id1.deleted = ?
-//	    LIMIT 1
 //	    UNION ALL
 //	    SELECT id2.id FROM identities id2
 //	    WHERE id2.workspace_id = ?
 //	      AND id2.external_id = ?
 //	      AND id2.deleted = ?
-//	    LIMIT 1
-//	)
+//	) AS identity_lookup ON i.id = identity_lookup.id
 //	LIMIT 1
 func (q *Queries) FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (FindIdentityRow, error) {
 	row := db.QueryRowContext(ctx, findIdentity,

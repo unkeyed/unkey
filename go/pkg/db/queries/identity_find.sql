@@ -17,17 +17,15 @@ SELECT
         JSON_ARRAY()
     ) as ratelimits
 FROM identities i
-WHERE i.id IN (
+JOIN (
     SELECT id1.id FROM identities id1
     WHERE id1.id = sqlc.arg(identity)
       AND id1.workspace_id = sqlc.arg(workspace_id)
       AND id1.deleted = sqlc.arg(deleted)
-    LIMIT 1
     UNION ALL
     SELECT id2.id FROM identities id2
     WHERE id2.workspace_id = sqlc.arg(workspace_id)
       AND id2.external_id = sqlc.arg(identity)
       AND id2.deleted = sqlc.arg(deleted)
-    LIMIT 1
-)
+) AS identity_lookup ON i.id = identity_lookup.id
 LIMIT 1;
