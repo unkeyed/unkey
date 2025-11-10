@@ -1,0 +1,264 @@
+---
+title: "/v1/analytics.*"
+description: "Migrate analytics queries from v1 to v2 for enhanced SQL-based querying"
+---
+
+This guide covers migrating from the legacy v1 analytics system to the powerful v2 SQL-based analytics system.
+
+## Overview
+
+The v2 analytics system represents a complete redesign of how you query your verification data, moving from predefined parameters to full SQL flexibility.
+
+### Key Changes in v2:
+
+- **Flexibility**: Predefined aggregations → Full SQL with custom queries
+- **Response Format**: Direct array → `{meta, data}` envelope
+
+### Migration Impact:
+
+- **Existing in v1**: Predefined analytics with limited filtering options
+- **Enhanced in v2**: Complete SQL flexibility, custom aggregations, and powerful filtering
+
+---
+
+## Access and Authentication
+
+### V1: Automatic Access
+
+V1 analytics was automatically available with `api.*.read_api` permission:
+
+```bash v1 Analytics Access
+curl -X GET "https://api.unkey.dev/v1/analytics.getVerifications?apiId=api_123&start=1620000000000" \
+  -H "Authorization: Bearer <your-root-key>"
+```
+
+### V2: Opt-in Access Required
+
+V2 analytics requires explicit opt-in and dedicated permissions:
+
+<Warning>
+  **Analytics is currently in private beta and requires manual opt-in.**
+
+  To get access:
+  1. Find your workspace ID in dashboard settings
+  2. Email [support@unkey.dev](mailto:support@unkey.dev) with:
+     - Your workspace ID
+     - Your use case (billing, dashboards, reporting, etc.)
+     - Expected query volume
+</Warning>
+
+<Note>
+  **Comprehensive Analytics Documentation Available**
+
+  This migration guide covers the technical differences between v1 and v2 analytics. For complete documentation on v2 analytics capabilities, including:
+  - Detailed schema reference with all tables and columns
+  - 30+ query examples for common use cases
+  - Performance optimization tips
+  - Query restrictions and error handling
+
+  See the [Analytics Documentation](/analytics) section, starting with [Getting Started](/analytics/getting-started).
+</Note>
+
+```bash v2 Example
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <your-root-key-with-analytics-permission>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT SUM(count) FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 7 DAY"
+  }'
+```
+
+### Permission Changes
+
+| V1 Permission | V2 Permission | Description |
+|---------------|----------------|-------------|
+| `api.*.read_api` | `api.*.read_analytics` | Access analytics for all APIs |
+| `api.api_123.read_api` | `api.api_123.read_analytics` | Access analytics for specific API |
+
+<Note>
+  We automatically filter queries based on your permissions. If you have `api.api_123.read_analytics`, your queries will only return data from that API. Wildcard `api.*.read_analytics` allows access to all APIs in your workspace and you can filter by `apiId` in your query.
+</Note>
+
+---
+
+## Request Format Changes
+
+### V1: Query Parameters
+
+V1 used predefined query parameters with limited flexibility:
+
+```bash v1 Request Structure
+curl -X GET "https://api.unkey.dev/v1/analytics.getVerifications" \
+  -H "Authorization: Bearer <root-key>" \
+  -G \
+  -d "apiId=api_123" \
+  -d "start=1620000000000" \
+  -d "end=1622592000000" \
+  -d "groupBy=day" \
+  -d "externalId=user_456" \
+  -d "limit=100"
+```
+
+### V2: SQL Queries
+
+V2 uses full SQL queries for complete flexibility with automatic security filtering:
+
+```bash v2 Request Structure
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT time, SUM(count) as total FROM key_verifications_per_day_v1 WHERE key_space_id = '\''ks_123'\'' AND external_id = '\''user_456'\'' AND time >= now() - INTERVAL 30 DAY GROUP BY time ORDER BY time LIMIT 100"
+  }'
+```
+
+<Note>
+  **Automatic Security Filtering**: V2 automatically applies security filters based on your root key permissions. You don't need to manually filter by `workspace_id` - the system handles this for you.
+</Note>
+
+---
+
+## Response Format Changes
+
+### V1 Response Format
+
+V1 returned a direct array with predefined outcome fields:
+
+```json v1 Response Structure
+[
+  {
+    "time": 1620000000000,
+    "valid": 1234,
+    "notFound": 56,
+    "forbidden": 12,
+    "usageExceeded": 8,
+    "rateLimited": 234,
+    "unauthorized": 45,
+    "disabled": 3,
+    "insufficientPermissions": 67,
+    "expired": 89,
+    "total": 1548
+  },
+  {
+    "time": 1620086400000,
+    "valid": 1456,
+    "notFound": 67,
+    // ... more outcome fields
+    "total": 1678
+  }
+]
+```
+
+### V2 Response Format
+
+V2 uses standard envelope format with your custom query results:
+
+```json v2 Response Structure
+{
+  "meta": {
+    "requestId": "req_analytics789"
+  },
+  "data": [
+    {
+      "time": "2024-01-01",
+      "total": 1548
+    },
+    {
+      "time": "2024-01-02",
+      "total": 1678
+    }
+  ]
+}
+```
+
+<Note>
+  **Dynamic Response Structure**: The `data` array contains objects with fields determined by your SQL SELECT clause. Unlike v1's fixed structure, v2 returns exactly what you query for.
+</Note>
+
+---
+
+## Common Migration Patterns
+
+### Basic Usage Count
+
+#### V1: Basic Query
+```bash
+curl -X GET "https://api.unkey.dev/v1/analytics.getVerifications?apiId=api_123&start=1620000000000&groupBy=day"
+```
+
+#### V2: SQL Equivalent
+```bash
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT time, SUM(count) as total FROM key_verifications_per_day_v1 WHERE key_space_id = '\''ks_123'\'' AND time >= now() - INTERVAL 30 DAY GROUP BY time ORDER BY time"
+  }'
+```
+
+### Filter by User
+
+#### V1: External ID Filter
+```bash
+curl -X GET "https://api.unkey.dev/v1/analytics.getVerifications?apiId=api_123&externalId=user_456&groupBy=day"
+```
+
+#### V2: SQL Filter
+```bash
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT time, SUM(count) as total FROM key_verifications_per_day_v1 WHERE key_space_id = '\''ks_123'\'' AND external_id = '\''user_456'\'' AND time >= now() - INTERVAL 30 DAY GROUP BY time ORDER BY time"
+  }'
+```
+
+### Outcome Breakdown
+
+#### V1: Automatic Outcome Fields
+```bash
+curl -X GET "https://api.unkey.dev/v1/analytics.getVerifications?apiId=api_123&groupBy=day"
+```
+
+#### V2: Custom Outcome Aggregation
+```bash
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT time, sumIf(count, outcome = '\''VALID'\'') AS valid, sumIf(count, outcome = '\''RATE_LIMITED'\'') AS rateLimited, sumIf(count, outcome = '\''INVALID'\'') AS invalid, SUM(count) AS total FROM key_verifications_per_day_v1 WHERE key_space_id = '\''ks_123'\'' AND time >= now() - INTERVAL 30 DAY GROUP BY time ORDER BY time"
+  }'
+```
+
+### Top Users by Usage
+
+#### V1: Group by Identity
+```bash
+curl -X GET "https://api.unkey.dev/v1/analytics.getVerifications?apiId=api_123&groupBy=identity&orderBy=total&order=desc&limit=10"
+```
+
+#### V2: SQL with Ranking
+```bash
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <root-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT external_id, SUM(count) as total_verifications FROM key_verifications_per_day_v1 WHERE key_space_id = '\''ks_123'\'' AND time >= now() - INTERVAL 30 DAY AND external_id != '\'''\'' GROUP BY external_id ORDER BY total_verifications DESC LIMIT 10"
+  }'
+```
+
+---
+
+## Getting Help
+
+- **Analytics Documentation:** https://unkey.com/docs/analytics
+  - [Getting Started](/analytics/getting-started) - Request access and run your first query
+  - [Schema Reference](/analytics/schema-reference) - Complete table and column documentation
+  - [Query Examples](/analytics/query-examples) - 30+ ready-to-use SQL queries
+  - [Quick Reference](/analytics/quick-reference) - Common patterns and functions
+  - [Query Restrictions](/analytics/query-restrictions) - Limits and error codes
+  - [Troubleshooting](/analytics/troubleshooting) - Common issues and solutions
+- **Migration Support:** https://unkey.com/docs/api-reference/v1/migration
+- **Discord:** https://unkey.com/discord
+- **Email Support:** support@unkey.dev
+- **Book a Call:** https://cal.com/team/unkey/founders - Schedule time with our team for migration help

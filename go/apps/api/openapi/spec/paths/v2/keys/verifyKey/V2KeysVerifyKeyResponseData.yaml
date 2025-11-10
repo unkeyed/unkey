@@ -32,12 +32,16 @@ properties:
       The unique identifier of the verified key in Unkey's system.
       Use this ID for operations like updating or revoking the key. This field
       is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   name:
     type: string
     description: |
       The human-readable name assigned to this key during creation.
       This is useful for displaying in logs or admin interfaces to identify
       the key's purpose.
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   meta:
     type: object
     additionalProperties: true
@@ -47,19 +51,23 @@ properties:
       such as plan information, feature flags, or user details. Use this to
       avoid additional database lookups for contextual information needed during
       API calls.
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   expires:
     type: integer
     format: int64
     description: |
       Unix timestamp (in milliseconds) when the key will expire.
-      If null or not present, the key has no expiration. You can use this to
+      If omitted, the key has no expiration. You can use this to
       warn users about upcoming expirations or to understand the validity period.
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   credits:
     type: integer
     format: int32
     description: |
-      The number of requests/credits remaining for this key. If null
-      or not present, the key has unlimited usage. This value decreases with
+      The number of requests/credits remaining for this key. If omitted,
+      the key has unlimited usage. This value decreases with
       each verification (based on the 'cost' parameter) unless explicit credit
       refills are configured.
   enabled:
@@ -77,6 +85,8 @@ properties:
       directly or through roles. These permissions determine what actions the
       key can perform. Only returned when permissions were checked during verification
       or when the key fails with `code=FORBIDDEN`.
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   roles:
     type: array
     items:
@@ -85,17 +95,23 @@ properties:
       A list of all role names assigned to this key. Roles are collections
       of permissions that grant access to specific functionality. Only returned
       when permissions were checked during verification.
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   identity:
     "$ref": "../../../../common/Identity.yaml"
     description: |
       Information about the identity associated with this key. Identities
       allow multiple keys to share resources (like rate limits) and represent
       the same user or entity across different applications or devices.
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   ratelimits:
     type: array
     items:
       "$ref": "./VerifyKeyRatelimitData.yaml"
       description: The ratelimits that got checked
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
 required:
   - valid
   - code

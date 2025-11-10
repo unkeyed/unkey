@@ -133,9 +133,9 @@ func TestSuccess(t *testing.T) {
 
 			// Verify permissions are attached
 			require.NotNil(t, role.Permissions)
-			require.Len(t, *role.Permissions, 2)
+			require.Len(t, role.Permissions, 2)
 
-			for _, perm := range *role.Permissions {
+			for _, perm := range role.Permissions {
 				require.NotEmpty(t, perm.Id)
 				require.NotEmpty(t, perm.Name)
 				require.NotNil(t, perm.Description)
