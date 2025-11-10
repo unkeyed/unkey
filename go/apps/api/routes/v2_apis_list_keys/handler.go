@@ -161,9 +161,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	limit := ptr.SafeDeref(req.Limit, 100)
 	cursor := ptr.SafeDeref(req.Cursor, "")
 
-	var identityFilter string
+	var externalID string
 	if req.ExternalId != nil && *req.ExternalId != "" {
-		identityFilter = *req.ExternalId
+		externalID = *req.ExternalId
 	}
 
 	// Query keys by key_auth_id instead of api_id
@@ -173,7 +173,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		db.ListLiveKeysByKeySpaceIDParams{
 			KeySpaceID: api.KeyAuthID.String,
 			IDCursor:   cursor,
-			Identity:   identityFilter,
+			ExternalID: externalID,
 			Limit:      int32(limit + 1), // nolint:gosec
 		},
 	)

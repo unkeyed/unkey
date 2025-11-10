@@ -85,7 +85,7 @@ FROM `keys` k
 WHERE k.key_auth_id = sqlc.arg(key_space_id)
   AND k.id >= sqlc.arg(id_cursor)
   AND (
-    sqlc.arg(identity) = '' OR (i.external_id = sqlc.arg(identity) OR i.id = sqlc.arg(identity))
+    sqlc.arg(external_id) = '' OR i.external_id = sqlc.arg(external_id)
   )
   AND k.deleted_at_m IS NULL
   AND ka.deleted_at_m IS NULL

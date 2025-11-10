@@ -97,7 +97,7 @@ FROM ` + "`" + `keys` + "`" + ` k
 WHERE k.key_auth_id = ?
   AND k.id >= ?
   AND (
-    ? = '' OR (i.external_id = ? OR i.id = ?)
+    ? = '' OR i.external_id = ?
   )
   AND k.deleted_at_m IS NULL
   AND ka.deleted_at_m IS NULL
@@ -109,7 +109,7 @@ LIMIT ?
 type ListLiveKeysByKeySpaceIDParams struct {
 	KeySpaceID string `db:"key_space_id"`
 	IDCursor   string `db:"id_cursor"`
-	Identity   string `db:"identity"`
+	ExternalID string `db:"external_id"`
 	Limit      int32  `db:"limit"`
 }
 
@@ -236,7 +236,7 @@ type ListLiveKeysByKeySpaceIDRow struct {
 //	WHERE k.key_auth_id = ?
 //	  AND k.id >= ?
 //	  AND (
-//	    ? = '' OR (i.external_id = ? OR i.id = ?)
+//	    ? = '' OR i.external_id = ?
 //	  )
 //	  AND k.deleted_at_m IS NULL
 //	  AND ka.deleted_at_m IS NULL
@@ -247,9 +247,8 @@ func (q *Queries) ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg Lis
 	rows, err := db.QueryContext(ctx, listLiveKeysByKeySpaceID,
 		arg.KeySpaceID,
 		arg.IDCursor,
-		arg.Identity,
-		arg.Identity,
-		arg.Identity,
+		arg.ExternalID,
+		arg.ExternalID,
 		arg.Limit,
 	)
 	if err != nil {

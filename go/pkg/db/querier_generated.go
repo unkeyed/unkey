@@ -1589,7 +1589,7 @@ type Querier interface {
 	//  WHERE k.key_auth_id = ?
 	//    AND k.id >= ?
 	//    AND (
-	//      ? = '' OR (i.external_id = ? OR i.id = ?)
+	//      ? = '' OR i.external_id = ?
 	//    )
 	//    AND k.deleted_at_m IS NULL
 	//    AND ka.deleted_at_m IS NULL

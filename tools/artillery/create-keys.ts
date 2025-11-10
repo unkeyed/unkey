@@ -152,8 +152,8 @@ async function main() {
     throw new Error("UNKEY_API_ID not set");
   }
 
-  const totalKeys = parseInt(process.env.KEY_COUNT || "10000", 10);
-  const concurrency = parseInt(process.env.CONCURRENCY || "50", 10);
+  const totalKeys = Number.parseInt(process.env.KEY_COUNT || "10000", 10);
+  const concurrency = Number.parseInt(process.env.CONCURRENCY || "50", 10);
 
   console.info(`Creating ${totalKeys} keys with concurrency ${concurrency}...`);
 
