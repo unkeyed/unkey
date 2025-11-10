@@ -16,6 +16,7 @@ export const CancelPlan: React.FC = () => {
         trpcUtils.billing.queryUsage.invalidate(),
         trpcUtils.stripe.getBillingInfo.invalidate(),
         trpcUtils.workspace.getCurrent.refetch(),
+        trpcUtils.billing.queryUsage.refetch(),
         trpcUtils.stripe.getBillingInfo.refetch(),
       ]);
       router.refresh();

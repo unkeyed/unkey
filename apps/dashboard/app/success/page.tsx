@@ -189,31 +189,18 @@ function SuccessContent() {
           const isFirstTimeUser = !billingInfo.hasPreviousSubscriptions;
 
           if (isFirstTimeUser) {
-            // Get products for plan selection
-            try {
-              const products = await trpcUtils.stripe.getProducts.fetch();
-
-              if (!isMounted) {
-                return;
-              }
-
+            // Use products from billingInfo instead of making a redundant fetch
+            if (billingInfo.products && billingInfo.products.length > 0) {
               setProcessedData({
                 workspaceSlug: workspace.slug,
                 showPlanSelection: true,
-                products: products,
+                products: billingInfo.products,
               });
-            } catch (error) {
-              console.error("Failed to load products:", error);
-              // Fall back to regular billing page if products fail to load
-              if (!isMounted) {
-                return;
-              }
+            } else {
+              // Fall back to regular billing page if products are empty or undefined
               setProcessedData({ workspaceSlug: workspace.slug });
             }
           } else {
-            if (!isMounted) {
-              return;
-            }
             setProcessedData({ workspaceSlug: workspace.slug });
           }
         } catch (error) {
