@@ -51,6 +51,9 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK", { status: 200 });
         }
 
+        // Store the previous tier for upgrade/downgrade detection
+        const previousTier = ws.tier;
+
         // Get the current subscription item and product
         if (!sub.items?.data?.[0]?.price?.id || !sub.customer) {
           return new Response("OK");
@@ -93,6 +96,20 @@ export const POST = async (req: Request): Promise<Response> => {
             tier: product.name,
           })
           .where(eq(schema.workspaces.id, ws.id));
+
+        // Determine if this is an upgrade or downgrade
+        const tierHierarchy = ["Free", "Pro", "Pro Max", "Enterprise"];
+        const previousTierIndex = tierHierarchy.indexOf(previousTier);
+        const newTierIndex = tierHierarchy.indexOf(product.name);
+
+        let changeType = "updated";
+        if (previousTierIndex !== -1 && newTierIndex !== -1) {
+          if (newTierIndex > previousTierIndex) {
+            changeType = "upgraded";
+          } else if (newTierIndex < previousTierIndex) {
+            changeType = "downgraded";
+          }
+        }
 
         const requiredMetadata = [
           "quota_requests_per_month",
@@ -170,6 +187,8 @@ export const POST = async (req: Request): Promise<Response> => {
             formattedPrice,
             customer.email,
             customer.name || "Unknown",
+            changeType,
+            previousTier,
           );
         }
       } catch (error) {
@@ -324,10 +343,30 @@ async function alertSlackSubscriptionUpdate(
   price: string,
   email: string,
   name?: string,
+  changeType?: string,
+  previousTier?: string,
 ): Promise<void> {
   const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
   if (!url) {
     return;
+  }
+
+  // Choose appropriate emoji based on change type
+  let emoji = ":stonks:";
+  let actionText = "updated their subscription";
+
+  if (changeType === "upgraded") {
+    emoji = ":chart_with_upwards_trend:";
+    actionText = "upgraded their subscription";
+  } else if (changeType === "downgraded") {
+    emoji = ":chart_with_downwards_trend:";
+    actionText = "downgraded their subscription";
+  }
+
+  // Build the subscription change message
+  let subscriptionText = `Subscription ${changeType} to the ${product} tier at ${price} by ${email}`;
+  if (previousTier && changeType !== "updated") {
+    subscriptionText = `Subscription ${changeType} from ${previousTier} to ${product} tier at ${price} by ${email}`;
   }
 
   await fetch(url, {
@@ -341,14 +380,14 @@ async function alertSlackSubscriptionUpdate(
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `:stonks: ${name} updated their subscription`,
+            text: `${emoji} ${name} ${actionText}`,
           },
         },
         {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `Subscription updated to the ${product} tier at ${price} by ${email}`,
+            text: subscriptionText,
           },
         },
       ],
