@@ -25,6 +25,8 @@ type Services struct {
 	Caches                     caches.Caches
 	Vault                      *vault.Service
 	ChproxyToken               string
+	PprofEnabled               bool
+	PprofPassword              string
 	UsageLimiter               usagelimiter.Service
 	AnalyticsConnectionManager analytics.ConnectionManager
 }

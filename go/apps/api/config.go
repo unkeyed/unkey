@@ -98,6 +98,16 @@ type Config struct {
 	// ChproxyToken is the authentication token for ClickHouse proxy endpoints
 	ChproxyToken string
 
+	// --- pprof configuration ---
+
+	// PprofEnabled controls whether the pprof profiling endpoints are available
+	PprofEnabled bool
+
+	// PprofPassword is the optional password for pprof endpoints (username is fixed as "pprof")
+	// If empty, pprof endpoints will be accessible without authentication
+	// If set, requests must authenticate via HTTP Basic Auth with username "pprof" and this password
+	PprofPassword string
+
 	// MaxRequestBodySize sets the maximum allowed request body size in bytes.
 	// If 0 or negative, no limit is enforced. Default is 0 (no limit).
 	// This helps prevent DoS attacks from excessively large request bodies.
