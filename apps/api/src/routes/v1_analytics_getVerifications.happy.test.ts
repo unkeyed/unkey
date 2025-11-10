@@ -40,28 +40,35 @@ describe("with no data", () => {
 describe.each([
   // generate and query times are different to ensure the query covers the entire generate interval
   // and the used toStartOf function in clickhouse
+  // NOTE: Using dynamic dates to avoid TTL deletion (table has 1 month TTL)
   {
     granularity: "hour",
-    generate: { start: "2024-12-05", end: "2024-12-07" },
-    query: { start: "2024-12-04", end: "2024-12-10" },
+    generateDaysAgo: { start: 5, end: 3 }, // 5 days ago to 3 days ago
+    queryDaysAgo: { start: 6, end: 0 }, // 6 days ago to now
   },
   {
     granularity: "day",
-    generate: { start: "2024-12-05", end: "2024-12-07" },
-    query: { start: "2024-12-01", end: "2024-12-10" },
+    generateDaysAgo: { start: 5, end: 3 },
+    queryDaysAgo: { start: 9, end: 0 },
   },
   {
     granularity: "month",
-    generate: { start: "2024-10-1", end: "2025-10-12" },
-    query: { start: "2023-12-01", end: "2026-12-10" },
+    generateDaysAgo: { start: 25, end: 5 },
+    queryDaysAgo: { start: 28, end: 0 },
   },
 ])("per $granularity", (tc) => {
   test("all verifications are accounted for", { timeout: 120_000 }, async (t) => {
     const h = await IntegrationHarness.init(t);
 
+    const now = Date.now();
+    const generateStart = now - tc.generateDaysAgo.start * 24 * 60 * 60 * 1000;
+    const generateEnd = now - tc.generateDaysAgo.end * 24 * 60 * 60 * 1000;
+    const queryStart = now - tc.queryDaysAgo.start * 24 * 60 * 60 * 1000;
+    const queryEnd = now - tc.queryDaysAgo.end * 24 * 60 * 60 * 1000;
+
     const verifications = generate({
-      start: new Date(tc.generate.start).getTime(),
-      end: new Date(tc.generate.end).getTime(),
+      start: generateStart,
+      end: generateEnd,
       length: 10_000,
       workspaceId: h.resources.userWorkspace.id,
       keySpaceId: h.resources.userKeyAuth.id,
@@ -71,7 +78,22 @@ describe.each([
     const insert = await h.ch.verifications.insert(verifications);
     expect(insert.err).toEqual(undefined);
 
-    await new Promise((r) => setTimeout(r, 60000));
+    // Check v1 table immediately after insert
+    const v1Count = await h.ch.querier.query({
+      query:
+        "SELECT COUNT(*) AS count from verifications.raw_key_verifications_v1 WHERE workspace_id={workspaceId:String}",
+      params: z.object({ workspaceId: z.string() }),
+      schema: z.object({ count: z.number() }),
+    })({
+      workspaceId: h.resources.userWorkspace.id,
+    });
+    console.log(
+      `[${tc.granularity}] v1 table count after insert: ${v1Count.val!.at(0)?.count}`,
+    );
+
+    // Wait for materialized view to sync data from v1 to v2 table
+    console.log(`[${tc.granularity}] Waiting for MV sync...`);
+    await new Promise((r) => setTimeout(r, 10000));
 
     const inserted = await h.ch.querier.query({
       query:
@@ -83,6 +105,9 @@ describe.each([
     });
 
     expect(inserted.err).toEqual(undefined);
+    console.log(
+      `[${tc.granularity}] v2 table count: expected ${verifications.length}, got ${inserted.val!.at(0)?.count}`,
+    );
     expect(inserted.val!.at(0)?.count).toEqual(verifications.length);
 
     await new Promise((r) => setTimeout(r, 5000));
@@ -92,8 +117,8 @@ describe.each([
     const res = await h.get<V1AnalyticsGetVerificationsResponse>({
       url: "/v1/analytics.getVerifications",
       searchparams: {
-        start: new Date(tc.query.start).getTime().toString(),
-        end: new Date(tc.query.end).getTime().toString(),
+        start: queryStart.toString(),
+        end: queryEnd.toString(),
         groupBy: tc.granularity,
         apiId: h.resources.userApi.id,
       },
