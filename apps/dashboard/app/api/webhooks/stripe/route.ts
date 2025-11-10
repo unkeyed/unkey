@@ -348,7 +348,7 @@ async function alertSlackSubscriptionUpdate(
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `Subscription updated to the ${product} tier at ${price} by ${email}q`,
+            text: `Subscription updated to the ${product} tier at ${price} by ${email}`,
           },
         },
       ],
@@ -387,7 +387,7 @@ async function alertIsCancellingSubscription(
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `Subscription cancellation requested by ${email} - for ${product} at ${price}, they will be moved back to the free tier, at the end of the month. We should reach out to find out why they are cancelling.`,
+            text: `Subscription cancellation requested by ${email} - for ${product} at ${price} they will be moved back to the free tier, at the end of the month. We should reach out to find out why they are cancelling.`,
           },
         },
       ],
