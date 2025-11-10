@@ -97,7 +97,10 @@ FROM ` + "`" + `keys` + "`" + ` k
 WHERE k.key_auth_id = ?
   AND k.id >= ?
   AND (
-    ? = '' OR i.external_id = ?
+    ? = '' OR (
+      i.workspace_id = k.workspace_id
+      AND i.external_id = ?
+    )
   )
   AND k.deleted_at_m IS NULL
   AND ka.deleted_at_m IS NULL
@@ -236,7 +239,10 @@ type ListLiveKeysByKeySpaceIDRow struct {
 //	WHERE k.key_auth_id = ?
 //	  AND k.id >= ?
 //	  AND (
-//	    ? = '' OR i.external_id = ?
+//	    ? = '' OR (
+//	      i.workspace_id = k.workspace_id
+//	      AND i.external_id = ?
+//	    )
 //	  )
 //	  AND k.deleted_at_m IS NULL
 //	  AND ka.deleted_at_m IS NULL
