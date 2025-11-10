@@ -26,8 +26,6 @@ export type TreeNode = {
 export type TreeLayoutProps<T extends TreeNode> = {
   data: T;
   nodeSpacing?: { x: number; y: number };
-  siblingSpacing?: { x: number; y: number };
-  direction?: "vertical" | "horizontal";
   renderNode: (node: T, position: Point) => React.ReactNode;
   renderConnection?: (
     from: Point,

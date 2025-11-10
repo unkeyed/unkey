@@ -1,11 +1,35 @@
 "use client";
 import { useRef, useState, useCallback, useEffect } from "react";
-// biome-ignore lint/style/useImportType: <explanation>
-import { CanvasCustomState, InfiniteCanvasProps, Point } from "./types";
+import type { Point } from "../../types";
+import { GridPattern } from "./grid-pattern";
 
+type CanvasState = {
+  scale: number;
+  offset: Point;
+};
+
+type InfiniteCanvasProps = {
+  minZoom?: number;
+  maxZoom?: number;
+  defaultZoom?: number;
+  zoomSpeed?: number;
+  gridSize?: number;
+  gridDotSize?: number;
+  gridDotColor?: string;
+  showGrid?: boolean;
+  onViewChange?: (state: CanvasState) => void;
+  children: React.ReactNode;
+};
+
+/**
+ * Infinite canvas with pan and zoom controls.
+ * Provides SVG coordinate system for child elements.
+ */
+// infinite-canvas.tsx
 export function InfiniteCanvas({
   minZoom = 0.5,
   maxZoom = 3,
+  defaultZoom = 1,
   zoomSpeed = 0.001,
   gridSize = 28,
   gridDotSize = 1.5,
@@ -15,58 +39,73 @@ export function InfiniteCanvas({
   children,
 }: InfiniteCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [canvas, setCanvas] = useState<CanvasCustomState>({
-    scale: 1,
+  const [canvas, setCanvas] = useState<CanvasState>({
+    scale: 1, // Always start at 1 for measurement
     offset: { x: 0, y: 0 },
   });
-  const [isPanning, setIsPanning] = useState(false);
-  const [startPan, setStartPan] = useState<Point>({ x: 0, y: 0 });
+  const isPanningRef = useRef(false);
+  const startPanRef = useRef<Point>({ x: 0, y: 0 });
 
-  // Center canvas on mount
+  // Center canvas and apply default zoom after mount
   useEffect(() => {
     const svg = svgRef.current;
-    if (!svg) return;
+    if (!svg) {
+      throw new Error("SVG ref is null during mount");
+    }
 
     const rect = svg.getBoundingClientRect();
-    setCanvas({
-      scale: 1,
-      offset: { x: rect.width / 2, y: rect.height / 2 },
-    });
-  }, []);
 
-  // Notify parent of view changes
+    // Center canvas and apply default zoom after children are measured.
+    // CRITICAL: Canvas must start at scale=1 so TreeLayout can measure node dimensions accurately.
+    // If we apply defaultZoom immediately, measurements will be scaled and layout calculations will be wrong,
+    // causing nodes to overlap. We defer zoom application until after the first render cycle completes.
+    requestAnimationFrame(() => {
+      setCanvas({
+        scale: defaultZoom,
+        offset: { x: rect.width / 2, y: rect.height / 2 },
+      });
+    });
+  }, [defaultZoom]);
+
+  // Notify parent of view changes - memoized to prevent unnecessary calls
+  const onViewChangeRef = useRef(onViewChange);
   useEffect(() => {
-    onViewChange?.(canvas);
-  }, [canvas, onViewChange]);
+    onViewChangeRef.current = onViewChange;
+  }, [onViewChange]);
+
+  useEffect(() => {
+    onViewChangeRef.current?.(canvas);
+  }, [canvas]);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
-      if (e.button !== 0) return;
-      setIsPanning(true);
-      setStartPan({
+      if (e.button !== 0) {
+        return;
+      }
+      isPanningRef.current = true;
+      startPanRef.current = {
         x: e.clientX - canvas.offset.x,
         y: e.clientY - canvas.offset.y,
-      });
+      };
     },
     [canvas.offset]
   );
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<SVGSVGElement>) => {
-      if (!isPanning) return;
-      setCanvas((prev) => ({
-        ...prev,
-        offset: {
-          x: e.clientX - startPan.x,
-          y: e.clientY - startPan.y,
-        },
-      }));
-    },
-    [isPanning, startPan]
-  );
+  const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (!isPanningRef.current) {
+      return;
+    }
+    setCanvas((prev) => ({
+      ...prev,
+      offset: {
+        x: e.clientX - startPanRef.current.x,
+        y: e.clientY - startPanRef.current.y,
+      },
+    }));
+  }, []);
 
   const handleMouseUp = useCallback(() => {
-    setIsPanning(false);
+    isPanningRef.current = false;
   }, []);
 
   const handleWheel = useCallback(
@@ -75,7 +114,9 @@ export function InfiniteCanvas({
       e.stopPropagation();
 
       const svg = svgRef.current;
-      if (!svg) return;
+      if (!svg) {
+        throw new Error("SVG ref is null during wheel event");
+      }
 
       const rect = svg.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
@@ -99,10 +140,11 @@ export function InfiniteCanvas({
     [canvas, minZoom, maxZoom, zoomSpeed]
   );
 
+  // Prevent default wheel behavior
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) {
-      return;
+      throw new Error("SVG ref is null during wheel listener setup");
     }
 
     const handleWheelNative = (e: WheelEvent) => {
@@ -120,6 +162,7 @@ export function InfiniteCanvas({
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
       onWheel={handleWheel}
     >
       <g
@@ -135,46 +178,5 @@ export function InfiniteCanvas({
         {children}
       </g>
     </svg>
-  );
-}
-
-function GridPattern({
-  size,
-  dotSize,
-  dotColor,
-}: {
-  size: number;
-  dotSize: number;
-  dotColor: string;
-}) {
-  return (
-    <>
-      <defs>
-        <pattern
-          id="dot-grid"
-          x={0}
-          y={0}
-          width={size}
-          height={size}
-          patternUnits="userSpaceOnUse"
-        >
-          <circle cx={size / 2} cy={size / 2} r={dotSize} fill={dotColor}>
-            <animate
-              attributeName="opacity"
-              values="0.5;0.9;0.5"
-              dur="3s"
-              repeatCount="indefinite"
-            />
-          </circle>
-        </pattern>
-      </defs>
-      <rect
-        x={-10000}
-        y={-10000}
-        width={20000}
-        height={20000}
-        fill="url(#dot-grid)"
-      />
-    </>
   );
 }

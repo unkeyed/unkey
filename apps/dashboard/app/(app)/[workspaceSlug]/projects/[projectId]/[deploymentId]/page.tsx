@@ -1,7 +1,9 @@
 "use client";
-import { InfiniteCanvas } from "./components";
-import { AnimatedConnectionLine, TreeLayout } from "./components/tree-layout";
-import type { TreeNode } from "./components/types";
+
+import { TreeConnectionLine, TreeLayout } from "./components/unkey-flow";
+import { InfiniteCanvas } from "./components/unkey-flow/components/canvas/infinite-canvas";
+// biome-ignore lint/style/useImportType: <explanation>
+import { TreeNode } from "./components/unkey-flow/types";
 
 const deploymentTree: TreeNode = {
   id: "ingress",
@@ -169,14 +171,21 @@ const deploymentTree: TreeNode = {
     },
   ],
 };
+
 export default function DeploymentDetailsPage() {
   return (
-    <InfiniteCanvas gridSize={35} gridDotSize={2.5} gridDotColor="#E5E5EA">
+    <InfiniteCanvas
+      gridSize={35}
+      gridDotSize={2.5}
+      gridDotColor="#E5E5EA"
+      defaultZoom={0.75}
+    >
       <TreeLayout
         data={deploymentTree}
         nodeSpacing={{ x: 25, y: 130 }}
         renderNode={(node) => (
-          <div className="w-[500px] h-[70px] border border-grayA-4 rounded-[14px] bg-gray-1 text-center">
+          <div className="w-[500px] h-[70px] border border-grayA-4 rounded-[14px] bg-gray-1 text-center flex items-center justify-center">
+            {/*// @ts-expect-error will fix this*/}
             {node.label}
           </div>
         )}
@@ -185,11 +194,10 @@ export default function DeploymentDetailsPage() {
             parent.children?.findIndex((c) => c.id === child.id) ?? 0;
           const childCount = parent.children?.length ?? 1;
 
-          // Spread children horizontally across parent width
           const xOffset = (childIndex - (childCount - 1) / 2) * 5;
 
           return (
-            <AnimatedConnectionLine
+            <TreeConnectionLine
               key={`${parent.id}-${child.id}`}
               from={{ x: from.x + xOffset, y: from.y + 35 }}
               to={{ x: to.x, y: to.y - 35 }}
