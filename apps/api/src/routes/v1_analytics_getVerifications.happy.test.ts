@@ -439,10 +439,8 @@ describe("RFC scenarios", () => {
     let total = 0;
     const outcomes = verifications.reduce(
       (acc, v) => {
-        if (
-          v.identity_id !== identity.id ||
-          new Date(v.time).getUTCMonth() !== new Date(now).getUTCMonth()
-        ) {
+        // Only count records that match the query time range and identity
+        if (v.identity_id !== identity.id || v.time < start || v.time > end) {
           return acc;
         }
 
