@@ -1,4 +1,4 @@
-import { setSessionCookie, setLastUsedOrgCookie } from "@/lib/auth/cookies";
+import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { StackPerspective2 } from "@unkey/icons";
@@ -86,7 +86,7 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
     onSuccess: async ({ orgId }) => {
       setWorkspaceCreated(true);
       await switchOrgMutation.mutateAsync(orgId);
-      await setLastUsedOrgCookie({orgId});
+      await setLastUsedOrgCookie({ orgId });
       props.advance();
     },
     onError: (error) => {
