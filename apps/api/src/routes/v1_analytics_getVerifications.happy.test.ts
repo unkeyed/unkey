@@ -78,9 +78,6 @@ describe.each([
     const insert = await h.ch.verifications.insert(verifications);
     expect(insert.err).toEqual(undefined);
 
-    // Wait for materialized view to sync data from v1 to v2 table
-    await new Promise((r) => setTimeout(r, 10000));
-
     const inserted = await h.ch.querier.query({
       query:
         "SELECT COUNT(*) AS count from default.key_verifications_raw_v2 WHERE workspace_id={workspaceId:String}",
@@ -92,11 +89,6 @@ describe.each([
 
     expect(inserted.err).toEqual(undefined);
     expect(inserted.val!.at(0)?.count).toEqual(verifications.length);
-
-    // For month granularity, wait longer for data to propagate through the MV chain
-    // raw_v2 -> per_minute_v2 -> per_hour_v2 -> per_day_v2 -> per_month_v2
-    const additionalWait = tc.granularity === "month" ? 30000 : 5000;
-    await new Promise((r) => setTimeout(r, additionalWait));
 
     const root = await h.createRootKey(["api.*.read_api"]);
 
@@ -415,7 +407,10 @@ describe("RFC scenarios", () => {
 
     const root = await h.createRootKey(["api.*.read_api"]);
 
-    const start = new Date(now).setMonth(new Date(now).getMonth() - 1, 1);
+    const startDate = new Date(now);
+    startDate.setMonth(startDate.getMonth() - 1, 1);
+    startDate.setHours(0, 0, 0, 0);
+    const start = startDate.getTime();
     const end = now;
 
     const res = await h.get<V1AnalyticsGetVerificationsResponse>({
@@ -434,13 +429,29 @@ describe("RFC scenarios", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    expect(res.body.length).lte(2);
+    // Could be up to 3 months: if data exists from 90 days ago and we query from
+    // "start of last month", we might span 3 calendar months
+    expect(res.body.length).lte(3);
     expect(res.body.length).gte(1);
+    // Helper to normalize timestamp to start of month for comparison
+    const toStartOfMonth = (timestamp: number) => {
+      const d = new Date(timestamp);
+      d.setUTCDate(1);
+      d.setUTCHours(0, 0, 0, 0);
+      return d.getTime();
+    };
+
+    const startMonthStart = toStartOfMonth(start);
+    const endMonthStart = toStartOfMonth(end);
+
     let total = 0;
     const outcomes = verifications.reduce(
       (acc, v) => {
-        // Only count records that match the query time range and identity
-        if (v.identity_id !== identity.id || v.time < start || v.time > end) {
+        // Monthly aggregation returns complete calendar months
+        // Count all records from months that overlap with the query range
+        const vMonthStart = toStartOfMonth(v.time);
+
+        if (v.identity_id !== identity.id || vMonthStart < startMonthStart || vMonthStart > endMonthStart) {
           return acc;
         }
 

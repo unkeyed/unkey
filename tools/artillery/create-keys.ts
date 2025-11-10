@@ -40,13 +40,6 @@ interface CreateKeyResult {
   keyId: string;
 }
 
-interface CreateKeyError {
-  index: number;
-  error: string;
-  statusCode: number;
-  response?: any;
-}
-
 async function createKey(
   rootKey: string,
   apiId: string,
@@ -88,7 +81,7 @@ async function createKey(
     console.error(
       `Failed to create key at index ${index}: ${response.status} ${response.statusText}`,
     );
-    console.error(`Error response body:`, errorBody);
+    console.error("Error response body", errorBody);
     return null;
   }
 
@@ -152,8 +145,8 @@ async function main() {
     throw new Error("UNKEY_API_ID not set");
   }
 
-  const totalKeys = parseInt(process.env.KEY_COUNT || "10000", 10);
-  const concurrency = parseInt(process.env.CONCURRENCY || "50", 10);
+  const totalKeys = Number.parseInt(process.env.KEY_COUNT || "10000", 10);
+  const concurrency = Number.parseInt(process.env.CONCURRENCY || "50", 10);
 
   console.info(`Creating ${totalKeys} keys with concurrency ${concurrency}...`);
 
