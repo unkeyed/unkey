@@ -278,6 +278,39 @@ type Querier interface {
 	//   AND deleted = ?
 	//   AND (external_id IN(/*SLICE:identities*/?) OR id IN (/*SLICE:identities*/?))
 	FindIdentities(ctx context.Context, db DBTX, arg FindIdentitiesParams) ([]Identity, error)
+	//FindIdentity
+	//
+	//  SELECT
+	//      i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+	//      COALESCE(
+	//          (SELECT JSON_ARRAYAGG(
+	//              JSON_OBJECT(
+	//                  'id', rl.id,
+	//                  'name', rl.name,
+	//                  'key_id', rl.key_id,
+	//                  'identity_id', rl.identity_id,
+	//                  'limit', rl.`limit`,
+	//                  'duration', rl.duration,
+	//                  'auto_apply', rl.auto_apply = 1
+	//              )
+	//          )
+	//          FROM ratelimits rl WHERE rl.identity_id = i.id),
+	//          JSON_ARRAY()
+	//      ) as ratelimits
+	//  FROM identities i
+	//  JOIN (
+	//      SELECT id1.id FROM identities id1
+	//      WHERE id1.id = ?
+	//        AND id1.workspace_id = ?
+	//        AND id1.deleted = ?
+	//      UNION ALL
+	//      SELECT id2.id FROM identities id2
+	//      WHERE id2.workspace_id = ?
+	//        AND id2.external_id = ?
+	//        AND id2.deleted = ?
+	//  ) AS identity_lookup ON i.id = identity_lookup.id
+	//  LIMIT 1
+	FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (FindIdentityRow, error)
 	//FindIdentityByExternalID
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -294,53 +327,6 @@ type Querier interface {
 	//    AND id = ?
 	//    AND deleted = ?
 	FindIdentityByID(ctx context.Context, db DBTX, arg FindIdentityByIDParams) (Identity, error)
-	//FindIdentityWithRatelimits
-	//
-	//  SELECT
-	//      i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', rl.id,
-	//                  'name', rl.name,
-	//                  'key_id', rl.key_id,
-	//                  'identity_id', rl.identity_id,
-	//                  'limit', rl.`limit`,
-	//                  'duration', rl.duration,
-	//                  'auto_apply', rl.auto_apply = 1
-	//              )
-	//          )
-	//          FROM ratelimits rl WHERE rl.identity_id = i.id),
-	//          JSON_ARRAY()
-	//      ) as ratelimits
-	//  FROM identities i
-	//  WHERE i.workspace_id = ?
-	//    AND i.id = ?
-	//    AND i.deleted = ?
-	//  UNION ALL
-	//  SELECT
-	//      i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', rl.id,
-	//                  'name', rl.name,
-	//                  'key_id', rl.key_id,
-	//                  'identity_id', rl.identity_id,
-	//                  'limit', rl.`limit`,
-	//                  'duration', rl.duration,
-	//                  'auto_apply', rl.auto_apply = 1
-	//              )
-	//          )
-	//          FROM ratelimits rl WHERE rl.identity_id = i.id),
-	//          JSON_ARRAY()
-	//      ) as ratelimits
-	//  FROM identities i
-	//  WHERE i.workspace_id = ?
-	//    AND i.external_id = ?
-	//    AND i.deleted = ?
-	//  LIMIT 1
-	FindIdentityWithRatelimits(ctx context.Context, db DBTX, arg FindIdentityWithRatelimitsParams) ([]FindIdentityWithRatelimitsRow, error)
 	//FindKeyAuthsByIds
 	//
 	//  SELECT ka.id as key_auth_id, a.id as api_id
@@ -1582,18 +1568,14 @@ type Querier interface {
 	//                 JSON_ARRAY()
 	//         )                    AS ratelimits
 	//  FROM `keys` k
-	//           JOIN key_auth ka ON ka.id = k.key_auth_id
-	//           JOIN workspaces ws ON ws.id = k.workspace_id
+	//           STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
 	//           LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
 	//           LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
 	//  WHERE k.key_auth_id = ?
 	//    AND k.id >= ?
-	//    AND (
-	//      ? = '' OR (i.external_id = ? OR i.id = ?)
-	//    )
+	//    AND (? IS NULL OR k.identity_id = ?)
 	//    AND k.deleted_at_m IS NULL
 	//    AND ka.deleted_at_m IS NULL
-	//    AND ws.deleted_at_m IS NULL
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)

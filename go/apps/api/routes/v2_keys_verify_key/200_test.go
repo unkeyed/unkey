@@ -270,7 +270,7 @@ func TestSuccess(t *testing.T) {
 			require.NotNil(t, res.Body)
 			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
 			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
-			require.Len(t, ptr.SafeDeref(res.Body.Data.Permissions), 1, "Key should be have a single permission attached")
+			require.Len(t, res.Body.Data.Permissions, 1, "Key should be have a single permission attached")
 		})
 
 		t.Run("with direct permission valid", func(t *testing.T) {
@@ -294,7 +294,7 @@ func TestSuccess(t *testing.T) {
 			require.NotNil(t, res.Body)
 			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
 			require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
-			require.Len(t, ptr.SafeDeref(res.Body.Data.Permissions), 1, "Key should be have a single permission attached")
+			require.Len(t, res.Body.Data.Permissions, 1, "Key should be have a single permission attached")
 		})
 
 		t.Run("missing permissions", func(t *testing.T) {
@@ -680,10 +680,10 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
 		require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
-		require.Len(t, ptr.SafeDeref(res.Body.Data.Roles), 1, "Key should have 1 role")
-		require.Len(t, ptr.SafeDeref(res.Body.Data.Permissions), 3, "Key should have 3 permissions")
-		require.EqualValues(t, openapi.Identity{Id: identity.ID, ExternalId: externalId, Meta: &meta, Ratelimits: nil}, ptr.SafeDeref(res.Body.Data.Identity))
-		require.Equal(t, keyName, ptr.SafeDeref(res.Body.Data.Name), "Key should have the same name")
+		require.Len(t, res.Body.Data.Roles, 1, "Key should have 1 role")
+		require.Len(t, res.Body.Data.Permissions, 3, "Key should have 3 permissions")
+		require.EqualValues(t, openapi.Identity{Id: identity.ID, ExternalId: externalId, Meta: meta, Ratelimits: nil}, ptr.SafeDeref(res.Body.Data.Identity))
+		require.Equal(t, keyName, res.Body.Data.Name, "Key should have the same name")
 	})
 
 	t.Run("root key with wrong api permissions", func(t *testing.T) {

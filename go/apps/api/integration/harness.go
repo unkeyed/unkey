@@ -149,6 +149,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			DatabasePrimary:         mysqlHostCfg.FormatDSN(),
 			DatabaseReadonlyReplica: "",
 			ClickhouseURL:           clickhouseHostDSN,
+			ClickhouseAnalyticsURL:  "",
 			RedisUrl:                redisHostAddr,
 			Region:                  "test",
 			InstanceID:              fmt.Sprintf("test-node-%d", i),

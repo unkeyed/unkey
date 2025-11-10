@@ -300,10 +300,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Id:          permission.ID,
 			Name:        permission.Name,
 			Slug:        permission.Slug,
-			Description: nil,
-		}
-		if permission.Description.Valid {
-			perm.Description = &permission.Description.String
+			Description: permission.Description.String,
 		}
 
 		responseData = append(responseData, perm)
@@ -314,11 +311,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Id:          permission.ID,
 			Name:        permission.Name,
 			Slug:        permission.Slug,
-			Description: nil,
-		}
-
-		if permission.Description.Valid {
-			perm.Description = &permission.Description.String
+			Description: permission.Description.String,
 		}
 
 		responseData = append(responseData, perm)

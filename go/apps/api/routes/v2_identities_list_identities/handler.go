@@ -131,20 +131,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Meta:       nil,
 		}
 
-		if len(formattedRatelimits) > 0 {
-			newIdentity.Ratelimits = ptr.P(formattedRatelimits)
-		}
+		newIdentity.Ratelimits = formattedRatelimits
 
 		// Add metadata if available
 		metaMap, err := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta)
+		newIdentity.Meta = metaMap
+
 		if err != nil {
 			h.Logger.Error("failed to unmarshal identity meta",
 				"identityId", identity.ID,
 				"error", err,
 			)
 			// Continue with empty meta
-		} else {
-			newIdentity.Meta = &metaMap
 		}
 
 		// Append the identity to the results

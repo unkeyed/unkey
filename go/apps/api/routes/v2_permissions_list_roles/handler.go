@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -98,38 +97,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		roleResponse := openapi.Role{
 			Id:          role.ID,
 			Name:        role.Name,
-			Description: nil,
+			Description: role.Description.String,
 			Permissions: nil,
 		}
 
-		if role.Description.Valid {
-			roleResponse.Description = &role.Description.String
+		perms, err := db.UnmarshalNullableJSONTo[[]db.Permission](role.Permissions)
+		if err != nil {
+			h.Logger.Error("Failed to unmarshal permissions", "error", err)
 		}
 
-		rolePermissions := make([]db.Permission, 0)
-		if permBytes, ok := role.Permissions.([]byte); ok && permBytes != nil {
-			//nolint:musttag
-			_ = json.Unmarshal(permBytes, &rolePermissions) // Ignore error, default to empty array
-		}
-		perms := make([]openapi.Permission, 0)
-
-		for _, perm := range rolePermissions {
+		for _, perm := range perms {
 			permission := openapi.Permission{
 				Id:          perm.ID,
 				Name:        perm.Name,
 				Slug:        perm.Slug,
-				Description: nil,
+				Description: perm.Description.String,
 			}
 
-			if perm.Description.Valid {
-				permission.Description = &perm.Description.String
-			}
-
-			perms = append(perms, permission)
-		}
-
-		if len(perms) > 0 {
-			roleResponse.Permissions = ptr.P(perms)
+			roleResponse.Permissions = append(roleResponse.Permissions, permission)
 		}
 
 		roleResponses = append(roleResponses, roleResponse)
