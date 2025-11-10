@@ -277,10 +277,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		rolePerms, err := db.UnmarshalNullableJSONTo[[]db.Permission](role.Permissions)
 		if err != nil {
-			h.Logger.Debug("failed to parse role permissions JSON, defaulting to empty list",
-				"roleId", role.ID,
-				"rawBytes", string(role.Permissions.([]byte)),
-				"error", err.Error())
+			h.Logger.Error("failed to unmarshal role permissions", "roleId", role.ID, "error", err)
 		}
 
 		for _, permission := range rolePerms {
