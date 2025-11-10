@@ -451,7 +451,11 @@ describe("RFC scenarios", () => {
         // Count all records from months that overlap with the query range
         const vMonthStart = toStartOfMonth(v.time);
 
-        if (v.identity_id !== identity.id || vMonthStart < startMonthStart || vMonthStart > endMonthStart) {
+        if (
+          v.identity_id !== identity.id ||
+          vMonthStart < startMonthStart ||
+          vMonthStart > endMonthStart
+        ) {
           return acc;
         }
 
