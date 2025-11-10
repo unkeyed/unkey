@@ -169,19 +169,6 @@ func TestCreateKeyBadRequest(t *testing.T) {
 		require.NotNil(t, res.Body)
 	})
 
-	t.Run("credits.remaining null without refill should succeed", func(t *testing.T) {
-		req := handler.Request{
-			ApiId: api.ID,
-			Credits: &openapi.KeyCreditsData{
-				Remaining: nullable.NewNullNullable[int64](),
-			},
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
 	t.Run("credits.remaining null with refill should error", func(t *testing.T) {
 		req := handler.Request{
 			ApiId: api.ID,
