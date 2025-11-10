@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import type { Point, PositionedNode, TreeLayoutProps, TreeNode } from "./types";
 
 export function TreeLayout<T extends TreeNode>({
@@ -237,7 +243,6 @@ function calculateDynamicTreeLayout<T extends TreeNode>(
       const maxHeightInLevel = Math.max(
         ...nodes.map((n) => {
           const size = nodeSizes.get(n.id);
-          console.log(`Node ${n.id} size:`, size); // DEBUG
           return size?.height || 100; // Fallback to 100 if not measured yet
         })
       );
@@ -259,12 +264,6 @@ function calculateDynamicTreeLayout<T extends TreeNode>(
 
       nodes.forEach((node) => {
         const size = nodeSizes.get(node.id) || { width: 100, height: 100 };
-        console.log(
-          `Positioning node ${node.id} at x=${
-            currentX + size.width / 2
-          }, width=${size.width}`
-        ); // DEBUG
-
         const position = {
           x: currentX + size.width / 2,
           y: levelYPositions[level],
@@ -313,58 +312,67 @@ function calculateDynamicTreeLayout<T extends TreeNode>(
 // AnimatedConnectionLine component
 
 type ConnectionLine = {
-  id: string;
   from: Point;
   to: Point;
 };
 
-export function AnimatedConnectionLine({ from, to, id }: ConnectionLine) {
+export function AnimatedConnectionLine({ from, to }: ConnectionLine) {
   const pathRef = useRef<SVGPathElement>(null);
-  const [pathLength, setPathLength] = useState(0);
+  const pathLengthRef = useRef<number>(0);
 
-  useEffect(() => {
-    if (pathRef.current) {
-      setPathLength(pathRef.current.getTotalLength());
-    }
-  }, [from, to]);
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
 
-  const isVertical = Math.abs(from.x - to.x) < 10;
   let pathD: string;
 
-  if (isVertical) {
+  // Use straight line if mostly vertical or too short for curves
+  if (Math.abs(dx) < 20 || dy < 100) {
     pathD = `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
   } else {
     const radius = 32;
-    const direction = to.x > from.x ? 1 : -1;
-    const verticalHeight = 36;
-    const y1 = from.y + verticalHeight;
-    const corner1CenterY = y1 + radius;
+    const midY = from.y + dy * 0.5;
+
+    // First vertical segment
+    const y1 = Math.min(midY - radius, from.y + dy - 64 - radius);
+
+    // Horizontal direction
+    const direction = dx > 0 ? 1 : -1;
+
+    // Control points for curves
+    const corner1Y = y1 + radius;
     const corner1X = from.x + radius * direction;
-    const horizontalEndX = to.x - radius * direction;
-    const corner2Y = to.y - (32 + radius);
+    const corner2X = to.x - radius * direction;
+    const corner2Y = to.y - radius;
+
     pathD = `
       M ${from.x} ${from.y}
       L ${from.x} ${y1}
-      Q ${from.x} ${corner1CenterY} ${corner1X} ${corner1CenterY}
-      L ${horizontalEndX} ${corner1CenterY}
-      Q ${to.x} ${corner1CenterY} ${to.x} ${corner2Y}
+      Q ${from.x} ${corner1Y} ${corner1X} ${corner1Y}
+      L ${corner2X} ${corner1Y}
+      Q ${to.x} ${corner1Y} ${to.x} ${corner2Y}
       L ${to.x} ${to.y}
     `
       .replace(/\s+/g, " ")
       .trim();
   }
 
-  const lightBandSize = 40; // pixels
+  const lightBandSize = 40;
+  const velocity = 100;
+
+  // Update pathLength in a ref after render, no re-render needed
+  useLayoutEffect(() => {
+    if (pathRef.current) {
+      pathLengthRef.current = pathRef.current.getTotalLength();
+    }
+  }, [pathD]);
+
+  const pathLength = pathLengthRef.current || 200; // fallback for SSR/first render
   const gapSize = pathLength - lightBandSize;
   const dashArray = `${lightBandSize} ${gapSize}`;
-
-  // Constant velocity
-  const velocity = 100; // px/s
   const duration = pathLength / velocity;
 
   return (
     <>
-      {/* Base line - dark */}
       <path
         ref={pathRef}
         d={pathD}
@@ -373,8 +381,6 @@ export function AnimatedConnectionLine({ from, to, id }: ConnectionLine) {
         fill="none"
         strokeLinecap="round"
       />
-
-      {/* Animated light band */}
       <path
         d={pathD}
         className="stroke-grayA-12"
