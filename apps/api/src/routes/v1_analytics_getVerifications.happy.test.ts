@@ -122,7 +122,8 @@ describe.each([
         const endDateOnly = new Date(Date.UTC(queryEndDate.getUTCFullYear(), queryEndDate.getUTCMonth(), queryEndDate.getUTCDate()));
 
         return bucketDate >= startDateOnly && bucketDate <= endDateOnly;
-      } else if (tc.granularity === "day") {
+      }
+      if (tc.granularity === "day") {
         // Get the bucket (day start) for this verification
         const vDate = new Date(v.time);
         const bucketDate = new Date(Date.UTC(vDate.getUTCFullYear(), vDate.getUTCMonth(), vDate.getUTCDate()));
