@@ -306,6 +306,7 @@
                   "api-reference/v1/migration/identities",
                   "api-reference/v1/migration/permissions",
                   "api-reference/v1/migration/ratelimiting",
+                  "api-reference/v1/migration/analytics",
                   "api-reference/v1/migration/errors"
                 ]
               }
