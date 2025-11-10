@@ -96,8 +96,13 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_PPROF_ENABLED"),
 		),
 		cli.String(
+			"pprof-username",
+			"Username for pprof Basic Auth. Optional - if username and password are not set, pprof will be accessible without authentication.",
+			cli.EnvVar("UNKEY_PPROF_USERNAME"),
+		),
+		cli.String(
 			"pprof-password",
-			"Password for pprof endpoints. Optional - if not set, pprof will be accessible without authentication. Use username 'pprof' with this password via Basic Auth.",
+			"Password for pprof Basic Auth. Optional - if username and password are not set, pprof will be accessible without authentication.",
 			cli.EnvVar("UNKEY_PPROF_PASSWORD"),
 		),
 
@@ -185,6 +190,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Profiling configuration
 		PprofEnabled:  cmd.Bool("pprof-enabled"),
+		PprofUsername: cmd.String("pprof-username"),
 		PprofPassword: cmd.String("pprof-password"),
 
 		// Request body configuration

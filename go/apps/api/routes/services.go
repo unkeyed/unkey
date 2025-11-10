@@ -26,6 +26,7 @@ type Services struct {
 	Vault                      *vault.Service
 	ChproxyToken               string
 	PprofEnabled               bool
+	PprofUsername              string
 	PprofPassword              string
 	UsageLimiter               usagelimiter.Service
 	AnalyticsConnectionManager analytics.ConnectionManager

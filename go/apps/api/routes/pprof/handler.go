@@ -11,14 +11,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-const (
-	// pprofUsername is the fixed username for Basic Auth
-	pprofUsername = "pprof"
-)
-
 // Handler handles pprof profiling endpoints
 type Handler struct {
 	Logger   logging.Logger
+	Username string
 	Password string
 }
 
@@ -34,8 +30,8 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request and delegates to pprof handlers
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	// Only require authentication if a password is configured
-	if h.Password != "" {
+	// Only require authentication if username and password are configured
+	if h.Username != "" && h.Password != "" {
 		username, password, ok := s.Request().BasicAuth()
 		if !ok {
 			s.ResponseWriter().Header().Set("WWW-Authenticate", `Basic realm="pprof"`)
@@ -45,7 +41,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// Check username and password with constant-time comparison
-		usernameMatch := subtle.ConstantTimeCompare([]byte(username), []byte(pprofUsername)) == 1
+		usernameMatch := subtle.ConstantTimeCompare([]byte(username), []byte(h.Username)) == 1
 		passwordMatch := subtle.ConstantTimeCompare([]byte(password), []byte(h.Password)) == 1
 
 		if !usernameMatch || !passwordMatch {

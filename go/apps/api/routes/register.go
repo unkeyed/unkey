@@ -128,6 +128,7 @@ func Register(srv *zen.Server, svc *Services) {
 
 		srv.RegisterRoute(pprofMiddlewares, &pprofRoute.Handler{
 			Logger:   svc.Logger,
+			Username: svc.PprofUsername,
 			Password: svc.PprofPassword,
 		})
 	}

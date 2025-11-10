@@ -103,9 +103,12 @@ type Config struct {
 	// PprofEnabled controls whether the pprof profiling endpoints are available
 	PprofEnabled bool
 
-	// PprofPassword is the optional password for pprof endpoints (username is fixed as "pprof")
-	// If empty, pprof endpoints will be accessible without authentication
-	// If set, requests must authenticate via HTTP Basic Auth with username "pprof" and this password
+	// PprofUsername is the username for pprof Basic Auth
+	// If empty along with PprofPassword, pprof endpoints will be accessible without authentication
+	PprofUsername string
+
+	// PprofPassword is the password for pprof Basic Auth
+	// If empty along with PprofUsername, pprof endpoints will be accessible without authentication
 	PprofPassword string
 
 	// MaxRequestBodySize sets the maximum allowed request body size in bytes.
