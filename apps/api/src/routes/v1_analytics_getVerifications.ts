@@ -222,24 +222,24 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
 
     const tables = {
       hour: {
-        name: "verifications.key_verifications_per_hour_v3",
+        name: "default.key_verifications_per_hour_v2",
         fill: `WITH FILL
 FROM toStartOfHour(fromUnixTimestamp64Milli({ start: Int64 }))
 TO toStartOfHour(fromUnixTimestamp64Milli({ end: Int64 }))
 STEP INTERVAL 1 HOUR`,
       },
       day: {
-        name: "verifications.key_verifications_per_day_v3",
+        name: "default.key_verifications_per_day_v2",
         fill: `WITH FILL
-FROM toStartOfDay(fromUnixTimestamp64Milli({ start: Int64 }))
-TO toStartOfDay(fromUnixTimestamp64Milli({ end: Int64 }))
+FROM toDate(toStartOfDay(fromUnixTimestamp64Milli({ start: Int64 })))
+TO toDate(toStartOfDay(fromUnixTimestamp64Milli({ end: Int64 })))
 STEP INTERVAL 1 DAY`,
       },
       month: {
-        name: "verifications.key_verifications_per_month_v3",
+        name: "default.key_verifications_per_month_v2",
         fill: `WITH FILL
-FROM toDateTime(toStartOfMonth(fromUnixTimestamp64Milli({ start: Int64 })))
-TO toDateTime(toStartOfMonth(fromUnixTimestamp64Milli({ end: Int64 })))
+FROM toDate(toStartOfMonth(fromUnixTimestamp64Milli({ start: Int64 })))
+TO toDate(toStartOfMonth(fromUnixTimestamp64Milli({ end: Int64 })))
 STEP INTERVAL 1 MONTH`,
       },
     } as const;
@@ -389,8 +389,16 @@ STEP INTERVAL 1 MONTH`,
     if (filteredKeyIds && filteredKeyIds.length > 0) {
       where.push("AND key_id IN {keyIds:Array(String)}");
     }
-    where.push("AND time >= fromUnixTimestamp64Milli({start:Int64})");
-    where.push("AND time <= fromUnixTimestamp64Milli({end:Int64})");
+
+    // For month and day tables, the time column is Date not DateTime
+    // Convert the timestamp to Date for proper comparison
+    if (table === tables.month || table === tables.day) {
+      where.push("AND time >= toDate(fromUnixTimestamp64Milli({start:Int64}))");
+      where.push("AND time <= toDate(fromUnixTimestamp64Milli({end:Int64}))");
+    } else {
+      where.push("AND time >= fromUnixTimestamp64Milli({start:Int64})");
+      where.push("AND time <= fromUnixTimestamp64Milli({end:Int64})");
+    }
 
     const query: string[] = [];
     query.push(`SELECT ${[...new Set(select)].join(", ")}`);

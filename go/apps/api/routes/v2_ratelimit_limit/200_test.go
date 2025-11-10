@@ -127,13 +127,13 @@ func TestLimitSuccessfully(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %v", res.Body)
 
-		row := schema.RatelimitRequestV1{}
+		row := schema.RatelimitV2{}
 		require.Eventually(t, func() bool {
 
-			data, err := clickhouse.Select[schema.RatelimitRequestV1](
+			data, err := clickhouse.Select[schema.RatelimitV2](
 				ctx,
 				h.ClickHouse.Conn(),
-				"SELECT * FROM ratelimits.raw_ratelimits_v1 WHERE workspace_id = {workspace_id:String} AND namespace_id = {namespace_id:String}",
+				"SELECT * FROM default.ratelimits_raw_v2 WHERE workspace_id = {workspace_id:String} AND namespace_id = {namespace_id:String}",
 				map[string]string{
 					"workspace_id": h.Resources().UserWorkspace.ID,
 					"namespace_id": namespaceID,
