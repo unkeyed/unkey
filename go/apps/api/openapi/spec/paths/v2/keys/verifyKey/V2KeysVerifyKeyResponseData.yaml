@@ -58,7 +58,7 @@ properties:
     format: int64
     description: |
       Unix timestamp (in milliseconds) when the key will expire.
-      If null or not present, the key has no expiration. You can use this to
+      If omitted, the key has no expiration. You can use this to
       warn users about upcoming expirations or to understand the validity period.
     x-go-type-skip-optional-pointer: true
     x-go-type-skip-optional-pointer-with-omitzero: true
@@ -66,8 +66,8 @@ properties:
     type: integer
     format: int32
     description: |
-      The number of requests/credits remaining for this key. If null
-      or not present, the key has unlimited usage. This value decreases with
+      The number of requests/credits remaining for this key. If omitted,
+      the key has unlimited usage. This value decreases with
       each verification (based on the 'cost' parameter) unless explicit credit
       refills are configured.
   enabled:
