@@ -556,6 +556,7 @@ func TestSuccess(t *testing.T) {
 			}
 
 			require.NotEmpty(t, key.Plaintext, "Key should be decrypted and have plaintext")
+			require.Equal(t, expectedPlaintext, key.Plaintext, "Key should be decrypted and have correct plaintext")
 		}
 	})
 }
