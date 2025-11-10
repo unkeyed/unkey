@@ -407,10 +407,7 @@ describe("RFC scenarios", () => {
 
     const root = await h.createRootKey(["api.*.read_api"]);
 
-    const startDate = new Date(now);
-    startDate.setMonth(startDate.getMonth() - 1, 1);
-    startDate.setHours(0, 0, 0, 0);
-    const start = startDate.getTime();
+    const start = new Date(now).setMonth(new Date(now).getMonth() - 1, 1);
     const end = now;
 
     const res = await h.get<V1AnalyticsGetVerificationsResponse>({
@@ -429,33 +426,34 @@ describe("RFC scenarios", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    // Could be up to 3 months: if data exists from 90 days ago and we query from
-    // "start of last month", we might span 3 calendar months
-    expect(res.body.length).lte(3);
+    expect(res.body.length).lte(2);
     expect(res.body.length).gte(1);
-    // Helper to normalize timestamp to start of month for comparison
-    const toStartOfMonth = (timestamp: number) => {
-      const d = new Date(timestamp);
-      d.setUTCDate(1);
-      d.setUTCHours(0, 0, 0, 0);
-      return d.getTime();
-    };
 
-    const startMonthStart = toStartOfMonth(start);
-    const endMonthStart = toStartOfMonth(end);
+    // With Date columns, the API compares Date('start') to Date(bucket)
+    // This includes all months where Date(month_start) falls between Date(start) and Date(end)
+    const startDate = new Date(start);
+    const endDate = new Date(end);
 
     let total = 0;
     const outcomes = verifications.reduce(
       (acc, v) => {
-        // Monthly aggregation returns complete calendar months
-        // Count all records from months that overlap with the query range
-        const vMonthStart = toStartOfMonth(v.time);
+        if (v.identity_id !== identity.id) {
+          return acc;
+        }
 
-        if (
-          v.identity_id !== identity.id ||
-          vMonthStart < startMonthStart ||
-          vMonthStart > endMonthStart
-        ) {
+        // Check if verification date (as Date, no time) falls within range
+        const vDate = new Date(v.time);
+        const vDateOnly = new Date(
+          Date.UTC(vDate.getUTCFullYear(), vDate.getUTCMonth(), vDate.getUTCDate()),
+        );
+        const startDateOnly = new Date(
+          Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()),
+        );
+        const endDateOnly = new Date(
+          Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate()),
+        );
+
+        if (vDateOnly < startDateOnly || vDateOnly > endDateOnly) {
           return acc;
         }
 
