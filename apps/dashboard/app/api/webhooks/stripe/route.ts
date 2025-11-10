@@ -51,8 +51,8 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK", { status: 200 });
         }
 
-        // Store the previous tier for upgrade/downgrade detection
-        const previousTier = ws.tier;
+        // Get previous subscription information from Stripe webhook
+        const previousAttributes = event.data.previous_attributes;
 
         // Get the current subscription item and product
         if (!sub.items?.data?.[0]?.price?.id || !sub.customer) {
@@ -97,17 +97,44 @@ export const POST = async (req: Request): Promise<Response> => {
           })
           .where(eq(schema.workspaces.id, ws.id));
 
-        // Determine if this is an upgrade or downgrade
-        const tierHierarchy = ["Free", "Pro", "Pro Max", "Enterprise"];
-        const previousTierIndex = tierHierarchy.indexOf(previousTier);
-        const newTierIndex = tierHierarchy.indexOf(product.name);
-
+        // Determine if this is an upgrade or downgrade using Stripe's previous_attributes
         let changeType = "updated";
-        if (previousTierIndex !== -1 && newTierIndex !== -1) {
-          if (newTierIndex > previousTierIndex) {
-            changeType = "upgraded";
-          } else if (newTierIndex < previousTierIndex) {
-            changeType = "downgraded";
+        let previousTier: string | undefined;
+
+        if (previousAttributes?.items?.data?.[0]?.price?.id) {
+          try {
+            const previousPrice = await stripe.prices.retrieve(
+              previousAttributes.items.data[0].price.id,
+            );
+
+            if (previousPrice.product) {
+              const previousProduct = await stripe.products.retrieve(
+                typeof previousPrice.product === "string"
+                  ? previousPrice.product
+                  : previousPrice.product.id,
+              );
+
+              previousTier = previousProduct.name;
+
+              // Compare tiers to determine upgrade/downgrade
+              const tierHierarchy = ["Free", "Pro", "Pro Max", "Enterprise"];
+              const previousTierIndex = tierHierarchy.indexOf(previousTier);
+              const newTierIndex = tierHierarchy.indexOf(product.name);
+
+              if (
+                previousTierIndex !== -1 &&
+                newTierIndex !== -1 &&
+                previousTier !== product.name
+              ) {
+                if (newTierIndex > previousTierIndex) {
+                  changeType = "upgraded";
+                } else if (newTierIndex < previousTierIndex) {
+                  changeType = "downgraded";
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error retrieving previous subscription details:", error);
           }
         }
 
