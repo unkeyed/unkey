@@ -1453,8 +1453,8 @@ type V2KeysVerifyKeyResponseData struct {
 	// `EXPIRED` (key has passed its expiration date).
 	Code V2KeysVerifyKeyResponseDataCode `json:"code"`
 
-	// Credits The number of requests/credits remaining for this key. If null
-	// or not present, the key has unlimited usage. This value decreases with
+	// Credits The number of requests/credits remaining for this key. If omitted,
+	// the key has unlimited usage. This value decreases with
 	// each verification (based on the 'cost' parameter) unless explicit credit
 	// refills are configured.
 	Credits *int32 `json:"credits,omitempty"`
@@ -1465,7 +1465,7 @@ type V2KeysVerifyKeyResponseData struct {
 	Enabled *bool `json:"enabled,omitempty"`
 
 	// Expires Unix timestamp (in milliseconds) when the key will expire.
-	// If null or not present, the key has no expiration. You can use this to
+	// If omitted, the key has no expiration. You can use this to
 	// warn users about upcoming expirations or to understand the validity period.
 	Expires  int64     `json:"expires,omitempty"`
 	Identity *Identity `json:"identity,omitempty"`
