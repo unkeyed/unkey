@@ -107,7 +107,7 @@ export const POST = async (req: Request): Promise<Response> => {
               previousAttributes.items.data[0].price.id,
             );
 
-            if (previousPrice.product) {
+            if (previousPrice.product && previousPrice.unit_amount !== null) {
               const previousProduct = await stripe.products.retrieve(
                 typeof previousPrice.product === "string"
                   ? previousPrice.product
@@ -116,19 +116,14 @@ export const POST = async (req: Request): Promise<Response> => {
 
               previousTier = previousProduct.name;
 
-              // Compare tiers to determine upgrade/downgrade
-              const tierHierarchy = ["Free", "Pro", "Pro Max", "Enterprise"];
-              const previousTierIndex = tierHierarchy.indexOf(previousTier);
-              const newTierIndex = tierHierarchy.indexOf(product.name);
+              // Compare amounts to determine upgrade/downgrade
+              const currentAmount = price.unit_amount;
+              const previousAmount = previousPrice.unit_amount;
 
-              if (
-                previousTierIndex !== -1 &&
-                newTierIndex !== -1 &&
-                previousTier !== product.name
-              ) {
-                if (newTierIndex > previousTierIndex) {
+              if (currentAmount !== previousAmount && previousAmount !== null) {
+                if (currentAmount > previousAmount) {
                   changeType = "upgraded";
-                } else if (newTierIndex < previousTierIndex) {
+                } else if (currentAmount < previousAmount) {
                   changeType = "downgraded";
                 }
               }
