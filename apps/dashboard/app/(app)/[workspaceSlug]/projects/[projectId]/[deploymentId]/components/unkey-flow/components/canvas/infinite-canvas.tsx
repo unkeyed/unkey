@@ -19,13 +19,9 @@ type InfiniteCanvasProps = {
   showGrid?: boolean;
   onViewChange?: (state: CanvasState) => void;
   children: React.ReactNode;
+  overlay?: React.ReactNode;
 };
 
-/**
- * Infinite canvas with pan and zoom controls.
- * Provides SVG coordinate system for child elements.
- */
-// infinite-canvas.tsx
 export function InfiniteCanvas({
   minZoom = 0.5,
   maxZoom = 3,
@@ -33,10 +29,11 @@ export function InfiniteCanvas({
   zoomSpeed = 0.001,
   gridSize = 25,
   dotRadius = 1.5,
-  dotClassName = "fill-grayA-5 ",
+  dotClassName = "fill-grayA-5",
   showGrid = true,
   onViewChange,
   children,
+  overlay,
 }: InfiniteCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [canvas, setCanvas] = useState<CanvasState>({
@@ -156,27 +153,36 @@ export function InfiniteCanvas({
   }, []);
 
   return (
-    <svg
-      ref={svgRef}
-      className="w-full h-full cursor-grab active:cursor-grabbing dark:bg-black bg-gray-1"
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onWheel={handleWheel}
-    >
-      <g
-        transform={`translate(${canvas.offset.x}, ${canvas.offset.y}) scale(${canvas.scale})`}
+    <div className="relative w-full h-full">
+      <svg
+        ref={svgRef}
+        className="w-full h-full cursor-grab active:cursor-grabbing dark:bg-black bg-gray-1"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
       >
-        {showGrid && (
-          <GridPattern
-            gridSize={gridSize}
-            dotRadius={dotRadius}
-            dotClassName={dotClassName}
-          />
-        )}
-        {children}
-      </g>
-    </svg>
+        <g
+          transform={`translate(${canvas.offset.x}, ${canvas.offset.y}) scale(${canvas.scale})`}
+        >
+          {showGrid && (
+            <GridPattern
+              gridSize={gridSize}
+              dotRadius={dotRadius}
+              dotClassName={dotClassName}
+            />
+          )}
+          {children}
+        </g>
+      </svg>
+
+      {/* Fixed overlay layer  */}
+      {overlay && (
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="pointer-events-auto">{overlay}</div>
+        </div>
+      )}
+    </div>
   );
 }

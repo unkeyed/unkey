@@ -227,7 +227,27 @@ const deploymentTree: TreeNode = {
 
 export default function DeploymentDetailsPage() {
   return (
-    <InfiniteCanvas>
+    <InfiniteCanvas
+      overlay={
+        <div className="flex flex-col gap-4 p-4">
+          <div className="bg-white dark:bg-gray-9 border border-gray-3 dark:border-gray-7 rounded-lg p-4 shadow-lg w-[300px]">
+            <h3 className="text-lg font-semibold mb-2">System Stats</h3>
+            <p className="text-sm text-gray-6 dark:text-gray-4">
+              Total Instances: 80
+            </p>
+            <p className="text-sm text-gray-6 dark:text-gray-4">
+              Avg Latency: 4.2ms
+            </p>
+          </div>
+
+          <div className="bg-success-5 dark:bg-success-9 border border-success-3 dark:border-success-7 rounded-lg p-3 w-[200px]">
+            <p className="text-sm font-medium text-success-8 dark:text-success-2">
+              All systems operational
+            </p>
+          </div>
+        </div>
+      }
+    >
       <TreeLayout
         data={deploymentTree}
         nodeSpacing={{ x: 25, y: 130 }}
@@ -253,26 +273,6 @@ export default function DeploymentDetailsPage() {
           );
         }}
       />
-
-      <foreignObject x={-400} y={-200} width={300} height={150}>
-        <div className="bg-white dark:bg-gray-9 border border-gray-3 dark:border-gray-7 rounded-lg p-4 shadow-lg">
-          <h3 className="text-lg font-semibold mb-2">System Stats</h3>
-          <p className="text-sm text-gray-6 dark:text-gray-4">
-            Total Instances: 80
-          </p>
-          <p className="text-sm text-gray-6 dark:text-gray-4">
-            Avg Latency: 4.2ms
-          </p>
-        </div>
-      </foreignObject>
-
-      <foreignObject x={600} y={-100} width={200} height={100}>
-        <div className="bg-success-5 dark:bg-success-9 border border-success-3 dark:border-success-7 rounded-lg p-3">
-          <p className="text-sm font-medium text-success-8 dark:text-success-2">
-            All systems operational
-          </p>
-        </div>
-      </foreignObject>
     </InfiniteCanvas>
   );
 }
