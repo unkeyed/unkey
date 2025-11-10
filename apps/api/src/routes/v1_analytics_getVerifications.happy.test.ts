@@ -71,7 +71,7 @@ describe.each([
     const insert = await h.ch.verifications.insert(verifications);
     expect(insert.err).toEqual(undefined);
 
-    await new Promise((r) => setTimeout(r, 10000));
+    await new Promise((r) => setTimeout(r, 60000));
 
     const inserted = await h.ch.querier.query({
       query:
