@@ -85,7 +85,7 @@ export const POST = async (req: Request): Promise<Response> => {
          */
         if (sub.cancel_at) {
           if (customer && !customer.deleted && customer.email) {
-            const formattedPrice = formatPrice(price.unit_amount!);
+            const formattedPrice = formatPrice(price.unit_amount);
             await alertIsCancellingSubscription(
               product.name,
               formattedPrice,
