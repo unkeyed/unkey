@@ -166,10 +166,10 @@ type Identity struct {
 	Id string `json:"id"`
 
 	// Meta Identity metadata
-	Meta *map[string]interface{} `json:"meta,omitempty"`
+	Meta map[string]interface{} `json:"meta,omitempty"`
 
 	// Ratelimits Identity ratelimits
-	Ratelimits *[]RatelimitResponse `json:"ratelimits,omitempty"`
+	Ratelimits []RatelimitResponse `json:"ratelimits,omitempty"`
 }
 
 // InternalServerErrorResponse Error response when an unexpected error occurs on the server. This indicates a problem with Unkey's systems rather than your request.
@@ -206,7 +206,7 @@ type KeyCreditsRefill struct {
 	// RefillDay Day of the month for monthly refills (1-31).
 	// Only required when interval is 'monthly'.
 	// For days beyond the month's length, refill occurs on the last day of the month.
-	RefillDay *int `json:"refillDay,omitempty"`
+	RefillDay int `json:"refillDay,omitempty"`
 }
 
 // KeyCreditsRefillInterval How often credits are automatically refilled.
@@ -224,29 +224,29 @@ type KeyResponseData struct {
 	Enabled bool `json:"enabled"`
 
 	// Expires Unix timestamp in milliseconds when key expires (if set).
-	Expires  *int64    `json:"expires,omitempty"`
+	Expires  int64     `json:"expires,omitempty"`
 	Identity *Identity `json:"identity,omitempty"`
 
 	// KeyId Unique identifier for this key.
 	KeyId string `json:"keyId"`
 
 	// Meta Custom metadata associated with this key.
-	Meta *map[string]interface{} `json:"meta,omitempty"`
+	Meta map[string]interface{} `json:"meta,omitempty"`
 
 	// Name Human-readable name for this key.
-	Name        *string   `json:"name,omitempty"`
-	Permissions *[]string `json:"permissions,omitempty"`
+	Name        string   `json:"name,omitempty"`
+	Permissions []string `json:"permissions,omitempty"`
 
 	// Plaintext Decrypted key value (only when decrypt=true).
-	Plaintext  *string              `json:"plaintext,omitempty"`
-	Ratelimits *[]RatelimitResponse `json:"ratelimits,omitempty"`
-	Roles      *[]string            `json:"roles,omitempty"`
+	Plaintext  string              `json:"plaintext,omitempty"`
+	Ratelimits []RatelimitResponse `json:"ratelimits,omitempty"`
+	Roles      []string            `json:"roles,omitempty"`
 
 	// Start First few characters of the key for identification.
 	Start string `json:"start"`
 
 	// UpdatedAt Unix timestamp in milliseconds when key was last updated.
-	UpdatedAt *int64 `json:"updatedAt,omitempty"`
+	UpdatedAt int64 `json:"updatedAt,omitempty"`
 }
 
 // KeysVerifyKeyCredits Controls credit consumption for usage-based billing and quota enforcement.
@@ -314,7 +314,7 @@ type Permission struct {
 	// Helps team members understand the scope and implications of granting this permission.
 	// Include information about what resources can be accessed and what actions can be performed.
 	// Not visible to end users - this is for internal documentation and team clarity.
-	Description *string `json:"description,omitempty"`
+	Description string `json:"description,omitempty"`
 
 	// Id The unique identifier for this permission within Unkey's system.
 	// Generated automatically when the permission is created and used to reference this permission in API operations.
@@ -440,7 +440,7 @@ type Role struct {
 	// Helps team members understand the role's scope, intended use cases, and security implications.
 	// Include information about what types of users should receive this role and what they can accomplish.
 	// Not visible to end users - this is for internal documentation and access control audits.
-	Description *string `json:"description,omitempty"`
+	Description string `json:"description,omitempty"`
 
 	// Id The unique identifier for this role within Unkey's system.
 	// Generated automatically when the role is created and used to reference this role in API operations.
@@ -458,7 +458,7 @@ type Role struct {
 	// Use this list to understand the full scope of access provided by this role.
 	// Permissions can be added or removed from roles without affecting the role's identity or other properties.
 	// Empty array indicates a role with no permissions currently assigned.
-	Permissions *[]Permission `json:"permissions,omitempty"`
+	Permissions []Permission `json:"permissions,omitempty"`
 }
 
 // ServiceUnavailableErrorResponse Error response when a required service is temporarily unavailable. This indicates that the service exists but cannot be reached or is not responding.
@@ -1467,37 +1467,37 @@ type V2KeysVerifyKeyResponseData struct {
 	// Expires Unix timestamp (in milliseconds) when the key will expire.
 	// If null or not present, the key has no expiration. You can use this to
 	// warn users about upcoming expirations or to understand the validity period.
-	Expires  *int64    `json:"expires,omitempty"`
+	Expires  int64     `json:"expires,omitempty"`
 	Identity *Identity `json:"identity,omitempty"`
 
 	// KeyId The unique identifier of the verified key in Unkey's system.
 	// Use this ID for operations like updating or revoking the key. This field
 	// is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
-	KeyId *string `json:"keyId,omitempty"`
+	KeyId string `json:"keyId,omitempty"`
 
 	// Meta Custom metadata associated with the key. This can include any
 	// JSON-serializable data you stored with the key during creation or updates,
 	// such as plan information, feature flags, or user details. Use this to
 	// avoid additional database lookups for contextual information needed during
 	// API calls.
-	Meta *map[string]interface{} `json:"meta,omitempty"`
+	Meta map[string]interface{} `json:"meta,omitempty"`
 
 	// Name The human-readable name assigned to this key during creation.
 	// This is useful for displaying in logs or admin interfaces to identify
 	// the key's purpose.
-	Name *string `json:"name,omitempty"`
+	Name string `json:"name,omitempty"`
 
 	// Permissions A list of all permission names assigned to this key, either
 	// directly or through roles. These permissions determine what actions the
 	// key can perform. Only returned when permissions were checked during verification
 	// or when the key fails with `code=FORBIDDEN`.
-	Permissions *[]string                 `json:"permissions,omitempty"`
-	Ratelimits  *[]VerifyKeyRatelimitData `json:"ratelimits,omitempty"`
+	Permissions []string                 `json:"permissions,omitempty"`
+	Ratelimits  []VerifyKeyRatelimitData `json:"ratelimits,omitempty"`
 
 	// Roles A list of all role names assigned to this key. Roles are collections
 	// of permissions that grant access to specific functionality. Only returned
 	// when permissions were checked during verification.
-	Roles *[]string `json:"roles,omitempty"`
+	Roles []string `json:"roles,omitempty"`
 
 	// Valid The primary verification result. If true, the key is valid
 	// and can be used. If false, check the 'code' field to understand why verification
@@ -1897,7 +1897,7 @@ type V2RatelimitLimitResponseData struct {
 	// - Debugging which override rule was matched
 	// - Tracking the effects of specific overrides
 	// - Understanding why limits differ from default values
-	OverrideId *string `json:"overrideId,omitempty"`
+	OverrideId string `json:"overrideId,omitempty"`
 
 	// Remaining The number of operations remaining in the current window before the rate limit is exceeded. Applications should use this value to:
 	//

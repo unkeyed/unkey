@@ -365,7 +365,7 @@ func TestSuccess(t *testing.T) {
 		var foundProductionKey bool
 		for _, key := range res.Body.Data {
 			if key.Meta != nil {
-				meta := *key.Meta
+				meta := key.Meta
 				if env, exists := meta["env"]; exists && env == "production" {
 					require.Equal(t, "backend", meta["team"])
 					foundProductionKey = true
@@ -398,7 +398,7 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, key.Identity.Meta)
 
 		// Verify identity metadata
-		identityMeta := *key.Identity.Meta
+		identityMeta := key.Identity.Meta
 		require.Equal(t, "admin", identityMeta["role"])
 	})
 
@@ -483,7 +483,7 @@ func TestSuccess(t *testing.T) {
 
 		for _, key := range res.Body.Data {
 			// Verify that plaintext key is not exposed unless explicitly requested
-			require.Nil(t, key.Plaintext)
+			require.Empty(t, key.Plaintext)
 
 			// Only start prefix should be shown - allow reasonable prefix lengths
 			require.NotEmpty(t, key.Start)
@@ -566,9 +566,9 @@ func TestSuccess(t *testing.T) {
 			case keyWithRatelimits:
 				foundKeyWithRatelimits = true
 				require.NotNil(t, key.Ratelimits, "Key with ratelimits should have ratelimits field")
-				require.Len(t, *key.Ratelimits, 1, "Should have exactly 1 ratelimit")
+				require.Len(t, key.Ratelimits, 1, "Should have exactly 1 ratelimit")
 
-				ratelimit := (*key.Ratelimits)[0]
+				ratelimit := key.Ratelimits[0]
 				require.Equal(t, "requests", ratelimit.Name)
 				require.Equal(t, int64(100), ratelimit.Limit)
 				require.Equal(t, int64(60000), ratelimit.Duration)
@@ -578,7 +578,7 @@ func TestSuccess(t *testing.T) {
 				foundKeyWithoutRatelimits = true
 				// Key without ratelimits should have nil or empty ratelimits array
 				if key.Ratelimits != nil {
-					require.Len(t, *key.Ratelimits, 0, "Key without ratelimits should have empty ratelimits array")
+					require.Len(t, key.Ratelimits, 0, "Key without ratelimits should have empty ratelimits array")
 				}
 				// Both nil and empty array are acceptable
 			}
@@ -609,7 +609,7 @@ func TestSuccess(t *testing.T) {
 				continue
 			}
 
-			require.NotEmpty(t, ptr.SafeDeref(key.Plaintext), "Key should be decrypted and have plaintext")
+			require.NotEmpty(t, key.Plaintext, "Key should be decrypted and have plaintext")
 		}
 	})
 }

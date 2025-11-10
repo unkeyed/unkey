@@ -79,7 +79,7 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, permissionID, permission.Id)
 		require.Equal(t, permissionName, permission.Name)
 		require.NotNil(t, permission.Description)
-		require.Equal(t, permissionDesc, *permission.Description)
+		require.Equal(t, permissionDesc, permission.Description)
 	})
 
 	t.Run("get permission with all fields by slug", func(t *testing.T) {
@@ -100,7 +100,7 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, permissionID, permission.Id)
 		require.Equal(t, permissionName, permission.Name)
 		require.NotNil(t, permission.Description)
-		require.Equal(t, permissionDesc, *permission.Description)
+		require.Equal(t, permissionDesc, permission.Description)
 	})
 
 	// Test case for getting a permission without description
@@ -139,6 +139,6 @@ func TestSuccess(t *testing.T) {
 		permission := res.Body.Data
 		require.Equal(t, permissionID, permission.Id)
 		require.Equal(t, permissionName, permission.Name)
-		require.Nil(t, permission.Description)
+		require.Empty(t, permission.Description)
 	})
 }

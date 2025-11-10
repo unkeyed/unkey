@@ -396,13 +396,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	identityData := openapi.Identity{
 		Id:         result.identity.ID,
 		ExternalId: result.identity.ExternalID,
-		Meta:       req.Meta,
+		Meta:       ptr.SafeDeref(req.Meta),
 		Ratelimits: nil,
 	}
 
-	if len(result.finalRatelimits) > 0 {
-		identityData.Ratelimits = ptr.P(result.finalRatelimits)
-	}
+	identityData.Ratelimits = result.finalRatelimits
 
 	response := Response{
 		Meta: openapi.Meta{

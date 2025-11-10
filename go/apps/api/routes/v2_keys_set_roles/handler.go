@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -16,7 +15,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -273,45 +271,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		r := openapi.Role{
 			Id:          role.ID,
 			Name:        role.Name,
-			Description: nil,
+			Description: role.Description.String,
 			Permissions: nil,
 		}
 
-		if role.Description.Valid {
-			r.Description = &role.Description.String
+		rolePerms, err := db.UnmarshalNullableJSONTo[[]db.Permission](role.Permissions)
+		if err != nil {
+			h.Logger.Debug("failed to parse role permissions JSON, defaulting to empty list",
+				"roleId", role.ID,
+				"rawBytes", string(role.Permissions.([]byte)),
+				"error", err.Error())
 		}
 
-		rolePermissions := make([]db.Permission, 0)
-		if permBytes, ok := role.Permissions.([]byte); ok && permBytes != nil {
-			// AIDEV-SAFETY: On JSON parse failure, we default to empty permissions list
-			// to maintain least-privilege security posture rather than failing open
-			// nolint: musttag
-			if err := json.Unmarshal(permBytes, &rolePermissions); err != nil {
-				h.Logger.Debug("failed to parse role permissions JSON, defaulting to empty list",
-					"roleId", role.ID,
-					"rawBytes", string(permBytes),
-					"error", err.Error())
-			}
-		}
-
-		perms := make([]openapi.Permission, 0)
-		for _, permission := range rolePermissions {
+		for _, permission := range rolePerms {
 			perm := openapi.Permission{
 				Id:          permission.ID,
 				Name:        permission.Name,
 				Slug:        permission.Slug,
-				Description: nil,
+				Description: permission.Description.String,
 			}
 
-			if permission.Description.Valid {
-				perm.Description = &permission.Description.String
-			}
-
-			perms = append(perms, perm)
-		}
-
-		if len(perms) > 0 {
-			r.Permissions = ptr.P(perms)
+			r.Permissions = append(r.Permissions, perm)
 		}
 
 		responseData = append(responseData, r)
