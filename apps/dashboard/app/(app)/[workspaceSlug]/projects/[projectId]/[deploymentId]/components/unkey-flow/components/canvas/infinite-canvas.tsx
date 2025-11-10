@@ -3,6 +3,16 @@ import { useRef, useState, useCallback, useEffect } from "react";
 import type { Point } from "../../types";
 import { GridPattern } from "./grid-pattern";
 
+const DEFAULT_MIN_ZOOM = 0.5;
+const DEFAULT_MAX_ZOOM = 3;
+const DEFAULT_ZOOM = 0.75;
+const DEFAULT_ZOOM_SPEED = 0.002;
+const DEFAULT_GRID_SIZE = 25;
+const DEFAULT_DOT_RADIUS = 1.5;
+const DEFAULT_DOT_CLASS = "fill-grayA-5";
+const INITIAL_SCALE = 1;
+const PRIMARY_MOUSE_BUTTON = 0;
+
 type CanvasState = {
   scale: number;
   offset: Point;
@@ -23,13 +33,13 @@ type InfiniteCanvasProps = {
 };
 
 export function InfiniteCanvas({
-  minZoom = 0.5,
-  maxZoom = 3,
-  defaultZoom = 0.75,
-  zoomSpeed = 0.001,
-  gridSize = 25,
-  dotRadius = 1.5,
-  dotClassName = "fill-grayA-5",
+  minZoom = DEFAULT_MIN_ZOOM,
+  maxZoom = DEFAULT_MAX_ZOOM,
+  defaultZoom = DEFAULT_ZOOM,
+  zoomSpeed = DEFAULT_ZOOM_SPEED,
+  gridSize = DEFAULT_GRID_SIZE,
+  dotRadius = DEFAULT_DOT_RADIUS,
+  dotClassName = DEFAULT_DOT_CLASS,
   showGrid = true,
   onViewChange,
   children,
@@ -40,7 +50,7 @@ export function InfiniteCanvas({
   // Start at scale=1 to measure nodes at their natural size.
   // We'll apply defaultZoom after children measure their dimensions.
   const [canvas, setCanvas] = useState<CanvasState>({
-    scale: 1,
+    scale: INITIAL_SCALE,
     offset: { x: 0, y: 0 },
   });
 
@@ -80,7 +90,7 @@ export function InfiniteCanvas({
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
-      if (e.button !== 0) {
+      if (e.button !== PRIMARY_MOUSE_BUTTON) {
         return;
       }
       isPanningRef.current = true;
@@ -182,11 +192,9 @@ export function InfiniteCanvas({
         </g>
       </svg>
 
-      {/* Fixed overlay that doesn't pan/zoom with canvas */}
+      {/* Fixed overlay  */}
       {overlay && (
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="pointer-events-auto">{overlay}</div>
-        </div>
+        <div className="absolute inset-0 pointer-events-none">{overlay}</div>
       )}
     </div>
   );

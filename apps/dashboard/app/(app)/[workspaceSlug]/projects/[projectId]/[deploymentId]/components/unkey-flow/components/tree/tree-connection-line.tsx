@@ -1,6 +1,16 @@
 import { useRef, useState, useMemo, useEffect } from "react";
 import type { Point } from "../../types";
 
+const STRAIGHT_LINE_THRESHOLD = 20;
+const MIN_VERTICAL_FOR_CURVE = 100;
+const CORNER_RADIUS = 32;
+const MIN_CORNER_SPACING = 64;
+const STROKE_WIDTH_BASE = 2.5;
+const STROKE_WIDTH_ANIMATED = 3;
+const LIGHT_BAND_SIZE = 40;
+const ANIMATION_VELOCITY = 100;
+const ANIMATION_OPACITY = 0.94;
+
 /**
  * Animated connection line between two points in vertical tree.
  * Draws curved path for horizontal separation, straight line otherwise.
@@ -21,20 +31,21 @@ export function TreeConnectionLine({ from, to }: TreeConnectionLineProps) {
     const dy = to.y - from.y;
 
     // Straight line for short distances or minimal horizontal offset
-    if (Math.abs(dx) < 20 || dy < 100) {
+    if (Math.abs(dx) < STRAIGHT_LINE_THRESHOLD || dy < MIN_VERTICAL_FOR_CURVE) {
       return `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
     }
 
     // Curved path with rounded corners
-    const radius = 32;
     const midY = from.y + dy * 0.5;
-    const y1 = Math.min(midY - radius, from.y + dy - 64 - radius);
+    const y1 = Math.min(
+      midY - CORNER_RADIUS,
+      from.y + dy - MIN_CORNER_SPACING - CORNER_RADIUS
+    );
     const direction = dx > 0 ? 1 : -1;
-
-    const corner1Y = y1 + radius;
-    const corner1X = from.x + radius * direction;
-    const corner2X = to.x - radius * direction;
-    const corner2Y = to.y - radius;
+    const corner1Y = y1 + CORNER_RADIUS;
+    const corner1X = from.x + CORNER_RADIUS * direction;
+    const corner2X = to.x - CORNER_RADIUS * direction;
+    const corner2Y = to.y - CORNER_RADIUS;
 
     return `M ${from.x} ${from.y} L ${from.x} ${y1} Q ${from.x} ${corner1Y} ${corner1X} ${corner1Y} L ${corner2X} ${corner1Y} Q ${to.x} ${corner1Y} ${to.x} ${corner2Y} L ${to.x} ${to.y}`;
   }, [from, to]);
@@ -52,11 +63,9 @@ export function TreeConnectionLine({ from, to }: TreeConnectionLineProps) {
     setPathLength(length);
   }, [pathD, from, to]);
 
-  const lightBandSize = 40;
-  const velocity = 100;
-  const gapSize = pathLength - lightBandSize;
-  const dashArray = `${lightBandSize} ${gapSize}`;
-  const duration = pathLength / velocity;
+  const gapSize = pathLength - LIGHT_BAND_SIZE;
+  const dashArray = `${LIGHT_BAND_SIZE} ${gapSize}`;
+  const duration = pathLength / ANIMATION_VELOCITY;
 
   return (
     <>
@@ -64,19 +73,19 @@ export function TreeConnectionLine({ from, to }: TreeConnectionLineProps) {
         ref={pathRef}
         d={pathD}
         className="stroke-gray-3"
-        strokeWidth="2.5"
+        strokeWidth={STROKE_WIDTH_BASE}
         fill="none"
         strokeLinecap="round"
       />
       <path
         d={pathD}
         className="stroke-grayA-12"
-        strokeWidth="3"
+        strokeWidth={STROKE_WIDTH_ANIMATED}
         fill="none"
         strokeLinecap="round"
         strokeDasharray={dashArray}
         strokeDashoffset={pathLength}
-        style={{ opacity: 0.94 }}
+        style={{ opacity: ANIMATION_OPACITY }}
       >
         <animate
           attributeName="stroke-dashoffset"

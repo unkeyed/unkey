@@ -1,7 +1,15 @@
+const ANIMATION_DURATION = 4;
+const MAX_RADIUS_MULTIPLIER = 1.5;
+const MIN_OPACITY = 0.5;
+const MAX_OPACITY = 0.8;
+const RANDOM_DELAY_MAX = 2;
+const GRID_OFFSET = -10000;
+const GRID_DIMENSION = 20000;
+
 type GridPatternProps = {
   gridSize: number; // Space between dots
   dotRadius: number; // Size of each dot
-  dotClassName?: string; // Tailwind classes for dot color
+  dotClassName?: string; // classes for dot color
 };
 
 export function GridPattern({
@@ -9,12 +17,6 @@ export function GridPattern({
   dotRadius,
   dotClassName,
 }: GridPatternProps) {
-  const animationDuration = 4;
-  const maxRadiusMultiplier = 1.5;
-  const minOpacity = 0.5;
-  const maxOpacity = 0.8;
-  const randomDelayMax = 2;
-
   return (
     <>
       <defs>
@@ -35,27 +37,27 @@ export function GridPattern({
             <animate
               attributeName="r"
               values={`${dotRadius};${
-                dotRadius * maxRadiusMultiplier
+                dotRadius * MAX_RADIUS_MULTIPLIER
               };${dotRadius}`}
-              dur={`${animationDuration}s`}
-              begin={`${Math.random() * randomDelayMax}s`}
+              dur={`${ANIMATION_DURATION}s`}
+              begin={`${Math.random() * RANDOM_DELAY_MAX}s`}
               repeatCount="indefinite"
             />
             <animate
               attributeName="opacity"
-              values={`${minOpacity};${maxOpacity};${minOpacity}`}
-              dur={`${animationDuration}s`}
-              begin={`${Math.random() * randomDelayMax}s`}
+              values={`${MIN_OPACITY};${MAX_OPACITY};${MIN_OPACITY}`}
+              dur={`${ANIMATION_DURATION}s`}
+              begin={`${Math.random() * RANDOM_DELAY_MAX}s`}
               repeatCount="indefinite"
             />
           </circle>
         </pattern>
       </defs>
       <rect
-        x={-10000}
-        y={-10000}
-        width={20000}
-        height={20000}
+        x={GRID_OFFSET}
+        y={GRID_OFFSET}
+        width={GRID_DIMENSION}
+        height={GRID_DIMENSION}
         fill="url(#dot-grid)"
       />
     </>
