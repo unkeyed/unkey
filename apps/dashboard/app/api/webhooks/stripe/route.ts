@@ -260,6 +260,7 @@ export const POST = async (req: Request): Promise<Response> => {
         .update(schema.workspaces)
         .set({
           stripeSubscriptionId: null,
+          tier: "Free",
         })
         .where(eq(schema.workspaces.id, ws.id));
 
