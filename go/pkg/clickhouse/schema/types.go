@@ -1,9 +1,9 @@
 package schema
 
-// KeyVerificationV2 represents the v2 key verification raw table structure.
+// KeyVerification represents the v2 key verification raw table structure.
 // This matches the key_verifications_raw_v2 table schema with additional
 // fields like spent_credits and latency compared to v1.
-type KeyVerificationV2 struct {
+type KeyVerification struct {
 	RequestID    string   `ch:"request_id" json:"request_id"`
 	Time         int64    `ch:"time" json:"time"`
 	WorkspaceID  string   `ch:"workspace_id" json:"workspace_id"`
@@ -18,10 +18,10 @@ type KeyVerificationV2 struct {
 	Latency      float64  `ch:"latency" json:"latency"`
 }
 
-// RatelimitV2 represents the v2 ratelimit raw table structure.
+// Ratelimit represents the v2 ratelimit raw table structure.
 // This matches the ratelimits_raw_v2 table schema with additional
 // latency field compared to v1.
-type RatelimitV2 struct {
+type Ratelimit struct {
 	RequestID   string  `ch:"request_id" json:"request_id"`
 	Time        int64   `ch:"time" json:"time"`
 	WorkspaceID string  `ch:"workspace_id" json:"workspace_id"`
@@ -35,10 +35,10 @@ type RatelimitV2 struct {
 	ResetAt     int64   `ch:"reset_at" json:"reset_at"`
 }
 
-// ApiRequestV2 represents the v2 API request raw table structure.
+// ApiRequest represents the v2 API request raw table structure.
 // This matches the api_requests_raw_v2 table schema with query parameters
 // and region field compared to v1.
-type ApiRequestV2 struct {
+type ApiRequest struct {
 	RequestID       string              `ch:"request_id" json:"request_id"`
 	Time            int64               `ch:"time" json:"time"`
 	WorkspaceID     string              `ch:"workspace_id" json:"workspace_id"`

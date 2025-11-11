@@ -15,17 +15,17 @@ type noop struct{}
 var _ Bufferer = (*noop)(nil)
 var _ Bufferer = (*noop)(nil)
 
-func (n *noop) BufferApiRequest(schema.ApiRequestV2) {
+func (n *noop) BufferApiRequest(schema.ApiRequest) {
 	// Intentionally empty - discards the event
 }
 
-// BufferKeyVerificationV2 implements the Bufferer interface but discards the event.
-func (n *noop) BufferKeyVerificationV2(schema.KeyVerificationV2) {
+// BufferKeyVerification implements the Bufferer interface but discards the event.
+func (n *noop) BufferKeyVerification(schema.KeyVerification) {
 	// Intentionally empty - discards the event
 }
 
 // BufferRatelimit implements the Bufferer interface but discards the event.
-func (n *noop) BufferRatelimit(req schema.RatelimitV2) {
+func (n *noop) BufferRatelimit(req schema.Ratelimit) {
 	// Intentionally empty - discards the event
 }
 

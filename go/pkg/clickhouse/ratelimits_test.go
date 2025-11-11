@@ -61,7 +61,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 
 	t0 := time.Now()
 	// Source of truth: track all inserted ratelimit records
-	ratelimits := array.Fill(numRecords, func() schema.RatelimitV2 {
+	ratelimits := array.Fill(numRecords, func() schema.Ratelimit {
 		timeRange := endTime.Sub(startTime)
 		randomOffset := time.Duration(rand.Int63n(int64(timeRange)))
 		timestamp := startTime.Add(randomOffset)
@@ -89,7 +89,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 			latency += rand.Float64() * 10 // Up to 15ms for complex checks
 		}
 
-		return schema.RatelimitV2{
+		return schema.Ratelimit{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        timestamp.UnixMilli(),
 			WorkspaceID: workspaceID,
@@ -128,7 +128,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 
 	t.Run("pass/total counts are correct", func(t *testing.T) {
 		// Calculate expected totals from source data
-		totalPassed := array.Reduce(ratelimits, func(acc int, r schema.RatelimitV2) int {
+		totalPassed := array.Reduce(ratelimits, func(acc int, r schema.Ratelimit) int {
 			if r.Passed {
 				return acc + 1
 			}
@@ -151,7 +151,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 	})
 
 	t.Run("latency aggregates are correct", func(t *testing.T) {
-		latencies := array.Map(ratelimits, func(r schema.RatelimitV2) float64 {
+		latencies := array.Map(ratelimits, func(r schema.Ratelimit) float64 {
 			return r.Latency
 		})
 		avg := calculateAverage(latencies)
@@ -179,7 +179,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 
 	t.Run("namespace-level aggregation is correct", func(t *testing.T) {
 		// Group by namespace and calculate expected totals
-		namespaceStats := array.Reduce(ratelimits, func(acc map[string]struct{ passed, total int }, r schema.RatelimitV2) map[string]struct{ passed, total int } {
+		namespaceStats := array.Reduce(ratelimits, func(acc map[string]struct{ passed, total int }, r schema.Ratelimit) map[string]struct{ passed, total int } {
 			stats := acc[r.NamespaceID]
 			stats.total++
 			if r.Passed {
@@ -206,7 +206,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 
 	t.Run("identifier-level aggregation is correct", func(t *testing.T) {
 		// Group by identifier and calculate expected totals
-		identifierStats := array.Reduce(ratelimits, func(acc map[string]struct{ passed, total int }, r schema.RatelimitV2) map[string]struct{ passed, total int } {
+		identifierStats := array.Reduce(ratelimits, func(acc map[string]struct{ passed, total int }, r schema.Ratelimit) map[string]struct{ passed, total int } {
 			stats := acc[r.Identifier]
 			stats.total++
 			if r.Passed {

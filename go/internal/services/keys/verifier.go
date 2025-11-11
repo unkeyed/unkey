@@ -122,16 +122,20 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 }
 
 func (k *KeyVerifier) log() {
-	k.clickhouse.BufferKeyVerificationV2(schema.KeyVerificationV2{
-		RequestID:   k.session.RequestID(),
-		WorkspaceID: k.Key.WorkspaceID,
-		Time:        time.Now().UnixMilli(),
-		Outcome:     string(k.Status),
-		KeySpaceID:  k.Key.KeyAuthID,
-		KeyID:       k.Key.ID,
-		IdentityID:  k.Key.IdentityID.String,
-		Tags:        k.tags,
-		Region:      k.region,
+
+	k.clickhouse.BufferKeyVerification(schema.KeyVerification{
+		RequestID:    k.session.RequestID(),
+		WorkspaceID:  k.Key.WorkspaceID,
+		Time:         time.Now().UnixMilli(),
+		Outcome:      string(k.Status),
+		KeySpaceID:   k.Key.KeyAuthID,
+		KeyID:        k.Key.ID,
+		IdentityID:   k.Key.IdentityID.String,
+		Tags:         k.tags,
+		Region:       k.region,
+		ExternalID:   k.Key.ExternalID.String,
+		SpentCredits: 0,   // TODO
+		Latency:      0.0, // TODO
 	})
 
 	keyType := "key"

@@ -22,9 +22,9 @@ type clickhouse struct {
 	logger logging.Logger
 
 	// Batched processors for different event types
-	apiRequests        *batch.BatchProcessor[schema.ApiRequestV2]
-	keyVerificationsV2 *batch.BatchProcessor[schema.KeyVerificationV2]
-	ratelimitsV2       *batch.BatchProcessor[schema.RatelimitV2]
+	apiRequests      *batch.BatchProcessor[schema.ApiRequest]
+	keyVerifications *batch.BatchProcessor[schema.KeyVerification]
+	ratelimits       *batch.BatchProcessor[schema.Ratelimit]
 }
 
 var _ Bufferer = (*clickhouse)(nil)
@@ -101,14 +101,14 @@ func New(config Config) (*clickhouse, error) {
 		conn:   conn,
 		logger: config.Logger,
 
-		apiRequests: batch.New(batch.Config[schema.ApiRequestV2]{
+		apiRequests: batch.New(batch.Config[schema.ApiRequest]{
 			Name:          "api_requests",
 			Drop:          true,
 			BatchSize:     50_000,
 			BufferSize:    200_000,
 			FlushInterval: 5 * time.Second,
 			Consumers:     2,
-			Flush: func(ctx context.Context, rows []schema.ApiRequestV2) {
+			Flush: func(ctx context.Context, rows []schema.ApiRequest) {
 				table := "default.api_requests_raw_v2"
 				err := flush(ctx, conn, table, rows)
 				if err != nil {
@@ -120,15 +120,15 @@ func New(config Config) (*clickhouse, error) {
 			},
 		}),
 
-		keyVerificationsV2: batch.New[schema.KeyVerificationV2](
-			batch.Config[schema.KeyVerificationV2]{
+		keyVerifications: batch.New[schema.KeyVerification](
+			batch.Config[schema.KeyVerification]{
 				Name:          "key_verifications_v2",
 				Drop:          true,
 				BatchSize:     50_000,
 				BufferSize:    200_000,
 				FlushInterval: 5 * time.Second,
 				Consumers:     2,
-				Flush: func(ctx context.Context, rows []schema.KeyVerificationV2) {
+				Flush: func(ctx context.Context, rows []schema.KeyVerification) {
 					table := "default.key_verifications_raw_v2"
 					err := flush(ctx, conn, table, rows)
 					if err != nil {
@@ -141,15 +141,15 @@ func New(config Config) (*clickhouse, error) {
 			},
 		),
 
-		ratelimitsV2: batch.New(
-			batch.Config[schema.RatelimitV2]{
+		ratelimits: batch.New(
+			batch.Config[schema.Ratelimit]{
 				Name:          "ratelimits",
 				Drop:          true,
 				BatchSize:     50_000,
 				BufferSize:    200_000,
 				FlushInterval: 5 * time.Second,
 				Consumers:     2,
-				Flush: func(ctx context.Context, rows []schema.RatelimitV2) {
+				Flush: func(ctx context.Context, rows []schema.Ratelimit) {
 					table := "default.ratelimits_raw_v2"
 					err := flush(ctx, conn, table, rows)
 					if err != nil {
@@ -192,7 +192,7 @@ func isAuthenticationError(err error) bool {
 //
 // Example:
 //
-//	ch.BufferApiRequest(schema.ApiRequestV2{
+//	ch.BufferApiRequest(schema.ApiRequest{
 //	    RequestID:      requestID,
 //	    Time:           time.Now().UnixMilli(),
 //	    WorkspaceID:    workspaceID,
@@ -201,11 +201,11 @@ func isAuthenticationError(err error) bool {
 //	    Path:           r.URL.Path,
 //	    ResponseStatus: status,
 //	})
-func (c *clickhouse) BufferApiRequest(req schema.ApiRequestV2) {
+func (c *clickhouse) BufferApiRequest(req schema.ApiRequest) {
 	c.apiRequests.Buffer(req)
 }
 
-// BufferKeyVerificationV2 adds a key verification event to the buffer for batch processing.
+// BufferKeyVerification adds a key verification event to the buffer for batch processing.
 // The event will be flushed to ClickHouse automatically based on the configured
 // batch size and flush interval.
 //
@@ -222,8 +222,8 @@ func (c *clickhouse) BufferApiRequest(req schema.ApiRequestV2) {
 //	    KeyID:      keyID,
 //	    Outcome:    "success",
 //	})
-func (c *clickhouse) BufferKeyVerificationV2(req schema.KeyVerificationV2) {
-	c.keyVerificationsV2.Buffer(req)
+func (c *clickhouse) BufferKeyVerification(req schema.KeyVerification) {
+	c.keyVerifications.Buffer(req)
 }
 
 // BufferRatelimit adds a ratelimit event to the buffer for batch processing.
@@ -236,7 +236,7 @@ func (c *clickhouse) BufferKeyVerificationV2(req schema.KeyVerificationV2) {
 //
 // Example:
 //
-//	ch.BufferRatelimit(schema.RatelimitV2{
+//	ch.BufferRatelimit(schema.Ratelimit{
 //	    RequestID:      requestID,
 //	    Time:           time.Now().UnixMilli(),
 //	    WorkspaceID:    workspaceID,
@@ -244,8 +244,8 @@ func (c *clickhouse) BufferKeyVerificationV2(req schema.KeyVerificationV2) {
 //	    Identifier:     identifier,
 //	    Passed:         passed,
 //	})
-func (c *clickhouse) BufferRatelimit(req schema.RatelimitV2) {
-	c.ratelimitsV2.Buffer(req)
+func (c *clickhouse) BufferRatelimit(req schema.Ratelimit) {
+	c.ratelimits.Buffer(req)
 }
 
 func (c *clickhouse) Conn() ch.Conn {
@@ -308,8 +308,8 @@ func (c *clickhouse) Ping(ctx context.Context) error {
 // then closes the underlying ClickHouse connection.
 func (c *clickhouse) Close() error {
 	c.apiRequests.Close()
-	c.keyVerificationsV2.Close()
-	c.ratelimitsV2.Close()
+	c.keyVerifications.Close()
+	c.ratelimits.Close()
 
 	err := c.conn.Close()
 	if err != nil {

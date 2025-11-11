@@ -291,7 +291,6 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-
 	routes.Register(srv, &routes.Services{
 		Logger:                     logger,
 		Database:                   db,

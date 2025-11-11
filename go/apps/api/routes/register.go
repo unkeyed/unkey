@@ -61,6 +61,8 @@ import (
 
 // here we register all of the routes.
 // this function runs during startup.
+func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
+
 	withObservability := zen.WithObservability()
 	withMetrics := zen.WithMetrics(svc.ClickHouse, info)
 	withLogging := zen.WithLogging(svc.Logger)
