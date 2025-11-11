@@ -62,5 +62,5 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		h.ClickHouse.BufferKeyVerification(event)
 	}
 
-	return s.Send(http.StatusNoContent, nil)
+	return s.Send(http.StatusOK, nil)
 }
