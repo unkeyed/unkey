@@ -113,21 +113,23 @@ func New(prefix Prefix, byteSize ...int) string {
 	// Use batched crypto/rand for cryptographically secure random bytes
 	// These IDs are exposed in the API, so we use crypto/rand to prevent
 	// enumeration attacks and information leakage about creation patterns
-	if err := batchrand.Read(buf); err != nil {
+	err := batchrand.Read(buf)
+	if err != nil {
 		panic(fmt.Sprintf("failed to generate random bytes: %v", err))
 	}
 
 	if bytes > 4 {
-		// Use cached timestamp instead of time.Now() to avoid syscall
+		// Calculate seconds since epoch using our cached timestamp instead of time.Now() to avoid syscall
+		// subtracting the epochTimestamp should guarantee we're not overflowing
+		// nolint:gosec
 		t := uint32(clk.Now().Unix() - epochTimestampSec)
 
 		// Write timestamp as first 4 bytes (big endian)
 		binary.BigEndian.PutUint32(buf[:4], t)
 	}
 
-	// Encode to base58
 	encoded := base58.Encode(buf)
-
+	// Fast exit
 	if prefix == "" {
 		return encoded
 	}
