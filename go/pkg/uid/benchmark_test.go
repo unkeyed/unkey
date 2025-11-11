@@ -6,10 +6,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-// BenchmarkComparison compares the performance of the optimized New()
+// BenchmarkComparison compares the performance of the optimized New() vs the original.
 // This benchmark demonstrates the performance improvements achieved through:
-// - Using math/rand/v2 ChaCha8 instead of crypto/rand
 // - Cached timestamps via go-timecache to avoid time.Now() syscalls
+// - Using github.com/mr-tron/base58 instead of custom implementation
 // - Efficient string building without fmt.Sprintf
 func BenchmarkComparison(b *testing.B) {
 	b.Run("New_Optimized", func(b *testing.B) {

@@ -10,11 +10,11 @@ require (
 	connectrpc.com/connect v1.19.0
 	github.com/AfterShip/clickhouse-sql-parser v0.4.16
 	github.com/ClickHouse/clickhouse-go/v2 v2.40.1
+	github.com/agilira/go-timecache v1.0.2
 	github.com/aws/aws-sdk-go-v2 v1.36.6
 	github.com/aws/aws-sdk-go-v2/config v1.29.18
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.71
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.84.1
-	github.com/btcsuite/btcutil v1.0.2
 	github.com/depot/depot-go v0.5.1
 	github.com/docker/cli v28.4.0+incompatible
 	github.com/docker/docker v28.4.0+incompatible
@@ -25,6 +25,7 @@ require (
 	github.com/lmittmann/tint v1.1.2
 	github.com/maypok86/otter v1.2.4
 	github.com/moby/buildkit v0.25.0
+	github.com/mr-tron/base58 v1.2.0
 	github.com/oapi-codegen/nullable v1.1.0
 	github.com/oasdiff/oasdiff v1.11.7
 	github.com/pb33f/libopenapi v0.28.0
@@ -64,7 +65,6 @@ require (
 	github.com/ClickHouse/ch-go v0.68.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/TwiN/go-color v1.4.1 // indirect
-	github.com/agilira/go-timecache v1.0.2 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.33 // indirect
@@ -157,7 +157,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
-	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oasdiff/yaml v0.0.0-20250309154309-f31be36b4037 // indirect
 	github.com/oasdiff/yaml3 v0.0.0-20250309153720-d2182401db90 // indirect
