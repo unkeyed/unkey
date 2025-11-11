@@ -3,6 +3,7 @@ package uid
 import (
 	"crypto/rand"
 	"encoding/binary"
+	"fmt"
 	"time"
 )
 
@@ -119,7 +120,7 @@ func New(prefix Prefix, byteSize ...int) string {
 
 	id := encodeBase58(buf)
 	if prefix != "" {
-		id = string(prefix) + "_" + id
+		id = fmt.Sprintf("%s_%s", prefix, id)
 	}
 	return id
 
