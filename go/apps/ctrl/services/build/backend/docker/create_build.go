@@ -11,6 +11,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/docker/docker/api/types/build"
 	"github.com/docker/docker/client"
+	builderrors "github.com/unkeyed/unkey/go/apps/ctrl/services/build/errors"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -142,7 +143,7 @@ func (d *Docker) CreateBuild(
 	}
 
 	if buildError != nil {
-		return nil, connect.NewError(connect.CodeInternal, buildError)
+		return nil, builderrors.ClassifyBuildError(buildError, dockerfilePath)
 	}
 
 	buildID := uid.New(uid.BuildPrefix)

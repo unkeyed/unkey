@@ -19,6 +19,7 @@ import (
 
 	corev1 "buf.build/gen/go/depot/api/protocolbuffers/go/depot/core/v1"
 	cliv1 "github.com/depot/depot-go/proto/depot/cli/v1"
+	builderrors "github.com/unkeyed/unkey/go/apps/ctrl/services/build/errors"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -203,8 +204,7 @@ func (s *Depot) CreateBuild(
 			"build_id", buildResp.ID,
 			"depot_project_id", depotProjectID,
 			"unkey_project_id", unkeyProjectID)
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("build failed: %w", buildErr))
+		return nil, builderrors.ClassifyBuildError(buildErr, dockerfilePath)
 	}
 
 	s.logger.Info("Build completed successfully",
