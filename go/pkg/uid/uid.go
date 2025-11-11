@@ -145,7 +145,18 @@ func New(prefix Prefix, byteSize ...int) string {
 	return unsafe.String(unsafe.SliceData(result), len(result))
 }
 
-var rng = mathrand.NewChaCha8([32]byte{})
+var rng *mathrand.ChaCha8
+
+func init() {
+	// Seed ChaCha8 RNG with cryptographically random bytes
+	// This ensures different random sequences across program runs
+	var seed [32]byte
+	if _, err := rand.Read(seed[:]); err != nil {
+		panic(fmt.Sprintf("failed to seed RNG: %v", err))
+	}
+
+	rng = mathrand.NewChaCha8(seed)
+}
 
 // NewV1 is the original implementation using crypto/rand and fmt.Sprintf.
 // Kept for backward compatibility and comparison benchmarks.
