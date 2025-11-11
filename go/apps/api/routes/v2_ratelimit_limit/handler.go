@@ -305,12 +305,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Limit:      limit,
 			Remaining:  result.Remaining,
 			Reset:      result.Reset.UnixMilli(),
-			OverrideId: nil,
+			OverrideId: overrideId,
 		},
-	}
-
-	if overrideId != "" {
-		res.Data.OverrideId = &overrideId
 	}
 
 	// Return success response

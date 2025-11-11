@@ -11,6 +11,8 @@ import (
 	chproxyRatelimits "github.com/unkeyed/unkey/go/apps/api/routes/chproxy_ratelimits"
 	chproxyVerifications "github.com/unkeyed/unkey/go/apps/api/routes/chproxy_verifications"
 
+	pprofRoute "github.com/unkeyed/unkey/go/apps/api/routes/pprof"
+
 	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_delete_override"
 	v2RatelimitGetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_get_override"
 	v2RatelimitLimit "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
@@ -59,10 +61,8 @@ import (
 
 // here we register all of the routes.
 // this function runs during startup.
-func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
-	withTracing := zen.WithTracing()
+	withObservability := zen.WithObservability()
 	withMetrics := zen.WithMetrics(svc.ClickHouse, info)
-
 	withLogging := zen.WithLogging(svc.Logger)
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
 	withErrorHandling := zen.WithErrorHandling(svc.Logger)
@@ -71,7 +71,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
-		withTracing,
+		withObservability,
 		withMetrics,
 		withLogging,
 		withErrorHandling,
@@ -111,6 +111,23 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			ClickHouse: svc.ClickHouse,
 			Logger:     svc.Logger,
 			Token:      svc.ChproxyToken,
+		})
+	}
+
+	// ---------------------------------------------------------------------------
+	// pprof (internal profiling endpoints)
+
+	if svc.PprofEnabled {
+		pprofMiddlewares := []zen.Middleware{
+			withLogging,
+			withPanicRecovery,
+			withErrorHandling,
+		}
+
+		srv.RegisterRoute(pprofMiddlewares, &pprofRoute.Handler{
+			Logger:   svc.Logger,
+			Username: svc.PprofUsername,
+			Password: svc.PprofPassword,
 		})
 	}
 
@@ -561,7 +578,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	// misc
 
 	srv.RegisterRoute([]zen.Middleware{
-		withTracing,
+		withObservability,
 		withMetrics,
 		withLogging,
 		withPanicRecovery,
@@ -570,7 +587,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		Logger: svc.Logger,
 	})
 	srv.RegisterRoute([]zen.Middleware{
-		withTracing,
+		withObservability,
 		withMetrics,
 		withLogging,
 		withPanicRecovery,

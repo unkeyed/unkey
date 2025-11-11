@@ -1,0 +1,327 @@
+name: PR-Opened
+run-name: PR Slack Message Notification
+on:
+  pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - closed
+  pull_request_review:
+    types:
+      - submitted
+jobs:
+  slack-notification:
+    runs-on: ubuntu-latest
+    name: Sends a message to Slack when a PR is opened
+    if: (github.event.action == 'opened' && github.event.pull_request.draft == false) || github.event.action == 'ready_for_review'
+    steps:
+      - name: Post PR summary message to slack
+        uses: actions/github-script@v8
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            const SLACK_TOKEN = process.env.SLACK_BOT_TOKEN;
+            const CHANNEL = process.env.SLACK_CHANNEL;
+            const SLACK_MESSAGE = `${context.payload.pull_request.user.login}: ${context.payload.pull_request.html_url} \`${context.payload.pull_request.title}\` (+${context.payload.pull_request.additions}, -${context.payload.pull_request.deletions})`;
+
+            const response = await fetch(`https://slack.com/api/chat.postMessage`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${SLACK_TOKEN}`,
+                'Content-Type': 'application/json; charset=utf-8'
+              },
+              body: JSON.stringify({
+                channel: CHANNEL,
+                text: SLACK_MESSAGE
+              })
+            });
+
+            const data = await response.json();
+
+            if (data.ok) {
+              console.log('Message posted successfully');
+              console.log('Response:', data);
+
+              // Save timestamp for later reactions
+              fs.writeFileSync('slack-message-timestamp.txt', data.ts);
+              console.log(`Saved timestamp: ${data.ts}`);
+            } else {
+              console.error('Failed to post message:', data.error);
+              core.setFailed('Failed to post Slack message');
+            }
+      - name: Cache slack message timestamp
+        uses: actions/cache/save@v3
+        with:
+          path: slack-message-timestamp.txt
+          key: ${{ github.event.pull_request.html_url }}
+  slack-emoji-react:
+    runs-on: ubuntu-latest
+    name: Adds emoji reaction to slack message when a PR is closed or reviewed
+    if: (github.event.action == 'closed' && github.event.pull_request.merged == false) || github.event.action == 'submitted'
+    steps:
+      - name: Count PR approvals
+        id: count-approvals
+        if: github.event.action == 'submitted'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const reviews = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            // Group reviews by user and get their latest state
+            const userReviews = {};
+            reviews.data.forEach(review => {
+              const user = review.user.login;
+              // Only keep the most recent review from each user
+              if (!userReviews[user] || new Date(review.submitted_at) > new Date(userReviews[user].submitted_at)) {
+                userReviews[user] = review;
+              }
+            });
+
+            // Count only currently approved reviews
+            const approvals = Object.values(userReviews).filter(review => review.state === 'APPROVED').length;
+            console.log(`Found ${approvals} active approvals`);
+            console.log('All reviews data:', reviews.data);
+            console.log('Latest reviews per user:', Object.values(userReviews).map(r => ({ user: r.user.login, state: r.state, submitted_at: r.submitted_at })));
+            console.log('About to return approvals:', approvals);
+
+            console.log('About to return approvals:', approvals);
+            core.setOutput('approval-count', approvals);
+            return approvals;
+      - name: Decide which emoji to add
+        uses: actions/github-script@v8
+        id: decide-emoji
+        with:
+          script: |
+            let emoji = 'bugeyes';
+
+            // Merged or closed always takes precedence
+            if (context.payload.action === 'closed') {
+              if (context.payload.pull_request.merged === true) {
+                emoji = 'praise-the-unkey';
+              } else {
+                emoji = 'wastebasket';
+              }
+            } else if (context.payload.action === 'submitted') {
+              const reviewState = context.payload.review.state;
+              console.log('Current review state:', reviewState);
+              console.log('Full review payload:', context.payload.review);
+
+              // Changes requested takes precedence over approval count
+              if (reviewState === 'changes_requested') {
+                emoji = 'x';
+              } else if (reviewState === 'approved') {
+                const approvalCount = '${{ steps.count-approvals.outputs.approval-count }}';
+                console.log('Raw approval count from step:', approvalCount);
+                console.log('Parsed approval count:', parseInt(approvalCount));
+                if (parseInt(approvalCount) >= 2) {
+                  emoji = 'lfg';
+                } else {
+                  emoji = 'bugeyes';
+                }
+              }
+            }
+
+            if (emoji) {
+              core.exportVariable('EMOJI', emoji);
+              console.log(`Selected emoji: ${emoji}`);
+              return emoji;
+            } else {
+              core.setFailed('No emoji selected');
+            }
+      - name: Read slack message timestamp from cache
+        uses: actions/cache/restore@v3
+        with:
+          path: slack-message-timestamp.txt
+          key: ${{ github.event.pull_request.html_url }}
+      - name: Send review notification message
+        if: github.event.action == 'submitted' && (github.event.review.state == 'approved' || github.event.review.state == 'changes_requested')
+        uses: actions/github-script@v8
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            const SLACK_TOKEN = process.env.SLACK_BOT_TOKEN;
+            const CHANNEL = process.env.SLACK_CHANNEL;
+            const reviewState = context.payload.review.state;
+            const reviewer = context.payload.review.user.login;
+            const SLACK_TIMESTAMP = fs.readFileSync('slack-message-timestamp.txt', 'utf8').trim();
+
+            let message;
+            if (reviewState === 'approved') {
+              message = `✅ ${reviewer} approved`;
+            } else if (reviewState === 'changes_requested') {
+              message = `🔄 ${reviewer} requested changes`;
+            }
+
+            const response = await fetch(`https://slack.com/api/chat.postMessage`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${SLACK_TOKEN}`,
+                'Content-Type': 'application/json; charset=utf-8'
+              },
+              body: JSON.stringify({
+                channel: CHANNEL,
+                thread_ts: SLACK_TIMESTAMP,
+                text: message
+              })
+            });
+
+            const data = await response.json();
+
+            if (data.ok) {
+              console.log('Review notification sent successfully');
+            } else {
+              console.error('Failed to send review notification:', data.error);
+              core.setFailed('Failed to send review notification');
+            }
+      - name: Send PR close/merge notification
+        if: github.event.action == 'closed'
+        uses: actions/github-script@v8
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            const SLACK_TOKEN = process.env.SLACK_BOT_TOKEN;
+            const CHANNEL = process.env.SLACK_CHANNEL;
+            const SLACK_TIMESTAMP = fs.readFileSync('slack-message-timestamp.txt', 'utf8').trim();
+            const isMerged = context.payload.pull_request.merged;
+            const prTitle = context.payload.pull_request.title;
+            const prUrl = context.payload.pull_request.html_url;
+
+            let message;
+            if (isMerged === true) {
+              message = `🎉 **Merged**`;
+            } else {
+              message = `🗑️ **Closed**`;
+            }
+
+            const response = await fetch(`https://slack.com/api/chat.postMessage`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${SLACK_TOKEN}`,
+                'Content-Type': 'application/json; charset=utf-8'
+              },
+              body: JSON.stringify({
+                channel: CHANNEL,
+                thread_ts: SLACK_TIMESTAMP,
+                text: message
+              })
+            });
+
+            const data = await response.json();
+
+            if (data.ok) {
+              console.log('PR close/merge notification sent successfully');
+            } else {
+              console.error('Failed to send PR close/merge notification:', data.error);
+              core.setFailed('Failed to send PR close/merge notification');
+            }
+      - name: Clean and add emoji reaction
+        uses: actions/github-script@v8
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+          EMOJI: ${{ env.EMOJI }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            const SLACK_TOKEN = process.env.SLACK_BOT_TOKEN;
+            const CHANNEL = process.env.SLACK_CHANNEL;
+            const EMOJI = process.env.EMOJI;
+            const SLACK_TIMESTAMP = fs.readFileSync('slack-message-timestamp.txt', 'utf8').trim();
+
+            const TARGET_EMOJIS = ['lfg', 'x', 'bugeyes', 'wastebasket', 'praise-the-unkey'];
+
+            // Get existing reactions
+            const reactionsResponse = await fetch(`https://slack.com/api/reactions.get?channel=${CHANNEL}&timestamp=${SLACK_TIMESTAMP}`, {
+              headers: {
+                'Authorization': `Bearer ${SLACK_TOKEN}`,
+                'Content-Type': 'application/json; charset=utf-8'
+              }
+            });
+
+            const reactionsData = await reactionsResponse.json();
+
+            console.log('Getting reactions for timestamp:', SLACK_TIMESTAMP);
+
+            if (reactionsData.ok && reactionsData.message && reactionsData.message.reactions) {
+              const existingEmojis = reactionsData.message.reactions.flatMap(r => r.name);
+              console.log('Existing emojis:', existingEmojis);
+              console.log('Target emojis to remove:', TARGET_EMOJIS);
+
+              // Remove only existing target emojis
+              for (const emoji of TARGET_EMOJIS) {
+                if (existingEmojis.includes(emoji)) {
+                  console.log(`Removing ${emoji}`);
+                  const removeResponse = await fetch(`https://slack.com/api/reactions.remove`, {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${SLACK_TOKEN}`,
+                      'Content-Type': 'application/json; charset=utf-8'
+                    },
+                    body: JSON.stringify({
+                      channel: CHANNEL,
+                      timestamp: SLACK_TIMESTAMP,
+                      name: emoji
+                    })
+                  });
+
+                  const removeData = await removeResponse.json();
+                  if (!removeData.ok) {
+                    console.error(`Failed to remove ${emoji}:`, removeData.error);
+                  } else {
+                    console.log(`Successfully removed ${emoji}`);
+                  }
+                } else {
+                  console.log(`${emoji} not found in existing reactions`);
+                }
+              }
+            } else {
+              if (reactionsData.error === 'missing_scope') {
+                console.log('Missing reactions:read scope - skipping emoji cleanup');
+                console.log('Please add reactions:read scope to your Slack bot token');
+              } else {
+                console.log('No reactions found or failed to get reactions:', reactionsData);
+              }
+            }
+
+            // Add the new emoji
+            console.log(`Adding ${EMOJI}`);
+            const addResponse = await fetch(`https://slack.com/api/reactions.add`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${SLACK_TOKEN}`,
+                'Content-Type': 'application/json; charset=utf-8'
+              },
+              body: JSON.stringify({
+                channel: CHANNEL,
+                timestamp: SLACK_TIMESTAMP,
+                name: EMOJI
+              })
+            });
+
+            const addData = await addResponse.json();
+
+            if (addData.ok) {
+              console.log(`Successfully added ${EMOJI}`);
+            } else if (addData.error === 'already_reacted') {
+              console.log(`${EMOJI} already exists - this is fine`);
+            } else {
+              console.error(`Failed to add ${EMOJI}:`, addData.error);
+              core.setFailed(`Failed to add ${EMOJI} reaction`);
+            }

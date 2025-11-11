@@ -22,6 +22,8 @@ properties:
     maxLength: 255
     description: Human-readable name for this key.
     example: Production API Key
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   meta:
     type: object
     additionalProperties: true
@@ -30,6 +32,8 @@ properties:
     example:
     plan: premium
     region: us-east-1
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   createdAt:
     type: integer
     format: int64
@@ -44,6 +48,8 @@ properties:
     maximum: 9223372036854775807
     description: Unix timestamp in milliseconds when key was last updated.
     example: 1701425400000
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   expires:
     type: integer
     format: int64
@@ -51,6 +57,8 @@ properties:
     maximum: 9223372036854775807
     description: Unix timestamp in milliseconds when key expires (if set).
     example: 1735689600000
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   permissions:
     type: array
     items:
@@ -59,6 +67,8 @@ properties:
     example:
       - documents.read
       - documents.write
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   roles:
     type: array
     items:
@@ -67,19 +77,27 @@ properties:
     example:
       - editor
       - viewer
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   credits:
     "$ref": "./KeyCreditsData.yaml"
   identity:
     "$ref": "./Identity.yaml"
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   plaintext:
     type: string
     description: Decrypted key value (only when decrypt=true).
     example: sk_test_abc123def456
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   ratelimits:
     type: array
     maxItems: 50
     items:
       "$ref": "./RatelimitResponse.yaml"
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
 required:
   - keyId
   - start

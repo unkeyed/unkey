@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"math/rand"
 	"slices"
 	"testing"
@@ -122,7 +123,7 @@ func TestKeyVerifications(t *testing.T) {
 			t.Run(table, func(t *testing.T) {
 				require.EventuallyWithT(t, func(c *assert.CollectT) {
 					queried := int64(0)
-					err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ?;", table, workspaceID).Scan(&queried)
+					err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(count) FROM %s WHERE workspace_id = ?;", table), workspaceID).Scan(&queried)
 					require.NoError(c, err)
 					t.Logf("expected %d, got %d", len(verifications), queried)
 					require.Equal(c, len(verifications), int(queried))
@@ -142,7 +143,7 @@ func TestKeyVerifications(t *testing.T) {
 				for outcome, count := range countByOutcome {
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						queried := int64(0)
-						err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND outcome = ?;", table, workspaceID, outcome).Scan(&queried)
+						err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(count) FROM %s WHERE workspace_id = ? AND outcome = ?;", table), workspaceID, outcome).Scan(&queried)
 						require.NoError(c, err)
 						t.Logf("%s expected %d, got %d", outcome, count, queried)
 						require.Equal(c, count, int(queried))
@@ -170,7 +171,7 @@ func TestKeyVerifications(t *testing.T) {
 					for outcome, count := range countByOutcome {
 						require.EventuallyWithT(t, func(c *assert.CollectT) {
 							queried := int64(0)
-							err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND key_id = ? AND outcome = ?;", table, workspaceID, keyID, outcome).Scan(&queried)
+							err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(count) FROM %s WHERE workspace_id = ? AND key_id = ? AND outcome = ?;", table), workspaceID, keyID, outcome).Scan(&queried)
 							require.NoError(c, err)
 							require.Equal(c, count, int(queried))
 						}, time.Minute, time.Second)
@@ -195,7 +196,7 @@ func TestKeyVerifications(t *testing.T) {
 					for outcome, count := range countByOutcome {
 						require.EventuallyWithT(t, func(c *assert.CollectT) {
 							queried := int64(0)
-							err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND identity_id = ? AND outcome = ?;", table, workspaceID, identityID, outcome).Scan(&queried)
+							err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(count) FROM %s WHERE workspace_id = ? AND identity_id = ? AND outcome = ?;", table), workspaceID, identityID, outcome).Scan(&queried)
 							require.NoError(c, err)
 							require.Equal(c, count, int(queried))
 						}, time.Minute, time.Second)
@@ -223,7 +224,7 @@ func TestKeyVerifications(t *testing.T) {
 					for outcome, count := range countByOutcome {
 						require.EventuallyWithT(t, func(c *assert.CollectT) {
 							queried := int64(0)
-							err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND indexOf(tags, ?) > 0 AND outcome = ?;", table, workspaceID, tag, outcome).Scan(&queried)
+							err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(count) FROM %s WHERE workspace_id = ? AND indexOf(tags, ?) > 0 AND outcome = ?;", table), workspaceID, tag, outcome).Scan(&queried)
 							require.NoError(c, err)
 							require.Equal(c, count, int(queried))
 						}, time.Minute, time.Second)
@@ -249,7 +250,7 @@ func TestKeyVerifications(t *testing.T) {
 					queriedP75 float32
 					queriedP99 float32
 				)
-				err := conn.QueryRow(ctx, "SELECT avgMerge(latency_avg), quantilesTDigestMerge(0.75)(latency_p75)[1], quantilesTDigestMerge(0.99)(latency_p99)[1] FROM ? WHERE workspace_id = ?;", table, workspaceID).Scan(&queriedAvg, &queriedP75, &queriedP99)
+				err := conn.QueryRow(ctx, fmt.Sprintf("SELECT avgMerge(latency_avg), quantilesTDigestMerge(0.75)(latency_p75)[1], quantilesTDigestMerge(0.99)(latency_p99)[1] FROM %s WHERE workspace_id = ?;", table), workspaceID).Scan(&queriedAvg, &queriedP75, &queriedP99)
 				require.NoError(t, err)
 
 				require.InDelta(t, avg, queriedAvg, 0.01)
@@ -269,7 +270,7 @@ func TestKeyVerifications(t *testing.T) {
 			t.Run(table, func(t *testing.T) {
 				t.Parallel()
 				var queried int64
-				err := conn.QueryRow(ctx, "SELECT sum(spent_credits) FROM ? WHERE workspace_id = ?;", table, workspaceID).Scan(&queried)
+				err := conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(spent_credits) FROM %s WHERE workspace_id = ?;", table), workspaceID).Scan(&queried)
 				require.NoError(t, err)
 
 				require.Equal(t, credits, queried)
@@ -290,7 +291,7 @@ func TestKeyVerifications(t *testing.T) {
 				t.Run(table, func(t *testing.T) {
 					t.Parallel()
 					var queried int64
-					err := conn.QueryRow(ctx, "SELECT sum(spent_credits) FROM ? WHERE workspace_id = ? AND identity_id = ?;", table, workspaceID, identityID).Scan(&queried)
+					err := conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(spent_credits) FROM %s WHERE workspace_id = ? AND identity_id = ?;", table), workspaceID, identityID).Scan(&queried)
 					require.NoError(t, err)
 
 					require.Equal(t, credits, queried)
@@ -314,7 +315,7 @@ func TestKeyVerifications(t *testing.T) {
 				t.Run(table, func(t *testing.T) {
 					t.Parallel()
 					var queried int64
-					err := conn.QueryRow(ctx, "SELECT sum(spent_credits) FROM ? WHERE workspace_id = ? AND key_id = ?;", table, workspaceID, keyID).Scan(&queried)
+					err := conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(spent_credits) FROM %s WHERE workspace_id = ? AND key_id = ?;", table), workspaceID, keyID).Scan(&queried)
 					require.NoError(t, err)
 
 					require.Equal(t, credits, queried)
@@ -337,7 +338,7 @@ func TestKeyVerifications(t *testing.T) {
 					t.Parallel()
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedExternalID string
-						err := conn.QueryRow(ctx, "SELECT external_id FROM ? WHERE workspace_id = ? AND identity_id = ? LIMIT 1;", tbl, workspaceID, id).Scan(&queriedExternalID)
+						err := conn.QueryRow(ctx, fmt.Sprintf("SELECT external_id FROM %s WHERE workspace_id = ? AND identity_id = ? LIMIT 1;", tbl), workspaceID, id).Scan(&queriedExternalID)
 						require.NoError(c, err)
 						require.Equal(c, expectedExternalID, queriedExternalID, "external_id should match for identity %s in table %s", id, tbl)
 					}, time.Minute, time.Second)
@@ -365,7 +366,7 @@ func TestKeyVerifications(t *testing.T) {
 					t.Parallel()
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedCount int64
-						err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND external_id = ?;", tbl, workspaceID, extID).Scan(&queriedCount)
+						err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(count) FROM %s WHERE workspace_id = ? AND external_id = ?;", tbl), workspaceID, extID).Scan(&queriedCount)
 						require.NoError(c, err)
 						require.Equal(c, expectedCount, int(queriedCount), "count should match for external_id %s in table %s", extID, tbl)
 					}, time.Minute, time.Second)
@@ -397,7 +398,7 @@ func TestKeyVerifications(t *testing.T) {
 						expCount := expectedCount
 						require.EventuallyWithT(t, func(c *assert.CollectT) {
 							var queriedCount int64
-							err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND external_id = ? AND outcome = ?;", tbl, workspaceID, extID, out).Scan(&queriedCount)
+							err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(count) FROM %s WHERE workspace_id = ? AND external_id = ? AND outcome = ?;", tbl), workspaceID, extID, out).Scan(&queriedCount)
 							require.NoError(c, err)
 							require.Equal(c, expCount, int(queriedCount), "count for external_id %s and outcome %s should match in table %s", extID, out, tbl)
 						}, time.Minute, time.Second)
@@ -426,7 +427,7 @@ func TestKeyVerifications(t *testing.T) {
 							wrongIdentityID = identities[(slices.Index(identities, id)+2)%len(identities)]
 						}
 
-						err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND external_id = ? AND identity_id = ?;", tbl, workspaceID, extID, wrongIdentityID).Scan(&countWithWrongIdentity)
+						err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(count) FROM %s WHERE workspace_id = ? AND external_id = ? AND identity_id = ?;", tbl), workspaceID, extID, wrongIdentityID).Scan(&countWithWrongIdentity)
 						if err != nil {
 							// It's OK if there are no rows, that means the mapping is correct
 							if errors.Is(err, sql.ErrNoRows) {
@@ -460,7 +461,7 @@ func TestKeyVerifications(t *testing.T) {
 					t.Parallel()
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedCredits int64
-						err := conn.QueryRow(ctx, "SELECT SUM(spent_credits) FROM ? WHERE workspace_id = ? AND external_id = ?;", tbl, workspaceID, extID).Scan(&queriedCredits)
+						err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(spent_credits) FROM %s WHERE workspace_id = ? AND external_id = ?;", tbl), workspaceID, extID).Scan(&queriedCredits)
 						require.NoError(c, err)
 						require.Equal(c, expectedCredits, queriedCredits, "spent_credits for external_id %s should match in table %s", extID, tbl)
 					}, time.Minute, time.Second)

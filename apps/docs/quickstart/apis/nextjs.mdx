@@ -21,55 +21,51 @@ mode: "wide"
 <Step title="Create Next.js Application">
 Run the following command to init your Next.js project
 
-<Tabs>
-  <Tab title="npm">
-  ```bash
-    npx create-next-app@latest
-  ```
-  </Tab>
-  <Tab title="pnpm">
-  ```bash
-  pnpm create next-app@latest
-    ```
-  </Tab>
-  <Tab title="yarn">
-  ```bash
-    yarn create-next-app@latest
-    ```
-  </Tab>
-  <Tab title="bun">
-  ```bash
-    bunx create-next-app
-    ```
-  </Tab>
-</Tabs>
+<CodeGroup>
+
+```bash npm
+npx create-next-app@latest
+```
+
+```bash pnpm
+pnpm create next-app@latest
+```
+
+```bash yarn
+yarn create-next-app@latest
+```
+
+```bash bun
+bunx create-next-app
+```
+
+</CodeGroup>
+
 </Step>
-<Step  title="Install">
+<Step title="Install">
 
 Now install the `@unkey/nextjs` package
 
-<Tabs>
-  <Tab title="npm">
-  ```bash
-    npm install @unkey/nextjs
-    ```
-  </Tab>
-  <Tab title="pnpm">
-  ```bash
-    pnpm add @unkey/nextjs
-    ```
-  </Tab>
-  <Tab title="yarn">
-  ```bash
-    yarn add @unkey/nextjs
-    ```
-  </Tab>
-  <Tab title="bun">
-  ```bash
-    bun install @unkey/nextjs
-    ```
-  </Tab>
-</Tabs>
+<CodeGroup>
+
+```bash npm
+npm install @unkey/nextjs
+```
+
+```bash pnpm
+pnpm add @unkey/nextjs
+```
+
+```bash yarn
+yarn add @unkey/nextjs
+```
+
+```bash bun
+bun install @unkey/nextjs
+```
+
+</CodeGroup>
+
 </Step>
 
 <Step  title="Creating a protected route">
@@ -96,28 +92,26 @@ export const POST = withUnkey(async (req) => {
 
 <Step title="Running it">
 
-<Tabs>
-  <Tab title="bun">
-  ```bash
-    bun run dev
-    ```
-  </Tab>
-  <Tab title="pnpm">
-  ```bash
-    pnpm run dev
-    ```
-  </Tab>
-  <Tab title="yarn">
-  ```bash
-    yarn run dev
-    ```
-  </Tab>
-  <Tab title="npm">
-  ```bash
-    npm run dev
-    ```
-  </Tab>
-</Tabs>
+<CodeGroup>
+
+```bash npm
+npm run dev
+```
+
+```bash pnpm
+pnpm run dev
+```
+
+```bash yarn
+yarn run dev
+```
+
+```bash bun
+bun run dev
+```
+
+</CodeGroup>
+
 </Step>
 
 <Step  title="Try it out">

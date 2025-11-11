@@ -131,6 +131,28 @@ GROUP BY endpoint
 ORDER BY requests DESC
 ```
 
+### Filling Gaps in Time Series
+
+**Use for**: Charts and visualizations that need consistent time intervals
+
+```sql
+-- Daily data with all days included (even zero counts)
+SELECT time, SUM(count) as total
+FROM key_verifications_per_day_v1
+WHERE time >= toDate(now() - INTERVAL 30 DAY)
+  AND time <= toDate(now())
+GROUP BY time
+ORDER BY time ASC
+  WITH FILL
+  FROM toDate(now() - INTERVAL 30 DAY)
+  TO toDate(now())
+  STEP INTERVAL 1 DAY
+```
+
+<Tip>
+  See [Query Examples - WITH FILL](/analytics/query-examples#filling-gaps-in-time-series-with-fill) for hourly, daily, and monthly examples with outcome breakdowns.
+</Tip>
+
 ## Table Selection Guide
 
 Choose the right table based on your time range:
@@ -151,6 +173,13 @@ Choose the right table based on your time range:
 - Filter before grouping when possible
 
 ## Common Filters
+
+<Note>
+  **Automatic filtering:** All queries are automatically filtered based on your root key permissions:
+
+  - **Workspace:** All queries are scoped to your workspace (no need to filter `workspace_id`)
+  - **API:** If your root key is scoped to a specific API (`api.<api_id>.read_analytics`), queries are filtered to that API's `key_space_id`. With `api.*.read_analytics` permissions, filter by `key_space_id` yourself.
+</Note>
 
 ### Time Ranges
 
