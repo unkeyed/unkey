@@ -86,6 +86,76 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 
 </CodeGroup>
 
+### All outcomes in a single row
+
+Get all verification outcomes in one row with individual columns for each outcome type.
+
+<CodeGroup>
+```sql SQL
+SELECT
+  sumIf(count, outcome = 'VALID') AS valid,
+  sumIf(count, outcome = 'RATE_LIMITED') AS rateLimited,
+  sumIf(count, outcome = 'INVALID') AS invalid,
+  sumIf(count, outcome = 'NOT_FOUND') AS notFound,
+  sumIf(count, outcome = 'FORBIDDEN') AS forbidden,
+  sumIf(count, outcome = 'USAGE_EXCEEDED') AS usageExceeded,
+  sumIf(count, outcome = 'UNAUTHORIZED') AS unauthorized,
+  sumIf(count, outcome = 'DISABLED') AS disabled,
+  sumIf(count, outcome = 'INSUFFICIENT_PERMISSIONS') AS insufficientPermissions,
+  sumIf(count, outcome = 'EXPIRED') AS expired,
+  SUM(count) AS total
+FROM key_verifications_per_day_v1
+WHERE time >= now() - INTERVAL 30 DAY
+```
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT sumIf(count, outcome = '\''VALID'\'') AS valid, sumIf(count, outcome = '\''RATE_LIMITED'\'') AS rateLimited, sumIf(count, outcome = '\''INVALID'\'') AS invalid, sumIf(count, outcome = '\''NOT_FOUND'\'') AS notFound, sumIf(count, outcome = '\''FORBIDDEN'\'') AS forbidden, sumIf(count, outcome = '\''USAGE_EXCEEDED'\'') AS usageExceeded, sumIf(count, outcome = '\''UNAUTHORIZED'\'') AS unauthorized, sumIf(count, outcome = '\''DISABLED'\'') AS disabled, sumIf(count, outcome = '\''INSUFFICIENT_PERMISSIONS'\'') AS insufficientPermissions, sumIf(count, outcome = '\''EXPIRED'\'') AS expired, SUM(count) AS total FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 30 DAY"
+  }'
+```
+
+</CodeGroup>
+
+### All outcomes per key
+
+Get outcome breakdown for each API key in a single row per key.
+
+<CodeGroup>
+```sql SQL
+SELECT
+  key_id,
+  sumIf(count, outcome = 'VALID') AS valid,
+  sumIf(count, outcome = 'RATE_LIMITED') AS rateLimited,
+  sumIf(count, outcome = 'INVALID') AS invalid,
+  sumIf(count, outcome = 'NOT_FOUND') AS notFound,
+  sumIf(count, outcome = 'FORBIDDEN') AS forbidden,
+  sumIf(count, outcome = 'USAGE_EXCEEDED') AS usageExceeded,
+  sumIf(count, outcome = 'UNAUTHORIZED') AS unauthorized,
+  sumIf(count, outcome = 'DISABLED') AS disabled,
+  sumIf(count, outcome = 'INSUFFICIENT_PERMISSIONS') AS insufficientPermissions,
+  sumIf(count, outcome = 'EXPIRED') AS expired,
+  SUM(count) AS total
+FROM key_verifications_per_day_v1
+WHERE time >= now() - INTERVAL 30 DAY
+GROUP BY key_id
+ORDER BY total DESC
+LIMIT 100
+```
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT key_id, sumIf(count, outcome = '\''VALID'\'') AS valid, sumIf(count, outcome = '\''RATE_LIMITED'\'') AS rateLimited, sumIf(count, outcome = '\''INVALID'\'') AS invalid, sumIf(count, outcome = '\''NOT_FOUND'\'') AS notFound, sumIf(count, outcome = '\''FORBIDDEN'\'') AS forbidden, sumIf(count, outcome = '\''USAGE_EXCEEDED'\'') AS usageExceeded, sumIf(count, outcome = '\''UNAUTHORIZED'\'') AS unauthorized, sumIf(count, outcome = '\''DISABLED'\'') AS disabled, sumIf(count, outcome = '\''INSUFFICIENT_PERMISSIONS'\'') AS insufficientPermissions, sumIf(count, outcome = '\''EXPIRED'\'') AS expired, SUM(count) AS total FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 30 DAY GROUP BY key_id ORDER BY total DESC LIMIT 100"
+  }'
+```
+
+</CodeGroup>
+
 ### Daily verification trend
 
 Track daily verification patterns over the last 30 days.
@@ -846,6 +916,158 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 ```
 
 </CodeGroup>
+
+## Filling Gaps in Time Series (WITH FILL)
+
+When querying time series data, you may have periods with no activity that result in missing time points. ClickHouse's `WITH FILL` clause ensures all time periods are included in results, filling gaps with zeros.
+
+<Note>
+  `WITH FILL` is particularly useful for creating charts and visualizations where you need consistent time intervals, even when there's no data for some periods.
+</Note>
+
+<Warning>
+  `WITH FILL` only works when grouping by the time column alone. To include outcome breakdowns or other dimensions, use `sumIf()` to pivot them into columns (see the last example below).
+</Warning>
+
+<Note>
+  **Type matching:** The `time` column type varies by table:
+  - **Hourly/Minute tables**: `DateTime` - use `toStartOfHour(now() - INTERVAL N HOUR)`
+  - **Daily/Monthly tables**: `Date` - use `toDate(now() - INTERVAL N DAY)` or `toDate(toStartOfMonth(...))`
+
+  WITH FILL expressions must match the column type exactly.
+</Note>
+
+### Hourly data with gaps filled
+
+Get hourly verification counts for the last 7 days, including hours with zero activity.
+
+<CodeGroup>
+```sql SQL
+SELECT
+  time,
+  SUM(count) as total
+FROM key_verifications_per_hour_v1
+WHERE time >= toStartOfHour(now() - INTERVAL 7 DAY)
+  AND time <= toStartOfHour(now())
+GROUP BY time
+ORDER BY time ASC
+  WITH FILL
+  FROM toStartOfHour(now() - INTERVAL 7 DAY)
+  TO toStartOfHour(now())
+  STEP INTERVAL 1 HOUR
+```
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT time, SUM(count) as total FROM key_verifications_per_hour_v1 WHERE time >= toStartOfHour(now() - INTERVAL 7 DAY) AND time <= toStartOfHour(now()) GROUP BY time ORDER BY time ASC WITH FILL FROM toStartOfHour(now() - INTERVAL 7 DAY) TO toStartOfHour(now()) STEP INTERVAL 1 HOUR"
+  }'
+```
+
+</CodeGroup>
+
+### Daily data with gaps filled
+
+Get daily verification counts for the last 30 days, ensuring all days are present.
+
+<CodeGroup>
+```sql SQL
+SELECT
+  time,
+  SUM(count) as total
+FROM key_verifications_per_day_v1
+WHERE time >= toDate(now() - INTERVAL 30 DAY)
+  AND time <= toDate(now())
+GROUP BY time
+ORDER BY time ASC
+  WITH FILL
+  FROM toDate(now() - INTERVAL 30 DAY)
+  TO toDate(now())
+  STEP INTERVAL 1 DAY
+```
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT time, SUM(count) as total FROM key_verifications_per_day_v1 WHERE time >= toDate(now() - INTERVAL 30 DAY) AND time <= toDate(now()) GROUP BY time ORDER BY time ASC WITH FILL FROM toDate(now() - INTERVAL 30 DAY) TO toDate(now()) STEP INTERVAL 1 DAY"
+  }'
+```
+
+</CodeGroup>
+
+### Monthly data with gaps filled
+
+Get monthly verification counts for the last 12 months with all months included.
+
+<CodeGroup>
+```sql SQL
+SELECT
+  time,
+  SUM(count) as total
+FROM key_verifications_per_month_v1
+WHERE time >= toDate(toStartOfMonth(now() - INTERVAL 12 MONTH))
+  AND time <= toDate(toStartOfMonth(now()))
+GROUP BY time
+ORDER BY time ASC
+  WITH FILL
+  FROM toDate(toStartOfMonth(now() - INTERVAL 12 MONTH))
+  TO toDate(toStartOfMonth(now()))
+  STEP INTERVAL 1 MONTH
+```
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT time, SUM(count) as total FROM key_verifications_per_month_v1 WHERE time >= toDate(toStartOfMonth(now() - INTERVAL 12 MONTH)) AND time <= toDate(toStartOfMonth(now())) GROUP BY time ORDER BY time ASC WITH FILL FROM toDate(toStartOfMonth(now() - INTERVAL 12 MONTH)) TO toDate(toStartOfMonth(now())) STEP INTERVAL 1 MONTH"
+  }'
+```
+
+</CodeGroup>
+
+### Filling gaps with aggregations
+
+For more complex queries that aggregate by outcome, use a subquery or pivot approach instead of WITH FILL with multiple GROUP BY columns.
+
+<CodeGroup>
+```sql SQL
+-- Pivot outcomes into columns with all days filled
+SELECT
+  time,
+  sumIf(count, outcome = 'VALID') as valid,
+  sumIf(count, outcome = 'RATE_LIMITED') as rate_limited,
+  sumIf(count, outcome = 'INVALID') as invalid,
+  SUM(count) as total
+FROM key_verifications_per_day_v1
+WHERE time >= toDate(now() - INTERVAL 30 DAY)
+  AND time <= toDate(now())
+GROUP BY time
+ORDER BY time ASC
+  WITH FILL
+  FROM toDate(now() - INTERVAL 30 DAY)
+  TO toDate(now())
+  STEP INTERVAL 1 DAY
+```
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT time, sumIf(count, outcome = '\''VALID'\'') as valid, sumIf(count, outcome = '\''RATE_LIMITED'\'') as rate_limited, sumIf(count, outcome = '\''INVALID'\'') as invalid, SUM(count) as total FROM key_verifications_per_day_v1 WHERE time >= toDate(now() - INTERVAL 30 DAY) AND time <= toDate(now()) GROUP BY time ORDER BY time ASC WITH FILL FROM toDate(now() - INTERVAL 30 DAY) TO toDate(now()) STEP INTERVAL 1 DAY"
+  }'
+```
+
+</CodeGroup>
+
+<Note>
+  `WITH FILL` only works when grouping by time alone. For outcome breakdowns, use `sumIf()` to pivot outcomes into separate columns as shown above.
+</Note>
 
 ## Tips for Efficient Queries
 

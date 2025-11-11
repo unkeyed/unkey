@@ -72,6 +72,18 @@ linters:
         - ^gorm.io/gorm.*$
         - ^github.com/redis/go-redis/v9.Options$
         - ^github.com/go-redis/redis/v8.Options$
+        - ^github.com/unkeyed/unkey/go/pkg/cli.Command$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*BinaryOperation$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*NestedIdentifier$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*Ident$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*StringLiteral$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*WhereClause$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*NumberLiteral$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*LimitClause$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*ParamExprList$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*ColumnExprList$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*ColumnExpr$
+        - ^database/sql\.Null.*$
     funlen:
       lines: 100
       statements: 50
