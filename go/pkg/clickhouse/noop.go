@@ -14,7 +14,6 @@ type noop struct{}
 
 var (
 	_ Bufferer = (*noop)(nil)
-	_ Bufferer = (*noop)(nil)
 )
 
 func (n *noop) BufferApiRequest(schema.ApiRequest) {
