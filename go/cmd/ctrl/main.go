@@ -117,6 +117,8 @@ var Cmd = &cli.Command{
 			cli.Default(9080), cli.EnvVar("UNKEY_RESTATE_HTTP_PORT")),
 		cli.String("restate-register-as", "URL of this service for self-registration with Restate. Example: http://ctrl:9080",
 			cli.EnvVar("UNKEY_RESTATE_REGISTER_AS")),
+		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
+			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
 	},
 	Action: action,
 }
@@ -212,6 +214,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			HttpPort:   cmd.Int("restate-http-port"),
 			RegisterAs: cmd.String("restate-register-as"),
 		},
+
+		// Clickhouse Configuration
+		ClickhouseURL: cmd.String("clickhouse-url"),
 
 		// Common
 		Clock: clock.New(),

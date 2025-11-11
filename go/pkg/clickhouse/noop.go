@@ -12,8 +12,10 @@ import (
 // such as in development environments or when running integration tests.
 type noop struct{}
 
-var _ Bufferer = (*noop)(nil)
-var _ Bufferer = (*noop)(nil)
+var (
+	_ Bufferer = (*noop)(nil)
+	_ Bufferer = (*noop)(nil)
+)
 
 func (n *noop) BufferApiRequest(schema.ApiRequest) {
 	// Intentionally empty - discards the event
@@ -26,6 +28,16 @@ func (n *noop) BufferKeyVerification(schema.KeyVerification) {
 
 // BufferRatelimit implements the Bufferer interface but discards the event.
 func (n *noop) BufferRatelimit(req schema.Ratelimit) {
+	// Intentionally empty - discards the event
+}
+
+// BufferBuildStep implements the Bufferer interface but discards the event.
+func (n *noop) BufferBuildStep(req schema.BuildStepV1) {
+	// Intentionally empty - discards the event
+}
+
+// BufferBuildStepLog implements the Bufferer interface but discards the event.
+func (n *noop) BufferBuildStepLog(req schema.BuildStepLogV1) {
 	// Intentionally empty - discards the event
 }
 
