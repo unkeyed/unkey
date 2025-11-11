@@ -10,7 +10,6 @@ require (
 	connectrpc.com/connect v1.19.0
 	github.com/AfterShip/clickhouse-sql-parser v0.4.16
 	github.com/ClickHouse/clickhouse-go/v2 v2.40.1
-	github.com/agilira/go-timecache v1.0.2
 	github.com/aws/aws-sdk-go-v2 v1.36.6
 	github.com/aws/aws-sdk-go-v2/config v1.29.18
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.71
