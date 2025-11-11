@@ -15,9 +15,10 @@ type randBuffer struct {
 	pos int
 }
 
-// bufferPool provides a pool of randBuffer instances, one per goroutine.
+// bufferPool provides a pool of reusable randBuffer instances.
+// Each call to Read borrows a buffer from the pool, uses it, then returns it.
 // This eliminates lock contention in parallel workloads while amortizing
-// crypto/rand syscall overhead. Each goroutine gets its own 4KB buffer.
+// crypto/rand syscall overhead across multiple reads.
 var bufferPool = sync.Pool{
 	New: func() any {
 		return &randBuffer{
