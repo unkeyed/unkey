@@ -19,7 +19,7 @@ type randBuffer struct {
 // This eliminates lock contention in parallel workloads while amortizing
 // crypto/rand syscall overhead. Each goroutine gets its own 4KB buffer.
 var bufferPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return &randBuffer{
 			pos: bufferSize, // Start exhausted to force initial fill
 		}
@@ -67,7 +67,7 @@ func Read(p []byte) error {
 func Reset() {
 	// Create a new pool, abandoning old buffers
 	bufferPool = sync.Pool{
-		New: func() interface{} {
+		New: func() any {
 			return &randBuffer{
 				pos: bufferSize,
 			}
