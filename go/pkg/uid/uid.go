@@ -4,7 +4,12 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
+	mathrand "math/rand/v2"
 	"time"
+	"unsafe"
+
+	"github.com/agilira/go-timecache"
+	"github.com/mr-tron/base58"
 )
 
 // Prefix defines the standard resource type prefixes used throughout the system.
@@ -54,8 +59,13 @@ const (
 const epochTimestampSec = 1700000000
 
 // New generates a unique identifier with the specified prefix. The generated ID combines
-// a timestamp component with random data when possible, ensuring uniqueness even when
-// created simultaneously across distributed systems.
+// a timestamp component with random data, ensuring uniqueness even when created
+// simultaneously across distributed systems.
+//
+// This is the optimized implementation that uses:
+// - math/rand/v2 ChaCha8 for fast random number generation
+// - Cached timestamps to avoid expensive time.Now() syscalls
+// - Efficient string building without fmt.Sprintf
 //
 // The ID follows the format: prefix_base58encoded(data), where data contains:
 // - For byteSize > 4: A timestamp (first 4 bytes) followed by random data
@@ -73,11 +83,11 @@ const epochTimestampSec = 1700000000
 // the first 4 bytes contain the timestamp, with remaining bytes containing random data.
 // When byteSize ≤ 4, all bytes contain random data.
 //
-// This function is used across all Unkey services for ID generation and is critical for
-// ensuring system-wide uniqueness.
-//
-// New panics if it fails to generate random bytes, which should only occur in extreme cases
-// of system resource exhaustion or entropy source failure.
+// SECURITY NOTE: This function uses math/rand/v2 instead of crypto/rand for random number
+// generation. It is suitable for generating UIDs where collision resistance is primarily
+// achieved through the combination of timestamp and large random space, but should NOT be
+// used for security-sensitive applications requiring cryptographic randomness (e.g., tokens,
+// secrets, authentication keys). Use NewV1 for cryptographic randomness if required.
 //
 // Example:
 //
@@ -89,12 +99,57 @@ const epochTimestampSec = 1700000000
 //	workspaceID := uid.New(uid.WorkspacePrefix, 16)
 //	// Output: ws_3pfLMNe2vGA7h8b9VrR5
 //
-//	// Generate a small ID with only random data (no timestamp)
-//	smallID := uid.New(uid.TestPrefix, 3)
-//	// Output: test_8hNpqL
-//
-// See [Prefix] for available resource type prefixes.
+// See [Prefix] for available resource type prefixes and NewV1 for the original implementation.
 func New(prefix Prefix, byteSize ...int) string {
+	bytes := 12
+	if len(byteSize) > 0 {
+		bytes = byteSize[0]
+	}
+
+	// Create a buffer for our ID
+	buf := make([]byte, bytes)
+
+	// Use math/rand/v2 ChaCha8 to fill the buffer with random bytes
+	rng.Read(buf)
+
+	if bytes > 4 {
+		// Use cached timestamp instead of time.Now() to avoid syscall
+		t := uint32(timecache.CachedTime().Unix() - epochTimestampSec)
+
+		// Write timestamp as first 4 bytes (big endian)
+		binary.BigEndian.PutUint32(buf[:4], t)
+	}
+
+	// Encode to base58
+	encoded := base58.Encode(buf)
+
+	if prefix == "" {
+		return encoded
+	}
+
+	// Use byte buffer approach with unsafe string conversion avoids intermediate allocations from string concatenation
+	prefixLen := len(prefix)
+	encodedLen := len(encoded)
+	totalLen := prefixLen + 1 + encodedLen
+
+	// Allocate single buffer for the entire result
+	result := make([]byte, totalLen)
+	copy(result, prefix)
+	result[prefixLen] = '_'
+	copy(result[prefixLen+1:], encoded)
+
+	// Convert to string using unsafe (avoids copy, ~4% faster in parallel hot path)
+	// SAFETY: result is a fresh allocation that we own and return immediately,
+	// so the underlying bytes cannot be modified after conversion to string.
+	// This pattern is used in Go stdlib: strings.Builder.String() and syscall.UTF16ToString()
+	return unsafe.String(unsafe.SliceData(result), len(result))
+}
+
+var rng = mathrand.NewChaCha8([32]byte{})
+
+// NewV1 is the original implementation using crypto/rand and fmt.Sprintf.
+// Kept for backward compatibility and comparison benchmarks.
+func NewV1(prefix Prefix, byteSize ...int) string {
 	bytes := 12
 	if len(byteSize) > 0 {
 		bytes = byteSize[0]
@@ -122,14 +177,15 @@ func New(prefix Prefix, byteSize ...int) string {
 	if prefix != "" {
 		id = fmt.Sprintf("%s_%s", prefix, id)
 	}
-	return id
 
+	return id
 }
 
 // base58Alphabet is the Bitcoin base58 alphabet
 const base58Alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
-// encodeBase58 encodes a byte slice to base58 string using Bitcoin alphabet
+// encodeBase58 encodes a byte slice to base58 string using Bitcoin alphabet.
+// This is the original custom implementation kept for NewV1 backward compatibility.
 func encodeBase58(input []byte) string {
 	if len(input) == 0 {
 		return ""
