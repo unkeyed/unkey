@@ -52,20 +52,4 @@ func TestSortability(t *testing.T) {
 				"IDs should be lexicographically sortable across time")
 		}
 	})
-
-	t.Run("NewV1_sortable_across_time", func(t *testing.T) {
-		var ids []string
-		for i := range 3 {
-			ids = append(ids, uid.NewV1(uid.KeyPrefix))
-			if i < 2 {
-				time.Sleep(1100 * time.Millisecond) // Wait for second to change
-			}
-		}
-
-		// IDs generated in different seconds should be sorted
-		for i := 1; i < len(ids); i++ {
-			require.GreaterOrEqual(t, ids[i], ids[i-1],
-				"NewV1 IDs should be lexicographically sortable across time")
-		}
-	})
 }

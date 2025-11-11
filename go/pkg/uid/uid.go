@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	mathrand "math/rand/v2"
-	"time"
 	"unsafe"
 
 	"github.com/agilira/go-timecache"
@@ -156,96 +155,4 @@ func init() {
 	}
 
 	rng = mathrand.NewChaCha8(seed)
-}
-
-// NewV1 is the original implementation using crypto/rand and fmt.Sprintf.
-// Kept for backward compatibility and comparison benchmarks.
-func NewV1(prefix Prefix, byteSize ...int) string {
-	bytes := 12
-	if len(byteSize) > 0 {
-		bytes = byteSize[0]
-	}
-
-	// Create a buffer for our ID
-	buf := make([]byte, bytes)
-
-	_, err := rand.Read(buf)
-	if err != nil {
-		panic(err)
-	}
-
-	if bytes > 4 {
-		// Calculate seconds since epoch
-		// nolint:gosec
-		// subtracting the epochTimestamp should guarantee we're not overflowing
-		t := uint32(time.Now().Unix() - epochTimestampSec)
-
-		// Write timestamp as first 4 bytes (big endian)
-		binary.BigEndian.PutUint32(buf[:4], t)
-	}
-
-	id := encodeBase58(buf)
-	if prefix != "" {
-		id = fmt.Sprintf("%s_%s", prefix, id)
-	}
-
-	return id
-}
-
-// base58Alphabet is the Bitcoin base58 alphabet
-const base58Alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-
-// encodeBase58 encodes a byte slice to base58 string using Bitcoin alphabet.
-// This is the original custom implementation kept for NewV1 backward compatibility.
-func encodeBase58(input []byte) string {
-	if len(input) == 0 {
-		return ""
-	}
-
-	// Count leading zeros
-	var zeros int
-	for _, b := range input {
-		if b != 0 {
-			break
-		}
-		zeros++
-	}
-
-	// Convert to big integer and encode
-	var result []byte
-	inputCopy := make([]byte, len(input))
-	copy(inputCopy, input)
-
-	for len(inputCopy) > 0 {
-		// Find first non-zero byte
-		start := 0
-		for start < len(inputCopy) && inputCopy[start] == 0 {
-			start++
-		}
-		if start == len(inputCopy) {
-			break
-		}
-
-		// Divide by 58
-		remainder := 0
-		for i := start; i < len(inputCopy); i++ {
-			temp := remainder*256 + int(inputCopy[i])
-			inputCopy[i] = byte(temp / 58)
-			remainder = temp % 58
-		}
-
-		result = append(result, base58Alphabet[remainder])
-	}
-
-	// Add leading '1's for leading zeros
-	for i := 0; i < zeros; i++ {
-		result = append(result, '1')
-	}
-
-	// Reverse result
-	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
-		result[i], result[j] = result[j], result[i]
-	}
-
-	return string(result)
 }

@@ -18,13 +18,6 @@ func BenchmarkComparison(b *testing.B) {
 			_ = uid.New(uid.KeyPrefix)
 		}
 	})
-
-	b.Run("NewV1_Original", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			_ = uid.NewV1(uid.KeyPrefix)
-		}
-	})
 }
 
 // BenchmarkNew benchmarks the optimized New() implementation with different configurations.
@@ -58,23 +51,6 @@ func BenchmarkNew(b *testing.B) {
 	})
 }
 
-// BenchmarkNewV1 benchmarks the original NewV1() implementation for comparison.
-func BenchmarkNewV1(b *testing.B) {
-	b.Run("with_prefix", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			_ = uid.NewV1(uid.KeyPrefix)
-		}
-	})
-
-	b.Run("without_prefix", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			_ = uid.NewV1("")
-		}
-	})
-}
-
 // BenchmarkParallel tests UID generation under concurrent load, simulating
 // real-world scenarios where multiple goroutines generate IDs simultaneously.
 func BenchmarkParallel(b *testing.B) {
@@ -83,15 +59,6 @@ func BenchmarkParallel(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
 				_ = uid.New(uid.KeyPrefix)
-			}
-		})
-	})
-
-	b.Run("NewV1_Original", func(b *testing.B) {
-		b.ReportAllocs()
-		b.RunParallel(func(pb *testing.PB) {
-			for pb.Next() {
-				_ = uid.NewV1(uid.KeyPrefix)
 			}
 		})
 	})
