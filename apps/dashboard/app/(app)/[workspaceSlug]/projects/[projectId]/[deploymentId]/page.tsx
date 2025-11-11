@@ -45,7 +45,8 @@ hover:ring-2 hover:ring-grayA-2 hover:scale-[1.02] transition-all duration-200 c
               {node.label}
             </div>
             <div className="text-gray-9 text-[11px]">
-              {node.metadata.zones} availability zones
+              {node.metadata.zones} availability{" "}
+              {node.metadata.zones.length > 1 ? "zones" : "zone"}
             </div>
           </div>
         </div>
@@ -404,7 +405,7 @@ const deploymentTree: TreeNode = {
       metadata: {
         type: "region",
         description: "3 availability zones",
-        zones: 3,
+        zones: 1,
         instances: 28,
         replicas: 2,
         power: 31,
@@ -439,7 +440,7 @@ const deploymentTree: TreeNode = {
       metadata: {
         type: "region",
         description: "2 availability zones",
-        zones: 2,
+        zones: 1,
         instances: 24,
         replicas: 2,
         power: 27,
@@ -474,7 +475,7 @@ const deploymentTree: TreeNode = {
       metadata: {
         type: "region",
         description: "3 availability zones",
-        zones: 3,
+        zones: 2,
         instances: 24,
         replicas: 2,
         power: 23,
@@ -525,7 +526,7 @@ const deploymentTree: TreeNode = {
       metadata: {
         type: "region",
         description: "3 availability zones",
-        zones: 3,
+        zones: 1,
         instances: 32,
         replicas: 2,
         power: 31,
