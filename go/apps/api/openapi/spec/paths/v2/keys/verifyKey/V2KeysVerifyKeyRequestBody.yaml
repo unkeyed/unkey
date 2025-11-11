@@ -30,7 +30,7 @@ properties:
     items:
       type: string
       minLength: 1
-      maxLength: 128 # Keep individual tags concise for analytics performance
+      maxLength: 256 # Keep individual tags concise for analytics performance
       pattern: "^[a-zA-Z0-9_=/.:-]+$"
     maxItems: 20 # Allow sufficient tags for detailed analytics without performance impact
     description: |
