@@ -42,7 +42,7 @@ func TestKeyUpdateCreditsUnauthorized(t *testing.T) {
 	remainingRequests := int32(100)
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        &keyName,
 		Remaining:   &remainingRequests,
 	})

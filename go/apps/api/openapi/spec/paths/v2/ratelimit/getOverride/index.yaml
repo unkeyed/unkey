@@ -23,12 +23,12 @@ post:
           specific:
             summary: Get specific override
             value:
-              namespaceName: api.requests
+              namespace: api.requests
               identifier: premium_user_123
           wildcard:
             summary: Get wildcard pattern override
             value:
-              namespaceName: api.requests
+              namespace: api.requests
               identifier: premium_*
     required: true
   responses:

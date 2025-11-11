@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -11,13 +10,14 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2PermissionsGetRoleRequestBody
-type Response = openapi.V2PermissionsGetRoleResponseBody
+type (
+	Request  = openapi.V2PermissionsGetRoleRequestBody
+	Response = openapi.V2PermissionsGetRoleResponseBody
+)
 
 // Handler implements zen.Route interface for the v2 permissions get role endpoint
 type Handler struct {
@@ -86,37 +86,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Id:          role.ID,
 		Name:        role.Name,
 		Permissions: nil,
-		Description: nil,
+		Description: role.Description.String,
 	}
 
-	if role.Description.Valid {
-		roleResponse.Description = &role.Description.String
+	perms, err := db.UnmarshalNullableJSONTo[[]db.Permission](role.Permissions)
+	if err != nil {
+		h.Logger.Error("Failed to unmarshal permissions", "error", err)
 	}
 
-	rolePermissions := make([]db.Permission, 0)
-	if permBytes, ok := role.Permissions.([]byte); ok && permBytes != nil {
-		_ = json.Unmarshal(permBytes, &rolePermissions) // Ignore error, default to empty array
-	}
-
-	perms := make([]openapi.Permission, 0)
-	for _, perm := range rolePermissions {
+	for _, perm := range perms {
 		permission := openapi.Permission{
 			Id:          perm.ID,
 			Name:        perm.Name,
 			Slug:        perm.Slug,
-			Description: nil,
+			Description: perm.Description.String,
 		}
 
-		// Add description only if it's valid
-		if perm.Description.Valid {
-			permission.Description = &perm.Description.String
-		}
-
-		perms = append(perms, permission)
-	}
-
-	if len(perms) > 0 {
-		roleResponse.Permissions = ptr.P(perms)
+		roleResponse.Permissions = append(roleResponse.Permissions, permission)
 	}
 
 	return s.JSON(http.StatusOK, Response{

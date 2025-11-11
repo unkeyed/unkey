@@ -65,7 +65,7 @@ func TestGetKeyByKeyID(t *testing.T) {
 	keyName := "test-key"
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        &keyName,
 		IdentityID:  &identity.ID,
 	})
@@ -117,7 +117,7 @@ func TestGetKeyByKeyID(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, ptr.SafeDeref(res.Body.Data.Plaintext), key.Key)
+		require.Equal(t, res.Body.Data.Plaintext, key.Key)
 	})
 
 }
@@ -168,7 +168,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		keyName := "complex-meta-key"
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        &keyName,
 			Meta:        &metaString,
 		})
@@ -185,7 +185,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		require.NotNil(t, res.Body.Data.Meta)
 
 		// Verify meta data was properly unmarshaled
-		metaMap := *res.Body.Data.Meta
+		metaMap := res.Body.Data.Meta
 		require.Equal(t, float64(12345), metaMap["user_id"]) // JSON numbers become float64
 		require.Equal(t, "premium", metaMap["plan"])
 	})
@@ -194,7 +194,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		futureDate := time.Now().Add(24 * time.Hour).Truncate(time.Hour)
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Expires:     &futureDate,
 		})
 
@@ -207,13 +207,13 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data.Expires)
-		require.Equal(t, futureDate.UnixMilli(), *res.Body.Data.Expires)
+		require.Equal(t, futureDate.UnixMilli(), res.Body.Data.Expires)
 	})
 
 	t.Run("key with credits and daily refill", func(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:  workspace.ID,
-			KeyAuthID:    api.KeyAuthID.String,
+			KeySpaceID:   api.KeyAuthID.String,
 			Remaining:    ptr.P(int32(50)),
 			RefillAmount: ptr.P(int32(100)),
 		})
@@ -236,7 +236,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 	t.Run("key with monthly refill", func(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:  workspace.ID,
-			KeyAuthID:    api.KeyAuthID.String,
+			KeySpaceID:   api.KeyAuthID.String,
 			Remaining:    ptr.P(int32(50)),
 			RefillAmount: ptr.P(int32(100)),
 			RefillDay:    ptr.P(int16(1)),
@@ -253,13 +253,13 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		require.NotNil(t, res.Body.Data.Credits)
 		require.NotNil(t, res.Body.Data.Credits.Refill)
 		require.Equal(t, "monthly", string(res.Body.Data.Credits.Refill.Interval))
-		require.Equal(t, 1, *res.Body.Data.Credits.Refill.RefillDay)
+		require.Equal(t, 1, res.Body.Data.Credits.Refill.RefillDay)
 	})
 
 	t.Run("key with roles and permissions", func(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Permissions: []seed.CreatePermissionRequest{{
 				Name:        "read_data",
 				Slug:        "read_data",
@@ -289,12 +289,12 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		require.NotNil(t, res.Body.Data.Permissions)
 		require.NotNil(t, res.Body.Data.Roles)
 
-		permissions := *res.Body.Data.Permissions
+		permissions := res.Body.Data.Permissions
 		require.Len(t, permissions, 2)
 		require.Contains(t, permissions, "read_data")
 		require.Contains(t, permissions, "write_data")
 
-		roles := *res.Body.Data.Roles
+		roles := res.Body.Data.Roles
 		require.Len(t, roles, 1)
 		require.Contains(t, roles, "data_admin")
 	})
@@ -302,7 +302,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 	t.Run("key with ratelimits", func(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "api_calls",
@@ -335,7 +335,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data.Ratelimits)
 
-		ratelimits := *res.Body.Data.Ratelimits
+		ratelimits := res.Body.Data.Ratelimits
 		require.Len(t, ratelimits, 2)
 
 		// Find each ratelimit and verify
@@ -363,7 +363,7 @@ func TestGetKey_AdditionalScenarios(t *testing.T) {
 	t.Run("disabled key", func(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Disabled:    true,
 		})
 

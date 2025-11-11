@@ -22,7 +22,7 @@ func (c *clickhouse) GetBillableRatelimits(ctx context.Context, workspaceID stri
 	query := `
 	SELECT
 		sum(count) as count
-	FROM billing.billable_ratelimits_per_month_v1
+	FROM default.billable_ratelimits_per_month_v2
 	WHERE workspace_id = ?
 	AND year = ?
 	AND month = ?

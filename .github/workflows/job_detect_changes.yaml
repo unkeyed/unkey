@@ -74,12 +74,25 @@ jobs:
 
             # Dashboard application and its dependencies
             dashboard:
-              - 'apps/dashboard/**'
-              - 'internal/ui/**'
+              - 'apps/dashboard/**/!(*.md|*.txt)'
+              - 'apps/dashboard/!(*.md|*.txt)'
+              - 'internal/billing/**'
+              - 'internal/clickhouse/**'
+              - 'internal/db/**'
+              - 'internal/encryption/**'
+              - 'internal/events/**'
+              - 'internal/hash/**'
               - 'internal/icons/**'
+              - 'internal/id/**'
+              - 'internal/keys/**'
+              - 'internal/proto/**'
               - 'internal/resend/**'
+              - 'internal/schema/**'
+              - 'internal/ui/**'
               - 'internal/validation/**'
               - 'internal/vercel/**'
+              - 'packages/error/**'
+              - 'packages/rbac/**'
 
             # Agent application (Go-based)
             agent:
@@ -87,26 +100,22 @@ jobs:
 
             # Logdrain application
             logdrain:
-              - 'apps/logdrain/**'
+              - 'apps/logdrain/**/!(*.md|*.txt)'
+              - 'apps/logdrain/!(*.md|*.txt)'
 
             # Go services (API v2, Ctrl, Deploy services)
             go:
-              - 'go/**'
-              - '!go/benchmarks/**'
-              - '!go/demo_api/**'
+              - 'go/!(benchmarks|demo_api)/**'
+              - 'go/!(benchmarks|demo_api)'
 
             # ClickHouse schema and related
             clickhouse:
               - 'internal/clickhouse/**'
               - 'go/internal/clickhouse/**'
 
-            # Documentation
+            # Documentation (apps/docs only - .md files ARE content)
             docs:
               - 'apps/docs/**'
-              - 'apps/engineering/**'
-              - '*.md'
-              - 'README*'
-              - 'CHANGELOG*'
 
             # GitHub workflows and CI/CD
             workflows:

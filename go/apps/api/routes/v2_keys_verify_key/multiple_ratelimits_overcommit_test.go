@@ -9,14 +9,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_verify_key"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 )
 
 // TestMultipleRatelimitsCounterLeakBug tests the critical bug where multiple rate limits
 // cause incorrect counter decrements when one limit is triggered.
-//
+// nolint: godox
 // Bug description:
 // When a key has multiple rate limits (e.g., 12/minute and 200/month), and the first
 // limit gets checked and incremented, then the second limit is triggered, the first
@@ -52,11 +51,10 @@ func TestMultipleRatelimitsCounterLeakBug(t *testing.T) {
 	}
 
 	t.Run("monthly counter should be incremented when minute limit is hit", func(t *testing.T) {
-
 		// Create a key with a per-minute rate limit (12 requests per minute)
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "requests-per-month",
@@ -103,7 +101,7 @@ func TestMultipleRatelimitsCounterLeakBug(t *testing.T) {
 		monthLimitExceeded := false
 		var monthLimitRemaining int64
 
-		for _, rl := range ptr.SafeDeref(res.Body.Data.Ratelimits) {
+		for _, rl := range res.Body.Data.Ratelimits {
 			if rl.Name == "requests-per-minute" && rl.Exceeded {
 				minuteLimitExceeded = true
 			}
@@ -133,7 +131,7 @@ func TestMultipleRatelimitsCounterLeakBug(t *testing.T) {
 
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "test-minute",
@@ -207,7 +205,7 @@ func TestMultipleRatelimitsCounterLeakBug(t *testing.T) {
 		require.False(t, res.Body.Data.Valid)
 
 		// Verify it's the monthly limit that's exceeded
-		ratelimits := *res.Body.Data.Ratelimits
+		ratelimits := res.Body.Data.Ratelimits
 		monthLimitExceeded := false
 
 		for _, rl := range ratelimits {
@@ -220,5 +218,4 @@ func TestMultipleRatelimitsCounterLeakBug(t *testing.T) {
 		require.True(t, monthLimitExceeded,
 			"The monthly limit should be exceeded after exactly 50 valid requests")
 	})
-
 }

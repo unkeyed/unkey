@@ -43,7 +43,7 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: api.WorkspaceID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Remaining:   ptr.P(int32(100)),
 	})
 

@@ -50,7 +50,7 @@ INSERT INTO ` + "`" + `keys` + "`" + ` (
 
 type InsertKeyParams struct {
 	ID                string         `db:"id"`
-	KeyringID         string         `db:"keyring_id"`
+	KeySpaceID        string         `db:"key_space_id"`
 	Hash              string         `db:"hash"`
 	Start             string         `db:"start"`
 	WorkspaceID       string         `db:"workspace_id"`
@@ -106,7 +106,7 @@ type InsertKeyParams struct {
 func (q *Queries) InsertKey(ctx context.Context, db DBTX, arg InsertKeyParams) error {
 	_, err := db.ExecContext(ctx, insertKey,
 		arg.ID,
-		arg.KeyringID,
+		arg.KeySpaceID,
 		arg.Hash,
 		arg.Start,
 		arg.WorkspaceID,

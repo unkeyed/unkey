@@ -11,9 +11,12 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Name:  "ctrl",
-	Usage: "Run the Unkey control plane service for managing infrastructure and services",
-
+	Version:     "",
+	Commands:    []*cli.Command{},
+	Aliases:     []string{},
+	Description: "",
+	Name:        "ctrl",
+	Usage:       "Run the Unkey control plane service for managing infrastructure and services",
 	Flags: []cli.Flag{
 		// Server Configuration
 		cli.Int("http-port", "HTTP port for the control plane server to listen on. Default: 8080",
@@ -114,6 +117,8 @@ var Cmd = &cli.Command{
 			cli.Default(9080), cli.EnvVar("UNKEY_RESTATE_HTTP_PORT")),
 		cli.String("restate-register-as", "URL of this service for self-registration with Restate. Example: http://ctrl:9080",
 			cli.EnvVar("UNKEY_RESTATE_REGISTER_AS")),
+		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
+			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
 	},
 	Action: action,
 }
@@ -168,6 +173,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Vault configuration
 		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
 		VaultS3: ctrl.S3Config{
+			ExternalURL:     cmd.String(""),
 			URL:             cmd.String("vault-s3-url"),
 			Bucket:          cmd.String("vault-s3-bucket"),
 			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
@@ -208,6 +214,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			HttpPort:   cmd.Int("restate-http-port"),
 			RegisterAs: cmd.String("restate-register-as"),
 		},
+
+		// Clickhouse Configuration
+		ClickhouseURL: cmd.String("clickhouse-url"),
 
 		// Common
 		Clock: clock.New(),

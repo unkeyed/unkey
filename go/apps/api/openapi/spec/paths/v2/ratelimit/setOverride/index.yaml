@@ -23,14 +23,14 @@ post:
           premium:
             summary: Higher limit for premium user
             value:
-              namespaceName: api.requests
+              namespace: api.requests
               identifier: premium_user_123
               limit: 1000
               duration: 60000
           wildcard:
             summary: Pattern for multiple identifiers
             value:
-              namespaceName: api.requests
+              namespace: api.requests
               identifier: premium_*
               limit: 500
               duration: 60000
@@ -76,8 +76,7 @@ post:
                   requestId: req_0uVwX4yZaAbCdEfGhIjKl
                 error:
                   title: Forbidden
-                  detail:
-                    Your root key requires the 'ratelimit.*.set_override'
+                  detail: Your root key requires the 'ratelimit.*.set_override'
                     permission to perform this operation
                   status: 403
                   type: forbidden

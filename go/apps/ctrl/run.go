@@ -26,6 +26,7 @@ import (
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
+	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -81,7 +82,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	var vaultSvc *vault.Service
 	if len(cfg.VaultMasterKeys) > 0 {
-		vaultStorage, err := storage.NewS3(storage.S3Config{
+		var vaultStorage storage.Storage
+		vaultStorage, err = storage.NewS3(storage.S3Config{
 			Logger:            logger,
 			S3URL:             cfg.VaultS3.URL,
 			S3Bucket:          cfg.VaultS3.Bucket,
@@ -182,10 +184,22 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create build storage: %w", err)
 	}
 
+	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
+	if cfg.ClickhouseURL != "" {
+		ch, err = clickhouse.New(clickhouse.Config{
+			URL:    cfg.ClickhouseURL,
+			Logger: logger,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create clickhouse: %w", err)
+		}
+	}
+
 	var buildService ctrlv1connect.BuildServiceClient
 	switch cfg.BuildBackend {
 	case BuildBackendDocker:
 		buildService = docker.New(docker.Config{
+			InstanceID:    cfg.InstanceID,
 			DB:            database,
 			Logger:        logger,
 			BuildPlatform: docker.BuildPlatform(cfg.GetBuildPlatform()),
@@ -200,6 +214,7 @@ func Run(ctx context.Context, cfg Config) error {
 			RegistryConfig: depot.RegistryConfig(cfg.GetRegistryConfig()),
 			BuildPlatform:  depot.BuildPlatform(cfg.GetBuildPlatform()),
 			DepotConfig:    depot.DepotConfig(cfg.GetDepotConfig()),
+			Clickhouse:     ch,
 			Logger:         logger,
 			Storage:        buildStorage,
 		})
@@ -263,7 +278,7 @@ func Run(ctx context.Context, cfg Config) error {
 			)
 
 			err := retrier.Do(func() error {
-				req, err := http.NewRequestWithContext(ctx, "POST", registerURL, bytes.NewBufferString(payload))
+				req, err := http.NewRequestWithContext(ctx, http.MethodPost, registerURL, bytes.NewBufferString(payload))
 				if err != nil {
 					return fmt.Errorf("failed to create registration request: %w", err)
 				}

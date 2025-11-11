@@ -106,12 +106,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	keyAuth, err := db.Query.FindKeyringByID(ctx, h.DB.RO(), api.KeyAuthID.String)
+	keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("api not set up for keys",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("api not set up for keys, keyauth not found"), fault.Public("The requested API is not set up to handle keys."),
+				fault.Internal("api not set up for keys, keyspace not found"), fault.Public("The requested API is not set up to handle keys."),
 			)
 		}
 
@@ -157,7 +157,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
-		if !keyAuth.StoreEncryptedKeys {
+		if !keySpace.StoreEncryptedKeys {
 			return fault.New("api not set up for key encryption",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.Internal("api not set up for key encryption"), fault.Public("This API does not support key encryption."),
@@ -184,7 +184,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		txErr = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 			insertKeyParams := db.InsertKeyParams{
 				ID:                keyID,
-				KeyringID:         api.KeyAuthID.String,
+				KeySpaceID:        api.KeyAuthID.String,
 				Hash:              keyResult.Hash,
 				Start:             keyResult.Start,
 				WorkspaceID:       auth.AuthorizedWorkspaceID,
@@ -210,7 +210,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				externalID := *req.ExternalId
 
 				// Try to find existing identity
-				identity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
+				var identity db.Identity
+				identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					ExternalID:  externalID,
 					Deleted:     false,
@@ -271,7 +272,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if req.Credits != nil {
-				if req.Credits.Remaining.IsSpecified() {
+				// If refill is set, remaining must be specified and not null
+				if req.Credits.Refill != nil {
+					if !req.Credits.Remaining.IsSpecified() || req.Credits.Remaining.IsNull() {
+						return fault.New("missing credits.remaining",
+							fault.Code(codes.App.Validation.InvalidInput.URN()),
+							fault.Internal("credits.remaining required when refill is set"),
+							fault.Public("`credits.remaining` must be provided when `credits.refill` is set."),
+						)
+					}
+				}
+
+				if req.Credits.Remaining.IsSpecified() && !req.Credits.Remaining.IsNull() {
 					insertKeyParams.RemainingRequests = sql.NullInt32{
 						Int32: int32(req.Credits.Remaining.MustGet()), // nolint:gosec
 						Valid: true,
@@ -285,7 +297,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					}
 
 					if req.Credits.Refill.Interval == openapi.KeyCreditsRefillIntervalMonthly {
-						if req.Credits.Refill.RefillDay == nil {
+						// 0 is the zero value of int16
+						if req.Credits.Refill.RefillDay == 0 {
 							return fault.New("missing refillDay",
 								fault.Code(codes.App.Validation.InvalidInput.URN()),
 								fault.Internal("refillDay required for monthly interval"),
@@ -294,7 +307,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						}
 
 						insertKeyParams.RefillDay = sql.NullInt16{
-							Int16: int16(*req.Credits.Refill.RefillDay), // nolint:gosec
+							Int16: int16(req.Credits.Refill.RefillDay), // nolint:gosec
 							Valid: true,
 						}
 					}
@@ -342,6 +355,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						Limit:       int32(ratelimit.Limit), // nolint:gosec
 						Duration:    ratelimit.Duration,
 						CreatedAt:   now,
+						UpdatedAt:   sql.NullInt64{Int64: 0, Valid: false},
 						AutoApply:   ratelimit.AutoApply,
 					}
 				}
@@ -357,7 +371,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			var auditLogs []auditlog.AuditLog
 			if req.Permissions != nil {
-				existingPermissions, err := db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
+				var existingPermissions []db.Permission
+				existingPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Slugs:       *req.Permissions,
 				})
@@ -468,7 +483,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if req.Roles != nil {
-				existingRoles, err := db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
+				var existingRoles []db.FindRolesByNamesRow
+				existingRoles, err = db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Names:       *req.Roles,
 				})

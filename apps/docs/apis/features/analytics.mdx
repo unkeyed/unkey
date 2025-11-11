@@ -5,6 +5,10 @@ description: 'Per key and per API analytics'
 
 Unkey offers both per key and per API analytics that allow you to drive business decisions.
 
+<Note>
+  We're currently working on a v2 API for analytics with advanced SQL querying capabilities. This feature is opt-in only and not yet publicly available.
+</Note>
+
 ## Per API Analytics
 
 Our per API analytics offer a broad overview of the usage for a specific API with total keys, active keys and verifications in the last 30 days.
@@ -13,7 +17,6 @@ Our per API analytics offer a broad overview of the usage for a specific API wit
   <img src="/images/per-api-analytics.png" alt="Per API Analytics"/>
 </Frame>
 
-
 ## Per Key Analytics
 
 Our per key analytics give you a deep dive into each individual key, giving usage data, key data and where the requests originated from. This data can be useful for finding your top users, and where verifications are coming from.
@@ -21,7 +24,6 @@ Our per key analytics give you a deep dive into each individual key, giving usag
 <Frame caption="Per key Analytics">
   <img src="/images/per-key-analytics.png" alt="Per key analytics"/>
 </Frame>
-
 
 ## Tags
 
@@ -75,6 +77,4 @@ curl --request POST \
 
 ### Querying tags
 
-We have only rolled out tag ingestion so far to allow you to start recording data as early as possible.
-
-We're working on new query capabilities including filtering and aggregating by tags.
+Tags can be used to filter and aggregate data in your analytics.

@@ -46,7 +46,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 	// Create key using helper
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        ptr.P("test"),
 	})
 
@@ -61,7 +61,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 		KeyId:      keyResponse.KeyID,
 		Name:       nullable.NewNullableWithValue("test2"),
 		ExternalId: nullable.NewNullableWithValue("test2"),
-		Meta:       nullable.NewNullableWithValue(map[string]interface{}{"test": "test"}),
+		Meta:       nullable.NewNullableWithValue(map[string]any{"test": "test"}),
 		Expires:    nullable.NewNullableWithValue(time.Now().Add(time.Hour).UnixMilli()),
 		Enabled:    ptr.P(true),
 	}
@@ -72,6 +72,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 	require.NotEmpty(t, res.Body.Meta.RequestId)
 
 	t.Run("upsert ratelimit", func(t *testing.T) {
+		t.Parallel()
 		ratelimit := openapi.RatelimitRequest{
 			AutoApply: false,
 			Duration:  (time.Minute * 5).Milliseconds(),
@@ -150,7 +151,7 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 	// Create key using helper
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: api.WorkspaceID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        ptr.P("test"),
 	})
 
@@ -234,7 +235,7 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	initialCredits := int32(100)
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        &keyName,
 		Remaining:   &initialCredits,
 	})
@@ -278,5 +279,4 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 
 	require.True(t, authAfter.Key.RemainingRequests.Valid)
 	require.Equal(t, int32(newCredits)-1, authAfter.Key.RemainingRequests.Int32)
-
 }

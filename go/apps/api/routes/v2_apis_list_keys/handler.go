@@ -2,7 +2,7 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
+	"database/sql"
 	"net/http"
 
 	"github.com/oapi-codegen/nullable"
@@ -32,7 +32,7 @@ type Handler struct {
 	DB       db.Database
 	Keys     keys.KeyService
 	Vault    *vault.Service
-	ApiCache cache.Cache[string, db.FindLiveApiByIDRow]
+	ApiCache cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
 }
 
 // Method returns the HTTP method this route responds to
@@ -89,7 +89,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	api, hit, err := h.ApiCache.SWR(ctx, req.ApiId, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
+	api, hit, err := h.ApiCache.SWR(ctx, cache.ScopedKey{
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		Key:         req.ApiId,
+	}, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
 		return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiId)
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
@@ -159,20 +162,46 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	limit := ptr.SafeDeref(req.Limit, 100)
 	cursor := ptr.SafeDeref(req.Cursor, "")
 
-	var identityFilter string
+	// Resolve identity ID if external_id filter is provided
+	var identityID sql.NullString
 	if req.ExternalId != nil && *req.ExternalId != "" {
-		identityFilter = *req.ExternalId
+		identity, identityErr := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			ExternalID:  *req.ExternalId,
+			Deleted:     false,
+		})
+		if identityErr != nil {
+			if db.IsNotFound(identityErr) {
+				// Identity doesn't exist, return empty result set
+				return s.JSON(http.StatusOK, Response{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Data: []openapi.KeyResponseData{},
+					Pagination: &openapi.Pagination{
+						Cursor:  nil,
+						HasMore: false,
+					},
+				})
+			}
+			return fault.Wrap(identityErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to retrieve identity."),
+			)
+		}
+		identityID = sql.NullString{String: identity.ID, Valid: true}
 	}
 
 	// Query keys by key_auth_id instead of api_id
-	keyResults, err := db.Query.ListLiveKeysByKeyAuthID(
+	keyResults, err := db.Query.ListLiveKeysByKeySpaceID(
 		ctx,
 		h.DB.RO(),
-		db.ListLiveKeysByKeyAuthIDParams{
-			KeyAuthID: api.KeyAuthID.String,
-			IDCursor:  cursor,
-			Identity:  identityFilter,
-			Limit:     int32(limit + 1), // nolint:gosec
+		db.ListLiveKeysByKeySpaceIDParams{
+			KeySpaceID: api.KeyAuthID.String,
+			IDCursor:   cursor,
+			IdentityID: identityID,
+			Limit:      int32(limit + 1), // nolint:gosec
 		},
 	)
 	if err != nil {
@@ -229,10 +258,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	responseData := make([]openapi.KeyResponseData, len(keyResults))
 	for i, key := range keyResults {
 		keyData := db.ToKeyData(key)
-		response, err := h.buildKeyResponseData(keyData, plaintextMap[key.ID])
-		if err != nil {
-			return err
-		}
+		response := h.buildKeyResponseData(keyData, plaintextMap[key.ID])
 		responseData[i] = response
 	}
 
@@ -249,43 +275,41 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 }
 
 // buildKeyResponseData transforms internal key data into API response format.
-func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (openapi.KeyResponseData, error) {
+func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResponseData {
 	response := openapi.KeyResponseData{
-		CreatedAt: keyData.Key.CreatedAtM,
-		Enabled:   keyData.Key.Enabled,
-		KeyId:     keyData.Key.ID,
-		Start:     keyData.Key.Start,
-	}
-
-	if plaintext != "" {
-		response.Plaintext = ptr.P(plaintext)
-	}
-
-	// Set optional fields
-	if keyData.Key.Name.Valid {
-		response.Name = ptr.P(keyData.Key.Name.String)
-	}
-
-	if keyData.Key.UpdatedAtM.Valid {
-		response.UpdatedAt = ptr.P(keyData.Key.UpdatedAtM.Int64)
+		Meta:        nil,
+		Ratelimits:  nil,
+		Name:        keyData.Key.Name.String,
+		UpdatedAt:   keyData.Key.UpdatedAtM.Int64,
+		Credits:     nil,
+		Expires:     0,
+		Identity:    nil,
+		Permissions: nil,
+		Roles:       nil,
+		Plaintext:   plaintext,
+		CreatedAt:   keyData.Key.CreatedAtM,
+		Enabled:     keyData.Key.Enabled,
+		KeyId:       keyData.Key.ID,
+		Start:       keyData.Key.Start,
 	}
 
 	if keyData.Key.Expires.Valid {
-		response.Expires = ptr.P(keyData.Key.Expires.Time.UnixMilli())
+		response.Expires = keyData.Key.Expires.Time.UnixMilli()
 	}
 
 	// Set credits
 	if keyData.Key.RemainingRequests.Valid {
 		response.Credits = &openapi.KeyCreditsData{
+			Refill:    nil,
 			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int32)),
 		}
 
 		if keyData.Key.RefillAmount.Valid {
-			var refillDay *int
+			var refillDay int
 			interval := openapi.KeyCreditsRefillIntervalDaily
 			if keyData.Key.RefillDay.Valid {
 				interval = openapi.KeyCreditsRefillIntervalMonthly
-				refillDay = ptr.P(int(keyData.Key.RefillDay.Int16))
+				refillDay = int(keyData.Key.RefillDay.Int16)
 			}
 
 			response.Credits.Refill = &openapi.KeyCreditsRefill{
@@ -299,16 +323,16 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 	// Set identity
 	if keyData.Identity != nil {
 		response.Identity = &openapi.Identity{
+			Meta:       nil,
+			Ratelimits: nil,
 			Id:         keyData.Identity.ID,
 			ExternalId: keyData.Identity.ExternalID,
 		}
 
-		if len(keyData.Identity.Meta) > 0 {
-			var identityMeta map[string]any
-			_ = json.Unmarshal(keyData.Identity.Meta, &identityMeta) // Ignore error, default to nil
-			if identityMeta != nil {
-				response.Identity.Meta = &identityMeta
-			}
+		identityMeta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta)
+		response.Identity.Meta = identityMeta
+		if err != nil {
+			h.Logger.Error("failed to unmarshal identity meta", "error", err)
 		}
 	}
 
@@ -320,12 +344,13 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 	for _, p := range keyData.RolePermissions {
 		permissionSlugs[p.Slug] = struct{}{}
 	}
+
 	if len(permissionSlugs) > 0 {
 		slugs := make([]string, 0, len(permissionSlugs))
 		for slug := range permissionSlugs {
 			slugs = append(slugs, slug)
 		}
-		response.Permissions = &slugs
+		response.Permissions = slugs
 	}
 
 	// Set roles
@@ -334,7 +359,7 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 		for i, role := range keyData.Roles {
 			roleNames[i] = role.Name
 		}
-		response.Roles = &roleNames
+		response.Roles = roleNames
 	}
 
 	// Set ratelimits
@@ -362,23 +387,22 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) (o
 			}
 		}
 
-		if len(keyRatelimits) > 0 {
-			response.Ratelimits = &keyRatelimits
-		}
+		response.Ratelimits = keyRatelimits
 
-		if len(identityRatelimits) > 0 {
-			response.Identity.Ratelimits = &identityRatelimits
+		if response.Identity != nil {
+			response.Identity.Ratelimits = identityRatelimits
 		}
 	}
 
 	// Set meta
-	if keyData.Key.Meta.Valid {
-		var meta map[string]any
-		_ = json.Unmarshal([]byte(keyData.Key.Meta.String), &meta) // Ignore error, default to nil
-		if meta != nil {
-			response.Meta = &meta
-		}
+	meta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Key.Meta.String)
+	if err != nil {
+		h.Logger.Error("failed to unmarshal key meta",
+			"keyId", keyData.Key.ID,
+			"error", err,
+		)
 	}
+	response.Meta = meta
 
-	return response, nil
+	return response
 }

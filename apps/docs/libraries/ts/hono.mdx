@@ -35,7 +35,7 @@ description: "Hono.js middleware for authenticating API keys"
 
 </CodeGroup>
 
-Let's dive straight in. The minimal setup looks like this. All you need is your root key with permission to verify keys. Go to [/app/api](https://app.unkey.com/settings/root-keys) and create a key with the `verify_key` permission.
+Let's dive straight in. The minimal setup looks like this. All you need is your root key with permission to verify keys. Go to [/settings/root-keys](https://app.unkey.com/settings/root-keys) and create a key with the `verify_key` permission.
 
 By default it tries to grab the api key from the `Authorization` header and then verifies it with unkey.
 The result of the verification will be written to the context and can be access with `c.get("unkey")`.
@@ -120,7 +120,7 @@ By default the middleware will not do anything with the verification response ot
 However you most likely would like to just return a `401` response if the key is invalid and not continue with the request.
 
 To do this you can pass a `handleInvalidKey` handler to the middleware.
-See [here](/api-reference/v2/keys/verify-api-key) for the full `response` object.
+See [here](/api-reference/v2/keys/create-api-key) for the full `response` object.
 
 ```ts
 app.use(

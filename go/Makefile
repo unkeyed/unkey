@@ -1,4 +1,4 @@
-.PHONY: install tools fmt test-unit test-integration test-integration-long test-stress test build generate pull up clean k8s-check k8s-up k8s-down k8s-reset k8s-status start-mysql start-ctrl start-all dev
+.PHONY: install setup tools fmt test-unit test-integration test-integration-long test-stress test build generate pull up clean k8s-check k8s-up k8s-down k8s-reset k8s-status start-mysql start-ctrl start-all dev
 
 # Detect OS and set GOMAXPROCS accordingly
 UNAME_S := $(shell uname -s)
@@ -13,30 +13,39 @@ endif
 GOMAXPROCS_VAL := $(or $(GOMAXPROCS),$(DETECTED_PROCS))
 PARALLEL_PROCS := $(shell if [ $(GOMAXPROCS_VAL) -gt 1 ]; then expr $(GOMAXPROCS_VAL) / 2; else echo 1; fi)
 
-install:
+# One-time setup for new developers
+setup:
+	@[ -f go.work ] || go work init . tools
+
+install: setup
 	go mod tidy
 
-fmt:
+tools: setup
+	@echo "Tools are ready. Usage:"
+	@echo "  go tool buf <args>"
+	@echo "  go tool golangci-lint <args>"
+	@echo "  go tool sqlc <args>"
+	@echo "  go tool protoc-gen-go-restate <args>"
+
+fmt: setup
 	go fmt ./...
-	golangci-lint run
+	go tool golangci-lint run
 
 pull:
 	@docker compose -f ../deployment/docker-compose.yaml pull
 
 up: pull
-	@docker compose -f ../deployment/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel restate
-
+	@docker compose -f ../deployment/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka restate --wait
 
 clean:
 	@docker compose -f ../deployment/docker-compose.yaml down --volumes
 
-build:
-	go build -o unkey ./main.go
+build: setup
+	go build -o unkey .
 
-generate:
-	go install github.com/restatedev/sdk-go/protoc-gen-go-restate@latest
-	buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/ctrl" --path "./proto/krane" --path "./proto/partition" --path "./proto/vault"
-	buf generate --template ./buf.gen.restate.yaml --path "./proto/hydra"
+generate: setup
+	go tool buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/ctrl" --path "./proto/krane" --path "./proto/partition" --path "./proto/vault" --path "./proto/cache"
+	go tool buf generate --template ./buf.gen.restate.yaml --path "./proto/hydra"
 	go generate ./...
 	go fmt ./...
 
@@ -45,7 +54,7 @@ test: test-unit
 
 test-unit: up
 	@echo "Running tests w/$(PARALLEL_PROCS) parallel test processes"
-	@go test -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) -race ./... | go run github.com/mfridman/tparse@ba2512e7be150bfcbd6f6220d517d3741f8f2f75 -all -smallscreen
+	@go test -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | go run github.com/mfridman/tparse@ba2512e7be150bfcbd6f6220d517d3741f8f2f75 -all -smallscreen
 
 test-stress: export INTEGRATION_TEST=true
 test-stress: export SIMULATION_TEST=false

@@ -49,7 +49,7 @@ func TestNotFound(t *testing.T) {
 	t.Run("soft deleted key", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Deleted:     true,
 		})
 

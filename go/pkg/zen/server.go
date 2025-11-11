@@ -111,13 +111,14 @@ func New(config Config) (*Server, error) {
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
-					WorkspaceID:    "",
-					requestID:      "",
-					w:              nil,
-					r:              nil,
-					requestBody:    []byte{},
-					responseStatus: 0,
-					responseBody:   []byte{},
+					logRequestToClickHouse: true,
+					WorkspaceID:            "",
+					requestID:              "",
+					w:                      nil,
+					r:                      nil,
+					requestBody:            []byte{},
+					responseStatus:         0,
+					responseBody:           []byte{},
 				}
 			},
 		},
@@ -253,31 +254,23 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 				s.returnSession(sess)
 			}()
 
-			err := sess.init(w, r, s.config.MaxRequestBodySize)
+			handleFn := route.Handle
+
+			err := sess.Init(w, r, s.config.MaxRequestBodySize)
 			if err != nil {
 				s.logger.Error("failed to init session", "error", err)
-
-				// Apply error handling middleware for session initialization errors
-				errorHandler := WithErrorHandling(s.logger)
-				handleFn := func(ctx context.Context, session *Session) error {
+				handleFn = func(_ context.Context, _ *Session) error {
 					return err // Return the session init error
 				}
-				wrappedHandler := errorHandler(handleFn)
-				_ = wrappedHandler(r.Context(), sess)
-
-				return
 			}
-
-			// Apply middleware
-			var handle HandleFunc = route.Handle
 
 			// Reverses the middlewares to run in the desired order.
 			// If middlewares are [A, B, C], this writes [C, B, A] to s.middlewares.
 			for i := len(middlewares) - 1; i >= 0; i-- {
-				handle = middlewares[i](handle)
+				handleFn = middlewares[i](handleFn)
 			}
 
-			err = handle(r.Context(), sess)
+			err = handleFn(WithSession(r.Context(), sess), sess)
 
 			if err != nil {
 				panic(err)

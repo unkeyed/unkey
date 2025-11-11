@@ -2,9 +2,7 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
-	"sort"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -111,48 +109,52 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Handle decryption if requested
-	var plaintext *string
+	var plaintext string
 	decrypt := ptr.SafeDeref(req.Decrypt, false)
 	if decrypt {
-		plaintext, err = h.decryptKey(ctx, auth, keyData)
+		rawKey, err := h.decryptKey(ctx, auth, keyData)
 		if err != nil {
 			return err
+		}
+		if rawKey != nil {
+			plaintext = *rawKey
 		}
 	}
 
 	response := openapi.KeyResponseData{
-		CreatedAt: keyData.Key.CreatedAtM,
-		Enabled:   keyData.Key.Enabled,
-		KeyId:     keyData.Key.ID,
-		Start:     keyData.Key.Start,
-		Plaintext: plaintext,
-	}
-
-	// Set optional fields
-	if keyData.Key.Name.Valid {
-		response.Name = ptr.P(keyData.Key.Name.String)
-	}
-
-	if keyData.Key.UpdatedAtM.Valid {
-		response.UpdatedAt = ptr.P(keyData.Key.UpdatedAtM.Int64)
+		Meta:        nil,
+		Ratelimits:  nil,
+		Name:        keyData.Key.Name.String,
+		UpdatedAt:   keyData.Key.UpdatedAtM.Int64,
+		Credits:     nil,
+		Expires:     0,
+		Identity:    nil,
+		Permissions: nil,
+		Roles:       nil,
+		CreatedAt:   keyData.Key.CreatedAtM,
+		Enabled:     keyData.Key.Enabled,
+		KeyId:       keyData.Key.ID,
+		Start:       keyData.Key.Start,
+		Plaintext:   plaintext,
 	}
 
 	if keyData.Key.Expires.Valid {
-		response.Expires = ptr.P(keyData.Key.Expires.Time.UnixMilli())
+		response.Expires = keyData.Key.Expires.Time.UnixMilli()
 	}
 
 	// Set credits
 	if keyData.Key.RemainingRequests.Valid {
 		response.Credits = &openapi.KeyCreditsData{
+			Refill:    nil,
 			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int32)),
 		}
 
 		if keyData.Key.RefillAmount.Valid {
-			var refillDay *int
+			var refillDay int
 			interval := openapi.KeyCreditsRefillIntervalDaily
 			if keyData.Key.RefillDay.Valid {
 				interval = openapi.KeyCreditsRefillIntervalMonthly
-				refillDay = ptr.P(int(keyData.Key.RefillDay.Int16))
+				refillDay = int(keyData.Key.RefillDay.Int16)
 			}
 
 			response.Credits.Refill = &openapi.KeyCreditsRefill{
@@ -166,16 +168,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Set identity
 	if keyData.Identity != nil {
 		response.Identity = &openapi.Identity{
+			Meta:       nil,
+			Ratelimits: nil,
 			Id:         keyData.Identity.ID,
 			ExternalId: keyData.Identity.ExternalID,
 		}
 
 		if len(keyData.Identity.Meta) > 0 {
-			var identityMeta map[string]any
-			if err := json.Unmarshal(keyData.Identity.Meta, &identityMeta); err != nil {
+			identityMeta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta)
+			response.Identity.Meta = identityMeta
+			if err != nil {
 				h.Logger.Error("failed to unmarshal identity meta", "error", err)
-			} else {
-				response.Identity.Meta = &identityMeta
 			}
 		}
 	}
@@ -188,22 +191,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	for _, p := range keyData.RolePermissions {
 		permissionSlugs[p.Slug] = struct{}{}
 	}
-	if len(permissionSlugs) > 0 {
-		slugs := make([]string, 0, len(permissionSlugs))
-		for slug := range permissionSlugs {
-			slugs = append(slugs, slug)
-		}
-		sort.Strings(slugs)
-		response.Permissions = &slugs
+
+	for slug := range permissionSlugs {
+		response.Permissions = append(response.Permissions, slug)
 	}
 
-	// Set roles
-	if len(keyData.Roles) > 0 {
-		roleNames := make([]string, len(keyData.Roles))
-		for i, role := range keyData.Roles {
-			roleNames[i] = role.Name
-		}
-		response.Roles = &roleNames
+	for _, role := range keyData.Roles {
+		response.Roles = append(response.Roles, role.Name)
 	}
 
 	// Set ratelimits
@@ -231,24 +225,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		if len(keyRatelimits) > 0 {
-			response.Ratelimits = &keyRatelimits
-		}
+		response.Ratelimits = keyRatelimits
 
-		if len(identityRatelimits) > 0 {
-			response.Identity.Ratelimits = &identityRatelimits
+		if response.Identity != nil {
+			response.Identity.Ratelimits = identityRatelimits
 		}
 	}
 
 	// Set meta
-	if keyData.Key.Meta.Valid {
-		var meta map[string]any
-		if err := json.Unmarshal([]byte(keyData.Key.Meta.String), &meta); err != nil {
-			h.Logger.Error("failed to unmarshal key meta", "error", err)
-		} else {
-			response.Meta = &meta
-		}
+	meta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Key.Meta.String)
+	if err != nil {
+		h.Logger.Error("failed to unmarshal key meta",
+			"keyId", keyData.Key.ID,
+			"error", err,
+		)
 	}
+
+	response.Meta = meta
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
@@ -293,7 +286,7 @@ func (h *Handler) decryptKey(ctx context.Context, auth *keys.KeyVerifier, keyDat
 
 	// Only decrypt if the key is actually encrypted
 	if !keyData.EncryptedKey.Valid || !keyData.EncryptionKeyID.Valid {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	decrypted, err := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
@@ -305,7 +298,8 @@ func (h *Handler) decryptKey(ctx context.Context, auth *keys.KeyVerifier, keyDat
 			"keyId", keyData.Key.ID,
 			"error", err,
 		)
-		return nil, nil // Return nil instead of failing the entire request
+		// Return nil instead of failing the entire request
+		return nil, nil //nolint:nilnil
 	}
 
 	return ptr.P(decrypted.GetPlaintext()), nil

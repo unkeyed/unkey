@@ -119,7 +119,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
       <DialogContent
-        className="drop-shadow-2xl border-gray-4 !rounded-2xl p-0 gap-0 min-w-[760px] max-h-[90vh] overflow-auto"
+        className="drop-shadow-2xl transform-gpu border-gray-4 !rounded-2xl p-0 gap-0 min-w-[760px] max-h-[90vh] overflow-auto"
         showCloseWarning
         onAttemptClose={() => handleCloseAttempt("close")}
       >

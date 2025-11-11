@@ -73,7 +73,7 @@ func TestRerollKeySuccess(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID:  workspace.ID,
 			Disabled:     false,
-			KeyAuthID:    api.KeyAuthID.String,
+			KeySpaceID:   api.KeyAuthID.String,
 			Remaining:    ptr.P(int32(16)),
 			IdentityID:   ptr.P(identity.ID),
 			Meta:         nil,
@@ -225,7 +225,7 @@ func TestRerollKeySuccess(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			Disabled:    false,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 		}) // nolint:exhaustruct
 
 		req := handler.Request{
@@ -247,9 +247,9 @@ func TestRerollKeySuccess(t *testing.T) {
 
 		expMs := createdKeyRow.Expires.Time.UnixMilli()
 		// Account for minute alignment in the handler (tolerate up to 60 seconds)
-		require.True(t, expMs >= now && expMs <= now+int64(ttlMs)+60000,
+		require.True(t, expMs >= now && expMs <= now+ttlMs+60000,
 			"original key expiration should be between now and now+TTL+1min for rounding (got %d, expected between %d and %d)",
-			expMs, now, now+int64(ttlMs)+60000)
+			expMs, now, now+ttlMs+60000)
 
 		// Verify rolled key has no expiration
 		rolledKeyRow, err := db.Query.FindLiveKeyByID(ctx, h.DB.RW(), res.Body.Data.KeyId)

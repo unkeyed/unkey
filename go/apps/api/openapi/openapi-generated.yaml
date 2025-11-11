@@ -94,22 +94,18 @@ components:
                     type: string
                     description: Processing status
                     example: "OK"
-        V2ApisCreateApiRequestBody:
+        V2AnalyticsGetVerificationsRequestBody:
             type: object
             required:
-                - name
+                - query
             properties:
-                name:
+                query:
                     type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
                     description: |
-                        Unique identifier for this API namespace within your workspace.
-                        Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
-                    example: payment-service-production
-            additionalProperties: false
-        V2ApisCreateApiResponseBody:
+                        SQL query to execute against your analytics data.
+                        Only SELECT queries are allowed.
+                    example: "SELECT COUNT(*) as total FROM key_verifications_v1 WHERE outcome = 'VALID' AND time >= now() - INTERVAL 7 DAY"
+        V2AnalyticsGetVerificationsResponseBody:
             type: object
             required:
                 - meta
@@ -118,8 +114,7 @@ components:
                 meta:
                     $ref: "#/components/schemas/Meta"
                 data:
-                    $ref: "#/components/schemas/V2ApisCreateApiResponseData"
-            additionalProperties: false
+                    $ref: "#/components/schemas/V2AnalyticsGetVerificationsResponseData"
         UnauthorizedErrorResponse:
             type: object
             required:
@@ -154,6 +149,103 @@ components:
                 - Access to the requested resource is restricted based on workspace settings
 
                 To resolve this error, ensure your root key has the necessary permissions or contact your workspace administrator.
+        NotFoundErrorResponse:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BaseError"
+            description: |-
+                Error response when the requested resource cannot be found. This occurs when:
+                - The specified resource ID doesn't exist in your workspace
+                - The resource has been deleted or moved
+                - The resource exists but is not accessible with current permissions
+
+                To resolve this error, verify the resource ID is correct and that you have access to it.
+        UnprocessableEntityErrorResponse:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BaseError"
+            description: |-
+                Error response when the request is syntactically valid but cannot be processed due to semantic constraints or resource limitations. This occurs when:
+                - A query exceeds execution time limits
+                - A query uses more memory than allowed
+                - A query scans too many rows
+                - A query result exceeds size limits
+
+                The request syntax is correct, but the operation cannot be completed due to business rules or resource constraints. Review the error details for specific limitations and adjust your request accordingly.
+        TooManyRequestsErrorResponse:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BaseError"
+            description: |-
+                Error response when the client has sent too many requests in a given time period. This occurs when you've exceeded a rate limit or quota for the resource you're accessing.
+
+                The rate limit resets automatically after the time window expires. To avoid this error:
+                - Implement exponential backoff when retrying requests
+                - Cache results where appropriate to reduce request frequency
+                - Check the error detail message for specific quota information
+                - Contact support if you need a higher quota for your use case
+        ServiceUnavailableErrorResponse:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BaseError"
+            description: |-
+                Error response when a required service is temporarily unavailable. This indicates that the service exists but cannot be reached or is not responding.
+
+                When you encounter this error:
+                - The service is likely experiencing temporary issues
+                - Retrying the request after a short delay may succeed
+                - If the error persists, the service may be undergoing maintenance
+                - Contact Unkey support if the issue continues
+        V2ApisCreateApiRequestBody:
+            type: object
+            required:
+                - name
+            properties:
+                name:
+                    type: string
+                    minLength: 3
+                    maxLength: 255
+                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    description: |
+                        Unique identifier for this API namespace within your workspace.
+                        Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
+                    example: payment-service-production
+            additionalProperties: false
+        V2ApisCreateApiResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2ApisCreateApiResponseData"
+            additionalProperties: false
         V2ApisDeleteApiRequestBody:
             type: object
             required:
@@ -182,23 +274,6 @@ components:
                 data:
                     $ref: "#/components/schemas/EmptyResponse"
             additionalProperties: false
-        NotFoundErrorResponse:
-            type: object
-            required:
-                - meta
-                - error
-            properties:
-                meta:
-                    $ref: "#/components/schemas/Meta"
-                error:
-                    $ref: "#/components/schemas/BaseError"
-            description: |-
-                Error response when the requested resource cannot be found. This occurs when:
-                - The specified resource ID doesn't exist in your workspace
-                - The resource has been deleted or moved
-                - The resource exists but is not accessible with current permissions
-
-                To resolve this error, verify the resource ID is correct and that you have access to it.
         PreconditionFailedErrorResponse:
             type: object
             required:
@@ -308,6 +383,8 @@ components:
                     "$ref": "#/components/schemas/V2ApisListKeysResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2IdentitiesCreateIdentityRequestBody:
             type: object
@@ -1278,7 +1355,7 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 128
+                        maxLength: 256
                         pattern: "^[a-zA-Z0-9_=/.:-]+$"
                     maxItems: 20
                     description: |
@@ -1627,6 +1704,8 @@ components:
                     "$ref": "#/components/schemas/V2PermissionsListPermissionsResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2PermissionsListRolesRequestBody:
             type: object
@@ -1664,6 +1743,8 @@ components:
                     "$ref": "#/components/schemas/V2PermissionsListRolesResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2RatelimitDeleteOverrideRequestBody:
             description: |-
@@ -1881,6 +1962,8 @@ components:
                     "$ref": "#/components/schemas/V2RatelimitListOverridesResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
         V2RatelimitSetOverrideRequestBody:
             description: |-
                 Sets a new or overwrites an existing rate limit override. Overrides allow you to apply special rate limit rules to specific identifiers, providing custom limits that differ from the default.
@@ -2034,6 +2117,20 @@ components:
                 - message
             type: object
             description: Individual validation error details. Each validation error provides precise information about what failed, where it failed, and how to fix it, enabling efficient error resolution.
+        V2AnalyticsGetVerificationsResponseData:
+            type: array
+            description: Array of verification rows returned by the query. Fields vary based on the SQL SELECT clause.
+            items:
+                type: object
+                additionalProperties: true
+                description: Dynamic row with fields determined by the query. Can include any combination of fields like time, outcome, count, key_id, etc.
+            example:
+                - outcome: "VALID"
+                  count: 1234
+                  time: 1696118400000
+                - outcome: "RATE_LIMITED"
+                  count: 56
+                  time: 1696118400000
         V2ApisCreateApiResponseData:
             type: object
             properties:
@@ -2144,12 +2241,16 @@ components:
                     maxLength: 255
                     description: Human-readable name for this key.
                     example: Production API Key
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 meta:
                     type: object
                     additionalProperties: true
                     maxProperties: 100
                     description: Custom metadata associated with this key.
                     example:
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 createdAt:
                     type: integer
                     format: int64
@@ -2164,6 +2265,8 @@ components:
                     maximum: 9223372036854776000
                     description: Unix timestamp in milliseconds when key was last updated.
                     example: 1701425400000
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 expires:
                     type: integer
                     format: int64
@@ -2171,6 +2274,8 @@ components:
                     maximum: 9223372036854776000
                     description: Unix timestamp in milliseconds when key expires (if set).
                     example: 1735689600000
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 permissions:
                     type: array
                     items:
@@ -2179,6 +2284,8 @@ components:
                     example:
                         - documents.read
                         - documents.write
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 roles:
                     type: array
                     items:
@@ -2187,19 +2294,27 @@ components:
                     example:
                         - editor
                         - viewer
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 credits:
                     "$ref": "#/components/schemas/KeyCreditsData"
                 identity:
                     "$ref": "#/components/schemas/Identity"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 plaintext:
                     type: string
                     description: Decrypted key value (only when decrypt=true).
                     example: sk_test_abc123def456
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 ratelimits:
                     type: array
                     maxItems: 50
                     items:
                         "$ref": "#/components/schemas/RatelimitResponse"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
             required:
                 - keyId
                 - start
@@ -2221,6 +2336,8 @@ components:
                     example: 1000
                 refill:
                     "$ref": "#/components/schemas/KeyCreditsRefill"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
             required:
                 - remaining
             additionalProperties: false
@@ -2237,11 +2354,15 @@ components:
                     type: object
                     additionalProperties: true
                     description: Identity metadata
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 ratelimits:
                     type: array
                     description: Identity ratelimits
                     items:
                         "$ref": "#/components/schemas/RatelimitResponse"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
             required:
                 - externalId
                 - id
@@ -2313,6 +2434,8 @@ components:
                         Only required when interval is 'monthly'.
                         For days beyond the month's length, refill occurs on the last day of the month.
                     example: 15
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
             required:
                 - interval
                 - amount
@@ -2439,6 +2562,8 @@ components:
                         Include information about what resources can be accessed and what actions can be performed.
                         Not visible to end users - this is for internal documentation and team clarity.
                     example: "Allows reading user profile information and account details"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
             required:
                 - id
                 - name
@@ -2485,6 +2610,8 @@ components:
                         Include information about what types of users should receive this role and what they can accomplish.
                         Not visible to end users - this is for internal documentation and access control audits.
                     example: "Provides read-only access for customer support representatives to view user accounts and support tickets"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 permissions:
                     type: array
                     items:
@@ -2496,6 +2623,8 @@ components:
                         Use this list to understand the full scope of access provided by this role.
                         Permissions can be added or removed from roles without affecting the role's identity or other properties.
                         Empty array indicates a role with no permissions currently assigned.
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
             required:
                 - id
                 - name
@@ -2747,12 +2876,16 @@ components:
                         The unique identifier of the verified key in Unkey's system.
                         Use this ID for operations like updating or revoking the key. This field
                         is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 name:
                     type: string
                     description: |
                         The human-readable name assigned to this key during creation.
                         This is useful for displaying in logs or admin interfaces to identify
                         the key's purpose.
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 meta:
                     type: object
                     additionalProperties: true
@@ -2762,19 +2895,23 @@ components:
                         such as plan information, feature flags, or user details. Use this to
                         avoid additional database lookups for contextual information needed during
                         API calls.
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 expires:
                     type: integer
                     format: int64
                     description: |
                         Unix timestamp (in milliseconds) when the key will expire.
-                        If null or not present, the key has no expiration. You can use this to
+                        If omitted, the key has no expiration. You can use this to
                         warn users about upcoming expirations or to understand the validity period.
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 credits:
                     type: integer
                     format: int32
                     description: |
-                        The number of requests/credits remaining for this key. If null
-                        or not present, the key has unlimited usage. This value decreases with
+                        The number of requests/credits remaining for this key. If omitted,
+                        the key has unlimited usage. This value decreases with
                         each verification (based on the 'cost' parameter) unless explicit credit
                         refills are configured.
                 enabled:
@@ -2792,6 +2929,8 @@ components:
                         directly or through roles. These permissions determine what actions the
                         key can perform. Only returned when permissions were checked during verification
                         or when the key fails with `code=FORBIDDEN`.
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 roles:
                     type: array
                     items:
@@ -2800,17 +2939,23 @@ components:
                         A list of all role names assigned to this key. Roles are collections
                         of permissions that grant access to specific functionality. Only returned
                         when permissions were checked during verification.
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 identity:
                     "$ref": "#/components/schemas/Identity"
                     description: |
                         Information about the identity associated with this key. Identities
                         allow multiple keys to share resources (like rate limits) and represent
                         the same user or entity across different applications or devices.
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 ratelimits:
                     type: array
                     items:
                         "$ref": "#/components/schemas/VerifyKeyRatelimitData"
                         description: The ratelimits that got checked
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
             required:
                 - valid
                 - code
@@ -3035,6 +3180,8 @@ components:
                         - Tracking the effects of specific overrides
                         - Understanding why limits differ from default values
                     type: string
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
             required:
                 - limit
                 - remaining
@@ -3256,6 +3403,80 @@ paths:
                 - chproxy
             x-excluded: true
             x-speakeasy-ignore: true
+    /v2/analytics.getVerifications:
+        post:
+            description: |
+                Execute custom SQL queries against your key verification analytics.
+                For complete documentation including available tables, columns, data types, query examples, see the schema reference in the API documentation.
+            operationId: analytics.getVerifications
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2AnalyticsGetVerificationsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2AnalyticsGetVerificationsResponseBody'
+                    description: Query executed successfully
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid SQL query or blocked operation
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Missing or invalid authentication
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient permissions
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Referenced API or identity not found
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
+                    description: Query exceeds resource limits (timeout, memory, rows scanned, or result size)
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Query quota exceeded
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Query execution failed
+                "503":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ServiceUnavailableErrorResponse'
+                    description: Connection to the database failed
+            security:
+                - rootKey: []
+            summary: Query key verification data
+            tags:
+                - analytics
+            x-hidden: true
+            x-speakeasy-name-override: getVerifications
     /v2/apis.createApi:
         post:
             description: |
@@ -5565,12 +5786,12 @@ paths:
                                 summary: Delete specific override
                                 value:
                                     identifier: premium_user_123
-                                    namespaceName: api.requests
+                                    namespace: api.requests
                             wildcard:
                                 summary: Delete wildcard pattern override
                                 value:
                                     identifier: premium_*
-                                    namespaceName: api.requests
+                                    namespace: api.requests
                         schema:
                             $ref: '#/components/schemas/V2RatelimitDeleteOverrideRequestBody'
                 required: true
@@ -5658,12 +5879,12 @@ paths:
                                 summary: Get specific override
                                 value:
                                     identifier: premium_user_123
-                                    namespaceName: api.requests
+                                    namespace: api.requests
                             wildcard:
                                 summary: Get wildcard pattern override
                                 value:
                                     identifier: premium_*
-                                    namespaceName: api.requests
+                                    namespace: api.requests
                         schema:
                             $ref: '#/components/schemas/V2RatelimitGetOverrideRequestBody'
                 required: true
@@ -5881,12 +6102,12 @@ paths:
                                 summary: List all overrides
                                 value:
                                     limit: 20
-                                    namespaceName: api.requests
+                                    namespace: api.requests
                             pagination:
                                 summary: Get next page
                                 value:
                                     cursor: cursor_eyJsYXN0SWQiOiJvdnJfM2RITGNOeVN6SnppRHlwMkpla2E5ciJ9
-                                    namespaceName: api.requests
+                                    namespace: api.requests
                         schema:
                             $ref: '#/components/schemas/V2RatelimitListOverridesRequestBody'
                 required: true
@@ -5965,14 +6186,14 @@ paths:
                                     duration: 60000
                                     identifier: premium_user_123
                                     limit: 1000
-                                    namespaceName: api.requests
+                                    namespace: api.requests
                             wildcard:
                                 summary: Pattern for multiple identifiers
                                 value:
                                     duration: 60000
                                     identifier: premium_*
                                     limit: 500
-                                    namespaceName: api.requests
+                                    namespace: api.requests
                         schema:
                             $ref: '#/components/schemas/V2RatelimitSetOverrideRequestBody'
                 required: true
@@ -6046,6 +6267,8 @@ security:
 servers:
     - url: https://api.unkey.com
 tags:
+    - description: Analytics query operations
+      name: analytics
     - description: API management operations
       name: apis
     - description: Identity management operations

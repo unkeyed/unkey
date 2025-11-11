@@ -13,7 +13,7 @@ func (s *Service) HandleCertificateVerification(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.HandleCertificateVerificationRequest],
 ) (*connect.Response[ctrlv1.HandleCertificateVerificationResponse], error) {
-	res := connect.NewResponse(&ctrlv1.HandleCertificateVerificationResponse{})
+	res := connect.NewResponse(&ctrlv1.HandleCertificateVerificationResponse{Token: ""})
 
 	domain, err := db.Query.FindDomainByDomain(ctx, s.db.RO(), req.Msg.GetDomain())
 	if err != nil {

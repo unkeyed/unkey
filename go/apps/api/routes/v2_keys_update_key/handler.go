@@ -94,7 +94,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// TODO: We should actually check if the user has permission to set/remove roles.
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
@@ -141,21 +140,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if req.Name.IsSpecified() {
 				update.NameSpecified = 1
 				if req.Name.IsNull() {
-					update.Name = sql.NullString{Valid: false}
+					update.Name = sql.NullString{Valid: false, String: ""}
 				} else {
 					update.Name = sql.NullString{Valid: true, String: req.Name.MustGet()}
 				}
 			}
 
+			//nolint:nestif
 			if req.ExternalId.IsSpecified() {
 				update.IdentityIDSpecified = 1
 				if req.ExternalId.IsNull() {
-					update.IdentityID = sql.NullString{Valid: false}
+					update.IdentityID = sql.NullString{Valid: false, String: ""}
 				} else {
 					externalID := req.ExternalId.MustGet()
 
 					// Try to find existing identity
-					identity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
+					var identity db.Identity
+					identity, err = db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
 						WorkspaceID: auth.AuthorizedWorkspaceID,
 						ExternalID:  externalID,
 						Deleted:     false,
@@ -209,7 +210,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if req.Meta.IsSpecified() {
 				update.MetaSpecified = 1
 				if req.Meta.IsNull() {
-					update.Meta = sql.NullString{Valid: false}
+					update.Meta = sql.NullString{Valid: false, String: ""}
 				} else {
 					metaBytes, marshalErr := json.Marshal(req.Meta.MustGet())
 					if marshalErr != nil {
@@ -226,12 +227,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if req.Expires.IsSpecified() {
 				update.ExpiresSpecified = 1
 				if req.Expires.IsNull() {
-					update.Expires = sql.NullTime{Valid: false}
+					update.Expires = sql.NullTime{Valid: false, Time: time.Time{}}
 				} else {
 					update.Expires = sql.NullTime{Valid: true, Time: time.UnixMilli(req.Expires.MustGet())}
 				}
 			}
 
+			//nolint:nestif
 			if req.Credits.IsSpecified() {
 				if req.Credits.IsNull() {
 					update.RemainingRequestsSpecified = 1
@@ -239,7 +241,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					update.RefillDaySpecified = 1
 					update.RefillAmount = sql.NullInt32{Valid: false, Int32: 0}
 					update.RefillDay = sql.NullInt16{Valid: false, Int16: 0}
-					update.RemainingRequests = sql.NullInt32{Valid: false}
+					update.RemainingRequests = sql.NullInt32{Valid: false, Int32: 0}
 				} else {
 					credits := req.Credits.MustGet()
 					if credits.Remaining.IsSpecified() {
@@ -248,7 +250,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 							// This also clears refilling
 							update.RefillAmountSpecified = 1
 							update.RefillDaySpecified = 1
-							update.RemainingRequests = sql.NullInt32{Valid: false}
+							update.RemainingRequests = sql.NullInt32{Valid: false, Int32: 0}
 							update.RefillAmount = sql.NullInt32{Valid: false, Int32: 0}
 							update.RefillDay = sql.NullInt16{Valid: false, Int16: 0}
 						} else {
@@ -298,7 +300,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 								}
 
 								// For daily, refill_day should remain NULL
-								update.RefillDay = sql.NullInt16{Valid: false}
+								update.RefillDay = sql.NullInt16{Valid: false, Int16: 0}
 							}
 						}
 					}
@@ -315,7 +317,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if req.Ratelimits != nil {
-				existingRatelimits, err := db.Query.ListRatelimitsByKeyID(ctx, tx, sql.NullString{String: key.ID, Valid: true})
+				var existingRatelimits []db.ListRatelimitsByKeyIDRow
+				existingRatelimits, err = db.Query.ListRatelimitsByKeyID(ctx, tx, sql.NullString{String: key.ID, Valid: true})
 				if err != nil && !db.IsNotFound(err) {
 					return fault.Wrap(err,
 						fault.Internal("unable to fetch ratelimits"),
@@ -392,7 +395,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if req.Permissions != nil {
-				existingPermissions, err := db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
+				var existingPermissions []db.Permission
+				existingPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Slugs:       *req.Permissions,
 				})
@@ -429,6 +433,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						CreatedAtM:   time.Now().UnixMilli(),
 					})
 
+					//nolint: exhaustruct
 					requestedPermissions = append(requestedPermissions, db.Permission{
 						ID:   newPermID,
 						Slug: requestedSlug,
@@ -453,7 +458,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 									ID:          toCreate.PermissionID,
 									Name:        toCreate.Slug,
 									DisplayName: toCreate.Name,
-									Meta: map[string]interface{}{
+									Meta: map[string]any{
 										"name": toCreate.Name,
 										"slug": toCreate.Slug,
 									},
@@ -505,7 +510,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if req.Roles != nil {
-				existingRoles, err := db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
+				var existingRoles []db.FindRolesByNamesRow
+				existingRoles, err = db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					Names:       *req.Roles,
 				})

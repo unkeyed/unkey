@@ -131,7 +131,7 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:   api.KeyAuthID.String,
 		Remaining:   ptr.P(int32(totalCredits)),
 	})
 

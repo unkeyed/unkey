@@ -1,0 +1,303 @@
+---
+title: Schema Reference
+description: "Tables, columns, and data types in Unkey Analytics"
+---
+
+Unkey Analytics stores verification events across multiple time-series tables for efficient querying. This reference documents all available tables and their columns.
+
+<Tip>
+  Use aggregated tables (`per_hour`, `per_day`, `per_month`) for queries
+  spanning long time periods to improve performance.
+</Tip>
+
+## Raw Events Table
+
+The `key_verifications_v1` table contains individual verification events as they occur.
+
+### Columns
+
+| Column          | Type          | Description                                                                                                                                                |
+| --------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `request_id`    | String        | Unique identifier for each verification request                                                                                                            |
+| `time`          | Int64         | Unix timestamp in milliseconds when verification occurred                                                                                                  |
+| `workspace_id`  | String        | Workspace identifier (**automatically filtered** - you don't need to filter by this)                                                                       |
+| `key_space_id`  | String        | Your KeySpace identifier (e.g., `ks_1234`). **Automatically filtered** if your root key is scoped to a single API, otherwise filter this yourself.        |
+| `external_id`   | String        | Your user's identifier (e.g., `user_abc`) - use this to filter by user                                                                                     |
+| `key_id`        | String        | Individual API key identifier                                                                                                                              |
+| `outcome`       | String        | Verification result (see [Outcome Values](#outcome-values))                                                                                                |
+| `region`        | String        | Unkey region that handled the verification                                                                                                                 |
+| `tags`          | Array(String) | Custom tags added during verification                                                                                                                      |
+| `spent_credits` | Int64         | Number of credits spent on this verification (0 if no credits were spent)                                                                                  |
+
+### Outcome Values
+
+The `outcome` column contains one of these values:
+
+| Outcome                    | Description                             |
+| -------------------------- | --------------------------------------- |
+| `VALID`                    | Key is valid and verification succeeded |
+| `RATE_LIMITED`             | Verification exceeded rate limit        |
+| `INVALID`                  | Key not found or malformed              |
+| `EXPIRED`                  | Key has expired                         |
+| `DISABLED`                 | Key is disabled                         |
+| `INSUFFICIENT_PERMISSIONS` | Key lacks required permissions          |
+| `FORBIDDEN`                | Operation not allowed for this key      |
+| `USAGE_EXCEEDED`           | Key has exceeded usage limit            |
+
+## Aggregated Tables
+
+Pre-aggregated tables provide better query performance for long time ranges. Each aggregated table includes outcome counts.
+
+### Per Minute Table
+
+`key_verifications_per_minute_v1` - Aggregated by minute
+
+| Column          | Type     | Description                                                                                                                                   |
+| --------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `time`          | DateTime/Date | **DateTime** for minute/hour tables, **Date** for day/month tables                                                                       |
+| `workspace_id`  | String   | Workspace identifier (**automatically filtered** - you don't need to filter by this)                                                          |
+| `key_space_id`  | String   | API identifier. **Automatically filtered** if your root key is scoped to a single API, otherwise filter this yourself.                        |
+| `external_id`   | String   | Your user identifier                                                                                                                          |
+| `key_id`        | String   | API key identifier                                                                                                                            |
+| `outcome`       | String   | Verification outcome (VALID, RATE_LIMITED, INVALID, etc.)                                                                                     |
+| `tags`          | Array    | Tags associated with verifications                                                                                                            |
+| `count`         | UInt64   | Total verification count for this aggregation                                                                                                 |
+| `spent_credits` | UInt64   | Total credits spent                                                                                                                           |
+
+### Per Hour Table
+
+`key_verifications_per_hour_v1` - Aggregated by hour. Same columns as per-minute table.
+
+### Per Day Table
+
+`key_verifications_per_day_v1` - Aggregated by day. Same columns as per-minute table.
+
+### Per Month Table
+
+`key_verifications_per_month_v1` - Aggregated by month. Same columns as per-minute table.
+
+## Filtering by API and User
+
+You can use your familiar identifiers directly in queries:
+
+- **`key_space_id`** - Your API identifier (e.g., `ks_1234`). Find this in your API settings.
+- **`external_id`** - Your user identifiers (e.g., `user_abc123`) from your application
+
+All standard comparison operators are supported: `=`, `!=`, `<`, `>`, `<=`, `>=`, `IN`, `NOT IN`
+
+### Filter by API
+
+```sql
+SELECT COUNT(*) FROM key_verifications_v1
+WHERE key_space_id = 'ks_1234'
+```
+
+### Filter by User
+
+```sql
+SELECT COUNT(*) FROM key_verifications_v1
+WHERE external_id = 'user_abc123'
+```
+
+### Multiple Values
+
+```sql
+SELECT COUNT(*) FROM key_verifications_v1
+WHERE key_space_id IN ('ks_1234', 'ks_5678')
+  AND external_id IN ('user_abc', 'user_xyz')
+```
+
+## Working with Tags
+
+Tags are stored as `Array(String)` and require array functions to query.
+
+### Check if tag exists
+
+```sql
+SELECT COUNT(*) FROM key_verifications_v1
+WHERE has(tags, 'path=/api/users')
+```
+
+### Check if any tag exists
+
+```sql
+SELECT COUNT(*) FROM key_verifications_v1
+WHERE hasAny(tags, ['environment=prod', 'environment=staging'])
+```
+
+### Check if all tags exist
+
+```sql
+SELECT COUNT(*) FROM key_verifications_v1
+WHERE hasAll(tags, ['environment=production', 'team=backend'])
+```
+
+### Extract and group by tags
+
+```sql
+SELECT
+  arrayJoin(tags) as tag,
+  COUNT(*) as count
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 24 HOUR
+GROUP BY tag
+ORDER BY count DESC
+```
+
+### Filter tags with pattern
+
+```sql
+-- Get all tags starting with "path="
+SELECT
+  arrayJoin(arrayFilter(x -> startsWith(x, 'path='), tags)) as path,
+  COUNT(*) as requests
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 24 HOUR
+GROUP BY path
+```
+
+## Time Functions
+
+Timestamps are stored differently depending on the table:
+
+- **Raw table (`key_verifications_v1`)**: `time` is `Int64` (Unix milliseconds)
+- **Aggregated tables**: `time` is `DateTime`
+
+### Current Time
+
+```sql
+SELECT now() as current_datetime
+SELECT toUnixTimestamp(now()) * 1000 as current_millis
+```
+
+### Time Ranges (Raw Table)
+
+For the raw `key_verifications_v1` table, compare `time` with millisecond timestamps:
+
+```sql
+-- Last hour
+WHERE time >= toUnixTimestamp(now() - INTERVAL 1 HOUR) * 1000
+
+-- Last 24 hours
+WHERE time >= toUnixTimestamp(now() - INTERVAL 24 HOUR) * 1000
+
+-- Last 7 days
+WHERE time >= toUnixTimestamp(now() - INTERVAL 7 DAY) * 1000
+
+-- Last 30 days
+WHERE time >= toUnixTimestamp(now() - INTERVAL 30 DAY) * 1000
+
+-- This month
+WHERE time >= toUnixTimestamp(toStartOfMonth(now())) * 1000
+
+-- Today
+WHERE time >= toUnixTimestamp(toStartOfDay(now())) * 1000
+```
+
+### Time Ranges (Aggregated Tables)
+
+For aggregated tables, use DateTime comparisons directly:
+
+```sql
+-- Last 7 days
+WHERE time >= now() - INTERVAL 7 DAY
+
+-- This month
+WHERE time >= toStartOfMonth(now())
+
+-- Today
+WHERE time >= toStartOfDay(now())
+```
+
+### Time Rounding (Raw Table)
+
+```sql
+-- Round to start of hour
+SELECT toStartOfHour(toDateTime(time / 1000)) as hour
+
+-- Round to start of day
+SELECT toStartOfDay(toDateTime(time / 1000)) as day
+
+-- Round to start of month
+SELECT toStartOfMonth(toDateTime(time / 1000)) as month
+
+-- Convert to date
+SELECT toDate(toDateTime(time / 1000)) as date
+```
+
+### Specific Date Ranges
+
+```sql
+-- Between specific dates (Unix milliseconds)
+WHERE time >= 1704067200000  -- Jan 1, 2024 00:00:00 UTC
+  AND time < 1735689600000   -- Jan 1, 2025 00:00:00 UTC
+```
+
+## Common ClickHouse Functions
+
+### Aggregate Functions
+
+| Function    | Description       | Example                                                     |
+| ----------- | ----------------- | ----------------------------------------------------------- |
+| `COUNT()`   | Count rows        | `SELECT COUNT(*) FROM key_verifications_v1`                 |
+| `SUM()`     | Sum values        | `SELECT SUM(valid_count) FROM key_verifications_per_day_v1` |
+| `AVG()`     | Average           | `SELECT AVG(spent_credits) FROM key_verifications_v1`       |
+| `MIN()`     | Minimum value     | `SELECT MIN(time) FROM key_verifications_v1`                |
+| `MAX()`     | Maximum value     | `SELECT MAX(time) FROM key_verifications_v1`                |
+| `countIf()` | Conditional count | `SELECT countIf(outcome = 'VALID')`                         |
+| `uniq()`    | Count distinct    | `SELECT uniq(key_id) FROM key_verifications_v1`             |
+
+### String Functions
+
+| Function       | Description          | Example                               |
+| -------------- | -------------------- | ------------------------------------- |
+| `lower()`      | Convert to lowercase | `WHERE lower(outcome) = 'valid'`      |
+| `upper()`      | Convert to uppercase | `WHERE upper(region) = 'US-EAST-1'`   |
+| `concat()`     | Concatenate strings  | `SELECT concat(region, '-', outcome)` |
+| `substring()`  | Extract substring    | `SELECT substring(key_id, 1, 8)`      |
+| `startsWith()` | Check prefix         | `WHERE startsWith(key_id, 'key_')`    |
+
+### Array Functions
+
+| Function        | Description        | Example                                              |
+| --------------- | ------------------ | ---------------------------------------------------- |
+| `has()`         | Check element      | `WHERE has(tags, 'environment=production')`          |
+| `hasAny()`      | Check any element  | `WHERE hasAny(tags, ['team=backend', 'team=api'])`   |
+| `hasAll()`      | Check all elements | `WHERE hasAll(tags, ['environment=prod', 'tier=1'])` |
+| `arrayJoin()`   | Expand array       | `SELECT arrayJoin(tags) as tag`                      |
+| `arrayFilter()` | Filter array       | `arrayFilter(x -> startsWith(x, 'path='), tags)`     |
+| `length()`      | Array length       | `WHERE length(tags) > 0`                             |
+
+### Math Functions
+
+| Function  | Description    | Example                                                    |
+| --------- | -------------- | ---------------------------------------------------------- |
+| `round()` | Round number   | `SELECT round(AVG(spent_credits), 2)`                      |
+| `floor()` | Round down     | `SELECT floor(spent_credits / 100) * 100 as credit_bucket` |
+| `ceil()`  | Round up       | `SELECT ceil(spent_credits)`                               |
+| `abs()`   | Absolute value | `SELECT abs(difference)`                                   |
+
+### Conditional Functions
+
+| Function | Description     | Example                                                         |
+| -------- | --------------- | --------------------------------------------------------------- |
+| `if()`   | If-then-else    | `SELECT if(outcome = 'VALID', 1, 0)`                            |
+| `CASE`   | Multi-condition | `CASE WHEN outcome = 'VALID' THEN 'success' ELSE 'failure' END` |
+
+## Performance Tips
+
+1. **Always filter by time** - Use time-based WHERE clauses to leverage indexes
+2. **Use aggregated tables** - Query hourly/daily/month tables for long ranges
+3. **Limit result sets** - Add LIMIT clauses to prevent large results
+4. **Filter before grouping** - Use WHERE instead of HAVING when possible
+5. **Avoid SELECT \*** - Only select columns you need
+## Query Limits
+
+| Resource         | Limit      | Error Code                    |
+| ---------------- | ---------- | ----------------------------- |
+| Execution time   | 30 seconds | `query_execution_timeout`     |
+| Memory usage     | 1 GB       | `query_memory_limit_exceeded` |
+| Rows to read     | 10 million | `query_rows_limit_exceeded`   |
+| Queries per hour | 1000       | `query_quota_exceeded`        |
+
+See [Query Restrictions](/analytics/query-restrictions) for more details on query limits and restrictions.

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -51,32 +50,32 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	results, err := db.Query.FindIdentityWithRatelimits(ctx, h.DB.RO(), db.FindIdentityWithRatelimitsParams{
+	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		Identity:    req.Identity,
 		Deleted:     false,
 	})
 	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("identity not found",
+				fault.Code(codes.Data.Identity.NotFound.URN()),
+				fault.Internal("identity not found"), fault.Public("This identity does not exist."),
+			)
+		}
+
 		return fault.Wrap(err,
 			fault.Internal("unable to find identity"),
 			fault.Public("We're unable to retrieve the identity."),
 		)
 	}
 
-	if len(results) == 0 {
-		return fault.New("identity not found",
-			fault.Code(codes.Data.Identity.NotFound.URN()),
-			fault.Internal("identity not found"),
-			fault.Public("This identity does not exist."),
-		)
-	}
-
-	identity := results[0]
-
 	// Parse ratelimits JSON
-	var ratelimits []db.RatelimitInfo
-	if ratelimitBytes, ok := identity.Ratelimits.([]byte); ok && ratelimitBytes != nil {
-		_ = json.Unmarshal(ratelimitBytes, &ratelimits) // Ignore error, default to empty array
+	ratelimits, err := db.UnmarshalNullableJSONTo[[]db.RatelimitInfo](identity.Ratelimits)
+	if err != nil {
+		h.Logger.Error("failed to unmarshal ratelimits",
+			"identityId", identity.ID,
+			"error", err,
+		)
 	}
 
 	// Check permissions using either wildcard or the specific identity ID
@@ -96,17 +95,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Parse metadata
-	var metaMap map[string]any
-	if len(identity.Meta) > 0 {
-		err = json.Unmarshal(identity.Meta, &metaMap)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("unable to unmarshal metadata"), fault.Public("We're unable to parse the identity's metadata."),
-			)
-		}
-	} else {
-		metaMap = make(map[string]any)
+	metaMap, err := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta)
+	if err != nil {
+		h.Logger.Error("failed to unmarshal identity meta",
+			"identityId", identity.ID,
+			"error", err,
+		)
 	}
 
 	// Format ratelimits for the response
@@ -128,8 +122,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Data: openapi.Identity{
 			Id:         identity.ID,
 			ExternalId: identity.ExternalID,
-			Meta:       &metaMap,
-			Ratelimits: &responseRatelimits,
+			Meta:       metaMap,
+			Ratelimits: responseRatelimits,
 		},
 	})
 }

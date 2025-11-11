@@ -3,6 +3,7 @@ package testutil
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/go/internal/services/analytics"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
@@ -40,16 +43,17 @@ type Harness struct {
 
 	middleware []zen.Middleware
 
-	DB           db.Database
-	Caches       caches.Caches
-	Logger       logging.Logger
-	Keys         keys.KeyService
-	UsageLimiter usagelimiter.Service
-	Auditlogs    auditlogs.AuditLogService
-	ClickHouse   clickhouse.ClickHouse
-	Ratelimit    ratelimit.Service
-	Vault        *vault.Service
-	seeder       *seed.Seeder
+	DB                         db.Database
+	Caches                     caches.Caches
+	Logger                     logging.Logger
+	Keys                       keys.KeyService
+	UsageLimiter               usagelimiter.Service
+	Auditlogs                  auditlogs.AuditLogService
+	ClickHouse                 clickhouse.ClickHouse
+	Ratelimit                  ratelimit.Service
+	Vault                      *vault.Service
+	AnalyticsConnectionManager analytics.ConnectionManager
+	seeder                     *seed.Seeder
 }
 
 func NewHarness(t *testing.T) *Harness {
@@ -74,13 +78,16 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	caches, err := caches.New(caches.Config{
-		Logger: logger,
-		Clock:  clk,
+		CacheInvalidationTopic: nil,
+		NodeID:                 "",
+		Logger:                 logger,
+		Clock:                  clk,
 	})
 	require.NoError(t, err)
 
 	srv, err := zen.New(zen.Config{
-		Logger: logger,
+		MaxRequestBodySize: 0,
+		Logger:             logger,
 		Flags: &zen.Flags{
 			TestMode: true,
 		},
@@ -154,31 +161,43 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
+	// Create analytics connection manager
+	analyticsConnManager, err := analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
+		SettingsCache: caches.ClickhouseSetting,
+		Database:      db,
+		Logger:        logger,
+		Clock:         clk,
+		BaseURL:       chDSN,
+		Vault:         v,
+	})
+	require.NoError(t, err)
+
 	// Create seeder
 	seeder := seed.New(t, db, v)
 
 	seeder.Seed(context.Background())
 
 	h := Harness{
-		t:            t,
-		Logger:       logger,
-		srv:          srv,
-		validator:    validator,
-		Keys:         keyService,
-		UsageLimiter: ulSvc,
-		Ratelimit:    ratelimitService,
-		Vault:        v,
-		ClickHouse:   ch,
-		DB:           db,
-		seeder:       seeder,
-		Clock:        clk,
+		t:                          t,
+		Logger:                     logger,
+		srv:                        srv,
+		validator:                  validator,
+		Keys:                       keyService,
+		UsageLimiter:               ulSvc,
+		Ratelimit:                  ratelimitService,
+		Vault:                      v,
+		ClickHouse:                 ch,
+		DB:                         db,
+		seeder:                     seeder,
+		Clock:                      clk,
+		AnalyticsConnectionManager: analyticsConnManager,
 		Auditlogs: auditlogs.New(auditlogs.Config{
 			DB:     db,
 			Logger: logger,
 		}),
 		Caches: caches,
 		middleware: []zen.Middleware{
-			zen.WithTracing(),
+			zen.WithObservability(),
 			zen.WithLogging(logger),
 			zen.WithErrorHandling(logger),
 			zen.WithValidation(validator),
@@ -234,6 +253,102 @@ func (h *Harness) CreatePermission(req seed.CreatePermissionRequest) db.Permissi
 	return h.seeder.CreatePermission(context.Background(), req)
 }
 
+type SetupAnalyticsOption func(*setupAnalyticsConfig)
+
+type setupAnalyticsConfig struct {
+	MaxQueryResultRows        int32
+	MaxQueryMemoryBytes       int64
+	MaxQueriesPerWindow       int32
+	MaxExecutionTimePerWindow int32
+	QuotaDurationSeconds      int32
+	MaxQueryExecutionTime     int32
+}
+
+func WithMaxQueryResultRows(rows int32) SetupAnalyticsOption {
+	return func(c *setupAnalyticsConfig) {
+		c.MaxQueryResultRows = rows
+	}
+}
+
+func WithMaxQueryMemoryBytes(bytes int64) SetupAnalyticsOption {
+	return func(c *setupAnalyticsConfig) {
+		c.MaxQueryMemoryBytes = bytes
+	}
+}
+
+func WithMaxQueriesPerWindow(queries int32) SetupAnalyticsOption {
+	return func(c *setupAnalyticsConfig) {
+		c.MaxQueriesPerWindow = queries
+	}
+}
+
+func WithMaxExecutionTimePerWindow(seconds int32) SetupAnalyticsOption {
+	return func(c *setupAnalyticsConfig) {
+		c.MaxExecutionTimePerWindow = seconds
+	}
+}
+
+func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOption) {
+	ctx := context.Background()
+
+	// Defaults
+	config := setupAnalyticsConfig{
+		MaxQueryResultRows:        10_000_000,
+		MaxQueryMemoryBytes:       1_000_000_000,
+		MaxQueriesPerWindow:       1_000,
+		MaxExecutionTimePerWindow: 1_800,
+		QuotaDurationSeconds:      3_600,
+		MaxQueryExecutionTime:     30,
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(&config)
+	}
+
+	password := "test_password"
+	username := workspaceID
+
+	// Encrypt the password using the vault service
+	encryptRes, err := h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
+		Keyring: workspaceID,
+		Data:    password,
+	})
+	require.NoError(h.t, err)
+
+	// Configure ClickHouse user with permissions, quotas, and settings
+	err = h.ClickHouse.ConfigureUser(ctx, clickhouse.UserConfig{
+		WorkspaceID:               workspaceID,
+		Username:                  username,
+		Password:                  password,
+		AllowedTables:             clickhouse.DefaultAllowedTables(),
+		QuotaDurationSeconds:      config.QuotaDurationSeconds,
+		MaxQueriesPerWindow:       config.MaxQueriesPerWindow,
+		MaxExecutionTimePerWindow: config.MaxExecutionTimePerWindow,
+		MaxQueryExecutionTime:     config.MaxQueryExecutionTime,
+		MaxQueryMemoryBytes:       config.MaxQueryMemoryBytes,
+		MaxQueryResultRows:        config.MaxQueryResultRows,
+	})
+	require.NoError(h.t, err)
+
+	// Store the encrypted credentials in the database
+	now := h.Clock.Now().UnixMilli()
+	err = db.Query.InsertClickhouseWorkspaceSettings(ctx, h.DB.RW(), db.InsertClickhouseWorkspaceSettingsParams{
+		WorkspaceID:               workspaceID,
+		Username:                  username,
+		PasswordEncrypted:         encryptRes.Encrypted,
+		QuotaDurationSeconds:      config.QuotaDurationSeconds,
+		MaxQueriesPerWindow:       config.MaxQueriesPerWindow,
+		MaxExecutionTimePerWindow: config.MaxExecutionTimePerWindow,
+		MaxQueryExecutionTime:     config.MaxQueryExecutionTime,
+		MaxQueryMemoryBytes:       config.MaxQueryMemoryBytes,
+		MaxQueryResultRows:        config.MaxQueryResultRows,
+		CreatedAt:                 now,
+		UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
+	})
+	require.NoError(h.t, err)
+}
+
 func (h *Harness) Resources() seed.Resources {
 	return h.seeder.Resources
 }
@@ -265,7 +380,6 @@ func CallRaw[Res any](h *Harness, req *http.Request) TestResponse[Res] {
 	res.Body = &responseBody
 
 	return res
-
 }
 
 func CallRoute[Req any, Res any](h *Harness, route zen.Route, headers http.Header, req Req) TestResponse[Res] {

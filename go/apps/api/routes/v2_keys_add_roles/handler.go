@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -17,13 +16,14 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2KeysAddRolesRequestBody
-type Response = openapi.V2KeysAddRolesResponseBody
+type (
+	Request  = openapi.V2KeysAddRolesRequestBody
+	Response = openapi.V2KeysAddRolesResponseBody
+)
 
 type Handler struct {
 	Logger       logging.Logger
@@ -227,16 +227,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	responseData := make(openapi.V2KeysAddRolesResponseData, 0)
 	// Wrap row so we don't have to do the same logic twice.
 	for _, role := range rolesToAdd {
-		row := db.ListRolesByKeyIDRow{
-			ID:          role.ID,
-			WorkspaceID: role.WorkspaceID,
-			Name:        role.Name,
-			Description: role.Description,
-			CreatedAtM:  role.CreatedAtM,
-			UpdatedAtM:  role.UpdatedAtM,
-			Permissions: role.Permissions,
-		}
-
+		row := db.ListRolesByKeyIDRow(role)
 		currentRoles = append(currentRoles, row)
 	}
 
@@ -244,37 +235,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		r := openapi.Role{
 			Id:          role.ID,
 			Name:        role.Name,
-			Description: nil,
+			Description: role.Description.String,
 			Permissions: nil,
 		}
 
-		if role.Description.Valid {
-			r.Description = &role.Description.String
+		rolePermissions, err := db.UnmarshalNullableJSONTo[[]db.Permission](role.Permissions)
+		if err != nil {
+			h.Logger.Error("Failed to unmarshal role permissions", "error", err)
 		}
 
-		rolePermissions := make([]db.Permission, 0)
-		if permBytes, ok := role.Permissions.([]byte); ok && permBytes != nil {
-			_ = json.Unmarshal(permBytes, &rolePermissions) // Ignore error, default to empty array
-		}
-
-		perms := make([]openapi.Permission, 0)
 		for _, permission := range rolePermissions {
 			perm := openapi.Permission{
 				Id:          permission.ID,
 				Name:        permission.Name,
 				Slug:        permission.Slug,
-				Description: nil,
+				Description: permission.Description.String,
 			}
 
-			if permission.Description.Valid {
-				perm.Description = &permission.Description.String
-			}
-
-			perms = append(perms, perm)
-		}
-
-		if len(perms) > 0 {
-			r.Permissions = ptr.P(perms)
+			r.Permissions = append(r.Permissions, perm)
 		}
 
 		responseData = append(responseData, r)

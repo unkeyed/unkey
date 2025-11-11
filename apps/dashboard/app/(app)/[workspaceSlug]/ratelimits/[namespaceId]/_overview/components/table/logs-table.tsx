@@ -218,8 +218,12 @@ export const RatelimitOverviewLogsTable = ({
         hide: isLoading,
         countInfoText: (
           <div className="flex gap-2">
-            <span>Showing</span> <span className="text-accent-12">{historicalLogs.length}</span>
-            <span>of {totalCount}</span>
+            <span>Showing</span>{" "}
+            <span className="text-accent-12">
+              {new Intl.NumberFormat().format(historicalLogs.length)}
+            </span>
+            <span>of</span>
+            {new Intl.NumberFormat().format(totalCount)}
             <span>rate limit identifiers</span>
           </div>
         ),

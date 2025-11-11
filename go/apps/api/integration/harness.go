@@ -23,6 +23,7 @@ type ApiConfig struct {
 	Nodes         int
 	MysqlDSN      string
 	ClickhouseDSN string
+	KafkaBrokers  []string
 }
 
 // ApiCluster represents a cluster of API containers
@@ -100,10 +101,13 @@ func New(t *testing.T, config Config) *Harness {
 	clickhouseDockerDSN := "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true&dial_timeout=10s"
 
 	// Create dynamic API container cluster for chaos testing
+	kafkaBrokers := containers.Kafka(t)
+
 	cluster := h.RunAPI(ApiConfig{
 		Nodes:         config.NumNodes,
 		MysqlDSN:      mysqlDockerDSN,
 		ClickhouseDSN: clickhouseDockerDSN,
+		KafkaBrokers:  kafkaBrokers,
 	})
 	h.apiCluster = cluster
 	h.instanceAddrs = cluster.Addrs
@@ -123,7 +127,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 	// Start each API node as a goroutine
 	for i := 0; i < config.Nodes; i++ {
 		// Create ephemeral listener
-		ln, err := net.Listen("tcp", ":0")
+		ln, err := net.Listen("tcp", ":0") //nolint: gosec
 		require.NoError(h.t, err, "Failed to create ephemeral listener")
 
 		cluster.Addrs[i] = fmt.Sprintf("http://%s", ln.Addr().String())
@@ -133,14 +137,19 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		mysqlHostCfg.DBName = "unkey" // Set the database name
 		clickhouseHostDSN := containers.ClickHouse(h.t)
 		redisHostAddr := containers.Redis(h.t)
-
+		kafkaBrokers := containers.Kafka(h.t)
 		apiConfig := api.Config{
+			CacheInvalidationTopic:  "",
+			MaxRequestBodySize:      0,
+			HttpPort:                7070,
+			ChproxyToken:            "",
 			Platform:                "test",
 			Image:                   "test",
 			Listener:                ln,
 			DatabasePrimary:         mysqlHostCfg.FormatDSN(),
 			DatabaseReadonlyReplica: "",
 			ClickhouseURL:           clickhouseHostDSN,
+			ClickhouseAnalyticsURL:  "",
 			RedisUrl:                redisHostAddr,
 			Region:                  "test",
 			InstanceID:              fmt.Sprintf("test-node-%d", i),
@@ -152,6 +161,8 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			TLSConfig:               nil,
 			VaultMasterKeys:         []string{"Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="}, // Test key from docker-compose
 			VaultS3:                 nil,
+			KafkaBrokers:            kafkaBrokers, // Use host brokers for test runner connections
+			DebugCacheHeaders:       true,         // Enable cache debug headers for integration tests
 		}
 
 		// Start API server in goroutine
@@ -197,7 +208,8 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		// Wait for server to start
 		maxAttempts := 30
 		healthURL := fmt.Sprintf("http://%s/v2/liveness", ln.Addr().String())
-		for attempt := 0; attempt < maxAttempts; attempt++ {
+		for attempt := range maxAttempts {
+			//nolint:gosec // Health check URL is constructed from controlled Docker container address
 			resp, err := http.Get(healthURL)
 			if err == nil {
 				resp.Body.Close()

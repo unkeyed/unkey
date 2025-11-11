@@ -233,11 +233,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Id:          permission.ID,
 			Slug:        permission.Slug,
 			Name:        permission.Name,
-			Description: nil,
-		}
-
-		if permission.Description.Valid {
-			perm.Description = &permission.Description.String
+			Description: permission.Description.String,
 		}
 
 		responseData = append(responseData, perm)

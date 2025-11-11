@@ -38,6 +38,7 @@ func TestUpdateKeyNotFound(t *testing.T) {
 	}
 
 	t.Run("when the key does not exist", func(t *testing.T) {
+		t.Parallel()
 		req := handler.Request{
 			KeyId:   "nonexistent_key",
 			Enabled: ptr.P(false),
@@ -50,6 +51,7 @@ func TestUpdateKeyNotFound(t *testing.T) {
 	})
 
 	t.Run("when the key has been deleted", func(t *testing.T) {
+		t.Parallel()
 		// Create API using helper
 		api := h.CreateApi(seed.CreateApiRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
@@ -58,7 +60,7 @@ func TestUpdateKeyNotFound(t *testing.T) {
 		// Create key using helper then delete it
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Name:        ptr.P("test"),
 			Deleted:     true, // This will mark the key as deleted
 		})

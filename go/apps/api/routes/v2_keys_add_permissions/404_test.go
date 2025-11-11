@@ -99,7 +99,7 @@ func TestNotFoundErrors(t *testing.T) {
 		otherKeyName := "Other Workspace Key"
 		otherKeyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: otherWorkspaceID,
-			KeyAuthID:   otherApi.KeyAuthID.String,
+			KeySpaceID:  otherApi.KeyAuthID.String,
 			Name:        &otherKeyName,
 		})
 		otherKeyID := otherKeyResponse.KeyID

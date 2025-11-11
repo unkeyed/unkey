@@ -9,6 +9,7 @@ type KeyVerificationV2 struct {
 	WorkspaceID  string   `ch:"workspace_id" json:"workspace_id"`
 	KeySpaceID   string   `ch:"key_space_id" json:"key_space_id"`
 	IdentityID   string   `ch:"identity_id" json:"identity_id"`
+	ExternalID   string   `ch:"external_id" json:"external_id"`
 	KeyID        string   `ch:"key_id" json:"key_id"`
 	Region       string   `ch:"region" json:"region"`
 	Outcome      string   `ch:"outcome" json:"outcome"`
@@ -92,4 +93,32 @@ type ApiRequestAggregated struct {
 	Host           string `ch:"host" json:"host"`
 	Method         string `ch:"method" json:"method"`
 	Count          int64  `ch:"count" json:"count"`
+}
+
+// BuildStepV1 represents the v1 build step raw table structure.
+// This tracks individual build steps within a deployment process
+// including timing, caching, and error information.
+type BuildStepV1 struct {
+	StartedAt    int64  `ch:"started_at" json:"started_at"`
+	CompletedAt  int64  `ch:"completed_at" json:"completed_at"`
+	WorkspaceID  string `ch:"workspace_id" json:"workspace_id"`
+	ProjectID    string `ch:"project_id" json:"project_id"`
+	DeploymentID string `ch:"deployment_id" json:"deployment_id"`
+	StepID       string `ch:"step_id" json:"step_id"`
+	Name         string `ch:"name" json:"name"`
+	Cached       bool   `ch:"cached" json:"cached"`
+	Error        string `ch:"error" json:"error"`
+	HasLogs      bool   `ch:"has_logs" json:"has_logs"`
+}
+
+// BuildStepLogV1 represents the v1 build step log raw table structure.
+// This stores log messages generated during build step execution
+// for debugging and monitoring purposes.
+type BuildStepLogV1 struct {
+	Time         int64  `ch:"time" json:"time"`
+	WorkspaceID  string `ch:"workspace_id" json:"workspace_id"`
+	ProjectID    string `ch:"project_id" json:"project_id"`
+	DeploymentID string `ch:"deployment_id" json:"deployment_id"`
+	StepID       string `ch:"step_id" json:"step_id"`
+	Message      string `ch:"message" json:"message"`
 }

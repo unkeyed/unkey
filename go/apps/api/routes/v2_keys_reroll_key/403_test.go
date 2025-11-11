@@ -50,7 +50,7 @@ func TestRerollKeyForbidden(t *testing.T) {
 	key := h.CreateKey(seed.CreateKeyRequest{
 		Disabled:    false,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 	})
 
 	req := handler.Request{
@@ -104,7 +104,7 @@ func TestRerollKeyForbidden(t *testing.T) {
 		Disabled:     false,
 		Recoverable:  true,
 		WorkspaceID:  h.Resources().UserWorkspace.ID,
-		KeyAuthID:    api.KeyAuthID.String,
+		KeySpaceID:   api.KeyAuthID.String,
 		Remaining:    nil,
 		IdentityID:   nil,
 		Meta:         nil,

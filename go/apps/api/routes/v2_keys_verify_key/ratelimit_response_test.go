@@ -39,7 +39,7 @@ func TestRatelimitResponse(t *testing.T) {
 	t.Run("rate limit response fields validation", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "test-limit",
@@ -63,7 +63,7 @@ func TestRatelimitResponse(t *testing.T) {
 
 		// Validate rate limit response fields
 		require.NotNil(t, res.Body.Data.Ratelimits, "Rate limits should be present")
-		ratelimits := *res.Body.Data.Ratelimits
+		ratelimits := res.Body.Data.Ratelimits
 		require.Len(t, ratelimits, 1, "Should have one rate limit")
 
 		rl := ratelimits[0]
@@ -79,7 +79,7 @@ func TestRatelimitResponse(t *testing.T) {
 	t.Run("rate limit exceeded fields", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "strict-limit",
@@ -107,7 +107,7 @@ func TestRatelimitResponse(t *testing.T) {
 
 		// Validate rate limit response fields for exceeded limit
 		require.NotNil(t, res.Body.Data.Ratelimits, "Rate limits should be present")
-		ratelimits := *res.Body.Data.Ratelimits
+		ratelimits := res.Body.Data.Ratelimits
 		require.Len(t, ratelimits, 1, "Should have one rate limit")
 
 		rl := ratelimits[0]
@@ -118,7 +118,7 @@ func TestRatelimitResponse(t *testing.T) {
 	t.Run("custom rate limit with cost", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 		})
 
 		req := handler.Request{
@@ -138,7 +138,7 @@ func TestRatelimitResponse(t *testing.T) {
 
 		// Validate custom rate limit response
 		require.NotNil(t, res.Body.Data.Ratelimits, "Rate limits should be present")
-		ratelimits := *res.Body.Data.Ratelimits
+		ratelimits := res.Body.Data.Ratelimits
 		require.Len(t, ratelimits, 1, "Should have one rate limit")
 
 		rl := ratelimits[0]
@@ -151,7 +151,7 @@ func TestRatelimitResponse(t *testing.T) {
 	t.Run("multiple rate limits with accurate remaining counters", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeyAuthID:   api.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "fast-limit",
@@ -190,7 +190,7 @@ func TestRatelimitResponse(t *testing.T) {
 		require.Equal(t, openapi.VALID, res.Body.Data.Code)
 		require.True(t, res.Body.Data.Valid)
 
-		ratelimits := *res.Body.Data.Ratelimits
+		ratelimits := res.Body.Data.Ratelimits
 		require.Len(t, ratelimits, 2, "Should have two rate limits")
 
 		fastLimit := findRatelimit(ratelimits, "fast-limit")
@@ -209,7 +209,7 @@ func TestRatelimitResponse(t *testing.T) {
 		require.Equal(t, openapi.VALID, res.Body.Data.Code)
 		require.True(t, res.Body.Data.Valid)
 
-		ratelimits = *res.Body.Data.Ratelimits
+		ratelimits = res.Body.Data.Ratelimits
 		fastLimit = findRatelimit(ratelimits, "fast-limit")
 		slowLimit = findRatelimit(ratelimits, "slow-limit")
 
@@ -224,7 +224,7 @@ func TestRatelimitResponse(t *testing.T) {
 		require.Equal(t, openapi.VALID, res.Body.Data.Code)
 		require.True(t, res.Body.Data.Valid)
 
-		ratelimits = *res.Body.Data.Ratelimits
+		ratelimits = res.Body.Data.Ratelimits
 		fastLimit = findRatelimit(ratelimits, "fast-limit")
 		slowLimit = findRatelimit(ratelimits, "slow-limit")
 
@@ -239,7 +239,7 @@ func TestRatelimitResponse(t *testing.T) {
 		require.Equal(t, openapi.RATELIMITED, res.Body.Data.Code)
 		require.False(t, res.Body.Data.Valid, "Key should be rate limited")
 
-		ratelimits = *res.Body.Data.Ratelimits
+		ratelimits = res.Body.Data.Ratelimits
 		fastLimit = findRatelimit(ratelimits, "fast-limit")
 		slowLimit = findRatelimit(ratelimits, "slow-limit")
 
@@ -248,5 +248,89 @@ func TestRatelimitResponse(t *testing.T) {
 		// slow-limit should NOT increment since the request was denied
 		require.Equal(t, int64(7), slowLimit.Remaining, "slow-limit: should not decrement when request is denied")
 		require.False(t, slowLimit.Exceeded, "slow-limit should not be exceeded")
+	})
+
+	t.Run("identity rate limits with same config but different names are isolated", func(t *testing.T) {
+		// Create an identity with two rate limits that have identical duration and limit but different names
+		// This tests that the rate limit name is included in the identifier to prevent shared counters
+		identity := h.CreateIdentity(seed.CreateIdentityRequest{
+			WorkspaceID: workspace.ID,
+			ExternalID:  "user_with_multiple_limits",
+			Ratelimits: []seed.CreateRatelimitRequest{
+				{
+					Name:        "api_requests",
+					WorkspaceID: workspace.ID,
+					AutoApply:   true,
+					Duration:    time.Minute.Milliseconds(),
+					Limit:       5,
+				},
+				{
+					Name:        "data_access",
+					WorkspaceID: workspace.ID,
+					AutoApply:   true,
+					Duration:    time.Minute.Milliseconds(), // Same duration as api_requests
+					Limit:       5,                          // Same limit as api_requests
+				},
+			},
+		})
+
+		// Create a key for this identity
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			IdentityID:  ptr.P(identity.ID),
+		})
+
+		req := handler.Request{
+			Key: key.Key,
+		}
+
+		// Helper function to find rate limit by name
+		findRatelimit := func(ratelimits []openapi.VerifyKeyRatelimitData, name string) *openapi.VerifyKeyRatelimitData {
+			for _, rl := range ratelimits {
+				if rl.Name == name {
+					return &rl
+				}
+			}
+			return nil
+		}
+
+		// Make 5 requests - should use up api_requests limit
+		for i := 0; i < 5; i++ {
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, 200, res.Status)
+			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Request %d should be valid", i+1)
+			require.True(t, res.Body.Data.Valid)
+
+			ratelimits := res.Body.Data.Ratelimits
+			require.Len(t, ratelimits, 2, "Should have two identity rate limits")
+
+			apiLimit := findRatelimit(ratelimits, "api_requests")
+			dataLimit := findRatelimit(ratelimits, "data_access")
+			require.NotNil(t, apiLimit, "api_requests rate limit should be present")
+			require.NotNil(t, dataLimit, "data_access rate limit should be present")
+
+			// Both limits should decrement independently
+			require.Equal(t, int64(5-i-1), apiLimit.Remaining, "api_requests: expected remaining=%d after request %d", 5-i-1, i+1)
+			require.Equal(t, int64(5-i-1), dataLimit.Remaining, "data_access: expected remaining=%d after request %d", 5-i-1, i+1)
+			require.False(t, apiLimit.Exceeded, "api_requests should not be exceeded yet")
+			require.False(t, dataLimit.Exceeded, "data_access should not be exceeded yet")
+		}
+
+		// 6th request should be rate limited
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+		require.Equal(t, openapi.RATELIMITED, res.Body.Data.Code, "6th request should be rate limited")
+		require.False(t, res.Body.Data.Valid)
+
+		ratelimits := res.Body.Data.Ratelimits
+		apiLimit := findRatelimit(ratelimits, "api_requests")
+		dataLimit := findRatelimit(ratelimits, "data_access")
+
+		// Both limits should be exceeded (since they have the same config and both were checked)
+		require.True(t, apiLimit.Exceeded, "api_requests should be exceeded")
+		require.True(t, dataLimit.Exceeded, "data_access should be exceeded")
+		require.Equal(t, int64(0), apiLimit.Remaining, "api_requests: should have 0 remaining")
+		require.Equal(t, int64(0), dataLimit.Remaining, "data_access: should have 0 remaining")
 	})
 }

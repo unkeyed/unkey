@@ -118,7 +118,6 @@ type Config struct {
 	KraneAddress string
 
 	// APIKey is the API key for simple authentication (demo purposes only)
-	// TODO: Replace with JWT authentication when moving to private IP
 	APIKey string
 
 	// SPIFFESocketPath is the path to the SPIFFE agent socket for mTLS authentication
@@ -143,6 +142,9 @@ type Config struct {
 	// BuildPlatform defines the target platform for builds (e.g., "linux/amd64", "linux/arm64")
 	BuildPlatform string
 	Depot         DepotConfig
+
+	// ClickhouseURL is the ClickHouse database connection string
+	ClickhouseURL string
 }
 
 type BuildPlatform struct {
@@ -197,6 +199,10 @@ func (c Config) Validate() error {
 		if err := assert.NotEmpty(c.Acme.Cloudflare.ApiToken, "cloudflare API token is required when cloudflare is enabled"); err != nil {
 			return err
 		}
+	}
+
+	if err := assert.NotEmpty(c.ClickhouseURL, "ClickhouseURL is required"); err != nil {
+		return err
 	}
 
 	// Validate build platform format

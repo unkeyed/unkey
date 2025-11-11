@@ -47,7 +47,7 @@ func TestAuthorizationErrors(t *testing.T) {
 	permissionDescription := "Read documents permission"
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
+		KeySpaceID:  api.KeyAuthID.String,
 		Name:        &keyName,
 		Permissions: []seed.CreatePermissionRequest{
 			{
@@ -132,7 +132,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		otherKeyName := "Other Workspace Key"
 		otherKeyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: otherWorkspaceID,
-			KeyAuthID:   otherApi.KeyAuthID.String,
+			KeySpaceID:  otherApi.KeyAuthID.String,
 			Name:        &otherKeyName,
 		})
 		otherKeyID := otherKeyResponse.KeyID

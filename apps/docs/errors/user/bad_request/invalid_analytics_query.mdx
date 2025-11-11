@@ -1,0 +1,107 @@
+---
+title: "invalid_analytics_query"
+description: "Your SQL query has a syntax error."
+---
+
+<Danger>`err:user:bad_request:invalid_analytics_query`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_4dgzrNP3Je5mU1tD"
+  },
+  "error": {
+    "detail": "Syntax error: Expected identifier, got 'FROM' at position 15",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "https://unkey.com/docs/errors/user/bad_request/invalid_analytics_query"
+  }
+}
+```
+
+## What Happened?
+
+Your SQL query has a syntax error! The query parser found invalid SQL syntax that prevents it from being executed.
+
+Common causes include:
+
+- Missing or extra commas
+- Unclosed quotes or parentheses
+- Typos in SQL keywords
+- Invalid column or table names
+
+## How to Fix It
+
+### 1. Check for Missing Commas
+
+<CodeGroup>
+
+```sql Wrong - Missing comma
+SELECT
+  key_space_id
+  COUNT(*) as total
+FROM key_verifications_v1
+```
+
+```sql Correct
+SELECT
+  key_space_id,
+  COUNT(*) as total
+FROM key_verifications_v1
+```
+
+</CodeGroup>
+
+### 2. Match Quotes and Parentheses
+
+<CodeGroup>
+
+```sql Wrong - Unclosed quote
+SELECT key_space_id, outcome
+FROM key_verifications_v1
+WHERE key_space_id = 'ks_123
+```
+
+```sql Correct
+SELECT key_space_id, outcome
+FROM key_verifications_v1
+WHERE key_space_id = 'ks_123'
+```
+
+</CodeGroup>
+
+### 3. Use Correct SQL Keywords
+
+<CodeGroup>
+
+```sql Wrong - Typo in SELECT
+SELCT time, outcome
+FROM key_verifications_v1
+```
+
+```sql Correct
+SELECT time, outcome
+FROM key_verifications_v1
+```
+
+</CodeGroup>
+
+### 4. Verify Column Names
+
+Make sure you're using valid column names from your analytics tables:
+
+```sql
+-- ✓ Valid columns
+SELECT time, key_space_id, outcome, key_id
+FROM key_verifications_v1
+WHERE time >= now() - INTERVAL 7 DAY
+```
+
+## Need Help?
+
+If you're stuck with a syntax error:
+
+1. **Check the error message** - It usually tells you exactly where the problem is
+2. **Test incrementally** - Start with a simple query like `SELECT time, outcome FROM table_name LIMIT 10` and add complexity step by step
+3. **Use a SQL validator** - Many online tools can help spot syntax errors
+4. **Check the schema** - Refer to the [Schema Reference](/analytics/schema-reference) for valid column names

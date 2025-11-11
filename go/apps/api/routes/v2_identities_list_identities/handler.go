@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -17,8 +16,10 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-type Request = openapi.V2IdentitiesListIdentitiesRequestBody
-type Response = openapi.V2IdentitiesListIdentitiesResponseBody
+type (
+	Request  = openapi.V2IdentitiesListIdentitiesRequestBody
+	Response = openapi.V2IdentitiesListIdentitiesResponseBody
+)
 
 // Handler implements zen.Route interface for the v2 identities list identities endpoint
 type Handler struct {
@@ -62,7 +63,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		IDCursor:    cursor,
 		Limit:       int32(limit + 1), // nolint:gosec
 	})
-
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Internal("unable to list identities"), fault.Public("We're unable to list the identities."),
@@ -131,23 +131,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Meta:       nil,
 		}
 
-		if len(formattedRatelimits) > 0 {
-			newIdentity.Ratelimits = ptr.P(formattedRatelimits)
-		}
+		newIdentity.Ratelimits = formattedRatelimits
 
 		// Add metadata if available
-		if len(identity.Meta) > 0 {
-			// Initialize the Meta field with an empty map
-			metaMap := make(map[string]interface{})
-			newIdentity.Meta = &metaMap
+		metaMap, err := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta)
+		newIdentity.Meta = metaMap
 
-			// Unmarshal the identity metadata into the map
-			err = json.Unmarshal(identity.Meta, &metaMap)
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Internal("unable to unmarshal identity metadata"), fault.Public("We're unable to parse the metadata for the identity."),
-				)
-			}
+		if err != nil {
+			h.Logger.Error("failed to unmarshal identity meta",
+				"identityId", identity.ID,
+				"error", err,
+			)
+			// Continue with empty meta
 		}
 
 		// Append the identity to the results

@@ -41,10 +41,10 @@ func TestKeyDeleteNotFound(t *testing.T) {
 	// Create a workspace and user
 	workspace := h.Resources().UserWorkspace
 
-	// Create a keyAuth (keyring) for the API
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:            keyAuthID,
+	// Create a keySpace for the API
+	keySpaceID := uid.New(uid.KeySpacePrefix)
+	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+		ID:            keySpaceID,
 		WorkspaceID:   workspace.ID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false},
@@ -59,7 +59,7 @@ func TestKeyDeleteNotFound(t *testing.T) {
 		Name:        "Test API",
 		WorkspaceID: workspace.ID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
+		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
@@ -72,7 +72,7 @@ func TestKeyDeleteNotFound(t *testing.T) {
 
 	insertParams := db.InsertKeyParams{
 		ID:                keyID,
-		KeyringID:         keyAuthID,
+		KeySpaceID:        keySpaceID,
 		Hash:              key.Hash,
 		Start:             key.Start,
 		WorkspaceID:       workspace.ID,

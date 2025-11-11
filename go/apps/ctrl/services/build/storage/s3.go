@@ -35,6 +35,7 @@ func NewS3(config S3Config) (*S3, error) {
 
 	// Internal client config (for actual operations within Docker network)
 	// This client is used for all actual S3 operations like CreateBucket, PutObject, GetObject
+	//nolint: staticcheck
 	internalResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...any) (aws.Endpoint, error) {
 		return aws.Endpoint{
 			URL:               config.S3URL,
@@ -43,6 +44,7 @@ func NewS3(config S3Config) (*S3, error) {
 	})
 
 	internalCfg, err := awsConfig.LoadDefaultConfig(context.Background(),
+		//nolint: staticcheck
 		awsConfig.WithEndpointResolverWithOptions(internalResolver),
 		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
 			config.S3AccessKeyID,
@@ -76,6 +78,7 @@ func NewS3(config S3Config) (*S3, error) {
 	logger.Info("s3 storage initialized", "presign_url", presignURL)
 
 	// Create presigner with the appropriate URL
+	//nolint: staticcheck
 	presignResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...any) (aws.Endpoint, error) {
 		return aws.Endpoint{
 			URL:               presignURL,
@@ -84,6 +87,7 @@ func NewS3(config S3Config) (*S3, error) {
 	})
 
 	presignCfg, err := awsConfig.LoadDefaultConfig(context.Background(),
+		//nolint: staticcheck
 		awsConfig.WithEndpointResolverWithOptions(presignResolver),
 		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
 			config.S3AccessKeyID,

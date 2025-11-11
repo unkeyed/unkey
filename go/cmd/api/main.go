@@ -11,8 +11,12 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Name:  "api",
-	Usage: "Run the Unkey API server for validating and managing API keys",
+	Aliases:     []string{},
+	Description: "",
+	Version:     "",
+	Commands:    []*cli.Command{},
+	Name:        "api",
+	Usage:       "Run the Unkey API server for validating and managing API keys",
 
 	Flags: []cli.Flag{
 		// Server Configuration
@@ -44,6 +48,8 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_REDIS_URL")),
 		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
 			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
+		cli.String("clickhouse-analytics-url", "ClickHouse base URL for workspace-specific analytics connections. Workspace credentials are injected programmatically. Example: http://clickhouse:8123/default",
+			cli.EnvVar("UNKEY_CLICKHOUSE_ANALYTICS_URL")),
 
 		// Observability
 		cli.Bool("otel", "Enable OpenTelemetry tracing and metrics",
@@ -71,6 +77,10 @@ var Cmd = &cli.Command{
 		cli.String("vault-s3-access-key-secret", "S3 secret access key",
 			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 
+		// Kafka Configuration
+		cli.StringSlice("kafka-brokers", "Comma-separated list of Kafka broker addresses for distributed cache invalidation",
+			cli.EnvVar("UNKEY_KAFKA_BROKERS")),
+
 		// ClickHouse Proxy Service Configuration
 		cli.String(
 			"chproxy-auth-token",
@@ -78,9 +88,31 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_CHPROXY_AUTH_TOKEN"),
 		),
 
+		// Profiling Configuration
+		cli.Bool(
+			"pprof-enabled",
+			"Enable pprof profiling endpoints at /debug/pprof/*. Default: false",
+			cli.Default(false),
+			cli.EnvVar("UNKEY_PPROF_ENABLED"),
+		),
+		cli.String(
+			"pprof-username",
+			"Username for pprof Basic Auth. Optional - if username and password are not set, pprof will be accessible without authentication.",
+			cli.EnvVar("UNKEY_PPROF_USERNAME"),
+		),
+		cli.String(
+			"pprof-password",
+			"Password for pprof Basic Auth. Optional - if username and password are not set, pprof will be accessible without authentication.",
+			cli.EnvVar("UNKEY_PPROF_PASSWORD"),
+		),
+
 		// Request Body Configuration
 		cli.Int64("max-request-body-size", "Maximum allowed request body size in bytes. Set to 0 or negative to disable limit. Default: 10485760 (10MB)",
 			cli.Default(int64(10485760)), cli.EnvVar("UNKEY_MAX_REQUEST_BODY_SIZE")),
+
+		// Debug Configuration
+		cli.Bool("debug-cache-headers", "Enable cache debug headers (X-Unkey-Debug-Cache) in HTTP responses for debugging cache behavior",
+			cli.Default(false), cli.EnvVar("UNKEY_DEBUG_CACHE_HEADERS")),
 	},
 
 	Action: action,
@@ -116,16 +148,18 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 	config := api.Config{
 		// Basic configuration
-		Platform: cmd.String("platform"),
-		Image:    cmd.String("image"),
-		Region:   cmd.String("region"),
+		CacheInvalidationTopic: "",
+		Platform:               cmd.String("platform"),
+		Image:                  cmd.String("image"),
+		Region:                 cmd.String("region"),
 
 		// Database configuration
 		DatabasePrimary:         cmd.String("database-primary"),
 		DatabaseReadonlyReplica: cmd.String("database-replica"),
 
 		// ClickHouse
-		ClickhouseURL: cmd.String("clickhouse-url"),
+		ClickhouseURL:          cmd.String("clickhouse-url"),
+		ClickhouseAnalyticsURL: cmd.String("clickhouse-analytics-url"),
 
 		// OpenTelemetry configuration
 		OtelEnabled:           cmd.Bool("otel"),
@@ -148,11 +182,22 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
 		VaultS3:         vaultS3Config,
 
+		// Kafka configuration
+		KafkaBrokers: cmd.StringSlice("kafka-brokers"),
+
 		// ClickHouse proxy configuration
 		ChproxyToken: cmd.String("chproxy-auth-token"),
 
+		// Profiling configuration
+		PprofEnabled:  cmd.Bool("pprof-enabled"),
+		PprofUsername: cmd.String("pprof-username"),
+		PprofPassword: cmd.String("pprof-password"),
+
 		// Request body configuration
 		MaxRequestBodySize: cmd.Int64("max-request-body-size"),
+
+		// Debug configuration
+		DebugCacheHeaders: cmd.Bool("debug-cache-headers"),
 	}
 
 	err := config.Validate()

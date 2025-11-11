@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/unkeyed/unkey/go/internal/services/analytics"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
@@ -14,15 +15,19 @@ import (
 )
 
 type Services struct {
-	Logger       logging.Logger
-	Database     db.Database
-	Keys         keys.KeyService
-	ClickHouse   clickhouse.ClickHouse
-	Validator    *validation.Validator
-	Ratelimit    ratelimit.Service
-	Auditlogs    auditlogs.AuditLogService
-	Caches       caches.Caches
-	Vault        *vault.Service
-	ChproxyToken string
-	UsageLimiter usagelimiter.Service
+	Logger                     logging.Logger
+	Database                   db.Database
+	Keys                       keys.KeyService
+	ClickHouse                 clickhouse.ClickHouse
+	Validator                  *validation.Validator
+	Ratelimit                  ratelimit.Service
+	Auditlogs                  auditlogs.AuditLogService
+	Caches                     caches.Caches
+	Vault                      *vault.Service
+	ChproxyToken               string
+	PprofEnabled               bool
+	PprofUsername              string
+	PprofPassword              string
+	UsageLimiter               usagelimiter.Service
+	AnalyticsConnectionManager analytics.ConnectionManager
 }

@@ -37,13 +37,15 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			case codes.UnkeyDataErrorsKeyNotFound,
 				codes.UnkeyDataErrorsWorkspaceNotFound,
 				codes.UnkeyDataErrorsApiNotFound,
+				codes.UnkeyDataErrorsKeySpaceNotFound,
 				codes.UnkeyDataErrorsPermissionNotFound,
 				codes.UnkeyDataErrorsRoleNotFound,
 				codes.UnkeyDataErrorsKeyAuthNotFound,
 				codes.UnkeyDataErrorsRatelimitNamespaceNotFound,
 				codes.UnkeyDataErrorsRatelimitOverrideNotFound,
 				codes.UnkeyDataErrorsIdentityNotFound,
-				codes.UnkeyDataErrorsAuditLogNotFound:
+				codes.UnkeyDataErrorsAuditLogNotFound,
+				codes.UnkeyGatewayErrorsRoutingConfigNotFound:
 				return s.JSON(http.StatusNotFound, openapi.NotFoundErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -56,11 +58,13 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					},
 				})
 
-			// Bad Request errors
+			// Bad Request errors - General validation
 			case codes.UnkeyAppErrorsValidationInvalidInput,
 				codes.UnkeyAuthErrorsAuthenticationMissing,
 				codes.UnkeyAuthErrorsAuthenticationMalformed,
-				codes.UserErrorsBadRequestPermissionsQuerySyntaxError:
+				codes.UserErrorsBadRequestPermissionsQuerySyntaxError,
+				codes.UnkeyGatewayErrorsValidationRequestInvalid,
+				codes.UnkeyGatewayErrorsValidationResponseInvalid:
 				return s.JSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -71,6 +75,54 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 						Detail: fault.UserFacingMessage(err),
 						Status: http.StatusBadRequest,
 						Errors: []openapi.ValidationError{},
+					},
+				})
+
+			// Bad Request errors - Query validation (malformed queries)
+			case codes.UserErrorsBadRequestInvalidAnalyticsQuery,
+				codes.UserErrorsBadRequestInvalidAnalyticsTable,
+				codes.UserErrorsBadRequestInvalidAnalyticsFunction,
+				codes.UserErrorsBadRequestInvalidAnalyticsQueryType:
+				return s.JSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BadRequestErrorDetails{
+						Title:  "Bad Request",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusBadRequest,
+						Errors: []openapi.ValidationError{},
+					},
+				})
+
+			// Unprocessable Entity - Query resource limits
+			case codes.UserErrorsUnprocessableEntityQueryExecutionTimeout,
+				codes.UserErrorsUnprocessableEntityQueryMemoryLimitExceeded,
+				codes.UserErrorsUnprocessableEntityQueryRowsLimitExceeded:
+				return s.JSON(http.StatusUnprocessableEntity, openapi.UnprocessableEntityErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:  http.StatusText(http.StatusUnprocessableEntity),
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusUnprocessableEntity,
+					},
+				})
+
+			// Too Many Requests - Query rate limiting
+			case codes.UserErrorsTooManyRequestsQueryQuotaExceeded:
+				return s.JSON(http.StatusTooManyRequests, openapi.TooManyRequestsErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:  http.StatusText(http.StatusTooManyRequests),
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusTooManyRequests,
 					},
 				})
 
@@ -119,7 +171,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					},
 				})
 
-			// Request Entity Too Large errors
+			// Gone errors
 			case codes.UnkeyDataErrorsRatelimitNamespaceGone:
 				return s.JSON(http.StatusGone, openapi.GoneErrorResponse{
 					Meta: openapi.Meta{
@@ -134,8 +186,8 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				})
 
 			// Unauthorized errors
-			case
-				codes.UnkeyAuthErrorsAuthenticationKeyNotFound:
+			case codes.UnkeyAuthErrorsAuthenticationKeyNotFound,
+				codes.UnkeyGatewayErrorsAuthUnauthorized:
 				return s.JSON(http.StatusUnauthorized, openapi.UnauthorizedErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -207,7 +259,8 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				})
 
 			// Precondition Failed
-			case codes.UnkeyAppErrorsPreconditionPreconditionFailed:
+			case codes.UnkeyDataErrorsAnalyticsNotConfigured,
+				codes.UnkeyAppErrorsPreconditionPreconditionFailed:
 				return s.JSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -248,10 +301,53 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					},
 				})
 
+			// Service Unavailable errors
+			case codes.UnkeyDataErrorsAnalyticsConnectionFailed:
+				logger.Error(
+					"analytics connection error",
+					"error", err.Error(),
+					"requestId", s.RequestID(),
+					"publicMessage", fault.UserFacingMessage(err),
+				)
+
+				return s.JSON(http.StatusServiceUnavailable, openapi.ServiceUnavailableErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:  "Service Unavailable",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusServiceUnavailable,
+					},
+				})
+
+			// Rate Limited errors
+			case codes.UnkeyGatewayErrorsAuthRateLimited:
+				return s.JSON(http.StatusTooManyRequests, openapi.BadRequestErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BadRequestErrorDetails{
+						Title:  "Too Many Requests",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusTooManyRequests,
+						Errors: []openapi.ValidationError{},
+					},
+				})
+
 			// Internal errors
 			case codes.UnkeyAppErrorsInternalUnexpectedError,
+				codes.UnkeyGatewayErrorsProxyGatewayTimeout,
+				codes.UnkeyGatewayErrorsProxyBadGateway,
+				codes.UnkeyGatewayErrorsProxyServiceUnavailable,
 				codes.UnkeyAppErrorsInternalServiceUnavailable,
-				codes.UnkeyAppErrorsValidationAssertionFailed:
+				codes.UnkeyAppErrorsValidationAssertionFailed,
+				codes.UnkeyGatewayErrorsProxyProxyForwardFailed,
+				codes.UnkeyGatewayErrorsRoutingVMSelectionFailed,
+				codes.UnkeyGatewayErrorsInternalInternalServerError,
+				codes.UnkeyGatewayErrorsInternalKeyVerificationFailed:
 				// Fall through to default 500 error
 			}
 

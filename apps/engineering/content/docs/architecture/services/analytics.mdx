@@ -1,0 +1,371 @@
+---
+title: Analytics API Security
+---
+
+The Analytics API (`/v2/analytics.getVerifications`) allows workspace users to query their verification data using SQL. This is a powerful feature that requires multiple layers of security to prevent abuse and ensure data isolation.
+
+## Security Model
+
+### Multi-Layer Defense
+
+We implement security at three levels:
+
+1. **API Level**: Query parsing, validation, and rewriting
+2. **RBAC Level**: Permission-based access control
+3. **ClickHouse Level**: Per-workspace users with quotas and resource limits
+
+This defense-in-depth approach ensures that even if one layer is bypassed, the others still protect the system.
+
+## API Level Security
+
+### Query Parser (`pkg/clickhouse/query-parser`)
+
+The query parser is responsible for validating, rewriting, and securing user-submitted SQL queries before they reach ClickHouse.
+
+**What it does:**
+
+1. **Parse SQL**: Uses `github.com/AfterShip/clickhouse-sql-parser` to parse the query into an AST
+2. **Validate query type**: Only SELECT queries are allowed (no INSERT, UPDATE, DELETE, DROP, etc.)
+3. **Enforce workspace isolation**: Automatically injects `WHERE workspace_id = 'ws_xxx'` to every query
+4. **Validate table access**: Only allows queries against pre-approved tables
+5. **Enforce limits**: Adds `LIMIT` clause if not present, caps at configured maximum
+6. **Validate functions**: Blocks dangerous or expensive functions
+
+**Example transformation:**
+
+```sql
+-- User submits:
+SELECT key_space_id, COUNT(*) FROM key_verifications WHERE time >= now() - INTERVAL 7 DAY
+
+-- Parser rewrites to:
+SELECT key_space_id, COUNT(*)
+FROM default.key_verifications_raw_v2
+WHERE workspace_id = 'ws_4qD3194xe2x56qmv'
+  AND time >= now() - INTERVAL 7 DAY
+LIMIT 10000
+```
+
+### Direct Column Access
+
+Users query ClickHouse tables directly using the actual column names. The schema exposes:
+
+- **`key_space_id`**: The API's KeyAuth ID (e.g., `ks_1234`)
+- **`identity_id`**: Internal identity identifier
+- **`external_id`**: User-provided external identifier
+- **`key_id`**: Individual key identifier
+
+Users can find their `key_space_id` in the API settings in the dashboard.
+
+**No ID transformation is performed** - users query with the actual IDs stored in ClickHouse, and results contain those same IDs.
+
+### Table Aliases
+
+Users query against friendly table names that map to actual ClickHouse tables:
+
+```go
+TableAliases: map[string]string{
+	"key_verifications_v1":            "default.key_verifications_raw_v2",
+	"key_verifications_per_minute_v1": "default.key_verifications_per_minute_v2",
+	"key_verifications_per_hour_v1":   "default.key_verifications_per_hour_v2",
+	"key_verifications_per_day_v1":    "default.key_verifications_per_day_v2",
+	"key_verifications_per_month_v1":  "default.key_verifications_per_month_v2",
+}
+```
+
+### Limits Enforcement
+
+Multiple limits protect against resource exhaustion:
+
+- **Query result rows**: Max 10,000 rows returned
+- **Memory usage**: Max memory per query
+- **Execution time**: Max seconds per query
+
+These are enforced both at the parser level and at the ClickHouse user level.
+
+## RBAC Level Security
+
+### Permission Model
+
+Access to analytics requires one of these permissions:
+
+1. **`analytics.read`**: Workspace-level access to all analytics
+2. **`api.*.read_analytics`**: Wildcard access to analytics for all APIs
+3. **`api.<api_id>.read_analytics`**: Per-API analytics access. The system translates `api_id` to `key_space_id` internally.
+
+**Permission checking logic** (`handler.go:170-212`):
+
+```go
+permissionChecks := []rbac.PermissionQuery{
+    // Workspace-level analytics access
+    rbac.T(rbac.Tuple{
+        ResourceType: rbac.Analytics,
+        Action:       rbac.Read,
+    }),
+    // Wildcard API analytics access
+    rbac.T(rbac.Tuple{
+        ResourceType: rbac.Api,
+        ResourceID:   "*",
+        Action:       rbac.ReadAnalytics,
+    }),
+}
+
+// If query filters by key_space_id, translate to api_id and check permissions
+if len(extractedKeySpaceIds) > 0 {
+    // Translate key_space_id to api_id for permission check
+    apiIDs := translateKeySpaceToApiID(extractedKeySpaceIds)
+
+    apiPermissions := make([]rbac.PermissionQuery, len(apiIDs))
+    for i, apiID := range apiIDs {
+        apiPermissions[i] = rbac.T(rbac.Tuple{
+            ResourceType: rbac.Api,
+            ResourceID:   apiID, // Uses api_id, not key_space_id
+            Action:       rbac.ReadAnalytics,
+        })
+    }
+    // Must have ALL specific API permissions
+    permissionChecks = append(permissionChecks, rbac.And(apiPermissions...))
+}
+
+// User needs at least one of these permission sets
+err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(permissionChecks...)))
+```
+
+This ensures users with per-API permissions cannot access data they shouldn't see.
+
+## ClickHouse Level Security
+
+### Per-Workspace Database Users
+
+Each workspace gets its own ClickHouse user created by the `create-clickhouse-user` CLI command.
+
+**User configuration:**
+
+- Username: `workspace_<workspaceID>_user`
+- Password: Random 32-character string, encrypted with Vault
+- Database access: Only the `default` database
+- Table grants: `SELECT` only on approved tables
+
+**Creation command:**
+
+```bash
+go run ./cmd/create-clickhouse-user \
+  --workspace-id ws_xxx \
+  --max-queries-per-window 1000 \
+  --quota-duration-seconds 3600 \
+  --max-query-execution-time 30 \
+  --max-query-memory-bytes 1073741824 \
+  --max-query-result-rows 10000
+```
+
+### ClickHouse QUOTA
+
+Quotas limit query volume over time windows:
+
+```sql
+CREATE QUOTA OR REPLACE workspace_ws_xxx_quota
+FOR INTERVAL 3600 second
+    MAX queries = 1000,
+    MAX errors = 100
+TO workspace_ws_xxx_user
+```
+
+This prevents runaway query volume even if API-level rate limits are bypassed.
+
+### ClickHouse SETTINGS PROFILE
+
+Settings profiles enforce resource limits per query:
+
+```sql
+CREATE SETTINGS PROFILE OR REPLACE workspace_ws_xxx_profile
+SETTINGS
+    max_execution_time = 30,           -- Max 30 seconds per query
+    max_memory_usage = 1073741824,     -- Max 1GB memory per query
+    max_result_rows = 10000,           -- Max 10k rows returned
+    readonly = 2                       -- Read-only, can set query-level settings
+TO workspace_ws_xxx_user
+```
+
+**Why `readonly = 2`?**
+
+- `readonly = 0`: Full access (not suitable for users)
+- `readonly = 1`: Read-only, **cannot set any settings** (breaks ClickHouse driver)
+- `readonly = 2`: Read-only for data, **can set query-level settings** within profile limits
+
+The ClickHouse HTTP driver needs to set query execution parameters, so we use `readonly = 2` which allows the driver to set settings while the SETTINGS PROFILE enforces maximum values.
+
+### Connection Management
+
+The `ConnectionManager` (`internal/services/analytics/connection_manager.go`) handles per-workspace connections:
+
+**Features:**
+
+- Two-layer caching:
+  - Workspace settings cache (24hr) with SWR for database lookups
+  - Connection cache (24hr) with health checks
+- Vault integration for password decryption
+- DSN template-based connection building
+- Automatic connection health verification (10% sampling)
+- Graceful connection cleanup on shutdown
+
+**DSN Template:**
+
+```
+http://{username}:{password}@clickhouse:8123/default
+```
+
+The API uses HTTP protocol instead of native TCP because:
+- Simpler connection model (stateless requests)
+- No persistent connection pool overhead per workspace
+- Easier to debug and monitor
+- Works well with ClickHouse Cloud
+
+**Connection lifecycle:**
+
+1. Request comes in with workspace ID
+2. Check connection cache for existing connection
+3. If cache miss or failed health check:
+   - Fetch workspace settings from cache (SWR)
+   - Decrypt password using Vault
+   - Build DSN from template
+   - Create new ClickHouse connection
+   - Store in cache
+4. Execute query using workspace-specific connection
+
+## Error Handling
+
+### Error Codes
+
+Analytics-specific error codes:
+
+- **`analytics_not_configured`** (404): Workspace doesn't have analytics enabled
+- **`analytics_connection_failed`** (503): Cannot connect to workspace's ClickHouse user
+- **`invalid_analytics_query`** (400): SQL syntax error
+- **`invalid_table`** (400): Table not in allowed list
+- **`invalid_function`** (400): Function not allowed
+- **`query_not_supported`** (400): Non-SELECT query attempted
+- **`query_execution_timeout`** (400): Query exceeded time limit
+- **`query_memory_limit_exceeded`** (400): Query exceeded memory limit
+- **`query_rows_limit_exceeded`** (400): Query exceeded rows-to-read limit
+
+These are mapped in `pkg/zen/middleware_errors.go` to appropriate HTTP status codes.
+
+## Monitoring and Debugging
+
+### Query Logging
+
+All analytics queries are logged with:
+
+- Request ID
+- Workspace ID
+- Original user query
+- Rewritten safe query
+- Execution time
+- Error details (if any)
+
+### ClickHouse System Tables
+
+Monitor analytics usage:
+
+```sql
+-- Recent queries from workspace users
+SELECT
+    event_time,
+    user,
+    query_duration_ms,
+    read_rows,
+    read_bytes,
+    query,
+    exception
+FROM system.query_log
+WHERE user LIKE 'workspace_%'
+ORDER BY event_time DESC
+LIMIT 50;
+
+-- Current quota usage
+SELECT
+    quota_name,
+    quota_key,
+    max_queries,
+    queries
+FROM system.quotas_usage
+WHERE quota_name LIKE 'workspace_%';
+
+-- Failed queries
+SELECT
+    event_time,
+    user,
+    query,
+    exception
+FROM system.query_log
+WHERE user LIKE 'workspace_%'
+  AND exception != ''
+ORDER BY event_time DESC;
+```
+
+### Connection Health
+
+The connection manager performs periodic health checks:
+
+- 10% of requests trigger a `PING` before query execution
+- Failed pings remove the connection from cache
+- Next request will create a fresh connection
+- Prevents using stale or dead connections
+
+## Common Issues and Solutions
+
+### "Cannot modify setting in readonly mode"
+
+**Cause**: User has `readonly = 1` instead of `readonly = 2`
+
+**Solution**: Re-run `create-clickhouse-user` with the correct settings profile (already fixed to use `readonly = 2`)
+
+### "No KEK found for key ID"
+
+**Cause**: API's Vault service doesn't have access to the KEK used to encrypt the password
+
+**Solution**: Ensure API and `create-clickhouse-user` use the same Vault configuration (S3 bucket, master keys)
+
+### Query timeout errors
+
+**Cause**: Query is too complex or scanning too many rows
+
+**Solutions**:
+- Query aggregated tables (`per_hour`, `per_day`) instead of raw tables
+- Add more specific WHERE filters to reduce data scanned
+- Increase workspace's `max_execution_time` setting
+- Use indexed columns in WHERE clauses
+
+### Permission denied errors
+
+**Cause**: User's root key doesn't have required permissions
+
+**Solutions**:
+- Grant `analytics.read` for workspace-level access
+- Grant `api.*.read_analytics` for all APIs
+- Grant specific `api.<api_id>.read_analytics` permissions. The system translates `api_id` to `key_space_id` for the permission check.
+
+## Best Practices
+
+### For Query Performance
+
+1. **Use aggregated tables** when possible (per_hour, per_day, per_month)
+2. **Filter by workspace_id first** (automatic, but good to know)
+3. **Use indexed columns** in WHERE clauses (time, workspace_id, key_space_id)
+4. **Limit result size** to what you actually need
+5. **Avoid expensive functions** like complex string operations on large datasets
+
+### For Security
+
+1. **Never bypass the query parser** - always use the safe, rewritten query
+2. **Verify permissions before query execution** - check after virtual column resolution
+3. **Use workspace-specific connections** - never share connections between workspaces
+4. **Encrypt passwords at rest** - use Vault for all credential storage
+5. **Monitor quota usage** - alert when workspaces approach limits
+
+### For Development
+
+1. **Test queries locally** using Docker Compose ClickHouse instance
+2. **Validate parser changes** with comprehensive test cases
+3. **Check query plans** with `EXPLAIN` for performance
+4. **Monitor error rates** in production query logs
+5. **Keep parser and ClickHouse settings in sync** - both should enforce same limits

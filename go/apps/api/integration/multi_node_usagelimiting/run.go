@@ -36,15 +36,18 @@ func RunUsageLimitTest(
 	rootKey := h.Seed.CreateRootKey(ctx, workspace.ID, "api.*.verify_key")
 
 	// Create API using seed
+	// nolint: exhaustruct
 	api := h.Seed.CreateAPI(ctx, seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
 	})
 
 	// Create key with specified credit limit using seed
+	// nolint: exhaustruct
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeyAuthID:   api.KeyAuthID.String,
-		Remaining:   ptr.P(int32(totalCredits)),
+		KeySpaceID:  api.KeyAuthID.String,
+		//nolint: gosec
+		Remaining: ptr.P(int32(totalCredits)),
 	})
 
 	keyStart := keyResponse.Key
@@ -68,8 +71,12 @@ func RunUsageLimitTest(
 
 	// Prepare the key verification request
 	req := handler.Request{
-		Key: keyStart,
+		Ratelimits:  nil,
+		Permissions: nil,
+		Tags:        nil,
+		Key:         keyStart,
 		Credits: &openapi.KeysVerifyKeyCredits{
+			//nolint: gosec
 			Cost: int32(costPerRequest),
 		},
 	}
@@ -98,7 +105,7 @@ func RunUsageLimitTest(
 
 	// Track successful requests and remaining credits
 	successCount := 0
-	var lastRemaining int64 = totalCredits
+	lastRemaining := totalCredits
 
 	// Create a load balancer to distribute requests across nodes
 	lb := integration.NewLoadbalancer(h)
@@ -169,7 +176,7 @@ func RunUsageLimitTest(
 		data, selectErr := clickhouse.Select[aggregatedCounts](
 			ctx,
 			h.CH.Conn(),
-			`SELECT count(*) as total_requests, countIf(outcome = 'VALID') as success_count, countIf(outcome = 'USAGE_EXCEEDED') as failure_count FROM verifications.raw_key_verifications_v1 WHERE workspace_id = {workspace_id:String} AND key_id = {key_id:String}`,
+			`SELECT count(*) as total_requests, countIf(outcome = 'VALID') as success_count, countIf(outcome = 'USAGE_EXCEEDED') as failure_count FROM default.key_verifications_raw_v2 WHERE workspace_id = {workspace_id:String} AND key_id = {key_id:String}`,
 			map[string]string{
 				"workspace_id": h.Resources().UserWorkspace.ID,
 				"key_id":       keyResponse.KeyID,
@@ -180,11 +187,15 @@ func RunUsageLimitTest(
 			return false
 		}
 		chStats = data[0]
+		//nolint: gosec
 		return int(chStats.TotalRequests) == totalRequests
 	}, 15*time.Second, 100*time.Millisecond)
 
+	//nolint: gosec
 	require.Equal(t, totalRequests, int(chStats.SuccessCount+chStats.FailureCount))
+	//nolint: gosec
 	require.Equal(t, totalRequests, int(chStats.TotalRequests))
+	//nolint: gosec
 	require.Equal(t, successCount, int(chStats.SuccessCount))
 
 	// Step 7: Verify Clickhouse Metrics Data
@@ -192,11 +203,12 @@ func RunUsageLimitTest(
 	require.Eventually(t, func() bool {
 		metricsCount := uint64(0)
 		uniqueCount := uint64(0)
-		row := h.CH.Conn().QueryRow(ctx, fmt.Sprintf(`SELECT count(*) as total_requests, count(DISTINCT request_id) as unique_requests FROM metrics.raw_api_requests_v1 WHERE workspace_id = '%s';`, h.Resources().UserWorkspace.ID))
+		row := h.CH.Conn().QueryRow(ctx, fmt.Sprintf(`SELECT count(*) as total_requests, count(DISTINCT request_id) as unique_requests FROM default.api_requests_raw_v2 WHERE workspace_id = '%s';`, h.Resources().UserWorkspace.ID))
 
 		err := row.Scan(&metricsCount, &uniqueCount)
 		require.NoError(t, err)
 
+		//nolint: gosec
 		return metricsCount == uint64(totalRequests) && uniqueCount == uint64(totalRequests)
 	}, 15*time.Second, 100*time.Millisecond)
 }

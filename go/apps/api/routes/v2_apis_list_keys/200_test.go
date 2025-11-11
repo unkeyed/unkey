@@ -3,7 +3,6 @@ package handler_test
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -15,9 +14,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
+	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/uid"
-
-	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 )
 
 func TestSuccess(t *testing.T) {
@@ -40,10 +38,10 @@ func TestSuccess(t *testing.T) {
 	// Create a root key with appropriate permissions
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.read_api", "api.*.decrypt_key")
 
-	// Create a keyAuth (keyring) for the API
-	keyAuthID := uid.New(uid.KeyAuthPrefix)
-	err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-		ID:            keyAuthID,
+	// Create a keySpace for the API
+	keySpaceID := uid.New(uid.KeySpacePrefix)
+	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+		ID:            keySpaceID,
 		WorkspaceID:   workspace.ID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false},
@@ -51,8 +49,8 @@ func TestSuccess(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = db.Query.UpdateKeyringKeyEncryption(ctx, h.DB.RW(), db.UpdateKeyringKeyEncryptionParams{
-		ID:                 keyAuthID,
+	err = db.Query.UpdateKeySpaceKeyEncryption(ctx, h.DB.RW(), db.UpdateKeySpaceKeyEncryptionParams{
+		ID:                 keySpaceID,
 		StoreEncryptedKeys: true,
 	})
 	require.NoError(t, err)
@@ -64,133 +62,81 @@ func TestSuccess(t *testing.T) {
 		Name:        "Test API",
 		WorkspaceID: workspace.ID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keyAuthID},
+		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
 
 	// Create test identities
-	identity1ID := uid.New("identity")
 	identity1ExternalID := "test_user_1"
-	err = db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-		ID:          identity1ID,
-		ExternalID:  identity1ExternalID,
+	identity1 := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
-		Environment: "",
-		CreatedAt:   time.Now().UnixMilli(),
+		ExternalID:  identity1ExternalID,
 		Meta:        []byte(`{"role": "admin"}`),
 	})
-	require.NoError(t, err)
 
-	identity2ID := uid.New("identity")
 	identity2ExternalID := "test_user_2"
-	err = db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
-		ID:          identity2ID,
-		ExternalID:  identity2ExternalID,
+	identity2 := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
-		Environment: "",
-		CreatedAt:   time.Now().UnixMilli(),
+		ExternalID:  identity2ExternalID,
 		Meta:        []byte(`{"role": "user"}`),
 	})
-	require.NoError(t, err)
 
-	encryptedKeysMap := make(map[string]struct{})
 	// Create test keys with various configurations
-	testKeys := []struct {
-		id         string
-		start      string
-		name       string
-		identityID *string
-		meta       map[string]interface{}
-		expires    *time.Time
-		enabled    bool
-	}{
-		{
-			id:         uid.New("key"),
-			start:      "test_key1_",
-			name:       "Test Key 1",
-			identityID: &identity1ID,
-			meta:       map[string]interface{}{"env": "production", "team": "backend"},
-			enabled:    true,
-		},
-		{
-			id:         uid.New("key"),
-			start:      "test_key2_",
-			name:       "Test Key 2",
-			identityID: &identity1ID,
-			meta:       map[string]interface{}{"env": "staging"},
-			enabled:    true,
-		},
-		{
-			id:         uid.New("key"),
-			start:      "test_key3_",
-			name:       "Test Key 3",
-			identityID: &identity2ID,
-			meta:       map[string]interface{}{"env": "development"},
-			enabled:    true,
-		},
-		{
-			id:      uid.New("key"),
-			start:   "test_key4_",
-			name:    "Test Key 4 (No Identity)",
-			enabled: true,
-		},
-		{
-			id:      uid.New("key"),
-			start:   "test_key5_",
-			name:    "Test Key 5 (Disabled)",
-			enabled: false,
-		},
-	}
+	// Track encrypted keys for verification
+	encryptedKeys := make(map[string]string) // keyID -> plaintext
 
-	for _, keyData := range testKeys {
-		metaBytes := []byte("{}")
-		if keyData.meta != nil {
-			metaBytes, _ = json.Marshal(keyData.meta)
-		}
+	// Key 1: identity1, production metadata
+	key1 := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  keySpaceID,
+		Name:        ptr.P("Test Key 1"),
+		IdentityID:  ptr.P(identity1.ID),
+		Meta:        ptr.P(`{"env": "production", "team": "backend"}`),
+		Recoverable: true,
+	})
+	encryptedKeys[key1.KeyID] = key1.Key
 
-		key := keyData.start + uid.New("")
+	// Key 2: identity1, staging metadata
+	key2 := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  keySpaceID,
+		Name:        ptr.P("Test Key 2"),
+		IdentityID:  ptr.P(identity1.ID),
+		Meta:        ptr.P(`{"env": "staging"}`),
+		Recoverable: true,
+	})
+	encryptedKeys[key2.KeyID] = key2.Key
 
-		insertParams := db.InsertKeyParams{
-			ID:                keyData.id,
-			KeyringID:         keyAuthID,
-			Hash:              hash.Sha256(key),
-			Start:             keyData.start,
-			WorkspaceID:       workspace.ID,
-			ForWorkspaceID:    sql.NullString{Valid: false},
-			Name:              sql.NullString{Valid: true, String: keyData.name},
-			Meta:              sql.NullString{Valid: true, String: string(metaBytes)},
-			Expires:           sql.NullTime{Valid: false},
-			CreatedAtM:        time.Now().UnixMilli(),
-			Enabled:           keyData.enabled,
-			RemainingRequests: sql.NullInt32{Valid: false},
-		}
+	// Key 3: identity2, development metadata
+	key3 := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  keySpaceID,
+		Name:        ptr.P("Test Key 3"),
+		IdentityID:  ptr.P(identity2.ID),
+		Meta:        ptr.P(`{"env": "development"}`),
+		Recoverable: true,
+	})
+	encryptedKeys[key3.KeyID] = key3.Key
 
-		if keyData.identityID != nil {
-			insertParams.IdentityID = sql.NullString{Valid: true, String: *keyData.identityID}
-		} else {
-			insertParams.IdentityID = sql.NullString{Valid: false}
-		}
+	// Key 4: no identity
+	key4 := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  keySpaceID,
+		Name:        ptr.P("Test Key 4 (No Identity)"),
+		Recoverable: true,
+	})
+	encryptedKeys[key4.KeyID] = key4.Key
 
-		err := db.Query.InsertKey(ctx, h.DB.RW(), insertParams)
-		require.NoError(t, err)
-
-		encryption, err := h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
-			Keyring: h.Resources().UserWorkspace.ID,
-			Data:    key,
-		})
-		require.NoError(t, err)
-
-		err = db.Query.InsertKeyEncryption(ctx, h.DB.RW(), db.InsertKeyEncryptionParams{
-			WorkspaceID:     h.Resources().UserWorkspace.ID,
-			KeyID:           keyData.id,
-			CreatedAt:       time.Now().UnixMilli(),
-			Encrypted:       encryption.GetEncrypted(),
-			EncryptionKeyID: encryption.GetKeyId(),
-		})
-		require.NoError(t, err)
-		encryptedKeysMap[keyData.id] = struct{}{}
-	}
+	// Key 5: disabled
+	key5 := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  keySpaceID,
+		Name:        ptr.P("Test Key 5 (Disabled)"),
+		Disabled:    true,
+		Recoverable: true,
+	})
+	encryptedKeys[key5.KeyID] = key5.Key
 
 	// Set up request headers
 	headers := http.Header{
@@ -365,7 +311,7 @@ func TestSuccess(t *testing.T) {
 		var foundProductionKey bool
 		for _, key := range res.Body.Data {
 			if key.Meta != nil {
-				meta := *key.Meta
+				meta := key.Meta
 				if env, exists := meta["env"]; exists && env == "production" {
 					require.Equal(t, "backend", meta["team"])
 					foundProductionKey = true
@@ -398,7 +344,7 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, key.Identity.Meta)
 
 		// Verify identity metadata
-		identityMeta := *key.Identity.Meta
+		identityMeta := key.Identity.Meta
 		require.Equal(t, "admin", identityMeta["role"])
 	})
 
@@ -429,9 +375,9 @@ func TestSuccess(t *testing.T) {
 
 	t.Run("empty API returns empty result", func(t *testing.T) {
 		// Create a new API with no keys
-		emptyKeyAuthID := uid.New(uid.KeyAuthPrefix)
-		err := db.Query.InsertKeyring(ctx, h.DB.RW(), db.InsertKeyringParams{
-			ID:          emptyKeyAuthID,
+		emptyKeySpaceID := uid.New(uid.KeySpacePrefix)
+		err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+			ID:          emptyKeySpaceID,
 			WorkspaceID: workspace.ID,
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
@@ -443,7 +389,7 @@ func TestSuccess(t *testing.T) {
 			Name:        "Empty API",
 			WorkspaceID: workspace.ID,
 			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-			KeyAuthID:   sql.NullString{Valid: true, String: emptyKeyAuthID},
+			KeyAuthID:   sql.NullString{Valid: true, String: emptyKeySpaceID},
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
@@ -483,7 +429,7 @@ func TestSuccess(t *testing.T) {
 
 		for _, key := range res.Body.Data {
 			// Verify that plaintext key is not exposed unless explicitly requested
-			require.Nil(t, key.Plaintext)
+			require.Empty(t, key.Plaintext)
 
 			// Only start prefix should be shown - allow reasonable prefix lengths
 			require.NotEmpty(t, key.Start)
@@ -496,7 +442,7 @@ func TestSuccess(t *testing.T) {
 		keyWithRatelimits := uid.New("key")
 		err := db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:                keyWithRatelimits,
-			KeyringID:         keyAuthID,
+			KeySpaceID:        keySpaceID,
 			Hash:              hash.Sha256(uid.New("test")),
 			Start:             "rl_test_",
 			WorkspaceID:       workspace.ID,
@@ -516,7 +462,7 @@ func TestSuccess(t *testing.T) {
 		keyWithoutRatelimits := uid.New("key")
 		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
 			ID:                keyWithoutRatelimits,
-			KeyringID:         keyAuthID,
+			KeySpaceID:        keySpaceID,
 			Hash:              hash.Sha256("no_rl_test_" + uid.New("")),
 			Start:             "no_rl_test_",
 			WorkspaceID:       workspace.ID,
@@ -566,9 +512,9 @@ func TestSuccess(t *testing.T) {
 			case keyWithRatelimits:
 				foundKeyWithRatelimits = true
 				require.NotNil(t, key.Ratelimits, "Key with ratelimits should have ratelimits field")
-				require.Len(t, *key.Ratelimits, 1, "Should have exactly 1 ratelimit")
+				require.Len(t, key.Ratelimits, 1, "Should have exactly 1 ratelimit")
 
-				ratelimit := (*key.Ratelimits)[0]
+				ratelimit := key.Ratelimits[0]
 				require.Equal(t, "requests", ratelimit.Name)
 				require.Equal(t, int64(100), ratelimit.Limit)
 				require.Equal(t, int64(60000), ratelimit.Duration)
@@ -578,7 +524,7 @@ func TestSuccess(t *testing.T) {
 				foundKeyWithoutRatelimits = true
 				// Key without ratelimits should have nil or empty ratelimits array
 				if key.Ratelimits != nil {
-					require.Len(t, *key.Ratelimits, 0, "Key without ratelimits should have empty ratelimits array")
+					require.Len(t, key.Ratelimits, 0, "Key without ratelimits should have empty ratelimits array")
 				}
 				// Both nil and empty array are acceptable
 			}
@@ -604,12 +550,13 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body.Data)
 
 		for _, key := range res.Body.Data {
-			_, exists := encryptedKeysMap[key.KeyId]
+			expectedPlaintext, exists := encryptedKeys[key.KeyId]
 			if !exists {
 				continue
 			}
 
-			require.NotEmpty(t, ptr.SafeDeref(key.Plaintext), "Key should be decrypted and have plaintext")
+			require.NotEmpty(t, key.Plaintext, "Key should be decrypted and have plaintext")
+			require.Equal(t, expectedPlaintext, key.Plaintext, "Key should be decrypted and have correct plaintext")
 		}
 	})
 }
