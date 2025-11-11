@@ -27,25 +27,3 @@ var _ Clock = &RealClock{}
 func (c *RealClock) Now() time.Time {
 	return time.Now()
 }
-
-// NewTicker returns a new real ticker that sends the current time
-// on the channel after each tick. This implementation delegates
-// to time.NewTicker().
-func (c *RealClock) NewTicker(d time.Duration) Ticker {
-	return &realTicker{ticker: time.NewTicker(d)}
-}
-
-// realTicker wraps time.Ticker to implement the Ticker interface
-type realTicker struct {
-	ticker *time.Ticker
-}
-
-// C returns the channel on which the ticks are delivered.
-func (t *realTicker) C() <-chan time.Time {
-	return t.ticker.C
-}
-
-// Stop turns off the ticker.
-func (t *realTicker) Stop() {
-	t.ticker.Stop()
-}
