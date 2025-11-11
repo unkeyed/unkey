@@ -1,18 +1,5 @@
 package schema
 
-//go:generate go tool github.com/mailru/easyjson/easyjson -all requests.go
-
-// Slice types for efficient JSON marshaling/unmarshaling
-//
-//easyjson:json
-type ApiRequestV1Slice []ApiRequestV1
-
-//easyjson:json
-type KeyVerificationRequestV1Slice []KeyVerificationRequestV1
-
-//easyjson:json
-type RatelimitRequestV1Slice []RatelimitRequestV1
-
 // ApiRequestV1 represents an HTTP API request with its associated metadata,
 // request details, and response information. This structure is used to log
 // and analyze API usage patterns, performance metrics, and error rates.

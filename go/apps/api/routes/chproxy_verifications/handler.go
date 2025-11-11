@@ -48,7 +48,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("The provided token is invalid."))
 	}
 
-	events, err := zen.BindBody[schema.KeyVerificationRequestV1Slice](s)
+	events, err := zen.BindBody[[]schema.KeyVerificationRequestV1](s)
 	if err != nil {
 		return err
 	}

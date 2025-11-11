@@ -11,8 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bytedance/sonic"
-	"github.com/mailru/easyjson"
+	json "github.com/goccy/go-json"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -184,20 +183,7 @@ func (s *Session) ResponseWriter() http.ResponseWriter {
 //	}
 //	// Use the parsed user data
 func (s *Session) BindBody(dst any) error {
-	// Try to use easyjson if the type implements it (much faster)
-	if u, ok := dst.(easyjson.Unmarshaler); ok {
-		err := easyjson.Unmarshal(s.requestBody, u)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Internal("failed to unmarshal request body"),
-				fault.Public("The request body was not valid JSON."),
-			)
-		}
-		return nil
-	}
-
-	// Fall back to sonic for types without easyjson support
-	err := sonic.Unmarshal(s.requestBody, dst)
+	err := json.Unmarshal(s.requestBody, dst)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Internal("failed to unmarshal request body"),
@@ -400,7 +386,7 @@ func (s *Session) send(status int, body []byte) error {
 // JSON sets the response status code and sends a JSON-encoded response.
 // It automatically sets the Content-Type header to application/json.
 //
-// The body is marshaled using the standard encoding/json package.
+// The body is marshaled using goccy/go-json for high performance.
 // If marshaling fails, an error is returned.
 //
 // Example:
@@ -410,20 +396,12 @@ func (s *Session) send(status int, body []byte) error {
 //	    "token": token,
 //	})
 func (s *Session) JSON(status int, body any) error {
-	var b []byte
-	var err error
-
-	// Try to use easyjson if the type implements it (much faster)
-	if m, ok := body.(easyjson.Marshaler); ok {
-		b, err = easyjson.Marshal(m)
-	} else {
-		// Fall back to sonic for types without easyjson support
-		b, err = sonic.Marshal(body)
-	}
-
+	b, err := json.Marshal(body)
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Internal("json marshal failed"), fault.Public("The response body could not be marshalled to JSON."),
+		return fault.Wrap(
+			err,
+			fault.Internal("json marshal failed"),
+			fault.Public("The response body could not be marshalled to JSON."),
 		)
 	}
 

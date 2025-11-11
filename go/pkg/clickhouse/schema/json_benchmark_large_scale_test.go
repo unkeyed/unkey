@@ -11,7 +11,6 @@ import (
 
 	"github.com/bytedance/sonic"
 	goccyjson "github.com/goccy/go-json"
-	easyjson "github.com/mailru/easyjson"
 )
 
 // Cached data
@@ -71,9 +70,6 @@ func BenchmarkUnmarshal_ApiRequest_1_StdlibV1(b *testing.B) {
 func BenchmarkUnmarshal_ApiRequest_1_RealV2(b *testing.B) {
 	benchUnmarshal(b, 1, "realv2")
 }
-func BenchmarkUnmarshal_ApiRequest_1_Easyjson(b *testing.B) {
-	benchUnmarshal(b, 1, "easyjson")
-}
 func BenchmarkUnmarshal_ApiRequest_1_Sonic(b *testing.B) {
 	benchUnmarshal(b, 1, "sonic")
 }
@@ -87,9 +83,7 @@ func BenchmarkUnmarshal_ApiRequest_100_StdlibV1(b *testing.B) {
 func BenchmarkUnmarshal_ApiRequest_100_RealV2(b *testing.B) {
 	benchUnmarshal(b, 100, "realv2")
 }
-func BenchmarkUnmarshal_ApiRequest_100_Easyjson(b *testing.B) {
-	benchUnmarshal(b, 100, "easyjson")
-}
+
 func BenchmarkUnmarshal_ApiRequest_100_Sonic(b *testing.B) {
 	benchUnmarshal(b, 100, "sonic")
 }
@@ -103,9 +97,7 @@ func BenchmarkUnmarshal_ApiRequest_10000_StdlibV1(b *testing.B) {
 func BenchmarkUnmarshal_ApiRequest_10000_RealV2(b *testing.B) {
 	benchUnmarshal(b, 10000, "realv2")
 }
-func BenchmarkUnmarshal_ApiRequest_10000_Easyjson(b *testing.B) {
-	benchUnmarshal(b, 10000, "easyjson")
-}
+
 func BenchmarkUnmarshal_ApiRequest_10000_Sonic(b *testing.B) {
 	benchUnmarshal(b, 10000, "sonic")
 }
@@ -119,9 +111,7 @@ func BenchmarkUnmarshal_ApiRequest_100000_StdlibV1(b *testing.B) {
 func BenchmarkUnmarshal_ApiRequest_100000_RealV2(b *testing.B) {
 	benchUnmarshal(b, 100000, "realv2")
 }
-func BenchmarkUnmarshal_ApiRequest_100000_Easyjson(b *testing.B) {
-	benchUnmarshal(b, 100000, "easyjson")
-}
+
 func BenchmarkUnmarshal_ApiRequest_100000_Sonic(b *testing.B) {
 	benchUnmarshal(b, 100000, "sonic")
 }
@@ -135,9 +125,7 @@ func BenchmarkUnmarshal_ApiRequest_1000000_StdlibV1(b *testing.B) {
 func BenchmarkUnmarshal_ApiRequest_1000000_RealV2(b *testing.B) {
 	benchUnmarshal(b, 1000000, "realv2")
 }
-func BenchmarkUnmarshal_ApiRequest_1000000_Easyjson(b *testing.B) {
-	benchUnmarshal(b, 1000000, "easyjson")
-}
+
 func BenchmarkUnmarshal_ApiRequest_1000000_Sonic(b *testing.B) {
 	benchUnmarshal(b, 1000000, "sonic")
 }
@@ -152,9 +140,7 @@ func BenchmarkMarshal_ApiRequest_1_StdlibV1(b *testing.B) {
 func BenchmarkMarshal_ApiRequest_1_RealV2(b *testing.B) {
 	benchMarshal(b, 1, "realv2")
 }
-func BenchmarkMarshal_ApiRequest_1_Easyjson(b *testing.B) {
-	benchMarshal(b, 1, "easyjson")
-}
+
 func BenchmarkMarshal_ApiRequest_1_Sonic(b *testing.B) {
 	benchMarshal(b, 1, "sonic")
 }
@@ -168,9 +154,7 @@ func BenchmarkMarshal_ApiRequest_100_StdlibV1(b *testing.B) {
 func BenchmarkMarshal_ApiRequest_100_RealV2(b *testing.B) {
 	benchMarshal(b, 100, "realv2")
 }
-func BenchmarkMarshal_ApiRequest_100_Easyjson(b *testing.B) {
-	benchMarshal(b, 100, "easyjson")
-}
+
 func BenchmarkMarshal_ApiRequest_100_Sonic(b *testing.B) {
 	benchMarshal(b, 100, "sonic")
 }
@@ -184,9 +168,7 @@ func BenchmarkMarshal_ApiRequest_10000_StdlibV1(b *testing.B) {
 func BenchmarkMarshal_ApiRequest_10000_RealV2(b *testing.B) {
 	benchMarshal(b, 10000, "realv2")
 }
-func BenchmarkMarshal_ApiRequest_10000_Easyjson(b *testing.B) {
-	benchMarshal(b, 10000, "easyjson")
-}
+
 func BenchmarkMarshal_ApiRequest_10000_Sonic(b *testing.B) {
 	benchMarshal(b, 10000, "sonic")
 }
@@ -200,9 +182,7 @@ func BenchmarkMarshal_ApiRequest_100000_StdlibV1(b *testing.B) {
 func BenchmarkMarshal_ApiRequest_100000_RealV2(b *testing.B) {
 	benchMarshal(b, 100000, "realv2")
 }
-func BenchmarkMarshal_ApiRequest_100000_Easyjson(b *testing.B) {
-	benchMarshal(b, 100000, "easyjson")
-}
+
 func BenchmarkMarshal_ApiRequest_100000_Sonic(b *testing.B) {
 	benchMarshal(b, 100000, "sonic")
 }
@@ -216,9 +196,7 @@ func BenchmarkMarshal_ApiRequest_1000000_StdlibV1(b *testing.B) {
 func BenchmarkMarshal_ApiRequest_1000000_RealV2(b *testing.B) {
 	benchMarshal(b, 1000000, "realv2")
 }
-func BenchmarkMarshal_ApiRequest_1000000_Easyjson(b *testing.B) {
-	benchMarshal(b, 1000000, "easyjson")
-}
+
 func BenchmarkMarshal_ApiRequest_1000000_Sonic(b *testing.B) {
 	benchMarshal(b, 1000000, "sonic")
 }
@@ -244,13 +222,6 @@ func benchUnmarshal(b *testing.B, size int, library string) {
 		for i := 0; i < b.N; i++ {
 			var reqs []ApiRequestV1
 			if err := jsonv2.Unmarshal(data, &reqs); err != nil {
-				b.Fatal(err)
-			}
-		}
-	case "easyjson":
-		for i := 0; i < b.N; i++ {
-			var reqs ApiRequestV1Slice
-			if err := easyjson.Unmarshal(data, &reqs); err != nil {
 				b.Fatal(err)
 			}
 		}
@@ -292,15 +263,7 @@ func benchMarshal(b *testing.B, size int, library string) {
 			}
 			b.SetBytes(int64(len(data)))
 		}
-	case "easyjson":
-		slice := ApiRequestV1Slice(reqs)
-		for i := 0; i < b.N; i++ {
-			data, err := easyjson.Marshal(slice)
-			if err != nil {
-				b.Fatal(err)
-			}
-			b.SetBytes(int64(len(data)))
-		}
+
 	case "sonic":
 		for i := 0; i < b.N; i++ {
 			data, err := sonic.Marshal(reqs)
