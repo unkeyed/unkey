@@ -86,7 +86,7 @@ const epochTimestampSec = 1700000000
 // generation. It is suitable for generating UIDs where collision resistance is primarily
 // achieved through the combination of timestamp and large random space, but should NOT be
 // used for security-sensitive applications requiring cryptographic randomness (e.g., tokens,
-// secrets, authentication keys). Use NewV1 for cryptographic randomness if required.
+// secrets, authentication keys).
 //
 // Example:
 //
@@ -98,7 +98,7 @@ const epochTimestampSec = 1700000000
 //	workspaceID := uid.New(uid.WorkspacePrefix, 16)
 //	// Output: ws_3pfLMNe2vGA7h8b9VrR5
 //
-// See [Prefix] for available resource type prefixes and NewV1 for the original implementation.
+// See [Prefix] for available resource type prefixes.
 func New(prefix Prefix, byteSize ...int) string {
 	bytes := 12
 	if len(byteSize) > 0 {

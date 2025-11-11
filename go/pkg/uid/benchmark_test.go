@@ -6,7 +6,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-// BenchmarkComparison compares the performance of the optimized New() vs the original NewV1().
+// BenchmarkComparison compares the performance of the optimized New()
 // This benchmark demonstrates the performance improvements achieved through:
 // - Using math/rand/v2 ChaCha8 instead of crypto/rand
 // - Cached timestamps via go-timecache to avoid time.Now() syscalls
