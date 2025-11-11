@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 
 	"github.com/oapi-codegen/nullable"
@@ -161,9 +162,35 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	limit := ptr.SafeDeref(req.Limit, 100)
 	cursor := ptr.SafeDeref(req.Cursor, "")
 
-	var identityFilter string
+	// Resolve identity ID if external_id filter is provided
+	var identityID sql.NullString
 	if req.ExternalId != nil && *req.ExternalId != "" {
-		identityFilter = *req.ExternalId
+		identity, identityErr := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			ExternalID:  *req.ExternalId,
+			Deleted:     false,
+		})
+		if identityErr != nil {
+			if db.IsNotFound(identityErr) {
+				// Identity doesn't exist, return empty result set
+				return s.JSON(http.StatusOK, Response{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Data: []openapi.KeyResponseData{},
+					Pagination: &openapi.Pagination{
+						Cursor:  nil,
+						HasMore: false,
+					},
+				})
+			}
+			return fault.Wrap(identityErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to retrieve identity."),
+			)
+		}
+		identityID = sql.NullString{String: identity.ID, Valid: true}
 	}
 
 	// Query keys by key_auth_id instead of api_id
@@ -173,7 +200,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		db.ListLiveKeysByKeySpaceIDParams{
 			KeySpaceID: api.KeyAuthID.String,
 			IDCursor:   cursor,
-			Identity:   identityFilter,
+			IdentityID: identityID,
 			Limit:      int32(limit + 1), // nolint:gosec
 		},
 	)
@@ -252,35 +279,22 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) op
 	response := openapi.KeyResponseData{
 		Meta:        nil,
 		Ratelimits:  nil,
-		Name:        nil,
-		UpdatedAt:   nil,
+		Name:        keyData.Key.Name.String,
+		UpdatedAt:   keyData.Key.UpdatedAtM.Int64,
 		Credits:     nil,
-		Expires:     nil,
+		Expires:     0,
 		Identity:    nil,
 		Permissions: nil,
 		Roles:       nil,
-		Plaintext:   nil,
+		Plaintext:   plaintext,
 		CreatedAt:   keyData.Key.CreatedAtM,
 		Enabled:     keyData.Key.Enabled,
 		KeyId:       keyData.Key.ID,
 		Start:       keyData.Key.Start,
 	}
 
-	if plaintext != "" {
-		response.Plaintext = ptr.P(plaintext)
-	}
-
-	// Set optional fields
-	if keyData.Key.Name.Valid {
-		response.Name = ptr.P(keyData.Key.Name.String)
-	}
-
-	if keyData.Key.UpdatedAtM.Valid {
-		response.UpdatedAt = ptr.P(keyData.Key.UpdatedAtM.Int64)
-	}
-
 	if keyData.Key.Expires.Valid {
-		response.Expires = ptr.P(keyData.Key.Expires.Time.UnixMilli())
+		response.Expires = keyData.Key.Expires.Time.UnixMilli()
 	}
 
 	// Set credits
@@ -291,11 +305,11 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) op
 		}
 
 		if keyData.Key.RefillAmount.Valid {
-			var refillDay *int
+			var refillDay int
 			interval := openapi.KeyCreditsRefillIntervalDaily
 			if keyData.Key.RefillDay.Valid {
 				interval = openapi.KeyCreditsRefillIntervalMonthly
-				refillDay = ptr.P(int(keyData.Key.RefillDay.Int16))
+				refillDay = int(keyData.Key.RefillDay.Int16)
 			}
 
 			response.Credits.Refill = &openapi.KeyCreditsRefill{
@@ -315,12 +329,10 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) op
 			ExternalId: keyData.Identity.ExternalID,
 		}
 
-		if len(keyData.Identity.Meta) > 0 {
-			if identityMeta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta); err != nil {
-				h.Logger.Error("failed to unmarshal identity meta", "error", err)
-			} else {
-				response.Identity.Meta = &identityMeta
-			}
+		identityMeta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta)
+		response.Identity.Meta = identityMeta
+		if err != nil {
+			h.Logger.Error("failed to unmarshal identity meta", "error", err)
 		}
 	}
 
@@ -332,12 +344,13 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) op
 	for _, p := range keyData.RolePermissions {
 		permissionSlugs[p.Slug] = struct{}{}
 	}
+
 	if len(permissionSlugs) > 0 {
 		slugs := make([]string, 0, len(permissionSlugs))
 		for slug := range permissionSlugs {
 			slugs = append(slugs, slug)
 		}
-		response.Permissions = &slugs
+		response.Permissions = slugs
 	}
 
 	// Set roles
@@ -346,7 +359,7 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) op
 		for i, role := range keyData.Roles {
 			roleNames[i] = role.Name
 		}
-		response.Roles = &roleNames
+		response.Roles = roleNames
 	}
 
 	// Set ratelimits
@@ -374,27 +387,22 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) op
 			}
 		}
 
-		if len(keyRatelimits) > 0 {
-			response.Ratelimits = &keyRatelimits
-		}
+		response.Ratelimits = keyRatelimits
 
-		if len(identityRatelimits) > 0 {
-			response.Identity.Ratelimits = &identityRatelimits
+		if response.Identity != nil {
+			response.Identity.Ratelimits = identityRatelimits
 		}
 	}
 
 	// Set meta
-	if keyData.Key.Meta.Valid {
-		meta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Key.Meta.String)
-		if err != nil {
-			h.Logger.Error("failed to unmarshal key meta",
-				"keyId", keyData.Key.ID,
-				"error", err,
-			)
-		} else {
-			response.Meta = &meta
-		}
+	meta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Key.Meta.String)
+	if err != nil {
+		h.Logger.Error("failed to unmarshal key meta",
+			"keyId", keyData.Key.ID,
+			"error", err,
+		)
 	}
+	response.Meta = meta
 
 	return response
 }

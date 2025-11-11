@@ -47,6 +47,8 @@ properties:
       - Tracking the effects of specific overrides
       - Understanding why limits differ from default values
     type: string
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
 required:
   - limit
   - remaining

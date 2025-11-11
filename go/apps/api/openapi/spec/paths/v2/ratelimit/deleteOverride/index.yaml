@@ -23,12 +23,12 @@ post:
           specific:
             summary: Delete specific override
             value:
-              namespaceName: api.requests
+              namespace: api.requests
               identifier: premium_user_123
           wildcard:
             summary: Delete wildcard pattern override
             value:
-              namespaceName: api.requests
+              namespace: api.requests
               identifier: premium_*
     required: true
   responses:

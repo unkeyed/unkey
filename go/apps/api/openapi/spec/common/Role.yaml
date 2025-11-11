@@ -23,6 +23,8 @@ properties:
       Include information about what types of users should receive this role and what they can accomplish.
       Not visible to end users - this is for internal documentation and access control audits.
     example: "Provides read-only access for customer support representatives to view user accounts and support tickets"
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   permissions:
     type: array
     items:
@@ -34,6 +36,8 @@ properties:
       Use this list to understand the full scope of access provided by this role.
       Permissions can be added or removed from roles without affecting the role's identity or other properties.
       Empty array indicates a role with no permissions currently assigned.
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
 required:
   - id
   - name

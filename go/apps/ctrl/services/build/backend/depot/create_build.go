@@ -198,7 +198,6 @@ func (s *Depot) CreateBuild(
 			},
 		},
 	}
-
 	buildStatusCh := make(chan *client.SolveStatus, 10)
 	go func() {
 		enc := json.NewEncoder(os.Stdout)

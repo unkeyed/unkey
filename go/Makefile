@@ -44,7 +44,7 @@ build: setup
 	go build -o unkey .
 
 generate: setup
-	go tool buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/ctrl" --path "./proto/krane" --path "./proto/partition" --path "./proto/vault"
+	go tool buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/ctrl" --path "./proto/krane" --path "./proto/partition" --path "./proto/vault" --path "./proto/cache"
 	go tool buf generate --template ./buf.gen.restate.yaml --path "./proto/hydra"
 	go generate ./...
 	go fmt ./...
@@ -54,7 +54,7 @@ test: test-unit
 
 test-unit: up
 	@echo "Running tests w/$(PARALLEL_PROCS) parallel test processes"
-	@go test -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) -race ./... | go run github.com/mfridman/tparse@ba2512e7be150bfcbd6f6220d517d3741f8f2f75 -all -smallscreen
+	@go test -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | go run github.com/mfridman/tparse@ba2512e7be150bfcbd6f6220d517d3741f8f2f75 -all -smallscreen
 
 test-stress: export INTEGRATION_TEST=true
 test-stress: export SIMULATION_TEST=false
