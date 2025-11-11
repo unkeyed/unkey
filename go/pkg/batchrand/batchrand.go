@@ -32,7 +32,7 @@ var bufferPool = sync.Pool{
 // overhead by ~2-3x while maintaining the same security guarantees.
 //
 // This function is safe for concurrent use and lock-free in the hot path.
-// Each goroutine gets its own buffer from the pool, eliminating contention.
+// Goroutines borrow buffers from the pool with minimal contention.
 // All randomness comes from crypto/rand; the pooling only amortizes syscall costs.
 //
 // For requests larger than the buffer size (4KB), this function reads directly from
