@@ -225,9 +225,27 @@ export class LayoutEngine<T extends TreeNode> {
               `Cannot find positioned node for child ${child.id}`
             );
           }
+
+          const parentDim = this.dimensions.get(pos.node.id);
+          const childDim = this.dimensions.get(child.id);
+
+          if (!parentDim || !childDim) {
+            throw new Error(
+              `Missing dimensions for connection: ${pos.node.id} -> ${child.id}`
+            );
+          }
+
           connections.push({
-            from: pos.position,
-            to: childPos.position,
+            // From: bottom edge of parent (center X, bottom Y)
+            from: {
+              x: pos.position.x,
+              y: pos.position.y + parentDim.height / 2,
+            },
+            // To: top edge of child (center X, top Y)
+            to: {
+              x: childPos.position.x,
+              y: childPos.position.y - childDim.height / 2,
+            },
             parent: pos.node,
             child: childPos.node as T,
           });
