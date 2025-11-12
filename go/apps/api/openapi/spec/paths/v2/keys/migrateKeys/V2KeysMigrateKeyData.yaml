@@ -1,26 +1,10 @@
 type: object
-required:
-  - apiId
 properties:
-  apiId:
+  hash:
     type: string
     minLength: 3
-    maxLength: 255
-    pattern: "^[a-zA-Z0-9_]+$"
-    description: |
-      The API namespace this key belongs to.
-      Keys from different APIs cannot access each other.
-    example: api_1234abcd
-  prefix:
-    type: string
-    minLength: 1
-    maxLength: 16 # Keep prefixes short for readability
-    pattern: "^[a-zA-Z0-9_]+$"
-    description: |
-      Adds a visual identifier to the beginning of the generated key for easier recognition in logs and dashboards.
-      The prefix becomes part of the actual key string (e.g., `prod_xxxxxxxxx`).
-      Avoid using sensitive information in prefixes as they may appear in logs and error messages.
-    example: prod
+    description: The current hash of the key on your side
+    example: qwerty123
   name:
     type: string
     minLength: 1
@@ -30,22 +14,10 @@ properties:
       Never exposed to end users, only visible in management interfaces and API responses.
       Avoid generic names like "API Key" when managing multiple keys for the same user or service.
     example: Payment Service Production Key
-  byteLength:
-    type: integer
-    minimum: 16 # Minimum secure key length
-    maximum: 255 # Reasonable upper bound for key generation
-    default: 16
-    description: |
-      Controls the cryptographic strength of the generated key in bytes.
-      Higher values increase security but result in longer keys that may be more annoying to handle.
-      The default 16 bytes provides 2^128 possible combinations, sufficient for most applications.
-      Consider 32 bytes for highly sensitive APIs, but avoid values above 64 bytes unless specifically required.
-    example: 24
   externalId:
     type: string
     minLength: 1
-    maxLength: 255 # Match database varchar limits for external identifiers
-    pattern: "^[a-zA-Z0-9_.-]+$"
+    maxLength: 255
     description: |
       Links this key to a user or entity in your system using your own identifier.
       Returned during verification to identify the key owner without additional database lookups.
@@ -78,7 +50,6 @@ properties:
       type: string
       minLength: 1
       maxLength: 100 # Keep role names concise and readable
-      pattern: ^[a-zA-Z0-9_:\-\.\*]+$
     description: |
       Assigns existing roles to this key for permission management through role-based access control.
       Roles must already exist in your workspace before assignment.
@@ -94,7 +65,6 @@ properties:
       type: string
       minLength: 1
       maxLength: 100 # Keep permission names concise and readable
-    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
     description: |
       Grants specific permissions directly to this key without requiring role membership.
       Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
@@ -116,7 +86,15 @@ properties:
       Avoid setting timestamps in the past as they immediately invalidate the key.
       Keys expire based on server time, not client time, which prevents timezone-related issues.
       Essential for trial periods, temporary access, and security compliance requiring key rotation.
-    example: 1704067200000
+  enabled:
+    type: boolean
+    default: true
+    description: |
+      Controls whether the key is active immediately upon creation.
+      When set to `false`, the key exists but all verification attempts fail with `code=DISABLED`.
+      Useful for pre-creating keys that will be activated later or for keys requiring manual approval.
+      Most keys should be created with `enabled=true` for immediate use.
+    example: true
   credits:
     "$ref": "../../../../common/KeyCreditsData.yaml"
     description: |
@@ -143,49 +121,11 @@ properties:
         limit: 10
         duration: 3600000
         autoApply: false
-  enabled:
-    type: boolean
-    default: true
-    description: |
-      Controls whether the key is active immediately upon creation.
-      When set to `false`, the key exists but all verification attempts fail with `code=DISABLED`.
-      Useful for pre-creating keys that will be activated later or for keys requiring manual approval.
-      Most keys should be created with `enabled=true` for immediate use.
-    example: true
-  recoverable:
-    type: boolean
-    default: false
-    description: |
-      Controls whether the plaintext key is stored in an encrypted vault for later retrieval.
-      When true, allows recovering the actual key value using keys.getKey with decrypt=true.
-      When false, the key value cannot be retrieved after creation for maximum security.
-      Only enable for development keys or when key recovery is absolutely necessary.
-    example: false
 additionalProperties: false
+required:
+  - hash
 examples:
-  basic:
-    summary: Basic key creation
-    description: Create a simple key for user authentication
+  basicKey:
+    summary: Basic key
+    description: Migrate this basic key
     value:
-      apiId: api_1234abcd
-      name: "User API key"
-      externalId: "user_123"
-  withPermissions:
-    summary: Key with permissions and limits
-    description: Create a key with specific permissions, rate limits, and credits
-    value:
-      apiId: api_1234abcd
-      name: "Service API key"
-      externalId: "service_456"
-      permissions:
-        - "documents.read"
-        - "documents.write"
-      credits:
-        remaining: 1000
-      ratelimits:
-        - name: "api_requests"
-          limit: 100
-          duration: 60000
-      meta:
-        service: "document_processor"
-        version: "1.0"
