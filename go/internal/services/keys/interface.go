@@ -9,7 +9,7 @@ import (
 // KeyService defines the interface for key management operations.
 // It provides methods for key creation, retrieval, and validation.
 type KeyService interface {
-	// Get retrieves a key and returns a KeyVerifier for validation
+	// Get retrieves a sha256 hashed key and returns a KeyVerifier for validation
 	Get(ctx context.Context, sess *zen.Session, hash string) (*KeyVerifier, func(), error)
 
 	// GetRootKey retrieves and validates a root key from the session
