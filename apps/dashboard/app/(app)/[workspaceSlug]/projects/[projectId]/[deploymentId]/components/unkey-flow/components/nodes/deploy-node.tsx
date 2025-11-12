@@ -5,11 +5,112 @@ import {
   Focus,
   Heart,
   Layers3,
+  TriangleWarning,
+  TriangleWarning2,
 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { DeploymentNode, RegionMetadata } from "./types";
 import { FLAGS } from "./flags";
 import { StatusDot } from "./status-dot";
+
+type HealthStatus =
+  | "normal"
+  | "unstable"
+  | "degraded"
+  | "unhealthy"
+  | "recovering"
+  | "health_syncing"
+  | "unknown";
+
+type StatusConfig = {
+  label: string;
+  icon: typeof TriangleWarning2;
+  iconColor: string;
+  bannerBg: string;
+  bannerBorder: string;
+  textColor: string;
+  message: string;
+  statusDotVariant: "success" | "info" | "alert" | "warning" | "error";
+  glowShadow: string;
+};
+
+const STATUS_CONFIG: Record<HealthStatus, StatusConfig | null> = {
+  normal: null, // No banner for normal
+  unstable: {
+    label: "Unstable",
+    icon: TriangleWarning2,
+    iconColor: "text-orange-12",
+    bannerBg: "bg-orange-2",
+    bannerBorder: "border-orangeA-2",
+    textColor: "text-orange-12",
+    message:
+      "Intermittent health check failures. Metrics fluctuating significantly.",
+    statusDotVariant: "alert",
+    glowShadow:
+      "shadow-[inset_0_0_8px_1px_hsl(var(--orangeA-4)),inset_0_0_0_1px_hsl(var(--grayA-5))]",
+  },
+  degraded: {
+    label: "Degraded",
+    icon: TriangleWarning,
+    iconColor: "text-yellow-12",
+    bannerBg: "bg-yellow-2",
+    bannerBorder: "border-yellowA-2",
+    textColor: "text-yellow-12",
+    message: "Performance degraded. Response times elevated.",
+    statusDotVariant: "warning",
+    glowShadow:
+      "shadow-[inset_0_0_8px_1px_hsl(var(--yellowA-4)),inset_0_0_0_1px_hsl(var(--grayA-5))]",
+  },
+  unhealthy: {
+    label: "Unhealthy",
+    icon: TriangleWarning2,
+    iconColor: "text-red-12",
+    bannerBg: "bg-red-2",
+    bannerBorder: "border-redA-2",
+    textColor: "text-red-12",
+    message:
+      "Critical health check failures detected. Immediate attention required.",
+    statusDotVariant: "error",
+    glowShadow:
+      "shadow-[inset_0_0_8px_1px_hsl(var(--redA-4)),inset_0_0_0_1px_hsl(var(--grayA-5))]",
+  },
+  recovering: {
+    label: "Recovering",
+    icon: CircleCheck, // or a different icon
+    iconColor: "text-blue-12",
+    bannerBg: "bg-blue-2",
+    bannerBorder: "border-blueA-2",
+    textColor: "text-blue-12",
+    message: "System recovering from issues. Monitoring in progress.",
+    statusDotVariant: "info",
+    glowShadow:
+      "shadow-[inset_0_0_8px_1px_hsl(var(--blueA-4)),inset_0_0_0_1px_hsl(var(--grayA-5))]",
+  },
+  health_syncing: {
+    label: "Syncing",
+    icon: Heart, // or a sync icon
+    iconColor: "text-info-12",
+    bannerBg: "bg-info-2",
+    bannerBorder: "border-infoA-2",
+    textColor: "text-info-12",
+    message: "Health data synchronizing across regions.",
+    statusDotVariant: "info",
+    glowShadow:
+      "shadow-[inset_0_0_8px_1px_hsl(var(--infoA-4)),inset_0_0_0_1px_hsl(var(--grayA-5))]",
+  },
+  unknown: {
+    label: "Unknown",
+    icon: TriangleWarning,
+    iconColor: "text-gray-11",
+    bannerBg: "bg-gray-2",
+    bannerBorder: "border-grayA-3",
+    textColor: "text-gray-11",
+    message: "Unable to determine health status. Investigating.",
+    statusDotVariant: "info", // or create a gray variant
+    glowShadow:
+      "shadow-[inset_0_0_8px_1px_hsl(var(--grayA-4)),inset_0_0_0_1px_hsl(var(--grayA-5))]",
+  },
+};
 
 type RegionColors = {
   bg: string;
@@ -177,24 +278,51 @@ export function RegionNode({ node }: RegionNodeProps) {
   const subtitle = `${zones} availability ${zones > 1 ? "zones" : "zone"}`;
 
   return (
-    <div
-      className={cn(
-        "w-[282px] h-[100px] border border-grayA-4 rounded-[14px] flex flex-col bg-white dark:bg-black shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)]",
-        colors.glow,
-        "hover:ring-2 hover:ring-grayA-2 hover:scale-[1.01] transition-all duration-200 cursor-pointer hover:ring-offset-0"
-      )}
-    >
-      <CardHeader
-        icon={
-          <div className="border rounded-[10px] border-grayA-3 size-9 bg-grayA-3 flex items-center justify-center">
-            <FlagComponent />
+    <div className="relative w-[282px]">
+      {/* Convex top section - higher z-index */}
+      <div className="z-10 mx-auto w-[282px] -m-[20px]">
+        <div className="h-12  border border-orangeA-2 rounded-t-[14px] bg-orange-2">
+          <div className="py-1.5 px-2.5 flex items-center">
+            <TriangleWarning2
+              className="text-orange-12 shrink-0 mr-2 mb-0.5"
+              iconSize="md-regular"
+            />
+            <span className="text-xs text-orange-12 mr-4 font-medium">
+              Unstable
+            </span>
+            <div className="flex-1 overflow-hidden relative max-w-[200px]">
+              <div className="animate-marquee whitespace-nowrap text-orange-12 text-xs">
+                Intermittent health check failures. Metrics fluctuating
+                significantly.
+              </div>
+              {/* Left fade - stronger */}
+              <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-orange-2 via-orange-2 to-transparent pointer-events-none" />
+              {/* Right fade - stronger */}
+              <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-orange-2 via-orange-2 to-transparent pointer-events-none" />
+            </div>
           </div>
-        }
-        title={node.label}
-        subtitle={subtitle}
-        gradientColor={gradientColor}
-      />
-      <CardFooter instances={instances} power={power} storage={storage} />
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          "relative z-20 w-[282px] h-[100px] border border-grayA-4 rounded-[14px] flex flex-col bg-white dark:bg-black shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)]",
+          colors.glow,
+          "hover:ring-2 hover:ring-grayA-2 hover:scale-[1.01] transition-all duration-200 cursor-pointer hover:ring-offset-0"
+        )}
+      >
+        <CardHeader
+          icon={
+            <div className="border rounded-[10px] border-grayA-3 size-9 bg-grayA-3 flex items-center justify-center">
+              <FlagComponent />
+            </div>
+          }
+          title={node.label}
+          subtitle={subtitle}
+          gradientColor={gradientColor}
+        />
+        <CardFooter instances={instances} power={power} storage={storage} />
+      </div>
     </div>
   );
 }

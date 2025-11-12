@@ -40,6 +40,15 @@ export default {
         95: "0.95",
         98: "0.98",
       },
+      keyframes: {
+        marquee: {
+          "0%": { transform: "translateX(0%)" },
+          "100%": { transform: "translateX(-100%)" },
+        },
+      },
+      animation: {
+        marquee: "marquee 15s linear infinite",
+      },
     },
   },
   plugins: [],

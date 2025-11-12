@@ -9,6 +9,18 @@ const colorMap = {
     bg: "bg-info-9",
     ring: "hsl(var(--infoA-4))",
   },
+  alert: {
+    bg: "bg-orange-9",
+    ring: "hsl(var(--orangeA-4))",
+  },
+  warning: {
+    bg: "bg-yellow-9",
+    ring: "hsl(var(--yellowA-4))",
+  },
+  error: {
+    bg: "bg-red-9",
+    ring: "hsl(var(--redA-4))",
+  },
 } as const;
 
 type StatusDotProps = {
