@@ -643,6 +643,25 @@ type Querier interface {
 	//      AND ka.deleted_at_m IS NULL
 	//      AND ws.deleted_at_m IS NULL
 	FindLiveKeyByID(ctx context.Context, db DBTX, id string) (FindLiveKeyByIDRow, error)
+	//FindManyRatelimitNamespaces
+	//
+	//  SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
+	//         coalesce(
+	//                 (select json_arrayagg(
+	//                                 json_object(
+	//                                         'id', ro.id,
+	//                                         'identifier', ro.identifier,
+	//                                         'limit', ro.limit,
+	//                                         'duration', ro.duration
+	//                                 )
+	//                         )
+	//                  from ratelimit_overrides ro where ro.namespace_id = ns.id AND ro.deleted_at_m IS NULL),
+	//                 json_array()
+	//         ) as overrides
+	//  FROM `ratelimit_namespaces` ns
+	//  WHERE ns.workspace_id = ?
+	//  AND ns.id IN (/*SLICE:namespaces*/?) OR ns.name IN (/*SLICE:namespaces*/?)
+	FindManyRatelimitNamespaces(ctx context.Context, db DBTX, arg FindManyRatelimitNamespacesParams) ([]FindManyRatelimitNamespacesRow, error)
 	//FindManyRolesByIdOrNameWithPerms
 	//
 	//  SELECT id, workspace_id, name, description, created_at_m, updated_at_m, COALESCE(

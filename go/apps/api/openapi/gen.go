@@ -1958,6 +1958,66 @@ type V2RatelimitListOverridesResponseBody struct {
 // V2RatelimitListOverridesResponseData defines model for V2RatelimitListOverridesResponseData.
 type V2RatelimitListOverridesResponseData = []RatelimitOverride
 
+// V2RatelimitMultiLimitRequestBody Array of rate limit checks to perform
+type V2RatelimitMultiLimitRequestBody = []V2RatelimitLimitRequestBody
+
+// V2RatelimitMultiLimitResponseBody defines model for V2RatelimitMultiLimitResponseBody.
+type V2RatelimitMultiLimitResponseBody struct {
+	// Data Array of rate limit check results, one for each rate limit check in the request
+	Data []V2RatelimitMultiLimitResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2RatelimitMultiLimitResponseData defines model for V2RatelimitMultiLimitResponseData.
+type V2RatelimitMultiLimitResponseData struct {
+	// Identifier The identifier this rate limit result corresponds to. Use this field to correlate the response with the request when checking multiple rate limits.
+	Identifier string `json:"identifier"`
+
+	// Limit The maximum number of operations allowed within the time window. This reflects either the default limit specified in the request or an override limit if one exists for this identifier.
+	//
+	// This value helps clients understand their total quota for the current window.
+	Limit int64 `json:"limit"`
+
+	// Namespace The namespace this rate limit result corresponds to. Use this field to correlate the response with the request when checking multiple rate limits.
+	Namespace string `json:"namespace"`
+
+	// OverrideId If a rate limit override was applied for this identifier, this field contains the ID of the override that was used. Empty when no override is in effect.
+	//
+	// This can be useful for:
+	// - Debugging which override rule was matched
+	// - Tracking the effects of specific overrides
+	// - Understanding why limits differ from default values
+	OverrideId string `json:"overrideId,omitempty"`
+
+	// Remaining The number of operations remaining in the current window before the rate limit is exceeded. Applications should use this value to:
+	//
+	// - Implement client-side throttling before hitting limits
+	// - Display usage information to end users
+	// - Trigger alerts when approaching limits
+	// - Adjust request patterns based on available capacity
+	//
+	// When this reaches zero, requests will be rejected until the window resets.
+	Remaining int64 `json:"remaining"`
+
+	// Reset The Unix timestamp in milliseconds when the rate limit window will reset and 'remaining' will return to 'limit'.
+	//
+	// This timestamp enables clients to:
+	// - Calculate and display wait times to users
+	// - Implement intelligent retry mechanisms
+	// - Schedule requests to resume after the reset
+	// - Implement exponential backoff when needed
+	//
+	// The reset time is based on a sliding window from the first request in the current window.
+	Reset int64 `json:"reset"`
+
+	// Success Whether the request passed the rate limit check. If true, the request is allowed to proceed. If false, the request has exceeded the rate limit and should be blocked or rejected.
+	//
+	// You MUST check this field to determine if the request should proceed, as the endpoint always returns `HTTP 200` even when rate limited.
+	Success bool `json:"success"`
+}
+
 // V2RatelimitSetOverrideRequestBody Sets a new or overwrites an existing rate limit override. Overrides allow you to apply special rate limit rules to specific identifiers, providing custom limits that differ from the default.
 //
 // Overrides are useful for:
@@ -2187,6 +2247,9 @@ type RatelimitLimitJSONRequestBody = V2RatelimitLimitRequestBody
 
 // RatelimitListOverridesJSONRequestBody defines body for RatelimitListOverrides for application/json ContentType.
 type RatelimitListOverridesJSONRequestBody = V2RatelimitListOverridesRequestBody
+
+// RatelimitMultiLimitJSONRequestBody defines body for RatelimitMultiLimit for application/json ContentType.
+type RatelimitMultiLimitJSONRequestBody = V2RatelimitMultiLimitRequestBody
 
 // RatelimitSetOverrideJSONRequestBody defines body for RatelimitSetOverride for application/json ContentType.
 type RatelimitSetOverrideJSONRequestBody = V2RatelimitSetOverrideRequestBody
