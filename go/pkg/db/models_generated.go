@@ -324,6 +324,7 @@ func (ns NullDomainsType) Value() (driver.Value, error) {
 type KeyMigrationsAlgorithm string
 
 const (
+	KeyMigrationsAlgorithmSha256                         KeyMigrationsAlgorithm = "sha256"
 	KeyMigrationsAlgorithmGithubcomSeamapiPrefixedApiKey KeyMigrationsAlgorithm = "github.com/seamapi/prefixed-api-key"
 )
 

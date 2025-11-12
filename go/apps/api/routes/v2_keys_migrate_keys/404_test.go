@@ -89,11 +89,9 @@ func TestMigrateKeysNotFound(t *testing.T) {
 		// Create a different workspace to test cross-workspace isolation
 		otherWorkspace := h.CreateWorkspace()
 
-		// Create root key for the other workspace with proper permissions
-		otherRootKey := h.CreateRootKey(otherWorkspace.ID, "api.*.create_key")
-
+		// Create API in the other workspace
 		otherApi := h.CreateApi(seed.CreateApiRequest{
-			WorkspaceID:   h.Resources().UserWorkspace.ID,
+			WorkspaceID:   otherWorkspace.ID,
 			IpWhitelist:   "",
 			EncryptedKeys: false,
 			Name:          nil,
@@ -112,12 +110,9 @@ func TestMigrateKeysNotFound(t *testing.T) {
 			},
 		}
 
-		otherHeaders := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", otherRootKey)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, otherHeaders, req)
+		// Use credentials from the original workspace to try to access API from otherWorkspace
+		// This tests cross-workspace isolation
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.Contains(t, res.Body.Error.Detail, "The requested API does not exist or has been deleted.")

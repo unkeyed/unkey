@@ -247,16 +247,16 @@ func TestGenerateAPIKey(t *testing.T) {
 			hasError: false,
 		},
 		{
-			name:     "nil options with empty result",
+			name:     "nil options returns error",
 			opts:     nil,
-			hasError: false,
+			hasError: true,
 		},
 		{
-			name: "empty key prefix returns empty",
+			name: "empty key prefix returns error",
 			opts: &GenerateAPIKeyOptions{
 				KeyPrefix: "",
 			},
-			hasError: false,
+			hasError: true,
 		},
 	}
 
@@ -273,14 +273,6 @@ func TestGenerateAPIKey(t *testing.T) {
 
 			if err != nil {
 				t.Errorf("GenerateAPIKey() unexpected error: %v", err)
-				return
-			}
-
-			// If we expect an empty result (no key prefix), check that
-			if tt.opts == nil || tt.opts.KeyPrefix == "" {
-				if result.Token != "" || result.ShortToken != "" || result.LongToken != "" {
-					t.Errorf("GenerateAPIKey() expected empty result, got non-empty values")
-				}
 				return
 			}
 

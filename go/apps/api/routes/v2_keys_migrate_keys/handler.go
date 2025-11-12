@@ -264,7 +264,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	rolesToFind = deduplicate(rolesToFind)
 
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		usedHashes, err := db.Query.FindKeysByHash(ctx, h.DB.RO(), hashes)
+		usedHashes, err := db.Query.FindKeysByHash(ctx, tx, hashes)
 		if err != nil && !db.IsNotFound(err) {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

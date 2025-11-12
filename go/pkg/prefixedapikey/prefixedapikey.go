@@ -8,11 +8,15 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/unkeyed/unkey/go/pkg/base58"
 )
+
+// ErrMissingKeyPrefix is returned when GenerateAPIKey is called without a KeyPrefix
+var ErrMissingKeyPrefix = errors.New("missing KeyPrefix in options")
 
 // GenerateAPIKeyOptions holds the options for generating an API key
 type GenerateAPIKeyOptions struct {
@@ -57,7 +61,7 @@ func GenerateAPIKey(opts *GenerateAPIKeyOptions) (*APIKey, error) {
 		opts = &GenerateAPIKeyOptions{}
 	}
 	if opts.KeyPrefix == "" {
-		return &APIKey{}, nil
+		return nil, ErrMissingKeyPrefix
 	}
 
 	if opts.ShortTokenPrefix == "" {

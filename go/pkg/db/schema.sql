@@ -98,7 +98,7 @@ CREATE TABLE `encrypted_keys` (
 CREATE TABLE `key_migrations` (
 	`id` varchar(255) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
-	`algorithm` enum('github.com/seamapi/prefixed-api-key') NOT NULL,
+	`algorithm` enum('sha256','github.com/seamapi/prefixed-api-key') NOT NULL,
 	CONSTRAINT `key_migrations_id_workspace_id_pk` PRIMARY KEY(`id`,`workspace_id`)
 );
 

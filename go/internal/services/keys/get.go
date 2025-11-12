@@ -64,7 +64,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 
 	err := assert.NotEmpty(sha256Hash)
 	if err != nil {
-		return nil, emptyLog, fault.Wrap(err, fault.Internal("rawKey is empty"))
+		return nil, emptyLog, fault.Wrap(err, fault.Internal("sha256Hash is empty"))
 	}
 
 	key, hit, err := s.keyCache.SWR(ctx, sha256Hash, func(ctx context.Context) (db.CachedKeyData, error) {

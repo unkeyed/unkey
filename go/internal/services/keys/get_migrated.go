@@ -56,7 +56,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 	switch migration.Algorithm {
 	case db.KeyMigrationsAlgorithmGithubcomSeamapiPrefixedApiKey:
 		{
-			parts := strings.Split(rawKey, "_")
+			parts := strings.SplitN(rawKey, "_", 3)
 			err = assert.Equal(len(parts), 3, "Expected prefixed api keys to have 3 segments")
 			if err != nil {
 				return nil, emptyLog, fault.Wrap(
