@@ -1,4 +1,4 @@
-package v2RatelimitLimit
+package v2_ratelimit_multi_limit
 
 import (
 	"context"
@@ -256,6 +256,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	results, err := h.Ratelimit.RatelimitMany(ctx, ratelimitReqs)
 	if err != nil {
 		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
 			fault.Internal("rate limit failed"),
 			fault.Public("We're unable to process the rate limit requests."),
 		)

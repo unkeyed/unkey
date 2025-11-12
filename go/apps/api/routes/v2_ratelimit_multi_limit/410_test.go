@@ -1,4 +1,4 @@
-package v2RatelimitLimit_test
+package v2_ratelimit_multi_limit_test
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-package v2RatelimitLimit_test
+package v2_ratelimit_multi_limit_test
 
 import (
 	"context"
@@ -63,7 +63,7 @@ func TestBadRequests(t *testing.T) {
 		}
 
 		namespace := db.InsertRatelimitNamespaceParams{
-			ID:          uid.New(uid.TestPrefix),
+			ID:          uid.New(uid.RatelimitNamespacePrefix),
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Name:        namespaceName,
 			CreatedAt:   time.Now().UnixMilli(),
@@ -164,26 +164,6 @@ func TestMissingAuthorizationHeader(t *testing.T) {
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
-	})
-
-	t.Run("missing authorization header", func(t *testing.T) {
-		headers := http.Header{
-			"Content-Type": {"application/json"},
-			// No Authorization header
-		}
-
-		req := handler.Request{
-			{
-				Namespace:  "test_namespace",
-				Identifier: "user_123",
-				Limit:      100,
-				Duration:   60000,
-			},
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, http.StatusBadRequest, res.Status, "Got %s", res.RawBody)
-		require.NotNil(t, res.Body)
 	})
 
 	t.Run("malformed authorization header", func(t *testing.T) {

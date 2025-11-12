@@ -280,7 +280,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	t0 := time.Now()
 	result, err := h.Ratelimit.Ratelimit(ctx, limitReq)
 	if err != nil {
-		return fault.Wrap(err,
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
 			fault.Internal("rate limit failed"),
 			fault.Public("We're unable to process the rate limit request."),
 		)

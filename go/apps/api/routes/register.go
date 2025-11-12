@@ -153,7 +153,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		},
 	)
 
-	// v2/ratelimit.limit
+	// v2/ratelimit.multiLimit
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitMultiLimit.Handler{
