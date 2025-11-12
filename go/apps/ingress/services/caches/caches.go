@@ -11,7 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
-// Caches holds all cache instances used throughout gate.
+// Caches holds all cache instances used throughout ingress.
 type Caches struct {
 	// HostName -> Certificate
 	TLSCertificate cache.Cache[string, tls.Certificate]

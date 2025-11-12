@@ -24,7 +24,7 @@ var Cmd = &cli.Command{
 		cli.Int("https-port", "HTTPS port for the Gate server to listen on. Default: 7443",
 			cli.Default(7443), cli.EnvVar("UNKEY_HTTPS_PORT")),
 
-		cli.Bool("tls-enabled", "Enable TLS termination for the gate. Default: true",
+		cli.Bool("tls-enabled", "Enable TLS termination for the ingress. Default: true",
 			cli.Default(true), cli.EnvVar("UNKEY_TLS_ENABLED")),
 
 		// Instance Identification
@@ -37,31 +37,24 @@ var Cmd = &cli.Command{
 		cli.String("region", "Geographic region identifier. Used for logging and routing. Default: unknown",
 			cli.Default("unknown"), cli.EnvVar("UNKEY_REGION"), cli.EnvVar("AWS_REGION")),
 
-		cli.String("gate-id", "Unique identifier for this instance. Auto-generated if not provided.",
-			cli.Default(uid.New("gate", 4)), cli.EnvVar("UNKEY_GATE_ID")),
+		cli.String("ingress-id", "Unique identifier for this instance. Auto-generated if not provided.",
+			cli.Default(uid.New("ingress", 4)), cli.EnvVar("UNKEY_GATE_ID")),
 
 		cli.String("default-cert-domain", "Domain to use for fallback TLS certificate when a domain has no cert configured",
 			cli.EnvVar("UNKEY_DEFAULT_CERT_DOMAIN")),
 
-		cli.String("main-domain", "Main gate domain for internal endpoints (e.g., gate.unkey.com)",
+		cli.String("main-domain", "Main ingress domain for internal endpoints (e.g., ingress.unkey.com)",
 			cli.EnvVar("UNKEY_MAIN_DOMAIN")),
 
 		cli.String("base-domain", "Base domain for region routing. Cross-region requests forwarded to {region}.{base-domain}. Example: unkey.cloud",
 			cli.Default("unkey.cloud"), cli.EnvVar("UNKEY_BASE_DOMAIN")),
 
 		// Database Configuration - Partitioned (for hostname lookups)
-		cli.String("database-primary", "MySQL connection string for partitioned primary database (gate operations). Required. Example: user:pass@host:3306/partition_001?parseTime=true",
+		cli.String("database-primary", "MySQL connection string for partitioned primary database (ingress operations). Required. Example: user:pass@host:3306/partition_001?parseTime=true",
 			cli.Required(), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
 
-		cli.String("database-replica", "MySQL connection string for partitioned read-replica (gate operations). Format same as database-primary.",
+		cli.String("database-replica", "MySQL connection string for partitioned read-replica (ingress operations). Format same as database-primary.",
 			cli.EnvVar("UNKEY_DATABASE_REPLICA")),
-
-		// SPIRE/mTLS Configuration
-		cli.Bool("spire-enabled", "Enable SPIRE-based mTLS for portal communication. Default: false",
-			cli.Default(false), cli.EnvVar("UNKEY_SPIRE_ENABLED")),
-
-		cli.String("spire-socket-path", "Path to SPIRE agent socket. Default: /run/spire/sockets/agent.sock",
-			cli.Default("/run/spire/sockets/agent.sock"), cli.EnvVar("UNKEY_SPIRE_SOCKET_PATH")),
 
 		// Observability
 		cli.Bool("otel", "Enable OpenTelemetry tracing and metrics",
@@ -104,10 +97,10 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 	config := ingress.Config{
 		// Basic configuration
-		GateID:   cmd.String("gate-id"),
-		Platform: cmd.String("platform"),
-		Image:    cmd.String("image"),
-		Region:   cmd.String("region"),
+		IngressID: cmd.String("ingress-id"),
+		Platform:  cmd.String("platform"),
+		Image:     cmd.String("image"),
+		Region:    cmd.String("region"),
 
 		// HTTP configuration
 		HttpPort:  cmd.Int("http-port"),
@@ -122,10 +115,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Partitioned Database configuration (for hostname lookups)
 		DatabasePrimary:         cmd.String("database-primary"),
 		DatabaseReadonlyReplica: cmd.String("database-replica"),
-
-		// SPIRE configuration
-		EnableSpire:     cmd.Bool("spire-enabled"),
-		SpireSocketPath: cmd.String("spire-socket-path"),
 
 		// OpenTelemetry configuration
 		OtelEnabled:           cmd.Bool("otel"),

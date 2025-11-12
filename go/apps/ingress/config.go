@@ -6,8 +6,8 @@ import (
 )
 
 type Config struct {
-	// GateID is the unique identifier for this instance of the Gate server
-	GateID string
+	// IngressID is the unique identifier for this instance of the Ingress server
+	IngressID string
 
 	// Platform identifies the cloud platform where the node is running (e.g., aws, gcp, hetzner)
 	Platform string
@@ -24,13 +24,13 @@ type Config struct {
 	// Region identifies the geographic region where this node is deployed
 	Region string
 
-	// EnableTLS specifies whether TLS should be enabled for the Gate server
+	// EnableTLS specifies whether TLS should be enabled for the Ingress server
 	EnableTLS bool
 
 	// DefaultCertDomain is the domain to use for fallback TLS certificate
 	DefaultCertDomain string
 
-	// MainDomain is the primary domain for the gate (e.g., gate.unkey.com)
+	// MainDomain is the primary domain of the Ingress (e.g., gate.unkey.com)
 	// Internal endpoints like /_internal/liveness are only accessible on this domain
 	MainDomain string
 
@@ -45,15 +45,6 @@ type Config struct {
 
 	// DatabaseReadonlyReplica is an optional read-replica database connection string for read operations (partition_001)
 	DatabaseReadonlyReplica string
-
-	// --- SPIRE/mTLS configuration ---
-
-	// SpireSocketPath is the path to the SPIRE agent socket for workload attestation
-	// Default: /run/spire/sockets/agent.sock
-	SpireSocketPath string
-
-	// EnableSpire enables SPIRE-based mTLS for portal communication
-	EnableSpire bool
 
 	// --- OpenTelemetry configuration ---
 

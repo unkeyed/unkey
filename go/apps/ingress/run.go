@@ -18,18 +18,18 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/prometheus"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
+	pkgtls "github.com/unkeyed/unkey/go/pkg/tls"
 	"github.com/unkeyed/unkey/go/pkg/vault"
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 	"github.com/unkeyed/unkey/go/pkg/version"
 	"github.com/unkeyed/unkey/go/pkg/zen"
-	pkgtls "github.com/unkeyed/unkey/go/pkg/tls"
 )
 
-// Run starts the Gate server
-// Gate is a multi-tenant ingress service that:
+// Run starts the Ingress server
+// Ingress is our multi-tenant ingress service that:
 // - Accepts requests from NLBs (<region>.aws.unkey.app)
 // - Terminates TLS if the deployment exists in its region
-// - Forwards requests to the per-tenant Portal service
+// - Forwards requests to the per-tenant/environment gateway service
 // - OR forwards to another region's NLB if no local deployment exists
 func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
@@ -38,8 +38,8 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	logger := logging.New()
-	if cfg.GateID != "" {
-		logger = logger.With(slog.String("gateID", cfg.GateID))
+	if cfg.IngressID != "" {
+		logger = logger.With(slog.String("instanceID", cfg.IngressID))
 	}
 
 	if cfg.Platform != "" {
@@ -74,7 +74,7 @@ func Run(ctx context.Context, cfg Config) error {
 			otel.Config{
 				Application:     "gate",
 				Version:         version.Version,
-				InstanceID:      cfg.GateID,
+				InstanceID:      cfg.IngressID,
 				CloudRegion:     cfg.Region,
 				TraceSampleRate: cfg.OtelTraceSamplingRate,
 			},
@@ -208,7 +208,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		go func() {
-			logger.Info("HTTPS gate server started", "addr", httpsListener.Addr().String())
+			logger.Info("HTTPS ingress server started", "addr", httpsListener.Addr().String())
 			serveErr := srv.Serve(ctx, httpsListener)
 			if serveErr != nil {
 				logger.Error("HTTPS server error", "error", serveErr)
@@ -224,7 +224,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		go func() {
-			logger.Info("HTTP gate server started", "addr", httpListener.Addr().String())
+			logger.Info("HTTP ingress server started", "addr", httpListener.Addr().String())
 			serveErr := srv.Serve(ctx, httpListener)
 			if serveErr != nil {
 				logger.Error("HTTP server error", "error", serveErr)
@@ -232,13 +232,13 @@ func Run(ctx context.Context, cfg Config) error {
 		}()
 	}
 
-	logger.Info("Gate server initialized", "region", cfg.Region, "baseDomain", cfg.BaseDomain)
+	logger.Info("Ingress server initialized", "region", cfg.Region, "baseDomain", cfg.BaseDomain)
 
 	// Wait for either OS signals or context cancellation, then shutdown
 	if err := shutdowns.WaitForSignal(ctx, 0); err != nil {
 		return fmt.Errorf("shutdown failed: %w", err)
 	}
 
-	logger.Info("Gate server shut down successfully")
+	logger.Info("Ingress server shut down successfully")
 	return nil
 }
