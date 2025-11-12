@@ -4,6 +4,7 @@ permissions:
 on:
   schedule:
     - cron: "0 15 * * *"
+  invalid_trigger_type
   # Allow manual triggering for testing
   workflow_dispatch:
 jobs:
