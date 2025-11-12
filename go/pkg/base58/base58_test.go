@@ -40,7 +40,7 @@ func TestEncodeRandom(t *testing.T) {
 	}
 }
 
-func TestColission(t *testing.T) {
+func TestCollision(t *testing.T) {
 	seen := map[string]bool{}
 
 	for range 1_000_000 {
