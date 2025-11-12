@@ -9,8 +9,7 @@ import {
   alertSubscriptionCreation,
   alertSubscriptionUpdate,
 } from "@/lib/utils/slackAlerts";
-import Stripe from "stripe";
-
+import type Stripe from "stripe";
 
 function validateAndParseQuotas(product: Stripe.Product): {
   valid: boolean;
