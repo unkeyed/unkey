@@ -5,8 +5,8 @@ import (
 	"crypto/rand"
 	"fmt"
 
-	"github.com/btcsuite/btcutil/base58"
 	"github.com/unkeyed/unkey/go/pkg/assert"
+	"github.com/unkeyed/unkey/go/pkg/base58"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/hash"

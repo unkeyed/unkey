@@ -27,6 +27,7 @@ type CreateBuildRequest struct {
 	DockerfilePath   *string                `protobuf:"bytes,2,opt,name=dockerfile_path,json=dockerfilePath,proto3,oneof" json:"dockerfile_path,omitempty"`   // Path to Dockerfile within the tar
 	UnkeyProjectId   string                 `protobuf:"bytes,3,opt,name=unkey_project_id,json=unkeyProjectId,proto3" json:"unkey_project_id,omitempty"`       // Your internal user/project ID
 	DeploymentId     string                 `protobuf:"bytes,4,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	WorkspaceId      string                 `protobuf:"bytes,5,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -85,6 +86,13 @@ func (x *CreateBuildRequest) GetUnkeyProjectId() string {
 func (x *CreateBuildRequest) GetDeploymentId() string {
 	if x != nil {
 		return x.DeploymentId
+	}
+	return ""
+}
+
+func (x *CreateBuildRequest) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
 	}
 	return ""
 }
@@ -257,12 +265,13 @@ var File_ctrl_v1_build_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_build_proto_rawDesc = "" +
 	"\n" +
-	"\x13ctrl/v1/build.proto\x12\actrl.v1\"\xd3\x01\n" +
+	"\x13ctrl/v1/build.proto\x12\actrl.v1\"\xf6\x01\n" +
 	"\x12CreateBuildRequest\x12,\n" +
 	"\x12build_context_path\x18\x01 \x01(\tR\x10buildContextPath\x12,\n" +
 	"\x0fdockerfile_path\x18\x02 \x01(\tH\x00R\x0edockerfilePath\x88\x01\x01\x12(\n" +
 	"\x10unkey_project_id\x18\x03 \x01(\tR\x0eunkeyProjectId\x12#\n" +
-	"\rdeployment_id\x18\x04 \x01(\tR\fdeploymentIdB\x12\n" +
+	"\rdeployment_id\x18\x04 \x01(\tR\fdeploymentId\x12!\n" +
+	"\fworkspace_id\x18\x05 \x01(\tR\vworkspaceIdB\x12\n" +
 	"\x10_dockerfile_path\"y\n" +
 	"\x13CreateBuildResponse\x12\x1d\n" +
 	"\n" +

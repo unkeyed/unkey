@@ -56,8 +56,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Get the pprof path from the wildcard match
 	pprofPath := s.Request().PathValue("path")
 
-	// Delegate to pprof handler
-	pprof.Handler(pprofPath).ServeHTTP(s.ResponseWriter(), s.Request())
+	// Delegate to appropriate pprof handler based on path
+	switch pprofPath {
+	case "profile":
+		pprof.Profile(s.ResponseWriter(), s.Request())
+	case "cmdline":
+		pprof.Cmdline(s.ResponseWriter(), s.Request())
+	case "symbol":
+		pprof.Symbol(s.ResponseWriter(), s.Request())
+	case "trace":
+		pprof.Trace(s.ResponseWriter(), s.Request())
+	case "":
+		pprof.Index(s.ResponseWriter(), s.Request())
+	default:
+		// For named profiles like heap, goroutine, threadcreate, etc.
+		pprof.Handler(pprofPath).ServeHTTP(s.ResponseWriter(), s.Request())
+	}
 
 	return nil
 }
