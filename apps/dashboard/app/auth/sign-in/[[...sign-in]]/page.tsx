@@ -1,11 +1,14 @@
 "use client";
 
 import { FadeIn } from "@/components/landing/fade-in";
+import { getCookie } from "@/lib/auth/cookies";
+import { PENDING_SESSION_COOKIE, UNKEY_LAST_ORG_COOKIE } from "@/lib/auth/types";
 import { ArrowRight } from "@unkey/icons";
-import { Loading } from "@unkey/ui";
+import { Empty, Loading } from "@unkey/ui";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { completeOrgSelection } from "../../actions";
 import { ErrorBanner, WarnBanner } from "../../banners";
 import { SignInProvider } from "../../context/signin-context";
 import { useSignIn } from "../../hooks";
@@ -26,22 +29,74 @@ function SignInContent() {
     handleSignInViaEmail,
     setError,
   } = useSignIn();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const verifyParam = searchParams?.get("verify");
   const invitationToken = searchParams?.get("invitation_token");
   const invitationEmail = searchParams?.get("email");
-
-  // Initialize isLoading as false
-  const [isLoading, setIsLoading] = useState(false);
-
+  const [lastUsedOrgId, setLastUsedOrgId] = useState<string | undefined>(undefined);
   // Add clientReady state to handle hydration
   const [clientReady, setClientReady] = useState(false);
   const hasAttemptedSignIn = useRef(false);
+  const hasAttemptedAutoOrgSelection = useRef(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAutoSelecting, setIsAutoSelecting] = useState(false);
 
   // Set clientReady to true after hydration
   useEffect(() => {
-    setClientReady(true);
-  }, []);
+    getCookie(UNKEY_LAST_ORG_COOKIE)
+      .then((value) => {
+        if (value) {
+          setLastUsedOrgId(value);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to read last used org cookie:", error);
+      })
+      .finally(() => {
+        setClientReady(true);
+        // Only set isLoading to false if we don't have pending auth
+        // (if we do, the auto-selection effect will handle loading state)
+        if (!hasPendingAuth) {
+          setIsLoading(false);
+        }
+      });
+  }, [hasPendingAuth]);
+
+  // Handle auto org selection when returning from OAuth
+  useEffect(() => {
+    if (!clientReady || !hasPendingAuth || hasAttemptedAutoOrgSelection.current) {
+      return;
+    }
+
+    if (lastUsedOrgId) {
+      hasAttemptedAutoOrgSelection.current = true;
+      setIsLoading(true);
+      setIsAutoSelecting(true);
+
+      completeOrgSelection(lastUsedOrgId)
+        .then((result) => {
+          if (!result.success) {
+            setError(result.message);
+            setIsLoading(false);
+            setIsAutoSelecting(false);
+            return;
+          }
+          // On success, redirect to the dashboard
+          router.push(result.redirectTo);
+        })
+        .catch((err) => {
+          console.error("Auto org selection failed:", err);
+          setError("Failed to automatically sign in. Please select your workspace.");
+          setIsLoading(false);
+          setIsAutoSelecting(false);
+        });
+    } else {
+      // No lastUsedOrgId, so we need to show the org selector manually
+      hasAttemptedAutoOrgSelection.current = true;
+      setIsLoading(false);
+    }
+  }, [clientReady, hasPendingAuth, setError, lastUsedOrgId, router]);
 
   // Handle auto sign-in with invitation token and email
   useEffect(() => {
@@ -87,15 +142,53 @@ function SignInContent() {
     handleSignInViaEmail,
   ]);
 
-  // Show a loading indicator only when isLoading is true AND client has hydrated
-  if (clientReady && isLoading) {
-    return <Loading />;
+  // Check for session expiration when org selector is shown
+  useEffect(() => {
+    if (!clientReady || !hasPendingAuth) {
+      return;
+    }
+
+    const checkSessionValidity = async () => {
+      const pendingSession = await getCookie(PENDING_SESSION_COOKIE);
+      if (!pendingSession) {
+        setError("Your session has expired. Please sign in again.");
+        // Clear the orgs query parameter to reset to sign-in form
+        router.push("/auth/sign-in");
+      }
+    };
+
+    // Check immediately when org selector is shown
+    checkSessionValidity();
+
+    // Then check periodically (every 30 seconds)
+    const interval = setInterval(checkSessionValidity, 30000);
+
+    return () => clearInterval(interval);
+  }, [clientReady, hasPendingAuth, router, setError]);
+
+  if (isAutoSelecting || isLoading) {
+    let message = "Loading...";
+    if (isLoading) {
+      message = "Loading last workspace...";
+    }
+    return (
+      <Empty>
+        <Loading type="spinner" className="text-gray-6" />
+        <p className="text-sm text-white/60 mt-4">{message}</p>
+      </Empty>
+    );
   }
 
-  return (
-    <div className="flex flex-col gap-10">
-      {hasPendingAuth && <OrgSelector organizations={orgs} onError={setError} />}
+  const handleOrgSelectorClose = () => {
+    // When user closes the org selector, navigate back to clean sign-in page
+    router.push("/auth/sign-in");
+  };
 
+  // Only show org selector if we have pending auth and we're not actively auto-selecting
+  return hasPendingAuth && !isAutoSelecting ? (
+    <OrgSelector organizations={orgs} lastOrgId={lastUsedOrgId} onClose={handleOrgSelectorClose} />
+  ) : (
+    <div className="flex flex-col gap-10">
       {accountNotFound && (
         <WarnBanner>
           <div className="flex items-center justify-between w-full gap-2">
