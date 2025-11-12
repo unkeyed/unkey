@@ -24,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 )
 
 const (
@@ -309,13 +310,17 @@ func (s *Depot) processBuildStatus(
 
 		// Process completed vertices
 		for _, vertex := range status.Vertexes {
+			if vertex == nil {
+				s.logger.Warn("vertex is nil")
+				continue
+			}
 			if vertex.Completed != nil && !completed[vertex.Digest] {
 				completed[vertex.Digest] = true
 
 				s.clickhouse.BufferBuildStep(schema.BuildStepV1{
 					Error:        vertex.Error,
-					StartedAt:    vertex.Started.UnixMilli(),
-					CompletedAt:  vertex.Completed.UnixMilli(),
+					StartedAt:    ptr.SafeDeref(vertex.Started).UnixMilli(),
+					CompletedAt:  ptr.SafeDeref(vertex.Completed).UnixMilli(),
 					WorkspaceID:  workspaceID,
 					ProjectID:    projectID,
 					DeploymentID: deploymentID,
