@@ -84,11 +84,11 @@ const epochTimestampSec = 1700000000
 // the first 4 bytes contain the timestamp, with remaining bytes containing random data.
 // When byteSize ≤ 4, all bytes contain random data.
 //
-// SECURITY NOTE: This function uses crypto/rand for cryptographically secure random bytes.
-// Random bytes are read in batches (4KB at a time) and protected by a mutex, reducing
-// syscall overhead by ~2-3x while maintaining full cryptographic security. This batching
-// approach is battle-tested in production (e.g., google/uuid) and is safe because the
-// random bytes themselves come from crypto/rand - we're just amortizing the syscall cost.
+// SECURITY NOTE: This function uses crypto/rand for cryptographically secure random bytes
+// via pkg/batchrand. Random bytes are read in batches (4KB at a time) using a sync.Pool of
+// buffers, reducing syscall overhead by ~2-3x while maintaining full cryptographic security.
+// This lock-free batching approach is battle-tested in production (e.g., google/uuid) and is
+// safe because the random bytes themselves come from crypto/rand - we're just amortizing the syscall cost.
 //
 // Example:
 //
