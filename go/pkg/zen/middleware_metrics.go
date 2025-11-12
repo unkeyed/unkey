@@ -4,17 +4,15 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/fault"
-	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 )
 
 type EventBuffer interface {
-	BufferRequest(schema.ApiRequestV1)
+	BufferApiRequest(schema.ApiRequest)
 }
 
 type redactionRule struct {
@@ -56,19 +54,12 @@ func redact(in []byte) []byte {
 //	    []zen.Middleware{zen.WithMetrics(eventBuffer)},
 //	    route,
 //	)
-func WithMetrics(eventBuffer EventBuffer) Middleware {
+func WithMetrics(eventBuffer EventBuffer, info InstanceInfo) Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
 			start := time.Now()
 			nextErr := next(ctx, s)
 			serviceLatency := time.Since(start)
-
-			// "method", "path", "status"
-			labelValues := []string{s.r.Method, s.r.URL.Path, strconv.Itoa(s.responseStatus)}
-
-			metrics.HTTPRequestBodySize.WithLabelValues(labelValues...).Observe(float64(len(s.requestBody)))
-			metrics.HTTPRequestTotal.WithLabelValues(labelValues...).Inc()
-			metrics.HTTPRequestLatency.WithLabelValues(labelValues...).Observe(serviceLatency.Seconds())
 
 			// Only log if we should log request to ClickHouse
 			if s.ShouldLogRequestToClickHouse() {
@@ -93,7 +84,7 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 					ipAddress = ips[0]
 				}
 
-				eventBuffer.BufferRequest(schema.ApiRequestV1{
+				eventBuffer.BufferApiRequest(schema.ApiRequest{
 					WorkspaceID:     s.WorkspaceID,
 					RequestID:       s.RequestID(),
 					Time:            start.UnixMilli(),
@@ -102,17 +93,14 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 					Path:            s.r.URL.Path,
 					RequestHeaders:  requestHeaders,
 					RequestBody:     string(redact(s.requestBody)),
-					ResponseStatus:  s.responseStatus,
+					ResponseStatus:  int32(s.responseStatus),
 					ResponseHeaders: responseHeaders,
 					ResponseBody:    string(redact(s.responseBody)),
 					Error:           fault.UserFacingMessage(nextErr),
 					ServiceLatency:  serviceLatency.Milliseconds(),
 					UserAgent:       s.r.Header.Get("User-Agent"),
 					IpAddress:       ipAddress,
-					Country:         "",
-					City:            "",
-					Colo:            "",
-					Continent:       "",
+					Region:          info.Region,
 				})
 			}
 			return nextErr
