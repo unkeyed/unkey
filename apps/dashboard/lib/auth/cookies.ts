@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import type { NextRequest, NextResponse } from "next/server";
 import { getDefaultCookieOptions } from "./cookie-security";
-import { UNKEY_SESSION_COOKIE } from "./types";
+import { UNKEY_LAST_ORG_COOKIE, UNKEY_SESSION_COOKIE } from "./types";
 
 export interface CookieOptions {
   httpOnly: boolean;
@@ -113,6 +113,27 @@ export async function setSessionCookie(params: {
     options: {
       ...getDefaultCookieOptions(),
       maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
+    },
+  });
+}
+
+/**
+ * Encapsulates the logic for storing the last used organization ID in a cookie
+ * This cookie is used for auto-selection on next login
+ * @param params
+ */
+export async function setLastUsedOrgCookie(params: { orgId: string }): Promise<void> {
+  const { orgId } = params;
+
+  await setCookie({
+    name: UNKEY_LAST_ORG_COOKIE,
+    value: orgId,
+    options: {
+      httpOnly: false, // Allow client-side access
+      secure: true,
+      sameSite: "strict",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 Days
     },
   });
 }

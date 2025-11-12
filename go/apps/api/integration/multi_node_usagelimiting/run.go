@@ -176,7 +176,7 @@ func RunUsageLimitTest(
 		data, selectErr := clickhouse.Select[aggregatedCounts](
 			ctx,
 			h.CH.Conn(),
-			`SELECT count(*) as total_requests, countIf(outcome = 'VALID') as success_count, countIf(outcome = 'USAGE_EXCEEDED') as failure_count FROM verifications.raw_key_verifications_v1 WHERE workspace_id = {workspace_id:String} AND key_id = {key_id:String}`,
+			`SELECT count(*) as total_requests, countIf(outcome = 'VALID') as success_count, countIf(outcome = 'USAGE_EXCEEDED') as failure_count FROM default.key_verifications_raw_v2 WHERE workspace_id = {workspace_id:String} AND key_id = {key_id:String}`,
 			map[string]string{
 				"workspace_id": h.Resources().UserWorkspace.ID,
 				"key_id":       keyResponse.KeyID,
@@ -203,7 +203,7 @@ func RunUsageLimitTest(
 	require.Eventually(t, func() bool {
 		metricsCount := uint64(0)
 		uniqueCount := uint64(0)
-		row := h.CH.Conn().QueryRow(ctx, fmt.Sprintf(`SELECT count(*) as total_requests, count(DISTINCT request_id) as unique_requests FROM metrics.raw_api_requests_v1 WHERE workspace_id = '%s';`, h.Resources().UserWorkspace.ID))
+		row := h.CH.Conn().QueryRow(ctx, fmt.Sprintf(`SELECT count(*) as total_requests, count(DISTINCT request_id) as unique_requests FROM default.api_requests_raw_v2 WHERE workspace_id = '%s';`, h.Resources().UserWorkspace.ID))
 
 		err := row.Scan(&metricsCount, &uniqueCount)
 		require.NoError(t, err)

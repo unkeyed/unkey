@@ -27,7 +27,7 @@ func Test200_Success(t *testing.T) {
 
 	// Buffer some key verifications
 	for i := range 5 {
-		h.ClickHouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
+		h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),
 			WorkspaceID: workspace.ID,
@@ -89,7 +89,7 @@ func Test200_PermissionFiltersByApiId(t *testing.T) {
 
 	// Buffer verifications for api1
 	for i := range 3 {
-		h.ClickHouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
+		h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),
 			WorkspaceID: workspace.ID,
@@ -104,7 +104,7 @@ func Test200_PermissionFiltersByApiId(t *testing.T) {
 
 	// Buffer verifications for api2 (should NOT be returned)
 	for i := range 5 {
-		h.ClickHouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
+		h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),
 			WorkspaceID: workspace.ID,
@@ -170,7 +170,7 @@ func Test200_PermissionFiltersByKeySpaceId(t *testing.T) {
 
 	// Buffer verifications for api1
 	for i := range 3 {
-		h.ClickHouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
+		h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),
 			WorkspaceID: workspace.ID,
@@ -185,7 +185,7 @@ func Test200_PermissionFiltersByKeySpaceId(t *testing.T) {
 
 	// Buffer verifications for api2 (should NOT be returned)
 	for i := range 5 {
-		h.ClickHouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
+		h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),
 			WorkspaceID: workspace.ID,

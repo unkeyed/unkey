@@ -105,7 +105,7 @@ func TestLimitSuccessfully(t *testing.T) {
 		require.Equal(t, int64(100), res.Body.Data.Limit)
 		require.Equal(t, int64(99), res.Body.Data.Remaining)
 		require.Greater(t, res.Body.Data.Reset, int64(0))
-		require.Nil(t, res.Body.Data.OverrideId, "No override should be applied")
+		require.Empty(t, res.Body.Data.OverrideId, "No override should be applied")
 	})
 
 	// Test basic rate limiting
@@ -127,13 +127,13 @@ func TestLimitSuccessfully(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %v", res.Body)
 
-		row := schema.RatelimitRequestV1{}
+		row := schema.Ratelimit{}
 		require.Eventually(t, func() bool {
 
-			data, err := clickhouse.Select[schema.RatelimitRequestV1](
+			data, err := clickhouse.Select[schema.Ratelimit](
 				ctx,
 				h.ClickHouse.Conn(),
-				"SELECT * FROM ratelimits.raw_ratelimits_v1 WHERE workspace_id = {workspace_id:String} AND namespace_id = {namespace_id:String}",
+				"SELECT * FROM default.ratelimits_raw_v2 WHERE workspace_id = {workspace_id:String} AND namespace_id = {namespace_id:String}",
 				map[string]string{
 					"workspace_id": h.Resources().UserWorkspace.ID,
 					"namespace_id": namespaceID,
@@ -221,7 +221,7 @@ func TestLimitSuccessfully(t *testing.T) {
 		require.Equal(t, int64(limit), res.Body.Data.Limit) // Should use override limit
 		require.Equal(t, int64(199), res.Body.Data.Remaining)
 		require.NotNil(t, res.Body.Data.OverrideId)
-		require.Equal(t, overrideID, *res.Body.Data.OverrideId)
+		require.Equal(t, overrideID, res.Body.Data.OverrideId)
 	})
 
 	// Test with rate limit override
@@ -266,7 +266,7 @@ func TestLimitSuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Data.OverrideId)
-		require.Equal(t, overrideID, *res.Body.Data.OverrideId)
+		require.Equal(t, overrideID, res.Body.Data.OverrideId)
 		require.True(t, res.Body.Data.Success)
 		require.Equal(t, int64(limit), res.Body.Data.Limit) // Should use override limit
 		require.Equal(t, int64(199), res.Body.Data.Remaining)
@@ -424,7 +424,7 @@ func TestLimitSuccessfully(t *testing.T) {
 		require.Equal(t, int64(overrideLimit), res1.Body.Data.Limit) // Should use override limit
 		require.Equal(t, int64(2), res1.Body.Data.Remaining)         // 3-1=2 remaining
 		require.NotNil(t, res1.Body.Data.OverrideId)
-		require.Equal(t, overrideID, *res1.Body.Data.OverrideId)
+		require.Equal(t, overrideID, res1.Body.Data.OverrideId)
 
 		// Second request - should succeed
 		res2 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -444,7 +444,7 @@ func TestLimitSuccessfully(t *testing.T) {
 		require.False(t, res4.Body.Data.Success, "Request should be rate limited")
 		require.Equal(t, int64(0), res4.Body.Data.Remaining)
 		require.NotNil(t, res4.Body.Data.OverrideId)
-		require.Equal(t, overrideID, *res4.Body.Data.OverrideId)
+		require.Equal(t, overrideID, res4.Body.Data.OverrideId)
 	})
 }
 

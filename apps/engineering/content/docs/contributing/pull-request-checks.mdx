@@ -144,7 +144,7 @@ This ensures all values are properly escaped by ClickHouse's query engine.
 
 ### SQL Performance - ClickHouse
 
-When querying ClickHouse, we have to be careful about what we are joining or querying since that particular data might be huge. For example, not handling queries to metrics.raw_api_requests_v1 properly can be quite problematic.
+When querying ClickHouse, we have to be careful about what we are joining or querying since that particular data might be huge. For example, not handling queries to api_requests_raw_v2 properly can be quite problematic.
 
 To improve query performance:
 - Filter data as early as possible in the query
@@ -163,8 +163,8 @@ To improve query performance:
             r.identifier,
             r.passed,
             m.host,
-          FROM ratelimits.raw_ratelimits_v1 r
-          LEFT JOIN metrics.raw_api_requests_v1 m ON
+          FROM ratelimits_raw_v2 r
+          LEFT JOIN api_requests_raw_v2 m ON
             r.request_id = m.request_id
           WHERE r.workspace_id = {workspaceId: String}
             AND r.namespace_id = {namespaceId: String}
@@ -177,8 +177,8 @@ To improve query performance:
         LIMIT {limit: Int}
 ````
 
-Imagine this query: we are trying to get ratelimit details by joining with raw_api_requests_v1.
-Since raw_api_requests_v1 might be huge, the query can take a long time to execute or consume too much memory.
+Imagine this query: we are trying to get ratelimit details by joining with api_requests_raw_v2.
+Since api_requests_raw_v2 might be huge, the query can take a long time to execute or consume too much memory.
 To optimize this, we should first filter as much as possible, with time and workspace_id being the most important factors.
 We can make the query much faster by eliminating unrelated workspaceId's and irrelevant time ranges.
 
@@ -192,7 +192,7 @@ WITH filtered_ratelimits AS (
         namespace_id,
         identifier,
         toUInt8(passed) as status
-    FROM ratelimits.raw_ratelimits_v1 r
+    FROM ratelimits_raw_v2 r
     WHERE workspace_id = {workspaceId: String}
         AND namespace_id = {namespaceId: String}
         AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
@@ -212,7 +212,7 @@ SELECT
     m.host,
 FROM filtered_ratelimits fr
 LEFT JOIN (
-    SELECT * FROM metrics.raw_api_requests_v1
+    SELECT * FROM api_requests_raw_v2
     -- Those two filters are doing the heavy lifting now
     WHERE workspace_id = {workspaceId: String}
     AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
@@ -228,19 +228,19 @@ Finally, don't forget about adding indexes for our filters. While this step is o
 -- Composite index for workspace + time filtering
 -- Most effective when filtering workspace_id first, then time
 -- MINMAX type creates a sparse index with min/max values
-ALTER TABLE ratelimits.raw_ratelimits_v1
+ALTER TABLE ratelimits_raw_v2
     ADD INDEX idx_workspace_time (workspace_id, time) TYPE minmax GRANULARITY 1;
 
 -- Single-column index for JOIN operations
 -- Speeds up request_id matching between tables
 -- GRANULARITY 1 means finest possible index precision
-ALTER TABLE ratelimits.raw_ratelimits_v1
+ALTER TABLE ratelimits_raw_v2
     ADD INDEX idx_request_id (request_id) TYPE minmax GRANULARITY 1;
 
 -- Same indexes on metrics table to optimize both sides of JOIN
-ALTER TABLE metrics.raw_api_requests_v1
+ALTER TABLE api_requests_raw_v2
     ADD INDEX idx_workspace_time (workspace_id, time) TYPE minmax GRANULARITY 1;
-ALTER TABLE metrics.raw_api_requests_v1
+ALTER TABLE api_requests_raw_v2
     ADD INDEX idx_request_id (request_id) TYPE minmax GRANULARITY 1;
 ```
 

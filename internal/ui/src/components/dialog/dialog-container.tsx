@@ -19,6 +19,8 @@ type DialogContainerProps = PropsWithChildren<{
   contentClassName?: string;
   preventAutoFocus?: boolean;
   subTitle?: string;
+  showCloseWarning?: boolean;
+  onAttemptClose?: () => void;
 }>;
 
 const DialogContainer = ({
@@ -31,6 +33,8 @@ const DialogContainer = ({
   footer,
   contentClassName,
   preventAutoFocus = true,
+  showCloseWarning = false,
+  onAttemptClose,
 }: DialogContainerProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -47,6 +51,8 @@ const DialogContainer = ({
             e.preventDefault();
           }
         }}
+        showCloseWarning={showCloseWarning}
+        onAttemptClose={onAttemptClose}
       >
         <DefaultDialogHeader title={title} subTitle={subTitle} />
         <DefaultDialogContentArea className={contentClassName}>{children}</DefaultDialogContentArea>

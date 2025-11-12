@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_create_key"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
@@ -288,4 +290,47 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, sharedIdentityID, identity.ID)
 	require.Equal(t, externalID, identity.ExternalID)
+}
+
+func TestCreateKeyWithCreditsRemainingNull(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
+	}
+
+	h.Register(route)
+
+	// Create API using testutil helper
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+	})
+
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	t.Run("credits.remaining null without refill should succeed", func(t *testing.T) {
+		req := handler.Request{
+			ApiId: api.ID,
+			Credits: &openapi.KeyCreditsData{
+				Remaining: nullable.NewNullNullable[int64](),
+			},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotEmpty(t, res.Body.Data.KeyId)
+		require.NotEmpty(t, res.Body.Data.Key)
+	})
 }

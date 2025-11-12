@@ -57,7 +57,7 @@ describe.each([10, 100, 1_000, 10_000, 100_000])("with %i requests", (n) => {
       }
 
       const count = await ch.querier.query({
-        query: "SELECT count(*) as count FROM metrics.raw_api_requests_v1",
+        query: "SELECT count(*) as count FROM default.api_requests_raw_v2",
         schema: z.object({ count: z.number().int() }),
       })({});
 

@@ -197,7 +197,7 @@ func NewHarness(t *testing.T) *Harness {
 		}),
 		Caches: caches,
 		middleware: []zen.Middleware{
-			zen.WithTracing(),
+			zen.WithObservability(),
 			zen.WithLogging(logger),
 			zen.WithErrorHandling(logger),
 			zen.WithValidation(validator),

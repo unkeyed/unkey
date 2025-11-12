@@ -93,6 +93,9 @@ services:
       UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       UNKEY_KAFKA_BROKERS: "kafka:9092"
       UNKEY_CLICKHOUSE_ANALYTICS_URL: "http://clickhouse:8123/default"
+      UNKEY_PPROF_ENABLED: "true"
+      UNKEY_PPROF_USERNAME: "admin"
+      UNKEY_PPROF_PASSWORD: "password"
 
   redis:
     networks:
@@ -393,6 +396,8 @@ services:
       # Depot-specific configuration (only needed when UNKEY_BUILD_BACKEND=depot)
       UNKEY_DEPOT_API_URL: "https://api.depot.dev"
       UNKEY_DEPOT_PROJECT_REGION: "us-east-1"
+
+      UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
 
   otel:
     networks:

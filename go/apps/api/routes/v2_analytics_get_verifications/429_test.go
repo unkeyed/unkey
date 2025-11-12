@@ -27,8 +27,8 @@ func Test429_QueryQuotaExceeded(t *testing.T) {
 	now := h.Clock.Now().UnixMilli()
 
 	// Buffer some key verifications
-	for i := 0; i < 5; i++ {
-		h.ClickHouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
+	for i := range 5 {
+		h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),
 			WorkspaceID: workspace.ID,
