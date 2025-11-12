@@ -10,7 +10,7 @@ import (
 
 // EventBuffer defines the interface for buffering events to be sent to ClickHouse.
 type EventBuffer interface {
-	BufferApiRequest(schema.ApiRequestV2)
+	BufferApiRequest(schema.ApiRequest)
 }
 
 // WithMetrics returns middleware that collects metrics about each request,
@@ -62,7 +62,7 @@ func WithMetrics(eventBuffer EventBuffer, region string) Middleware {
 					ipAddress = s.Location()
 				}
 
-				eventBuffer.BufferApiRequest(schema.ApiRequestV2{
+				eventBuffer.BufferApiRequest(schema.ApiRequest{
 					QueryString:     "",
 					QueryParams:     map[string][]string{},
 					WorkspaceID:     s.WorkspaceID,

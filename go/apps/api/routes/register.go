@@ -61,10 +61,9 @@ import (
 
 // here we register all of the routes.
 // this function runs during startup.
-func Register(srv *zen.Server, svc *Services) {
+func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	withObservability := zen.WithObservability()
-	withMetrics := zen.WithMetrics(svc.ClickHouse)
-
+	withMetrics := zen.WithMetrics(svc.ClickHouse, info)
 	withLogging := zen.WithLogging(svc.Logger)
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
 	withErrorHandling := zen.WithErrorHandling(svc.Logger)
@@ -90,6 +89,7 @@ func Register(srv *zen.Server, svc *Services) {
 		chproxyMiddlewares := []zen.Middleware{
 			withMetrics,
 			withLogging,
+			withObservability,
 			withPanicRecovery,
 			withErrorHandling,
 		}
@@ -122,6 +122,7 @@ func Register(srv *zen.Server, svc *Services) {
 	if svc.PprofEnabled {
 		pprofMiddlewares := []zen.Middleware{
 			withLogging,
+			withObservability,
 			withPanicRecovery,
 			withErrorHandling,
 		}
@@ -591,22 +592,25 @@ func Register(srv *zen.Server, svc *Services) {
 	// ---------------------------------------------------------------------------
 	// misc
 
-	srv.RegisterRoute([]zen.Middleware{
+	var miscMiddlewares = []zen.Middleware{
 		withObservability,
 		withMetrics,
 		withLogging,
 		withPanicRecovery,
 		withErrorHandling,
-	}, &reference.Handler{
-		Logger: svc.Logger,
-	})
-	srv.RegisterRoute([]zen.Middleware{
-		withObservability,
-		withMetrics,
-		withLogging,
-		withPanicRecovery,
-		withErrorHandling,
-	}, &openapi.Handler{
-		Logger: svc.Logger,
-	})
+	}
+
+	srv.RegisterRoute(
+		miscMiddlewares,
+		&reference.Handler{
+			Logger: svc.Logger,
+		},
+	)
+
+	srv.RegisterRoute(
+		miscMiddlewares,
+		&openapi.Handler{
+			Logger: svc.Logger,
+		},
+	)
 }
