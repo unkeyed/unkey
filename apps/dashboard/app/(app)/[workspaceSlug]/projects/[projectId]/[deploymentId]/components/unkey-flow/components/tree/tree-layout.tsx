@@ -25,6 +25,20 @@ export function TreeLayout<T extends TreeNode>({
     [nodeSpacing]
   );
 
+  const parentMap = useMemo(() => {
+    const map = new Map<string, T>();
+    const buildMap = (node: T) => {
+      if (node.children) {
+        for (const child of node.children) {
+          map.set(child.id, node);
+          buildMap(child as T);
+        }
+      }
+    };
+    buildMap(data);
+    return map;
+  }, [data]);
+
   const allNodes = useMemo(() => {
     const flatten = (node: T): T[] => {
       const result: T[] = [node];
@@ -81,16 +95,21 @@ export function TreeLayout<T extends TreeNode>({
   if (!layout) {
     return (
       <>
-        {allNodes.map((node) => (
-          <TreeElementNode
-            key={node.id}
-            id={node.id}
-            position={{ x: 0, y: 0 }}
-            onMeasure={handleNodeMeasure}
-          >
-            {renderNode(node, { x: 0, y: 0 })}
-          </TreeElementNode>
-        ))}
+        {allNodes.map((node) => {
+          const parent = parentMap.get(node.id);
+          const dummyPosition = { x: 0, y: 0 };
+
+          return (
+            <TreeElementNode
+              key={node.id}
+              id={node.id}
+              position={dummyPosition}
+              onMeasure={handleNodeMeasure}
+            >
+              {renderNode(node, dummyPosition, parent)}
+            </TreeElementNode>
+          );
+        })}
       </>
     );
   }
@@ -110,16 +129,19 @@ export function TreeLayout<T extends TreeNode>({
         )
       )}
 
-      {layout.nodes.map((positioned) => (
-        <TreeElementNode
-          key={positioned.node.id}
-          id={positioned.node.id}
-          position={positioned.position}
-          onMeasure={handleNodeMeasure}
-        >
-          {renderNode(positioned.node, positioned.position)}
-        </TreeElementNode>
-      ))}
+      {layout.nodes.map((positioned) => {
+        const parent = parentMap.get(positioned.node.id);
+        return (
+          <TreeElementNode
+            key={positioned.node.id}
+            id={positioned.node.id}
+            position={positioned.position}
+            onMeasure={handleNodeMeasure}
+          >
+            {renderNode(positioned.node, positioned.position, parent)}
+          </TreeElementNode>
+        );
+      })}
     </>
   );
 }
