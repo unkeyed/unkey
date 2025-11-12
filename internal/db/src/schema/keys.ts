@@ -163,7 +163,7 @@ export const keyMigrations = mysqlTable(
   {
     id: varchar("id", { length: 255 }),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    algorithm: mysqlEnum("algorithm", ["github.com/seamapi/prefixed-api-key"]).notNull(),
+    algorithm: mysqlEnum("algorithm", ["sha256", "github.com/seamapi/prefixed-api-key"]).notNull(),
   },
   (table) => ({
     idWorkspacePk: primaryKey({ columns: [table.id, table.workspaceId] }),
