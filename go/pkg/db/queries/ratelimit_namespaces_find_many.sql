@@ -14,4 +14,4 @@ SELECT *,
        ) as overrides
 FROM `ratelimit_namespaces` ns
 WHERE ns.workspace_id = sqlc.arg(workspace_id)
-AND ns.id IN (sqlc.slice(namespaces)) OR ns.name IN (sqlc.slice(namespaces));
+  AND (ns.id IN (sqlc.slice(namespaces)) OR ns.name IN (sqlc.slice(namespaces)));

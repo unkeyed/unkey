@@ -27,7 +27,7 @@ SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
        ) as overrides
 FROM ` + "`" + `ratelimit_namespaces` + "`" + ` ns
 WHERE ns.workspace_id = ?
-AND ns.id IN (/*SLICE:namespaces*/?) OR ns.name IN (/*SLICE:namespaces*/?)
+  AND (ns.id IN (/*SLICE:namespaces*/?) OR ns.name IN (/*SLICE:namespaces*/?))
 `
 
 type FindManyRatelimitNamespacesParams struct {
@@ -62,7 +62,7 @@ type FindManyRatelimitNamespacesRow struct {
 //	       ) as overrides
 //	FROM `ratelimit_namespaces` ns
 //	WHERE ns.workspace_id = ?
-//	AND ns.id IN (/*SLICE:namespaces*/?) OR ns.name IN (/*SLICE:namespaces*/?)
+//	  AND (ns.id IN (/*SLICE:namespaces*/?) OR ns.name IN (/*SLICE:namespaces*/?))
 func (q *Queries) FindManyRatelimitNamespaces(ctx context.Context, db DBTX, arg FindManyRatelimitNamespacesParams) ([]FindManyRatelimitNamespacesRow, error) {
 	query := findManyRatelimitNamespaces
 	var queryParams []interface{}

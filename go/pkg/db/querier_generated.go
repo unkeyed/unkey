@@ -660,7 +660,7 @@ type Querier interface {
 	//         ) as overrides
 	//  FROM `ratelimit_namespaces` ns
 	//  WHERE ns.workspace_id = ?
-	//  AND ns.id IN (/*SLICE:namespaces*/?) OR ns.name IN (/*SLICE:namespaces*/?)
+	//    AND (ns.id IN (/*SLICE:namespaces*/?) OR ns.name IN (/*SLICE:namespaces*/?))
 	FindManyRatelimitNamespaces(ctx context.Context, db DBTX, arg FindManyRatelimitNamespacesParams) ([]FindManyRatelimitNamespacesRow, error)
 	//FindManyRolesByIdOrNameWithPerms
 	//
