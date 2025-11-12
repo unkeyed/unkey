@@ -49,9 +49,11 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 		)
 	}
 
-	// h is the result of whatever algorithm we should use.
-	// The section below is expected to populate this and we can use it to look up a key in the db
+	// h is the hash result for the algorithm-specific lookup
+	// start is the prefix + first few chars for display/indexing
+	// Each algorithm is responsible for computing both values based on its key format
 	var h string
+	var start string
 
 	switch migration.Algorithm {
 	case db.KeyMigrationsAlgorithmGithubcomSeamapiPrefixedApiKey:
@@ -66,9 +68,26 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 				)
 			}
 
+			// Hash the long token for lookup
 			b := sha256.Sum256([]byte(parts[2]))
 			h = hex.EncodeToString(b[:])
+
+			// Extract start using the already-parsed parts
+			// Format: prefix_shortToken_longToken -> prefix_shor (first 4 chars of shortToken_longToken)
+			prefix := parts[0]                        // Can contain underscores (e.g., "my_company")
+			actualKey := parts[1] + "_" + parts[2]    // shortToken_longToken
+
+			if len(actualKey) >= 4 {
+				start = fmt.Sprintf("%s_%s", prefix, actualKey[:4])
+			} else {
+				start = fmt.Sprintf("%s_%s", prefix, actualKey)
+			}
 		}
+	case db.KeyMigrationsAlgorithmSha256:
+		return nil, emptyLog, fault.New(
+			"sha256 doesn't require a migration",
+			fault.Public("We could not find the requested key"),
+		)
 	default:
 		return nil, emptyLog, fault.New(
 			fmt.Sprintf("unsupported migration algorithm %s", migration.Algorithm),
@@ -86,7 +105,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 		err = db.Query.UpdateKeyHashAndMigration(ctx, s.db.RW(), db.UpdateKeyHashAndMigrationParams{
 			ID:                 key.Key.ID,
 			Hash:               newHash,
-			Start:              extractStart(rawKey),
+			Start:              start,
 			PendingMigrationID: sql.NullString{Valid: false, String: ""},
 			UpdatedAtM:         sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
@@ -106,33 +125,4 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 	}
 
 	return key, log, nil
-}
-
-// extractStart extracts the start value from a key, handling both prefixed and non-prefixed keys
-func extractStart(key string) string {
-	// Check if the key has a prefix (format: prefix_actualkey)
-	parts := strings.Split(key, "_")
-
-	// If there are 2 or more parts, it's a prefixed key
-	if len(parts) >= 2 {
-		// Extract the prefix
-		prefix := parts[0]
-		// Get the actual key part (everything after first underscore)
-		actualKey := strings.Join(parts[1:], "_")
-
-		if len(actualKey) >= 4 {
-			return fmt.Sprintf("%s_%s", prefix, actualKey[:4])
-		}
-
-		// If actual key is shorter than 4 chars, use what we have
-		// this should never happen, but just in case
-		return fmt.Sprintf("%s_%s", prefix, actualKey)
-	}
-
-	// No prefix, just return first 4 characters
-	if len(key) >= 4 {
-		return key[:4]
-	}
-
-	return key
 }
