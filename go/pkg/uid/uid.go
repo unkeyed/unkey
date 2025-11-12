@@ -6,7 +6,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/mr-tron/base58"
+	"github.com/unkeyed/unkey/go/pkg/base58"
 	"github.com/unkeyed/unkey/go/pkg/batchrand"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 )
