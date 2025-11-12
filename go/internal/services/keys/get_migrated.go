@@ -58,24 +58,30 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 	switch migration.Algorithm {
 	case db.KeyMigrationsAlgorithmGithubcomSeamapiPrefixedApiKey:
 		{
-			parts := strings.SplitN(rawKey, "_", 3)
-			err = assert.Equal(len(parts), 3, "Expected prefixed api keys to have 3 segments")
-			if err != nil {
+			// Parse from the right since shortToken and longToken never contain underscores,
+			// but prefix can (e.g., "my_company_shortToken_longToken")
+			parts := strings.Split(rawKey, "_")
+			if len(parts) < 3 {
 				return nil, emptyLog, fault.Wrap(
-					err,
+					fmt.Errorf("expected at least 3 segments, got %d", len(parts)),
 					fault.Code(codes.URN(codes.Auth.Authentication.Malformed.URN())),
 					fault.Public("Invalid key format"),
 				)
 			}
 
+			// Take last 2 parts as shortToken and longToken
+			longToken := parts[len(parts)-1]
+			shortToken := parts[len(parts)-2]
+			// Everything before is the prefix (may contain underscores)
+			prefix := strings.Join(parts[:len(parts)-2], "_")
+
 			// Hash the long token for lookup
-			b := sha256.Sum256([]byte(parts[2]))
+			b := sha256.Sum256([]byte(longToken))
 			h = hex.EncodeToString(b[:])
 
 			// Extract start using the already-parsed parts
 			// Format: prefix_shortToken_longToken -> prefix_shor (first 4 chars of shortToken_longToken)
-			prefix := parts[0]                        // Can contain underscores (e.g., "my_company")
-			actualKey := parts[1] + "_" + parts[2]    // shortToken_longToken
+			actualKey := shortToken + "_" + longToken
 
 			if len(actualKey) >= 4 {
 				start = fmt.Sprintf("%s_%s", prefix, actualKey[:4])
@@ -84,10 +90,12 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 			}
 		}
 	case db.KeyMigrationsAlgorithmSha256:
-		return nil, emptyLog, fault.New(
-			"sha256 doesn't require a migration",
-			fault.Public("We could not find the requested key"),
-		)
+		// If we have a sha256 already migrated key and we didn't find it in the first place
+		// then it doesn't exist, and there is nothing to migrate here.
+		return &KeyVerifier{
+			Status:  StatusNotFound,
+			message: "key does not exist",
+		}, emptyLog, nil
 	default:
 		return nil, emptyLog, fault.New(
 			fmt.Sprintf("unsupported migration algorithm %s", migration.Algorithm),

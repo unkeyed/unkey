@@ -4,7 +4,7 @@ properties:
     type: string
     minLength: 3
     description: The current hash of the key on your side
-    example: qwerty123
+    example: your_already_hashed_key
   name:
     type: string
     minLength: 1
