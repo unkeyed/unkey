@@ -116,7 +116,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		require.Len(t, keydata.Ratelimits, 1)
 	})
 
-	t.Run("Finds the correct id's and doesnt double insert", func(t *testing.T) {
+	t.Run("Finds the correct ids and doesn't double insert", func(t *testing.T) {
 		// Generate a new key hash for this test
 		otherGeneratedKey, err := prefixedapikey.GenerateAPIKey(&prefixedapikey.GenerateAPIKeyOptions{
 			KeyPrefix: "unkeyed",
