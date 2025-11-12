@@ -132,8 +132,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
-			key := cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: row.Name}
-			results[key] = result
+			// Cache by namespace name
+			nameKey := cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: row.Name}
+			results[nameKey] = result
+
+			// Also cache by namespace ID to support ID-based lookups
+			idKey := cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: row.ID}
+			results[idKey] = result
 		}
 
 		return results, nil
@@ -418,7 +423,10 @@ func (h *Handler) createMissingNamespaces(
 	for _, key := range missingKeys {
 		if ns, ok := createdNamespaces[key]; ok {
 			namespaces[key] = ns
+			// Cache by both name and ID
 			h.RatelimitNamespaceCache.Set(ctx, key, ns)
+			idKey := cache.ScopedKey{WorkspaceID: key.WorkspaceID, Key: ns.ID}
+			h.RatelimitNamespaceCache.Set(ctx, idKey, ns)
 		} else {
 			// Namespace was created by another request, fetch it
 			loader, err := namespaceLoader(ctx, []cache.ScopedKey{key})
@@ -431,7 +439,10 @@ func (h *Handler) createMissingNamespaces(
 
 			if ns, ok := loader[key]; ok {
 				namespaces[key] = ns
+				// Cache by both name and ID
 				h.RatelimitNamespaceCache.Set(ctx, key, ns)
+				idKey := cache.ScopedKey{WorkspaceID: key.WorkspaceID, Key: ns.ID}
+				h.RatelimitNamespaceCache.Set(ctx, idKey, ns)
 			} else {
 				return fault.New("namespace not found after duplicate key error")
 			}
