@@ -469,7 +469,7 @@ func (s *Seeder) generateVerifications(ctx context.Context, workspaceID string, 
 		}
 
 		// Use BufferKeyVerification to let the clickhouse client batch automatically
-		s.clickhouse.BufferKeyVerificationV2(schema.KeyVerificationV2{
+		s.clickhouse.BufferKeyVerification(schema.KeyVerification{
 			RequestID:    uid.New("req"),
 			Time:         timestamp.UnixMilli(),
 			WorkspaceID:  workspaceID,

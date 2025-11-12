@@ -307,7 +307,11 @@ func Run(ctx context.Context, cfg Config) error {
 		PprofPassword:              cfg.PprofPassword,
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
-	})
+	},
+		zen.InstanceInfo{
+			ID:     cfg.InstanceID,
+			Region: cfg.Region,
+		})
 
 	if cfg.Listener == nil {
 		// Create listener from HttpPort (production)
