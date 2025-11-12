@@ -101,12 +101,12 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 		return nil, fmt.Errorf("gateway %s is disabled", config.GetDeployment().GetId())
 	}
 
-	if len(config.GetVms()) == 0 {
+	if len(config.GetInstances()) == 0 {
 		return nil, fmt.Errorf("no VMs available for gateway %s", config.GetDeployment().GetId())
 	}
 
 	availableVms := make([]db.Vm, 0)
-	for _, vm := range config.GetVms() {
+	for _, vm := range config.GetInstances() {
 		dbVm, hit, err := s.vmCache.SWR(ctx, vm.GetId(), func(ctx context.Context) (db.Vm, error) {
 			// refactor: this is bad BAD, we should really add a getMany method to the cache
 			return db.Query.FindVMById(ctx, s.db.RO(), vm.GetId())

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package partition.v1;
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/partition/v1;partitionv1";
+
+// InstanceConfig contains all configuration needed for a hostname
+// including deployment metadata and middleware configurations
+message InstanceConfig {
+    string address = 1;
+
+    int32 cpu_millicores = 2;
+
+    int32 memory_mb = 3;
+}
