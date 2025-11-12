@@ -405,7 +405,7 @@ const deploymentTree: TreeNode = {
       metadata: {
         type: "region",
         description: "3 availability zones",
-        zones: 1,
+        zones: 2,
         instances: 28,
         replicas: 2,
         power: 31,
@@ -420,6 +420,21 @@ const deploymentTree: TreeNode = {
         {
           id: "us-east-1-gw-9h4k-1",
           label: "gw-9h4k",
+          metadata: {
+            type: "instance",
+            description: "Instance replica",
+            replicas: 2,
+            power: "38%",
+            cpu: "47%",
+            memory: "26%",
+            latency: "6ms",
+            status: "active",
+            health: "healthy",
+          },
+        },
+        {
+          id: "us-east-1-gw-9h4k-1-123213",
+          label: "gw-9hasdsad4k",
           metadata: {
             type: "instance",
             description: "Instance replica",

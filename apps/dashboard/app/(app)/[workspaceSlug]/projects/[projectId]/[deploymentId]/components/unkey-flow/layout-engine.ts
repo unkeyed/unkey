@@ -27,6 +27,7 @@ type LayoutResult<T extends TreeNode> = {
     to: Point;
     parent: T;
     child: T;
+    waypoints?: Point[];
   }>;
 };
 
@@ -132,14 +133,17 @@ export class LayoutEngine<T extends TreeNode> {
 
   /**
    * Calculate positions for vertical tree layout (top to bottom).
-   * Each level gets Y position based on max height in that level.
-   * Nodes within level are centered horizontally.
+   * Children are distributed evenly across parent's horizontal span.
+   * Subtrees are spaced to prevent overlap between sibling subtrees.
    */
   private layoutVertical(root: T): PositionedNode<T>[] {
     const positioned: PositionedNode<T>[] = [];
-    const levelGroups = this.buildLevelGroups(root);
 
-    // Track vertical position as we process each level from top to bottom
+    // First pass: calculate subtree widths for all nodes
+    const subtreeWidths = this.calculateSubtreeWidths(root);
+
+    // Second pass: position nodes level by level
+    const levelGroups = this.buildLevelGroups(root);
     let currentY = 0;
 
     levelGroups.forEach((nodes, level) => {
@@ -156,52 +160,158 @@ export class LayoutEngine<T extends TreeNode> {
         })
       );
 
-      // Calculate total horizontal space needed for this level.
-      // Nodes are laid out left-to-right with spacing between them.
-      // Example: [Node1] gap [Node2] gap [Node3] → 3 nodes, 2 gaps
-      const totalWidth =
-        nodes.reduce((sum, n) => {
-          const dim = this.dimensions.get(n.id);
-          if (!dim) {
-            throw new Error(`Missing dimensions for node ${n.id}`);
-          }
-          return sum + dim.width;
-        }, 0) +
-        (nodes.length - 1) * this.config.spacing.x;
-
-      // Start from left edge so the level is centered around X=0.
-      // Negative value means we start to the left of center.
-      let currentX = -totalWidth / 2;
-
-      nodes.forEach((node) => {
-        const dim = this.dimensions.get(node.id);
-        if (!dim) {
-          throw new Error(`Missing dimensions for node ${node.id}`);
+      if (level === 0) {
+        // Root node: center at origin
+        const rootDim = this.dimensions.get(nodes[0].id);
+        if (!rootDim) {
+          throw new Error("Missing dimensions for root node");
         }
 
-        // Position stores the center point of each node for easier connection drawing.
-        // X: current position + half width = horizontal center
-        // Y: current level position + half height = vertical center
         positioned.push({
-          node,
-          position: {
-            x: currentX + dim.width / 2,
-            y: currentY + maxHeight / 2,
-          },
+          node: nodes[0],
+          position: { x: 0, y: currentY + maxHeight / 2 },
           level,
         });
+      } else {
+        // Position nodes at this level based on their parent and siblings
+        nodes.forEach((node) => {
+          const parent = this.findParent(root, node.id);
+          if (!parent) {
+            throw new Error(`Cannot find parent for node ${node.id}`);
+          }
 
-        // Move to next node's starting position (current node width + gap)
-        currentX += dim.width + this.config.spacing.x;
-      });
+          const parentPos = positioned.find((p) => p.node.id === parent.id);
+          if (!parentPos) {
+            throw new Error(`Parent position not found for ${node.id}`);
+          }
 
-      // Move down for next level (tallest node in current level + vertical spacing)
+          const siblings = parent.children || [];
+          const siblingIndex = siblings.findIndex((s) => s.id === node.id);
+
+          const dim = this.dimensions.get(node.id);
+          if (!dim) {
+            throw new Error(`Missing dimensions for node ${node.id}`);
+          }
+
+          // Calculate position using subtree widths to prevent overlap
+          const x = this.calculateChildXPosition(
+            parentPos.position.x,
+            siblingIndex,
+            siblings.map((s) => {
+              const subtreeW = subtreeWidths.get(s.id);
+              if (!subtreeW) {
+                throw new Error(
+                  `Cannot find the subtree width of node ${node.id}`
+                );
+              }
+              return subtreeW;
+            })
+          );
+
+          positioned.push({
+            node,
+            position: { x, y: currentY + maxHeight / 2 },
+            level,
+          });
+        });
+      }
+
       currentY += maxHeight + this.config.spacing.y;
     });
 
     return positioned;
   }
 
+  /**
+   * Calculate the horizontal width required for each node's entire subtree.
+   * Width includes the node itself plus all descendants laid out horizontally.
+   */
+  private calculateSubtreeWidths(root: T): Map<string, number> {
+    const widths = new Map<string, number>();
+
+    const calculate = (node: T): number => {
+      const nodeDim = this.dimensions.get(node.id);
+      if (!nodeDim) {
+        throw new Error(`Missing dimensions for node ${node.id}`);
+      }
+
+      if (!node.children || node.children.length === 0) {
+        // Leaf node: width is just the node itself
+        widths.set(node.id, nodeDim.width);
+        return nodeDim.width;
+      }
+
+      // Calculate width needed for all children's subtrees
+      const childSubtreeWidths = node.children.map((child) =>
+        calculate(child as T)
+      );
+      const totalChildWidth = childSubtreeWidths.reduce((sum, w) => sum + w, 0);
+      const childSpacing = (node.children.length - 1) * this.config.spacing.x;
+      const childrenWidth = totalChildWidth + childSpacing;
+
+      // Subtree width is the maximum of:
+      // 1. This node's width
+      // 2. Total width of children subtrees
+      const subtreeWidth = Math.max(nodeDim.width, childrenWidth);
+      widths.set(node.id, subtreeWidth);
+
+      return subtreeWidth;
+    };
+
+    calculate(root);
+    return widths;
+  }
+
+  /**
+   * Calculate X position for a child node based on subtree widths.
+   * Uses each child's subtree width (not just node width) for spacing.
+   */
+  private calculateChildXPosition(
+    parentX: number,
+    childIndex: number,
+    subtreeWidths: number[]
+  ): number {
+    const childCount = subtreeWidths.length;
+
+    if (childCount === 1) {
+      return parentX;
+    }
+
+    // Calculate total width needed for all subtrees + spacing
+    const totalSubtreeWidth = subtreeWidths.reduce((sum, w) => sum + w, 0);
+    const totalSpacing = (childCount - 1) * this.config.spacing.x;
+    const totalWidth = totalSubtreeWidth + totalSpacing;
+
+    // Start position (leftmost subtree's left edge)
+    const startX = parentX - totalWidth / 2;
+
+    // Calculate this child's X position (center of its subtree allocation)
+    let x = startX;
+    for (let i = 0; i < childIndex; i++) {
+      x += subtreeWidths[i] + this.config.spacing.x;
+    }
+    x += subtreeWidths[childIndex] / 2;
+
+    return x;
+  }
+
+  /**
+   * Find parent node of a given node ID
+   */
+  private findParent(root: T, childId: string): T | null {
+    if (root.children) {
+      for (const child of root.children) {
+        if (child.id === childId) {
+          return root;
+        }
+        const found = this.findParent(child as T, childId);
+        if (found) {
+          return found;
+        }
+      }
+    }
+    return null;
+  }
   /**
    * Build connection lines between parent and child nodes.
    * @throws Error if child node position not found
@@ -255,4 +365,99 @@ export class LayoutEngine<T extends TreeNode> {
 
     return connections;
   }
+
+  // /**
+  //  * Generate a formatted string representation of the calculated layout.
+  //  * Useful for debugging and understanding the spatial arrangement.
+  //  */
+  // logLayout(result: LayoutResult<T>): string {
+  //   const lines: string[] = [];
+
+  //   // Header
+  //   lines.push("=".repeat(80));
+  //   lines.push("TREE LAYOUT CALCULATION RESULT");
+  //   lines.push("=".repeat(80));
+  //   lines.push("");
+
+  //   // Group nodes by level
+  //   const levelGroups = new Map<number, PositionedNode<T>[]>();
+  //   result.nodes.forEach((node) => {
+  //     if (!levelGroups.has(node.level)) {
+  //       levelGroups.set(node.level, []);
+  //     }
+  //     levelGroups.get(node.level)!.push(node);
+  //   });
+
+  //   // Sort levels
+  //   const sortedLevels = Array.from(levelGroups.keys()).sort((a, b) => a - b);
+
+  //   // Print each level
+  //   sortedLevels.forEach((level) => {
+  //     const nodes = levelGroups.get(level)!;
+
+  //     lines.push(`LEVEL ${level}`);
+  //     lines.push("-".repeat(80));
+
+  //     // Sort nodes by X position for cleaner output
+  //     nodes.sort((a, b) => a.position.x - b.position.x);
+
+  //     nodes.forEach((positioned) => {
+  //       const dim = this.dimensions.get(positioned.node.id);
+  //       if (!dim)
+  //         throw new Error(`Missing dimensions for node ${positioned.node.id}`);
+
+  //       const nodeInfo = [
+  //         `  [${positioned.node.id}]`,
+  //         `label: "${positioned.node.label}"`,
+  //         `pos: (${positioned.position.x.toFixed(
+  //           1
+  //         )}, ${positioned.position.y.toFixed(1)})`,
+  //         `size: ${dim.width}×${dim.height}`,
+  //         positioned.node.children
+  //           ? `children: ${positioned.node.children.length}`
+  //           : "leaf",
+  //       ].join(" | ");
+
+  //       lines.push(nodeInfo);
+  //     });
+
+  //     lines.push("");
+  //   });
+
+  //   // Connection summary
+  //   lines.push("CONNECTIONS");
+  //   lines.push("-".repeat(80));
+  //   lines.push(`Total connections: ${result.connections.length}`);
+  //   lines.push("");
+
+  //   result.connections.forEach((conn) => {
+  //     const hasWaypoints = conn.waypoints && conn.waypoints.length > 0;
+  //     const routeType = hasWaypoints ? "orthogonal" : "direct";
+
+  //     let connStr = `  ${conn.parent.id} → ${conn.child.id}`;
+  //     connStr += ` [${routeType}]`;
+  //     connStr += ` from:(${conn.from.x.toFixed(1)},${conn.from.y.toFixed(1)})`;
+  //     connStr += ` to:(${conn.to.x.toFixed(1)},${conn.to.y.toFixed(1)})`;
+
+  //     if (hasWaypoints) {
+  //       connStr += ` via:[${conn
+  //         .waypoints!.map((p) => `(${p.x.toFixed(1)},${p.y.toFixed(1)})`)
+  //         .join(", ")}]`;
+  //     }
+
+  //     lines.push(connStr);
+  //   });
+
+  //   lines.push("");
+  //   lines.push("=".repeat(80));
+
+  //   return lines.join("\n");
+  // }
+
+  // /**
+  //  * Log layout to console with formatted output.
+  //  */
+  // printLayout(result: LayoutResult<T>): void {
+  //   console.log(this.logLayout(result));
+  // }
 }

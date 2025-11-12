@@ -5,7 +5,7 @@ import { GridPattern } from "./grid-pattern";
 
 const DEFAULT_MIN_ZOOM = 0.5;
 const DEFAULT_MAX_ZOOM = 3;
-const DEFAULT_ZOOM = 0.75;
+const DEFAULT_ZOOM = 1;
 const DEFAULT_ZOOM_SPEED = 0.002;
 const DEFAULT_GRID_SIZE = 25;
 const DEFAULT_DOT_RADIUS = 1.5;

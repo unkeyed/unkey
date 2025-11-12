@@ -49,7 +49,12 @@ export function TreeLayout<T extends TreeNode>({
     if (!isLayoutReady) {
       return null;
     }
-    return layoutEngine.calculate(data);
+    const result = layoutEngine.calculate(data);
+    if (process.env.NODE_ENV === "development") {
+      // layoutEngine.printLayout(result);
+    }
+
+    return result;
   }, [data, layoutEngine, isLayoutReady]);
 
   // Lock in first measurement for each node.
