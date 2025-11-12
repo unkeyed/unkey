@@ -319,7 +319,7 @@ func (s *Depot) processBuildStatus(
 					WorkspaceID:  workspaceID,
 					ProjectID:    projectID,
 					DeploymentID: deploymentID,
-					StepID:       string(vertex.Digest),
+					StepID:       vertex.Digest.String(),
 					Name:         vertex.Name,
 					Cached:       vertex.Cached,
 					HasLogs:      verticesWithLogs[vertex.Digest],
@@ -333,7 +333,7 @@ func (s *Depot) processBuildStatus(
 				WorkspaceID:  workspaceID,
 				ProjectID:    projectID,
 				DeploymentID: deploymentID,
-				StepID:       string(log.Vertex),
+				StepID:       log.Vertex.String(),
 				Time:         log.Timestamp.UnixMilli(),
 				Message:      string(log.Data),
 			})
