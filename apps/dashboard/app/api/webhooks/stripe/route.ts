@@ -2,7 +2,8 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { freeTierQuotas } from "@/lib/quotas";
-import Stripe from "stripe";
+import { getStripeClient } from "@/lib/stripe";
+import type Stripe from "stripe";
 
 export const runtime = "nodejs";
 
@@ -20,17 +21,7 @@ export const POST = async (req: Request): Promise<Response> => {
     );
   }
 
-  const stripeSecretKey = stripeEnv()?.STRIPE_SECRET_KEY;
-  if (!stripeSecretKey) {
-    throw new Error(
-      "STRIPE_SECRET_KEY environment variable is not set. This is required for Stripe API operations.",
-    );
-  }
-
-  const stripe = new Stripe(stripeSecretKey, {
-    apiVersion: "2023-10-16",
-    typescript: true,
-  });
+  const stripe: Stripe = getStripeClient();
 
   const event = stripe.webhooks.constructEvent(
     await req.text(),
