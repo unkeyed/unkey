@@ -85,7 +85,7 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
   const createWorkspace = trpc.workspace.create.useMutation({
     onSuccess: async ({ orgId }) => {
       setWorkspaceCreated(true);
-      await switchOrgMutation.mutateAsync(orgId);
+
       await switchOrgMutation.mutateAsync(orgId);
       try {
         await setLastUsedOrgCookie({ orgId });
@@ -93,7 +93,7 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
         console.error("Failed to persist last-used workspace:", error);
         // Continue anyway - cookie is a UX enhancement, not critical
       }
-      props.advance();
+
       props.advance();
     },
     onError: (error) => {
