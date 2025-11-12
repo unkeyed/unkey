@@ -1,11 +1,31 @@
 "use client";
 
-import { Bolt, ChartActivity, CircleCheck, Focus, Heart } from "@unkey/icons";
+import {
+  Bolt,
+  ChartActivity,
+  CircleCheck,
+  Focus,
+  Heart,
+  Layers3,
+} from "@unkey/icons";
 import { TreeConnectionLine, TreeLayout } from "./components/unkey-flow";
 import { InfiniteCanvas } from "./components/unkey-flow/components/canvas/infinite-canvas";
 // biome-ignore lint/style/useImportType: <explanation>
 import { TreeNode } from "./components/unkey-flow/types";
 import { cn } from "@unkey/ui/src/lib/utils";
+
+const buildParentMap = (
+  node: TreeNode,
+  parentMap = new Map<string, TreeNode>()
+): Map<string, TreeNode> => {
+  if (node.children) {
+    for (const child of node.children) {
+      parentMap.set(child.id, node);
+      buildParentMap(child, parentMap);
+    }
+  }
+  return parentMap;
+};
 
 const IngressNode = ({ node }: { node: TreeNode }) => (
   <div className="w-[70px] h-[20px] ring-4 rounded-full ring-grayA-5 bg-gray-9  flex items-center justify-center p-2.5 shadow-sm">
@@ -95,17 +115,125 @@ hover:ring-2 hover:ring-grayA-2 hover:scale-[1.02] transition-all duration-200 c
   );
 };
 
-const InstanceNode = ({ node }: { node: TreeNode }) => (
-  <div className="w-[300px] h-[70px] border border-grayA-6 rounded-[14px] bg-gray-2">
-    <div className="flex items-center justify-between px-4 h-full">
-      <div>
-        <div className="font-medium">{node.label}</div>
-        <div className="text-xs text-gray-10">{node.metadata.description}</div>
+const InstanceNode = ({
+  node,
+  parent,
+}: {
+  node: TreeNode;
+  parent?: TreeNode;
+}) => {
+  const regionColorMap: Record<
+    string,
+    { bg: string; text: string; glow: string }
+  > = {
+    "us-east-1": {
+      bg: "bg-blueA-2",
+      text: "text-blue-10",
+      glow: "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.15),0_0_0_1px_hsl(var(--grayA-6)),0_0_30px_color-mix(in_srgb,hsl(var(--blueA-9))_15%,transparent)]",
+    },
+    "ap-east-1": {
+      bg: "bg-redA-2",
+      text: "text-red-10",
+      glow: "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.15),0_0_0_1px_hsl(var(--grayA-6)),0_0_30px_color-mix(in_srgb,hsl(var(--redA-9))_15%,transparent)]",
+    },
+    "ap-south-1": {
+      bg: "bg-orangeA-2",
+      text: "text-orange-10",
+      glow: "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.15),0_0_0_1px_hsl(var(--grayA-6)),0_0_30px_color-mix(in_srgb,hsl(var(--orangeA-9))_15%,transparent)]",
+    },
+    "eu-west-1": {
+      bg: "bg-blueA-2",
+      text: "text-blue-10",
+      glow: "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.15),0_0_0_1px_hsl(var(--grayA-6)),0_0_30px_color-mix(in_srgb,hsl(var(--blueA-9))_15%,transparent)]",
+    },
+  };
+
+  const colors = parent?.id
+    ? regionColorMap[parent.id] ?? {
+        bg: "bg-grayA-2",
+        text: "text-gray-11",
+        glow: "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.15),0_0_0_1px_hsl(var(--grayA-6)),0_0_30px_hsl(var(--grayA-3))]",
+      }
+    : {
+        bg: "bg-grayA-2",
+        text: "text-gray-11",
+        glow: "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.15),0_0_0_1px_hsl(var(--grayA-6)),0_0_30px_hsl(var(--grayA-3))]",
+      };
+
+  return (
+    <div
+      className={cn(
+        "w-[282px] h-[100px] border border-grayA-4 rounded-[14px] flex flex-col bg-white dark:bg-black shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)]",
+        colors.glow,
+        "hover:ring-2 hover:ring-grayA-2 hover:scale-[1.02] transition-all duration-200 cursor-pointer hover:ring-offset-0"
+      )}
+    >
+      <div className="border-b border-grayA-4 flex px-3 py-2.5 rounded-t-[14px]">
+        <div className="flex items-center justify-between gap-3">
+          <div
+            className={cn(
+              "border rounded-[10px] size-9 flex items-center justify-center border-grayA-5",
+              colors.bg
+            )}
+          >
+            <Layers3 iconSize="sm-medium" className={colors.text} />
+          </div>
+          <div className="flex flex-col gap-[3px] justify-center h-9 py-2">
+            <div className="text-accent-12 font-medium text-xs font-mono">
+              {node.label}
+            </div>
+            <div className="text-gray-9 text-[11px]">
+              {node.metadata.description}
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-2 items-center ml-auto">
+          <div className="border bg-gray-1 border-grayA-3 h-11 rounded-lg w-8">
+            <div className="h-6 border-b border-grayA-3 relative">
+              <StatusDot variant="success" />
+            </div>
+            <div className="h-5 bg-grayA-2 pl-1 pt-[3px]">
+              <CircleCheck className="text-gray-9" iconSize="sm-regular" />
+            </div>
+          </div>
+          <div className="border bg-gray-1 border-grayA-3 h-11 rounded-lg w-8 ml-auto">
+            <div className="h-6 border-b border-grayA-3 relative">
+              <StatusDot variant="info" />
+            </div>
+            <div className="h-5 bg-grayA-2 pl-1 pt-[3px]">
+              <Heart className="text-gray-9" iconSize="sm-regular" />
+            </div>
+          </div>
+        </div>
       </div>
-      <div className="text-xs text-gray-11">CPU: {node.metadata.cpu}</div>
+      <div className="p-1 flex items-center h-full bg-grayA-2 rounded-b-[14px]">
+        <div className="size-[22px] bg-grayA-3 rounded-full p-[3px] flex items-center justify-center mr-1.5">
+          {parent?.metadata.flagComponent}
+        </div>
+        <div className="bg-grayA-3 p-1.5 flex items-center justify-between rounded-full h-5 gap-1.5">
+          <ChartActivity iconSize="sm-medium" className="shrink-0" />
+          <span className="text-gray-9 text-[10px] tabular-nums">
+            {node.metadata.instances}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 ml-auto">
+          <div className="bg-grayA-3 p-1.5 flex items-center justify-between rounded-full h-5 gap-1.5">
+            <Bolt iconSize="sm-medium" className="shrink-0" />
+            <span className="text-gray-9 text-[10px] tabular-nums">
+              {node.metadata.power}%
+            </span>
+          </div>
+          <div className="bg-grayA-3 p-1.5 flex items-center justify-between rounded-full h-5 gap-1.5">
+            <Focus iconSize="sm-regular" className="shrink-0" />
+            <span className="text-gray-9 text-[10px] tabular-nums">
+              {node.metadata.storage}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const DefaultNode = ({ node }: { node: TreeNode }) => (
   <div className="w-[500px] h-[70px] border border-grayA-4 rounded-[14px] bg-gray-1 flex items-center justify-center">
@@ -121,16 +249,19 @@ const nodeComponents = {
 } as const;
 
 export default function DeploymentDetailsPage() {
+  const parentMap = buildParentMap(deploymentTree);
+
   return (
     <InfiniteCanvas>
       <TreeLayout
         data={deploymentTree}
         nodeSpacing={{ x: 25, y: 150 }}
         renderNode={(node) => {
+          const parent = parentMap.get(node.id);
           const NodeComponent =
             nodeComponents[node.metadata.type as keyof typeof nodeComponents] ??
             DefaultNode;
-          return <NodeComponent node={node} />;
+          return <NodeComponent node={node} parent={parent} />;
         }}
         renderConnection={(from, to, parent, child) => {
           const childIndex =
@@ -423,11 +554,14 @@ const deploymentTree: TreeNode = {
           metadata: {
             type: "instance",
             description: "Instance replica",
-            replicas: 2,
-            power: "38%",
             cpu: "47%",
             memory: "26%",
-            latency: "6ms",
+            instances: 28,
+            replicas: 2,
+            power: 31,
+            storage: "768mi",
+            bandwidth: "1gb",
+            latency: "2.4ms",
             status: "active",
             health: "healthy",
           },
@@ -472,7 +606,9 @@ const deploymentTree: TreeNode = {
           label: "gw-7f2c",
           metadata: {
             type: "instance",
+            instances: 24,
             description: "Instance replica",
+            storage: "512mi",
             replicas: 2,
             power: "35%",
             cpu: "44%",

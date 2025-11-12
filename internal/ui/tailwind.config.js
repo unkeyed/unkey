@@ -48,11 +48,20 @@ export default {
 const getColor = (colorVar, { opacityVariable, opacityValue }) => {
   // For alpha colors, we need to extract the alpha from the variable itself
   // to avoid the syntax error in the generated CSS
-  const alphaColors = ["grayA", "errorA", "successA", "warningA", "orangeA", "infoA"];
+  const alphaColors = [
+    "grayA",
+    "errorA",
+    "successA",
+    "warningA",
+    "orangeA",
+    "infoA",
+    "redA",
+    "grassA",
+    "blueA",
+  ];
   if (alphaColors.some((color) => colorVar.includes(color))) {
     return `hsla(var(--${colorVar.replace("--", "")}))`;
   }
-
   if (opacityValue !== undefined) {
     return `hsla(var(${colorVar}), ${opacityValue})`;
   }
@@ -69,18 +78,23 @@ function generateRadixColors() {
     "info",
     "infoA",
     "success",
-    "successA", // Added tealA
+    "successA",
     "orange",
     "orangeA",
     "warning",
-    "warningA", // Added amberA
+    "warningA",
     "error",
-    "errorA", // Added tomatoA
+    "errorA",
     "feature",
-    "accent", // Also labeled as "brand" in Figma colors
+    "accent",
     "base",
+    "red",
+    "redA",
+    "grass",
+    "grassA",
+    "blue",
+    "blueA",
   ];
-
   const colors = {};
   colorNames.forEach((name) => {
     colors[name] = {};
@@ -88,6 +102,5 @@ function generateRadixColors() {
       colors[name][i] = (params) => getColor(`--${name}-${i}`, params);
     }
   });
-
   return colors;
 }
