@@ -1,11 +1,12 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
+import { getStripeClient } from "@/lib/stripe";
 import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
-import Stripe from "stripe";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
+import { clearWorkspaceCache } from "../workspace/getCurrent";
 export const createSubscription = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
@@ -15,6 +16,7 @@ export const createSubscription = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    const stripe = getStripeClient();
     const e = stripeEnv();
     if (!e) {
       throw new TRPCError({
@@ -22,11 +24,6 @@ export const createSubscription = t.procedure
         message: "Stripe is not set up",
       });
     }
-
-    const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
-      apiVersion: "2023-10-16",
-      typescript: true,
-    });
 
     const product = await stripe.products.retrieve(input.productId);
 
@@ -119,4 +116,7 @@ export const createSubscription = t.procedure
 
     // Invalidate workspace cache after subscription creation
     await invalidateWorkspaceCache(ctx.tenant.id);
+
+    // Also clear the tRPC workspace cache to ensure fresh data on next request
+    clearWorkspaceCache(ctx.tenant.id);
   });

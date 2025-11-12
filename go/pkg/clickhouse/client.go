@@ -25,8 +25,8 @@ type clickhouse struct {
 	apiRequests      *batch.BatchProcessor[schema.ApiRequest]
 	keyVerifications *batch.BatchProcessor[schema.KeyVerification]
 	ratelimits       *batch.BatchProcessor[schema.Ratelimit]
-	buildSteps         *batch.BatchProcessor[schema.BuildStepV1]
-	buildStepLogs      *batch.BatchProcessor[schema.BuildStepLogV1]
+	buildSteps       *batch.BatchProcessor[schema.BuildStepV1]
+	buildStepLogs    *batch.BatchProcessor[schema.BuildStepLogV1]
 }
 
 var (
