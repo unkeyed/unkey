@@ -1,0 +1,21 @@
+name: Validate Workflows
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  validate:
+    name: Validate Workflow Syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+
+      - name: Validate YAML syntax
+        run: |
+          for file in .github/workflows/*.{yaml,yml} .github/actions/*/action.{yaml,yml}; do
+            if [ -f "$file" ]; then
+              echo "Validating $file"
+              python3 -c "import yaml, sys; yaml.safe_load(open('$file'))" || exit 1
+            fi
+          done
+        shell: bash
