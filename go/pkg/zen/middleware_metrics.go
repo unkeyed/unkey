@@ -12,7 +12,7 @@ import (
 )
 
 type EventBuffer interface {
-	BufferRequest(schema.ApiRequestV1)
+	BufferApiRequest(schema.ApiRequest)
 }
 
 type redactionRule struct {
@@ -54,7 +54,7 @@ func redact(in []byte) []byte {
 //	    []zen.Middleware{zen.WithMetrics(eventBuffer)},
 //	    route,
 //	)
-func WithMetrics(eventBuffer EventBuffer) Middleware {
+func WithMetrics(eventBuffer EventBuffer, info InstanceInfo) Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
 			start := time.Now()
@@ -84,7 +84,7 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 					ipAddress = ips[0]
 				}
 
-				eventBuffer.BufferRequest(schema.ApiRequestV1{
+				eventBuffer.BufferApiRequest(schema.ApiRequest{
 					WorkspaceID:     s.WorkspaceID,
 					RequestID:       s.RequestID(),
 					Time:            start.UnixMilli(),
@@ -93,17 +93,14 @@ func WithMetrics(eventBuffer EventBuffer) Middleware {
 					Path:            s.r.URL.Path,
 					RequestHeaders:  requestHeaders,
 					RequestBody:     string(redact(s.requestBody)),
-					ResponseStatus:  s.responseStatus,
+					ResponseStatus:  int32(s.responseStatus),
 					ResponseHeaders: responseHeaders,
 					ResponseBody:    string(redact(s.responseBody)),
 					Error:           fault.UserFacingMessage(nextErr),
 					ServiceLatency:  serviceLatency.Milliseconds(),
 					UserAgent:       s.r.Header.Get("User-Agent"),
 					IpAddress:       ipAddress,
-					Country:         "",
-					City:            "",
-					Colo:            "",
-					Continent:       "",
+					Region:          info.Region,
 				})
 			}
 			return nextErr
