@@ -15,7 +15,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	pdb "github.com/unkeyed/unkey/go/pkg/partition/db"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -25,7 +24,7 @@ type service struct {
 	logger logging.Logger
 
 	gatewayConfigCache cache.Cache[string, ConfigWithWorkspace]
-	vmCache            cache.Cache[string, pdb.Vm]
+	vmCache            cache.Cache[string, db.Vm]
 }
 
 var _ Service = (*service)(nil)
@@ -52,7 +51,7 @@ func New(config Config) (*service, error) {
 // GetConfig retrieves gateway configuration and workspace ID by hostname.
 func (s *service) GetConfig(ctx context.Context, host string) (*ConfigWithWorkspace, error) {
 	config, hit, err := s.gatewayConfigCache.SWR(ctx, host, func(ctx context.Context) (ConfigWithWorkspace, error) {
-		gatewayRow, err := pdb.Query.FindGatewayByHostname(ctx, s.db.RO(), host)
+		gatewayRow, err := db.Query.FindGatewayByHostname(ctx, s.db.RO(), host)
 		if err != nil {
 			return ConfigWithWorkspace{}, err
 		}
@@ -106,11 +105,11 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 		return nil, fmt.Errorf("no VMs available for gateway %s", config.GetDeployment().GetId())
 	}
 
-	availableVms := make([]pdb.Vm, 0)
+	availableVms := make([]db.Vm, 0)
 	for _, vm := range config.GetVms() {
-		dbVm, hit, err := s.vmCache.SWR(ctx, vm.GetId(), func(ctx context.Context) (pdb.Vm, error) {
+		dbVm, hit, err := s.vmCache.SWR(ctx, vm.GetId(), func(ctx context.Context) (db.Vm, error) {
 			// refactor: this is bad BAD, we should really add a getMany method to the cache
-			return pdb.Query.FindVMById(ctx, s.db.RO(), vm.GetId())
+			return db.Query.FindVMById(ctx, s.db.RO(), vm.GetId())
 		}, caches.DefaultFindFirstOp)
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -125,7 +124,7 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 			continue
 		}
 
-		if dbVm.Status != pdb.VmsStatusRunning {
+		if dbVm.Status != db.VmsStatusRunning {
 			continue
 		}
 

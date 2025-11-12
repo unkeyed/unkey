@@ -91,31 +91,17 @@ Address for the control plane to connect to
 </Callout>
 
 <Callout type="info" title="--database-primary (required)">
-MySQL connection string for partitioned primary database (gateway operations). Required. Example: user:pass@host:3306/partition_001?parseTime=true
+MySQL connection string for primary database. Required. Example: user:pass@host:3306/unkey?parseTime=true
 
 - **Type:** string
 - **Environment:** `UNKEY_DATABASE_PRIMARY`
 </Callout>
 
 <Callout type="info" title="--database-replica">
-MySQL connection string for partitioned read-replica (gateway operations). Format same as database-primary.
+MySQL connection string for read-replica. Format same as database-primary.
 
 - **Type:** string
 - **Environment:** `UNKEY_DATABASE_REPLICA`
-</Callout>
-
-<Callout type="info" title="--main-database-primary (required)">
-MySQL connection string for keys service primary database (non-partitioned). Required. Example: user:pass@host:3306/unkey?parseTime=true
-
-- **Type:** string
-- **Environment:** `UNKEY_KEYS_DATABASE_PRIMARY`
-</Callout>
-
-<Callout type="info" title="--main-database-replica">
-MySQL connection string for keys service read-replica (non-partitioned). Format same as main-database-primary.
-
-- **Type:** string
-- **Environment:** `UNKEY_KEYS_DATABASE_REPLICA`
 </Callout>
 
 <Callout type="info" title="--clickhouse-url">

@@ -18,7 +18,6 @@ import (
 type Service struct {
 	hydrav1.UnimplementedRoutingServiceServer
 	db            db.Database
-	partitionDB   db.Database
 	logger        logging.Logger
 	defaultDomain string
 }
@@ -33,9 +32,6 @@ type Config struct {
 	// DB is the main database connection for domain data.
 	DB db.Database
 
-	// PartitionDB is the partition database connection for gateway config storage.
-	PartitionDB db.Database
-
 	// DefaultDomain is the apex domain used to identify production domains (e.g., "unkey.app").
 	DefaultDomain string
 }
@@ -45,7 +41,6 @@ func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedRoutingServiceServer: hydrav1.UnimplementedRoutingServiceServer{},
 		db:                                cfg.DB,
-		partitionDB:                       cfg.PartitionDB,
 		logger:                            cfg.Logger,
 		defaultDomain:                     cfg.DefaultDomain,
 	}

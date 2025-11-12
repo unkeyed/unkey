@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	partitiondb "github.com/unkeyed/unkey/go/pkg/partition/db"
 )
 
 // Caches holds all cache instances used throughout the application.
@@ -25,7 +24,7 @@ type Caches struct {
 	OpenAPISpec cache.Cache[string, validator.Validator]
 
 	// VmID -> VM Info
-	VM cache.Cache[string, partitiondb.Vm]
+	VM cache.Cache[string, db.Vm]
 
 	// HostName -> Certificate
 	TLSCertificate cache.Cache[string, tls.Certificate]
@@ -84,7 +83,7 @@ func New(config Config) (Caches, error) {
 		return Caches{}, fmt.Errorf("failed to create routing cache: %w", err)
 	}
 
-	vmCache, err := cache.New(cache.Config[string, partitiondb.Vm]{
+	vmCache, err := cache.New(cache.Config[string, db.Vm]{
 		Fresh:    time.Second * 10,
 		Stale:    time.Minute,
 		Logger:   config.Logger,

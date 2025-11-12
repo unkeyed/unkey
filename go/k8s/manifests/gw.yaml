@@ -48,11 +48,9 @@ spec:
               value: "true"
             - name: UNKEY_CTRL_ADDR
               value: "ctrl:7091"
-            # Database Configuration - Partitioned (for gateway operations)
             - name: UNKEY_DATABASE_PRIMARY
-              value: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true&interpolateParams=true"
-            # Database Configuration - Keys Service
-            - name: UNKEY_KEYS_DATABASE_PRIMARY
+              value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+
               value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
             # ClickHouse Configuration
             - name: UNKEY_CLICKHOUSE_URL
