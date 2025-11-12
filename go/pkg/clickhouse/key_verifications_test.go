@@ -68,7 +68,7 @@ func TestKeyVerifications(t *testing.T) {
 
 	t0 := time.Now()
 	// Source of truth: track all inserted rows
-	verifications := array.Fill(numRecords, func() schema.KeyVerificationV2 {
+	verifications := array.Fill(numRecords, func() schema.KeyVerification {
 		timeRange := endTime.Sub(startTime)
 		randomOffset := time.Duration(rand.Int63n(int64(timeRange)))
 		timestamp := startTime.Add(randomOffset)
@@ -78,7 +78,7 @@ func TestKeyVerifications(t *testing.T) {
 			latency += rand.Float64() * 400 // Up to 500ms
 		}
 		identityID := array.Random(identities)
-		return schema.KeyVerificationV2{
+		return schema.KeyVerification{
 			RequestID:    uid.New(uid.RequestPrefix),
 			Time:         timestamp.UnixMilli(),
 			WorkspaceID:  workspaceID,
@@ -133,7 +133,7 @@ func TestKeyVerifications(t *testing.T) {
 	})
 
 	t.Run("all outcomes are correct", func(t *testing.T) {
-		countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerificationV2) map[string]int {
+		countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerification) map[string]int {
 			acc[v.Outcome] = acc[v.Outcome] + 1
 			return acc
 		}, map[string]int{})
@@ -157,7 +157,7 @@ func TestKeyVerifications(t *testing.T) {
 		t.Parallel()
 		for _, keyID := range keys[:10] {
 
-			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerificationV2) map[string]int {
+			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerification) map[string]int {
 				if v.KeyID == keyID {
 					acc[v.Outcome] = acc[v.Outcome] + 1
 				}
@@ -184,7 +184,7 @@ func TestKeyVerifications(t *testing.T) {
 		t.Parallel()
 		for _, identityID := range identities[:10] {
 
-			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerificationV2) map[string]int {
+			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerification) map[string]int {
 				if v.IdentityID == identityID {
 					acc[v.Outcome] = acc[v.Outcome] + 1
 				}
@@ -212,7 +212,7 @@ func TestKeyVerifications(t *testing.T) {
 				continue
 			}
 			tag := usedTags[0]
-			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerificationV2) map[string]int {
+			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerification) map[string]int {
 				if slices.Contains(v.Tags, tag) {
 					acc[v.Outcome] = acc[v.Outcome] + 1
 				}
@@ -235,7 +235,7 @@ func TestKeyVerifications(t *testing.T) {
 	})
 	t.Run("latency aggregates are correct", func(t *testing.T) {
 		t.Parallel()
-		latencies := array.Map(verifications, func(v schema.KeyVerificationV2) float64 {
+		latencies := array.Map(verifications, func(v schema.KeyVerification) float64 {
 			return v.Latency
 		})
 		avg := calculateAverage(latencies)
@@ -262,7 +262,7 @@ func TestKeyVerifications(t *testing.T) {
 
 	t.Run("credits spent globally are correct", func(t *testing.T) {
 		t.Parallel()
-		credits := array.Reduce(verifications, func(acc int64, v schema.KeyVerificationV2) int64 {
+		credits := array.Reduce(verifications, func(acc int64, v schema.KeyVerification) int64 {
 			return acc + v.SpentCredits
 		}, int64(0))
 
@@ -280,7 +280,7 @@ func TestKeyVerifications(t *testing.T) {
 	t.Run("credits spent per identity are correct", func(t *testing.T) {
 		t.Parallel()
 		for _, identityID := range identities[:10] {
-			credits := array.Reduce(verifications, func(acc int64, v schema.KeyVerificationV2) int64 {
+			credits := array.Reduce(verifications, func(acc int64, v schema.KeyVerification) int64 {
 				if v.IdentityID == identityID {
 					acc += v.SpentCredits
 				}
@@ -304,7 +304,7 @@ func TestKeyVerifications(t *testing.T) {
 	t.Run("credits spent per key are correct", func(t *testing.T) {
 		t.Parallel()
 		for _, keyID := range keys[:10] {
-			credits := array.Reduce(verifications, func(acc int64, v schema.KeyVerificationV2) int64 {
+			credits := array.Reduce(verifications, func(acc int64, v schema.KeyVerification) int64 {
 				if v.KeyID == keyID {
 					acc += v.SpentCredits
 				}
@@ -353,7 +353,7 @@ func TestKeyVerifications(t *testing.T) {
 		for _, identityID := range identities[:10] {
 			id := identityID
 			extID := identityToExternalID[id]
-			expectedCount := array.Reduce(verifications, func(acc int, v schema.KeyVerificationV2) int {
+			expectedCount := array.Reduce(verifications, func(acc int, v schema.KeyVerification) int {
 				if v.ExternalID == extID {
 					acc++
 				}
@@ -382,7 +382,7 @@ func TestKeyVerifications(t *testing.T) {
 			id := identityID
 			extID := identityToExternalID[id]
 
-			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerificationV2) map[string]int {
+			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerification) map[string]int {
 				if v.ExternalID == extID {
 					acc[v.Outcome]++
 				}
@@ -448,7 +448,7 @@ func TestKeyVerifications(t *testing.T) {
 		for _, identityID := range identities[:10] {
 			id := identityID
 			extID := identityToExternalID[id]
-			expectedCredits := array.Reduce(verifications, func(acc int64, v schema.KeyVerificationV2) int64 {
+			expectedCredits := array.Reduce(verifications, func(acc int64, v schema.KeyVerification) int64 {
 				if v.ExternalID == extID {
 					acc += v.SpentCredits
 				}
@@ -472,7 +472,7 @@ func TestKeyVerifications(t *testing.T) {
 
 	t.Run("billing per workspace is correct", func(t *testing.T) {
 		t.Parallel()
-		billableVerifications := array.Reduce(verifications, func(acc int64, v schema.KeyVerificationV2) int64 {
+		billableVerifications := array.Reduce(verifications, func(acc int64, v schema.KeyVerification) int64 {
 			if v.Outcome == "VALID" {
 				acc += 1
 			}
