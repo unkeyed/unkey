@@ -13,7 +13,7 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.8.12",
     "@cloudflare/workers-types": "^4.20240603.0",
-    "@unkey/api": "2.0.3",
+    "@unkey/api": "2.1.0",
     "@unkey/tsconfig": "workspace:^",
     "@vitest/ui": "^1.6.0",
     "typescript": "^5.5.3",
