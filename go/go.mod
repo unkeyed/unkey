@@ -24,9 +24,9 @@ require (
 	github.com/lmittmann/tint v1.1.2
 	github.com/maypok86/otter v1.2.4
 	github.com/moby/buildkit v0.25.0
-	github.com/mr-tron/base58 v1.2.0
 	github.com/oapi-codegen/nullable v1.1.0
 	github.com/oasdiff/oasdiff v1.11.7
+	github.com/opencontainers/go-digest v1.0.0
 	github.com/pb33f/libopenapi v0.28.0
 	github.com/pb33f/libopenapi-validator v0.6.4
 	github.com/prometheus/client_golang v1.23.2
@@ -156,12 +156,12 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
+	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oasdiff/yaml v0.0.0-20250309154309-f31be36b4037 // indirect
 	github.com/oasdiff/yaml3 v0.0.0-20250309153720-d2182401db90 // indirect
 	github.com/onsi/ginkgo/v2 v2.25.3 // indirect
 	github.com/onsi/gomega v1.38.2 // indirect
-	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/paulmach/orb v0.12.0 // indirect
 	github.com/pb33f/jsonpath v0.1.2 // indirect
