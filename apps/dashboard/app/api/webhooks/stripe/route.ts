@@ -9,7 +9,7 @@ import {
   alertSubscriptionCreation,
   alertSubscriptionUpdate,
 } from "@/lib/utils/slackAlerts";
-import type Stripe from "stripe";
+import Stripe from "stripe";
 
 function validateAndParseQuotas(product: Stripe.Product): {
   valid: boolean;
@@ -67,7 +67,17 @@ export const POST = async (req: Request): Promise<Response> => {
     );
   }
 
-  const stripe: Stripe = getStripeClient();
+  const stripeSecretKey = stripeEnv()?.STRIPE_SECRET_KEY;
+  if (!stripeSecretKey) {
+    throw new Error(
+      "STRIPE_SECRET_KEY environment variable is not set. This is required for Stripe API operations.",
+    );
+  }
+
+  const stripe = new Stripe(stripeSecretKey, {
+    apiVersion: "2023-10-16",
+    typescript: true,
+  });
 
   const event = stripe.webhooks.constructEvent(
     await req.text(),
