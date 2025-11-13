@@ -36,7 +36,8 @@ import (
 type Harness struct {
 	t *testing.T
 
-	Clock *clock.TestClock
+	Clock       *clock.TestClock
+	CachedClock clock.Clock
 
 	srv       *zen.Server
 	validator *validation.Validator
@@ -58,7 +59,7 @@ type Harness struct {
 
 func NewHarness(t *testing.T) *Harness {
 	clk := clock.NewTestClock()
-
+	cachedClock := clock.NewCachedClock(time.Millisecond)
 	logger := logging.New()
 
 	// Start all services in parallel first
@@ -190,6 +191,7 @@ func NewHarness(t *testing.T) *Harness {
 		DB:                         db,
 		seeder:                     seeder,
 		Clock:                      clk,
+		CachedClock:                cachedClock,
 		AnalyticsConnectionManager: analyticsConnManager,
 		Auditlogs: auditlogs.New(auditlogs.Config{
 			DB:     db,

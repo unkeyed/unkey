@@ -282,6 +282,14 @@ func TestLexer_PermissionFormats(t *testing.T) {
 				{typ: eof, value: "", pos: 28},
 			},
 		},
+		{
+			name:  "Permission with slash",
+			input: "api/v1.read_key",
+			expected: []token{
+				{typ: permission, value: "api/v1.read_key", pos: 0},
+				{typ: eof, value: "", pos: 15},
+			},
+		},
 	}
 
 	for _, tt := range tests {

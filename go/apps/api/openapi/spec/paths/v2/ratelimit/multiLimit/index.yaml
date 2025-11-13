@@ -1,0 +1,168 @@
+post:
+  tags:
+    - ratelimit
+  summary: Apply multiple rate limit checks
+  description: |
+    Check and enforce multiple rate limits in a single request for any identifiers (user IDs, IP addresses, API clients, etc.).
+
+    Use this to efficiently check multiple rate limits at once. Each rate limit check is independent and returns its own result with a top-level `passed` indicator showing if all checks succeeded.
+
+    **Response Codes**: Rate limit checks return HTTP 200 regardless of whether limits are exceeded - check the `passed` field to see if all limits passed, or the `success` field in each individual result. 4xx responses indicate auth, namespace existence/deletion, or validation errors (e.g., 410 Gone for deleted namespaces). 5xx responses indicate server errors.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `ratelimit.*.limit` (to check limits in any namespace)
+    - `ratelimit.<namespace_id>.limit` (to check limits in all specific namespaces being checked)
+  operationId: ratelimit.multiLimit
+  x-speakeasy-name-override: multiLimit
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2RatelimitMultiLimitRequestBody.yaml"
+        examples:
+          multipleChecks:
+            summary: Multiple rate limit checks
+            value:
+              - namespace: api.requests
+                identifier: user_abc123
+                limit: 100
+                duration: 60000
+              - namespace: auth.login
+                identifier: user_abc123
+                limit: 5
+                duration: 60000
+          ipHashAndUserLimits:
+            summary: Check both hashed IP and user rate limits
+            value:
+              - namespace: auth.login
+                identifier: sha256_8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4
+                limit: 10
+                duration: 60000
+              - namespace: api.requests
+                identifier: user_def456
+                limit: 1000
+                duration: 3600000
+          withWeightedCost:
+            summary: Multiple checks with variable costs
+            value:
+              - namespace: api.light_operations
+                identifier: user_xyz789
+                limit: 100
+                duration: 60000
+                cost: 1
+              - namespace: api.heavy_operations
+                identifier: user_xyz789
+                limit: 50
+                duration: 3600000
+                cost: 5
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2RatelimitMultiLimitResponseBody.yaml"
+          examples:
+            allAllowed:
+              summary: All requests allowed
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                data:
+                  passed: true
+                  limits:
+                    - namespace: api.requests
+                      identifier: user_abc123
+                      limit: 100
+                      remaining: 99
+                      reset: 1714582980000
+                      success: true
+                    - namespace: auth.login
+                      identifier: user_abc123
+                      limit: 5
+                      remaining: 4
+                      reset: 1714582980000
+                      success: true
+            mixedResults:
+              summary: Some limits exceeded
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQY
+                data:
+                  passed: false
+                  limits:
+                    - namespace: auth.login
+                      identifier: sha256_8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4
+                      limit: 10
+                      remaining: 5
+                      reset: 1714582980000
+                      success: true
+                    - namespace: api.requests
+                      identifier: user_def456
+                      limit: 1000
+                      remaining: 0
+                      reset: 1714583040000
+                      success: false
+            withOverride:
+              summary: With custom override applied
+              value:
+                meta:
+                  requestId: req_01H9TQPP77V5E48E9SH0BG0ZQZ
+                data:
+                  passed: true
+                  limits:
+                    - namespace: api.light_operations
+                      identifier: user_xyz789
+                      limit: 100
+                      remaining: 95
+                      reset: 1714582980000
+                      success: true
+                    - namespace: api.heavy_operations
+                      identifier: user_xyz789
+                      limit: 1000
+                      remaining: 995
+                      reset: 1714582980000
+                      success: true
+                      overrideId: ovr_2cGKbMxRyIzhCxo1Idjz8q
+      description: |
+        All rate limit checks completed successfully. Check the `success` field in each result to determine if the corresponding request is allowed.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "410":
+      description: Gone - Namespace has been deleted
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/GoneErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

@@ -1,85 +1,203 @@
 "use client";
 
 import type { Organization } from "@/lib/auth/types";
-import { Button, DialogContainer } from "@unkey/ui";
+import {
+  Button,
+  DialogContainer,
+  Empty,
+  Loading,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  toast,
+} from "@unkey/ui";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { completeOrgSelection } from "../actions";
+import { SignInContext } from "../context/signin-context";
 
 interface OrgSelectorProps {
   organizations: Organization[];
-  onError: (errorMessage: string) => void;
+  lastOrgId?: string;
+  onClose?: () => void;
 }
 
-export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, onError }) => {
+export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrgId, onClose }) => {
+  const context = useContext(SignInContext);
+  if (!context) {
+    throw new Error("OrgSelector must be used within SignInProvider");
+  }
+  const { setError } = context;
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState<null | string>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [clientReady, setClientReady] = useState(false);
-
+  const [selectedOrgId, setSelectedOrgId] = useState("");
+  const [hasInitialized, setHasInitialized] = useState(false);
   // Set client ready after hydration
   useEffect(() => {
     setClientReady(true);
-    // Only open the dialog after hydration to prevent hydration mismatch
-    setIsOpen(true);
   }, []);
 
-  const submit = async (orgId: string) => {
-    if (isLoading) {
-      return;
-    }
+  const sortedOrgs = useMemo(() => {
+    // Sort: recently created first (as proxy for recently used until we track that)
+    return [...organizations].sort((a, b) => {
+      const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bDate - aDate; // Newest first
+    });
+  }, [organizations]);
 
-    try {
-      setIsLoading(orgId);
-      const result = await completeOrgSelection(orgId);
-
-      if (!result.success) {
-        onError(result.message);
+  const submit = useCallback(
+    async (orgId: string): Promise<boolean> => {
+      if (isLoading || !orgId) {
+        return false;
       }
 
-      return;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to complete organization selection. Please re-authenticate or contact support@unkey.dev";
+      try {
+        setIsLoading(true);
+        const result = await completeOrgSelection(orgId);
 
-      onError(errorMessage);
-    } finally {
-      setIsLoading(null);
-      setIsOpen(false);
+        if (!result.success) {
+          setError(result.message);
+          setIsLoading(false);
+          toast.error(result.message);
+          return false;
+        }
+
+        // On success, redirect to the dashboard
+        window.location.href = result.redirectTo;
+        return true;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to complete organization selection. Please re-authenticate or contact support@unkey.dev";
+        toast.error(
+          "Failed to complete organization selection. Please re-authenticate or contact support@unkey.dev",
+        );
+        setError(errorMessage);
+        setIsLoading(false);
+        return false;
+      }
+    },
+    [isLoading, setError],
+  );
+
+  const handleSubmit = useCallback(async () => {
+    await submit(selectedOrgId);
+  }, [submit, selectedOrgId]);
+
+  // Initialize org selector when client is ready
+  useEffect(() => {
+    if (!clientReady || hasInitialized) {
+      return;
     }
-  };
+
+    // Pre-select the last used org if it exists in the list, otherwise first org
+    const preselectedOrgId =
+      lastOrgId && sortedOrgs.some((org) => org.id === lastOrgId)
+        ? lastOrgId
+        : sortedOrgs[0]?.id || "";
+
+    setSelectedOrgId(preselectedOrgId);
+    setIsOpen(true); // Always show the modal for manual selection
+    setHasInitialized(true);
+  }, [clientReady, sortedOrgs, lastOrgId, hasInitialized]);
 
   return (
     <DialogContainer
       className="dark bg-black"
       isOpen={clientReady && isOpen}
       onOpenChange={(open) => {
-        setIsOpen(open);
+        if (!isLoading) {
+          setIsOpen(open);
+          // If dialog is being closed, notify parent
+          if (!open && onClose) {
+            onClose();
+          }
+        }
       }}
-      title="Select a workspace"
+      title="Select your workspace"
       footer={
-        <div className="flex items-center justify-center text-sm w-full">
+        <div className="flex items-center justify-center text-sm w-full text-content-subtle">
           Select a workspace to sign in.
         </div>
       }
     >
-      <ul className="flex flex-col gap-4 w-full overflow-y-auto max-h-96">
-        {organizations
-          .sort((a, b) => a.name.localeCompare(b.name))
-          .map((org) => (
+      <div className="flex flex-col gap-6 w-full">
+        {/* Workspace selector */}
+        {sortedOrgs.length === 0 ? (
+          <Empty>
+            <div className="flex flex-col items-center gap-4 text-center">
+              <h3 className="text-lg font-medium text-content">No workspaces found</h3>
+              <p className="text-sm text-content-subtle max-w-md">
+                You don't have access to any workspaces. Please contact your administrator or create
+                a new workspace.
+              </p>
+              <div className="flex flex-col gap-2 w-full max-w-sm">
+                <Button
+                  onClick={() => {
+                    window.location.href = "mailto:support@unkey.dev";
+                  }}
+                  className="w-full"
+                  size="lg"
+                >
+                  Contact Support
+                </Button>
+                <Button
+                  onClick={() => {
+                    window.location.href = "/auth/sign-out";
+                  }}
+                  variant="outline"
+                  className="w-full"
+                  size="lg"
+                >
+                  Sign Out
+                </Button>
+              </div>
+            </div>
+          </Empty>
+        ) : (
+          <>
+            <div className="flex flex-col gap-4">
+              <label htmlFor="workspace-selector" className="text-sm font-medium text-content">
+                Workspace
+              </label>
+              <Select value={selectedOrgId} onValueChange={setSelectedOrgId} disabled={isLoading}>
+                <SelectTrigger id="workspace-selector">
+                  <SelectValue placeholder="Select a workspace..." />
+                </SelectTrigger>
+                <SelectContent className="dark overflow-y-auto max-h-[400px]">
+                  {sortedOrgs.map((org) => (
+                    <SelectItem key={org.id} value={org.id}>
+                      {org.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Submit button */}
             <Button
-              className="dark"
-              variant="default"
-              size="2xlg"
-              loading={isLoading === org.id}
-              key={org.id}
-              onClick={() => submit(org.id)}
+              onClick={handleSubmit}
+              disabled={isLoading || !selectedOrgId}
+              className="w-full"
+              size="lg"
             >
-              {org.name}
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Loading type="spinner" />
+                  <span>Signing in...</span>
+                </div>
+              ) : (
+                "Continue"
+              )}
             </Button>
-          ))}
-      </ul>
+          </>
+        )}
+      </div>
     </DialogContainer>
   );
 };
