@@ -3,10 +3,10 @@ import { bigint, index, json, mysqlEnum, mysqlTable, text, varchar } from "drizz
 import { deploymentSteps } from "./deployment_steps";
 import { environments } from "./environments";
 import { gateways } from "./gateways";
+import { instances } from "./instances";
 import { projects } from "./projects";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
-import { vms } from "./vms";
 import { workspaces } from "./workspaces";
 
 export const deployments = mysqlTable(
@@ -48,6 +48,8 @@ export const deployments = mysqlTable(
       .notNull()
       .default("pending"),
     ...lifecycleDates,
+
+    gatewayConfig: longblob("gateway_config"),
   },
   (table) => ({
     workspaceIdx: index("workspace_idx").on(table.workspaceId),
@@ -72,5 +74,5 @@ export const deploymentsRelations = relations(deployments, ({ one, many }) => ({
 
   steps: many(deploymentSteps),
   gateways: many(gateways),
-  vms: many(vms),
+  instances: many(instances),
 }));

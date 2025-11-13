@@ -23,6 +23,5 @@ export * from "./acme_challenges";
 
 // Partition database tables
 export * from "./gateways";
-export * from "./vms";
-export * from "./metal_hosts";
+export * from "./instances";
 export * from "./certificates";

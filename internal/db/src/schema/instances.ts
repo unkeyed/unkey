@@ -21,10 +21,10 @@ export const instances = mysqlTable(
   },
   (table) => ({
     deploymentIdIdx: index("idx_deployment_id").on(table.deploymentId),
-  })
+  }),
 );
 
-export const vmsRelations = relations(vms, ({ one }) => ({
+export const vmsRelations = relations(instances, ({ one }) => ({
   deployment: one(deployments, {
     fields: [instances.deploymentId],
     references: [deployments.id],
