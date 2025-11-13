@@ -42,6 +42,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	clk := clock.New()
+	cachedClock := clock.NewCachedClock(time.Millisecond)
 
 	shutdowns := shutdown.New()
 
@@ -307,6 +308,7 @@ func Run(ctx context.Context, cfg Config) error {
 		PprofPassword:              cfg.PprofPassword,
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
+		CachedClock:                cachedClock,
 	},
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,
