@@ -171,8 +171,11 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize deployment lookup service
 	deploymentSvc, err := deployments.New(deployments.Config{
-		Logger: logger,
-		Region: cfg.Region,
+		Logger:                logger,
+		Region:                cfg.Region,
+		DB:                    partitionedDB,
+		GatewayConfigCache:    cachesInstance.GatewayConfig,
+		InstancesByDeployment: cachesInstance.InstancesByDeployment,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create deployment service: %w", err)

@@ -191,6 +191,8 @@ const (
 	UnkeyGatewayErrorsRoutingConfigNotFound URN = "err:unkey:not_found:config_not_found"
 	// VMSelectionFailed represents a 500 error - failed to select an available VM
 	UnkeyGatewayErrorsRoutingVMSelectionFailed URN = "err:unkey:internal_server_error:vm_selection_failed"
+	// DeploymentDisabled represents a 503 error - deployment exists but is currently disabled
+	UnkeyGatewayErrorsRoutingDeploymentDisabled URN = "err:unkey:service_unavailable:deployment_disabled"
 
 	// Auth
 

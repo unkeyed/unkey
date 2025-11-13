@@ -348,9 +348,11 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		Project:          nil,
 		AuthConfig:       nil,
 		ValidationConfig: nil,
-		Deployment: &partitionv1.Deployment{
-			Id:        deployment.ID,
-			IsEnabled: true,
+		Deployments: []*partitionv1.Deployment{
+			{
+				Id:        deployment.ID,
+				IsEnabled: true,
+			},
 		},
 		Instances: make([]*partitionv1.Instance, len(createdInstances)),
 	}

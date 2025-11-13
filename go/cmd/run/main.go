@@ -7,8 +7,8 @@ import (
 	"github.com/unkeyed/unkey/go/cmd/api"
 	"github.com/unkeyed/unkey/go/cmd/ctrl"
 	"github.com/unkeyed/unkey/go/cmd/gw"
-	"github.com/unkeyed/unkey/go/cmd/krane"
 	"github.com/unkeyed/unkey/go/cmd/ingress"
+	"github.com/unkeyed/unkey/go/cmd/krane"
 	"github.com/unkeyed/unkey/go/pkg/cli"
 )
 
