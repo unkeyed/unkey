@@ -130,41 +130,71 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 		)
 	}
 
-	// Filter enabled deployments by region availability and find the closest one
-	var selectedDeployment *partitionv1.Deployment
-	availableDeploymentsByRegion := make(map[string]*partitionv1.Deployment)
-
+	// Collect all enabled deployments
+	enabledDeployments := make(map[string]*partitionv1.Deployment) // deploymentID -> deployment
 	for _, deployment := range deployments {
 		if !deployment.GetIsEnabled() {
 			continue
 		}
+		enabledDeployments[deployment.Id] = deployment
+	}
 
-		// Load instances for this deployment
-		instancesList, hit, err := s.instancesByDeployment.SWR(ctx, deployment.Id, func(ctx context.Context) ([]pdb.Instance, error) {
-			return pdb.Query.FindInstancesByDeploymentId(ctx, s.db.RO(), deployment.Id)
-		}, internalCaches.DefaultFindFirstOp)
+	if len(enabledDeployments) == 0 {
+		return nil, false, fault.New("no enabled deployments",
+			fault.Code(codes.Gateway.Routing.DeploymentDisabled.URN()),
+			fault.Internal("all deployments are disabled"),
+			fault.Public("Service temporarily unavailable"),
+		)
+	}
 
-		if err != nil && !db.IsNotFound(err) {
-			s.logger.Warn("failed to load instances for deployment", "deploymentId", deployment.Id, "error", err)
-			continue
+	// Batch load ALL instances for enabled deployments using SWRMany
+	enabledDeploymentIDs := make([]string, 0, len(enabledDeployments))
+	for deploymentID := range enabledDeployments {
+		enabledDeploymentIDs = append(enabledDeploymentIDs, deploymentID)
+	}
+
+	instancesByDeploymentMap, _, err := s.instancesByDeployment.SWRMany(ctx, enabledDeploymentIDs, func(ctx context.Context, deploymentIDs []string) (map[string][]pdb.Instance, error) {
+		result := make(map[string][]pdb.Instance)
+		for _, depID := range deploymentIDs {
+			instances, err := pdb.Query.FindInstancesByDeploymentId(ctx, s.db.RO(), depID)
+			if err != nil {
+				if db.IsNotFound(err) {
+					result[depID] = []pdb.Instance{}
+					continue
+				}
+				return nil, err
+			}
+			result[depID] = instances
 		}
+		return result, nil
+	}, internalCaches.DefaultFindFirstOp)
 
-		if db.IsNotFound(err) || hit == cache.Null || len(instancesList) == 0 {
-			s.logger.Debug("no instances for deployment", "deploymentId", deployment.Id, "region", deployment.Region)
-			continue
-		}
+	if err != nil {
+		return nil, false, fault.Wrap(err,
+			fault.Code(codes.Gateway.Internal.InternalServerError.URN()),
+			fault.Internal("failed to load instances"),
+			fault.Public("Unable to process request"),
+		)
+	}
 
-		// Check if any instances are running
-		hasRunningInstances := false
-		for _, instance := range instancesList {
+	// Check which deployments have running instances
+	deploymentHasRunningInstances := make(map[string]bool)
+	for deploymentID, instances := range instancesByDeploymentMap {
+		for _, instance := range instances {
 			if instance.Status == pdb.InstanceStatusRunning {
-				hasRunningInstances = true
+				deploymentHasRunningInstances[deploymentID] = true
 				break
 			}
 		}
+	}
 
-		if hasRunningInstances {
+	// Filter deployments that are enabled AND have running instances by region
+	availableDeploymentsByRegion := make(map[string]*partitionv1.Deployment)
+	for deploymentID, deployment := range enabledDeployments {
+		if deploymentHasRunningInstances[deploymentID] {
 			availableDeploymentsByRegion[deployment.Region] = deployment
+		} else {
+			s.logger.Debug("deployment has no running instances", "deploymentId", deploymentID, "region", deployment.Region)
 		}
 	}
 
@@ -176,9 +206,11 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 		)
 	}
 
-	// Select the closest deployment based on region proximity
+	// Select the closest deployment: prefer local region, then closest, then any
+	var selectedDeployment *partitionv1.Deployment
+
+	// First check if our local region is available
 	if availableDeploymentsByRegion[s.region] != nil {
-		// Current region is available - use it
 		selectedDeployment = availableDeploymentsByRegion[s.region]
 	} else {
 		// Find closest region from proximity map
