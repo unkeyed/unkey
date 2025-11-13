@@ -10,12 +10,32 @@ import {
 } from "./components/unkey-flow/components/nodes/deploy-node";
 import { OriginNode } from "./components/unkey-flow/components/nodes/origin-node";
 import { DefaultNode } from "./components/unkey-flow/components/nodes/default-node";
+import { generateDeploymentTree } from "./components/unkey-flow/components/simulate/simulate";
+import { useState } from "react";
+import { DevTreeGenerator } from "./components/unkey-flow/components/simulate/tree-generate";
 
 export default function DeploymentDetailsPage() {
+  const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(
+    null
+  );
+
+  const tree = generatedTree ?? deploymentTree;
+
   return (
-    <InfiniteCanvas>
+    <InfiniteCanvas
+      overlay={
+        process.env.NODE_ENV === "development" ? (
+          <DevTreeGenerator
+            onGenerate={(config) =>
+              setGeneratedTree(generateDeploymentTree(config))
+            }
+            onReset={() => setGeneratedTree(null)}
+          />
+        ) : undefined
+      }
+    >
       <TreeLayout
-        data={deploymentTree}
+        data={tree}
         nodeSpacing={{ x: 25, y: 150 }}
         renderNode={(node, _, parent) => {
           switch (node.metadata.type) {
@@ -36,7 +56,9 @@ export default function DeploymentDetailsPage() {
               return (
                 <InstanceNode
                   node={
-                    node as DeploymentNode & { metadata: { type: "instance" } }
+                    node as DeploymentNode & {
+                      metadata: { type: "instance" };
+                    }
                   }
                   parentRegionId={parent.id}
                 />

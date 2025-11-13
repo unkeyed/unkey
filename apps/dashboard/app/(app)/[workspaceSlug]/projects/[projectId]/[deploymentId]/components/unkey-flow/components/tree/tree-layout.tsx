@@ -20,9 +20,10 @@ export function TreeLayout<T extends TreeNode>({
     Map<string, { width: number; height: number }>
   >(new Map());
 
+  // We have to retrigger the calculation if we receive new data
   const layoutEngine = useMemo(
     () => new LayoutEngine<T>({ spacing: nodeSpacing }),
-    [nodeSpacing]
+    [nodeSpacing, data]
   );
 
   const parentMap = useMemo(() => {
