@@ -8,20 +8,8 @@ import {
   InstanceNode,
   RegionNode,
 } from "./components/unkey-flow/components/nodes/deploy-node";
-
-const OriginNode = ({ node }: { node: DeploymentNode }) => (
-  <div className="w-[70px] h-[20px] ring-4 rounded-full ring-grayA-5 bg-gray-9 flex items-center justify-center p-2.5 shadow-sm">
-    <div className="font-mono text-[9px] font-medium text-white leading-[6px]">
-      {node.label}
-    </div>
-  </div>
-);
-
-const DefaultNode = ({ node }: { node: DeploymentNode }) => (
-  <div className="w-[500px] h-[70px] border border-grayA-4 rounded-[14px] bg-gray-1 flex items-center justify-center">
-    {node.label}
-  </div>
-);
+import { OriginNode } from "./components/unkey-flow/components/nodes/origin-node";
+import { DefaultNode } from "./components/unkey-flow/components/nodes/default-node";
 
 export default function DeploymentDetailsPage() {
   return (
