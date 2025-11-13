@@ -120,4 +120,60 @@ func TestInsufficientPermissions(t *testing.T) {
 		})
 		require.True(t, db.IsNotFound(err), "Namespace should not have been created when user lacks create_namespace permission")
 	})
+
+	t.Run("has permission for namespace A but tries to access A and B", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create two namespaces
+		namespaceAID := uid.New(uid.RatelimitNamespacePrefix)
+		namespaceAName := uid.New("test")
+		err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
+			ID:          namespaceAID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Name:        namespaceAName,
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		namespaceBID := uid.New(uid.RatelimitNamespacePrefix)
+		namespaceBName := uid.New("test")
+		err = db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
+			ID:          namespaceBID,
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Name:        namespaceBName,
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		// Create a key that only has permission for namespace A (not wildcard, not B)
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceAID))
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		// Try to access both namespaces A and B
+		req := handler.Request{
+			{
+				Namespace:  namespaceAName,
+				Identifier: "user_123",
+				Limit:      100,
+				Duration:   60000,
+			},
+			{
+				Namespace:  namespaceBName,
+				Identifier: "user_123",
+				Limit:      100,
+				Duration:   60000,
+			},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+
+		// Should return 403 because user only has permission for namespace A, not B
+		require.Equal(t, http.StatusForbidden, res.Status, "expected 403 when user only has permission for one of multiple namespaces, got: %d, body: %s", res.Status, res.RawBody)
+		require.NotNil(t, res.Body)
+		require.Contains(t, res.Body.Error.Detail, "Missing", "Error should indicate missing permissions")
+	})
 }

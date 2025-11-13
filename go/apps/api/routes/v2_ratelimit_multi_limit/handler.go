@@ -187,16 +187,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}))
 	}
 
-	// Add wildcard permission
+	// Create wildcard permission
 	wildcardPermission := rbac.T(rbac.Tuple{
 		ResourceType: rbac.Ratelimit,
 		ResourceID:   "*",
 		Action:       rbac.Limit,
 	})
-	requiredPerms = append(requiredPerms, wildcardPermission)
 
-	// User needs ANY of these permissions (OR logic)
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(requiredPerms...)))
+	// User needs EITHER wildcard permission OR ALL specific namespace permissions
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(wildcardPermission, rbac.And(requiredPerms...))))
 	if err != nil {
 		return err
 	}
