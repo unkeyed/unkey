@@ -59,10 +59,6 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	if s.Request().Header.Get("X-Unkey-Metrics") == "disabled" {
-		s.DisableClickHouseLogging()
-	}
-
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
 	if err != nil {
@@ -295,7 +291,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		limits[i] = openapi.V2RatelimitMultiLimitCheck{
 			Namespace:  meta.namespaceName,
 			Identifier: meta.identifier,
-			Success:    result.Success,
+			Passed:     result.Success,
 			Limit:      meta.limit,
 			Remaining:  result.Remaining,
 			Reset:      result.Reset.UnixMilli(),
@@ -307,7 +303,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	res := Response{
+	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
@@ -315,9 +311,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Passed: allPassed,
 			Limits: limits,
 		},
-	}
-
-	return s.JSON(http.StatusOK, res)
+	})
 }
 
 func (h *Handler) createMissingNamespaces(

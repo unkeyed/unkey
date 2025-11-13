@@ -40,7 +40,7 @@ properties:
       The reset time is based on a sliding window from the first request in the current window.
     format: int64
     type: integer
-  success:
+  passed:
     description: |-
       Whether the request passed the rate limit check. If true, the request is allowed to proceed. If false, the request has exceeded the rate limit and should be blocked or rejected.
 
@@ -63,4 +63,4 @@ required:
   - limit
   - remaining
   - reset
-  - success
+  - passed
