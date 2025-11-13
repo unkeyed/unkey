@@ -62,5 +62,5 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		h.ClickHouse.BufferRatelimit(event)
 	}
 
-	return s.JSON(http.StatusOK, map[string]string{"status": "OK"})
+	return s.Send(http.StatusOK, nil)
 }
