@@ -1958,20 +1958,8 @@ type V2RatelimitListOverridesResponseBody struct {
 // V2RatelimitListOverridesResponseData defines model for V2RatelimitListOverridesResponseData.
 type V2RatelimitListOverridesResponseData = []RatelimitOverride
 
-// V2RatelimitMultiLimitRequestBody Array of rate limit checks to perform
-type V2RatelimitMultiLimitRequestBody = []V2RatelimitLimitRequestBody
-
-// V2RatelimitMultiLimitResponseBody defines model for V2RatelimitMultiLimitResponseBody.
-type V2RatelimitMultiLimitResponseBody struct {
-	// Data Array of rate limit check results, one for each rate limit check in the request
-	Data []V2RatelimitMultiLimitResponseData `json:"data"`
-
-	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
-}
-
-// V2RatelimitMultiLimitResponseData defines model for V2RatelimitMultiLimitResponseData.
-type V2RatelimitMultiLimitResponseData struct {
+// V2RatelimitMultiLimitCheck defines model for V2RatelimitMultiLimitCheck.
+type V2RatelimitMultiLimitCheck struct {
 	// Identifier The identifier this rate limit result corresponds to. Use this field to correlate the response with the request when checking multiple rate limits.
 	Identifier string `json:"identifier"`
 
@@ -2016,6 +2004,29 @@ type V2RatelimitMultiLimitResponseData struct {
 	//
 	// You MUST check this field to determine if the request should proceed, as the endpoint always returns `HTTP 200` even when rate limited.
 	Success bool `json:"success"`
+}
+
+// V2RatelimitMultiLimitRequestBody Array of rate limit checks to perform
+type V2RatelimitMultiLimitRequestBody = []V2RatelimitLimitRequestBody
+
+// V2RatelimitMultiLimitResponseBody defines model for V2RatelimitMultiLimitResponseBody.
+type V2RatelimitMultiLimitResponseBody struct {
+	// Data Container for multi-limit rate limit check results
+	Data V2RatelimitMultiLimitResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2RatelimitMultiLimitResponseData Container for multi-limit rate limit check results
+type V2RatelimitMultiLimitResponseData struct {
+	// Limits Array of individual rate limit check results, one for each rate limit check in the request
+	Limits []V2RatelimitMultiLimitCheck `json:"limits"`
+
+	// Passed Overall success indicator for all rate limit checks. This is true if ALL individual rate limit checks passed (all have success: true), and false if ANY check failed.
+	//
+	// Use this as a quick indicator to determine if the request should proceed.
+	Passed bool `json:"passed"`
 }
 
 // V2RatelimitSetOverrideRequestBody Sets a new or overwrites an existing rate limit override. Overrides allow you to apply special rate limit rules to specific identifiers, providing custom limits that differ from the default.

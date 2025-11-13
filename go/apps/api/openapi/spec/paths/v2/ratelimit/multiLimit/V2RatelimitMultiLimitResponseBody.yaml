@@ -6,7 +6,4 @@ properties:
   meta:
     "$ref": "../../../../common/Meta.yaml"
   data:
-    type: array
-    description: Array of rate limit check results, one for each rate limit check in the request
-    items:
-      "$ref": "./V2RatelimitMultiLimitResponseData.yaml"
+    "$ref": "./V2RatelimitMultiLimitResponseData.yaml"

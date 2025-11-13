@@ -288,11 +288,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	// Build response
-	responseData := make([]openapi.V2RatelimitMultiLimitResponseData, len(results))
+	// Build response and calculate overall success
+	limits := make([]openapi.V2RatelimitMultiLimitCheck, len(results))
+	allPassed := true
 	for i, result := range results {
 		meta := checkMetadata[i]
-		responseData[i] = openapi.V2RatelimitMultiLimitResponseData{
+		limits[i] = openapi.V2RatelimitMultiLimitCheck{
 			Namespace:  meta.namespaceName,
 			Identifier: meta.identifier,
 			Success:    result.Success,
@@ -301,13 +302,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Reset:      result.Reset.UnixMilli(),
 			OverrideId: meta.overrideID,
 		}
+
+		if !result.Success {
+			allPassed = false
+		}
 	}
 
 	res := Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: responseData,
+		Data: openapi.V2RatelimitMultiLimitResponseData{
+			Passed: allPassed,
+			Limits: limits,
+		},
 	}
 
 	return s.JSON(http.StatusOK, res)

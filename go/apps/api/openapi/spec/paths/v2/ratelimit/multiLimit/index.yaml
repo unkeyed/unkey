@@ -79,55 +79,61 @@ post:
                 meta:
                   requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
                 data:
-                  - namespace: api.requests
-                    identifier: user_abc123
-                    limit: 100
-                    remaining: 99
-                    reset: 1714582980000
-                    success: true
-                  - namespace: auth.login
-                    identifier: user_abc123
-                    limit: 5
-                    remaining: 4
-                    reset: 1714582980000
-                    success: true
+                  passed: true
+                  limits:
+                    - namespace: api.requests
+                      identifier: user_abc123
+                      limit: 100
+                      remaining: 99
+                      reset: 1714582980000
+                      success: true
+                    - namespace: auth.login
+                      identifier: user_abc123
+                      limit: 5
+                      remaining: 4
+                      reset: 1714582980000
+                      success: true
             mixedResults:
               summary: Some limits exceeded
               value:
                 meta:
                   requestId: req_01H9TQPP77V5E48E9SH0BG0ZQY
                 data:
-                  - namespace: auth.login
-                    identifier: sha256_8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4
-                    limit: 10
-                    remaining: 5
-                    reset: 1714582980000
-                    success: true
-                  - namespace: api.requests
-                    identifier: user_def456
-                    limit: 1000
-                    remaining: 0
-                    reset: 1714583040000
-                    success: false
+                  passed: false
+                  limits:
+                    - namespace: auth.login
+                      identifier: sha256_8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4
+                      limit: 10
+                      remaining: 5
+                      reset: 1714582980000
+                      success: true
+                    - namespace: api.requests
+                      identifier: user_def456
+                      limit: 1000
+                      remaining: 0
+                      reset: 1714583040000
+                      success: false
             withOverride:
               summary: With custom override applied
               value:
                 meta:
                   requestId: req_01H9TQPP77V5E48E9SH0BG0ZQZ
                 data:
-                  - namespace: api.light_operations
-                    identifier: user_xyz789
-                    limit: 100
-                    remaining: 95
-                    reset: 1714582980000
-                    success: true
-                  - namespace: api.heavy_operations
-                    identifier: user_xyz789
-                    limit: 1000
-                    remaining: 995
-                    reset: 1714582980000
-                    success: true
-                    overrideId: ovr_2cGKbMxRyIzhCxo1Idjz8q
+                  passed: true
+                  limits:
+                    - namespace: api.light_operations
+                      identifier: user_xyz789
+                      limit: 100
+                      remaining: 95
+                      reset: 1714582980000
+                      success: true
+                    - namespace: api.heavy_operations
+                      identifier: user_xyz789
+                      limit: 1000
+                      remaining: 995
+                      reset: 1714582980000
+                      success: true
+                      overrideId: ovr_2cGKbMxRyIzhCxo1Idjz8q
       description: |
         All rate limit checks completed successfully. Check the `success` field in each result to determine if the corresponding request is allowed.
     "400":
