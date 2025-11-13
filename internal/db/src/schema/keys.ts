@@ -5,7 +5,9 @@ import {
   datetime,
   index,
   int,
+  mysqlEnum,
   mysqlTable,
+  primaryKey,
   text,
   tinyint,
   uniqueIndex,
@@ -81,6 +83,8 @@ export const keys = mysqlTable(
      * common settings can be configured by the user.
      */
     environment: varchar("environment", { length: 256 }),
+
+    pendingMigrationId: varchar("pending_migration_id", { length: 256 }),
   },
   (table) => ({
     hashIndex: uniqueIndex("hash_idx").on(table.hash),
@@ -89,6 +93,7 @@ export const keys = mysqlTable(
       table.deletedAtM,
     ),
     forWorkspaceIdIndex: index("idx_keys_on_for_workspace_id").on(table.forWorkspaceId),
+    pendingMigrationIdIndex: index("pending_migration_id_idx").on(table.pendingMigrationId),
     workspaceIdIndex: index("idx_keys_on_workspace_id").on(table.workspaceId),
     ownerIdIndex: index("owner_id_idx").on(table.ownerId),
     identityIdIndex: index("identity_id_idx").on(table.identityId),
@@ -152,3 +157,15 @@ export const encryptedKeysRelations = relations(encryptedKeys, ({ one }) => ({
     references: [workspaces.id],
   }),
 }));
+
+export const keyMigrations = mysqlTable(
+  "key_migrations",
+  {
+    id: varchar("id", { length: 255 }),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    algorithm: mysqlEnum("algorithm", ["sha256", "github.com/seamapi/prefixed-api-key"]).notNull(),
+  },
+  (table) => ({
+    idWorkspacePk: primaryKey({ columns: [table.id, table.workspaceId] }),
+  }),
+);

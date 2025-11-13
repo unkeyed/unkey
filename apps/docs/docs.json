@@ -241,6 +241,7 @@
                       "errors/unkey/data/key_auth_not_found",
                       "errors/unkey/data/key_not_found",
                       "errors/unkey/data/key_space_not_found",
+                      "errors/unkey/data/migration_not_found",
                       "errors/unkey/data/permission_already_exists",
                       "errors/unkey/data/permission_not_found",
                       "errors/unkey/data/ratelimit_namespace_gone",

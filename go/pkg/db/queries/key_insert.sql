@@ -15,7 +15,8 @@ INSERT INTO `keys` (
     enabled,
     remaining_requests,
     refill_day,
-    refill_amount
+    refill_amount,
+    pending_migration_id
 ) VALUES (
     sqlc.arg(id),
     sqlc.arg(key_space_id),
@@ -32,5 +33,6 @@ INSERT INTO `keys` (
     sqlc.arg(enabled),
     sqlc.arg(remaining_requests),
     sqlc.arg(refill_day),
-    sqlc.arg(refill_amount)
+    sqlc.arg(refill_amount),
+    sqlc.arg(pending_migration_id)
 );
