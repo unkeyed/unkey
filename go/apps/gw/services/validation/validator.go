@@ -47,11 +47,17 @@ func (s *Service) Validate(ctx context.Context, sess *server.Session, config *pa
 		return nil
 	}
 
+	// Get first deployment
+	if len(config.GetDeployments()) == 0 {
+		return nil
+	}
+	deployment := config.GetDeployments()[0]
+
 	// Skip if no OpenAPI spec is configured
 	if config.GetValidationConfig().GetOpenapiSpec() == "" {
 		s.logger.Warn("validation enabled but no OpenAPI spec configured",
 			"requestId", sess.RequestID(),
-			"deploymentId", config.GetDeployment().GetId(),
+			"deploymentId", deployment.GetId(),
 		)
 		return nil
 	}
@@ -61,11 +67,11 @@ func (s *Service) Validate(ctx context.Context, sess *server.Session, config *pa
 	defer span.End()
 
 	// Get or create validator for this spec
-	v, err := s.getOrCreateValidator(ctx, config.GetDeployment().GetId(), config.GetValidationConfig().GetOpenapiSpec())
+	v, err := s.getOrCreateValidator(ctx, deployment.GetId(), config.GetValidationConfig().GetOpenapiSpec())
 	if err != nil {
 		s.logger.Error("failed to get validator",
 			"requestId", sess.RequestID(),
-			"deploymentId", config.GetDeployment().GetId(),
+			"deploymentId", deployment.GetId(),
 			"error", err.Error(),
 		)
 		// Don't fail the request if we can't create a validator
@@ -80,7 +86,7 @@ func (s *Service) Validate(ctx context.Context, sess *server.Session, config *pa
 	if valid {
 		s.logger.Debug("request validation passed",
 			"requestId", sess.RequestID(),
-			"deploymentId", config.GetDeployment().GetId(),
+			"deploymentId", deployment.GetId(),
 			"method", req.Method,
 			"path", req.URL.Path,
 		)
@@ -92,7 +98,7 @@ func (s *Service) Validate(ctx context.Context, sess *server.Session, config *pa
 
 	s.logger.Warn("request validation failed",
 		"requestId", sess.RequestID(),
-		"deploymentId", config.GetDeployment().GetId(),
+		"deploymentId", deployment.GetId(),
 		"method", req.Method,
 		"path", req.URL.Path,
 		"errors", len(validationErr.Errors),

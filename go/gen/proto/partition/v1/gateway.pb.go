@@ -26,9 +26,9 @@ const (
 type GatewayConfig struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Project *Project               `protobuf:"bytes,1,opt,name=project,proto3" json:"project,omitempty"`
-	// Deployment information
-	Deployment *Deployment `protobuf:"bytes,2,opt,name=deployment,proto3" json:"deployment,omitempty"`
-	Instances  []*Instance `protobuf:"bytes,3,rep,name=instances,proto3" json:"instances,omitempty"`
+	// Deployment information - supports multi-region deployments
+	Deployments []*Deployment `protobuf:"bytes,2,rep,name=deployments,proto3" json:"deployments,omitempty"`
+	Instances   []*Instance   `protobuf:"bytes,3,rep,name=instances,proto3" json:"instances,omitempty"`
 	// Middleware configurations
 	AuthConfig       *AuthConfig       `protobuf:"bytes,4,opt,name=auth_config,json=authConfig,proto3,oneof" json:"auth_config,omitempty"`
 	ValidationConfig *ValidationConfig `protobuf:"bytes,5,opt,name=validation_config,json=validationConfig,proto3,oneof" json:"validation_config,omitempty"`
@@ -73,9 +73,9 @@ func (x *GatewayConfig) GetProject() *Project {
 	return nil
 }
 
-func (x *GatewayConfig) GetDeployment() *Deployment {
+func (x *GatewayConfig) GetDeployments() []*Deployment {
 	if x != nil {
-		return x.Deployment
+		return x.Deployments
 	}
 	return nil
 }
@@ -368,12 +368,10 @@ var File_partition_v1_gateway_proto protoreflect.FileDescriptor
 
 const file_partition_v1_gateway_proto_rawDesc = "" +
 	"\n" +
-	"\x1apartition/v1/gateway.proto\x12\fpartition.v1\"\xe8\x02\n" +
+	"\x1apartition/v1/gateway.proto\x12\fpartition.v1\"\xea\x02\n" +
 	"\rGatewayConfig\x12/\n" +
-	"\aproject\x18\x01 \x01(\v2\x15.partition.v1.ProjectR\aproject\x128\n" +
-	"\n" +
-	"deployment\x18\x02 \x01(\v2\x18.partition.v1.DeploymentR\n" +
-	"deployment\x124\n" +
+	"\aproject\x18\x01 \x01(\v2\x15.partition.v1.ProjectR\aproject\x12:\n" +
+	"\vdeployments\x18\x02 \x03(\v2\x18.partition.v1.DeploymentR\vdeployments\x124\n" +
 	"\tinstances\x18\x03 \x03(\v2\x16.partition.v1.InstanceR\tinstances\x12>\n" +
 	"\vauth_config\x18\x04 \x01(\v2\x18.partition.v1.AuthConfigH\x00R\n" +
 	"authConfig\x88\x01\x01\x12P\n" +
@@ -424,7 +422,7 @@ var file_partition_v1_gateway_proto_goTypes = []any{
 }
 var file_partition_v1_gateway_proto_depIdxs = []int32{
 	2, // 0: partition.v1.GatewayConfig.project:type_name -> partition.v1.Project
-	1, // 1: partition.v1.GatewayConfig.deployment:type_name -> partition.v1.Deployment
+	1, // 1: partition.v1.GatewayConfig.deployments:type_name -> partition.v1.Deployment
 	3, // 2: partition.v1.GatewayConfig.instances:type_name -> partition.v1.Instance
 	4, // 3: partition.v1.GatewayConfig.auth_config:type_name -> partition.v1.AuthConfig
 	5, // 4: partition.v1.GatewayConfig.validation_config:type_name -> partition.v1.ValidationConfig

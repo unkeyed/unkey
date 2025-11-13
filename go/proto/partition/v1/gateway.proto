@@ -9,8 +9,8 @@ option go_package = "github.com/unkeyed/unkey/go/gen/proto/partition/v1;partitio
 message GatewayConfig {
   Project project = 1;
 
-  // Deployment information
-  Deployment deployment = 2;
+  // Deployment information - supports multi-region deployments
+  repeated Deployment deployments = 2;
 
   repeated Instance instances = 3;
 

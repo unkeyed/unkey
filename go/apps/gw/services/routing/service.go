@@ -99,12 +99,17 @@ func (s *service) GetConfig(ctx context.Context, host string) (*ConfigWithWorksp
 
 // SelectVM picks an available VM from the gateway's VM list using random selection.
 func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfig) (*url.URL, error) {
-	if !config.GetDeployment().GetIsEnabled() {
-		return nil, fmt.Errorf("gateway %s is disabled", config.GetDeployment().GetId())
+	if len(config.GetDeployments()) == 0 {
+		return nil, fmt.Errorf("no deployments configured")
+	}
+
+	deployment := config.GetDeployments()[0]
+	if !deployment.GetIsEnabled() {
+		return nil, fmt.Errorf("gateway %s is disabled", deployment.GetId())
 	}
 
 	if len(config.GetInstances()) == 0 {
-		return nil, fmt.Errorf("no VMs available for gateway %s", config.GetDeployment().GetId())
+		return nil, fmt.Errorf("no VMs available for gateway %s", deployment.GetId())
 	}
 
 	availableInstances := make([]pdb.Instance, 0)
@@ -134,7 +139,7 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 	}
 
 	if len(availableInstances) == 0 {
-		return nil, fmt.Errorf("no available instances for gateway %s", config.GetDeployment().GetId())
+		return nil, fmt.Errorf("no available instances for gateway %s", deployment.GetId())
 	}
 
 	// select random instance
