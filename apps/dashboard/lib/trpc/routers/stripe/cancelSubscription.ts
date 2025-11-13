@@ -1,17 +1,11 @@
 import { auth } from "@/lib/auth/server";
-import { stripeEnv } from "@/lib/env";
+import { getStripeClient } from "@/lib/stripe";
 import { TRPCError } from "@trpc/server";
-import Stripe from "stripe";
 import { requireUser, requireWorkspace, t } from "../../trpc";
 export const cancelSubscription = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .mutation(async ({ ctx }) => {
-    const e = stripeEnv();
-    if (!e) {
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Stripe is not set up" });
-    }
-
     const memberships = await auth.getOrganizationMemberList(ctx.workspace.orgId).catch((err) => {
       console.error(err);
       throw new TRPCError({
@@ -27,10 +21,7 @@ export const cancelSubscription = t.procedure
       });
     }
 
-    const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
-      apiVersion: "2023-10-16",
-      typescript: true,
-    });
+    const stripe = getStripeClient();
 
     if (!ctx.workspace.stripeCustomerId) {
       throw new TRPCError({
