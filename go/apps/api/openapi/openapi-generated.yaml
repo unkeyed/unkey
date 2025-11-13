@@ -6069,10 +6069,6 @@ paths:
                 Your root key must have one of the following permissions:
                 - `ratelimit.*.limit` (to check limits in any namespace)
                 - `ratelimit.<namespace_id>.limit` (to check limits in a specific namespace)
-
-                **Side Effects**
-
-                Records rate limit metrics for analytics and monitoring, updates rate limit counters with sliding window algorithm, and optionally triggers override matching for custom limits.
             operationId: ratelimit.limit
             requestBody:
                 content:
@@ -6270,23 +6266,17 @@ paths:
     /v2/ratelimit.multiLimit:
         post:
             description: |
-                Check and enforce multiple rate limits in a single request for any identifiers (user IDs, API clients, etc.).
+                Check and enforce multiple rate limits in a single request for any identifiers (user IDs, IP addresses, API clients, etc.).
 
-                **Important**: Use non-PII identifiers. For sensitive data like IP addresses, always hash them (e.g., SHA-256) before using as identifiers.
+                Use this to efficiently check multiple rate limits at once. Each rate limit check is independent and returns its own result with a top-level `passed` indicator showing if all checks succeeded.
 
-                Use this endpoint to efficiently check multiple rate limits at once, reducing network overhead and improving performance when you need to verify several rate limits simultaneously. Each rate limit check is independent and returns its own result.
-
-                **Response Codes**: Rate limit checks return HTTP 200 regardless of whether any limits are exceeded - check the `success` field in each response to determine if the request should be allowed. 4xx responses indicate auth, namespace existence/deletion, or validation errors (e.g., 410 Gone for deleted namespaces). 5xx responses indicate server errors.
+                **Response Codes**: Rate limit checks return HTTP 200 regardless of whether limits are exceeded - check the `passed` field to see if all limits passed, or the `success` field in each individual result. 4xx responses indicate auth, namespace existence/deletion, or validation errors (e.g., 410 Gone for deleted namespaces). 5xx responses indicate server errors.
 
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
                 - `ratelimit.*.limit` (to check limits in any namespace)
-                - `ratelimit.<namespace_id>.limit` (to check limits in a specific namespace)
-
-                **Side Effects**
-
-                Records rate limit metrics for analytics and monitoring, updates rate limit counters with sliding window algorithm, and optionally triggers override matching for custom limits.
+                - `ratelimit.<namespace_id>.limit` (to check limits in all specific namespaces being checked)
             operationId: ratelimit.multiLimit
             requestBody:
                 content:
@@ -6438,7 +6428,7 @@ paths:
                     description: Internal server error
             security:
                 - rootKey: []
-            summary: Apply multiple rate limit checks in a single request
+            summary: Apply multiple rate limit checks
             tags:
                 - ratelimit
             x-speakeasy-name-override: multiLimit
