@@ -7,7 +7,9 @@ import type {
 type GeneratorConfig = {
   regions: number;
   instancesPerRegion: { min: number; max: number };
-  healthDistribution?: Partial<Record<HealthStatus, number>>; // percentage
+  healthDistribution?: Partial<Record<HealthStatus, number>>;
+  regionDirection?: "vertical" | "horizontal";
+  instanceDirection?: "vertical" | "horizontal";
 };
 
 export function generateDeploymentTree(
@@ -23,7 +25,6 @@ export function generateDeploymentTree(
     "unknown",
     "disabled",
   ];
-
   const regions = [
     "us-east-1",
     "us-west-2",
@@ -67,6 +68,8 @@ export function generateDeploymentTree(
   return {
     id: "ingress",
     label: "INTERNET",
+    //@ts-expect-error its okay
+    direction: config.regionDirection ?? "vertical",
     metadata: { type: "origin" },
     children: selectedRegions.map((regionId) => {
       const instanceCount = getRandomInt(
@@ -80,6 +83,7 @@ export function generateDeploymentTree(
       return {
         id: regionId,
         label: regionId,
+        direction: config.instanceDirection ?? "vertical",
         metadata: {
           type: "region" as const,
           flagCode: flags[regionId],

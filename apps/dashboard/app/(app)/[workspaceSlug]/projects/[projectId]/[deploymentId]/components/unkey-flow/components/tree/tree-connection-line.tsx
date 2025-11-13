@@ -20,22 +20,35 @@ const ANIMATION_OPACITY = 0.94;
 type TreeConnectionLineProps = {
   from: Point;
   to: Point;
+  horizontal?: boolean;
 };
 
-export function TreeConnectionLine({ from, to }: TreeConnectionLineProps) {
+export function TreeConnectionLine({
+  from,
+  to,
+  horizontal = false,
+}: TreeConnectionLineProps) {
   const pathRef = useRef<SVGPathElement>(null);
   const [pathLength, setPathLength] = useState(200);
 
   const pathD = useMemo(() => {
+    if (horizontal) {
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      if (Math.abs(dy) < CORNER_RADIUS * 2) {
+        return `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
+      }
+      const turnX = from.x + dx * 0.5;
+      return `M ${from.x} ${from.y} L ${turnX} ${from.y} L ${turnX} ${to.y} L ${to.x} ${to.y}`;
+    }
+    // Existing vertical logic with curves
     const dx = to.x - from.x;
     const dy = to.y - from.y;
 
-    // Straight line for short distances or minimal horizontal offset
     if (Math.abs(dx) < STRAIGHT_LINE_THRESHOLD || dy < MIN_VERTICAL_FOR_CURVE) {
       return `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
     }
 
-    // Curved path with rounded corners
     const midY = from.y + dy * 0.5;
     const y1 = Math.min(
       midY - CORNER_RADIUS,
@@ -48,7 +61,7 @@ export function TreeConnectionLine({ from, to }: TreeConnectionLineProps) {
     const corner2Y = to.y - CORNER_RADIUS;
 
     return `M ${from.x} ${from.y} L ${from.x} ${y1} Q ${from.x} ${corner1Y} ${corner1X} ${corner1Y} L ${corner2X} ${corner1Y} Q ${to.x} ${corner1Y} ${to.x} ${corner2Y} L ${to.x} ${to.y}`;
-  }, [from, to]);
+  }, [from, to, horizontal]);
 
   useEffect(() => {
     if (!pathRef.current) {

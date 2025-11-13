@@ -22,7 +22,7 @@ export function TreeLayout<T extends TreeNode>({
 
   // We have to retrigger the calculation if we receive new data
   const layoutEngine = useMemo(
-    () => new LayoutEngine<T>({ spacing: nodeSpacing }),
+    () => new LayoutEngine<T>({ spacing: nodeSpacing, direction: "vertical" }),
     [nodeSpacing, data]
   );
 

@@ -1,6 +1,5 @@
 // components/dev-tree-generator.tsx
 "use client";
-
 import { Layers3, XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
@@ -10,6 +9,8 @@ type GeneratorConfig = {
   regions: number;
   instancesPerRegion: { min: number; max: number };
   healthDistribution: Record<HealthStatus, number>;
+  regionDirection: "vertical" | "horizontal";
+  instanceDirection: "vertical" | "horizontal";
 };
 
 type DevTreeGeneratorProps = {
@@ -23,6 +24,8 @@ const PRESETS = {
     config: {
       regions: 3,
       instancesPerRegion: { min: 1, max: 3 },
+      regionDirection: "vertical" as const,
+      instanceDirection: "vertical" as const,
       healthDistribution: {
         normal: 80,
         unstable: 10,
@@ -40,6 +43,8 @@ const PRESETS = {
     config: {
       regions: 5,
       instancesPerRegion: { min: 2, max: 5 },
+      regionDirection: "vertical" as const,
+      instanceDirection: "vertical" as const,
       healthDistribution: {
         normal: 70,
         unstable: 15,
@@ -57,6 +62,8 @@ const PRESETS = {
     config: {
       regions: 7,
       instancesPerRegion: { min: 5, max: 10 },
+      regionDirection: "vertical" as const,
+      instanceDirection: "vertical" as const,
       healthDistribution: {
         normal: 60,
         unstable: 20,
@@ -69,11 +76,70 @@ const PRESETS = {
       },
     },
   },
+  horizontalRegions: {
+    label: "Horizontal Regions (5 regions, horizontal)",
+    config: {
+      regions: 5,
+      instancesPerRegion: { min: 3, max: 6 },
+      regionDirection: "horizontal" as const,
+      instanceDirection: "vertical" as const,
+      healthDistribution: {
+        normal: 70,
+        unstable: 15,
+        degraded: 10,
+        unhealthy: 5,
+        recovering: 0,
+        health_syncing: 0,
+        unknown: 0,
+        disabled: 0,
+      },
+    },
+  },
+  horizontalInstances: {
+    label: "Horizontal Instances (3 regions, horizontal instances)",
+    config: {
+      regions: 3,
+      instancesPerRegion: { min: 4, max: 8 },
+      regionDirection: "vertical" as const,
+      instanceDirection: "horizontal" as const,
+      healthDistribution: {
+        normal: 70,
+        unstable: 15,
+        degraded: 10,
+        unhealthy: 5,
+        recovering: 0,
+        health_syncing: 0,
+        unknown: 0,
+        disabled: 0,
+      },
+    },
+  },
+  allHorizontal: {
+    label: "All Horizontal (4 regions, all horizontal)",
+    config: {
+      regions: 4,
+      instancesPerRegion: { min: 3, max: 6 },
+      regionDirection: "horizontal" as const,
+      instanceDirection: "horizontal" as const,
+      healthDistribution: {
+        normal: 70,
+        unstable: 15,
+        degraded: 10,
+        unhealthy: 5,
+        recovering: 0,
+        health_syncing: 0,
+        unknown: 0,
+        disabled: 0,
+      },
+    },
+  },
   stress: {
     label: "Stress Test (7 regions, 15-20 instances)",
     config: {
       regions: 7,
       instancesPerRegion: { min: 15, max: 20 },
+      regionDirection: "vertical" as const,
+      instanceDirection: "vertical" as const,
       healthDistribution: {
         normal: 50,
         unstable: 20,
@@ -91,6 +157,8 @@ const PRESETS = {
     config: {
       regions: 7,
       instancesPerRegion: { min: 8, max: 12 },
+      regionDirection: "vertical" as const,
+      instanceDirection: "vertical" as const,
       healthDistribution: {
         normal: 20,
         unstable: 15,
@@ -183,6 +251,49 @@ export function DevTreeGenerator({
             />
           </div>
 
+          {/* Layout Direction Controls */}
+          <div className="space-y-2">
+            <div className="text-xs text-gray-11">Layout Direction</div>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-11 w-20">Regions:</span>
+                <select
+                  value={customConfig.regionDirection}
+                  onChange={(e) =>
+                    setCustomConfig((c) => ({
+                      ...c,
+                      regionDirection: e.target.value as
+                        | "vertical"
+                        | "horizontal",
+                    }))
+                  }
+                  className="flex-1 px-2 py-1 text-xs rounded border border-grayA-4 bg-gray-1"
+                >
+                  <option value="vertical">Vertical</option>
+                  <option value="horizontal">Horizontal</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-11 w-20">Instances:</span>
+                <select
+                  value={customConfig.instanceDirection}
+                  onChange={(e) =>
+                    setCustomConfig((c) => ({
+                      ...c,
+                      instanceDirection: e.target.value as
+                        | "vertical"
+                        | "horizontal",
+                    }))
+                  }
+                  className="flex-1 px-2 py-1 text-xs rounded border border-grayA-4 bg-gray-1"
+                >
+                  <option value="vertical">Vertical</option>
+                  <option value="horizontal">Horizontal</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* Instances per region */}
           <div className="space-y-1">
             <div className="text-xs text-gray-11">
@@ -262,7 +373,7 @@ export function DevTreeGenerator({
 
           <Button
             onClick={() => onGenerate(customConfig)}
-            className="w-full px-3 py-2 bg-accent-9 hover:bg-accent-10 text-white rounded text-xs font-medium transition-colors"
+            className="w-full px-3 py-2 rounded text-xs font-medium transition-colors"
           >
             Generate Custom Tree
           </Button>
@@ -271,7 +382,7 @@ export function DevTreeGenerator({
         {/* Reset */}
         <Button
           onClick={onReset}
-          className="w-full px-3 py-2 bg-grayA-2 hover:bg-grayA-3 rounded text-xs font-medium transition-colors border border-grayA-4"
+          className="w-full px-3 py-2  rounded text-xs font-medium transition-colors border border-grayA-4"
         >
           Reset to Original
         </Button>

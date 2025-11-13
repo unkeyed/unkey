@@ -1,25 +1,39 @@
 "use client";
-
 import { TreeConnectionLine, TreeLayout } from "./components/unkey-flow";
 import { InfiniteCanvas } from "./components/unkey-flow/components/canvas/infinite-canvas";
 import type { DeploymentNode } from "./components/unkey-flow/components/nodes/types";
-import { deploymentTree } from "./components/unkey-flow/components/nodes/mock-data";
 import {
   InstanceNode,
   RegionNode,
 } from "./components/unkey-flow/components/nodes/deploy-node";
 import { OriginNode } from "./components/unkey-flow/components/nodes/origin-node";
 import { DefaultNode } from "./components/unkey-flow/components/nodes/default-node";
+import { DevTreeGenerator } from "./components/unkey-flow/components/simulate/tree-generate";
+import type { TreeNode } from "./components/unkey-flow/types";
 import { generateDeploymentTree } from "./components/unkey-flow/components/simulate/simulate";
 import { useState } from "react";
-import { DevTreeGenerator } from "./components/unkey-flow/components/simulate/tree-generate";
+
+const DEFAULT_TREE = generateDeploymentTree({
+  regions: 2,
+  instancesPerRegion: { min: 2, max: 3 },
+  regionDirection: "vertical",
+  instanceDirection: "vertical",
+  healthDistribution: {
+    normal: 80,
+    unstable: 10,
+    degraded: 5,
+    unhealthy: 5,
+    recovering: 0,
+    health_syncing: 0,
+    unknown: 0,
+    disabled: 0,
+  },
+});
 
 export default function DeploymentDetailsPage() {
   const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(
-    null
+    DEFAULT_TREE
   );
-
-  const tree = generatedTree ?? deploymentTree;
 
   return (
     <InfiniteCanvas
@@ -29,13 +43,13 @@ export default function DeploymentDetailsPage() {
             onGenerate={(config) =>
               setGeneratedTree(generateDeploymentTree(config))
             }
-            onReset={() => setGeneratedTree(null)}
+            onReset={() => setGeneratedTree(DEFAULT_TREE)}
           />
         ) : undefined
       }
     >
       <TreeLayout
-        data={tree}
+        data={generatedTree}
         nodeSpacing={{ x: 25, y: 150 }}
         renderNode={(node, _, parent) => {
           switch (node.metadata.type) {
@@ -68,16 +82,29 @@ export default function DeploymentDetailsPage() {
           }
         }}
         renderConnection={(from, to, parent, child) => {
+          const parentDirection = (parent as TreeNode).direction ?? "vertical";
+          if (parentDirection === "horizontal") {
+            // For horizontal layouts, use curved horizontal lines
+            return (
+              <TreeConnectionLine
+                key={`${parent.id}-${child.id}`}
+                from={from}
+                to={to}
+                horizontal
+              />
+            );
+          }
+          // Vertical layout with offset for multiple children
           const childIndex =
             parent.children?.findIndex((c) => c.id === child.id) ?? 0;
           const childCount = parent.children?.length ?? 1;
           const xOffset = (childIndex - (childCount - 1) / 2) * 5;
-
           return (
             <TreeConnectionLine
               key={`${parent.id}-${child.id}`}
               from={{ x: from.x + xOffset, y: from.y }}
               to={{ x: to.x, y: to.y }}
+              horizontal={false}
             />
           );
         }}

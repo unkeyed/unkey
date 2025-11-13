@@ -19,6 +19,7 @@ export type InfiniteCanvasProps = {
 
 export type TreeNode = {
   id: string;
+  direction?: "vertical" | "horizontal";
   children?: TreeNode[];
   [key: string]: unknown;
 };
