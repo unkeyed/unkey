@@ -35,18 +35,25 @@ var regionProximity = map[string][]string{
 	"ap-southeast-2": {"ap-southeast-1", "ap-northeast-1", "ap-south-1", "us-west-2", "us-west-1", "us-east-1", "us-east-2", "eu-west-1", "eu-central-1"},
 }
 
-// Service handles deployment lookups
-type Service struct {
-	logger logging.Logger
-}
-
+// Config holds configuration for the deployment service.
 type Config struct {
 	Logger logging.Logger
+	Region string
 }
 
-func New(cfg Config) (*Service, error) {
-	return &Service{
+// service implements the Service interface
+type service struct {
+	logger logging.Logger
+	region string
+}
+
+var _ Service = (*service)(nil)
+
+// New creates a new deployment service instance.
+func New(cfg Config) (*service, error) {
+	return &service{
 		logger: cfg.Logger,
+		region: cfg.Region,
 	}, nil
 }
 
@@ -55,7 +62,7 @@ func New(cfg Config) (*Service, error) {
 //   - deployment, true, nil if found
 //   - nil, false, nil if not found
 //   - nil, false, error if lookup failed
-func (s *Service) LookupByHostname(ctx context.Context, hostname string) (*partitionv1.Deployment, bool, error) {
+func (s *service) LookupByHostname(ctx context.Context, hostname string) (*partitionv1.Deployment, bool, error) {
 	s.logger.Info("looking up deployment", "hostname", hostname)
 
 	// Mock: Map certain hostnames to deployments
@@ -108,13 +115,7 @@ func (s *Service) LookupByHostname(ctx context.Context, hostname string) (*parti
 	return deployment, true, nil
 }
 
-// GetClosestRegions returns an ordered list of the closest regions to the given region.
-// Returns an empty slice if the region is not found in the proximity map.
-func (s *Service) GetClosestRegions(region string) []string {
-	regions, ok := regionProximity[region]
-	if !ok {
-		s.logger.Warn("region not found in proximity map", "region", region)
-		return []string{}
-	}
-	return regions
+// IsLocal returns true if the deployment is in the current region
+func (s *service) IsLocal(deployment *partitionv1.Deployment) bool {
+	return deployment.Region == s.region
 }

@@ -38,6 +38,10 @@ type Config struct {
 	// Cross-region requests are forwarded to {region}.{BaseDomain}
 	BaseDomain string
 
+	// MaxHops is the maximum number of ingress hops allowed before rejecting the request
+	// This prevents infinite routing loops. Default: 3
+	MaxHops int
+
 	// --- Database configuration ---
 
 	// DatabasePrimary is the primary database connection string for read and write operations (partition_001)

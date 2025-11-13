@@ -21,6 +21,7 @@ type Caches struct {
 type Config struct {
 	// Logger is used for logging cache operations and errors.
 	Logger logging.Logger
+
 	// Clock provides time functionality, allowing easier testing.
 	Clock clock.Clock
 }

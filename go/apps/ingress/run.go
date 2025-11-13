@@ -7,11 +7,13 @@ import (
 	"log/slog"
 	"net"
 	"runtime/debug"
+	"time"
 
 	"github.com/unkeyed/unkey/go/apps/ingress/routes"
 	"github.com/unkeyed/unkey/go/apps/ingress/services/caches"
 	"github.com/unkeyed/unkey/go/apps/ingress/services/certmanager"
 	"github.com/unkeyed/unkey/go/apps/ingress/services/deployments"
+	"github.com/unkeyed/unkey/go/apps/ingress/services/proxy"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel"
@@ -65,8 +67,13 @@ func Run(ctx context.Context, cfg Config) error {
 	}()
 
 	shutdowns := shutdown.New()
-	clk := clock.New()
-	_ = clk
+
+	// Create cached clock with millisecond resolution for efficient time tracking
+	clk := clock.NewCachedClock(time.Millisecond)
+	shutdowns.Register(func() error {
+		clk.Close()
+		return nil
+	})
 
 	if cfg.OtelEnabled {
 		grafanaErr := otel.InitGrafana(
@@ -165,9 +172,24 @@ func Run(ctx context.Context, cfg Config) error {
 	// Initialize deployment lookup service
 	deploymentSvc, err := deployments.New(deployments.Config{
 		Logger: logger,
+		Region: cfg.Region,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create deployment service: %w", err)
+	}
+
+	// Initialize proxy service with shared transport for connection pooling
+	proxySvc, err := proxy.New(proxy.Config{
+		Logger:     logger,
+		IngressID:  cfg.IngressID,
+		Region:     cfg.Region,
+		BaseDomain: cfg.BaseDomain,
+		Clock:      clk,
+		MaxHops:    cfg.MaxHops, // Defaults to 3 if not set
+		// Use defaults for transport settings (200 max idle conns, 90s timeout, etc.)
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create proxy service: %w", err)
 	}
 
 	// Create TLS config with dynamic certificate loading
@@ -196,8 +218,8 @@ func Run(ctx context.Context, cfg Config) error {
 	routes.Register(srv, &routes.Services{
 		Logger:            logger,
 		DeploymentService: deploymentSvc,
-		CurrentRegion:     cfg.Region,
-		BaseDomain:        cfg.BaseDomain,
+		ProxyService:      proxySvc,
+		Clock:             clk,
 	})
 
 	// Start HTTPS server

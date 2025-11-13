@@ -13,7 +13,7 @@ import (
 // Register registers all ingress routes
 func Register(srv *zen.Server, svc *Services) {
 	// Setup middlewares
-	withTracing := middleware.WithTracing(svc.Logger)
+	withObservability := middleware.WithObservability(svc.Logger)
 	withLogging := zen.WithLogging(svc.Logger)
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
 	withErrorHandling := middleware.WithErrorHandling(svc.Logger)
@@ -21,7 +21,7 @@ func Register(srv *zen.Server, svc *Services) {
 
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
-		withTracing,
+		withObservability,
 		withLogging,
 		withErrorHandling,
 		withTimeout,
@@ -49,8 +49,8 @@ func Register(srv *zen.Server, svc *Services) {
 		&proxy.Handler{
 			Logger:            svc.Logger,
 			DeploymentService: svc.DeploymentService,
-			CurrentRegion:     svc.CurrentRegion,
-			BaseDomain:        svc.BaseDomain,
+			ProxyService:      svc.ProxyService,
+			Clock:             svc.Clock,
 		},
 	)
 }
