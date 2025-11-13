@@ -111,7 +111,6 @@ func (b bucketKey) toString() string {
 //   - *bucket: the bucket for tracking rate limit state
 //   - bool: true if the bucket already existed, false if it was created
 func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
-
 	s.bucketsMu.Lock()
 	defer s.bucketsMu.Unlock()
 	b, exists := s.buckets[key.toString()]
@@ -128,6 +127,7 @@ func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 		}
 		s.buckets[key.toString()] = b
 	}
+
 	return b, exists
 }
 
