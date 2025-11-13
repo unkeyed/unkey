@@ -16,6 +16,7 @@ import (
 
 type Handler struct {
 	Logger            logging.Logger
+	Region            string
 	DeploymentService deployments.Service
 	ProxyService      proxy.Service
 	Clock             interface{ Now() time.Time }
@@ -45,7 +46,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 				"requestID", sess.RequestID(),
 			)
 			return fault.New("too many ingress hops",
-				fault.Code(codes.Gateway.Internal.InternalServerError.URN()),
+				fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
 				fault.Internal(fmt.Sprintf("request exceeded maximum hop count: %d", hops)),
 				fault.Public("Request routing limit exceeded"),
 			)
@@ -57,7 +58,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	if err != nil {
 		h.Logger.Error("failed to lookup deployment", "hostname", hostname, "error", err)
 		return fault.Wrap(err,
-			fault.Code(codes.Gateway.Internal.InternalServerError.URN()),
+			fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
 			fault.Internal("deployment lookup failed"),
 			fault.Public("Unable to process request"),
 		)
@@ -67,14 +68,14 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	if !found {
 		h.Logger.Warn("deployment not found", "hostname", hostname)
 		return fault.New("deployment not found",
-			fault.Code(codes.Gateway.Routing.ConfigNotFound.URN()),
+			fault.Code(codes.Ingress.Routing.ConfigNotFound.URN()),
 			fault.Internal(fmt.Sprintf("no deployment found for hostname: %s", hostname)),
 			fault.Public("Domain not configured"),
 		)
 	}
 
 	// Determine target based on region
-	if h.DeploymentService.IsLocal(deployment) {
+	if deployment.Region == h.Region {
 		// Local gateway - deployment is in this region
 		return h.ProxyService.ForwardToLocal(ctx, sess, deployment, startTime)
 	}

@@ -14,7 +14,4 @@ type Service interface {
 	//   - nil, false, nil if not found
 	//   - nil, false, error if lookup failed
 	LookupByHostname(ctx context.Context, hostname string) (*partitionv1.Deployment, bool, error)
-
-	// IsLocal returns true if the deployment is in the current region
-	IsLocal(deployment *partitionv1.Deployment) bool
 }

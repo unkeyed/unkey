@@ -109,7 +109,7 @@ func (s *service) writeProxyError(w http.ResponseWriter, r *http.Request, reques
 		(strings.Contains(acceptHeader, "*/*") && !strings.Contains(acceptHeader, "text/html"))
 
 	status := http.StatusBadGateway
-	code := codes.Gateway.Proxy.BadGateway.URN()
+	code := codes.Ingress.Proxy.BadGateway.URN()
 	message := "Unable to reach service"
 
 	if preferJSON {
@@ -157,7 +157,7 @@ func (s *service) ForwardToLocal(ctx context.Context, sess *zen.Session, deploym
 	targetURL, err := url.Parse(fmt.Sprintf("http://%s", deployment.K8SServiceName))
 	if err != nil {
 		return fault.Wrap(err,
-			fault.Code(codes.Gateway.Internal.InternalServerError.URN()),
+			fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
 			fault.Internal("failed to parse gateway URL"),
 		)
 	}
@@ -176,7 +176,7 @@ func (s *service) ForwardToRemote(ctx context.Context, sess *zen.Session, target
 	targetURL, err := url.Parse(fmt.Sprintf("https://%s.%s", targetRegion, s.baseDomain))
 	if err != nil {
 		return fault.Wrap(err,
-			fault.Code(codes.Gateway.Internal.InternalServerError.URN()),
+			fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
 			fault.Internal("failed to parse remote ingress URL"),
 		)
 	}

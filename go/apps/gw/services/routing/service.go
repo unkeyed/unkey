@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"net/url"
 
-	"github.com/gogo/protobuf/proto"
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/pkg/assert"
@@ -148,7 +147,7 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 
 	// Unmarshal the instance config to get the address
 	var instanceConfig partitionv1.InstanceConfig
-	if err := proto.Unmarshal(selectedInstance.Config, &instanceConfig); err != nil {
+	if err := protojson.Unmarshal(selectedInstance.Config, &instanceConfig); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal instance config: %w", err)
 	}
 

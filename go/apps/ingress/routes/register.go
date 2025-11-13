@@ -48,6 +48,7 @@ func Register(srv *zen.Server, svc *Services) {
 		defaultMiddlewares,
 		&proxy.Handler{
 			Logger:            svc.Logger,
+			Region:            svc.Region,
 			DeploymentService: svc.DeploymentService,
 			ProxyService:      svc.ProxyService,
 			Clock:             svc.Clock,

@@ -10,6 +10,7 @@ import (
 
 type Services struct {
 	Logger            logging.Logger
+	Region            string
 	DeploymentService deployments.Service
 	ProxyService      proxy.Service
 	Clock             interface{ Now() time.Time }

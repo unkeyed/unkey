@@ -105,7 +105,7 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 
 	if err != nil && !db.IsNotFound(err) {
 		return nil, false, fault.Wrap(err,
-			fault.Code(codes.Gateway.Internal.InternalServerError.URN()),
+			fault.Code(codes.Ingress.Internal.ConfigLoadFailed.URN()),
 			fault.Internal("error loading gateway configuration"),
 			fault.Public("Failed to load gateway configuration"),
 		)
@@ -124,7 +124,7 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 	deployments := configData.Config.GetDeployments()
 	if len(deployments) == 0 {
 		return nil, false, fault.New("gateway config missing deployments",
-			fault.Code(codes.Gateway.Internal.InternalServerError.URN()),
+			fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
 			fault.Internal("gateway config has no deployments"),
 			fault.Public("Invalid gateway configuration"),
 		)
@@ -141,37 +141,37 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 
 	if len(enabledDeployments) == 0 {
 		return nil, false, fault.New("no enabled deployments",
-			fault.Code(codes.Gateway.Routing.DeploymentDisabled.URN()),
+			fault.Code(codes.Ingress.Routing.DeploymentDisabled.URN()),
 			fault.Internal("all deployments are disabled"),
 			fault.Public("Service temporarily unavailable"),
 		)
 	}
 
-	// Batch load ALL instances for enabled deployments using SWRMany
+	// Batch load ALL instances for enabled deployments using SWRMany with single query
 	enabledDeploymentIDs := make([]string, 0, len(enabledDeployments))
 	for deploymentID := range enabledDeployments {
 		enabledDeploymentIDs = append(enabledDeploymentIDs, deploymentID)
 	}
 
 	instancesByDeploymentMap, _, err := s.instancesByDeployment.SWRMany(ctx, enabledDeploymentIDs, func(ctx context.Context, deploymentIDs []string) (map[string][]pdb.Instance, error) {
-		result := make(map[string][]pdb.Instance)
-		for _, depID := range deploymentIDs {
-			instances, err := pdb.Query.FindInstancesByDeploymentId(ctx, s.db.RO(), depID)
-			if err != nil {
-				if db.IsNotFound(err) {
-					result[depID] = []pdb.Instance{}
-					continue
-				}
-				return nil, err
-			}
-			result[depID] = instances
+		// Single query to get ALL instances for ALL deployment IDs
+		instances, err := pdb.Query.FindInstancesByIds(ctx, s.db.RO(), deploymentIDs)
+		if err != nil {
+			return nil, err
 		}
+
+		// Group instances by deployment ID
+		result := make(map[string][]pdb.Instance)
+		for _, instance := range instances {
+			result[instance.DeploymentID] = append(result[instance.DeploymentID], instance)
+		}
+
 		return result, nil
 	}, internalCaches.DefaultFindFirstOp)
 
 	if err != nil {
 		return nil, false, fault.Wrap(err,
-			fault.Code(codes.Gateway.Internal.InternalServerError.URN()),
+			fault.Code(codes.Ingress.Internal.InstanceLoadFailed.URN()),
 			fault.Internal("failed to load instances"),
 			fault.Public("Unable to process request"),
 		)
@@ -193,44 +193,19 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 	for deploymentID, deployment := range enabledDeployments {
 		if deploymentHasRunningInstances[deploymentID] {
 			availableDeploymentsByRegion[deployment.Region] = deployment
-		} else {
-			s.logger.Debug("deployment has no running instances", "deploymentId", deploymentID, "region", deployment.Region)
 		}
 	}
 
 	if len(availableDeploymentsByRegion) == 0 {
 		return nil, false, fault.New("no available deployments",
-			fault.Code(codes.Gateway.Routing.VMSelectionFailed.URN()),
+			fault.Code(codes.Ingress.Routing.NoRunningInstances.URN()),
 			fault.Internal("no deployments have running instances"),
 			fault.Public("Service temporarily unavailable"),
 		)
 	}
 
 	// Select the closest deployment: prefer local region, then closest, then any
-	var selectedDeployment *partitionv1.Deployment
-
-	// First check if our local region is available
-	if availableDeploymentsByRegion[s.region] != nil {
-		selectedDeployment = availableDeploymentsByRegion[s.region]
-	} else {
-		// Find closest region from proximity map
-		proximityList, exists := regionProximity[s.region]
-		if exists {
-			for _, region := range proximityList {
-				if availableDeploymentsByRegion[region] != nil {
-					selectedDeployment = availableDeploymentsByRegion[region]
-					break
-				}
-			}
-		}
-		// If still not found, use any available deployment
-		if selectedDeployment == nil {
-			for _, deployment := range availableDeploymentsByRegion {
-				selectedDeployment = deployment
-				break
-			}
-		}
-	}
+	selectedDeployment := s.selectClosestDeployment(availableDeploymentsByRegion)
 
 	s.logger.Info("deployment found",
 		"hostname", hostname,
@@ -242,7 +217,29 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 	return selectedDeployment, true, nil
 }
 
-// IsLocal returns true if the deployment is in the current region
-func (s *service) IsLocal(deployment *partitionv1.Deployment) bool {
-	return deployment.Region == s.region
+// selectClosestDeployment selects the closest available deployment based on region proximity.
+// It prefers the local region first, then uses the proximity map to find the nearest region,
+// and finally falls back to any available deployment.
+func (s *service) selectClosestDeployment(availableDeploymentsByRegion map[string]*partitionv1.Deployment) *partitionv1.Deployment {
+	// First check if our local region is available
+	if availableDeploymentsByRegion[s.region] != nil {
+		return availableDeploymentsByRegion[s.region]
+	}
+
+	// Find closest region from proximity map
+	proximityList, exists := regionProximity[s.region]
+	if exists {
+		for _, region := range proximityList {
+			if availableDeploymentsByRegion[region] != nil {
+				return availableDeploymentsByRegion[region]
+			}
+		}
+	}
+
+	// If still not found, use any available deployment
+	for _, deployment := range availableDeploymentsByRegion {
+		return deployment
+	}
+
+	return nil
 }

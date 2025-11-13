@@ -39,6 +39,10 @@ type Querier interface {
 	//
 	//  SELECT id, deployment_id, status, config FROM instance WHERE deployment_id = ?
 	FindInstancesByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]Instance, error)
+	//FindInstancesByIds
+	//
+	//  SELECT id, deployment_id, status, config FROM instance WHERE deployment_id IN (/*SLICE:deployment_ids*/?)
+	FindInstancesByIds(ctx context.Context, db DBTX, deploymentIds []string) ([]Instance, error)
 	//InsertCertificate
 	//
 	//  INSERT INTO certificates (workspace_id, hostname, certificate, encrypted_private_key, created_at)

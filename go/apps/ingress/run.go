@@ -220,6 +220,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Register all routes
 	routes.Register(srv, &routes.Services{
 		Logger:            logger,
+		Region:            cfg.Region,
 		DeploymentService: deploymentSvc,
 		ProxyService:      proxySvc,
 		Clock:             clk,
