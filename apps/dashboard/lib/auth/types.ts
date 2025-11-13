@@ -2,6 +2,7 @@ import type { Cookie } from "./cookies";
 
 // Core Types
 export const UNKEY_SESSION_COOKIE = "unkey-session";
+export const UNKEY_LAST_ORG_COOKIE = "unkey_last_org_used";
 export const PENDING_SESSION_COOKIE = "sess-temp";
 export const SIGN_IN_URL = "/auth/sign-in";
 export const SIGN_UP_URL = "/auth/sign-up";

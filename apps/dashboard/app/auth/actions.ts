@@ -1,6 +1,12 @@
 "use server";
 
-import { deleteCookie, getCookie, setCookies, setSessionCookie } from "@/lib/auth/cookies";
+import {
+  deleteCookie,
+  getCookie,
+  setCookies,
+  setLastUsedOrgCookie,
+  setSessionCookie,
+} from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import {
   AuthErrorCode,
@@ -68,7 +74,7 @@ export async function verifyAuthCode(params: {
 
             if (orgSelectionResult.success) {
               // Try to get organization name for better UX in success page
-              const redirectUrl = "/apis";
+              let redirectUrl = "/apis";
               try {
                 const org = await auth.getOrg(invitation.organizationId);
                 if (org?.name) {
@@ -76,7 +82,7 @@ export async function verifyAuthCode(params: {
                     from_invite: "true",
                     org_name: org.name,
                   });
-                  `/join/success?${params.toString()}`;
+                  redirectUrl = `/join/success?${params.toString()}`;
                 }
               } catch (error) {
                 // Don't fail the redirect if we can't get org name
@@ -126,7 +132,7 @@ export async function verifyAuthCode(params: {
           }
 
           // Try to get organization name for better UX
-          const redirectUrl = result.redirectTo;
+          let redirectUrl = result.redirectTo;
           try {
             const org = await auth.getOrg(invitation.organizationId);
             if (org?.name) {
@@ -134,16 +140,16 @@ export async function verifyAuthCode(params: {
                 from_invite: "true",
                 org_name: org.name,
               });
-              `/join/success?${params.toString()}`;
+              redirectUrl = `/join/success?${params.toString()}`;
             } else {
               const params = new URLSearchParams({ from_invite: "true" });
-              `/join/success?${params.toString()}`;
+              redirectUrl = `/join/success?${params.toString()}`;
             }
           } catch (error) {
             // Don't fail if we can't get org name, just use join success without org name
             console.warn("Could not fetch organization name for new user success page:", error);
             const params = new URLSearchParams({ from_invite: "true" });
-            `/join/success?${params.toString()}`;
+            redirectUrl = `/join/success?${params.toString()}`;
           }
 
           return {
@@ -256,7 +262,7 @@ export async function resendAuthCode(email: string): Promise<EmailAuthResult> {
 }
 
 export async function signIntoWorkspace(orgId: string): Promise<VerificationResult> {
-  const pendingToken = cookies().get("sess-temp")?.value;
+  const pendingToken = cookies().get(PENDING_SESSION_COOKIE)?.value;
 
   if (!pendingToken) {
     return {
@@ -274,7 +280,7 @@ export async function signIntoWorkspace(orgId: string): Promise<VerificationResu
 
     if (result.success) {
       await setCookies(result.cookies);
-      await deleteCookie("sess-temp");
+      await deleteCookie(PENDING_SESSION_COOKIE);
       redirect(result.redirectTo);
     }
 
@@ -336,6 +342,15 @@ export async function completeOrgSelection(
     for (const cookie of result.cookies) {
       cookies().set(cookie.name, cookie.value, cookie.options);
     }
+    // Store the last used organization ID in a cookie for auto-selection on next login
+    try {
+      await setLastUsedOrgCookie({ orgId });
+    } catch (error) {
+      console.error("Failed to set last used org cookie in completeOrgSelection:", {
+        orgId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
   }
 
   return result;
@@ -350,6 +365,17 @@ export async function switchOrg(orgId: string): Promise<{ success: boolean; erro
       throw new Error("Invalid session data returned from auth provider");
     }
     await setSessionCookie({ token: newToken, expiresAt });
+
+    // Store the last used organization ID in a cookie for auto-selection on next login
+    try {
+      await setLastUsedOrgCookie({ orgId });
+    } catch (error) {
+      console.error("Failed to set last used org cookie in switchOrg:", {
+        orgId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+
     return { success: true };
   } catch (error) {
     console.error("Organization switch failed:", {
@@ -383,6 +409,14 @@ export async function acceptInvitationAndJoin(
 
     // Set the session cookie securely on the server side
     await setSessionCookie({ token: newToken, expiresAt });
+    try {
+      await setLastUsedOrgCookie({ orgId: organizationId });
+    } catch (error) {
+      console.error("Failed to set last used org cookie in acceptInvitationAndJoin:", {
+        orgId: organizationId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
 
     return { success: true };
   } catch (error) {
@@ -394,4 +428,13 @@ export async function acceptInvitationAndJoin(
       error: error instanceof Error ? error.message : "Failed to join organization",
     };
   }
+}
+
+/**
+ * Check if a pending session exists (for workspace selection flow)
+ * This is needed because PENDING_SESSION_COOKIE is HttpOnly and not accessible from client
+ */
+export async function hasPendingSession(): Promise<boolean> {
+  const pendingToken = cookies().get(PENDING_SESSION_COOKIE);
+  return !!pendingToken?.value;
 }

@@ -246,7 +246,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Apply override if found, otherwise use request values
-	limit, duration, overrideId, err := getLimitAndDuration(req, namespace)
+	limit, duration, overrideID, err := getLimitAndDuration(req, namespace)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -277,22 +277,30 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
+	t0 := time.Now()
 	result, err := h.Ratelimit.Ratelimit(ctx, limitReq)
 	if err != nil {
-		return fault.Wrap(err,
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
 			fault.Internal("rate limit failed"),
 			fault.Public("We're unable to process the rate limit request."),
 		)
 	}
-
+	latency := time.Since(t0).Milliseconds()
 	if s.ShouldLogRequestToClickHouse() {
-		h.ClickHouse.BufferRatelimit(schema.RatelimitRequestV1{
+		h.ClickHouse.BufferRatelimit(schema.Ratelimit{
 			RequestID:   s.RequestID(),
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Time:        time.Now().UnixMilli(),
 			NamespaceID: namespace.ID,
 			Identifier:  req.Identifier,
 			Passed:      result.Success,
+			Latency:     float64(latency),
+			OverrideID:  overrideID,
+			Limit:       uint64(result.Limit),
+			Remaining:   uint64(result.Remaining),
+			ResetAt:     result.Reset.UnixMilli(),
 		})
 	}
 
@@ -305,7 +313,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Limit:      limit,
 			Remaining:  result.Remaining,
 			Reset:      result.Reset.UnixMilli(),
-			OverrideId: overrideId,
+			OverrideId: overrideID,
 		},
 	}
 
