@@ -49,7 +49,7 @@ export default function DeploymentDetailsPage() {
       }
     >
       <TreeLayout
-        data={generatedTree}
+        data={generatedTree!}
         nodeSpacing={{ x: 25, y: 150 }}
         renderNode={(node, _, parent) => {
           switch (node.metadata.type) {
