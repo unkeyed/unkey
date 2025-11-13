@@ -176,6 +176,20 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --feature-11: 252, 43%, 52%;
     --feature-12: 249, 43%, 26%;
 
+    /* VioletA */
+    --featureA-1: 240, 100%, 33%, 0.01;
+    --featureA-2: 240, 100%, 50%, 0.02;
+    --featureA-3: 244, 100%, 50%, 0.05;
+    --featureA-4: 243, 100%, 50%, 0.1;
+    --featureA-5: 245, 100%, 50%, 0.15;
+    --featureA-6: 245, 100%, 50%, 0.2;
+    --featureA-7: 245, 100%, 45%, 0.28;
+    --featureA-8: 247, 100%, 42%, 0.39;
+    --featureA-9: 252, 100%, 36%, 0.66;
+    --featureA-10: 252, 100%, 29%, 0.7;
+    --featureA-11: 251, 100%, 30%, 0.69;
+    --featureA-12: 251, 100%, 13%, 0.85;
+
     /* Blue */
     --info-1: 210, 100%, 99%;
     --info-2: 207, 100%, 98%;
@@ -471,6 +485,20 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --feature-10: 252, 60%, 63%;
     --feature-11: 253, 100%, 83%;
     --feature-12: 249, 94%, 93%;
+
+    /* VioletA Dark */
+    --featureA-1: 240, 100%, 49%, 0.05;
+    --featureA-2: 244, 95%, 63%, 0.09;
+    --featureA-3: 248, 99%, 67%, 0.22;
+    --featureA-4: 251, 98%, 66%, 0.32;
+    --featureA-5: 250, 98%, 68%, 0.38;
+    --featureA-6: 250, 97%, 71%, 0.44;
+    --featureA-7: 249, 100%, 74%, 0.52;
+    --featureA-8: 249, 98%, 74%, 0.66;
+    --featureA-9: 252, 100%, 70%, 0.8;
+    --featureA-10: 250, 100%, 74%, 0.63;
+    --featureA-11: 248, 100%, 83%, 1;
+    --featureA-12: 244, 100%, 94%, 1;
 
     /* Blue */
     --info-1: 215, 42%, 9%;

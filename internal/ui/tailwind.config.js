@@ -67,6 +67,7 @@ const getColor = (colorVar, { opacityVariable, opacityValue }) => {
     "redA",
     "grassA",
     "blueA",
+    "featureA",
   ];
   if (alphaColors.some((color) => colorVar.includes(color))) {
     return `hsla(var(--${colorVar.replace("--", "")}))`;
@@ -95,6 +96,7 @@ function generateRadixColors() {
     "error",
     "errorA",
     "feature",
+    "featureA",
     "accent",
     "base",
     "red",

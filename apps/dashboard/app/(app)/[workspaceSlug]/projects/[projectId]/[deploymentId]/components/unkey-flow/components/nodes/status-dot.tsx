@@ -1,34 +1,13 @@
 import { cn } from "@unkey/ui/src/lib/utils";
-
-const colorMap = {
-  success: {
-    bg: "bg-success-9",
-    ring: "hsl(var(--successA-4))",
-  },
-  info: {
-    bg: "bg-info-9",
-    ring: "hsl(var(--infoA-4))",
-  },
-  alert: {
-    bg: "bg-orange-9",
-    ring: "hsl(var(--orangeA-4))",
-  },
-  warning: {
-    bg: "bg-yellow-9",
-    ring: "hsl(var(--yellowA-4))",
-  },
-  error: {
-    bg: "bg-red-9",
-    ring: "hsl(var(--redA-4))",
-  },
-} as const;
+import { STATUS_CONFIG, type HealthStatus } from "./status-config";
 
 type StatusDotProps = {
-  variant: keyof typeof colorMap;
+  healthStatus: HealthStatus;
 };
 
-export const StatusDot = ({ variant }: StatusDotProps) => {
-  const { bg, ring } = colorMap[variant];
+export function StatusDot({ healthStatus }: StatusDotProps) {
+  const { colors } = STATUS_CONFIG[healthStatus];
+
   return (
     <>
       <div className="absolute top-1.5 right-1.5 size-[7px]">
@@ -37,7 +16,7 @@ export const StatusDot = ({ variant }: StatusDotProps) => {
           className="absolute inset-0 rounded-full"
           style={{
             animation: "breathe-ring 2s ease-in-out infinite",
-            boxShadow: `0 0 0 1.5px ${ring}`,
+            boxShadow: `0 0 0 1.5px ${colors.dotRing}`,
           }}
         />
         {/* Ring 2 */}
@@ -45,11 +24,11 @@ export const StatusDot = ({ variant }: StatusDotProps) => {
           className="absolute inset-0 rounded-full"
           style={{
             animation: "breathe-ring 2s ease-in-out infinite 1s",
-            boxShadow: `0 0 0 1.5px ${ring}`,
+            boxShadow: `0 0 0 1.5px ${colors.dotRing}`,
           }}
         />
         {/* Solid dot */}
-        <div className={cn("absolute inset-0 rounded-full", bg)} />
+        <div className={cn("absolute inset-0 rounded-full", colors.dotBg)} />
       </div>
       <style>{`
         @keyframes breathe-ring {
@@ -65,4 +44,4 @@ export const StatusDot = ({ variant }: StatusDotProps) => {
       `}</style>
     </>
   );
-};
+}

@@ -1,3 +1,13 @@
+type HealthStatus =
+  | "normal"
+  | "unstable"
+  | "degraded"
+  | "unhealthy"
+  | "recovering"
+  | "health_syncing"
+  | "unknown"
+  | "disabled";
+
 type OriginMetadata = {
   type: "origin";
 };
@@ -13,7 +23,7 @@ type RegionMetadata = {
   bandwidth: string;
   latency: string;
   status: "active" | "inactive";
-  health: "healthy" | "degraded" | "unhealthy";
+  health: HealthStatus;
 };
 
 type InstanceMetadata = {
@@ -27,7 +37,7 @@ type InstanceMetadata = {
   storage?: string;
   latency: string;
   status: "active" | "inactive";
-  health: "healthy" | "degraded" | "unhealthy";
+  health: HealthStatus;
 };
 
 type NodeMetadata = OriginMetadata | RegionMetadata | InstanceMetadata;
@@ -45,4 +55,5 @@ export type {
   RegionMetadata,
   InstanceMetadata,
   OriginMetadata,
+  HealthStatus,
 };

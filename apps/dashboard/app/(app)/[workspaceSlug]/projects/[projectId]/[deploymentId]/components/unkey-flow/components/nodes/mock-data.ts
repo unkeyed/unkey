@@ -12,7 +12,7 @@ export const deploymentTree: DeploymentNode = {
       label: "us-east-1",
       metadata: {
         type: "region",
-        flagCode: "us", // Changed from flagComponent: <UsFlag />
+        flagCode: "us",
         zones: 2,
         instances: 28,
         replicas: 2,
@@ -21,7 +21,7 @@ export const deploymentTree: DeploymentNode = {
         bandwidth: "1gb",
         latency: "2.4ms",
         status: "active",
-        health: "healthy",
+        health: "normal",
       },
       children: [
         {
@@ -36,12 +36,12 @@ export const deploymentTree: DeploymentNode = {
             storage: "768mi",
             latency: "2.4ms",
             status: "active",
-            health: "healthy",
+            health: "disabled",
           },
         },
         {
-          id: "us-east-1-gw-9h4k-1-123213",
-          label: "gw-9hasdsad4k",
+          id: "us-east-1-gw-9h4k-2",
+          label: "gw-9h4k-2",
           metadata: {
             type: "instance",
             description: "Instance replica",
@@ -49,7 +49,7 @@ export const deploymentTree: DeploymentNode = {
             power: "38%",
             latency: "6ms",
             status: "active",
-            health: "healthy",
+            health: "unstable",
           },
         },
       ],
@@ -59,7 +59,7 @@ export const deploymentTree: DeploymentNode = {
       label: "ap-east-1",
       metadata: {
         type: "region",
-        flagCode: "hk", // Changed
+        flagCode: "hk",
         zones: 1,
         instances: 24,
         replicas: 2,
@@ -68,7 +68,7 @@ export const deploymentTree: DeploymentNode = {
         bandwidth: "1gb",
         latency: "3.1ms",
         status: "active",
-        health: "healthy",
+        health: "degraded",
       },
       children: [
         {
@@ -83,7 +83,7 @@ export const deploymentTree: DeploymentNode = {
             storage: "512mi",
             latency: "9ms",
             status: "active",
-            health: "healthy",
+            health: "unhealthy",
           },
         },
       ],
@@ -93,7 +93,7 @@ export const deploymentTree: DeploymentNode = {
       label: "ap-south-1",
       metadata: {
         type: "region",
-        flagCode: "in", // Changed
+        flagCode: "in",
         zones: 2,
         instances: 24,
         replicas: 2,
@@ -102,7 +102,7 @@ export const deploymentTree: DeploymentNode = {
         bandwidth: "1gb",
         latency: "3.1ms",
         status: "active",
-        health: "healthy",
+        health: "recovering",
       },
       children: [
         {
@@ -115,12 +115,12 @@ export const deploymentTree: DeploymentNode = {
             power: "41%",
             latency: "7ms",
             status: "active",
-            health: "healthy",
+            health: "health_syncing",
           },
         },
         {
           id: "ap-south-1-gw-8k3d-2",
-          label: "gw-8k3d",
+          label: "gw-8k3d-2",
           metadata: {
             type: "instance",
             description: "Instance replica",
@@ -129,7 +129,7 @@ export const deploymentTree: DeploymentNode = {
             power: "19%",
             latency: "5.2ms",
             status: "active",
-            health: "healthy",
+            health: "unknown",
           },
         },
       ],
@@ -139,7 +139,7 @@ export const deploymentTree: DeploymentNode = {
       label: "eu-west-1",
       metadata: {
         type: "region",
-        flagCode: "eu", // Changed
+        flagCode: "eu",
         zones: 1,
         instances: 32,
         replicas: 2,
@@ -148,7 +148,7 @@ export const deploymentTree: DeploymentNode = {
         bandwidth: "1gb",
         latency: "2.8ms",
         status: "active",
-        health: "healthy",
+        health: "unstable",
       },
       children: [
         {
@@ -162,7 +162,7 @@ export const deploymentTree: DeploymentNode = {
             power: "31%",
             latency: "5.8ms",
             status: "active",
-            health: "healthy",
+            health: "normal",
           },
         },
       ],
