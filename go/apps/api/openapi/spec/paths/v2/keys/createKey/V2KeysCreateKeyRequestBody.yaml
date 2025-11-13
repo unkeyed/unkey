@@ -24,7 +24,7 @@ properties:
   name:
     type: string
     minLength: 1
-    maxLength: 200 # Human-readable names should be concise but descriptive
+    maxLength: 255
     description: |
       Sets a human-readable identifier for internal organization and dashboard display.
       Never exposed to end users, only visible in management interfaces and API responses.

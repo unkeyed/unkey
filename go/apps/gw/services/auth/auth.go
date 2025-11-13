@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -92,7 +93,7 @@ func (a *authenticator) verifyAPIKey(ctx context.Context, sess *server.Session, 
 		WorkspaceID: sess.WorkspaceID,
 	}
 
-	key, emit, err := a.keys.Get(ctx, &z, apiKey)
+	key, emit, err := a.keys.Get(ctx, &z, hash.Sha256(apiKey))
 	defer emit()
 	if err != nil {
 		return fault.Wrap(err,

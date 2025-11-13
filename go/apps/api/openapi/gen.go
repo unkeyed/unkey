@@ -1059,6 +1059,101 @@ type V2KeysGetKeyResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2KeysMigrateKeyData defines model for V2KeysMigrateKeyData.
+type V2KeysMigrateKeyData struct {
+	// Credits Credit configuration and remaining balance for this key.
+	Credits *KeyCreditsData `json:"credits,omitempty"`
+
+	// Enabled Controls whether the key is active immediately upon creation.
+	// When set to `false`, the key exists but all verification attempts fail with `code=DISABLED`.
+	// Useful for pre-creating keys that will be activated later or for keys requiring manual approval.
+	// Most keys should be created with `enabled=true` for immediate use.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Expires Sets when this key automatically expires as a Unix timestamp in milliseconds.
+	// Verification fails with code=EXPIRED immediately after this time passes.
+	// Omitting this field creates a permanent key that never expires.
+	//
+	// Avoid setting timestamps in the past as they immediately invalidate the key.
+	// Keys expire based on server time, not client time, which prevents timezone-related issues.
+	// Essential for trial periods, temporary access, and security compliance requiring key rotation.
+	Expires *int64 `json:"expires,omitempty"`
+
+	// ExternalId Links this key to a user or entity in your system using your own identifier.
+	// Returned during verification to identify the key owner without additional database lookups.
+	// Essential for user-specific analytics, billing, and multi-tenant key management.
+	// Use your primary user ID, organization ID, or tenant ID for best results.
+	// Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
+	ExternalId *string `json:"externalId,omitempty"`
+
+	// Hash The current hash of the key on your side
+	Hash string `json:"hash"`
+
+	// Meta Stores arbitrary JSON metadata returned during key verification for contextual information.
+	// Eliminates additional database lookups during verification, improving performance for stateless services.
+	// Avoid storing sensitive data here as it's returned in verification responses.
+	// Large metadata objects increase verification latency and should stay under 10KB total size.
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Name Sets a human-readable identifier for internal organization and dashboard display.
+	// Never exposed to end users, only visible in management interfaces and API responses.
+	// Avoid generic names like "API Key" when managing multiple keys for the same user or service.
+	Name *string `json:"name,omitempty"`
+
+	// Permissions Grants specific permissions directly to this key without requiring role membership.
+	// Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
+	// Direct permissions supplement any permissions inherited from assigned roles.
+	Permissions *[]string `json:"permissions,omitempty"`
+
+	// Ratelimits Defines time-based rate limits that protect against abuse by controlling request frequency.
+	// Unlike credits which track total usage, rate limits reset automatically after each window expires.
+	// Multiple rate limits can control different operation types with separate thresholds and windows.
+	// Essential for preventing API abuse while maintaining good performance for legitimate usage.
+	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`
+
+	// Roles Assigns existing roles to this key for permission management through role-based access control.
+	// Roles must already exist in your workspace before assignment.
+	// During verification, all permissions from assigned roles are checked against requested permissions.
+	// Roles provide a convenient way to group permissions and apply consistent access patterns across multiple keys.
+	Roles *[]string `json:"roles,omitempty"`
+}
+
+// V2KeysMigrateKeysMigration defines model for V2KeysMigrateKeysMigration.
+type V2KeysMigrateKeysMigration struct {
+	// Hash The hash provided in the migration request
+	Hash string `json:"hash"`
+
+	// KeyId The unique identifier for this key in Unkey's system. This is NOT the actual API key, but a reference ID used for management operations like updating or deleting the key. Store this ID in your database to reference the key later. This ID is not sensitive and can be logged or displayed in dashboards.
+	KeyId string `json:"keyId"`
+}
+
+// V2KeysMigrateKeysRequestBody defines model for V2KeysMigrateKeysRequestBody.
+type V2KeysMigrateKeysRequestBody struct {
+	// ApiId The ID of the API that the keys should be inserted into
+	ApiId string                 `json:"apiId"`
+	Keys  []V2KeysMigrateKeyData `json:"keys"`
+
+	// MigrationId Identifier of the configured migration provider/strategy to use (e.g., "your_company").
+	MigrationId string `json:"migrationId"`
+}
+
+// V2KeysMigrateKeysResponseBody defines model for V2KeysMigrateKeysResponseBody.
+type V2KeysMigrateKeysResponseBody struct {
+	Data V2KeysMigrateKeysResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2KeysMigrateKeysResponseData defines model for V2KeysMigrateKeysResponseData.
+type V2KeysMigrateKeysResponseData struct {
+	// Failed Hashes that could not be migrated (e.g., already exist in the system)
+	Failed []string `json:"failed"`
+
+	// Migrated Successfully migrated keys with their hash and generated keyId
+	Migrated []V2KeysMigrateKeysMigration `json:"migrated"`
+}
+
 // V2KeysRemovePermissionsRequestBody defines model for V2KeysRemovePermissionsRequestBody.
 type V2KeysRemovePermissionsRequestBody struct {
 	// KeyId Specifies which key to remove permissions from using the database identifier returned from `keys.createKey`.
@@ -1412,6 +1507,9 @@ type V2KeysVerifyKeyRequestBody struct {
 	// Key The API key to verify, exactly as provided by your user.
 	// Include any prefix - even small changes will cause verification to fail.
 	Key string `json:"key"`
+
+	// MigrationId Migrate keys on demand from your previous system. Reach out for migration support at support@unkey.dev
+	MigrationId *string `json:"migrationId,omitempty"`
 
 	// Permissions Checks if the key has the specified permission(s) using a query syntax.
 	// Supports single permissions, logical operators (AND, OR), and parentheses for grouping.
@@ -2195,6 +2293,9 @@ type DeleteKeyJSONRequestBody = V2KeysDeleteKeyRequestBody
 
 // GetKeyJSONRequestBody defines body for GetKey for application/json ContentType.
 type GetKeyJSONRequestBody = V2KeysGetKeyRequestBody
+
+// MigrateKeysJSONRequestBody defines body for MigrateKeys for application/json ContentType.
+type MigrateKeysJSONRequestBody = V2KeysMigrateKeysRequestBody
 
 // RemovePermissionsJSONRequestBody defines body for RemovePermissions for application/json ContentType.
 type RemovePermissionsJSONRequestBody = V2KeysRemovePermissionsRequestBody
