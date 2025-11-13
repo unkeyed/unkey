@@ -200,7 +200,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ratelimitReqs := make([]ratelimit.RatelimitRequest, len(req))
 	checkMetadata := make([]checkMeta, len(req))
 
-	reqTime := time.Time{}
+	reqTime := h.Clock.Now()
 	if h.TestMode {
 		header := s.Request().Header.Get("X-Test-Time")
 		if header != "" {
