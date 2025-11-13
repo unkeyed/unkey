@@ -86,25 +86,25 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 		return nil, restate.TerminalError(fmt.Errorf("source deployment is not the current live deployment"), 400)
 	}
 
-	// Check target deployment has running VMs
-	vms, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]partitiondb.Vm, error) {
-		return partitiondb.Query.FindVMsByDeploymentId(stepCtx, w.partitionDB.RO(), targetDeployment.ID)
-	}, restate.WithName("finding target VMs"))
+	// Check target deployment has running instances
+	instances, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]partitiondb.Instance, error) {
+		return partitiondb.Query.FindInstancesByDeploymentId(stepCtx, w.partitionDB.RO(), targetDeployment.ID)
+	}, restate.WithName("finding target instances"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get VMs: %w", err)
+		return nil, fmt.Errorf("failed to get instances: %w", err)
 	}
 
-	runningVms := 0
-	for _, vm := range vms {
-		if vm.Status == partitiondb.VmsStatusRunning {
-			runningVms++
+	runningInstances := 0
+	for _, instance := range instances {
+		if instance.Status == partitiondb.InstanceStatusRunning {
+			runningInstances++
 		}
 	}
-	if runningVms == 0 {
-		return nil, restate.TerminalError(fmt.Errorf("no running VMs found for target deployment: %s", targetDeployment.ID), 400)
+	if runningInstances == 0 {
+		return nil, restate.TerminalError(fmt.Errorf("no running instances found for target deployment: %s", targetDeployment.ID), 400)
 	}
 
-	w.logger.Info("found running VMs for target deployment", "count", runningVms, "deployment_id", targetDeployment.ID)
+	w.logger.Info("found running instances for target deployment", "count", runningInstances, "deployment_id", targetDeployment.ID)
 
 	// Get all domains on the live deployment that are sticky
 	domains, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindDomainsForRollbackRow, error) {

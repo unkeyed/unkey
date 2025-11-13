@@ -243,7 +243,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:             logger,
 		Clock:              clk,
 		GatewayConfigCache: caches.GatewayConfig,
-		VMCache:            caches.VM,
+		InstanceCache:      caches.Instance,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create routing service: %w", err)

@@ -28,5 +28,5 @@ type Config struct {
 	Clock  clock.Clock
 
 	GatewayConfigCache cache.Cache[string, ConfigWithWorkspace]
-	VMCache            cache.Cache[string, pdb.Vm]
+	InstanceCache      cache.Cache[string, pdb.Instance]
 }

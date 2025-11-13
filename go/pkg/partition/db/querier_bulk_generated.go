@@ -8,7 +8,7 @@ import "context"
 type BulkQuerier interface {
 	InsertCertificates(ctx context.Context, db DBTX, args []InsertCertificateParams) error
 	UpsertGateway(ctx context.Context, db DBTX, args []UpsertGatewayParams) error
-	UpsertVM(ctx context.Context, db DBTX, args []UpsertVMParams) error
+	UpsertInstance(ctx context.Context, db DBTX, args []UpsertInstanceParams) error
 }
 
 // Ensure BulkQueries implements BulkQuerier

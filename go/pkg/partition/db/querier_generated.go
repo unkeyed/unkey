@@ -31,16 +31,14 @@ type Querier interface {
 	//  FROM gateways
 	//  WHERE hostname = ?
 	FindGatewayByHostname(ctx context.Context, db DBTX, hostname string) (FindGatewayByHostnameRow, error)
-	//FindVMById
+	//FindInstanceById
 	//
-	//  SELECT id, deployment_id, metal_host_id, address, cpu_millicores, memory_mb, status FROM vms WHERE id = ?
-	FindVMById(ctx context.Context, db DBTX, id string) (Vm, error)
-	//FindVMsByDeploymentId
+	//  SELECT id, deployment_id, status, config FROM instance WHERE id = ?
+	FindInstanceById(ctx context.Context, db DBTX, id string) (Instance, error)
+	//FindInstancesByDeploymentId
 	//
-	//  SELECT id, deployment_id, metal_host_id, address, cpu_millicores, memory_mb, status
-	//  FROM vms
-	//  WHERE deployment_id = ?
-	FindVMsByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]Vm, error)
+	//  SELECT id, deployment_id, status, config FROM instance WHERE deployment_id = ?
+	FindInstancesByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]Instance, error)
 	//InsertCertificate
 	//
 	//  INSERT INTO certificates (workspace_id, hostname, certificate, encrypted_private_key, created_at)
@@ -70,17 +68,15 @@ type Querier interface {
 	//      deployment_id = ?,
 	//      config = ?
 	UpsertGateway(ctx context.Context, db DBTX, arg UpsertGatewayParams) error
-	//UpsertVM
+	//UpsertInstance
 	//
-	//  INSERT INTO vms (id, deployment_id, address, cpu_millicores, memory_mb, status)
-	//  VALUES (?, ?, ?, ?, ?, ?)
+	//  INSERT INTO instance (id, deployment_id, status, config)
+	//  VALUES (?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE
 	//    deployment_id = VALUES(deployment_id),
-	//    address = VALUES(address),
-	//    cpu_millicores = VALUES(cpu_millicores),
-	//    memory_mb = VALUES(memory_mb),
-	//    status = VALUES(status)
-	UpsertVM(ctx context.Context, db DBTX, arg UpsertVMParams) error
+	//    status = VALUES(status),
+	//    config = VALUES(config)
+	UpsertInstance(ctx context.Context, db DBTX, arg UpsertInstanceParams) error
 }
 
 var _ Querier = (*Queries)(nil)

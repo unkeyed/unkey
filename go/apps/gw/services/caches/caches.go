@@ -25,7 +25,7 @@ type Caches struct {
 	OpenAPISpec cache.Cache[string, validator.Validator]
 
 	// VmID -> VM Info
-	VM cache.Cache[string, partitiondb.Vm]
+	Instance cache.Cache[string, partitiondb.Instance]
 
 	// HostName -> Certificate
 	TLSCertificate cache.Cache[string, tls.Certificate]
@@ -84,16 +84,16 @@ func New(config Config) (Caches, error) {
 		return Caches{}, fmt.Errorf("failed to create routing cache: %w", err)
 	}
 
-	vmCache, err := cache.New(cache.Config[string, partitiondb.Vm]{
+	instanceCache, err := cache.New(cache.Config[string, partitiondb.Instance]{
 		Fresh:    time.Second * 10,
 		Stale:    time.Minute,
 		Logger:   config.Logger,
 		MaxSize:  10_000,
-		Resource: "vm",
+		Resource: "instance",
 		Clock:    config.Clock,
 	})
 	if err != nil {
-		return Caches{}, fmt.Errorf("failed to create vm cache: %w", err)
+		return Caches{}, fmt.Errorf("failed to create instance cache: %w", err)
 	}
 
 	tlsCertificate, err := cache.New(cache.Config[string, tls.Certificate]{
@@ -134,7 +134,7 @@ func New(config Config) (Caches, error) {
 
 	return Caches{
 		GatewayConfig:         middleware.WithTracing(gatewayConfig),
-		VM:                    middleware.WithTracing(vmCache),
+		Instance:              middleware.WithTracing(instanceCache),
 		TLSCertificate:        middleware.WithTracing(tlsCertificate),
 		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
 		OpenAPISpec:           middleware.WithTracing(openapiSpec),

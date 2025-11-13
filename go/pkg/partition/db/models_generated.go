@@ -10,51 +10,51 @@ import (
 	"fmt"
 )
 
-type VmsStatus string
+type InstanceStatus string
 
 const (
-	VmsStatusAllocated    VmsStatus = "allocated"
-	VmsStatusProvisioning VmsStatus = "provisioning"
-	VmsStatusStarting     VmsStatus = "starting"
-	VmsStatusRunning      VmsStatus = "running"
-	VmsStatusStopping     VmsStatus = "stopping"
-	VmsStatusStopped      VmsStatus = "stopped"
-	VmsStatusFailed       VmsStatus = "failed"
+	InstanceStatusAllocated    InstanceStatus = "allocated"
+	InstanceStatusProvisioning InstanceStatus = "provisioning"
+	InstanceStatusStarting     InstanceStatus = "starting"
+	InstanceStatusRunning      InstanceStatus = "running"
+	InstanceStatusStopping     InstanceStatus = "stopping"
+	InstanceStatusStopped      InstanceStatus = "stopped"
+	InstanceStatusFailed       InstanceStatus = "failed"
 )
 
-func (e *VmsStatus) Scan(src interface{}) error {
+func (e *InstanceStatus) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = VmsStatus(s)
+		*e = InstanceStatus(s)
 	case string:
-		*e = VmsStatus(s)
+		*e = InstanceStatus(s)
 	default:
-		return fmt.Errorf("unsupported scan type for VmsStatus: %T", src)
+		return fmt.Errorf("unsupported scan type for InstanceStatus: %T", src)
 	}
 	return nil
 }
 
-type NullVmsStatus struct {
-	VmsStatus VmsStatus
-	Valid     bool // Valid is true if VmsStatus is not NULL
+type NullInstanceStatus struct {
+	InstanceStatus InstanceStatus
+	Valid          bool // Valid is true if InstanceStatus is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullVmsStatus) Scan(value interface{}) error {
+func (ns *NullInstanceStatus) Scan(value interface{}) error {
 	if value == nil {
-		ns.VmsStatus, ns.Valid = "", false
+		ns.InstanceStatus, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.VmsStatus.Scan(value)
+	return ns.InstanceStatus.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullVmsStatus) Value() (driver.Value, error) {
+func (ns NullInstanceStatus) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.VmsStatus), nil
+	return string(ns.InstanceStatus), nil
 }
 
 type Certificate struct {
@@ -75,12 +75,9 @@ type Gateway struct {
 	Config       []byte `db:"config"`
 }
 
-type Vm struct {
-	ID            string         `db:"id"`
-	DeploymentID  string         `db:"deployment_id"`
-	MetalHostID   sql.NullString `db:"metal_host_id"`
-	Address       sql.NullString `db:"address"`
-	CpuMillicores int32          `db:"cpu_millicores"`
-	MemoryMb      int32          `db:"memory_mb"`
-	Status        VmsStatus      `db:"status"`
+type Instance struct {
+	ID           string         `db:"id"`
+	DeploymentID string         `db:"deployment_id"`
+	Status       InstanceStatus `db:"status"`
+	Config       []byte         `db:"config"`
 }

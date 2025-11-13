@@ -228,40 +228,49 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 					allReady = false
 				}
 
-				var status partitiondb.VmsStatus
+				var status partitiondb.InstanceStatus
 				switch instance.GetStatus() {
 				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING:
-					status = partitiondb.VmsStatusProvisioning
+					status = partitiondb.InstanceStatusProvisioning
 				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING:
-					status = partitiondb.VmsStatusRunning
+					status = partitiondb.InstanceStatusRunning
 
 				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_TERMINATING:
-					status = partitiondb.VmsStatusStopping
+					status = partitiondb.InstanceStatusStopping
 				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED:
-					status = partitiondb.VmsStatusAllocated
+					status = partitiondb.InstanceStatusAllocated
 				}
 
-				upsertParams := partitiondb.UpsertVMParams{
-					ID:           instance.GetId(),
-					DeploymentID: deployment.ID,
-					Address:      sql.NullString{Valid: true, String: instance.GetAddress()},
+				instanceConfig := &partitionv1.InstanceConfig{
+					Address: instance.GetAddress(),
 					// nolint: godox
 					// TODO: Make sure configurable later
 					CpuMillicores: 1000,
 					MemoryMb:      1024,
-					Status:        status,
 				}
 
-				w.logger.Info("upserting VM to database",
-					"vm_id", instance.GetId(),
+				configBytes, err := proto.Marshal(instanceConfig)
+				if err != nil {
+					return nil, fmt.Errorf("failed to marshal instance config for %s: %w", instance.GetId(), err)
+				}
+
+				upsertParams := partitiondb.UpsertInstanceParams{
+					ID:           instance.GetId(),
+					DeploymentID: deployment.ID,
+					Status:       status,
+					Config:       configBytes,
+				}
+
+				w.logger.Info("upserting instance to database",
+					"instance_id", instance.GetId(),
 					"deployment_id", deployment.ID,
 					"address", instance.GetAddress(),
 					"status", status)
-				if err = partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), upsertParams); err != nil {
-					return nil, fmt.Errorf("failed to upsert VM %s: %w", instance.GetId(), err)
+				if err = partitiondb.Query.UpsertInstance(stepCtx, w.partitionDB.RW(), upsertParams); err != nil {
+					return nil, fmt.Errorf("failed to upsert instance %s: %w", instance.GetId(), err)
 				}
 
-				w.logger.Info("successfully upserted VM to database", "vm_id", instance.GetId())
+				w.logger.Info("successfully upserted instance to database", "instance_id", instance.GetId())
 
 			}
 

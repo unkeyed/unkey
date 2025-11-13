@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/url"
 
+	"github.com/gogo/protobuf/proto"
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/pkg/assert"
@@ -25,7 +26,7 @@ type service struct {
 	logger logging.Logger
 
 	gatewayConfigCache cache.Cache[string, ConfigWithWorkspace]
-	vmCache            cache.Cache[string, pdb.Vm]
+	instanceCache      cache.Cache[string, pdb.Instance]
 }
 
 var _ Service = (*service)(nil)
@@ -36,7 +37,7 @@ func New(config Config) (*service, error) {
 		assert.NotNilAndNotZero(config.Logger, "Logger is required"),
 		assert.NotNilAndNotZero(config.DB, "Database is required"),
 		assert.NotNilAndNotZero(config.GatewayConfigCache, "Gateway config cache is required"),
-		assert.NotNilAndNotZero(config.VMCache, "VM cache is required"),
+		assert.NotNilAndNotZero(&config.InstanceCache, "Instance cache is required"),
 	); err != nil {
 		return nil, err
 	}
@@ -45,7 +46,7 @@ func New(config Config) (*service, error) {
 		db:                 config.DB,
 		logger:             config.Logger,
 		gatewayConfigCache: config.GatewayConfigCache,
-		vmCache:            config.VMCache,
+		instanceCache:      config.InstanceCache,
 	}, nil
 }
 
@@ -106,11 +107,11 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 		return nil, fmt.Errorf("no VMs available for gateway %s", config.GetDeployment().GetId())
 	}
 
-	availableInstances := make([]pdb.Vm, 0)
+	availableInstances := make([]pdb.Instance, 0)
 	for _, instance := range config.GetInstances() {
-		dbVm, hit, err := s.vmCache.SWR(ctx, instance.GetId(), func(ctx context.Context) (pdb.Vm, error) {
+		dbVm, hit, err := s.instanceCache.SWR(ctx, instance.GetId(), func(ctx context.Context) (pdb.Instance, error) {
 			// refactor: this is bad BAD, we should really add a getMany method to the cache
-			return pdb.Query.FindVMById(ctx, s.db.RO(), instance.GetId())
+			return pdb.Query.FindInstanceById(ctx, s.db.RO(), instance.GetId())
 		}, caches.DefaultFindFirstOp)
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -125,7 +126,7 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 			continue
 		}
 
-		if dbVm.Status != pdb.VmsStatusRunning {
+		if dbVm.Status != pdb.InstanceStatusRunning {
 			continue
 		}
 
@@ -133,18 +134,24 @@ func (s *service) SelectVM(ctx context.Context, config *partitionv1.GatewayConfi
 	}
 
 	if len(availableInstances) == 0 {
-		return nil, fmt.Errorf("no available VMs for gateway %s", config.GetDeployment().GetId())
+		return nil, fmt.Errorf("no available instances for gateway %s", config.GetDeployment().GetId())
 	}
 
-	// select random VM
+	// select random instance
 	//nolint:gosec // G404: Non-cryptographic random selection for load balancing
-	selectedVM := availableInstances[rand.Intn(len(availableInstances))]
+	selectedInstance := availableInstances[rand.Intn(len(availableInstances))]
 
-	fullUrl := fmt.Sprintf("http://%s", selectedVM.Address.String)
+	// Unmarshal the instance config to get the address
+	var instanceConfig partitionv1.InstanceConfig
+	if err := proto.Unmarshal(selectedInstance.Config, &instanceConfig); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal instance config: %w", err)
+	}
+
+	fullUrl := fmt.Sprintf("http://%s", instanceConfig.Address)
 
 	targetURL, err := url.Parse(fullUrl)
 	if err != nil {
-		return nil, fmt.Errorf("invalid VM URL %s: %w", fullUrl, err)
+		return nil, fmt.Errorf("invalid instance URL %s: %w", fullUrl, err)
 	}
 
 	return targetURL, nil
