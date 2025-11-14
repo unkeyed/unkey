@@ -1,6 +1,12 @@
 import { useRef, useMemo } from "react";
 import type { Point } from "../../types";
-import { renderPath, move, line, curve } from "./tree-path-command";
+import {
+  renderPath,
+  move,
+  line,
+  curve,
+  type PathCommand,
+} from "./tree-path-command";
 
 const PATH_CONFIG = {
   straightLineThreshold: 20,
@@ -65,6 +71,7 @@ type AnimationConfig =
 type TreeConnectionLineProps = {
   from: Point;
   to: Point;
+  waypoints?: Point[];
   horizontal?: boolean;
   animation?: AnimationConfig;
 };
@@ -77,6 +84,7 @@ type TreeConnectionLineProps = {
 export function TreeConnectionLine({
   from,
   to,
+  waypoints,
   horizontal = false,
   animation = { preset: "dots" },
 }: TreeConnectionLineProps) {
@@ -103,6 +111,11 @@ export function TreeConnectionLine({
   }, [animation]);
 
   const pathD = useMemo(() => {
+    // If waypoints exist, create stepped path with rounded corners
+    if (waypoints && waypoints.length > 0) {
+      return steppedPathWithRoundedCorners(from, waypoints, to);
+    }
+
     if (horizontal) {
       const dy = Math.abs(to.y - from.y);
       return dy < PATH_CONFIG.cornerRadius * 2
@@ -117,7 +130,7 @@ export function TreeConnectionLine({
       dy < PATH_CONFIG.minVerticalForCurve;
 
     return needsStraightLine ? straightLine(from, to) : roundedZShape(from, to);
-  }, [from, to, horizontal]);
+  }, [from, to, waypoints, horizontal]);
 
   const dashArray = `${animConfig.dashLength} ${animConfig.gapLength}`;
   const dashTotal = animConfig.dashLength + animConfig.gapLength;
@@ -270,4 +283,82 @@ function roundedZShape(from: Point, to: Point): string {
     curve(curve2Control, afterCurve2),
     line(to),
   ]);
+}
+
+/**
+ * Creates a stepped path through waypoints with rounded corners.
+ *
+ * Visual representation:
+ * ```
+ * from ───┐
+ *         │
+ *         ╰───┐
+ *             │
+ *             ╰──→ to
+ * ```
+ */
+function steppedPathWithRoundedCorners(
+  from: Point,
+  waypoints: Point[],
+  to: Point
+): string {
+  const radius = PATH_CONFIG.cornerRadius;
+  const commands: PathCommand[] = [move(from)];
+
+  const points = [from, ...waypoints, to];
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const current = points[i];
+    const next = points[i + 1];
+
+    // Check if there's a corner at 'next'
+    if (i < points.length - 2) {
+      const afterNext = points[i + 2];
+
+      // Calculate direction vectors
+      const dx1 = next.x - current.x;
+      const dy1 = next.y - current.y;
+      const dx2 = afterNext.x - next.x;
+      const dy2 = afterNext.y - next.y;
+
+      // Detect direction change (corner)
+      const isCorner =
+        (dx1 !== 0 && dy1 === 0 && dx2 === 0 && dy2 !== 0) ||
+        (dx1 === 0 && dy1 !== 0 && dx2 !== 0 && dy2 === 0);
+
+      if (isCorner) {
+        // Line to point before corner
+        const segmentLength = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+        const clampedRadius = Math.min(radius, segmentLength / 2);
+        const ratio = (segmentLength - clampedRadius) / segmentLength;
+
+        const beforeCorner = {
+          x: current.x + dx1 * ratio,
+          y: current.y + dy1 * ratio,
+        };
+
+        commands.push(line(beforeCorner));
+
+        // Calculate the point after the corner
+        const nextSegmentLength = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+        const nextClampedRadius = Math.min(radius, nextSegmentLength / 2);
+        const afterCornerRatio = nextClampedRadius / nextSegmentLength;
+
+        const afterCorner = {
+          x: next.x + dx2 * afterCornerRatio,
+          y: next.y + dy2 * afterCornerRatio,
+        };
+
+        // Curved corner through 'next' to 'afterCorner'
+        commands.push(curve(next, afterCorner));
+
+        continue;
+      }
+    }
+
+    // No corner - straight line
+    commands.push(line(next));
+  }
+
+  return renderPath(commands);
 }

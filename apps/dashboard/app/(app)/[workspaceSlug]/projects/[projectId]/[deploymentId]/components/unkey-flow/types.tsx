@@ -36,8 +36,9 @@ export type TreeLayoutProps<T extends TreeNode> = {
   renderConnection?: (
     from: Point,
     to: Point,
-    parentNode: T,
-    childNode: T
+    parent: T,
+    child: T,
+    waypoints?: Point[]
   ) => React.ReactNode;
 };
 

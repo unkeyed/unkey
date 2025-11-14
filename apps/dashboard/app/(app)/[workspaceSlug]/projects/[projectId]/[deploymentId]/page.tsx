@@ -17,7 +17,7 @@ const DEFAULT_TREE = generateDeploymentTree({
   regions: 2,
   instancesPerRegion: { min: 2, max: 3 },
   regionDirection: "vertical",
-  instanceDirection: "vertical",
+  instanceDirection: "horizontal",
   healthDistribution: {
     normal: 80,
     unstable: 10,
@@ -49,8 +49,9 @@ export default function DeploymentDetailsPage() {
       }
     >
       <TreeLayout
+        // biome-ignore lint/style/noNonNullAssertion: <explanation>
         data={generatedTree!}
-        nodeSpacing={{ x: 25, y: 150 }}
+        nodeSpacing={{ x: 25, y: 100 }}
         renderNode={(node, _, parent) => {
           switch (node.metadata.type) {
             case "origin":
@@ -81,30 +82,15 @@ export default function DeploymentDetailsPage() {
               return <DefaultNode node={node} />;
           }
         }}
-        renderConnection={(from, to, parent, child) => {
+        renderConnection={(from, to, parent, child, waypoints) => {
           const parentDirection = (parent as TreeNode).direction ?? "vertical";
-          if (parentDirection === "horizontal") {
-            // For horizontal layouts, use curved horizontal lines
-            return (
-              <TreeConnectionLine
-                key={`${parent.id}-${child.id}`}
-                from={from}
-                to={to}
-                horizontal
-              />
-            );
-          }
-          // Vertical layout with offset for multiple children
-          // const childIndex =
-          //   parent.children?.findIndex((c) => c.id === child.id) ?? 0;
-          // const childCount = parent.children?.length ?? 1;
-          // const xOffset = (childIndex - (childCount - 1) / 2) * 5;
           return (
             <TreeConnectionLine
               key={`${parent.id}-${child.id}`}
-              from={{ x: from.x, y: from.y }}
-              to={{ x: to.x, y: to.y }}
-              horizontal={false}
+              from={from}
+              to={to}
+              waypoints={waypoints}
+              horizontal={parentDirection === "horizontal"}
             />
           );
         }}

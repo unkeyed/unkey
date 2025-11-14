@@ -161,18 +161,17 @@ export class LayoutEngine<T extends TreeNode> {
         );
 
         node.children.forEach((child, index) => {
-          const childX =
-            nodePosition.x + nodeDim.width / 2 + this.config.spacing.x;
-          const childY = this.calculateChildYPosition(
-            nodePosition.y,
-            index,
-            subtreeHeights
-          );
-
           const childDim = this.dimensions.get(child.id);
           if (!childDim) {
             throw new Error(`Missing dimensions for child ${child.id}`);
           }
+
+          const childX = nodePosition.x - nodeDim.width / 2;
+          const childY = this.calculateChildYPosition(
+            nodePosition.y + nodeDim.height / 2 + this.config.spacing.y,
+            index,
+            subtreeHeights
+          );
 
           const childPositioned = this.layoutNode(child as T, level + 1, {
             x: childX + childDim.width / 2,
@@ -289,30 +288,22 @@ export class LayoutEngine<T extends TreeNode> {
    * Children stack top to bottom starting from parent's Y position.
    */
   private calculateChildYPosition(
-    parentY: number,
+    startY: number,
     childIndex: number,
     subtreeHeights: number[]
   ): number {
-    const childCount = subtreeHeights.length;
-
-    if (childCount === 1) {
-      return parentY;
-    }
-
-    // Calculate total height needed for all subtrees + spacing
-    const totalSubtreeHeight = subtreeHeights.reduce((sum, h) => sum + h, 0);
-    const totalSpacing = (childCount - 1) * this.config.spacing.y;
-    const totalHeight = totalSubtreeHeight + totalSpacing;
-
-    // Start position (topmost subtree's top edge, centered on parent)
-    const startY = parentY - totalHeight / 2;
-
-    // Calculate this child's Y position (center of its subtree allocation)
     let y = startY;
+
+    // Add half of first child's height to get to its center
+    y += subtreeHeights[0] / 2;
+
+    // Add up heights and spacing for children before this one
     for (let i = 0; i < childIndex; i++) {
-      y += subtreeHeights[i] + this.config.spacing.y;
+      y +=
+        subtreeHeights[i] / 2 +
+        this.config.spacing.y +
+        subtreeHeights[i + 1] / 2;
     }
-    y += subtreeHeights[childIndex] / 2;
 
     return y;
   }
@@ -321,14 +312,19 @@ export class LayoutEngine<T extends TreeNode> {
    * Build connection lines between parent and child nodes.
    * @throws Error if child node position not found
    */
-  private buildConnections(
-    positioned: PositionedNode<T>[]
-  ): Array<{ from: Point; to: Point; parent: T; child: T }> {
+  private buildConnections(positioned: PositionedNode<T>[]): Array<{
+    from: Point;
+    to: Point;
+    parent: T;
+    child: T;
+    waypoints?: Point[];
+  }> {
     const connections: Array<{
       from: Point;
       to: Point;
       parent: T;
       child: T;
+      waypoints?: Point[];
     }> = [];
 
     positioned.forEach((pos) => {
@@ -352,33 +348,62 @@ export class LayoutEngine<T extends TreeNode> {
             );
           }
 
+          const parentEdges = getNodeEdges(pos.position, parentDim);
+          const childEdges = getNodeEdges(childPos.position, childDim);
+
           if (parentDirection === "horizontal") {
-            // Horizontal: right edge of parent to left edge of child
+            // Vertical trunk with horizontal branches layout:
+            // Parent ───┐
+            //           │ (trunk goes down)
+            //           ├──→ Child1
+            //           ├──→ Child2
+            //           └──→ Child3
+
+            // Calculate X positions
+            const trunkOffsetFromParent = 100; // How far left the trunk extends from parent
+            const trunkX = parentEdges.left - trunkOffsetFromParent; // Absolute X position of the vertical trunk line
+
             connections.push({
-              from: {
-                x: pos.position.x + parentDim.width / 2,
-                y: pos.position.y,
-              },
-              to: {
-                x: childPos.position.x - childDim.width / 2,
-                y: childPos.position.y,
-              },
+              from: { x: parentEdges.left, y: pos.position.y }, // Start at parent's left edge center
+              to: { x: childEdges.left, y: childPos.position.y }, // End at child's left edge center
               parent: pos.node,
               child: childPos.node as T,
+              waypoints: [
+                { x: trunkX, y: pos.position.y }, // Go left to trunk, stay at parent's Y (horizontal segment)
+                { x: trunkX, y: childPos.position.y }, // Go down trunk to child's Y level (vertical segment, creates rounded corner)
+                // Final segment from last waypoint to 'to' goes right to child (horizontal, creates rounded corner)
+              ],
             });
           } else {
-            // Vertical: bottom edge of parent to top edge of child
+            // Vertical Z-shaped path with rounded corners:
+            // Parent
+            //   │ (go down)
+            //   └──╮ (turn right with curve)
+            //      │ (go across)
+            //   ╭──┘ (turn down with curve)
+            //   │ (go down)
+            // Child
+
+            // Calculate Y positions
+            const verticalGap = childEdges.top - parentEdges.bottom; // Total vertical distance between parent bottom and child top
+            const midY = parentEdges.bottom + verticalGap * 0.5; // Midpoint Y where horizontal segment occurs (halfway between parent and child)
+
             connections.push({
               from: {
-                x: pos.position.x,
-                y: pos.position.y + parentDim.height / 2,
+                x: pos.position.x, // Start at parent's center X
+                y: parentEdges.bottom, // Start at parent's bottom edge
               },
               to: {
-                x: childPos.position.x,
-                y: childPos.position.y - childDim.height / 2,
+                x: childPos.position.x, // End at child's center X
+                y: childEdges.top, // End at child's top edge
               },
               parent: pos.node,
               child: childPos.node as T,
+              waypoints: [
+                { x: pos.position.x, y: midY }, // Go down to midpoint, stay at parent's X (vertical segment)
+                { x: childPos.position.x, y: midY }, // Go horizontally to child's X at midpoint (horizontal segment, creates rounded corner)
+                // Final segment from last waypoint to 'to' goes down to child (vertical, creates rounded corner)
+              ],
             });
           }
         });
@@ -387,4 +412,17 @@ export class LayoutEngine<T extends TreeNode> {
 
     return connections;
   }
+}
+
+// Add this helper function at the top of the file or in a shared utils
+function getNodeEdges(
+  position: Point,
+  dimensions: { width: number; height: number }
+) {
+  return {
+    left: position.x - dimensions.width / 2,
+    right: position.x + dimensions.width / 2,
+    top: position.y - dimensions.height / 2,
+    bottom: position.y + dimensions.height / 2,
+  };
 }
