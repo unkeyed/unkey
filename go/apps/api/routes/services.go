@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/go/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
-	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/vault"
@@ -31,6 +30,4 @@ type Services struct {
 	PprofPassword              string
 	UsageLimiter               usagelimiter.Service
 	AnalyticsConnectionManager analytics.ConnectionManager
-
-	CachedClock clock.Clock
 }

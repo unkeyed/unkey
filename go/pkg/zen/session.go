@@ -2,7 +2,6 @@ package zen
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -387,7 +387,7 @@ func (s *Session) send(status int, body []byte) error {
 // JSON sets the response status code and sends a JSON-encoded response.
 // It automatically sets the Content-Type header to application/json.
 //
-// The body is marshaled using the standard encoding/json package.
+// The body is marshaled using github.com/bytedance/sonic
 // If marshaling fails, an error is returned.
 //
 // Example:
@@ -399,10 +399,13 @@ func (s *Session) send(status int, body []byte) error {
 func (s *Session) JSON(status int, body any) error {
 	b, err := json.Marshal(body)
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Internal("json marshal failed"), fault.Public("The response body could not be marshalled to JSON."),
+		return fault.Wrap(
+			err,
+			fault.Internal("json marshal failed"),
+			fault.Public("The response body could not be marshalled to JSON."),
 		)
 	}
+
 	s.ResponseWriter().Header().Add("Content-Type", "application/json")
 	return s.send(status, b)
 }
