@@ -27,10 +27,76 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 // Authentication Actions
 export async function signUpViaEmail(params: UserData): Promise<EmailAuthResult> {
+  // Rate limit: 10 sign-up attempts per hour per email
+  const envVars = env();
+  const unkeyRootKey = envVars.UNKEY_ROOT_KEY;
+  if (!unkeyRootKey) {
+    console.error("UNKEY_ROOT_KEY environment variable is not set");
+    return {
+      success: false,
+      code: AuthErrorCode.UNKNOWN_ERROR,
+      message: "Service temporarily unavailable. Please try again later.",
+    };
+  }
+
+  const rl = new Ratelimit({
+    namespace: "signup_email",
+    duration: "1h",
+    limit: 10,
+    rootKey: unkeyRootKey,
+    onError: (err: Error) => {
+      console.error("Rate limiting error:", err.message);
+      return { success: true, limit: 0, remaining: 1, reset: 1 };
+    },
+  });
+
+  const { success } = await rl.limit(params.email);
+
+  if (!success) {
+    return {
+      success: false,
+      code: AuthErrorCode.RATE_ERROR,
+      message: "Too many sign-up attempts. Please try again later.",
+    };
+  }
+
   return await auth.signUpViaEmail(params);
 }
 
 export async function signInViaEmail(email: string): Promise<EmailAuthResult> {
+  // Rate limit: 10 sign-in attempts per hour per email
+  const envVars = env();
+  const unkeyRootKey = envVars.UNKEY_ROOT_KEY;
+  if (!unkeyRootKey) {
+    console.error("UNKEY_ROOT_KEY environment variable is not set");
+    return {
+      success: false,
+      code: AuthErrorCode.UNKNOWN_ERROR,
+      message: "Service temporarily unavailable. Please try again later.",
+    };
+  }
+
+  const rl = new Ratelimit({
+    namespace: "signin_email",
+    duration: "1h",
+    limit: 10,
+    rootKey: unkeyRootKey,
+    onError: (err: Error) => {
+      console.error("Rate limiting error:", err.message);
+      return { success: true, limit: 0, remaining: 1, reset: 1 };
+    },
+  });
+
+  const { success } = await rl.limit(email);
+
+  if (!success) {
+    return {
+      success: false,
+      code: AuthErrorCode.RATE_ERROR,
+      message: "Too many sign-in attempts. Please try again later.",
+    };
+  }
+
   return await auth.signInViaEmail(email);
 }
 
@@ -40,6 +106,40 @@ export async function verifyAuthCode(params: {
   invitationToken?: string;
 }): Promise<VerificationResult> {
   const { email, code, invitationToken } = params;
+
+  // Rate limit: 5 verification attempts per 15 minutes per email
+  const envVars = env();
+  const unkeyRootKey = envVars.UNKEY_ROOT_KEY;
+  if (!unkeyRootKey) {
+    console.error("UNKEY_ROOT_KEY environment variable is not set");
+    return {
+      success: false,
+      code: AuthErrorCode.UNKNOWN_ERROR,
+      message: "Service temporarily unavailable. Please try again later.",
+    };
+  }
+
+  const rl = new Ratelimit({
+    namespace: "verify_auth_code",
+    duration: "15m",
+    limit: 5,
+    rootKey: unkeyRootKey,
+    onError: (err: Error) => {
+      console.error("Rate limiting error:", err.message);
+      return { success: true, limit: 0, remaining: 1, reset: 1 };
+    },
+  });
+
+  const { success } = await rl.limit(email);
+
+  if (!success) {
+    return {
+      success: false,
+      code: AuthErrorCode.RATE_ERROR,
+      message: "Too many verification attempts. Please try again later.",
+    };
+  }
+
   try {
     if (invitationToken) {
       await requireEmailMatch({ email, invitationToken });
