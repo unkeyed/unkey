@@ -78,6 +78,7 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 		}
 
 		return fault.Wrap(err,
+			fault.Code(codes.User.BadRequest.RequestBodyUnreadable.URN()),
 			fault.Internal("unable to read request body"),
 			fault.Public("The request body could not be read."),
 		)
