@@ -80,15 +80,17 @@ const scopedResources = {
 } as const;
 
 export type Resources = {
-  [resourceId in `api.${z.infer<typeof apiId>}`]: z.infer<typeof apiActions>;
+  [resourceId in `api.${z.infer<typeof apiId> | "*"}`]: z.infer<typeof apiActions>;
 } & {
-  [resourceId in `ratelimit.${z.infer<typeof ratelimitNamespaceId>}`]: z.infer<
+  [resourceId in `ratelimit.${z.infer<typeof ratelimitNamespaceId> | "*"}`]: z.infer<
     typeof ratelimitActions
   >;
 } & {
-  [resourceId in `rbac.${z.infer<typeof rbacId>}`]: z.infer<typeof rbacActions>;
+  [resourceId in `rbac.${z.infer<typeof rbacId> | "*"}`]: z.infer<typeof rbacActions>;
 } & {
-  [resourceId in `identity.${z.infer<typeof identityEnvId>}`]: z.infer<typeof identityActions>;
+  [resourceId in `identity.${z.infer<typeof identityEnvId> | "*"}`]: z.infer<
+    typeof identityActions
+  >;
 };
 
 export type UnkeyPermission = Flatten<Resources> | "*";
