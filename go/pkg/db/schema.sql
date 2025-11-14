@@ -95,6 +95,13 @@ CREATE TABLE `encrypted_keys` (
 	CONSTRAINT `key_id_idx` UNIQUE(`key_id`)
 );
 
+CREATE TABLE `key_migrations` (
+	`id` varchar(255) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`algorithm` enum('sha256','github.com/seamapi/prefixed-api-key') NOT NULL,
+	CONSTRAINT `key_migrations_id_workspace_id_pk` PRIMARY KEY(`id`,`workspace_id`)
+);
+
 CREATE TABLE `keys` (
 	`id` varchar(256) NOT NULL,
 	`key_auth_id` varchar(256) NOT NULL,
@@ -119,6 +126,7 @@ CREATE TABLE `keys` (
 	`ratelimit_limit` int,
 	`ratelimit_duration` bigint,
 	`environment` varchar(256),
+	`pending_migration_id` varchar(256),
 	CONSTRAINT `keys_id` PRIMARY KEY(`id`),
 	CONSTRAINT `hash_idx` UNIQUE(`hash`)
 );
@@ -462,6 +470,7 @@ CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
 CREATE INDEX `idx_keys_on_for_workspace_id` ON `keys` (`for_workspace_id`);
+CREATE INDEX `pending_migration_id_idx` ON `keys` (`pending_migration_id`);
 CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
