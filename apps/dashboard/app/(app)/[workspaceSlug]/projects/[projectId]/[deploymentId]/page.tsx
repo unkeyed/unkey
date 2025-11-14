@@ -95,14 +95,14 @@ export default function DeploymentDetailsPage() {
             );
           }
           // Vertical layout with offset for multiple children
-          const childIndex =
-            parent.children?.findIndex((c) => c.id === child.id) ?? 0;
-          const childCount = parent.children?.length ?? 1;
-          const xOffset = (childIndex - (childCount - 1) / 2) * 5;
+          // const childIndex =
+          //   parent.children?.findIndex((c) => c.id === child.id) ?? 0;
+          // const childCount = parent.children?.length ?? 1;
+          // const xOffset = (childIndex - (childCount - 1) / 2) * 5;
           return (
             <TreeConnectionLine
               key={`${parent.id}-${child.id}`}
-              from={{ x: from.x + xOffset, y: from.y }}
+              from={{ x: from.x, y: from.y }}
               to={{ x: to.x, y: to.y }}
               horizontal={false}
             />

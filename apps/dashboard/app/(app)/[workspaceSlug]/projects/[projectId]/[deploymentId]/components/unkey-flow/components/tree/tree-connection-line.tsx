@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo, useEffect } from "react";
+import { useRef, useMemo } from "react";
 import type { Point } from "../../types";
 import { renderPath, move, line, curve } from "./tree-path-command";
 
@@ -9,34 +9,98 @@ const PATH_CONFIG = {
   minCornerSpacing: 64,
 } as const;
 
-const ANIMATION_CONFIG = {
-  strokeWidthBase: 2.5,
-  strokeWidthAnimated: 3,
-  lightBandSize: 40,
-  defaultVelocity: 100,
-  opacity: 0.94,
+// Preset animation styles
+const ANIMATION_PRESETS = {
+  dots: {
+    dashLength: 0.1,
+    gapLength: 8,
+    speed: 2,
+    strokeWidth: 3,
+    color: "stroke-gray-8",
+  },
+  dashes: {
+    dashLength: 8,
+    gapLength: 8,
+    speed: 1,
+    strokeWidth: 2.5,
+    color: "stroke-gray-8",
+  },
+  "dots-slow": {
+    dashLength: 0.1,
+    gapLength: 12,
+    speed: 8,
+    strokeWidth: 3,
+    color: "stroke-gray-8",
+  },
+  "dashes-fast": {
+    dashLength: 6,
+    gapLength: 6,
+    speed: 0.5,
+    strokeWidth: 2.5,
+    color: "stroke-gray-8",
+  },
+  pulse: {
+    dashLength: 4,
+    gapLength: 16,
+    speed: 3,
+    strokeWidth: 3.5,
+    color: "stroke-gray-8",
+  },
 } as const;
+
+type AnimationPreset = keyof typeof ANIMATION_PRESETS;
+
+type CustomAnimationConfig = {
+  dashLength: number;
+  gapLength: number;
+  speed: number;
+  strokeWidth: number;
+  color: string;
+};
+
+type AnimationConfig =
+  | { preset: AnimationPreset; color?: string }
+  | { custom: Partial<CustomAnimationConfig> };
 
 type TreeConnectionLineProps = {
   from: Point;
   to: Point;
   horizontal?: boolean;
-  animationVelocity?: number;
+  animation?: AnimationConfig;
 };
 
 /**
  * Animated connection line between two points in a tree layout.
  * Draws curved paths for visual clarity, straight lines when points are close.
- * Includes animated light band traveling along the path.
+ * Includes animated dashes traveling along the path.
  */
 export function TreeConnectionLine({
   from,
   to,
   horizontal = false,
-  animationVelocity = ANIMATION_CONFIG.defaultVelocity,
+  animation = { preset: "dots" },
 }: TreeConnectionLineProps) {
   const pathRef = useRef<SVGPathElement>(null);
-  const [pathLength, setPathLength] = useState(200);
+
+  const animConfig = useMemo((): CustomAnimationConfig => {
+    if ("preset" in animation) {
+      const preset = ANIMATION_PRESETS[animation.preset];
+      return {
+        ...preset,
+        color: animation.color ?? preset.color,
+      };
+    }
+
+    // Merge custom config with defaults
+    const defaults = ANIMATION_PRESETS.dots;
+    return {
+      dashLength: animation.custom.dashLength ?? defaults.dashLength,
+      gapLength: animation.custom.gapLength ?? defaults.gapLength,
+      speed: animation.custom.speed ?? defaults.speed,
+      strokeWidth: animation.custom.strokeWidth ?? defaults.strokeWidth,
+      color: animation.custom.color ?? defaults.color,
+    };
+  }, [animation]);
 
   const pathD = useMemo(() => {
     if (horizontal) {
@@ -46,7 +110,6 @@ export function TreeConnectionLine({
         : steppedHorizontal(from, to);
     }
 
-    // Vertical layout with curves
     const dx = Math.abs(to.x - from.x);
     const dy = to.y - from.y;
     const needsStraightLine =
@@ -56,57 +119,27 @@ export function TreeConnectionLine({
     return needsStraightLine ? straightLine(from, to) : roundedZShape(from, to);
   }, [from, to, horizontal]);
 
-  useEffect(() => {
-    const path = pathRef.current;
-    if (!path) {
-      console.error("SVG path ref is null");
-      return;
-    }
-
-    const length = path.getTotalLength();
-    if (length === 0) {
-      console.error(`Zero-length path: ${from.x},${from.y} -> ${to.x},${to.y}`);
-      return;
-    }
-
-    setPathLength(length);
-  }, [pathD, from, to]);
-
-  const gapSize = pathLength - ANIMATION_CONFIG.lightBandSize;
-  const dashArray = `${ANIMATION_CONFIG.lightBandSize} ${gapSize}`;
-  const duration = pathLength / animationVelocity;
+  const dashArray = `${animConfig.dashLength} ${animConfig.gapLength}`;
+  const dashTotal = animConfig.dashLength + animConfig.gapLength;
 
   return (
-    <>
-      {/* Base static path */}
-      <path
-        ref={pathRef}
-        d={pathD}
-        className="stroke-gray-3"
-        strokeWidth={ANIMATION_CONFIG.strokeWidthBase}
-        fill="none"
-        strokeLinecap="round"
+    <path
+      ref={pathRef}
+      d={pathD}
+      className={animConfig.color}
+      strokeWidth={animConfig.strokeWidth}
+      fill="none"
+      strokeLinecap="round"
+      strokeDasharray={dashArray}
+    >
+      <animate
+        attributeName="stroke-dashoffset"
+        from="0"
+        to={dashTotal.toString()}
+        dur={`${animConfig.speed}s`}
+        repeatCount="indefinite"
       />
-      {/* Animated light band traveling along path */}
-      <path
-        d={pathD}
-        className="stroke-grayA-12"
-        strokeWidth={ANIMATION_CONFIG.strokeWidthAnimated}
-        fill="none"
-        strokeLinecap="round"
-        strokeDasharray={dashArray}
-        strokeDashoffset={pathLength}
-        style={{ opacity: ANIMATION_CONFIG.opacity }}
-      >
-        <animate
-          attributeName="stroke-dashoffset"
-          from={pathLength}
-          to={0}
-          dur={`${duration}s`}
-          repeatCount="indefinite"
-        />
-      </path>
-    </>
+    </path>
   );
 }
 
