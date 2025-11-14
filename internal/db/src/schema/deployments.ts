@@ -3,21 +3,22 @@ import { bigint, index, json, mysqlEnum, mysqlTable, text, varchar } from "drizz
 import { deploymentSteps } from "./deployment_steps";
 import { environments } from "./environments";
 import { gateways } from "./gateways";
+import { instances } from "./instances";
 import { projects } from "./projects";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
-import { vms } from "./vms";
 import { workspaces } from "./workspaces";
 
 export const deployments = mysqlTable(
   "deployments",
   {
-    id: varchar("id", { length: 256 }).primaryKey(),
+    id: varchar("id", { length: 127 }).primaryKey(),
+
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     projectId: varchar("project_id", { length: 256 }).notNull(),
 
     // Environment configuration (production, preview, etc.)
-    environmentId: varchar("environment_id", { length: 256 }).notNull(),
+    environmentId: varchar("environment_id", { length: 127 }).notNull(),
 
     // Git information
     gitCommitSha: varchar("git_commit_sha", { length: 40 }),
@@ -49,11 +50,11 @@ export const deployments = mysqlTable(
       .default("pending"),
     ...lifecycleDates,
   },
-  (table) => ({
-    workspaceIdx: index("workspace_idx").on(table.workspaceId),
-    projectIdx: index("project_idx").on(table.projectId),
-    statusIdx: index("status_idx").on(table.status),
-  }),
+  (table) => [
+    index("workspace_idx").on(table.workspaceId),
+    index("project_idx").on(table.projectId),
+    index("status_idx").on(table.status),
+  ],
 );
 
 export const deploymentsRelations = relations(deployments, ({ one, many }) => ({
@@ -72,5 +73,5 @@ export const deploymentsRelations = relations(deployments, ({ one, many }) => ({
 
   steps: many(deploymentSteps),
   gateways: many(gateways),
-  vms: many(vms),
+  instances: many(instances),
 }));

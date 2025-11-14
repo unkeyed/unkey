@@ -8,7 +8,7 @@ import { deployments } from "./deployments";
 export const projects = mysqlTable(
   "projects",
   {
-    id: varchar("id", { length: 256 }).primaryKey(),
+    id: varchar("id", { length: 128 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
 
     name: varchar("name", { length: 256 }).notNull(),
@@ -25,10 +25,10 @@ export const projects = mysqlTable(
     ...deleteProtection,
     ...lifecycleDates,
   },
-  (table) => ({
-    workspaceIdx: index("workspace_idx").on(table.workspaceId),
-    workspaceSlugIdx: uniqueIndex("workspace_slug_idx").on(table.workspaceId, table.slug),
-  }),
+  (table) => [
+    index("workspace_idx").on(table.workspaceId),
+    uniqueIndex("workspace_slug_idx").on(table.workspaceId, table.slug),
+  ],
 );
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({

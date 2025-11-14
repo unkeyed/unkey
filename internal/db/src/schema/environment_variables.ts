@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -8,9 +8,12 @@ import { environments } from "./environments";
 export const environmentVariables = mysqlTable(
   "environment_variables",
   {
-    id: varchar("id", { length: 256 }).primaryKey(),
+    id: varchar("id", { length: 128 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    environmentId: varchar("environment_id", { length: 256 }).notNull(),
+    environmentId: bigint("environment_id", {
+      mode: "number",
+      unsigned: true,
+    }).notNull(),
 
     key: varchar("key", { length: 256 }).notNull(),
     // Either the plaintext value or a vault encrypted response
@@ -22,9 +25,7 @@ export const environmentVariables = mysqlTable(
     ...deleteProtection,
     ...lifecycleDates,
   },
-  (table) => ({
-    uniqueKey: uniqueIndex("environment_id_key").on(table.environmentId, table.key),
-  }),
+  (table) => [uniqueIndex("environment_id_key").on(table.environmentId, table.key)],
 );
 
 export const environmentVariablesRelations = relations(environmentVariables, ({ one }) => ({

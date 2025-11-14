@@ -4,7 +4,7 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 export const domains = mysqlTable(
   "domains",
   {
-    id: varchar("id", { length: 256 }).primaryKey(),
+    id: varchar("id", { length: 128 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     projectId: varchar("project_id", { length: 256 }),
     environmentId: varchar("environment_id", { length: 256 }),
@@ -27,10 +27,10 @@ export const domains = mysqlTable(
 
     ...lifecycleDates,
   },
-  (table) => ({
-    workspaceIdx: index("workspace_idx").on(table.workspaceId),
-    projectIdx: index("project_idx").on(table.projectId),
-    deploymentIdx: index("deployment_idx").on(table.deploymentId),
-    uniqueDomainIdx: uniqueIndex("unique_domain_idx").on(table.domain),
-  }),
+  (table) => [
+    index("workspace_idx").on(table.workspaceId),
+    index("project_idx").on(table.projectId),
+    index("deployment_idx").on(table.deploymentId),
+    uniqueIndex("unique_domain_idx").on(table.domain),
+  ],
 );

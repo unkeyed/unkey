@@ -8,7 +8,8 @@ import { projects } from "./projects";
 export const environments = mysqlTable(
   "environments",
   {
-    id: varchar("id", { length: 256 }).primaryKey(),
+    id: varchar("id", { length: 128 }).primaryKey(),
+
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     projectId: varchar("project_id", { length: 256 }).notNull(),
 
@@ -18,9 +19,7 @@ export const environments = mysqlTable(
     ...deleteProtection,
     ...lifecycleDates,
   },
-  (table) => ({
-    uniqueSlug: uniqueIndex("environments_project_id_slug_idx").on(table.projectId, table.slug),
-  }),
+  (table) => [uniqueIndex("environments_project_id_slug_idx").on(table.projectId, table.slug)],
 );
 
 export const environmentsRelations = relations(environments, ({ one }) => ({

@@ -21,9 +21,7 @@ export const apis = mysqlTable(
     ...lifecycleDatesMigration,
     ...deleteProtection,
   },
-  (table) => ({
-    workspaceId: index("workspace_id_idx").on(table.workspaceId),
-  }),
+  (table) => [index("workspace_id_idx").on(table.workspaceId)],
 );
 
 export const apisRelations = relations(apis, ({ one }) => ({
