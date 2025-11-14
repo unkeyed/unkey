@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	json "github.com/goccy/go-json"
+	json "github.com/bytedance/sonic"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -386,7 +386,7 @@ func (s *Session) send(status int, body []byte) error {
 // JSON sets the response status code and sends a JSON-encoded response.
 // It automatically sets the Content-Type header to application/json.
 //
-// The body is marshaled using goccy/go-json for high performance.
+// The body is marshaled using github.com/bytedance/sonic
 // If marshaling fails, an error is returned.
 //
 // Example:
