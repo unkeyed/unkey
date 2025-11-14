@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"slices"
 	"time"
 
 	"buf.build/gen/go/depot/api/connectrpc/go/depot/core/v1/corev1connect"
@@ -301,33 +300,23 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 	return depotProjectID, nil
 }
 
-type event struct {
-	timestamp time.Time
-	vertex    *client.Vertex
-	log       *client.VertexLog
-}
-
 func (s *Depot) processBuildStatusLogs(
 	statusCh <-chan *client.SolveStatus,
 	workspaceID, projectID, deploymentID string,
 ) {
-	// Collect all build events from BuildKit before processing
-	// We buffer everything first because BuildKit sends events out-of-order,
-	// and we need to sort them chronologically before inserting into CH
-	var events []event
-
-	// Track which build steps produced log output
-	// This flag gets stored in the build_step table so we know which steps have associated logs
 	verticesWithLogs := map[digest.Digest]bool{}
+	completed := map[digest.Digest]bool{}
 
-	// Stream all status updates from BuildKit until the build completes
-	// Each status update contains logs and vertices
 	for status := range statusCh {
 		for _, log := range status.Logs {
 			verticesWithLogs[log.Vertex] = true
-			events = append(events, event{
-				timestamp: log.Timestamp,
-				log:       log,
+			s.clickhouse.BufferBuildStepLog(schema.BuildStepLogV1{
+				WorkspaceID:  workspaceID,
+				ProjectID:    projectID,
+				DeploymentID: deploymentID,
+				StepID:       log.Vertex.String(),
+				Time:         log.Timestamp.UnixMilli(),
+				Message:      string(log.Data),
 			})
 		}
 
@@ -336,62 +325,21 @@ func (s *Depot) processBuildStatusLogs(
 				s.logger.Warn("vertex is nil")
 				continue
 			}
-			if vertex.Completed != nil {
-				// Use completion time for sorting, but fallback to start time if completion is earlier
-				// happens with cached steps that complete instantly
-				ts := *vertex.Completed
-				if vertex.Started != nil && vertex.Started.After(ts) {
-					ts = *vertex.Started
-				}
-				events = append(events, event{
-					timestamp: ts,
-					vertex:    vertex,
+			if vertex.Completed != nil && !completed[vertex.Digest] {
+				completed[vertex.Digest] = true
+				s.clickhouse.BufferBuildStep(schema.BuildStepV1{
+					Error:        vertex.Error,
+					StartedAt:    ptr.SafeDeref(vertex.Started).UnixMilli(),
+					CompletedAt:  ptr.SafeDeref(vertex.Completed).UnixMilli(),
+					WorkspaceID:  workspaceID,
+					ProjectID:    projectID,
+					DeploymentID: deploymentID,
+					StepID:       vertex.Digest.String(),
+					Name:         vertex.Name,
+					Cached:       vertex.Cached,
+					HasLogs:      verticesWithLogs[vertex.Digest],
 				})
 			}
-		}
-	}
-
-	// Sort events by timestamp to ensure chronological order in CH
-	// BuildKit sends events asynchronously, so we must sort before inserting
-	// Use stable sort because cached steps often complete at the exact same millisecond
-	// and we need deterministic ordering when timestamps collide
-	slices.SortStableFunc(events, func(left, right event) int {
-		if left.timestamp.Before(right.timestamp) {
-			return -1
-		}
-		if left.timestamp.After(right.timestamp) {
-			return 1
-		}
-		return 0
-	})
-
-	completed := map[digest.Digest]bool{}
-	for _, e := range events {
-		if e.vertex != nil && !completed[e.vertex.Digest] {
-			completed[e.vertex.Digest] = true
-			s.clickhouse.BufferBuildStep(schema.BuildStepV1{
-				Error:        e.vertex.Error,
-				StartedAt:    ptr.SafeDeref(e.vertex.Started).UnixMilli(),
-				CompletedAt:  ptr.SafeDeref(e.vertex.Completed).UnixMilli(),
-				WorkspaceID:  workspaceID,
-				ProjectID:    projectID,
-				DeploymentID: deploymentID,
-				StepID:       e.vertex.Digest.String(),
-				Name:         e.vertex.Name,
-				Cached:       e.vertex.Cached,
-				HasLogs:      verticesWithLogs[e.vertex.Digest],
-			})
-		}
-
-		if e.log != nil {
-			s.clickhouse.BufferBuildStepLog(schema.BuildStepLogV1{
-				WorkspaceID:  workspaceID,
-				ProjectID:    projectID,
-				DeploymentID: deploymentID,
-				StepID:       e.log.Vertex.String(),
-				Time:         e.log.Timestamp.UnixMilli(),
-				Message:      string(e.log.Data),
-			})
 		}
 	}
 }
