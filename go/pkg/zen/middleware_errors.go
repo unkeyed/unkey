@@ -65,6 +65,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				codes.UnkeyAuthErrorsAuthenticationMalformed,
 				codes.UserErrorsBadRequestPermissionsQuerySyntaxError,
 				codes.UnkeyGatewayErrorsValidationRequestInvalid,
+				codes.UserErrorsBadRequestRequestBodyUnreadable,
 				codes.UnkeyGatewayErrorsValidationResponseInvalid:
 				return s.JSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{

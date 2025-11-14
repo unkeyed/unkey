@@ -6,6 +6,8 @@ type userBadRequest struct {
 	PermissionsQuerySyntaxError Code
 	// RequestBodyTooLarge indicates the request body exceeds the maximum allowed size.
 	RequestBodyTooLarge Code
+	// RequestBodyUnreadable indicates the request body could not be read due to malformed request or connection issues.
+	RequestBodyUnreadable Code
 	// RequestTimeout indicates the request took too long to process.
 	RequestTimeout Code
 	// ClientClosedRequest indicates the client closed the connection before the request completed.
@@ -54,6 +56,7 @@ var User = UserErrors{
 	BadRequest: userBadRequest{
 		PermissionsQuerySyntaxError: Code{SystemUser, CategoryUserBadRequest, "permissions_query_syntax_error"},
 		RequestBodyTooLarge:         Code{SystemUser, CategoryUserBadRequest, "request_body_too_large"},
+		RequestBodyUnreadable:       Code{SystemUser, CategoryUserBadRequest, "request_body_unreadable"},
 		RequestTimeout:              Code{SystemUser, CategoryUserBadRequest, "request_timeout"},
 		ClientClosedRequest:         Code{SystemUser, CategoryUserBadRequest, "client_closed_request"},
 		InvalidAnalyticsQuery:       Code{SystemUser, CategoryUserBadRequest, "invalid_analytics_query"},

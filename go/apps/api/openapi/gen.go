@@ -1133,7 +1133,7 @@ type V2KeysMigrateKeysRequestBody struct {
 	ApiId string                 `json:"apiId"`
 	Keys  []V2KeysMigrateKeyData `json:"keys"`
 
-	// MigrationId Identifier of the configured migration provider/strategy to use (e.g., "your_company").
+	// MigrationId Identifier of the configured migration provider/strategy to use (e.g., "your_company"). You will receive this from Unkey's support staff.
 	MigrationId string `json:"migrationId"`
 }
 
