@@ -21,6 +21,7 @@ type BulkQuerier interface {
 	InsertKeyEncryptions(ctx context.Context, db DBTX, args []InsertKeyEncryptionParams) error
 	InsertKeys(ctx context.Context, db DBTX, args []InsertKeyParams) error
 	InsertKeyRatelimits(ctx context.Context, db DBTX, args []InsertKeyRatelimitParams) error
+	InsertKeyMigrations(ctx context.Context, db DBTX, args []InsertKeyMigrationParams) error
 	InsertKeyPermissions(ctx context.Context, db DBTX, args []InsertKeyPermissionParams) error
 	InsertKeyRoles(ctx context.Context, db DBTX, args []InsertKeyRoleParams) error
 	InsertKeySpaces(ctx context.Context, db DBTX, args []InsertKeySpaceParams) error
