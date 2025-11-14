@@ -116,7 +116,7 @@ func New(prefix Prefix, byteSize ...int) string {
 	}
 
 	if bytes > 4 {
-		// Calculate seconds since epoch using our cached timestamp instead of time.Now() to avoid syscall
+		// Calculate seconds since epoch
 		// subtracting the epochTimestamp should guarantee we're not overflowing
 		// nolint:gosec
 		t := uint32(time.Now().Unix() - epochTimestampSec)
