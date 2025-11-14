@@ -37,7 +37,6 @@ func TestWorkspacePermissions(t *testing.T) {
 		Ratelimit:               h.Ratelimit,
 		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
 		Auditlogs:               h.Auditlogs,
-		Clock:                   h.CachedClock,
 	}
 
 	h.Register(route)
@@ -79,7 +78,6 @@ func TestInsufficientPermissions(t *testing.T) {
 		Ratelimit:               h.Ratelimit,
 		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
 		Auditlogs:               h.Auditlogs,
-		Clock:                   h.CachedClock,
 	}
 
 	h.Register(route)
