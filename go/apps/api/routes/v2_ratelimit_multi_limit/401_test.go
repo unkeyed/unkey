@@ -19,7 +19,6 @@ func TestUnauthorizedAccess(t *testing.T) {
 		Ratelimit:               h.Ratelimit,
 		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
 		Auditlogs:               h.Auditlogs,
-		Clock:                   h.CachedClock,
 	}
 
 	h.Register(route)

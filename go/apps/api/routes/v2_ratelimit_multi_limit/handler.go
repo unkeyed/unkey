@@ -17,7 +17,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -43,7 +42,6 @@ type Handler struct {
 	Ratelimit               ratelimit.Service
 	RatelimitNamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 	Auditlogs               auditlogs.AuditLogService
-	Clock                   clock.Clock
 	TestMode                bool
 }
 
@@ -200,7 +198,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ratelimitReqs := make([]ratelimit.RatelimitRequest, len(req))
 	checkMetadata := make([]checkMeta, len(req))
 
-	reqTime := h.Clock.Now()
+	reqTime := time.Now()
 	if h.TestMode {
 		header := s.Request().Header.Get("X-Test-Time")
 		if header != "" {
@@ -252,7 +250,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Batch rate limit all requests using RatelimitMany
-	start := h.Clock.Now()
+	start := time.Now()
 	results, err := h.Ratelimit.RatelimitMany(ctx, ratelimitReqs)
 	if err != nil {
 		return fault.Wrap(err,
@@ -337,7 +335,7 @@ func (h *Handler) createMissingNamespaces(
 	}
 
 	createdNamespaces, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (map[cache.ScopedKey]db.FindRatelimitNamespace, error) {
-		now := h.Clock.Now().UnixMilli()
+		now := time.Now().UnixMilli()
 		created := make(map[cache.ScopedKey]db.FindRatelimitNamespace)
 
 		// Prepare bulk insert params

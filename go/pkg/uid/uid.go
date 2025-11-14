@@ -8,7 +8,6 @@ import (
 
 	"github.com/unkeyed/unkey/go/pkg/base58"
 	"github.com/unkeyed/unkey/go/pkg/batchrand"
-	"github.com/unkeyed/unkey/go/pkg/clock"
 )
 
 // Prefix defines the standard resource type prefixes used throughout the system.
@@ -51,8 +50,6 @@ const (
 	DomainPrefix      Prefix = "dom"
 	DeploymentPrefix  Prefix = "d"
 )
-
-var clk = clock.NewCachedClock(time.Millisecond)
 
 // epoch starts more recently so that the 32-bit number space gives a
 // significantly higher useful lifetime of around 136 years
@@ -122,7 +119,7 @@ func New(prefix Prefix, byteSize ...int) string {
 		// Calculate seconds since epoch using our cached timestamp instead of time.Now() to avoid syscall
 		// subtracting the epochTimestamp should guarantee we're not overflowing
 		// nolint:gosec
-		t := uint32(clk.Now().Unix() - epochTimestampSec)
+		t := uint32(time.Now().Unix() - epochTimestampSec)
 
 		// Write timestamp as first 4 bytes (big endian)
 		binary.BigEndian.PutUint32(buf[:4], t)
