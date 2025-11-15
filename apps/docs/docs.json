@@ -146,6 +146,7 @@
                         ]
                       },
                       "apis/features/revocation",
+                      "apis/features/rerolling-key",
                       "apis/features/enabled",
                       "apis/features/environments"
                     ]
