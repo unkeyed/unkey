@@ -50,8 +50,6 @@ spec:
               value: "ctrl:7091"
             - name: UNKEY_DATABASE_PRIMARY
               value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
-
-              value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
             # ClickHouse Configuration
             - name: UNKEY_CLICKHOUSE_URL
               value: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
