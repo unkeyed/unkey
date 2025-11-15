@@ -79,9 +79,7 @@
                   },
                   {
                     "group": "Identities",
-                    "pages": [
-                      "quickstart/identities/shared-ratelimits"
-                    ]
+                    "pages": ["quickstart/identities/shared-ratelimits"]
                   }
                 ]
               },
@@ -115,10 +113,7 @@
               {
                 "group": "Identities",
                 "icon": "fingerprint",
-                "pages": [
-                  "concepts/identities/overview",
-                  "concepts/identities/ratelimits"
-                ]
+                "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
               }
             ]
           },
@@ -135,9 +130,7 @@
                     "pages": [
                       {
                         "group": "Ratelimiting",
-                        "pages": [
-                          "apis/features/ratelimiting/overview"
-                        ]
+                        "pages": ["apis/features/ratelimiting/overview"]
                       },
                       "apis/features/temp-keys",
                       "apis/features/remaining",
@@ -172,10 +165,7 @@
               {
                 "group": "Audit logs",
                 "icon": "scroll",
-                "pages": [
-                  "audit-log/introduction",
-                  "audit-log/types"
-                ]
+                "pages": ["audit-log/introduction", "audit-log/types"]
               },
               {
                 "group": "Analytics",
@@ -199,10 +189,7 @@
               {
                 "group": "Migrating API Keys",
                 "icon": "plane",
-                "pages": [
-                  "migrations/introduction",
-                  "migrations/keys"
-                ]
+                "pages": ["migrations/introduction", "migrations/keys"]
               }
             ]
           },
@@ -286,9 +273,7 @@
                   },
                   {
                     "group": "Too Many Requests",
-                    "pages": [
-                      "errors/user/too_many_requests/query_quota_exceeded"
-                    ]
+                    "pages": ["errors/user/too_many_requests/query_quota_exceeded"]
                   },
                   {
                     "group": "Unprocessable Entity",
@@ -395,15 +380,11 @@
               },
               {
                 "group": "Go",
-                "pages": [
-                  "libraries/go/api"
-                ]
+                "pages": ["libraries/go/api"]
               },
               {
                 "group": "Python",
-                "pages": [
-                  "libraries/py/api"
-                ]
+                "pages": ["libraries/py/api"]
               }
             ]
           },
@@ -428,15 +409,11 @@
               },
               {
                 "group": "Nuxt",
-                "pages": [
-                  "libraries/nuxt/overview"
-                ]
+                "pages": ["libraries/nuxt/overview"]
               },
               {
                 "group": "Rust",
-                "pages": [
-                  "libraries/rs/overview"
-                ]
+                "pages": ["libraries/rs/overview"]
               },
               {
                 "group": "Springboot",
