@@ -37,8 +37,6 @@ var Cmd = &cli.Command{
 		// Database Configuration
 		cli.String("database-primary", "MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true",
 			cli.Required(), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
-		cli.String("database-partition", "MySQL connection string for partition database. Required for all deployments. Example: user:pass@host:3306/partition_002?parseTime=true",
-			cli.Required(), cli.EnvVar("UNKEY_DATABASE_PARTITION")),
 
 		// Observability
 		cli.Bool("otel", "Enable OpenTelemetry tracing and metrics",
@@ -154,8 +152,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		RegistryPassword: cmd.String("registry-password"),
 
 		// Database configuration
-		DatabasePrimary:   cmd.String("database-primary"),
-		DatabasePartition: cmd.String("database-partition"),
+		DatabasePrimary: cmd.String("database-primary"),
 
 		// Observability
 		OtelEnabled:           cmd.Bool("otel"),

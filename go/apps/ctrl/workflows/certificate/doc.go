@@ -31,7 +31,6 @@
 //
 //	svc := certificate.New(certificate.Config{
 //	    DB:          mainDB,
-//	    PartitionDB: partitionDB,
 //	    Vault:       vaultService,
 //	    Logger:      logger,
 //	})
@@ -68,7 +67,7 @@
 // # Security Considerations
 //
 // Private keys are encrypted before storage using the vault service. Certificates
-// are stored in the partition database for fast access by gateways. ACME account
+// are stored in the database for fast access by gateways. ACME account
 // credentials are workspace-scoped to prevent cross-workspace access.
 //
 // # Error Handling

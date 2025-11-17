@@ -44,21 +44,13 @@ type Config struct {
 
 	// --- Database configuration ---
 
-	// DatabasePrimary is the primary database connection string for read and write operations (partition_001)
+	// DatabasePrimary is the primary database connection string for read and write operations
 	DatabasePrimary string
 
-	// DatabaseReadonlyReplica is an optional read-replica database connection string for read operations (partition_001)
+	// DatabaseReadonlyReplica is an optional read-replica database connection string for read operations
 	DatabaseReadonlyReplica string
 
 	// --- Key Service Database configuration ---
-
-	// MainDatabasePrimary is the primary database connection string for the keys service
-
-	// MainDatabasePrimary is the primary database connection string for the keys service (non-partitioned)
-	MainDatabasePrimary string
-
-	// MainDatabaseReadonlyReplica is an optional read-replica database connection string for the keys service
-	MainDatabaseReadonlyReplica string
 
 	// RedisURL is the Redis connection string for the keys service
 	RedisURL string

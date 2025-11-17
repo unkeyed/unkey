@@ -14,7 +14,7 @@ The control plane retrieves or creates a dedicated Depot project for the custome
 
 With the built image ready, the control plane instructs Krane to create a deployment with specified resources (replicas, CPU, memory). Krane creates the necessary Kubernetes resources (StatefulSet and Service) and K8s begins scheduling pods.
 
-The control plane polls Krane every second (for up to 5 minutes) to check instance status. As instances become ready, their details are registered in the partition database. Once all instances are running, the control plane attempts to scrape an OpenAPI specification from the deployed service.
+The control plane polls Krane every second (for up to 5 minutes) to check instance status. As instances become ready, their details are registered in the database. Once all instances are running, the control plane attempts to scrape an OpenAPI specification from the deployed service.
 
 Finally, the control plane calls the RoutingService to atomically assign domains and create gateway configurations, and marks the deployment as ready in the database. Meanwhile, the CLI continuously polls the control plane every 2 seconds to check the deployment status until it becomes ready.
 
@@ -26,7 +26,7 @@ Finally, the control plane calls the RoutingService to atomically assign domains
     participant Depot
     participant Krane
     participant K8s as Kubernetes
-    participant DB as Partition DB
+    participant DB as Database
     
     CLI->>Ctrl: Create Deployment
     Ctrl->>CLI: Presigned S3 upload URL

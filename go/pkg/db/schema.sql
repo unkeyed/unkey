@@ -415,6 +415,57 @@ CREATE TABLE `acme_challenges` (
 	CONSTRAINT `acme_challenges_domain_id_pk` PRIMARY KEY(`domain_id`)
 );
 
+CREATE TABLE `gateways` (
+	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`deployment_id` varchar(255) NOT NULL,
+	`hostname` varchar(255) NOT NULL,
+	`config` longblob NOT NULL,
+	CONSTRAINT `gateways_id` PRIMARY KEY(`id`),
+	CONSTRAINT `gateways_pk` UNIQUE(`hostname`)
+);
+
+CREATE TABLE `vms` (
+	`id` varchar(255) NOT NULL,
+	`deployment_id` varchar(255) NOT NULL,
+	`metal_host_id` varchar(255),
+	`address` varchar(255),
+	`cpu_millicores` int NOT NULL,
+	`memory_mb` int NOT NULL,
+	`status` enum('allocated','provisioning','starting','running','stopping','stopped','failed') NOT NULL,
+	CONSTRAINT `vms_id` PRIMARY KEY(`id`),
+	CONSTRAINT `unique_address` UNIQUE(`address`)
+);
+
+CREATE TABLE `metal_hosts` (
+	`id` varchar(255) NOT NULL,
+	`region` varchar(255) NOT NULL,
+	`availability_zone` varchar(255) NOT NULL,
+	`instance_type` varchar(255) NOT NULL,
+	`ec2_instance_id` varchar(255) NOT NULL,
+	`private_ip` varchar(45) NOT NULL,
+	`status` enum('provisioning','active','draining','terminated') NOT NULL,
+	`capacity_cpu_millicores` int NOT NULL,
+	`capacity_memory_mb` int NOT NULL,
+	`allocated_cpu_millicores` int NOT NULL DEFAULT 0,
+	`allocated_memory_mb` int NOT NULL DEFAULT 0,
+	`last_heartbeat` bigint NOT NULL,
+	CONSTRAINT `metal_hosts_id` PRIMARY KEY(`id`),
+	CONSTRAINT `unique_ec2_instance` UNIQUE(`ec2_instance_id`)
+);
+
+CREATE TABLE `certificates` (
+	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`hostname` varchar(255) NOT NULL,
+	`certificate` text NOT NULL,
+	`encrypted_private_key` text NOT NULL,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `certificates_id` PRIMARY KEY(`id`),
+	CONSTRAINT `unique_hostname` UNIQUE(`hostname`)
+);
+
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
@@ -444,4 +495,10 @@ CREATE INDEX `project_idx` ON `domains` (`project_id`);
 CREATE INDEX `deployment_idx` ON `domains` (`deployment_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
 CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
+CREATE INDEX `idx_deployment_id` ON `gateways` (`deployment_id`);
+CREATE INDEX `idx_deployment_id` ON `vms` (`deployment_id`);
+CREATE INDEX `idx_region_status` ON `metal_hosts` (`region`,`status`);
+CREATE INDEX `idx_az` ON `metal_hosts` (`availability_zone`);
+CREATE INDEX `idx_status` ON `metal_hosts` (`status`);
+CREATE INDEX `idx_heartbeat` ON `metal_hosts` (`last_heartbeat`);
 
