@@ -59,6 +59,7 @@ func main() {
 	allErrorCodes = append(allErrorCodes, processErrorDomain(f, "Unkey", "Data", reflect.ValueOf(codes.Data))...)
 	allErrorCodes = append(allErrorCodes, processErrorDomain(f, "Unkey", "App", reflect.ValueOf(codes.App))...)
 	allErrorCodes = append(allErrorCodes, processErrorDomain(f, "Unkey", "Gateway", reflect.ValueOf(codes.Gateway))...)
+	allErrorCodes = append(allErrorCodes, processErrorDomain(f, "Unkey", "Ingress", reflect.ValueOf(codes.Ingress))...)
 
 	f.WriteString(")\n")
 

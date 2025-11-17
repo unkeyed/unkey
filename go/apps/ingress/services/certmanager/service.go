@@ -1,0 +1,86 @@
+package certmanager
+
+import (
+	"context"
+	"crypto/tls"
+	"strings"
+
+	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/go/internal/services/caches"
+	"github.com/unkeyed/unkey/go/pkg/cache"
+	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	pdb "github.com/unkeyed/unkey/go/pkg/partition/db"
+	"github.com/unkeyed/unkey/go/pkg/vault"
+)
+
+var _ Service = (*service)(nil)
+
+// service provides a basic certificate manager.
+type service struct {
+	// Logger is the logger used to log messages.
+	logger logging.Logger
+
+	// DB is the database used to store certificates.
+	db db.Database
+
+	// Vault is the vault service used to store certificates.
+	vault *vault.Service
+
+	cache cache.Cache[string, tls.Certificate]
+
+	// DefaultCertDomain is the domain to use for fallback certificate
+	// When a domain has no cert, use this domain's cert instead
+	defaultCertDomain string
+}
+
+// New creates a new certificate manager.
+func New(cfg Config) *service {
+	return &service{
+		logger:            cfg.Logger,
+		db:                cfg.DB,
+		cache:             cfg.TLSCertificateCache,
+		defaultCertDomain: cfg.DefaultCertDomain,
+		vault:             cfg.Vault,
+	}
+}
+
+// GetCertificate implements the CertManager interface.
+func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certificate, error) {
+	if s.defaultCertDomain != "" {
+		if strings.HasSuffix(domain, s.defaultCertDomain) && domain != "*."+s.defaultCertDomain {
+			return s.GetCertificate(ctx, "*."+s.defaultCertDomain)
+		}
+	}
+
+	cert, hit, err := s.cache.SWR(ctx, domain, func(ctx context.Context) (tls.Certificate, error) {
+		row, err := pdb.Query.FindCertificateByHostname(ctx, s.db.RO(), domain)
+		if err != nil {
+			return tls.Certificate{}, err
+		}
+
+		pem, err := s.vault.Decrypt(ctx, &vaultv1.DecryptRequest{
+			Keyring:   "unkey",
+			Encrypted: row.EncryptedPrivateKey,
+		})
+		if err != nil {
+			return tls.Certificate{}, err
+		}
+
+		cert, err := tls.X509KeyPair([]byte(row.Certificate), []byte(pem.GetPlaintext()))
+		if err != nil {
+			return tls.Certificate{}, err
+		}
+
+		return cert, nil
+	}, caches.DefaultFindFirstOp)
+	if err != nil {
+		return nil, err
+	}
+
+	if hit == cache.Null {
+		return nil, err
+	}
+
+	return &cert, nil
+}

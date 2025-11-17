@@ -20,8 +20,11 @@ type gatewayRouting struct {
 	// ConfigNotFound represents a 404 error - no gateway configuration found for the requested host
 	ConfigNotFound Code
 
-	// VMSelectionFailed represents a 500 error - failed to select an available VM
-	VMSelectionFailed Code
+	// InstanceSelectionFailed represents a 500 error - failed to select an available Instance
+	InstanceSelectionFailed Code
+
+	// DeploymentDisabled represents a 503 error - deployment exists but is currently disabled
+	DeploymentDisabled Code
 }
 
 // gatewayAuth defines errors related to gateway authentication functionality.
@@ -80,8 +83,9 @@ var Gateway = UnkeyGatewayErrors{
 		ProxyForwardFailed: Code{SystemUnkey, CategoryBadGateway, "proxy_forward_failed"},
 	},
 	Routing: gatewayRouting{
-		ConfigNotFound:    Code{SystemUnkey, CategoryNotFound, "config_not_found"},
-		VMSelectionFailed: Code{SystemUnkey, CategoryInternalServerError, "vm_selection_failed"},
+		ConfigNotFound:          Code{SystemUnkey, CategoryNotFound, "config_not_found"},
+		InstanceSelectionFailed: Code{SystemUnkey, CategoryInternalServerError, "vm_selection_failed"},
+		DeploymentDisabled:      Code{SystemUnkey, CategoryServiceUnavailable, "deployment_disabled"},
 	},
 	Auth: gatewayAuth{
 		Unauthorized: Code{SystemUnkey, CategoryUnauthorized, "unauthorized"},
