@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
+import { Empty, Loading } from "@unkey/ui";
 import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from "react";
 import { LogFooter } from "./components/log-footer";
 import { LogHeader } from "./components/log-header";
@@ -26,13 +27,17 @@ export type SupportedLogTypes = StandardLogTypes | KeysOverviewLog;
 type LogDetailsContextValue = {
   animated: boolean;
   isOpen: boolean;
-  log: SupportedLogTypes;
+  log?: SupportedLogTypes;
+  isLoading: boolean;
+  error?: boolean;
 };
 
 const LogDetailsContext = createContext<LogDetailsContextValue>({
   animated: false,
   isOpen: true,
   log: {} as SupportedLogTypes,
+  isLoading: false,
+  error: false,
 });
 
 const useLogDetailsContext = () => useContext(LogDetailsContext);
@@ -84,14 +89,19 @@ const createMetaContent = (log: SupportedLogTypes) => {
 };
 
 // Type guards
-const isStandardLog = (log: SupportedLogTypes): log is Log | RatelimitLog => {
+const isStandardLog = (log: SupportedLogTypes | undefined): log is Log | RatelimitLog => {
+  if (!log) {
+    return false;
+  }
   return "request_headers" in log && "response_headers" in log;
 };
 
 // Main LogDetails component
 type LogDetailsProps = {
   distanceToTop: number;
-  log: SupportedLogTypes | null;
+  log: SupportedLogTypes | undefined;
+  isLoading: boolean;
+  error: boolean;
   onClose: () => void;
   animated?: boolean;
   children: ReactNode;
@@ -100,12 +110,13 @@ type LogDetailsProps = {
 export const LogDetails = ({
   distanceToTop,
   log,
+  isLoading = true,
+  error,
   onClose,
   animated = false,
   children,
 }: LogDetailsProps) => {
   const [isOpen, setIsOpen] = useState(false);
-
   const panelStyle = useMemo(() => createPanelStyle(distanceToTop), [distanceToTop]);
 
   useEffect(() => {
@@ -122,13 +133,9 @@ export const LogDetails = ({
 
   useEffect(() => {
     if (!animated) {
-      setIsOpen(Boolean(log));
+      setIsOpen(true);
     }
-  }, [log, animated]);
-
-  if (!log) {
-    return null;
-  }
+  }, [animated]);
 
   const handleClose = () => {
     if (animated) {
@@ -161,7 +168,7 @@ export const LogDetails = ({
       }}
     >
       <div className={animated ? "h-full overflow-y-auto p-4" : ""}>
-        <LogDetailsContext.Provider value={{ animated, isOpen, log }}>
+        <LogDetailsContext.Provider value={{ animated, isOpen, log, error, isLoading }}>
           {children}
         </LogDetailsContext.Provider>
       </div>
@@ -204,11 +211,47 @@ const Sections = ({
   startDelay?: number;
   staggerDelay?: number;
 }) => {
-  const { log } = useLogDetailsContext();
-
+  const { log, error, isLoading } = useLogDetailsContext();
+  if (isLoading) {
+    return (
+      <Empty>
+        <Empty.Icon>
+          <Loading type="spinner" size={22} />
+        </Empty.Icon>
+        <Empty.Title>Log Details</Empty.Title>
+        <Empty.Description>
+          Fetching log details is taking longer than expected...
+        </Empty.Description>
+      </Empty>
+    );
+  }
+  if (error) {
+    return (
+      <Section delay={startDelay + 0 * staggerDelay}>
+        <Empty>
+          <Empty.Icon />
+          <Empty.Title>Error Loading Log Details</Empty.Title>
+          <Empty.Description>
+            An unexpected error occurred while fetching log data. Please try again.
+          </Empty.Description>
+        </Empty>
+      </Section>
+    );
+  }
   if (!isStandardLog(log)) {
     console.warn("LogDetails.Sections can only be used with standard logs (Log | RatelimitLog)");
-    return null;
+    return (
+      <Section delay={startDelay + 0 * staggerDelay}>
+        <Empty>
+          <Empty.Icon />
+          <Empty.Title>Log Data Unavailable</Empty.Title>
+          <Empty.Description>
+            Could not retrieve log information for this key. The log may have been deleted or is
+            still processing.
+          </Empty.Description>
+        </Empty>
+      </Section>
+    );
   }
 
   const sections = createLogSections(log);
@@ -268,6 +311,9 @@ const Spacer = ({ delay = 0 }: { delay?: number }) => {
 // Meta section
 const Meta = ({ delay = 400 }: { delay?: number }) => {
   const { log } = useLogDetailsContext();
+  if (!log) {
+    return null;
+  }
   const content = createMetaContent(log);
 
   return (
@@ -293,11 +339,7 @@ const Header = ({
 
   return (
     <Section delay={delay} translateX={translateX}>
-      {children ||
-        (onClose &&
-          (isStandardLog(log) ? (
-            <LogHeader log={log as StandardLogTypes} onClose={onClose} />
-          ) : null))}
+      {children || (onClose && <LogHeader log={log as StandardLogTypes} onClose={onClose} />)}
     </Section>
   );
 };

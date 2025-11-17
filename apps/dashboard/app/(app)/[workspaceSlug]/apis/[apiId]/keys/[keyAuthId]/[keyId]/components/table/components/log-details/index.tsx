@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 
 import { LogDetails } from "@/components/logs/details/log-details";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
-import { toast } from "@unkey/ui";
 import { useFetchRequestDetails } from "./components/hooks/use-logs-query";
 
 const ANIMATION_DELAY = 350;
@@ -14,7 +13,7 @@ type Props = {
 };
 
 export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Props) => {
-  const { log, error } = useFetchRequestDetails({
+  const { log, error, isLoading } = useFetchRequestDetails({
     requestId: selectedLog?.request_id,
   });
 
@@ -23,18 +22,6 @@ export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Pr
   useEffect(() => {
     if (!errorShown && selectedLog) {
       if (error) {
-        toast.error("Error Loading Log Details", {
-          description: `${
-            error.message ||
-            "An unexpected error occurred while fetching log data. Please try again."
-          }`,
-        });
-        setErrorShown(true);
-      } else if (!log) {
-        toast.error("Log Data Unavailable", {
-          description:
-            "Could not retrieve log information for this key. The log may have been deleted or is still processing.",
-        });
         setErrorShown(true);
       }
     }
@@ -42,7 +29,7 @@ export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Pr
     if (!selectedLog) {
       setErrorShown(false);
     }
-  }, [error, log, selectedLog, errorShown]);
+  }, [error, selectedLog, errorShown]);
 
   const handleClose = () => {
     onLogSelect(null);
@@ -52,12 +39,14 @@ export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Pr
     return null;
   }
 
-  if (error || !log) {
-    return null;
-  }
-
   return (
-    <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
+    <LogDetails
+      distanceToTop={distanceToTop}
+      log={log || undefined}
+      onClose={handleClose}
+      error={errorShown}
+      isLoading={isLoading}
+    >
       <LogDetails.Header onClose={handleClose} />
       <LogDetails.Sections />
       <LogDetails.Spacer delay={ANIMATION_DELAY} />

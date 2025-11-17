@@ -20,6 +20,10 @@ type Props = {
   onLogSelect: (log: KeyDetailsLog | null) => void;
 };
 
+const POLL_INTERVAL_MS = 2000;
+const PREFETCH_LIMIT = 1;
+const PREFETCH_START_TIME = 0;
+
 export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelect }: Props) => {
   const { isLive } = useKeyDetailsLogsContext();
   const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore, hasMore, totalCount } =
@@ -27,14 +31,13 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
       keyId,
       keyspaceId,
       startPolling: isLive,
-      pollIntervalMs: 2000,
+      pollIntervalMs: POLL_INTERVAL_MS,
     });
 
   const getRowClassName = useCallback(
     (log: KeyDetailsLog) => {
       const style = getStatusStyle(log);
       const isSelected = selectedLog?.request_id === log.request_id;
-
       return cn(
         style.base,
         style.hover,
@@ -57,8 +60,8 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
         setHoveredLogId(log.request_id);
 
         utils.logs.queryLogs.prefetch({
-          limit: 1,
-          startTime: 0,
+          limit: PREFETCH_LIMIT,
+          startTime: PREFETCH_START_TIME,
           endTime: timestamp,
           host: { filters: [] },
           method: { filters: [] },
@@ -121,7 +124,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
       {
         key: "tags",
         header: "Tags",
-        width: "55%",
+        width: "auto",
         render: (log) => <BadgeList log={log} selectedLog={selectedLog} />,
       },
     ],
