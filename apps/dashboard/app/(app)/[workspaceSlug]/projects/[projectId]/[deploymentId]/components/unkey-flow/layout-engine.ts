@@ -210,11 +210,16 @@ export class LayoutEngine<T extends TreeNode> {
       const spacing = (node.children.length - 1) * this.config.spacing.x;
       return Math.max(nodeDim.width, totalChildWidth + spacing);
     }
-    // Children spread vertically - width is node + deepest child
-    const maxChildWidth = Math.max(
-      ...node.children.map((child) => this.calculateSubtreeWidth(child as T))
+    // Children spread vertically - width is node + deepest child, but allow overlap
+    const childSubtreeWidths = node.children.map((child) =>
+      this.calculateSubtreeWidth(child as T)
     );
-    return nodeDim.width + this.config.spacing.x + maxChildWidth;
+    const maxChildWidth = Math.max(...childSubtreeWidths);
+    // Use a percentage of the child width to allow controlled overlap
+    const overlapFactor = 0.4; // Children's horizontal subtrees can overlap by 60%
+    return (
+      nodeDim.width + this.config.spacing.x + maxChildWidth * overlapFactor
+    );
   }
 
   /**
