@@ -3,14 +3,23 @@ import { STATUS_CONFIG, type HealthStatus } from "./status-config";
 
 type StatusDotProps = {
   healthStatus: HealthStatus;
+  variant?: "absolute" | "relative";
 };
 
-export function StatusDot({ healthStatus }: StatusDotProps) {
+export function StatusDot({
+  healthStatus,
+  variant = "absolute",
+}: StatusDotProps) {
   const { colors } = STATUS_CONFIG[healthStatus];
+
+  const wrapperClass =
+    variant === "absolute"
+      ? "absolute top-1.5 right-1.5 size-[7px]"
+      : "relative size-[7px]";
 
   return (
     <>
-      <div className="absolute top-1.5 right-1.5 size-[7px]">
+      <div className={wrapperClass}>
         {/* Ring 1 */}
         <div
           className="absolute inset-0 rounded-full"

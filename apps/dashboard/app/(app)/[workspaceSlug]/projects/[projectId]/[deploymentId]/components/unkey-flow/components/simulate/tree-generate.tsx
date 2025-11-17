@@ -173,7 +173,7 @@ const PRESETS = {
   },
 } as const;
 
-export function DevTreeGenerator({
+export function InternalDevTreeGenerator({
   onGenerate,
   onReset,
 }: DevTreeGeneratorProps) {

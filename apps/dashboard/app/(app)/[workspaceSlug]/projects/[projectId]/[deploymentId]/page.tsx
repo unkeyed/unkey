@@ -8,44 +8,25 @@ import {
 } from "./components/unkey-flow/components/nodes/deploy-node";
 import { OriginNode } from "./components/unkey-flow/components/nodes/origin-node";
 import { DefaultNode } from "./components/unkey-flow/components/nodes/default-node";
-import { DevTreeGenerator } from "./components/unkey-flow/components/simulate/tree-generate";
 import type { TreeNode } from "./components/unkey-flow/types";
-import { generateDeploymentTree } from "./components/unkey-flow/components/simulate/simulate";
+import { LiveIndicator } from "./components/unkey-flow/components/overlay/live";
 import { useState } from "react";
-
-const DEFAULT_TREE = generateDeploymentTree({
-  regions: 3,
-  instancesPerRegion: { min: 2, max: 3 },
-  regionDirection: "vertical",
-  instanceDirection: "horizontal",
-  healthDistribution: {
-    normal: 80,
-    unstable: 10,
-    degraded: 5,
-    unhealthy: 5,
-    recovering: 0,
-    health_syncing: 0,
-    unknown: 0,
-    disabled: 0,
-  },
-});
+import {
+  DEFAULT_TREE,
+  DevTreeGenerator,
+} from "./components/unkey-flow/components/overlay/dev-tree-generator";
 
 export default function DeploymentDetailsPage() {
   const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(
     DEFAULT_TREE
   );
-
   return (
     <InfiniteCanvas
       overlay={
-        process.env.NODE_ENV === "development" ? (
-          <DevTreeGenerator
-            onGenerate={(config) =>
-              setGeneratedTree(generateDeploymentTree(config))
-            }
-            onReset={() => setGeneratedTree(DEFAULT_TREE)}
-          />
-        ) : undefined
+        <>
+          <LiveIndicator />
+          <DevTreeGenerator onTreeGenerate={(tree) => setGeneratedTree(tree)} />
+        </>
       }
     >
       <TreeLayout

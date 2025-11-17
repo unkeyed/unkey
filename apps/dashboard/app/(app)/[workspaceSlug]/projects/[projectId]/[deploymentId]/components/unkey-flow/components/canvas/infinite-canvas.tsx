@@ -7,9 +7,9 @@ const DEFAULT_MIN_ZOOM = 0.5;
 const DEFAULT_MAX_ZOOM = 3;
 const DEFAULT_ZOOM = 1;
 const DEFAULT_ZOOM_SPEED = 0.002;
-const DEFAULT_GRID_SIZE = 25;
+const DEFAULT_GRID_SIZE = 15;
 const DEFAULT_DOT_RADIUS = 1.5;
-const DEFAULT_DOT_CLASS = "fill-grayA-5";
+const DEFAULT_DOT_CLASS = "fill-grayA-4";
 const INITIAL_SCALE = 1;
 const PRIMARY_MOUSE_BUTTON = 0;
 
