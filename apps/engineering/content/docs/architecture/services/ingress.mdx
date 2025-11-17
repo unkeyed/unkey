@@ -1,0 +1,243 @@
+---
+title: Ingress
+description: Multi-tenant ingress and routing service
+---
+
+import { Mermaid } from "@/app/components/mermaid";
+
+**Location:** `go/apps/ingress/`
+**CLI Command:** [`unkey run ingress`](/cli/run/ingress)
+**Protocol:** HTTPS with mTLS (SPIRE)
+
+## What It Does
+
+Ingress is the multi-tenant ingress service that serves as the first point of contact for all customer traffic. It accepts requests from regional NLBs (Network Load Balancers), performs TLS termination, and intelligently routes traffic to the appropriate per-tenant Gateway service.
+
+Ingress handles three main responsibilities:
+1. **TLS Termination**: Terminates TLS as early as possible for deployments in its region
+2. **Intelligent Routing**: Routes requests to the correct Gateway instance based on hostname lookup
+3. **Cross-Region Forwarding**: Forwards requests to other regions when no local deployment exists
+
+## Architecture
+
+### Multi-Tenant Design
+
+Unlike Gateway (which is per-tenant), Ingress is a multi-tenant service. A single Ingress instance in each region handles traffic for all deployments in that region. This design provides efficient resource utilization while maintaining the ability to route to isolated per-tenant Gateways.
+
+### Request Flow
+
+<Mermaid chart={`sequenceDiagram
+    autonumber
+    participant Client
+    participant NLB as Regional NLB
+    participant Ingress
+    participant DB as Partition DB
+    participant Gateway as Gateway (Tenant)
+    participant RemoteNLB as Remote Region NLB
+
+    Client->>NLB: HTTPS Request (custom.domain.com)
+    NLB->>Ingress: Forward to Ingress
+    Ingress->>DB: Lookup hostname -> deployment
+
+    alt Deployment exists in region
+        DB->>Ingress: deployment_id, gateway_address, region
+        Ingress->>Ingress: Terminate TLS
+        Ingress->>Gateway: Forward via mTLS (SPIRE)
+        Gateway->>Gateway: Execute workload
+        Gateway->>Ingress: Response
+        Ingress->>Client: Response
+    else Deployment in different region
+        DB->>Ingress: deployment_id, region: us-west-2
+        Ingress->>RemoteNLB: Forward HTTPS to us-west-2.unkey.cloud
+        RemoteNLB->>Ingress: (in us-west-2)
+        Note over Ingress: Now in correct region, follow path above
+    end
+`} />
+
+## Database Schema
+
+Ingress queries the partition database to determine routing:
+
+```sql
+-- Hostname to deployment mapping
+SELECT
+    deployment_id,
+    workspace_id,
+    region,
+    gateway_k8s_address  -- e.g., d-abc123.ws-xyz.svc.cluster.local:8080
+FROM deployment_hostnames
+WHERE hostname = ?
+
+-- Certificate lookup for TLS termination
+SELECT
+    certificate_pem,
+    private_key_pem,
+    expires_at
+FROM certificates
+WHERE hostname = ?
+```
+
+## TLS Strategy
+
+### Local Deployment (Same Region)
+
+When a deployment exists in Ingress's region:
+1. Ingress retrieves the TLS certificate from the partition database
+2. Terminates TLS immediately (minimal latency)
+3. Forwards to Gateway via mTLS (using SPIRE for authentication)
+4. Gateway processes the request and returns response
+
+### Remote Deployment (Different Region)
+
+When a deployment exists in a different region:
+1. Ingress skips TLS termination (keeps request encrypted)
+2. Forwards the entire HTTPS request to `{region}.unkey.cloud`
+3. The remote region's Ingress handles TLS termination and routing
+
+This approach prioritizes simplicity over optimal latency. Future iterations may optimize cross-region forwarding by:
+- Terminating TLS locally and re-encrypting to remote Gateway directly
+- Using edge-to-edge mTLS tunnels
+- Implementing latency-based routing
+
+## SPIRE Integration
+
+Ingress uses SPIRE for mTLS authentication when communicating with Gateway instances.
+
+### SPIRE Identity
+
+```bash
+# Ingress identity in SPIRE
+spiffe://unkey.io/ingress
+
+# Can communicate with
+spiffe://unkey.io/gateway/*
+```
+
+### Connection Example
+
+```go
+// Ingress creates mTLS client to Gateway
+source, _ := workloadapi.NewX509Source(ctx)
+
+transport := &http.Transport{
+    TLSClientConfig: tlsconfig.MTLSClientConfig(
+        source,
+        source,
+        tlsconfig.AuthorizeID(
+            spiffeid.RequireFromString("spiffe://unkey.io/gateway"),
+        ),
+    ),
+    ForceAttemptHTTP2: true,
+}
+
+// Forward to Gateway with automatic mTLS
+client := &http.Client{Transport: transport}
+resp, _ := client.Do(proxyReq)
+```
+
+### Security Benefits
+
+- **No shared secrets**: SPIRE provides automatic certificate rotation
+- **Strong identity**: Gateway can verify Ingress's identity cryptographically
+- **Short-lived certs**: Default 1-hour TTL reduces compromise window
+- **Mutual authentication**: Both Ingress and Gateway verify each other
+
+## Region Routing
+
+Ingress uses a simple domain-based routing strategy for cross-region requests:
+
+```go
+// Cross-region forwarding
+func (g *Ingress) forwardToRegion(region string, r *http.Request) {
+    targetURL := fmt.Sprintf("https://%s.%s%s",
+        region,           // e.g., "us-west-2"
+        g.cfg.BaseDomain, // e.g., "unkey.cloud"
+        r.URL.Path,
+    )
+
+    // Forward entire HTTPS request (TLS not terminated)
+    g.proxyHTTPS(targetURL, r)
+}
+```
+
+### Region Priority
+
+For now, region routing is based on database lookup. Future improvements may include:
+- **Latency-based routing**: Ping regions to find fastest path
+- **Health-based routing**: Avoid regions with degraded performance
+- **Cost optimization**: Prefer same-region routing to minimize egress costs
+
+## Observability
+
+Ingress emits metrics and traces for:
+- Request routing decisions (local vs. remote)
+- TLS termination latency
+- Gateway forwarding latency
+- Certificate retrieval performance
+- Cross-region forwarding counts
+
+Example metrics:
+```
+ingress_requests_total{region="us-east-1", destination="local"} 1000
+ingress_requests_total{region="us-east-1", destination="us-west-2"} 50
+ingress_tls_termination_duration_seconds{p99="0.002"}
+ingress_gateway_forward_duration_seconds{p99="0.010"}
+```
+
+## Future Improvements
+
+### Planned Optimizations
+
+1. **Direct Cross-Region Gateways**: Forward directly to remote Gateway instead of remote NLB
+2. **TLS Session Resumption**: Cache TLS sessions for faster handshakes
+3. **Connection Pooling**: Reuse connections to Gateway instances
+4. **Edge Caching**: Cache static responses at Ingress level
+5. **Dynamic Region Routing**: Implement latency-based region selection
+
+### Scalability Considerations
+
+Ingress is designed to scale horizontally:
+- **Stateless**: No local state beyond in-memory caches
+- **Database-driven**: All routing decisions based on partition DB
+- **Connection reuse**: HTTP/2 connection pooling to Gateways
+- **Resource limits**: Configurable per-instance limits
+
+The multi-tenant design means Ingress instances handle high throughput, but this is balanced by:
+- Efficient connection pooling to Gateways
+- Quick database lookups (indexed on hostname)
+- Minimal processing (just routing, not execution)
+
+## Deployment
+
+Ingress runs as a Kubernetes Deployment (not StatefulSet) since it doesn't require stable instance identity. Multiple replicas run behind the NLB for high availability.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingress
+  namespace: unkey-system
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ingress
+  template:
+    metadata:
+      labels:
+        app: ingress
+    spec:
+      containers:
+      - name: ingress
+        image: unkey/ingress:latest
+        env:
+        - name: UNKEY_REGION
+          value: "us-east-1"
+        - name: UNKEY_BASE_DOMAIN
+          value: "unkey.cloud"
+        ports:
+        - containerPort: 7070
+          name: http
+        - containerPort: 7443
+          name: https
+```
