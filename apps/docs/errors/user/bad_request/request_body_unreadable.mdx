@@ -1,0 +1,73 @@
+---
+title: "request_body_unreadable"
+description: "Request body could not be read due to malformed request or connection issues"
+---
+
+<Danger>`err:user:bad_request:request_body_unreadable`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_4dgzrNP3Je5mU1tD"
+  },
+  "error": {
+    "detail": "The request body could not be read.",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "https://unkey.com/docs/errors/user/bad_request/request_body_unreadable",
+    "errors": []
+  }
+}
+```
+
+## What Happened?
+
+The server couldn't read your request body. This typically happens when there's an issue with how the request was formed or transmitted.
+
+Common causes include:
+- Malformed HTTP request structure
+- Network connection closed prematurely during transmission
+- Invalid or mismatched `Content-Length` header
+- Data corruption during transmission
+- Client-side network interruption
+
+## How to Fix It
+
+### 1. Check Your Request Structure
+
+Make sure your HTTP request is properly formatted and all required headers are present:
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.create \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_XXXX" \
+  -d '{
+    "apiId": "api_123",
+    "name": "My Key"
+  }'
+```
+
+### 2. Check Network Stability
+
+If you're experiencing intermittent failures:
+- Implement retry logic with exponential backoff
+- Check your network connection stability
+- Consider timeout values that may be too aggressive
+
+### 3. Avoid Partial Uploads
+
+Ensure you're sending the complete request body in one go, not streaming partial data that might get interrupted.
+
+## Still Having Issues?
+
+<Note>
+If you continue to see this error after checking the above:
+
+1. Check your HTTP client library documentation for known issues
+2. Try a different HTTP client to isolate the problem
+3. [Contact our support team](mailto:support@unkey.dev) with:
+   - Your request ID (from the error response)
+   - The HTTP client/library you're using
+   - Any network logs or error messages
+
+</Note>

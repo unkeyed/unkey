@@ -925,7 +925,7 @@ components:
                     type: string
                     minLength: 3
                     maxLength: 255
-                    description: Identifier of the configured migration provider/strategy to use (e.g., "your_company").
+                    description: Identifier of the configured migration provider/strategy to use (e.g., "your_company"). You will receive this from Unkey's support staff.
                     example: your_company
                 apiId:
                     type: string
@@ -2707,7 +2707,7 @@ components:
                     type: string
                     minLength: 3
                     description: The current hash of the key on your side
-                    example: qwerty123
+                    example: your_already_hashed_key
                 name:
                     type: string
                     minLength: 1
