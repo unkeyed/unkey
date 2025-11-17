@@ -27,21 +27,20 @@ export function generateDeploymentTree(
   ];
   const regions = [
     "us-east-1",
-    "us-west-2",
-    "eu-west-1",
     "eu-central-1",
-    "ap-east-1",
+    "ap-southeast-2",
+    "ap-northeast-1",
     "ap-south-1",
-    "ap-southeast-1",
-  ];
+    "sa-east-1",
+  ] as const;
+
   const flags: Record<string, RegionMetadata["flagCode"]> = {
     "us-east-1": "us",
-    "us-west-2": "us",
-    "eu-west-1": "eu",
-    "eu-central-1": "eu",
-    "ap-east-1": "hk",
+    "eu-central-1": "de",
+    "ap-southeast-2": "au",
+    "ap-northeast-1": "jp",
     "ap-south-1": "in",
-    "ap-southeast-1": "in",
+    "sa-east-1": "br",
   };
 
   const getRandomHealth = (): HealthStatus => {

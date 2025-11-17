@@ -14,7 +14,7 @@ type OriginMetadata = {
 
 type RegionMetadata = {
   type: "region";
-  flagCode: "us" | "in" | "hk" | "eu";
+  flagCode: "us" | "de" | "au" | "jp" | "in" | "br";
   zones: number;
   instances: number;
   replicas: number;

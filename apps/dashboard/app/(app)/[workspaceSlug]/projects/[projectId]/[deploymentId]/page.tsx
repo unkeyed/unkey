@@ -75,7 +75,9 @@ export default function DeploymentDetailsPage() {
                       metadata: { type: "instance" };
                     }
                   }
-                  parentRegionId={parent.id}
+                  // @ts-expect-error Will make it more typesafe soon
+                  // biome-ignore lint/style/noNonNullAssertion: Will make it typesafe soon
+                  flagCode={parent.metadata.flagCode!}
                 />
               );
             default:

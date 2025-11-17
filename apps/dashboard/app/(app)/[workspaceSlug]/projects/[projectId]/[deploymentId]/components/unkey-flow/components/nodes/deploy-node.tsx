@@ -8,28 +8,10 @@ import {
 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { DeploymentNode, RegionMetadata, HealthStatus } from "./types";
-import { FLAGS } from "./flags";
 import { StatusDot } from "./status-dot";
 import { HealthBanner } from "./health-banner";
 import { STATUS_CONFIG } from "./status-config";
 import type { PropsWithChildren } from "react";
-
-function getRegionFlagCode(
-  regionId: string
-): RegionMetadata["flagCode"] | undefined {
-  switch (true) {
-    case regionId.startsWith("us-"):
-      return "us";
-    case regionId.startsWith("ap-south"):
-      return "in";
-    case regionId.startsWith("ap-east"):
-      return "hk";
-    case regionId.startsWith("eu-"):
-      return "eu";
-    default:
-      return undefined;
-  }
-}
 
 function getHealthStyles(health: HealthStatus): { ring: string; glow: string } {
   const styleMap: Record<HealthStatus, { ring: string; glow: string }> = {
@@ -66,7 +48,6 @@ function getHealthStyles(health: HealthStatus): { ring: string; glow: string } {
       glow: "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.15),0_0_0_1px_hsl(var(--grayA-6)),0_0_30px_color-mix(in_srgb,hsl(var(--grayA-9))_17.5%,transparent)]",
     },
   };
-
   return styleMap[health];
 }
 
@@ -80,7 +61,6 @@ type CardHeaderProps = {
 function CardHeader({ icon, title, subtitle, health }: CardHeaderProps) {
   const { colors } = STATUS_CONFIG[health];
   const heartBoxShadow = `0 0 8px 1px ${colors.dotRing} inset, 0 0 0 1px var(--color-grayA-gray-a5, rgba(0, 9, 50, 0.12)) inset`;
-
   return (
     <div
       className="border-b border-grayA-4 flex px-3 py-2.5 rounded-t-[14px]"
@@ -131,13 +111,15 @@ type CardFooterProps = {
 };
 
 function CardFooter({ flagCode, instances, power, storage }: CardFooterProps) {
-  const FlagComponent = flagCode ? FLAGS[flagCode] : null;
-
   return (
     <div className="p-1 flex items-center h-full bg-grayA-2 rounded-b-[14px]">
-      {FlagComponent && (
+      {flagCode && (
         <div className="size-[22px] bg-grayA-3 rounded-full p-[3px] flex items-center justify-center mr-1.5">
-          <FlagComponent />
+          <img
+            src={`/images/flags/${flagCode}.svg`}
+            alt={flagCode}
+            className="size-4"
+          />
         </div>
       )}
       {instances !== undefined && (
@@ -175,7 +157,6 @@ type NodeWrapperProps = PropsWithChildren<{
 function NodeWrapper({ health, children }: NodeWrapperProps) {
   const isDisabled = health === "disabled";
   const { ring, glow } = getHealthStyles(health);
-
   return (
     <div
       className={cn(
@@ -208,15 +189,17 @@ type RegionNodeProps = {
 
 export function RegionNode({ node }: RegionNodeProps) {
   const { flagCode, zones, instances, power, storage, health } = node.metadata;
-  const FlagComponent = FLAGS[flagCode];
   const subtitle = `${zones} availability ${zones > 1 ? "zones" : "zone"}`;
-
   return (
     <NodeWrapper health={health}>
       <CardHeader
         icon={
           <div className="border rounded-[10px] border-grayA-3 size-9 bg-grayA-3 flex items-center justify-center">
-            <FlagComponent />
+            <img
+              src={`/images/flags/${flagCode}.svg`}
+              alt={flagCode}
+              className="size-4"
+            />
           </div>
         }
         title={node.label}
@@ -230,13 +213,11 @@ export function RegionNode({ node }: RegionNodeProps) {
 
 type InstanceNodeProps = {
   node: DeploymentNode & { metadata: { type: "instance" } };
-  parentRegionId: string;
+  flagCode: RegionMetadata["flagCode"];
 };
 
-export function InstanceNode({ node, parentRegionId }: InstanceNodeProps) {
+export function InstanceNode({ node, flagCode }: InstanceNodeProps) {
   const { description, instances, power, storage, health } = node.metadata;
-  const flagCode = getRegionFlagCode(parentRegionId);
-
   return (
     <NodeWrapper health={health}>
       <CardHeader
