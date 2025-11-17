@@ -2,6 +2,7 @@ import type {
   HealthStatus,
   DeploymentNode,
   RegionMetadata,
+  InstanceMetadata,
 } from "../nodes/types";
 
 type GeneratorConfig = {
@@ -25,6 +26,7 @@ export function generateDeploymentTree(
     "unknown",
     "disabled",
   ];
+
   const regions = [
     "us-east-1",
     "eu-central-1",
@@ -67,51 +69,52 @@ export function generateDeploymentTree(
   return {
     id: "ingress",
     label: "INTERNET",
-    //@ts-expect-error its okay
-    direction: config.regionDirection ?? "vertical",
     metadata: { type: "origin" },
     children: selectedRegions.map((regionId) => {
       const instanceCount = getRandomInt(
         config.instancesPerRegion.min,
         config.instancesPerRegion.max
       );
-      const zones = getRandomInt(1, 3);
       const totalInstances = getRandomInt(20, 40);
       const regionHealth = getRandomHealth();
+
+      const regionMetadata: RegionMetadata = {
+        type: "region",
+        flagCode: flags[regionId],
+        zones: getRandomInt(1, 3),
+        instances: totalInstances,
+        replicas: 2,
+        rps: getRandomInt(1000, 5000),
+        cpu: getRandomInt(30, 80),
+        memory: getRandomInt(40, 85),
+        storage: getRandomInt(512, 1024),
+        latency: `${(Math.random() * 5 + 1).toFixed(1)}ms`,
+        health: regionHealth,
+      };
 
       return {
         id: regionId,
         label: regionId,
         direction: config.instanceDirection ?? "vertical",
-        metadata: {
-          type: "region" as const,
-          flagCode: flags[regionId],
-          zones,
-          instances: totalInstances,
-          replicas: 2,
-          power: getRandomInt(15, 45),
-          storage: `${getRandomInt(512, 1024)}mi`,
-          bandwidth: "1gb",
-          latency: `${(Math.random() * 5 + 1).toFixed(1)}ms`,
-          status: "active" as const,
-          health: regionHealth,
-        },
+        metadata: regionMetadata,
         children: Array.from({ length: instanceCount }, (_, i) => {
           const instanceId = Math.random().toString(36).substring(2, 6);
+
+          const instanceMetadata: InstanceMetadata = {
+            type: "instance",
+            description: "Instance replica",
+            replicas: 2,
+            rps: getRandomInt(100, 500),
+            cpu: getRandomInt(20, 70),
+            memory: getRandomInt(30, 75),
+            latency: `${(Math.random() * 8 + 2).toFixed(1)}ms`,
+            health: getRandomHealth(),
+          };
+
           return {
             id: `${regionId}-gw-${instanceId}-${i + 1}`,
             label: `gw-${instanceId}`,
-            metadata: {
-              type: "instance" as const,
-              description: "Instance replica",
-              instances: i === 0 ? totalInstances : undefined,
-              replicas: 2,
-              power: `${getRandomInt(15, 50)}%`,
-              storage: i === 0 ? `${getRandomInt(256, 768)}mi` : undefined,
-              latency: `${(Math.random() * 8 + 2).toFixed(1)}ms`,
-              status: "active" as const,
-              health: getRandomHealth(),
-            },
+            metadata: instanceMetadata,
           };
         }),
       };

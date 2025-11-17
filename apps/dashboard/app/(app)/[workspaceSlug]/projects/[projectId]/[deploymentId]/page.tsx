@@ -14,7 +14,7 @@ import { generateDeploymentTree } from "./components/unkey-flow/components/simul
 import { useState } from "react";
 
 const DEFAULT_TREE = generateDeploymentTree({
-  regions: 2,
+  regions: 3,
   instancesPerRegion: { min: 2, max: 3 },
   regionDirection: "vertical",
   instanceDirection: "horizontal",
@@ -51,7 +51,7 @@ export default function DeploymentDetailsPage() {
       <TreeLayout
         // biome-ignore lint/style/noNonNullAssertion: <explanation>
         data={generatedTree!}
-        nodeSpacing={{ x: 25, y: 100 }}
+        nodeSpacing={{ x: 25, y: 75 }}
         renderNode={(node, _, parent) => {
           switch (node.metadata.type) {
             case "origin":

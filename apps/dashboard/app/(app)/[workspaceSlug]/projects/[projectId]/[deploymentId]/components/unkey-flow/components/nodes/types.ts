@@ -18,11 +18,11 @@ type RegionMetadata = {
   zones: number;
   instances: number;
   replicas: number;
-  power: number;
-  storage: string;
-  bandwidth: string;
+  rps?: number;
+  cpu?: number;
+  memory?: number;
+  storage?: number;
   latency: string;
-  status: "active" | "inactive";
   health: HealthStatus;
 };
 
@@ -31,12 +31,11 @@ type InstanceMetadata = {
   description: string;
   instances?: number;
   replicas: number;
-  power: string;
-  cpu?: string;
-  memory?: string;
-  storage?: string;
+  rps?: number;
+  cpu?: number;
+  memory?: number;
+  storage?: number;
   latency: string;
-  status: "active" | "inactive";
   health: HealthStatus;
 };
 

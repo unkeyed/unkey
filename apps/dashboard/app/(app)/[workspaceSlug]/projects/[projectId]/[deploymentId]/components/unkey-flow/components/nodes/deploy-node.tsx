@@ -57,6 +57,68 @@ function getHealthStyles(health: HealthStatus): { ring: string; glow: string } {
   return styleMap[health];
 }
 
+type StatusIndicatorProps = {
+  icon: React.ReactNode;
+  healthStatus: HealthStatus;
+  tooltip: string;
+  showGlow?: boolean;
+};
+
+function StatusIndicator({
+  icon,
+  healthStatus,
+  tooltip,
+  showGlow = false,
+}: StatusIndicatorProps) {
+  const { colors } = STATUS_CONFIG[healthStatus];
+  const glowBoxShadow = showGlow
+    ? `0 0 8px 1px ${colors.dotRing} inset, 0 0 0 1px var(--color-grayA-gray-a5, rgba(0, 9, 50, 0.12)) inset`
+    : "";
+
+  return (
+    <InfoTooltip
+      content={tooltip}
+      variant="primary"
+      className="px-2.5 py-1 rounded-[10px] bg-white dark:bg-blackA-12 text-xs z-30"
+      position={{ align: "center", side: "top", sideOffset: 5 }}
+    >
+      <div
+        className="border bg-gray-1 border-grayA-3 h-11 rounded-lg w-8 transition-all hover:ring-1 hover:ring-gray-7 duration-200 ease-out hover:scale-105 cursor-pointer"
+        style={{
+          boxShadow: glowBoxShadow,
+        }}
+      >
+        <div className="h-6 border-b border-grayA-3 relative">
+          <StatusDot healthStatus={healthStatus} />
+        </div>
+        <div className="h-5 bg-grayA-2 pl-1 pt-[3px]">{icon}</div>
+      </div>
+    </InfoTooltip>
+  );
+}
+
+type MetricPillProps = {
+  icon: React.ReactNode;
+  value: string | number;
+  tooltip: string;
+};
+
+function MetricPill({ icon, value, tooltip }: MetricPillProps) {
+  return (
+    <InfoTooltip
+      content={tooltip}
+      variant="primary"
+      className="px-2.5 py-1 rounded-[10px] bg-white dark:bg-blackA-12 text-xs z-30"
+      position={{ align: "center", side: "top", sideOffset: 5 }}
+    >
+      <div className="bg-grayA-3 p-1.5 flex items-center justify-between rounded-full h-5 gap-1.5 transition-all hover:bg-grayA-4 cursor-pointer">
+        {icon}
+        <span className="text-gray-9 text-[10px] tabular-nums">{value}</span>
+      </div>
+    </InfoTooltip>
+  );
+}
+
 type CardHeaderProps = {
   icon: React.ReactNode;
   title: string;
@@ -66,7 +128,7 @@ type CardHeaderProps = {
 
 function CardHeader({ icon, title, subtitle, health }: CardHeaderProps) {
   const { colors } = STATUS_CONFIG[health];
-  const heartBoxShadow = `0 0 8px 1px ${colors.dotRing} inset, 0 0 0 1px var(--color-grayA-gray-a5, rgba(0, 9, 50, 0.12)) inset`;
+
   return (
     <div
       className="border-b border-grayA-4 flex px-3 py-2.5 rounded-t-[14px]"
@@ -85,54 +147,44 @@ function CardHeader({ icon, title, subtitle, health }: CardHeaderProps) {
         </div>
       </div>
       <div className="flex gap-2 items-center ml-auto">
-        <InfoTooltip
-          content="Region gateways are online and serving traffic"
-          variant="primary"
-          className="px-2.5 py-1 rounded-[10px] bg-white dark:bg-blackA-12 text-xs z-30"
-          position={{ align: "center", side: "top", sideOffset: 5 }}
-        >
-          <div className="border bg-gray-1 border-grayA-3 h-11 rounded-lg w-8 transition-all hover:ring-1 hover:ring-gray-7 duration-200 ease-out">
-            <div className="h-6 border-b border-grayA-3 relative">
-              <StatusDot healthStatus="normal" />
-            </div>
-            <div className="h-5 bg-grayA-2 pl-1 pt-[3px]">
-              <CircleCheck className="text-gray-9" iconSize="sm-regular" />
-            </div>
-          </div>
-        </InfoTooltip>
-        <InfoTooltip
-          content="All gateways within this region report healthy states"
-          variant="primary"
-          className="px-2.5 py-1 rounded-[10px] bg-white dark:bg-blackA-12 text-xs z-30"
-          position={{ align: "center", side: "top", sideOffset: 5 }}
-        >
-          <div
-            className="border bg-gray-1 border-grayA-3 h-11 rounded-lg w-8 ml-auto transition-all hover:ring-1 hover:ring-gray-7 duration-200 ease-out"
-            style={{
-              boxShadow: health === "normal" ? "" : heartBoxShadow,
-            }}
-          >
-            <div className="h-6 border-b border-grayA-3 relative">
-              <StatusDot healthStatus={health} />
-            </div>
-            <div className="h-5 bg-grayA-2 pl-1 pt-[3px]">
-              <Heart className={colors.dotTextColor} iconSize="sm-regular" />
-            </div>
-          </div>
-        </InfoTooltip>
+        <StatusIndicator
+          icon={<CircleCheck className="text-gray-9" iconSize="sm-regular" />}
+          healthStatus="normal"
+          tooltip="Gateway is online and serving traffic"
+        />
+        <StatusIndicator
+          icon={<Heart className={colors.dotTextColor} iconSize="sm-regular" />}
+          healthStatus={health}
+          tooltip="Gateway health status"
+          showGlow={health !== "normal"}
+        />
       </div>
     </div>
   );
 }
 
-type CardFooterProps = {
-  flagCode?: RegionMetadata["flagCode"];
-  instances?: number;
-  power: string | number;
-  storage?: string;
+type RegionCardFooterProps = {
+  type: "region";
+  rps?: number;
+  cpu?: number;
+  memory?: number;
 };
 
-function CardFooter({ flagCode, instances, power, storage }: CardFooterProps) {
+type InstanceCardFooterProps = {
+  type: "instance";
+  flagCode: RegionMetadata["flagCode"];
+  rps?: number;
+  cpu?: number;
+  memory?: number;
+};
+
+type CardFooterProps = RegionCardFooterProps | InstanceCardFooterProps;
+
+function CardFooter(props: CardFooterProps) {
+  const { type, rps, cpu, memory } = props;
+  const flagCode = type === "instance" ? props.flagCode : undefined;
+  const isRegion = type === "region";
+
   return (
     <div className="p-1 flex items-center h-full bg-grayA-2 rounded-b-[14px]">
       {flagCode && (
@@ -144,28 +196,39 @@ function CardFooter({ flagCode, instances, power, storage }: CardFooterProps) {
           />
         </div>
       )}
-      {instances !== undefined && (
-        <div className="bg-grayA-3 p-1.5 flex items-center justify-between rounded-full h-5 gap-1.5">
-          <ChartActivity iconSize="sm-medium" className="shrink-0" />
-          <span className="text-gray-9 text-[10px] tabular-nums">
-            {instances}
-          </span>
-        </div>
+      {rps !== undefined && (
+        <MetricPill
+          icon={<ChartActivity iconSize="sm-medium" className="shrink-0" />}
+          value={rps}
+          tooltip={
+            isRegion
+              ? "Requests per second handled by this region's gateways"
+              : "Requests per second handled by this instance"
+          }
+        />
       )}
       <div className="flex items-center gap-2 ml-auto">
-        <div className="bg-grayA-3 p-1.5 flex items-center justify-between rounded-full h-5 gap-1.5">
-          <Bolt iconSize="sm-medium" className="shrink-0" />
-          <span className="text-gray-9 text-[10px] tabular-nums">
-            {typeof power === "number" ? `${power}%` : power}
-          </span>
-        </div>
-        {storage && (
-          <div className="bg-grayA-3 p-1.5 flex items-center justify-between rounded-full h-5 gap-1.5">
-            <Focus iconSize="sm-regular" className="shrink-0" />
-            <span className="text-gray-9 text-[10px] tabular-nums">
-              {storage}
-            </span>
-          </div>
+        {cpu !== undefined && (
+          <MetricPill
+            icon={<Bolt iconSize="sm-medium" className="shrink-0" />}
+            value={`${cpu}%`}
+            tooltip={
+              isRegion
+                ? "Average CPU usage across all gateway instances in this region"
+                : "Current CPU usage for this instance"
+            }
+          />
+        )}
+        {memory !== undefined && (
+          <MetricPill
+            icon={<Focus iconSize="sm-regular" className="shrink-0" />}
+            value={`${memory}%`}
+            tooltip={
+              isRegion
+                ? "Average memory usage across all gateway instances in this region"
+                : "Current memory usage for this instance"
+            }
+          />
         )}
       </div>
     </div>
@@ -179,6 +242,7 @@ type NodeWrapperProps = PropsWithChildren<{
 function NodeWrapper({ health, children }: NodeWrapperProps) {
   const isDisabled = health === "disabled";
   const { ring, glow } = getHealthStyles(health);
+
   return (
     <div
       className={cn(
@@ -210,8 +274,7 @@ type RegionNodeProps = {
 };
 
 export function RegionNode({ node }: RegionNodeProps) {
-  const { flagCode, zones, instances, power, storage, health } = node.metadata;
-  const subtitle = `${zones} availability ${zones > 1 ? "zones" : "zone"}`;
+  const { flagCode, rps, cpu, memory, health, zones } = node.metadata;
   const regionInfo = REGION_INFO[flagCode];
 
   return (
@@ -234,10 +297,10 @@ export function RegionNode({ node }: RegionNodeProps) {
           </InfoTooltip>
         }
         title={node.label}
-        subtitle={subtitle}
+        subtitle={`${zones} availability ${zones === 1 ? "zone" : "zones"}`}
         health={health}
       />
-      <CardFooter instances={instances} power={power} storage={storage} />
+      <CardFooter type="region" rps={rps} cpu={cpu} memory={memory} />
     </NodeWrapper>
   );
 }
@@ -248,7 +311,8 @@ type InstanceNodeProps = {
 };
 
 export function InstanceNode({ node, flagCode }: InstanceNodeProps) {
-  const { description, instances, power, storage, health } = node.metadata;
+  const { rps, cpu, memory, health } = node.metadata;
+
   return (
     <NodeWrapper health={health}>
       <CardHeader
@@ -258,14 +322,15 @@ export function InstanceNode({ node, flagCode }: InstanceNodeProps) {
           </div>
         }
         title={node.label}
-        subtitle={description}
+        subtitle="Instance Replica"
         health={health}
       />
       <CardFooter
+        type="instance"
         flagCode={flagCode}
-        instances={instances}
-        power={power}
-        storage={storage}
+        rps={rps}
+        cpu={cpu}
+        memory={memory}
       />
     </NodeWrapper>
   );
