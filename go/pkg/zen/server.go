@@ -241,16 +241,15 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 //	    zen.NewRoute(zen.CATCHALL, "/{path...}", proxyHandler),
 //	)
 func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
-	s.logger.Info("registering",
-		"method", route.Method(),
-		"path", route.Path(),
-	)
+	path := route.Path()
+	method := route.Method()
+	s.logger.Info("registering", "method", method, "path", path)
 
 	// Determine the pattern based on whether this is a catch-all route
 	// Empty method means match all HTTP methods
-	pattern := route.Path()
-	if route.Method() != "" {
-		pattern = route.Method() + " " + route.Path()
+	pattern := path
+	if method != "" {
+		pattern = method + " " + path
 	}
 
 	s.mux.HandleFunc(
