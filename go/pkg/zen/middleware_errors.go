@@ -45,8 +45,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				codes.UnkeyDataErrorsRatelimitNamespaceNotFound,
 				codes.UnkeyDataErrorsRatelimitOverrideNotFound,
 				codes.UnkeyDataErrorsIdentityNotFound,
-				codes.UnkeyDataErrorsAuditLogNotFound,
-				codes.UnkeyGatewayErrorsRoutingConfigNotFound:
+				codes.UnkeyDataErrorsAuditLogNotFound:
 				return s.JSON(http.StatusNotFound, openapi.NotFoundErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -341,13 +340,8 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 
 			// Internal errors
 			case codes.UnkeyAppErrorsInternalUnexpectedError,
-				codes.UnkeyGatewayErrorsProxyGatewayTimeout,
-				codes.UnkeyGatewayErrorsProxyBadGateway,
-				codes.UnkeyGatewayErrorsProxyServiceUnavailable,
 				codes.UnkeyAppErrorsInternalServiceUnavailable,
 				codes.UnkeyAppErrorsValidationAssertionFailed,
-				codes.UnkeyGatewayErrorsProxyProxyForwardFailed,
-				codes.UnkeyGatewayErrorsRoutingVMSelectionFailed,
 				codes.UnkeyGatewayErrorsInternalInternalServerError,
 				codes.UnkeyGatewayErrorsInternalKeyVerificationFailed:
 				// Fall through to default 500 error
