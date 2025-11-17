@@ -15,8 +15,11 @@ import {
   DEFAULT_TREE,
   DevTreeGenerator,
 } from "./components/unkey-flow/components/overlay/dev-tree-generator";
+import { ProjectDetails } from "./components/unkey-flow/components/overlay/project-details";
+import { useProject } from "../layout-provider";
 
 export default function DeploymentDetailsPage() {
+  const { projectId } = useProject();
   const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(
     DEFAULT_TREE
   );
@@ -24,6 +27,7 @@ export default function DeploymentDetailsPage() {
     <InfiniteCanvas
       overlay={
         <>
+          <ProjectDetails projectId={projectId} />
           <LiveIndicator />
           <DevTreeGenerator onTreeGenerate={(tree) => setGeneratedTree(tree)} />
         </>
