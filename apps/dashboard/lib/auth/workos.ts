@@ -70,6 +70,11 @@ type ProviderUser = {
   profilePictureUrl: string | null;
 };
 
+type Decision = {
+  action: "allow" | "block" | "challenge";
+  reason?: string;
+};
+
 export class WorkOSAuthProvider extends BaseAuthProvider {
   //INFO: Best to leave this alone, some other class might be accessing `instance` implicitly
   private static instance: WorkOSAuthProvider | null = null;
@@ -91,6 +96,44 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     this.provider = new WorkOS(config.apiKey, { clientId: config.clientId });
 
     WorkOSAuthProvider.instance = this;
+  }
+
+  private async checkRadar(params: {
+    email: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<Decision> {
+    try {
+      const response = await fetch("https://api.workos.com/radar/events", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.provider.key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: params.email,
+          ip_address: params.ipAddress,
+          user_agent: params.userAgent,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("Radar API error:", response.status);
+        return { action: "allow" };
+      }
+
+      const data = await response.json();
+      return {
+        action: data.action || "allow",
+        reason: data.reason,
+      };
+    } catch (error) {
+      console.error("Failed to check Radar:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return { action: "allow" };
+    }
   }
 
   // Session Management
@@ -559,8 +602,23 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
   // Authentication Management
 
-  async signUpViaEmail(params: UserData): Promise<EmailAuthResult> {
-    const { email, firstName, lastName } = params;
+  async signUpViaEmail(
+    params: UserData & { ipAddress?: string; userAgent?: string },
+  ): Promise<EmailAuthResult> {
+    const { email, firstName, lastName, ipAddress, userAgent } = params;
+
+    // Check Radar before proceeding with signup
+    const radarDecision = await this.checkRadar({ email, ipAddress, userAgent });
+
+    if (radarDecision.action === "block") {
+      return {
+        success: false,
+        code: AuthErrorCode.UNKNOWN_ERROR,
+        message: radarDecision.reason || "Sign up blocked due to suspicious activity",
+      };
+    }
+
+    // For challenge, we'll still proceed but could add additional verification later
 
     try {
       // Create the user with WorkOS
@@ -590,7 +648,30 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async signInViaEmail(email: string): Promise<EmailAuthResult> {
+  async signInViaEmail(params: {
+    email: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<EmailAuthResult> {
+    const { email, ipAddress, userAgent } = params;
+
+    // Check Radar before proceeding with signin
+    const radarDecision = await this.checkRadar({
+      email,
+      ipAddress,
+      userAgent,
+    });
+
+    if (radarDecision.action === "block") {
+      return {
+        success: false,
+        code: AuthErrorCode.UNKNOWN_ERROR,
+        message: radarDecision.reason || "Sign in blocked due to suspicious activity",
+      };
+    }
+
+    // For challenge, we'll still proceed but could add additional verification later
+
     try {
       const { data } = await this.provider.userManagement.listUsers({ email });
 

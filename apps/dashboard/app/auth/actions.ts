@@ -23,15 +23,30 @@ import {
 import { requireEmailMatch } from "@/lib/auth/utils";
 import { env } from "@/lib/env";
 import { Ratelimit } from "@unkey/ratelimit";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+
+// Helper to extract request metadata for Radar
+function getRequestMetadata() {
+  const headersList = headers();
+  const ipAddress =
+    headersList.get("x-forwarded-for")?.split(",")[0].trim() ||
+    headersList.get("x-real-ip") ||
+    undefined;
+  const userAgent = headersList.get("user-agent") || undefined;
+
+  return { ipAddress, userAgent };
+}
+
 // Authentication Actions
 export async function signUpViaEmail(params: UserData): Promise<EmailAuthResult> {
-  return await auth.signUpViaEmail(params);
+  const metadata = getRequestMetadata();
+  return await auth.signUpViaEmail({ ...params, ...metadata });
 }
 
 export async function signInViaEmail(email: string): Promise<EmailAuthResult> {
-  return await auth.signInViaEmail(email);
+  const metadata = getRequestMetadata();
+  return await auth.signInViaEmail({ email, ...metadata });
 }
 
 export async function verifyAuthCode(params: {
