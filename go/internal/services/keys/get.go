@@ -62,6 +62,8 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 	ctx, span := tracing.Start(ctx, "keys.Get")
 	defer span.End()
 
+	startTime := time.Now()
+
 	err := assert.NotEmpty(sha256Hash)
 	if err != nil {
 		return nil, emptyLog, fault.Wrap(err, fault.Internal("sha256Hash is empty"))
@@ -143,6 +145,8 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			AuthorizedWorkspaceID: key.WorkspaceID,
 			isRootKey:             key.ForWorkspaceID.Valid,
 			Key:                   key.FindKeyForVerificationRow,
+			startTime:             startTime,
+			spentCredits:          0,
 		}
 
 		return kv, kv.log, nil
@@ -213,6 +217,8 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 		region:                s.region,
 		message:               "",
 		isRootKey:             key.ForWorkspaceID.Valid,
+		startTime:             startTime,
+		spentCredits:          0,
 
 		// By default we assume the key is valid unless proven otherwise
 		Status:            StatusValid,
@@ -238,7 +244,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 		return kv, kv.log, nil
 	}
 
-	if key.Expires.Valid && time.Now().After(key.Expires.Time) {
+	if key.Expires.Valid && startTime.After(key.Expires.Time) {
 		kv.setInvalid(StatusExpired, fmt.Sprintf("the key has expired on %s", key.Expires.Time.Format(time.RFC3339)))
 		return kv, kv.log, nil
 	}
