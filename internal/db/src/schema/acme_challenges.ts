@@ -1,6 +1,6 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, mysqlEnum, mysqlTable, primaryKey, varchar } from "drizzle-orm/mysql-core";
-import { domains } from "./domains";
+import { customDomains } from "./custom_domains";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -29,8 +29,8 @@ export const acmeChallengeRelations = relations(acmeChallenges, ({ one }) => ({
     fields: [acmeChallenges.workspaceId],
     references: [workspaces.id],
   }),
-  domain: one(domains, {
+  domain: one(customDomains, {
     fields: [acmeChallenges.domainId],
-    references: [domains.id],
+    references: [customDomains.id],
   }),
 }));

@@ -64,57 +64,37 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		return nil, restate.TerminalError(fmt.Errorf("target deployment is already the live deployment"), 400)
 	}
 
-	// Check target deployment has running VMs
-	vms, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.Vm, error) {
-		return db.Query.FindVMsByDeploymentId(stepCtx, w.db.RO(), targetDeployment.ID)
-	}, restate.WithName("finding target VMs"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get VMs: %w", err)
-	}
-
-	runningVms := 0
-	for _, vm := range vms {
-		if vm.Status == db.VmsStatusRunning {
-			runningVms++
-		}
-	}
-	if runningVms == 0 {
-		return nil, restate.TerminalError(fmt.Errorf("no running VMs found for target deployment: %s", targetDeployment.ID), 400)
-	}
-
-	w.logger.Info("found running VMs for target deployment", "count", runningVms, "deployment_id", targetDeployment.ID)
-
-	// Get all domains for promotion
-	domains, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindDomainsForPromotionRow, error) {
-		return db.Query.FindDomainsForPromotion(stepCtx, w.db.RO(), db.FindDomainsForPromotionParams{
-			EnvironmentID: sql.NullString{Valid: true, String: targetDeployment.EnvironmentID},
-			Sticky: []db.NullDomainsSticky{
-				{Valid: true, DomainsSticky: db.DomainsStickyLive},
-				{Valid: true, DomainsSticky: db.DomainsStickyEnvironment},
+	// Get all ingressRoutes for promotion
+	ingressRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindIngressRouteForPromotionRow, error) {
+		return db.Query.FindIngressRouteForPromotion(stepCtx, w.db.RO(), db.FindIngressRouteForPromotionParams{
+			EnvironmentID: targetDeployment.EnvironmentID,
+			Sticky: []db.NullIngressRoutesSticky{
+				{Valid: true, IngressRoutesSticky: db.IngressRoutesStickyLive},
+				{Valid: true, IngressRoutesSticky: db.IngressRoutesStickyEnvironment},
 			},
 		})
-	}, restate.WithName("finding domains for promotion"))
+	}, restate.WithName("finding ingressRoutes for promotion"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get domains: %w", err)
+		return nil, fmt.Errorf("failed to get ingressRoutes: %w", err)
 	}
 
-	if len(domains) == 0 {
-		return nil, restate.TerminalError(fmt.Errorf("no domains found for promotion"), 400)
+	if len(ingressRoutes) == 0 {
+		return nil, restate.TerminalError(fmt.Errorf("no ingressRoutes found for promotion"), 400)
 	}
 
-	w.logger.Info("found domains for promotion", "count", len(domains), "deployment_id", targetDeployment.ID)
+	w.logger.Info("found ingressRoutes for promotion", "count", len(ingressRoutes), "deployment_id", targetDeployment.ID)
 
 	// Collect domain IDs
-	var domainIDs []string
-	for _, domain := range domains {
-		domainIDs = append(domainIDs, domain.ID)
+	var routeIDs []string
+	for _, route := range ingressRoutes {
+		routeIDs = append(routeIDs, route.ID)
 	}
 
-	// Call RoutingService to switch domains atomically
+	// Call RoutingService to switch routes atomically
 	routingClient := hydrav1.NewRoutingServiceClient(ctx, project.ID)
-	_, err = routingClient.SwitchDomains().Request(&hydrav1.SwitchDomainsRequest{
-		TargetDeploymentId: targetDeployment.ID,
-		DomainIds:          domainIDs,
+	_, err = routingClient.AssignIngressRoutes().Request(&hydrav1.AssignIngressRoutesRequest{
+		DeploymentId:    targetDeployment.ID,
+		IngressRouteIds: routeIDs,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to switch domains: %w", err)
@@ -140,7 +120,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 
 	w.logger.Info("promotion completed successfully",
 		"target", req.GetTargetDeploymentId(),
-		"domains_promoted", len(domainIDs))
+		"domains_promoted", len(routeIDs))
 
 	return &hydrav1.PromoteResponse{}, nil
 }

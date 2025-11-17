@@ -9,8 +9,8 @@ export const instances = mysqlTable(
   "instances",
   {
     id: varchar("id", { length: 128 }).primaryKey(),
-    publicId: varchar("public_id", { length: 128 }).unique().notNull(),
     deploymentId: varchar("deployment_id", { length: 255 }).notNull(),
+    workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
     region: varchar("region", { length: 255 }).notNull(),
 

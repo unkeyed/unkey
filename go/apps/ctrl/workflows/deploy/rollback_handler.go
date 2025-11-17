@@ -12,7 +12,7 @@ import (
 
 // Rollback performs a rollback to a previous deployment.
 //
-// This durable workflow switches sticky domains (environment and live domains) from the
+// This durable workflow switches sticky ingressRoutes (environment and live ingressRoutes) from the
 // current live deployment back to a previous deployment. The operation is performed
 // atomically through the routing service to prevent partial updates that could leave
 // the system in an inconsistent state.
@@ -21,10 +21,10 @@ import (
 // - Source deployment is the current live deployment
 // - Target deployment has running VMs
 // - Both deployments are in the same project and environment
-// - There are sticky domains to rollback
+// - There are sticky ingressRoutes to rollback
 //
-// After switching domains, the project is marked as rolled back to prevent new
-// deployments from automatically taking over the live domains.
+// After switching ingressRoutes, the project is marked as rolled back to prevent new
+// deployments from automatically taking over the live ingressRoutes.
 //
 // Returns terminal errors (400/404) for validation failures and retryable errors
 // for system failures.
@@ -85,64 +85,44 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 		return nil, restate.TerminalError(fmt.Errorf("source deployment is not the current live deployment"), 400)
 	}
 
-	// Check target deployment has running VMs
-	vms, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.Vm, error) {
-		return db.Query.FindVMsByDeploymentId(stepCtx, w.db.RO(), targetDeployment.ID)
-	}, restate.WithName("finding target VMs"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get VMs: %w", err)
-	}
-
-	runningVms := 0
-	for _, vm := range vms {
-		if vm.Status == db.VmsStatusRunning {
-			runningVms++
-		}
-	}
-	if runningVms == 0 {
-		return nil, restate.TerminalError(fmt.Errorf("no running VMs found for target deployment: %s", targetDeployment.ID), 400)
-	}
-
-	w.logger.Info("found running VMs for target deployment", "count", runningVms, "deployment_id", targetDeployment.ID)
-
-	// Get all domains on the live deployment that are sticky
-	domains, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindDomainsForRollbackRow, error) {
-		return db.Query.FindDomainsForRollback(stepCtx, w.db.RO(), db.FindDomainsForRollbackParams{
-			EnvironmentID: sql.NullString{Valid: true, String: sourceDeployment.EnvironmentID},
-			Sticky: []db.NullDomainsSticky{
-				{Valid: true, DomainsSticky: db.DomainsStickyLive},
-				{Valid: true, DomainsSticky: db.DomainsStickyEnvironment},
+	// Get all ingressRoutes on the live deployment that are sticky
+	ingressRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindIngressRoutesForRollbackRow, error) {
+		return db.Query.FindIngressRoutesForRollback(stepCtx, w.db.RO(), db.FindIngressRoutesForRollbackParams{
+			EnvironmentID: sourceDeployment.EnvironmentID,
+			Sticky: []db.NullIngressRoutesSticky{
+				{Valid: true, IngressRoutesSticky: db.IngressRoutesStickyLive},
+				{Valid: true, IngressRoutesSticky: db.IngressRoutesStickyEnvironment},
 			},
 		})
-	}, restate.WithName("finding domains for rollback"))
+	}, restate.WithName("finding ingressRoutes for rollback"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get domains: %w", err)
+		return nil, fmt.Errorf("failed to get ingressRoutes: %w", err)
 	}
 
-	if len(domains) == 0 {
-		return nil, restate.TerminalError(fmt.Errorf("no domains to rollback"), 400)
+	if len(ingressRoutes) == 0 {
+		return nil, restate.TerminalError(fmt.Errorf("no ingressRoutes to rollback"), 400)
 	}
 
-	w.logger.Info("found domains for rollback", "count", len(domains), "deployment_id", sourceDeployment.ID)
+	w.logger.Info("found ingressRoutes for rollback", "count", len(ingressRoutes), "deployment_id", sourceDeployment.ID)
 
-	// Collect domain IDs
-	var domainIDs []string
-	for _, domain := range domains {
-		if domain.Sticky.Valid &&
-			(domain.Sticky.DomainsSticky == db.DomainsStickyLive ||
-				domain.Sticky.DomainsSticky == db.DomainsStickyEnvironment) {
-			domainIDs = append(domainIDs, domain.ID)
+	// Collect ingressRoute IDs
+	var routeIDs []string
+	for _, ingressRoute := range ingressRoutes {
+		if ingressRoute.Sticky.Valid &&
+			(ingressRoute.Sticky.IngressRoutesSticky == db.IngressRoutesStickyLive ||
+				ingressRoute.Sticky.IngressRoutesSticky == db.IngressRoutesStickyEnvironment) {
+			routeIDs = append(routeIDs, ingressRoute.ID)
 		}
 	}
 
-	// Call RoutingService to switch domains atomically
+	// Call RoutingService to switch ingressRoutes atomically
 	routingClient := hydrav1.NewRoutingServiceClient(ctx, project.ID)
-	_, err = routingClient.SwitchDomains().Request(&hydrav1.SwitchDomainsRequest{
-		TargetDeploymentId: targetDeployment.ID,
-		DomainIds:          domainIDs,
+	_, err = routingClient.AssignIngressRoutes().Request(&hydrav1.AssignIngressRoutesRequest{
+		DeploymentId:    targetDeployment.ID,
+		IngressRouteIds: routeIDs,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to switch domains: %w", err)
+		return nil, fmt.Errorf("failed to switch ingressRoutes: %w", err)
 	}
 
 	// Update project's live deployment
@@ -166,7 +146,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	w.logger.Info("rollback completed successfully",
 		"source", req.GetSourceDeploymentId(),
 		"target", req.GetTargetDeploymentId(),
-		"domains_rolled_back", len(domainIDs))
+		"ingressRoutes_rolled_back", len(routeIDs))
 
 	return &hydrav1.RollbackResponse{}, nil
 }

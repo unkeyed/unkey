@@ -78,19 +78,19 @@ func GetInfo() Info {
 	// Get extended commit details (best effort - ignore errors)
 	if info.CommitSHA != "" {
 		// Get commit message (first line only)
-		if message, err := execGitCommand("git", "log", "-1", "--pretty=%s"); err == nil {
+		if message, err := execGitCommand("log", "-1", "--pretty=%s"); err == nil {
 			info.Message = message
 		}
 
 		// Get commit timestamp
-		if timestampStr, err := execGitCommand("git", "log", "-1", "--pretty=%ct"); err == nil {
+		if timestampStr, err := execGitCommand("log", "-1", "--pretty=%ct"); err == nil {
 			if timestamp, err := strconv.ParseInt(timestampStr, 10, 64); err == nil {
 				info.CommitTimestamp = timestamp * 1000 // Convert to milliseconds
 			}
 		}
 
 		// Get remote URL to determine if it's a GitHub repo
-		if remoteURL, err := execGitCommand("git", "config", "--get", "remote.origin.url"); err == nil && isGitHubURL(remoteURL) {
+		if remoteURL, err := execGitCommand("config", "--get", "remote.origin.url"); err == nil && isGitHubURL(remoteURL) {
 			// Extract owner and repo from GitHub URL
 			owner, repo := parseGitHubURL(remoteURL)
 			if owner != "" && repo != "" {
@@ -186,20 +186,20 @@ func fetchGitHubAuthorInfo(owner, repo, sha string) (string, string) {
 
 // isGitRepo checks if we're in a Git repository
 func isGitRepo() bool {
-	_, err := execGitCommand("git", "rev-parse", "--git-dir")
+	_, err := execGitCommand("rev-parse", "--git-dir")
 	return err == nil
 }
 
 // getCurrentBranch gets the current branch name
 func getCurrentBranch() string {
 	// Try to get branch name from HEAD
-	branch, err := execGitCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
+	branch, err := execGitCommand("rev-parse", "--abbrev-ref", "HEAD")
 	if err != nil {
 		return ""
 	}
 	// If we're in detached HEAD state, try to get branch from describe
 	if branch == "HEAD" {
-		describeBranch, describeErr := execGitCommand("git", "describe", "--contains", "--all", "HEAD")
+		describeBranch, describeErr := execGitCommand("describe", "--contains", "--all", "HEAD")
 		if describeErr != nil {
 			return ""
 		}
@@ -213,7 +213,7 @@ func getCurrentBranch() string {
 
 // getCommitSHA gets the current commit SHA
 func getCommitSHA() string {
-	sha, err := execGitCommand("git", "rev-parse", "HEAD")
+	sha, err := execGitCommand("rev-parse", "HEAD")
 	if err != nil {
 		return ""
 	}
@@ -223,17 +223,17 @@ func getCommitSHA() string {
 // isWorkingDirDirty checks if there are uncommitted changes
 func isWorkingDirDirty() bool {
 	// Check for staged changes
-	_, err := execGitCommand("git", "diff-index", "--quiet", "--cached", "HEAD")
+	_, err := execGitCommand("diff-index", "--quiet", "--cached", "HEAD")
 	if err != nil {
 		return true
 	}
 	// Check for unstaged changes
-	_, err = execGitCommand("git", "diff-files", "--quiet")
+	_, err = execGitCommand("diff-files", "--quiet")
 	if err != nil {
 		return true
 	}
 	// Check for untracked files
-	untrackedOutput, untrackedErr := execGitCommand("git", "ls-files", "--others", "--exclude-standard")
+	untrackedOutput, untrackedErr := execGitCommand("ls-files", "--others", "--exclude-standard")
 	if untrackedErr != nil {
 		return false
 	}

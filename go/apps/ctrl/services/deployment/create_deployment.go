@@ -97,6 +97,15 @@ func (s *Service) CreateDeployment(
 		gitCommitTimestamp = gitCommit.GetTimestamp()
 	}
 
+	s.logger.Warn("git",
+		"raw", req.Msg.String(),
+		"sha", gitCommitSha,
+		"message", gitCommitMessage,
+		"author", gitCommitAuthorHandle,
+		"avatar", gitCommitAuthorAvatarURL,
+		"timestamp", gitCommitTimestamp,
+	)
+
 	var buildContextKey string
 	var dockerfilePath string
 	var dockerImage *string

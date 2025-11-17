@@ -1,0 +1,645 @@
+table acme_challenges {
+  domain_id varchar(255) [not null]
+  workspace_id varchar(255) [not null]
+  token varchar(255) [not null]
+  type enum('HTTP-01','DNS-01') [not null]
+  authorization varchar(255) [not null]
+  status enum('waiting','pending','verified','failed') [not null]
+  expires_at bigint [not null]
+  created_at bigint [not null]
+  updated_at bigint
+
+  indexes {
+    domain_id [pk]
+    workspace_id [name: 'workspace_idx']
+    status [name: 'status_idx']
+  }
+}
+
+table acme_users {
+  id varchar(128) [pk, not null]
+  workspace_id varchar(255) [not null]
+  encrypted_key text [not null]
+  registration_uri text
+  created_at bigint [not null]
+  updated_at bigint
+
+  indexes {
+    workspace_id [name: 'domain_idx']
+  }
+}
+
+table apis {
+  id varchar(256) [pk, not null]
+  name varchar(256) [not null]
+  workspace_id varchar(256) [not null]
+  ip_whitelist varchar(512)
+  auth_type enum('key','jwt')
+  key_auth_id varchar(256) [unique]
+  created_at_m bigint [not null, default: 0]
+  updated_at_m bigint
+  deleted_at_m bigint
+  delete_protection boolean [default: false]
+
+  indexes {
+    workspace_id [name: 'workspace_id_idx']
+  }
+}
+
+table audit_log {
+  id varchar(256) [pk, not null]
+  workspace_id varchar(256) [not null]
+  bucket varchar(256) [not null, default: 'unkey_mutations']
+  bucket_id varchar(256) [not null]
+  event varchar(256) [not null]
+  time bigint [not null]
+  display varchar(256) [not null]
+  remote_ip varchar(256)
+  user_agent varchar(256)
+  actor_type varchar(256) [not null]
+  actor_id varchar(256) [not null]
+  actor_name varchar(256)
+  actor_meta json
+  created_at bigint [not null]
+  updated_at bigint
+
+  indexes {
+    workspace_id [name: 'workspace_id_idx']
+    bucket_id [name: 'bucket_id_idx']
+    bucket [name: 'bucket_idx']
+    event [name: 'event_idx']
+    actor_id [name: 'actor_id_idx']
+    time [name: 'time_idx']
+  }
+}
+
+table audit_log_bucket {
+  id varchar(256) [pk, not null]
+  workspace_id varchar(256) [not null]
+  name varchar(256) [not null]
+  retention_days int
+  created_at bigint [not null]
+  updated_at bigint
+  delete_protection boolean [default: false]
+
+  indexes {
+    (workspace_id, name) [name: 'unique_name_per_workspace_idx', unique]
+  }
+}
+
+table audit_log_target {
+  workspace_id varchar(256) [not null]
+  bucket_id varchar(256) [not null]
+  bucket varchar(256) [not null, default: 'unkey_mutations']
+  audit_log_id varchar(256) [not null]
+  display_name varchar(256) [not null]
+  type varchar(256) [not null]
+  id varchar(256) [not null]
+  name varchar(256)
+  meta json
+  created_at bigint [not null]
+  updated_at bigint
+
+  indexes {
+    (audit_log_id, id) [pk]
+    bucket [name: 'bucket']
+    audit_log_id [name: 'audit_log_id']
+    id [name: 'id_idx']
+  }
+}
+
+table certificates {
+  id varchar(128) [pk, not null]
+  workspace_id varchar(255) [not null]
+  hostname varchar(255) [not null]
+  certificate text [not null]
+  encrypted_private_key text [not null]
+  created_at bigint [not null]
+  updated_at bigint
+
+  indexes {
+    hostname [name: 'unique_hostname', unique]
+  }
+}
+
+table clickhouse_workspace_settings {
+  workspace_id varchar(256) [pk, not null]
+  username varchar(256) [not null, unique]
+  password_encrypted text [not null]
+  quota_duration_seconds int [not null, default: 3600]
+  max_queries_per_window int [not null, default: 1000]
+  max_execution_time_per_window int [not null, default: 1800]
+  max_query_execution_time int [not null, default: 30]
+  max_query_memory_bytes bigint [not null, default: 1000000000]
+  max_query_result_rows int [not null, default: 10000]
+  created_at bigint [not null, default: 0]
+  updated_at bigint
+}
+
+table deployment_steps {
+  deployment_id varchar(256) [not null]
+  workspace_id varchar(256) [not null]
+  project_id varchar(256) [not null]
+  status enum('pending','downloading_docker_image','building_rootfs','uploading_rootfs','creating_vm','booting_vm','assigning_domains','completed','failed') [not null]
+  message varchar(1024) [not null]
+  created_at bigint [not null]
+
+  indexes {
+    (deployment_id, status) [pk]
+  }
+}
+
+table deployments {
+  id varchar(127) [pk, not null]
+  workspace_id varchar(256) [not null]
+  project_id varchar(256) [not null]
+  environment_id varchar(127) [not null]
+  git_commit_sha varchar(40)
+  git_branch varchar(256)
+  git_commit_message text
+  git_commit_author_handle varchar(256)
+  git_commit_author_avatar_url varchar(512)
+  git_commit_timestamp bigint
+  runtime_config json [not null]
+  openapi_spec longblob
+  status enum('pending','building','deploying','network','ready','failed') [not null, default: 'pending']
+  created_at bigint [not null]
+  updated_at bigint
+
+  indexes {
+    workspace_id [name: 'workspace_idx']
+    project_id [name: 'project_idx']
+    status [name: 'status_idx']
+  }
+}
+
+table domains {
+  id varchar(128) [pk, not null]
+  workspace_id varchar(256) [not null]
+  project_id varchar(256)
+  environment_id varchar(256)
+  deployment_id varchar(256)
+  domain varchar(256) [not null]
+  type enum('custom','wildcard') [not null]
+  sticky enum('branch','environment','live')
+  created_at bigint [not null]
+  updated_at bigint
+
+  indexes {
+    workspace_id [name: 'workspace_idx']
+    project_id [name: 'project_idx']
+    deployment_id [name: 'deployment_idx']
+    domain [name: 'unique_domain_idx', unique]
+  }
+}
+
+table encrypted_keys {
+  workspace_id varchar(256) [not null]
+  key_id varchar(256) [not null]
+  created_at bigint [not null, default: 0]
+  updated_at bigint
+  encrypted varchar(1024) [not null]
+  encryption_key_id varchar(256) [not null]
+
+  indexes {
+    key_id [name: 'key_id_idx', unique]
+  }
+}
+
+table environments {
+  id varchar(128) [pk, not null]
+  workspace_id varchar(256) [not null]
+  project_id varchar(256) [not null]
+  slug varchar(256) [not null]
+  description varchar(255)
+  delete_protection boolean [default: false]
+  created_at bigint [not null]
+  updated_at bigint
+
+  indexes {
+    (project_id, slug) [name: 'environments_project_id_slug_idx', unique]
+  }
+}
+
+table gateways {
+  id varchar(128) [pk, not null]
+  workspace_id varchar(255) [not null]
+  deployment_id varchar(255) [not null]
+  k8s_service_name varchar(255) [not null]
+  region varchar(255) [not null]
+  image varchar(255) [not null]
+  ingress_id "bigint unsigned" [not null]
+  health enum('paused','healthy','unhealthy')
+
+  indexes {
+    ingress_id [name: 'idx_ingress_id']
+  }
+}
+
+table identities {
+  id varchar(256) [pk, not null]
+  external_id varchar(256) [not null]
+  workspace_id varchar(256) [not null]
+  environment varchar(256) [not null, default: 'default']
+  meta json
+  deleted boolean [not null, default: false]
+  created_at bigint [not null]
+  updated_at bigint
+
+  indexes {
+    (workspace_id, external_id, deleted) [name: 'workspace_id_external_id_deleted_idx', unique]
+  }
+}
+
+table ingresses {
+  id varchar(128) [pk, not null]
+  domain_id varchar(128) [not null]
+  workspace_id varchar(255) [not null]
+  project_id varchar(255) [not null]
+  deployment_id varchar(255) [not null]
+}
+
+table instances {
+  id varchar(128) [pk, not null]
+  deployment_id varchar(255) [not null]
+  workspace_id varchar(255) [not null]
+  project_id varchar(255) [not null]
+  region varchar(255) [not null]
+  address varchar(255) [not null]
+  cpu_millicores int [not null]
+  memory_mb int [not null]
+  status enum('allocated','provisioning','starting','running','stopping','stopped','failed') [not null]
+
+  indexes {
+    address [name: 'unique_address', unique]
+    deployment_id [name: 'idx_deployment_id']
+    region [name: 'idx_region']
+  }
+}
+
+table key_auth {
+  id varchar(256) [pk, not null]
+  workspace_id varchar(256) [not null]
+  created_at_m bigint [not null, default: 0]
+  updated_at_m bigint
+  deleted_at_m bigint
+  store_encrypted_keys boolean [not null, default: false]
+  default_prefix varchar(8)
+  default_bytes int [default: 16]
+  size_approx int [not null, default: 0]
+  size_last_updated_at bigint [not null, default: 0]
+}
+
+table key_migration_errors {
+  id varchar(256) [pk, not null]
+  migration_id varchar(256) [not null]
+  created_at bigint [not null]
+  workspace_id varchar(256) [not null]
+  message json [not null]
+}
+
+table key_migrations {
+  id varchar(255)
+  workspace_id varchar(256) [not null]
+  algorithm enum('sha256','github.com/seamapi/prefixed-api-key') [not null]
+
+  indexes {
+    (id, workspace_id) [pk]
+  }
+}
+
+table keys {
+  id varchar(256) [pk, not null]
+  key_auth_id varchar(256) [not null]
+  hash varchar(256) [not null]
+  start varchar(256) [not null]
+  workspace_id varchar(256) [not null]
+  for_workspace_id varchar(256)
+  name varchar(256)
+  owner_id varchar(256)
+  identity_id varchar(256)
+  meta text
+  expires datetime(3)
+  created_at_m bigint [not null, default: 0]
+  updated_at_m bigint
+  deleted_at_m bigint
+  refill_day tinyint
+  refill_amount int
+  last_refill_at datetime(3)
+  enabled boolean [not null, default: true]
+  remaining_requests int
+  ratelimit_async boolean
+  ratelimit_limit int
+  ratelimit_duration bigint
+  environment varchar(256)
+  pending_migration_id varchar(256)
+
+  indexes {
+    hash [name: 'hash_idx', unique]
+    (key_auth_id, deleted_at_m) [name: 'key_auth_id_deleted_at_idx']
+    for_workspace_id [name: 'idx_keys_on_for_workspace_id']
+    pending_migration_id [name: 'pending_migration_id_idx']
+    workspace_id [name: 'idx_keys_on_workspace_id']
+    owner_id [name: 'owner_id_idx']
+    identity_id [name: 'identity_id_idx']
+    deleted_at_m [name: 'deleted_at_idx']
+  }
+}
+
+table keys_permissions {
+  temp_id bigint [not null, increment]
+  key_id varchar(256) [not null]
+  permission_id varchar(256) [not null]
+  workspace_id varchar(256) [not null]
+  created_at_m bigint [not null, default: 0]
+  updated_at_m bigint
+
+  indexes {
+    (key_id, permission_id, workspace_id) [pk]
+    temp_id [name: 'keys_permissions_temp_id_unique', unique]
+    (key_id, permission_id) [name: 'key_id_permission_id_idx', unique]
+  }
+}
+
+table keys_roles {
+  key_id varchar(256) [not null]
+  role_id varchar(256) [not null]
+  workspace_id varchar(256) [not null]
+  created_at_m bigint [not null, default: 0]
+  updated_at_m bigint
+
+  indexes {
+    (role_id, key_id, workspace_id) [pk]
+    (key_id, role_id) [name: 'unique_key_id_role_id', unique]
+  }
+}
+
+table permissions {
+  id varchar(256) [pk, not null]
+  workspace_id varchar(256) [not null]
+  name varchar(512) [not null]
+  slug varchar(128) [not null]
+  description varchar(512)
+  created_at_m bigint [not null, default: 0]
+  updated_at_m bigint
+
+  indexes {
+    (workspace_id, slug) [name: 'unique_slug_per_workspace_idx', unique]
+  }
+}
+
+table projects {
+  id varchar(128) [pk, not null]
+  workspace_id varchar(256) [not null]
+  name varchar(256) [not null]
+  slug varchar(256) [not null]
+  git_repository_url varchar(500)
+  live_deployment_id varchar(256)
+  is_rolled_back boolean [not null, default: false]
+  default_branch varchar(256) [default: 'main']
+  depot_project_id varchar(255)
+  delete_protection boolean [default: false]
+  created_at bigint [not null]
+  updated_at bigint
+
+  indexes {
+    workspace_id [name: 'workspace_idx']
+    (workspace_id, slug) [name: 'workspace_slug_idx', unique]
+  }
+}
+
+table quota {
+  workspace_id varchar(256) [pk, not null]
+  requests_per_month bigint [not null, default: 0]
+  logs_retention_days int [not null, default: 0]
+  audit_logs_retention_days int [not null, default: 0]
+  team boolean [not null, default: false]
+}
+
+table ratelimit_namespaces {
+  id varchar(256) [pk, not null]
+  workspace_id varchar(256) [not null]
+  name varchar(512) [not null]
+  created_at_m bigint [not null, default: 0]
+  updated_at_m bigint
+  deleted_at_m bigint
+
+  indexes {
+    (workspace_id, name) [name: 'unique_name_per_workspace_idx', unique]
+  }
+}
+
+table ratelimit_overrides {
+  id varchar(256) [pk, not null]
+  workspace_id varchar(256) [not null]
+  namespace_id varchar(256) [not null]
+  identifier varchar(512) [not null]
+  limit int [not null]
+  duration int [not null]
+  async boolean
+  sharding enum('edge')
+  created_at_m bigint [not null, default: 0]
+  updated_at_m bigint
+  deleted_at_m bigint
+
+  indexes {
+    (namespace_id, identifier) [name: 'unique_identifier_per_namespace_idx', unique]
+  }
+}
+
+table ratelimits {
+  id varchar(256) [pk, not null]
+  name varchar(256) [not null]
+  workspace_id varchar(256) [not null]
+  created_at bigint [not null]
+  updated_at bigint
+  key_id varchar(256)
+  identity_id varchar(256)
+  limit int [not null]
+  duration bigint [not null]
+  auto_apply boolean [not null, default: false]
+
+  indexes {
+    name [name: 'name_idx']
+    (key_id, name) [name: 'unique_name_per_key_idx', unique]
+    (identity_id, name) [name: 'unique_name_per_identity_idx', unique]
+  }
+}
+
+table roles {
+  id varchar(256) [pk, not null]
+  workspace_id varchar(256) [not null]
+  name varchar(512) [not null]
+  description varchar(512)
+  created_at_m bigint [not null, default: 0]
+  updated_at_m bigint
+
+  indexes {
+    workspace_id [name: 'workspace_id_idx']
+    (name, workspace_id) [name: 'unique_name_per_workspace_idx', unique]
+  }
+}
+
+table roles_permissions {
+  role_id varchar(256) [not null]
+  permission_id varchar(256) [not null]
+  workspace_id varchar(256) [not null]
+  created_at_m bigint [not null, default: 0]
+  updated_at_m bigint
+
+  indexes {
+    (role_id, permission_id, workspace_id) [pk]
+    (permission_id, role_id) [name: 'unique_tuple_permission_id_role_id', unique]
+  }
+}
+
+table vercel_bindings {
+  id varchar(256) [pk, not null]
+  integration_id varchar(256) [not null]
+  workspace_id varchar(256) [not null]
+  project_id varchar(256) [not null]
+  environment enum('development','preview','production') [not null]
+  resource_id varchar(256) [not null]
+  resource_type enum('rootKey','apiId') [not null]
+  vercel_env_id varchar(256) [not null]
+  last_edited_by varchar(256) [not null]
+  created_at_m bigint [not null, default: 0]
+  updated_at_m bigint
+  deleted_at_m bigint
+
+  indexes {
+    (project_id, environment, resource_type) [name: 'project_environment_resource_type_idx', unique]
+  }
+}
+
+table vercel_integrations {
+  id varchar(256) [pk, not null]
+  workspace_id varchar(256) [not null]
+  team_id varchar(256)
+  access_token varchar(256) [not null]
+  created_at_m bigint [not null, default: 0]
+  updated_at_m bigint
+  deleted_at_m bigint
+}
+
+table workspaces {
+  id varchar(256) [pk, not null]
+  org_id varchar(256) [not null, unique]
+  name varchar(256) [not null]
+  slug varchar(64) [not null, unique]
+  partition_id varchar(256)
+  plan enum('free','pro','enterprise') [default: 'free']
+  tier varchar(256) [default: 'Free']
+  stripe_customer_id varchar(256)
+  stripe_subscription_id varchar(256)
+  beta_features json [not null]
+  features json [not null]
+  subscriptions json
+  enabled boolean [not null, default: true]
+  delete_protection boolean [default: false]
+  created_at_m bigint [not null, default: 0]
+  updated_at_m bigint
+  deleted_at_m bigint
+}
+
+ref: acme_challenges.workspace_id - workspaces.id
+
+ref: acme_challenges.domain_id - domains.id
+
+ref: apis.workspace_id > workspaces.id
+
+ref: key_auth.id - apis.key_auth_id
+
+ref: audit_log.workspace_id - workspaces.id
+
+ref: audit_log_target.workspace_id - workspaces.id
+
+ref: audit_log_target.audit_log_id > audit_log.id
+
+ref: certificates.workspace_id > workspaces.id
+
+ref: clickhouse_workspace_settings.workspace_id - workspaces.id
+
+ref: deployment_steps.deployment_id > deployments.id
+
+ref: deployments.workspace_id - workspaces.id
+
+ref: deployments.environment_id - environments.id
+
+ref: projects.live_deployment_id > deployments.id
+
+ref: encrypted_keys.key_id - keys.id
+
+ref: encrypted_keys.workspace_id - workspaces.id
+
+ref: environments.workspace_id - workspaces.id
+
+ref: environments.project_id - projects.id
+
+ref: gateways.workspace_id > workspaces.id
+
+ref: gateways.deployment_id > deployments.id
+
+ref: identities.workspace_id > workspaces.id
+
+ref: ingresses.deployment_id - deployments.id
+
+ref: ingresses.workspace_id - workspaces.id
+
+ref: ingresses.project_id - projects.id
+
+ref: ingresses.domain_id - domains.id
+
+ref: instances.deployment_id > deployments.id
+
+ref: instances.project_id - projects.id
+
+ref: key_auth.workspace_id > workspaces.id
+
+ref: key_migration_errors.workspace_id - workspaces.id
+
+ref: keys_permissions.key_id > keys.id
+
+ref: keys_permissions.permission_id > permissions.id
+
+ref: keys.key_auth_id > key_auth.id
+
+ref: keys.workspace_id > workspaces.id
+
+ref: keys.for_workspace_id - workspaces.id
+
+ref: keys.identity_id > identities.id
+
+ref: keys_roles.role_id > roles.id
+
+ref: keys_roles.key_id > keys.id
+
+ref: permissions.workspace_id > workspaces.id
+
+ref: projects.workspace_id > workspaces.id
+
+ref: quota.workspace_id - workspaces.id
+
+ref: ratelimit_namespaces.workspace_id > workspaces.id
+
+ref: ratelimit_overrides.workspace_id - workspaces.id
+
+ref: ratelimit_overrides.namespace_id > ratelimit_namespaces.id
+
+ref: ratelimits.workspace_id - workspaces.id
+
+ref: ratelimits.key_id > keys.id
+
+ref: ratelimits.identity_id > identities.id
+
+ref: roles_permissions.role_id > roles.id
+
+ref: roles_permissions.permission_id > permissions.id
+
+ref: roles.workspace_id > workspaces.id
+
+ref: vercel_bindings.workspace_id > workspaces.id
+
+ref: vercel_bindings.integration_id > vercel_integrations.id
+
+ref: vercel_integrations.workspace_id > workspaces.id

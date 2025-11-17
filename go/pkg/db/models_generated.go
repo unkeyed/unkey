@@ -236,89 +236,137 @@ func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
 	return string(ns.DeploymentsStatus), nil
 }
 
-type DomainsSticky string
+type GatewaysHealth string
 
 const (
-	DomainsStickyBranch      DomainsSticky = "branch"
-	DomainsStickyEnvironment DomainsSticky = "environment"
-	DomainsStickyLive        DomainsSticky = "live"
+	GatewaysHealthPaused    GatewaysHealth = "paused"
+	GatewaysHealthHealthy   GatewaysHealth = "healthy"
+	GatewaysHealthUnhealthy GatewaysHealth = "unhealthy"
 )
 
-func (e *DomainsSticky) Scan(src interface{}) error {
+func (e *GatewaysHealth) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = DomainsSticky(s)
+		*e = GatewaysHealth(s)
 	case string:
-		*e = DomainsSticky(s)
+		*e = GatewaysHealth(s)
 	default:
-		return fmt.Errorf("unsupported scan type for DomainsSticky: %T", src)
+		return fmt.Errorf("unsupported scan type for GatewaysHealth: %T", src)
 	}
 	return nil
 }
 
-type NullDomainsSticky struct {
-	DomainsSticky DomainsSticky
-	Valid         bool // Valid is true if DomainsSticky is not NULL
+type NullGatewaysHealth struct {
+	GatewaysHealth GatewaysHealth
+	Valid          bool // Valid is true if GatewaysHealth is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullDomainsSticky) Scan(value interface{}) error {
+func (ns *NullGatewaysHealth) Scan(value interface{}) error {
 	if value == nil {
-		ns.DomainsSticky, ns.Valid = "", false
+		ns.GatewaysHealth, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.DomainsSticky.Scan(value)
+	return ns.GatewaysHealth.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullDomainsSticky) Value() (driver.Value, error) {
+func (ns NullGatewaysHealth) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.DomainsSticky), nil
+	return string(ns.GatewaysHealth), nil
 }
 
-type DomainsType string
+type IngressRoutesSticky string
 
 const (
-	DomainsTypeCustom   DomainsType = "custom"
-	DomainsTypeWildcard DomainsType = "wildcard"
+	IngressRoutesStickyBranch      IngressRoutesSticky = "branch"
+	IngressRoutesStickyEnvironment IngressRoutesSticky = "environment"
+	IngressRoutesStickyLive        IngressRoutesSticky = "live"
 )
 
-func (e *DomainsType) Scan(src interface{}) error {
+func (e *IngressRoutesSticky) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = DomainsType(s)
+		*e = IngressRoutesSticky(s)
 	case string:
-		*e = DomainsType(s)
+		*e = IngressRoutesSticky(s)
 	default:
-		return fmt.Errorf("unsupported scan type for DomainsType: %T", src)
+		return fmt.Errorf("unsupported scan type for IngressRoutesSticky: %T", src)
 	}
 	return nil
 }
 
-type NullDomainsType struct {
-	DomainsType DomainsType
-	Valid       bool // Valid is true if DomainsType is not NULL
+type NullIngressRoutesSticky struct {
+	IngressRoutesSticky IngressRoutesSticky
+	Valid               bool // Valid is true if IngressRoutesSticky is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullDomainsType) Scan(value interface{}) error {
+func (ns *NullIngressRoutesSticky) Scan(value interface{}) error {
 	if value == nil {
-		ns.DomainsType, ns.Valid = "", false
+		ns.IngressRoutesSticky, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.DomainsType.Scan(value)
+	return ns.IngressRoutesSticky.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullDomainsType) Value() (driver.Value, error) {
+func (ns NullIngressRoutesSticky) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.DomainsType), nil
+	return string(ns.IngressRoutesSticky), nil
+}
+
+type InstancesStatus string
+
+const (
+	InstancesStatusAllocated    InstancesStatus = "allocated"
+	InstancesStatusProvisioning InstancesStatus = "provisioning"
+	InstancesStatusStarting     InstancesStatus = "starting"
+	InstancesStatusRunning      InstancesStatus = "running"
+	InstancesStatusStopping     InstancesStatus = "stopping"
+	InstancesStatusStopped      InstancesStatus = "stopped"
+	InstancesStatusFailed       InstancesStatus = "failed"
+)
+
+func (e *InstancesStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = InstancesStatus(s)
+	case string:
+		*e = InstancesStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for InstancesStatus: %T", src)
+	}
+	return nil
+}
+
+type NullInstancesStatus struct {
+	InstancesStatus InstancesStatus
+	Valid           bool // Valid is true if InstancesStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullInstancesStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.InstancesStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.InstancesStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullInstancesStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.InstancesStatus), nil
 }
 
 type KeyMigrationsAlgorithm string
@@ -361,50 +409,6 @@ func (ns NullKeyMigrationsAlgorithm) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.KeyMigrationsAlgorithm), nil
-}
-
-type MetalHostsStatus string
-
-const (
-	MetalHostsStatusProvisioning MetalHostsStatus = "provisioning"
-	MetalHostsStatusActive       MetalHostsStatus = "active"
-	MetalHostsStatusDraining     MetalHostsStatus = "draining"
-	MetalHostsStatusTerminated   MetalHostsStatus = "terminated"
-)
-
-func (e *MetalHostsStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = MetalHostsStatus(s)
-	case string:
-		*e = MetalHostsStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for MetalHostsStatus: %T", src)
-	}
-	return nil
-}
-
-type NullMetalHostsStatus struct {
-	MetalHostsStatus MetalHostsStatus
-	Valid            bool // Valid is true if MetalHostsStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullMetalHostsStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.MetalHostsStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.MetalHostsStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullMetalHostsStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.MetalHostsStatus), nil
 }
 
 type RatelimitOverridesSharding string
@@ -533,53 +537,6 @@ func (ns NullVercelBindingsResourceType) Value() (driver.Value, error) {
 	return string(ns.VercelBindingsResourceType), nil
 }
 
-type VmsStatus string
-
-const (
-	VmsStatusAllocated    VmsStatus = "allocated"
-	VmsStatusProvisioning VmsStatus = "provisioning"
-	VmsStatusStarting     VmsStatus = "starting"
-	VmsStatusRunning      VmsStatus = "running"
-	VmsStatusStopping     VmsStatus = "stopping"
-	VmsStatusStopped      VmsStatus = "stopped"
-	VmsStatusFailed       VmsStatus = "failed"
-)
-
-func (e *VmsStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = VmsStatus(s)
-	case string:
-		*e = VmsStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for VmsStatus: %T", src)
-	}
-	return nil
-}
-
-type NullVmsStatus struct {
-	VmsStatus VmsStatus
-	Valid     bool // Valid is true if VmsStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullVmsStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.VmsStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.VmsStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullVmsStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.VmsStatus), nil
-}
-
 type WorkspacesPlan string
 
 const (
@@ -636,7 +593,7 @@ type AcmeChallenge struct {
 }
 
 type AcmeUser struct {
-	ID              uint64         `db:"id"`
+	ID              string         `db:"id"`
 	WorkspaceID     string         `db:"workspace_id"`
 	EncryptedKey    string         `db:"encrypted_key"`
 	RegistrationUri sql.NullString `db:"registration_uri"`
@@ -700,7 +657,7 @@ type AuditLogTarget struct {
 }
 
 type Certificate struct {
-	ID                  uint64        `db:"id"`
+	ID                  string        `db:"id"`
 	WorkspaceID         string        `db:"workspace_id"`
 	Hostname            string        `db:"hostname"`
 	Certificate         string        `db:"certificate"`
@@ -721,6 +678,14 @@ type ClickhouseWorkspaceSetting struct {
 	MaxQueryResultRows        int32         `db:"max_query_result_rows"`
 	CreatedAt                 int64         `db:"created_at"`
 	UpdatedAt                 sql.NullInt64 `db:"updated_at"`
+}
+
+type CustomDomain struct {
+	ID          string        `db:"id"`
+	WorkspaceID string        `db:"workspace_id"`
+	Domain      string        `db:"domain"`
+	CreatedAt   int64         `db:"created_at"`
+	UpdatedAt   sql.NullInt64 `db:"updated_at"`
 }
 
 type Deployment struct {
@@ -750,19 +715,6 @@ type DeploymentStep struct {
 	CreatedAt    int64                 `db:"created_at"`
 }
 
-type Domain struct {
-	ID            string            `db:"id"`
-	WorkspaceID   string            `db:"workspace_id"`
-	ProjectID     sql.NullString    `db:"project_id"`
-	EnvironmentID sql.NullString    `db:"environment_id"`
-	DeploymentID  sql.NullString    `db:"deployment_id"`
-	Domain        string            `db:"domain"`
-	Type          DomainsType       `db:"type"`
-	Sticky        NullDomainsSticky `db:"sticky"`
-	CreatedAt     int64             `db:"created_at"`
-	UpdatedAt     sql.NullInt64     `db:"updated_at"`
-}
-
 type EncryptedKey struct {
 	WorkspaceID     string        `db:"workspace_id"`
 	KeyID           string        `db:"key_id"`
@@ -784,11 +736,14 @@ type Environment struct {
 }
 
 type Gateway struct {
-	ID           uint64 `db:"id"`
-	WorkspaceID  string `db:"workspace_id"`
-	DeploymentID string `db:"deployment_id"`
-	Hostname     string `db:"hostname"`
-	Config       []byte `db:"config"`
+	ID             string             `db:"id"`
+	WorkspaceID    string             `db:"workspace_id"`
+	EnvironmentID  string             `db:"environment_id"`
+	K8sServiceName string             `db:"k8s_service_name"`
+	Region         string             `db:"region"`
+	Image          string             `db:"image"`
+	Health         NullGatewaysHealth `db:"health"`
+	Replicas       int32              `db:"replicas"`
 }
 
 type Identity struct {
@@ -800,6 +755,29 @@ type Identity struct {
 	Deleted     bool          `db:"deleted"`
 	CreatedAt   int64         `db:"created_at"`
 	UpdatedAt   sql.NullInt64 `db:"updated_at"`
+}
+
+type IngressRoute struct {
+	ID            string                  `db:"id"`
+	ProjectID     string                  `db:"project_id"`
+	DeploymentID  string                  `db:"deployment_id"`
+	EnvironmentID string                  `db:"environment_id"`
+	Hostname      string                  `db:"hostname"`
+	Sticky        NullIngressRoutesSticky `db:"sticky"`
+	CreatedAt     int64                   `db:"created_at"`
+	UpdatedAt     sql.NullInt64           `db:"updated_at"`
+}
+
+type Instance struct {
+	ID            string          `db:"id"`
+	DeploymentID  string          `db:"deployment_id"`
+	WorkspaceID   string          `db:"workspace_id"`
+	ProjectID     string          `db:"project_id"`
+	Region        string          `db:"region"`
+	Address       string          `db:"address"`
+	CpuMillicores int32           `db:"cpu_millicores"`
+	MemoryMb      int32           `db:"memory_mb"`
+	Status        InstancesStatus `db:"status"`
 }
 
 type Key struct {
@@ -871,21 +849,6 @@ type KeysRole struct {
 	WorkspaceID string        `db:"workspace_id"`
 	CreatedAtM  int64         `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
-}
-
-type MetalHost struct {
-	ID                     string           `db:"id"`
-	Region                 string           `db:"region"`
-	AvailabilityZone       string           `db:"availability_zone"`
-	InstanceType           string           `db:"instance_type"`
-	Ec2InstanceID          string           `db:"ec2_instance_id"`
-	PrivateIp              string           `db:"private_ip"`
-	Status                 MetalHostsStatus `db:"status"`
-	CapacityCpuMillicores  int32            `db:"capacity_cpu_millicores"`
-	CapacityMemoryMb       int32            `db:"capacity_memory_mb"`
-	AllocatedCpuMillicores int32            `db:"allocated_cpu_millicores"`
-	AllocatedMemoryMb      int32            `db:"allocated_memory_mb"`
-	LastHeartbeat          int64            `db:"last_heartbeat"`
 }
 
 type Permission struct {
@@ -997,16 +960,6 @@ type VercelIntegration struct {
 	CreatedAtM  int64          `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64  `db:"updated_at_m"`
 	DeletedAtM  sql.NullInt64  `db:"deleted_at_m"`
-}
-
-type Vm struct {
-	ID            string         `db:"id"`
-	DeploymentID  string         `db:"deployment_id"`
-	MetalHostID   sql.NullString `db:"metal_host_id"`
-	Address       sql.NullString `db:"address"`
-	CpuMillicores int32          `db:"cpu_millicores"`
-	MemoryMb      int32          `db:"memory_mb"`
-	Status        VmsStatus      `db:"status"`
 }
 
 type Workspace struct {

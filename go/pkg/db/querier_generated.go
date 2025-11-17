@@ -26,10 +26,6 @@ type Querier interface {
 	//  DELETE FROM keys_roles
 	//  WHERE key_id = ?
 	DeleteAllKeyRolesByKeyID(ctx context.Context, db DBTX, keyID string) error
-	//DeleteGatewayByHostname
-	//
-	//  DELETE FROM gateways WHERE hostname = ?
-	DeleteGatewayByHostname(ctx context.Context, db DBTX, hostname string) error
 	//DeleteIdentity
 	//
 	//  DELETE FROM identities
@@ -161,6 +157,28 @@ type Querier interface {
 	//  SELECT workspace_id, username, password_encrypted, quota_duration_seconds, max_queries_per_window, max_execution_time_per_window, max_query_execution_time, max_query_memory_bytes, max_query_result_rows, created_at, updated_at FROM `clickhouse_workspace_settings`
 	//  WHERE workspace_id = ?
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (ClickhouseWorkspaceSetting, error)
+	//FindCustomDomainByDomain
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      domain,
+	//      created_at,
+	//      updated_at
+	//  FROM custom_domains
+	//  WHERE domain = ?
+	FindCustomDomainByDomain(ctx context.Context, db DBTX, domain string) (CustomDomain, error)
+	//FindCustomDomainById
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      domain,
+	//      created_at,
+	//      updated_at
+	//  FROM custom_domains
+	//  WHERE id = ?
+	FindCustomDomainById(ctx context.Context, db DBTX, id string) (CustomDomain, error)
 	//FindDeploymentById
 	//
 	//  SELECT
@@ -193,77 +211,6 @@ type Querier interface {
 	//  WHERE deployment_id = ?
 	//  ORDER BY created_at ASC
 	FindDeploymentStepsByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]FindDeploymentStepsByDeploymentIdRow, error)
-	//FindDomainByDomain
-	//
-	//  SELECT id, workspace_id, project_id, environment_id, deployment_id, domain, type, sticky, created_at, updated_at FROM domains WHERE domain = ?
-	FindDomainByDomain(ctx context.Context, db DBTX, domain string) (Domain, error)
-	//FindDomainsByDeploymentId
-	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      domain,
-	//      deployment_id,
-	//      sticky,
-	//      created_at,
-	//      updated_at
-	//  FROM domains
-	//  WHERE deployment_id = ?
-	//  ORDER BY created_at ASC
-	FindDomainsByDeploymentId(ctx context.Context, db DBTX, deploymentID sql.NullString) ([]FindDomainsByDeploymentIdRow, error)
-	//FindDomainsByIds
-	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      environment_id,
-	//      domain,
-	//      deployment_id,
-	//      sticky,
-	//      type,
-	//      created_at,
-	//      updated_at
-	//  FROM domains
-	//  WHERE id IN (/*SLICE:ids*/?)
-	FindDomainsByIds(ctx context.Context, db DBTX, ids []string) ([]FindDomainsByIdsRow, error)
-	//FindDomainsForPromotion
-	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      environment_id,
-	//      domain,
-	//      deployment_id,
-	//      sticky,
-	//      created_at,
-	//      updated_at
-	//  FROM domains
-	//  WHERE
-	//    environment_id = ?
-	//    AND sticky IN (/*SLICE:sticky*/?)
-	//  ORDER BY created_at ASC
-	FindDomainsForPromotion(ctx context.Context, db DBTX, arg FindDomainsForPromotionParams) ([]FindDomainsForPromotionRow, error)
-	//FindDomainsForRollback
-	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      environment_id,
-	//      domain,
-	//      deployment_id,
-	//      sticky,
-	//      created_at,
-	//      updated_at
-	//  FROM domains
-	//  WHERE
-	//    environment_id = ?
-	//    AND sticky IN (/*SLICE:sticky*/?)
-	//  ORDER BY created_at ASC
-	FindDomainsForRollback(ctx context.Context, db DBTX, arg FindDomainsForRollbackParams) ([]FindDomainsForRollbackRow, error)
 	//FindEnvironmentById
 	//
 	//  SELECT id, workspace_id, project_id, slug, description
@@ -278,20 +225,6 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (FindEnvironmentByProjectIdAndSlugRow, error)
-	//FindGatewayByDeploymentId
-	//
-	//  SELECT hostname, config
-	//  FROM gateways
-	//  WHERE deployment_id = ?
-	//  ORDER BY id DESC
-	//  LIMIT 1
-	FindGatewayByDeploymentId(ctx context.Context, db DBTX, deploymentID string) (FindGatewayByDeploymentIdRow, error)
-	//FindGatewayByHostname
-	//
-	//  SELECT hostname, config, workspace_id
-	//  FROM gateways
-	//  WHERE hostname = ?
-	FindGatewayByHostname(ctx context.Context, db DBTX, hostname string) (FindGatewayByHostnameRow, error)
 	//FindIdentities
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -355,6 +288,74 @@ type Querier interface {
 	//    AND id = ?
 	//    AND deleted = ?
 	FindIdentityByID(ctx context.Context, db DBTX, arg FindIdentityByIDParams) (Identity, error)
+	//FindIngressRouteByHostname
+	//
+	//  SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM ingress_routes WHERE hostname = ?
+	FindIngressRouteByHostname(ctx context.Context, db DBTX, hostname string) (IngressRoute, error)
+	//FindIngressRouteForPromotion
+	//
+	//  SELECT
+	//      id,
+	//      project_id,
+	//      environment_id,
+	//      hostname,
+	//      deployment_id,
+	//      sticky,
+	//      created_at,
+	//      updated_at
+	//  FROM ingress_routes
+	//  WHERE
+	//    environment_id = ?
+	//    AND sticky IN (/*SLICE:sticky*/?)
+	//  ORDER BY created_at ASC
+	FindIngressRouteForPromotion(ctx context.Context, db DBTX, arg FindIngressRouteForPromotionParams) ([]FindIngressRouteForPromotionRow, error)
+	//FindIngressRoutesByDeploymentID
+	//
+	//  SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM ingress_routes WHERE deployment_id = ?
+	FindIngressRoutesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]IngressRoute, error)
+	//FindIngressRoutesForRollback
+	//
+	//  SELECT
+	//      id,
+	//      project_id,
+	//      environment_id,
+	//      hostname,
+	//      deployment_id,
+	//      sticky,
+	//      created_at,
+	//      updated_at
+	//  FROM ingress_routes
+	//  WHERE
+	//    environment_id = ?
+	//    AND sticky IN (/*SLICE:sticky*/?)
+	//  ORDER BY created_at ASC
+	FindIngressRoutesForRollback(ctx context.Context, db DBTX, arg FindIngressRoutesForRollbackParams) ([]FindIngressRoutesForRollbackRow, error)
+	//FindInstancesByDeploymentId
+	//
+	//  SELECT
+	//      id,
+	//      deployment_id,
+	//      workspace_id,
+	//      project_id,
+	//      region,
+	//      address,
+	//      cpu_millicores,
+	//      memory_mb,
+	//      status
+	//  FROM instances
+	//  WHERE deployment_id = ?
+	FindInstancesByDeploymentId(ctx context.Context, db DBTX, deploymentid string) ([]Instance, error)
+	//FindInstancesByDeploymentIdAndRegion
+	//
+	//  SELECT
+	//    id,
+	//    deployment_id,
+	//    region,
+	//    address,
+	//    status
+	//  FROM instances
+	//  WHERE deployment_id = ? AND region = ?
+	FindInstancesByDeploymentIdAndRegion(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionParams) ([]FindInstancesByDeploymentIdAndRegionRow, error)
 	//FindKeyAuthsByIds
 	//
 	//  SELECT ka.id as key_auth_id, a.id as api_id
@@ -912,16 +913,6 @@ type Querier interface {
 	//
 	//  SELECT id, name FROM roles WHERE workspace_id = ? AND name IN (/*SLICE:names*/?)
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
-	//FindVMById
-	//
-	//  SELECT id, deployment_id, metal_host_id, address, cpu_millicores, memory_mb, status FROM vms WHERE id = ?
-	FindVMById(ctx context.Context, db DBTX, id string) (Vm, error)
-	//FindVMsByDeploymentId
-	//
-	//  SELECT id, deployment_id, metal_host_id, address, cpu_millicores, memory_mb, status
-	//  FROM vms
-	//  WHERE deployment_id = ?
-	FindVMsByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]Vm, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT id, org_id, name, slug, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -973,9 +964,9 @@ type Querier interface {
 	//InsertAcmeUser
 	//
 	//
-	//  INSERT INTO acme_users (workspace_id, encrypted_key, created_at)
-	//  VALUES (?,?,?)
-	InsertAcmeUser(ctx context.Context, db DBTX, arg InsertAcmeUserParams) (int64, error)
+	//  INSERT INTO acme_users (id, workspace_id, encrypted_key, created_at)
+	//  VALUES (?,?,?,?)
+	InsertAcmeUser(ctx context.Context, db DBTX, arg InsertAcmeUserParams) error
 	//InsertApi
 	//
 	//  INSERT INTO apis (
@@ -1155,32 +1146,29 @@ type Querier interface {
 	//      message = VALUES(message),
 	//      created_at = VALUES(created_at)
 	InsertDeploymentStep(ctx context.Context, db DBTX, arg InsertDeploymentStepParams) error
-	//InsertDomain
+	//InsertGateway
 	//
-	//  INSERT INTO domains (
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      environment_id,
-	//      deployment_id,
-	//      domain,
-	//      type,
-	//      sticky,
-	//      created_at,
-	//      updated_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      null
+	//  INSERT INTO gateways (
+	//  id,
+	//  workspace_id,
+	//  k8s_service_name,
+	//  region,
+	//  image,
+	//  health,
+	//  replicas
+	//
 	//  )
-	InsertDomain(ctx context.Context, db DBTX, arg InsertDomainParams) error
+	//  VALUES (
+	//  ?,
+	//  ?,
+	//  ?,
+	//  ?,
+	//  ?,
+	//  ?,
+	//  ?
+	//
+	//  )
+	InsertGateway(ctx context.Context, db DBTX, arg InsertGatewayParams) error
 	//InsertIdentity
 	//
 	//  INSERT INTO `identities` (
@@ -1226,6 +1214,29 @@ type Querier interface {
 	//      auto_apply = VALUES(auto_apply),
 	//      updated_at = VALUES(created_at)
 	InsertIdentityRatelimit(ctx context.Context, db DBTX, arg InsertIdentityRatelimitParams) error
+	//InsertIngressRoute
+	//
+	//  INSERT INTO ingress_routes (
+	//      id,
+	//      project_id,
+	//      deployment_id,
+	//      environment_id,
+	//      hostname,
+	//      sticky,
+	//      created_at,
+	//      updated_at
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertIngressRoute(ctx context.Context, db DBTX, arg InsertIngressRouteParams) error
 	//InsertKey
 	//
 	//  INSERT INTO `keys` (
@@ -1533,7 +1544,7 @@ type Querier interface {
 	//ListExecutableChallenges
 	//
 	//  SELECT dc.workspace_id, dc.type, d.domain FROM acme_challenges dc
-	//  JOIN domains d ON dc.domain_id = d.id
+	//  JOIN custom_domains d ON dc.domain_id = d.id
 	//  WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY)))
 	//  AND dc.type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC
@@ -1805,15 +1816,14 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesRow, error)
-	//ReassignDomain
+	//ReassignIngressRoute
 	//
-	//  UPDATE domains
+	//  UPDATE ingress_routes
 	//  SET
-	//    workspace_id = ?,
 	//    deployment_id = ?,
 	//    updated_at = ?
 	//  WHERE id = ?
-	ReassignDomain(ctx context.Context, db DBTX, arg ReassignDomainParams) error
+	ReassignIngressRoute(ctx context.Context, db DBTX, arg ReassignIngressRouteParams) error
 	//SoftDeleteApi
 	//
 	//  UPDATE apis
@@ -1927,6 +1937,18 @@ type Querier interface {
 	//  WHERE
 	//      id = ?
 	UpdateIdentity(ctx context.Context, db DBTX, arg UpdateIdentityParams) error
+	//UpdateIngressRouteDeploymentId
+	//
+	//  UPDATE ingress_routes
+	//  SET deployment_id = ?
+	//  WHERE id = ?
+	UpdateIngressRouteDeploymentId(ctx context.Context, db DBTX, arg UpdateIngressRouteDeploymentIdParams) error
+	//UpdateInstanceStatus
+	//
+	//  UPDATE instances SET
+	//  	status = ?
+	//  WHERE id = ?
+	UpdateInstanceStatus(ctx context.Context, db DBTX, arg UpdateInstanceStatusParams) error
 	//UpdateKey
 	//
 	//  UPDATE `keys` k SET
@@ -2055,36 +2077,36 @@ type Querier interface {
 	//  SET plan = ?
 	//  WHERE id = ?
 	UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) (sql.Result, error)
-	//UpsertGateway
+	//UpsertInstance
 	//
-	//  INSERT INTO gateways (
-	//  workspace_id,
-	//  deployment_id,
-	//  hostname,
-	//  config
+	//  INSERT INTO instances (
+	//  	id,
+	//  	deployment_id,
+	//  	workspace_id,
+	//  	project_id,
+	//  	region,
+	//  	address,
+	//  	cpu_millicores,
+	//  	memory_mb,
+	//  	status
 	//  )
 	//  VALUES (
-	//  ?,
-	//  ?,
-	//  ?,
-	//  ?
+	//  	?,
+	//  	?,
+	//  	?,
+	//  	?,
+	//  	?,
+	//  	?,
+	//  	?,
+	//  	?,
+	//  	?
 	//  )
 	//  ON DUPLICATE KEY UPDATE
-	//      workspace_id = ?,
-	//      deployment_id = ?,
-	//      config = ?
-	UpsertGateway(ctx context.Context, db DBTX, arg UpsertGatewayParams) error
-	//UpsertVM
-	//
-	//  INSERT INTO vms (id, deployment_id, address, cpu_millicores, memory_mb, status)
-	//  VALUES (?, ?, ?, ?, ?, ?)
-	//  ON DUPLICATE KEY UPDATE
-	//    deployment_id = VALUES(deployment_id),
-	//    address = VALUES(address),
-	//    cpu_millicores = VALUES(cpu_millicores),
-	//    memory_mb = VALUES(memory_mb),
-	//    status = VALUES(status)
-	UpsertVM(ctx context.Context, db DBTX, arg UpsertVMParams) error
+	//  	address = ?,
+	//  	cpu_millicores = ?,
+	//  	memory_mb = ?,
+	//  	status = ?
+	UpsertInstance(ctx context.Context, db DBTX, arg UpsertInstanceParams) error
 }
 
 var _ Querier = (*Queries)(nil)

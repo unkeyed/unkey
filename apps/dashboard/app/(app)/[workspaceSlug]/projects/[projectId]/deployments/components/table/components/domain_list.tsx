@@ -14,7 +14,7 @@ export const DomainList = ({ deploymentId }: Props) => {
     q
       .from({ domain: collections.domains })
       .where(({ domain }) => eq(domain.deploymentId, deploymentId))
-      .orderBy(({ domain }) => domain.domain, "asc"),
+      .orderBy(({ domain }) => domain.hostname, "asc")
   );
 
   if (domains.isLoading || !domains.data.length) {
@@ -22,21 +22,25 @@ export const DomainList = ({ deploymentId }: Props) => {
   }
 
   // Always show environment domain first, fallback to first domain if none
-  const environmentDomain = domains.data.find((d) => d.sticky === "environment");
+  const environmentDomain = domains.data.find(
+    (d) => d.sticky === "environment"
+  );
   const primaryDomain = environmentDomain ?? domains.data[0];
-  const additionalDomains = domains.data.filter((d) => d.id !== primaryDomain.id);
+  const additionalDomains = domains.data.filter(
+    (d) => d.id !== primaryDomain.id
+  );
 
   // Single domain case - no tooltip needed
   if (domains.data.length === 1) {
     return (
       <a
-        href={`https://${primaryDomain.domain}`}
+        href={`https://${primaryDomain.hostname}`}
         target="_blank"
         rel="noopener noreferrer"
         className="text-accent-12 text-xs font-mono hover:underline decoration-dashed underline-offset-2 transition-all truncate block max-w-[200px]"
         onClick={(e) => e.stopPropagation()}
       >
-        {primaryDomain.domain}
+        {primaryDomain.hostname}
       </a>
     );
   }
@@ -45,13 +49,13 @@ export const DomainList = ({ deploymentId }: Props) => {
   return (
     <div className="flex items-center gap-2 min-w-0">
       <a
-        href={`https://${primaryDomain.domain}`}
+        href={`https://${primaryDomain.hostname}`}
         target="_blank"
         rel="noopener noreferrer"
         className="text-accent-12 text-xs font-mono hover:underline decoration-dashed underline-offset-2 transition-all truncate block max-w-[150px]"
         onClick={(e) => e.stopPropagation()}
       >
-        {primaryDomain.domain}
+        {primaryDomain.hostname}
       </a>
 
       <InfoTooltip
@@ -62,16 +66,19 @@ export const DomainList = ({ deploymentId }: Props) => {
         content={
           <div className="space-y-2 max-w-[300px] py-2">
             {additionalDomains.map((d) => (
-              <div key={d.id} className="text-xs font-medium flex items-center gap-1.5">
+              <div
+                key={d.id}
+                className="text-xs font-medium flex items-center gap-1.5"
+              >
                 <div className="w-1 h-1 bg-gray-8 rounded-full shrink-0" />
                 <a
-                  href={`https://${d.domain}`}
+                  href={`https://${d.hostname}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="transition-all hover:underline decoration-dashed underline-offset-2"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {d.domain}
+                  {d.hostname}
                 </a>
               </div>
             ))}
