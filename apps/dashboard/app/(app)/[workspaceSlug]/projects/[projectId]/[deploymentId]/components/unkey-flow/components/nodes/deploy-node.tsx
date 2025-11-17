@@ -7,11 +7,17 @@ import {
   Layers3,
 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
-import type { DeploymentNode, RegionMetadata, HealthStatus } from "./types";
+import {
+  type DeploymentNode,
+  type RegionMetadata,
+  type HealthStatus,
+  REGION_INFO,
+} from "./types";
 import { StatusDot } from "./status-dot";
 import { HealthBanner } from "./health-banner";
 import { STATUS_CONFIG } from "./status-config";
 import type { PropsWithChildren } from "react";
+import { InfoTooltip } from "@unkey/ui";
 
 function getHealthStyles(health: HealthStatus): { ring: string; glow: string } {
   const styleMap: Record<HealthStatus, { ring: string; glow: string }> = {
@@ -190,17 +196,26 @@ type RegionNodeProps = {
 export function RegionNode({ node }: RegionNodeProps) {
   const { flagCode, zones, instances, power, storage, health } = node.metadata;
   const subtitle = `${zones} availability ${zones > 1 ? "zones" : "zone"}`;
+  const regionInfo = REGION_INFO[flagCode];
+
   return (
     <NodeWrapper health={health}>
       <CardHeader
         icon={
-          <div className="border rounded-[10px] border-grayA-3 size-9 bg-grayA-3 flex items-center justify-center">
-            <img
-              src={`/images/flags/${flagCode}.svg`}
-              alt={flagCode}
-              className="size-4"
-            />
-          </div>
+          <InfoTooltip
+            content={`AWS region ${node.label} (${regionInfo.location})`}
+            variant="primary"
+            className="px-2.5 py-1 rounded-[10px] bg-blackA-12 text-xs"
+            position={{ align: "center", side: "top", sideOffset: 5 }}
+          >
+            <div className="border rounded-[10px] border-grayA-3 size-9 bg-grayA-3 flex items-center justify-center">
+              <img
+                src={`/images/flags/${flagCode}.svg`}
+                alt={flagCode}
+                className="size-4"
+              />
+            </div>
+          </InfoTooltip>
         }
         title={node.label}
         subtitle={subtitle}
@@ -223,7 +238,7 @@ export function InstanceNode({ node, flagCode }: InstanceNodeProps) {
       <CardHeader
         icon={
           <div className="border rounded-[10px] size-9 flex items-center justify-center border-grayA-5 bg-grayA-2">
-            <Layers3 iconSize="sm-medium" className="text-gray-11" />
+            <Layers3 iconSize="lg-medium" className="text-gray-11" />
           </div>
         }
         title={node.label}
