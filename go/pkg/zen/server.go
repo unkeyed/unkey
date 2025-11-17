@@ -3,7 +3,6 @@ package zen
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"sync"
@@ -224,7 +223,7 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 }
 
 // RegisterRoute adds an HTTP route to the server with the specified middleware chain.
-// Routes are matched by both method and path.
+// Routes are matched by both method and path, unless the method is CATCHALL (empty string) which matches all methods.
 //
 // Middleware is applied in the order provided, with each middleware wrapping the next.
 // The innermost handler (last to execute) is the route's handler.
@@ -235,14 +234,27 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 //	    []zen.Middleware{zen.WithLogging(logger), zen.WithErrorHandling()},
 //	    zen.NewRoute("GET", "/health", healthCheckHandler),
 //	)
+//
+//	// Catch-all route that handles all methods
+//	server.RegisterRoute(
+//	    []zen.Middleware{zen.WithLogging(logger)},
+//	    zen.NewRoute(zen.CATCHALL, "/{path...}", proxyHandler),
+//	)
 func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 	s.logger.Info("registering",
 		"method", route.Method(),
 		"path", route.Path(),
 	)
 
+	// Determine the pattern based on whether this is a catch-all route
+	// Empty method means match all HTTP methods
+	pattern := route.Path()
+	if route.Method() != "" {
+		pattern = route.Method() + " " + route.Path()
+	}
+
 	s.mux.HandleFunc(
-		fmt.Sprintf("%s %s", route.Method(), route.Path()),
+		pattern,
 		func(w http.ResponseWriter, r *http.Request) {
 			sess, ok := s.getSession().(*Session)
 			if !ok {

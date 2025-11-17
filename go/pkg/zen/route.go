@@ -2,12 +2,18 @@ package zen
 
 import "context"
 
+// CATCHALL is a special method constant that indicates a route should handle all HTTP methods.
+// When a route returns CATCHALL (empty string) from Method(), it will be registered without
+// a method prefix, allowing it to match all HTTP methods.
+const CATCHALL = ""
+
 // Route represents an HTTP endpoint with its method, path, and handler function.
 // It encapsulates the behavior of a specific HTTP endpoint in the system.
 type Route interface {
 	Handler
 
 	// Method returns the HTTP method this route responds to (GET, POST, etc.).
+	// Return CATCHALL to handle all HTTP methods.
 	Method() string
 
 	// Path returns the URL path pattern this route matches.
