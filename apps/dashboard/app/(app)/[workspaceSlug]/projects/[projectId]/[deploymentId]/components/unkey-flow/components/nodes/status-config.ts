@@ -4,6 +4,7 @@ import type { HealthStatus } from "./types";
 type StatusColors = {
   dotBg: string;
   dotRing: string;
+  dotTextColor: string;
   bannerBg: string;
   bannerBorder: string;
   textColor: string;
@@ -28,6 +29,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
     colors: {
       dotBg: "bg-success-9",
       dotRing: "hsl(var(--successA-4))",
+      dotTextColor: "text-gray-9",
       bannerBg: "bg-success-2",
       bannerBorder: "border-successA-2",
       textColor: "text-success-12",
@@ -46,6 +48,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
     colors: {
       dotBg: "bg-orange-9",
       dotRing: "hsl(var(--orangeA-4))",
+      dotTextColor: "text-orangeA-7",
       bannerBg: "bg-orange-2",
       bannerBorder: "border-orangeA-3",
       textColor: "text-orange-12",
@@ -63,6 +66,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
     colors: {
       dotBg: "bg-warning-9",
       dotRing: "hsl(var(--warningA-4))",
+      dotTextColor: "text-warningA-7",
       bannerBg: "bg-warning-2",
       bannerBorder: "border-warningA-3",
       textColor: "text-warning-12",
@@ -81,6 +85,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
     colors: {
       dotBg: "bg-error-9",
       dotRing: "hsl(var(--errorA-4))",
+      dotTextColor: "text-errorA-7",
       bannerBg: "bg-error-2",
       bannerBorder: "border-errorA-3",
       textColor: "text-error-12",
@@ -98,6 +103,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
     colors: {
       dotBg: "bg-feature-9",
       dotRing: "hsl(var(--featureA-4))",
+      dotTextColor: "text-featureA-7",
       bannerBg: "bg-feature-2",
       bannerBorder: "border-featureA-3",
       textColor: "text-feature-12",
@@ -115,6 +121,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
     colors: {
       dotBg: "bg-info-9",
       dotRing: "hsl(var(--infoA-4))",
+      dotTextColor: "text-infoA-7",
       bannerBg: "bg-info-2",
       bannerBorder: "border-infoA-2",
       textColor: "text-info-12",
@@ -132,6 +139,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
     colors: {
       dotBg: "bg-gray-9",
       dotRing: "hsl(var(--grayA-4))",
+      dotTextColor: "text-grayA-7",
       bannerBg: "bg-gray-2",
       bannerBorder: "border-grayA-3",
       textColor: "text-gray-11",
@@ -149,6 +157,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
     colors: {
       dotBg: "bg-gray-9",
       dotRing: "hsl(var(--grayA-4))",
+      dotTextColor: "text-grayA-7",
       bannerBg: "bg-gray-2",
       bannerBorder: "border-grayA-3",
       textColor: "text-gray-11",

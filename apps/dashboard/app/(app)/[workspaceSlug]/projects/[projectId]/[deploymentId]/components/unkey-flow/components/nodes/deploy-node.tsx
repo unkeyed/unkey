@@ -85,25 +85,41 @@ function CardHeader({ icon, title, subtitle, health }: CardHeaderProps) {
         </div>
       </div>
       <div className="flex gap-2 items-center ml-auto">
-        <div className="border bg-gray-1 border-grayA-3 h-11 rounded-lg w-8">
-          <div className="h-6 border-b border-grayA-3 relative">
-            <StatusDot healthStatus="normal" />
-          </div>
-          <div className="h-5 bg-grayA-2 pl-1 pt-[3px]">
-            <CircleCheck className="text-gray-9" iconSize="sm-regular" />
-          </div>
-        </div>
-        <div
-          className="border bg-gray-1 border-grayA-3 h-11 rounded-lg w-8 ml-auto"
-          style={{ boxShadow: heartBoxShadow }}
+        <InfoTooltip
+          content="Region gateways are online and serving traffic"
+          variant="primary"
+          className="px-2.5 py-1 rounded-[10px] bg-white dark:bg-blackA-12 text-xs z-30"
+          position={{ align: "center", side: "top", sideOffset: 5 }}
         >
-          <div className="h-6 border-b border-grayA-3 relative">
-            <StatusDot healthStatus={health} />
+          <div className="border bg-gray-1 border-grayA-3 h-11 rounded-lg w-8 transition-all hover:ring-1 hover:ring-gray-7 duration-200 ease-out">
+            <div className="h-6 border-b border-grayA-3 relative">
+              <StatusDot healthStatus="normal" />
+            </div>
+            <div className="h-5 bg-grayA-2 pl-1 pt-[3px]">
+              <CircleCheck className="text-gray-9" iconSize="sm-regular" />
+            </div>
           </div>
-          <div className="h-5 bg-grayA-2 pl-1 pt-[3px]">
-            <Heart className={colors.textColor} iconSize="sm-regular" />
+        </InfoTooltip>
+        <InfoTooltip
+          content="All gateways within this region report healthy states"
+          variant="primary"
+          className="px-2.5 py-1 rounded-[10px] bg-white dark:bg-blackA-12 text-xs z-30"
+          position={{ align: "center", side: "top", sideOffset: 5 }}
+        >
+          <div
+            className="border bg-gray-1 border-grayA-3 h-11 rounded-lg w-8 ml-auto transition-all hover:ring-1 hover:ring-gray-7 duration-200 ease-out"
+            style={{
+              boxShadow: health === "normal" ? "" : heartBoxShadow,
+            }}
+          >
+            <div className="h-6 border-b border-grayA-3 relative">
+              <StatusDot healthStatus={health} />
+            </div>
+            <div className="h-5 bg-grayA-2 pl-1 pt-[3px]">
+              <Heart className={colors.dotTextColor} iconSize="sm-regular" />
+            </div>
           </div>
-        </div>
+        </InfoTooltip>
       </div>
     </div>
   );
@@ -170,7 +186,7 @@ function NodeWrapper({ health, children }: NodeWrapperProps) {
         isDisabled
           ? "grayscale opacity-90 cursor-not-allowed"
           : cn(
-              "hover:scale-[1.01] transition-all duration-200 cursor-pointer",
+              "hover:scale-[1.001] transition-all duration-200 ease-out cursor-pointer",
               "hover:ring-2 hover:ring-offset-0",
               ring,
               glow
@@ -205,7 +221,7 @@ export function RegionNode({ node }: RegionNodeProps) {
           <InfoTooltip
             content={`AWS region ${node.label} (${regionInfo.location})`}
             variant="primary"
-            className="px-2.5 py-1 rounded-[10px] bg-blackA-12 text-xs"
+            className="px-2.5 py-1 rounded-[10px] bg-white dark:bg-blackA-12 text-xs z-30"
             position={{ align: "center", side: "top", sideOffset: 5 }}
           >
             <div className="border rounded-[10px] border-grayA-3 size-9 bg-grayA-3 flex items-center justify-center">
