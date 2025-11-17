@@ -410,6 +410,18 @@ func (s *Session) JSON(status int, body any) error {
 	return s.send(status, b)
 }
 
+// HTML sends an HTML response with the given status code.
+func (s *Session) HTML(status int, body []byte) error {
+	s.w.Header().Set("Content-Type", "text/html")
+	return s.send(status, body)
+}
+
+// Plain sends a plain text response with the given status code.
+func (s *Session) Plain(status int, body []byte) error {
+	s.w.Header().Set("Content-Type", "text/plain")
+	return s.send(status, body)
+}
+
 // Send sets the response status code and sends raw bytes as the response body.
 // This method is useful for non-JSON responses like binary data or plain text.
 //

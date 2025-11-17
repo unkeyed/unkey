@@ -91,6 +91,8 @@ func WithMetrics(eventBuffer EventBuffer, info InstanceInfo) Middleware {
 					Host:            s.r.Host,
 					Method:          s.r.Method,
 					Path:            s.r.URL.Path,
+					QueryString:     s.r.URL.RawQuery,
+					QueryParams:     s.r.URL.Query(),
 					RequestHeaders:  requestHeaders,
 					RequestBody:     string(redact(s.requestBody)),
 					ResponseStatus:  int32(s.responseStatus),
