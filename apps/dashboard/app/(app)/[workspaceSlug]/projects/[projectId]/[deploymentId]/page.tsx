@@ -32,6 +32,7 @@ export default function DeploymentDetailsPage() {
         // biome-ignore lint/style/noNonNullAssertion: <explanation>
         data={generatedTree!}
         nodeSpacing={{ x: 25, y: 75 }}
+        onNodeClick={(node) => console.log("NODE DETAILS", node)}
         renderNode={(node, _, parent) => {
           switch (node.metadata.type) {
             case "origin":

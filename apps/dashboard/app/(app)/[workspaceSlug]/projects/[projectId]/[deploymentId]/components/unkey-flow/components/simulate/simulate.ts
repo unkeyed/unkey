@@ -63,7 +63,7 @@ export function generateDeploymentTree(config: GeneratorConfig): DeploymentNode 
   const selectedRegions = regions.slice(0, config.regions);
 
   return {
-    id: "ingress",
+    id: "internet",
     label: "INTERNET",
     metadata: { type: "origin" },
     children: selectedRegions.map((regionId) => {

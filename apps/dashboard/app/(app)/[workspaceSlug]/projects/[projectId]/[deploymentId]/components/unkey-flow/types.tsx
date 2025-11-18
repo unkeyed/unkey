@@ -21,12 +21,14 @@ export type TreeNode = {
   id: string;
   direction?: "vertical" | "horizontal";
   children?: TreeNode[];
+  size?: { width: number; height: number };
   [key: string]: unknown;
 };
 
 export type TreeLayoutProps<T extends TreeNode> = {
   data: T;
   nodeSpacing?: { x: number; y: number };
+  onNodeClick?: (node: T) => void;
   renderNode: (
     node: T,
     position: Point,

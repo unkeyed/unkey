@@ -1,29 +1,37 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { LayoutEngine } from "../../layout-engine";
 import type { TreeLayoutProps, TreeNode } from "../../types";
+import type { DeploymentNode, NodeMetadata } from "../nodes/types";
 import { TreeConnectionLine } from "./tree-connection-line";
 import { TreeElementNode } from "./tree-element-node";
 
+type NodeSize = { width: number; height: number };
+/**
+ * Since our nodes are custom-made, we can optimize layout through static heights and widths.
+ * If things change over time, we can either update this list or create a ResizeObserver to track changes dynamically.
+ */
+const NODE_SIZES: Record<NodeMetadata["type"], NodeSize> = {
+  origin: { width: 70, height: 20 },
+  region: { width: 282, height: 100 },
+  instance: { width: 282, height: 100 },
+};
+
 /**
  * Vertical tree layout component (top to bottom).
- * Operates in two phases:
- * 1. Measurement: Render all nodes at origin to get dimensions
- * 2. Layout: Calculate and render final positions with connections
+ * Uses fixed node dimensions for immediate layout calculation.
  */
 export function TreeLayout<T extends TreeNode>({
   data,
   nodeSpacing = { x: 50, y: 50 },
   renderNode,
   renderConnection,
+  onNodeClick,
 }: TreeLayoutProps<T>) {
-  const [nodeDimensions, setNodeDimensions] = useState<
-    Map<string, { width: number; height: number }>
-  >(new Map());
+  const containerRef = useRef<SVGGElement>(null);
 
-  // We have to retrigger the calculation if we receive new data
   const layoutEngine = useMemo(
     () => new LayoutEngine<T>({ spacing: nodeSpacing, direction: "vertical" }),
-    [nodeSpacing, data],
+    [nodeSpacing],
   );
 
   const parentMap = useMemo(() => {
@@ -53,67 +61,43 @@ export function TreeLayout<T extends TreeNode>({
     return flatten(data);
   }, [data]);
 
-  // Sync dimensions to engine synchronously before any checks
-  nodeDimensions.forEach((dim, id) => {
-    layoutEngine.setNodeDimension(id, dim);
+  const handleClick = useCallback(
+    (e: React.MouseEvent<SVGGElement>) => {
+      if (!onNodeClick) {
+        return;
+      }
+      let target = e.target as HTMLElement | SVGElement;
+      while (target && target !== e.currentTarget) {
+        const nodeId = target.getAttribute("data-node-id");
+        if (nodeId) {
+          const node = allNodes.find((n) => n.id === nodeId);
+          if (node) {
+            onNodeClick(node);
+          }
+          break;
+        }
+        target = target.parentElement as HTMLElement | SVGElement;
+      }
+    },
+    [onNodeClick, allNodes],
+  );
+
+  // Use node-specific size or fallback to default
+  // Set dimensions based on node type
+  allNodes.forEach((node) => {
+    // Type assertion since we know DeploymentNode has metadata
+    const deploymentNode = node as unknown as DeploymentNode;
+    const size = NODE_SIZES[deploymentNode.metadata.type];
+    layoutEngine.setNodeDimension(node.id, size);
   });
 
-  const isLayoutReady = layoutEngine.hasAllDimensions(data);
-
   const layout = useMemo(() => {
-    if (!isLayoutReady) {
-      return null;
-    }
-    const result = layoutEngine.calculate(data);
-    if (process.env.NODE_ENV === "development") {
-      // layoutEngine.printLayout(result);
-    }
+    return layoutEngine.calculate(data);
+  }, [data, layoutEngine]);
 
-    return result;
-  }, [data, layoutEngine, isLayoutReady]);
-
-  // Lock in first measurement for each node.
-  // This prevents remeasurement after canvas scale changes,
-  // which would corrupt the layout with scaled dimensions.
-  const handleNodeMeasure = (id: string, width: number, height: number): void => {
-    setNodeDimensions((prev) => {
-      const existing = prev.get(id);
-      if (existing?.width === width && existing?.height === height) {
-        return prev;
-      }
-
-      const next = new Map(prev);
-      next.set(id, { width, height });
-      return next;
-    });
-  };
-
-  // Phase 1: Measurement - render all nodes at origin
-  if (!layout) {
-    return (
-      <>
-        {allNodes.map((node) => {
-          const parent = parentMap.get(node.id);
-          const dummyPosition = { x: 0, y: 0 };
-
-          return (
-            <TreeElementNode
-              key={node.id}
-              id={node.id}
-              position={dummyPosition}
-              onMeasure={handleNodeMeasure}
-            >
-              {renderNode(node, dummyPosition, parent)}
-            </TreeElementNode>
-          );
-        })}
-      </>
-    );
-  }
-
-  // Phase 2: Final layout - render positioned nodes and connections
   return (
-    <>
+    // biome-ignore lint/a11y/useKeyWithClickEvents: This is required for event bubbling
+    <g ref={containerRef} onClick={handleClick}>
       {layout.connections.map((conn) =>
         renderConnection ? (
           renderConnection(conn.from, conn.to, conn.parent, conn.child, conn.waypoints)
@@ -134,12 +118,11 @@ export function TreeLayout<T extends TreeNode>({
             key={positioned.node.id}
             id={positioned.node.id}
             position={positioned.position}
-            onMeasure={handleNodeMeasure}
           >
             {renderNode(positioned.node, positioned.position, parent)}
           </TreeElementNode>
         );
       })}
-    </>
+    </g>
   );
 }
