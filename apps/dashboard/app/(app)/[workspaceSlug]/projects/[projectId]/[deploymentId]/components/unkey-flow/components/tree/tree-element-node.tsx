@@ -12,12 +12,7 @@ type TreeElementNodeProps = PropsWithChildren<{
   onMeasure: (id: string, width: number, height: number) => void;
 }>;
 
-export function TreeElementNode({
-  id,
-  position,
-  children,
-  onMeasure,
-}: TreeElementNodeProps) {
+export function TreeElementNode({ id, position, children, onMeasure }: TreeElementNodeProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,22 +23,14 @@ export function TreeElementNode({
     const { width, height } = ref.current.getBoundingClientRect();
 
     if (width === 0 || height === 0) {
-      throw new Error(
-        `Node ${id} has invalid dimensions: ${width}x${height}px`
-      );
+      throw new Error(`Node ${id} has invalid dimensions: ${width}x${height}px`);
     }
 
     onMeasure(id, width, height);
   }, [id, onMeasure, children]);
 
   return (
-    <foreignObject
-      x={position.x}
-      y={position.y}
-      width={1}
-      height={1}
-      overflow="visible"
-    >
+    <foreignObject x={position.x} y={position.y} width={1} height={1} overflow="visible">
       <div
         ref={ref}
         style={{

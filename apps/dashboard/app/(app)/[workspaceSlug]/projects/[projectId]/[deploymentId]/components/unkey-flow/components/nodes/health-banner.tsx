@@ -1,5 +1,5 @@
 import { cn } from "@unkey/ui/src/lib/utils";
-import { STATUS_CONFIG, type HealthStatus } from "./status-config";
+import { type HealthStatus, STATUS_CONFIG } from "./status-config";
 
 type HealthBannerProps = {
   healthStatus: HealthStatus;
@@ -21,7 +21,7 @@ export function HealthBanner({ healthStatus }: HealthBannerProps) {
         className={cn(
           "h-12 border rounded-t-[14px]",
           config.colors.bannerBg,
-          config.colors.bannerBorder
+          config.colors.bannerBorder,
         )}
       >
         <div className="py-1.5 px-2.5 flex items-center">
@@ -29,9 +29,7 @@ export function HealthBanner({ healthStatus }: HealthBannerProps) {
             className={cn(config.colors.textColor, "shrink-0 mr-2 mb-0.5")}
             iconSize="md-regular"
           />
-          <span
-            className={cn("text-xs font-medium mr-4", config.colors.textColor)}
-          >
+          <span className={cn("text-xs font-medium mr-4", config.colors.textColor)}>
             {config.label}
           </span>
           <div className="flex-1 overflow-hidden relative max-w-[200px]">
@@ -39,7 +37,7 @@ export function HealthBanner({ healthStatus }: HealthBannerProps) {
               className={cn(
                 "text-xs",
                 config.colors.textColor,
-                "animate-marquee whitespace-nowrap"
+                "animate-marquee whitespace-nowrap",
               )}
             >
               {config.message}
@@ -47,13 +45,13 @@ export function HealthBanner({ healthStatus }: HealthBannerProps) {
             <div
               className={cn(
                 "absolute left-0 top-0 bottom-0 w-6 pointer-events-none",
-                config.colors.gradientFromLeft
+                config.colors.gradientFromLeft,
               )}
             />
             <div
               className={cn(
                 "absolute right-0 top-0 bottom-0 w-6 pointer-events-none",
-                config.colors.gradientFromRight
+                config.colors.gradientFromRight,
               )}
             />
           </div>

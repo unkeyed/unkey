@@ -23,23 +23,17 @@ export const ProjectDetails = ({ projectId }: ProjectDetailsProps) => {
               {shortenId("d_58rWLre1kDtmWJ9A")}
             </div>
             <InfoChip icon={CodeBranch}>
-              <span className="text-grayA-9 text-xs truncate max-w-32">
-                main
-              </span>
+              <span className="text-grayA-9 text-xs truncate max-w-32">main</span>
             </InfoChip>
             <InfoChip icon={CodeCommit}>
               <span className="text-grayA-9 text-xs">921103d</span>
             </InfoChip>
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              type="button"
-              className="flex-shrink-0"
-            >
+            <button onClick={() => setIsOpen(!isOpen)} type="button" className="flex-shrink-0">
               <div className="w-3 h-3 flex items-center justify-center flex-shrink-0">
                 <ChevronDown
                   className={cn(
                     "text-gray-8 transition-transform origin-center",
-                    isOpen ? "rotate-180" : ""
+                    isOpen ? "rotate-180" : "",
                   )}
                   iconSize="sm-bold"
                 />
@@ -52,9 +46,7 @@ export const ProjectDetails = ({ projectId }: ProjectDetailsProps) => {
         className={cn(
           "absolute top-14 left-4 rounded-xl bg-gray-1 border border-grayA-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] overflow-y-auto pb-4 pointer-events-auto min-w-[360px]",
           "transition-all duration-300 ease-out",
-          isOpen
-            ? "opacity-100 translate-y-0"
-            : "opacity-0 -translate-y-2 pointer-events-none"
+          isOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none",
         )}
       >
         <ProjectDetailsContent projectId={projectId} />

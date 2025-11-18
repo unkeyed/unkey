@@ -1,28 +1,23 @@
 "use client";
+import { useState } from "react";
+import { useProject } from "../layout-provider";
 import { TreeConnectionLine, TreeLayout } from "./components/unkey-flow";
 import { InfiniteCanvas } from "./components/unkey-flow/components/canvas/infinite-canvas";
-import type { DeploymentNode } from "./components/unkey-flow/components/nodes/types";
-import {
-  InstanceNode,
-  RegionNode,
-} from "./components/unkey-flow/components/nodes/deploy-node";
-import { OriginNode } from "./components/unkey-flow/components/nodes/origin-node";
 import { DefaultNode } from "./components/unkey-flow/components/nodes/default-node";
-import type { TreeNode } from "./components/unkey-flow/types";
-import { LiveIndicator } from "./components/unkey-flow/components/overlay/live";
-import { useState } from "react";
+import { InstanceNode, RegionNode } from "./components/unkey-flow/components/nodes/deploy-node";
+import { OriginNode } from "./components/unkey-flow/components/nodes/origin-node";
+import type { DeploymentNode } from "./components/unkey-flow/components/nodes/types";
 import {
   DEFAULT_TREE,
   DevTreeGenerator,
 } from "./components/unkey-flow/components/overlay/dev-tree-generator";
+import { LiveIndicator } from "./components/unkey-flow/components/overlay/live";
 import { ProjectDetails } from "./components/unkey-flow/components/overlay/project-details";
-import { useProject } from "../layout-provider";
+import type { TreeNode } from "./components/unkey-flow/types";
 
 export default function DeploymentDetailsPage() {
   const { projectId } = useProject();
-  const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(
-    DEFAULT_TREE
-  );
+  const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(DEFAULT_TREE);
   return (
     <InfiniteCanvas
       overlay={
@@ -43,11 +38,7 @@ export default function DeploymentDetailsPage() {
               return <OriginNode node={node} />;
             case "region":
               return (
-                <RegionNode
-                  node={
-                    node as DeploymentNode & { metadata: { type: "region" } }
-                  }
-                />
+                <RegionNode node={node as DeploymentNode & { metadata: { type: "region" } }} />
               );
             case "instance":
               if (!parent?.id) {

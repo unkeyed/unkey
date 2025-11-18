@@ -1,12 +1,6 @@
-import { useRef, useMemo } from "react";
+import { useMemo, useRef } from "react";
 import type { Point } from "../../types";
-import {
-  renderPath,
-  move,
-  line,
-  curve,
-  type PathCommand,
-} from "./tree-path-command";
+import { type PathCommand, curve, line, move, renderPath } from "./tree-path-command";
 
 const PATH_CONFIG = {
   straightLineThreshold: 20,
@@ -126,8 +120,7 @@ export function TreeConnectionLine({
     const dx = Math.abs(to.x - from.x);
     const dy = to.y - from.y;
     const needsStraightLine =
-      dx < PATH_CONFIG.straightLineThreshold ||
-      dy < PATH_CONFIG.minVerticalForCurve;
+      dx < PATH_CONFIG.straightLineThreshold || dy < PATH_CONFIG.minVerticalForCurve;
 
     return needsStraightLine ? straightLine(from, to) : roundedZShape(from, to);
   }, [from, to, waypoints, horizontal]);
@@ -255,7 +248,7 @@ function roundedZShape(from: Point, to: Point): string {
   const midY = from.y + dy * 0.5;
   const verticalEnd = Math.min(
     midY - PATH_CONFIG.cornerRadius,
-    from.y + dy - PATH_CONFIG.minCornerSpacing - PATH_CONFIG.cornerRadius
+    from.y + dy - PATH_CONFIG.minCornerSpacing - PATH_CONFIG.cornerRadius,
   );
 
   const beforeCurve1 = { x: from.x, y: verticalEnd };
@@ -297,11 +290,7 @@ function roundedZShape(from: Point, to: Point): string {
  *             ╰──→ to
  * ```
  */
-function steppedPathWithRoundedCorners(
-  from: Point,
-  waypoints: Point[],
-  to: Point
-): string {
+function steppedPathWithRoundedCorners(from: Point, waypoints: Point[], to: Point): string {
   const radius = PATH_CONFIG.cornerRadius;
   const commands: PathCommand[] = [move(from)];
 

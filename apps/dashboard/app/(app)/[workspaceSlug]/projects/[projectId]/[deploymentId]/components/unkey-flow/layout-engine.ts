@@ -1,4 +1,4 @@
-import type { TreeNode, Point, PositionedNode } from "./types";
+import type { Point, PositionedNode, TreeNode } from "./types";
 
 /**
  * Dimensions of a rendered node in pixels
@@ -69,7 +69,7 @@ export class LayoutEngine<T extends TreeNode> {
   calculate(root: T): LayoutResult<T> {
     if (!this.hasAllDimensions(root)) {
       throw new Error(
-        `Cannot calculate layout: missing dimensions for some nodes. Have ${this.dimensions.size} dimensions.`
+        `Cannot calculate layout: missing dimensions for some nodes. Have ${this.dimensions.size} dimensions.`,
       );
     }
 
@@ -103,11 +103,7 @@ export class LayoutEngine<T extends TreeNode> {
   /**
    * Recursively layout a node and its children, respecting per-node direction.
    */
-  private layoutNode(
-    node: T,
-    level: number,
-    parentPosition: Point
-  ): PositionedNode<T>[] {
+  private layoutNode(node: T, level: number, parentPosition: Point): PositionedNode<T>[] {
     const positioned: PositionedNode<T>[] = [];
 
     const nodeDim = this.dimensions.get(node.id);
@@ -130,18 +126,11 @@ export class LayoutEngine<T extends TreeNode> {
 
       if (childDirection === "vertical") {
         // Children spread horizontally below parent
-        const subtreeWidths = node.children.map((child) =>
-          this.calculateSubtreeWidth(child as T)
-        );
+        const subtreeWidths = node.children.map((child) => this.calculateSubtreeWidth(child as T));
 
         node.children.forEach((child, index) => {
-          const childX = this.calculateChildXPosition(
-            nodePosition.x,
-            index,
-            subtreeWidths
-          );
-          const childY =
-            nodePosition.y + nodeDim.height / 2 + this.config.spacing.y;
+          const childX = this.calculateChildXPosition(nodePosition.x, index, subtreeWidths);
+          const childY = nodePosition.y + nodeDim.height / 2 + this.config.spacing.y;
 
           const childDim = this.dimensions.get(child.id);
           if (!childDim) {
@@ -157,7 +146,7 @@ export class LayoutEngine<T extends TreeNode> {
       } else {
         // Children spread vertically to the right of parent (top to bottom)
         const subtreeHeights = node.children.map((child) =>
-          this.calculateSubtreeHeight(child as T)
+          this.calculateSubtreeHeight(child as T),
         );
 
         node.children.forEach((child, index) => {
@@ -170,7 +159,7 @@ export class LayoutEngine<T extends TreeNode> {
           const childY = this.calculateChildYPosition(
             nodePosition.y + nodeDim.height / 2 + this.config.spacing.y,
             index,
-            subtreeHeights
+            subtreeHeights,
           );
 
           const childPositioned = this.layoutNode(child as T, level + 1, {
@@ -203,23 +192,17 @@ export class LayoutEngine<T extends TreeNode> {
 
     if (childDirection === "vertical") {
       // Children spread horizontally
-      const childWidths = node.children.map((child) =>
-        this.calculateSubtreeWidth(child as T)
-      );
+      const childWidths = node.children.map((child) => this.calculateSubtreeWidth(child as T));
       const totalChildWidth = childWidths.reduce((sum, w) => sum + w, 0);
       const spacing = (node.children.length - 1) * this.config.spacing.x;
       return Math.max(nodeDim.width, totalChildWidth + spacing);
     }
     // Children spread vertically - width is node + deepest child, but allow overlap
-    const childSubtreeWidths = node.children.map((child) =>
-      this.calculateSubtreeWidth(child as T)
-    );
+    const childSubtreeWidths = node.children.map((child) => this.calculateSubtreeWidth(child as T));
     const maxChildWidth = Math.max(...childSubtreeWidths);
     // Use a percentage of the child width to allow controlled overlap
     const overlapFactor = 0.4; // Children's horizontal subtrees can overlap by 60%
-    return (
-      nodeDim.width + this.config.spacing.x + maxChildWidth * overlapFactor
-    );
+    return nodeDim.width + this.config.spacing.x + maxChildWidth * overlapFactor;
   }
 
   /**
@@ -240,16 +223,14 @@ export class LayoutEngine<T extends TreeNode> {
 
     if (childDirection === "horizontal") {
       // Children spread vertically (top to bottom)
-      const childHeights = node.children.map((child) =>
-        this.calculateSubtreeHeight(child as T)
-      );
+      const childHeights = node.children.map((child) => this.calculateSubtreeHeight(child as T));
       const totalChildHeight = childHeights.reduce((sum, h) => sum + h, 0);
       const spacing = (node.children.length - 1) * this.config.spacing.y;
       return Math.max(nodeDim.height, totalChildHeight + spacing);
     }
     // Children spread horizontally - height is node + deepest child
     const maxChildHeight = Math.max(
-      ...node.children.map((child) => this.calculateSubtreeHeight(child as T))
+      ...node.children.map((child) => this.calculateSubtreeHeight(child as T)),
     );
     return nodeDim.height + this.config.spacing.y + maxChildHeight;
   }
@@ -261,7 +242,7 @@ export class LayoutEngine<T extends TreeNode> {
   private calculateChildXPosition(
     parentX: number,
     childIndex: number,
-    subtreeWidths: number[]
+    subtreeWidths: number[],
   ): number {
     const childCount = subtreeWidths.length;
 
@@ -295,7 +276,7 @@ export class LayoutEngine<T extends TreeNode> {
   private calculateChildYPosition(
     startY: number,
     childIndex: number,
-    subtreeHeights: number[]
+    subtreeHeights: number[],
   ): number {
     let y = startY;
 
@@ -304,10 +285,7 @@ export class LayoutEngine<T extends TreeNode> {
 
     // Add up heights and spacing for children before this one
     for (let i = 0; i < childIndex; i++) {
-      y +=
-        subtreeHeights[i] / 2 +
-        this.config.spacing.y +
-        subtreeHeights[i + 1] / 2;
+      y += subtreeHeights[i] / 2 + this.config.spacing.y + subtreeHeights[i + 1] / 2;
     }
 
     return y;
@@ -339,18 +317,14 @@ export class LayoutEngine<T extends TreeNode> {
         pos.node.children.forEach((child) => {
           const childPos = positioned.find((p) => p.node.id === child.id);
           if (!childPos) {
-            throw new Error(
-              `Cannot find positioned node for child ${child.id}`
-            );
+            throw new Error(`Cannot find positioned node for child ${child.id}`);
           }
 
           const parentDim = this.dimensions.get(pos.node.id);
           const childDim = this.dimensions.get(child.id);
 
           if (!parentDim || !childDim) {
-            throw new Error(
-              `Missing dimensions for connection: ${pos.node.id} -> ${child.id}`
-            );
+            throw new Error(`Missing dimensions for connection: ${pos.node.id} -> ${child.id}`);
           }
 
           const parentEdges = getNodeEdges(pos.position, parentDim);
@@ -420,10 +394,7 @@ export class LayoutEngine<T extends TreeNode> {
 }
 
 // Add this helper function at the top of the file or in a shared utils
-function getNodeEdges(
-  position: Point,
-  dimensions: { width: number; height: number }
-) {
+function getNodeEdges(position: Point, dimensions: { width: number; height: number }) {
   return {
     left: position.x - dimensions.width / 2,
     right: position.x + dimensions.width / 2,

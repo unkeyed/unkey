@@ -173,14 +173,9 @@ const PRESETS = {
   },
 } as const;
 
-export function InternalDevTreeGenerator({
-  onGenerate,
-  onReset,
-}: DevTreeGeneratorProps) {
+export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGeneratorProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [customConfig, setCustomConfig] = useState<GeneratorConfig>(
-    PRESETS.medium.config
-  );
+  const [customConfig, setCustomConfig] = useState<GeneratorConfig>(PRESETS.medium.config);
 
   if (!isOpen) {
     return (
@@ -233,9 +228,7 @@ export function InternalDevTreeGenerator({
 
           {/* Regions */}
           <div className="space-y-1">
-            <div className="text-xs text-gray-11">
-              Regions: {customConfig.regions}
-            </div>
+            <div className="text-xs text-gray-11">Regions: {customConfig.regions}</div>
             <input
               type="range"
               min="1"
@@ -262,9 +255,7 @@ export function InternalDevTreeGenerator({
                   onChange={(e) =>
                     setCustomConfig((c) => ({
                       ...c,
-                      regionDirection: e.target.value as
-                        | "vertical"
-                        | "horizontal",
+                      regionDirection: e.target.value as "vertical" | "horizontal",
                     }))
                   }
                   className="flex-1 px-2 py-1 text-xs rounded border border-grayA-4 bg-gray-1"
@@ -280,9 +271,7 @@ export function InternalDevTreeGenerator({
                   onChange={(e) =>
                     setCustomConfig((c) => ({
                       ...c,
-                      instanceDirection: e.target.value as
-                        | "vertical"
-                        | "horizontal",
+                      instanceDirection: e.target.value as "vertical" | "horizontal",
                     }))
                   }
                   className="flex-1 px-2 py-1 text-xs rounded border border-grayA-4 bg-gray-1"
@@ -340,34 +329,30 @@ export function InternalDevTreeGenerator({
           <div className="space-y-2">
             <div className="text-xs text-gray-11">Health Distribution (%)</div>
             <div className="space-y-1.5">
-              {Object.entries(customConfig.healthDistribution).map(
-                ([status, value]) => (
-                  <div key={status} className="flex items-center gap-2">
-                    <span className="text-[10px] w-20 text-gray-11 truncate">
-                      {status}
-                    </span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={value}
-                      onChange={(e) =>
-                        setCustomConfig((c) => ({
-                          ...c,
-                          healthDistribution: {
-                            ...c.healthDistribution,
-                            [status]: Number(e.target.value),
-                          },
-                        }))
-                      }
-                      className="flex-1"
-                    />
-                    <span className="text-[10px] w-8 text-right tabular-nums text-gray-11">
-                      {value}
-                    </span>
-                  </div>
-                )
-              )}
+              {Object.entries(customConfig.healthDistribution).map(([status, value]) => (
+                <div key={status} className="flex items-center gap-2">
+                  <span className="text-[10px] w-20 text-gray-11 truncate">{status}</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={value}
+                    onChange={(e) =>
+                      setCustomConfig((c) => ({
+                        ...c,
+                        healthDistribution: {
+                          ...c.healthDistribution,
+                          [status]: Number(e.target.value),
+                        },
+                      }))
+                    }
+                    className="flex-1"
+                  />
+                  <span className="text-[10px] w-8 text-right tabular-nums text-gray-11">
+                    {value}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 

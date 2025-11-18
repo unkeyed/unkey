@@ -1,23 +1,11 @@
-import {
-  Bolt,
-  ChartActivity,
-  CircleCheck,
-  Focus,
-  Heart,
-  Layers3,
-} from "@unkey/icons";
+import { Bolt, ChartActivity, CircleCheck, Focus, Heart, Layers3 } from "@unkey/icons";
+import { InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import {
-  type DeploymentNode,
-  type RegionMetadata,
-  type HealthStatus,
-  REGION_INFO,
-} from "./types";
-import { StatusDot } from "./status-dot";
+import type { PropsWithChildren } from "react";
 import { HealthBanner } from "./health-banner";
 import { STATUS_CONFIG } from "./status-config";
-import type { PropsWithChildren } from "react";
-import { InfoTooltip } from "@unkey/ui";
+import { StatusDot } from "./status-dot";
+import { type DeploymentNode, type HealthStatus, REGION_INFO, type RegionMetadata } from "./types";
 
 function getHealthStyles(health: HealthStatus): { ring: string; glow: string } {
   const styleMap: Record<HealthStatus, { ring: string; glow: string }> = {
@@ -64,12 +52,7 @@ type StatusIndicatorProps = {
   showGlow?: boolean;
 };
 
-function StatusIndicator({
-  icon,
-  healthStatus,
-  tooltip,
-  showGlow = false,
-}: StatusIndicatorProps) {
+function StatusIndicator({ icon, healthStatus, tooltip, showGlow = false }: StatusIndicatorProps) {
   const { colors } = STATUS_CONFIG[healthStatus];
   const glowBoxShadow = showGlow
     ? `0 0 8px 1px ${colors.dotRing} inset, 0 0 0 1px var(--color-grayA-gray-a5, rgba(0, 9, 50, 0.12)) inset`
@@ -140,9 +123,7 @@ function CardHeader({ icon, title, subtitle, health }: CardHeaderProps) {
       <div className="flex items-center justify-between gap-3">
         {icon}
         <div className="flex flex-col gap-[3px] justify-center h-9 py-2">
-          <div className="text-accent-12 font-medium text-xs font-mono">
-            {title}
-          </div>
+          <div className="text-accent-12 font-medium text-xs font-mono">{title}</div>
           <div className="text-gray-9 text-[11px]">{subtitle}</div>
         </div>
       </div>
@@ -189,11 +170,7 @@ function CardFooter(props: CardFooterProps) {
     <div className="p-1 flex items-center h-full bg-grayA-2 rounded-b-[14px]">
       {flagCode && (
         <div className="size-[22px] bg-grayA-3 rounded-full p-[3px] flex items-center justify-center mr-1.5">
-          <img
-            src={`/images/flags/${flagCode}.svg`}
-            alt={flagCode}
-            className="size-4"
-          />
+          <img src={`/images/flags/${flagCode}.svg`} alt={flagCode} className="size-4" />
         </div>
       )}
       {rps !== undefined && (
@@ -253,14 +230,14 @@ function NodeWrapper({ health, children }: NodeWrapperProps) {
               "hover:scale-[1.001] transition-all duration-200 ease-out cursor-pointer",
               "hover:ring-2 hover:ring-offset-0",
               ring,
-              glow
-            )
+              glow,
+            ),
       )}
     >
       <HealthBanner healthStatus={health} />
       <div
         className={cn(
-          "relative z-20 w-[282px] h-[100px] border border-grayA-4 rounded-[14px] flex flex-col bg-white dark:bg-black shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)]"
+          "relative z-20 w-[282px] h-[100px] border border-grayA-4 rounded-[14px] flex flex-col bg-white dark:bg-black shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)]",
         )}
       >
         {children}
@@ -288,11 +265,7 @@ export function RegionNode({ node }: RegionNodeProps) {
             position={{ align: "center", side: "top", sideOffset: 5 }}
           >
             <div className="border rounded-[10px] border-grayA-3 size-9 bg-grayA-3 flex items-center justify-center">
-              <img
-                src={`/images/flags/${flagCode}.svg`}
-                alt={flagCode}
-                className="size-4"
-              />
+              <img src={`/images/flags/${flagCode}.svg`} alt={flagCode} className="size-4" />
             </div>
           </InfoTooltip>
         }
@@ -325,13 +298,7 @@ export function InstanceNode({ node, flagCode }: InstanceNodeProps) {
         subtitle="Instance Replica"
         health={health}
       />
-      <CardFooter
-        type="instance"
-        flagCode={flagCode}
-        rps={rps}
-        cpu={cpu}
-        memory={memory}
-      />
+      <CardFooter type="instance" flagCode={flagCode} rps={rps} cpu={cpu} memory={memory} />
     </NodeWrapper>
   );
 }

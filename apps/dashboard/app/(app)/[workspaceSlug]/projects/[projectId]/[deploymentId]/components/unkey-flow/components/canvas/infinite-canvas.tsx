@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Point } from "../../types";
 import { GridPattern } from "./grid-pattern";
 
@@ -72,7 +72,7 @@ export function InfiniteCanvas({
       requestAnimationFrame(() => {
         setCanvas({
           scale: defaultZoom,
-          offset: { x: rect.width / 2, y: rect.height / 2 },
+          offset: { x: rect.width / 2, y: rect.height / 4 }, // If we divide the y, by "2" or less vertical alignment will shift to bottom.
         });
       });
     });
@@ -99,7 +99,7 @@ export function InfiniteCanvas({
         y: e.clientY - canvas.offset.y,
       };
     },
-    [canvas.offset]
+    [canvas.offset],
   );
 
   const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
@@ -134,10 +134,7 @@ export function InfiniteCanvas({
       const mouseY = e.clientY - rect.top;
 
       const delta = e.deltaY * -zoomSpeed;
-      const newScale = Math.min(
-        Math.max(minZoom, canvas.scale + delta),
-        maxZoom
-      );
+      const newScale = Math.min(Math.max(minZoom, canvas.scale + delta), maxZoom);
 
       // Zoom towards mouse position.
       // This keeps the point under the cursor stationary while zooming.
@@ -149,7 +146,7 @@ export function InfiniteCanvas({
 
       setCanvas({ scale: newScale, offset: newOffset });
     },
-    [canvas, minZoom, maxZoom, zoomSpeed]
+    [canvas, minZoom, maxZoom, zoomSpeed],
   );
 
   // Prevent browser's default scroll behavior on wheel events
@@ -178,24 +175,16 @@ export function InfiniteCanvas({
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
       >
-        <g
-          transform={`translate(${canvas.offset.x}, ${canvas.offset.y}) scale(${canvas.scale})`}
-        >
+        <g transform={`translate(${canvas.offset.x}, ${canvas.offset.y}) scale(${canvas.scale})`}>
           {showGrid && (
-            <GridPattern
-              gridSize={gridSize}
-              dotRadius={dotRadius}
-              dotClassName={dotClassName}
-            />
+            <GridPattern gridSize={gridSize} dotRadius={dotRadius} dotClassName={dotClassName} />
           )}
           {children}
         </g>
       </svg>
 
       {/* Fixed overlay  */}
-      {overlay && (
-        <div className="absolute inset-0 pointer-events-none">{overlay}</div>
-      )}
+      {overlay && <div className="absolute inset-0 pointer-events-none">{overlay}</div>}
     </div>
   );
 }

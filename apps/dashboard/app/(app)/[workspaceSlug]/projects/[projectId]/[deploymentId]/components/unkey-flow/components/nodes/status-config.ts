@@ -33,17 +33,14 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
       bannerBg: "bg-success-2",
       bannerBorder: "border-successA-2",
       textColor: "text-success-12",
-      gradientFromLeft:
-        "bg-gradient-to-r from-success-2 via-success-2 to-transparent",
-      gradientFromRight:
-        "bg-gradient-to-l from-success-2 via-success-2 to-transparent",
+      gradientFromLeft: "bg-gradient-to-r from-success-2 via-success-2 to-transparent",
+      gradientFromRight: "bg-gradient-to-l from-success-2 via-success-2 to-transparent",
     },
   },
   unstable: {
     label: "Unstable",
     icon: TriangleWarning2,
-    message:
-      "Intermittent health check failures. Metrics fluctuating significantly.",
+    message: "Intermittent health check failures. Metrics fluctuating significantly.",
     showBanner: true,
     colors: {
       dotBg: "bg-orange-9",
@@ -52,10 +49,8 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
       bannerBg: "bg-orange-2",
       bannerBorder: "border-orangeA-3",
       textColor: "text-orange-12",
-      gradientFromLeft:
-        "bg-gradient-to-r from-orange-2 via-orange-2 to-transparent",
-      gradientFromRight:
-        "bg-gradient-to-l from-orange-2 via-orange-2 to-transparent",
+      gradientFromLeft: "bg-gradient-to-r from-orange-2 via-orange-2 to-transparent",
+      gradientFromRight: "bg-gradient-to-l from-orange-2 via-orange-2 to-transparent",
     },
   },
   degraded: {
@@ -70,17 +65,14 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
       bannerBg: "bg-warning-2",
       bannerBorder: "border-warningA-3",
       textColor: "text-warning-12",
-      gradientFromLeft:
-        "bg-gradient-to-r from-warning-2 via-warning-2 to-transparent",
-      gradientFromRight:
-        "bg-gradient-to-l from-warning-2 via-warning-2 to-transparent",
+      gradientFromLeft: "bg-gradient-to-r from-warning-2 via-warning-2 to-transparent",
+      gradientFromRight: "bg-gradient-to-l from-warning-2 via-warning-2 to-transparent",
     },
   },
   unhealthy: {
     label: "Unhealthy",
     icon: TriangleWarning2,
-    message:
-      "Critical health check failures detected. Immediate attention required.",
+    message: "Critical health check failures detected. Immediate attention required.",
     showBanner: true,
     colors: {
       dotBg: "bg-error-9",
@@ -89,10 +81,8 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
       bannerBg: "bg-error-2",
       bannerBorder: "border-errorA-3",
       textColor: "text-error-12",
-      gradientFromLeft:
-        "bg-gradient-to-r from-error-2 via-error-2 to-transparent",
-      gradientFromRight:
-        "bg-gradient-to-l from-error-2 via-error-2 to-transparent",
+      gradientFromLeft: "bg-gradient-to-r from-error-2 via-error-2 to-transparent",
+      gradientFromRight: "bg-gradient-to-l from-error-2 via-error-2 to-transparent",
     },
   },
   recovering: {
@@ -107,10 +97,8 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
       bannerBg: "bg-feature-2",
       bannerBorder: "border-featureA-3",
       textColor: "text-feature-12",
-      gradientFromLeft:
-        "bg-gradient-to-r from-feature-2 via-feature-2 to-transparent",
-      gradientFromRight:
-        "bg-gradient-to-l from-feature-2 via-feature-2 to-transparent",
+      gradientFromLeft: "bg-gradient-to-r from-feature-2 via-feature-2 to-transparent",
+      gradientFromRight: "bg-gradient-to-l from-feature-2 via-feature-2 to-transparent",
     },
   },
   health_syncing: {
@@ -125,10 +113,8 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
       bannerBg: "bg-info-2",
       bannerBorder: "border-infoA-2",
       textColor: "text-info-12",
-      gradientFromLeft:
-        "bg-gradient-to-r from-info-2 via-info-2 to-transparent",
-      gradientFromRight:
-        "bg-gradient-to-l from-info-2 via-info-2 to-transparent",
+      gradientFromLeft: "bg-gradient-to-r from-info-2 via-info-2 to-transparent",
+      gradientFromRight: "bg-gradient-to-l from-info-2 via-info-2 to-transparent",
     },
   },
   unknown: {
@@ -143,10 +129,8 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
       bannerBg: "bg-gray-2",
       bannerBorder: "border-grayA-3",
       textColor: "text-gray-11",
-      gradientFromLeft:
-        "bg-gradient-to-r from-gray-2 via-gray-2 to-transparent",
-      gradientFromRight:
-        "bg-gradient-to-l from-gray-2 via-gray-2 to-transparent",
+      gradientFromLeft: "bg-gradient-to-r from-gray-2 via-gray-2 to-transparent",
+      gradientFromRight: "bg-gradient-to-l from-gray-2 via-gray-2 to-transparent",
     },
   },
   disabled: {
@@ -161,10 +145,8 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
       bannerBg: "bg-gray-2",
       bannerBorder: "border-grayA-3",
       textColor: "text-gray-11",
-      gradientFromLeft:
-        "bg-gradient-to-r from-gray-2 via-gray-2 to-transparent",
-      gradientFromRight:
-        "bg-gradient-to-l from-gray-2 via-gray-2 to-transparent",
+      gradientFromLeft: "bg-gradient-to-r from-gray-2 via-gray-2 to-transparent",
+      gradientFromRight: "bg-gradient-to-l from-gray-2 via-gray-2 to-transparent",
     },
   },
 };

@@ -31,14 +31,14 @@ export type TreeLayoutProps<T extends TreeNode> = {
     node: T,
     position: Point,
     // Origin node can exist without a parent. Like god.
-    parent: T | undefined
+    parent: T | undefined,
   ) => React.ReactNode;
   renderConnection?: (
     from: Point,
     to: Point,
     parent: T,
     child: T,
-    waypoints?: Point[]
+    waypoints?: Point[],
   ) => React.ReactNode;
 };
 

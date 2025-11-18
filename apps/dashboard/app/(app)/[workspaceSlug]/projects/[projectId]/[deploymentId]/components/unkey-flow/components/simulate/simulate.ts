@@ -1,8 +1,8 @@
 import type {
-  HealthStatus,
   DeploymentNode,
-  RegionMetadata,
+  HealthStatus,
   InstanceMetadata,
+  RegionMetadata,
 } from "../nodes/types";
 
 type GeneratorConfig = {
@@ -13,9 +13,7 @@ type GeneratorConfig = {
   instanceDirection?: "vertical" | "horizontal";
 };
 
-export function generateDeploymentTree(
-  config: GeneratorConfig
-): DeploymentNode {
+export function generateDeploymentTree(config: GeneratorConfig): DeploymentNode {
   const healthStatuses: HealthStatus[] = [
     "normal",
     "unstable",
@@ -49,9 +47,7 @@ export function generateDeploymentTree(
     if (config.healthDistribution) {
       const rand = Math.random() * 100;
       let cumulative = 0;
-      for (const [status, percentage] of Object.entries(
-        config.healthDistribution
-      )) {
+      for (const [status, percentage] of Object.entries(config.healthDistribution)) {
         cumulative += percentage;
         if (rand <= cumulative) {
           return status as HealthStatus;
@@ -73,7 +69,7 @@ export function generateDeploymentTree(
     children: selectedRegions.map((regionId) => {
       const instanceCount = getRandomInt(
         config.instancesPerRegion.min,
-        config.instancesPerRegion.max
+        config.instancesPerRegion.max,
       );
       const totalInstances = getRandomInt(20, 40);
       const regionHealth = getRandomHealth();

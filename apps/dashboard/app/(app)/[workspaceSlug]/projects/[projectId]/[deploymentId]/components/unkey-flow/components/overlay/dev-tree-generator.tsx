@@ -1,6 +1,6 @@
+import type { DeploymentNode } from "../nodes/types";
 import { generateDeploymentTree } from "../simulate/simulate";
 import { InternalDevTreeGenerator } from "../simulate/tree-generate";
-import type { DeploymentNode } from "../nodes/types";
 
 export const DEFAULT_TREE = generateDeploymentTree({
   regions: 3,

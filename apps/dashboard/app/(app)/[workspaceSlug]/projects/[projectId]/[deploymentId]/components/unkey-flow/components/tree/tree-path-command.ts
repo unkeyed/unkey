@@ -57,9 +57,7 @@ export function renderPath(commands: PathCommand[]): string {
         default: {
           // Exhaustive check - ensures we handle all PathCommand types
           const exhaustive: never = cmd;
-          throw new Error(
-            `Unhandled command type: ${JSON.stringify(exhaustive)}`
-          );
+          throw new Error(`Unhandled command type: ${JSON.stringify(exhaustive)}`);
         }
       }
     })

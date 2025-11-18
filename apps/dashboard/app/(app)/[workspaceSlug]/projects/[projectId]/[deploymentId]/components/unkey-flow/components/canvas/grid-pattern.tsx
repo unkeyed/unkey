@@ -12,11 +12,7 @@ type GridPatternProps = {
   dotClassName?: string; // classes for dot color
 };
 
-export function GridPattern({
-  gridSize,
-  dotRadius,
-  dotClassName,
-}: GridPatternProps) {
+export function GridPattern({ gridSize, dotRadius, dotClassName }: GridPatternProps) {
   return (
     <>
       <defs>
@@ -28,17 +24,10 @@ export function GridPattern({
           height={gridSize}
           patternUnits="userSpaceOnUse"
         >
-          <circle
-            cx={gridSize / 2}
-            cy={gridSize / 2}
-            r={dotRadius}
-            className={dotClassName}
-          >
+          <circle cx={gridSize / 2} cy={gridSize / 2} r={dotRadius} className={dotClassName}>
             <animate
               attributeName="r"
-              values={`${dotRadius};${
-                dotRadius * MAX_RADIUS_MULTIPLIER
-              };${dotRadius}`}
+              values={`${dotRadius};${dotRadius * MAX_RADIUS_MULTIPLIER};${dotRadius}`}
               dur={`${ANIMATION_DURATION}s`}
               begin={`${Math.random() * RANDOM_DELAY_MAX}s`}
               repeatCount="indefinite"

@@ -1,21 +1,16 @@
 import { cn } from "@unkey/ui/src/lib/utils";
-import { STATUS_CONFIG, type HealthStatus } from "./status-config";
+import { type HealthStatus, STATUS_CONFIG } from "./status-config";
 
 type StatusDotProps = {
   healthStatus: HealthStatus;
   variant?: "absolute" | "relative";
 };
 
-export function StatusDot({
-  healthStatus,
-  variant = "absolute",
-}: StatusDotProps) {
+export function StatusDot({ healthStatus, variant = "absolute" }: StatusDotProps) {
   const { colors } = STATUS_CONFIG[healthStatus];
 
   const wrapperClass =
-    variant === "absolute"
-      ? "absolute top-1.5 right-1.5 size-[7px]"
-      : "relative size-[7px]";
+    variant === "absolute" ? "absolute top-1.5 right-1.5 size-[7px]" : "relative size-[7px]";
 
   return (
     <>

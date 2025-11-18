@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import type { TreeLayoutProps, TreeNode } from "../../types";
 import { LayoutEngine } from "../../layout-engine";
-import { TreeElementNode } from "./tree-element-node";
+import type { TreeLayoutProps, TreeNode } from "../../types";
 import { TreeConnectionLine } from "./tree-connection-line";
+import { TreeElementNode } from "./tree-element-node";
 
 /**
  * Vertical tree layout component (top to bottom).
@@ -23,7 +23,7 @@ export function TreeLayout<T extends TreeNode>({
   // We have to retrigger the calculation if we receive new data
   const layoutEngine = useMemo(
     () => new LayoutEngine<T>({ spacing: nodeSpacing, direction: "vertical" }),
-    [nodeSpacing, data]
+    [nodeSpacing, data],
   );
 
   const parentMap = useMemo(() => {
@@ -75,11 +75,7 @@ export function TreeLayout<T extends TreeNode>({
   // Lock in first measurement for each node.
   // This prevents remeasurement after canvas scale changes,
   // which would corrupt the layout with scaled dimensions.
-  const handleNodeMeasure = (
-    id: string,
-    width: number,
-    height: number
-  ): void => {
+  const handleNodeMeasure = (id: string, width: number, height: number): void => {
     setNodeDimensions((prev) => {
       const existing = prev.get(id);
       if (existing?.width === width && existing?.height === height) {
@@ -120,13 +116,7 @@ export function TreeLayout<T extends TreeNode>({
     <>
       {layout.connections.map((conn) =>
         renderConnection ? (
-          renderConnection(
-            conn.from,
-            conn.to,
-            conn.parent,
-            conn.child,
-            conn.waypoints
-          )
+          renderConnection(conn.from, conn.to, conn.parent, conn.child, conn.waypoints)
         ) : (
           <TreeConnectionLine
             key={`${conn.parent.id}-${conn.child.id}`}
@@ -134,7 +124,7 @@ export function TreeLayout<T extends TreeNode>({
             to={conn.to}
             waypoints={conn.waypoints ?? []}
           />
-        )
+        ),
       )}
 
       {layout.nodes.map((positioned) => {
