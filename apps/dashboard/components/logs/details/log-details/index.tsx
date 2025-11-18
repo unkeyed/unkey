@@ -29,13 +29,13 @@ type LogDetailsContextValue = {
   isOpen: boolean;
   log?: SupportedLogTypes;
   isLoading: boolean;
-  error?: boolean;
+  error: boolean;
 };
 
 const LogDetailsContext = createContext<LogDetailsContextValue>({
   animated: false,
   isOpen: true,
-  log: {} as SupportedLogTypes,
+  log: undefined,
   isLoading: false,
   error: false,
 });
@@ -110,8 +110,8 @@ type LogDetailsProps = {
 export const LogDetails = ({
   distanceToTop,
   log,
-  isLoading = true,
-  error,
+  isLoading = false,
+  error = false,
   onClose,
   animated = false,
   children,
@@ -219,9 +219,7 @@ const Sections = ({
           <Loading type="spinner" size={22} />
         </Empty.Icon>
         <Empty.Title>Log Details</Empty.Title>
-        <Empty.Description>
-          Fetching log details is taking longer than expected...
-        </Empty.Description>
+        <Empty.Description>Fetching log details...</Empty.Description>
       </Empty>
     );
   }

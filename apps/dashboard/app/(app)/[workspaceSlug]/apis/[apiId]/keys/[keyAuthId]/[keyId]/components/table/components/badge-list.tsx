@@ -13,10 +13,11 @@ type BadgeListProps = {
 };
 
 /**
- * Single status item for log like KEY_VERIFICATION_OUTCOMES
+ * Renders a list of tag badges for a log entry with responsive overflow handling
  * @param log for the row
  * @param selectedLog for log selected in table
- * @returns JSX element that shows status outcomes of log
+ * @param Optional setting for to set max items to show in cell
+ * @returns JSX element that shows tag badges for the log
  */
 
 export const BadgeList = ({ log, selectedLog, maxTags = 30 }: BadgeListProps) => {
@@ -80,7 +81,7 @@ export const BadgeList = ({ log, selectedLog, maxTags = 30 }: BadgeListProps) =>
                     <div className="break-all max-w-[300px] truncate">{tag}</div>
                     <div className="flex items-center justify-between mt-1.5">
                       <div className="text-xs opacity-60">({tag.length} characters)</div>
-                      {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+                      {/* biome-ignore lint/a11y/useKeyWithClickEvents: CopyButton handles keyboard events */}
                       <div className="pointer-events-auto" onClick={(e) => e.stopPropagation()}>
                         <CopyButton variant="ghost" value={tag} />
                       </div>
@@ -89,7 +90,7 @@ export const BadgeList = ({ log, selectedLog, maxTags = 30 }: BadgeListProps) =>
                 ) : (
                   <div className="flex justify-between items-center gap-1.5">
                     <div className="break-all max-w-[300px] truncate">{tag}</div>
-                    {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+                    {/* biome-ignore lint/a11y/useKeyWithClickEvents: CopyButton handles keyboard events */}
                     <div
                       className="pointer-events-auto flex-shrink-0"
                       onClick={(e) => e.stopPropagation()}
@@ -136,7 +137,7 @@ export const BadgeList = ({ log, selectedLog, maxTags = 30 }: BadgeListProps) =>
                       <div className="break-all max-w-[300px] truncate">{tag}</div>
                       <div className="flex items-center justify-between mt-1.5">
                         <div className="text-xs opacity-60">({tag.length} characters)</div>
-                        {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+                        {/* biome-ignore lint/a11y/useKeyWithClickEvents: CopyButton handles keyboard events internally */}
                         <div className="pointer-events-auto " onClick={(e) => e.stopPropagation()}>
                           <CopyButton variant="ghost" value={tag} />
                         </div>
@@ -145,7 +146,7 @@ export const BadgeList = ({ log, selectedLog, maxTags = 30 }: BadgeListProps) =>
                   ) : (
                     <div className="flex justify-between items-center gap-1.5">
                       <div className="break-all max-w-[300px] truncate">{tag}</div>
-                      {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+                      {/* biome-ignore lint/a11y/useKeyWithClickEvents: CopyButton handles keyboard events internally */}
                       <div
                         className="pointer-events-auto flex-shrink-0 "
                         onClick={(e) => e.stopPropagation()}

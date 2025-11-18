@@ -23,7 +23,7 @@ export const LogHeader = ({ onClose, log }: Props) => {
           </Badge>
         ) : null}
 
-        <p className="text-xs text-accent-12 truncate flex-1 mr-4">{log?.path}</p>
+        {log && <p className="text-xs text-accent-12 truncate flex-1 mr-4">{log.path}</p>}
       </div>
 
       <div className="flex gap-1 items-center shrink-0">

@@ -184,8 +184,10 @@ export const StatusCell = ({ log, selectedLog }: OutcomeProps) => {
           primary={{
             label: outcomeInfo.label,
             color: isSelected
-              ? STATUS_STYLES[getStatusType(outcomeInfo.type)].badge.selected
-              : STATUS_STYLES[getStatusType(outcomeInfo.type)].badge.default,
+              ? (STATUS_STYLES[getStatusType(outcomeInfo.type)].badge?.selected ??
+                "bg-grayA-3 text-grayA-9")
+              : (STATUS_STYLES[getStatusType(outcomeInfo.type)].badge?.default ??
+                "bg-grayA-3 text-grayA-9"),
             icon: outcomeInfo.icon,
           }}
         />
