@@ -4,7 +4,7 @@ import { Badge, Button } from "@unkey/ui";
 import type { StandardLogTypes } from "..";
 
 type Props = {
-  log: StandardLogTypes;
+  log?: StandardLogTypes;
   onClose: () => void;
 };
 

@@ -20,9 +20,9 @@ type BadgeListProps = {
  * @returns JSX element that shows tag badges for the log
  */
 
-export const BadgeList = ({ log, selectedLog, maxTags = 30 }: BadgeListProps) => {
+export const BadgeList = ({ log, selectedLog, maxTags = 20 }: BadgeListProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
+  const [containerWidth, setContainerWidth] = useState(200);
 
   useLayoutEffect(() => {
     if (!containerRef.current) {
@@ -46,7 +46,8 @@ export const BadgeList = ({ log, selectedLog, maxTags = 30 }: BadgeListProps) =>
   // Calculate how many badges can fit based on container width
   const visibleTagCount = useMemo(() => {
     if (containerWidth === 0 || !log.tags || log.tags.length === 0) {
-      return maxTags;
+      // If no tags or no container width return 0
+      return 0;
     }
 
     // Approximate badge width (max-w-[150px] + padding + gap)
@@ -54,16 +55,19 @@ export const BadgeList = ({ log, selectedLog, maxTags = 30 }: BadgeListProps) =>
     const moreButtonWidth = 60; // Width for "+X" badge
     const availableWidth = containerWidth;
 
-    // Calculate how many full badges can fit, leaving room for the "+X" badge if needed
-    const maxVisibleBadges = Math.floor((availableWidth - moreButtonWidth) / badgeWidth);
-
-    // If we can fit all tags, show them all (up to maxTags limit)
+    // First check if all tags (up to maxTags) can fit without reserving space for "+X" badge
     const possibleCount = Math.min(log.tags.length, maxTags);
-    if (maxVisibleBadges >= possibleCount) {
+    const maxBadgesWithoutMoreButton = Math.floor(availableWidth / badgeWidth);
+
+    if (maxBadgesWithoutMoreButton >= possibleCount) {
+      // All tags fit without needing the "+X" badge
       return possibleCount;
     }
 
-    // Otherwise, show as many as we can fit (at least 1)
+    // Tags don't all fit, so reserve space for "+X" badge and calculate how many can be shown
+    const maxVisibleBadges = Math.floor((availableWidth - moreButtonWidth) / badgeWidth);
+
+    // Show as many as we can fit (at least 1)
     return Math.max(1, maxVisibleBadges);
   }, [containerWidth, log.tags, maxTags]);
 
@@ -78,7 +82,7 @@ export const BadgeList = ({ log, selectedLog, maxTags = 30 }: BadgeListProps) =>
               <div className="max-w-xs">
                 {tag.length > 60 ? (
                   <div>
-                    <div className="break-all max-w-[300px] truncate">{tag}</div>
+                    <div className="max-w-[300px] truncate">{tag}</div>
                     <div className="flex items-center justify-between mt-1.5">
                       <div className="text-xs opacity-60">({tag.length} characters)</div>
                       {/* biome-ignore lint/a11y/useKeyWithClickEvents: CopyButton handles keyboard events */}
@@ -134,11 +138,11 @@ export const BadgeList = ({ log, selectedLog, maxTags = 30 }: BadgeListProps) =>
                 <div key={idx + tag} className="text-xs">
                   {tag.length > 60 ? (
                     <div>
-                      <div className="break-all max-w-[300px] truncate">{tag}</div>
+                      <div className="max-w-[300px] truncate">{tag}</div>
                       <div className="flex items-center justify-between mt-1.5">
                         <div className="text-xs opacity-60">({tag.length} characters)</div>
                         {/* biome-ignore lint/a11y/useKeyWithClickEvents: CopyButton handles keyboard events internally */}
-                        <div className="pointer-events-auto " onClick={(e) => e.stopPropagation()}>
+                        <div className="pointer-events-auto" onClick={(e) => e.stopPropagation()}>
                           <CopyButton variant="ghost" value={tag} />
                         </div>
                       </div>
