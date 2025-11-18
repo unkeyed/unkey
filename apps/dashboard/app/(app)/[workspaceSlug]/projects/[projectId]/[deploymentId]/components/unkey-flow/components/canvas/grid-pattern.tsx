@@ -1,10 +1,10 @@
 const ANIMATION_DURATION = 4;
-const MAX_RADIUS_MULTIPLIER = 1.5;
+const MAX_RADIUS_MULTIPLIER = 1.1;
 const MIN_OPACITY = 0.5;
 const MAX_OPACITY = 0.8;
 const RANDOM_DELAY_MAX = 2;
-const GRID_OFFSET = -10000;
-const GRID_DIMENSION = 20000;
+const GRID_OFFSET = -5000;
+const GRID_DIMENSION = 10000;
 
 type GridPatternProps = {
   gridSize: number; // Space between dots

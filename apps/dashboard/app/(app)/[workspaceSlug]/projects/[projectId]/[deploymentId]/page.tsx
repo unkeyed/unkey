@@ -12,16 +12,20 @@ import {
   DevTreeGenerator,
 } from "./components/unkey-flow/components/overlay/dev-tree-generator";
 import { LiveIndicator } from "./components/unkey-flow/components/overlay/live";
+import { NodeDetailsPanel } from "./components/unkey-flow/components/overlay/node-details-panel";
 import { ProjectDetails } from "./components/unkey-flow/components/overlay/project-details";
 import type { TreeNode } from "./components/unkey-flow/types";
 
 export default function DeploymentDetailsPage() {
   const { projectId } = useProject();
   const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(DEFAULT_TREE);
+  const [selectedNode, setSelectedNode] = useState<DeploymentNode>();
+
   return (
     <InfiniteCanvas
       overlay={
         <>
+          <NodeDetailsPanel node={selectedNode} />
           <ProjectDetails projectId={projectId} />
           <LiveIndicator />
           <DevTreeGenerator onTreeGenerate={(tree) => setGeneratedTree(tree)} />
@@ -32,7 +36,7 @@ export default function DeploymentDetailsPage() {
         // biome-ignore lint/style/noNonNullAssertion: <explanation>
         data={generatedTree!}
         nodeSpacing={{ x: 25, y: 75 }}
-        onNodeClick={(node) => console.log("NODE DETAILS", node)}
+        onNodeClick={(node) => setSelectedNode(node)}
         renderNode={(node, _, parent) => {
           switch (node.metadata.type) {
             case "origin":

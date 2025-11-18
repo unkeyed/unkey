@@ -62,11 +62,12 @@ function StatusIndicator({ icon, healthStatus, tooltip, showGlow = false }: Stat
     <InfoTooltip
       content={tooltip}
       variant="primary"
+      asChild
       className="px-2.5 py-1 rounded-[10px] text-whiteA-12 bg-blackA-12 text-xs z-30"
       position={{ align: "center", side: "top", sideOffset: 5 }}
     >
       <div
-        className="border bg-gray-1 border-grayA-3 h-11 rounded-lg w-8 transition-all hover:ring-1 hover:ring-gray-7 duration-200 ease-out hover:scale-105 cursor-pointer"
+        className="border bg-gray-1 border-grayA-3 h-full rounded-lg w-8 transition-all hover:ring-1 hover:ring-gray-7 duration-200 ease-out hover:scale-105 cursor-pointer overflow-hidden"
         style={{
           boxShadow: glowBoxShadow,
         }}
@@ -102,23 +103,34 @@ function MetricPill({ icon, value, tooltip }: MetricPillProps) {
   );
 }
 
+type CardHeaderVariant = "card" | "panel";
+
 type CardHeaderProps = {
   icon: React.ReactNode;
   title: string;
   subtitle: string;
   health: HealthStatus;
+  variant?: CardHeaderVariant;
 };
 
-function CardHeader({ icon, title, subtitle, health }: CardHeaderProps) {
+export function CardHeader({ icon, title, subtitle, health, variant = "card" }: CardHeaderProps) {
   const { colors } = STATUS_CONFIG[health];
+  const isCard = variant === "card";
 
   return (
     <div
-      className="border-b border-grayA-4 flex px-3 py-2.5 rounded-t-[14px]"
-      style={{
-        background:
-          "radial-gradient(circle at 5% 15%, hsl(var(--grayA-3)) 0%, transparent 20%), light-dark(#FFF, #000)",
-      }}
+      className={cn(
+        "flex w-full",
+        isCard && "border-b border-grayA-4 rounded-t-[14px] px-3 py-2.5 ",
+      )}
+      style={
+        isCard
+          ? {
+              background:
+                "radial-gradient(circle at 5% 15%, hsl(var(--grayA-3)) 0%, transparent 20%), light-dark(#FFF, #000)",
+            }
+          : undefined
+      }
     >
       <div className="flex items-center justify-between gap-3">
         {icon}
