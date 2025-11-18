@@ -102,9 +102,11 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     email: string;
     ipAddress?: string;
     userAgent?: string;
+    auth_method?: string;
+    action?: string;
   }): Promise<Decision> {
     try {
-      const response = await fetch("https://api.workos.com/radar/events", {
+      const response = await fetch("https://api.workos.com/radar/attempts", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${this.provider.key}`,
@@ -114,7 +116,8 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           email: params.email,
           ip_address: params.ipAddress,
           user_agent: params.userAgent,
-          timestamp: new Date().toISOString(),
+          auth_method: params.auth_method,
+          action: params.action
         }),
       });
 
@@ -606,9 +609,10 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     params: UserData & { ipAddress?: string; userAgent?: string },
   ): Promise<EmailAuthResult> {
     const { email, firstName, lastName, ipAddress, userAgent } = params;
-
+    const auth_method = "Email_OTP"; // WorkOS value
+    const action = "sign-up"; // WorkOS value
     // Check Radar before proceeding with signup
-    const radarDecision = await this.checkRadar({ email, ipAddress, userAgent });
+    const radarDecision = await this.checkRadar({ email, ipAddress, userAgent, auth_method, action });
 
     if (radarDecision.action === "block") {
       return {
@@ -654,12 +658,15 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     userAgent?: string;
   }): Promise<EmailAuthResult> {
     const { email, ipAddress, userAgent } = params;
-
+    const auth_method = "Email_OTP"; // WorkOS value
+    const action = "sign-up"; // WorkOS value
     // Check Radar before proceeding with signin
     const radarDecision = await this.checkRadar({
       email,
       ipAddress,
       userAgent,
+      auth_method,
+      action
     });
 
     if (radarDecision.action === "block") {
