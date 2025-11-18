@@ -25,7 +25,7 @@ export const GatewayLogDetails = ({ distanceToTop }: Props) => {
       log={log}
       onClose={handleClose}
       isLoading={false}
-      error={false}
+      isError={false}
     >
       <LogDetails.Header onClose={handleClose} />
       <LogDetails.Sections />

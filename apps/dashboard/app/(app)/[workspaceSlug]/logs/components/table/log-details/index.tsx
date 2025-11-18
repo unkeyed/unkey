@@ -25,7 +25,7 @@ export const LogDetails = ({ distanceToTop }: Props) => {
       distanceToTop={distanceToTop}
       log={log}
       onClose={handleClose}
-      error={false}
+      isError={false}
       isLoading={false}
     >
       <SharedLogDetails.Header onClose={handleClose} />

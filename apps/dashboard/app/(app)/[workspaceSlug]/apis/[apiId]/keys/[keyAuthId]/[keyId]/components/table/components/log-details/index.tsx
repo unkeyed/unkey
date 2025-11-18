@@ -44,7 +44,7 @@ export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Pr
       distanceToTop={distanceToTop}
       log={log || undefined}
       onClose={handleClose}
-      error={errorShown}
+      isError={errorShown}
       isLoading={isLoading}
     >
       <LogDetails.Header onClose={handleClose} />

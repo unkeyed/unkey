@@ -29,7 +29,7 @@ type LogDetailsContextValue = {
   isOpen: boolean;
   log?: SupportedLogTypes;
   isLoading: boolean;
-  error: boolean;
+  isError: boolean;
 };
 
 const LogDetailsContext = createContext<LogDetailsContextValue>({
@@ -37,7 +37,7 @@ const LogDetailsContext = createContext<LogDetailsContextValue>({
   isOpen: true,
   log: undefined,
   isLoading: false,
-  error: false,
+  isError: false,
 });
 
 const useLogDetailsContext = () => useContext(LogDetailsContext);
@@ -101,7 +101,7 @@ type LogDetailsProps = {
   distanceToTop: number;
   log: SupportedLogTypes | undefined;
   isLoading: boolean;
-  error: boolean;
+  isError: boolean;
   onClose: () => void;
   animated?: boolean;
   children: ReactNode;
@@ -111,7 +111,7 @@ export const LogDetails = ({
   distanceToTop,
   log,
   isLoading = false,
-  error = false,
+  isError = false,
   onClose,
   animated = false,
   children,
@@ -168,7 +168,7 @@ export const LogDetails = ({
       }}
     >
       <div className={animated ? "h-full overflow-y-auto p-4" : ""}>
-        <LogDetailsContext.Provider value={{ animated, isOpen, log, error, isLoading }}>
+        <LogDetailsContext.Provider value={{ animated, isOpen, log, isError, isLoading }}>
           {children}
         </LogDetailsContext.Provider>
       </div>
@@ -211,7 +211,7 @@ const Sections = ({
   startDelay?: number;
   staggerDelay?: number;
 }) => {
-  const { log, error, isLoading } = useLogDetailsContext();
+  const { log, isError, isLoading } = useLogDetailsContext();
   if (isLoading) {
     return (
       <Empty>
@@ -223,7 +223,7 @@ const Sections = ({
       </Empty>
     );
   }
-  if (error) {
+  if (isError) {
     return (
       <Section delay={startDelay + 0 * staggerDelay}>
         <Empty>

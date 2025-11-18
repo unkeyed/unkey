@@ -6,6 +6,9 @@ import { Badge, CopyButton, InfoTooltip } from "@unkey/ui";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { STATUS_STYLES } from "./status-cell";
 
+const BADGE_WIDTH = 158; // 150px max width + 4px gap on each side
+const MORE_BUTTON_WIDTH = 60; // Width for "+X" badge
+
 type BadgeListProps = {
   log: KeyDetailsLog;
   selectedLog: KeyDetailsLog | null;
@@ -51,13 +54,12 @@ export const BadgeList = ({ log, selectedLog, maxTags = 20 }: BadgeListProps) =>
     }
 
     // Approximate badge width (max-w-[150px] + padding + gap)
-    const badgeWidth = 150 + 8; // 150px max width + 4px gap on each side
-    const moreButtonWidth = 60; // Width for "+X" badge
+
     const availableWidth = containerWidth;
 
     // First check if all tags (up to maxTags) can fit without reserving space for "+X" badge
     const possibleCount = Math.min(log.tags.length, maxTags);
-    const maxBadgesWithoutMoreButton = Math.floor(availableWidth / badgeWidth);
+    const maxBadgesWithoutMoreButton = Math.floor(availableWidth / BADGE_WIDTH);
 
     if (maxBadgesWithoutMoreButton >= possibleCount) {
       // All tags fit without needing the "+X" badge
@@ -65,7 +67,7 @@ export const BadgeList = ({ log, selectedLog, maxTags = 20 }: BadgeListProps) =>
     }
 
     // Tags don't all fit, so reserve space for "+X" badge and calculate how many can be shown
-    const maxVisibleBadges = Math.floor((availableWidth - moreButtonWidth) / badgeWidth);
+    const maxVisibleBadges = Math.floor((availableWidth - MORE_BUTTON_WIDTH) / BADGE_WIDTH);
 
     // Show as many as we can fit (at least 1)
     return Math.max(1, maxVisibleBadges);
