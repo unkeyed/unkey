@@ -42,10 +42,7 @@ spec:
             # Database Configuration
             - name: UNKEY_DATABASE_PRIMARY
               value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
-            - name: UNKEY_DATABASE_PARTITION
-              value: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true&interpolateParams=true"
-            - name: UNKEY_DATABASE_HYDRA
-              value: "unkey:password@tcp(mysql:3306)/hydra?parseTime=true&interpolateParams=true"
+
             # Observability - DISABLED for development
             - name: UNKEY_OTEL
               value: "false"

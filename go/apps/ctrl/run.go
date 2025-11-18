@@ -116,16 +116,6 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
 
-	partitionDB, err := db.New(db.Config{
-		PrimaryDSN:  cfg.DatabasePartition,
-		ReadOnlyDSN: "",
-		Logger:      logger,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create partition db: %w", err)
-	}
-
-	shutdowns.Register(partitionDB.Close)
 	shutdowns.Register(database.Close)
 
 	// Create krane client for VM operations
@@ -231,7 +221,6 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploy.New(deploy.Config{
 		Logger:        logger,
 		DB:            database,
-		PartitionDB:   partitionDB,
 		Krane:         kraneClient,
 		BuildClient:   buildService,
 		DefaultDomain: cfg.DefaultDomain,
@@ -240,15 +229,13 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
 		Logger:        logger,
 		DB:            database,
-		PartitionDB:   partitionDB,
 		DefaultDomain: cfg.DefaultDomain,
 	})))
 
 	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
-		Logger:      logger,
-		DB:          database,
-		PartitionDB: partitionDB,
-		Vault:       vaultSvc,
+		Logger: logger,
+		DB:     database,
+		Vault:  vaultSvc,
 	})))
 
 	go func() {
@@ -329,16 +316,14 @@ func Run(ctx context.Context, cfg Config) error {
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database), connectOptions...))
 	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(deployment.Config{
 		Database:     database,
-		PartitionDB:  partitionDB,
 		Restate:      restateClient,
 		BuildService: buildService,
 		Logger:       logger,
 	}), connectOptions...))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger), connectOptions...))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
-		PartitionDB: partitionDB,
-		DB:          database,
-		Logger:      logger,
+		DB:     database,
+		Logger: logger,
 	}), connectOptions...))
 
 	// Configure server

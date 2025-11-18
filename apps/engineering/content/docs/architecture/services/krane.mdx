@@ -174,4 +174,4 @@ The control plane can then create deployments that run as Docker containers on y
 
 The current StatefulSet-based implementation is acknowledged as a design compromise in the codebase. Future improvements might include switching to standard Deployments with service meshes for instance addressing, implementing native load balancing instead of requiring stable instance DNS, adopting more cloud-native patterns for service discovery, and potentially supporting additional orchestration platforms beyond Kubernetes and Docker.
 
-These changes would require coordinated updates to the control plane, gateway, and partition database to remove the assumption of stable instance addresses. The abstraction layer Krane provides makes such changes possible without affecting the rest of the system.
+These changes would require coordinated updates to the control plane, gateway, and database to remove the assumption of stable instance addresses. The abstraction layer Krane provides makes such changes possible without affecting the rest of the system.

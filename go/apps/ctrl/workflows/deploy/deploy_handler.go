@@ -15,7 +15,6 @@ import (
 	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	partitiondb "github.com/unkeyed/unkey/go/pkg/partition/db"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -25,7 +24,7 @@ import (
 // 1. Load deployment, workspace, project, and environment data
 // 2. Create deployment in Krane (container orchestration)
 // 3. Poll for all instances to become ready
-// 4. Register VMs in partition database
+// 4. Register VMs in database
 // 5. Scrape OpenAPI spec from running instances (if available)
 // 6. Assign domains and create gateway configs via routing service
 // 7. Update deployment status to ready
@@ -228,20 +227,20 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 					allReady = false
 				}
 
-				var status partitiondb.VmsStatus
+				var status db.VmsStatus
 				switch instance.GetStatus() {
 				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING:
-					status = partitiondb.VmsStatusProvisioning
+					status = db.VmsStatusProvisioning
 				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING:
-					status = partitiondb.VmsStatusRunning
+					status = db.VmsStatusRunning
 
 				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_TERMINATING:
-					status = partitiondb.VmsStatusStopping
+					status = db.VmsStatusStopping
 				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED:
-					status = partitiondb.VmsStatusAllocated
+					status = db.VmsStatusAllocated
 				}
 
-				upsertParams := partitiondb.UpsertVMParams{
+				upsertParams := db.UpsertVMParams{
 					ID:           instance.GetId(),
 					DeploymentID: deployment.ID,
 					Address:      sql.NullString{Valid: true, String: instance.GetAddress()},
@@ -257,7 +256,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 					"deployment_id", deployment.ID,
 					"address", instance.GetAddress(),
 					"status", status)
-				if err = partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), upsertParams); err != nil {
+				if err = db.Query.UpsertVM(stepCtx, w.db.RW(), upsertParams); err != nil {
 					return nil, fmt.Errorf("failed to upsert VM %s: %w", instance.GetId(), err)
 				}
 

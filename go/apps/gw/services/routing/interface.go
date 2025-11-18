@@ -9,7 +9,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	pdb "github.com/unkeyed/unkey/go/pkg/partition/db"
 )
 
 // Service handles gateway configuration lookup and VM selection.
@@ -28,5 +27,5 @@ type Config struct {
 	Clock  clock.Clock
 
 	GatewayConfigCache cache.Cache[string, ConfigWithWorkspace]
-	VMCache            cache.Cache[string, pdb.Vm]
+	VMCache            cache.Cache[string, db.Vm]
 }

@@ -9,7 +9,6 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	partitiondb "github.com/unkeyed/unkey/go/pkg/partition/db"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -109,7 +108,7 @@ func (s *Service) AssignDomains(ctx restate.ObjectContext, req *hydrav1.AssignDo
 
 	// Create gateway configs for changed domains (except local ones)
 	_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		var gatewayParams []partitiondb.UpsertGatewayParams
+		var gatewayParams []db.UpsertGatewayParams
 		var skippedDomains []string
 
 		for _, domainName := range changedDomains {
@@ -125,7 +124,7 @@ func (s *Service) AssignDomains(ctx restate.ObjectContext, req *hydrav1.AssignDo
 				continue
 			}
 
-			gatewayParams = append(gatewayParams, partitiondb.UpsertGatewayParams{
+			gatewayParams = append(gatewayParams, db.UpsertGatewayParams{
 				WorkspaceID:  req.GetWorkspaceId(),
 				DeploymentID: req.GetDeploymentId(),
 				Hostname:     domainName,
@@ -135,7 +134,7 @@ func (s *Service) AssignDomains(ctx restate.ObjectContext, req *hydrav1.AssignDo
 
 		// Bulk upsert gateway configs
 		if len(gatewayParams) > 0 {
-			if err := partitiondb.BulkQuery.UpsertGateway(stepCtx, s.partitionDB.RW(), gatewayParams); err != nil {
+			if err := db.BulkQuery.UpsertGateway(stepCtx, s.db.RW(), gatewayParams); err != nil {
 				return restate.Void{}, fmt.Errorf("failed to upsert gateway configs: %w", err)
 			}
 			s.logger.Info("created gateway configs",

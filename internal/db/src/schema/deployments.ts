@@ -2,9 +2,11 @@ import { relations } from "drizzle-orm";
 import { bigint, index, json, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
 import { deploymentSteps } from "./deployment_steps";
 import { environments } from "./environments";
+import { gateways } from "./gateways";
 import { projects } from "./projects";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
+import { vms } from "./vms";
 import { workspaces } from "./workspaces";
 
 export const deployments = mysqlTable(
@@ -69,4 +71,6 @@ export const deploymentsRelations = relations(deployments, ({ one, many }) => ({
   }),
 
   steps: many(deploymentSteps),
+  gateways: many(gateways),
+  vms: many(vms),
 }));

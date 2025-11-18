@@ -26,6 +26,10 @@ type Querier interface {
 	//  DELETE FROM keys_roles
 	//  WHERE key_id = ?
 	DeleteAllKeyRolesByKeyID(ctx context.Context, db DBTX, keyID string) error
+	//DeleteGatewayByHostname
+	//
+	//  DELETE FROM gateways WHERE hostname = ?
+	DeleteGatewayByHostname(ctx context.Context, db DBTX, hostname string) error
 	//DeleteIdentity
 	//
 	//  DELETE FROM identities
@@ -148,6 +152,10 @@ type Querier interface {
 	//  JOIN audit_log ON audit_log.id = audit_log_target.audit_log_id
 	//  WHERE audit_log_target.id = ?
 	FindAuditLogTargetByID(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIDRow, error)
+	//FindCertificateByHostname
+	//
+	//  SELECT id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
+	FindCertificateByHostname(ctx context.Context, db DBTX, hostname string) (Certificate, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT workspace_id, username, password_encrypted, quota_duration_seconds, max_queries_per_window, max_execution_time_per_window, max_query_execution_time, max_query_memory_bytes, max_query_result_rows, created_at, updated_at FROM `clickhouse_workspace_settings`
@@ -270,6 +278,20 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (FindEnvironmentByProjectIdAndSlugRow, error)
+	//FindGatewayByDeploymentId
+	//
+	//  SELECT hostname, config
+	//  FROM gateways
+	//  WHERE deployment_id = ?
+	//  ORDER BY id DESC
+	//  LIMIT 1
+	FindGatewayByDeploymentId(ctx context.Context, db DBTX, deploymentID string) (FindGatewayByDeploymentIdRow, error)
+	//FindGatewayByHostname
+	//
+	//  SELECT hostname, config, workspace_id
+	//  FROM gateways
+	//  WHERE hostname = ?
+	FindGatewayByHostname(ctx context.Context, db DBTX, hostname string) (FindGatewayByHostnameRow, error)
 	//FindIdentities
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -890,6 +912,16 @@ type Querier interface {
 	//
 	//  SELECT id, name FROM roles WHERE workspace_id = ? AND name IN (/*SLICE:names*/?)
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
+	//FindVMById
+	//
+	//  SELECT id, deployment_id, metal_host_id, address, cpu_millicores, memory_mb, status FROM vms WHERE id = ?
+	FindVMById(ctx context.Context, db DBTX, id string) (Vm, error)
+	//FindVMsByDeploymentId
+	//
+	//  SELECT id, deployment_id, metal_host_id, address, cpu_millicores, memory_mb, status
+	//  FROM vms
+	//  WHERE deployment_id = ?
+	FindVMsByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]Vm, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT id, org_id, name, slug, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -1026,6 +1058,16 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertAuditLogTarget(ctx context.Context, db DBTX, arg InsertAuditLogTargetParams) error
+	//InsertCertificate
+	//
+	//  INSERT INTO certificates (workspace_id, hostname, certificate, encrypted_private_key, created_at)
+	//  VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE
+	//  workspace_id = VALUES(workspace_id),
+	//  hostname = VALUES(hostname),
+	//  certificate = VALUES(certificate),
+	//  encrypted_private_key = VALUES(encrypted_private_key),
+	//  updated_at = ?
+	InsertCertificate(ctx context.Context, db DBTX, arg InsertCertificateParams) error
 	//InsertClickhouseWorkspaceSettings
 	//
 	//  INSERT INTO `clickhouse_workspace_settings` (
@@ -2013,6 +2055,36 @@ type Querier interface {
 	//  SET plan = ?
 	//  WHERE id = ?
 	UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) (sql.Result, error)
+	//UpsertGateway
+	//
+	//  INSERT INTO gateways (
+	//  workspace_id,
+	//  deployment_id,
+	//  hostname,
+	//  config
+	//  )
+	//  VALUES (
+	//  ?,
+	//  ?,
+	//  ?,
+	//  ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      workspace_id = ?,
+	//      deployment_id = ?,
+	//      config = ?
+	UpsertGateway(ctx context.Context, db DBTX, arg UpsertGatewayParams) error
+	//UpsertVM
+	//
+	//  INSERT INTO vms (id, deployment_id, address, cpu_millicores, memory_mb, status)
+	//  VALUES (?, ?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//    deployment_id = VALUES(deployment_id),
+	//    address = VALUES(address),
+	//    cpu_millicores = VALUES(cpu_millicores),
+	//    memory_mb = VALUES(memory_mb),
+	//    status = VALUES(status)
+	UpsertVM(ctx context.Context, db DBTX, arg UpsertVMParams) error
 }
 
 var _ Querier = (*Queries)(nil)

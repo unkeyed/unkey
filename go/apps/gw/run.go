@@ -133,24 +133,24 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	partitionedDB, err := db.New(db.Config{
+	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
 		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
 		Logger:      logger,
 	})
 	if err != nil {
-		return fmt.Errorf("unable to create partitioned db: %w", err)
+		return fmt.Errorf("unable to create db: %w", err)
 	}
-	shutdowns.Register(partitionedDB.Close)
+	shutdowns.Register(database.Close)
 
 	// Generate local certificate if requested
 	if cfg.RequireLocalCert {
 		localCertCfg := LocalCertConfig{
-			Logger:        logger,
-			PartitionedDB: partitionedDB,
-			VaultService:  vaultSvc,
-			Hostname:      "*.unkey.local",
-			WorkspaceID:   "unkey",
+			Logger:       logger,
+			DB:           database,
+			VaultService: vaultSvc,
+			Hostname:     "*.unkey.local",
+			WorkspaceID:  "unkey",
 		}
 
 		err = generateLocalCertificate(ctx, localCertCfg)
@@ -158,18 +158,6 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("failed to generate local certificate: %w", err)
 		}
 	}
-
-	// Create separate non-partitioned database connection for keys service
-	var mainDB db.Database
-	mainDB, err = db.New(db.Config{
-		PrimaryDSN:  cfg.MainDatabasePrimary,
-		ReadOnlyDSN: cfg.MainDatabaseReadonlyReplica,
-		Logger:      logger,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create main db: %w", err)
-	}
-	shutdowns.Register(mainDB.Close)
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	if cfg.ClickhouseURL != "" {
@@ -213,7 +201,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
 		Logger:  logger,
-		DB:      mainDB,
+		DB:      database,
 		Counter: ctr,
 		TTL:     30 * time.Second,
 	})
@@ -221,10 +209,9 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create usage limiter service: %w", err)
 	}
 
-	// Create key service with non-partitioned database
 	keySvc, err := keys.New(keys.Config{
 		Logger:       logger,
-		DB:           mainDB,
+		DB:           database,
 		KeyCache:     caches.VerificationKeyByHash,
 		RateLimiter:  rlSvc,
 		RBAC:         rbac.New(),
@@ -237,9 +224,8 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	shutdowns.Register(keySvc.Close)
 
-	// Create routing service with partitioned database
 	routingService, err := routing.New(routing.Config{
-		DB:                 partitionedDB,
+		DB:                 database,
 		Logger:             logger,
 		Clock:              clk,
 		GatewayConfigCache: caches.GatewayConfig,
@@ -252,7 +238,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Create certificate manager with optional default cert domain
 	certManager := certmanager.New(certmanager.Config{
 		Logger:              logger,
-		DB:                  partitionedDB,
+		DB:                  database,
 		TLSCertificateCache: caches.TLSCertificate,
 		DefaultCertDomain:   cfg.DefaultCertDomain,
 		Vault:               vaultSvc,

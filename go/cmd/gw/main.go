@@ -49,19 +49,12 @@ var Cmd = &cli.Command{
 		cli.String("ctrl-addr", "Address for the control plane to connect to",
 			cli.EnvVar("UNKEY_CTRL_ADDR")),
 
-		// Database Configuration - Partitioned (for gateway operations)
-		cli.String("database-primary", "MySQL connection string for partitioned primary database (gateway operations). Required. Example: user:pass@host:3306/partition_001?parseTime=true",
+		// Database Configuration
+		cli.String("database-primary", "MySQL connection string for primary database. Required. Example: user:pass@host:3306/unkey?parseTime=true",
 			cli.Required(), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
 
-		cli.String("database-replica", "MySQL connection string for partitioned read-replica (gateway operations). Format same as database-primary.",
+		cli.String("database-replica", "MySQL connection string for read-replica. Format same as database-primary.",
 			cli.EnvVar("UNKEY_DATABASE_REPLICA")),
-
-		// Database Configuration - Keys Service
-		cli.String("main-database-primary", "MySQL connection string for keys service primary database (non-partitioned). Required. Example: user:pass@host:3306/unkey?parseTime=true",
-			cli.Required(), cli.EnvVar("UNKEY_KEYS_DATABASE_PRIMARY")),
-
-		cli.String("main-database-replica", "MySQL connection string for keys service read-replica (non-partitioned). Format same as main-database-primary.",
-			cli.EnvVar("UNKEY_KEYS_DATABASE_REPLICA")),
 
 		// ClickHouse Configuration
 		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
@@ -126,13 +119,8 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		DefaultCertDomain: cmd.String("default-cert-domain"),
 		MainDomain:        cmd.String("main-domain"),
 
-		// Partitioned Database configuration (for gateway operations)
 		DatabasePrimary:         cmd.String("database-primary"),
 		DatabaseReadonlyReplica: cmd.String("database-replica"),
-
-		// Keys Database configuration
-		MainDatabasePrimary:         cmd.String("main-database-primary"),
-		MainDatabaseReadonlyReplica: cmd.String("main-database-replica"),
 
 		// Control Plane configuration
 		CtrlAddr: cmd.String("ctrl-addr"),

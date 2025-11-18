@@ -16,16 +16,15 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	pdb "github.com/unkeyed/unkey/go/pkg/partition/db"
 	"github.com/unkeyed/unkey/go/pkg/vault"
 )
 
 type LocalCertConfig struct {
-	Logger        logging.Logger
-	PartitionedDB db.Database
-	VaultService  *vault.Service
-	Hostname      string
-	WorkspaceID   string
+	Logger       logging.Logger
+	DB           db.Database
+	VaultService *vault.Service
+	Hostname     string
+	WorkspaceID  string
 }
 
 func generateLocalCertificate(ctx context.Context, cfg LocalCertConfig) error {
@@ -33,7 +32,7 @@ func generateLocalCertificate(ctx context.Context, cfg LocalCertConfig) error {
 	logger.Info("Checking for existing local certificate", "hostname", cfg.Hostname)
 
 	// Check if certificate already exists in database
-	existing, err := pdb.Query.FindCertificateByHostname(ctx, cfg.PartitionedDB.RO(), cfg.Hostname)
+	existing, err := db.Query.FindCertificateByHostname(ctx, cfg.DB.RO(), cfg.Hostname)
 
 	if err != nil && !db.IsNotFound(err) {
 		return fmt.Errorf("failed to check for existing certificate: %w", err)
@@ -122,7 +121,7 @@ func generateLocalCertificate(ctx context.Context, cfg LocalCertConfig) error {
 
 	// Insert certificate into database
 	now := time.Now().UnixMilli()
-	err = pdb.Query.InsertCertificate(ctx, cfg.PartitionedDB.RW(), pdb.InsertCertificateParams{
+	err = db.Query.InsertCertificate(ctx, cfg.DB.RW(), db.InsertCertificateParams{
 		WorkspaceID:         cfg.WorkspaceID,
 		Hostname:            cfg.Hostname,
 		Certificate:         string(certPEM),

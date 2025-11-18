@@ -35,7 +35,6 @@
 //
 //	workflow := deploy.New(deploy.Config{
 //	    DB:            mainDB,
-//	    PartitionDB:   partitionDB,
 //	    Krane:         kraneClient,
 //	    Logger:        logger,
 //	    DefaultDomain: "unkey.app",
@@ -71,7 +70,7 @@
 // 3. Status update to building - Mark deployment as in-progress
 // 4. Container deployment - Create deployment in Krane
 // 5. Polling for readiness - Wait for all instances to be running
-// 6. VM registration - Register running instances in partition DB
+// 6. VM registration - Register running instances in DB
 // 7. OpenAPI scraping - Fetch API spec from running instances (if available)
 // 8. Domain assignment - Create/update domains and gateway configs via routing service
 // 9. Status update to ready - Mark deployment as live
@@ -106,7 +105,7 @@
 // # Gateway Configuration
 //
 // Gateway configs are created for all domains (except localhost and .local/.test TLDs)
-// and stored as JSON in the partition database. Each config includes:
+// and stored as JSON in the database. Each config includes:
 //
 // - Deployment ID and enabled status
 // - VM addresses for load balancing

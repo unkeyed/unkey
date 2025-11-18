@@ -5,17 +5,15 @@ description: "How database schemas are managed and applied in the Unkey platform
 
 ## Overview
 
-Unkey uses multiple MySQL databases that are automatically created and initialized during development:
+Unkey uses a single MySQL database that is automatically created and initialized during development:
 
-- **unkey**: Main application database containing APIs, keys, workspaces, and related data
-- **partition_00X**: Dataplane partition database
+- **unkey**: Main application database containing APIs, keys, workspaces, deployments, gateways, and all related data
 
 ## Schema Files
 
-Schema definitions are maintained in separate files:
+Schema definitions are maintained in:
 
-- `go/pkg/db/schema.sql` - Main Unkey application schema
-- `go/pkg/partition/schema.sql` - Dataplane schema
+- `go/pkg/db/schema.sql` - Complete Unkey application schema (includes all tables)
 
 ## Docker Development Setup
 
@@ -30,20 +28,19 @@ deployment/
 └── docker-compose.yaml       # Service orchestration
 
 go/pkg/
-├── db/schema.sql             # Main application schema
+├── db/schema.sql             # Complete application schema
 ```
 
 ### Initialization Order
 
 The MySQL container applies files from `/docker-entrypoint-initdb.d/` in alphabetical order:
 
-1. **00-init-databases.sql** - Creates databases and grants permissions
-2. **01-main-schema.sql** - Creates all main application tables in `unkey` database
-3. \*\*02-partition_schema.sql - Creates the partition tables in the `partition_001` database
+1. **00-init-databases.sql** - Creates the `unkey` database and grants permissions
+2. **01-main-schema.sql** - Creates all application tables in the `unkey` database
 
 ### Database-Qualified Table Names
 
-All schema files use fully-qualified table names to ensure tables are created in the correct database:
+The schema file uses fully-qualified table names to ensure tables are created in the correct database:
 
 ```sql
 -- Main schema (go/pkg/db/schema.sql)
@@ -52,6 +49,11 @@ CREATE TABLE `unkey`.`apis` (
   -- ...
 );
 
+-- All tables including deployments, gateways, vms, and certificates are in the same database
+CREATE TABLE `unkey`.`gateways` (
+  `id` varchar(256) NOT NULL,
+  -- ...
+);
 ```
 
 ## Schema Management Strategy
