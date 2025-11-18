@@ -1,74 +1,10 @@
-import { FadeIn } from "@/components/landing/fade-in";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAuth } from "@/lib/auth/get-auth";
 import { Page2 } from "@unkey/icons";
-import { Separator } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type React from "react";
 
 export const dynamic = "force-dynamic";
-
-const quotes: {
-  text: React.ReactNode;
-  source: string; // just for internal reference
-  author: {
-    name: string;
-    title?: string;
-    image: string;
-    href: string;
-  };
-}[] = [
-  {
-    text: "Unkey's product helped launch our public API features in a matter of hours. Easy setup, exactly the features we needed, great DX ergonomics, and low latency - fantastic experience.",
-    source: "slack dm",
-    author: {
-      name: "Rick Blalock",
-      title: "Cofounder/CTO onestudy.ai",
-      image: "/images/quoteImages/rick-blalock.jpg",
-      href: "https://x.com/rblalock",
-    },
-  },
-  {
-    text: "The product is super well built, intuitive and powerful.",
-    source: "slack",
-    author: {
-      name: "Dexter Storey",
-      title: "Cofounder Rubric Labs",
-      image: "/images/quoteImages/dexter-storey.jpg",
-      href: "https://www.linkedin.com/in/dexterstorey/",
-    },
-  },
-  {
-    text: "Just used Unkey, by far the easiest and cheapest ( its free ) solution I have used so far for saas to manage their api keys. Its amazing how easy it is use.",
-    source: "https://x.com/tkejr_/status/1731613302378164440",
-    author: {
-      name: "Tanmay",
-      image: "/images/quoteImages/tanmay.jpg",
-      href: "https://x.com/tkejr_",
-    },
-  },
-  {
-    text: "Diving into Unkey for a project, and I'm impressed! Love the straightforward setup for managing API keys.",
-    source: "https://x.com/ojabowalola/status/1724134790670999919",
-    author: {
-      name: "Lola",
-      image: "/images/quoteImages/lola.jpg",
-      href: "https://x.com/ojabowalola",
-      title: "Founder of lunchpaillabs.com",
-    },
-  },
-  {
-    text: "Unkey increases our velocity and helps us focus on what's relevant to the user, not the infrastructure behind it.",
-    source: "https://www.openstatus.dev/blog/secure-api-with-unkey",
-    author: {
-      name: "Maximilian Kaske",
-      image: "/images/quoteImages/maximilian-kaske.jpg",
-      href: "https://x.com/mxkaske",
-      title: "Founder of openstatus.dev",
-    },
-  },
-];
 
 export default async function AuthenticatedLayout({
   children,
@@ -80,7 +16,6 @@ export default async function AuthenticatedLayout({
   if (userId) {
     return redirect("/apis");
   }
-  const quote = quotes[Math.floor(Math.random() * quotes.length)];
 
   return (
     <div className="bg-black">
@@ -129,34 +64,6 @@ export default async function AuthenticatedLayout({
               , and to receive periodic emails with updates.
             </p>
           </div>
-        </div>
-        <Separator orientation="vertical" className="hidden -mt-16 bg-white/20 lg:block" />
-        <div className="items-center justify-center hidden w-3/5 h-[calc(100vh-4rem)] lg:flex">
-          <FadeIn>
-            <div className="relative max-w-lg pl-12">
-              <div className="absolute top-0 left-0 w-px bg-white/30 h-1/2" />
-              <div className="absolute bottom-0 left-0 w-px bg-white h-1/2" />
-
-              <p className="text-3xl leading-10 text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/30 text-pretty">
-                {quote.text}
-              </p>
-
-              <div className="flex items-center mt-8">
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={quote.author.image} />
-                  <AvatarFallback>{quote.author.name}</AvatarFallback>
-                </Avatar>
-                <Link
-                  href={quote.author.href}
-                  target="_blank"
-                  className="ml-4 text-sm text-white hover:underline"
-                >
-                  {quote.author.name}
-                </Link>{" "}
-                <span className="ml-2 text-sm text-white/50">{quote.author.title}</span>
-              </div>
-            </div>
-          </FadeIn>
         </div>
       </div>
     </div>
