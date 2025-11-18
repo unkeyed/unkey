@@ -50,7 +50,7 @@ type Config struct {
 	Region                string
 	DB                    db.Database
 	GatewayConfigCache    cache.Cache[string, caches.GatewayConfigData]
-	InstancesByDeployment cache.Cache[string, []pdb.Instance]
+	InstancesByDeployment cache.Cache[string, []pdb.Vm]
 }
 
 // service implements the Service interface
@@ -59,7 +59,7 @@ type service struct {
 	region                string
 	db                    db.Database
 	gatewayConfigCache    cache.Cache[string, caches.GatewayConfigData]
-	instancesByDeployment cache.Cache[string, []pdb.Instance]
+	instancesByDeployment cache.Cache[string, []pdb.Vm]
 }
 
 var _ Service = (*service)(nil)
@@ -121,14 +121,14 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 		return nil, false, nil
 	}
 
-	deployments := configData.Config.GetDeployments()
-	if len(deployments) == 0 {
-		return nil, false, fault.New("gateway config missing deployments",
-			fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
-			fault.Internal("gateway config has no deployments"),
-			fault.Public("Invalid gateway configuration"),
-		)
-	}
+	deployments := []*partitionv1.Deployment{configData.Config.Deployment}
+	// if len(deployments) == 0 {
+	// 	return nil, false, fault.New("gateway config missing deployments",
+	// 		fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
+	// 		fault.Internal("gateway config has no deployments"),
+	// 		fault.Public("Invalid gateway configuration"),
+	// 	)
+	// }
 
 	// Collect all enabled deployments
 	enabledDeployments := make(map[string]*partitionv1.Deployment) // deploymentID -> deployment
@@ -155,13 +155,13 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 
 	instancesByDeploymentMap, _, err := s.instancesByDeployment.SWRMany(ctx, enabledDeploymentIDs, func(ctx context.Context, deploymentIDs []string) (map[string][]pdb.Instance, error) {
 		// Single query to get ALL instances for ALL deployment IDs
-		instances, err := pdb.Query.FindInstancesByIds(ctx, s.db.RO(), deploymentIDs)
+		instances, err := pdb.Query.FindVMById(ctx, s.db.RO(), deploymentIDs)
 		if err != nil {
 			return nil, err
 		}
 
 		// Group instances by deployment ID
-		result := make(map[string][]pdb.Instance)
+		result := make(map[string][]pdb.Vm)
 		for _, instance := range instances {
 			result[instance.DeploymentID] = append(result[instance.DeploymentID], instance)
 		}
