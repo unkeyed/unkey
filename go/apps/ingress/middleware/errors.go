@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -23,6 +24,77 @@ type ErrorDetail struct {
 	Status  int    `json:"status"`
 }
 
+// errorPageInfo holds the data needed to render an error page.
+type errorPageInfo struct {
+	Status  int
+	Title   string
+	Message string
+}
+
+// getErrorPageInfo returns the HTTP status and user-friendly message for an error URN.
+func getErrorPageInfo(urn codes.URN) errorPageInfo {
+	switch urn {
+	case codes.UnkeyIngressErrorsRoutingConfigNotFound:
+		return errorPageInfo{
+			Status:  http.StatusNotFound,
+			Title:   http.StatusText(http.StatusNotFound),
+			Message: "No deployment found for this hostname. Please check your domain configuration or contact support.",
+		}
+
+	case codes.UnkeyIngressErrorsProxyBadGateway,
+		codes.UnkeyIngressErrorsProxyProxyForwardFailed:
+		return errorPageInfo{
+			Status:  http.StatusBadGateway,
+			Title:   http.StatusText(http.StatusBadGateway),
+			Message: "Unable to connect to the backend service. Please try again in a few moments.",
+		}
+
+	case codes.UnkeyIngressErrorsProxyServiceUnavailable:
+		return errorPageInfo{
+			Status:  http.StatusServiceUnavailable,
+			Title:   http.StatusText(http.StatusServiceUnavailable),
+			Message: "The service is temporarily unavailable. Please try again later.",
+		}
+
+	case codes.UnkeyIngressErrorsProxyGatewayTimeout:
+		return errorPageInfo{
+			Status:  http.StatusGatewayTimeout,
+			Title:   http.StatusText(http.StatusGatewayTimeout),
+			Message: "The request took too long to process. Please try again later.",
+		}
+
+	default:
+		return errorPageInfo{
+			Status:  http.StatusInternalServerError,
+			Title:   http.StatusText(http.StatusInternalServerError),
+			Message: "",
+		}
+	}
+}
+
+// renderErrorHTML generates an HTML error page.
+func renderErrorHTML(title, message, errorCode string) []byte {
+	return fmt.Appendf(nil, `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>%s</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 100px auto; padding: 20px; }
+        h1 { color: #333; }
+        p { color: #666; line-height: 1.6; }
+        .error-code { color: #999; font-size: 0.9em; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>%s</h1>
+    <p>%s</p>
+    <p class="error-code">Error: %s</p>
+</body>
+</html>`, title, title, message, errorCode)
+}
+
 // WithErrorHandling returns middleware that translates errors into appropriate
 // HTTP responses based on error URNs and content negotiation.
 //
@@ -41,61 +113,36 @@ func WithErrorHandling(logger logging.Logger) zen.Middleware {
 			// Get the error URN from the error
 			urn, ok := fault.GetCode(err)
 			if !ok {
-				urn = codes.Gateway.Internal.InternalServerError.URN()
+				urn = codes.Ingress.Internal.InternalServerError.URN()
 			}
 
 			code, parseErr := codes.ParseURN(urn)
 			if parseErr != nil {
 				logger.Error("failed to parse error code", "error", parseErr.Error())
-				code = codes.Gateway.Internal.InternalServerError
+				code = codes.Ingress.Internal.InternalServerError
 			}
 
-			// Determine status code based on error type
-			status := http.StatusInternalServerError
-			switch urn {
-			// Internal Server Error (500)
-			case codes.UnkeyGatewayErrorsInternalInternalServerError,
-				codes.UnkeyGatewayErrorsInternalKeyVerificationFailed,
-				codes.UnkeyGatewayErrorsRoutingVMSelectionFailed:
-				status = http.StatusInternalServerError
+			// Get error page info (status and message) based on URN
+			pageInfo := getErrorPageInfo(urn)
 
-			// Bad Request (400)
-			case codes.UnkeyGatewayErrorsValidationRequestInvalid,
-				codes.UnkeyGatewayErrorsValidationResponseInvalid:
-				status = http.StatusBadRequest
-
-			// Unauthorized (401)
-			case codes.UnkeyGatewayErrorsAuthUnauthorized:
-				status = http.StatusUnauthorized
-
-			// Not Found (404)
-			case codes.UnkeyGatewayErrorsRoutingConfigNotFound:
-				status = http.StatusNotFound
-
-			// Too Many Requests (429)
-			case codes.UnkeyGatewayErrorsAuthRateLimited:
-				status = http.StatusTooManyRequests
-
-			// Bad Gateway (502)
-			case codes.UnkeyGatewayErrorsProxyBadGateway,
-				codes.UnkeyGatewayErrorsProxyProxyForwardFailed:
-				status = http.StatusBadGateway
-
-			// Service Unavailable (503)
-			case codes.UnkeyGatewayErrorsProxyServiceUnavailable:
-				status = http.StatusServiceUnavailable
-
-			// Gateway Timeout (504)
-			case codes.UnkeyGatewayErrorsProxyGatewayTimeout:
-				status = http.StatusGatewayTimeout
+			// Use user-facing message from error if no specific message defined
+			userMessage := pageInfo.Message
+			if userMessage == "" {
+				userMessage = fault.UserFacingMessage(err)
 			}
 
-			// Log the error with correct status
-			logger.Error("gate error",
+			// Use status text as title if not specifically defined
+			title := pageInfo.Title
+			if title == http.StatusText(http.StatusInternalServerError) {
+				title = http.StatusText(pageInfo.Status)
+			}
+
+			// Log the error
+			logger.Error("ingress error",
 				"error", err.Error(),
 				"requestId", s.RequestID(),
-				"publicMessage", fault.UserFacingMessage(err),
-				"status", status,
+				"publicMessage", userMessage,
+				"status", pageInfo.Status,
 				"path", s.Request().URL.Path,
 				"host", s.Request().Host,
 			)
@@ -111,131 +158,19 @@ func WithErrorHandling(logger logging.Logger) zen.Middleware {
 				strings.Contains(acceptHeader, "application/*") ||
 				(strings.Contains(acceptHeader, "*/*") && !strings.Contains(acceptHeader, "text/html"))
 
-			// If client prefers JSON, return JSON error
+			// Return JSON error for API clients
 			if preferJSON {
-				return s.JSON(status, ErrorResponse{
+				return s.JSON(pageInfo.Status, ErrorResponse{
 					Error: ErrorDetail{
 						Code:    string(code.URN()),
-						Message: fault.UserFacingMessage(err),
-						Status:  status,
+						Message: userMessage,
+						Status:  pageInfo.Status,
 					},
 				})
 			}
 
-			// Otherwise return HTML error pages for customer-facing errors (browsers)
-			//nolint:exhaustive
-			switch urn {
-			case codes.UnkeyGatewayErrorsRoutingConfigNotFound:
-				return s.HTML(http.StatusNotFound, []byte(`<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 Not Found</title>
-    <style>
-        body { font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 100px auto; padding: 20px; }
-        h1 { color: #333; }
-        p { color: #666; line-height: 1.6; }
-        .error-code { color: #999; font-size: 0.9em; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <h1>404 Not Found</h1>
-    <p>No deployment found for this hostname.</p>
-    <p>Please check your domain configuration or contact support.</p>
-    <p class="error-code">Error: `+string(code.URN())+`</p>
-</body>
-</html>`))
-
-			case codes.UnkeyGatewayErrorsProxyBadGateway,
-				codes.UnkeyGatewayErrorsProxyProxyForwardFailed:
-				return s.HTML(http.StatusBadGateway, []byte(`<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>502 Bad Gateway</title>
-    <style>
-        body { font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 100px auto; padding: 20px; }
-        h1 { color: #333; }
-        p { color: #666; line-height: 1.6; }
-        .error-code { color: #999; font-size: 0.9em; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <h1>502 Bad Gateway</h1>
-    <p>Unable to connect to the backend service.</p>
-    <p>Please try again in a few moments.</p>
-    <p class="error-code">Error: `+string(code.URN())+`</p>
-</body>
-</html>`))
-
-			case codes.UnkeyGatewayErrorsProxyServiceUnavailable:
-				return s.HTML(http.StatusServiceUnavailable, []byte(`<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>503 Service Unavailable</title>
-    <style>
-        body { font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 100px auto; padding: 20px; }
-        h1 { color: #333; }
-        p { color: #666; line-height: 1.6; }
-        .error-code { color: #999; font-size: 0.9em; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <h1>503 Service Unavailable</h1>
-    <p>The service is temporarily unavailable.</p>
-    <p>Please try again later.</p>
-    <p class="error-code">Error: `+string(code.URN())+`</p>
-</body>
-</html>`))
-
-			case codes.UnkeyGatewayErrorsProxyGatewayTimeout:
-				return s.HTML(http.StatusGatewayTimeout, []byte(`<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>504 Gateway Timeout</title>
-    <style>
-        body { font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 100px auto; padding: 20px; }
-        h1 { color: #333; }
-        p { color: #666; line-height: 1.6; }
-        .error-code { color: #999; font-size: 0.9em; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <h1>504 Gateway Timeout</h1>
-    <p>The request took too long to process.</p>
-    <p>Please try again later.</p>
-    <p class="error-code">Error: `+string(code.URN())+`</p>
-</body>
-</html>`))
-
-			default:
-				// For any other errors, return a generic error page
-				return s.HTML(status, []byte(`<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>`+http.StatusText(status)+`</title>
-    <style>
-        body { font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 100px auto; padding: 20px; }
-        h1 { color: #333; }
-        p { color: #666; line-height: 1.6; }
-        .error-code { color: #999; font-size: 0.9em; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <h1>`+http.StatusText(status)+`</h1>
-    <p>`+fault.UserFacingMessage(err)+`</p>
-    <p class="error-code">Error: `+string(code.URN())+`</p>
-</body>
-</html>`))
-			}
+			// Return HTML error page for browsers
+			return s.HTML(pageInfo.Status, renderErrorHTML(title, userMessage, string(code.URN())))
 		}
 	}
 }

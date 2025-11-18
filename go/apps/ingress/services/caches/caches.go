@@ -25,7 +25,7 @@ type Caches struct {
 	GatewayConfig cache.Cache[string, GatewayConfigData]
 
 	// DeploymentID -> List of Instances
-	InstancesByDeployment cache.Cache[string, []pdb.Instance]
+	InstancesByDeployment cache.Cache[string, []pdb.Vm]
 
 	// HostName -> Certificate
 	TLSCertificate cache.Cache[string, tls.Certificate]
@@ -54,7 +54,7 @@ func New(config Config) (Caches, error) {
 		return Caches{}, fmt.Errorf("failed to create gateway config cache: %w", err)
 	}
 
-	instancesByDeployment, err := cache.New(cache.Config[string, []pdb.Instance]{
+	instancesByDeployment, err := cache.New(cache.Config[string, []pdb.Vm]{
 		Fresh:    time.Second * 10,
 		Stale:    time.Minute,
 		Logger:   config.Logger,

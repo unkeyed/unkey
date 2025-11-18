@@ -154,7 +154,8 @@ func (s *service) writeProxyError(w http.ResponseWriter, r *http.Request, reques
 
 // ForwardToLocal forwards a request to a local gateway service (HTTP)
 func (s *service) ForwardToLocal(ctx context.Context, sess *zen.Session, deployment *partitionv1.Deployment, startTime time.Time) error {
-	targetURL, err := url.Parse(fmt.Sprintf("http://%s", deployment.K8SServiceName))
+	// targetURL, err := url.Parse(fmt.Sprintf("http://%s", deployment.K8SServiceName))
+	targetURL, err := url.Parse(fmt.Sprintf("http://%s", ""))
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
@@ -165,7 +166,7 @@ func (s *service) ForwardToLocal(ctx context.Context, sess *zen.Session, deploym
 	s.logger.Info("forwarding to local gateway",
 		"target", targetURL.String(),
 		"deployment", deployment.Id,
-		"region", deployment.Region,
+		// "region", deployment.Region,
 	)
 
 	return s.forward(ctx, sess, targetURL, deployment, true, startTime)
@@ -184,14 +185,14 @@ func (s *service) ForwardToRemote(ctx context.Context, sess *zen.Session, target
 	s.logger.Info("forwarding to remote ingress",
 		"target", targetURL.String(),
 		"targetRegion", targetRegion,
-		"deploymentRegion", deployment.Region,
+		// "deploymentRegion", deployment.Region,
 	)
 
 	return s.forward(ctx, sess, targetURL, deployment, false, startTime)
 }
 
 // forward handles the actual proxying with shared transport
-func (s *service) forward(ctx context.Context, sess *zen.Session, targetURL *url.URL, deployment *partitionv1.Deployment, isLocal bool, startTime time.Time) error {
+func (s *service) forward(_ctx context.Context, sess *zen.Session, targetURL *url.URL, deployment *partitionv1.Deployment, isLocal bool, startTime time.Time) error {
 	// Set response headers BACK TO CLIENT so they can see which ingress handled their request
 	// These are useful for debugging and support tickets
 	sess.ResponseWriter().Header().Set(HeaderIngressID, s.ingressID)
