@@ -692,7 +692,7 @@ components:
                 name:
                     type: string
                     minLength: 1
-                    maxLength: 200
+                    maxLength: 255
                     description: |
                         Sets a human-readable identifier for internal organization and dashboard display.
                         Never exposed to end users, only visible in management interfaces and API responses.
@@ -918,6 +918,41 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/KeyResponseData"
+        V2KeysMigrateKeysRequestBody:
+            type: object
+            properties:
+                migrationId:
+                    type: string
+                    minLength: 3
+                    maxLength: 255
+                    description: Identifier of the configured migration provider/strategy to use (e.g., "your_company"). You will receive this from Unkey's support staff.
+                    example: your_company
+                apiId:
+                    type: string
+                    minLength: 3
+                    maxLength: 255
+                    description: The ID of the API that the keys should be inserted into
+                    example: api_123456789
+                keys:
+                    type: array
+                    minItems: 1
+                    items:
+                        $ref: "#/components/schemas/V2KeysMigrateKeyData"
+            additionalProperties: false
+            required:
+                - migrationId
+                - apiId
+                - keys
+        V2KeysMigrateKeysResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2KeysMigrateKeysResponseData"
         V2KeysRemovePermissionsRequestBody:
             type: object
             required:
@@ -1393,6 +1428,11 @@ components:
                         Omitting this field skips rate limit checks entirely, relying only on configured key rate limits.
                         Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
                         Rate limit checks are optimized for performance but may allow brief bursts during high concurrency.
+                migrationId:
+                    type: string
+                    maxLength: 256
+                    description: Migrate keys on demand from your previous system. Reach out for migration support at support@unkey.dev
+                    example: "m_1234abcd"
         V2KeysVerifyKeyResponseBody:
             type: object
             required:
@@ -1964,6 +2004,23 @@ components:
                     "$ref": "#/components/schemas/Pagination"
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
+        V2RatelimitMultiLimitRequestBody:
+            type: array
+            description: Array of rate limit checks to perform
+            minItems: 1
+            maxItems: 100
+            items:
+                "$ref": "#/components/schemas/V2RatelimitLimitRequestBody"
+        V2RatelimitMultiLimitResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2RatelimitMultiLimitResponseData"
         V2RatelimitSetOverrideRequestBody:
             description: |-
                 Sets a new or overwrites an existing rate limit override. Overrides allow you to apply special rate limit rules to specific identifiers, providing custom limits that differ from the default.
@@ -2643,6 +2700,165 @@ components:
             required:
                 - keyId
                 - key
+        V2KeysMigrateKeyData:
+            type: object
+            properties:
+                hash:
+                    type: string
+                    minLength: 3
+                    description: The current hash of the key on your side
+                    example: your_already_hashed_key
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    description: |
+                        Sets a human-readable identifier for internal organization and dashboard display.
+                        Never exposed to end users, only visible in management interfaces and API responses.
+                        Avoid generic names like "API Key" when managing multiple keys for the same user or service.
+                    example: Payment Service Production Key
+                externalId:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    description: |
+                        Links this key to a user or entity in your system using your own identifier.
+                        Returned during verification to identify the key owner without additional database lookups.
+                        Essential for user-specific analytics, billing, and multi-tenant key management.
+                        Use your primary user ID, organization ID, or tenant ID for best results.
+                        Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
+                    example: user_1234abcd
+                meta:
+                    type: object
+                    additionalProperties: true
+                    maxProperties: 100
+                    description: |
+                        Stores arbitrary JSON metadata returned during key verification for contextual information.
+                        Eliminates additional database lookups during verification, improving performance for stateless services.
+                        Avoid storing sensitive data here as it's returned in verification responses.
+                        Large metadata objects increase verification latency and should stay under 10KB total size.
+                    example:
+                        plan: enterprise
+                        featureFlags:
+                            betaAccess: true
+                            concurrentConnections: 10
+                        customerName: Acme Corp
+                        billing:
+                            tier: premium
+                            renewal: "2024-12-31"
+                roles:
+                    type: array
+                    maxItems: 100
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 100
+                    description: |
+                        Assigns existing roles to this key for permission management through role-based access control.
+                        Roles must already exist in your workspace before assignment.
+                        During verification, all permissions from assigned roles are checked against requested permissions.
+                        Roles provide a convenient way to group permissions and apply consistent access patterns across multiple keys.
+                    example:
+                        - api_admin
+                        - billing_reader
+                permissions:
+                    type: array
+                    maxItems: 1000
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 100
+                    description: |
+                        Grants specific permissions directly to this key without requiring role membership.
+                        Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
+                        Direct permissions supplement any permissions inherited from assigned roles.
+                    example:
+                        - documents.read
+                        - documents.write
+                        - settings.view
+                expires:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 4102444800000
+                    description: |
+                        Sets when this key automatically expires as a Unix timestamp in milliseconds.
+                        Verification fails with code=EXPIRED immediately after this time passes.
+                        Omitting this field creates a permanent key that never expires.
+
+                        Avoid setting timestamps in the past as they immediately invalidate the key.
+                        Keys expire based on server time, not client time, which prevents timezone-related issues.
+                        Essential for trial periods, temporary access, and security compliance requiring key rotation.
+                enabled:
+                    type: boolean
+                    default: true
+                    description: |
+                        Controls whether the key is active immediately upon creation.
+                        When set to `false`, the key exists but all verification attempts fail with `code=DISABLED`.
+                        Useful for pre-creating keys that will be activated later or for keys requiring manual approval.
+                        Most keys should be created with `enabled=true` for immediate use.
+                    example: true
+                credits:
+                    "$ref": "#/components/schemas/KeyCreditsData"
+                    description: |
+                        Controls usage-based limits through credit consumption with optional automatic refills.
+                        Unlike rate limits which control frequency, credits control total usage with global consistency.
+                        Essential for implementing usage-based pricing, subscription tiers, and hard usage quotas.
+                        Omitting this field creates unlimited usage, while setting null is not allowed during creation.
+                ratelimits:
+                    type: array
+                    maxItems: 50
+                    items:
+                        "$ref": "#/components/schemas/RatelimitRequest"
+                    description: |
+                        Defines time-based rate limits that protect against abuse by controlling request frequency.
+                        Unlike credits which track total usage, rate limits reset automatically after each window expires.
+                        Multiple rate limits can control different operation types with separate thresholds and windows.
+                        Essential for preventing API abuse while maintaining good performance for legitimate usage.
+                    example:
+                        - name: requests
+                          limit: 100
+                          duration: 60000
+                          autoApply: true
+                        - name: heavy_operations
+                          limit: 10
+                          duration: 3600000
+                          autoApply: false
+            additionalProperties: false
+            required:
+                - hash
+        V2KeysMigrateKeysResponseData:
+            type: object
+            required:
+                - migrated
+                - failed
+            properties:
+                migrated:
+                    type: array
+                    description: Successfully migrated keys with their hash and generated keyId
+                    items:
+                        "$ref": "#/components/schemas/V2KeysMigrateKeysMigration"
+                failed:
+                    type: array
+                    description: Hashes that could not be migrated (e.g., already exist in the system)
+                    items:
+                        type: string
+                        description: The hash that failed to migrate
+                        example: sha256_ghi789jkl012
+        V2KeysMigrateKeysMigration:
+            type: object
+            required:
+                - hash
+                - keyId
+            properties:
+                hash:
+                    type: string
+                    description: The hash provided in the migration request
+                    example: sha256_abc123def456
+                keyId:
+                    type: string
+                    description: The unique identifier for this key in Unkey's system. This is NOT the actual API key, but a reference ID used for management operations like updating or deleting the key. Store this ID in your database to reference the key later. This ID is not sensitive and can be logged or displayed in dashboards.
+                    example: key_2cGKbMxRyIzhCxo1Idjz8q
         V2KeysRemovePermissionsResponseData:
             type: array
             description: |-
@@ -3191,6 +3407,91 @@ components:
             type: array
             items:
                 "$ref": "#/components/schemas/RatelimitOverride"
+        V2RatelimitMultiLimitResponseData:
+            type: object
+            description: Container for multi-limit rate limit check results
+            required:
+                - passed
+                - limits
+            properties:
+                passed:
+                    type: boolean
+                    description: |-
+                        Overall success indicator for all rate limit checks. This is true if ALL individual rate limit checks passed (all have success: true), and false if ANY check failed.
+
+                        Use this as a quick indicator to determine if the request should proceed.
+                limits:
+                    type: array
+                    description: Array of individual rate limit check results, one for each rate limit check in the request
+                    items:
+                        "$ref": "#/components/schemas/V2RatelimitMultiLimitCheck"
+        V2RatelimitMultiLimitCheck:
+            type: object
+            properties:
+                namespace:
+                    description: |-
+                        The namespace this rate limit result corresponds to. Use this field to correlate the response with the request when checking multiple rate limits.
+                    type: string
+                identifier:
+                    description: |-
+                        The identifier this rate limit result corresponds to. Use this field to correlate the response with the request when checking multiple rate limits.
+                    type: string
+                limit:
+                    description: |-
+                        The maximum number of operations allowed within the time window. This reflects either the default limit specified in the request or an override limit if one exists for this identifier.
+
+                        This value helps clients understand their total quota for the current window.
+                    format: int64
+                    type: integer
+                remaining:
+                    description: |-
+                        The number of operations remaining in the current window before the rate limit is exceeded. Applications should use this value to:
+
+                        - Implement client-side throttling before hitting limits
+                        - Display usage information to end users
+                        - Trigger alerts when approaching limits
+                        - Adjust request patterns based on available capacity
+
+                        When this reaches zero, requests will be rejected until the window resets.
+                    format: int64
+                    type: integer
+                reset:
+                    description: |-
+                        The Unix timestamp in milliseconds when the rate limit window will reset and 'remaining' will return to 'limit'.
+
+                        This timestamp enables clients to:
+                        - Calculate and display wait times to users
+                        - Implement intelligent retry mechanisms
+                        - Schedule requests to resume after the reset
+                        - Implement exponential backoff when needed
+
+                        The reset time is based on a sliding window from the first request in the current window.
+                    format: int64
+                    type: integer
+                passed:
+                    description: |-
+                        Whether the request passed the rate limit check. If true, the request is allowed to proceed. If false, the request has exceeded the rate limit and should be blocked or rejected.
+
+                        You MUST check this field to determine if the request should proceed, as the endpoint always returns `HTTP 200` even when rate limited.
+                    type: boolean
+                overrideId:
+                    description: |-
+                        If a rate limit override was applied for this identifier, this field contains the ID of the override that was used. Empty when no override is in effect.
+
+                        This can be useful for:
+                        - Debugging which override rule was matched
+                        - Tracking the effects of specific overrides
+                        - Understanding why limits differ from default values
+                    type: string
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
+            required:
+                - namespace
+                - identifier
+                - limit
+                - remaining
+                - reset
+                - passed
         V2RatelimitSetOverrideResponseData:
             type: object
             properties:
@@ -4564,6 +4865,65 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: getKey
+    /v2/keys.migrateKeys:
+        post:
+            description: |
+                Returns HTTP 200 even on partial success; hashes that could not be migrated are listed under `data.failed`.
+
+                **Required Permissions**
+                Your root key must have one of the following permissions for basic key information:
+                - `api.*.create_key` (to migrate keys to any API)
+                - `api.<api_id>.create_key` (to migrate keys to a specific API)
+            operationId: migrateKeys
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2KeysMigrateKeysRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2KeysMigrateKeysResponseBody'
+                    description: Successfully migrated keys.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Migrate API key(s)
+            tags:
+                - keys
+            x-speakeasy-name-override: migrateKeys
     /v2/keys.removePermissions:
         post:
             description: |
@@ -5967,10 +6327,6 @@ paths:
                 Your root key must have one of the following permissions:
                 - `ratelimit.*.limit` (to check limits in any namespace)
                 - `ratelimit.<namespace_id>.limit` (to check limits in a specific namespace)
-
-                **Side Effects**
-
-                Records rate limit metrics for analytics and monitoring, updates rate limit counters with sliding window algorithm, and optionally triggers override matching for custom limits.
             operationId: ratelimit.limit
             requestBody:
                 content:
@@ -6165,6 +6521,175 @@ paths:
             tags:
                 - ratelimit
             x-speakeasy-name-override: listOverrides
+    /v2/ratelimit.multiLimit:
+        post:
+            description: |
+                Check and enforce multiple rate limits in a single request for any identifiers (user IDs, IP addresses, API clients, etc.).
+
+                Use this to efficiently check multiple rate limits at once. Each rate limit check is independent and returns its own result with a top-level `passed` indicator showing if all checks succeeded.
+
+                **Response Codes**: Rate limit checks return HTTP 200 regardless of whether limits are exceeded - check the `passed` field to see if all limits passed, or the `success` field in each individual result. 4xx responses indicate auth, namespace existence/deletion, or validation errors (e.g., 410 Gone for deleted namespaces). 5xx responses indicate server errors.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `ratelimit.*.limit` (to check limits in any namespace)
+                - `ratelimit.<namespace_id>.limit` (to check limits in all specific namespaces being checked)
+            operationId: ratelimit.multiLimit
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            ipHashAndUserLimits:
+                                summary: Check both hashed IP and user rate limits
+                                value:
+                                    - duration: 60000
+                                      identifier: sha256_8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4
+                                      limit: 10
+                                      namespace: auth.login
+                                    - duration: 3600000
+                                      identifier: user_def456
+                                      limit: 1000
+                                      namespace: api.requests
+                            multipleChecks:
+                                summary: Multiple rate limit checks
+                                value:
+                                    - duration: 60000
+                                      identifier: user_abc123
+                                      limit: 100
+                                      namespace: api.requests
+                                    - duration: 60000
+                                      identifier: user_abc123
+                                      limit: 5
+                                      namespace: auth.login
+                            withWeightedCost:
+                                summary: Multiple checks with variable costs
+                                value:
+                                    - cost: 1
+                                      duration: 60000
+                                      identifier: user_xyz789
+                                      limit: 100
+                                      namespace: api.light_operations
+                                    - cost: 5
+                                      duration: 3600000
+                                      identifier: user_xyz789
+                                      limit: 50
+                                      namespace: api.heavy_operations
+                        schema:
+                            $ref: '#/components/schemas/V2RatelimitMultiLimitRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                allAllowed:
+                                    summary: All requests allowed
+                                    value:
+                                        data:
+                                            limits:
+                                                - identifier: user_abc123
+                                                  limit: 100
+                                                  namespace: api.requests
+                                                  remaining: 99
+                                                  reset: 1714582980000
+                                                  success: true
+                                                - identifier: user_abc123
+                                                  limit: 5
+                                                  namespace: auth.login
+                                                  remaining: 4
+                                                  reset: 1714582980000
+                                                  success: true
+                                            passed: true
+                                        meta:
+                                            requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
+                                mixedResults:
+                                    summary: Some limits exceeded
+                                    value:
+                                        data:
+                                            limits:
+                                                - identifier: sha256_8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4
+                                                  limit: 10
+                                                  namespace: auth.login
+                                                  remaining: 5
+                                                  reset: 1714582980000
+                                                  success: true
+                                                - identifier: user_def456
+                                                  limit: 1000
+                                                  namespace: api.requests
+                                                  remaining: 0
+                                                  reset: 1714583040000
+                                                  success: false
+                                            passed: false
+                                        meta:
+                                            requestId: req_01H9TQPP77V5E48E9SH0BG0ZQY
+                                withOverride:
+                                    summary: With custom override applied
+                                    value:
+                                        data:
+                                            limits:
+                                                - identifier: user_xyz789
+                                                  limit: 100
+                                                  namespace: api.light_operations
+                                                  remaining: 95
+                                                  reset: 1714582980000
+                                                  success: true
+                                                - identifier: user_xyz789
+                                                  limit: 1000
+                                                  namespace: api.heavy_operations
+                                                  overrideId: ovr_2cGKbMxRyIzhCxo1Idjz8q
+                                                  remaining: 995
+                                                  reset: 1714582980000
+                                                  success: true
+                                            passed: true
+                                        meta:
+                                            requestId: req_01H9TQPP77V5E48E9SH0BG0ZQZ
+                            schema:
+                                $ref: '#/components/schemas/V2RatelimitMultiLimitResponseBody'
+                    description: |
+                        All rate limit checks completed successfully. Check the `success` field in each result to determine if the corresponding request is allowed.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found
+                "410":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GoneErrorResponse'
+                    description: Gone - Namespace has been deleted
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Apply multiple rate limit checks
+            tags:
+                - ratelimit
+            x-speakeasy-name-override: multiLimit
     /v2/ratelimit.setOverride:
         post:
             description: |

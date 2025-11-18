@@ -58,7 +58,6 @@ type Harness struct {
 
 func NewHarness(t *testing.T) *Harness {
 	clk := clock.NewTestClock()
-
 	logger := logging.New()
 
 	// Start all services in parallel first

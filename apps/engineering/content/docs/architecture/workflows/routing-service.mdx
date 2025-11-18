@@ -33,7 +33,7 @@ By separating routing, we:
     FindDomain --> NextDomain
     NextDomain --> LoopDomains
     LoopDomains --> PrepareGateway[Prepare Gateway Configs]
-    PrepareGateway --> BulkUpsert[Bulk Upsert to Partition DB]
+    PrepareGateway --> BulkUpsert
     BulkUpsert --> End([Return Changed Domains])
 
     style BulkUpsert fill:#e1f5fe
@@ -43,7 +43,7 @@ Creates or reassigns domains to a deployment:
 1. For each domain: find existing or insert new domain record
 2. Skip domains marked as rolled back
 3. Prepare gateway configs (exclude local domains like `.local`, `.test`)
-4. Bulk upsert gateway configs to partition database
+4. Bulk upsert gateway configs to database
 5. Return list of changed domains
 
 Implementation: `go/apps/ctrl/workflows/routing/assign_domains_handler.go`

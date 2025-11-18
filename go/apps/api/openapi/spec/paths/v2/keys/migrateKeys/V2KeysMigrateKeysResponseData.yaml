@@ -1,0 +1,17 @@
+type: object
+required:
+  - migrated
+  - failed
+properties:
+  migrated:
+    type: array
+    description: Successfully migrated keys with their hash and generated keyId
+    items:
+      "$ref": "./V2KeysMigrateKeysMigration.yaml"
+  failed:
+    type: array
+    description: Hashes that could not be migrated (e.g., already exist in the system)
+    items:
+      type: string
+      description: The hash that failed to migrate
+      example: sha256_ghi789jkl012

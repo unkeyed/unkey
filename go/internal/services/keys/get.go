@@ -32,7 +32,7 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 		)
 	}
 
-	key, log, err := s.Get(ctx, sess, rootKey)
+	key, log, err := s.Get(ctx, sess, hash.Sha256(rootKey))
 	if err != nil {
 		return nil, log, err
 	}
@@ -58,21 +58,22 @@ var emptyLog = func() {}
 // Get retrieves a key from the database and performs basic validation checks.
 // It returns a KeyVerifier that can be used for further validation with specific options.
 // For normal keys, validation failures are indicated by KeyVerifier.Valid=false.
-func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*KeyVerifier, func(), error) {
+func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string) (*KeyVerifier, func(), error) {
 	ctx, span := tracing.Start(ctx, "keys.Get")
 	defer span.End()
 
-	err := assert.NotEmpty(rawKey)
+	startTime := time.Now()
+
+	err := assert.NotEmpty(sha256Hash)
 	if err != nil {
-		return nil, emptyLog, fault.Wrap(err, fault.Internal("rawKey is empty"))
+		return nil, emptyLog, fault.Wrap(err, fault.Internal("sha256Hash is empty"))
 	}
 
-	h := hash.Sha256(rawKey)
-	key, hit, err := s.keyCache.SWR(ctx, h, func(ctx context.Context) (db.CachedKeyData, error) {
+	key, hit, err := s.keyCache.SWR(ctx, sha256Hash, func(ctx context.Context) (db.CachedKeyData, error) {
 		// Use database retry with exponential backoff, skipping non-transient errors
 		var row db.FindKeyForVerificationRow
 		row, err = db.WithRetryContext(ctx, func() (db.FindKeyForVerificationRow, error) {
-			return db.Query.FindKeyForVerification(ctx, s.db.RO(), h)
+			return db.Query.FindKeyForVerification(ctx, s.db.RO(), sha256Hash)
 		})
 		if err != nil {
 			return db.CachedKeyData{}, err
@@ -144,6 +145,8 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 			AuthorizedWorkspaceID: key.WorkspaceID,
 			isRootKey:             key.ForWorkspaceID.Valid,
 			Key:                   key.FindKeyForVerificationRow,
+			startTime:             startTime,
+			spentCredits:          0,
 		}
 
 		return kv, kv.log, nil
@@ -214,6 +217,8 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		region:                s.region,
 		message:               "",
 		isRootKey:             key.ForWorkspaceID.Valid,
+		startTime:             startTime,
+		spentCredits:          0,
 
 		// By default we assume the key is valid unless proven otherwise
 		Status:            StatusValid,
@@ -239,7 +244,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, rawKey string) (*K
 		return kv, kv.log, nil
 	}
 
-	if key.Expires.Valid && time.Now().After(key.Expires.Time) {
+	if key.Expires.Valid && startTime.After(key.Expires.Time) {
 		kv.setInvalid(StatusExpired, fmt.Sprintf("the key has expired on %s", key.Expires.Time.Format(time.RFC3339)))
 		return kv, kv.log, nil
 	}

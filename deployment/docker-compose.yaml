@@ -269,8 +269,7 @@ services:
       UNKEY_CTRL_ADDR: "http://ctrl:7091"
       UNKEY_REQUIRE_LOCAL_CERT: true
 
-      UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true&interpolateParams=true"
-      UNKEY_KEYS_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+      UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
       UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
       UNKEY_REDIS_URL: "redis://redis:6379"
 
@@ -356,7 +355,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
-      UNKEY_DATABASE_PARTITION: "unkey:password@tcp(mysql:3306)/partition_001?parseTime=true&interpolateParams=true"
 
       # Control plane configuration
       UNKEY_HTTP_PORT: "7091"

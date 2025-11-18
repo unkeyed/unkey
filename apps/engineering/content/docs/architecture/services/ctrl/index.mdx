@@ -30,7 +30,7 @@ Running alongside these are the Restate workflows that provide durable orchestra
 
 ### Technology Stack
 
-The ctrl service is built on Connect RPC for service-to-service communication using HTTP/2. Restate provides durable workflow orchestration with exactly-once semantics, ensuring operations complete reliably even during failures. Two MySQL databases store persistent state: the main database for projects, deployments, and domains, and the partition database for VM instances and gateway configurations. S3 stores build contexts and encrypted vault data. Krane provides a Kubernetes deployment abstraction, and Depot.dev handles remote container image building with persistent layer caching.
+The ctrl service is built on Connect RPC for service-to-service communication using HTTP/2. Restate provides durable workflow orchestration with exactly-once semantics, ensuring operations complete reliably even during failures. A single MySQL database stores all persistent state: projects, deployments, domains, VM instances, gateway configurations, and certificates. S3 stores build contexts and encrypted vault data. Krane provides a Kubernetes deployment abstraction, and Depot.dev handles remote container image building with persistent layer caching.
 
 ## Services
 
@@ -46,7 +46,7 @@ The service provides two key operations. `GenerateUploadURL` returns a presigned
 
 The deployment service orchestrates the complete deployment lifecycle through durable workflows. It provides four key operations: `CreateDeployment` initiates a new deployment, `GetDeployment` queries the current status, `Promote` promotes a deployment to live, and `Rollback` rolls back to a previous deployment.
 
-The deployment workflow progresses through several phases. It first builds the container image if building from source, then creates the deployment in Krane, our Kubernetes abstraction layer. Next it polls for instance readiness for up to 5 minutes, checking every second whether all pods are running. Once instances are ready, it registers them in the partition database so gateways can route traffic to them. It attempts to scrape an OpenAPI spec from the running service, though this is optional. Finally, it assigns domains and creates gateway configurations via the routing service, then marks the deployment as ready.
+The deployment workflow progresses through several phases. It first builds the container image if building from source, then creates the deployment in Krane, our Kubernetes abstraction layer. Next it polls for instance readiness for up to 5 minutes, checking every second whether all pods are running. Once instances are ready, it registers them in the database so gateways can route traffic to them. It attempts to scrape an OpenAPI spec from the running service, though this is optional. Finally, it assigns domains and creates gateway configurations via the routing service, then marks the deployment as ready.
 
 Restate implements [durable executions](https://www.restate.dev/what-is-durable-execution) by recording progress in a distributed persistent log. The log is managed by the Restate server. If ctrl crashes during deployment, Restate resumes from the last completed phase rather than restarting from the beginning. This ensures deployments complete reliably even during system failures.
 
@@ -60,7 +60,7 @@ The ACME service handles ACME protocol coordination for TLS certificate provisio
 
 The service coordinates with the Certificate workflow for actual certificate issuance. It supports both HTTP-01 challenges for custom domains and DNS-01 challenges via the Cloudflare provider for wildcard certificates on the default domain.
 
-Private keys are encrypted using the vault service before storage. Certificates are stored in the partition database for fast gateway access without encryption overhead. Challenge records track certificate expiry with 90-day validity periods.
+Private keys are encrypted using the vault service before storage. Certificates are stored in the main database for fast gateway access without encryption overhead. Challenge records track certificate expiry with 90-day validity periods.
 
 [Read detailed Certificate docs →](./certificates)
 
@@ -76,9 +76,7 @@ Workflows are implemented as Restate services for durable execution. The Deploym
 
 ## Database Schema
 
-The ctrl service uses two MySQL databases. The main database (`unkey`) stores projects, environments, and workspaces, along with deployments and deployment history, domains and SSL certificates, and ACME users and challenges. The partition database (`partition_*`) stores VMs representing container instances, gateway configurations as JSON blobs, and certificate storage in PEM format.
-
-The partition database is designed for horizontal sharding. Each partition can live on a separate database server, and gateway instances only need access to their assigned partition. This reduces the blast radius if a partition is compromised and allows scaling the gateway infrastructure independently.
+The ctrl service uses a single MySQL database (`unkey`) that stores all data: projects, environments, and workspaces, along with deployments and deployment history, domains and SSL certificates, ACME users and challenges, VMs representing container instances, gateway configurations as JSON blobs, and certificate storage in PEM format.
 
 ## Monitoring
 

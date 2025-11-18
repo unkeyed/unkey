@@ -20,6 +20,12 @@ type dataApi struct {
 	NotFound Code
 }
 
+// dataMigration defines errors related to migration operations.
+type dataMigration struct {
+	// NotFound indicates the requested migration was not found.
+	NotFound Code
+}
+
 // dataKeySpace defines errors related to key space operations.
 type dataKeySpace struct {
 	// NotFound indicates the requested key space was not found.
@@ -95,6 +101,7 @@ type UnkeyDataErrors struct {
 	Key                dataKey
 	Workspace          dataWorkspace
 	Api                dataApi
+	Migration          dataMigration
 	KeySpace           dataKeySpace
 	Permission         dataPermission
 	Role               dataRole
@@ -120,6 +127,10 @@ var Data = UnkeyDataErrors{
 
 	Api: dataApi{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "api_not_found"},
+	},
+
+	Migration: dataMigration{
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "migration_not_found"},
 	},
 
 	KeySpace: dataKeySpace{

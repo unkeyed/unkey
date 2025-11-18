@@ -303,7 +303,6 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 		currentWindow, _ := b.getCurrentWindow(req.Time)
 		currentWindow.counter += req.Cost
 		s.replayBuffer.Buffer(req)
-
 	}
 
 	return res, nil
@@ -312,6 +311,9 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 // checkBucketWithLockHeld evaluates a rate limit request with the bucket lock already held.
 // The caller MUST hold bucket.mu.Lock() before calling this.
 func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequest, b *bucket) (RatelimitResponse, error) {
+	_, span := tracing.Start(ctx, "checkBucketWithLockHeld")
+	defer span.End()
+
 	currentWindow, currentWindowExisted := b.getCurrentWindow(req.Time)
 	previousWindow, previousWindowExisted := b.getPreviousWindow(req.Time)
 

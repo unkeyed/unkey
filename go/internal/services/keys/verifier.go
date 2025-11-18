@@ -48,6 +48,10 @@ type KeyVerifier struct {
 	session *zen.Session // The current request session
 	region  string       // Geographic region identifier
 
+	// Tracking
+	startTime    time.Time // Time when verification started
+	spentCredits int64     // Credits spent during verification
+
 	// Services
 	rateLimiter  ratelimit.Service     // Rate limiting service
 	usageLimiter usagelimiter.Service  // Usage limiting service
@@ -122,6 +126,7 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 }
 
 func (k *KeyVerifier) log() {
+	latency := time.Since(k.startTime).Milliseconds()
 
 	k.clickhouse.BufferKeyVerification(schema.KeyVerification{
 		RequestID:    k.session.RequestID(),
@@ -134,8 +139,8 @@ func (k *KeyVerifier) log() {
 		Tags:         k.tags,
 		Region:       k.region,
 		ExternalID:   k.Key.ExternalID.String,
-		SpentCredits: 0,   // TODO
-		Latency:      0.0, // TODO
+		SpentCredits: k.spentCredits,
+		Latency:      float64(latency),
 	})
 
 	keyType := "key"

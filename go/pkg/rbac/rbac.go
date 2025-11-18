@@ -139,7 +139,7 @@ func formatPermissions(permissions []string) []string {
 // ParseQuery parses a SQL-like permission query string and returns a PermissionQuery.
 //
 // Supported syntax:
-//   - Permissions: alphanumeric characters, dots, underscores, hyphens, colons, asterisks (e.g., "api.key1.read_key", "system:admin", "api.*")
+//   - Permissions: alphanumeric characters, dots, underscores, hyphens, colons, asterisks, forward slashes (e.g., "api.key1.read_key", "system:admin", "api.*", "/api/v1/xxx")
 //   - Operators: AND, OR (case-insensitive)
 //   - Grouping: parentheses ()
 //   - Precedence: AND has higher precedence than OR
@@ -151,6 +151,7 @@ func formatPermissions(permissions []string) []string {
 // Examples:
 //   - "api.key1.read_key"
 //   - "api.*" (matches only the literal permission "api.*")
+//   - "/api/v1/xxx" (path-like permission names)
 //   - "perm1 AND perm2"
 //   - "perm1 OR perm2 AND perm3" (parsed as "perm1 OR (perm2 AND perm3)")
 //   - "(perm1 OR perm2) AND perm3"

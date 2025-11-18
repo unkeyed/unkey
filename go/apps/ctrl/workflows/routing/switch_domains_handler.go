@@ -8,13 +8,12 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	partitiondb "github.com/unkeyed/unkey/go/pkg/partition/db"
 )
 
 // SwitchDomains reassigns existing domains to a different deployment.
 //
 // This durable workflow performs the following steps:
-// 1. Fetch gateway config for the target deployment from partition DB
+// 1. Fetch gateway config for the target deployment from DB
 // 2. Fetch domain information (hostnames, workspace IDs) for given domain IDs
 // 3. Upsert gateway configs first (atomic update of routing)
 // 4. Reassign domains to the target deployment in main DB
@@ -35,8 +34,8 @@ func (s *Service) SwitchDomains(ctx restate.ObjectContext, req *hydrav1.SwitchDo
 	)
 
 	// Fetch target deployment's gateway config
-	gatewayConfig, err := restate.Run(ctx, func(stepCtx restate.RunContext) (partitiondb.FindGatewayByDeploymentIdRow, error) {
-		return partitiondb.Query.FindGatewayByDeploymentId(stepCtx, s.partitionDB.RO(), req.GetTargetDeploymentId())
+	gatewayConfig, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindGatewayByDeploymentIdRow, error) {
+		return db.Query.FindGatewayByDeploymentId(stepCtx, s.db.RO(), req.GetTargetDeploymentId())
 	}, restate.WithName("fetch-gateway-config"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch gateway config for deployment %s: %w", req.GetTargetDeploymentId(), err)
@@ -52,14 +51,14 @@ func (s *Service) SwitchDomains(ctx restate.ObjectContext, req *hydrav1.SwitchDo
 
 	// Upsert gateway configs first
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		var gatewayParams []partitiondb.UpsertGatewayParams
+		var gatewayParams []db.UpsertGatewayParams
 
 		for _, domain := range domains {
 			if isLocalHostname(domain.Domain, s.defaultDomain) {
 				continue
 			}
 
-			gatewayParams = append(gatewayParams, partitiondb.UpsertGatewayParams{
+			gatewayParams = append(gatewayParams, db.UpsertGatewayParams{
 				WorkspaceID:  domain.WorkspaceID,
 				DeploymentID: req.GetTargetDeploymentId(),
 				Hostname:     domain.Domain,
@@ -68,7 +67,7 @@ func (s *Service) SwitchDomains(ctx restate.ObjectContext, req *hydrav1.SwitchDo
 		}
 
 		if len(gatewayParams) > 0 {
-			if err = partitiondb.BulkQuery.UpsertGateway(stepCtx, s.partitionDB.RW(), gatewayParams); err != nil {
+			if err = db.BulkQuery.UpsertGateway(stepCtx, s.db.RW(), gatewayParams); err != nil {
 				return restate.Void{}, fmt.Errorf("failed to upsert gateway configs: %w", err)
 			}
 			s.logger.Info("updated gateway configs", "count", len(gatewayParams))

@@ -321,6 +321,92 @@ func (ns NullDomainsType) Value() (driver.Value, error) {
 	return string(ns.DomainsType), nil
 }
 
+type KeyMigrationsAlgorithm string
+
+const (
+	KeyMigrationsAlgorithmSha256                         KeyMigrationsAlgorithm = "sha256"
+	KeyMigrationsAlgorithmGithubcomSeamapiPrefixedApiKey KeyMigrationsAlgorithm = "github.com/seamapi/prefixed-api-key"
+)
+
+func (e *KeyMigrationsAlgorithm) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = KeyMigrationsAlgorithm(s)
+	case string:
+		*e = KeyMigrationsAlgorithm(s)
+	default:
+		return fmt.Errorf("unsupported scan type for KeyMigrationsAlgorithm: %T", src)
+	}
+	return nil
+}
+
+type NullKeyMigrationsAlgorithm struct {
+	KeyMigrationsAlgorithm KeyMigrationsAlgorithm
+	Valid                  bool // Valid is true if KeyMigrationsAlgorithm is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullKeyMigrationsAlgorithm) Scan(value interface{}) error {
+	if value == nil {
+		ns.KeyMigrationsAlgorithm, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.KeyMigrationsAlgorithm.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullKeyMigrationsAlgorithm) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.KeyMigrationsAlgorithm), nil
+}
+
+type MetalHostsStatus string
+
+const (
+	MetalHostsStatusProvisioning MetalHostsStatus = "provisioning"
+	MetalHostsStatusActive       MetalHostsStatus = "active"
+	MetalHostsStatusDraining     MetalHostsStatus = "draining"
+	MetalHostsStatusTerminated   MetalHostsStatus = "terminated"
+)
+
+func (e *MetalHostsStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = MetalHostsStatus(s)
+	case string:
+		*e = MetalHostsStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for MetalHostsStatus: %T", src)
+	}
+	return nil
+}
+
+type NullMetalHostsStatus struct {
+	MetalHostsStatus MetalHostsStatus
+	Valid            bool // Valid is true if MetalHostsStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullMetalHostsStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.MetalHostsStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.MetalHostsStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullMetalHostsStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.MetalHostsStatus), nil
+}
+
 type RatelimitOverridesSharding string
 
 const (
@@ -447,6 +533,53 @@ func (ns NullVercelBindingsResourceType) Value() (driver.Value, error) {
 	return string(ns.VercelBindingsResourceType), nil
 }
 
+type VmsStatus string
+
+const (
+	VmsStatusAllocated    VmsStatus = "allocated"
+	VmsStatusProvisioning VmsStatus = "provisioning"
+	VmsStatusStarting     VmsStatus = "starting"
+	VmsStatusRunning      VmsStatus = "running"
+	VmsStatusStopping     VmsStatus = "stopping"
+	VmsStatusStopped      VmsStatus = "stopped"
+	VmsStatusFailed       VmsStatus = "failed"
+)
+
+func (e *VmsStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = VmsStatus(s)
+	case string:
+		*e = VmsStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for VmsStatus: %T", src)
+	}
+	return nil
+}
+
+type NullVmsStatus struct {
+	VmsStatus VmsStatus
+	Valid     bool // Valid is true if VmsStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullVmsStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.VmsStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.VmsStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullVmsStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.VmsStatus), nil
+}
+
 type WorkspacesPlan string
 
 const (
@@ -566,6 +699,16 @@ type AuditLogTarget struct {
 	UpdatedAt   sql.NullInt64  `db:"updated_at"`
 }
 
+type Certificate struct {
+	ID                  uint64        `db:"id"`
+	WorkspaceID         string        `db:"workspace_id"`
+	Hostname            string        `db:"hostname"`
+	Certificate         string        `db:"certificate"`
+	EncryptedPrivateKey string        `db:"encrypted_private_key"`
+	CreatedAt           int64         `db:"created_at"`
+	UpdatedAt           sql.NullInt64 `db:"updated_at"`
+}
+
 type ClickhouseWorkspaceSetting struct {
 	WorkspaceID               string        `db:"workspace_id"`
 	Username                  string        `db:"username"`
@@ -640,6 +783,14 @@ type Environment struct {
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`
 }
 
+type Gateway struct {
+	ID           uint64 `db:"id"`
+	WorkspaceID  string `db:"workspace_id"`
+	DeploymentID string `db:"deployment_id"`
+	Hostname     string `db:"hostname"`
+	Config       []byte `db:"config"`
+}
+
 type Identity struct {
 	ID          string        `db:"id"`
 	ExternalID  string        `db:"external_id"`
@@ -652,29 +803,30 @@ type Identity struct {
 }
 
 type Key struct {
-	ID                string         `db:"id"`
-	KeyAuthID         string         `db:"key_auth_id"`
-	Hash              string         `db:"hash"`
-	Start             string         `db:"start"`
-	WorkspaceID       string         `db:"workspace_id"`
-	ForWorkspaceID    sql.NullString `db:"for_workspace_id"`
-	Name              sql.NullString `db:"name"`
-	OwnerID           sql.NullString `db:"owner_id"`
-	IdentityID        sql.NullString `db:"identity_id"`
-	Meta              sql.NullString `db:"meta"`
-	Expires           sql.NullTime   `db:"expires"`
-	CreatedAtM        int64          `db:"created_at_m"`
-	UpdatedAtM        sql.NullInt64  `db:"updated_at_m"`
-	DeletedAtM        sql.NullInt64  `db:"deleted_at_m"`
-	RefillDay         sql.NullInt16  `db:"refill_day"`
-	RefillAmount      sql.NullInt32  `db:"refill_amount"`
-	LastRefillAt      sql.NullTime   `db:"last_refill_at"`
-	Enabled           bool           `db:"enabled"`
-	RemainingRequests sql.NullInt32  `db:"remaining_requests"`
-	RatelimitAsync    sql.NullBool   `db:"ratelimit_async"`
-	RatelimitLimit    sql.NullInt32  `db:"ratelimit_limit"`
-	RatelimitDuration sql.NullInt64  `db:"ratelimit_duration"`
-	Environment       sql.NullString `db:"environment"`
+	ID                 string         `db:"id"`
+	KeyAuthID          string         `db:"key_auth_id"`
+	Hash               string         `db:"hash"`
+	Start              string         `db:"start"`
+	WorkspaceID        string         `db:"workspace_id"`
+	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
+	Name               sql.NullString `db:"name"`
+	OwnerID            sql.NullString `db:"owner_id"`
+	IdentityID         sql.NullString `db:"identity_id"`
+	Meta               sql.NullString `db:"meta"`
+	Expires            sql.NullTime   `db:"expires"`
+	CreatedAtM         int64          `db:"created_at_m"`
+	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
+	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
+	RefillDay          sql.NullInt16  `db:"refill_day"`
+	RefillAmount       sql.NullInt32  `db:"refill_amount"`
+	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
+	Enabled            bool           `db:"enabled"`
+	RemainingRequests  sql.NullInt32  `db:"remaining_requests"`
+	RatelimitAsync     sql.NullBool   `db:"ratelimit_async"`
+	RatelimitLimit     sql.NullInt32  `db:"ratelimit_limit"`
+	RatelimitDuration  sql.NullInt64  `db:"ratelimit_duration"`
+	Environment        sql.NullString `db:"environment"`
+	PendingMigrationID sql.NullString `db:"pending_migration_id"`
 }
 
 type KeyAuth struct {
@@ -688,6 +840,12 @@ type KeyAuth struct {
 	DefaultBytes       sql.NullInt32  `db:"default_bytes"`
 	SizeApprox         int32          `db:"size_approx"`
 	SizeLastUpdatedAt  int64          `db:"size_last_updated_at"`
+}
+
+type KeyMigration struct {
+	ID          string                 `db:"id"`
+	WorkspaceID string                 `db:"workspace_id"`
+	Algorithm   KeyMigrationsAlgorithm `db:"algorithm"`
 }
 
 type KeyMigrationError struct {
@@ -713,6 +871,21 @@ type KeysRole struct {
 	WorkspaceID string        `db:"workspace_id"`
 	CreatedAtM  int64         `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
+}
+
+type MetalHost struct {
+	ID                     string           `db:"id"`
+	Region                 string           `db:"region"`
+	AvailabilityZone       string           `db:"availability_zone"`
+	InstanceType           string           `db:"instance_type"`
+	Ec2InstanceID          string           `db:"ec2_instance_id"`
+	PrivateIp              string           `db:"private_ip"`
+	Status                 MetalHostsStatus `db:"status"`
+	CapacityCpuMillicores  int32            `db:"capacity_cpu_millicores"`
+	CapacityMemoryMb       int32            `db:"capacity_memory_mb"`
+	AllocatedCpuMillicores int32            `db:"allocated_cpu_millicores"`
+	AllocatedMemoryMb      int32            `db:"allocated_memory_mb"`
+	LastHeartbeat          int64            `db:"last_heartbeat"`
 }
 
 type Permission struct {
@@ -824,6 +997,16 @@ type VercelIntegration struct {
 	CreatedAtM  int64          `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64  `db:"updated_at_m"`
 	DeletedAtM  sql.NullInt64  `db:"deleted_at_m"`
+}
+
+type Vm struct {
+	ID            string         `db:"id"`
+	DeploymentID  string         `db:"deployment_id"`
+	MetalHostID   sql.NullString `db:"metal_host_id"`
+	Address       sql.NullString `db:"address"`
+	CpuMillicores int32          `db:"cpu_millicores"`
+	MemoryMb      int32          `db:"memory_mb"`
+	Status        VmsStatus      `db:"status"`
 }
 
 type Workspace struct {

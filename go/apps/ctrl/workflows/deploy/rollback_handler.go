@@ -8,7 +8,6 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	partitiondb "github.com/unkeyed/unkey/go/pkg/partition/db"
 )
 
 // Rollback performs a rollback to a previous deployment.
@@ -87,8 +86,8 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	}
 
 	// Check target deployment has running VMs
-	vms, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]partitiondb.Vm, error) {
-		return partitiondb.Query.FindVMsByDeploymentId(stepCtx, w.partitionDB.RO(), targetDeployment.ID)
+	vms, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.Vm, error) {
+		return db.Query.FindVMsByDeploymentId(stepCtx, w.db.RO(), targetDeployment.ID)
 	}, restate.WithName("finding target VMs"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get VMs: %w", err)
@@ -96,7 +95,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 
 	runningVms := 0
 	for _, vm := range vms {
-		if vm.Status == partitiondb.VmsStatusRunning {
+		if vm.Status == db.VmsStatusRunning {
 			runningVms++
 		}
 	}
