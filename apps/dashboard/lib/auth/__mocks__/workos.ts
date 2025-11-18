@@ -1,5 +1,3 @@
-import type { Mock } from "vitest";
-
 /**
  * Mock WorkOS SDK instance factory
  * Import this in your test file and use with vi.fn()
@@ -10,11 +8,14 @@ import type { Mock } from "vitest";
  * import { createMockWorkOSInstance } from '../__mocks__/workos';
  *
  * vi.mock('@workos-inc/node', () => ({
- *   WorkOS: vi.fn().mockImplementation((apiKey: string) => createMockWorkOSInstance(apiKey, vi)),
+ *   WorkOS: vi.fn().mockImplementation((apiKey: string) => createMockWorkOSInstance(vi, apiKey)),
  * }));
  * ```
  */
-export const createMockWorkOSInstance = (apiKey = "test-api-key", viFn: typeof import('vitest').vi) => ({
+export const createMockWorkOSInstance = (
+  viFn: typeof import("vitest").vi,
+  apiKey = "test-api-key",
+) => ({
   key: apiKey,
   userManagement: {
     createUser: viFn.fn(),

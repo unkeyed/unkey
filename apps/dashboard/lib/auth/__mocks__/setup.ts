@@ -43,6 +43,7 @@ export const setupAuthTestMocks = () => {
  */
 export const setupFetchMock = () => {
   const fetchMock = vi.fn();
+  // biome-ignore lint/suspicious/noExplicitAny: Need to mock global fetch which has complex types
   global.fetch = fetchMock as any;
   return fetchMock;
 };
@@ -50,6 +51,7 @@ export const setupFetchMock = () => {
 /**
  * Create a mock fetch response
  */
+// biome-ignore lint/suspicious/noExplicitAny: Flexible mock data type for various test scenarios
 export const createMockFetchResponse = (data: any, ok = true, status = 200) => ({
   ok,
   status,
@@ -61,15 +63,13 @@ export const createMockFetchResponse = (data: any, ok = true, status = 200) => (
 /**
  * Mock Radar API response with specific action
  */
-export const mockRadarResponse = (
-  action: "allow" | "block" | "challenge",
-  reason?: string,
-) => {
+export const mockRadarResponse = (action: "allow" | "block" | "challenge", reason?: string) => {
   const response = createMockFetchResponse({
     action,
     ...(reason && { reason }),
   });
 
+  // biome-ignore lint/suspicious/noExplicitAny: Need to access mock methods on global fetch
   (global.fetch as any).mockResolvedValueOnce(response);
   return response;
 };
@@ -79,6 +79,7 @@ export const mockRadarResponse = (
  */
 export const mockRadarFailure = (status = 500) => {
   const response = createMockFetchResponse({}, false, status);
+  // biome-ignore lint/suspicious/noExplicitAny: Need to access mock methods on global fetch
   (global.fetch as any).mockResolvedValueOnce(response);
   return response;
 };
@@ -87,5 +88,6 @@ export const mockRadarFailure = (status = 500) => {
  * Mock Radar API network error
  */
 export const mockRadarNetworkError = (errorMessage = "Network error") => {
+  // biome-ignore lint/suspicious/noExplicitAny: Need to access mock methods on global fetch
   (global.fetch as any).mockRejectedValueOnce(new Error(errorMessage));
 };

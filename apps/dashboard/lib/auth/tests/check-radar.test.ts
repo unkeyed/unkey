@@ -39,7 +39,7 @@ vi.mock("../cookie-security", () => ({
 
 // Mock the WorkOS SDK
 vi.mock("@workos-inc/node", () => ({
-  WorkOS: vi.fn().mockImplementation((apiKey: string) => createMockWorkOSInstance(apiKey, vi)),
+  WorkOS: vi.fn().mockImplementation((apiKey: string) => createMockWorkOSInstance(vi, apiKey)),
 }));
 
 // Mock fetch globally
