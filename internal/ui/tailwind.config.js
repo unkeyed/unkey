@@ -109,6 +109,8 @@ function generateRadixColors() {
     "blueA",
     "blackA",
     "whiteA",
+    "cyan",
+    "bronze",
   ];
   const colors = {};
   colorNames.forEach((name) => {
