@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockWorkOSEnv } from "../__mocks__/env";
+import {
+  mockRadarFailure,
+  mockRadarNetworkError,
+  mockRadarResponse,
+  setupFetchMock,
+} from "../__mocks__/setup";
 import { createMockWorkOSInstance } from "../__mocks__/workos";
 
 // Mock the env module BEFORE importing anything else
@@ -42,9 +48,6 @@ vi.mock("@workos-inc/node", () => ({
   WorkOS: vi.fn().mockImplementation((apiKey: string) => createMockWorkOSInstance(vi, apiKey)),
 }));
 
-// Mock fetch globally
-global.fetch = vi.fn();
-
 // Now import after mocks are set up
 import { WorkOSAuthProvider } from "../workos";
 
@@ -53,6 +56,7 @@ describe("WorkOSAuthProvider - checkRadar", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    setupFetchMock();
     provider = new WorkOSAuthProvider({
       apiKey: "test-api-key",
       clientId: "test-client-id",
@@ -61,14 +65,7 @@ describe("WorkOSAuthProvider - checkRadar", () => {
 
   describe("signUpViaEmail with Radar checks", () => {
     it("should block signup when Radar returns block action", async () => {
-      // Mock successful Radar API response with block action
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          action: "block",
-          reason: "Suspicious activity detected",
-        }),
-      });
+      mockRadarResponse("block", "Suspicious activity detected");
 
       const result = await provider.signUpViaEmail({
         email: "test@example.com",
@@ -99,13 +96,7 @@ describe("WorkOSAuthProvider - checkRadar", () => {
     });
 
     it("should allow signup when Radar returns allow action", async () => {
-      // Mock successful Radar API response with allow action
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          action: "allow",
-        }),
-      });
+      mockRadarResponse("allow");
 
       // Mock WorkOS user creation and magic auth
       const mockProvider = {
@@ -139,14 +130,7 @@ describe("WorkOSAuthProvider - checkRadar", () => {
     });
 
     it("should allow signup when Radar returns challenge action", async () => {
-      // Mock successful Radar API response with challenge action
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          action: "challenge",
-          reason: "Additional verification recommended",
-        }),
-      });
+      mockRadarResponse("challenge", "Additional verification recommended");
 
       // Mock WorkOS user creation and magic auth
       const mockProvider = {
@@ -172,11 +156,7 @@ describe("WorkOSAuthProvider - checkRadar", () => {
     });
 
     it("should allow signup when Radar API fails", async () => {
-      // Mock failed Radar API response
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-      });
+      mockRadarFailure(500);
 
       // Mock WorkOS user creation and magic auth
       const mockProvider = {
@@ -202,8 +182,7 @@ describe("WorkOSAuthProvider - checkRadar", () => {
     });
 
     it("should allow signup when Radar API throws an error", async () => {
-      // Mock Radar API throwing an error
-      (global.fetch as any).mockRejectedValueOnce(new Error("Network error"));
+      mockRadarNetworkError("Network error");
 
       // Mock WorkOS user creation and magic auth
       const mockProvider = {
@@ -231,14 +210,7 @@ describe("WorkOSAuthProvider - checkRadar", () => {
 
   describe("signInViaEmail with Radar checks", () => {
     it("should block signin when Radar returns block action", async () => {
-      // Mock successful Radar API response with block action
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          action: "block",
-          reason: "Account compromised",
-        }),
-      });
+      mockRadarResponse("block", "Account compromised");
 
       const result = await provider.signInViaEmail({
         email: "test@example.com",
@@ -254,13 +226,7 @@ describe("WorkOSAuthProvider - checkRadar", () => {
     });
 
     it("should allow signin when Radar returns allow action", async () => {
-      // Mock successful Radar API response with allow action
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          action: "allow",
-        }),
-      });
+      mockRadarResponse("allow");
 
       // Mock WorkOS listUsers and createMagicAuth
       const mockProvider = {
@@ -288,14 +254,7 @@ describe("WorkOSAuthProvider - checkRadar", () => {
     });
 
     it("should allow signin when Radar returns challenge action", async () => {
-      // Mock successful Radar API response with challenge action
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          action: "challenge",
-          reason: "Unusual location detected",
-        }),
-      });
+      mockRadarResponse("challenge", "Unusual location detected");
 
       const mockProvider = {
         userManagement: {
