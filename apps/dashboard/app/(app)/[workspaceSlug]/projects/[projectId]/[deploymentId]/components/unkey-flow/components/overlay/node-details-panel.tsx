@@ -1,5 +1,12 @@
-import { Book2, DoubleChevronRight } from "@unkey/icons";
-import { InfoTooltip } from "@unkey/ui";
+import { Book2, ChevronExpandY, DoubleChevronRight } from "@unkey/icons";
+import {
+  InfoTooltip,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { CardHeader } from "../nodes/deploy-node";
 import { type DeploymentNode, REGION_INFO } from "../nodes/types";
@@ -56,6 +63,41 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
             subtitle={`${zones} availability ${zones === 1 ? "zone" : "zones"}`}
             health={health}
           />
+        </div>
+
+        <div className="flex px-4 w-full">
+          <div className="flex items-center gap-3 w-full">
+            <div className="text-gray-9 text-xs whitespace-nowrap">Runtime metrics</div>
+            <div className="h-0.5 bg-grayA-3 rounded-sm flex-1 min-w-[115px]" />
+            <div className="flex items-center gap-2 shrink-0">
+              <Select>
+                <SelectTrigger
+                  className="rounded-lg !px-2 !py-1.5 text-gray-10 text-xs !min-h-[26px]"
+                  rightIcon={<ChevronExpandY className="ml-2 text-gray-10" />}
+                >
+                  <SelectValue placeholder="24H" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="option1">Option 1</SelectItem>
+                  <SelectItem value="option2">Option 2</SelectItem>
+                  <SelectItem value="option3">Option 3</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select>
+                <SelectTrigger
+                  className="rounded-lg !px-2 !py-1.5 text-gray-10 text-xs !min-h-[26px]"
+                  rightIcon={<ChevronExpandY className="ml-2 text-gray-10" />}
+                >
+                  <SelectValue placeholder="PST" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="option1">Option 1</SelectItem>
+                  <SelectItem value="option2">Option 2</SelectItem>
+                  <SelectItem value="option3">Option 3</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
       </div>
     </div>

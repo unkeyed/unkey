@@ -52,6 +52,7 @@ const selectWrapperVariants = cva("relative flex items-center w-full", {
 // Types
 export type DocumentedSelectProps = VariantProps<typeof selectTriggerVariants> & {
   leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
   wrapperClassName?: string;
 };
 
@@ -62,7 +63,7 @@ const SelectValue = SelectPrimitive.Value;
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & DocumentedSelectProps
->(({ className, children, variant, leftIcon, wrapperClassName, ...props }, ref) => (
+>(({ className, children, variant, leftIcon, wrapperClassName, rightIcon, ...props }, ref) => (
   <div className={cn(selectWrapperVariants({ variant }), wrapperClassName)}>
     {leftIcon && (
       <div className="absolute left-3 flex items-center pointer-events-none">{leftIcon}</div>
@@ -79,7 +80,7 @@ const SelectTrigger = React.forwardRef<
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDown className="absolute right-3 w-4 h-4 opacity-70" />
+        {rightIcon || <ChevronDown className="absolute right-3 w-4 h-4 opacity-70" />}
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   </div>
