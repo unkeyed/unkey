@@ -31,7 +31,7 @@ func (h *Handler) Path() string {
 // 2. Remote NLB (if no local gateway) - forwards to nearest region's NLB
 func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	startTime := h.Clock.Now()
-	hostname := sess.Request().Host
+	hostname := proxy.ExtractHostname(sess.Request().Host)
 
 	// Lookup route and gateways by hostname
 	route, gateways, err := h.RouterService.LookupByHostname(ctx, hostname)

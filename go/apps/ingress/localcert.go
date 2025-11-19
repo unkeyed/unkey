@@ -134,22 +134,12 @@ func generateLocalCertificate(ctx context.Context, cfg LocalCertConfig) error {
 		return fmt.Errorf("failed to insert certificate: %w", err)
 	}
 
-	fmt.Println("\n================================================================================")
-	fmt.Println("🔐 LOCAL CERTIFICATE GENERATED")
-	fmt.Println("================================================================================")
-	fmt.Printf("\nCertificate file: %s\n", certFile)
-	fmt.Println("\nTo trust this certificate in your browser and system:")
-	fmt.Println("\n  macOS:")
-	fmt.Printf("    sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain %s\n", certFile)
-	fmt.Println("\n  Linux:")
-	fmt.Printf("    sudo cp %s /usr/local/share/ca-certificates/unkey-local.crt\n", certFile)
-	fmt.Println("    sudo update-ca-certificates")
-	fmt.Println("\n  Windows:")
-	fmt.Printf("    certlm.msc -> Trusted Root Certification Authorities -> Import %s\n", certFile)
-	fmt.Println("\n  Chrome/Chromium (if system trust doesn't work):")
-	fmt.Println("    Settings -> Privacy and Security -> Manage Certificates -> Authorities -> Import")
-	fmt.Printf("    Then import: %s\n", certFile)
-	fmt.Println("\n================================================================================")
+	logger.Info("local certificate generated",
+		"certFile", certFile,
+		"keyFile", keyFile,
+		"hostname", cfg.Hostname,
+	)
+	logger.Info("to trust this certificate, run: sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain " + certFile)
 
 	return nil
 }
