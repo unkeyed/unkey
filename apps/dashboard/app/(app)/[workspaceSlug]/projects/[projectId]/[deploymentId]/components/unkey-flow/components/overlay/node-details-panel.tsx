@@ -217,10 +217,53 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
       icon: <TimeClock iconSize="sm-regular" className="shrink-0" />,
       label: "Latency",
       value: (
-        <div className="flex gap-2.5 items-center">
-          <span className="text-gray-12 font-medium text-[13px]">p50</span>
-          <span className="text-gray-12 font-medium text-[13px]">3.1ms</span>
-        </div>
+        <Select defaultValue="p50">
+          <SelectTrigger
+            className="bg-grayA-3 rounded-full px-3 py-1.5 flex items-center gap-1.5 border-0 h-auto !min-h-0 focus:border-none"
+            rightIcon={
+              <ChevronExpandY className="text-gray-10 absolute right-3 w-4 h-4 opacity-70" />
+            }
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="[&_[role=option]:hover]:bg-grayA-3 [&_[role=option][data-highlighted]]:bg-grayA-2 w-56">
+            <SelectItem value="p50">
+              <div className="flex items-center gap-3 tabular-nums">
+                <div className="bg-success-11 rounded-full size-1.5 ring-[3px] ring-successA-4 ring-offset-0" />
+                <span className="text-gray-12 font-medium text-[13px]">p50</span>
+                <span className="text-grayA-10 text-[13px]">3.1ms</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="p75">
+              <div className="flex items-center gap-3 tabular-nums">
+                <div className="bg-info-11 rounded-full size-1.5 ring-[3px] ring-infoA-4 ring-offset-0" />
+                <span className="text-gray-12 font-medium text-[13px]">p75</span>
+                <span className="text-grayA-10 text-[13px]">4.8ms</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="p90">
+              <div className="flex items-center gap-3 tabular-nums">
+                <div className="bg-feature-11 rounded-full size-1.5 ring-[3px] ring-featureA-4 ring-offset-0" />
+                <span className="text-gray-12 font-medium text-[13px]">p90</span>
+                <span className="text-grayA-10 text-[13px]">7.2ms</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="p95">
+              <div className="flex items-center gap-3 tabular-nums">
+                <div className="bg-orange-11 rounded-full size-1.5 ring-[3px] ring-orangeA-4 ring-offset-0" />
+                <span className="text-gray-12 font-medium text-[13px]">p95</span>
+                <span className="text-grayA-10 text-[13px]">9.5ms</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="p99">
+              <div className="flex items-center gap-3 tabular-nums">
+                <div className="bg-error-11 rounded-full size-1.5 ring-[3px] ring-errorA-4 ring-offset-0" />
+                <span className="text-gray-12 font-medium text-[13px]">p99</span>
+                <span className="text-grayA-10 text-[13px]">15.3ms</span>
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
       ),
       config: {
         latency: {
