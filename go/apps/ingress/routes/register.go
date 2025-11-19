@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-// Register registers all ingress routes
+// Register registers all ingress routes for the HTTPS server
 func Register(srv *zen.Server, svc *Services) {
 	// Setup middlewares
 	withObservability := middleware.WithObservability(svc.Logger)
@@ -35,15 +35,7 @@ func Register(srv *zen.Server, svc *Services) {
 		},
 	)
 
-	// ACME challenge endpoint for Let's Encrypt (/.well-known/acme-challenge/*)
-	srv.RegisterRoute(
-		defaultMiddlewares,
-		&acme.Handler{
-			Logger: svc.Logger,
-		},
-	)
-
-	// Catch-all proxy route (must be registered last)
+	// Catch-all proxy route
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&proxy.Handler{
@@ -52,6 +44,37 @@ func Register(srv *zen.Server, svc *Services) {
 			DeploymentService: svc.DeploymentService,
 			ProxyService:      svc.ProxyService,
 			Clock:             svc.Clock,
+		},
+	)
+}
+
+// RegisterChallengeServer registers routes for the HTTP challenge server (Let's Encrypt ACME)
+func RegisterChallengeServer(srv *zen.Server, svc *Services) {
+	withLogging := zen.WithLogging(svc.Logger)
+	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
+	withErrorHandling := middleware.WithErrorHandling(svc.Logger)
+
+	challengeMiddlewares := []zen.Middleware{
+		withPanicRecovery,
+		withLogging,
+		withErrorHandling,
+	}
+
+	// Health check endpoint
+	srv.RegisterRoute(
+		[]zen.Middleware{withLogging},
+		&internalHealth.Handler{
+			Logger: svc.Logger,
+		},
+	)
+
+	// ACME challenge endpoint for Let's Encrypt (/.well-known/acme-challenge/*)
+	srv.RegisterRoute(
+		challengeMiddlewares,
+		&acme.Handler{
+			Logger:            svc.Logger,
+			DeploymentService: svc.DeploymentService,
+			AcmeClient:        svc.AcmeClient,
 		},
 	)
 }

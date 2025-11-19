@@ -2,13 +2,15 @@ package proxy
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strconv"
-	"strings"
+	"syscall"
 	"time"
 
 	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
@@ -88,68 +90,58 @@ func (s *service) GetMaxHops() int {
 	return s.maxHops
 }
 
-// writeProxyError writes a clean JSON or HTML error response for proxy failures
-func (s *service) writeProxyError(w http.ResponseWriter, r *http.Request, requestID string, err error) {
-	s.logger.Error("proxy error",
-		"error", err.Error(),
-		"requestID", requestID,
-		"host", r.Host,
-		"path", r.URL.Path,
-	)
-
-	// Set response headers so client knows which ingress hit the error
-	w.Header().Set(HeaderIngressID, s.ingressID)
-	w.Header().Set(HeaderRegion, s.region)
-	w.Header().Set(HeaderRequestID, requestID)
-
-	// Determine response format based on Accept header
-	acceptHeader := r.Header.Get("Accept")
-	preferJSON := strings.Contains(acceptHeader, "application/json") ||
-		strings.Contains(acceptHeader, "application/*") ||
-		(strings.Contains(acceptHeader, "*/*") && !strings.Contains(acceptHeader, "text/html"))
-
-	status := http.StatusBadGateway
-	code := codes.Ingress.Proxy.BadGateway.URN()
-	message := "Unable to reach service"
-
-	if preferJSON {
-		// Write JSON error
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error": map[string]interface{}{
-				"code":    string(code),
-				"message": message,
-				"status":  status,
-			},
-		})
-	} else {
-		// Write HTML error
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(status)
-		html := fmt.Sprintf(`<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>502 Bad Gateway</title>
-    <style>
-        body { font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 100px auto; padding: 20px; }
-        h1 { color: #333; }
-        p { color: #666; line-height: 1.6; }
-        .error-code { color: #999; font-size: 0.9em; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <h1>502 Bad Gateway</h1>
-    <p>%s</p>
-    <p>Please try again in a moment. If the problem persists, contact support.</p>
-    <p class="error-code">Error: %s</p>
-    <p class="error-code">Request ID: %s</p>
-</body>
-</html>`, message, code, requestID)
-		w.Write([]byte(html))
+// categorizeProxyError determines the appropriate error code and message based on the error type
+func categorizeProxyError(err error) (codes.URN, string) {
+	// Check for timeout errors
+	if errors.Is(err, context.DeadlineExceeded) || os.IsTimeout(err) {
+		return codes.Ingress.Proxy.GatewayTimeout.URN(),
+			"The request took too long to process. Please try again later."
 	}
+
+	// Check for network errors
+	var netErr *net.OpError
+	if errors.As(err, &netErr) {
+		// Check for timeout
+		if netErr.Timeout() {
+			return codes.Ingress.Proxy.GatewayTimeout.URN(),
+				"The request took too long to process. Please try again later."
+		}
+
+		// Check for connection refused
+		if errors.Is(netErr.Err, syscall.ECONNREFUSED) {
+			return codes.Ingress.Proxy.ServiceUnavailable.URN(),
+				"The service is temporarily unavailable. Please try again later."
+		}
+
+		// Check for connection reset
+		if errors.Is(netErr.Err, syscall.ECONNRESET) {
+			return codes.Ingress.Proxy.BadGateway.URN(),
+				"Connection was reset by the backend service. Please try again."
+		}
+
+		// Check for no route to host
+		if errors.Is(netErr.Err, syscall.EHOSTUNREACH) {
+			return codes.Ingress.Proxy.ServiceUnavailable.URN(),
+				"The service is unreachable. Please try again later."
+		}
+	}
+
+	// Check for DNS errors
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) {
+		if dnsErr.IsNotFound {
+			return codes.Ingress.Proxy.ServiceUnavailable.URN(),
+				"The service could not be found. Please check your configuration."
+		}
+		if dnsErr.IsTimeout {
+			return codes.Ingress.Proxy.GatewayTimeout.URN(),
+				"DNS resolution timed out. Please try again later."
+		}
+	}
+
+	// Default to bad gateway
+	return codes.Ingress.Proxy.BadGateway.URN(),
+		"Unable to connect to the backend service. Please try again in a few moments."
 }
 
 // ForwardToLocal forwards a request to a local gateway service (HTTP)
@@ -199,6 +191,9 @@ func (s *service) forward(_ctx context.Context, sess *zen.Session, targetURL *ur
 	sess.ResponseWriter().Header().Set(HeaderRegion, s.region)
 	sess.ResponseWriter().Header().Set(HeaderRequestID, sess.RequestID())
 
+	// Capture any proxy error to return to middleware
+	var proxyErr error
+
 	// Create reverse proxy with shared transport
 	proxy := &httputil.ReverseProxy{
 		Transport: s.transport,
@@ -221,42 +216,50 @@ func (s *service) forward(_ctx context.Context, sess *zen.Session, targetURL *ur
 				// Local gateway - add standard proxy headers
 				req.Header.Set(HeaderForwardedProto, "https")
 				req.Header.Set(HeaderDeploymentID, deployment.Id)
-			} else {
-				// Remote ingress - preserve original Host for routing
-				req.Host = sess.Request().Host
-				req.Header.Set("Host", sess.Request().Host)
 
-				// Add parent tracking to trace the forwarding chain
-				req.Header.Set(HeaderParentIngressID, s.ingressID)
-				req.Header.Set(HeaderParentRequestID, sess.RequestID())
+				return
+			}
+			// Remote ingress - preserve original Host for routing
+			req.Host = sess.Request().Host
+			req.Header.Set("Host", sess.Request().Host)
 
-				// Parse and increment hop count to prevent infinite loops
-				currentHops := 0
-				if hopCountStr := req.Header.Get(HeaderIngressHops); hopCountStr != "" {
-					if parsed, err := strconv.Atoi(hopCountStr); err == nil {
-						currentHops = parsed
-					}
+			// Add parent tracking to trace the forwarding chain
+			req.Header.Set(HeaderParentIngressID, s.ingressID)
+			req.Header.Set(HeaderParentRequestID, sess.RequestID())
+
+			// Parse and increment hop count to prevent infinite loops
+			currentHops := 0
+			if hopCountStr := req.Header.Get(HeaderIngressHops); hopCountStr != "" {
+				if parsed, err := strconv.Atoi(hopCountStr); err == nil {
+					currentHops = parsed
 				}
-				currentHops++
-				req.Header.Set(HeaderIngressHops, strconv.Itoa(currentHops))
+			}
+			currentHops++
+			req.Header.Set(HeaderIngressHops, strconv.Itoa(currentHops))
 
-				// Log warning if approaching max hops
-				if currentHops >= s.maxHops-1 {
-					s.logger.Warn("approaching max hops limit",
-						"currentHops", currentHops,
-						"maxHops", s.maxHops,
-						"hostname", req.Host,
-					)
-				}
+			// Log warning if approaching max hops
+			if currentHops >= s.maxHops-1 {
+				s.logger.Warn("approaching max hops limit",
+					"currentHops", currentHops,
+					"maxHops", s.maxHops,
+					"hostname", req.Host,
+				)
 			}
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			s.writeProxyError(w, r, sess.RequestID(), err)
+			// Categorize the error and get appropriate code/message
+			code, message := categorizeProxyError(err)
+
+			// Capture the error - middleware will handle rendering
+			proxyErr = fault.Wrap(err,
+				fault.Code(code),
+				fault.Public(message),
+			)
 		},
 	}
 
 	// Proxy the request
 	proxy.ServeHTTP(sess.ResponseWriter(), sess.Request())
 
-	return nil
+	return proxyErr
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	pdb "github.com/unkeyed/unkey/go/pkg/partition/db"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -50,7 +49,7 @@ type Config struct {
 	Region                string
 	DB                    db.Database
 	GatewayConfigCache    cache.Cache[string, caches.GatewayConfigData]
-	InstancesByDeployment cache.Cache[string, []pdb.Vm]
+	InstancesByDeployment cache.Cache[string, []db.Vm]
 }
 
 // service implements the Service interface
@@ -59,7 +58,7 @@ type service struct {
 	region                string
 	db                    db.Database
 	gatewayConfigCache    cache.Cache[string, caches.GatewayConfigData]
-	instancesByDeployment cache.Cache[string, []pdb.Vm]
+	instancesByDeployment cache.Cache[string, []db.Vm]
 }
 
 var _ Service = (*service)(nil)
@@ -86,7 +85,7 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 
 	// Lookup gateway config from database with SWR cache
 	configData, hit, err := s.gatewayConfigCache.SWR(ctx, hostname, func(ctx context.Context) (caches.GatewayConfigData, error) {
-		gatewayRow, err := pdb.Query.FindGatewayByHostname(ctx, s.db.RO(), hostname)
+		gatewayRow, err := db.Query.FindGatewayByHostname(ctx, s.db.RO(), hostname)
 		if err != nil {
 			return caches.GatewayConfigData{}, err
 		}
@@ -153,15 +152,15 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 		enabledDeploymentIDs = append(enabledDeploymentIDs, deploymentID)
 	}
 
-	instancesByDeploymentMap, _, err := s.instancesByDeployment.SWRMany(ctx, enabledDeploymentIDs, func(ctx context.Context, deploymentIDs []string) (map[string][]pdb.Instance, error) {
+	instancesByDeploymentMap, _, err := s.instancesByDeployment.SWRMany(ctx, enabledDeploymentIDs, func(ctx context.Context, deploymentIDs []string) (map[string][]db.Vm, error) {
 		// Single query to get ALL instances for ALL deployment IDs
-		instances, err := pdb.Query.FindVMById(ctx, s.db.RO(), deploymentIDs)
+		instances, err := db.Query.FindVMsByIds(ctx, s.db.RO(), deploymentIDs)
 		if err != nil {
 			return nil, err
 		}
 
 		// Group instances by deployment ID
-		result := make(map[string][]pdb.Vm)
+		result := make(map[string][]db.Vm)
 		for _, instance := range instances {
 			result[instance.DeploymentID] = append(result[instance.DeploymentID], instance)
 		}
@@ -181,7 +180,7 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 	deploymentHasRunningInstances := make(map[string]bool)
 	for deploymentID, instances := range instancesByDeploymentMap {
 		for _, instance := range instances {
-			if instance.Status == pdb.InstanceStatusRunning {
+			if instance.Status == db.VmsStatusRunning {
 				deploymentHasRunningInstances[deploymentID] = true
 				break
 			}
@@ -190,11 +189,11 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 
 	// Filter deployments that are enabled AND have running instances by region
 	availableDeploymentsByRegion := make(map[string]*partitionv1.Deployment)
-	for deploymentID, deployment := range enabledDeployments {
-		if deploymentHasRunningInstances[deploymentID] {
-			availableDeploymentsByRegion[deployment.Region] = deployment
-		}
-	}
+	// for deploymentID, deployment := range enabledDeployments {
+	// 	if deploymentHasRunningInstances[deploymentID] {
+	// 		availableDeploymentsByRegion[deployment.Region] = deployment
+	// 	}
+	// }
 
 	if len(availableDeploymentsByRegion) == 0 {
 		return nil, false, fault.New("no available deployments",
@@ -210,7 +209,7 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 	s.logger.Info("deployment found",
 		"hostname", hostname,
 		"deploymentId", selectedDeployment.Id,
-		"region", selectedDeployment.Region,
+		// "region", selectedDeployment.Region,
 		"totalAvailableRegions", len(availableDeploymentsByRegion),
 	)
 

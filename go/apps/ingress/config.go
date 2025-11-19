@@ -30,7 +30,7 @@ type Config struct {
 	// DefaultCertDomain is the domain to use for fallback TLS certificate
 	DefaultCertDomain string
 
-	// MainDomain is the primary domain of the Ingress (e.g., gate.unkey.com)
+	// MainDomain is the primary domain of the Ingress (e.g., ingress.unkey.com)
 	// Internal endpoints like /_internal/liveness are only accessible on this domain
 	MainDomain string
 
@@ -42,12 +42,17 @@ type Config struct {
 	// This prevents infinite routing loops. Default: 3
 	MaxHops int
 
+	// -- Control Plane Configuration ---
+
+	// CtrlAddr is the address of the control plane (e.g., control.unkey.com)
+	CtrlAddr string
+
 	// --- Database configuration ---
 
-	// DatabasePrimary is the primary database connection string for read and write operations (partition_001)
+	// DatabasePrimary is the primary database connection string for read and write operations
 	DatabasePrimary string
 
-	// DatabaseReadonlyReplica is an optional read-replica database connection string for read operations (partition_001)
+	// DatabaseReadonlyReplica is an optional read-replica database connection string for read operations
 	DatabaseReadonlyReplica string
 
 	// --- OpenTelemetry configuration ---
