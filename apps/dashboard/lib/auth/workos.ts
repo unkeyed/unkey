@@ -669,7 +669,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   }): Promise<EmailAuthResult> {
     const { email, ipAddress, userAgent } = params;
     const auth_method = "Email_OTP"; // WorkOS value
-    const action = "sign-up"; // WorkOS value
+    const action = "sign-in"; // WorkOS value
     // Check Radar before proceeding with signin
     const radarDecision = await this.checkRadar({
       email,
