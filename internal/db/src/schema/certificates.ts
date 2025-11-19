@@ -1,5 +1,11 @@
 import { relations } from "drizzle-orm";
-import { bigint, mysqlTable, text, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  mysqlTable,
+  text,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { workspaces } from "./workspaces";
 
 export const certificates = mysqlTable(
@@ -13,7 +19,7 @@ export const certificates = mysqlTable(
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
     updatedAt: bigint("updated_at", { mode: "number" }),
   },
-  (table) => [uniqueIndex("unique_hostname").on(table.hostname)],
+  (table) => [uniqueIndex("unique_hostname").on(table.hostname)]
 );
 
 export const certificatesRelations = relations(certificates, ({ one }) => ({

@@ -1,5 +1,11 @@
 import { relations } from "drizzle-orm";
-import { index, int, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import {
+  index,
+  int,
+  mysqlEnum,
+  mysqlTable,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { environments } from "./environments";
 import { workspaces } from "./workspaces";
 
@@ -22,7 +28,7 @@ export const gateways = mysqlTable(
     health: mysqlEnum("health", ["paused", "healthy", "unhealthy"]), // needs better status types
     replicas: int("replicas").notNull(),
   },
-  (table) => [index("idx_environment_id").on(table.environmentId)],
+  (table) => [index("idx_environment_id").on(table.environmentId)]
 );
 
 export const gatewaysRelations = relations(gateways, ({ one }) => ({

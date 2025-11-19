@@ -1,5 +1,13 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, json, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  index,
+  json,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { deploymentSteps } from "./deployment_steps";
 import { environments } from "./environments";
 import { gateways } from "./gateways";
@@ -45,7 +53,14 @@ export const deployments = mysqlTable(
     openapiSpec: longblob("openapi_spec"),
 
     // Deployment status
-    status: mysqlEnum("status", ["pending", "building", "deploying", "network", "ready", "failed"])
+    status: mysqlEnum("status", [
+      "pending",
+      "building",
+      "deploying",
+      "network",
+      "ready",
+      "failed",
+    ])
       .notNull()
       .default("pending"),
     ...lifecycleDates,
@@ -54,7 +69,7 @@ export const deployments = mysqlTable(
     index("workspace_idx").on(table.workspaceId),
     index("project_idx").on(table.projectId),
     index("status_idx").on(table.status),
-  ],
+  ]
 );
 
 export const deploymentsRelations = relations(deployments, ({ one, many }) => ({
