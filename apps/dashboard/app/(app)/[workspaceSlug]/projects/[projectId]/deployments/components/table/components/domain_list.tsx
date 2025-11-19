@@ -14,7 +14,7 @@ export const DomainList = ({ deploymentId }: Props) => {
     q
       .from({ domain: collections.domains })
       .where(({ domain }) => eq(domain.deploymentId, deploymentId))
-      .orderBy(({ domain }) => domain.hostname, "asc")
+      .orderBy(({ domain }) => domain.hostname, "asc"),
   );
 
   if (domains.isLoading || !domains.data.length) {
@@ -22,13 +22,9 @@ export const DomainList = ({ deploymentId }: Props) => {
   }
 
   // Always show environment domain first, fallback to first domain if none
-  const environmentDomain = domains.data.find(
-    (d) => d.sticky === "environment"
-  );
+  const environmentDomain = domains.data.find((d) => d.sticky === "environment");
   const primaryDomain = environmentDomain ?? domains.data[0];
-  const additionalDomains = domains.data.filter(
-    (d) => d.id !== primaryDomain.id
-  );
+  const additionalDomains = domains.data.filter((d) => d.id !== primaryDomain.id);
 
   // Single domain case - no tooltip needed
   if (domains.data.length === 1) {
@@ -66,10 +62,7 @@ export const DomainList = ({ deploymentId }: Props) => {
         content={
           <div className="space-y-2 max-w-[300px] py-2">
             {additionalDomains.map((d) => (
-              <div
-                key={d.id}
-                className="text-xs font-medium flex items-center gap-1.5"
-              >
+              <div key={d.id} className="text-xs font-medium flex items-center gap-1.5">
                 <div className="w-1 h-1 bg-gray-8 rounded-full shrink-0" />
                 <a
                   href={`https://${d.hostname}`}

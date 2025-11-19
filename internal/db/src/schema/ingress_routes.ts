@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { mysqlTable, uniqueIndex, varchar, index, mysqlEnum } from "drizzle-orm/mysql-core";
+import { index, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { projects } from "./projects";
 import { lifecycleDates } from "./util/lifecycle_dates";

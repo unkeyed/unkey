@@ -1,9 +1,4 @@
-import {
-  index,
-  mysqlTable,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { lifecycleDates } from "./util/lifecycle_dates";
 
 export const customDomains = mysqlTable(
@@ -19,5 +14,5 @@ export const customDomains = mysqlTable(
   (table) => [
     index("workspace_idx").on(table.workspaceId),
     uniqueIndex("unique_domain_idx").on(table.domain),
-  ]
+  ],
 );

@@ -25,12 +25,11 @@ export const ProjectDetailsExpandable = ({
     q
       .from({ project: collection.projects })
       .where(({ project }) => eq(project.id, projectId))
-      .join(
-        { deployment: collections.deployments },
-        ({ deployment, project }) => eq(deployment.id, project.liveDeploymentId)
+      .join({ deployment: collections.deployments }, ({ deployment, project }) =>
+        eq(deployment.id, project.liveDeploymentId),
       )
       .orderBy(({ project }) => project.id, "asc")
-      .limit(1)
+      .limit(1),
   );
 
   const data = query.data.at(0);
@@ -38,15 +37,13 @@ export const ProjectDetailsExpandable = ({
     (q) =>
       q
         .from({ domain: collections.domains })
-        .where(({ domain }) =>
-          eq(domain.deploymentId, data?.project.liveDeploymentId)
-        )
+        .where(({ domain }) => eq(domain.deploymentId, data?.project.liveDeploymentId))
         .select(({ domain }) => ({
           domain: domain.hostname,
           environment: domain.sticky,
         }))
         .orderBy(({ domain }) => domain.id, "asc"),
-    [data?.project.liveDeploymentId]
+    [data?.project.liveDeploymentId],
   );
 
   if (!data?.deployment) {
@@ -59,12 +56,8 @@ export const ProjectDetailsExpandable = ({
   });
 
   // This "environment" domain never changes even when you do a rollback this one stays stable.
-  const mainDomain = domainsData.find(
-    (d) => d.environment === "environment"
-  )?.domain;
-  const gitShaAndBranchNameDomains = domainsData.filter(
-    (d) => d.environment !== "environment"
-  );
+  const mainDomain = domainsData.find((d) => d.environment === "environment")?.domain;
+  const gitShaAndBranchNameDomains = domainsData.filter((d) => d.environment !== "environment");
 
   return (
     <div className="flex">
@@ -73,7 +66,7 @@ export const ProjectDetailsExpandable = ({
           "fixed right-0 bg-gray-1 border-l border-grayA-4 w-[360px] overflow-hidden z-50 pb-8",
           "transition-all duration-300 ease-out",
           "shadow-md",
-          isOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
+          isOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",
         )}
         style={{
           top: `${tableDistanceToTop}px`,
@@ -88,9 +81,7 @@ export const ProjectDetailsExpandable = ({
           <div className="h-10 flex items-center justify-between border-b border-grayA-4 px-4 bg-gray-1 sticky top-0 z-10">
             <div className="items-center flex gap-2.5 pl-0.5 py-2">
               <Book2 iconSize="md-medium" />
-              <span className="text-accent-12 font-medium text-sm">
-                Details
-              </span>
+              <span className="text-accent-12 font-medium text-sm">Details</span>
             </div>
             <InfoTooltip
               content="Hide details"
@@ -113,7 +104,7 @@ export const ProjectDetailsExpandable = ({
           <div
             className={cn(
               "transition-all duration-500 ease-out",
-              isOpen ? "translate-x-0 opacity-100" : "translate-x-6 opacity-0"
+              isOpen ? "translate-x-0 opacity-100" : "translate-x-6 opacity-0",
             )}
             style={{
               transitionDelay: isOpen ? "150ms" : "0ms",
@@ -181,19 +172,13 @@ export const ProjectDetailsExpandable = ({
                 key={section.title}
                 className={cn(
                   "transition-all duration-300 ease-out",
-                  isOpen
-                    ? "translate-x-0 opacity-100"
-                    : "translate-x-8 opacity-0"
+                  isOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0",
                 )}
                 style={{
                   transitionDelay: isOpen ? `${200 + index * 50}ms` : "0ms",
                 }}
               >
-                <DetailSection
-                  title={section.title}
-                  items={section.items}
-                  isFirst={index === 0}
-                />
+                <DetailSection title={section.title} items={section.items} isFirst={index === 0} />
               </div>
             ))}
           </div>

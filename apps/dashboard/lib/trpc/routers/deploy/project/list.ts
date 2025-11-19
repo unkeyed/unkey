@@ -1,13 +1,7 @@
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import type { Project } from "@/lib/collections/deploy/projects";
 import { db, sql } from "@/lib/db";
-import {
-  ratelimit,
-  requireUser,
-  requireWorkspace,
-  t,
-  withRatelimit,
-} from "@/lib/trpc/trpc";
+import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
 import { deployments, ingressRoutes, projects } from "@unkey/db/src/schema";
 
 type ProjectRow = {
@@ -79,11 +73,9 @@ export const listProjects = t.procedure
         author: row.git_commit_author_handle,
         commitTimestamp: Number(row.git_commit_timestamp),
         authorAvatar: row.git_commit_author_avatar_url,
-        regions: row.runtime_config?.regions?.map((r) => r.region) ?? [
-          "us-east-1",
-        ],
+        regions: row.runtime_config?.regions?.map((r) => r.region) ?? ["us-east-1"],
         domain: row.domain,
         latestDeploymentId: row.latest_deployment_id,
-      })
+      }),
     );
   });

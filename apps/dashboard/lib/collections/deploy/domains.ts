@@ -30,6 +30,6 @@ export function createDomainsCollection(projectId: string) {
       queryFn: () => trpcClient.deploy.domain.list.query({ projectId }),
       getKey: (item) => item.id,
       id: `${projectId}-domains`,
-    })
+    }),
   );
 }

@@ -103,8 +103,6 @@ func WithMetrics(eventBuffer EventBuffer, info InstanceInfo) Middleware {
 					UserAgent:       s.r.Header.Get("User-Agent"),
 					IpAddress:       ipAddress,
 					Region:          info.Region,
-					QueryString:     s.r.URL.Query().Encode(),
-					QueryParams:     s.r.URL.Query(),
 				})
 			}
 			return nextErr

@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { index, int, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
-import { workspaces } from "./workspaces";
 import { environments } from "./environments";
+import { workspaces } from "./workspaces";
 
 /**
  * We store one row per logical gateway. That means each set of gateway pods in a single region is one row.
