@@ -2,24 +2,20 @@ package handler
 
 import (
 	"context"
-	"fmt"
-	"strconv"
-	"time"
 
-	"github.com/unkeyed/unkey/go/apps/ingress/services/deployments"
 	"github.com/unkeyed/unkey/go/apps/ingress/services/proxy"
-	"github.com/unkeyed/unkey/go/pkg/codes"
-	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/apps/ingress/services/router"
+	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
 type Handler struct {
-	Logger            logging.Logger
-	Region            string
-	DeploymentService deployments.Service
-	ProxyService      proxy.Service
-	Clock             interface{ Now() time.Time }
+	Logger        logging.Logger
+	Region        string
+	RouterService router.Service
+	ProxyService  proxy.Service
+	Clock         clock.Clock
 }
 
 func (h *Handler) Method() string {
@@ -31,55 +27,29 @@ func (h *Handler) Path() string {
 }
 
 // Handle routes incoming requests to either:
-// 1. Local gateway (if deployment is in current region) - forwards to HTTP
-// 2. Remote ingress (if deployment is elsewhere) - forwards to HTTPS
+// 1. Local gateway (if healthy gateway in current region) - forwards with X-Unkey-Deployment-Id
+// 2. Remote NLB (if no local gateway) - forwards to nearest region's NLB
 func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	startTime := h.Clock.Now()
 	hostname := sess.Request().Host
 
-	// Check for too many hops to prevent infinite routing loops
-	if hopCountStr := sess.Request().Header.Get(proxy.HeaderIngressHops); hopCountStr != "" {
-		if hops, err := strconv.Atoi(hopCountStr); err == nil && hops > h.ProxyService.GetMaxHops() {
-			h.Logger.Error("too many ingress hops - rejecting request",
-				"hops", hops,
-				"hostname", hostname,
-				"requestID", sess.RequestID(),
-			)
-			return fault.New("too many ingress hops",
-				fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
-				fault.Internal(fmt.Sprintf("request exceeded maximum hop count: %d", hops)),
-				fault.Public("Request routing limit exceeded"),
-			)
-		}
-	}
-
-	// Lookup deployment by hostname
-	deployment, found, err := h.DeploymentService.LookupByHostname(ctx, hostname)
+	// Lookup route and gateways by hostname
+	route, gateways, err := h.RouterService.LookupByHostname(ctx, hostname)
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
-			fault.Internal("deployment lookup failed"),
-			fault.Public("Unable to process request"),
-		)
+		return err // Error already has proper fault wrapping
 	}
 
-	// Deployment not found
-	if !found {
-		return fault.New("deployment not found",
-			fault.Code(codes.Ingress.Routing.ConfigNotFound.URN()),
-			fault.Internal(fmt.Sprintf("no deployment found for hostname: %s", hostname)),
-			fault.Public("Domain not configured"),
-		)
+	// Select best gateway (local or find nearest NLB)
+	decision, err := h.RouterService.SelectGateway(route, gateways)
+	if err != nil {
+		return err
 	}
 
-	// Determine target based on region
-	// if deployment.Region == h.Region {
-	// 	// Local gateway - deployment is in this region
-	// 	return h.ProxyService.ForwardToLocal(ctx, sess, deployment, startTime)
-	// }
+	// Route to local gateway if available
+	if decision.LocalGateway != nil {
+		return h.ProxyService.ForwardToGateway(ctx, sess, decision.LocalGateway, decision.DeploymentID, startTime)
+	}
 
-	// Remote ingress - route DIRECTLY to the deployment's region
-	// No intermediate hops needed - we always route straight to where the deployment lives
-	// return h.ProxyService.ForwardToRemote(ctx, sess, deployment.Region, deployment, startTime)
-	return h.ProxyService.ForwardToRemote(ctx, sess, "", deployment, startTime)
+	// Route to remote NLB
+	return h.ProxyService.ForwardToNLB(ctx, sess, decision.NearestNLBRegion, startTime)
 }

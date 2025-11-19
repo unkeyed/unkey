@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/go/pkg/clock"
@@ -13,19 +12,13 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
-// GatewayConfigData holds gateway configuration with workspace ID
-type GatewayConfigData struct {
-	Config      *partitionv1.GatewayConfig
-	WorkspaceID string
-}
-
 // Caches holds all cache instances used throughout ingress.
 type Caches struct {
-	// HostName -> Gateway Configuration
-	GatewayConfig cache.Cache[string, GatewayConfigData]
+	// HostName -> IngressRoute
+	IngressRoute cache.Cache[string, db.IngressRoute]
 
-	// DeploymentID -> List of Instances
-	InstancesByDeployment cache.Cache[string, []db.Vm]
+	// EnvironmentID -> List of Gateways
+	GatewaysByEnvironment cache.Cache[string, []db.Gateway]
 
 	// HostName -> Certificate
 	TLSCertificate cache.Cache[string, tls.Certificate]
@@ -42,24 +35,24 @@ type Config struct {
 
 // New creates and initializes all cache instances with appropriate settings.
 func New(config Config) (Caches, error) {
-	gatewayConfig, err := cache.New(cache.Config[string, GatewayConfigData]{
+	ingressRoute, err := cache.New(cache.Config[string, db.IngressRoute]{
 		Fresh:    time.Second * 5,
 		Stale:    time.Second * 30,
 		Logger:   config.Logger,
 		MaxSize:  10_000,
-		Resource: "gateway_config",
+		Resource: "ingress_route",
 		Clock:    config.Clock,
 	})
 	if err != nil {
 		return Caches{}, fmt.Errorf("failed to create gateway config cache: %w", err)
 	}
 
-	instancesByDeployment, err := cache.New(cache.Config[string, []db.Vm]{
+	gatewaysByEnvironment, err := cache.New(cache.Config[string, []db.Gateway]{
 		Fresh:    time.Second * 10,
 		Stale:    time.Minute,
 		Logger:   config.Logger,
 		MaxSize:  10_000,
-		Resource: "instances_by_deployment",
+		Resource: "gateways_by_environment",
 		Clock:    config.Clock,
 	})
 	if err != nil {
@@ -79,8 +72,8 @@ func New(config Config) (Caches, error) {
 	}
 
 	return Caches{
-		GatewayConfig:         middleware.WithTracing(gatewayConfig),
-		InstancesByDeployment: middleware.WithTracing(instancesByDeployment),
+		IngressRoute:          middleware.WithTracing(ingressRoute),
+		GatewaysByEnvironment: middleware.WithTracing(gatewaysByEnvironment),
 		TLSCertificate:        middleware.WithTracing(tlsCertificate),
 	}, nil
 }

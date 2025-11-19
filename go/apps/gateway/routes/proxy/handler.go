@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"time"
 
 	"github.com/unkeyed/unkey/go/apps/gateway/services/router"
+	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/zen"
@@ -18,7 +18,7 @@ import (
 type Handler struct {
 	Logger        logging.Logger
 	RouterService router.Service
-	Clock         interface{ Now() time.Time }
+	Clock         clock.Clock
 	Transport     *http.Transport
 }
 

@@ -39,11 +39,11 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&proxy.Handler{
-			Logger:            svc.Logger,
-			Region:            svc.Region,
-			DeploymentService: svc.DeploymentService,
-			ProxyService:      svc.ProxyService,
-			Clock:             svc.Clock,
+			Logger:        svc.Logger,
+			Region:        svc.Region,
+			RouterService: svc.RouterService,
+			ProxyService:  svc.ProxyService,
+			Clock:         svc.Clock,
 		},
 	)
 }
@@ -72,9 +72,9 @@ func RegisterChallengeServer(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		challengeMiddlewares,
 		&acme.Handler{
-			Logger:            svc.Logger,
-			DeploymentService: svc.DeploymentService,
-			AcmeClient:        svc.AcmeClient,
+			Logger:        svc.Logger,
+			RouterService: svc.RouterService,
+			AcmeClient:    svc.AcmeClient,
 		},
 	)
 }

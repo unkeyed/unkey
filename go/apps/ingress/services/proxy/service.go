@@ -13,8 +13,9 @@ import (
 	"syscall"
 	"time"
 
-	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
+	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/codes"
+	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/zen"
@@ -25,7 +26,7 @@ type service struct {
 	ingressID  string
 	region     string
 	baseDomain string
-	clock      interface{ Now() time.Time }
+	clock      clock.Clock
 	transport  *http.Transport
 	maxHops    int
 }
@@ -85,11 +86,6 @@ func New(cfg Config) (*service, error) {
 	}, nil
 }
 
-// GetMaxHops returns the maximum number of ingress hops allowed
-func (s *service) GetMaxHops() int {
-	return s.maxHops
-}
-
 // categorizeProxyError determines the appropriate error code and message based on the error type
 func categorizeProxyError(err error) (codes.URN, string) {
 	// Check for timeout errors
@@ -144,10 +140,10 @@ func categorizeProxyError(err error) (codes.URN, string) {
 		"Unable to connect to the backend service. Please try again in a few moments."
 }
 
-// ForwardToLocal forwards a request to a local gateway service (HTTP)
-func (s *service) ForwardToLocal(ctx context.Context, sess *zen.Session, deployment *partitionv1.Deployment, startTime time.Time) error {
-	// targetURL, err := url.Parse(fmt.Sprintf("http://%s", deployment.K8SServiceName))
-	targetURL, err := url.Parse(fmt.Sprintf("http://%s", ""))
+// ForwardToGateway forwards a request to a local gateway service (HTTP)
+// Adds X-Unkey-Deployment-Id header so gateway knows which deployment to route to
+func (s *service) ForwardToGateway(ctx context.Context, sess *zen.Session, gateway *db.Gateway, deploymentID string, startTime time.Time) error {
+	targetURL, err := url.Parse(fmt.Sprintf("http://%s", gateway.K8sServiceName))
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
@@ -157,34 +153,53 @@ func (s *service) ForwardToLocal(ctx context.Context, sess *zen.Session, deploym
 
 	s.logger.Info("forwarding to local gateway",
 		"target", targetURL.String(),
-		"deployment", deployment.Id,
-		// "region", deployment.Region,
+		"gatewayID", gateway.ID,
+		"deploymentID", deploymentID,
+		"region", gateway.Region,
 	)
 
-	return s.forward(ctx, sess, targetURL, deployment, true, startTime)
+	return s.forwardToGateway(ctx, sess, targetURL, deploymentID, startTime)
 }
 
-// ForwardToRemote forwards a request to a remote ingress (HTTPS)
-func (s *service) ForwardToRemote(ctx context.Context, sess *zen.Session, targetRegion string, deployment *partitionv1.Deployment, startTime time.Time) error {
+// ForwardToNLB forwards a request to a remote region's NLB (HTTPS)
+// Keeps original hostname so remote ingress can do TLS termination and routing
+func (s *service) ForwardToNLB(ctx context.Context, sess *zen.Session, targetRegion string, startTime time.Time) error {
+	// Check for too many hops to prevent infinite routing loops
+	if hopCountStr := sess.Request().Header.Get(HeaderIngressHops); hopCountStr != "" {
+		if hops, err := strconv.Atoi(hopCountStr); err == nil && hops >= s.maxHops {
+			s.logger.Error("too many ingress hops - rejecting request",
+				"hops", hops,
+				"maxHops", s.maxHops,
+				"hostname", sess.Request().Host,
+				"requestID", sess.RequestID(),
+			)
+			return fault.New("too many ingress hops",
+				fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
+				fault.Internal(fmt.Sprintf("request exceeded maximum hop count: %d", hops)),
+				fault.Public("Request routing limit exceeded"),
+			)
+		}
+	}
+
 	targetURL, err := url.Parse(fmt.Sprintf("https://%s.%s", targetRegion, s.baseDomain))
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
-			fault.Internal("failed to parse remote ingress URL"),
+			fault.Internal("failed to parse NLB URL"),
 		)
 	}
 
-	s.logger.Info("forwarding to remote ingress",
+	s.logger.Info("forwarding to remote NLB",
 		"target", targetURL.String(),
 		"targetRegion", targetRegion,
-		// "deploymentRegion", deployment.Region,
+		"hostname", sess.Request().Host,
 	)
 
-	return s.forward(ctx, sess, targetURL, deployment, false, startTime)
+	return s.forwardToNLB(ctx, sess, targetURL, startTime)
 }
 
-// forward handles the actual proxying with shared transport
-func (s *service) forward(_ctx context.Context, sess *zen.Session, targetURL *url.URL, deployment *partitionv1.Deployment, isLocal bool, startTime time.Time) error {
+// forwardToGateway handles proxying to a local gateway service
+func (s *service) forwardToGateway(_ctx context.Context, sess *zen.Session, targetURL *url.URL, deploymentID string, startTime time.Time) error {
 	// Set response headers BACK TO CLIENT so they can see which ingress handled their request
 	// These are useful for debugging and support tickets
 	sess.ResponseWriter().Header().Set(HeaderIngressID, s.ingressID)
@@ -202,8 +217,8 @@ func (s *service) forward(_ctx context.Context, sess *zen.Session, targetURL *ur
 			req.URL.Scheme = targetURL.Scheme
 			req.URL.Host = targetURL.Host
 
-			// Add metadata headers TO DOWNSTREAM SERVICE (gateway/remote ingress)
-			// These tell the downstream service which ingress forwarded the request
+			// Add metadata headers TO DOWNSTREAM SERVICE (gateway)
+			// These tell the gateway which ingress forwarded the request
 			req.Header.Set(HeaderIngressID, s.ingressID)
 			req.Header.Set(HeaderRegion, s.region)
 			req.Header.Set(HeaderRequestID, sess.RequestID())
@@ -212,14 +227,60 @@ func (s *service) forward(_ctx context.Context, sess *zen.Session, targetURL *ur
 			ingressTimeMs := s.clock.Now().Sub(startTime).Milliseconds()
 			req.Header.Set(HeaderIngressTime, strconv.FormatInt(ingressTimeMs, 10))
 
-			if isLocal {
-				// Local gateway - add standard proxy headers
-				req.Header.Set(HeaderForwardedProto, "https")
-				req.Header.Set(HeaderDeploymentID, deployment.Id)
+			// Add standard proxy headers for local gateway
+			req.Header.Set(HeaderForwardedProto, "https")
 
-				return
-			}
-			// Remote ingress - preserve original Host for routing
+			// Add deployment ID so gateway knows which deployment to route to
+			req.Header.Set(HeaderDeploymentID, deploymentID)
+		},
+		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
+			// Categorize the error and get appropriate code/message
+			code, message := categorizeProxyError(err)
+
+			// Capture the error - middleware will handle rendering
+			proxyErr = fault.Wrap(err,
+				fault.Code(code),
+				fault.Public(message),
+			)
+		},
+	}
+
+	// Proxy the request
+	proxy.ServeHTTP(sess.ResponseWriter(), sess.Request())
+
+	return proxyErr
+}
+
+// forwardToNLB handles proxying to a remote region's NLB
+func (s *service) forwardToNLB(_ctx context.Context, sess *zen.Session, targetURL *url.URL, startTime time.Time) error {
+	// Set response headers BACK TO CLIENT so they can see which ingress handled their request
+	// These are useful for debugging and support tickets
+	sess.ResponseWriter().Header().Set(HeaderIngressID, s.ingressID)
+	sess.ResponseWriter().Header().Set(HeaderRegion, s.region)
+	sess.ResponseWriter().Header().Set(HeaderRequestID, sess.RequestID())
+
+	// Capture any proxy error to return to middleware
+	var proxyErr error
+
+	// Create reverse proxy with shared transport
+	proxy := &httputil.ReverseProxy{
+		Transport: s.transport,
+		Director: func(req *http.Request) {
+			// Update URL to target
+			req.URL.Scheme = targetURL.Scheme
+			req.URL.Host = targetURL.Host
+
+			// Add metadata headers TO DOWNSTREAM SERVICE (remote ingress)
+			// These tell the remote ingress which ingress forwarded the request
+			req.Header.Set(HeaderIngressID, s.ingressID)
+			req.Header.Set(HeaderRegion, s.region)
+			req.Header.Set(HeaderRequestID, sess.RequestID())
+
+			// Add timing to track latency added by this ingress
+			ingressTimeMs := s.clock.Now().Sub(startTime).Milliseconds()
+			req.Header.Set(HeaderIngressTime, strconv.FormatInt(ingressTimeMs, 10))
+
+			// Remote ingress - preserve original Host for TLS termination and routing
 			req.Host = sess.Request().Host
 			req.Header.Set("Host", sess.Request().Host)
 
