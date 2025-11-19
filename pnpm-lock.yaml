@@ -445,8 +445,8 @@ importers:
         version: 0.34.3
     devDependencies:
       mintlify:
-        specifier: ^4.2.144
-        version: 4.2.144(@radix-ui/react-popover@1.1.15)(@types/node@22.14.0)(@types/react@18.3.11)(react-dom@18.3.1)(typescript@5.9.3)
+        specifier: 4.2.204
+        version: 4.2.204(@radix-ui/react-popover@1.1.15)(@types/node@22.14.0)(@types/react@18.3.11)(react-dom@18.3.1)(typescript@5.9.3)
 
   apps/engineering:
     dependencies:
@@ -1878,6 +1878,10 @@ packages:
       typescript: 4.5.2
     transitivePeerDependencies:
       - supports-color
+    dev: true
+
+  /@canvas/image-data@1.1.0:
+    resolution: {integrity: sha512-QdObRRjRbcXGmM1tmJ+MrHcaz1MftF2+W7YI+MsphnsCrmtyfS0d5qJbk0MeSbUeyM/jCb0hmnkXPsy026L7dA==}
     dev: true
 
   /@changesets/apply-release-plan@7.0.13:
@@ -4169,7 +4173,6 @@ packages:
     requiresBuild: true
     optionalDependencies:
       '@img/sharp-libvips-darwin-arm64': 1.2.0
-    dev: false
     optional: true
 
   /@img/sharp-darwin-x64@0.33.5:
@@ -4191,7 +4194,6 @@ packages:
     requiresBuild: true
     optionalDependencies:
       '@img/sharp-libvips-darwin-x64': 1.2.0
-    dev: false
     optional: true
 
   /@img/sharp-libvips-darwin-arm64@1.0.4:
@@ -4207,7 +4209,6 @@ packages:
     cpu: [arm64]
     os: [darwin]
     requiresBuild: true
-    dev: false
     optional: true
 
   /@img/sharp-libvips-darwin-x64@1.0.4:
@@ -4223,7 +4224,6 @@ packages:
     cpu: [x64]
     os: [darwin]
     requiresBuild: true
-    dev: false
     optional: true
 
   /@img/sharp-libvips-linux-arm64@1.0.4:
@@ -4239,7 +4239,6 @@ packages:
     cpu: [arm64]
     os: [linux]
     requiresBuild: true
-    dev: false
     optional: true
 
   /@img/sharp-libvips-linux-arm@1.0.5:
@@ -4255,7 +4254,6 @@ packages:
     cpu: [arm]
     os: [linux]
     requiresBuild: true
-    dev: false
     optional: true
 
   /@img/sharp-libvips-linux-ppc64@1.2.0:
@@ -4263,7 +4261,6 @@ packages:
     cpu: [ppc64]
     os: [linux]
     requiresBuild: true
-    dev: false
     optional: true
 
   /@img/sharp-libvips-linux-s390x@1.0.4:
@@ -4279,7 +4276,6 @@ packages:
     cpu: [s390x]
     os: [linux]
     requiresBuild: true
-    dev: false
     optional: true
 
   /@img/sharp-libvips-linux-x64@1.0.4:
@@ -4295,7 +4291,6 @@ packages:
     cpu: [x64]
     os: [linux]
     requiresBuild: true
-    dev: false
     optional: true
 
   /@img/sharp-libvips-linuxmusl-arm64@1.0.4:
@@ -4311,7 +4306,6 @@ packages:
     cpu: [arm64]
     os: [linux]
     requiresBuild: true
-    dev: false
     optional: true
 
   /@img/sharp-libvips-linuxmusl-x64@1.0.4:
@@ -4327,7 +4321,6 @@ packages:
     cpu: [x64]
     os: [linux]
     requiresBuild: true
-    dev: false
     optional: true
 
   /@img/sharp-linux-arm64@0.33.5:
@@ -4349,7 +4342,6 @@ packages:
     requiresBuild: true
     optionalDependencies:
       '@img/sharp-libvips-linux-arm64': 1.2.0
-    dev: false
     optional: true
 
   /@img/sharp-linux-arm@0.33.5:
@@ -4371,7 +4363,6 @@ packages:
     requiresBuild: true
     optionalDependencies:
       '@img/sharp-libvips-linux-arm': 1.2.0
-    dev: false
     optional: true
 
   /@img/sharp-linux-ppc64@0.34.3:
@@ -4382,7 +4373,6 @@ packages:
     requiresBuild: true
     optionalDependencies:
       '@img/sharp-libvips-linux-ppc64': 1.2.0
-    dev: false
     optional: true
 
   /@img/sharp-linux-s390x@0.33.5:
@@ -4404,7 +4394,6 @@ packages:
     requiresBuild: true
     optionalDependencies:
       '@img/sharp-libvips-linux-s390x': 1.2.0
-    dev: false
     optional: true
 
   /@img/sharp-linux-x64@0.33.5:
@@ -4426,7 +4415,6 @@ packages:
     requiresBuild: true
     optionalDependencies:
       '@img/sharp-libvips-linux-x64': 1.2.0
-    dev: false
     optional: true
 
   /@img/sharp-linuxmusl-arm64@0.33.5:
@@ -4448,7 +4436,6 @@ packages:
     requiresBuild: true
     optionalDependencies:
       '@img/sharp-libvips-linuxmusl-arm64': 1.2.0
-    dev: false
     optional: true
 
   /@img/sharp-linuxmusl-x64@0.33.5:
@@ -4470,7 +4457,6 @@ packages:
     requiresBuild: true
     optionalDependencies:
       '@img/sharp-libvips-linuxmusl-x64': 1.2.0
-    dev: false
     optional: true
 
   /@img/sharp-wasm32@0.33.5:
@@ -4490,7 +4476,6 @@ packages:
     requiresBuild: true
     dependencies:
       '@emnapi/runtime': 1.6.0
-    dev: false
     optional: true
 
   /@img/sharp-win32-arm64@0.34.3:
@@ -4499,7 +4484,6 @@ packages:
     cpu: [arm64]
     os: [win32]
     requiresBuild: true
-    dev: false
     optional: true
 
   /@img/sharp-win32-ia32@0.33.5:
@@ -4517,7 +4501,6 @@ packages:
     cpu: [ia32]
     os: [win32]
     requiresBuild: true
-    dev: false
     optional: true
 
   /@img/sharp-win32-x64@0.33.5:
@@ -4535,7 +4518,6 @@ packages:
     cpu: [x64]
     os: [win32]
     requiresBuild: true
-    dev: false
     optional: true
 
   /@inquirer/ansi@1.0.1:
@@ -5301,17 +5283,19 @@ packages:
       langium: 3.3.1
     dev: false
 
-  /@mintlify/cli@4.0.748(@radix-ui/react-popover@1.1.15)(@types/node@22.14.0)(@types/react@18.3.11)(react-dom@18.3.1)(typescript@5.9.3):
-    resolution: {integrity: sha512-Yj/QSzG5EGhQ6v+68kAXo4CnfeQdGLklr6tVeCE6lZtP3WcvOyyyrHZRBIHCmWyUgspzedEBZ2i41w7HmvhNcQ==}
+  /@mintlify/cli@4.0.808(@radix-ui/react-popover@1.1.15)(@types/node@22.14.0)(@types/react@18.3.11)(react-dom@18.3.1)(typescript@5.9.3):
+    resolution: {integrity: sha512-oVd+33DuORSXQPyVhX9VamME+qZkbGwSGAaas3LaNoabGxw9O9Nb34KYDvABvVOf9LqHCy/O+FhmegW+zr3upQ==}
     engines: {node: '>=18.0.0'}
     hasBin: true
     dependencies:
-      '@mintlify/common': 1.0.555(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
-      '@mintlify/link-rot': 3.0.693(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
-      '@mintlify/models': 0.0.230
-      '@mintlify/prebuild': 1.0.680(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
-      '@mintlify/previewing': 4.0.729(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(typescript@5.9.3)
-      '@mintlify/validation': 0.1.483(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
+      '@inquirer/prompts': 7.9.0(@types/node@22.14.0)
+      '@mintlify/common': 1.0.607(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
+      '@mintlify/link-rot': 3.0.750(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
+      '@mintlify/models': 0.0.240
+      '@mintlify/prebuild': 1.0.736(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
+      '@mintlify/previewing': 4.0.786(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(typescript@5.9.3)
+      '@mintlify/validation': 0.1.521(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
+      adm-zip: 0.5.16
       chalk: 5.6.2
       color: 4.2.3
       detect-port: 1.6.1
@@ -5320,7 +5304,6 @@ packages:
       ink: 6.4.0(@types/react@18.3.11)(react@19.2.0)
       inquirer: 12.10.0(@types/node@22.14.0)
       js-yaml: 4.1.0
-      mdast: 3.0.0
       mdast-util-mdx-jsx: 3.2.0
       react: 19.2.0
       semver: 7.7.3
@@ -5344,14 +5327,14 @@ packages:
       - utf-8-validate
     dev: true
 
-  /@mintlify/common@1.0.555(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3):
-    resolution: {integrity: sha512-9/j3pNOjGZDSy1xgIY9CWrk5sfSnag7LDHrvPNAwE17GGq7V3Mwx/SnDj+0P72bSHURvfl1bm31c92WgG31xuw==}
+  /@mintlify/common@1.0.607(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3):
+    resolution: {integrity: sha512-9Yc8piWlOTSyapcV1MsjnsDZmaHlgP1cJ2IqtNd5+dvuy6pFz2TG8ELJxg9k9rf25KleOvI+QN3pJ8pHbnJWtg==}
     dependencies:
       '@asyncapi/parser': 3.4.0
       '@mintlify/mdx': 3.0.1(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
-      '@mintlify/models': 0.0.230
+      '@mintlify/models': 0.0.240
       '@mintlify/openapi-parser': 0.0.8
-      '@mintlify/validation': 0.1.483(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
+      '@mintlify/validation': 0.1.521(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
       '@sindresorhus/slugify': 2.2.1
       acorn: 8.15.0
       acorn-jsx: 5.3.2(acorn@8.15.0)
@@ -5365,7 +5348,6 @@ packages:
       hex-rgb: 5.0.0
       js-yaml: 4.1.0
       lodash: 4.17.21
-      mdast: 3.0.0
       mdast-util-from-markdown: 2.0.2
       mdast-util-gfm: 3.1.0
       mdast-util-mdx: 3.0.0
@@ -5402,14 +5384,14 @@ packages:
       - typescript
     dev: true
 
-  /@mintlify/link-rot@3.0.693(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3):
-    resolution: {integrity: sha512-Eft8OIikui67HB78rCIpY20boZ0rXBQxi2m2JfUctaaWq7E4xUiEVFHzkgTBWkupxFOp7b73nhTwsUPf/TH1Lg==}
+  /@mintlify/link-rot@3.0.750(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3):
+    resolution: {integrity: sha512-IkrpTs29C+ouUgyp9p2zGE80AfRlgOgkffzKcDi+UBkSrSSVA82ub3CaA+Lk5Zyrhr5t5aI1wx2Z9FnLmvuNwg==}
     engines: {node: '>=18.0.0'}
     dependencies:
-      '@mintlify/common': 1.0.555(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
-      '@mintlify/prebuild': 1.0.680(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
-      '@mintlify/previewing': 4.0.729(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(typescript@5.9.3)
-      '@mintlify/validation': 0.1.483(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
+      '@mintlify/common': 1.0.607(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
+      '@mintlify/prebuild': 1.0.736(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
+      '@mintlify/previewing': 4.0.786(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(typescript@5.9.3)
+      '@mintlify/validation': 0.1.521(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
       fs-extra: 11.3.2
       unist-util-visit: 4.1.2
     transitivePeerDependencies:
@@ -5461,8 +5443,8 @@ packages:
       - typescript
     dev: true
 
-  /@mintlify/models@0.0.230:
-    resolution: {integrity: sha512-G/mg8TytxLn29zete+KXsFKFmi/N/C6a0HX15pN+qq1CWHP3hzi5mELUf7xID/w77bkzN1tVSFKgkwZVBr01OA==}
+  /@mintlify/models@0.0.240:
+    resolution: {integrity: sha512-9j8UfcYw+pD5D5qhB/iPywSpnB/sgwft+mUc08mWS+Tol19smROa901Myy0yLT0NZPfoZVfSSLp8J5LTloljpA==}
     engines: {node: '>=18.0.0'}
     dependencies:
       axios: 1.13.0
@@ -5483,21 +5465,23 @@ packages:
       yaml: 2.8.1
     dev: true
 
-  /@mintlify/prebuild@1.0.680(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3):
-    resolution: {integrity: sha512-UPJC0sIs7+52ViTazzZo8nZiUAHdV3O0Bw4entunMWNTy7SClKAIH3HbYXu2M2+dfCmtnzmnG8BNuQk80HMq4A==}
+  /@mintlify/prebuild@1.0.736(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3):
+    resolution: {integrity: sha512-ih38FjriVUpujDqrc6v9Yt4H1eC4ByGL5MVDSWy++RIkjRZLyPULnEOh1IcGqJ9zSYJOPtPgoIsTIta71/yZsw==}
     dependencies:
-      '@mintlify/common': 1.0.555(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
+      '@mintlify/common': 1.0.607(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
       '@mintlify/openapi-parser': 0.0.8
-      '@mintlify/scraping': 4.0.414(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
-      '@mintlify/validation': 0.1.483(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
+      '@mintlify/scraping': 4.0.467(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
+      '@mintlify/validation': 0.1.521(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
       chalk: 5.6.2
       favicons: 7.2.0
       fs-extra: 11.3.2
       gray-matter: 4.0.3
       js-yaml: 4.1.0
-      mdast: 3.0.0
       openapi-types: 12.1.3
+      sharp: 0.33.5
+      sharp-ico: 0.1.5
       unist-util-visit: 4.1.2
+      uuid: 11.1.0
     transitivePeerDependencies:
       - '@radix-ui/react-popover'
       - '@types/react'
@@ -5515,13 +5499,13 @@ packages:
       - utf-8-validate
     dev: true
 
-  /@mintlify/previewing@4.0.729(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(typescript@5.9.3):
-    resolution: {integrity: sha512-UhJojVE7KGBs1HL9e3BDs9TCzabD39kxNTht2u7VMr3oEoBleuzB7hNFUp4/c49AAwebh3Yx42NdHBedYAx99g==}
+  /@mintlify/previewing@4.0.786(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(typescript@5.9.3):
+    resolution: {integrity: sha512-OPVm66QdNdNjDcyv2iWA3/fJUfyBGvm6XKiORDhlW+dqiFX5aTDLEithsclmKz5r2JEpIqIJNSeiudpY8uGHAg==}
     engines: {node: '>=18.0.0'}
     dependencies:
-      '@mintlify/common': 1.0.555(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
-      '@mintlify/prebuild': 1.0.680(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
-      '@mintlify/validation': 0.1.483(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
+      '@mintlify/common': 1.0.607(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
+      '@mintlify/prebuild': 1.0.736(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
+      '@mintlify/validation': 0.1.521(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
       better-opn: 3.0.2
       chalk: 5.6.2
       chokidar: 3.6.0
@@ -5533,7 +5517,6 @@ packages:
       ink-spinner: 5.0.0(ink@6.4.0)(react@19.2.0)
       is-online: 10.0.0
       js-yaml: 4.1.0
-      mdast: 3.0.0
       openapi-types: 12.1.3
       react: 19.2.0
       socket.io: 4.8.1
@@ -5557,12 +5540,12 @@ packages:
       - utf-8-validate
     dev: true
 
-  /@mintlify/scraping@4.0.414(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3):
-    resolution: {integrity: sha512-2ENtNtwaY2n/eEx4/lNn4ityENMTeZFv8PmoUDb4QSMdWBljXzp3CnpNwcPH6z2HDvkYdp3sEtb/p4Czr+gKxA==}
+  /@mintlify/scraping@4.0.467(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3):
+    resolution: {integrity: sha512-UnanSRzG5gDef9NFlSO6F00JznCAEEb1onbuidfzQ9sBPzG/a+g+0K4Z6VdbeNCFKmirx2t1qm1gujkh8XIfog==}
     engines: {node: '>=18.0.0'}
     hasBin: true
     dependencies:
-      '@mintlify/common': 1.0.555(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
+      '@mintlify/common': 1.0.607(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
       '@mintlify/openapi-parser': 0.0.8
       fs-extra: 11.3.2
       hast-util-to-mdast: 10.1.2
@@ -5596,15 +5579,18 @@ packages:
       - utf-8-validate
     dev: true
 
-  /@mintlify/validation@0.1.483(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3):
-    resolution: {integrity: sha512-nV6yGwhqhsSbCyc41EMFOX1zWdngkop6PYThufXnfvgRe50Q7VetFgCqwrnxgQHP5gvfkaBEeAUiZLi9G9ZQVw==}
+  /@mintlify/validation@0.1.521(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3):
+    resolution: {integrity: sha512-8icZULy+5CXGucFNo7mTWEgzif/73Lvbb8pNuo7MBL81kbvixPWKX3j5TiSLkVCUjwUGIglr9IKc9+RXxwN09A==}
     dependencies:
       '@mintlify/mdx': 3.0.1(@radix-ui/react-popover@1.1.15)(@types/react@18.3.11)(react-dom@18.3.1)(react@19.2.0)(typescript@5.9.3)
-      '@mintlify/models': 0.0.230
+      '@mintlify/models': 0.0.240
       arktype: 2.1.25
+      js-yaml: 4.1.0
       lcm: 0.0.3
       lodash: 4.17.21
+      object-hash: 3.0.0
       openapi-types: 12.1.3
+      uuid: 11.1.0
       zod: 3.23.8
       zod-to-json-schema: 3.24.6(zod@3.23.8)
     transitivePeerDependencies:
@@ -13630,6 +13616,23 @@ packages:
     resolution: {integrity: sha512-YpgQiITW3JXGntzdUmyUR1V812Hn8T1YVXhCu+wO3OpS4eU9l4YdD3qjyiKdV6mvV29zapkMeD390UVEf2lkUg==}
     dev: true
 
+  /decode-bmp@0.2.1:
+    resolution: {integrity: sha512-NiOaGe+GN0KJqi2STf24hfMkFitDUaIoUU3eKvP/wAbLe8o6FuW5n/x7MHPR0HKvBokp6MQY/j7w8lewEeVCIA==}
+    engines: {node: '>=8.6.0'}
+    dependencies:
+      '@canvas/image-data': 1.1.0
+      to-data-view: 1.1.0
+    dev: true
+
+  /decode-ico@0.4.1:
+    resolution: {integrity: sha512-69NZfbKIzux1vBOd31al3XnMnH+2mqDhEgLdpygErm4d60N+UwA5Sq5WFjmEDQzumgB9fElojGwWG0vybVfFmA==}
+    engines: {node: '>=8.6'}
+    dependencies:
+      '@canvas/image-data': 1.1.0
+      decode-bmp: 0.2.1
+      to-data-view: 1.1.0
+    dev: true
+
   /decode-named-character-reference@1.2.0:
     resolution: {integrity: sha512-c6fcElNV6ShtZXmsgNgFFV5tVX2PaV4g+MOAkb8eXHvn6sryJBrZa9r0zV6+dtTyoCKxtDy5tyQ5ZwQuidtd+Q==}
     dependencies:
@@ -16483,6 +16486,10 @@ packages:
       ms: 2.1.3
     dev: false
 
+  /ico-endec@0.1.6:
+    resolution: {integrity: sha512-ZdLU38ZoED3g1j3iEyzcQj+wAkY2xfWNkymszfJPoxucIUhK7NayQ+/C4Kv0nDFMIsbtbEHldv3V8PU494/ueQ==}
+    dev: true
+
   /iconv-lite@0.4.24:
     resolution: {integrity: sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==}
     engines: {node: '>=0.10.0'}
@@ -17954,11 +17961,6 @@ packages:
     dependencies:
       '@types/mdast': 4.0.4
 
-  /mdast@3.0.0:
-    resolution: {integrity: sha512-xySmf8g4fPKMeC07jXGz971EkLbWAJ83s4US2Tj9lEdnZ142UP5grN73H1Xd3HzrdbU5o9GYYP/y8F9ZSwLE9g==}
-    deprecated: '`mdast` was renamed to `remark`'
-    dev: true
-
   /mdn-data@2.0.30:
     resolution: {integrity: sha512-GaqWWShW4kv/G9IEucWScBx9G1/vsFZZJUO+tD26M8J8z3Kw5RDQjaoZe03YAClgeS/SWPOcb4nkFBTEi5DUEA==}
     dev: false
@@ -18499,12 +18501,12 @@ packages:
       minipass: 7.1.2
     dev: true
 
-  /mintlify@4.2.144(@radix-ui/react-popover@1.1.15)(@types/node@22.14.0)(@types/react@18.3.11)(react-dom@18.3.1)(typescript@5.9.3):
-    resolution: {integrity: sha512-7H6289CP3pkzMOqWMi3q1Nj710ct2Cgx8lkjUJkNRFM9NTS7FkVGGLPa4nZET2qIjjZm+1bV5+FxHfzMB3f17A==}
+  /mintlify@4.2.204(@radix-ui/react-popover@1.1.15)(@types/node@22.14.0)(@types/react@18.3.11)(react-dom@18.3.1)(typescript@5.9.3):
+    resolution: {integrity: sha512-OLbzaq+ThLykkRgK5vDZ2u5ZcqJe6/YADIwXLMB0SLUsf/RgfsQiSRSfHG8Nx0ivW+4RXgFNLD4uhFz3skb2ig==}
     engines: {node: '>=18.0.0'}
     hasBin: true
     dependencies:
-      '@mintlify/cli': 4.0.748(@radix-ui/react-popover@1.1.15)(@types/node@22.14.0)(@types/react@18.3.11)(react-dom@18.3.1)(typescript@5.9.3)
+      '@mintlify/cli': 4.0.808(@radix-ui/react-popover@1.1.15)(@types/node@22.14.0)(@types/react@18.3.11)(react-dom@18.3.1)(typescript@5.9.3)
     transitivePeerDependencies:
       - '@radix-ui/react-popover'
       - '@types/node'
@@ -21224,6 +21226,14 @@ packages:
     resolution: {integrity: sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==}
     dev: true
 
+  /sharp-ico@0.1.5:
+    resolution: {integrity: sha512-a3jODQl82NPp1d5OYb0wY+oFaPk7AvyxipIowCHk7pBsZCWgbe0yAkU2OOXdoH0ENyANhyOQbs9xkAiRHcF02Q==}
+    dependencies:
+      decode-ico: 0.4.1
+      ico-endec: 0.1.6
+      sharp: 0.34.3
+    dev: true
+
   /sharp@0.33.5:
     resolution: {integrity: sha512-haPVm1EkS9pgvHrQ/F3Xy+hgcuMV0Wm9vfIBSiwZ05k+xgb0PkBQpGsAA/oWdDobNaZTH5ppvHtzCFbnSEwHVw==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
@@ -21285,7 +21295,6 @@ packages:
       '@img/sharp-win32-arm64': 0.34.3
       '@img/sharp-win32-ia32': 0.34.3
       '@img/sharp-win32-x64': 0.34.3
-    dev: false
 
   /shebang-command@2.0.0:
     resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
@@ -22106,7 +22115,7 @@ packages:
     dependencies:
       '@alloc/quick-lru': 5.2.0
       arg: 5.0.2
-      chokidar: 3.5.3
+      chokidar: 3.6.0
       didyoumean: 1.2.2
       dlv: 1.1.3
       fast-glob: 3.3.3
@@ -22416,6 +22425,10 @@ packages:
   /tmp@0.2.5:
     resolution: {integrity: sha512-voyz6MApa1rQGUxT3E+BK7/ROe8itEx7vD8/HEvt4xwXucvQ5G5oeEiHkmHZJuBO21RpOf+YYm9MOivj709jow==}
     engines: {node: '>=14.14'}
+    dev: true
+
+  /to-data-view@1.1.0:
+    resolution: {integrity: sha512-1eAdufMg6mwgmlojAx3QeMnzB/BTVp7Tbndi3U7ftcT2zCZadjxkkmLmd97zmaxWi+sgGcgWrokmpEoy0Dn0vQ==}
     dev: true
 
   /to-regex-range@5.0.1:
