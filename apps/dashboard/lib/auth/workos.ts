@@ -130,10 +130,13 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       }
 
       const data = await response.json();
+
+      console.log("radar decision: ", data);
       return {
-        action: data.action || "allow",
+        action: data.verdict || "block",
         reason: data.reason,
       };
+
     } catch (error) {
       console.error("Failed to check Radar:", {
         error: error instanceof Error ? error.message : "Unknown error",
@@ -623,15 +626,12 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       action,
     });
 
+    console.log("sing in radar: ", radarDecision)
     // Right now, challenge is treated as a block until we implement a captcha or challenge mechanism
     // Worst case we get a support request and manually allow
     // initial radar testing shows that bots are likely to be challenged than blocked
     if (radarDecision.action !== "allow") {
-      return {
-        success: false,
-        code: AuthErrorCode.UNKNOWN_ERROR,
-        message: radarDecision.reason || "Sign up blocked due to suspicious activity",
-      };
+      throw new Error(AuthErrorCode.RADAR_BLOCKED);
     }
 
     try {
@@ -683,11 +683,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     // Worst case we get a support request and manually allow
     // initial radar testing shows that bots are likely to be challenged than blocked
     if (radarDecision.action !== "allow") {
-      return {
-        success: false,
-        code: AuthErrorCode.UNKNOWN_ERROR,
-        message: radarDecision.reason || "Sign in blocked due to suspicious activity",
-      };
+      throw new Error(AuthErrorCode.RADAR_BLOCKED);
     }
 
     try {

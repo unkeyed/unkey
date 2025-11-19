@@ -200,6 +200,7 @@ export enum AuthErrorCode {
   ORGANIZATION_SELECTION_REQUIRED = "ORGANIZATION_SELECTION_REQUIRED",
   EMAIL_VERIFICATION_REQUIRED = "EMAIL_VERIFICATION_REQUIRED",
   PENDING_SESSION_EXPIRED = "PENDING_SESSION_EXPIRED",
+  RADAR_BLOCKED = "RADAR_BLOCKED",
 }
 
 export const errorMessages: Record<AuthErrorCode, string> = {
@@ -219,6 +220,7 @@ export const errorMessages: Record<AuthErrorCode, string> = {
   [AuthErrorCode.PENDING_SESSION_EXPIRED]:
     "Pending Authentication has expired. Please sign-in again.",
   [AuthErrorCode.RATE_ERROR]: "Limited OTP attempts",
+  [AuthErrorCode.RADAR_BLOCKED]: "Unable to complete request due to suspicious activity. Please contact support@unkey.dev if you believe this is an error.",
 };
 
 export interface MiddlewareConfig {
