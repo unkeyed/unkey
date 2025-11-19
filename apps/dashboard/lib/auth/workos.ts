@@ -117,7 +117,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           ip_address: params.ipAddress,
           user_agent: params.userAgent,
           auth_method: params.auth_method,
-          action: params.action
+          action: params.action,
         }),
       });
 
@@ -612,7 +612,13 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     const auth_method = "Email_OTP"; // WorkOS value
     const action = "sign-up"; // WorkOS value
     // Check Radar before proceeding with signup
-    const radarDecision = await this.checkRadar({ email, ipAddress, userAgent, auth_method, action });
+    const radarDecision = await this.checkRadar({
+      email,
+      ipAddress,
+      userAgent,
+      auth_method,
+      action,
+    });
 
     if (radarDecision.action === "block") {
       return {
@@ -666,7 +672,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       ipAddress,
       userAgent,
       auth_method,
-      action
+      action,
     });
 
     if (radarDecision.action === "block") {
