@@ -5,10 +5,11 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { deployments } from "./deployments";
+import { ingressRoutes } from "./ingress_routes";
 export const projects = mysqlTable(
   "projects",
   {
-    id: varchar("id", { length: 256 }).primaryKey(),
+    id: varchar("id", { length: 128 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
 
     name: varchar("name", { length: 256 }).notNull(),
@@ -25,10 +26,10 @@ export const projects = mysqlTable(
     ...deleteProtection,
     ...lifecycleDates,
   },
-  (table) => ({
-    workspaceIdx: index("workspace_idx").on(table.workspaceId),
-    workspaceSlugIdx: uniqueIndex("workspace_slug_idx").on(table.workspaceId, table.slug),
-  }),
+  (table) => [
+    index("workspace_idx").on(table.workspaceId),
+    uniqueIndex("workspace_slug_idx").on(table.workspaceId, table.slug),
+  ],
 );
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
@@ -41,5 +42,6 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
     fields: [projects.liveDeploymentId],
     references: [deployments.id],
   }),
+  ingressRoutes: many(ingressRoutes),
   // environments: many(projectEnvironments),
 }));

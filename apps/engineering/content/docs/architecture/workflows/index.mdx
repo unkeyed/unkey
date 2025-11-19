@@ -44,9 +44,9 @@ See: [Deployment Service](./deployment-service)
 **Location:** `go/apps/ctrl/workflows/routing/`
 **Proto:** `go/proto/hydra/v1/routing.proto`
 **Key:** `project_id`
-**Operations:** AssignDomains, SwitchDomains
+**Operations:** AssignIngressRoutes
 
-Manages atomic domain and gateway configuration changes across control plane (domains DB) and data plane (gateway configs).
+Manages atomic ingress route assignments and updates for deployments with per-tenant gateway isolation.
 
 See: [Routing Service](./routing-service)
 

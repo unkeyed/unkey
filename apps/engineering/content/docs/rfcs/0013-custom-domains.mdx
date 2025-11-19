@@ -41,7 +41,7 @@ Our SSL certificate management system has several key components:
 - Manages certificate lifecycle (issuance and renewal)
 - Runs a validation server to respond to HTTP-01 challenges
 
-**Gateways (Dataplane)**
+**Ingress (Dataplane)**
 - Handle incoming HTTPS traffic using certificates
 - Redirect challenge requests to the ctrl service validation server
 - Completely independent of control plane for serving user traffic
@@ -62,7 +62,8 @@ This separation ensures that customer HTTPS traffic continues working even if ou
 The database design maintains strict separation between control plane operations and dataplane runtime requirements.
 
 **Database (`unkey`):**
-- `domains` - Stores custom domains and associated metadata
+- `custom_domains` - Stores user-owned custom domains
+- `ingress_routes` - Maps hostnames to deployments with sticky behavior
 - `certificate_requests` - Tracks ACME workflow state and metadata for certificate provisioning and renewal
 - `challenges` - Stores ACME challenge responses and metadata
 - `certificates` - Production certificates and encrypted private keys for gateway TLS termination

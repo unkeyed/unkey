@@ -15,6 +15,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/vault"
 )
 
@@ -105,7 +106,9 @@ func register(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
 		return nil, fmt.Errorf("failed to encrypt private key: %w", err)
 	}
 
-	id, err := db.Query.InsertAcmeUser(ctx, cfg.DB.RW(), db.InsertAcmeUserParams{
+	id := uid.New("acme")
+	err = db.Query.InsertAcmeUser(ctx, cfg.DB.RW(), db.InsertAcmeUserParams{
+		ID:           id,
 		WorkspaceID:  cfg.WorkspaceID,
 		EncryptedKey: resp.GetEncrypted(),
 		CreatedAt:    time.Now().UnixMilli(),
@@ -126,12 +129,9 @@ func register(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
 	}
 
 	user.Registration = reg
-	if id < 0 {
-		return nil, fmt.Errorf("registration ID cannot be negative")
-	}
 
 	err = db.Query.UpdateAcmeUserRegistrationURI(ctx, cfg.DB.RW(), db.UpdateAcmeUserRegistrationURIParams{
-		ID:              uint64(id),
+		ID:              id,
 		RegistrationUri: sql.NullString{Valid: true, String: reg.URI},
 	})
 	if err != nil {

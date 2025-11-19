@@ -1,0 +1,19 @@
+import { index, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { lifecycleDates } from "./util/lifecycle_dates";
+
+export const customDomains = mysqlTable(
+  "custom_domains",
+  {
+    id: varchar("id", { length: 128 }).primaryKey(),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+
+    domain: varchar("domain", { length: 256 }).notNull(),
+    challengeType: mysqlEnum("challenge_type", ["dns01", "http01"]).notNull().default("http01"),
+
+    ...lifecycleDates,
+  },
+  (table) => [
+    index("workspace_idx").on(table.workspaceId),
+    uniqueIndex("unique_domain_idx").on(table.domain),
+  ],
+);

@@ -70,6 +70,7 @@ func Reset() {
 	bufferPool = sync.Pool{
 		New: func() any {
 			return &randBuffer{
+				buf: [bufferSize]byte{},
 				pos: bufferSize,
 			}
 		},

@@ -303,11 +303,12 @@ CREATE TABLE `audit_log_target` (
 );
 
 CREATE TABLE `environments` (
-	`id` varchar(256) NOT NULL,
+	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
 	`description` varchar(255),
+	`gateway_config` longblob NOT NULL,
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -332,7 +333,7 @@ CREATE TABLE `clickhouse_workspace_settings` (
 );
 
 CREATE TABLE `projects` (
-	`id` varchar(256) NOT NULL,
+	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
@@ -349,10 +350,10 @@ CREATE TABLE `projects` (
 );
 
 CREATE TABLE `deployments` (
-	`id` varchar(256) NOT NULL,
+	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
-	`environment_id` varchar(256) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
 	`git_commit_sha` varchar(40),
 	`git_branch` varchar(256),
 	`git_commit_message` text,
@@ -360,6 +361,7 @@ CREATE TABLE `deployments` (
 	`git_commit_author_avatar_url` varchar(512),
 	`git_commit_timestamp` bigint,
 	`runtime_config` json NOT NULL,
+	`gateway_config` longblob NOT NULL,
 	`openapi_spec` longblob,
 	`status` enum('pending','building','deploying','network','ready','failed') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
@@ -378,7 +380,7 @@ CREATE TABLE `deployment_steps` (
 );
 
 CREATE TABLE `acme_users` (
-	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
 	`encrypted_key` text NOT NULL,
 	`registration_uri` text,
@@ -387,18 +389,14 @@ CREATE TABLE `acme_users` (
 	CONSTRAINT `acme_users_id` PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `domains` (
-	`id` varchar(256) NOT NULL,
+CREATE TABLE `custom_domains` (
+	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(256),
-	`environment_id` varchar(256),
-	`deployment_id` varchar(256),
 	`domain` varchar(256) NOT NULL,
-	`type` enum('custom','wildcard') NOT NULL,
-	`sticky` enum('branch','environment','live'),
+	`challenge_type` enum('dns01','http01') NOT NULL DEFAULT 'http01',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `domains_id` PRIMARY KEY(`id`),
+	CONSTRAINT `custom_domains_id` PRIMARY KEY(`id`),
 	CONSTRAINT `unique_domain_idx` UNIQUE(`domain`)
 );
 
@@ -416,46 +414,33 @@ CREATE TABLE `acme_challenges` (
 );
 
 CREATE TABLE `gateways` (
-	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
-	`deployment_id` varchar(255) NOT NULL,
-	`hostname` varchar(255) NOT NULL,
-	`config` longblob NOT NULL,
-	CONSTRAINT `gateways_id` PRIMARY KEY(`id`),
-	CONSTRAINT `gateways_pk` UNIQUE(`hostname`)
+	`environment_id` varchar(255) NOT NULL,
+	`k8s_service_name` varchar(255) NOT NULL,
+	`region` varchar(255) NOT NULL,
+	`image` varchar(255) NOT NULL,
+	`health` enum('paused','healthy','unhealthy'),
+	`replicas` int NOT NULL,
+	CONSTRAINT `gateways_id` PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `vms` (
-	`id` varchar(255) NOT NULL,
+CREATE TABLE `instances` (
+	`id` varchar(128) NOT NULL,
 	`deployment_id` varchar(255) NOT NULL,
-	`metal_host_id` varchar(255),
-	`address` varchar(255),
+	`workspace_id` varchar(255) NOT NULL,
+	`project_id` varchar(255) NOT NULL,
+	`region` varchar(255) NOT NULL,
+	`address` varchar(255) NOT NULL,
 	`cpu_millicores` int NOT NULL,
 	`memory_mb` int NOT NULL,
 	`status` enum('allocated','provisioning','starting','running','stopping','stopped','failed') NOT NULL,
-	CONSTRAINT `vms_id` PRIMARY KEY(`id`),
+	CONSTRAINT `instances_id` PRIMARY KEY(`id`),
 	CONSTRAINT `unique_address` UNIQUE(`address`)
 );
 
-CREATE TABLE `metal_hosts` (
-	`id` varchar(255) NOT NULL,
-	`region` varchar(255) NOT NULL,
-	`availability_zone` varchar(255) NOT NULL,
-	`instance_type` varchar(255) NOT NULL,
-	`ec2_instance_id` varchar(255) NOT NULL,
-	`private_ip` varchar(45) NOT NULL,
-	`status` enum('provisioning','active','draining','terminated') NOT NULL,
-	`capacity_cpu_millicores` int NOT NULL,
-	`capacity_memory_mb` int NOT NULL,
-	`allocated_cpu_millicores` int NOT NULL DEFAULT 0,
-	`allocated_memory_mb` int NOT NULL DEFAULT 0,
-	`last_heartbeat` bigint NOT NULL,
-	CONSTRAINT `metal_hosts_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_ec2_instance` UNIQUE(`ec2_instance_id`)
-);
-
 CREATE TABLE `certificates` (
-	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
 	`hostname` varchar(255) NOT NULL,
 	`certificate` text NOT NULL,
@@ -464,6 +449,19 @@ CREATE TABLE `certificates` (
 	`updated_at` bigint,
 	CONSTRAINT `certificates_id` PRIMARY KEY(`id`),
 	CONSTRAINT `unique_hostname` UNIQUE(`hostname`)
+);
+
+CREATE TABLE `ingress_routes` (
+	`id` varchar(128) NOT NULL,
+	`project_id` varchar(255) NOT NULL,
+	`deployment_id` varchar(255) NOT NULL,
+	`environment_id` varchar(255) NOT NULL,
+	`hostname` varchar(256) NOT NULL,
+	`sticky` enum('none','branch','environment','live') NOT NULL DEFAULT 'none',
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `ingress_routes_id` PRIMARY KEY(`id`),
+	CONSTRAINT `unique_hostname_idx` UNIQUE(`hostname`)
 );
 
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
@@ -490,15 +488,12 @@ CREATE INDEX `workspace_idx` ON `deployments` (`workspace_id`);
 CREATE INDEX `project_idx` ON `deployments` (`project_id`);
 CREATE INDEX `status_idx` ON `deployments` (`status`);
 CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
-CREATE INDEX `workspace_idx` ON `domains` (`workspace_id`);
-CREATE INDEX `project_idx` ON `domains` (`project_id`);
-CREATE INDEX `deployment_idx` ON `domains` (`deployment_id`);
+CREATE INDEX `workspace_idx` ON `custom_domains` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
 CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
-CREATE INDEX `idx_deployment_id` ON `gateways` (`deployment_id`);
-CREATE INDEX `idx_deployment_id` ON `vms` (`deployment_id`);
-CREATE INDEX `idx_region_status` ON `metal_hosts` (`region`,`status`);
-CREATE INDEX `idx_az` ON `metal_hosts` (`availability_zone`);
-CREATE INDEX `idx_status` ON `metal_hosts` (`status`);
-CREATE INDEX `idx_heartbeat` ON `metal_hosts` (`last_heartbeat`);
+CREATE INDEX `idx_environment_id` ON `gateways` (`environment_id`);
+CREATE INDEX `idx_deployment_id` ON `instances` (`deployment_id`);
+CREATE INDEX `idx_region` ON `instances` (`region`);
+CREATE INDEX `environment_id_idx` ON `ingress_routes` (`environment_id`);
+CREATE INDEX `deployment_id_idx` ON `ingress_routes` (`deployment_id`);
 

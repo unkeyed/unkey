@@ -15,10 +15,11 @@ type BulkQuerier interface {
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
 	InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error
 	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
-	InsertDomains(ctx context.Context, db DBTX, args []InsertDomainParams) error
-	UpsertGateway(ctx context.Context, db DBTX, args []UpsertGatewayParams) error
+	InsertGateways(ctx context.Context, db DBTX, args []InsertGatewayParams) error
 	InsertIdentities(ctx context.Context, db DBTX, args []InsertIdentityParams) error
 	InsertIdentityRatelimits(ctx context.Context, db DBTX, args []InsertIdentityRatelimitParams) error
+	InsertIngressRoutes(ctx context.Context, db DBTX, args []InsertIngressRouteParams) error
+	UpsertInstance(ctx context.Context, db DBTX, args []UpsertInstanceParams) error
 	InsertKeyAuths(ctx context.Context, db DBTX, args []InsertKeyAuthParams) error
 	InsertKeyEncryptions(ctx context.Context, db DBTX, args []InsertKeyEncryptionParams) error
 	InsertKeys(ctx context.Context, db DBTX, args []InsertKeyParams) error
@@ -33,7 +34,6 @@ type BulkQuerier interface {
 	InsertRatelimitOverrides(ctx context.Context, db DBTX, args []InsertRatelimitOverrideParams) error
 	InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, db DBTX, args []InsertRolePermissionParams) error
-	UpsertVM(ctx context.Context, db DBTX, args []UpsertVMParams) error
 	InsertWorkspaces(ctx context.Context, db DBTX, args []InsertWorkspaceParams) error
 }
 

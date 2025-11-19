@@ -3,62 +3,24 @@ syntax = "proto3";
 package hydra.v1;
 
 import "dev/restate/sdk/go.proto";
-import "partition/v1/gateway.proto";
 
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/hydra/v1;hydrav1";
 
 service RoutingService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
-  // AssignDomains creates or reassigns domains to a deployment and creates gateway configs
-  // Used during initial deployment
-  rpc AssignDomains(AssignDomainsRequest) returns (AssignDomainsResponse) {}
+  // AssignIngressRoutes creates or reassigns ingress routes to a deployment
+  rpc AssignIngressRoutes(AssignIngressRoutesRequest) returns (AssignIngressRoutesResponse) {}
 
-  // SwitchDomains reassigns existing domains to a different deployment and updates gateway configs
-  // Used during rollback/promote operations
-  rpc SwitchDomains(SwitchDomainsRequest) returns (SwitchDomainsResponse) {}
 }
 
-// AssignDomainsRequest is used when deploying - creates/updates domains and gateway configs
-message AssignDomainsRequest {
-  string workspace_id = 1;
-  string project_id = 2;
-  string environment_id = 3;
-  string deployment_id = 4;
+message AssignIngressRoutesRequest {
+  string deployment_id = 1;
 
-  // Domains to create/assign (by name)
-  repeated DomainToAssign domains = 5;
+  repeated string ingress_route_ids = 2;
 
-  // Gateway configuration
-  partition.v1.GatewayConfig gateway_config = 6;
-
-  // Whether the project is currently rolled back (skip domain assignment if true)
-  bool is_rolled_back = 7;
 }
 
-enum DomainSticky {
-  DOMAIN_STICKY_UNSPECIFIED = 0;  // Not sticky (per-commit domain)
-  DOMAIN_STICKY_BRANCH = 1;       // Sticky to branch
-  DOMAIN_STICKY_ENVIRONMENT = 2;  // Sticky to environment
-  DOMAIN_STICKY_LIVE = 3;         // Sticky to live deployment
+message AssignIngressRoutesResponse {
+
 }
-
-message DomainToAssign {
-  string name = 1;
-  DomainSticky sticky = 2;
-}
-
-message AssignDomainsResponse {
-  // Domain names that were actually changed (created or reassigned)
-  repeated string changed_domain_names = 1;
-}
-
-// SwitchDomainsRequest is used for rollback/promote - switches existing domains to a different deployment
-message SwitchDomainsRequest {
-  string target_deployment_id = 1;
-
-  // Domain IDs to switch (must already exist in database)
-  repeated string domain_ids = 2;
-}
-
-message SwitchDomainsResponse {}
