@@ -56,7 +56,6 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// Lookup deployment by hostname
 	deployment, found, err := h.DeploymentService.LookupByHostname(ctx, hostname)
 	if err != nil {
-		h.Logger.Error("failed to lookup deployment", "hostname", hostname, "error", err)
 		return fault.Wrap(err,
 			fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
 			fault.Internal("deployment lookup failed"),

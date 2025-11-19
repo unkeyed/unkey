@@ -21,7 +21,6 @@ type ErrorResponse struct {
 type ErrorDetail struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
-	Status  int    `json:"status"`
 }
 
 // errorPageInfo holds the data needed to render an error page.
@@ -165,7 +164,6 @@ func WithErrorHandling(logger logging.Logger) zen.Middleware {
 					Error: ErrorDetail{
 						Code:    string(code.URN()),
 						Message: userMessage,
-						Status:  pageInfo.Status,
 					},
 				})
 			}
