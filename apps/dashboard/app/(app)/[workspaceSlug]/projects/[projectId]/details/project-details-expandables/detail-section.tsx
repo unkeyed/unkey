@@ -8,14 +8,21 @@ type DetailRowProps = {
   alignment?: "center" | "start";
 };
 
-function DetailRow({ icon, label, children, alignment = "center" }: DetailRowProps) {
+export function DetailRow({
+  icon,
+  label,
+  children,
+  alignment = "center",
+}: DetailRowProps) {
   const alignmentClass = alignment === "start" ? "items-start" : "items-center";
 
   // If both icon and label are missing, let children take full space
   if (!icon && !label) {
     return (
       <div className={`flex ${alignmentClass}`}>
-        <div className="text-grayA-11 text-[13px] min-w-0 flex-1">{children}</div>
+        <div className="text-grayA-11 text-[13px] min-w-0 flex-1">
+          {children}
+        </div>
       </div>
     );
   }
@@ -41,7 +48,11 @@ type DetailSectionProps = {
   isFirst?: boolean;
 };
 
-export function DetailSection({ title, items, isFirst = false }: DetailSectionProps) {
+export function DetailSection({
+  title,
+  items,
+  isFirst = false,
+}: DetailSectionProps) {
   return (
     <div className={`px-4 ${isFirst ? "" : "mt-7"}`}>
       <div className="flex items-center gap-3">
