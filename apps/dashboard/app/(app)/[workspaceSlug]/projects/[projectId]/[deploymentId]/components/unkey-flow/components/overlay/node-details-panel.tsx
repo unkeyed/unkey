@@ -24,10 +24,10 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { DetailRow } from "../../../../../details/project-details-expandables/detail-section";
 import { CardHeader, MetricPill, StatusIndicator } from "../nodes/deploy-node";
 import { type DeploymentNode, REGION_INFO } from "../nodes/types";
 import { LogsTimeseriesBarChart } from "./chart";
-import { DetailRow } from "../../../../../details/project-details-expandables/detail-section";
 
 type NodeDetailsPanelProps = {
   node?: DeploymentNode;
@@ -101,10 +101,7 @@ function generateRealisticChartData({
     const randomVariance = (Math.random() - 0.5) * variance * 2;
     const hasSpike = Math.random() < spikeProbability;
     const spikeValue = hasSpike ? randomVariance * spikeMultiplier : 0;
-    const value = Math.max(
-      0,
-      Math.floor(trendValue + randomVariance + spikeValue)
-    );
+    const value = Math.max(0, Math.floor(trendValue + randomVariance + spikeValue));
 
     return {
       originalTimestamp: startTime + i * intervalMs,
@@ -276,45 +273,35 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
             <SelectItem value="p50">
               <div className="flex items-center gap-3 tabular-nums">
                 <div className="bg-success-11 rounded-full size-1.5 ring-[3px] ring-successA-4 ring-offset-0" />
-                <span className="text-gray-12 font-medium text-[13px]">
-                  p50
-                </span>
+                <span className="text-gray-12 font-medium text-[13px]">p50</span>
                 <span className="text-grayA-10 text-[13px]">3.1ms</span>
               </div>
             </SelectItem>
             <SelectItem value="p75">
               <div className="flex items-center gap-3 tabular-nums">
                 <div className="bg-info-11 rounded-full size-1.5 ring-[3px] ring-infoA-4 ring-offset-0" />
-                <span className="text-gray-12 font-medium text-[13px]">
-                  p75
-                </span>
+                <span className="text-gray-12 font-medium text-[13px]">p75</span>
                 <span className="text-grayA-10 text-[13px]">4.8ms</span>
               </div>
             </SelectItem>
             <SelectItem value="p90">
               <div className="flex items-center gap-3 tabular-nums">
                 <div className="bg-feature-11 rounded-full size-1.5 ring-[3px] ring-featureA-4 ring-offset-0" />
-                <span className="text-gray-12 font-medium text-[13px]">
-                  p90
-                </span>
+                <span className="text-gray-12 font-medium text-[13px]">p90</span>
                 <span className="text-grayA-10 text-[13px]">7.2ms</span>
               </div>
             </SelectItem>
             <SelectItem value="p95">
               <div className="flex items-center gap-3 tabular-nums">
                 <div className="bg-orange-11 rounded-full size-1.5 ring-[3px] ring-orangeA-4 ring-offset-0" />
-                <span className="text-gray-12 font-medium text-[13px]">
-                  p95
-                </span>
+                <span className="text-gray-12 font-medium text-[13px]">p95</span>
                 <span className="text-grayA-10 text-[13px]">9.5ms</span>
               </div>
             </SelectItem>
             <SelectItem value="p99">
               <div className="flex items-center gap-3 tabular-nums">
                 <div className="bg-error-11 rounded-full size-1.5 ring-[3px] ring-errorA-4 ring-offset-0" />
-                <span className="text-gray-12 font-medium text-[13px]">
-                  p99
-                </span>
+                <span className="text-gray-12 font-medium text-[13px]">p99</span>
                 <span className="text-grayA-10 text-[13px]">15.3ms</span>
               </div>
             </SelectItem>
@@ -371,23 +358,16 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
       className={cn(
         "absolute top-14 right-4 bottom-14 rounded-xl bg-white dark:bg-black border border-grayA-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] pointer-events-auto min-w-[360px] max-h-[calc(100vh-80px)] flex flex-col pb-6",
         "transition-all duration-300 ease-out",
-        node
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 -translate-y-2 pointer-events-none"
+        node ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none",
       )}
     >
       <div className="flex flex-col items-center overflow-y-auto max-h-full pb-4">
         <div className="flex items-center justify-between h-12 border-b border-grayA-4 w-full px-3 py-2.5">
           <div className="flex gap-2.5 items-center p-2 border rounded-lg border-grayA-5 bg-grayA-2 h-[26px]">
             <Book2 className="text-gray-12" iconSize="sm-regular" />
-            <span className="text-accent-12 font-medium text-[13px] leading-4">
-              Details
-            </span>
+            <span className="text-accent-12 font-medium text-[13px] leading-4">Details</span>
           </div>
-          <DoubleChevronRight
-            className="text-gray-8 shrink-0"
-            iconSize="lg-regular"
-          />
+          <DoubleChevronRight className="text-gray-8 shrink-0" iconSize="lg-regular" />
         </div>
         <div className="flex items-center justify-between w-full px-3 py-4">
           <CardHeader
@@ -415,9 +395,7 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
         </div>
         <div className="flex px-4 w-full">
           <div className="flex items-center gap-3 w-full">
-            <div className="text-gray-9 text-xs whitespace-nowrap">
-              Runtime metrics
-            </div>
+            <div className="text-gray-9 text-xs whitespace-nowrap">Runtime metrics</div>
             <div className="h-0.5 bg-grayA-3 rounded-sm flex-1 min-w-[115px]" />
             <div className="flex items-center gap-2 shrink-0">
               <Select>
@@ -473,9 +451,7 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
         ))}
         <div className="flex px-4 w-full mt-4 flex-col">
           <div className="flex items-center gap-3 w-full">
-            <div className="text-gray-9 text-xs whitespace-nowrap">
-              Gateway instances
-            </div>
+            <div className="text-gray-9 text-xs whitespace-nowrap">Gateway instances</div>
             <div className="h-0.5 bg-grayA-3 rounded-sm flex-1 min-w-[115px]" />
           </div>
           <div className="flex flex-col gap-6 mt-5">
@@ -494,19 +470,12 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
 
         <div className="flex px-4 w-full mt-4 flex-col">
           <div className="flex items-center gap-3 w-full">
-            <div className="text-gray-9 text-xs whitespace-nowrap">
-              Scaling Configuration
-            </div>
+            <div className="text-gray-9 text-xs whitespace-nowrap">Scaling Configuration</div>
             <div className="h-0.5 bg-grayA-3 rounded-sm flex-1 min-w-[115px]" />
           </div>
           <div className="mt-5" />
           <DetailRow
-            icon={
-              <ChartActivity
-                className="size-[14px] text-gray-12"
-                iconSize="md-regular"
-              />
-            }
+            icon={<ChartActivity className="size-[14px] text-gray-12" iconSize="md-regular" />}
             label="Scaling"
             alignment="start"
           >
@@ -516,8 +485,7 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
                 <span className="text-gray-12 font-medium">{6}</span> instances
               </div>
               <div className="mt-0.5">
-                at <span className="text-gray-12 font-medium">70%</span> CPU
-                threshold
+                at <span className="text-gray-12 font-medium">70%</span> CPU threshold
               </div>
             </div>
           </DetailRow>
@@ -525,32 +493,20 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
 
         <div className="flex px-4 w-full mt-4 flex-col">
           <div className="flex items-center gap-3 w-full">
-            <div className="text-gray-9 text-xs whitespace-nowrap">
-              Regional settings
-            </div>
+            <div className="text-gray-9 text-xs whitespace-nowrap">Regional settings</div>
             <div className="h-0.5 bg-grayA-3 rounded-sm flex-1 min-w-[115px]" />
           </div>
           <div className="mt-5" />
           <div className="flex flex-col gap-3">
             <DetailRow
-              icon={
-                <CircleQuestion
-                  className="size-[14px] text-gray-12"
-                  iconSize="md-regular"
-                />
-              }
+              icon={<CircleQuestion className="size-[14px] text-gray-12" iconSize="md-regular" />}
               label="Provider"
               alignment="start"
             >
               <span className="text-gray-12 font-medium">AWS</span>
             </DetailRow>
             <DetailRow
-              icon={
-                <CircleQuestion
-                  className="size-[14px] text-gray-12"
-                  iconSize="md-regular"
-                />
-              }
+              icon={<CircleQuestion className="size-[14px] text-gray-12" iconSize="md-regular" />}
               label="Region code"
               alignment="start"
             >
@@ -558,12 +514,7 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
             </DetailRow>
 
             <DetailRow
-              icon={
-                <CircleQuestion
-                  className="size-[14px] text-gray-12"
-                  iconSize="md-regular"
-                />
-              }
+              icon={<CircleQuestion className="size-[14px] text-gray-12" iconSize="md-regular" />}
               label="Availability zones"
               alignment="start"
             >
@@ -571,12 +522,7 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
             </DetailRow>
 
             <DetailRow
-              icon={
-                <CircleQuestion
-                  className="size-[14px] text-gray-12"
-                  iconSize="md-regular"
-                />
-              }
+              icon={<CircleQuestion className="size-[14px] text-gray-12" iconSize="md-regular" />}
               label="Image"
               alignment="start"
             >
