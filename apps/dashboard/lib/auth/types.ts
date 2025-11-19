@@ -12,6 +12,9 @@ export const LOCAL_USER_ID = "user_local_admin";
 export const LOCAL_ORG_ID = "org_localdefault"; // org IDs can only have one underscore
 export const LOCAL_ORG_ROLE = "admin";
 
+// WorkOS API endpoints
+export const WORKOS_RADAR_API_URL = "https://api.workos.com/radar/attempts";
+
 export interface User {
   id: string;
   email: string;

@@ -7,6 +7,7 @@ import {
   setupFetchMock,
 } from "../__mocks__/setup";
 import { createMockWorkOSInstance } from "../__mocks__/workos";
+import { WORKOS_RADAR_API_URL } from "../types";
 
 // Mock the env module BEFORE importing anything else
 vi.mock("@/lib/env", () => ({
@@ -83,7 +84,7 @@ describe("WorkOSAuthProvider - checkRadar", () => {
 
       // Verify Radar API was called with correct parameters
       expect(global.fetch).toHaveBeenCalledWith(
-        "https://api.workos.com/radar/events",
+        WORKOS_RADAR_API_URL,
         expect.objectContaining({
           method: "POST",
           headers: {

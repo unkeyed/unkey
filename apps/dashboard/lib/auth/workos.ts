@@ -29,6 +29,7 @@ import {
   type User,
   type UserData,
   type VerificationResult,
+  WORKOS_RADAR_API_URL,
 } from "./types";
 
 type WorkOSErrorCode =
@@ -106,7 +107,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     action?: string;
   }): Promise<Decision> {
     try {
-      const response = await fetch("https://api.workos.com/radar/attempts", {
+      const response = await fetch(WORKOS_RADAR_API_URL, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${this.provider.key}`,
