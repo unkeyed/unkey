@@ -40,6 +40,7 @@ const (
 	OrgPrefix                Prefix = "org"
 	WorkflowPrefix           Prefix = "wf"
 	StepPrefix               Prefix = "step"
+	CertificatePrefix        Prefix = "cert"
 
 	// Control plane prefixes
 	ProjectPrefix      Prefix = "proj"
