@@ -182,8 +182,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 					status = db.InstancesStatusAllocated
 				}
 
-				w.logger.Info("upserting VM to database",
-					"vm_id", instance.GetId(),
+				w.logger.Info("upserting instance to database",
+					"instance_id", instance.GetId(),
 					"deployment_id", deployment.ID,
 					"address", instance.GetAddress(),
 					"status", status)
@@ -201,9 +201,9 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 						MemoryMb:      1024,
 						Status:        status,
 					}); err != nil {
-						return nil, fmt.Errorf("failed to upsert VM %s: %w", instance.GetId(), err)
+						return nil, fmt.Errorf("failed to upsert instance %s: %w", instance.GetId(), err)
 					}
-					w.logger.Info("successfully upserted VM to database", "vm_id", instance.GetId())
+					w.logger.Info("successfully upserted instance to database", "instance_id", instance.GetId())
 					storedInstances[instance.GetId()] = status
 
 				}
