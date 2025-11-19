@@ -181,8 +181,6 @@ func createContextTar(contextPath string) (string, error) {
 func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, buildContextPath, dockerImage string) (string, error) {
 	commitInfo := git.GetInfo()
 
-	fmt.Println(commitInfo)
-
 	dockerfilePath := c.opts.Dockerfile
 	if dockerfilePath == "" {
 		dockerfilePath = "Dockerfile"
