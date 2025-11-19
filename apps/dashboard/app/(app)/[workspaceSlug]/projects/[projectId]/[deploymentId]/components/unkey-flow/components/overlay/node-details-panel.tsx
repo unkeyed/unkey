@@ -1,9 +1,11 @@
+import type { ChartConfig } from "@/components/ui/chart";
 import {
   Bolt,
   Book2,
   ChartActivity,
   ChevronExpandY,
   DoubleChevronRight,
+  Focus,
   Grid,
   HalfDottedCirclePlay,
   Storage,
@@ -20,7 +22,7 @@ import {
 import { cn } from "@unkey/ui/src/lib/utils";
 import { CardHeader } from "../nodes/deploy-node";
 import { type DeploymentNode, REGION_INFO } from "../nodes/types";
-import { ChartBarInteractive } from "./bar-chart";
+import { LogsTimeseriesBarChart } from "./chart";
 
 type NodeDetailsPanelProps = {
   node?: DeploymentNode;
@@ -35,6 +37,7 @@ function generateRealisticChartData({
   spikeMultiplier = 3,
   startTime = Date.now() - 90 * 24 * 60 * 60 * 1000,
   intervalMs = 24 * 60 * 60 * 1000,
+  dataKey = "value",
 }: {
   count?: number;
   baseValue?: number;
@@ -44,89 +47,118 @@ function generateRealisticChartData({
   spikeMultiplier?: number;
   startTime?: number;
   intervalMs?: number;
-} = {}): Array<{ x: number; y: number }> {
+  dataKey?: string;
+} = {}): Array<{
+  originalTimestamp: number;
+  total: number;
+  [key: string]: number;
+}> {
   return Array.from({ length: count }, (_, i) => {
     const trendValue = baseValue + trend * i;
     const randomVariance = (Math.random() - 0.5) * variance * 2;
     const hasSpike = Math.random() < spikeProbability;
     const spikeValue = hasSpike ? randomVariance * spikeMultiplier : 0;
+    const value = Math.max(0, Math.floor(trendValue + randomVariance + spikeValue));
 
     return {
-      x: startTime + i * intervalMs,
-      y: Math.max(0, Math.floor(trendValue + randomVariance + spikeValue)),
+      originalTimestamp: startTime + i * intervalMs,
+      [dataKey]: value,
+      total: value, // Add total field for LogsTimeseriesBarChart
     };
   });
 }
-
-type ChartMetric = {
-  icon: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-  color: string;
-  dataConfig: Parameters<typeof generateRealisticChartData>[0];
-};
 
 export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
   if (!node) {
     return null;
   }
+
   const { flagCode, zones, health } = node.metadata;
   const regionInfo = REGION_INFO[flagCode];
 
-  const metrics: ChartMetric[] = [
+  const baseConfig = {
+    startTime: Date.now() - 24 * 60 * 60 * 1000 * 5,
+    intervalMs: 60 * 60 * 1000,
+  };
+
+  const metrics: Array<{
+    icon: React.ReactNode;
+    label: string;
+    value: React.ReactNode;
+    config: ChartConfig;
+    dataConfig: Parameters<typeof generateRealisticChartData>[0];
+  }> = [
     {
-      icon: <Grid iconSize="sm-medium" className="shrink-0" />,
+      icon: <Grid iconSize="sm-regular" className="shrink-0" />,
       label: "Active instances",
       value: (
         <span className="text-gray-12 font-medium text-[13px]">
           2<span className="font-normal text-grayA-10">vm</span>
         </span>
       ),
-      color: "hsl(var(--error-8))",
+      config: {
+        active_instances: {
+          label: "Active instances",
+          color: "hsl(var(--error-8))",
+        },
+      },
       dataConfig: {
         count: 80,
         baseValue: 2,
         variance: 1,
         trend: 0.02,
         spikeProbability: 0.1,
+        dataKey: "active_instances",
       },
     },
     {
-      icon: <ChartActivity iconSize="sm-medium" className="shrink-0" />,
+      icon: <ChartActivity iconSize="sm-regular" className="shrink-0" />,
       label: "Requests",
       value: (
         <span className="text-gray-12 font-medium text-[13px]">
           24<span className="font-normal text-grayA-10"> per second</span>
         </span>
       ),
-      color: "hsl(var(--warning-8))",
+      config: {
+        requests: {
+          label: "Requests",
+          color: "hsl(var(--warning-8))",
+        },
+      },
       dataConfig: {
         count: 80,
         baseValue: 20,
         variance: 15,
         trend: 0.1,
         spikeProbability: 0.15,
+        dataKey: "requests",
       },
     },
     {
-      icon: <Bolt iconSize="sm-medium" className="shrink-0" />,
+      icon: <Bolt iconSize="sm-regular" className="shrink-0" />,
       label: "CPU usage",
       value: (
         <span className="text-gray-12 font-medium text-[13px]">
           32<span className="font-normal text-grayA-10">%</span>
         </span>
       ),
-      color: "hsl(var(--feature-8))",
+      config: {
+        cpu_usage: {
+          label: "CPU usage",
+          color: "hsl(var(--feature-8))",
+        },
+      },
       dataConfig: {
         count: 80,
         baseValue: 35,
         variance: 20,
         trend: -0.05,
         spikeProbability: 0.2,
+        dataKey: "cpu_usage",
       },
     },
     {
-      icon: <Storage iconSize="sm-medium" className="shrink-0" />,
+      icon: <Focus iconSize="sm-regular" className="shrink-0" />,
       label: "Memory usage",
       value: (
         <div className="flex gap-2.5 items-center">
@@ -138,17 +170,23 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
           </span>
         </div>
       ),
-      color: "hsl(var(--info-8))",
+      config: {
+        memory_usage: {
+          label: "Memory usage",
+          color: "hsl(var(--info-8))",
+        },
+      },
       dataConfig: {
         count: 80,
         baseValue: 30,
         variance: 10,
         trend: 0.08,
         spikeProbability: 0.12,
+        dataKey: "memory_usage",
       },
     },
     {
-      icon: <Storage iconSize="sm-medium" className="shrink-0" />,
+      icon: <Storage iconSize="sm-regular" className="shrink-0" />,
       label: "Storage usage",
       value: (
         <div className="flex gap-2.5 items-center">
@@ -160,17 +198,23 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
           </span>
         </div>
       ),
-      color: "hsl(var(--cyan-8))",
+      config: {
+        storage_usage: {
+          label: "Storage usage",
+          color: "hsl(var(--cyan-8))",
+        },
+      },
       dataConfig: {
         count: 80,
         baseValue: 40,
         variance: 8,
         trend: 0.15,
         spikeProbability: 0.05,
+        dataKey: "storage_usage",
       },
     },
     {
-      icon: <TimeClock iconSize="sm-medium" className="shrink-0" />,
+      icon: <TimeClock iconSize="sm-regular" className="shrink-0" />,
       label: "Latency",
       value: (
         <div className="flex gap-2.5 items-center">
@@ -178,17 +222,23 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
           <span className="text-gray-12 font-medium text-[13px]">3.1ms</span>
         </div>
       ),
-      color: "hsl(var(--bronze-8))",
+      config: {
+        latency: {
+          label: "Latency",
+          color: "hsl(var(--bronze-8))",
+        },
+      },
       dataConfig: {
         count: 80,
         baseValue: 3,
         variance: 2,
         trend: 0.01,
         spikeProbability: 0.25,
+        dataKey: "latency",
       },
     },
     {
-      icon: <HalfDottedCirclePlay iconSize="sm-medium" className="shrink-0" />,
+      icon: <HalfDottedCirclePlay iconSize="sm-regular" className="shrink-0" />,
       label: "Uptime",
       value: (
         <div className="flex gap-2.5 items-center">
@@ -200,21 +250,22 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
           </span>
         </div>
       ),
-      color: "hsl(var(--success-8))",
+      config: {
+        uptime: {
+          label: "Uptime",
+          color: "hsl(var(--success-8))",
+        },
+      },
       dataConfig: {
         count: 80,
         baseValue: 100,
         variance: 5,
         trend: 0,
         spikeProbability: 0.08,
+        dataKey: "uptime",
       },
     },
   ];
-
-  const baseConfig = {
-    startTime: Date.now() - 24 * 60 * 60 * 1000 * 5,
-    intervalMs: 60 * 60 * 1000,
-  };
 
   return (
     <div
@@ -232,7 +283,6 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
           </div>
           <DoubleChevronRight className="text-gray-8 shrink-0" iconSize="lg-regular" />
         </div>
-
         <div className="flex items-center justify-between w-full px-3 py-4">
           <CardHeader
             variant="panel"
@@ -257,7 +307,6 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
             health={health}
           />
         </div>
-
         <div className="flex px-4 w-full">
           <div className="flex items-center gap-3 w-full">
             <div className="text-gray-9 text-xs whitespace-nowrap">Runtime metrics</div>
@@ -292,28 +341,27 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
             </div>
           </div>
         </div>
-
         {metrics.map((metric, index) => (
-          <ChartBarInteractive
-            // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-            key={index}
-            header={{
-              icon: metric.icon,
-              label: metric.label,
-              value: metric.value,
-            }}
-            data={generateRealisticChartData({
-              ...metric.dataConfig,
-              ...baseConfig,
-            })}
-            color={metric.color}
-            xAxisFormatter={(ts) =>
-              new Date(ts).toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-              })
-            }
-          />
+          // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+          <div key={index} className="flex flex-col gap-3 px-4 w-full mt-5">
+            <div className="flex gap-3 items-center">
+              <div className="bg-grayA-3 text-gray-12 rounded-md size-[22px] items-center flex justify-center">
+                {metric.icon}
+              </div>
+              <span className="text-gray-11 text-xs">{metric.label}</span>
+              <div className="ml-10">{metric.value}</div>
+            </div>
+            <LogsTimeseriesBarChart
+              data={generateRealisticChartData({
+                ...metric.dataConfig,
+                ...baseConfig,
+              })}
+              config={metric.config}
+              height={48}
+              isLoading={false}
+              isError={false}
+            />
+          </div>
         ))}
       </div>
     </div>
