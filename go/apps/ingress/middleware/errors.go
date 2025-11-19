@@ -48,7 +48,8 @@ func getErrorPageInfo(urn codes.URN) errorPageInfo {
 			Message: "Unable to connect to the backend service. Please try again in a few moments.",
 		}
 
-	case codes.UnkeyIngressErrorsProxyServiceUnavailable:
+	case codes.UnkeyIngressErrorsProxyServiceUnavailable,
+		codes.UnkeyIngressErrorsRoutingNoRunningInstances:
 		return errorPageInfo{
 			Status:  http.StatusServiceUnavailable,
 			Title:   http.StatusText(http.StatusServiceUnavailable),

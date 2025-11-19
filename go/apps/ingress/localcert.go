@@ -16,6 +16,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/vault"
 )
 
@@ -121,6 +122,7 @@ func generateLocalCertificate(ctx context.Context, cfg LocalCertConfig) error {
 	// Insert certificate into database
 	now := time.Now().UnixMilli()
 	err = db.Query.InsertCertificate(ctx, cfg.DB.RW(), db.InsertCertificateParams{
+		ID:                  uid.New(uid.CertificatePrefix),
 		WorkspaceID:         cfg.WorkspaceID,
 		Hostname:            cfg.Hostname,
 		Certificate:         string(certPEM),
