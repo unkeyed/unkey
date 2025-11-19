@@ -1,0 +1,73 @@
+"use client";
+import { useState } from "react";
+import { useProject } from "../layout-provider";
+import { TreeConnectionLine, TreeLayout } from "./components/unkey-flow";
+import { InfiniteCanvas } from "./components/unkey-flow/components/canvas/infinite-canvas";
+import { DefaultNode } from "./components/unkey-flow/components/nodes/default-node";
+import { InstanceNode, RegionNode } from "./components/unkey-flow/components/nodes/deploy-node";
+import { OriginNode } from "./components/unkey-flow/components/nodes/origin-node";
+import type { DeploymentNode } from "./components/unkey-flow/components/nodes/types";
+import {
+  DEFAULT_TREE,
+  DevTreeGenerator,
+} from "./components/unkey-flow/components/overlay/dev-tree-generator";
+import { LiveIndicator } from "./components/unkey-flow/components/overlay/live";
+import { NodeDetailsPanel } from "./components/unkey-flow/components/overlay/node-details-panel";
+import { ProjectDetails } from "./components/unkey-flow/components/overlay/project-details";
+
+export default function DeploymentDetailsPage() {
+  const { projectId } = useProject();
+  const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(DEFAULT_TREE);
+  const [selectedNode, setSelectedNode] = useState<DeploymentNode>();
+
+  return (
+    <InfiniteCanvas
+      overlay={
+        <>
+          <NodeDetailsPanel node={selectedNode} />
+          <ProjectDetails projectId={projectId} />
+          <LiveIndicator />
+          <DevTreeGenerator onTreeGenerate={(tree) => setGeneratedTree(tree)} />
+        </>
+      }
+    >
+      <TreeLayout
+        // biome-ignore lint/style/noNonNullAssertion: <explanation>
+        data={generatedTree!}
+        nodeSpacing={{ x: 25, y: 75 }}
+        onNodeClick={(node) => setSelectedNode(node)}
+        renderNode={(node, _, parent) => {
+          switch (node.metadata.type) {
+            case "origin":
+              return <OriginNode node={node} />;
+            case "region":
+              return (
+                <RegionNode node={node as DeploymentNode & { metadata: { type: "region" } }} />
+              );
+            case "instance":
+              if (!parent?.id) {
+                throw new Error("Instance node requires parent region");
+              }
+              return (
+                <InstanceNode
+                  node={
+                    node as DeploymentNode & {
+                      metadata: { type: "instance" };
+                    }
+                  }
+                  // @ts-expect-error Will make it more typesafe soon
+                  // biome-ignore lint/style/noNonNullAssertion: Will make it typesafe soon
+                  flagCode={parent.metadata.flagCode!}
+                />
+              );
+            default:
+              return <DefaultNode node={node} />;
+          }
+        }}
+        renderConnection={(path, parent, child) => {
+          return <TreeConnectionLine key={`${parent.id}-${child.id}`} path={path} />;
+        }}
+      />
+    </InfiniteCanvas>
+  );
+}
