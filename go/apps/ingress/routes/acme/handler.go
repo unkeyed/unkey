@@ -6,8 +6,8 @@ import (
 	"path"
 
 	"connectrpc.com/connect"
-	"github.com/unkeyed/unkey/go/apps/ingress/services/deployments"
 	"github.com/unkeyed/unkey/go/apps/ingress/services/proxy"
+	"github.com/unkeyed/unkey/go/apps/ingress/services/router"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/pkg/codes"
@@ -17,9 +17,9 @@ import (
 )
 
 type Handler struct {
-	Logger            logging.Logger
-	AcmeClient        ctrlv1connect.AcmeServiceClient
-	DeploymentService deployments.Service
+	Logger        logging.Logger
+	AcmeClient    ctrlv1connect.AcmeServiceClient
+	RouterService router.Service
 }
 
 func (h *Handler) Method() string {
@@ -37,13 +37,9 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// Look up target configuration based on the request host
 	hostname := proxy.ExtractHostname(proxy.ExtractHostname(req.Host))
 
-	_, found, err := h.DeploymentService.LookupByHostname(ctx, hostname)
+	_, _, err := h.RouterService.LookupByHostname(ctx, hostname)
 	if err != nil {
-		return err
-	}
-
-	if !found {
-		return fault.New("Service configuration not found", fault.Code(codes.Ingress.Routing.ConfigNotFound.URN()))
+		return err // Error already has proper fault wrapping
 	}
 
 	// Extract ACME token from path (last segment after /.well-known/acme-challenge/)

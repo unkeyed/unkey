@@ -5,22 +5,21 @@ import (
 	"net/http"
 	"time"
 
-	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-// Service defines the interface for proxying requests to gateways or remote ingresses.
+// Service defines the interface for proxying requests to gateways or remote NLBs.
 type Service interface {
-	// ForwardToLocal forwards a request to a local gateway service (HTTP)
-	ForwardToLocal(ctx context.Context, sess *zen.Session, deployment *partitionv1.Deployment, startTime time.Time) error
+	// ForwardToGateway forwards a request to a local gateway service (HTTP)
+	// Adds X-Unkey-Deployment-Id header for the gateway to route to the correct deployment
+	ForwardToGateway(ctx context.Context, sess *zen.Session, gateway *db.Gateway, deploymentID string, startTime time.Time) error
 
-	// ForwardToRemote forwards a request to a remote ingress (HTTPS)
-	ForwardToRemote(ctx context.Context, sess *zen.Session, targetRegion string, deployment *partitionv1.Deployment, startTime time.Time) error
-
-	// GetMaxHops returns the maximum number of ingress hops allowed
-	GetMaxHops() int
+	// ForwardToNLB forwards a request to a remote region's NLB (HTTPS)
+	// Keeps the original hostname so the remote ingress can do TLS termination and routing
+	ForwardToNLB(ctx context.Context, sess *zen.Session, targetRegion string, startTime time.Time) error
 }
 
 // Config holds configuration for the proxy service.
@@ -34,7 +33,7 @@ type Config struct {
 	// Region is the current ingress region
 	Region string
 
-	// BaseDomain is the base domain for remote ingress routing (e.g., "aws.unkey.app")
+	// BaseDomain is the base domain for remote NLB routing (e.g., "unkey.cloud")
 	BaseDomain string
 
 	// Clock for time tracking
