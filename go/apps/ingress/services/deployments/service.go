@@ -81,8 +81,6 @@ func New(cfg Config) (*service, error) {
 //   - nil, false, nil if not found
 //   - nil, false, error if lookup failed
 func (s *service) LookupByHostname(ctx context.Context, hostname string) (*partitionv1.Deployment, bool, error) {
-	s.logger.Info("looking up deployment", "hostname", hostname)
-
 	// Lookup gateway config from database with SWR cache
 	configData, hit, err := s.gatewayConfigCache.SWR(ctx, hostname, func(ctx context.Context) (caches.GatewayConfigData, error) {
 		gatewayRow, err := db.Query.FindGatewayByHostname(ctx, s.db.RO(), hostname)
@@ -101,7 +99,6 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 			WorkspaceID: gatewayRow.WorkspaceID,
 		}, nil
 	}, internalCaches.DefaultFindFirstOp)
-
 	if err != nil && !db.IsNotFound(err) {
 		return nil, false, fault.Wrap(err,
 			fault.Code(codes.Ingress.Internal.ConfigLoadFailed.URN()),
@@ -111,12 +108,10 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 	}
 
 	if db.IsNotFound(err) {
-		s.logger.Info("deployment not found", "hostname", hostname)
 		return nil, false, nil
 	}
 
 	if hit == cache.Null {
-		s.logger.Info("deployment not found (null cache)", "hostname", hostname)
 		return nil, false, nil
 	}
 
