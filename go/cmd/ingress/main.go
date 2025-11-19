@@ -50,7 +50,7 @@ var Cmd = &cli.Command{
 			cli.Default("unkey.cloud"), cli.EnvVar("UNKEY_BASE_DOMAIN")),
 
 		// Database Configuration - Partitioned (for hostname lookups)
-		cli.String("database-primary", "MySQL connection string for partitioned primary database (ingress operations). Required. Example: user:pass@host:3306/partition_001?parseTime=true",
+		cli.String("database-primary", "MySQL connection string for partitioned primary database (ingress operations). Required. Example: user:pass@host:3306/unkey?parseTime=true",
 			cli.Required(), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
 
 		cli.String("database-replica", "MySQL connection string for partitioned read-replica (ingress operations). Format same as database-primary.",
@@ -75,6 +75,12 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
 		cli.String("vault-s3-access-key-secret", "S3 secret access key",
 			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
+
+		cli.Int("max-hops", "Maximum number of hops allowed for a request",
+			cli.Default(10), cli.EnvVar("UNKEY_MAX_HOPS")),
+
+		cli.String("ctrl-addr", "Address of the control plane",
+			cli.Default("localhost:8080"), cli.EnvVar("UNKEY_CTRL_ADDR")),
 
 		// Local Certificate Configuration
 		cli.Bool("require-local-cert", "Generate and use self-signed certificate for *.unkey.local if it doesn't exist",
@@ -111,6 +117,10 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		DefaultCertDomain: cmd.String("default-cert-domain"),
 		MainDomain:        cmd.String("main-domain"),
 		BaseDomain:        cmd.String("base-domain"),
+		MaxHops:           cmd.Int("max-hops"),
+
+		// Control Plane Configuration
+		CtrlAddr: cmd.String("ctrl-addr"),
 
 		// Partitioned Database configuration (for hostname lookups)
 		DatabasePrimary:         cmd.String("database-primary"),

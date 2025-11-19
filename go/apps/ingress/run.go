@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/http"
 	"runtime/debug"
 	"time"
 
@@ -14,11 +15,13 @@ import (
 	"github.com/unkeyed/unkey/go/apps/ingress/services/certmanager"
 	"github.com/unkeyed/unkey/go/apps/ingress/services/deployments"
 	"github.com/unkeyed/unkey/go/apps/ingress/services/proxy"
+	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/prometheus"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
 	pkgtls "github.com/unkeyed/unkey/go/pkg/tls"
 	"github.com/unkeyed/unkey/go/pkg/vault"
@@ -32,7 +35,7 @@ import (
 // - Accepts requests from NLBs (<region>.aws.unkey.app)
 // - Terminates TLS if the deployment exists in its region
 // - Forwards requests to the per-tenant/environment gateway service
-// - OR forwards to another region's NLB if no local deployment exists
+// - OR forwards to another region if no local deployment exists
 func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
@@ -207,51 +210,65 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	// Create zen server
-	srv, err := zen.New(zen.Config{
-		Logger: logger,
-		TLS:    tlsConfig,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create server: %w", err)
-	}
-	shutdowns.RegisterCtx(srv.Shutdown)
-
-	// Register all routes
-	routes.Register(srv, &routes.Services{
+	acmeClient := ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr)
+	svcs := &routes.Services{
 		Logger:            logger,
 		Region:            cfg.Region,
 		DeploymentService: deploymentSvc,
 		ProxyService:      proxySvc,
 		Clock:             clk,
-	})
+		AcmeClient:        acmeClient,
+	}
 
-	// Start HTTPS server
+	// Start HTTPS ingress server (main proxy server)
 	if cfg.HttpsPort > 0 {
-		httpsListener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpsPort))
-		if err != nil {
-			return fmt.Errorf("unable to create HTTPS listener: %w", err)
+		httpsSrv, httpsErr := zen.New(zen.Config{
+			Logger: logger,
+			TLS:    tlsConfig,
+		})
+		if httpsErr != nil {
+			return fmt.Errorf("unable to create HTTPS server: %w", httpsErr)
+		}
+		shutdowns.RegisterCtx(httpsSrv.Shutdown)
+
+		// Register all ingress routes on HTTPS server
+		routes.Register(httpsSrv, svcs)
+
+		httpsListener, httpsListenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpsPort))
+		if httpsListenErr != nil {
+			return fmt.Errorf("unable to create HTTPS listener: %w", httpsListenErr)
 		}
 
 		go func() {
 			logger.Info("HTTPS ingress server started", "addr", httpsListener.Addr().String())
-			serveErr := srv.Serve(ctx, httpsListener)
+			serveErr := httpsSrv.Serve(ctx, httpsListener)
 			if serveErr != nil {
 				logger.Error("HTTPS server error", "error", serveErr)
 			}
 		}()
 	}
 
-	// Start HTTP server (for ACME challenges or testing)
+	// Start HTTP challenge server (ACME only for Let's Encrypt)
 	if cfg.HttpPort > 0 {
-		httpListener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
-		if err != nil {
-			return fmt.Errorf("unable to create HTTP listener: %w", err)
+		httpSrv, httpErr := zen.New(zen.Config{
+			Logger: logger,
+		})
+		if httpErr != nil {
+			return fmt.Errorf("unable to create HTTP server: %w", httpErr)
+		}
+		shutdowns.RegisterCtx(httpSrv.Shutdown)
+
+		// Register only ACME challenge routes on HTTP server
+		routes.RegisterChallengeServer(httpSrv, svcs)
+
+		httpListener, httpListenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
+		if httpListenErr != nil {
+			return fmt.Errorf("unable to create HTTP listener: %w", httpListenErr)
 		}
 
 		go func() {
-			logger.Info("HTTP ingress server started", "addr", httpListener.Addr().String())
-			serveErr := srv.Serve(ctx, httpListener)
+			logger.Info("HTTP challenge server started", "addr", httpListener.Addr().String())
+			serveErr := httpSrv.Serve(ctx, httpListener)
 			if serveErr != nil {
 				logger.Error("HTTP server error", "error", serveErr)
 			}

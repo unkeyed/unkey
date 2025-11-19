@@ -9,8 +9,8 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	pdb "github.com/unkeyed/unkey/go/pkg/partition/db"
 )
 
 // GatewayConfigData holds gateway configuration with workspace ID
@@ -25,7 +25,7 @@ type Caches struct {
 	GatewayConfig cache.Cache[string, GatewayConfigData]
 
 	// DeploymentID -> List of Instances
-	InstancesByDeployment cache.Cache[string, []pdb.Vm]
+	InstancesByDeployment cache.Cache[string, []db.Vm]
 
 	// HostName -> Certificate
 	TLSCertificate cache.Cache[string, tls.Certificate]
@@ -54,7 +54,7 @@ func New(config Config) (Caches, error) {
 		return Caches{}, fmt.Errorf("failed to create gateway config cache: %w", err)
 	}
 
-	instancesByDeployment, err := cache.New(cache.Config[string, []pdb.Vm]{
+	instancesByDeployment, err := cache.New(cache.Config[string, []db.Vm]{
 		Fresh:    time.Second * 10,
 		Stale:    time.Minute,
 		Logger:   config.Logger,

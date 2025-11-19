@@ -33,14 +33,14 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// AcmeServiceHandleCertificateVerificationProcedure is the fully-qualified name of the
-	// AcmeService's HandleCertificateVerification RPC.
-	AcmeServiceHandleCertificateVerificationProcedure = "/ctrl.v1.AcmeService/HandleCertificateVerification"
+	// AcmeServiceVerifyCertificateProcedure is the fully-qualified name of the AcmeService's
+	// VerifyCertificate RPC.
+	AcmeServiceVerifyCertificateProcedure = "/ctrl.v1.AcmeService/VerifyCertificate"
 )
 
 // AcmeServiceClient is a client for the ctrl.v1.AcmeService service.
 type AcmeServiceClient interface {
-	HandleCertificateVerification(context.Context, *connect.Request[v1.HandleCertificateVerificationRequest]) (*connect.Response[v1.HandleCertificateVerificationResponse], error)
+	VerifyCertificate(context.Context, *connect.Request[v1.VerifyCertificateRequest]) (*connect.Response[v1.VerifyCertificateResponse], error)
 }
 
 // NewAcmeServiceClient constructs a client for the ctrl.v1.AcmeService service. By default, it uses
@@ -54,10 +54,10 @@ func NewAcmeServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 	baseURL = strings.TrimRight(baseURL, "/")
 	acmeServiceMethods := v1.File_ctrl_v1_acme_proto.Services().ByName("AcmeService").Methods()
 	return &acmeServiceClient{
-		handleCertificateVerification: connect.NewClient[v1.HandleCertificateVerificationRequest, v1.HandleCertificateVerificationResponse](
+		verifyCertificate: connect.NewClient[v1.VerifyCertificateRequest, v1.VerifyCertificateResponse](
 			httpClient,
-			baseURL+AcmeServiceHandleCertificateVerificationProcedure,
-			connect.WithSchema(acmeServiceMethods.ByName("HandleCertificateVerification")),
+			baseURL+AcmeServiceVerifyCertificateProcedure,
+			connect.WithSchema(acmeServiceMethods.ByName("VerifyCertificate")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -65,17 +65,17 @@ func NewAcmeServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 
 // acmeServiceClient implements AcmeServiceClient.
 type acmeServiceClient struct {
-	handleCertificateVerification *connect.Client[v1.HandleCertificateVerificationRequest, v1.HandleCertificateVerificationResponse]
+	verifyCertificate *connect.Client[v1.VerifyCertificateRequest, v1.VerifyCertificateResponse]
 }
 
-// HandleCertificateVerification calls ctrl.v1.AcmeService.HandleCertificateVerification.
-func (c *acmeServiceClient) HandleCertificateVerification(ctx context.Context, req *connect.Request[v1.HandleCertificateVerificationRequest]) (*connect.Response[v1.HandleCertificateVerificationResponse], error) {
-	return c.handleCertificateVerification.CallUnary(ctx, req)
+// VerifyCertificate calls ctrl.v1.AcmeService.VerifyCertificate.
+func (c *acmeServiceClient) VerifyCertificate(ctx context.Context, req *connect.Request[v1.VerifyCertificateRequest]) (*connect.Response[v1.VerifyCertificateResponse], error) {
+	return c.verifyCertificate.CallUnary(ctx, req)
 }
 
 // AcmeServiceHandler is an implementation of the ctrl.v1.AcmeService service.
 type AcmeServiceHandler interface {
-	HandleCertificateVerification(context.Context, *connect.Request[v1.HandleCertificateVerificationRequest]) (*connect.Response[v1.HandleCertificateVerificationResponse], error)
+	VerifyCertificate(context.Context, *connect.Request[v1.VerifyCertificateRequest]) (*connect.Response[v1.VerifyCertificateResponse], error)
 }
 
 // NewAcmeServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -85,16 +85,16 @@ type AcmeServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewAcmeServiceHandler(svc AcmeServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	acmeServiceMethods := v1.File_ctrl_v1_acme_proto.Services().ByName("AcmeService").Methods()
-	acmeServiceHandleCertificateVerificationHandler := connect.NewUnaryHandler(
-		AcmeServiceHandleCertificateVerificationProcedure,
-		svc.HandleCertificateVerification,
-		connect.WithSchema(acmeServiceMethods.ByName("HandleCertificateVerification")),
+	acmeServiceVerifyCertificateHandler := connect.NewUnaryHandler(
+		AcmeServiceVerifyCertificateProcedure,
+		svc.VerifyCertificate,
+		connect.WithSchema(acmeServiceMethods.ByName("VerifyCertificate")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/ctrl.v1.AcmeService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case AcmeServiceHandleCertificateVerificationProcedure:
-			acmeServiceHandleCertificateVerificationHandler.ServeHTTP(w, r)
+		case AcmeServiceVerifyCertificateProcedure:
+			acmeServiceVerifyCertificateHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -104,6 +104,6 @@ func NewAcmeServiceHandler(svc AcmeServiceHandler, opts ...connect.HandlerOption
 // UnimplementedAcmeServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedAcmeServiceHandler struct{}
 
-func (UnimplementedAcmeServiceHandler) HandleCertificateVerification(context.Context, *connect.Request[v1.HandleCertificateVerificationRequest]) (*connect.Response[v1.HandleCertificateVerificationResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.AcmeService.HandleCertificateVerification is not implemented"))
+func (UnimplementedAcmeServiceHandler) VerifyCertificate(context.Context, *connect.Request[v1.VerifyCertificateRequest]) (*connect.Response[v1.VerifyCertificateResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.AcmeService.VerifyCertificate is not implemented"))
 }
