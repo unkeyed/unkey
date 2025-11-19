@@ -9,6 +9,14 @@ Unkey uses a single MySQL database that is automatically created and initialized
 
 - **unkey**: Main application database containing APIs, keys, workspaces, deployments, gateways, and all related data
 
+### Recent Architecture Changes
+
+The gateway architecture has been refactored from a shared gateway model to per-tenant gateways:
+- **Old**: Single shared gateway service (`domains` table, shared `gateways` configs, `vms` table)
+- **New**: Per-tenant gateways (`custom_domains`, `ingress_routes`, `instances` tables)
+
+This provides better tenant isolation, security, and scaling characteristics.
+
 ## Schema Files
 
 Schema definitions are maintained in:
@@ -49,9 +57,43 @@ CREATE TABLE `unkey`.`apis` (
   -- ...
 );
 
--- All tables including deployments, gateways, vms, and certificates are in the same database
+-- All tables including deployments, gateways, instances, and certificates are in the same database
 CREATE TABLE `unkey`.`gateways` (
-  `id` varchar(256) NOT NULL,
+  `id` varchar(128) NOT NULL,
+  `workspace_id` varchar(255) NOT NULL,
+  `environment_id` varchar(255) NOT NULL,
+  `k8s_service_name` varchar(255) NOT NULL,
+  `region` varchar(255) NOT NULL,
+  `image` varchar(255) NOT NULL,
+  `health` enum('paused','healthy','unhealthy'),
+  `replicas` int NOT NULL,
+  -- ...
+);
+
+CREATE TABLE `unkey`.`instances` (
+  `id` varchar(128) NOT NULL,
+  `deployment_id` varchar(255) NOT NULL,
+  `workspace_id` varchar(255) NOT NULL,
+  `project_id` varchar(255) NOT NULL,
+  `region` varchar(255) NOT NULL,
+  `address` varchar(255) NOT NULL,
+  -- ...
+);
+
+CREATE TABLE `unkey`.`custom_domains` (
+  `id` varchar(128) NOT NULL,
+  `workspace_id` varchar(256) NOT NULL,
+  `domain` varchar(256) NOT NULL,
+  -- ...
+);
+
+CREATE TABLE `unkey`.`ingress_routes` (
+  `id` varchar(128) NOT NULL,
+  `project_id` varchar(255) NOT NULL,
+  `deployment_id` varchar(255) NOT NULL,
+  `environment_id` varchar(255) NOT NULL,
+  `hostname` varchar(256) NOT NULL,
+  `sticky` enum('branch','environment','live'),
   -- ...
 );
 ```

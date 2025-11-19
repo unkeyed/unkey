@@ -1,11 +1,11 @@
 ---
 title: Routing Service
-description: Atomic domain and gateway configuration management
+description: Atomic ingress route and gateway configuration management
 ---
 
 # Routing Service
 
-The `RoutingService` manages atomic domain assignment and gateway configuration updates, ensuring consistency between control plane (domains DB) and data plane (gateway configs).
+The `RoutingService` manages atomic ingress route assignment and gateway configuration updates, ensuring consistency between control plane (ingress routes DB) and data plane (per-tenant gateway configs).
 
 **Location:** `go/apps/ctrl/workflows/routing/`
 **Proto:** `go/proto/hydra/v1/routing.proto`
@@ -13,7 +13,7 @@ The `RoutingService` manages atomic domain assignment and gateway configuration 
 
 ## Why Separate Service?
 
-Domain and gateway operations are the **critical section** of deployments:
+Ingress route and gateway operations are the **critical section** of deployments:
 - Must be atomic - both succeed or both fail
 - Must be serialized per project to prevent race conditions
 - Should not block non-routing operations (like building containers)
@@ -25,65 +25,40 @@ By separating routing, we:
 
 ## Operations
 
-### AssignDomains
+### AssignIngressRoutes
 
 <Mermaid chart={`flowchart TD
-    Start([AssignDomains]) --> LoopDomains{For Each Domain}
-    LoopDomains --> FindDomain[Find or Create Domain]
-    FindDomain --> NextDomain
-    NextDomain --> LoopDomains
-    LoopDomains --> PrepareGateway[Prepare Gateway Configs]
-    PrepareGateway --> BulkUpsert
-    BulkUpsert --> End([Return Changed Domains])
+    Start([AssignIngressRoutes]) --> LoopRoutes{For Each Route}
+    LoopRoutes --> FindRoute[Find or Create Ingress Route]
+    FindRoute --> NextRoute
+    NextRoute --> LoopRoutes
+    LoopRoutes --> UpdateDeployment[Update Deployment ID]
+    UpdateDeployment --> End([Return Success])
 
-    style BulkUpsert fill:#e1f5fe
+    style UpdateDeployment fill:#e1f5fe
 `} />
 
-Creates or reassigns domains to a deployment:
-1. For each domain: find existing or insert new domain record
-2. Skip domains marked as rolled back
-3. Prepare gateway configs (exclude local domains like `.local`, `.test`)
-4. Bulk upsert gateway configs to database
-5. Return list of changed domains
+Creates or reassigns ingress routes to a deployment:
+1. For each ingress route ID: update the deployment ID
+2. Routes are pre-created with hostnames and sticky behavior
+3. This operation simply points them to the new deployment
+4. Per-tenant gateways handle the actual traffic routing
 
-Implementation: `go/apps/ctrl/workflows/routing/assign_domains_handler.go`
+Implementation: `go/apps/ctrl/workflows/routing/assign_ingress_routes_handler.go`
 
-**Domain Sticky Levels:**
-- `UNSPECIFIED`: Per-commit domains (e.g., `abc123.domain.com`)
+**Ingress Route Sticky Levels:**
 - `BRANCH`: Branch-level (e.g., `main.domain.com`)
 - `ENVIRONMENT`: Environment-level (e.g., `staging.domain.com`)
 - `LIVE`: Production domain (e.g., `domain.com`)
 
-### SwitchDomains
+## Per-Tenant Gateway Architecture
 
-<Mermaid chart={`flowchart TD
-    Start([SwitchDomains]) --> FetchGateway[Fetch Target Gateway Config]
-    FetchGateway --> FetchDomains[Fetch Domains by IDs]
-    FetchDomains --> UpsertGateway[Upsert Gateway Configs]
-    UpsertGateway --> ReassignDomains[Reassign Domains]
-    ReassignDomains --> End([Success])
-
-    style UpsertGateway fill:#e1f5fe
-    style ReassignDomains fill:#c8e6c9
-`} />
-
-Reassigns existing domains to a different deployment:
-1. Fetch target deployment's gateway config
-2. Fetch domain records
-3. Upsert gateway configs first (data plane ready)
-4. Reassign domains (control plane pointers updated)
-
-Implementation: `go/apps/ctrl/workflows/routing/switch_domains_handler.go`
-
-## Order of Operations
-
-Critical: Gateway configs are always updated **before** domain reassignment. This ensures:
-1. Gateway is ready to serve traffic before DNS/routing points to it
-2. No downtime during switches
-3. Rollback is possible if domain update fails
+With the new per-tenant gateway model:
+1. Each environment has its own gateway instances
+2. Ingress routes point to deployments within an environment
+3. Gateway configuration is managed at the environment level
+4. This provides better isolation and scaling characteristics
 
 ## Local Domain Filtering
 
-Domains with `.local` or `.test` TLDs, or `localhost`/`127.0.0.1` are excluded from gateway config generation since they're for local development only.
-
-Helper: `go/apps/ctrl/workflows/routing/helpers.go:isLocalHostname()`
+Hostnames with `.local` or `.test` TLDs, or `localhost`/`127.0.0.1` are typically excluded from production routing since they're for local development only.
