@@ -80,6 +80,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   //INFO: Best to leave this alone, some other class might be accessing `instance` implicitly
   private static instance: WorkOSAuthProvider | null = null;
   private readonly provider: WorkOS;
+  private readonly apiKey: string;
   private readonly clientId: string;
   private readonly cookiePassword: string;
 
@@ -92,6 +93,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     // Initialize properties after validation
+    this.apiKey = config.apiKey;
     this.clientId = config.clientId;
     this.cookiePassword = cookiePassword; // TypeScript now knows this is string
     this.provider = new WorkOS(config.apiKey, { clientId: config.clientId });
@@ -110,7 +112,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       const response = await fetch(WORKOS_RADAR_API_URL, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${this.provider.key}`,
+          Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -621,15 +623,16 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       action,
     });
 
-    if (radarDecision.action === "block") {
+    // Right now, challenge is treated as a block until we implement a captcha or challenge mechanism
+    // Worst case we get a support request and manually allow
+    // initial radar testing shows that bots are likely to be challenged than blocked
+    if (radarDecision.action !== "allow") {
       return {
         success: false,
         code: AuthErrorCode.UNKNOWN_ERROR,
         message: radarDecision.reason || "Sign up blocked due to suspicious activity",
       };
     }
-
-    // For challenge, we'll still proceed but could add additional verification later
 
     try {
       // Create the user with WorkOS
@@ -676,15 +679,16 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       action,
     });
 
-    if (radarDecision.action === "block") {
+    // Right now, challenge is treated as a block until we implement a captcha or challenge mechanism
+    // Worst case we get a support request and manually allow
+    // initial radar testing shows that bots are likely to be challenged than blocked
+    if (radarDecision.action !== "allow") {
       return {
         success: false,
         code: AuthErrorCode.UNKNOWN_ERROR,
         message: radarDecision.reason || "Sign in blocked due to suspicious activity",
       };
     }
-
-    // For challenge, we'll still proceed but could add additional verification later
 
     try {
       const { data } = await this.provider.userManagement.listUsers({ email });

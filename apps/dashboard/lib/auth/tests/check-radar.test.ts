@@ -46,7 +46,7 @@ vi.mock("../cookie-security", () => ({
 
 // Mock the WorkOS SDK
 vi.mock("@workos-inc/node", () => ({
-  WorkOS: vi.fn().mockImplementation((apiKey: string) => createMockWorkOSInstance(vi, apiKey)),
+  WorkOS: vi.fn().mockImplementation(() => createMockWorkOSInstance(vi)),
 }));
 
 // Now import after mocks are set up
@@ -105,7 +105,6 @@ describe("WorkOSAuthProvider - checkRadar", () => {
           createUser: vi.fn().mockResolvedValue({}),
           createMagicAuth: vi.fn().mockResolvedValue({}),
         },
-        key: "test-api-key",
       };
 
       // Replace the provider instance
@@ -139,7 +138,6 @@ describe("WorkOSAuthProvider - checkRadar", () => {
           createUser: vi.fn().mockResolvedValue({}),
           createMagicAuth: vi.fn().mockResolvedValue({}),
         },
-        key: "test-api-key",
       };
 
       (provider as any).provider = mockProvider;
@@ -165,7 +163,6 @@ describe("WorkOSAuthProvider - checkRadar", () => {
           createUser: vi.fn().mockResolvedValue({}),
           createMagicAuth: vi.fn().mockResolvedValue({}),
         },
-        key: "test-api-key",
       };
 
       (provider as any).provider = mockProvider;
@@ -191,7 +188,6 @@ describe("WorkOSAuthProvider - checkRadar", () => {
           createUser: vi.fn().mockResolvedValue({}),
           createMagicAuth: vi.fn().mockResolvedValue({}),
         },
-        key: "test-api-key",
       };
 
       (provider as any).provider = mockProvider;
@@ -237,7 +233,6 @@ describe("WorkOSAuthProvider - checkRadar", () => {
           }),
           createMagicAuth: vi.fn().mockResolvedValue({}),
         },
-        key: "test-api-key",
       };
 
       (provider as any).provider = mockProvider;

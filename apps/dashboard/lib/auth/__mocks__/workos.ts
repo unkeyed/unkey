@@ -8,15 +8,11 @@
  * import { createMockWorkOSInstance } from '../__mocks__/workos';
  *
  * vi.mock('@workos-inc/node', () => ({
- *   WorkOS: vi.fn().mockImplementation((apiKey: string) => createMockWorkOSInstance(vi, apiKey)),
+ *   WorkOS: vi.fn().mockImplementation(() => createMockWorkOSInstance(vi)),
  * }));
  * ```
  */
-export const createMockWorkOSInstance = (
-  viFn: typeof import("vitest").vi,
-  apiKey = "test-api-key",
-) => ({
-  key: apiKey,
+export const createMockWorkOSInstance = (viFn: typeof import("vitest").vi) => ({
   userManagement: {
     createUser: viFn.fn(),
     createMagicAuth: viFn.fn(),
