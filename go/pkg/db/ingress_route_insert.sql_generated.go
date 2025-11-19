@@ -34,14 +34,14 @@ VALUES (
 `
 
 type InsertIngressRouteParams struct {
-	ID            string                  `db:"id"`
-	ProjectID     string                  `db:"project_id"`
-	DeploymentID  string                  `db:"deployment_id"`
-	EnvironmentID string                  `db:"environment_id"`
-	Hostname      string                  `db:"hostname"`
-	Sticky        NullIngressRoutesSticky `db:"sticky"`
-	CreatedAt     int64                   `db:"created_at"`
-	UpdatedAt     sql.NullInt64           `db:"updated_at"`
+	ID            string              `db:"id"`
+	ProjectID     string              `db:"project_id"`
+	DeploymentID  string              `db:"deployment_id"`
+	EnvironmentID string              `db:"environment_id"`
+	Hostname      string              `db:"hostname"`
+	Sticky        IngressRoutesSticky `db:"sticky"`
+	CreatedAt     int64               `db:"created_at"`
+	UpdatedAt     sql.NullInt64       `db:"updated_at"`
 }
 
 // InsertIngressRoute

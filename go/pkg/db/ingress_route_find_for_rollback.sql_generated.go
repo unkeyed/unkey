@@ -29,19 +29,19 @@ ORDER BY created_at ASC
 `
 
 type FindIngressRoutesForRollbackParams struct {
-	EnvironmentID string                    `db:"environment_id"`
-	Sticky        []NullIngressRoutesSticky `db:"sticky"`
+	EnvironmentID string                `db:"environment_id"`
+	Sticky        []IngressRoutesSticky `db:"sticky"`
 }
 
 type FindIngressRoutesForRollbackRow struct {
-	ID            string                  `db:"id"`
-	ProjectID     string                  `db:"project_id"`
-	EnvironmentID string                  `db:"environment_id"`
-	Hostname      string                  `db:"hostname"`
-	DeploymentID  string                  `db:"deployment_id"`
-	Sticky        NullIngressRoutesSticky `db:"sticky"`
-	CreatedAt     int64                   `db:"created_at"`
-	UpdatedAt     sql.NullInt64           `db:"updated_at"`
+	ID            string              `db:"id"`
+	ProjectID     string              `db:"project_id"`
+	EnvironmentID string              `db:"environment_id"`
+	Hostname      string              `db:"hostname"`
+	DeploymentID  string              `db:"deployment_id"`
+	Sticky        IngressRoutesSticky `db:"sticky"`
+	CreatedAt     int64               `db:"created_at"`
+	UpdatedAt     sql.NullInt64       `db:"updated_at"`
 }
 
 // FindIngressRoutesForRollback

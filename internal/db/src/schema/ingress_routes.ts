@@ -21,7 +21,9 @@ export const ingressRoutes = mysqlTable(
     //
     // - live: the hostname is sticky to the live deployment it was created on
     //     api.unkey.com
-    sticky: mysqlEnum("sticky", ["branch", "environment", "live"]),
+    sticky: mysqlEnum("sticky", ["none", "branch", "environment", "live"])
+      .notNull()
+      .default("none"),
 
     ...lifecycleDates,
   },

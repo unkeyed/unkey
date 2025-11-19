@@ -89,9 +89,9 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	ingressRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindIngressRoutesForRollbackRow, error) {
 		return db.Query.FindIngressRoutesForRollback(stepCtx, w.db.RO(), db.FindIngressRoutesForRollbackParams{
 			EnvironmentID: sourceDeployment.EnvironmentID,
-			Sticky: []db.NullIngressRoutesSticky{
-				{Valid: true, IngressRoutesSticky: db.IngressRoutesStickyLive},
-				{Valid: true, IngressRoutesSticky: db.IngressRoutesStickyEnvironment},
+			Sticky: []db.IngressRoutesSticky{
+				db.IngressRoutesStickyLive,
+				db.IngressRoutesStickyEnvironment,
 			},
 		})
 	}, restate.WithName("finding ingressRoutes for rollback"))
@@ -108,9 +108,8 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	// Collect ingressRoute IDs
 	var routeIDs []string
 	for _, ingressRoute := range ingressRoutes {
-		if ingressRoute.Sticky.Valid &&
-			(ingressRoute.Sticky.IngressRoutesSticky == db.IngressRoutesStickyLive ||
-				ingressRoute.Sticky.IngressRoutesSticky == db.IngressRoutesStickyEnvironment) {
+		if ingressRoute.Sticky == db.IngressRoutesStickyLive ||
+			ingressRoute.Sticky == db.IngressRoutesStickyEnvironment {
 			routeIDs = append(routeIDs, ingressRoute.ID)
 		}
 	}

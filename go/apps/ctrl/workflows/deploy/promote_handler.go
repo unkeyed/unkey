@@ -68,9 +68,9 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 	ingressRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindIngressRouteForPromotionRow, error) {
 		return db.Query.FindIngressRouteForPromotion(stepCtx, w.db.RO(), db.FindIngressRouteForPromotionParams{
 			EnvironmentID: targetDeployment.EnvironmentID,
-			Sticky: []db.NullIngressRoutesSticky{
-				{Valid: true, IngressRoutesSticky: db.IngressRoutesStickyLive},
-				{Valid: true, IngressRoutesSticky: db.IngressRoutesStickyEnvironment},
+			Sticky: []db.IngressRoutesSticky{
+				db.IngressRoutesStickyLive,
+				db.IngressRoutesStickyEnvironment,
 			},
 		})
 	}, restate.WithName("finding ingressRoutes for promotion"))

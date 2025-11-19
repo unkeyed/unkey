@@ -457,7 +457,7 @@ CREATE TABLE `ingress_routes` (
 	`deployment_id` varchar(255) NOT NULL,
 	`environment_id` varchar(255) NOT NULL,
 	`hostname` varchar(256) NOT NULL,
-	`sticky` enum('branch','environment','live'),
+	`sticky` enum('none','branch','environment','live') NOT NULL DEFAULT 'none',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `ingress_routes_id` PRIMARY KEY(`id`),
