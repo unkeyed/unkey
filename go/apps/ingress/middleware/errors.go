@@ -137,15 +137,16 @@ func WithErrorHandling(logger logging.Logger) zen.Middleware {
 				title = http.StatusText(pageInfo.Status)
 			}
 
-			// Log the error
-			logger.Error("ingress error",
-				"error", err.Error(),
-				"requestId", s.RequestID(),
-				"publicMessage", userMessage,
-				"status", pageInfo.Status,
-				"path", s.Request().URL.Path,
-				"host", s.Request().Host,
-			)
+			if pageInfo.Status == http.StatusInternalServerError {
+				logger.Error("ingress error",
+					"error", err.Error(),
+					"requestId", s.RequestID(),
+					"publicMessage", userMessage,
+					"status", pageInfo.Status,
+					"path", s.Request().URL.Path,
+					"host", s.Request().Host,
+				)
+			}
 
 			// Determine response format based on Accept header
 			acceptHeader := s.Request().Header.Get("Accept")
