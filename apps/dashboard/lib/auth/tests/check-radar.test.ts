@@ -129,18 +129,8 @@ describe("WorkOSAuthProvider - checkRadar", () => {
       });
     });
 
-    it("should allow signup when Radar returns challenge action", async () => {
+    it("should block signup when Radar returns challenge action", async () => {
       mockRadarResponse("challenge", "Additional verification recommended");
-
-      // Mock WorkOS user creation and magic auth
-      const mockProvider = {
-        userManagement: {
-          createUser: vi.fn().mockResolvedValue({}),
-          createMagicAuth: vi.fn().mockResolvedValue({}),
-        },
-      };
-
-      (provider as any).provider = mockProvider;
 
       const result = await provider.signUpViaEmail({
         email: "test@example.com",
@@ -150,8 +140,11 @@ describe("WorkOSAuthProvider - checkRadar", () => {
         userAgent: "Mozilla/5.0",
       });
 
-      expect(result).toEqual({ success: true });
-      expect(mockProvider.userManagement.createUser).toHaveBeenCalled();
+      expect(result).toEqual({
+        success: false,
+        code: "UNKNOWN_ERROR",
+        message: "Additional verification recommended",
+      });
     });
 
     it("should allow signup when Radar API fails", async () => {
@@ -249,20 +242,8 @@ describe("WorkOSAuthProvider - checkRadar", () => {
       });
     });
 
-    it("should allow signin when Radar returns challenge action", async () => {
+    it("should block signin when Radar returns challenge action", async () => {
       mockRadarResponse("challenge", "Unusual location detected");
-
-      const mockProvider = {
-        userManagement: {
-          listUsers: vi.fn().mockResolvedValue({
-            data: [{ id: "user_123", email: "test@example.com" }],
-          }),
-          createMagicAuth: vi.fn().mockResolvedValue({}),
-        },
-        key: "test-api-key",
-      };
-
-      (provider as any).provider = mockProvider;
 
       const result = await provider.signInViaEmail({
         email: "test@example.com",
@@ -270,8 +251,11 @@ describe("WorkOSAuthProvider - checkRadar", () => {
         userAgent: "Mozilla/5.0",
       });
 
-      expect(result).toEqual({ success: true });
-      expect(mockProvider.userManagement.listUsers).toHaveBeenCalled();
+      expect(result).toEqual({
+        success: false,
+        code: "UNKNOWN_ERROR",
+        message: "Unusual location detected",
+      });
     });
   });
 });
