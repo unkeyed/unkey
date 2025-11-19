@@ -3,6 +3,8 @@ package certmanager
 import (
 	"context"
 	"crypto/tls"
+	"database/sql"
+	"log"
 	"strings"
 
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
@@ -27,49 +29,78 @@ type service struct {
 	vault *vault.Service
 
 	cache cache.Cache[string, tls.Certificate]
-
-	// DefaultCertDomain is the domain to use for fallback certificate
-	// When a domain has no cert, use this domain's cert instead
-	defaultCertDomain string
 }
 
 // New creates a new certificate manager.
 func New(cfg Config) *service {
 	return &service{
-		logger:            cfg.Logger,
-		db:                cfg.DB,
-		cache:             cfg.TLSCertificateCache,
-		defaultCertDomain: cfg.DefaultCertDomain,
-		vault:             cfg.Vault,
+		logger: cfg.Logger,
+		db:     cfg.DB,
+		cache:  cfg.TLSCertificateCache,
+		vault:  cfg.Vault,
 	}
 }
 
 // GetCertificate implements the CertManager interface.
 func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certificate, error) {
-	if s.defaultCertDomain != "" {
-		if strings.HasSuffix(domain, s.defaultCertDomain) && domain != "*."+s.defaultCertDomain {
-			return s.GetCertificate(ctx, "*."+s.defaultCertDomain)
-		}
-	}
-
 	cert, hit, err := s.cache.SWR(ctx, domain, func(ctx context.Context) (tls.Certificate, error) {
-		row, err := db.Query.FindCertificateByHostname(ctx, s.db.RO(), domain)
+		// Build lookup candidates: exact match + immediate wildcard
+		candidates := []string{domain}
+
+		// Add wildcard for immediate parent level
+		// e.g., api.my.unkey.local -> *.my.unkey.local
+		parts := strings.SplitN(domain, ".", 2)
+		if len(parts) == 2 {
+			candidates = append(candidates, "*."+parts[1])
+		}
+
+		log.Printf("certmanager: looking up domain=%s candidates=%v", domain, candidates)
+
+		// Single query for all candidates
+		rows, err := db.Query.FindCertificatesByHostnames(ctx, s.db.RO(), candidates)
 		if err != nil {
+			log.Printf("certmanager: db query error domain=%s err=%v", domain, err)
 			return tls.Certificate{}, err
+		}
+
+		log.Printf("certmanager: found %d rows for domain=%s", len(rows), domain)
+
+		if len(rows) == 0 {
+			return tls.Certificate{}, sql.ErrNoRows
+		}
+
+		// Pick best match: exact > wildcard
+		// Prefer exact match over wildcard
+		var bestRow db.Certificate
+		for _, row := range rows {
+			log.Printf("certmanager: checking row hostname=%s", row.Hostname)
+			if row.Hostname == domain {
+				bestRow = row
+				break
+			}
+
+			// First wildcard match wins (there's only one wildcard candidate)
+			if bestRow.Hostname == "" {
+				bestRow = row
+			}
 		}
 
 		pem, err := s.vault.Decrypt(ctx, &vaultv1.DecryptRequest{
 			Keyring:   "unkey",
-			Encrypted: row.EncryptedPrivateKey,
+			Encrypted: bestRow.EncryptedPrivateKey,
 		})
 		if err != nil {
+			log.Printf("certmanager: vault decrypt error hostname=%s err=%v", bestRow.Hostname, err)
 			return tls.Certificate{}, err
 		}
 
-		cert, err := tls.X509KeyPair([]byte(row.Certificate), []byte(pem.GetPlaintext()))
+		cert, err := tls.X509KeyPair([]byte(bestRow.Certificate), []byte(pem.GetPlaintext()))
 		if err != nil {
+			log.Printf("certmanager: X509KeyPair error hostname=%s err=%v", bestRow.Hostname, err)
 			return tls.Certificate{}, err
 		}
+
+		log.Printf("certmanager: successfully loaded cert for hostname=%s", bestRow.Hostname)
 
 		return cert, nil
 	}, caches.DefaultFindFirstOp)
