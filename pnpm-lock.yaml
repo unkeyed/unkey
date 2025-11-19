@@ -693,9 +693,6 @@ importers:
       dotenv-cli:
         specifier: ^7.4.1
         version: 7.4.1
-      drizzle-dbml-generator:
-        specifier: ^0.10.0
-        version: 0.10.0(drizzle-orm@0.44.5)
       drizzle-kit:
         specifier: 0.31.4
         version: 0.31.4
@@ -6701,6 +6698,7 @@ packages:
   /@planetscale/database@1.19.0:
     resolution: {integrity: sha512-Tv4jcFUFAFjOWrGSio49H6R2ijALv0ZzVBfJKIdm+kl9X046Fh4LLawrF9OMsglVbK6ukqMJsUCeucGAFTBcMA==}
     engines: {node: '>=16'}
+    dev: false
 
   /@pnpm/config.env-replace@1.1.0:
     resolution: {integrity: sha512-htyl8TWnKL7K/ESFa1oW2UB5lVDxuF5DpM7tBi6Hu2LNL3mWkIzNLG6N4zoCUP1lCKNxWy/3iu8mS8MvToGd6w==}
@@ -13973,14 +13971,6 @@ packages:
       minimatch: 3.1.2
     dev: false
 
-  /drizzle-dbml-generator@0.10.0(drizzle-orm@0.44.5):
-    resolution: {integrity: sha512-cMZq9E3U3RlmE0uBeXyc6oWJ0royOkC6HiTlc9LDeMe+W87poZTzKoNYUyAxZrs4Q1RQtob+cGKiefV4ZoI8HA==}
-    peerDependencies:
-      drizzle-orm: '>=0.36.0'
-    dependencies:
-      drizzle-orm: 0.44.5(@planetscale/database@1.19.0)(mysql2@3.10.3)
-    dev: true
-
   /drizzle-kit@0.31.4:
     resolution: {integrity: sha512-tCPWVZWZqWVx2XUsVpJRnH9Mx0ClVOf5YUHerZ5so1OKSlqww4zy1R5ksEdGRcO3tM3zj0PYN6V48TbQCL1RfA==}
     hasBin: true
@@ -14087,6 +14077,7 @@ packages:
     dependencies:
       '@planetscale/database': 1.19.0
       mysql2: 3.10.3
+    dev: false
 
   /dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
