@@ -1,4 +1,5 @@
 "use client";
+import type { ChangelogEntry } from "@/gen/proto/ctrl/v1/openapi_pb";
 import {
   ChevronDown,
   CircleInfo,
@@ -7,7 +8,6 @@ import {
   InputSearch,
   TriangleWarning,
 } from "@unkey/icons";
-import type { ChangelogEntry } from "@unkey/proto";
 import {
   Badge,
   Button,
