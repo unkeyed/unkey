@@ -107,11 +107,7 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 		)
 	}
 
-	if db.IsNotFound(err) {
-		return nil, false, nil
-	}
-
-	if hit == cache.Null {
+	if db.IsNotFound(err) || hit == cache.Null {
 		return nil, false, nil
 	}
 
@@ -130,6 +126,7 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*parti
 		if !deployment.GetIsEnabled() {
 			continue
 		}
+
 		enabledDeployments[deployment.Id] = deployment
 	}
 
