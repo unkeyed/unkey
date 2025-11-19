@@ -26,7 +26,6 @@ COPY ./internal/hash/package.json ./internal/hash/package.json
 COPY ./internal/icons/package.json ./internal/icons/package.json
 COPY ./internal/id/package.json ./internal/id/package.json
 COPY ./internal/keys/package.json ./internal/keys/package.json
-COPY ./internal/proto/package.json ./internal/proto/package.json
 COPY ./internal/resend/package.json ./internal/resend/package.json
 COPY ./internal/schema/package.json ./internal/schema/package.json
 COPY ./internal/tsconfig/package.json ./internal/tsconfig/package.json

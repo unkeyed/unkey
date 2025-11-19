@@ -307,7 +307,7 @@ CREATE TABLE `environments` (
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
-	`description` varchar(255),
+	`description` varchar(255) NOT NULL DEFAULT '',
 	`gateway_config` longblob NOT NULL,
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,

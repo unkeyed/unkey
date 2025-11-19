@@ -1,0 +1,24 @@
+syntax = "proto3";
+package ctrl.v1;
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
+
+service ProjectService {
+
+  rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse) {}
+
+
+}
+
+
+message CreateProjectRequest {
+  string workspace_id =1;
+  string name = 2;
+  string slug = 3;
+  string git_repository = 4;
+
+}
+
+message CreateProjectResponse {
+  string id = 1;
+}

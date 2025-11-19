@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const findEnvironmentByProjectIdAndSlug = `-- name: FindEnvironmentByProjectIdAndSlug :one
@@ -25,11 +24,11 @@ type FindEnvironmentByProjectIdAndSlugParams struct {
 }
 
 type FindEnvironmentByProjectIdAndSlugRow struct {
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	ProjectID   string         `db:"project_id"`
-	Slug        string         `db:"slug"`
-	Description sql.NullString `db:"description"`
+	ID          string `db:"id"`
+	WorkspaceID string `db:"workspace_id"`
+	ProjectID   string `db:"project_id"`
+	Slug        string `db:"slug"`
+	Description string `db:"description"`
 }
 
 // FindEnvironmentByProjectIdAndSlug

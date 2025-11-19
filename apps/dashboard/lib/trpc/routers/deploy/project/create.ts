@@ -1,9 +1,11 @@
-import { insertAuditLogs } from "@/lib/audit";
+import { ProjectService } from "@/gen/proto/ctrl/v1/project_pb";
 import { createProjectRequestSchema } from "@/lib/collections/deploy/projects";
-import { db, schema } from "@/lib/db";
+import { db } from "@/lib/db";
+import { env } from "@/lib/env";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { createClient } from "@connectrpc/connect";
+import { createConnectTransport } from "@connectrpc/connect-web";
 import { TRPCError } from "@trpc/server";
-import { newId } from "@unkey/id";
 
 export const createProject = t.procedure
   .use(requireUser)
@@ -13,6 +15,28 @@ export const createProject = t.procedure
   .mutation(async ({ ctx, input }) => {
     const userId = ctx.user.id;
     const workspaceId = ctx.workspace.id;
+
+    const { CTRL_URL, CTRL_API_KEY } = env();
+    if (!CTRL_URL || !CTRL_API_KEY) {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "ctrl service is not configured",
+      });
+    }
+    // Here we make the client itself, combining the service
+    // definition with the transport.
+    const ctrl = createClient(
+      ProjectService,
+      createConnectTransport({
+        baseUrl: CTRL_URL,
+        interceptors: [
+          (next) => (req) => {
+            req.header.set("Authorization", `Bearer ${CTRL_API_KEY}`);
+            return next(req);
+          },
+        ],
+      }),
+    );
 
     try {
       const workspace = await db.query.workspaces.findFirst({
@@ -60,99 +84,15 @@ export const createProject = t.procedure
         });
       }
 
-      const projectId = newId("project");
-      const now = Date.now();
-
-      try {
-        await db.transaction(async (tx) => {
-          await tx.insert(schema.projects).values({
-            id: projectId,
-            workspaceId,
-            name: input.name,
-            slug: input.slug,
-            liveDeploymentId: null,
-            gitRepositoryUrl: input.gitRepositoryUrl || null,
-            defaultBranch: "main",
-            deleteProtection: false,
-            createdAt: now,
-            updatedAt: now,
-          });
-
-          await insertAuditLogs(tx, {
-            workspaceId,
-            actor: {
-              type: "user",
-              id: userId,
-            },
-            event: "project.create",
-            description: `Created project "${input.name}" with slug "${input.slug}"`,
-            resources: [
-              {
-                type: "project",
-                id: projectId,
-                name: input.name,
-              },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
-          });
-
-          for (const slug of ["production", "preview"]) {
-            const environmentId = newId("environment");
-            await tx.insert(schema.environments).values({
-              id: environmentId,
-              workspaceId,
-              projectId,
-              createdAt: now,
-              updatedAt: now,
-              slug,
-              gatewayConfig: "",
-            });
-
-            await insertAuditLogs(tx, {
-              workspaceId,
-              actor: {
-                type: "user",
-                id: userId,
-              },
-              event: "environment.create",
-              description: `Created environment "${slug}" for project "${input.name}"`,
-              resources: [
-                {
-                  type: "environment",
-                  id: environmentId,
-                  name: slug,
-                },
-              ],
-              context: {
-                location: ctx.audit.location,
-                userAgent: ctx.audit.userAgent,
-              },
-            });
-          }
-        });
-      } catch (txErr) {
-        console.error({
-          message: "Transaction failed during project creation",
-          userId,
-          workspaceId,
-          projectId,
-          projectSlug: input.slug,
-          error: txErr instanceof Error ? txErr.message : String(txErr),
-          stack: txErr instanceof Error ? txErr.stack : undefined,
-        });
-
-        throw txErr; // Re-throw to be caught by outer catch
-      }
-
-      return {
-        id: projectId,
+      const project = await ctrl.createProject({
+        workspaceId: ctx.workspace.id,
         name: input.name,
         slug: input.slug,
-        gitRepositoryUrl: input.gitRepositoryUrl,
-        createdAt: now,
+        gitRepository: input.gitRepositoryUrl ?? "",
+      });
+
+      return {
+        id: project.id,
       };
     } catch (err) {
       if (err instanceof TRPCError) {

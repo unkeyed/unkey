@@ -66,7 +66,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Create the connect handler
 	mux := http.NewServeMux()
 
-	var svc kranev1connect.DeploymentServiceHandler
+	var svc Svc
 	switch cfg.Backend {
 	case Kubernetes:
 		{
@@ -98,6 +98,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create the service handlers with interceptors
 	mux.Handle(kranev1connect.NewDeploymentServiceHandler(svc))
+	mux.Handle(kranev1connect.NewGatewayServiceHandler(svc))
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)
@@ -151,4 +152,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	logger.Info("krane server shut down successfully")
 	return nil
+}
+
+type Svc interface {
+	kranev1connect.DeploymentServiceHandler
+	kranev1connect.GatewayServiceHandler
 }
