@@ -14,7 +14,6 @@ import {
 import { LiveIndicator } from "./components/unkey-flow/components/overlay/live";
 import { NodeDetailsPanel } from "./components/unkey-flow/components/overlay/node-details-panel";
 import { ProjectDetails } from "./components/unkey-flow/components/overlay/project-details";
-import type { TreeNode } from "./components/unkey-flow/types";
 
 export default function DeploymentDetailsPage() {
   const { projectId } = useProject();
@@ -65,17 +64,8 @@ export default function DeploymentDetailsPage() {
               return <DefaultNode node={node} />;
           }
         }}
-        renderConnection={(from, to, parent, child, waypoints) => {
-          const parentDirection = (parent as TreeNode).direction ?? "vertical";
-          return (
-            <TreeConnectionLine
-              key={`${parent.id}-${child.id}`}
-              from={from}
-              to={to}
-              waypoints={waypoints}
-              horizontal={parentDirection === "horizontal"}
-            />
-          );
+        renderConnection={(path, parent, child) => {
+          return <TreeConnectionLine key={`${parent.id}-${child.id}`} path={path} />;
         }}
       />
     </InfiniteCanvas>

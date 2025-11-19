@@ -295,6 +295,7 @@ export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
 
         {metrics.map((metric, index) => (
           <ChartBarInteractive
+            // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
             key={index}
             header={{
               icon: metric.icon,

@@ -29,19 +29,8 @@ export type TreeLayoutProps<T extends TreeNode> = {
   data: T;
   nodeSpacing?: { x: number; y: number };
   onNodeClick?: (node: T) => void;
-  renderNode: (
-    node: T,
-    position: Point,
-    // Origin node can exist without a parent. Like god.
-    parent: T | undefined,
-  ) => React.ReactNode;
-  renderConnection?: (
-    from: Point,
-    to: Point,
-    parent: T,
-    child: T,
-    waypoints?: Point[],
-  ) => React.ReactNode;
+  renderNode: (node: T, position: Point, parent: T | undefined) => React.ReactNode;
+  renderConnection?: (path: Point[], parent: T, child: T) => React.ReactNode;
 };
 
 export type PositionedNode<T> = {

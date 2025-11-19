@@ -100,14 +100,9 @@ export function TreeLayout<T extends TreeNode>({
     <g ref={containerRef} onClick={handleClick}>
       {layout.connections.map((conn) =>
         renderConnection ? (
-          renderConnection(conn.from, conn.to, conn.parent, conn.child, conn.waypoints)
+          renderConnection(conn.path, conn.parent, conn.child)
         ) : (
-          <TreeConnectionLine
-            key={`${conn.parent.id}-${conn.child.id}`}
-            from={conn.from}
-            to={conn.to}
-            waypoints={conn.waypoints ?? []}
-          />
+          <TreeConnectionLine key={`${conn.parent.id}-${conn.child.id}`} path={conn.path} />
         ),
       )}
 
