@@ -131,7 +131,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
       const data = await response.json();
 
-      console.log("radar decision: ", data);
       return {
         action: data.verdict || "block",
         reason: data.reason,
@@ -625,7 +624,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       action,
     });
 
-    console.log("sing in radar: ", radarDecision);
     // Right now, challenge is treated as a block until we implement a captcha or challenge mechanism
     // Worst case we get a support request and manually allow
     // initial radar testing shows that bots are likely to be challenged than blocked
