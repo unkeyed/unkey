@@ -43,7 +43,6 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	}
 
 	if !found {
-		// TODO: Correct error code.
 		return fault.New("Service configuration not found", fault.Code(codes.Ingress.Routing.ConfigNotFound.URN()))
 	}
 
