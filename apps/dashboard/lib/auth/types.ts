@@ -220,7 +220,8 @@ export const errorMessages: Record<AuthErrorCode, string> = {
   [AuthErrorCode.PENDING_SESSION_EXPIRED]:
     "Pending Authentication has expired. Please sign-in again.",
   [AuthErrorCode.RATE_ERROR]: "Limited OTP attempts",
-  [AuthErrorCode.RADAR_BLOCKED]: "Unable to complete request due to suspicious activity. Please contact support@unkey.dev if you believe this is an error.",
+  [AuthErrorCode.RADAR_BLOCKED]:
+    "Unable to complete request due to suspicious activity. Please contact support@unkey.dev if you believe this is an error.",
 };
 
 export interface MiddlewareConfig {
