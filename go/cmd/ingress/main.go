@@ -113,11 +113,10 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		HttpsPort: cmd.Int("https-port"),
 
 		// TLS configuration
-		EnableTLS:         cmd.Bool("tls-enabled"),
-		DefaultCertDomain: cmd.String("default-cert-domain"),
-		MainDomain:        cmd.String("main-domain"),
-		BaseDomain:        cmd.String("base-domain"),
-		MaxHops:           cmd.Int("max-hops"),
+		EnableTLS:  cmd.Bool("tls-enabled"),
+		MainDomain: cmd.String("main-domain"),
+		BaseDomain: cmd.String("base-domain"),
+		MaxHops:    cmd.Int("max-hops"),
 
 		// Control Plane Configuration
 		CtrlAddr: cmd.String("ctrl-addr"),

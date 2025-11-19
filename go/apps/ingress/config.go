@@ -27,9 +27,6 @@ type Config struct {
 	// EnableTLS specifies whether TLS should be enabled for the Ingress server
 	EnableTLS bool
 
-	// DefaultCertDomain is the domain to use for fallback TLS certificate
-	DefaultCertDomain string
-
 	// MainDomain is the primary domain of the Ingress (e.g., ingress.unkey.com)
 	// Internal endpoints like /_internal/liveness are only accessible on this domain
 	MainDomain string

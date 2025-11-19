@@ -66,7 +66,6 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 	// Deployment not found
 	if !found {
-		h.Logger.Warn("deployment not found", "hostname", hostname)
 		return fault.New("deployment not found",
 			fault.Code(codes.Ingress.Routing.ConfigNotFound.URN()),
 			fault.Internal(fmt.Sprintf("no deployment found for hostname: %s", hostname)),
