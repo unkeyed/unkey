@@ -9,6 +9,7 @@ var Cmd = &cli.Command{
 	Usage: "Seed data for testing",
 	Commands: []*cli.Command{
 		localCmd,
+		ingressCmd,
 		verificationsCmd,
 	},
 }
