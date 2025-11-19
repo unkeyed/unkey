@@ -25,9 +25,11 @@ type docker struct {
 	registryAuth string // base64 encoded auth for pulls
 
 	kranev1connect.UnimplementedDeploymentServiceHandler
+	kranev1connect.UnimplementedGatewayServiceHandler
 }
 
 var _ kranev1connect.DeploymentServiceHandler = (*docker)(nil)
+var _ kranev1connect.GatewayServiceHandler = (*docker)(nil)
 
 // Config holds configuration for the Docker backend
 type Config struct {
