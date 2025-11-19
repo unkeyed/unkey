@@ -68,19 +68,15 @@ describe("WorkOSAuthProvider - checkRadar", () => {
     it("should block signup when Radar returns block action", async () => {
       mockRadarResponse("block", "Suspicious activity detected");
 
-      const result = await provider.signUpViaEmail({
-        email: "test@example.com",
-        firstName: "Test",
-        lastName: "User",
-        ipAddress: "192.168.1.1",
-        userAgent: "Mozilla/5.0",
-      });
-
-      expect(result).toEqual({
-        success: false,
-        code: "UNKNOWN_ERROR",
-        message: "Suspicious activity detected",
-      });
+      await expect(
+        provider.signUpViaEmail({
+          email: "test@example.com",
+          firstName: "Test",
+          lastName: "User",
+          ipAddress: "192.168.1.1",
+          userAgent: "Mozilla/5.0",
+        }),
+      ).rejects.toThrow("RADAR_BLOCKED");
 
       // Verify Radar API was called with correct parameters
       expect(global.fetch).toHaveBeenCalledWith(
@@ -132,19 +128,15 @@ describe("WorkOSAuthProvider - checkRadar", () => {
     it("should block signup when Radar returns challenge action", async () => {
       mockRadarResponse("challenge", "Additional verification recommended");
 
-      const result = await provider.signUpViaEmail({
-        email: "test@example.com",
-        firstName: "Test",
-        lastName: "User",
-        ipAddress: "192.168.1.1",
-        userAgent: "Mozilla/5.0",
-      });
-
-      expect(result).toEqual({
-        success: false,
-        code: "UNKNOWN_ERROR",
-        message: "Additional verification recommended",
-      });
+      await expect(
+        provider.signUpViaEmail({
+          email: "test@example.com",
+          firstName: "Test",
+          lastName: "User",
+          ipAddress: "192.168.1.1",
+          userAgent: "Mozilla/5.0",
+        }),
+      ).rejects.toThrow("RADAR_BLOCKED");
     });
 
     it("should allow signup when Radar API fails", async () => {
@@ -202,17 +194,13 @@ describe("WorkOSAuthProvider - checkRadar", () => {
     it("should block signin when Radar returns block action", async () => {
       mockRadarResponse("block", "Account compromised");
 
-      const result = await provider.signInViaEmail({
-        email: "test@example.com",
-        ipAddress: "192.168.1.1",
-        userAgent: "Mozilla/5.0",
-      });
-
-      expect(result).toEqual({
-        success: false,
-        code: "UNKNOWN_ERROR",
-        message: "Account compromised",
-      });
+      await expect(
+        provider.signInViaEmail({
+          email: "test@example.com",
+          ipAddress: "192.168.1.1",
+          userAgent: "Mozilla/5.0",
+        }),
+      ).rejects.toThrow("RADAR_BLOCKED");
     });
 
     it("should allow signin when Radar returns allow action", async () => {
@@ -245,17 +233,13 @@ describe("WorkOSAuthProvider - checkRadar", () => {
     it("should block signin when Radar returns challenge action", async () => {
       mockRadarResponse("challenge", "Unusual location detected");
 
-      const result = await provider.signInViaEmail({
-        email: "test@example.com",
-        ipAddress: "192.168.1.1",
-        userAgent: "Mozilla/5.0",
-      });
-
-      expect(result).toEqual({
-        success: false,
-        code: "UNKNOWN_ERROR",
-        message: "Unusual location detected",
-      });
+      await expect(
+        provider.signInViaEmail({
+          email: "test@example.com",
+          ipAddress: "192.168.1.1",
+          userAgent: "Mozilla/5.0",
+        }),
+      ).rejects.toThrow("RADAR_BLOCKED");
     });
   });
 });

@@ -65,7 +65,7 @@ export const createMockFetchResponse = (data: any, ok = true, status = 200) => (
  */
 export const mockRadarResponse = (action: "allow" | "block" | "challenge", reason?: string) => {
   const response = createMockFetchResponse({
-    action,
+    verdict: action,
     ...(reason && { reason }),
   });
 
