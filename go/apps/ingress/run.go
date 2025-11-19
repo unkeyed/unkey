@@ -13,8 +13,8 @@ import (
 	"github.com/unkeyed/unkey/go/apps/ingress/routes"
 	"github.com/unkeyed/unkey/go/apps/ingress/services/caches"
 	"github.com/unkeyed/unkey/go/apps/ingress/services/certmanager"
-	"github.com/unkeyed/unkey/go/apps/ingress/services/deployments"
 	"github.com/unkeyed/unkey/go/apps/ingress/services/proxy"
+	"github.com/unkeyed/unkey/go/apps/ingress/services/router"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -166,7 +166,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Initialize caches
-	cachesInstance, err := caches.New(caches.Config{
+	cache, err := caches.New(caches.Config{
 		Logger: logger,
 		Clock:  clk,
 	})
@@ -180,21 +180,21 @@ func Run(ctx context.Context, cfg Config) error {
 		certManager = certmanager.New(certmanager.Config{
 			Logger:              logger,
 			DB:                  db,
-			TLSCertificateCache: cachesInstance.TLSCertificate,
+			TLSCertificateCache: cache.TLSCertificate,
 			Vault:               vaultSvc,
 		})
 	}
 
-	// Initialize deployment lookup service
-	deploymentSvc, err := deployments.New(deployments.Config{
+	// Initialize router service
+	routerSvc, err := router.New(router.Config{
 		Logger:                logger,
 		Region:                cfg.Region,
 		DB:                    db,
-		GatewayConfigCache:    cachesInstance.GatewayConfig,
-		InstancesByDeployment: cachesInstance.InstancesByDeployment,
+		IngressRouteCache:     cache.IngressRoute,
+		GatewaysByEnvironment: cache.GatewaysByEnvironment,
 	})
 	if err != nil {
-		return fmt.Errorf("unable to create deployment service: %w", err)
+		return fmt.Errorf("unable to create router service: %w", err)
 	}
 
 	// Initialize proxy service with shared transport for connection pooling
@@ -225,12 +225,12 @@ func Run(ctx context.Context, cfg Config) error {
 
 	acmeClient := ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr)
 	svcs := &routes.Services{
-		Logger:            logger,
-		Region:            cfg.Region,
-		DeploymentService: deploymentSvc,
-		ProxyService:      proxySvc,
-		Clock:             clk,
-		AcmeClient:        acmeClient,
+		Logger:        logger,
+		Region:        cfg.Region,
+		RouterService: routerSvc,
+		ProxyService:  proxySvc,
+		Clock:         clk,
+		AcmeClient:    acmeClient,
 	}
 
 	// Start HTTPS ingress server (main proxy server)
