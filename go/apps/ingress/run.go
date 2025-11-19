@@ -141,7 +141,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	partitionedDB, err := db.New(db.Config{
+	db, err := db.New(db.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
 		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
 		Logger:      logger,
@@ -149,7 +149,21 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create partitioned db: %w", err)
 	}
-	shutdowns.Register(partitionedDB.Close)
+	shutdowns.Register(db.Close)
+
+	// Generate local certificate if requested
+	if cfg.RequireLocalCert {
+		err = generateLocalCertificate(ctx, LocalCertConfig{
+			Logger:       logger,
+			DB:           db,
+			VaultService: vaultSvc,
+			Hostname:     "*.unkey.local",
+			WorkspaceID:  "unkey",
+		})
+		if err != nil {
+			return fmt.Errorf("failed to generate local certificate: %w", err)
+		}
+	}
 
 	// Initialize caches
 	cachesInstance, err := caches.New(caches.Config{
@@ -165,9 +179,8 @@ func Run(ctx context.Context, cfg Config) error {
 	if vaultSvc != nil {
 		certManager = certmanager.New(certmanager.Config{
 			Logger:              logger,
-			DB:                  partitionedDB,
+			DB:                  db,
 			TLSCertificateCache: cachesInstance.TLSCertificate,
-			DefaultCertDomain:   cfg.BaseDomain,
 			Vault:               vaultSvc,
 		})
 	}
@@ -176,7 +189,7 @@ func Run(ctx context.Context, cfg Config) error {
 	deploymentSvc, err := deployments.New(deployments.Config{
 		Logger:                logger,
 		Region:                cfg.Region,
-		DB:                    partitionedDB,
+		DB:                    db,
 		GatewayConfigCache:    cachesInstance.GatewayConfig,
 		InstancesByDeployment: cachesInstance.InstancesByDeployment,
 	})
@@ -191,7 +204,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Region:     cfg.Region,
 		BaseDomain: cfg.BaseDomain,
 		Clock:      clk,
-		MaxHops:    cfg.MaxHops, // Defaults to 3 if not set
+		MaxHops:    cfg.MaxHops,
 		// Use defaults for transport settings (200 max idle conns, 90s timeout, etc.)
 	})
 	if err != nil {
@@ -206,7 +219,7 @@ func Run(ctx context.Context, cfg Config) error {
 			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 				return certManager.GetCertificate(context.Background(), hello.ServerName)
 			},
-			MinVersion: tls.VersionTLS13,
+			MinVersion: tls.VersionTLS12,
 		}
 	}
 

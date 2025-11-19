@@ -26,10 +26,4 @@ type Config struct {
 	Vault *vault.Service
 
 	TLSCertificateCache cache.Cache[string, tls.Certificate]
-
-	// DefaultCertDomain is the domain to use for fallback certificate
-	// When a domain doesn't have a certificate, use this domain's cert instead
-	// This allows handling HTTPS requests for unknown domains
-	// Optional | if empty, TLS handshake fails for unknown domains
-	DefaultCertDomain string
 }
