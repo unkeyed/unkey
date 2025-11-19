@@ -35,7 +35,7 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	req := sess.Request()
 	// Look up target configuration based on the request host
-	hostname := proxy.ExtractHostname(proxy.ExtractHostname(req.Host))
+	hostname := proxy.ExtractHostname(req.Host)
 
 	_, _, err := h.RouterService.LookupByHostname(ctx, hostname)
 	if err != nil {
