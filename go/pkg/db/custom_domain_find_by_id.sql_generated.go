@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findCustomDomainById = `-- name: FindCustomDomainById :one
@@ -20,6 +21,14 @@ FROM custom_domains
 WHERE id = ?
 `
 
+type FindCustomDomainByIdRow struct {
+	ID          string        `db:"id"`
+	WorkspaceID string        `db:"workspace_id"`
+	Domain      string        `db:"domain"`
+	CreatedAt   int64         `db:"created_at"`
+	UpdatedAt   sql.NullInt64 `db:"updated_at"`
+}
+
 // FindCustomDomainById
 //
 //	SELECT
@@ -30,9 +39,9 @@ WHERE id = ?
 //	    updated_at
 //	FROM custom_domains
 //	WHERE id = ?
-func (q *Queries) FindCustomDomainById(ctx context.Context, db DBTX, id string) (CustomDomain, error) {
+func (q *Queries) FindCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error) {
 	row := db.QueryRowContext(ctx, findCustomDomainById, id)
-	var i CustomDomain
+	var i FindCustomDomainByIdRow
 	err := row.Scan(
 		&i.ID,
 		&i.WorkspaceID,

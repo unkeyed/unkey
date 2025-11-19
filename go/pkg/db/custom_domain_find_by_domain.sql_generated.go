@@ -14,6 +14,7 @@ SELECT
     id,
     workspace_id,
     domain,
+    challenge_type,
     created_at,
     updated_at
 FROM custom_domains
@@ -26,6 +27,7 @@ WHERE domain = ?
 //	    id,
 //	    workspace_id,
 //	    domain,
+//	    challenge_type,
 //	    created_at,
 //	    updated_at
 //	FROM custom_domains
@@ -37,6 +39,7 @@ func (q *Queries) FindCustomDomainByDomain(ctx context.Context, db DBTX, domain 
 		&i.ID,
 		&i.WorkspaceID,
 		&i.Domain,
+		&i.ChallengeType,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

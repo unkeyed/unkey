@@ -41,6 +41,8 @@ export const deployments = mysqlTable(
       }>()
       .notNull(),
 
+    gatewayConfig: longblob("gateway_config").notNull(),
+
     // OpenAPI specification
     openapiSpec: longblob("openapi_spec"),
 

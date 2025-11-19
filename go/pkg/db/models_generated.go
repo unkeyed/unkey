@@ -141,6 +141,48 @@ func (ns NullApisAuthType) Value() (driver.Value, error) {
 	return string(ns.ApisAuthType), nil
 }
 
+type CustomDomainsChallengeType string
+
+const (
+	CustomDomainsChallengeTypeDns01  CustomDomainsChallengeType = "dns01"
+	CustomDomainsChallengeTypeHttp01 CustomDomainsChallengeType = "http01"
+)
+
+func (e *CustomDomainsChallengeType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = CustomDomainsChallengeType(s)
+	case string:
+		*e = CustomDomainsChallengeType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for CustomDomainsChallengeType: %T", src)
+	}
+	return nil
+}
+
+type NullCustomDomainsChallengeType struct {
+	CustomDomainsChallengeType CustomDomainsChallengeType
+	Valid                      bool // Valid is true if CustomDomainsChallengeType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullCustomDomainsChallengeType) Scan(value interface{}) error {
+	if value == nil {
+		ns.CustomDomainsChallengeType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.CustomDomainsChallengeType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullCustomDomainsChallengeType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.CustomDomainsChallengeType), nil
+}
+
 type DeploymentStepsStatus string
 
 const (
@@ -681,11 +723,12 @@ type ClickhouseWorkspaceSetting struct {
 }
 
 type CustomDomain struct {
-	ID          string        `db:"id"`
-	WorkspaceID string        `db:"workspace_id"`
-	Domain      string        `db:"domain"`
-	CreatedAt   int64         `db:"created_at"`
-	UpdatedAt   sql.NullInt64 `db:"updated_at"`
+	ID            string                     `db:"id"`
+	WorkspaceID   string                     `db:"workspace_id"`
+	Domain        string                     `db:"domain"`
+	ChallengeType CustomDomainsChallengeType `db:"challenge_type"`
+	CreatedAt     int64                      `db:"created_at"`
+	UpdatedAt     sql.NullInt64              `db:"updated_at"`
 }
 
 type Deployment struct {
@@ -700,6 +743,7 @@ type Deployment struct {
 	GitCommitAuthorAvatarUrl sql.NullString    `db:"git_commit_author_avatar_url"`
 	GitCommitTimestamp       sql.NullInt64     `db:"git_commit_timestamp"`
 	RuntimeConfig            json.RawMessage   `db:"runtime_config"`
+	GatewayConfig            []byte            `db:"gateway_config"`
 	OpenapiSpec              sql.NullString    `db:"openapi_spec"`
 	Status                   DeploymentsStatus `db:"status"`
 	CreatedAt                int64             `db:"created_at"`
@@ -730,6 +774,7 @@ type Environment struct {
 	ProjectID        string         `db:"project_id"`
 	Slug             string         `db:"slug"`
 	Description      sql.NullString `db:"description"`
+	GatewayConfig    []byte         `db:"gateway_config"`
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`

@@ -163,6 +163,7 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      domain,
+	//      challenge_type,
 	//      created_at,
 	//      updated_at
 	//  FROM custom_domains
@@ -178,7 +179,7 @@ type Querier interface {
 	//      updated_at
 	//  FROM custom_domains
 	//  WHERE id = ?
-	FindCustomDomainById(ctx context.Context, db DBTX, id string) (CustomDomain, error)
+	FindCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error)
 	//FindDeploymentById
 	//
 	//  SELECT
