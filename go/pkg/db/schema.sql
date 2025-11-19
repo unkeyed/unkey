@@ -350,10 +350,10 @@ CREATE TABLE `projects` (
 );
 
 CREATE TABLE `deployments` (
-	`id` varchar(127) NOT NULL,
+	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
-	`environment_id` varchar(127) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
 	`git_commit_sha` varchar(40),
 	`git_branch` varchar(256),
 	`git_commit_message` text,

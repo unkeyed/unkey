@@ -12,13 +12,13 @@ import { workspaces } from "./workspaces";
 export const deployments = mysqlTable(
   "deployments",
   {
-    id: varchar("id", { length: 127 }).primaryKey(),
+    id: varchar("id", { length: 128 }).primaryKey(),
 
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     projectId: varchar("project_id", { length: 256 }).notNull(),
 
     // Environment configuration (production, preview, etc.)
-    environmentId: varchar("environment_id", { length: 127 }).notNull(),
+    environmentId: varchar("environment_id", { length: 128 }).notNull(),
 
     // Git information
     gitCommitSha: varchar("git_commit_sha", { length: 40 }),

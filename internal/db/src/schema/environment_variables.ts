@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -10,9 +10,8 @@ export const environmentVariables = mysqlTable(
   {
     id: varchar("id", { length: 128 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    environmentId: bigint("environment_id", {
-      mode: "number",
-      unsigned: true,
+    environmentId: varchar("environment_id", {
+      length: 128,
     }).notNull(),
 
     key: varchar("key", { length: 256 }).notNull(),
