@@ -2078,6 +2078,18 @@ type Querier interface {
 	//  SET plan = ?
 	//  WHERE id = ?
 	UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) (sql.Result, error)
+	//UpsertEnvironment
+	//
+	//  INSERT INTO environments (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      slug,
+	//      gateway_config,
+	//      created_at
+	//  ) VALUES (?, ?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE slug = VALUES(slug)
+	UpsertEnvironment(ctx context.Context, db DBTX, arg UpsertEnvironmentParams) error
 	//UpsertInstance
 	//
 	//  INSERT INTO instances (
@@ -2108,6 +2120,52 @@ type Querier interface {
 	//  	memory_mb = ?,
 	//  	status = ?
 	UpsertInstance(ctx context.Context, db DBTX, arg UpsertInstanceParams) error
+	//UpsertKeySpace
+	//
+	//  INSERT INTO key_auth (
+	//      id,
+	//      workspace_id,
+	//      created_at_m,
+	//      default_prefix,
+	//      default_bytes,
+	//      store_encrypted_keys
+	//  ) VALUES (?, ?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      workspace_id = VALUES(workspace_id),
+	//      store_encrypted_keys = VALUES(store_encrypted_keys)
+	UpsertKeySpace(ctx context.Context, db DBTX, arg UpsertKeySpaceParams) error
+	//UpsertQuota
+	//
+	//  INSERT INTO quota (
+	//      workspace_id,
+	//      requests_per_month,
+	//      audit_logs_retention_days,
+	//      logs_retention_days,
+	//      team
+	//  ) VALUES (?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      requests_per_month = VALUES(requests_per_month),
+	//      audit_logs_retention_days = VALUES(audit_logs_retention_days),
+	//      logs_retention_days = VALUES(logs_retention_days)
+	UpsertQuota(ctx context.Context, db DBTX, arg UpsertQuotaParams) error
+	//UpsertWorkspace
+	//
+	//  INSERT INTO workspaces (
+	//      id,
+	//      org_id,
+	//      name,
+	//      slug,
+	//      created_at_m,
+	//      tier,
+	//      beta_features,
+	//      features,
+	//      enabled,
+	//      delete_protection
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, '{}', true, false)
+	//  ON DUPLICATE KEY UPDATE
+	//      beta_features = VALUES(beta_features),
+	//      name = VALUES(name)
+	UpsertWorkspace(ctx context.Context, db DBTX, arg UpsertWorkspaceParams) error
 }
 
 var _ Querier = (*Queries)(nil)
