@@ -54,7 +54,7 @@ func New(cfg Config) (*service, error) {
 			IdleConnTimeout:       90 * time.Second,
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
-			ResponseHeaderTimeout: 30 * time.Second,
+			ResponseHeaderTimeout: 40 * time.Second, // Longer than gateway timeout (30s) to receive its error response
 		}
 
 		// Apply config overrides if provided
