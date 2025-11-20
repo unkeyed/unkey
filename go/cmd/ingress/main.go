@@ -81,10 +81,6 @@ var Cmd = &cli.Command{
 
 		cli.String("ctrl-addr", "Address of the control plane",
 			cli.Default("localhost:8080"), cli.EnvVar("UNKEY_CTRL_ADDR")),
-
-		// Local Certificate Configuration
-		cli.Bool("require-local-cert", "Generate and use self-signed certificate for *.unkey.local if it doesn't exist",
-			cli.EnvVar("UNKEY_REQUIRE_LOCAL_CERT")),
 	},
 	Action: action,
 }
