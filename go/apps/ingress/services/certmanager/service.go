@@ -54,16 +54,12 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 			candidates = append(candidates, "*."+parts[1])
 		}
 
-		log.Printf("certmanager: looking up domain=%s candidates=%v", domain, candidates)
-
 		// Single query for all candidates
 		rows, err := db.Query.FindCertificatesByHostnames(ctx, s.db.RO(), candidates)
 		if err != nil {
 			log.Printf("certmanager: db query error domain=%s err=%v", domain, err)
 			return tls.Certificate{}, err
 		}
-
-		log.Printf("certmanager: found %d rows for domain=%s", len(rows), domain)
 
 		if len(rows) == 0 {
 			return tls.Certificate{}, sql.ErrNoRows
@@ -73,7 +69,6 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 		// Prefer exact match over wildcard
 		var bestRow db.Certificate
 		for _, row := range rows {
-			log.Printf("certmanager: checking row hostname=%s", row.Hostname)
 			if row.Hostname == domain {
 				bestRow = row
 				break
@@ -90,17 +85,13 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 			Encrypted: bestRow.EncryptedPrivateKey,
 		})
 		if err != nil {
-			log.Printf("certmanager: vault decrypt error hostname=%s err=%v", bestRow.Hostname, err)
 			return tls.Certificate{}, err
 		}
 
 		cert, err := tls.X509KeyPair([]byte(bestRow.Certificate), []byte(pem.GetPlaintext()))
 		if err != nil {
-			log.Printf("certmanager: X509KeyPair error hostname=%s err=%v", bestRow.Hostname, err)
 			return tls.Certificate{}, err
 		}
-
-		log.Printf("certmanager: successfully loaded cert for hostname=%s", bestRow.Hostname)
 
 		return cert, nil
 	}, caches.DefaultFindFirstOp)
