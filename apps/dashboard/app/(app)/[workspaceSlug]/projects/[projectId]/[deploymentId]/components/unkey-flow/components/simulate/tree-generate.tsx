@@ -1,9 +1,20 @@
 // components/dev-tree-generator.tsx
 "use client";
+import { trpc } from "@/lib/trpc/client";
 import { Layers3, XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
-import type { HealthStatus } from "../nodes/types";
+import type { DeploymentNode } from "../nodes/types";
+
+type HealthStatus =
+  | "normal"
+  | "unstable"
+  | "degraded"
+  | "unhealthy"
+  | "recovering"
+  | "health_syncing"
+  | "unknown"
+  | "disabled";
 
 type GeneratorConfig = {
   regions: number;
@@ -14,7 +25,8 @@ type GeneratorConfig = {
 };
 
 type DevTreeGeneratorProps = {
-  onGenerate: (config: GeneratorConfig) => void;
+  deploymentId: string;
+  onGenerate: (tree: DeploymentNode) => void;
   onReset: () => void;
 };
 
@@ -76,63 +88,6 @@ const PRESETS = {
       },
     },
   },
-  horizontalRegions: {
-    label: "Horizontal Regions (5 regions, horizontal)",
-    config: {
-      regions: 5,
-      instancesPerRegion: { min: 3, max: 6 },
-      regionDirection: "horizontal" as const,
-      instanceDirection: "vertical" as const,
-      healthDistribution: {
-        normal: 70,
-        unstable: 15,
-        degraded: 10,
-        unhealthy: 5,
-        recovering: 0,
-        health_syncing: 0,
-        unknown: 0,
-        disabled: 0,
-      },
-    },
-  },
-  horizontalInstances: {
-    label: "Horizontal Instances (3 regions, horizontal instances)",
-    config: {
-      regions: 3,
-      instancesPerRegion: { min: 4, max: 8 },
-      regionDirection: "vertical" as const,
-      instanceDirection: "horizontal" as const,
-      healthDistribution: {
-        normal: 70,
-        unstable: 15,
-        degraded: 10,
-        unhealthy: 5,
-        recovering: 0,
-        health_syncing: 0,
-        unknown: 0,
-        disabled: 0,
-      },
-    },
-  },
-  allHorizontal: {
-    label: "All Horizontal (4 regions, all horizontal)",
-    config: {
-      regions: 4,
-      instancesPerRegion: { min: 3, max: 6 },
-      regionDirection: "horizontal" as const,
-      instanceDirection: "horizontal" as const,
-      healthDistribution: {
-        normal: 70,
-        unstable: 15,
-        degraded: 10,
-        unhealthy: 5,
-        recovering: 0,
-        health_syncing: 0,
-        unknown: 0,
-        disabled: 0,
-      },
-    },
-  },
   stress: {
     label: "Stress Test (7 regions, 15-20 instances)",
     config: {
@@ -152,37 +107,38 @@ const PRESETS = {
       },
     },
   },
-  chaos: {
-    label: "Chaos (7 regions, all health states)",
-    config: {
-      regions: 7,
-      instancesPerRegion: { min: 8, max: 12 },
-      regionDirection: "vertical" as const,
-      instanceDirection: "vertical" as const,
-      healthDistribution: {
-        normal: 20,
-        unstable: 15,
-        degraded: 15,
-        unhealthy: 15,
-        recovering: 15,
-        health_syncing: 10,
-        unknown: 5,
-        disabled: 5,
-      },
-    },
-  },
 } as const;
 
-export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGeneratorProps) {
+export function InternalDevTreeGenerator({
+  deploymentId,
+  onGenerate,
+  onReset,
+}: DevTreeGeneratorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [customConfig, setCustomConfig] = useState<GeneratorConfig>(PRESETS.medium.config);
+
+  const generateMutation = trpc.deploy.network.generate.useMutation({
+    onSuccess: (tree) => {
+      onGenerate(tree);
+    },
+    onError: (error) => {
+      console.error("Failed to generate tree:", error);
+    },
+  });
+
+  const handleGenerate = (config: GeneratorConfig) => {
+    generateMutation.mutate({
+      deploymentId,
+      ...config,
+    });
+  };
 
   if (!isOpen) {
     return (
       <Button
         variant="outline"
         onClick={() => setIsOpen(true)}
-        className="pointer-events-auto fixed bottom-4 right-4 rounded-full  shadow-lg transition-colors"
+        className="pointer-events-auto fixed bottom-4 right-4 rounded-full shadow-lg transition-colors"
         title="Tree Generator"
       >
         <Layers3 iconSize="sm-medium" />
@@ -201,8 +157,14 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
           <XMark iconSize="sm-medium" />
         </Button>
       </div>
-
       <div className="p-3 space-y-3 max-h-[600px] overflow-y-auto">
+        {/* Loading State */}
+        {generateMutation.isLoading && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+            <div className="text-white text-sm">Generating...</div>
+          </div>
+        )}
+
         {/* Presets */}
         <div className="space-y-2">
           <div className="text-xs font-medium text-gray-11">Presets</div>
@@ -211,9 +173,10 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
               <Button
                 key={key}
                 onClick={() => {
-                  onGenerate(preset.config);
+                  handleGenerate(preset.config);
                   setCustomConfig(preset.config);
                 }}
+                disabled={generateMutation.isLoading}
                 className="text-left px-3 py-2 rounded border border-grayA-4 text-xs transition-colors"
               >
                 {preset.label}
@@ -240,6 +203,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
                   regions: Number(e.target.value),
                 }))
               }
+              disabled={generateMutation.isLoading}
               className="w-full"
             />
           </div>
@@ -258,6 +222,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
                       regionDirection: e.target.value as "vertical" | "horizontal",
                     }))
                   }
+                  disabled={generateMutation.isLoading}
                   className="flex-1 px-2 py-1 text-xs rounded border border-grayA-4 bg-gray-1"
                 >
                   <option value="vertical">Vertical</option>
@@ -274,6 +239,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
                       instanceDirection: e.target.value as "vertical" | "horizontal",
                     }))
                   }
+                  disabled={generateMutation.isLoading}
                   className="flex-1 px-2 py-1 text-xs rounded border border-grayA-4 bg-gray-1"
                 >
                   <option value="vertical">Vertical</option>
@@ -304,6 +270,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
                     },
                   }))
                 }
+                disabled={generateMutation.isLoading}
                 className="flex-1"
               />
               <input
@@ -320,44 +287,15 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
                     },
                   }))
                 }
+                disabled={generateMutation.isLoading}
                 className="flex-1"
               />
             </div>
           </div>
 
-          {/* Health Distribution */}
-          <div className="space-y-2">
-            <div className="text-xs text-gray-11">Health Distribution (%)</div>
-            <div className="space-y-1.5">
-              {Object.entries(customConfig.healthDistribution).map(([status, value]) => (
-                <div key={status} className="flex items-center gap-2">
-                  <span className="text-[10px] w-20 text-gray-11 truncate">{status}</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={value}
-                    onChange={(e) =>
-                      setCustomConfig((c) => ({
-                        ...c,
-                        healthDistribution: {
-                          ...c.healthDistribution,
-                          [status]: Number(e.target.value),
-                        },
-                      }))
-                    }
-                    className="flex-1"
-                  />
-                  <span className="text-[10px] w-8 text-right tabular-nums text-gray-11">
-                    {value}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
           <Button
-            onClick={() => onGenerate(customConfig)}
+            onClick={() => handleGenerate(customConfig)}
+            disabled={generateMutation.isLoading}
             className="w-full px-3 py-2 rounded text-xs font-medium transition-colors"
           >
             Generate Custom Tree
@@ -367,7 +305,8 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
         {/* Reset */}
         <Button
           onClick={onReset}
-          className="w-full px-3 py-2  rounded text-xs font-medium transition-colors border border-grayA-4"
+          disabled={generateMutation.isLoading}
+          className="w-full px-3 py-2 rounded text-xs font-medium transition-colors border border-grayA-4"
         >
           Reset to Original
         </Button>

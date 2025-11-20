@@ -325,12 +325,12 @@ export function RegionNode({ node }: RegionNodeProps) {
   );
 }
 
-type InstanceNodeProps = {
-  node: DeploymentNode & { metadata: { type: "instance" } };
+type GatewayNodeProps = {
+  node: DeploymentNode & { metadata: { type: "gateway" } };
   flagCode: RegionMetadata["flagCode"];
 };
 
-export function InstanceNode({ node, flagCode }: InstanceNodeProps) {
+export function GatewayNode({ node, flagCode }: GatewayNodeProps) {
   const { rps, cpu, memory, health } = node.metadata;
 
   return (
