@@ -133,9 +133,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Vault configuration
 		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
 		VaultS3:         vaultS3Config,
-
-		// Local Certificate configuration
-		RequireLocalCert: cmd.Bool("require-local-cert"),
 	}
 
 	err := config.Validate()
