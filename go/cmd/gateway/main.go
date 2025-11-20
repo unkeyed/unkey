@@ -24,6 +24,12 @@ var Cmd = &cli.Command{
 		cli.String("gateway-id", "Unique identifier for this gateway instance. Auto-generated if not provided.",
 			cli.Default(uid.New("gateway", 4)), cli.EnvVar("UNKEY_GATEWAY_ID")),
 
+		cli.String("workspace-id", "Workspace ID this gateway serves. Required.",
+			cli.Required(), cli.EnvVar("UNKEY_WORKSPACE_ID")),
+
+		cli.String("environment-id", "Environment ID this gateway serves (handles all deployments in this environment). Required.",
+			cli.Required(), cli.EnvVar("UNKEY_ENVIRONMENT_ID")),
+
 		cli.String("platform", "Cloud platform identifier for this node. Used for logging and metrics.",
 			cli.EnvVar("UNKEY_PLATFORM")),
 
@@ -51,9 +57,11 @@ var Cmd = &cli.Command{
 func action(ctx context.Context, cmd *cli.Command) error {
 	return gateway.Run(ctx, gateway.Config{
 		// Instance identification
-		GatewayID: cmd.String("gateway-id"),
-		Platform:  cmd.String("platform"),
-		Region:    cmd.String("region"),
+		GatewayID:     cmd.String("gateway-id"),
+		WorkspaceID:   cmd.String("workspace-id"),
+		EnvironmentID: cmd.String("environment-id"),
+		Platform:      cmd.String("platform"),
+		Region:        cmd.String("region"),
 
 		// HTTP configuration
 		HttpPort: cmd.Int("http-port"),

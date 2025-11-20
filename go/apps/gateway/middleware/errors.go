@@ -2,9 +2,7 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -23,51 +21,84 @@ type ErrorDetail struct {
 	Message string `json:"message"`
 }
 
-// errorPageInfo holds the data needed to render an error page.
+// errorPageInfo holds the HTTP status and message for an error.
 type errorPageInfo struct {
 	Status  int
-	Title   string
 	Message string
 }
 
 // getErrorPageInfo returns the HTTP status and user-friendly message for an error URN.
 func getErrorPageInfo(urn codes.URN) errorPageInfo {
-	// TODO: Add gateway-specific error codes when defined
 	switch urn {
+	// Gateway Routing Errors
+	case codes.Gateway.Routing.DeploymentNotFound.URN():
+		return errorPageInfo{
+			Status:  http.StatusNotFound,
+			Message: "The requested deployment could not be found.",
+		}
+	case codes.Gateway.Routing.NoRunningInstances.URN():
+		return errorPageInfo{
+			Status:  http.StatusServiceUnavailable,
+			Message: "No running instances are available to handle this request.",
+		}
+	case codes.Gateway.Routing.InstanceSelectionFailed.URN():
+		return errorPageInfo{
+			Status:  http.StatusInternalServerError,
+			Message: "Failed to select an instance to handle your request.",
+		}
+
+	// Gateway Proxy Errors
+	case codes.Gateway.Proxy.BadGateway.URN():
+		return errorPageInfo{
+			Status:  http.StatusBadGateway,
+			Message: "The upstream service returned an invalid response.",
+		}
+	case codes.Gateway.Proxy.ServiceUnavailable.URN():
+		return errorPageInfo{
+			Status:  http.StatusServiceUnavailable,
+			Message: "The service is temporarily unavailable.",
+		}
+	case codes.Gateway.Proxy.GatewayTimeout.URN():
+		return errorPageInfo{
+			Status:  http.StatusGatewayTimeout,
+			Message: "The upstream service did not respond in time.",
+		}
+	case codes.Gateway.Proxy.ProxyForwardFailed.URN():
+		return errorPageInfo{
+			Status:  http.StatusBadGateway,
+			Message: "Failed to forward your request to the service.",
+		}
+
+	// Gateway Internal Errors
+	case codes.Gateway.Internal.InternalServerError.URN():
+		return errorPageInfo{
+			Status:  http.StatusInternalServerError,
+			Message: "An unexpected error occurred.",
+		}
+	case codes.Gateway.Internal.InvalidConfiguration.URN():
+		return errorPageInfo{
+			Status:  http.StatusInternalServerError,
+			Message: "The service configuration is invalid.",
+		}
+
+	// User Request Errors
+	case codes.User.BadRequest.MissingRequiredHeader.URN():
+		return errorPageInfo{
+			Status:  http.StatusBadRequest,
+			Message: "A required header is missing from your request.",
+		}
+
+	// Default fallback
 	default:
 		return errorPageInfo{
 			Status:  http.StatusInternalServerError,
-			Title:   http.StatusText(http.StatusInternalServerError),
 			Message: "",
 		}
 	}
 }
 
-// renderErrorHTML generates an HTML error page.
-func renderErrorHTML(title, message, errorCode string) []byte {
-	return fmt.Appendf(nil, `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>%s</title>
-    <style>
-        body { font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 100px auto; padding: 20px; }
-        h1 { color: #333; }
-        p { color: #666; line-height: 1.6; }
-        .error-code { color: #999; font-size: 0.9em; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <h1>%s</h1>
-    <p>%s</p>
-    <p class="error-code">Error: %s</p>
-</body>
-</html>`, title, title, message, errorCode)
-}
-
 // WithErrorHandling returns middleware that translates errors into appropriate
-// HTTP responses based on error URNs and content negotiation.
+// JSON responses based on error URNs. Gateway is not user-facing - only ingress calls it.
 func WithErrorHandling(logger logging.Logger) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
@@ -79,13 +110,13 @@ func WithErrorHandling(logger logging.Logger) zen.Middleware {
 			// Get the error URN from the error
 			urn, ok := fault.GetCode(err)
 			if !ok {
-				urn = codes.Ingress.Internal.InternalServerError.URN()
+				urn = codes.Gateway.Internal.InternalServerError.URN()
 			}
 
 			code, parseErr := codes.ParseURN(urn)
 			if parseErr != nil {
 				logger.Error("failed to parse error code", "error", parseErr.Error())
-				code = codes.Ingress.Internal.InternalServerError
+				code = codes.Gateway.Internal.InternalServerError
 			}
 
 			// Get error page info (status and message) based on URN
@@ -95,12 +126,6 @@ func WithErrorHandling(logger logging.Logger) zen.Middleware {
 			userMessage := pageInfo.Message
 			if userMessage == "" {
 				userMessage = fault.UserFacingMessage(err)
-			}
-
-			// Use status text as title if not specifically defined
-			title := pageInfo.Title
-			if title == http.StatusText(http.StatusInternalServerError) {
-				title = http.StatusText(pageInfo.Status)
 			}
 
 			// Log internal server errors
@@ -115,25 +140,13 @@ func WithErrorHandling(logger logging.Logger) zen.Middleware {
 				)
 			}
 
-			// Determine response format based on Accept header
-			acceptHeader := s.Request().Header.Get("Accept")
-
-			preferJSON := strings.Contains(acceptHeader, "application/json") ||
-				strings.Contains(acceptHeader, "application/*") ||
-				(strings.Contains(acceptHeader, "*/*") && !strings.Contains(acceptHeader, "text/html"))
-
-			// Return JSON error for API clients
-			if preferJSON {
-				return s.JSON(pageInfo.Status, ErrorResponse{
-					Error: ErrorDetail{
-						Code:    string(code.URN()),
-						Message: userMessage,
-					},
-				})
-			}
-
-			// Return HTML error page for browsers
-			return s.HTML(pageInfo.Status, renderErrorHTML(title, userMessage, string(code.URN())))
+			// Always return JSON (gateway is not user-facing, only ingress calls it)
+			return s.JSON(pageInfo.Status, ErrorResponse{
+				Error: ErrorDetail{
+					Code:    string(code.URN()),
+					Message: userMessage,
+				},
+			})
 		}
 	}
 }

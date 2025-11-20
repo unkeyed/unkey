@@ -2,11 +2,15 @@ package router
 
 import (
 	"context"
+	"fmt"
+	"log"
+	"math/rand/v2"
 	"time"
 
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/clock"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -15,17 +19,22 @@ import (
 var _ Service = (*service)(nil)
 
 type service struct {
-	logger logging.Logger
-	db     db.Database
-	clock  clock.Clock
+	logger        logging.Logger
+	db            db.Database
+	clock         clock.Clock
+	environmentID string
+	region        string
 
-	// Cache deployment configs
-	deploymentCache cache.Cache[string, *Deployment]
+	// Cache deployments by deployment ID
+	deploymentCache cache.Cache[string, db.Deployment]
+
+	// Cache instances by deployment ID
+	instancesCache cache.Cache[string, []db.Instance]
 }
 
 // New creates a new router service
 func New(cfg Config) (*service, error) {
-	deploymentCache, err := cache.New[string, *Deployment](cache.Config[string, *Deployment]{
+	deploymentCache, err := cache.New[string, db.Deployment](cache.Config[string, db.Deployment]{
 		Clock:   cfg.Clock,
 		MaxSize: 1000,
 		Fresh:   10 * time.Second,
@@ -35,40 +44,114 @@ func New(cfg Config) (*service, error) {
 		return nil, err
 	}
 
+	instancesCache, err := cache.New[string, []db.Instance](cache.Config[string, []db.Instance]{
+		Clock:   cfg.Clock,
+		MaxSize: 1000,
+		Fresh:   5 * time.Second, // Shorter fresh time for instances (more dynamic)
+		Stale:   30 * time.Second,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &service{
 		logger:          cfg.Logger,
 		db:              cfg.DB,
 		clock:           cfg.Clock,
+		environmentID:   cfg.EnvironmentID,
+		region:          cfg.Region,
 		deploymentCache: deploymentCache,
+		instancesCache:  instancesCache,
 	}, nil
 }
 
-// GetDeployment returns the deployment config including target address and middlewares
-func (s *service) GetDeployment(ctx context.Context, deploymentID string) (*Deployment, error) {
-	deployment, hit, err := s.deploymentCache.SWR(ctx, deploymentID, func(ctx context.Context) (*Deployment, error) {
-		// TODO: implement actual DB lookup
-		// Query deployment table to get:
-		// - target k8s service address
-		// - middleware configuration
-		// - timeout settings
-		// - etc.
-
-		// Placeholder - implement when schema is ready
-		return nil, fault.New("not implemented",
-			fault.Internal("deployment lookup not yet implemented"),
-		)
+// GetDeployment returns the deployment for the given deployment ID
+// Validates that the deployment belongs to this gateway's environment
+func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.Deployment, error) {
+	deployment, hit, err := s.deploymentCache.SWR(ctx, deploymentID, func(ctx context.Context) (db.Deployment, error) {
+		return db.Query.FindDeploymentByID(ctx, s.db.RO(), deploymentID)
 	}, caches.DefaultFindFirstOp)
-
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to get deployment"))
+	if err != nil && !db.IsNotFound(err) {
+		return db.Deployment{}, fault.Wrap(err,
+			fault.Code(codes.Gateway.Internal.InternalServerError.URN()),
+			fault.Internal("failed to get deployment"),
+		)
 	}
 
-	if hit == cache.Null || deployment == nil {
-		return nil, fault.New("deployment not found",
-			fault.Internal("no deployment found for ID"),
-			fault.Public("Service not available"),
+	if hit == cache.Null || db.IsNotFound(err) {
+		return db.Deployment{}, fault.New("deployment not found",
+			fault.Code(codes.Gateway.Routing.DeploymentNotFound.URN()),
+			fault.Internal("no deployment found for ID or wrong environment"),
+			fault.Public("Deployment not found"),
+		)
+	}
+
+	// Validate deployment belongs to this environment
+	if deployment.EnvironmentID != s.environmentID {
+		s.logger.Warn("deployment does not belong to this environment",
+			"deploymentID", deploymentID,
+			"deploymentEnv", deployment.EnvironmentID,
+			"gatewayEnv", s.environmentID,
+		)
+
+		// Return as not found to avoid leaking information about deployments in other environments
+		return db.Deployment{}, fault.New("deployment not found",
+			fault.Code(codes.Gateway.Routing.DeploymentNotFound.URN()),
+			fault.Internal(fmt.Sprintf("deployment %s belongs to environment %s, but gateway serves %s", deploymentID, deployment.EnvironmentID, s.environmentID)),
+			fault.Public("Deployment not found"),
 		)
 	}
 
 	return deployment, nil
+}
+
+// SelectInstance returns a healthy instance for the deployment in this region
+func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.Instance, error) {
+	instances, hit, err := s.instancesCache.SWR(ctx, deploymentID, func(ctx context.Context) ([]db.Instance, error) {
+		return db.Query.FindInstancesByDeploymentIdAndRegion(
+			ctx,
+			s.db.RO(),
+			db.FindInstancesByDeploymentIdAndRegionParams{
+				Deploymentid: deploymentID,
+				Region:       s.region,
+			},
+		)
+	}, caches.DefaultFindFirstOp)
+	if err != nil {
+		return db.Instance{}, fault.Wrap(err,
+			fault.Code(codes.Gateway.Internal.InternalServerError.URN()),
+			fault.Internal("failed to get instances"),
+		)
+	}
+
+	log.Printf("Got %#v for %s %s", instances, deploymentID, s.region)
+
+	if hit == cache.Null || len(instances) == 0 {
+		return db.Instance{}, fault.New("no instances found",
+			fault.Code(codes.Gateway.Routing.NoRunningInstances.URN()),
+			fault.Internal(fmt.Sprintf("no instances for deployment %s in region %s", deploymentID, s.region)),
+			fault.Public("Service temporarily unavailable"),
+		)
+	}
+
+	// Filter for running instances in code (not in query) so we can react to health changes
+	// without waiting for cache expiration
+	var runningInstances []db.Instance
+	for _, instance := range instances {
+		if instance.Status == db.InstancesStatusRunning {
+			runningInstances = append(runningInstances, instance)
+		}
+	}
+
+	if len(runningInstances) == 0 {
+		return db.Instance{}, fault.New("no running instances",
+			fault.Code(codes.Gateway.Routing.NoRunningInstances.URN()),
+			fault.Internal(fmt.Sprintf("no running instances for deployment %s in region %s (found %d total)", deploymentID, s.region, len(instances))),
+			fault.Public("Service temporarily unavailable"),
+		)
+	}
+
+	// Select a random running instance for simple load balancing
+	randomIndex := rand.IntN(len(runningInstances))
+	return runningInstances[randomIndex], nil
 }
