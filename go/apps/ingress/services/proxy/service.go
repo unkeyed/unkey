@@ -208,11 +208,15 @@ func (s *service) forwardToGateway(_ctx context.Context, sess *zen.Session, targ
 
 	// Capture any proxy error to return to middleware
 	var proxyErr error
+	var gatewayStartTime time.Time
 
 	// Create reverse proxy with shared transport
 	proxy := &httputil.ReverseProxy{
 		Transport: s.transport,
 		Director: func(req *http.Request) {
+			// Record when we start calling gateway
+			gatewayStartTime = s.clock.Now()
+
 			// Update URL to target
 			req.URL.Scheme = targetURL.Scheme
 			req.URL.Host = targetURL.Host
@@ -223,15 +227,25 @@ func (s *service) forwardToGateway(_ctx context.Context, sess *zen.Session, targ
 			req.Header.Set(HeaderRegion, s.region)
 			req.Header.Set(HeaderRequestID, sess.RequestID())
 
-			// Add timing to track latency added by this ingress
-			ingressTimeMs := s.clock.Now().Sub(startTime).Milliseconds()
-			req.Header.Set(HeaderIngressTime, strconv.FormatInt(ingressTimeMs, 10))
+			// Add timing to track latency added by this ingress (routing overhead)
+			ingressRoutingTimeMs := gatewayStartTime.Sub(startTime).Milliseconds()
+			req.Header.Set(HeaderIngressTime, strconv.FormatInt(ingressRoutingTimeMs, 10))
 
 			// Add standard proxy headers for local gateway
 			req.Header.Set(HeaderForwardedProto, "https")
 
 			// Add deployment ID so gateway knows which deployment to route to
 			req.Header.Set(HeaderDeploymentID, deploymentID)
+		},
+		ModifyResponse: func(resp *http.Response) error {
+			// Calculate total time
+			totalTime := s.clock.Now().Sub(startTime)
+
+			// Add timing headers to response
+			resp.Header.Set("X-Unkey-Ingress-Time", fmt.Sprintf("%dms", gatewayStartTime.Sub(startTime).Milliseconds()))
+			resp.Header.Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
+
+			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
 			// Categorize the error and get appropriate code/message
@@ -261,11 +275,15 @@ func (s *service) forwardToNLB(_ctx context.Context, sess *zen.Session, targetUR
 
 	// Capture any proxy error to return to middleware
 	var proxyErr error
+	var nlbStartTime time.Time
 
 	// Create reverse proxy with shared transport
 	proxy := &httputil.ReverseProxy{
 		Transport: s.transport,
 		Director: func(req *http.Request) {
+			// Record when we start calling NLB
+			nlbStartTime = s.clock.Now()
+
 			// Update URL to target
 			req.URL.Scheme = targetURL.Scheme
 			req.URL.Host = targetURL.Host
@@ -276,9 +294,9 @@ func (s *service) forwardToNLB(_ctx context.Context, sess *zen.Session, targetUR
 			req.Header.Set(HeaderRegion, s.region)
 			req.Header.Set(HeaderRequestID, sess.RequestID())
 
-			// Add timing to track latency added by this ingress
-			ingressTimeMs := s.clock.Now().Sub(startTime).Milliseconds()
-			req.Header.Set(HeaderIngressTime, strconv.FormatInt(ingressTimeMs, 10))
+			// Add timing to track latency added by this ingress (routing overhead)
+			ingressRoutingTimeMs := nlbStartTime.Sub(startTime).Milliseconds()
+			req.Header.Set(HeaderIngressTime, strconv.FormatInt(ingressRoutingTimeMs, 10))
 
 			// Remote ingress - preserve original Host for TLS termination and routing
 			req.Host = sess.Request().Host
@@ -306,6 +324,16 @@ func (s *service) forwardToNLB(_ctx context.Context, sess *zen.Session, targetUR
 					"hostname", req.Host,
 				)
 			}
+		},
+		ModifyResponse: func(resp *http.Response) error {
+			// Calculate total time
+			totalTime := s.clock.Now().Sub(startTime)
+
+			// Add timing headers to response
+			resp.Header.Set("X-Unkey-Ingress-Time", fmt.Sprintf("%dms", nlbStartTime.Sub(startTime).Milliseconds()))
+			resp.Header.Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
+
+			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
 			// Categorize the error and get appropriate code/message
