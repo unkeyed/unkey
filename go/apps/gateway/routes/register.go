@@ -40,9 +40,10 @@ func Register(srv *zen.Server, svc *Services) {
 			Timeout:   10 * time.Second,
 			KeepAlive: 30 * time.Second,
 		}).DialContext,
-		MaxIdleConns:        200,
-		MaxIdleConnsPerHost: 50,
-		IdleConnTimeout:     90 * time.Second,
+		MaxIdleConns:          200,
+		MaxIdleConnsPerHost:   50,
+		IdleConnTimeout:       90 * time.Second,
+		ResponseHeaderTimeout: 30 * time.Second, // Timeout for instance responses
 	}
 
 	// Catch-all proxy route
