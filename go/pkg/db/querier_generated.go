@@ -1156,9 +1156,10 @@ type Querier interface {
 	//      slug,
 	//      description,
 	//      created_at,
-	//      updated_at
+	//      updated_at,
+	//      gateway_config
 	//  ) VALUES (
-	//      ?, ?, ?, ?, ?, ?, ?
+	//      ?, ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertEnvironment(ctx context.Context, db DBTX, arg InsertEnvironmentParams) error
 	//InsertGateway

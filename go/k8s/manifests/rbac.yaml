@@ -17,6 +17,11 @@ metadata:
     app: unkey
     component: krane
 rules:
+  # Namespace management
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+
   # Pod management for VMs
   - apiGroups: [""]
     resources: ["pods"]
@@ -27,9 +32,9 @@ rules:
     resources: ["services"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
-  # Job management for VM workloads
+  # Job management for user workloads
   - apiGroups: ["apps"]
-    resources: ["statefulsets"]
+    resources: ["statefulsets", "deployments"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
   # Events access for debugging

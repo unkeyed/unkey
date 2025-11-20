@@ -68,13 +68,15 @@ import (
 // and ready for traffic after creation.
 func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1.CreateDeploymentRequest]) (*connect.Response[kranev1.CreateDeploymentResponse], error) {
 	k8sDeploymentID := safeIDForK8s(req.Msg.GetDeployment().GetDeploymentId())
+	namespace := safeIDForK8s(req.Msg.GetDeployment().GetNamespace())
+
 	k.logger.Info("creating deployment",
-		"namespace", req.Msg.GetDeployment().GetNamespace(),
+		"namespace", namespace,
 		"deployment_id", k8sDeploymentID,
 	)
 
 	service, err := k.clientset.CoreV1().
-		Services(req.Msg.GetDeployment().GetNamespace()).
+		Services(namespace).
 		Create(ctx,
 			// This implementation of using stateful sets is very likely not what we want to
 			// use in v1.
@@ -87,7 +89,7 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 			&corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      k8sDeploymentID,
-					Namespace: req.Msg.GetDeployment().GetNamespace(),
+					Namespace: namespace,
 					Labels: map[string]string{
 						"unkey.deployment.id": k8sDeploymentID,
 						"unkey.managed.by":    "krane",
@@ -124,12 +126,12 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create service: %w", err))
 	}
 
-	sfs, err := k.clientset.AppsV1().StatefulSets(req.Msg.GetDeployment().GetNamespace()).Create(ctx,
+	sfs, err := k.clientset.AppsV1().StatefulSets(namespace).Create(ctx,
 		//nolint: exhaustruct
 		&appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      k8sDeploymentID,
-				Namespace: req.Msg.GetDeployment().GetNamespace(),
+				Namespace: namespace,
 				Labels: map[string]string{
 					"unkey.deployment.id": k8sDeploymentID,
 					"unkey.managed.by":    "krane",
@@ -203,7 +205,7 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 		k.logger.Info("Deleting service, because deployment creation failed")
 		// Delete service
 		// nolint: exhaustruct
-		if rollbackErr := k.clientset.CoreV1().Services(req.Msg.GetDeployment().GetNamespace()).Delete(ctx, service.Name, metav1.DeleteOptions{}); rollbackErr != nil {
+		if rollbackErr := k.clientset.CoreV1().Services(namespace).Delete(ctx, service.Name, metav1.DeleteOptions{}); rollbackErr != nil {
 			k.logger.Error("Failed to delete service", "error", rollbackErr.Error())
 		}
 
@@ -221,7 +223,7 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 		},
 	}
 	//nolint:exhaustruct
-	_, err = k.clientset.CoreV1().Services(req.Msg.GetDeployment().GetNamespace()).Update(ctx, service, metav1.UpdateOptions{})
+	_, err = k.clientset.CoreV1().Services(namespace).Update(ctx, service, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update deployment: %w", err))
 	}

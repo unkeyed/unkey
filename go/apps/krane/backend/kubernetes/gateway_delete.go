@@ -15,8 +15,10 @@ import (
 func (k *k8s) DeleteGateway(ctx context.Context, req *connect.Request[kranev1.DeleteGatewayRequest]) (*connect.Response[kranev1.DeleteGatewayResponse], error) {
 	k8sGatewayID := strings.ReplaceAll(req.Msg.GetGatewayId(), "_", "-")
 
+	namespace := safeIDForK8s(req.Msg.GetGatewayId())
+
 	k.logger.Info("deleting deployment",
-		"namespace", req.Msg.GetNamespace(),
+		"namespace", namespace,
 		"gateway_id", k8sGatewayID,
 	)
 
