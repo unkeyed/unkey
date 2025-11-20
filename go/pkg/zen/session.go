@@ -31,7 +31,7 @@ import (
 type Session struct {
 	requestID string
 
-	w http.ResponseWriter
+	w http.ResponseWriter // Wrapped with statusRecorder to capture status code
 	r *http.Request
 
 	// The workspace making the request.
@@ -49,13 +49,21 @@ type Session struct {
 
 func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64) error {
 	s.requestID = uid.New(uid.RequestPrefix)
-	s.w = w
+
+	// Wrap ResponseWriter with status recorder
+	s.w = &statusRecorder{
+		ResponseWriter: w,
+		statusCode:     200, // Default to 200
+		written:        false,
+	}
+
 	s.r = r
 	s.logRequestToClickHouse = true // Default to logging requests to ClickHouse
 
 	// Apply body size limit if configured
+	// Note: MaxBytesReader needs the original unwrapped ResponseWriter, so we pass w directly
 	if maxBodySize > 0 {
-		s.r.Body = http.MaxBytesReader(s.w, s.r.Body, maxBodySize)
+		s.r.Body = http.MaxBytesReader(w, s.r.Body, maxBodySize)
 	}
 
 	// Read and cache the request body so metrics middleware can access it even on early errors.
@@ -161,13 +169,22 @@ func (s *Session) RequestID() string {
 	return s.requestID
 }
 
-// ResponseWriter returns the underlying http.ResponseWriter.
+// ResponseWriter returns the http.ResponseWriter with status code capturing.
 // This allows direct access to the standard library response features.
 //
 // Direct manipulation of the ResponseWriter should be avoided when possible
 // in favor of using the Session's response methods like JSON or Send.
 func (s *Session) ResponseWriter() http.ResponseWriter {
 	return s.w
+}
+
+// StatusCode returns the HTTP status code that was written to the response.
+// Returns 200 if no status code has been explicitly set.
+func (s *Session) StatusCode() int {
+	if recorder, ok := s.w.(*statusRecorder); ok {
+		return recorder.statusCode
+	}
+	return 200
 }
 
 // BindBody parses the request body as JSON into the provided destination struct.
