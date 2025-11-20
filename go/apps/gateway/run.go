@@ -134,6 +134,8 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:        logger,
 		RouterService: routerSvc,
 		Clock:         clk,
+		EnvironmentID: cfg.EnvironmentID,
+		Region:        cfg.Region,
 	}
 
 	// Start HTTP proxy server

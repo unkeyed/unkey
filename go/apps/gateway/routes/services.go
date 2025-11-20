@@ -11,4 +11,6 @@ type Services struct {
 	Logger        logging.Logger
 	RouterService router.Service
 	Clock         clock.Clock
+	EnvironmentID string
+	Region        string
 }
