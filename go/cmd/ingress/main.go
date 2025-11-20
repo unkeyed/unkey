@@ -46,7 +46,7 @@ var Cmd = &cli.Command{
 		cli.String("main-domain", "Main ingress domain for internal endpoints (e.g., ingress.unkey.com)",
 			cli.EnvVar("UNKEY_MAIN_DOMAIN")),
 
-		cli.String("base-domain", "Base domain for region routing. Cross-region requests forwarded to {region}.{base-domain}. Example: unkey.cloud",
+		cli.String("base-domain", "Base domain for region routing. Cross-region requests forwarded to region.base-domain. Example: unkey.cloud",
 			cli.Default("unkey.cloud"), cli.EnvVar("UNKEY_BASE_DOMAIN")),
 
 		// Database Configuration - Partitioned (for hostname lookups)
