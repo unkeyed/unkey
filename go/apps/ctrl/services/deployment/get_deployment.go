@@ -14,7 +14,7 @@ func (s *Service) GetDeployment(
 	req *connect.Request[ctrlv1.GetDeploymentRequest],
 ) (*connect.Response[ctrlv1.GetDeploymentResponse], error) {
 	// Query deployment from database
-	deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), req.Msg.GetDeploymentId())
+	deployment, err := db.Query.FindDeploymentByID(ctx, s.db.RO(), req.Msg.GetDeploymentId())
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, err)

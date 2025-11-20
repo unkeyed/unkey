@@ -8,7 +8,7 @@ import (
 )
 
 func (s *Service) loadOpenApiSpec(ctx context.Context, deploymentID string) (string, error) {
-	deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
+	deployment, err := db.Query.FindDeploymentByID(ctx, s.db.RO(), deploymentID)
 	if err != nil {
 		return "", err
 	}

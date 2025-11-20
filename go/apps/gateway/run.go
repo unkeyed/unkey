@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net"
 	"runtime/debug"
-	"time"
 
 	"github.com/unkeyed/unkey/go/apps/gateway/routes"
 	"github.com/unkeyed/unkey/go/apps/gateway/services/router"
@@ -36,6 +35,11 @@ func Run(ctx context.Context, cfg Config) error {
 		logger = logger.With(slog.String("gatewayID", cfg.GatewayID))
 	}
 
+	logger = logger.With(
+		slog.String("workspaceID", cfg.WorkspaceID),
+		slog.String("environmentID", cfg.EnvironmentID),
+	)
+
 	if cfg.Platform != "" {
 		logger = logger.With(slog.String("platform", cfg.Platform))
 	}
@@ -61,11 +65,7 @@ func Run(ctx context.Context, cfg Config) error {
 	shutdowns := shutdown.New()
 
 	// Create cached clock
-	clk := clock.NewCachedClock(time.Millisecond)
-	shutdowns.Register(func() error {
-		clk.Close()
-		return nil
-	})
+	clk := clock.New()
 
 	// Initialize OpenTelemetry if enabled
 	if cfg.OtelEnabled {
@@ -119,9 +119,11 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize router service
 	routerSvc, err := router.New(router.Config{
-		Logger: logger,
-		DB:     database,
-		Clock:  clk,
+		Logger:        logger,
+		DB:            database,
+		Clock:         clk,
+		EnvironmentID: cfg.EnvironmentID,
+		Region:        cfg.Region,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create router service: %w", err)
