@@ -303,6 +303,11 @@ func main() {
 		fmt.Fprint(w, os.Environ())
 	})
 
+	mux.HandleFunc("/error", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
 	// Debug endpoint - dumps request headers and body
 	mux.HandleFunc("/v1/debug", func(w http.ResponseWriter, r *http.Request) {
 		// Read body
