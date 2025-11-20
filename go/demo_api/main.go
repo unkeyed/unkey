@@ -308,6 +308,33 @@ func main() {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
+	shutdownChan := make(chan struct{})
+
+	mux.HandleFunc("/clean-shutdown", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Server shutting down gracefully",
+			"status":  "ok",
+		})
+
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			close(shutdownChan)
+		}()
+	})
+
+	mux.HandleFunc("/abrupt-shutdown", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		// Start writing response but don't finish
+		w.Write([]byte(`{"message": "Server is shutting down`))
+
+		// Die mid-request
+		os.Exit(1)
+	})
+
 	// Debug endpoint - dumps request headers and body
 	mux.HandleFunc("/v1/debug", func(w http.ResponseWriter, r *http.Request) {
 		// Read body
@@ -1248,7 +1275,16 @@ components:
 		Handler: mux,
 	}
 
-	if err := server.ListenAndServe(); err != nil {
-		log.Fatal("Failed to start server:", err)
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal("Failed to start server:", err)
+		}
+	}()
+
+	<-shutdownChan
+	log.Println("Shutdown signal received, shutting down gracefully...")
+	if err := server.Close(); err != nil {
+		log.Printf("Error during shutdown: %v", err)
 	}
+	log.Println("Server stopped")
 }
