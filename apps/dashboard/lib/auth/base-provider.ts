@@ -50,10 +50,14 @@ export abstract class BaseAuthProvider {
   /**
    * Initiates an email-based sign-in process for the specified email.
    *
-   * @param email - The email address to sign in with
+   * @param params - Parameters containing email and optional request metadata
    * @returns Result of the sign-in attempt
    */
-  abstract signInViaEmail(email: string): Promise<EmailAuthResult>;
+  abstract signInViaEmail(params: {
+    email: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<EmailAuthResult>;
 
   /**
    * Verifies an authentication code sent to a user's email.
@@ -86,10 +90,12 @@ export abstract class BaseAuthProvider {
   /**
    * Creates a new user account with the provided user data.
    *
-   * @param params - User data including email, first name, and last name
+   * @param params - User data including email, first name, last name, and optional request metadata
    * @returns Result of the sign-up attempt
    */
-  abstract signUpViaEmail(params: UserData): Promise<EmailAuthResult>;
+  abstract signUpViaEmail(
+    params: UserData & { ipAddress?: string; userAgent?: string },
+  ): Promise<EmailAuthResult>;
 
   /**
    * Gets the URL to redirect users to for signing out.
