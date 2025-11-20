@@ -2,12 +2,14 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
+	"syscall"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/gateway/services/router"
@@ -33,9 +35,112 @@ func (h *Handler) Path() string {
 	return "/{path...}"
 }
 
+// errorCapturingWriter wraps a ResponseWriter to capture proxy errors
+// without writing them to the client. This allows errors to be returned
+// to the middleware for consistent error handling.
+type errorCapturingWriter struct {
+	http.ResponseWriter
+	capturedError error
+	headerWritten bool
+}
+
+func (w *errorCapturingWriter) WriteHeader(statusCode int) {
+	if w.capturedError != nil {
+		// Discard header writes if we captured an error
+		w.headerWritten = true
+		return
+	}
+	w.ResponseWriter.WriteHeader(statusCode)
+	w.headerWritten = true
+}
+
+func (w *errorCapturingWriter) Write(b []byte) (int, error) {
+	if w.capturedError != nil {
+		// Discard body writes if we captured an error
+		return len(b), nil
+	}
+	if !w.headerWritten {
+		w.WriteHeader(http.StatusOK)
+	}
+	return w.ResponseWriter.Write(b)
+}
+
+// categorizeProxyError determines the appropriate error code and message based on the error type
+func categorizeProxyError(err error) (codes.URN, string) {
+	// Check for client-side cancellation (client closed connection)
+	if errors.Is(err, context.Canceled) {
+		return codes.User.BadRequest.ClientClosedRequest.URN(),
+			"The client closed the connection before the request completed."
+	}
+
+	// Check for timeout errors
+	if errors.Is(err, context.DeadlineExceeded) || os.IsTimeout(err) {
+		return codes.Gateway.Proxy.GatewayTimeout.URN(),
+			"The request took too long to process. Please try again later."
+	}
+
+	// Check for network errors
+	var netErr *net.OpError
+	if errors.As(err, &netErr) {
+		// Check for timeout
+		if netErr.Timeout() {
+			return codes.Gateway.Proxy.GatewayTimeout.URN(),
+				"The request took too long to process. Please try again later."
+		}
+
+		// Check for connection refused
+		if errors.Is(netErr.Err, syscall.ECONNREFUSED) {
+			return codes.Gateway.Proxy.ServiceUnavailable.URN(),
+				"The service is temporarily unavailable. Please try again later."
+		}
+
+		// Check for connection reset
+		if errors.Is(netErr.Err, syscall.ECONNRESET) {
+			return codes.Gateway.Proxy.BadGateway.URN(),
+				"Connection was reset by the backend service. Please try again."
+		}
+
+		// Check for no route to host
+		if errors.Is(netErr.Err, syscall.EHOSTUNREACH) {
+			return codes.Gateway.Proxy.ServiceUnavailable.URN(),
+				"The service is unreachable. Please try again later."
+		}
+	}
+
+	// Check for DNS errors
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) {
+		if dnsErr.IsNotFound {
+			return codes.Gateway.Proxy.ServiceUnavailable.URN(),
+				"The service could not be found. Please check your configuration."
+		}
+		if dnsErr.IsTimeout {
+			return codes.Gateway.Proxy.GatewayTimeout.URN(),
+				"DNS resolution timed out. Please try again later."
+		}
+	}
+
+	// Default to bad gateway
+	return codes.Gateway.Proxy.BadGateway.URN(),
+		"Unable to connect to the backend service. Please try again in a few moments."
+}
+
 func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	req := sess.Request()
 	startTime := h.Clock.Now()
+	var instanceStart, instanceEnd time.Time
+
+	// Always add timing headers when function returns (success or error)
+	defer func() {
+		gatewayDuration := h.Clock.Now().Sub(startTime)
+		sess.ResponseWriter().Header().Set("X-Unkey-Gateway-Time", fmt.Sprintf("%dms", gatewayDuration.Milliseconds()))
+
+		// Add instance timing if we got to the proxy stage
+		if !instanceStart.IsZero() && !instanceEnd.IsZero() {
+			instanceDuration := instanceEnd.Sub(instanceStart)
+			sess.ResponseWriter().Header().Set("X-Unkey-Instance-Time", fmt.Sprintf("%dms", instanceDuration.Milliseconds()))
+		}
+	}()
 
 	// Get deployment ID from header
 	deploymentID := req.Header.Get("X-Deployment-ID")
@@ -59,10 +164,6 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		return err // Error already has proper fault code from router service
 	}
 
-	// Record gateway overhead (time to validate deployment + select instance)
-	gatewayTime := h.Clock.Now()
-	gatewayDuration := gatewayTime.Sub(startTime)
-
 	// Build target URL using instance address
 	targetURL, err := url.Parse("http://" + instance.Address)
 	if err != nil {
@@ -74,8 +175,10 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		)
 	}
 
-	// Track instance response time
-	var instanceStart, instanceEnd time.Time
+	// Wrap the response writer to capture errors without writing to client
+	wrapper := &errorCapturingWriter{
+		ResponseWriter: sess.ResponseWriter(),
+	}
 
 	// Create reverse proxy
 	proxy := &httputil.ReverseProxy{
@@ -99,24 +202,25 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		},
 		Transport: h.Transport,
 		ModifyResponse: func(resp *http.Response) error {
+			// Record when instance responded
 			instanceEnd = h.Clock.Now()
-			instanceDuration := instanceEnd.Sub(instanceStart)
-
-			// Add timing headers (gateway + instance only, not total - ingress handles that)
-			resp.Header.Set("X-Unkey-Gateway-Time", fmt.Sprintf("%dms", gatewayDuration.Milliseconds()))
-			resp.Header.Set("X-Unkey-Instance-Time", fmt.Sprintf("%dms", instanceDuration.Milliseconds()))
-
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			h.Logger.Error("proxy error",
-				"deploymentID", deploymentID,
-				"instanceID", instance.ID,
-				"target", instance.Address,
-				"error", err,
-			)
-			w.WriteHeader(http.StatusBadGateway)
-			_, _ = io.WriteString(w, "Bad Gateway")
+			// Record when instance failed
+			instanceEnd = h.Clock.Now()
+
+			// Capture the error for middleware to handle
+			if ecw, ok := w.(*errorCapturingWriter); ok {
+				ecw.capturedError = err
+
+				h.Logger.Warn("proxy error",
+					"deploymentID", deploymentID,
+					"instanceID", instance.ID,
+					"target", instance.Address,
+					"error", err.Error(),
+				)
+			}
 		},
 	}
 
@@ -128,7 +232,18 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		"target", instance.Address,
 	)
 
-	// Serve the proxied request
-	proxy.ServeHTTP(sess.ResponseWriter(), req)
+	// Serve the proxied request with wrapped writer
+	proxy.ServeHTTP(wrapper, req)
+
+	// If error was captured, return it to middleware for consistent error handling
+	if wrapper.capturedError != nil {
+		urn, message := categorizeProxyError(wrapper.capturedError)
+		return fault.Wrap(wrapper.capturedError,
+			fault.Code(urn),
+			fault.Internal(fmt.Sprintf("proxy error forwarding to instance %s", instance.Address)),
+			fault.Public(message),
+		)
+	}
+
 	return nil
 }

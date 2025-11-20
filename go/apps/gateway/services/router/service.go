@@ -3,7 +3,6 @@ package router
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/rand/v2"
 	"time"
 
@@ -123,8 +122,6 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 			fault.Internal("failed to get instances"),
 		)
 	}
-
-	log.Printf("Got %#v for %s %s", instances, deploymentID, s.region)
 
 	if hit == cache.Null || len(instances) == 0 {
 		return db.Instance{}, fault.New("no instances found",

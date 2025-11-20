@@ -87,6 +87,11 @@ func getErrorPageInfo(urn codes.URN) errorPageInfo {
 			Status:  http.StatusBadRequest,
 			Message: "A required header is missing from your request.",
 		}
+	case codes.User.BadRequest.ClientClosedRequest.URN():
+		return errorPageInfo{
+			Status:  499, // Non-standard but widely used for client closed connection
+			Message: "The client closed the connection before the request completed.",
+		}
 
 	// Default fallback
 	default:
