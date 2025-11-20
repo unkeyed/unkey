@@ -157,13 +157,6 @@ func (s *service) ForwardToGateway(ctx context.Context, sess *zen.Session, gatew
 		)
 	}
 
-	s.logger.Info("forwarding to local gateway",
-		"target", targetURL.String(),
-		"gatewayID", gateway.ID,
-		"deploymentID", deploymentID,
-		"region", gateway.Region,
-	)
-
 	return s.forwardToGateway(ctx, sess, targetURL, deploymentID, startTime)
 }
 
@@ -194,12 +187,6 @@ func (s *service) ForwardToNLB(ctx context.Context, sess *zen.Session, targetReg
 			fault.Internal("failed to parse NLB URL"),
 		)
 	}
-
-	s.logger.Info("forwarding to remote NLB",
-		"target", targetURL.String(),
-		"targetRegion", targetRegion,
-		"hostname", sess.Request().Host,
-	)
 
 	return s.forwardToNLB(ctx, sess, targetURL, startTime)
 }
@@ -244,6 +231,15 @@ func (s *service) forwardToGateway(_ctx context.Context, sess *zen.Session, targ
 
 	var gatewayStartTime time.Time
 
+	// Always add timing headers when function returns (success or error)
+	defer func() {
+		totalTime := s.clock.Now().Sub(startTime)
+		if !gatewayStartTime.IsZero() {
+			sess.ResponseWriter().Header().Set("X-Unkey-Ingress-Time", fmt.Sprintf("%dms", gatewayStartTime.Sub(startTime).Milliseconds()))
+		}
+		sess.ResponseWriter().Header().Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
+	}()
+
 	// Wrap the response writer to capture errors without writing to client
 	wrapper := &errorCapturingWriter{
 		ResponseWriter: sess.ResponseWriter(),
@@ -277,13 +273,6 @@ func (s *service) forwardToGateway(_ctx context.Context, sess *zen.Session, targ
 			req.Header.Set(HeaderDeploymentID, deploymentID)
 		},
 		ModifyResponse: func(resp *http.Response) error {
-			// Calculate total time
-			totalTime := s.clock.Now().Sub(startTime)
-
-			// Add timing headers to response
-			resp.Header.Set("X-Unkey-Ingress-Time", fmt.Sprintf("%dms", gatewayStartTime.Sub(startTime).Milliseconds()))
-			resp.Header.Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
-
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
@@ -304,11 +293,6 @@ func (s *service) forwardToGateway(_ctx context.Context, sess *zen.Session, targ
 
 	// If error was captured, return it to middleware for consistent error handling
 	if wrapper.capturedError != nil {
-		// Add timing headers even on error
-		totalTime := s.clock.Now().Sub(startTime)
-		sess.ResponseWriter().Header().Set("X-Unkey-Ingress-Time", fmt.Sprintf("%dms", gatewayStartTime.Sub(startTime).Milliseconds()))
-		sess.ResponseWriter().Header().Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
-
 		urn, message := categorizeProxyError(wrapper.capturedError)
 		return fault.Wrap(wrapper.capturedError,
 			fault.Code(urn),
@@ -329,6 +313,15 @@ func (s *service) forwardToNLB(_ctx context.Context, sess *zen.Session, targetUR
 	sess.ResponseWriter().Header().Set(HeaderRequestID, sess.RequestID())
 
 	var nlbStartTime time.Time
+
+	// Always add timing headers when function returns (success or error)
+	defer func() {
+		totalTime := s.clock.Now().Sub(startTime)
+		if !nlbStartTime.IsZero() {
+			sess.ResponseWriter().Header().Set("X-Unkey-Ingress-Time", fmt.Sprintf("%dms", nlbStartTime.Sub(startTime).Milliseconds()))
+		}
+		sess.ResponseWriter().Header().Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
+	}()
 
 	// Wrap the response writer to capture errors without writing to client
 	wrapper := &errorCapturingWriter{
@@ -384,13 +377,6 @@ func (s *service) forwardToNLB(_ctx context.Context, sess *zen.Session, targetUR
 			}
 		},
 		ModifyResponse: func(resp *http.Response) error {
-			// Calculate total time
-			totalTime := s.clock.Now().Sub(startTime)
-
-			// Add timing headers to response
-			resp.Header.Set("X-Unkey-Ingress-Time", fmt.Sprintf("%dms", nlbStartTime.Sub(startTime).Milliseconds()))
-			resp.Header.Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
-
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
@@ -412,11 +398,6 @@ func (s *service) forwardToNLB(_ctx context.Context, sess *zen.Session, targetUR
 
 	// If error was captured, return it to middleware for consistent error handling
 	if wrapper.capturedError != nil {
-		// Add timing headers even on error
-		totalTime := s.clock.Now().Sub(startTime)
-		sess.ResponseWriter().Header().Set("X-Unkey-Ingress-Time", fmt.Sprintf("%dms", nlbStartTime.Sub(startTime).Milliseconds()))
-		sess.ResponseWriter().Header().Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
-
 		urn, message := categorizeProxyError(wrapper.capturedError)
 		return fault.Wrap(wrapper.capturedError,
 			fault.Code(urn),
