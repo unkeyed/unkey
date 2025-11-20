@@ -1,5 +1,5 @@
 CREATE TABLE key_verifications_per_day_v3 (
-  time DateTime,
+  time Date,
   workspace_id String,
   key_space_id String,
   identity_id String,
@@ -44,7 +44,7 @@ SELECT
   avgMergeState(latency_avg) as latency_avg,
   quantilesTDigestMergeState(0.75)(latency_p75) as latency_p75,
   quantilesTDigestMergeState(0.99)(latency_p99) as latency_p99,
-  toDateTime(toStartOfDay(time)) AS time
+  toDate(toStartOfDay(time)) AS time
 FROM
   key_verifications_per_hour_v3
 GROUP BY

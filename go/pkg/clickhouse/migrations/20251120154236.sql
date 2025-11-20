@@ -1,6 +1,6 @@
 -- Create "key_verifications_per_day_v3" table
 CREATE TABLE `default`.`key_verifications_per_day_v3` (
-  `time` DateTime,
+  `time` Date,
   `workspace_id` String,
   `key_space_id` String,
   `identity_id` String,
@@ -60,7 +60,7 @@ CREATE TABLE `default`.`key_verifications_per_minute_v3` (
 PRIMARY KEY (`workspace_id`, `time`, `key_space_id`, `identity_id`, `external_id`, `key_id`, `outcome`, `tags`) ORDER BY (`workspace_id`, `time`, `key_space_id`, `identity_id`, `external_id`, `key_id`, `outcome`, `tags`) TTL time + toIntervalDay(7) SETTINGS index_granularity = 8192;
 -- Create "key_verifications_per_month_v3" table
 CREATE TABLE `default`.`key_verifications_per_month_v3` (
-  `time` DateTime,
+  `time` Date,
   `workspace_id` String,
   `key_space_id` String,
   `identity_id` String,
@@ -79,10 +79,10 @@ CREATE TABLE `default`.`key_verifications_per_month_v3` (
 ) ENGINE = AggregatingMergeTree
 PRIMARY KEY (`workspace_id`, `time`, `key_space_id`, `identity_id`, `external_id`, `key_id`, `outcome`, `tags`) ORDER BY (`workspace_id`, `time`, `key_space_id`, `identity_id`, `external_id`, `key_id`, `outcome`, `tags`) TTL time + toIntervalYear(3) SETTINGS index_granularity = 8192;
 -- Create "key_verifications_per_day_mv_v3" view
-CREATE MATERIALIZED VIEW `default`.`key_verifications_per_day_mv_v3` TO `default`.`key_verifications_per_day_v3` AS SELECT workspace_id, key_space_id, identity_id, external_id, key_id, outcome, tags, sum(count) AS count, sum(spent_credits) AS spent_credits, avgMergeState(latency_avg) AS latency_avg, quantilesTDigestMergeState(0.75)(latency_p75) AS latency_p75, quantilesTDigestMergeState(0.99)(latency_p99) AS latency_p99, toDateTime(toStartOfDay(time)) AS time FROM default.key_verifications_per_hour_v3 GROUP BY workspace_id, time, key_space_id, identity_id, external_id, key_id, outcome, tags;
+CREATE MATERIALIZED VIEW `default`.`key_verifications_per_day_mv_v3` TO `default`.`key_verifications_per_day_v3` AS SELECT workspace_id, key_space_id, identity_id, external_id, key_id, outcome, tags, sum(count) AS count, sum(spent_credits) AS spent_credits, avgMergeState(latency_avg) AS latency_avg, quantilesTDigestMergeState(0.75)(latency_p75) AS latency_p75, quantilesTDigestMergeState(0.99)(latency_p99) AS latency_p99, toDate(toStartOfDay(time)) AS time FROM default.key_verifications_per_hour_v3 GROUP BY workspace_id, time, key_space_id, identity_id, external_id, key_id, outcome, tags;
 -- Create "key_verifications_per_hour_mv_v3" view
 CREATE MATERIALIZED VIEW `default`.`key_verifications_per_hour_mv_v3` TO `default`.`key_verifications_per_hour_v3` AS SELECT workspace_id, key_space_id, identity_id, external_id, key_id, outcome, tags, sum(count) AS count, sum(spent_credits) AS spent_credits, avgMergeState(latency_avg) AS latency_avg, quantilesTDigestMergeState(0.75)(latency_p75) AS latency_p75, quantilesTDigestMergeState(0.99)(latency_p99) AS latency_p99, toStartOfHour(time) AS time FROM default.key_verifications_per_minute_v3 GROUP BY workspace_id, time, key_space_id, identity_id, external_id, key_id, outcome, tags;
 -- Create "key_verifications_per_minute_mv_v3" view
 CREATE MATERIALIZED VIEW `default`.`key_verifications_per_minute_mv_v3` TO `default`.`key_verifications_per_minute_v3` AS SELECT workspace_id, key_space_id, identity_id, external_id, key_id, outcome, tags, count(*) AS count, sum(spent_credits) AS spent_credits, avgState(latency) AS latency_avg, quantilesTDigestState(0.75)(latency) AS latency_p75, quantilesTDigestState(0.99)(latency) AS latency_p99, toStartOfMinute(fromUnixTimestamp64Milli(time)) AS time FROM default.key_verifications_raw_v2 GROUP BY workspace_id, time, key_space_id, identity_id, external_id, key_id, outcome, tags;
 -- Create "key_verifications_per_month_mv_v3" view
-CREATE MATERIALIZED VIEW `default`.`key_verifications_per_month_mv_v3` TO `default`.`key_verifications_per_month_v3` AS SELECT workspace_id, key_space_id, identity_id, external_id, key_id, outcome, tags, sum(count) AS count, sum(spent_credits) AS spent_credits, avgMergeState(latency_avg) AS latency_avg, quantilesTDigestMergeState(0.75)(latency_p75) AS latency_p75, quantilesTDigestMergeState(0.99)(latency_p99) AS latency_p99, toDateTime(toStartOfMonth(time)) AS time FROM default.key_verifications_per_day_v3 GROUP BY workspace_id, time, key_space_id, identity_id, external_id, key_id, outcome, tags;
+CREATE MATERIALIZED VIEW `default`.`key_verifications_per_month_mv_v3` TO `default`.`key_verifications_per_month_v3` AS SELECT workspace_id, key_space_id, identity_id, external_id, key_id, outcome, tags, sum(count) AS count, sum(spent_credits) AS spent_credits, avgMergeState(latency_avg) AS latency_avg, quantilesTDigestMergeState(0.75)(latency_p75) AS latency_p75, quantilesTDigestMergeState(0.99)(latency_p99) AS latency_p99, toDate(toStartOfMonth(time)) AS time FROM default.key_verifications_per_day_v3 GROUP BY workspace_id, time, key_space_id, identity_id, external_id, key_id, outcome, tags;
