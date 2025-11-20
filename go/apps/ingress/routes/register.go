@@ -13,19 +13,15 @@ import (
 // Register registers all ingress routes for the HTTPS server
 func Register(srv *zen.Server, svc *Services) {
 	// Setup middlewares
-	withObservability := middleware.WithObservability(svc.Logger)
 	withLogging := zen.WithLogging(svc.Logger)
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
-	withErrorHandling := middleware.WithErrorHandling(svc.Logger)
+	withObservability := middleware.WithIngressObservability(svc.Logger, svc.Region)
 	withTimeout := zen.WithTimeout(5 * time.Minute)
-	withMetrics := middleware.WithMetrics(svc.Logger, svc.Region)
 
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
-		withObservability,
 		withLogging,
-		withMetrics,       // Record metrics before error handling to capture all requests
-		withErrorHandling,
+		withObservability, // Combined error handling and metrics
 		withTimeout,
 	}
 
@@ -54,12 +50,12 @@ func Register(srv *zen.Server, svc *Services) {
 func RegisterChallengeServer(srv *zen.Server, svc *Services) {
 	withLogging := zen.WithLogging(svc.Logger)
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
-	withErrorHandling := middleware.WithErrorHandling(svc.Logger)
+	withObservability := middleware.WithIngressObservability(svc.Logger, svc.Region)
 
 	challengeMiddlewares := []zen.Middleware{
 		withPanicRecovery,
 		withLogging,
-		withErrorHandling,
+		withObservability,
 	}
 
 	// Health check endpoint
