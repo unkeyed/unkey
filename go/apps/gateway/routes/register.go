@@ -18,10 +18,12 @@ func Register(srv *zen.Server, svc *Services) {
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
 	withErrorHandling := middleware.WithErrorHandling(svc.Logger)
 	withTimeout := zen.WithTimeout(5 * time.Minute)
+	withMetrics := middleware.WithMetrics(svc.EnvironmentID, svc.Region)
 
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
 		withLogging,
+		withMetrics,       // Record metrics before error handling to capture all requests
 		withErrorHandling,
 		withTimeout,
 	}
