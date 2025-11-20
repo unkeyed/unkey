@@ -33,6 +33,15 @@ type errorPageInfo struct {
 // getErrorPageInfo returns the HTTP status and user-friendly message for an error URN.
 func getErrorPageInfo(urn codes.URN) errorPageInfo {
 	switch urn {
+	// Client Errors
+	case codes.User.BadRequest.ClientClosedRequest.URN():
+		return errorPageInfo{
+			Status:  499, // Non-standard but widely used for client closed connection
+			Title:   "Client Closed Request",
+			Message: "The client closed the connection before the request completed.",
+		}
+
+	// Routing Errors
 	case codes.UnkeyIngressErrorsRoutingConfigNotFound:
 		return errorPageInfo{
 			Status:  http.StatusNotFound,
@@ -40,6 +49,7 @@ func getErrorPageInfo(urn codes.URN) errorPageInfo {
 			Message: "No deployment found for this hostname. Please check your domain configuration or contact support.",
 		}
 
+	// Proxy Errors
 	case codes.UnkeyIngressErrorsProxyBadGateway,
 		codes.UnkeyIngressErrorsProxyProxyForwardFailed:
 		return errorPageInfo{
