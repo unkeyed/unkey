@@ -27,8 +27,8 @@ ORDER BY
     outcome,
     tags
   )
-TTL time + INTERVAL 100 DAY DELETE
-  ;
+TTL time + INTERVAL 356 DAY DELETE
+;
 
 CREATE MATERIALIZED VIEW key_verifications_per_day_mv_v3 TO key_verifications_per_day_v3 AS
 SELECT
