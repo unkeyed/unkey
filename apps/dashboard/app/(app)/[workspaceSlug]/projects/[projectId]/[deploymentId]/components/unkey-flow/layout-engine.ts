@@ -466,7 +466,7 @@ export class LayoutEngine<T extends TreeNode> {
       // 3. Move down to child's vertical position (vertical trunk)
       // 4. Move right to child's left edge (horizontal branch)
       return [
-        { x: parentEdges.left, y: parentPos.y },
+        { x: trunkX, y: parentPos.y },
         { x: trunkX, y: parentPos.y },
         { x: trunkX, y: childPos.y },
         { x: childEdges.left, y: childPos.y },
