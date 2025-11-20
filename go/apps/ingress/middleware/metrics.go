@@ -9,6 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
@@ -102,7 +103,7 @@ func categorizeErrorType(urn codes.URN, statusCode int, hasError bool) string {
 // This middleware tracks all request outcomes:
 // - Errors from our code (platform/customer/user) via fault codes
 // - Customer instance 4xx/5xx responses via status code capturing
-func WithMetrics(region string) zen.Middleware {
+func WithMetrics(logger logging.Logger, region string) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
 			startTime := time.Now()
@@ -142,6 +143,13 @@ func WithMetrics(region string) zen.Middleware {
 			// Record metrics
 			duration := time.Since(startTime).Seconds()
 			statusStr := strconv.Itoa(statusCode)
+
+			logger.Info("ingress request metrics",
+				"status_code", statusStr,
+				"error_type", errorType,
+				"duration_seconds", duration,
+				"region", region,
+			)
 
 			ingressRequestsTotal.WithLabelValues(statusStr, errorType, region).Inc()
 			ingressRequestDuration.WithLabelValues(statusStr, errorType, region).Observe(duration)
