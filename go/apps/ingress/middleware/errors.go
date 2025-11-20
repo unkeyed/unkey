@@ -42,7 +42,7 @@ func getErrorPageInfo(urn codes.URN) errorPageInfo {
 		}
 
 	// Routing Errors
-	case codes.UnkeyIngressErrorsRoutingConfigNotFound:
+	case codes.Ingress.Routing.ConfigNotFound.URN():
 		return errorPageInfo{
 			Status:  http.StatusNotFound,
 			Title:   http.StatusText(http.StatusNotFound),
@@ -50,23 +50,22 @@ func getErrorPageInfo(urn codes.URN) errorPageInfo {
 		}
 
 	// Proxy Errors
-	case codes.UnkeyIngressErrorsProxyBadGateway,
-		codes.UnkeyIngressErrorsProxyProxyForwardFailed:
+	case codes.Ingress.Proxy.BadGateway.URN(),
+		codes.Ingress.Proxy.ProxyForwardFailed.URN():
 		return errorPageInfo{
 			Status:  http.StatusBadGateway,
 			Title:   http.StatusText(http.StatusBadGateway),
 			Message: "Unable to connect to the backend service. Please try again in a few moments.",
 		}
 
-	case codes.UnkeyIngressErrorsProxyServiceUnavailable,
-		codes.UnkeyIngressErrorsRoutingNoRunningInstances:
+	case codes.Ingress.Proxy.ServiceUnavailable.URN():
 		return errorPageInfo{
 			Status:  http.StatusServiceUnavailable,
 			Title:   http.StatusText(http.StatusServiceUnavailable),
 			Message: "The service is temporarily unavailable. Please try again later.",
 		}
 
-	case codes.UnkeyIngressErrorsProxyGatewayTimeout:
+	case codes.Ingress.Proxy.GatewayTimeout.URN():
 		return errorPageInfo{
 			Status:  http.StatusGatewayTimeout,
 			Title:   http.StatusText(http.StatusGatewayTimeout),
