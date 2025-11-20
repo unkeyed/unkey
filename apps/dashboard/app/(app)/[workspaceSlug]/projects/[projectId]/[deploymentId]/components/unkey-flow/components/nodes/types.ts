@@ -26,8 +26,8 @@ type RegionMetadata = {
   health: HealthStatus;
 };
 
-type InstanceMetadata = {
-  type: "instance";
+type GatewayMetadata = {
+  type: "gateway";
   description: string;
   instances?: number;
   replicas: number;
@@ -39,7 +39,7 @@ type InstanceMetadata = {
   health: HealthStatus;
 };
 
-type NodeMetadata = OriginMetadata | RegionMetadata | InstanceMetadata;
+type NodeMetadata = OriginMetadata | RegionMetadata | GatewayMetadata;
 
 type DeploymentNode = {
   id: string;
@@ -66,7 +66,7 @@ export type {
   DeploymentNode,
   NodeMetadata,
   RegionMetadata,
-  InstanceMetadata,
+  GatewayMetadata as InstanceMetadata,
   OriginMetadata,
   HealthStatus,
   RegionInfo,

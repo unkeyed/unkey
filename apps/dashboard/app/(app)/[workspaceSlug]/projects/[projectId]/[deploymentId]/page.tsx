@@ -19,6 +19,7 @@ export default function DeploymentDetailsPage() {
   const { projectId } = useProject();
   const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(DEFAULT_TREE);
   const [selectedNode, setSelectedNode] = useState<DeploymentNode>();
+  console.log({ generatedTree });
 
   return (
     <InfiniteCanvas
@@ -44,7 +45,7 @@ export default function DeploymentDetailsPage() {
               return (
                 <RegionNode node={node as DeploymentNode & { metadata: { type: "region" } }} />
               );
-            case "instance":
+            case "gateway":
               if (!parent?.id) {
                 throw new Error("Instance node requires parent region");
               }

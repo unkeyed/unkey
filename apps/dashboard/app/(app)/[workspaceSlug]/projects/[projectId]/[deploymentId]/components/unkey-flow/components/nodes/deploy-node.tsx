@@ -140,7 +140,7 @@ export function MetricPill({ icon, value, tooltip }: MetricPillProps) {
 
 type CardHeaderVariant = "card" | "panel";
 
-type CardHeaderProps = {
+export type CardHeaderProps = {
   icon: React.ReactNode;
   title: string;
   subtitle: string;

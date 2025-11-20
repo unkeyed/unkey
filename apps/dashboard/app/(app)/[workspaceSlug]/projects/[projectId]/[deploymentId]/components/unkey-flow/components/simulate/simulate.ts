@@ -97,7 +97,7 @@ export function generateDeploymentTree(config: GeneratorConfig): DeploymentNode 
           const instanceId = Math.random().toString(36).substring(2, 6);
 
           const instanceMetadata: InstanceMetadata = {
-            type: "instance",
+            type: "gateway",
             description: "Instance replica",
             replicas: 2,
             rps: getRandomInt(100, 500),
