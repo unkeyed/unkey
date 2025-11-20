@@ -71,7 +71,7 @@ spec:
               value: "minio_root_password"
             # Build Configuration
             - name: UNKEY_BUILD_BACKEND
-              value: "docker"  # Changed to docker as default for local k8s
+              value: "depot" # Changed to docker as default for local k8s
             - name: UNKEY_BUILD_PLATFORM
               value: "linux/amd64"
             # Build S3 Storage (from depot-credentials secret)
@@ -151,7 +151,7 @@ spec:
             # Docker Configuration (for Docker build backend)
             - name: UNKEY_DOCKER_SOCKET
               value: "/var/run/docker.sock"
-            
+
             # Deployment Configuration
             - name: UNKEY_DEPLOYMENT_EVICTION_TTL
               value: "10m"

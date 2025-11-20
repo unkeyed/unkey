@@ -156,6 +156,7 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 						Annotations: map[string]string{},
 					},
 					Spec: corev1.PodSpec{
+
 						ImagePullSecrets: func() []corev1.LocalObjectReference {
 							// Only add imagePullSecrets if using Depot registry
 							if strings.HasPrefix(req.Msg.GetDeployment().GetImage(), "registry.depot.dev/") {

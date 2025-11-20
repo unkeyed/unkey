@@ -54,9 +54,5 @@ func New(cfg Config) (*k8s, error) {
 		clientset:                             clientset,
 	}
 
-	if cfg.DeploymentEvictionTTL > 0 {
-		k.autoEvictDeployments(cfg.DeploymentEvictionTTL)
-	}
-
 	return k, nil
 }

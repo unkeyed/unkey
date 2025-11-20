@@ -13,6 +13,7 @@ INSERT INTO `deployments` (
     git_commit_timestamp, -- Unix epoch milliseconds
     openapi_spec,
     status,
+    gateway_config,
     created_at,
     updated_at
 )
@@ -30,6 +31,7 @@ VALUES (
     sqlc.arg(git_commit_timestamp),
     sqlc.arg(openapi_spec),
     sqlc.arg(status),
+    sqlc.arg(gateway_config),
     sqlc.arg(created_at),
     sqlc.arg(updated_at)
 );

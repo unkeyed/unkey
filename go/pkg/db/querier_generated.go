@@ -220,12 +220,12 @@ type Querier interface {
 	FindEnvironmentById(ctx context.Context, db DBTX, id string) (FindEnvironmentByIdRow, error)
 	//FindEnvironmentByProjectIdAndSlug
 	//
-	//  SELECT id, workspace_id, project_id, slug, description
+	//  SELECT id, workspace_id, project_id, slug, description, gateway_config, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE workspace_id = ?
 	//    AND project_id = ?
 	//    AND slug = ?
-	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (FindEnvironmentByProjectIdAndSlugRow, error)
+	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
 	//FindIdentities
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -1105,10 +1105,12 @@ type Querier interface {
 	//      git_commit_timestamp, -- Unix epoch milliseconds
 	//      openapi_spec,
 	//      status,
+	//      gateway_config,
 	//      created_at,
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
