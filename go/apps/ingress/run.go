@@ -151,20 +151,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	shutdowns.Register(db.Close)
 
-	// Generate local certificate if requested
-	if cfg.RequireLocalCert {
-		err = generateLocalCertificate(ctx, LocalCertConfig{
-			Logger:       logger,
-			DB:           db,
-			VaultService: vaultSvc,
-			Hostname:     "*.unkey.local",
-			WorkspaceID:  "unkey",
-		})
-		if err != nil {
-			return fmt.Errorf("failed to generate local certificate: %w", err)
-		}
-	}
-
 	// Initialize caches
 	cache, err := caches.New(caches.Config{
 		Logger: logger,

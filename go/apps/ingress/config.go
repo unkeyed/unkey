@@ -66,10 +66,6 @@ type Config struct {
 	// --- Vault Configuration ---
 	VaultMasterKeys []string
 	VaultS3         *storage.S3Config
-
-	// --- Local Certificate Configuration ---
-	// RequireLocalCert specifies whether to generate a local self-signed certificate for *.unkey.local
-	RequireLocalCert bool
 }
 
 func (c Config) Validate() error {
