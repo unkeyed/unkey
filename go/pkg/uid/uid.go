@@ -50,6 +50,7 @@ const (
 	DomainPrefix       Prefix = "dom"
 	DeploymentPrefix   Prefix = "d"
 	IngressRoutePrefix Prefix = "ir"
+	CertificatePrefix  Prefix = "cert"
 )
 
 // epoch starts more recently so that the 32-bit number space gives a
