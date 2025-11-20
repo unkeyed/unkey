@@ -1,6 +1,6 @@
 -- name: FindEnvironmentByProjectIdAndSlug :one
-SELECT id, workspace_id, project_id, slug, description
+SELECT *
 FROM environments
-WHERE workspace_id = sqlc.arg(workspace_id) 
-  AND project_id = sqlc.arg(project_id) 
+WHERE workspace_id = sqlc.arg(workspace_id)
+  AND project_id = sqlc.arg(project_id)
   AND slug = sqlc.arg(slug);

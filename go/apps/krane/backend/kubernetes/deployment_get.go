@@ -28,12 +28,13 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 	}
 
 	k8sDeploymentID := safeIDForK8s(req.Msg.GetDeploymentId())
+	namespace := safeIDForK8s(req.Msg.GetNamespace())
 
 	k.logger.Info("getting deployment", "deployment_id", k8sDeploymentID)
 
 	// Get the Job by name (deployment_id)
 	// nolint: exhaustruct
-	sfs, err := k.clientset.AppsV1().StatefulSets(req.Msg.GetNamespace()).Get(ctx, k8sDeploymentID, metav1.GetOptions{})
+	sfs, err := k.clientset.AppsV1().StatefulSets(namespace).Get(ctx, k8sDeploymentID, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", k8sDeploymentID))
@@ -57,7 +58,7 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 
 	// Get the service to retrieve port info
 	// nolint: exhaustruct
-	service, err := k.clientset.CoreV1().Services(req.Msg.GetNamespace()).Get(ctx, k8sDeploymentID, metav1.GetOptions{})
+	service, err := k.clientset.CoreV1().Services(namespace).Get(ctx, k8sDeploymentID, metav1.GetOptions{})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not load service: %s", k8sDeploymentID))
 	}
@@ -73,7 +74,7 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 	})
 
 	//nolint: exhaustruct
-	pods, err := k.clientset.CoreV1().Pods(req.Msg.GetNamespace()).List(ctx, metav1.ListOptions{
+	pods, err := k.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {

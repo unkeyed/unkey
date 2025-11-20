@@ -208,10 +208,9 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 				}
 
-			}
-
-			if allReady {
-				return resp.Msg.GetInstances(), nil
+				if allReady {
+					return resp.Msg.GetInstances(), nil
+				}
 			}
 			// next loop
 

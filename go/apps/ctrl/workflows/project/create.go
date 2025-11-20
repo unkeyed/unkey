@@ -83,13 +83,14 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 
 		_, err = restate.Run(ctx, func(runCtx restate.RunContext) (restate.Void, error) {
 			return restate.Void{}, db.Query.InsertEnvironment(runCtx, s.db.RW(), db.InsertEnvironmentParams{
-				ID:          environmentID,
-				WorkspaceID: workspace.ID,
-				ProjectID:   projectID,
-				Slug:        env.Slug,
-				Description: env.Description,
-				CreatedAt:   time.Now().UnixMilli(),
-				UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
+				ID:            environmentID,
+				WorkspaceID:   workspace.ID,
+				ProjectID:     projectID,
+				Slug:          env.Slug,
+				Description:   env.Description,
+				CreatedAt:     time.Now().UnixMilli(),
+				UpdatedAt:     sql.NullInt64{Valid: false, Int64: 0},
+				GatewayConfig: []byte(""),
 			})
 		}, restate.WithName("insert environment"))
 

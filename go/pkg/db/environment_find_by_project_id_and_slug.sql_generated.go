@@ -10,10 +10,10 @@ import (
 )
 
 const findEnvironmentByProjectIdAndSlug = `-- name: FindEnvironmentByProjectIdAndSlug :one
-SELECT id, workspace_id, project_id, slug, description
+SELECT id, workspace_id, project_id, slug, description, gateway_config, delete_protection, created_at, updated_at
 FROM environments
-WHERE workspace_id = ? 
-  AND project_id = ? 
+WHERE workspace_id = ?
+  AND project_id = ?
   AND slug = ?
 `
 
@@ -23,30 +23,26 @@ type FindEnvironmentByProjectIdAndSlugParams struct {
 	Slug        string `db:"slug"`
 }
 
-type FindEnvironmentByProjectIdAndSlugRow struct {
-	ID          string `db:"id"`
-	WorkspaceID string `db:"workspace_id"`
-	ProjectID   string `db:"project_id"`
-	Slug        string `db:"slug"`
-	Description string `db:"description"`
-}
-
 // FindEnvironmentByProjectIdAndSlug
 //
-//	SELECT id, workspace_id, project_id, slug, description
+//	SELECT id, workspace_id, project_id, slug, description, gateway_config, delete_protection, created_at, updated_at
 //	FROM environments
 //	WHERE workspace_id = ?
 //	  AND project_id = ?
 //	  AND slug = ?
-func (q *Queries) FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (FindEnvironmentByProjectIdAndSlugRow, error) {
+func (q *Queries) FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error) {
 	row := db.QueryRowContext(ctx, findEnvironmentByProjectIdAndSlug, arg.WorkspaceID, arg.ProjectID, arg.Slug)
-	var i FindEnvironmentByProjectIdAndSlugRow
+	var i Environment
 	err := row.Scan(
 		&i.ID,
 		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.Slug,
 		&i.Description,
+		&i.GatewayConfig,
+		&i.DeleteProtection,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

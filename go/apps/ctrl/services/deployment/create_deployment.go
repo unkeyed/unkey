@@ -142,6 +142,7 @@ func (s *Service) CreateDeployment(
 		"memory": 2048
 		}`),
 		OpenapiSpec:              sql.NullString{String: "", Valid: false},
+		GatewayConfig:            env.GatewayConfig,
 		Status:                   db.DeploymentsStatusPending,
 		CreatedAt:                now,
 		UpdatedAt:                sql.NullInt64{Int64: now, Valid: true},
