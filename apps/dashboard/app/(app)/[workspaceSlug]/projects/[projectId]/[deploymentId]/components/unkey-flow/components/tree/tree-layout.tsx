@@ -14,6 +14,7 @@ const NODE_SIZES: Record<NodeMetadata["type"], NodeSize> = {
   origin: { width: 70, height: 20 },
   region: { width: 282, height: 100 },
   gateway: { width: 282, height: 100 },
+  skeleton: { width: 282, height: 100 },
 };
 
 /**

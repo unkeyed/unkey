@@ -39,11 +39,12 @@ type GatewayMetadata = {
   health: HealthStatus;
 };
 
-type NodeMetadata = OriginMetadata | RegionMetadata | GatewayMetadata;
+type NodeMetadata = OriginMetadata | RegionMetadata | GatewayMetadata | { type: "skeleton" };
 
 type DeploymentNode = {
   id: string;
   label: string;
+  direction?: "horizontal" | "vertical";
   metadata: NodeMetadata;
   children?: DeploymentNode[];
 };
