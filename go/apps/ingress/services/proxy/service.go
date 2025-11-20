@@ -88,6 +88,12 @@ func New(cfg Config) (*service, error) {
 
 // categorizeProxyError determines the appropriate error code and message based on the error type
 func categorizeProxyError(err error) (codes.URN, string) {
+	// Check for client-side cancellation (client closed connection)
+	if errors.Is(err, context.Canceled) {
+		return codes.User.BadRequest.ClientClosedRequest.URN(),
+			"The client closed the connection before the request completed."
+	}
+
 	// Check for timeout errors
 	if errors.Is(err, context.DeadlineExceeded) || os.IsTimeout(err) {
 		return codes.Ingress.Proxy.GatewayTimeout.URN(),
@@ -198,6 +204,36 @@ func (s *service) ForwardToNLB(ctx context.Context, sess *zen.Session, targetReg
 	return s.forwardToNLB(ctx, sess, targetURL, startTime)
 }
 
+// errorCapturingWriter wraps a ResponseWriter to capture proxy errors
+// without writing them to the client. This allows errors to be returned
+// to the middleware for consistent error handling.
+type errorCapturingWriter struct {
+	http.ResponseWriter
+	capturedError error
+	headerWritten bool
+}
+
+func (w *errorCapturingWriter) WriteHeader(statusCode int) {
+	if w.capturedError != nil {
+		// Discard header writes if we captured an error
+		w.headerWritten = true
+		return
+	}
+	w.ResponseWriter.WriteHeader(statusCode)
+	w.headerWritten = true
+}
+
+func (w *errorCapturingWriter) Write(b []byte) (int, error) {
+	if w.capturedError != nil {
+		// Discard body writes if we captured an error
+		return len(b), nil
+	}
+	if !w.headerWritten {
+		w.WriteHeader(http.StatusOK)
+	}
+	return w.ResponseWriter.Write(b)
+}
+
 // forwardToGateway handles proxying to a local gateway service
 func (s *service) forwardToGateway(_ctx context.Context, sess *zen.Session, targetURL *url.URL, deploymentID string, startTime time.Time) error {
 	// Set response headers BACK TO CLIENT so they can see which ingress handled their request
@@ -206,9 +242,12 @@ func (s *service) forwardToGateway(_ctx context.Context, sess *zen.Session, targ
 	sess.ResponseWriter().Header().Set(HeaderRegion, s.region)
 	sess.ResponseWriter().Header().Set(HeaderRequestID, sess.RequestID())
 
-	// Capture any proxy error to return to middleware
-	var proxyErr error
 	var gatewayStartTime time.Time
+
+	// Wrap the response writer to capture errors without writing to client
+	wrapper := &errorCapturingWriter{
+		ResponseWriter: sess.ResponseWriter(),
+	}
 
 	// Create reverse proxy with shared transport
 	proxy := &httputil.ReverseProxy{
@@ -248,21 +287,37 @@ func (s *service) forwardToGateway(_ctx context.Context, sess *zen.Session, targ
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			// Categorize the error and get appropriate code/message
-			code, message := categorizeProxyError(err)
+			// Capture the error for middleware to handle
+			if ecw, ok := w.(*errorCapturingWriter); ok {
+				ecw.capturedError = err
 
-			// Capture the error - middleware will handle rendering
-			proxyErr = fault.Wrap(err,
-				fault.Code(code),
-				fault.Public(message),
-			)
+				s.logger.Warn("proxy error forwarding to gateway",
+					"error", err.Error(),
+					"target", targetURL.String(),
+				)
+			}
 		},
 	}
 
-	// Proxy the request
-	proxy.ServeHTTP(sess.ResponseWriter(), sess.Request())
+	// Proxy the request with wrapped writer
+	proxy.ServeHTTP(wrapper, sess.Request())
 
-	return proxyErr
+	// If error was captured, return it to middleware for consistent error handling
+	if wrapper.capturedError != nil {
+		// Add timing headers even on error
+		totalTime := s.clock.Now().Sub(startTime)
+		sess.ResponseWriter().Header().Set("X-Unkey-Ingress-Time", fmt.Sprintf("%dms", gatewayStartTime.Sub(startTime).Milliseconds()))
+		sess.ResponseWriter().Header().Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
+
+		urn, message := categorizeProxyError(wrapper.capturedError)
+		return fault.Wrap(wrapper.capturedError,
+			fault.Code(urn),
+			fault.Internal(fmt.Sprintf("proxy error forwarding to gateway %s", targetURL.String())),
+			fault.Public(message),
+		)
+	}
+
+	return nil
 }
 
 // forwardToNLB handles proxying to a remote region's NLB
@@ -273,9 +328,12 @@ func (s *service) forwardToNLB(_ctx context.Context, sess *zen.Session, targetUR
 	sess.ResponseWriter().Header().Set(HeaderRegion, s.region)
 	sess.ResponseWriter().Header().Set(HeaderRequestID, sess.RequestID())
 
-	// Capture any proxy error to return to middleware
-	var proxyErr error
 	var nlbStartTime time.Time
+
+	// Wrap the response writer to capture errors without writing to client
+	wrapper := &errorCapturingWriter{
+		ResponseWriter: sess.ResponseWriter(),
+	}
 
 	// Create reverse proxy with shared transport
 	proxy := &httputil.ReverseProxy{
@@ -336,19 +394,36 @@ func (s *service) forwardToNLB(_ctx context.Context, sess *zen.Session, targetUR
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			// Categorize the error and get appropriate code/message
-			code, message := categorizeProxyError(err)
+			// Capture the error for middleware to handle
+			if ecw, ok := w.(*errorCapturingWriter); ok {
+				ecw.capturedError = err
 
-			// Capture the error - middleware will handle rendering
-			proxyErr = fault.Wrap(err,
-				fault.Code(code),
-				fault.Public(message),
-			)
+				s.logger.Warn("proxy error forwarding to NLB",
+					"error", err.Error(),
+					"target", targetURL.String(),
+					"hostname", r.Host,
+				)
+			}
 		},
 	}
 
-	// Proxy the request
-	proxy.ServeHTTP(sess.ResponseWriter(), sess.Request())
+	// Proxy the request with wrapped writer
+	proxy.ServeHTTP(wrapper, sess.Request())
 
-	return proxyErr
+	// If error was captured, return it to middleware for consistent error handling
+	if wrapper.capturedError != nil {
+		// Add timing headers even on error
+		totalTime := s.clock.Now().Sub(startTime)
+		sess.ResponseWriter().Header().Set("X-Unkey-Ingress-Time", fmt.Sprintf("%dms", nlbStartTime.Sub(startTime).Milliseconds()))
+		sess.ResponseWriter().Header().Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
+
+		urn, message := categorizeProxyError(wrapper.capturedError)
+		return fault.Wrap(wrapper.capturedError,
+			fault.Code(urn),
+			fault.Internal(fmt.Sprintf("proxy error forwarding to NLB %s", targetURL.String())),
+			fault.Public(message),
+		)
+	}
+
+	return nil
 }

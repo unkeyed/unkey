@@ -224,6 +224,11 @@ func Run(ctx context.Context, cfg Config) error {
 		httpsSrv, httpsErr := zen.New(zen.Config{
 			Logger: logger,
 			TLS:    tlsConfig,
+			// Use longer timeouts for proxy operations
+			// WriteTimeout must be longer than the transport's ResponseHeaderTimeout (30s)
+			// so that transport timeouts can be caught and handled properly in ErrorHandler
+			ReadTimeout:  30 * time.Second,
+			WriteTimeout: 60 * time.Second,
 		})
 		if httpsErr != nil {
 			return fmt.Errorf("unable to create HTTPS server: %w", httpsErr)
