@@ -7,7 +7,9 @@ mode: "wide"
 ## Prerequisites
 
 - Created your [Unkey account](https://app.unkey.com/auth/sign-up)
-- Created an [Unkey root key](https://app.unkey.com/settings/root-keys) with `ratelimit.*.create_namespace` and `ratelimit.*.limit` permissions.
+- Created an [Unkey root key](https://app.unkey.com/settings/root-keys) with the following permissions:
+  - `ratelimit.*.create_namespace` - to create namespaces
+  - `ratelimit.*.limit` - to check rate limits
 
 
 <Steps titleSize="h3">
@@ -84,18 +86,23 @@ const limiter = new Ratelimit({
   namespace: "next-example",
   limit: 2,
   duration: "30s",
-  rootKey: process.env.UNKEY_ROOT_KEY
+  rootKey: process.env.UNKEY_ROOT_KEY!
 });
 
-export const POST = (async (req) => {
-  const identifier = getUserId(); // or ip or anything else you want
-  const ratelimit = await limiter.limit(identifier)
-  if (!ratelimit.success){
-   return new NextResponse("Please try again later", {status: 429});
+export const POST = async (req: Request) => {
+  // Use any identifier: userId, visitorId, IP address, etc.
+  const identifier = getUserId();
+
+  const ratelimit = await limiter.limit(identifier);
+
+  if (!ratelimit.success) {
+    return NextResponse.json(
+      "Please try again later", {status: 429}
+    );
   }
 
-  return new NextResponse('Hello!');
-});
+  return NextResponse.json({ message: "Hello!" });
+};
 ```
 
 </Step>
@@ -126,13 +133,15 @@ bun run dev
 
 <Step  title="Try it out">
 
-Go to https://app.unkey.com and create a new key. Then verify it with our new server:
+Test your ratelimited endpoint:
 
 ```bash
-curl -XPOST 'http://localhost:3000/protected'
+curl -XPOST 'http://localhost:3000/protected' \
+  -H "x-user-id: test-user"
 ```
 
 You will need to curl a few times to see the ratelimiting error. Once you do, you, you will need to wait to perform the action again.
+
 
 </Step>
 
@@ -140,14 +149,14 @@ You will need to curl a few times to see the ratelimiting error. Once you do, yo
 
 ## What is next?
 
-Now that you've seen the power of Unkey, check out some resources below to continue your journey.
+Now that you've seen the power of Unkey ratelimiting, check out some resources below to continue your journey.
 
 <CardGroup cols={3}>
   <Card title="Discord" icon="discord" href="https://unkey.com/discord">Join our Discord to chat with us and the community</Card>
-  <Card title="Unkey API Reference" icon="database" href="/api-reference">
-     Learn about our API that helps you manage APIs, keys, ratelimits and analytical data.
+  <Card title="Ratelimit SDK" icon="brackets-curly" href="/libraries/ts/ratelimit/ratelimit">
+     Explore advanced SDK features like timeouts, error handling, and custom costs.
   </Card>
-  <Card title="Next.js SDK" icon="brackets-curly" href="/libraries/ts/nextjs">
-   Check out our Next.js SDK and how they fit into your Next application.
+  <Card title="API Reference" icon="database" href="/api-reference/v2/overview">
+     Learn about our v2 API for managing APIs, keys, ratelimits and analytics.
   </Card>
 </CardGroup>
