@@ -79,7 +79,9 @@
                   },
                   {
                     "group": "Identities",
-                    "pages": ["quickstart/identities/shared-ratelimits"]
+                    "pages": [
+                      "quickstart/identities/shared-ratelimits"
+                    ]
                   }
                 ]
               },
@@ -113,7 +115,10 @@
               {
                 "group": "Identities",
                 "icon": "fingerprint",
-                "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
+                "pages": [
+                  "concepts/identities/overview",
+                  "concepts/identities/ratelimits"
+                ]
               }
             ]
           },
@@ -130,7 +135,9 @@
                     "pages": [
                       {
                         "group": "Ratelimiting",
-                        "pages": ["apis/features/ratelimiting/overview"]
+                        "pages": [
+                          "apis/features/ratelimiting/overview"
+                        ]
                       },
                       "apis/features/temp-keys",
                       "apis/features/remaining",
@@ -166,7 +173,10 @@
               {
                 "group": "Audit logs",
                 "icon": "scroll",
-                "pages": ["audit-log/introduction", "audit-log/types"]
+                "pages": [
+                  "audit-log/introduction",
+                  "audit-log/types"
+                ]
               },
               {
                 "group": "Analytics",
@@ -190,7 +200,10 @@
               {
                 "group": "Migrating API Keys",
                 "icon": "plane",
-                "pages": ["migrations/introduction", "migrations/keys"]
+                "pages": [
+                  "migrations/introduction",
+                  "migrations/keys"
+                ]
               }
             ]
           },
@@ -231,6 +244,13 @@
                     ]
                   },
                   {
+                    "group": "Bad Gateway",
+                    "pages": [
+                      "errors/unkey/bad_gateway/bad_gateway",
+                      "errors/unkey/bad_gateway/proxy_forward_failed"
+                    ]
+                  },
+                  {
                     "group": "Data",
                     "pages": [
                       "errors/unkey/data/analytics_connection_failed",
@@ -251,6 +271,35 @@
                       "errors/unkey/data/role_already_exists",
                       "errors/unkey/data/role_not_found",
                       "errors/unkey/data/workspace_not_found"
+                    ]
+                  },
+                  {
+                    "group": "Gateway Timeout",
+                    "pages": [
+                      "errors/unkey/gateway_timeout/gateway_timeout"
+                    ]
+                  },
+                  {
+                    "group": "Internal Server Error",
+                    "pages": [
+                      "errors/unkey/internal_server_error/config_load_failed",
+                      "errors/unkey/internal_server_error/deployment_selection_failed",
+                      "errors/unkey/internal_server_error/instance_load_failed",
+                      "errors/unkey/internal_server_error/internal_server_error"
+                    ]
+                  },
+                  {
+                    "group": "Not Found",
+                    "pages": [
+                      "errors/unkey/not_found/config_not_found"
+                    ]
+                  },
+                  {
+                    "group": "Service Unavailable",
+                    "pages": [
+                      "errors/unkey/service_unavailable/deployment_disabled",
+                      "errors/unkey/service_unavailable/no_running_instances",
+                      "errors/unkey/service_unavailable/service_unavailable"
                     ]
                   }
                 ]
@@ -274,7 +323,9 @@
                   },
                   {
                     "group": "Too Many Requests",
-                    "pages": ["errors/user/too_many_requests/query_quota_exceeded"]
+                    "pages": [
+                      "errors/user/too_many_requests/query_quota_exceeded"
+                    ]
                   },
                   {
                     "group": "Unprocessable Entity",
@@ -381,11 +432,15 @@
               },
               {
                 "group": "Go",
-                "pages": ["libraries/go/api"]
+                "pages": [
+                  "libraries/go/api"
+                ]
               },
               {
                 "group": "Python",
-                "pages": ["libraries/py/api"]
+                "pages": [
+                  "libraries/py/api"
+                ]
               }
             ]
           },
@@ -410,11 +465,15 @@
               },
               {
                 "group": "Nuxt",
-                "pages": ["libraries/nuxt/overview"]
+                "pages": [
+                  "libraries/nuxt/overview"
+                ]
               },
               {
                 "group": "Rust",
-                "pages": ["libraries/rs/overview"]
+                "pages": [
+                  "libraries/rs/overview"
+                ]
               },
               {
                 "group": "Springboot",

@@ -53,6 +53,15 @@ type Config struct {
 	// If 0 or negative, no limit is enforced. Default is 0 (no limit).
 	// This helps prevent DoS attacks from excessively large request bodies.
 	MaxRequestBodySize int64
+
+	// ReadTimeout is the maximum duration for reading the entire request, including the body.
+	// If 0, defaults to 10 seconds.
+	ReadTimeout time.Duration
+
+	// WriteTimeout is the maximum duration before timing out writes of the response.
+	// If 0, defaults to 20 seconds.
+	// For proxy services, this should be longer than any downstream timeout.
+	WriteTimeout time.Duration
 }
 
 // New creates a new server with the provided configuration.
@@ -74,6 +83,17 @@ type Config struct {
 func New(config Config) (*Server, error) {
 	mux := http.NewServeMux()
 
+	// Set default timeouts if not provided
+	readTimeout := config.ReadTimeout
+	if readTimeout == 0 {
+		readTimeout = 10 * time.Second
+	}
+
+	writeTimeout := config.WriteTimeout
+	if writeTimeout == 0 {
+		writeTimeout = 20 * time.Second
+	}
+
 	srv := &http.Server{
 		Handler: mux,
 		// See https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/
@@ -89,8 +109,8 @@ func New(config Config) (*Server, error) {
 		// >
 		// > Instead, create a http.Server instance with ReadTimeout and WriteTimeout and use its
 		// > corresponding methods, like in the example a few paragraphs above.
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 20 * time.Second,
+		ReadTimeout:  readTimeout,
+		WriteTimeout: writeTimeout,
 	}
 
 	flags := Flags{

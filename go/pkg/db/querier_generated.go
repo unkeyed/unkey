@@ -152,6 +152,10 @@ type Querier interface {
 	//
 	//  SELECT id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
 	FindCertificateByHostname(ctx context.Context, db DBTX, hostname string) (Certificate, error)
+	//FindCertificatesByHostnames
+	//
+	//  SELECT id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname IN (/*SLICE:hostnames*/?)
+	FindCertificatesByHostnames(ctx context.Context, db DBTX, hostnames []string) ([]Certificate, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT workspace_id, username, password_encrypted, quota_duration_seconds, max_queries_per_window, max_execution_time_per_window, max_query_execution_time, max_query_memory_bytes, max_query_result_rows, created_at, updated_at FROM `clickhouse_workspace_settings`
@@ -226,6 +230,10 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (FindEnvironmentByProjectIdAndSlugRow, error)
+	//FindGatewaysByEnvironmentID
+	//
+	//  SELECT id, workspace_id, environment_id, k8s_service_name, region, image, health, replicas FROM gateways WHERE environment_id = ?
+	FindGatewaysByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Gateway, error)
 	//FindIdentities
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at

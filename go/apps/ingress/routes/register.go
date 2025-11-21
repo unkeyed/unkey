@@ -1,0 +1,78 @@
+package routes
+
+import (
+	"time"
+
+	"github.com/unkeyed/unkey/go/apps/ingress/middleware"
+	acme "github.com/unkeyed/unkey/go/apps/ingress/routes/acme"
+	internalHealth "github.com/unkeyed/unkey/go/apps/ingress/routes/internal_health"
+	proxy "github.com/unkeyed/unkey/go/apps/ingress/routes/proxy"
+	"github.com/unkeyed/unkey/go/pkg/zen"
+)
+
+// Register registers all ingress routes for the HTTPS server
+func Register(srv *zen.Server, svc *Services) {
+	// Setup middlewares
+	withLogging := zen.WithLogging(svc.Logger)
+	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
+	withObservability := middleware.WithObservability(svc.Logger, svc.Region)
+	withTimeout := zen.WithTimeout(5 * time.Minute)
+
+	defaultMiddlewares := []zen.Middleware{
+		withPanicRecovery,
+		withLogging,
+		withObservability, // Combined error handling and metrics
+		withTimeout,
+	}
+
+	// Health check endpoint (minimal middlewares)
+	srv.RegisterRoute(
+		[]zen.Middleware{withLogging},
+		&internalHealth.Handler{
+			Logger: svc.Logger,
+		},
+	)
+
+	// Catch-all proxy route
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&proxy.Handler{
+			Logger:        svc.Logger,
+			Region:        svc.Region,
+			RouterService: svc.RouterService,
+			ProxyService:  svc.ProxyService,
+			Clock:         svc.Clock,
+		},
+	)
+}
+
+// RegisterChallengeServer registers routes for the HTTP challenge server (Let's Encrypt ACME)
+func RegisterChallengeServer(srv *zen.Server, svc *Services) {
+	withLogging := zen.WithLogging(svc.Logger)
+	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
+	withObservability := middleware.WithObservability(svc.Logger, svc.Region)
+
+	challengeMiddlewares := []zen.Middleware{
+		withPanicRecovery,
+		withLogging,
+		withObservability,
+	}
+
+	// Health check endpoint
+	srv.RegisterRoute(
+		[]zen.Middleware{withLogging},
+		&internalHealth.Handler{
+			Logger: svc.Logger,
+		},
+	)
+
+	// ACME challenge endpoint for Let's Encrypt (/.well-known/acme-challenge/*)
+	srv.RegisterRoute(
+		challengeMiddlewares,
+		&acme.Handler{
+			Logger:        svc.Logger,
+			RouterService: svc.RouterService,
+			AcmeClient:    svc.AcmeClient,
+		},
+	)
+}
