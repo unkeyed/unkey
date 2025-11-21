@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"strings"
 	"time"
@@ -36,7 +37,7 @@ type database struct {
 	logger       logging.Logger // Logger for database operations
 }
 
-func open(dsn string, logger logging.Logger) (db *sql.DB, err error) {
+func open(dsn string, mode string, logger logging.Logger) (db *sql.DB, err error) {
 	if !strings.Contains(dsn, "parseTime=true") {
 		return nil, fault.New("DSN must contain parseTime=true, see https://stackoverflow.com/questions/29341590/how-to-parse-time-from-database/29343013#29343013")
 	}
@@ -55,6 +56,19 @@ func open(dsn string, logger logging.Logger) (db *sql.DB, err error) {
 		return err
 	})
 
+	if err != nil {
+		return db, err
+	}
+
+	// Log the replica hostname
+	var hostname string
+	row := db.QueryRowContext(context.Background(), "SELECT @@hostname")
+	if err := row.Scan(&hostname); err != nil {
+		logger.Warn("failed to query replica hostname", "error", err.Error(), "mode", mode)
+	} else {
+		logger.Info("connected to replica", "hostname", hostname, "mode", mode)
+	}
+
 	return db, err
 }
 
@@ -70,34 +84,44 @@ func New(config Config) (*database, error) {
 		return nil, fault.Wrap(err, fault.Internal("invalid configuration"))
 	}
 
-	write, err := open(config.PrimaryDSN, config.Logger)
+	write, err := open(config.PrimaryDSN, "rw", config.Logger)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("cannot open primary replica"))
 	}
 
 	// Initialize primary replica
 	writeReplica := &Replica{
-		db:   write,
-		mode: "rw",
+		db:         write,
+		mode:       "rw",
+		dsn:        config.PrimaryDSN,
+		logger:     config.Logger,
+		maxRetries: 3,
 	}
 
 	// Initialize read replica with primary by default
 	readReplica := &Replica{
-		db:   write,
-		mode: "rw",
+		db:         write,
+		mode:       "rw",
+		dsn:        config.PrimaryDSN,
+		logger:     config.Logger,
+		maxRetries: 3,
 	}
 
 	// If a separate read-only DSN is provided, establish that connection
 	if config.ReadOnlyDSN != "" {
-		read, err := open(config.ReadOnlyDSN, config.Logger)
+		read, err := open(config.ReadOnlyDSN, "ro", config.Logger)
 		if err != nil {
 			return nil, fault.Wrap(err, fault.Internal("cannot open read replica"))
 		}
 
 		readReplica = &Replica{
-			db:   read,
-			mode: "ro",
+			db:         read,
+			mode:       "ro",
+			dsn:        config.ReadOnlyDSN,
+			logger:     config.Logger,
+			maxRetries: 3,
 		}
+
 		config.Logger.Info("database configured with separate read replica")
 	} else {
 		config.Logger.Info("database configured without separate read replica, using primary for reads")
