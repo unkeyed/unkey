@@ -1,21 +1,9 @@
 import { useCallback, useMemo, useRef } from "react";
 import { LayoutEngine } from "../../layout-engine";
 import type { TreeLayoutProps, TreeNode } from "../../types";
-import type { DeploymentNode, NodeMetadata } from "../nodes/types";
+import { type DeploymentNode, NODE_SIZES } from "../nodes/types";
 import { TreeConnectionLine } from "./tree-connection-line";
 import { TreeElementNode } from "./tree-element-node";
-
-type NodeSize = { width: number; height: number };
-/**
- * Since our nodes are custom-made, we can optimize layout through static heights and widths.
- * If things change over time, we can either update this list or create a ResizeObserver to track changes dynamically.
- */
-const NODE_SIZES: Record<NodeMetadata["type"], NodeSize> = {
-  origin: { width: 70, height: 20 },
-  region: { width: 282, height: 100 },
-  gateway: { width: 282, height: 100 },
-  skeleton: { width: 282, height: 100 },
-};
 
 /**
  * Vertical tree layout component (top to bottom).
@@ -115,7 +103,7 @@ export function TreeLayout<T extends TreeNode>({
             id={positioned.node.id}
             position={positioned.position}
           >
-            {renderNode(positioned.node, positioned.position, parent)}
+            {renderNode(positioned.node, parent)}
           </TreeElementNode>
         );
       })}

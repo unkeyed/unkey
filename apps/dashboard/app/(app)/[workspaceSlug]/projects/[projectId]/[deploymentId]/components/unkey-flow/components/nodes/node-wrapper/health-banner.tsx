@@ -1,5 +1,5 @@
 import { cn } from "@unkey/ui/src/lib/utils";
-import { type HealthStatus, STATUS_CONFIG } from "./status-config";
+import { type HealthStatus, STATUS_CONFIG } from "../status/status-config";
 
 type HealthBannerProps = {
   healthStatus: HealthStatus;

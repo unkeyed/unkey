@@ -4,85 +4,22 @@ import { useState } from "react";
 import { useProject } from "../layout-provider";
 import { TreeConnectionLine, TreeLayout } from "./components/unkey-flow";
 import { InfiniteCanvas } from "./components/unkey-flow/components/canvas/infinite-canvas";
-import { DefaultNode } from "./components/unkey-flow/components/nodes/default-node";
 import {
+  type DeploymentNode,
   GatewayNode,
+  OriginNode,
   RegionNode,
+  SKELETON_TREE,
   SkeletonNode,
-} from "./components/unkey-flow/components/nodes/deploy-node";
-import { OriginNode } from "./components/unkey-flow/components/nodes/origin-node";
-import type { DeploymentNode } from "./components/unkey-flow/components/nodes/types";
+  isGatewayNode,
+  isOriginNode,
+  isRegionNode,
+  isSkeletonNode,
+} from "./components/unkey-flow/components/nodes";
 import { LiveIndicator } from "./components/unkey-flow/components/overlay/live";
 import { NodeDetailsPanel } from "./components/unkey-flow/components/overlay/node-details-panel";
 import { ProjectDetails } from "./components/unkey-flow/components/overlay/project-details";
 import { InternalDevTreeGenerator } from "./components/unkey-flow/components/simulate/tree-generate";
-
-const SKELETON_TREE: DeploymentNode = {
-  id: "internet",
-  label: "INTERNET",
-  metadata: { type: "origin" },
-  children: [
-    {
-      id: "us-east-1-skeleton",
-      label: "us-east-1",
-      direction: "horizontal",
-      metadata: { type: "skeleton" } as const,
-      children: [
-        {
-          id: "us-east-1-gw-1-skeleton",
-          label: "gw-skeleton-1",
-          metadata: { type: "skeleton" } as const,
-        },
-        {
-          id: "us-east-1-gw-2-skeleton",
-          label: "gw-skeleton-2",
-          metadata: { type: "skeleton" } as const,
-        },
-      ],
-    },
-    {
-      id: "eu-central-1-skeleton",
-      label: "eu-central-1",
-      direction: "horizontal",
-      metadata: { type: "skeleton" } as const,
-      children: [
-        {
-          id: "eu-central-1-gw-1-skeleton",
-          label: "gw-skeleton-1",
-          metadata: { type: "skeleton" } as const,
-        },
-        {
-          id: "eu-central-1-gw-2-skeleton",
-          label: "gw-skeleton-2",
-          metadata: { type: "skeleton" } as const,
-        },
-        {
-          id: "eu-central-1-gw-3-skeleton",
-          label: "gw-skeleton-3",
-          metadata: { type: "skeleton" } as const,
-        },
-      ],
-    },
-    {
-      id: "ap-southeast-2-skeleton",
-      label: "ap-southeast-2",
-      direction: "horizontal",
-      metadata: { type: "skeleton" } as const,
-      children: [
-        {
-          id: "ap-southeast-2-gw-1-skeleton",
-          label: "gw-skeleton-1",
-          metadata: { type: "skeleton" } as const,
-        },
-        {
-          id: "ap-southeast-2-gw-2-skeleton",
-          label: "gw-skeleton-2",
-          metadata: { type: "skeleton" } as const,
-        },
-      ],
-    },
-  ],
-};
 
 export default function DeploymentDetailsPage() {
   const { projectId, liveDeploymentId } = useProject();
@@ -117,40 +54,37 @@ export default function DeploymentDetailsPage() {
         data={currentTree}
         nodeSpacing={{ x: 25, y: 75 }}
         onNodeClick={isShowingSkeleton ? undefined : (node) => setSelectedNode(node)}
-        renderNode={(node, _, parent) => {
-          if (node.metadata.type === "skeleton") {
-            return <SkeletonNode />;
-          }
-
-          switch (node.metadata.type) {
-            case "origin":
-              return <OriginNode node={node} />;
-            case "region":
-              return (
-                <RegionNode node={node as DeploymentNode & { metadata: { type: "region" } }} />
-              );
-            case "gateway":
-              if (!parent?.id) {
-                throw new Error("Gateway node requires parent region");
-              }
-              const parentMetadata = parent.metadata;
-              if (parentMetadata.type !== "region") {
-                throw new Error("Gateway parent must be a region node");
-              }
-              return (
-                <GatewayNode
-                  node={node as DeploymentNode & { metadata: { type: "gateway" } }}
-                  flagCode={parentMetadata.flagCode}
-                />
-              );
-            default:
-              return <DefaultNode node={node} />;
-          }
-        }}
-        renderConnection={(path, parent, child) => {
-          return <TreeConnectionLine key={`${parent.id}-${child.id}`} path={path} />;
-        }}
+        renderNode={(node, parent) => renderDeploymentNode(node, parent)}
+        renderConnection={(path, parent, child) => (
+          <TreeConnectionLine key={`${parent.id}-${child.id}`} path={path} />
+        )}
       />
     </InfiniteCanvas>
   );
+}
+
+// renderDeployment function does not narrow types without type guards.
+function renderDeploymentNode(node: DeploymentNode, parent?: DeploymentNode): React.ReactNode {
+  if (isSkeletonNode(node)) {
+    return <SkeletonNode />;
+  }
+
+  if (isOriginNode(node)) {
+    return <OriginNode node={node} />;
+  }
+
+  if (isRegionNode(node)) {
+    return <RegionNode node={node} />;
+  }
+
+  if (isGatewayNode(node)) {
+    if (!parent || !isRegionNode(parent)) {
+      throw new Error("Gateway node requires parent region");
+    }
+    return <GatewayNode node={node} flagCode={parent.metadata.flagCode} />;
+  }
+
+  // This will yell at you if you don't handle a node type
+  const _exhaustive: never = node;
+  return _exhaustive;
 }

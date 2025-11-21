@@ -1,5 +1,5 @@
 import { InfoTooltip } from "@unkey/ui";
-import { StatusDot } from "../nodes/status-dot";
+import { StatusDot } from "../nodes/status/status-dot";
 
 export const LiveIndicator = () => {
   return (

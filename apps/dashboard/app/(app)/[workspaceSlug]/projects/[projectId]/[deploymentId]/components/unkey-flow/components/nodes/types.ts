@@ -8,53 +8,79 @@ type HealthStatus =
   | "unknown"
   | "disabled";
 
-type OriginMetadata = {
-  type: "origin";
-};
-
-type RegionMetadata = {
-  type: "region";
-  flagCode: "us" | "de" | "au" | "jp" | "in" | "br";
-  zones: number;
-  instances: number;
-  replicas: number;
-  rps?: number;
-  cpu?: number;
-  memory?: number;
-  storage?: number;
-  latency: string;
-  health: HealthStatus;
-};
-
-type GatewayMetadata = {
-  type: "gateway";
-  description: string;
-  instances?: number;
-  replicas: number;
-  rps?: number;
-  cpu?: number;
-  memory?: number;
-  storage?: number;
-  latency: string;
-  health: HealthStatus;
-};
-
-type NodeMetadata = OriginMetadata | RegionMetadata | GatewayMetadata | { type: "skeleton" };
-
-type DeploymentNode = {
+type BaseNode = {
   id: string;
   label: string;
   direction?: "horizontal" | "vertical";
-  metadata: NodeMetadata;
+};
+
+type BaseMetrics = {
+  rps?: number;
+  cpu?: number;
+  memory?: number;
+  storage?: number;
+  latency: string;
+  health: HealthStatus;
+};
+
+type OriginNode = BaseNode & {
+  metadata: {
+    type: "origin";
+  };
   children?: DeploymentNode[];
 };
+
+type RegionNode = BaseNode & {
+  metadata: {
+    type: "region";
+    flagCode: "us" | "de" | "au" | "jp" | "in" | "br";
+    zones: number;
+    instances: number;
+    replicas: number;
+  } & BaseMetrics;
+  children?: GatewayNode[];
+};
+
+type GatewayNode = BaseNode & {
+  metadata: {
+    type: "gateway";
+    description: string;
+    instances?: number;
+    replicas: number;
+  } & BaseMetrics;
+};
+
+type SkeletonNode = BaseNode & {
+  metadata: {
+    type: "skeleton";
+  };
+  children?: SkeletonNode[];
+};
+
+type DeploymentNode = OriginNode | RegionNode | GatewayNode | SkeletonNode;
+
+function isOriginNode(node: DeploymentNode): node is OriginNode {
+  return node.metadata.type === "origin";
+}
+
+function isRegionNode(node: DeploymentNode): node is RegionNode {
+  return node.metadata.type === "region";
+}
+
+function isGatewayNode(node: DeploymentNode): node is GatewayNode {
+  return node.metadata.type === "gateway";
+}
+
+function isSkeletonNode(node: DeploymentNode): node is SkeletonNode {
+  return node.metadata.type === "skeleton";
+}
 
 type RegionInfo = {
   name: string;
   location: string;
 };
 
-const REGION_INFO: Record<RegionMetadata["flagCode"], RegionInfo> = {
+const REGION_INFO: Record<RegionNode["metadata"]["flagCode"], RegionInfo> = {
   us: { name: "US East", location: "N. Virginia" },
   de: { name: "EU Central", location: "Frankfurt" },
   au: { name: "AP Southeast", location: "Sydney" },
@@ -63,14 +89,27 @@ const REGION_INFO: Record<RegionMetadata["flagCode"], RegionInfo> = {
   br: { name: "SA East", location: "São Paulo" },
 } as const;
 
+type NodeSize = { width: number; height: number };
+/**
+ * Since our nodes are custom-made, we can optimize layout through static heights and widths.
+ * If things change over time, we can either update this list or create a ResizeObserver to track changes dynamically.
+ */
+const NODE_SIZES: Record<DeploymentNode["metadata"]["type"], NodeSize> = {
+  origin: { width: 70, height: 20 },
+  region: { width: 282, height: 100 },
+  gateway: { width: 282, height: 100 },
+  skeleton: { width: 282, height: 100 },
+} as const;
+
 export type {
   DeploymentNode,
-  NodeMetadata,
-  RegionMetadata,
-  GatewayMetadata as InstanceMetadata,
-  OriginMetadata,
+  OriginNode,
+  RegionNode,
+  GatewayNode,
+  SkeletonNode,
   HealthStatus,
   RegionInfo,
+  BaseMetrics,
 };
 
-export { REGION_INFO };
+export { isOriginNode, isRegionNode, isGatewayNode, isSkeletonNode, REGION_INFO, NODE_SIZES };

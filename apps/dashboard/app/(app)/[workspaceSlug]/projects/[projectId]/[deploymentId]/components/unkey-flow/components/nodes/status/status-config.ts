@@ -1,5 +1,5 @@
 import { CircleCheck, TriangleWarning2 } from "@unkey/icons";
-import type { HealthStatus } from "./types";
+import type { HealthStatus } from "../types";
 
 type StatusColors = {
   dotBg: string;
@@ -152,4 +152,4 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
 };
 
 export { STATUS_CONFIG };
-export type { HealthStatus, StatusConfig };
+export type { StatusConfig, HealthStatus };

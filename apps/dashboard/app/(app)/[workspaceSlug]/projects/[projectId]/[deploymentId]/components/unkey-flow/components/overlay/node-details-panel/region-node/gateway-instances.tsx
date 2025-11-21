@@ -1,6 +1,7 @@
 import { Bolt, ChartActivity, CircleCheck, Focus, Heart, Layers2 } from "@unkey/icons";
-import { MetricPill, StatusIndicator } from "../../../nodes/deploy-node";
-import type { DeploymentNode } from "../../../nodes/types";
+import type { DeploymentNode } from "../../../nodes";
+import { MetricPill } from "../../../nodes/components/metric-pill";
+import { StatusIndicator } from "../../../nodes/status/status-indicator";
 
 type GatewayInstancesProps = {
   instances: DeploymentNode[];

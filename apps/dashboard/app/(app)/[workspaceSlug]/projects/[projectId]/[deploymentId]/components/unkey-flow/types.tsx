@@ -29,7 +29,7 @@ export type TreeLayoutProps<T extends TreeNode> = {
   data: T;
   nodeSpacing?: { x: number; y: number };
   onNodeClick?: (node: T) => void;
-  renderNode: (node: T, position: Point, parent: T | undefined) => React.ReactNode;
+  renderNode: (node: T, parent: T | undefined) => React.ReactNode;
   renderConnection?: (path: Point[], parent: T, child: T) => React.ReactNode;
 };
 

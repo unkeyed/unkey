@@ -1,6 +1,6 @@
 import { Book2, DoubleChevronRight, type IconProps } from "@unkey/icons";
 import type { FC } from "react";
-import { CardHeader, type CardHeaderProps } from "../../../nodes/deploy-node";
+import { CardHeader, type CardHeaderProps } from "../../../nodes/components/card-header";
 
 type Props = {
   onClose: () => void;
