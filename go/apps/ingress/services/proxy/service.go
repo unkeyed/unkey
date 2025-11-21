@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"strconv"
 	"time"
@@ -93,88 +92,13 @@ func (s *service) ForwardToGateway(ctx context.Context, sess *zen.Session, gatew
 		)
 	}
 
-	return s.forwardToGateway(ctx, sess, targetURL, deploymentID, startTime)
-}
-
-// forwardToGateway handles proxying to a local gateway service
-func (s *service) forwardToGateway(_ctx context.Context, sess *zen.Session, targetURL *url.URL, deploymentID string, startTime time.Time) error {
-	// Set response headers BACK TO CLIENT so they can see which ingress handled their request
-	// These are useful for debugging and support tickets
-	sess.ResponseWriter().Header().Set(HeaderIngressID, s.ingressID)
-	sess.ResponseWriter().Header().Set(HeaderRegion, s.region)
-	sess.ResponseWriter().Header().Set(HeaderRequestID, sess.RequestID())
-
-	var gatewayStartTime time.Time
-
-	// Always add timing headers when function returns (success or error)
-	defer func() {
-		totalTime := s.clock.Now().Sub(startTime)
-		if !gatewayStartTime.IsZero() {
-			sess.ResponseWriter().Header().Set("X-Unkey-Ingress-Time", fmt.Sprintf("%dms", gatewayStartTime.Sub(startTime).Milliseconds()))
-		}
-		sess.ResponseWriter().Header().Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
-	}()
-
-	// Wrap the response writer to capture errors without writing to client
-	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
-
-	// Create reverse proxy with shared transport
-	proxy := &httputil.ReverseProxy{
-		Transport: s.transport,
-		Director: func(req *http.Request) {
-			// Record when we start calling gateway
-			gatewayStartTime = s.clock.Now()
-
-			// Update URL to target
-			req.URL.Scheme = targetURL.Scheme
-			req.URL.Host = targetURL.Host
-
-			// Add metadata headers TO DOWNSTREAM SERVICE (gateway)
-			// These tell the gateway which ingress forwarded the request
-			req.Header.Set(HeaderIngressID, s.ingressID)
-			req.Header.Set(HeaderRegion, s.region)
-			req.Header.Set(HeaderRequestID, sess.RequestID())
-
-			// Add timing to track latency added by this ingress (routing overhead)
-			ingressRoutingTimeMs := gatewayStartTime.Sub(startTime).Milliseconds()
-			req.Header.Set(HeaderIngressTime, strconv.FormatInt(ingressRoutingTimeMs, 10))
-
-			// Add standard proxy headers for local gateway
-			req.Header.Set(HeaderForwardedProto, "https")
-
-			// Add deployment ID so gateway knows which deployment to route to
-			req.Header.Set(HeaderDeploymentID, deploymentID)
-		},
-		ModifyResponse: func(resp *http.Response) error {
-			return nil
-		},
-		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			// Capture the error for middleware to handle
-			if ecw, ok := w.(*zen.ErrorCapturingWriter); ok {
-				ecw.SetError(err)
-
-				s.logger.Warn("proxy error forwarding to gateway",
-					"error", err.Error(),
-					"target", targetURL.String(),
-				)
-			}
-		},
-	}
-
-	// Proxy the request with wrapped writer
-	proxy.ServeHTTP(wrapper, sess.Request())
-
-	// If error was captured, return it to middleware for consistent error handling
-	if err := wrapper.Error(); err != nil {
-		urn, message := categorizeProxyError(err)
-		return fault.Wrap(err,
-			fault.Code(urn),
-			fault.Internal(fmt.Sprintf("proxy error forwarding to gateway %s", targetURL.String())),
-			fault.Public(message),
-		)
-	}
-
-	return nil
+	proxyStartTime := s.clock.Now()
+	return s.forward(sess, forwardConfig{
+		targetURL:    targetURL,
+		startTime:    startTime,
+		directorFunc: s.makeGatewayDirector(sess, deploymentID, startTime, proxyStartTime),
+		logTarget:    "gateway",
+	})
 }
 
 // ForwardToNLB forwards a request to a remote region's NLB (HTTPS)
@@ -205,108 +129,11 @@ func (s *service) ForwardToNLB(ctx context.Context, sess *zen.Session, targetReg
 		)
 	}
 
-	return s.forwardToNLB(ctx, sess, targetURL, startTime)
-}
-
-// forwardToNLB handles proxying to a remote region's NLB
-func (s *service) forwardToNLB(_ctx context.Context, sess *zen.Session, targetURL *url.URL, startTime time.Time) error {
-	// Set response headers BACK TO CLIENT so they can see which ingress handled their request
-	// These are useful for debugging and support tickets
-	sess.ResponseWriter().Header().Set(HeaderIngressID, s.ingressID)
-	sess.ResponseWriter().Header().Set(HeaderRegion, s.region)
-	sess.ResponseWriter().Header().Set(HeaderRequestID, sess.RequestID())
-
-	var nlbStartTime time.Time
-
-	// Always add timing headers when function returns (success or error)
-	defer func() {
-		totalTime := s.clock.Now().Sub(startTime)
-		if !nlbStartTime.IsZero() {
-			sess.ResponseWriter().Header().Set("X-Unkey-Ingress-Time", fmt.Sprintf("%dms", nlbStartTime.Sub(startTime).Milliseconds()))
-		}
-		sess.ResponseWriter().Header().Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
-	}()
-
-	// Wrap the response writer to capture errors without writing to client
-	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
-
-	// Create reverse proxy with shared transport
-	proxy := &httputil.ReverseProxy{
-		Transport: s.transport,
-		Director: func(req *http.Request) {
-			// Record when we start calling NLB
-			nlbStartTime = s.clock.Now()
-
-			// Update URL to target
-			req.URL.Scheme = targetURL.Scheme
-			req.URL.Host = targetURL.Host
-
-			// Add metadata headers TO DOWNSTREAM SERVICE (remote ingress)
-			// These tell the remote ingress which ingress forwarded the request
-			req.Header.Set(HeaderIngressID, s.ingressID)
-			req.Header.Set(HeaderRegion, s.region)
-			req.Header.Set(HeaderRequestID, sess.RequestID())
-
-			// Add timing to track latency added by this ingress (routing overhead)
-			ingressRoutingTimeMs := nlbStartTime.Sub(startTime).Milliseconds()
-			req.Header.Set(HeaderIngressTime, strconv.FormatInt(ingressRoutingTimeMs, 10))
-
-			// Remote ingress - preserve original Host for TLS termination and routing
-			req.Host = sess.Request().Host
-			req.Header.Set("Host", sess.Request().Host)
-
-			// Add parent tracking to trace the forwarding chain
-			req.Header.Set(HeaderParentIngressID, s.ingressID)
-			req.Header.Set(HeaderParentRequestID, sess.RequestID())
-
-			// Parse and increment hop count to prevent infinite loops
-			currentHops := 0
-			if hopCountStr := req.Header.Get(HeaderIngressHops); hopCountStr != "" {
-				if parsed, err := strconv.Atoi(hopCountStr); err == nil {
-					currentHops = parsed
-				}
-			}
-			currentHops++
-			req.Header.Set(HeaderIngressHops, strconv.Itoa(currentHops))
-
-			// Log warning if approaching max hops
-			if currentHops >= s.maxHops-1 {
-				s.logger.Warn("approaching max hops limit",
-					"currentHops", currentHops,
-					"maxHops", s.maxHops,
-					"hostname", req.Host,
-				)
-			}
-		},
-		ModifyResponse: func(resp *http.Response) error {
-			return nil
-		},
-		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			// Capture the error for middleware to handle
-			if ecw, ok := w.(*zen.ErrorCapturingWriter); ok {
-				ecw.SetError(err)
-
-				s.logger.Warn("proxy error forwarding to NLB",
-					"error", err.Error(),
-					"target", targetURL.String(),
-					"hostname", r.Host,
-				)
-			}
-		},
-	}
-
-	// Proxy the request with wrapped writer
-	proxy.ServeHTTP(wrapper, sess.Request())
-
-	// If error was captured, return it to middleware for consistent error handling
-	if err := wrapper.Error(); err != nil {
-		urn, message := categorizeProxyError(err)
-		return fault.Wrap(err,
-			fault.Code(urn),
-			fault.Internal(fmt.Sprintf("proxy error forwarding to NLB %s", targetURL.String())),
-			fault.Public(message),
-		)
-	}
-
-	return nil
+	proxyStartTime := s.clock.Now()
+	return s.forward(sess, forwardConfig{
+		targetURL:    targetURL,
+		startTime:    startTime,
+		directorFunc: s.makeNLBDirector(sess, startTime, proxyStartTime),
+		logTarget:    "NLB",
+	})
 }
