@@ -11,8 +11,8 @@ import (
 )
 
 const insertCertificate = `-- name: InsertCertificate :exec
-INSERT INTO certificates (workspace_id, hostname, certificate, encrypted_private_key, created_at)
-VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE
+INSERT INTO certificates (id, workspace_id, hostname, certificate, encrypted_private_key, created_at)
+VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE
 workspace_id = VALUES(workspace_id),
 hostname = VALUES(hostname),
 certificate = VALUES(certificate),
@@ -21,6 +21,7 @@ updated_at = ?
 `
 
 type InsertCertificateParams struct {
+	ID                  string        `db:"id"`
 	WorkspaceID         string        `db:"workspace_id"`
 	Hostname            string        `db:"hostname"`
 	Certificate         string        `db:"certificate"`
@@ -31,8 +32,8 @@ type InsertCertificateParams struct {
 
 // InsertCertificate
 //
-//	INSERT INTO certificates (workspace_id, hostname, certificate, encrypted_private_key, created_at)
-//	VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE
+//	INSERT INTO certificates (id, workspace_id, hostname, certificate, encrypted_private_key, created_at)
+//	VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE
 //	workspace_id = VALUES(workspace_id),
 //	hostname = VALUES(hostname),
 //	certificate = VALUES(certificate),
@@ -40,6 +41,7 @@ type InsertCertificateParams struct {
 //	updated_at = ?
 func (q *Queries) InsertCertificate(ctx context.Context, db DBTX, arg InsertCertificateParams) error {
 	_, err := db.ExecContext(ctx, insertCertificate,
+		arg.ID,
 		arg.WorkspaceID,
 		arg.Hostname,
 		arg.Certificate,
