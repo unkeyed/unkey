@@ -42,13 +42,15 @@ const (
 	StepPrefix               Prefix = "step"
 
 	// Control plane prefixes
-	ProjectPrefix     Prefix = "proj"
-	EnvironmentPrefix Prefix = "env"
-	VersionPrefix     Prefix = "v"
-	BuildPrefix       Prefix = "build"
-	RootfsImagePrefix Prefix = "img"
-	DomainPrefix      Prefix = "dom"
-	DeploymentPrefix  Prefix = "d"
+	ProjectPrefix      Prefix = "proj"
+	EnvironmentPrefix  Prefix = "env"
+	VersionPrefix      Prefix = "v"
+	BuildPrefix        Prefix = "build"
+	RootfsImagePrefix  Prefix = "img"
+	DomainPrefix       Prefix = "dom"
+	DeploymentPrefix   Prefix = "d"
+	IngressRoutePrefix Prefix = "ir"
+	CertificatePrefix  Prefix = "cert"
 )
 
 // epoch starts more recently so that the 32-bit number space gives a
