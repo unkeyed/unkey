@@ -23,7 +23,7 @@ func Test200_Success(t *testing.T) {
 	h.SetupAnalytics(workspace.ID)
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
-	now := h.Clock.Now().UnixMilli()
+	now := time.Now().UnixMilli() // Use real time for ClickHouse data since queries use real now()
 
 	// Buffer some key verifications
 	for i := range 5 {
@@ -61,7 +61,7 @@ func Test200_Success(t *testing.T) {
 	}
 
 	// Wait for buffered data to be available
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	res := testutil.CallRoute[Request, Response](h, route, headers, req)
 	t.Logf("Status: %d, RawBody: %s", res.Status, res.RawBody)
@@ -85,7 +85,7 @@ func Test200_PermissionFiltersByApiId(t *testing.T) {
 	// Create root key with permission ONLY for api1
 	rootKey := h.CreateRootKey(workspace.ID, "api."+api1.ID+".read_analytics")
 
-	now := h.Clock.Now().UnixMilli()
+	now := time.Now().UnixMilli() // Use real time for ClickHouse data since queries use real now()
 
 	// Buffer verifications for api1
 	for i := range 3 {
@@ -166,7 +166,7 @@ func Test200_PermissionFiltersByKeySpaceId(t *testing.T) {
 	// Create root key with permission ONLY for api1
 	rootKey := h.CreateRootKey(workspace.ID, "api."+api1.ID+".read_analytics")
 
-	now := h.Clock.Now().UnixMilli()
+	now := time.Now().UnixMilli() // Use real time for ClickHouse data since queries use real now()
 
 	// Buffer verifications for api1
 	for i := range 3 {
@@ -249,7 +249,7 @@ func Test200_QueryWithin30DaysRetention(t *testing.T) {
 	h.SetupAnalytics(workspace.ID)
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
-	now := h.Clock.Now().UnixMilli()
+	now := time.Now().UnixMilli() // Use real time for ClickHouse data since queries use real now()
 
 	// Buffer verification from 7 days ago (within 30-day retention)
 	h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
@@ -284,7 +284,7 @@ func Test200_QueryWithin30DaysRetention(t *testing.T) {
 		Query: "SELECT COUNT(*) as count FROM key_verifications_v1 WHERE time >= now() - INTERVAL 7 DAY",
 	}
 
-	time.Sleep(2 * time.Second) // Wait for data
+	time.Sleep(5 * time.Second) // Wait for data
 
 	res := testutil.CallRoute[Request, Response](h, route, headers, req)
 	require.Equal(t, 200, res.Status, "Query within retention should succeed")
@@ -375,7 +375,8 @@ func Test200_RLSWorkspaceIsolation(t *testing.T) {
 
 	rootKey1 := h.CreateRootKey(workspace1.ID, "api.*.read_analytics")
 
-	now := h.Clock.Now().UnixMilli()
+	// Use actual current time for analytics data since ClickHouse's now() uses real time, not mock clock
+	now := time.Now().UnixMilli()
 
 	// Buffer data for workspace 1
 	for i := range 5 {
@@ -427,7 +428,7 @@ func Test200_RLSWorkspaceIsolation(t *testing.T) {
 		Query: "SELECT COUNT(*) as count FROM key_verifications_v1 WHERE time >= now() - INTERVAL 1 DAY",
 	}
 
-	time.Sleep(2 * time.Second) // Wait for data
+	time.Sleep(5 * time.Second) // Wait for data to be flushed to ClickHouse
 
 	res := testutil.CallRoute[Request, Response](h, route, headers, req)
 	require.Equal(t, 200, res.Status)
@@ -450,7 +451,7 @@ func Test200_RLSTimeRetentionFilteredAtDatabase(t *testing.T) {
 	h.SetupAnalytics(workspace.ID)
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
-	now := h.Clock.Now().UnixMilli()
+	now := time.Now().UnixMilli() // Use real time for ClickHouse data since queries use real now()
 	thirtyOneDaysAgo := now - (31 * 24 * 60 * 60 * 1000)
 
 	// Buffer verification from 31 days ago (beyond 30-day retention)
@@ -501,7 +502,7 @@ func Test200_RLSTimeRetentionFilteredAtDatabase(t *testing.T) {
 		Query: "SELECT COUNT(*) as count FROM key_verifications_v1 WHERE time >= now() - INTERVAL 30 DAY",
 	}
 
-	time.Sleep(2 * time.Second) // Wait for data
+	time.Sleep(5 * time.Second) // Wait for data
 
 	res := testutil.CallRoute[Request, Response](h, route, headers, req)
 	require.Equal(t, 200, res.Status)
@@ -533,7 +534,7 @@ func Test200_RLSCombinedWorkspaceAndRetentionFilters(t *testing.T) {
 
 	rootKey1 := h.CreateRootKey(workspace1.ID, "api.*.read_analytics")
 
-	now := h.Clock.Now().UnixMilli()
+	now := time.Now().UnixMilli() // Use real time for ClickHouse data since queries use real now()
 	thirtyOneDaysAgo := now - (31 * 24 * 60 * 60 * 1000)
 	sevenDaysAgo := now - (7 * 24 * 60 * 60 * 1000)
 
@@ -608,7 +609,7 @@ func Test200_RLSCombinedWorkspaceAndRetentionFilters(t *testing.T) {
 		Query: "SELECT COUNT(*) as count FROM key_verifications_v1 WHERE time >= now() - INTERVAL 30 DAY",
 	}
 
-	time.Sleep(2 * time.Second) // Wait for data
+	time.Sleep(5 * time.Second) // Wait for data
 
 	res := testutil.CallRoute[Request, Response](h, route, headers, req)
 	require.Equal(t, 200, res.Status)

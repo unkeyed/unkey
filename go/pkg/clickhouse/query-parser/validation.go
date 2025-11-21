@@ -37,6 +37,7 @@ var allowedFunctions = map[string]bool{
 	"tostartofday":             true,
 	"tostartofweek":            true,
 	"tostartofmonth":           true,
+	"tostartofquarter":         true,
 	"tostartofyear":            true,
 	"tostartofhour":            true,
 	"tostartofminute":          true,
