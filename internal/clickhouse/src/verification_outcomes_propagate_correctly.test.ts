@@ -109,7 +109,7 @@ describe.each([10, 100, 1_000, 10_000])("with %i verifications", (n) => {
       }
 
       await ch.querier.query({
-        query: "OPTIMIZE TABLE default.key_verifications_per_day_v2 FINAL",
+        query: "OPTIMIZE TABLE default.key_verifications_per_day_v3 FINAL",
         schema: z.any(),
       })({});
 
@@ -119,7 +119,7 @@ describe.each([10, 100, 1_000, 10_000])("with %i verifications", (n) => {
               SELECT
                 outcome,
                 SUM(count) as total
-              FROM default.key_verifications_per_day_v2
+              FROM default.key_verifications_per_day_v3
               WHERE
                 workspace_id = '${workspaceId}' AND
                 key_space_id = '${keySpaceId}' AND

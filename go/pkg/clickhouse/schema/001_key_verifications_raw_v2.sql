@@ -41,7 +41,7 @@ CREATE TABLE key_verifications_raw_v2
 )
 ENGINE = MergeTree()
 ORDER BY (workspace_id, time, key_space_id, outcome)
-TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 1 MONTH DELETE
+TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 90 DAY DELETE
 SETTINGS non_replicated_deduplication_window = 10000
 ;
 

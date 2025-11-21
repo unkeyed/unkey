@@ -176,8 +176,12 @@ func DefaultAllowedTables() []string {
 		// Key verifications
 		"default.key_verifications_raw_v2",
 		"default.key_verifications_per_minute_v2",
+		"default.key_verifications_per_minute_v3",
 		"default.key_verifications_per_hour_v2",
+		"default.key_verifications_per_hour_v3",
 		"default.key_verifications_per_day_v2",
+		"default.key_verifications_per_day_v3",
 		"default.key_verifications_per_month_v2",
+		"default.key_verifications_per_month_v3",
 	}
 }
