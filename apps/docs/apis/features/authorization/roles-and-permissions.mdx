@@ -17,106 +17,98 @@ Creating, updating and deleting roles is available in the dashboard.
 
 ### Create
 
-1. Go to [/app/authorization/roles](https://app.unkey.com/authorization/roles)
-2. Click `Create New Role`
-3. Enter a unique name for your role and optionally a human readable description.
-4. Click `Create`
+1. From the unkey dashboard [app.unkey.com](https://app.unkey.com).
+2. Navigate to the `Authorization` section in the left sidebar.
+3. Click `Create New Role`.
+4. Enter a unique name for your role.
+5. Enter a description for your role. (Optional)
+6. Assign keys and permissions to the role. (Optional)
+7. Click `Create new role`.
 
 After the role is created, you are forwarded and can update/delete the role or connect existing permissions.
 
 ### Update
 
-1. Go to [/app/authorization/roles](https://app.unkey.com/authorization/roles)
-2. Click on the role you want to update
-3. Click `Update Role`
-4. Make changes to the name, description or both
-5. Click `Save`
+1. From the unkey dashboard [app.unkey.com](https://app.unkey.com).
+2. Navigate to the `Authorization` section in the left sidebar.
+3. Click on the role you want to update. Optionally you can also click the action menu (`...`) to the right of the role.
+4. Make changes to the role as needed.
+5. Click `Update role`.
 
 
 ### Delete
 
-1. Go to [/app/authorization/roles](https://app.unkey.com/authorization/roles)
-2. Click on the role you want to delete
-3. Click `Delete Role`
-4. Enter the name of the role to confirm
-5. Click `Delete Role`
+1. From the unkey dashboard [app.unkey.com](https://app.unkey.com).
+2. Navigate to the `Authorization` section in the left sidebar.
+3. Click on the action menu (`...`) to the right of the role you want to delete.
+4. Click `Delete role` in the popup menu.
+5. Toggle the checkbox confirming the deletion.
+6. Click `Delete role` button.
 
 ## Permissions
 Creating, updating and deleting permissions is available in the dashboard.
 
 ### Create
 
-1. Go to [/app/authorization/permissions](https://app.unkey.com/authorization/permissions)
-2. Click `Create New Permission`
-3. Enter a unique name for your permissoin and optionally a human readable description.
-4. Click `Create New Permission`
+1. From the unkey dashboard [app.unkey.com](https://app.unkey.com).
+2. Navigate to the `Authorization` section in the left sidebar.
+3. Click on `Permissions` in the left sidebar dropdown under the `Authorization` section.
+4. Click `Create New Permission`.
+5. Enter a human readable name for your permission.
+6. Enter a unique identifier slug. 
+7. Enter a description for your permission. (Optional)
+8. Click `Create new permission`.
 
 ### Update
 
 
-1. Go to [/app/authorization/permissions](https://app.unkey.com/authorization/permissions)
-2. Click on the permission you want to update
-3. Click `Update Role`
-4. Make changes to the name, description or both
-5. Click `Save`
+1. From the unkey dashboard [app.unkey.com](https://app.unkey.com).
+2. Navigate to the `Authorization` section in the left sidebar.
+3. Click on `Permissions` in the left sidebar dropdown under the `Authorization` section.
+4. Click on the permission you want to update. Optionally you can also click the action menu (`...`) to the right of the role.
+5. Make changes to the name, slug, and description as needed.
+6. Click `Update permission`.
+
 ### Delete
 
 
-1. Go to [/app/authorization/permisions](https://app.unkey.com/authorization/permisions)
-2. Click on the permission you want to delete
-3. Click `Delete`
-4. Enter the name of the permission to confirm
-5. Click `Delete`
+1. From the unkey dashboard [app.unkey.com](https://app.unkey.com).
+2. Navigate to the `Authorization` section in the left sidebar.
+3. Click on `Permissions` in the left sidebar dropdown under the `Authorization` section.
+4. Click on the action menu (`...`) to the right of the role you want to delete.
+5. Click `Delete permission`.
+6. Toggle the checkbox confirming the deletion.
+7. Click `Delete permission`.
 
 ## Connecting roles and permissions
 
 After you have created at least 1 role and 1 permission, you can start associating them with each other.
 
-
-Go to [/app/authorization/roles](https://app.unkey.com/authorization/roles) and click on the role to go to the permissions screen.
-Now you can click the checkboxes to connect the role and permission.
-
-A checked box means the role will grant the permission to keys.
+1. From the unkey dashboard [app.unkey.com](https://app.unkey.com).
+2. Navigate to the `Authorization` section in the left sidebar.
+3. Click on the role you want to update. Optionally you can also click the action menu (`...`) to the right of the role.
+4. Select the `Add permissions` input. Each item you select will be added to the selected permissions list below the input. This can be repeated to connect multiple permissions. 
+5. Click `Update role`.
 
 <Frame>
-  <img src="/apis/features/authorization/domains-roles-read-only.png" alt="Read-only roles"/>
-  </Frame>
-
-
-
-
-
+  <img src="/apis/features/authorization/update-role-connection.png" alt="Role Update Dialog"/>
+</Frame>
 
 ## Connecting roles to keys
 
-1. In the sidebar, click on one of your APIs
-2. In the breakcrumb navigation on the top click Reqests and then keys
+1. In the sidebar, click on one of your APIs.
+2. In the sub menu, click on Keys.
     <Frame>
-      <img src="/apis/features/authorization/api-keys-navigation.png" alt="Breadcrumb Navigation"/>
+      <img src="/apis/features/authorization/api-keys-navigation.png" alt="Sidebar Navigation"/>
     </Frame>
-3. Select one of your existing keys by clicking on it
-4. Scroll down to the `Roles` section if not visible
-
-You should now be on `/app/keys/key_auth_???/key_???`
-
-<Frame>
-  <img src="/apis/features/authorization/api-key-screen.png" alt="Unconnected roles and permissions"/>
-  </Frame>
-
-
-  You can connect a role to your key by clicking on the checkbox.
-
-  Let's give this key the `dns.manager` and `read-only` roles.
-  A toast message should come up in the lower corner when the action has been completed.
-
+3. Select one of your existing keys by clicking the action menu (`...`) to the right of the key.
+4. Select the `Manage roles and Permissions...` option.
+5. Select a `role` or `permission` from appropriate input.
+6. Click `Update key`.
 
 <Frame>
-  <img src="/apis/features/authorization/role-add-example.png" alt="Unconnected roles and permissions"/>
-  </Frame>
-
-As you can see, now the key now contains 2 `roles` and 5 `permissions` shown just above the Roles section:
-
-
+  <img src="/apis/features/authorization/key-role-update.png" alt="Key Authorization Update Dialog"/>
+</Frame>
 
 
 
@@ -140,4 +132,4 @@ curl -XPOST \
     ]
   }'
 ```
-See [here](api-reference/v2/keys/create-api-key) for details.
+See [here](/api-reference/v2/keys/create-api-key) for details.

@@ -52,13 +52,7 @@
                 "group": "Quickstart",
                 "icon": "rocket",
                 "pages": [
-                  {
-                    "group": "Onboarding",
-                    "pages": [
-                      "quickstart/onboarding/onboarding-api",
-                      "quickstart/onboarding/onboarding-ratelimiting"
-                    ]
-                  },
+                  "quickstart/onboarding/onboarding-api",
                   {
                     "group": "API Keys",
                     "pages": [
