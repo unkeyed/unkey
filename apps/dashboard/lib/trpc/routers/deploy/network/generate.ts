@@ -1,3 +1,9 @@
+import type {
+  DeploymentNode,
+  GatewayNode,
+  HealthStatus,
+  RegionNode,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/[deploymentId]/components/unkey-flow/components/nodes/types";
 import { db } from "@/lib/db";
 import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
@@ -26,46 +32,11 @@ const generatorConfigSchema = z.object({
   instanceDirection: z.enum(["vertical", "horizontal"]).optional(),
 });
 
-type HealthStatus = z.infer<typeof healthStatusSchema>;
-
-type RegionMetadata = {
-  type: "region";
-  flagCode: "us" | "de" | "au" | "jp" | "in" | "br";
-  zones: number;
-  instances: number;
-  replicas: number;
-  rps?: number;
-  cpu?: number;
-  memory?: number;
-  storage?: number;
-  latency: string;
-  health: HealthStatus;
-};
-
-type InstanceMetadata = {
-  type: "gateway";
-  description: string;
-  replicas: number;
-  rps?: number;
-  cpu?: number;
-  memory?: number;
-  latency: string;
-  health: HealthStatus;
-};
-
-export type DeploymentNode = {
-  id: string;
-  label: string;
-  direction?: "vertical" | "horizontal";
-  metadata: { type: "origin" } | RegionMetadata | InstanceMetadata;
-  children?: DeploymentNode[];
-};
-
 export const generateDeploymentTree = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .input(generatorConfigSchema)
-  .mutation(async ({ ctx, input }) => {
+  .mutation(async ({ ctx, input }): Promise<DeploymentNode> => {
     try {
       // Verify deployment belongs to workspace
       const deployment = await db.query.deployments.findFirst({
@@ -101,7 +72,7 @@ export const generateDeploymentTree = t.procedure
         "sa-east-1",
       ] as const;
 
-      const flags: Record<string, RegionMetadata["flagCode"]> = {
+      const flags: Record<string, RegionNode["metadata"]["flagCode"]> = {
         "us-east-1": "us",
         "eu-central-1": "de",
         "ap-southeast-2": "au",
@@ -133,7 +104,7 @@ export const generateDeploymentTree = t.procedure
         id: "internet",
         label: "INTERNET",
         metadata: { type: "origin" },
-        children: selectedRegions.map((regionId) => {
+        children: selectedRegions.map((regionId): RegionNode => {
           const instanceCount = getRandomInt(
             input.instancesPerRegion.min,
             input.instancesPerRegion.max,
@@ -141,42 +112,40 @@ export const generateDeploymentTree = t.procedure
           const totalInstances = getRandomInt(20, 40);
           const regionHealth = getRandomHealth();
 
-          const regionMetadata: RegionMetadata = {
-            type: "region",
-            flagCode: flags[regionId],
-            zones: getRandomInt(1, 3),
-            instances: totalInstances,
-            replicas: 2,
-            rps: getRandomInt(1000, 5000),
-            cpu: getRandomInt(30, 80),
-            memory: getRandomInt(40, 85),
-            storage: getRandomInt(512, 1024),
-            latency: `${(Math.random() * 5 + 1).toFixed(1)}ms`,
-            health: regionHealth,
-          };
-
           return {
             id: regionId,
             label: regionId,
             direction: input.instanceDirection ?? "vertical",
-            metadata: regionMetadata,
-            children: Array.from({ length: instanceCount }, (_, i) => {
+            metadata: {
+              type: "region",
+              flagCode: flags[regionId],
+              zones: getRandomInt(1, 3),
+              instances: totalInstances,
+              replicas: 2,
+              rps: getRandomInt(1000, 5000),
+              cpu: getRandomInt(30, 80),
+              memory: getRandomInt(40, 85),
+              storage: getRandomInt(512, 1024),
+              latency: `${(Math.random() * 5 + 1).toFixed(1)}ms`,
+              health: regionHealth,
+            },
+            children: Array.from({ length: instanceCount }, (_, i): GatewayNode => {
               const instanceId = Math.random().toString(36).substring(2, 6);
-              const instanceMetadata: InstanceMetadata = {
-                type: "gateway",
-                description: "Instance replica",
-                replicas: 2,
-                rps: getRandomInt(100, 500),
-                cpu: getRandomInt(20, 70),
-                memory: getRandomInt(30, 75),
-                latency: `${(Math.random() * 8 + 2).toFixed(1)}ms`,
-                health: getRandomHealth(),
-              };
 
               return {
                 id: `${regionId}-gw-${instanceId}-${i + 1}`,
                 label: `gw-${instanceId}`,
-                metadata: instanceMetadata,
+                metadata: {
+                  type: "gateway",
+                  description: "Instance replica",
+                  instances: 1,
+                  replicas: 2,
+                  rps: getRandomInt(100, 500),
+                  cpu: getRandomInt(20, 70),
+                  memory: getRandomInt(30, 75),
+                  latency: `${(Math.random() * 8 + 2).toFixed(1)}ms`,
+                  health: getRandomHealth(),
+                },
               };
             }),
           };

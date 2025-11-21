@@ -1,20 +1,9 @@
-// components/dev-tree-generator.tsx
 "use client";
 import { trpc } from "@/lib/trpc/client";
 import { Layers3, XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
-import type { DeploymentNode } from "../nodes/types";
-
-type HealthStatus =
-  | "normal"
-  | "unstable"
-  | "degraded"
-  | "unhealthy"
-  | "recovering"
-  | "health_syncing"
-  | "unknown"
-  | "disabled";
+import type { DeploymentNode, HealthStatus } from "../nodes/types";
 
 type GeneratorConfig = {
   regions: number;

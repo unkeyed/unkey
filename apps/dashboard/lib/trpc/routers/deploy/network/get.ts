@@ -1,8 +1,8 @@
+import type { DeploymentNode } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/[deploymentId]/components/unkey-flow/components/nodes";
 import { db } from "@/lib/db";
 import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import type { DeploymentNode } from "./generate";
 
 export const getDeploymentTree = t.procedure
   .use(requireUser)

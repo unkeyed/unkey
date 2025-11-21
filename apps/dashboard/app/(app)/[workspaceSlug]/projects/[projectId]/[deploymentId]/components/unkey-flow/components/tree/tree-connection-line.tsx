@@ -116,8 +116,8 @@ export function TreeConnectionLine({
     >
       <animate
         attributeName="stroke-dashoffset"
+        to={`-${dashTotal}`}
         from="0"
-        to={dashTotal.toString()}
         dur={`${animConfig.speed}s`}
         repeatCount="indefinite"
       />

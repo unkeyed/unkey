@@ -1,35 +1,51 @@
 import { useCallback, useMemo, useRef } from "react";
 import { LayoutEngine } from "../../layout-engine";
-import type { TreeLayoutProps, TreeNode } from "../../types";
+import type { Point } from "../../types";
 import { type DeploymentNode, NODE_SIZES } from "../nodes/types";
 import { TreeConnectionLine } from "./tree-connection-line";
 import { TreeElementNode } from "./tree-element-node";
+
+type TreeLayoutProps = {
+  data: DeploymentNode;
+  nodeSpacing?: { x: number; y: number };
+  onNodeClick?: (node: DeploymentNode) => void;
+  renderNode: (node: DeploymentNode, parent?: DeploymentNode) => React.ReactNode;
+  renderConnection?: (
+    path: Point[],
+    parent: DeploymentNode,
+    child: DeploymentNode,
+  ) => React.ReactNode;
+};
 
 /**
  * Vertical tree layout component (top to bottom).
  * Uses fixed node dimensions for immediate layout calculation.
  */
-export function TreeLayout<T extends TreeNode>({
+export function TreeLayout({
   data,
   nodeSpacing = { x: 50, y: 50 },
   renderNode,
   renderConnection,
   onNodeClick,
-}: TreeLayoutProps<T>) {
+}: TreeLayoutProps) {
   const containerRef = useRef<SVGGElement>(null);
 
   const layoutEngine = useMemo(
-    () => new LayoutEngine<T>({ spacing: nodeSpacing, direction: "vertical" }),
+    () =>
+      new LayoutEngine<DeploymentNode>({
+        spacing: nodeSpacing,
+        direction: "vertical",
+      }),
     [nodeSpacing],
   );
 
   const parentMap = useMemo(() => {
-    const map = new Map<string, T>();
-    const buildMap = (node: T) => {
-      if (node.children) {
+    const map = new Map<string, DeploymentNode>();
+    const buildMap = (node: DeploymentNode) => {
+      if ("children" in node && node.children) {
         for (const child of node.children) {
           map.set(child.id, node);
-          buildMap(child as T);
+          buildMap(child);
         }
       }
     };
@@ -38,12 +54,12 @@ export function TreeLayout<T extends TreeNode>({
   }, [data]);
 
   const allNodes = useMemo(() => {
-    const flatten = (node: T): T[] => {
-      const result: T[] = [node];
-      if (node.children) {
-        node.children.forEach((child) => {
-          result.push(...flatten(child as T));
-        });
+    const flatten = (node: DeploymentNode): DeploymentNode[] => {
+      const result: DeploymentNode[] = [node];
+      if ("children" in node && node.children) {
+        for (const child of node.children) {
+          result.push(...flatten(child));
+        }
       }
       return result;
     };
@@ -71,14 +87,11 @@ export function TreeLayout<T extends TreeNode>({
     [onNodeClick, allNodes],
   );
 
-  // Use node-specific size or fallback to default
   // Set dimensions based on node type
-  allNodes.forEach((node) => {
-    // Type assertion since we know DeploymentNode has metadata
-    const deploymentNode = node as unknown as DeploymentNode;
-    const size = NODE_SIZES[deploymentNode.metadata.type];
+  for (const node of allNodes) {
+    const size = NODE_SIZES[node.metadata.type];
     layoutEngine.setNodeDimension(node.id, size);
-  });
+  }
 
   const layout = useMemo(() => {
     return layoutEngine.calculate(data);
@@ -94,7 +107,6 @@ export function TreeLayout<T extends TreeNode>({
           <TreeConnectionLine key={`${conn.parent.id}-${conn.child.id}`} path={conn.path} />
         ),
       )}
-
       {layout.nodes.map((positioned) => {
         const parent = parentMap.get(positioned.node.id);
         return (

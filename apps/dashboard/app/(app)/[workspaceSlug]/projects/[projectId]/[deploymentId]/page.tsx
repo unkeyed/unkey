@@ -27,7 +27,8 @@ export default function DeploymentDetailsPage() {
   const [selectedNode, setSelectedNode] = useState<DeploymentNode>();
 
   const { data: defaultTree, isLoading } = trpc.deploy.network.get.useQuery({
-    deploymentId: liveDeploymentId,
+    // biome-ignore lint/style/noNonNullAssertion: will be fixed later, when we actually implement tRPC logic
+    deploymentId: liveDeploymentId!,
   });
 
   const currentTree = generatedTree ?? defaultTree ?? SKELETON_TREE;
@@ -42,7 +43,8 @@ export default function DeploymentDetailsPage() {
           <LiveIndicator />
           {process.env.NODE_ENV === "development" && (
             <InternalDevTreeGenerator
-              deploymentId={liveDeploymentId}
+              // biome-ignore lint/style/noNonNullAssertion: will be fixed later, when we actually implement tRPC logic
+              deploymentId={liveDeploymentId!}
               onGenerate={setGeneratedTree}
               onReset={() => setGeneratedTree(null)}
             />
