@@ -30,7 +30,8 @@ func (h *Handler) Path() string {
 // 1. Local gateway (if healthy gateway in current region) - forwards with X-Unkey-Deployment-Id
 // 2. Remote NLB (if no local gateway) - forwards to nearest region's NLB
 func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
-	startTime := h.Clock.Now()
+	// Store request start time in context for timing tracking
+	ctx = proxy.WithRequestStartTime(ctx, h.Clock.Now())
 	hostname := proxy.ExtractHostname(sess.Request().Host)
 
 	// Lookup route and gateways by hostname
@@ -47,9 +48,9 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 	// Route to local gateway if available
 	if decision.LocalGateway != nil {
-		return h.ProxyService.ForwardToGateway(ctx, sess, decision.LocalGateway, decision.DeploymentID, startTime)
+		return h.ProxyService.ForwardToGateway(ctx, sess, decision.LocalGateway, decision.DeploymentID)
 	}
 
 	// Route to remote NLB
-	return h.ProxyService.ForwardToNLB(ctx, sess, decision.NearestNLBRegion, startTime)
+	return h.ProxyService.ForwardToNLB(ctx, sess, decision.NearestNLBRegion)
 }
