@@ -23,5 +23,6 @@ func (r *statusRecorder) Write(b []byte) (int, error) {
 		r.statusCode = 200
 		r.written = true
 	}
+
 	return r.ResponseWriter.Write(b)
 }

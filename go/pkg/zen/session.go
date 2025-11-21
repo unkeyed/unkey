@@ -53,7 +53,7 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 	// Wrap ResponseWriter with status recorder
 	s.w = &statusRecorder{
 		ResponseWriter: w,
-		statusCode:     200, // Default to 200
+		statusCode:     0, // Default to 0, this should always be overwritten by the metrics middleware
 		written:        false,
 	}
 
@@ -184,6 +184,7 @@ func (s *Session) StatusCode() int {
 	if recorder, ok := s.w.(*statusRecorder); ok {
 		return recorder.statusCode
 	}
+
 	return 200
 }
 
