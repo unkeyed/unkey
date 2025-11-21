@@ -16,7 +16,7 @@ func (h *Handler) Method() string {
 }
 
 func (h *Handler) Path() string {
-	return "/unkey/internal/health"
+	return "/_unkey/internal/health"
 }
 
 // Handle returns a simple 200 OK response for health checks

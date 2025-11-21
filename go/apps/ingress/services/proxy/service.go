@@ -241,9 +241,7 @@ func (s *service) forwardToGateway(_ctx context.Context, sess *zen.Session, targ
 	}()
 
 	// Wrap the response writer to capture errors without writing to client
-	wrapper := &errorCapturingWriter{
-		ResponseWriter: sess.ResponseWriter(),
-	}
+	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
 
 	// Create reverse proxy with shared transport
 	proxy := &httputil.ReverseProxy{
@@ -277,8 +275,8 @@ func (s *service) forwardToGateway(_ctx context.Context, sess *zen.Session, targ
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
 			// Capture the error for middleware to handle
-			if ecw, ok := w.(*errorCapturingWriter); ok {
-				ecw.capturedError = err
+			if ecw, ok := w.(*zen.ErrorCapturingWriter); ok {
+				ecw.SetError(err)
 
 				s.logger.Warn("proxy error forwarding to gateway",
 					"error", err.Error(),
@@ -292,9 +290,9 @@ func (s *service) forwardToGateway(_ctx context.Context, sess *zen.Session, targ
 	proxy.ServeHTTP(wrapper, sess.Request())
 
 	// If error was captured, return it to middleware for consistent error handling
-	if wrapper.capturedError != nil {
-		urn, message := categorizeProxyError(wrapper.capturedError)
-		return fault.Wrap(wrapper.capturedError,
+	if err := wrapper.Error(); err != nil {
+		urn, message := categorizeProxyError(err)
+		return fault.Wrap(err,
 			fault.Code(urn),
 			fault.Internal(fmt.Sprintf("proxy error forwarding to gateway %s", targetURL.String())),
 			fault.Public(message),
@@ -324,9 +322,7 @@ func (s *service) forwardToNLB(_ctx context.Context, sess *zen.Session, targetUR
 	}()
 
 	// Wrap the response writer to capture errors without writing to client
-	wrapper := &errorCapturingWriter{
-		ResponseWriter: sess.ResponseWriter(),
-	}
+	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
 
 	// Create reverse proxy with shared transport
 	proxy := &httputil.ReverseProxy{
@@ -381,8 +377,8 @@ func (s *service) forwardToNLB(_ctx context.Context, sess *zen.Session, targetUR
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
 			// Capture the error for middleware to handle
-			if ecw, ok := w.(*errorCapturingWriter); ok {
-				ecw.capturedError = err
+			if ecw, ok := w.(*zen.ErrorCapturingWriter); ok {
+				ecw.SetError(err)
 
 				s.logger.Warn("proxy error forwarding to NLB",
 					"error", err.Error(),
@@ -397,9 +393,9 @@ func (s *service) forwardToNLB(_ctx context.Context, sess *zen.Session, targetUR
 	proxy.ServeHTTP(wrapper, sess.Request())
 
 	// If error was captured, return it to middleware for consistent error handling
-	if wrapper.capturedError != nil {
-		urn, message := categorizeProxyError(wrapper.capturedError)
-		return fault.Wrap(wrapper.capturedError,
+	if err := wrapper.Error(); err != nil {
+		urn, message := categorizeProxyError(err)
+		return fault.Wrap(err,
 			fault.Code(urn),
 			fault.Internal(fmt.Sprintf("proxy error forwarding to NLB %s", targetURL.String())),
 			fault.Public(message),
