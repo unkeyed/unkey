@@ -69,9 +69,7 @@ func categorizeErrorTypeIngress(urn codes.URN, statusCode int, hasError bool) st
 
 	if hasError {
 		switch urn {
-		case codes.Gateway.Proxy.GatewayTimeout.URN(),
-			codes.Gateway.Proxy.BadGateway.URN(),
-			codes.Ingress.Proxy.GatewayTimeout.URN():
+		case codes.Ingress.Proxy.GatewayTimeout.URN():
 			return "customer"
 
 		case codes.Ingress.Internal.InternalServerError.URN(),
@@ -79,13 +77,11 @@ func categorizeErrorTypeIngress(urn codes.URN, statusCode int, hasError bool) st
 			codes.Ingress.Internal.InstanceLoadFailed.URN(),
 			codes.Ingress.Routing.ConfigNotFound.URN(),
 			codes.Ingress.Routing.DeploymentSelectionFailed.URN(),
-			codes.Gateway.Proxy.ServiceUnavailable.URN(),
 			codes.Ingress.Proxy.ServiceUnavailable.URN(),
 			codes.Ingress.Routing.NoRunningInstances.URN():
 			return "platform"
 
 		case codes.User.BadRequest.ClientClosedRequest.URN(),
-			codes.User.BadRequest.MissingRequiredHeader.URN(),
 			codes.User.BadRequest.RequestTimeout.URN():
 			return "user"
 		}
@@ -108,7 +104,7 @@ func categorizeErrorTypeIngress(urn codes.URN, statusCode int, hasError bool) st
 	return "unknown"
 }
 
-func WithIngressObservability(logger logging.Logger, region string) zen.Middleware {
+func WithObservability(logger logging.Logger, region string) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
 			startTime := time.Now()

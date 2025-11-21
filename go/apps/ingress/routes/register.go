@@ -15,7 +15,7 @@ func Register(srv *zen.Server, svc *Services) {
 	// Setup middlewares
 	withLogging := zen.WithLogging(svc.Logger)
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
-	withObservability := middleware.WithIngressObservability(svc.Logger, svc.Region)
+	withObservability := middleware.WithObservability(svc.Logger, svc.Region)
 	withTimeout := zen.WithTimeout(5 * time.Minute)
 
 	defaultMiddlewares := []zen.Middleware{
@@ -50,7 +50,7 @@ func Register(srv *zen.Server, svc *Services) {
 func RegisterChallengeServer(srv *zen.Server, svc *Services) {
 	withLogging := zen.WithLogging(svc.Logger)
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
-	withObservability := middleware.WithIngressObservability(svc.Logger, svc.Region)
+	withObservability := middleware.WithObservability(svc.Logger, svc.Region)
 
 	challengeMiddlewares := []zen.Middleware{
 		withPanicRecovery,
