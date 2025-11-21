@@ -31,7 +31,6 @@ func (h *Handler) Path() string {
 }
 
 // Handle processes ACME HTTP-01 challenges for Let's Encrypt certificate issuance
-// TODO: Implement ACME challenge handler
 func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	req := sess.Request()
 	// Look up target configuration based on the request host
