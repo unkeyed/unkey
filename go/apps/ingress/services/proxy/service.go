@@ -96,67 +96,6 @@ func (s *service) ForwardToGateway(ctx context.Context, sess *zen.Session, gatew
 	return s.forwardToGateway(ctx, sess, targetURL, deploymentID, startTime)
 }
 
-// ForwardToNLB forwards a request to a remote region's NLB (HTTPS)
-// Keeps original hostname so remote ingress can do TLS termination and routing
-func (s *service) ForwardToNLB(ctx context.Context, sess *zen.Session, targetRegion string, startTime time.Time) error {
-	// Check for too many hops to prevent infinite routing loops
-	if hopCountStr := sess.Request().Header.Get(HeaderIngressHops); hopCountStr != "" {
-		if hops, err := strconv.Atoi(hopCountStr); err == nil && hops >= s.maxHops {
-			s.logger.Error("too many ingress hops - rejecting request",
-				"hops", hops,
-				"maxHops", s.maxHops,
-				"hostname", sess.Request().Host,
-				"requestID", sess.RequestID(),
-			)
-			return fault.New("too many ingress hops",
-				fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
-				fault.Internal(fmt.Sprintf("request exceeded maximum hop count: %d", hops)),
-				fault.Public("Request routing limit exceeded"),
-			)
-		}
-	}
-
-	targetURL, err := url.Parse(fmt.Sprintf("https://%s.%s", targetRegion, s.baseDomain))
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
-			fault.Internal("failed to parse NLB URL"),
-		)
-	}
-
-	return s.forwardToNLB(ctx, sess, targetURL, startTime)
-}
-
-// errorCapturingWriter wraps a ResponseWriter to capture proxy errors
-// without writing them to the client. This allows errors to be returned
-// to the middleware for consistent error handling.
-type errorCapturingWriter struct {
-	http.ResponseWriter
-	capturedError error
-	headerWritten bool
-}
-
-func (w *errorCapturingWriter) WriteHeader(statusCode int) {
-	if w.capturedError != nil {
-		// Discard header writes if we captured an error
-		w.headerWritten = true
-		return
-	}
-	w.ResponseWriter.WriteHeader(statusCode)
-	w.headerWritten = true
-}
-
-func (w *errorCapturingWriter) Write(b []byte) (int, error) {
-	if w.capturedError != nil {
-		// Discard body writes if we captured an error
-		return len(b), nil
-	}
-	if !w.headerWritten {
-		w.WriteHeader(http.StatusOK)
-	}
-	return w.ResponseWriter.Write(b)
-}
-
 // forwardToGateway handles proxying to a local gateway service
 func (s *service) forwardToGateway(_ctx context.Context, sess *zen.Session, targetURL *url.URL, deploymentID string, startTime time.Time) error {
 	// Set response headers BACK TO CLIENT so they can see which ingress handled their request
@@ -236,6 +175,37 @@ func (s *service) forwardToGateway(_ctx context.Context, sess *zen.Session, targ
 	}
 
 	return nil
+}
+
+// ForwardToNLB forwards a request to a remote region's NLB (HTTPS)
+// Keeps original hostname so remote ingress can do TLS termination and routing
+func (s *service) ForwardToNLB(ctx context.Context, sess *zen.Session, targetRegion string, startTime time.Time) error {
+	// Check for too many hops to prevent infinite routing loops
+	if hopCountStr := sess.Request().Header.Get(HeaderIngressHops); hopCountStr != "" {
+		if hops, err := strconv.Atoi(hopCountStr); err == nil && hops >= s.maxHops {
+			s.logger.Error("too many ingress hops - rejecting request",
+				"hops", hops,
+				"maxHops", s.maxHops,
+				"hostname", sess.Request().Host,
+				"requestID", sess.RequestID(),
+			)
+			return fault.New("too many ingress hops",
+				fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
+				fault.Internal(fmt.Sprintf("request exceeded maximum hop count: %d", hops)),
+				fault.Public("Request routing limit exceeded"),
+			)
+		}
+	}
+
+	targetURL, err := url.Parse(fmt.Sprintf("https://%s.%s", targetRegion, s.baseDomain))
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
+			fault.Internal("failed to parse NLB URL"),
+		)
+	}
+
+	return s.forwardToNLB(ctx, sess, targetURL, startTime)
 }
 
 // forwardToNLB handles proxying to a remote region's NLB
