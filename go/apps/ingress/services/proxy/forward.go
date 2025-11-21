@@ -29,7 +29,8 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 
 	var proxyStartTime time.Time
 
-	// Always add timing headers when function returns (success or error)
+	// Ensure timing headers are always set on response writer, even when errors occur
+	// This defer runs for both success and error paths
 	defer func() {
 		totalTime := s.clock.Now().Sub(cfg.startTime)
 		if !proxyStartTime.IsZero() {
@@ -56,6 +57,12 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 			cfg.directorFunc(req)
 		},
 		ModifyResponse: func(resp *http.Response) error {
+			// Add timing headers BEFORE response is written to client
+			totalTime := s.clock.Now().Sub(cfg.startTime)
+			if !proxyStartTime.IsZero() {
+				resp.Header.Set("X-Unkey-Ingress-Time", fmt.Sprintf("%dms", proxyStartTime.Sub(cfg.startTime).Milliseconds()))
+			}
+			resp.Header.Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
