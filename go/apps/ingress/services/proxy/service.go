@@ -94,11 +94,10 @@ func (s *service) ForwardToGateway(ctx context.Context, sess *zen.Session, gatew
 		)
 	}
 
-	proxyStartTime := s.clock.Now()
 	return s.forward(sess, forwardConfig{
 		targetURL:    targetURL,
 		startTime:    startTime,
-		directorFunc: s.makeGatewayDirector(sess, deploymentID, startTime, proxyStartTime),
+		directorFunc: s.makeGatewayDirector(sess, deploymentID, startTime),
 		logTarget:    "gateway",
 	})
 }
@@ -133,11 +132,10 @@ func (s *service) ForwardToNLB(ctx context.Context, sess *zen.Session, targetReg
 		)
 	}
 
-	proxyStartTime := s.clock.Now()
 	return s.forward(sess, forwardConfig{
 		targetURL:    targetURL,
 		startTime:    startTime,
-		directorFunc: s.makeNLBDirector(sess, startTime, proxyStartTime),
+		directorFunc: s.makeNLBDirector(sess, startTime),
 		logTarget:    "NLB",
 	})
 }

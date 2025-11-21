@@ -9,7 +9,8 @@ import (
 )
 
 // makeGatewayDirector creates a Director function for forwarding to a local gateway
-func (s *service) makeGatewayDirector(sess *zen.Session, deploymentID string, startTime time.Time, proxyStartTime time.Time) func(*http.Request) {
+// The proxyStartTime pointer will be set by the caller when Director is invoked
+func (s *service) makeGatewayDirector(sess *zen.Session, deploymentID string, startTime time.Time) func(*http.Request) {
 	return func(req *http.Request) {
 		// Add metadata headers TO DOWNSTREAM SERVICE (gateway)
 		// These tell the gateway which ingress forwarded the request
@@ -18,7 +19,7 @@ func (s *service) makeGatewayDirector(sess *zen.Session, deploymentID string, st
 		req.Header.Set(HeaderRequestID, sess.RequestID())
 
 		// Add timing to track latency added by this ingress (routing overhead)
-		ingressRoutingTimeMs := proxyStartTime.Sub(startTime).Milliseconds()
+		ingressRoutingTimeMs := s.clock.Now().Sub(startTime).Milliseconds()
 		req.Header.Set(HeaderIngressTime, strconv.FormatInt(ingressRoutingTimeMs, 10))
 
 		// Add standard proxy headers for local gateway
@@ -30,7 +31,7 @@ func (s *service) makeGatewayDirector(sess *zen.Session, deploymentID string, st
 }
 
 // makeNLBDirector creates a Director function for forwarding to a remote NLB
-func (s *service) makeNLBDirector(sess *zen.Session, startTime time.Time, proxyStartTime time.Time) func(*http.Request) {
+func (s *service) makeNLBDirector(sess *zen.Session, startTime time.Time) func(*http.Request) {
 	return func(req *http.Request) {
 		// Add metadata headers TO DOWNSTREAM SERVICE (remote ingress)
 		// These tell the remote ingress which ingress forwarded the request
@@ -39,7 +40,7 @@ func (s *service) makeNLBDirector(sess *zen.Session, startTime time.Time, proxyS
 		req.Header.Set(HeaderRequestID, sess.RequestID())
 
 		// Add timing to track latency added by this ingress (routing overhead)
-		ingressRoutingTimeMs := proxyStartTime.Sub(startTime).Milliseconds()
+		ingressRoutingTimeMs := s.clock.Now().Sub(startTime).Milliseconds()
 		req.Header.Set(HeaderIngressTime, strconv.FormatInt(ingressRoutingTimeMs, 10))
 
 		// Remote ingress - preserve original Host for TLS termination and routing
