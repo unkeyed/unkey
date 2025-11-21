@@ -1052,8 +1052,8 @@ type Querier interface {
 	InsertAuditLogTarget(ctx context.Context, db DBTX, arg InsertAuditLogTargetParams) error
 	//InsertCertificate
 	//
-	//  INSERT INTO certificates (workspace_id, hostname, certificate, encrypted_private_key, created_at)
-	//  VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE
+	//  INSERT INTO certificates (id, workspace_id, hostname, certificate, encrypted_private_key, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE
 	//  workspace_id = VALUES(workspace_id),
 	//  hostname = VALUES(hostname),
 	//  certificate = VALUES(certificate),
