@@ -35,36 +35,6 @@ func (h *Handler) Path() string {
 	return "/{path...}"
 }
 
-// errorCapturingWriter wraps a ResponseWriter to capture proxy errors
-// without writing them to the client. This allows errors to be returned
-// to the middleware for consistent error handling.
-type errorCapturingWriter struct {
-	http.ResponseWriter
-	capturedError error
-	headerWritten bool
-}
-
-func (w *errorCapturingWriter) WriteHeader(statusCode int) {
-	if w.capturedError != nil {
-		// Discard header writes if we captured an error
-		w.headerWritten = true
-		return
-	}
-	w.ResponseWriter.WriteHeader(statusCode)
-	w.headerWritten = true
-}
-
-func (w *errorCapturingWriter) Write(b []byte) (int, error) {
-	if w.capturedError != nil {
-		// Discard body writes if we captured an error
-		return len(b), nil
-	}
-	if !w.headerWritten {
-		w.WriteHeader(http.StatusOK)
-	}
-	return w.ResponseWriter.Write(b)
-}
-
 // categorizeProxyError determines the appropriate error code and message based on the error type
 func categorizeProxyError(err error) (codes.URN, string) {
 	// Check for client-side cancellation (client closed connection)
@@ -176,9 +146,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	}
 
 	// Wrap the response writer to capture errors without writing to client
-	wrapper := &errorCapturingWriter{
-		ResponseWriter: sess.ResponseWriter(),
-	}
+	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
 
 	// Create reverse proxy
 	proxy := &httputil.ReverseProxy{
@@ -211,8 +179,8 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 			instanceEnd = h.Clock.Now()
 
 			// Capture the error for middleware to handle
-			if ecw, ok := w.(*errorCapturingWriter); ok {
-				ecw.capturedError = err
+			if ecw, ok := w.(*zen.ErrorCapturingWriter); ok {
+				ecw.SetError(err)
 
 				h.Logger.Warn("proxy error",
 					"deploymentID", deploymentID,
@@ -236,9 +204,9 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	proxy.ServeHTTP(wrapper, req)
 
 	// If error was captured, return it to middleware for consistent error handling
-	if wrapper.capturedError != nil {
-		urn, message := categorizeProxyError(wrapper.capturedError)
-		return fault.Wrap(wrapper.capturedError,
+	if err := wrapper.Error(); err != nil {
+		urn, message := categorizeProxyError(err)
+		return fault.Wrap(err,
 			fault.Code(urn),
 			fault.Internal(fmt.Sprintf("proxy error forwarding to instance %s", instance.Address)),
 			fault.Public(message),
