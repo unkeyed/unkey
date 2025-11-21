@@ -44,7 +44,7 @@ build: setup
 	go build -o unkey .
 
 generate: setup
-	go tool buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/ctrl" --path "./proto/krane" --path "./proto/partition" --path "./proto/vault" --path "./proto/cache"
+	go tool buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/ctrl" --path "./proto/krane" --path "./proto/vault" --path "./proto/cache" --path "./proto/gateway"
 	go tool buf generate --template ./buf.gen.restate.yaml --path "./proto/hydra"
 	go generate ./...
 	go fmt ./...

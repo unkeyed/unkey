@@ -27,6 +27,7 @@ export const listDeployments = t.procedure
           openapiSpec: true,
           createdAt: true,
         },
+        orderBy: (table, { desc }) => desc(table.createdAt),
         limit: 500,
       });
 

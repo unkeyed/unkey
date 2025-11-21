@@ -2,7 +2,6 @@ package deployment
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"connectrpc.com/connect"
@@ -91,14 +90,14 @@ func (s *Service) GetDeployment(
 	}
 
 	// Fetch routes (hostnames) for this deployment
-	routes, err := db.Query.FindDomainsByDeploymentId(ctx, s.db.RO(), sql.NullString{Valid: true, String: req.Msg.GetDeploymentId()})
+	routes, err := db.Query.FindIngressRoutesByDeploymentID(ctx, s.db.RO(), req.Msg.GetDeploymentId())
 	if err != nil {
-		s.logger.Warn("failed to fetch domains for deployment", "error", err, "deployment_id", deployment.ID)
+		s.logger.Warn("failed to fetch ingress routes for deployment", "error", err, "deployment_id", deployment.ID)
 		// Continue without hostnames rather than failing the entire request
 	} else {
 		hostnames := make([]string, len(routes))
 		for i, route := range routes {
-			hostnames[i] = route.Domain
+			hostnames[i] = route.Hostname
 		}
 		protoDeployment.Hostnames = hostnames
 	}

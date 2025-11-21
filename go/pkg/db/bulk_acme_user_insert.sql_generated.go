@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertAcmeUser is the base query for bulk insert
-const bulkInsertAcmeUser = `INSERT INTO acme_users (workspace_id, encrypted_key, created_at) VALUES %s`
+const bulkInsertAcmeUser = `INSERT INTO acme_users (id, workspace_id, encrypted_key, created_at) VALUES %s`
 
 // InsertAcmeUsers performs bulk insert in a single query
 func (q *BulkQueries) InsertAcmeUsers(ctx context.Context, db DBTX, args []InsertAcmeUserParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertAcmeUsers(ctx context.Context, db DBTX, args []Inser
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "(?,?,?)"
+		valueClauses[i] = "(?,?,?,?)"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertAcmeUser, strings.Join(valueClauses, ", "))
@@ -29,6 +29,7 @@ func (q *BulkQueries) InsertAcmeUsers(ctx context.Context, db DBTX, args []Inser
 	// Collect all arguments
 	var allArgs []any
 	for _, arg := range args {
+		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.EncryptedKey)
 		allArgs = append(allArgs, arg.CreatedAt)

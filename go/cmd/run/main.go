@@ -6,7 +6,6 @@ import (
 
 	"github.com/unkeyed/unkey/go/cmd/api"
 	"github.com/unkeyed/unkey/go/cmd/ctrl"
-	"github.com/unkeyed/unkey/go/cmd/gw"
 	"github.com/unkeyed/unkey/go/cmd/krane"
 	"github.com/unkeyed/unkey/go/pkg/cli"
 )
@@ -24,19 +23,16 @@ This command starts different Unkey microservices. Each service can be configure
 AVAILABLE SERVICES:
 - api: The main API server for validating and managing API keys
 - ctrl: The control plane service for managing infrastructure and deployments
-- gw: The gateway service for routing requests to the appropriate API
 - krane: The VM management service for infrastructure
 
 EXAMPLES:
 unkey run api                                    # Run the API server
 unkey run ctrl                                   # Run the control plane
-unkey run gw                                     # Run the gateway
 unkey run --help                                 # Show available services and their options
 unkey run api --port 8080 --env production      # Run API server with custom configuration`,
 	Commands: []*cli.Command{
 		api.Cmd,
 		ctrl.Cmd,
-		gw.Cmd,
 		krane.Cmd,
 	},
 	Action: runAction,

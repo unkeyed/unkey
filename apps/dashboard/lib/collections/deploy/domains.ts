@@ -6,11 +6,13 @@ import { queryClient, trpcClient } from "../client";
 
 const schema = z.object({
   id: z.string(),
-  domain: z.string(),
-  type: z.enum(["custom", "wildcard"]),
-  projectId: z.string().nullable(),
-  deploymentId: z.string().nullable(),
-  sticky: z.enum(["branch", "environment", "live"]).nullable(),
+  hostname: z.string(),
+  projectId: z.string(),
+  deploymentId: z.string(),
+  environmentId: z.string(),
+  sticky: z.enum(["none", "branch", "environment", "live"]),
+  createdAt: z.number(),
+  updatedAt: z.number().nullable(),
 });
 
 export type Domain = z.infer<typeof schema>;

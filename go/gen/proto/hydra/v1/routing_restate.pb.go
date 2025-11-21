@@ -15,12 +15,8 @@ import (
 
 // RoutingServiceClient is the client API for hydra.v1.RoutingService service.
 type RoutingServiceClient interface {
-	// AssignDomains creates or reassigns domains to a deployment and creates gateway configs
-	// Used during initial deployment
-	AssignDomains(opts ...sdk_go.ClientOption) sdk_go.Client[*AssignDomainsRequest, *AssignDomainsResponse]
-	// SwitchDomains reassigns existing domains to a different deployment and updates gateway configs
-	// Used during rollback/promote operations
-	SwitchDomains(opts ...sdk_go.ClientOption) sdk_go.Client[*SwitchDomainsRequest, *SwitchDomainsResponse]
+	// AssignIngressRoutes creates or reassigns ingress routes to a deployment
+	AssignIngressRoutes(opts ...sdk_go.ClientOption) sdk_go.Client[*AssignIngressRoutesRequest, *AssignIngressRoutesResponse]
 }
 
 type routingServiceClient struct {
@@ -37,32 +33,20 @@ func NewRoutingServiceClient(ctx sdk_go.Context, key string, opts ...sdk_go.Clie
 		cOpts,
 	}
 }
-func (c *routingServiceClient) AssignDomains(opts ...sdk_go.ClientOption) sdk_go.Client[*AssignDomainsRequest, *AssignDomainsResponse] {
+func (c *routingServiceClient) AssignIngressRoutes(opts ...sdk_go.ClientOption) sdk_go.Client[*AssignIngressRoutesRequest, *AssignIngressRoutesResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
-	return sdk_go.WithRequestType[*AssignDomainsRequest](sdk_go.Object[*AssignDomainsResponse](c.ctx, "hydra.v1.RoutingService", c.key, "AssignDomains", cOpts...))
-}
-
-func (c *routingServiceClient) SwitchDomains(opts ...sdk_go.ClientOption) sdk_go.Client[*SwitchDomainsRequest, *SwitchDomainsResponse] {
-	cOpts := c.options
-	if len(opts) > 0 {
-		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
-	}
-	return sdk_go.WithRequestType[*SwitchDomainsRequest](sdk_go.Object[*SwitchDomainsResponse](c.ctx, "hydra.v1.RoutingService", c.key, "SwitchDomains", cOpts...))
+	return sdk_go.WithRequestType[*AssignIngressRoutesRequest](sdk_go.Object[*AssignIngressRoutesResponse](c.ctx, "hydra.v1.RoutingService", c.key, "AssignIngressRoutes", cOpts...))
 }
 
 // RoutingServiceIngressClient is the ingress client API for hydra.v1.RoutingService service.
 //
 // This client is used to call the service from outside of a Restate context.
 type RoutingServiceIngressClient interface {
-	// AssignDomains creates or reassigns domains to a deployment and creates gateway configs
-	// Used during initial deployment
-	AssignDomains() ingress.Requester[*AssignDomainsRequest, *AssignDomainsResponse]
-	// SwitchDomains reassigns existing domains to a different deployment and updates gateway configs
-	// Used during rollback/promote operations
-	SwitchDomains() ingress.Requester[*SwitchDomainsRequest, *SwitchDomainsResponse]
+	// AssignIngressRoutes creates or reassigns ingress routes to a deployment
+	AssignIngressRoutes() ingress.Requester[*AssignIngressRoutesRequest, *AssignIngressRoutesResponse]
 }
 
 type routingServiceIngressClient struct {
@@ -79,26 +63,17 @@ func NewRoutingServiceIngressClient(client *ingress.Client, key string) RoutingS
 	}
 }
 
-func (c *routingServiceIngressClient) AssignDomains() ingress.Requester[*AssignDomainsRequest, *AssignDomainsResponse] {
+func (c *routingServiceIngressClient) AssignIngressRoutes() ingress.Requester[*AssignIngressRoutesRequest, *AssignIngressRoutesResponse] {
 	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*AssignDomainsRequest, *AssignDomainsResponse](c.client, c.serviceName, "AssignDomains", &c.key, &codec)
-}
-
-func (c *routingServiceIngressClient) SwitchDomains() ingress.Requester[*SwitchDomainsRequest, *SwitchDomainsResponse] {
-	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*SwitchDomainsRequest, *SwitchDomainsResponse](c.client, c.serviceName, "SwitchDomains", &c.key, &codec)
+	return ingress.NewRequester[*AssignIngressRoutesRequest, *AssignIngressRoutesResponse](c.client, c.serviceName, "AssignIngressRoutes", &c.key, &codec)
 }
 
 // RoutingServiceServer is the server API for hydra.v1.RoutingService service.
 // All implementations should embed UnimplementedRoutingServiceServer
 // for forward compatibility.
 type RoutingServiceServer interface {
-	// AssignDomains creates or reassigns domains to a deployment and creates gateway configs
-	// Used during initial deployment
-	AssignDomains(ctx sdk_go.ObjectContext, req *AssignDomainsRequest) (*AssignDomainsResponse, error)
-	// SwitchDomains reassigns existing domains to a different deployment and updates gateway configs
-	// Used during rollback/promote operations
-	SwitchDomains(ctx sdk_go.ObjectContext, req *SwitchDomainsRequest) (*SwitchDomainsResponse, error)
+	// AssignIngressRoutes creates or reassigns ingress routes to a deployment
+	AssignIngressRoutes(ctx sdk_go.ObjectContext, req *AssignIngressRoutesRequest) (*AssignIngressRoutesResponse, error)
 }
 
 // UnimplementedRoutingServiceServer should be embedded to have
@@ -108,11 +83,8 @@ type RoutingServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedRoutingServiceServer struct{}
 
-func (UnimplementedRoutingServiceServer) AssignDomains(ctx sdk_go.ObjectContext, req *AssignDomainsRequest) (*AssignDomainsResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method AssignDomains not implemented"), 501)
-}
-func (UnimplementedRoutingServiceServer) SwitchDomains(ctx sdk_go.ObjectContext, req *SwitchDomainsRequest) (*SwitchDomainsResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method SwitchDomains not implemented"), 501)
+func (UnimplementedRoutingServiceServer) AssignIngressRoutes(ctx sdk_go.ObjectContext, req *AssignIngressRoutesRequest) (*AssignIngressRoutesResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method AssignIngressRoutes not implemented"), 501)
 }
 func (UnimplementedRoutingServiceServer) testEmbeddedByValue() {}
 
@@ -133,7 +105,6 @@ func NewRoutingServiceServer(srv RoutingServiceServer, opts ...sdk_go.ServiceDef
 	}
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewObject("hydra.v1.RoutingService", sOpts...)
-	router = router.Handler("AssignDomains", sdk_go.NewObjectHandler(srv.AssignDomains))
-	router = router.Handler("SwitchDomains", sdk_go.NewObjectHandler(srv.SwitchDomains))
+	router = router.Handler("AssignIngressRoutes", sdk_go.NewObjectHandler(srv.AssignIngressRoutes))
 	return router
 }

@@ -63,7 +63,7 @@ func (p *CloudflareProvider) Present(domain, token, keyAuth string) error {
 		searchDomain = "*." + domain
 	}
 
-	dom, err := db.Query.FindDomainByDomain(ctx, p.db.RO(), searchDomain)
+	dom, err := db.Query.FindCustomDomainByDomain(ctx, p.db.RO(), searchDomain)
 	if err != nil {
 		return fmt.Errorf("failed to find domain %s: %w", searchDomain, err)
 	}

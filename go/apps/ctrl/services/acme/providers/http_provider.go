@@ -39,7 +39,7 @@ func NewHTTPProvider(cfg HTTPProviderConfig) *HTTPProvider {
 // and respond with the keyAuth value
 func (p *HTTPProvider) Present(domain, token, keyAuth string) error {
 	ctx := context.Background()
-	dom, err := db.Query.FindDomainByDomain(ctx, p.db.RO(), domain)
+	dom, err := db.Query.FindCustomDomainByDomain(ctx, p.db.RO(), domain)
 	if err != nil {
 		return fmt.Errorf("failed to find domain %s: %w", domain, err)
 	}
@@ -64,7 +64,7 @@ func (p *HTTPProvider) Present(domain, token, keyAuth string) error {
 func (p *HTTPProvider) CleanUp(domain, token, keyAuth string) error {
 	ctx := context.Background()
 
-	dom, err := db.Query.FindDomainByDomain(ctx, p.db.RO(), domain)
+	dom, err := db.Query.FindCustomDomainByDomain(ctx, p.db.RO(), domain)
 	if err != nil {
 		return fmt.Errorf("failed to find domain %s during cleanup: %w", domain, err)
 	}

@@ -16,7 +16,7 @@ UPDATE acme_users SET registration_uri = ? WHERE id = ?
 
 type UpdateAcmeUserRegistrationURIParams struct {
 	RegistrationUri sql.NullString `db:"registration_uri"`
-	ID              uint64         `db:"id"`
+	ID              string         `db:"id"`
 }
 
 // UpdateAcmeUserRegistrationURI

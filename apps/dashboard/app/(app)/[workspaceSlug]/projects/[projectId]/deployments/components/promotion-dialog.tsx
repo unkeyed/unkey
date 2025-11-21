@@ -124,7 +124,9 @@ export const PromotionDialog = ({
               <div className="bg-white dark:bg-black border border-grayA-5 rounded-lg p-4 relative">
                 <div className="flex items-center">
                   <Link4 className="text-gray-9" iconSize="sm-medium" />
-                  <div className="text-gray-12 font-medium text-xs ml-3 mr-2">{domain.domain}</div>
+                  <div className="text-gray-12 font-medium text-xs ml-3 mr-2">
+                    {domain.hostname}
+                  </div>
                   <div className="ml-3" />
                 </div>
               </div>

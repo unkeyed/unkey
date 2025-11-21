@@ -2,30 +2,7 @@ package routing
 
 import (
 	"strings"
-
-	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/go/pkg/db"
 )
-
-// parseDomainSticky converts a protobuf DomainSticky enum to database representation.
-//
-// Sticky domains automatically follow the latest deployment for their scope (branch,
-// environment, or live), while non-sticky domains remain immutable.
-func parseDomainSticky(sticky hydrav1.DomainSticky) db.NullDomainsSticky {
-	switch sticky {
-	case hydrav1.DomainSticky_DOMAIN_STICKY_BRANCH:
-		return db.NullDomainsSticky{Valid: true, DomainsSticky: db.DomainsStickyBranch}
-	case hydrav1.DomainSticky_DOMAIN_STICKY_ENVIRONMENT:
-		return db.NullDomainsSticky{Valid: true, DomainsSticky: db.DomainsStickyEnvironment}
-	case hydrav1.DomainSticky_DOMAIN_STICKY_LIVE:
-		return db.NullDomainsSticky{Valid: true, DomainsSticky: db.DomainsStickyLive}
-	case hydrav1.DomainSticky_DOMAIN_STICKY_UNSPECIFIED:
-		fallthrough
-	default:
-		//nolint: exhaustruct
-		return db.NullDomainsSticky{Valid: false}
-	}
-}
 
 // isLocalHostname checks if a hostname should be skipped from gateway config creation.
 //

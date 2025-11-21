@@ -8,7 +8,6 @@ package hydrav1
 
 import (
 	_ "github.com/restatedev/sdk-go/generated/dev/restate/sdk"
-	v1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -23,89 +22,28 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type DomainSticky int32
-
-const (
-	DomainSticky_DOMAIN_STICKY_UNSPECIFIED DomainSticky = 0 // Not sticky (per-commit domain)
-	DomainSticky_DOMAIN_STICKY_BRANCH      DomainSticky = 1 // Sticky to branch
-	DomainSticky_DOMAIN_STICKY_ENVIRONMENT DomainSticky = 2 // Sticky to environment
-	DomainSticky_DOMAIN_STICKY_LIVE        DomainSticky = 3 // Sticky to live deployment
-)
-
-// Enum value maps for DomainSticky.
-var (
-	DomainSticky_name = map[int32]string{
-		0: "DOMAIN_STICKY_UNSPECIFIED",
-		1: "DOMAIN_STICKY_BRANCH",
-		2: "DOMAIN_STICKY_ENVIRONMENT",
-		3: "DOMAIN_STICKY_LIVE",
-	}
-	DomainSticky_value = map[string]int32{
-		"DOMAIN_STICKY_UNSPECIFIED": 0,
-		"DOMAIN_STICKY_BRANCH":      1,
-		"DOMAIN_STICKY_ENVIRONMENT": 2,
-		"DOMAIN_STICKY_LIVE":        3,
-	}
-)
-
-func (x DomainSticky) Enum() *DomainSticky {
-	p := new(DomainSticky)
-	*p = x
-	return p
+type AssignIngressRoutesRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	DeploymentId    string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	IngressRouteIds []string               `protobuf:"bytes,2,rep,name=ingress_route_ids,json=ingressRouteIds,proto3" json:"ingress_route_ids,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
-func (x DomainSticky) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (DomainSticky) Descriptor() protoreflect.EnumDescriptor {
-	return file_hydra_v1_routing_proto_enumTypes[0].Descriptor()
-}
-
-func (DomainSticky) Type() protoreflect.EnumType {
-	return &file_hydra_v1_routing_proto_enumTypes[0]
-}
-
-func (x DomainSticky) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use DomainSticky.Descriptor instead.
-func (DomainSticky) EnumDescriptor() ([]byte, []int) {
-	return file_hydra_v1_routing_proto_rawDescGZIP(), []int{0}
-}
-
-// AssignDomainsRequest is used when deploying - creates/updates domains and gateway configs
-type AssignDomainsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	WorkspaceId   string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
-	ProjectId     string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	EnvironmentId string                 `protobuf:"bytes,3,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
-	DeploymentId  string                 `protobuf:"bytes,4,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	// Domains to create/assign (by name)
-	Domains []*DomainToAssign `protobuf:"bytes,5,rep,name=domains,proto3" json:"domains,omitempty"`
-	// Gateway configuration
-	GatewayConfig *v1.GatewayConfig `protobuf:"bytes,6,opt,name=gateway_config,json=gatewayConfig,proto3" json:"gateway_config,omitempty"`
-	// Whether the project is currently rolled back (skip domain assignment if true)
-	IsRolledBack  bool `protobuf:"varint,7,opt,name=is_rolled_back,json=isRolledBack,proto3" json:"is_rolled_back,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AssignDomainsRequest) Reset() {
-	*x = AssignDomainsRequest{}
+func (x *AssignIngressRoutesRequest) Reset() {
+	*x = AssignIngressRoutesRequest{}
 	mi := &file_hydra_v1_routing_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AssignDomainsRequest) String() string {
+func (x *AssignIngressRoutesRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AssignDomainsRequest) ProtoMessage() {}
+func (*AssignIngressRoutesRequest) ProtoMessage() {}
 
-func (x *AssignDomainsRequest) ProtoReflect() protoreflect.Message {
+func (x *AssignIngressRoutesRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_hydra_v1_routing_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -117,82 +55,45 @@ func (x *AssignDomainsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AssignDomainsRequest.ProtoReflect.Descriptor instead.
-func (*AssignDomainsRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use AssignIngressRoutesRequest.ProtoReflect.Descriptor instead.
+func (*AssignIngressRoutesRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_routing_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *AssignDomainsRequest) GetWorkspaceId() string {
-	if x != nil {
-		return x.WorkspaceId
-	}
-	return ""
-}
-
-func (x *AssignDomainsRequest) GetProjectId() string {
-	if x != nil {
-		return x.ProjectId
-	}
-	return ""
-}
-
-func (x *AssignDomainsRequest) GetEnvironmentId() string {
-	if x != nil {
-		return x.EnvironmentId
-	}
-	return ""
-}
-
-func (x *AssignDomainsRequest) GetDeploymentId() string {
+func (x *AssignIngressRoutesRequest) GetDeploymentId() string {
 	if x != nil {
 		return x.DeploymentId
 	}
 	return ""
 }
 
-func (x *AssignDomainsRequest) GetDomains() []*DomainToAssign {
+func (x *AssignIngressRoutesRequest) GetIngressRouteIds() []string {
 	if x != nil {
-		return x.Domains
+		return x.IngressRouteIds
 	}
 	return nil
 }
 
-func (x *AssignDomainsRequest) GetGatewayConfig() *v1.GatewayConfig {
-	if x != nil {
-		return x.GatewayConfig
-	}
-	return nil
-}
-
-func (x *AssignDomainsRequest) GetIsRolledBack() bool {
-	if x != nil {
-		return x.IsRolledBack
-	}
-	return false
-}
-
-type DomainToAssign struct {
+type AssignIngressRoutesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Sticky        DomainSticky           `protobuf:"varint,2,opt,name=sticky,proto3,enum=hydra.v1.DomainSticky" json:"sticky,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DomainToAssign) Reset() {
-	*x = DomainToAssign{}
+func (x *AssignIngressRoutesResponse) Reset() {
+	*x = AssignIngressRoutesResponse{}
 	mi := &file_hydra_v1_routing_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DomainToAssign) String() string {
+func (x *AssignIngressRoutesResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DomainToAssign) ProtoMessage() {}
+func (*AssignIngressRoutesResponse) ProtoMessage() {}
 
-func (x *DomainToAssign) ProtoReflect() protoreflect.Message {
+func (x *AssignIngressRoutesResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_hydra_v1_routing_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -204,192 +105,22 @@ func (x *DomainToAssign) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DomainToAssign.ProtoReflect.Descriptor instead.
-func (*DomainToAssign) Descriptor() ([]byte, []int) {
+// Deprecated: Use AssignIngressRoutesResponse.ProtoReflect.Descriptor instead.
+func (*AssignIngressRoutesResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_routing_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *DomainToAssign) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *DomainToAssign) GetSticky() DomainSticky {
-	if x != nil {
-		return x.Sticky
-	}
-	return DomainSticky_DOMAIN_STICKY_UNSPECIFIED
-}
-
-type AssignDomainsResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Domain names that were actually changed (created or reassigned)
-	ChangedDomainNames []string `protobuf:"bytes,1,rep,name=changed_domain_names,json=changedDomainNames,proto3" json:"changed_domain_names,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *AssignDomainsResponse) Reset() {
-	*x = AssignDomainsResponse{}
-	mi := &file_hydra_v1_routing_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AssignDomainsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AssignDomainsResponse) ProtoMessage() {}
-
-func (x *AssignDomainsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_routing_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AssignDomainsResponse.ProtoReflect.Descriptor instead.
-func (*AssignDomainsResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_routing_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *AssignDomainsResponse) GetChangedDomainNames() []string {
-	if x != nil {
-		return x.ChangedDomainNames
-	}
-	return nil
-}
-
-// SwitchDomainsRequest is used for rollback/promote - switches existing domains to a different deployment
-type SwitchDomainsRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	TargetDeploymentId string                 `protobuf:"bytes,1,opt,name=target_deployment_id,json=targetDeploymentId,proto3" json:"target_deployment_id,omitempty"`
-	// Domain IDs to switch (must already exist in database)
-	DomainIds     []string `protobuf:"bytes,2,rep,name=domain_ids,json=domainIds,proto3" json:"domain_ids,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SwitchDomainsRequest) Reset() {
-	*x = SwitchDomainsRequest{}
-	mi := &file_hydra_v1_routing_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SwitchDomainsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SwitchDomainsRequest) ProtoMessage() {}
-
-func (x *SwitchDomainsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_routing_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SwitchDomainsRequest.ProtoReflect.Descriptor instead.
-func (*SwitchDomainsRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_routing_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *SwitchDomainsRequest) GetTargetDeploymentId() string {
-	if x != nil {
-		return x.TargetDeploymentId
-	}
-	return ""
-}
-
-func (x *SwitchDomainsRequest) GetDomainIds() []string {
-	if x != nil {
-		return x.DomainIds
-	}
-	return nil
-}
-
-type SwitchDomainsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SwitchDomainsResponse) Reset() {
-	*x = SwitchDomainsResponse{}
-	mi := &file_hydra_v1_routing_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SwitchDomainsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SwitchDomainsResponse) ProtoMessage() {}
-
-func (x *SwitchDomainsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_routing_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SwitchDomainsResponse.ProtoReflect.Descriptor instead.
-func (*SwitchDomainsResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_routing_proto_rawDescGZIP(), []int{4}
 }
 
 var File_hydra_v1_routing_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_routing_proto_rawDesc = "" +
 	"\n" +
-	"\x16hydra/v1/routing.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\x1a\x1apartition/v1/gateway.proto\"\xc2\x02\n" +
-	"\x14AssignDomainsRequest\x12!\n" +
-	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
-	"\n" +
-	"project_id\x18\x02 \x01(\tR\tprojectId\x12%\n" +
-	"\x0eenvironment_id\x18\x03 \x01(\tR\renvironmentId\x12#\n" +
-	"\rdeployment_id\x18\x04 \x01(\tR\fdeploymentId\x122\n" +
-	"\adomains\x18\x05 \x03(\v2\x18.hydra.v1.DomainToAssignR\adomains\x12B\n" +
-	"\x0egateway_config\x18\x06 \x01(\v2\x1b.partition.v1.GatewayConfigR\rgatewayConfig\x12$\n" +
-	"\x0eis_rolled_back\x18\a \x01(\bR\fisRolledBack\"T\n" +
-	"\x0eDomainToAssign\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12.\n" +
-	"\x06sticky\x18\x02 \x01(\x0e2\x16.hydra.v1.DomainStickyR\x06sticky\"I\n" +
-	"\x15AssignDomainsResponse\x120\n" +
-	"\x14changed_domain_names\x18\x01 \x03(\tR\x12changedDomainNames\"g\n" +
-	"\x14SwitchDomainsRequest\x120\n" +
-	"\x14target_deployment_id\x18\x01 \x01(\tR\x12targetDeploymentId\x12\x1d\n" +
-	"\n" +
-	"domain_ids\x18\x02 \x03(\tR\tdomainIds\"\x17\n" +
-	"\x15SwitchDomainsResponse*~\n" +
-	"\fDomainSticky\x12\x1d\n" +
-	"\x19DOMAIN_STICKY_UNSPECIFIED\x10\x00\x12\x18\n" +
-	"\x14DOMAIN_STICKY_BRANCH\x10\x01\x12\x1d\n" +
-	"\x19DOMAIN_STICKY_ENVIRONMENT\x10\x02\x12\x16\n" +
-	"\x12DOMAIN_STICKY_LIVE\x10\x032\xbe\x01\n" +
-	"\x0eRoutingService\x12R\n" +
-	"\rAssignDomains\x12\x1e.hydra.v1.AssignDomainsRequest\x1a\x1f.hydra.v1.AssignDomainsResponse\"\x00\x12R\n" +
-	"\rSwitchDomains\x12\x1e.hydra.v1.SwitchDomainsRequest\x1a\x1f.hydra.v1.SwitchDomainsResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x95\x01\n" +
+	"\x16hydra/v1/routing.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"m\n" +
+	"\x1aAssignIngressRoutesRequest\x12#\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12*\n" +
+	"\x11ingress_route_ids\x18\x02 \x03(\tR\x0fingressRouteIds\"\x1d\n" +
+	"\x1bAssignIngressRoutesResponse2|\n" +
+	"\x0eRoutingService\x12d\n" +
+	"\x13AssignIngressRoutes\x12$.hydra.v1.AssignIngressRoutesRequest\x1a%.hydra.v1.AssignIngressRoutesResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x95\x01\n" +
 	"\fcom.hydra.v1B\fRoutingProtoP\x01Z6github.com/unkeyed/unkey/go/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -404,30 +135,19 @@ func file_hydra_v1_routing_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_routing_proto_rawDescData
 }
 
-var file_hydra_v1_routing_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_hydra_v1_routing_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_hydra_v1_routing_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_hydra_v1_routing_proto_goTypes = []any{
-	(DomainSticky)(0),             // 0: hydra.v1.DomainSticky
-	(*AssignDomainsRequest)(nil),  // 1: hydra.v1.AssignDomainsRequest
-	(*DomainToAssign)(nil),        // 2: hydra.v1.DomainToAssign
-	(*AssignDomainsResponse)(nil), // 3: hydra.v1.AssignDomainsResponse
-	(*SwitchDomainsRequest)(nil),  // 4: hydra.v1.SwitchDomainsRequest
-	(*SwitchDomainsResponse)(nil), // 5: hydra.v1.SwitchDomainsResponse
-	(*v1.GatewayConfig)(nil),      // 6: partition.v1.GatewayConfig
+	(*AssignIngressRoutesRequest)(nil),  // 0: hydra.v1.AssignIngressRoutesRequest
+	(*AssignIngressRoutesResponse)(nil), // 1: hydra.v1.AssignIngressRoutesResponse
 }
 var file_hydra_v1_routing_proto_depIdxs = []int32{
-	2, // 0: hydra.v1.AssignDomainsRequest.domains:type_name -> hydra.v1.DomainToAssign
-	6, // 1: hydra.v1.AssignDomainsRequest.gateway_config:type_name -> partition.v1.GatewayConfig
-	0, // 2: hydra.v1.DomainToAssign.sticky:type_name -> hydra.v1.DomainSticky
-	1, // 3: hydra.v1.RoutingService.AssignDomains:input_type -> hydra.v1.AssignDomainsRequest
-	4, // 4: hydra.v1.RoutingService.SwitchDomains:input_type -> hydra.v1.SwitchDomainsRequest
-	3, // 5: hydra.v1.RoutingService.AssignDomains:output_type -> hydra.v1.AssignDomainsResponse
-	5, // 6: hydra.v1.RoutingService.SwitchDomains:output_type -> hydra.v1.SwitchDomainsResponse
-	5, // [5:7] is the sub-list for method output_type
-	3, // [3:5] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0, // 0: hydra.v1.RoutingService.AssignIngressRoutes:input_type -> hydra.v1.AssignIngressRoutesRequest
+	1, // 1: hydra.v1.RoutingService.AssignIngressRoutes:output_type -> hydra.v1.AssignIngressRoutesResponse
+	1, // [1:2] is the sub-list for method output_type
+	0, // [0:1] is the sub-list for method input_type
+	0, // [0:0] is the sub-list for extension type_name
+	0, // [0:0] is the sub-list for extension extendee
+	0, // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_routing_proto_init() }
@@ -440,14 +160,13 @@ func file_hydra_v1_routing_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_routing_proto_rawDesc), len(file_hydra_v1_routing_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   5,
+			NumEnums:      0,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_hydra_v1_routing_proto_goTypes,
 		DependencyIndexes: file_hydra_v1_routing_proto_depIdxs,
-		EnumInfos:         file_hydra_v1_routing_proto_enumTypes,
 		MessageInfos:      file_hydra_v1_routing_proto_msgTypes,
 	}.Build()
 	File_hydra_v1_routing_proto = out.File
