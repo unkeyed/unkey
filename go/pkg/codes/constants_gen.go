@@ -12,6 +12,8 @@ const (
 
 	// BadRequest
 
+	// MissingRequiredHeader indicates a required HTTP header is missing from the request.
+	UserErrorsBadRequestMissingRequiredHeader URN = "err:user:bad_request:missing_required_header"
 	// PermissionsQuerySyntaxError indicates a syntax or lexical error in verifyKey permissions query parsing.
 	UserErrorsBadRequestPermissionsQuerySyntaxError URN = "err:user:bad_request:permissions_query_syntax_error"
 	// RequestBodyTooLarge indicates the request body exceeds the maximum allowed size.

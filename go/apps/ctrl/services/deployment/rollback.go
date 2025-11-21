@@ -19,7 +19,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	)
 
 	// Get source deployment to determine project ID for keying
-	sourceDeployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), req.Msg.GetSourceDeploymentId())
+	sourceDeployment, err := db.Query.FindDeploymentByID(ctx, s.db.RO(), req.Msg.GetSourceDeploymentId())
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", req.Msg.GetSourceDeploymentId()))
