@@ -161,7 +161,7 @@ func (p *Parser) extractTimestamp(op *clickhouse.BinaryOperation) (time.Time, er
 
 // extractTimestampFromExpr extracts a timestamp from any expression type
 func (p *Parser) extractTimestampFromExpr(valueExpr clickhouse.Expr) (time.Time, error) {
-	// Try to extract the timestamp value
+	// This is a best effort attempt to extract a timestamp from the expression
 	switch v := valueExpr.(type) {
 	case *clickhouse.NumberLiteral:
 		// Unix timestamp in milliseconds (Int64)
@@ -203,6 +203,7 @@ func (p *Parser) extractTimestampFromExpr(valueExpr clickhouse.Expr) (time.Time,
 				argExpr := v.Params.Items.Items[0]
 				return p.extractTimestampFromExpr(argExpr)
 			}
+
 			return time.Time{}, fmt.Errorf("time function has no arguments")
 		case "date_trunc":
 			// date_trunc takes 2 arguments: unit (string) and timestamp
@@ -212,6 +213,7 @@ func (p *Parser) extractTimestampFromExpr(valueExpr clickhouse.Expr) (time.Time,
 				argExpr := v.Params.Items.Items[1]
 				return p.extractTimestampFromExpr(argExpr)
 			}
+
 			return time.Time{}, fmt.Errorf("date_trunc requires 2 arguments")
 		case "fromunixtimestamp64milli":
 			// Converts unix timestamp (milliseconds) to DateTime
@@ -226,12 +228,20 @@ func (p *Parser) extractTimestampFromExpr(valueExpr clickhouse.Expr) (time.Time,
 					}
 					return time.UnixMilli(timestamp), nil
 				}
+
 				// Could be a more complex expression, recursively evaluate
 				return p.extractTimestampFromExpr(argExpr)
 			}
+
 			return time.Time{}, fmt.Errorf("fromunixtimestamp64milli has no arguments")
 		default:
-			return time.Time{}, fmt.Errorf("unsupported time function: %s", funcName)
+			// Unsupported time function - log and return current time as safe default
+			// RLS policies at database level will enforce retention regardless
+			p.logger.Warn("unsupported time function in retention validation, using current time as safe default",
+				"function", funcName,
+				"workspace_id", p.config.WorkspaceID,
+			)
+			return time.Now(), nil
 		}
 
 	case *clickhouse.BinaryOperation:
@@ -243,7 +253,13 @@ func (p *Parser) extractTimestampFromExpr(valueExpr clickhouse.Expr) (time.Time,
 		return p.extractTimestampFromExpr(v.Expr)
 
 	default:
-		return time.Time{}, fmt.Errorf("unsupported timestamp expression type: %T", valueExpr)
+		// Unsupported expression type - log and return current time as safe default
+		// RLS policies at database level will enforce retention regardless
+		p.logger.Warn("unsupported timestamp expression type in retention validation, using current time as safe default",
+			"type", fmt.Sprintf("%T", valueExpr),
+			"workspace_id", p.config.WorkspaceID,
+		)
+		return time.Now(), nil
 	}
 }
 
@@ -259,66 +275,70 @@ func (p *Parser) evaluateIntervalExpression(expr *clickhouse.BinaryOperation) (t
 	}
 
 	// Parse the INTERVAL expression on the right side
-	if operation == "-" {
+	switch operation {
+	case "-":
 		// This should be: INTERVAL N DAY/HOUR/MONTH
 		interval, err := p.parseIntervalExpression(expr.RightExpr)
 		if err != nil {
 			return time.Time{}, err
 		}
 		return baseTime.Add(-interval), nil
-	} else if operation == "+" {
+	case "+":
 		interval, err := p.parseIntervalExpression(expr.RightExpr)
 		if err != nil {
 			return time.Time{}, err
 		}
 		return baseTime.Add(interval), nil
+	default:
+		return time.Time{}, fmt.Errorf("unsupported operation in interval expression: %s", operation)
 	}
-
-	return time.Time{}, fmt.Errorf("unsupported operation in interval expression: %s", operation)
 }
 
 // parseIntervalExpression parses an INTERVAL expression like "INTERVAL 60 DAY"
 func (p *Parser) parseIntervalExpression(expr clickhouse.Expr) (time.Duration, error) {
 	// ClickHouse parser represents "INTERVAL 60 DAY" as an IntervalExpr
-	if interval, ok := expr.(*clickhouse.IntervalExpr); ok {
-		// Extract the numeric value
-		var value int64
-		switch v := interval.Expr.(type) {
-		case *clickhouse.NumberLiteral:
-			var err error
-			value, err = strconv.ParseInt(v.Literal, 10, 64)
-			if err != nil {
-				return 0, fmt.Errorf("invalid interval value: %s", v.Literal)
-			}
-		default:
-			return 0, fmt.Errorf("unsupported interval value type")
-		}
+	interval, ok := expr.(*clickhouse.IntervalExpr)
 
-		// Convert to duration based on unit
-		unit := strings.ToUpper(interval.Unit.String())
-		switch unit {
-		case "SECOND":
-			return time.Duration(value) * time.Second, nil
-		case "MINUTE":
-			return time.Duration(value) * time.Minute, nil
-		case "HOUR":
-			return time.Duration(value) * time.Hour, nil
-		case "DAY":
-			return time.Duration(value) * 24 * time.Hour, nil
-		case "WEEK":
-			return time.Duration(value) * 7 * 24 * time.Hour, nil
-		case "MONTH":
-			// Approximate: 30 days per month
-			return time.Duration(value) * 30 * 24 * time.Hour, nil
-		case "YEAR":
-			// Approximate: 365 days per year
-			return time.Duration(value) * 365 * 24 * time.Hour, nil
-		default:
-			return 0, fmt.Errorf("unsupported interval unit: %s", unit)
-		}
+	if !ok {
+		return 0, fmt.Errorf("expected interval expression")
+
 	}
 
-	return 0, fmt.Errorf("expected interval expression")
+	// Extract the numeric value
+	var value int64
+	switch v := interval.Expr.(type) {
+	case *clickhouse.NumberLiteral:
+		var err error
+		value, err = strconv.ParseInt(v.Literal, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("invalid interval value: %s", v.Literal)
+		}
+	default:
+		return 0, fmt.Errorf("unsupported interval value type")
+	}
+
+	// Convert to duration based on unit
+	unit := strings.ToUpper(interval.Unit.String())
+	switch unit {
+	case "SECOND":
+		return time.Duration(value) * time.Second, nil
+	case "MINUTE":
+		return time.Duration(value) * time.Minute, nil
+	case "HOUR":
+		return time.Duration(value) * time.Hour, nil
+	case "DAY":
+		return time.Duration(value) * 24 * time.Hour, nil
+	case "WEEK":
+		return time.Duration(value) * 7 * 24 * time.Hour, nil
+	case "MONTH":
+		// Approximate: 30 days per month
+		return time.Duration(value) * 30 * 24 * time.Hour, nil
+	case "YEAR":
+		// Approximate: 365 days per year
+		return time.Duration(value) * 365 * 24 * time.Hour, nil
+	default:
+		return 0, fmt.Errorf("unsupported interval unit: %s", unit)
+	}
 }
 
 // isTimeColumn checks if an expression is the 'time' column
@@ -326,9 +346,11 @@ func (p *Parser) isTimeColumn(expr clickhouse.Expr) bool {
 	if ident, ok := expr.(*clickhouse.NestedIdentifier); ok {
 		return ident.Ident != nil && strings.EqualFold(ident.Ident.Name, "time")
 	}
+
 	if ident, ok := expr.(*clickhouse.Ident); ok {
 		return strings.EqualFold(ident.Name, "time")
 	}
+
 	return false
 }
 

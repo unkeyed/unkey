@@ -5,10 +5,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 func TestParser_TableAliases(t *testing.T) {
 	p := NewParser(Config{
+		Logger: logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		TableAliases: map[string]string{
 			"keys": "default.keys_v2",
@@ -26,6 +28,7 @@ func TestParser_TableAliases(t *testing.T) {
 
 func TestParser_BlockSystemTables(t *testing.T) {
 	p := NewParser(Config{
+		Logger: logging.NewNoop(),
 		WorkspaceID: "ws_123",
 	})
 
@@ -66,6 +69,7 @@ func TestParser_BlockSystemTables(t *testing.T) {
 
 func TestParser_AllowedTables(t *testing.T) {
 	p := NewParser(Config{
+		Logger: logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		AllowedTables: []string{
 			"default.keys_v2",
@@ -84,6 +88,7 @@ func TestParser_AllowedTables(t *testing.T) {
 
 func TestParser_BlockInformationSchema(t *testing.T) {
 	p := NewParser(Config{
+		Logger: logging.NewNoop(),
 		WorkspaceID: "ws_123",
 	})
 
@@ -116,6 +121,7 @@ func TestParser_BlockInformationSchema(t *testing.T) {
 
 func TestParser_UNIONWithTables(t *testing.T) {
 	p := NewParser(Config{
+		Logger: logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		Limit:       1000,
 		AllowedTables: []string{
@@ -166,6 +172,7 @@ func TestParser_UNIONWithTables(t *testing.T) {
 
 func TestParser_JOINWithTables(t *testing.T) {
 	p := NewParser(Config{
+		Logger: logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		AllowedTables: []string{
 			"default.key_verifications_raw_v2",
@@ -225,6 +232,7 @@ func TestParser_JOINWithTables(t *testing.T) {
 
 func TestParser_SubqueryWithTables(t *testing.T) {
 	p := NewParser(Config{
+		Logger: logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		Limit:       10,
 		AllowedTables: []string{
@@ -284,6 +292,7 @@ func TestParser_SubqueryWithTables(t *testing.T) {
 
 func TestParser_CTEWithTables(t *testing.T) {
 	p := NewParser(Config{
+		Logger: logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		AllowedTables: []string{
 			"default.key_verifications_raw_v2",
@@ -348,6 +357,7 @@ func TestParser_CTEWithTables(t *testing.T) {
 
 func TestParser_ScalarSubqueryWithTables(t *testing.T) {
 	p := NewParser(Config{
+		Logger: logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		AllowedTables: []string{
 			"default.key_verifications_raw_v2",
@@ -392,6 +402,7 @@ func TestParser_ScalarSubqueryWithTables(t *testing.T) {
 
 func TestParser_TableFunctions(t *testing.T) {
 	p := NewParser(Config{
+		Logger: logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		AllowedTables: []string{
 			"default.key_verifications_raw_v2",

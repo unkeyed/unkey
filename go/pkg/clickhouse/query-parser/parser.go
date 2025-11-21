@@ -11,9 +11,13 @@ import (
 
 // NewParser creates a new parser
 func NewParser(config Config) *Parser {
+	if config.Logger == nil {
+		panic("query parser requires a logger - use logging.NewNoop() for tests")
+	}
 	return &Parser{
 		stmt:     nil,
 		config:   config,
+		logger:   config.Logger,
 		cteNames: make(map[string]bool),
 	}
 }

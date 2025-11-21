@@ -101,6 +101,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		TableAliases:      tableAliases,
 		AllowedTables:     allowedTables,
 		MaxQueryRangeDays: settings.Quotas.LogsRetentionDays,
+		Logger:            h.Logger,
 	})
 
 	parsedQuery, err := parser.Parse(ctx, req.Query)
