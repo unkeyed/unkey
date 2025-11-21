@@ -1,0 +1,49 @@
+---
+title: "query_range_exceeds_retention"
+description: "QueryRangeExceedsRetention indicates the query attempts to access data older than the workspace's retention period."
+---
+
+<Danger>`err:user:bad_request:query_range_exceeds_retention`</Danger>
+
+## What does this error mean?
+
+This error occurs when your analytics query attempts to access data older than your workspace's configured data retention period. By default, Unkey retains analytics data for **30 days**.
+
+## Common causes
+
+1. **Querying historical data beyond retention**: Your query's time filter includes dates older than your retention period
+   ```sql
+   -- If your retention is 30 days, this will fail if querying > 30 days ago
+   SELECT COUNT(*) FROM key_verifications_v1 WHERE time >= 1234567890000
+   ```
+
+2. **Missing time filters**: Queries without time filters attempt to access all historical data, which exceeds retention
+   ```sql
+   -- This will fail - no time filter means querying all data
+   SELECT COUNT(*) FROM key_verifications_v1
+   ```
+
+## How to fix
+
+1. **Add a time filter within retention**: Ensure your query only accesses data within your retention period
+   ```sql
+   -- Query last 7 days (within 30-day retention)
+   SELECT COUNT(*) FROM key_verifications_v1
+   WHERE time >= now() - INTERVAL 7 DAY
+   ```
+
+2. **Adjust your query range**: If you need to analyze trends, query within your available retention window
+   ```sql
+   -- Query the full 30-day retention period
+   SELECT COUNT(*) FROM key_verifications_v1
+   WHERE time >= now() - INTERVAL 30 DAY
+   ```
+
+## Need longer retention?
+
+If your use case requires data retention beyond 30 days, please [contact our support team](https://unkey.com/support) to discuss upgrading your retention period. We can configure custom retention periods based on your needs.
+
+## Related
+
+- [Analytics documentation](/apis/features/analytics)
+- [Analytics query examples](/analytics)

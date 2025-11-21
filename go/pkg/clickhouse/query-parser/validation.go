@@ -25,6 +25,9 @@ var allowedFunctions = map[string]bool{
 	"quantile":       true,
 
 	// Date/Time functions
+	// IMPORTANT: When adding new time-related functions here, you must also update
+	// pkg/clickhouse/query-parser/time_range.go to handle them in the retention validation logic.
+	// See extractTimestampFromExpr() function to add support for new time functions.
 	"now":                      true,
 	"now64":                    true,
 	"today":                    true,

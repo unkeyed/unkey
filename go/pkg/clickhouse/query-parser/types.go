@@ -12,11 +12,12 @@ type SecurityFilter struct {
 
 // Config for the parser
 type Config struct {
-	WorkspaceID     string
-	TableAliases    map[string]string
-	AllowedTables   []string
-	SecurityFilters []SecurityFilter // Row-level security filters (auto-injected)
-	Limit           int
+	WorkspaceID       string
+	TableAliases      map[string]string
+	AllowedTables     []string
+	SecurityFilters   []SecurityFilter // Row-level security filters (auto-injected)
+	Limit             int
+	MaxQueryRangeDays int32 // Maximum historical data range user can query in days
 }
 
 // Parser rewrites ClickHouse queries

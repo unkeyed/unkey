@@ -92,20 +92,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	h.Logger.Info("Received request", "requestId", s.RequestID(), "path", "/v2/analytics.getVerifications", "retentionDays", settings.Quotas.LogsRetentionDays)
+
 	parser := chquery.NewParser(chquery.Config{
-		WorkspaceID:     auth.AuthorizedWorkspaceID,
-		Limit:           int(settings.MaxQueryResultRows),
-		SecurityFilters: securityFilters,
-		TableAliases:    tableAliases,
-		AllowedTables:   allowedTables,
+		WorkspaceID:       auth.AuthorizedWorkspaceID,
+		Limit:             int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows),
+		SecurityFilters:   securityFilters,
+		TableAliases:      tableAliases,
+		AllowedTables:     allowedTables,
+		MaxQueryRangeDays: settings.Quotas.LogsRetentionDays,
 	})
 
 	parsedQuery, err := parser.Parse(ctx, req.Query)
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Public("Invalid SQL query"),
-		)
+		return err
 	}
 
 	// Now we build permission checks based on the key_space_id(s) one specified in the query itself

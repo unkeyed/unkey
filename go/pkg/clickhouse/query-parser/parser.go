@@ -72,5 +72,9 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 		return "", err
 	}
 
+	if err := p.validateTimeRange(); err != nil {
+		return "", err
+	}
+
 	return p.stmt.String(), nil
 }
