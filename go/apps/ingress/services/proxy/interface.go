@@ -15,11 +15,13 @@ import (
 type Service interface {
 	// ForwardToGateway forwards a request to a local gateway service (HTTP)
 	// Adds X-Unkey-Deployment-Id header for the gateway to route to the correct deployment
-	ForwardToGateway(ctx context.Context, sess *zen.Session, gateway *db.Gateway, deploymentID string, startTime time.Time) error
+	// Request start time is retrieved from context
+	ForwardToGateway(ctx context.Context, sess *zen.Session, gateway *db.Gateway, deploymentID string) error
 
 	// ForwardToNLB forwards a request to a remote region's NLB (HTTPS)
 	// Keeps the original hostname so the remote ingress can do TLS termination and routing
-	ForwardToNLB(ctx context.Context, sess *zen.Session, targetRegion string, startTime time.Time) error
+	// Request start time is retrieved from context
+	ForwardToNLB(ctx context.Context, sess *zen.Session, targetRegion string) error
 }
 
 // Config holds configuration for the proxy service.

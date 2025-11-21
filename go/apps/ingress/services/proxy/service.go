@@ -83,7 +83,9 @@ func New(cfg Config) (*service, error) {
 
 // ForwardToGateway forwards a request to a local gateway service (HTTP)
 // Adds X-Unkey-Deployment-Id header so gateway knows which deployment to route to
-func (s *service) ForwardToGateway(ctx context.Context, sess *zen.Session, gateway *db.Gateway, deploymentID string, startTime time.Time) error {
+func (s *service) ForwardToGateway(ctx context.Context, sess *zen.Session, gateway *db.Gateway, deploymentID string) error {
+	startTime, _ := RequestStartTimeFromContext(ctx)
+
 	targetURL, err := url.Parse(fmt.Sprintf("http://%s", gateway.K8sServiceName))
 	if err != nil {
 		return fault.Wrap(err,
@@ -103,7 +105,9 @@ func (s *service) ForwardToGateway(ctx context.Context, sess *zen.Session, gatew
 
 // ForwardToNLB forwards a request to a remote region's NLB (HTTPS)
 // Keeps original hostname so remote ingress can do TLS termination and routing
-func (s *service) ForwardToNLB(ctx context.Context, sess *zen.Session, targetRegion string, startTime time.Time) error {
+func (s *service) ForwardToNLB(ctx context.Context, sess *zen.Session, targetRegion string) error {
+	startTime, _ := RequestStartTimeFromContext(ctx)
+
 	// Check for too many hops to prevent infinite routing loops
 	if hopCountStr := sess.Request().Header.Get(HeaderIngressHops); hopCountStr != "" {
 		if hops, err := strconv.Atoi(hopCountStr); err == nil && hops >= s.maxHops {
