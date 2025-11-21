@@ -50,7 +50,6 @@ func categorizeProxyError(err error) (codes.URN, string) {
 			return codes.Ingress.Proxy.ServiceUnavailable.URN(),
 				"The service could not be found. Please check your configuration."
 		}
-
 		if dnsErr.IsTimeout {
 			return codes.Ingress.Proxy.GatewayTimeout.URN(),
 				"DNS resolution timed out. Please try again later."
