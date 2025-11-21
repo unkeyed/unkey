@@ -1,8 +1,8 @@
+import { createClient } from "@clickhouse/client-web";
+import { ClickHouse } from "@unkey/clickhouse";
 import { mysqlDrizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 import { z } from "zod";
-import { createClient } from "@clickhouse/client-web";
-import { ClickHouse } from "@unkey/clickhouse";
 
 const tables = [
   {
@@ -47,7 +47,7 @@ const rawCH = createClient({
 });
 
 const conn = await mysql.createConnection(
-  `mysql://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:3306/unkey?ssl={}`
+  `mysql://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:3306/unkey?ssl={}`,
 );
 
 await conn.ping();
@@ -73,9 +73,7 @@ for (const table of tables) {
 
   for (let t = start; t < end; t += table.dt) {
     console.log(
-      `${table.name}: ${new Date(t).toLocaleString()} - ${new Date(
-        t + table.dt
-      ).toLocaleString()}`
+      `${table.name}: ${new Date(t).toLocaleString()} - ${new Date(t + table.dt).toLocaleString()}`,
     );
     const query = ch.querier.query({
       query: `
@@ -109,7 +107,7 @@ for (const table of tables) {
         i + 1,
         "/",
         rows.length,
-        `Concurrency: ${semaphore.size} / ${Math.floor(concurrency)}`
+        `Concurrency: ${semaphore.size} / ${Math.floor(concurrency)}`,
       );
       const row = rows[i];
 
@@ -130,7 +128,7 @@ for (const table of tables) {
           })
           .finally(() => {
             semaphore.delete(key);
-          })
+          }),
       );
     }
   }
@@ -139,10 +137,7 @@ for (const table of tables) {
   }
 }
 
-async function handleRow(
-  table: string,
-  row: z.infer<typeof aggregatedSchema>
-): Promise<void> {
+async function handleRow(table: string, row: z.infer<typeof aggregatedSchema>): Promise<void> {
   let externalId = identityCache.get(row.identity_id);
   if (externalId === null) {
     return;
