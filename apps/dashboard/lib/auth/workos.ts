@@ -29,6 +29,7 @@ import {
   type User,
   type UserData,
   type VerificationResult,
+  WORKOS_RADAR_API_URL,
 } from "./types";
 
 type WorkOSErrorCode =
@@ -70,10 +71,16 @@ type ProviderUser = {
   profilePictureUrl: string | null;
 };
 
+type Decision = {
+  action: "allow" | "block" | "challenge";
+  reason?: string;
+};
+
 export class WorkOSAuthProvider extends BaseAuthProvider {
   //INFO: Best to leave this alone, some other class might be accessing `instance` implicitly
   private static instance: WorkOSAuthProvider | null = null;
   private readonly provider: WorkOS;
+  private readonly apiKey: string;
   private readonly clientId: string;
   private readonly cookiePassword: string;
 
@@ -86,11 +93,54 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     // Initialize properties after validation
+    this.apiKey = config.apiKey;
     this.clientId = config.clientId;
     this.cookiePassword = cookiePassword; // TypeScript now knows this is string
     this.provider = new WorkOS(config.apiKey, { clientId: config.clientId });
 
     WorkOSAuthProvider.instance = this;
+  }
+
+  private async checkRadar(params: {
+    email: string;
+    ipAddress?: string;
+    userAgent?: string;
+    auth_method?: string;
+    action?: string;
+  }): Promise<Decision> {
+    try {
+      const response = await fetch(WORKOS_RADAR_API_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: params.email,
+          ip_address: params.ipAddress,
+          user_agent: params.userAgent,
+          auth_method: params.auth_method,
+          action: params.action,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("Radar API error:", response.status);
+        return { action: "allow" };
+      }
+
+      const data = await response.json();
+
+      return {
+        action: data.verdict || "block",
+        reason: data.reason,
+      };
+    } catch (error) {
+      console.error("Failed to check Radar:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return { action: "allow" };
+    }
   }
 
   // Session Management
@@ -559,8 +609,27 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
   // Authentication Management
 
-  async signUpViaEmail(params: UserData): Promise<EmailAuthResult> {
-    const { email, firstName, lastName } = params;
+  async signUpViaEmail(
+    params: UserData & { ipAddress?: string; userAgent?: string },
+  ): Promise<EmailAuthResult> {
+    const { email, firstName, lastName, ipAddress, userAgent } = params;
+    const auth_method = "Email_OTP"; // WorkOS value
+    const action = "sign-up"; // WorkOS value
+    // Check Radar before proceeding with signup
+    const radarDecision = await this.checkRadar({
+      email,
+      ipAddress,
+      userAgent,
+      auth_method,
+      action,
+    });
+
+    // Right now, challenge is treated as a block until we implement a captcha or challenge mechanism
+    // Worst case we get a support request and manually allow
+    // initial radar testing shows that bots are likely to be challenged than blocked
+    if (radarDecision.action !== "allow") {
+      throw new Error(AuthErrorCode.RADAR_BLOCKED);
+    }
 
     try {
       // Create the user with WorkOS
@@ -590,7 +659,30 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async signInViaEmail(email: string): Promise<EmailAuthResult> {
+  async signInViaEmail(params: {
+    email: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<EmailAuthResult> {
+    const { email, ipAddress, userAgent } = params;
+    const auth_method = "Email_OTP"; // WorkOS value
+    const action = "sign-in"; // WorkOS value
+    // Check Radar before proceeding with signin
+    const radarDecision = await this.checkRadar({
+      email,
+      ipAddress,
+      userAgent,
+      auth_method,
+      action,
+    });
+
+    // Right now, challenge is treated as a block until we implement a captcha or challenge mechanism
+    // Worst case we get a support request and manually allow
+    // initial radar testing shows that bots are likely to be challenged than blocked
+    if (radarDecision.action !== "allow") {
+      throw new Error(AuthErrorCode.RADAR_BLOCKED);
+    }
+
     try {
       const { data } = await this.provider.userManagement.listUsers({ email });
 

@@ -60,7 +60,7 @@ Finally, the control plane calls the RoutingService to atomically assign domains
     Ctrl->>K8s: HTTP GET /openapi.yaml
     K8s->>Ctrl: OpenAPI spec
     
-    Ctrl->>Ctrl: AssignDomains (RoutingService)<br/>- Create gateway configs<br/>- Assign domains
+    Ctrl->>Ctrl: AssignIngressRoutes (RoutingService)<br/>- Update ingress routes<br/>- Point to new deployment
     
     Ctrl->>DB: Update deployment status: READY
     

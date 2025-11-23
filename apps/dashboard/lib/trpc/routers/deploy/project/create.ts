@@ -108,6 +108,7 @@ export const createProject = t.procedure
               createdAt: now,
               updatedAt: now,
               slug,
+              gatewayConfig: "",
             });
 
             await insertAuditLogs(tx, {

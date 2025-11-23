@@ -1,4 +1,4 @@
--- name: InsertAcmeUser :execlastid
+-- name: InsertAcmeUser :exec
 
-INSERT INTO acme_users (workspace_id, encrypted_key, created_at)
-VALUES (?,?,?);
+INSERT INTO acme_users (id, workspace_id, encrypted_key, created_at)
+VALUES (?,?,?,?);

@@ -5,7 +5,7 @@ import { workspaces } from "./workspaces";
 export const certificates = mysqlTable(
   "certificates",
   {
-    id: bigint("id", { mode: "number", unsigned: true }).primaryKey().autoincrement(),
+    id: varchar("id", { length: 128 }).primaryKey(),
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     hostname: varchar("hostname", { length: 255 }).notNull(),
     certificate: text("certificate").notNull(),
@@ -13,9 +13,7 @@ export const certificates = mysqlTable(
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
     updatedAt: bigint("updated_at", { mode: "number" }),
   },
-  (table) => ({
-    uniqueHostname: uniqueIndex("unique_hostname").on(table.hostname),
-  }),
+  (table) => [uniqueIndex("unique_hostname").on(table.hostname)],
 );
 
 export const certificatesRelations = relations(certificates, ({ one }) => ({

@@ -48,8 +48,8 @@ func (s *Service) ProcessChallenge(
 	)
 
 	// Step 1: Resolve domain
-	dom, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Domain, error) {
-		return db.Query.FindDomainByDomain(stepCtx, s.db.RO(), req.GetDomain())
+	dom, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.CustomDomain, error) {
+		return db.Query.FindCustomDomainByDomain(stepCtx, s.db.RO(), req.GetDomain())
 	}, restate.WithName("resolving domain"))
 	if err != nil {
 		return nil, err

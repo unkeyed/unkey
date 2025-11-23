@@ -9,13 +9,14 @@ import (
 	"context"
 )
 
-const insertAcmeUser = `-- name: InsertAcmeUser :execlastid
+const insertAcmeUser = `-- name: InsertAcmeUser :exec
 
-INSERT INTO acme_users (workspace_id, encrypted_key, created_at)
-VALUES (?,?,?)
+INSERT INTO acme_users (id, workspace_id, encrypted_key, created_at)
+VALUES (?,?,?,?)
 `
 
 type InsertAcmeUserParams struct {
+	ID           string `db:"id"`
 	WorkspaceID  string `db:"workspace_id"`
 	EncryptedKey string `db:"encrypted_key"`
 	CreatedAt    int64  `db:"created_at"`
@@ -23,12 +24,14 @@ type InsertAcmeUserParams struct {
 
 // InsertAcmeUser
 //
-//	INSERT INTO acme_users (workspace_id, encrypted_key, created_at)
-//	VALUES (?,?,?)
-func (q *Queries) InsertAcmeUser(ctx context.Context, db DBTX, arg InsertAcmeUserParams) (int64, error) {
-	result, err := db.ExecContext(ctx, insertAcmeUser, arg.WorkspaceID, arg.EncryptedKey, arg.CreatedAt)
-	if err != nil {
-		return 0, err
-	}
-	return result.LastInsertId()
+//	INSERT INTO acme_users (id, workspace_id, encrypted_key, created_at)
+//	VALUES (?,?,?,?)
+func (q *Queries) InsertAcmeUser(ctx context.Context, db DBTX, arg InsertAcmeUserParams) error {
+	_, err := db.ExecContext(ctx, insertAcmeUser,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.EncryptedKey,
+		arg.CreatedAt,
+	)
+	return err
 }

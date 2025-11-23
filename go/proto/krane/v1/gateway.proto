@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package krane.v1;
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/krane/v1;kranev1";
+
+service GatewayService {
+  // CreateGateway
+  rpc CreateGateway(CreateGatewayRequest) returns (CreateGatewayResponse);
+
+  // GetGateway
+  rpc GetGateway(GetGatewayRequest) returns (GetGatewayResponse);
+
+  // DeleteGateway
+  rpc DeleteGateway(DeleteGatewayRequest) returns (DeleteGatewayResponse);
+}
+
+message GatewayRequest {
+  string namespace = 1;
+  string workspace_id = 2;
+  string gateway_id = 3;
+
+  string image = 4;
+
+  uint32 replicas = 5;
+  uint32 cpu_millicores = 6;
+  uint64 memory_size_mib = 7;
+}
+
+message CreateGatewayRequest {
+  GatewayRequest gateway = 1;
+}
+
+message CreateGatewayResponse {
+  GatewayStatus status = 1;
+}
+
+message UpdateGatewayRequest {
+  GatewayRequest gateway = 1;
+}
+message UpdateGatewayResponse {
+  repeated string pod_ids = 1;
+}
+
+message DeleteGatewayRequest {
+  string namespace = 1;
+  string gateway_id = 2;
+}
+
+message DeleteGatewayResponse {}
+
+message GetGatewayRequest {
+  string namespace = 1;
+  string gateway_id = 2;
+}
+
+message GetGatewayResponse {
+  repeated GatewayInstance instances = 2;
+}
+
+enum GatewayStatus {
+  GATEWAY_STATUS_UNSPECIFIED = 0;
+  GATEWAY_STATUS_PENDING = 1; // Gateway request accepted, container/pod creation in progress
+  GATEWAY_STATUS_RUNNING = 2; // Container/pod is running and healthy
+  GATEWAY_STATUS_TERMINATING = 3; // Container/pod is being terminated
+}
+
+message GatewayInstance {
+  string id = 1;
+  string address = 2;
+  GatewayStatus status = 3;
+}

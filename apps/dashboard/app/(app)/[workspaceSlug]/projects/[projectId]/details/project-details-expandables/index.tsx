@@ -39,7 +39,7 @@ export const ProjectDetailsExpandable = ({
         .from({ domain: collections.domains })
         .where(({ domain }) => eq(domain.deploymentId, data?.project.liveDeploymentId))
         .select(({ domain }) => ({
-          domain: domain.domain,
+          domain: domain.hostname,
           environment: domain.sticky,
         }))
         .orderBy(({ domain }) => domain.id, "asc"),
