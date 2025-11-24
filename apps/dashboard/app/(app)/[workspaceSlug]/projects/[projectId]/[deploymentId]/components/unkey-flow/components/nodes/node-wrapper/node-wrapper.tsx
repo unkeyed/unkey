@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { PropsWithChildren } from "react";
-import type { HealthStatus } from "../types";
+import { DEFAULT_NODE_WIDTH, type HealthStatus } from "../types";
 import { HealthBanner } from "./health-banner";
 
 type NodeWrapperProps = PropsWithChildren<{
@@ -14,7 +14,7 @@ export function NodeWrapper({ health, children }: NodeWrapperProps) {
   return (
     <div
       className={cn(
-        "relative w-[282px] rounded-[14px]",
+        `relative w-[${DEFAULT_NODE_WIDTH}px] rounded-[14px]`,
         isDisabled
           ? "grayscale opacity-90 cursor-not-allowed"
           : cn(
@@ -28,7 +28,7 @@ export function NodeWrapper({ health, children }: NodeWrapperProps) {
       <HealthBanner healthStatus={health} />
       <div
         className={cn(
-          "relative z-20 w-[282px] h-[100px] border border-grayA-4 rounded-[14px] flex flex-col bg-white dark:bg-black shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)]",
+          `relative z-20 w-[${DEFAULT_NODE_WIDTH}px] h-[100px] border border-grayA-4 rounded-[14px] flex flex-col bg-white dark:bg-black shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)]`,
         )}
       >
         {children}

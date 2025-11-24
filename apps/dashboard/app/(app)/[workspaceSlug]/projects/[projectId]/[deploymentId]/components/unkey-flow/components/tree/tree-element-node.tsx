@@ -1,11 +1,6 @@
 import type { PropsWithChildren } from "react";
 import type { Point } from "../../layout-engine";
 
-/**
- * Wrapper that measures rendered node dimensions via DOM.
- * Reports dimensions back to parent on mount and when content changes.
- * @throws Error if ref is null or dimensions are zero
- */
 type TreeElementNodeProps = PropsWithChildren<{
   id: string;
   position: Point;

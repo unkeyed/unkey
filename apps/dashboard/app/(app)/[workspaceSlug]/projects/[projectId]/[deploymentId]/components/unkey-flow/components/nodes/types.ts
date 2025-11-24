@@ -89,6 +89,7 @@ const REGION_INFO: Record<RegionNode["metadata"]["flagCode"], RegionInfo> = {
   br: { name: "SA East", location: "São Paulo" },
 } as const;
 
+const DEFAULT_NODE_WIDTH = 282;
 type NodeSize = { width: number; height: number };
 /**
  * Since our nodes are custom-made, we can optimize layout through static heights and widths.
@@ -96,9 +97,9 @@ type NodeSize = { width: number; height: number };
  */
 const NODE_SIZES: Record<DeploymentNode["metadata"]["type"], NodeSize> = {
   origin: { width: 70, height: 20 },
-  region: { width: 282, height: 100 },
-  gateway: { width: 282, height: 100 },
-  skeleton: { width: 282, height: 100 },
+  region: { width: DEFAULT_NODE_WIDTH, height: 100 },
+  gateway: { width: DEFAULT_NODE_WIDTH, height: 100 },
+  skeleton: { width: DEFAULT_NODE_WIDTH, height: 100 },
 } as const;
 
 export type {
@@ -112,4 +113,12 @@ export type {
   BaseMetrics,
 };
 
-export { isOriginNode, isRegionNode, isGatewayNode, isSkeletonNode, REGION_INFO, NODE_SIZES };
+export {
+  isOriginNode,
+  isRegionNode,
+  isGatewayNode,
+  isSkeletonNode,
+  DEFAULT_NODE_WIDTH,
+  REGION_INFO,
+  NODE_SIZES,
+};

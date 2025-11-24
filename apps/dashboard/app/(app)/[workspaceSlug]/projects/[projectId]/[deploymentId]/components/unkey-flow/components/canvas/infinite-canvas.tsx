@@ -57,7 +57,6 @@ export function InfiniteCanvas({
     offset: { x: 0, y: 0 },
   });
 
-  // Memoize transform string to avoid recalculation
   const transform = `translate(${canvas.offset.x},${canvas.offset.y})scale(${canvas.scale})`;
 
   // Initialize center offset after mount

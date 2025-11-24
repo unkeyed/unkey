@@ -1,5 +1,6 @@
 import { cn } from "@unkey/ui/src/lib/utils";
 import { type HealthStatus, STATUS_CONFIG } from "../status/status-config";
+import { DEFAULT_NODE_WIDTH } from "../types";
 
 type HealthBannerProps = {
   healthStatus: HealthStatus;
@@ -16,7 +17,7 @@ export function HealthBanner({ healthStatus }: HealthBannerProps) {
   const Icon = config.icon;
 
   return (
-    <div className="z-10 mx-auto w-[282px] -m-[20px]">
+    <div className={`z-10 mx-auto w-[${DEFAULT_NODE_WIDTH}px] -m-[20px]`}>
       <div
         className={cn(
           "h-12 border rounded-t-[14px]",
