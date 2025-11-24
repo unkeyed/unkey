@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"database/sql"
-	"log"
+	"errors"
 	"strings"
 
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
@@ -52,7 +52,6 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 
 		rows, err := db.Query.FindCertificatesByHostnames(ctx, s.db.RO(), candidates)
 		if err != nil {
-			log.Printf("certmanager: db query error domain=%s err=%v", domain, err)
 			return tls.Certificate{}, err
 		}
 
@@ -88,13 +87,13 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 
 		return cert, nil
 	}, caches.DefaultFindFirstOp)
-	if err != nil {
+	if err != nil && !db.IsNotFound(err) {
 		s.logger.Error("Failed to get certificate", "error", err)
 		return nil, err
 	}
 
-	if hit == cache.Null {
-		return nil, err
+	if hit == cache.Null || db.IsNotFound(err) {
+		return nil, errors.New("certificate not found")
 	}
 
 	return &cert, nil
