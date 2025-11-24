@@ -39,7 +39,6 @@ var ingressCmd = &cli.Command{
 func seedIngress(ctx context.Context, cmd *cli.Command) error {
 	logger := logging.New()
 
-	// Connect to MySQL
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cmd.RequireString("database-primary"),
 		ReadOnlyDSN: "",
@@ -49,7 +48,6 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)
 	}
 
-	// Set up vault storage
 	s3Storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             cmd.String("vault-s3-url"),
 		S3Bucket:          cmd.String("vault-s3-bucket"),
@@ -61,7 +59,6 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to initialize S3 storage: %w", err)
 	}
 
-	// Connect to Vault
 	vaultService, err := vault.New(vault.Config{
 		Logger:     logger,
 		Storage:    s3Storage,
@@ -77,26 +74,21 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 	address := cmd.String("address")
 	now := time.Now().UnixMilli()
 
-	// IDs based on slug (must match local seed)
 	workspaceID := fmt.Sprintf("ws_%s", slug)
 	projectID := fmt.Sprintf("proj_%s", slug)
 	envID := fmt.Sprintf("env_%s", slug)
 
-	// New IDs for ingress entities
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	gatewayID := uid.New(uid.GatewayPrefix)
 	instanceID := uid.New(uid.InstancePrefix)
 	ingressRouteID := uid.New(uid.IngressRoutePrefix)
 	certificateID := uid.New(uid.CertificatePrefix)
 
-	// Generate TLS certificate using mkcert
-	logger.Info("generating TLS certificate with mkcert", "hostname", hostname)
 	certPEM, keyPEM, err := generateMkcertCertificate(hostname)
 	if err != nil {
 		return fmt.Errorf("failed to generate certificate: %w", err)
 	}
 
-	// Encrypt the private key
 	encryptResp, err := vaultService.Encrypt(ctx, &vaultv1.EncryptRequest{
 		Keyring: "unkey",
 		Data:    string(keyPEM),
@@ -105,10 +97,7 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to encrypt private key: %w", err)
 	}
 
-	// Run everything in a single transaction
 	err = db.Tx(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
-		// 1. Create deployment
-		logger.Info("creating deployment", "id", deploymentID)
 		err := db.Query.InsertDeployment(ctx, tx, db.InsertDeploymentParams{
 			ID:                       deploymentID,
 			WorkspaceID:              workspaceID,
@@ -131,8 +120,6 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create deployment: %w", err)
 		}
 
-		// 2. Create gateway
-		logger.Info("creating gateway", "id", gatewayID)
 		err = db.Query.InsertGateway(ctx, tx, db.InsertGatewayParams{
 			ID:             gatewayID,
 			WorkspaceID:    workspaceID,
@@ -147,8 +134,6 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create gateway: %w", err)
 		}
 
-		// 3. Create instance
-		logger.Info("creating instance", "id", instanceID, "address", address)
 		err = db.Query.UpsertInstance(ctx, tx, db.UpsertInstanceParams{
 			ID:            instanceID,
 			DeploymentID:  deploymentID,
@@ -164,8 +149,6 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create instance: %w", err)
 		}
 
-		// 4. Create ingress route
-		logger.Info("creating ingress route", "id", ingressRouteID, "hostname", hostname)
 		err = db.Query.InsertIngressRoute(ctx, tx, db.InsertIngressRouteParams{
 			ID:            ingressRouteID,
 			ProjectID:     projectID,
@@ -180,8 +163,6 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create ingress route: %w", err)
 		}
 
-		// 5. Create TLS certificate
-		logger.Info("storing TLS certificate", "id", certificateID, "hostname", hostname)
 		err = db.Query.InsertCertificate(ctx, tx, db.InsertCertificateParams{
 			ID:                  certificateID,
 			WorkspaceID:         workspaceID,
@@ -201,25 +182,24 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
-	// Print summary
-	logger.Info("ingress seed completed successfully")
-	logger.Info("deployment", "id", deploymentID)
-	logger.Info("gateway", "id", gatewayID)
-	logger.Info("instance", "id", instanceID, "address", address)
-	logger.Info("ingressRoute", "id", ingressRouteID, "hostname", hostname)
-	logger.Info("certificate", "id", certificateID, "hostname", hostname)
+	logger.Info("seed completed",
+		"deployment", deploymentID,
+		"gateway", gatewayID,
+		"instance", instanceID,
+		"ingressRoute", ingressRouteID,
+		"certificate", certificateID,
+		"hostname", hostname,
+		"address", address,
+	)
 
 	return nil
 }
 
-// generateMkcertCertificate generates a TLS certificate using mkcert
 func generateMkcertCertificate(hostname string) (certPEM []byte, keyPEM []byte, err error) {
-	// Check if mkcert is installed
 	if _, err := exec.LookPath("mkcert"); err != nil {
 		return nil, nil, fmt.Errorf("mkcert not found - install with: brew install mkcert (or visit https://github.com/FiloSottile/mkcert)")
 	}
 
-	// Create temp directory for cert files
 	tempDir, err := os.MkdirTemp("", "unkey-certs-*")
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create temp directory: %w", err)
@@ -229,20 +209,17 @@ func generateMkcertCertificate(hostname string) (certPEM []byte, keyPEM []byte, 
 	certFile := fmt.Sprintf("%s/%s.pem", tempDir, hostname)
 	keyFile := fmt.Sprintf("%s/%s-key.pem", tempDir, hostname)
 
-	// Generate certificate with mkcert
 	cmd := exec.Command("mkcert", "-cert-file", certFile, "-key-file", keyFile, hostname, "*."+hostname)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, nil, fmt.Errorf("mkcert failed: %w\nOutput: %s", err, string(output))
 	}
 
-	// Read certificate
 	certPEM, err = os.ReadFile(certFile)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read certificate: %w", err)
 	}
 
-	// Read private key
 	keyPEM, err = os.ReadFile(keyFile)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read private key: %w", err)
