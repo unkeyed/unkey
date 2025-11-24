@@ -58,5 +58,5 @@ func categorizeProxyError(err error) (codes.URN, string) {
 	}
 
 	return codes.Ingress.Proxy.BadGateway.URN(),
-		"Unable to connect to the backend service. Please try again in a few moments."
+		"Unable to connect to. Please try again in a few moments."
 }

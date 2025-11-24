@@ -54,6 +54,13 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 			resp.Header.Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
 
 			if resp.StatusCode >= 500 && resp.Header.Get("X-Unkey-Error-Source") == "gateway" {
+				if gatewayTime := resp.Header.Get("X-Unkey-Gateway-Time"); gatewayTime != "" {
+					sess.ResponseWriter().Header().Set("X-Unkey-Gateway-Time", gatewayTime)
+				}
+				if instanceTime := resp.Header.Get("X-Unkey-Instance-Time"); instanceTime != "" {
+					sess.ResponseWriter().Header().Set("X-Unkey-Instance-Time", instanceTime)
+				}
+
 				urn := codes.Ingress.Proxy.BadGateway.URN()
 				if resp.StatusCode == 503 {
 					urn = codes.Ingress.Proxy.ServiceUnavailable.URN()
