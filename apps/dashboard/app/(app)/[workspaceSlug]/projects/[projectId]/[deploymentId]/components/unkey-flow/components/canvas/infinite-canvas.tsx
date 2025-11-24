@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Point } from "../../layout-engine";
+import { CanvasBoundary } from "./canvas-boundary";
 import { GridPattern } from "./grid-pattern";
 
 const DEFAULT_MIN_ZOOM = 0.5;
@@ -238,7 +239,7 @@ export function InfiniteCanvas({
           {showGrid && (
             <GridPattern gridSize={gridSize} dotRadius={dotRadius} dotClassName={dotClassName} />
           )}
-          {children}
+          <CanvasBoundary>{children}</CanvasBoundary>
         </g>
       </svg>
 

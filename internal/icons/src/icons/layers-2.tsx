@@ -44,5 +44,3 @@ export const Layers2: React.FC<IconProps> = ({ iconSize = "xl-regular", ...props
     </svg>
   );
 };
-
-export default Layers2;

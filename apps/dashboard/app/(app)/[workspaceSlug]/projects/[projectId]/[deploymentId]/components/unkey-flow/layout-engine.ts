@@ -165,8 +165,6 @@ export class LayoutEngine<T extends TreeNode> {
 
     const positioned = this.buildNodeLayout(root, 0, { x: 0, y: 0 });
     const connections = this.buildConnections(positioned);
-
-    console.log({ connections });
     return { nodes: positioned, connections };
   }
 
