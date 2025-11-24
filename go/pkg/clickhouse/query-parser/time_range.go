@@ -26,14 +26,21 @@ func (p *Parser) validateTimeRange() error {
 	var validationErr error
 
 	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
-		if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
-			if selectQuery.Where != nil {
-				if err := p.validateWhereClause(selectQuery.Where.Expr, earliestAllowed, &hasTimeFilter); err != nil {
-					validationErr = err
-					return false
-				}
-			}
+		selectQuery, ok := node.(*clickhouse.SelectQuery)
+		if !ok {
+			return true
 		}
+
+		if selectQuery.Where == nil {
+			return true
+		}
+
+		err := p.validateWhereClause(selectQuery.Where.Expr, earliestAllowed, &hasTimeFilter)
+		if err != nil {
+			validationErr = err
+			return false
+		}
+
 		return true
 	})
 
@@ -67,8 +74,18 @@ func (p *Parser) validateWhereClause(expr clickhouse.Expr, earliestAllowed time.
 				return err
 			}
 		}
+
 		if e.RightExpr != nil {
 			if err := p.validateWhereClause(e.RightExpr, earliestAllowed, hasTimeFilter); err != nil {
+				return err
+			}
+		}
+
+	case *clickhouse.BetweenClause:
+		// Check if this is a time BETWEEN comparison
+		if p.isTimeColumn(e.Expr) {
+			*hasTimeFilter = true
+			if err := p.validateBetweenClause(e, earliestAllowed); err != nil {
 				return err
 			}
 		}
@@ -85,6 +102,7 @@ func (p *Parser) isTimeComparison(op *clickhouse.BinaryOperation) bool {
 			return true
 		}
 	}
+
 	if ident, ok := op.LeftExpr.(*clickhouse.Ident); ok {
 		if strings.EqualFold(ident.Name, "time") {
 			return true
@@ -136,10 +154,32 @@ func (p *Parser) validateTimeComparison(op *clickhouse.BinaryOperation, earliest
 	case "<=", "<":
 		// time <= X - this is OK, it's querying recent data
 		// We only care about the lower bound
-	case "BETWEEN":
-		// For BETWEEN, we need to check the lower bound
-		// This is more complex as BETWEEN has different AST structure
-		// For now, we'll handle it in a future iteration
+	}
+
+	return nil
+}
+
+// validateBetweenClause validates that a BETWEEN clause doesn't access data beyond retention
+func (p *Parser) validateBetweenClause(between *clickhouse.BetweenClause, earliestAllowed time.Time) error {
+	// Extract the lower bound (the "Between" field) from the BETWEEN clause
+	// For "time BETWEEN X AND Y", we validate that X is not before earliestAllowed
+	lowerBound, err := p.extractTimestampFromExpr(between.Between)
+	if err != nil {
+		// If we can't parse the timestamp, allow it and let ClickHouse handle it
+		return nil
+	}
+
+	// Check if the lower bound is before the earliest allowed time
+	if lowerBound.Before(earliestAllowed) {
+		return fault.New(
+			fmt.Sprintf("query time range exceeds retention period of %d days", p.config.MaxQueryRangeDays),
+			fault.Code(codes.User.BadRequest.QueryRangeExceedsRetention.URN()),
+			fault.Public(fmt.Sprintf("Cannot query data older than %d days. Your query attempts to access data from %s, but only data from %s onwards is available.",
+				p.config.MaxQueryRangeDays,
+				lowerBound.Format("2006-01-02"),
+				earliestAllowed.Format("2006-01-02"),
+			)),
+		)
 	}
 
 	return nil
@@ -169,23 +209,20 @@ func (p *Parser) extractTimestampFromExpr(valueExpr clickhouse.Expr) (time.Time,
 		if err != nil {
 			return time.Time{}, err
 		}
-		return time.UnixMilli(timestamp), nil
 
+		return time.UnixMilli(timestamp), nil
 	case *clickhouse.StringLiteral:
 		// DateTime or Date string
 		// Try common formats
-		formats := []string{
-			time.RFC3339,
-			"2006-01-02 15:04:05",
-			"2006-01-02",
-		}
+		formats := []string{time.RFC3339, "2006-01-02 15:04:05", "2006-01-02"}
+
 		for _, format := range formats {
 			if t, err := time.Parse(format, v.Literal); err == nil {
 				return t, nil
 			}
 		}
-		return time.Time{}, fmt.Errorf("unsupported date format: %s", v.Literal)
 
+		return time.Time{}, fmt.Errorf("unsupported date format: %s", v.Literal)
 	case *clickhouse.FunctionExpr:
 		// Handle time functions
 		funcName := strings.ToLower(v.Name.Name)
@@ -226,6 +263,7 @@ func (p *Parser) extractTimestampFromExpr(valueExpr clickhouse.Expr) (time.Time,
 					if err != nil {
 						return time.Time{}, err
 					}
+
 					return time.UnixMilli(timestamp), nil
 				}
 
@@ -241,24 +279,24 @@ func (p *Parser) extractTimestampFromExpr(valueExpr clickhouse.Expr) (time.Time,
 				"function", funcName,
 				"workspace_id", p.config.WorkspaceID,
 			)
+
 			return time.Now(), nil
 		}
-
 	case *clickhouse.BinaryOperation:
 		// Handle expressions like: now() - INTERVAL 60 DAY
 		return p.evaluateIntervalExpression(v)
-
 	case *clickhouse.ColumnExpr:
 		// ColumnExpr is a wrapper - unwrap and recursively evaluate
 		return p.extractTimestampFromExpr(v.Expr)
-
 	default:
 		// Unsupported expression type - log and return current time as safe default
 		// RLS policies at database level will enforce retention regardless
-		p.logger.Warn("unsupported timestamp expression type in retention validation, using current time as safe default",
+		p.logger.Warn(
+			"unsupported timestamp expression type in retention validation, using current time as safe default",
 			"type", fmt.Sprintf("%T", valueExpr),
 			"workspace_id", p.config.WorkspaceID,
 		)
+
 		return time.Now(), nil
 	}
 }
@@ -288,6 +326,7 @@ func (p *Parser) evaluateIntervalExpression(expr *clickhouse.BinaryOperation) (t
 		if err != nil {
 			return time.Time{}, err
 		}
+
 		return baseTime.Add(interval), nil
 	default:
 		return time.Time{}, fmt.Errorf("unsupported operation in interval expression: %s", operation)

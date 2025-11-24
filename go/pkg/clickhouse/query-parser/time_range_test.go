@@ -160,6 +160,38 @@ func TestParser_ValidateTimeRange_WithRetention(t *testing.T) {
 			shouldPass:    false,
 			errorContains: "retention period of 7 days",
 		},
+		{
+			name:          "BETWEEN within retention",
+			query:         "SELECT * FROM key_verifications_per_hour_v1 WHERE time BETWEEN now() - INTERVAL 5 DAY AND now()",
+			retentionDays: 7,
+			shouldPass:    true,
+		},
+		{
+			name:          "BETWEEN exceeds retention",
+			query:         "SELECT * FROM key_verifications_per_hour_v1 WHERE time BETWEEN now() - INTERVAL 90 DAY AND now()",
+			retentionDays: 7,
+			shouldPass:    false,
+			errorContains: "retention period of 7 days",
+		},
+		{
+			name:          "BETWEEN at exact retention limit",
+			query:         "SELECT * FROM key_verifications_per_hour_v1 WHERE time BETWEEN now() - INTERVAL 7 DAY AND now()",
+			retentionDays: 7,
+			shouldPass:    true,
+		},
+		{
+			name:          "BETWEEN with nested functions within retention",
+			query:         "SELECT * FROM key_verifications_per_hour_v1 WHERE time BETWEEN toStartOfDay(now() - INTERVAL 3 DAY) AND now()",
+			retentionDays: 7,
+			shouldPass:    true,
+		},
+		{
+			name:          "BETWEEN with nested functions exceeds retention",
+			query:         "SELECT * FROM key_verifications_per_hour_v1 WHERE time BETWEEN toStartOfDay(now() - INTERVAL 60 DAY) AND now()",
+			retentionDays: 7,
+			shouldPass:    false,
+			errorContains: "retention period of 7 days",
+		},
 	}
 
 	for _, tt := range tests {
