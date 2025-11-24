@@ -109,7 +109,7 @@ func New(config Config) (*clickhouse, error) {
 			Drop:          true,
 			BatchSize:     50_000,
 			BufferSize:    200_000,
-			FlushInterval: 5 * time.Second,
+			FlushInterval: 60 * time.Second,
 			Consumers:     2,
 			Flush: func(ctx context.Context, rows []schema.ApiRequest) {
 				table := "default.api_requests_raw_v2"
@@ -129,7 +129,7 @@ func New(config Config) (*clickhouse, error) {
 				Drop:          true,
 				BatchSize:     50_000,
 				BufferSize:    200_000,
-				FlushInterval: 5 * time.Second,
+				FlushInterval: 60 * time.Second,
 				Consumers:     2,
 				Flush: func(ctx context.Context, rows []schema.KeyVerification) {
 					table := "default.key_verifications_raw_v2"
@@ -150,7 +150,7 @@ func New(config Config) (*clickhouse, error) {
 				Drop:          true,
 				BatchSize:     50_000,
 				BufferSize:    200_000,
-				FlushInterval: 5 * time.Second,
+				FlushInterval: 60 * time.Second,
 				Consumers:     2,
 				Flush: func(ctx context.Context, rows []schema.Ratelimit) {
 					table := "default.ratelimits_raw_v2"
