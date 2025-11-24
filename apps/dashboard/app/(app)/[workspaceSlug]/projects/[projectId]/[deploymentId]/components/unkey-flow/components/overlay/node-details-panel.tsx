@@ -1,22 +1,29 @@
-import { ChartActivity, Layers3 } from "@unkey/icons";
-import { InfoTooltip } from "@unkey/ui";
+import { ChartActivity, Dots, Layers3 } from "@unkey/icons";
+import { Button, InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useEffect, useState } from "react";
-import { type DeploymentNode, type NodeMetadata, REGION_INFO } from "../nodes/types";
+import {
+  type DeploymentNode,
+  type GatewayNode,
+  REGION_INFO,
+  type RegionNode,
+  isGatewayNode,
+  isOriginNode,
+  isRegionNode,
+  isSkeletonNode,
+} from "../nodes/types";
 import { NodeDetailsPanelHeader } from "./node-details-panel/components/header";
 import { Metrics } from "./node-details-panel/components/metrics";
 import { SettingsSection } from "./node-details-panel/components/settings-row";
 import { metrics } from "./node-details-panel/constants";
 import { GatewayInstances } from "./node-details-panel/region-node/gateway-instances";
 
-type RegionNodeDetailsProps = {
-  node: DeploymentNode & {
-    metadata: Extract<NodeMetadata, { type: "region" }>;
-  };
+const RegionNodeDetails = ({
+  node,
+  onClose,
+}: {
+  node: RegionNode;
   onClose: () => void;
-};
-
-const RegionNodeDetails = ({ node, onClose }: RegionNodeDetailsProps) => {
+}) => {
   const { flagCode, zones, health } = node.metadata;
   const regionInfo = REGION_INFO[flagCode];
 
@@ -88,9 +95,7 @@ const RegionNodeDetails = ({ node, onClose }: RegionNodeDetailsProps) => {
 };
 
 type GatewayNodeDetailsProps = {
-  node: DeploymentNode & {
-    metadata: Extract<NodeMetadata, { type: "gateway" }>;
-  };
+  node: GatewayNode;
   onClose: () => void;
 };
 
@@ -129,79 +134,86 @@ const GatewayNodeDetails = ({ node, onClose }: GatewayNodeDetailsProps) => {
   );
 };
 
-const assertUnreachable = (value: never): never => {
-  throw new Error(`Unhandled case: ${JSON.stringify(value)}`);
+type Props = {
+  node: DeploymentNode | null;
+  onClose: () => void;
 };
 
-type NodeDetailsPanelProps = {
-  node?: DeploymentNode;
-};
-
-export const NodeDetailsPanel = ({ node }: NodeDetailsPanelProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    if (node?.id) {
-      setIsOpen(true);
-    } else {
-      setIsOpen(false);
-    }
-  }, [node?.id]);
-
-  const handleClose = () => {
-    setIsOpen(false);
-  };
-
+export function NodeDetailsPanel({ node, onClose }: Props) {
   if (!node) {
     return null;
   }
 
   const renderDetails = () => {
-    switch (node.metadata.type) {
-      case "origin":
-        return null;
-      case "region":
-        return (
-          <RegionNodeDetails
-            node={
-              node as DeploymentNode & {
-                metadata: Extract<NodeMetadata, { type: "region" }>;
-              }
-            }
-            onClose={handleClose}
-          />
-        );
-      case "gateway":
-        return (
-          <GatewayNodeDetails
-            node={
-              node as DeploymentNode & {
-                metadata: Extract<NodeMetadata, { type: "gateway" }>;
-              }
-            }
-            onClose={handleClose}
-          />
-        );
-      default:
-        return assertUnreachable(node.metadata);
+    if (isSkeletonNode(node) || isOriginNode(node)) {
+      return null;
     }
+    if (isRegionNode(node)) {
+      return <RegionNodeDetails node={node} onClose={onClose} />;
+    }
+    if (isGatewayNode(node)) {
+      return <GatewayNodeDetails node={node} onClose={onClose} />;
+    }
+    const _exhaustive: never = node;
+    return _exhaustive;
   };
 
   const content = renderDetails();
-
   if (!content) {
     return null;
   }
 
+  const isOpen = Boolean(node?.id);
+
   return (
-    <div
-      className={cn(
-        "absolute top-14 right-4 bottom-14 rounded-xl bg-white dark:bg-black border border-grayA-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] pointer-events-auto min-w-[360px] max-h-[calc(100vh-80px)] flex flex-col pb-6",
-        "transition-all duration-300 ease-out",
-        isOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none",
-      )}
-    >
-      <div className="flex flex-col items-center overflow-y-auto max-h-full pb-4">{content}</div>
+    <div className="fixed top-40 right-4 bottom-14 flex flex-col gap-2 pointer-events-none">
+      <div
+        className={cn(
+          "rounded-xl bg-white dark:bg-black border border-grayA-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] pointer-events-auto min-w-[360px] max-h-[calc(100vh-300px)] flex flex-col pb-6",
+          "transition-all duration-300 ease-out",
+          isOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none",
+        )}
+      >
+        <div className="flex flex-col items-center overflow-y-auto max-h-full pb-4">{content}</div>
+      </div>
+      <div
+        className={cn(
+          "rounded-xl bg-white dark:bg-black border border-grayA-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] pointer-events-auto min-w-[360px] h-12 flex px-[11px] gap-2 items-center",
+          "transition-all duration-300 ease-out",
+          isOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none",
+        )}
+      >
+        <Button
+          variant="outline"
+          className="bg-gray-1 rounded-lg shadow-sm text-[13px] font-medium"
+        >
+          Logs
+        </Button>
+        <Button
+          variant="outline"
+          className="bg-gray-1 rounded-lg shadow-sm text-[13px] font-medium"
+        >
+          Restart
+        </Button>
+        <Button
+          variant="outline"
+          className="bg-gray-1 rounded-lg shadow-sm text-[13px] font-medium"
+        >
+          Drain
+        </Button>
+        <Button
+          variant="outline"
+          className="bg-gray-1 rounded-lg shadow-sm text-[13px] font-medium"
+        >
+          Shell
+        </Button>
+        <Button
+          variant="outline"
+          className="bg-gray-1 rounded-lg shadow-sm text-[13px] font-medium ml-auto size-[26px]"
+        >
+          <Dots className="text-gray-9" iconSize="sm-regular" />
+        </Button>
+      </div>
     </div>
   );
-};
+}

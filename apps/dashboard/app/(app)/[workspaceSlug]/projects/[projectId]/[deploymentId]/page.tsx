@@ -25,7 +25,7 @@ import {
 export default function DeploymentDetailsPage() {
   const { projectId, liveDeploymentId } = useProject();
   const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(null);
-  const [selectedNode, setSelectedNode] = useState<DeploymentNode>();
+  const [selectedNode, setSelectedNode] = useState<DeploymentNode | null>(null);
 
   const { data: defaultTree, isLoading } = trpc.deploy.network.get.useQuery();
 
@@ -36,7 +36,7 @@ export default function DeploymentDetailsPage() {
     <InfiniteCanvas
       overlay={
         <>
-          <NodeDetailsPanel node={selectedNode} />
+          <NodeDetailsPanel node={selectedNode} onClose={() => setSelectedNode(null)} />
           <ProjectDetails projectId={projectId} />
           <LiveIndicator />
           {process.env.NODE_ENV === "development" && (
