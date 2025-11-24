@@ -27,6 +27,7 @@ ORDER BY
     outcome,
     tags
   )
+PARTITION BY toStartOfDay(time)
 TTL time + INTERVAL 90 DAY DELETE;
 
 CREATE MATERIALIZED VIEW key_verifications_per_hour_mv_v3 TO key_verifications_per_hour_v3 AS

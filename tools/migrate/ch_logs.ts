@@ -1,4 +1,4 @@
-import { mysqlDrizzle, schema } from "@unkey/db";
+import { Identity, mysqlDrizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 import { z } from "zod";
 import { createClient } from "@clickhouse/client-web";
@@ -7,24 +7,24 @@ import { ClickHouse } from "@unkey/clickhouse";
 const tables = [
   {
     name: "default.key_verifications_per_minute_v2",
-    dt: 24 * 60 * 60 * 1000,
-    retention: 30 * 24 * 60 * 60 * 1000,
+    dt: 7 * 24 * 60 * 60 * 1000,
+    retention: 40 * 24 * 60 * 60 * 1000,
   },
 
   {
     name: "default.key_verifications_per_hour_v2",
     dt: 24 * 60 * 60 * 1000,
-    retention: 30 * 24 * 60 * 60 * 1000,
+    retention: 40 * 24 * 60 * 60 * 1000,
   },
   {
     name: "default.key_verifications_per_day_v2",
     dt: 7 * 24 * 60 * 60 * 1000,
-    retention: 6 * 30 * 24 * 60 * 60 * 1000,
+    retention: 7 * 30 * 24 * 60 * 60 * 1000,
   },
   {
     name: "default.key_verifications_per_month_v2",
     dt: 30 * 24 * 60 * 60 * 1000,
-    retention: 3 * 356 * 24 * 60 * 60 * 1000,
+    retention: 4 * 356 * 24 * 60 * 60 * 1000,
   },
 ];
 
@@ -43,6 +43,7 @@ const rawCH = createClient({
     output_format_json_quote_64bit_integers: 0,
     output_format_json_quote_64bit_floats: 0,
     http_send_timeout: 60000,
+    mutations_sync: "2",
   },
 });
 
@@ -53,7 +54,47 @@ const conn = await mysql.createConnection(
 await conn.ping();
 const db = mysqlDrizzle(conn, { schema, mode: "default" });
 
-const identityCache = new Map<string, string | null>();
+const CACHE_FILE = "identity_cache.json";
+
+// Load cache from file if it exists
+let deletedIdentityCache = new Map<string, string | null>();
+let migratedIdentities = new Map<string, boolean>();
+try {
+  const file = Bun.file(CACHE_FILE);
+  if (await file.exists()) {
+    const cacheData = await file.json();
+    deletedIdentityCache = new Map(Object.entries(cacheData));
+    console.info(
+      `Loaded ${deletedIdentityCache.size} cached identities from ${CACHE_FILE}`
+    );
+  }
+} catch (err) {
+  console.warn("Failed to load cache file:", err);
+}
+
+// Function to save cache to file
+async function saveCache() {
+  try {
+    const cacheData = Object.fromEntries(deletedIdentityCache);
+    await Bun.write(CACHE_FILE, JSON.stringify(cacheData, null, 2));
+    console.info(`Saved ${deletedIdentityCache.size} identities to cache file`);
+  } catch (err) {
+    console.error("Failed to save cache:", err);
+  }
+}
+
+// Save cache on exit
+process.on("SIGINT", async () => {
+  console.info("\nSaving cache before exit...");
+  await saveCache();
+  process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+  console.info("\nSaving cache before exit...");
+  await saveCache();
+  process.exit(0);
+});
 
 const aggregatedSchema = z.object({
   workspace_id: z.string(),
@@ -62,7 +103,7 @@ const aggregatedSchema = z.object({
   external_id: z.string(),
 });
 
-let concurrency = 100;
+let concurrency = 1;
 
 for (const table of tables) {
   const end = Date.now();
@@ -73,9 +114,9 @@ for (const table of tables) {
 
   for (let t = start; t < end; t += table.dt) {
     console.log(
-      `${table.name}: ${new Date(t).toLocaleString()} - ${new Date(
+      `${table.name}: ${new Date(t).toLocaleString("de")} - ${new Date(
         t + table.dt
-      ).toLocaleString()}`
+      ).toLocaleString("de")}`
     );
     const query = ch.querier.query({
       query: `
@@ -87,10 +128,11 @@ for (const table of tables) {
 
     FROM
     ${table.name}
+    FINAL
     WHERE time >= fromUnixTimestamp64Milli(${t})
     AND time < fromUnixTimestamp64Milli(${t + table.dt})
     AND identity_id != ''
-    AND external_id == ''
+    AND ( external_id = '' OR external_id = 'undefined' )
     GROUP BY workspace_id, key_space_id, identity_id, external_id
    `,
       schema: aggregatedSchema,
@@ -113,7 +155,12 @@ for (const table of tables) {
       );
       const row = rows[i];
 
-      while (semaphore.size > concurrency) {
+      if (migratedIdentities.has(row.identity_id)) {
+        console.log("Identity already migrated");
+        continue;
+      }
+
+      while (semaphore.size >= concurrency) {
         await Promise.race(semaphore.values());
       }
 
@@ -122,11 +169,12 @@ for (const table of tables) {
         key,
         handleRow(table.name, row)
           .then(() => {
-            concurrency = Math.min(500, concurrency + 10 / concurrency);
+            concurrency = Math.min(500, concurrency + 0.1);
           })
-          .catch((err) => {
-            console.error("handleRow error", err);
-            concurrency = Math.max(10, concurrency / 2);
+          .catch(async (err) => {
+            console.error(err.message);
+            concurrency = Math.max(1, concurrency / 2);
+            await new Promise((resolve) => setTimeout(resolve, 10000));
           })
           .finally(() => {
             semaphore.delete(key);
@@ -139,26 +187,36 @@ for (const table of tables) {
   }
 }
 
+// Save cache after processing all tables
+await saveCache();
+
 async function handleRow(
   table: string,
   row: z.infer<typeof aggregatedSchema>
 ): Promise<void> {
-  let externalId = identityCache.get(row.identity_id);
+  let externalId = deletedIdentityCache.get(row.identity_id);
   if (externalId === null) {
     return;
   }
+  let identity: Identity | undefined = undefined;
   if (!externalId) {
-    const identity = await db.query.identities.findFirst({
+    identity = await db.query.identities.findFirst({
       where: (table, { eq }) => eq(table.id, row.identity_id),
     });
     if (!identity) {
       console.error("identity not found", row.identity_id);
-      identityCache.set(row.identity_id, null);
+      deletedIdentityCache.set(row.identity_id, null);
+      await saveCache();
       return;
     }
     externalId = identity.externalId;
-    identityCache.set(identity.id, identity.externalId);
+    deletedIdentityCache.set(identity.id, identity.externalId);
   }
+  if (!externalId || !identity) {
+    console.log({ identity });
+    return;
+  }
+  migratedIdentities.set(identity.id, true);
 
   await rawCH.query({
     query: `
@@ -168,7 +226,7 @@ async function handleRow(
     workspace_id = '${row.workspace_id}'
     AND key_space_id = '${row.key_space_id}'
     AND identity_id = '${row.identity_id}'
-    AND external_id = ''
+    AND ( external_id = '' OR external_id = 'undefined' )
     `,
   });
 }

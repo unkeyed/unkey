@@ -27,6 +27,7 @@ ORDER BY
     outcome,
     tags
   )
+PARTITION BY toStartOfMonth(time)
 TTL time + INTERVAL 356 DAY DELETE
 ;
 

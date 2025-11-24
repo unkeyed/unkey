@@ -27,6 +27,7 @@ ORDER BY
     outcome,
     tags
   )
+PARTITION BY toStartOfDay(time)
 TTL time + INTERVAL 90 DAY DELETE
 ;
 

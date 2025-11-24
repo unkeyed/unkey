@@ -27,6 +27,7 @@ ORDER BY
     outcome,
     tags
   )
+PARTITION BY toStartOfYear(time)
 TTL time + INTERVAL 3 YEAR DELETE
 ;
 
