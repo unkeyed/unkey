@@ -48,6 +48,9 @@ export const env = () =>
       WORKOS_WEBHOOK_SECRET: z.string().optional(),
       NEXT_PUBLIC_WORKOS_REDIRECT_URI: z.string().optional(),
       WORKOS_COOKIE_PASSWORD: z.string().optional(),
+
+      NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY: z.string().optional(),
+      CLOUDFLARE_TURNSTILE_SECRET_KEY: z.string().optional(),
     })
     .parse(process.env);
 
