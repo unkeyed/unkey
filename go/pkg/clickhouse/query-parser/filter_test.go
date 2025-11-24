@@ -11,7 +11,7 @@ import (
 
 func TestParser_WorkspaceFilter(t *testing.T) {
 	p := chquery.NewParser(chquery.Config{
-		Logger: logging.NewNoop(),
+		Logger:      logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		AllowedTables: []string{
 			"default.keys_v2",
@@ -26,7 +26,7 @@ func TestParser_WorkspaceFilter(t *testing.T) {
 
 func TestParser_WorkspaceFilterWithExistingWhere(t *testing.T) {
 	p := chquery.NewParser(chquery.Config{
-		Logger: logging.NewNoop(),
+		Logger:      logging.NewNoop(),
 		WorkspaceID: "ws_456",
 		AllowedTables: []string{
 			"default.keys_v2",
@@ -42,7 +42,7 @@ func TestParser_WorkspaceFilterWithExistingWhere(t *testing.T) {
 func TestSecurityFilterInjection(t *testing.T) {
 	t.Run("no filter when SecurityFilters is empty", func(t *testing.T) {
 		parser := chquery.NewParser(chquery.Config{
-		Logger: logging.NewNoop(),
+			Logger:          logging.NewNoop(),
 			WorkspaceID:     "ws_test",
 			SecurityFilters: nil, // No restriction
 			Limit:           100,
@@ -63,7 +63,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 
 	t.Run("injects single key_space_id filter", func(t *testing.T) {
 		parser := chquery.NewParser(chquery.Config{
-		Logger: logging.NewNoop(),
+			Logger:      logging.NewNoop(),
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
@@ -89,7 +89,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 
 	t.Run("injects multiple key_space_id filter", func(t *testing.T) {
 		parser := chquery.NewParser(chquery.Config{
-		Logger: logging.NewNoop(),
+			Logger:      logging.NewNoop(),
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
@@ -115,7 +115,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 
 	t.Run("combines with existing WHERE clause", func(t *testing.T) {
 		parser := chquery.NewParser(chquery.Config{
-		Logger: logging.NewNoop(),
+			Logger:      logging.NewNoop(),
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
@@ -141,7 +141,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 
 	t.Run("restricts access even when user queries different key_space_id", func(t *testing.T) {
 		parser := chquery.NewParser(chquery.Config{
-		Logger: logging.NewNoop(),
+			Logger:      logging.NewNoop(),
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
@@ -172,7 +172,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 
 	t.Run("supports multiple security filters simultaneously", func(t *testing.T) {
 		parser := chquery.NewParser(chquery.Config{
-		Logger: logging.NewNoop(),
+			Logger:      logging.NewNoop(),
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
@@ -203,7 +203,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 
 func TestParser_WorkspaceFilterInjection(t *testing.T) {
 	p := chquery.NewParser(chquery.Config{
-		Logger: logging.NewNoop(),
+		Logger:      logging.NewNoop(),
 		WorkspaceID: "ws_victim",
 		Limit:       1000,
 		AllowedTables: []string{
@@ -249,7 +249,7 @@ func TestParser_WorkspaceFilterInjection(t *testing.T) {
 
 func TestParser_SQLInjectionWithFilters(t *testing.T) {
 	p := chquery.NewParser(chquery.Config{
-		Logger: logging.NewNoop(),
+		Logger:      logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		Limit:       1000,
 		AllowedTables: []string{
@@ -295,7 +295,7 @@ func TestParser_SQLInjectionWithFilters(t *testing.T) {
 
 func TestParser_SpecialCharactersInFilters(t *testing.T) {
 	p := chquery.NewParser(chquery.Config{
-		Logger: logging.NewNoop(),
+		Logger:      logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		Limit:       1000,
 		AllowedTables: []string{

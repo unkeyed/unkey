@@ -7,12 +7,13 @@ import (
 	clickhouse "github.com/AfterShip/clickhouse-sql-parser/parser"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // NewParser creates a new parser
 func NewParser(config Config) *Parser {
 	if config.Logger == nil {
-		panic("query parser requires a logger - use logging.NewNoop() for tests")
+		config.Logger = logging.NewNoop()
 	}
 	return &Parser{
 		stmt:     nil,

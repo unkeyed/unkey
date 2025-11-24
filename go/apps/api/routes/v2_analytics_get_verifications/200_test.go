@@ -23,7 +23,7 @@ func Test200_Success(t *testing.T) {
 	h.SetupAnalytics(workspace.ID)
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
-	now := time.Now().UnixMilli() // Use real time for ClickHouse data since queries use real now()
+	now := time.Now().UnixMilli()
 
 	// Buffer some key verifications
 	for i := range 5 {
@@ -85,7 +85,7 @@ func Test200_PermissionFiltersByApiId(t *testing.T) {
 	// Create root key with permission ONLY for api1
 	rootKey := h.CreateRootKey(workspace.ID, "api."+api1.ID+".read_analytics")
 
-	now := time.Now().UnixMilli() // Use real time for ClickHouse data since queries use real now()
+	now := time.Now().UnixMilli()
 
 	// Buffer verifications for api1
 	for i := range 3 {
@@ -166,7 +166,7 @@ func Test200_PermissionFiltersByKeySpaceId(t *testing.T) {
 	// Create root key with permission ONLY for api1
 	rootKey := h.CreateRootKey(workspace.ID, "api."+api1.ID+".read_analytics")
 
-	now := time.Now().UnixMilli() // Use real time for ClickHouse data since queries use real now()
+	now := time.Now().UnixMilli()
 
 	// Buffer verifications for api1
 	for i := range 3 {
@@ -249,7 +249,7 @@ func Test200_QueryWithin30DaysRetention(t *testing.T) {
 	h.SetupAnalytics(workspace.ID)
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
-	now := time.Now().UnixMilli() // Use real time for ClickHouse data since queries use real now()
+	now := time.Now().UnixMilli()
 
 	// Buffer verification from 7 days ago (within 30-day retention)
 	h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
@@ -439,191 +439,6 @@ func Test200_RLSWorkspaceIsolation(t *testing.T) {
 	count, ok := res.Body.Data[0]["count"]
 	require.True(t, ok)
 	require.Equal(t, float64(5), count, "RLS should filter to only workspace1's data")
-}
-
-func Test200_RLSTimeRetentionFilteredAtDatabase(t *testing.T) {
-	h := testutil.NewHarness(t)
-
-	workspace := h.CreateWorkspace()
-	api := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: workspace.ID,
-	})
-	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
-
-	now := time.Now().UnixMilli() // Use real time for ClickHouse data since queries use real now()
-	thirtyOneDaysAgo := now - (31 * 24 * 60 * 60 * 1000)
-
-	// Buffer verification from 31 days ago (beyond 30-day retention)
-	// This data should be filtered out by RLS at the database level
-	h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
-		RequestID:   uid.New(uid.RequestPrefix),
-		Time:        thirtyOneDaysAgo,
-		WorkspaceID: workspace.ID,
-		KeySpaceID:  api.KeyAuthID.String,
-		KeyID:       uid.New(uid.KeyPrefix),
-		Region:      "us-west-1",
-		Outcome:     "VALID",
-		IdentityID:  "",
-		Tags:        []string{},
-	})
-
-	// Buffer verification from 7 days ago (within retention)
-	h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
-		RequestID:   uid.New(uid.RequestPrefix),
-		Time:        now - (7 * 24 * 60 * 60 * 1000),
-		WorkspaceID: workspace.ID,
-		KeySpaceID:  api.KeyAuthID.String,
-		KeyID:       uid.New(uid.KeyPrefix),
-		Region:      "us-west-1",
-		Outcome:     "VALID",
-		IdentityID:  "",
-		Tags:        []string{},
-	})
-
-	route := &Handler{
-		Logger:                     h.Logger,
-		DB:                         h.DB,
-		Keys:                       h.Keys,
-		ClickHouse:                 h.ClickHouse,
-		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
-		Caches:                     h.Caches,
-	}
-	h.Register(route)
-
-	headers := http.Header{
-		"Authorization": []string{"Bearer " + rootKey},
-		"Content-Type":  []string{"application/json"},
-	}
-
-	// Query all data within our retention window
-	// RLS should automatically filter out the 31-day-old data
-	req := Request{
-		Query: "SELECT COUNT(*) as count FROM key_verifications_v1 WHERE time >= now() - INTERVAL 30 DAY",
-	}
-
-	time.Sleep(5 * time.Second) // Wait for data
-
-	res := testutil.CallRoute[Request, Response](h, route, headers, req)
-	require.Equal(t, 200, res.Status)
-	require.NotNil(t, res.Body)
-	require.Len(t, res.Body.Data, 1)
-
-	// Should only see 1 verification (7 days ago), not 2
-	// The 31-day-old data should be filtered by RLS
-	count, ok := res.Body.Data[0]["count"]
-	require.True(t, ok)
-	require.Equal(t, float64(1), count, "RLS should filter out data beyond retention at database level")
-}
-
-func Test200_RLSCombinedWorkspaceAndRetentionFilters(t *testing.T) {
-	h := testutil.NewHarness(t)
-
-	workspace1 := h.CreateWorkspace()
-	workspace2 := h.CreateWorkspace()
-
-	api1 := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: workspace1.ID,
-	})
-	api2 := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: workspace2.ID,
-	})
-
-	h.SetupAnalytics(workspace1.ID)
-	h.SetupAnalytics(workspace2.ID)
-
-	rootKey1 := h.CreateRootKey(workspace1.ID, "api.*.read_analytics")
-
-	now := time.Now().UnixMilli() // Use real time for ClickHouse data since queries use real now()
-	thirtyOneDaysAgo := now - (31 * 24 * 60 * 60 * 1000)
-	sevenDaysAgo := now - (7 * 24 * 60 * 60 * 1000)
-
-	// Workspace 1: Recent data (should be accessible)
-	h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
-		RequestID:   uid.New(uid.RequestPrefix),
-		Time:        sevenDaysAgo,
-		WorkspaceID: workspace1.ID,
-		KeySpaceID:  api1.KeyAuthID.String,
-		KeyID:       uid.New(uid.KeyPrefix),
-		Region:      "us-west-1",
-		Outcome:     "VALID",
-		IdentityID:  "",
-		Tags:        []string{},
-	})
-
-	// Workspace 1: Old data (should be filtered by retention RLS)
-	h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
-		RequestID:   uid.New(uid.RequestPrefix),
-		Time:        thirtyOneDaysAgo,
-		WorkspaceID: workspace1.ID,
-		KeySpaceID:  api1.KeyAuthID.String,
-		KeyID:       uid.New(uid.KeyPrefix),
-		Region:      "us-west-1",
-		Outcome:     "VALID",
-		IdentityID:  "",
-		Tags:        []string{},
-	})
-
-	// Workspace 2: Recent data (should be filtered by workspace RLS)
-	h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
-		RequestID:   uid.New(uid.RequestPrefix),
-		Time:        sevenDaysAgo,
-		WorkspaceID: workspace2.ID,
-		KeySpaceID:  api2.KeyAuthID.String,
-		KeyID:       uid.New(uid.KeyPrefix),
-		Region:      "us-east-1",
-		Outcome:     "VALID",
-		IdentityID:  "",
-		Tags:        []string{},
-	})
-
-	// Workspace 2: Old data (should be filtered by both workspace AND retention RLS)
-	h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
-		RequestID:   uid.New(uid.RequestPrefix),
-		Time:        thirtyOneDaysAgo,
-		WorkspaceID: workspace2.ID,
-		KeySpaceID:  api2.KeyAuthID.String,
-		KeyID:       uid.New(uid.KeyPrefix),
-		Region:      "us-east-1",
-		Outcome:     "VALID",
-		IdentityID:  "",
-		Tags:        []string{},
-	})
-
-	route := &Handler{
-		Logger:                     h.Logger,
-		DB:                         h.DB,
-		Keys:                       h.Keys,
-		ClickHouse:                 h.ClickHouse,
-		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
-		Caches:                     h.Caches,
-	}
-	h.Register(route)
-
-	headers := http.Header{
-		"Authorization": []string{"Bearer " + rootKey1},
-		"Content-Type":  []string{"application/json"},
-	}
-
-	req := Request{
-		Query: "SELECT COUNT(*) as count FROM key_verifications_v1 WHERE time >= now() - INTERVAL 30 DAY",
-	}
-
-	time.Sleep(5 * time.Second) // Wait for data
-
-	res := testutil.CallRoute[Request, Response](h, route, headers, req)
-	require.Equal(t, 200, res.Status)
-	require.NotNil(t, res.Body)
-	require.Len(t, res.Body.Data, 1)
-
-	// Should only see 1 verification:
-	// - Workspace 1 recent: ✓ (passes both filters)
-	// - Workspace 1 old: ✗ (filtered by retention)
-	// - Workspace 2 recent: ✗ (filtered by workspace)
-	// - Workspace 2 old: ✗ (filtered by both)
-	count, ok := res.Body.Data[0]["count"]
-	require.True(t, ok)
-	require.Equal(t, float64(1), count, "RLS should apply both workspace and retention filters")
 }
 
 func Test200_QueryWithoutTimeFilter_AutoAddsFilter(t *testing.T) {

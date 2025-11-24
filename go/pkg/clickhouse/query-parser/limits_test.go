@@ -10,7 +10,7 @@ import (
 
 func TestParser_EnforceLimit(t *testing.T) {
 	p := NewParser(Config{
-		Logger: logging.NewNoop(),
+		Logger:      logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		Limit:       100,
 		AllowedTables: []string{
@@ -26,7 +26,7 @@ func TestParser_EnforceLimit(t *testing.T) {
 
 func TestParser_AddLimit(t *testing.T) {
 	p := NewParser(Config{
-		Logger: logging.NewNoop(),
+		Logger:      logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		Limit:       50,
 		AllowedTables: []string{
@@ -42,7 +42,7 @@ func TestParser_AddLimit(t *testing.T) {
 
 func TestParser_PreserveSmallerLimit(t *testing.T) {
 	p := NewParser(Config{
-		Logger: logging.NewNoop(),
+		Logger:      logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		Limit:       100,
 		AllowedTables: []string{
@@ -58,7 +58,7 @@ func TestParser_PreserveSmallerLimit(t *testing.T) {
 
 func TestParser_LimitBypassAttempts(t *testing.T) {
 	p := NewParser(Config{
-		Logger: logging.NewNoop(),
+		Logger:      logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		Limit:       10,
 		AllowedTables: []string{

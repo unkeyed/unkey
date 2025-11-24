@@ -10,7 +10,7 @@ import (
 
 func TestParser_BlockNonWhitelistedFunctions(t *testing.T) {
 	p := NewParser(Config{
-		Logger: logging.NewNoop(),
+		Logger:      logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		AllowedTables: []string{
 			"default.key_verifications_raw_v2",
@@ -70,7 +70,7 @@ func TestParser_BlockNonWhitelistedFunctions(t *testing.T) {
 
 func TestParser_AllowSafeFunctions(t *testing.T) {
 	p := NewParser(Config{
-		Logger: logging.NewNoop(),
+		Logger:      logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		AllowedTables: []string{
 			"default.keys_v2",
@@ -88,7 +88,7 @@ func TestParser_AllowSafeFunctions(t *testing.T) {
 
 func TestParser_OnlySelectAllowed(t *testing.T) {
 	p := NewParser(Config{
-		Logger: logging.NewNoop(),
+		Logger:      logging.NewNoop(),
 		WorkspaceID: "ws_123",
 		AllowedTables: []string{
 			"default.key_verifications_raw_v2",

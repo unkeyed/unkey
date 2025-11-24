@@ -21,7 +21,7 @@ func TestParser_ErrorCodes(t *testing.T) {
 		{
 			name: "invalid SQL syntax",
 			config: Config{
-		Logger: logging.NewNoop(),
+				Logger:      logging.NewNoop(),
 				WorkspaceID: "ws_123",
 				AllowedTables: []string{
 					"default.keys_v2",
@@ -34,7 +34,7 @@ func TestParser_ErrorCodes(t *testing.T) {
 		{
 			name: "invalid table",
 			config: Config{
-		Logger: logging.NewNoop(),
+				Logger:      logging.NewNoop(),
 				WorkspaceID: "ws_123",
 				AllowedTables: []string{
 					"default.keys_v2",
@@ -47,7 +47,7 @@ func TestParser_ErrorCodes(t *testing.T) {
 		{
 			name: "invalid function",
 			config: Config{
-		Logger: logging.NewNoop(),
+				Logger:      logging.NewNoop(),
 				WorkspaceID: "ws_123",
 				AllowedTables: []string{
 					"default.keys_v2",
@@ -60,7 +60,7 @@ func TestParser_ErrorCodes(t *testing.T) {
 		{
 			name: "query not supported",
 			config: Config{
-		Logger: logging.NewNoop(),
+				Logger:      logging.NewNoop(),
 				WorkspaceID: "ws_123",
 				AllowedTables: []string{
 					"default.keys_v2",
