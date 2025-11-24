@@ -147,7 +147,7 @@ func categorizeErrorType(urn codes.URN, statusCode int, hasError bool) string {
 	if hasError {
 		// Customer errors (their code/instance issues)
 		switch urn {
-		case codes.Gateway.Proxy.GatewayTimeout.URN(),    // Instance timeout
+		case codes.Gateway.Proxy.GatewayTimeout.URN(), // Instance timeout
 			codes.Gateway.Proxy.BadGateway.URN(),         // Instance returned invalid response
 			codes.Gateway.Proxy.ProxyForwardFailed.URN(): // Failed to forward to instance
 			return "customer"
@@ -157,8 +157,8 @@ func categorizeErrorType(urn codes.URN, statusCode int, hasError bool) string {
 			codes.Gateway.Internal.InvalidConfiguration.URN(),
 			codes.Gateway.Routing.DeploymentNotFound.URN(),
 			codes.Gateway.Routing.InstanceSelectionFailed.URN(),
-			codes.Gateway.Proxy.ServiceUnavailable.URN(),    // Connection refused - we should health check
-			codes.Gateway.Routing.NoRunningInstances.URN():  // No instances - orchestration issue
+			codes.Gateway.Proxy.ServiceUnavailable.URN(),   // Connection refused - we should health check
+			codes.Gateway.Routing.NoRunningInstances.URN(): // No instances - orchestration issue
 			return "platform"
 
 		// User errors (bad requests)

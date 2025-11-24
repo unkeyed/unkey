@@ -62,7 +62,7 @@ func New(cfg Config) (*service, error) {
 
 func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.Deployment, error) {
 	deployment, hit, err := s.deploymentCache.SWR(ctx, deploymentID, func(ctx context.Context) (db.Deployment, error) {
-		return db.Query.FindDeploymentByID(ctx, s.db.RO(), deploymentID)
+		return db.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
 	}, caches.DefaultFindFirstOp)
 	if err != nil && !db.IsNotFound(err) {
 		return db.Deployment{}, fault.Wrap(err,

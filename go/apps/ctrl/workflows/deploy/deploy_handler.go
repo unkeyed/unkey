@@ -23,7 +23,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	finishedSuccessfully := false
 
 	deployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
-		return db.Query.FindDeploymentByID(stepCtx, w.db.RW(), req.GetDeploymentId())
+		return db.Query.FindDeploymentById(stepCtx, w.db.RW(), req.GetDeploymentId())
 	}, restate.WithName("finding deployment"))
 	if err != nil {
 		return nil, err

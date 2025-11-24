@@ -17,7 +17,7 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 	)
 
 	// Get target deployment to determine project ID for keying
-	targetDeployment, err := db.Query.FindDeploymentByID(ctx, s.db.RO(), req.Msg.GetTargetDeploymentId())
+	targetDeployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), req.Msg.GetTargetDeploymentId())
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", req.Msg.GetTargetDeploymentId()))
