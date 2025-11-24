@@ -210,7 +210,7 @@ func getErrorPageInfoIngress(urn codes.URN) errorPageInfo {
 		return errorPageInfo{
 			Status:  http.StatusBadGateway,
 			Title:   http.StatusText(http.StatusBadGateway),
-			Message: "Unable to connect to the backend service. Please try again in a few moments.",
+			Message: "Unable to connect. Please try again in a few moments.",
 		}
 	case codes.Ingress.Proxy.ServiceUnavailable.URN():
 		return errorPageInfo{
