@@ -12,7 +12,6 @@
     "ingress",
     "gateway",
     "healthcheck",
-    "ingress",
     "krane",
     "quotacheck",
     "run",

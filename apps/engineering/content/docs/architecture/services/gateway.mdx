@@ -6,14 +6,17 @@ description: Environment-scoped deployment gateway service
 import { Mermaid } from "@/app/components/mermaid";
 
 **Location:** `go/apps/gateway/`
+
 **CLI Command:** [`unkey run gateway`](/cli/run/gateway)
-**Protocol:** HTTP (internal service)
 
 ## What It Does
 
-Gateway is an environment-scoped HTTP proxy service that receives requests from Ingress and routes them to the appropriate deployment instance. Each environment has its own Gateway instance(s), and a single Gateway handles all deployments within that environment.
+Gateway is an environment-scoped HTTP proxy service that receives requests from Ingress and routes them to the appropriate deployment instance.
+
+Each environment has its own Gateway instance(s), and a single Gateway handles all deployments within that environment.
 
 Gateway handles three main responsibilities:
+
 1. **Deployment Validation**: Ensures the requested deployment belongs to this Gateway's environment
 2. **Instance Selection**: Selects a healthy running instance for the deployment in the current region
 3. **Request Proxying**: Forwards the request to the selected instance and returns the response
@@ -23,14 +26,17 @@ Gateway handles three main responsibilities:
 ### Environment-Scoped Design
 
 Gateway is an environment-scoped service, meaning:
-- Each environment (e.g., production, staging, dev-branch-123) has its own Gateway instance(s)
+
+- Each environment (e.g., production, staging, dev) has its own Gateway instance(s)
 - A single Gateway handles **all deployments** within its environment
 - Ingress passes the `X-Deployment-ID` header to specify which deployment to route to
 - Gateway validates that the deployment belongs to its configured environment
 
-```
-Internet → Ingress (multi-tenant) → Gateway (per-environment) → Instance (per-deployment)
-```
+<Mermaid chart={`graph LR
+    Internet[Internet] --> Ingress[Ingress<br/><i>multi-tenant</i>]
+    Ingress --> Gateway[Gateway<br/><i>per-environment</i>]
+    Gateway --> Instance[Instance<br/><i>per-deployment</i>]
+`} />
 
 ### Request Flow
 
@@ -63,98 +69,14 @@ Internet → Ingress (multi-tenant) → Gateway (per-environment) → Instance (
         Instance->>Gateway: Response
         Gateway->>Ingress: Response
     end
+
 `} />
 
-## Components
+## How It Works
 
-### Router Service
-
-The Router service (`services/router/`) handles deployment lookups and instance selection:
-
-```go
-type Service interface {
-    // GetDeployment validates deployment belongs to this environment
-    GetDeployment(ctx context.Context, deploymentID string) (db.Deployment, error)
-
-    // SelectInstance returns a healthy instance for the deployment
-    SelectInstance(ctx context.Context, deploymentID string) (db.Instance, error)
-}
-```
-
-#### Deployment Validation
-
-```go
-func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.Deployment, error) {
-    // Query deployment from cache or database
-    deployment, hit, err := s.deploymentCache.SWR(ctx, deploymentID, ...)
-
-    // Validate deployment belongs to this environment
-    if deployment.EnvironmentID != s.environmentID {
-        // Mask as "not found" to avoid leaking information about other environments
-        return db.Deployment{}, fault.New("deployment not found",
-            fault.Code(codes.Gateway.Routing.DeploymentNotFound.URN()),
-            fault.Internal(fmt.Sprintf("deployment %s belongs to environment %s, but gateway serves %s",
-                deploymentID, deployment.EnvironmentID, s.environmentID)),
-        )
-    }
-
-    return deployment, nil
-}
-```
+Gateway validates that the requested deployment belongs to its configured environment, then selects a healthy instance to proxy the request to.
 
 **Security Note**: Deployments from wrong environments are masked as "not found" rather than "forbidden" to avoid leaking information about deployments in other environments.
-
-#### Instance Selection
-
-```go
-func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.Instance, error) {
-    // Query all instances for deployment in this region
-    instances, hit, err := s.instancesCache.SWR(ctx, deploymentID, func(ctx context.Context) ([]db.Instance, error) {
-        return db.Query.FindInstancesByDeploymentIdAndRegion(ctx, s.db.RO(),
-            db.FindInstancesByDeploymentIdAndRegionParams{
-                DeploymentId: deploymentID,
-                Region:       s.region,
-            })
-    }, ...)
-
-    // Filter for running instances in code (not query)
-    // This allows us to react to health changes without waiting for cache expiration
-    var runningInstances []db.Instance
-    for _, instance := range instances {
-        if instance.Status == db.InstancesStatusRunning {
-            runningInstances = append(runningInstances, instance)
-        }
-    }
-
-    // Random load balancing
-    randomIndex := rand.IntN(len(runningInstances))
-    return runningInstances[randomIndex], nil
-}
-```
-
-**Key Design Decision**: Instances are filtered for health (`status='running'`) in application code rather than in the SQL query. This allows the Gateway to react to instance health changes without waiting for cache expiration.
-
-### Proxy Handler
-
-The Proxy handler (`routes/proxy/`) handles the actual HTTP proxying:
-
-```go
-func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
-    // 1. Get deployment ID from header
-    deploymentID := req.Header.Get("X-Deployment-ID")
-
-    // 2. Validate deployment belongs to this environment
-    _, err := h.RouterService.GetDeployment(ctx, deploymentID)
-
-    // 3. Select a healthy instance
-    instance, err := h.RouterService.SelectInstance(ctx, deploymentID)
-
-    // 4. Proxy to instance
-    targetURL, _ := url.Parse("http://" + instance.Address)
-    proxy := &httputil.ReverseProxy{...}
-    proxy.ServeHTTP(sess.ResponseWriter(), req)
-}
-```
 
 ## Database Schema
 
@@ -192,39 +114,6 @@ CREATE TABLE instances (
 -- Index for fast instance lookups
 CREATE INDEX idx_instances_deployment_region ON instances(deployment_id, region, status);
 ```
-
-## Caching Strategy
-
-Gateway uses a Stale-While-Revalidate (SWR) caching pattern for both deployments and instances:
-
-### Deployment Cache
-
-```go
-deploymentCache := cache.New[string, db.Deployment](cache.Config{
-    MaxSize: 1000,
-    Fresh:   10 * time.Second,  // Serve from cache for 10s
-    Stale:   60 * time.Second,  // Return stale data while revalidating for 60s
-})
-```
-
-- **Key**: Deployment ID
-- **Fresh**: 10 seconds (deployments rarely change)
-- **Stale**: 60 seconds (acceptable to serve stale deployment config while revalidating)
-
-### Instance Cache
-
-```go
-instancesCache := cache.New[string, []db.Instance](cache.Config{
-    MaxSize: 1000,
-    Fresh:   5 * time.Second,   // Shorter fresh time for more dynamic data
-    Stale:   30 * time.Second,
-})
-```
-
-- **Key**: Deployment ID (instances per deployment)
-- **Fresh**: 5 seconds (instances change more frequently - scaling events, crashes)
-- **Stale**: 30 seconds
-- **In-Code Filtering**: Health filtering happens in code after cache retrieval to react to status changes quickly
 
 ## Error Handling
 
@@ -291,145 +180,6 @@ type Config struct {
 
 **Key Configuration**: `EnvironmentID` is required and determines which deployments this Gateway can serve.
 
-## Load Balancing
-
-Gateway uses **random instance selection** for simple load balancing:
-
-```go
-// Select a random running instance
-randomIndex := rand.IntN(len(runningInstances))
-return runningInstances[randomIndex], nil
-```
-
-This provides:
-- **Simple implementation**: No state tracking required
-- **Good distribution**: Random selection distributes load evenly over time
-- **Stateless**: No coordination between Gateway replicas needed
-
-Future improvements could include:
-- Least-connections routing
-- Response time-based routing
-- Weighted routing based on instance capacity
-
 ## Observability
 
-Gateway uses structured logging for all operations:
-
-### Key Log Events
-
-```go
-// Deployment validation failures
-logger.Warn("deployment does not belong to this environment",
-    "deploymentID", deploymentID,
-    "deploymentEnv", deployment.EnvironmentID,
-    "gatewayEnv", s.environmentID,
-)
-
-// Proxy requests
-logger.Debug("proxying request",
-    "method", req.Method,
-    "path", req.URL.Path,
-    "deploymentID", deploymentID,
-    "instanceID", instance.ID,
-    "target", instance.Address,
-)
-
-// Proxy errors
-logger.Error("proxy error",
-    "deploymentID", deploymentID,
-    "instanceID", instance.ID,
-    "target", instance.Address,
-    "error", err,
-)
-```
-
-## Deployment
-
-### Kubernetes Deployment
-
-Gateway runs as a Kubernetes Deployment (one per environment):
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: gateway-prod
-  namespace: unkey-prod
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: gateway
-      environment: prod
-  template:
-    metadata:
-      labels:
-        app: gateway
-        environment: prod
-    spec:
-      containers:
-      - name: gateway
-        image: unkey/gateway:latest
-        env:
-        - name: UNKEY_WORKSPACE_ID
-          value: "ws_prod"
-        - name: UNKEY_ENVIRONMENT_ID
-          value: "env_prod"
-        - name: UNKEY_REGION
-          value: "us-east-1"
-        - name: UNKEY_HTTP_PORT
-          value: "8080"
-        ports:
-        - containerPort: 8080
-          name: http
-```
-
-### Scaling
-
-Gateway scales horizontally:
-- **Stateless**: All state in MySQL, no coordination needed
-- **Database-driven**: Routing decisions from cached database queries
-- **Connection Pooling**: Shared HTTP transport for instance connections
-
-## Future Improvements
-
-### Planned Features
-
-1. **Load Balancing Strategies**: Support for least-connections, response-time, and weighted routing
-2. **Active Health Checks**: Probe instances directly instead of relying solely on database status
-3. **Circuit Breaking**: Automatically stop routing to failing instances
-4. **Request Retry**: Retry failed requests on different instances
-5. **Middleware Pipeline**: Apply deployment-specific middleware (auth, rate limiting) from `gateway_config`
-6. **Connection Pooling**: Per-instance connection pools for better performance
-7. **Metrics**: Prometheus metrics for request rates, latencies, instance health
-8. **Distributed Tracing**: OpenTelemetry traces for end-to-end visibility
-
-### Middleware Support
-
-The `deployments.gateway_config` JSON field is reserved for future deployment-specific configuration:
-
-```json
-{
-  "middlewares": [
-    {"type": "ratelimit", "requests": 100, "window": "1m"},
-    {"type": "auth", "provider": "jwt", "secret": "..."}
-  ],
-  "timeout": "30s",
-  "retries": 3
-}
-```
-
-This allows each deployment to have custom request handling logic applied by the Gateway.
-
-## Comparison: Ingress vs Gateway
-
-| Aspect | Ingress | Gateway |
-|--------|---------|---------|
-| **Scope** | Multi-tenant (all customers) | Environment-scoped (single env) |
-| **Entry Point** | Internet (public) | Ingress (internal) |
-| **Routing** | Hostname-based | Deployment ID-based |
-| **TLS** | Terminates TLS (ACME/Let's Encrypt) | Plain HTTP (internal) |
-| **Response Format** | HTML + JSON (user-facing) | JSON only (machine-to-machine) |
-| **Instances** | Kubernetes Deployment (3+ replicas) | Deployment per environment |
-| **Caching** | Ingress routes + instances | Deployments + instances |
-| **Load Balancing** | To Gateways via NLB | To instances via random selection |
+Gateway uses structured logging and metrics for monitoring.
