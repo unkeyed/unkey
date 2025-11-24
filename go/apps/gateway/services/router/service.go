@@ -24,14 +24,10 @@ type service struct {
 	environmentID string
 	region        string
 
-	// Cache deployments by deployment ID
 	deploymentCache cache.Cache[string, db.Deployment]
-
-	// Cache instances by deployment ID
-	instancesCache cache.Cache[string, []db.Instance]
+	instancesCache  cache.Cache[string, []db.Instance]
 }
 
-// New creates a new router service
 func New(cfg Config) (*service, error) {
 	deploymentCache, err := cache.New[string, db.Deployment](cache.Config[string, db.Deployment]{
 		Clock:   cfg.Clock,
@@ -46,7 +42,7 @@ func New(cfg Config) (*service, error) {
 	instancesCache, err := cache.New[string, []db.Instance](cache.Config[string, []db.Instance]{
 		Clock:   cfg.Clock,
 		MaxSize: 1000,
-		Fresh:   5 * time.Second, // Shorter fresh time for instances (more dynamic)
+		Fresh:   5 * time.Second,
 		Stale:   30 * time.Second,
 	})
 	if err != nil {
@@ -64,8 +60,6 @@ func New(cfg Config) (*service, error) {
 	}, nil
 }
 
-// GetDeployment returns the deployment for the given deployment ID
-// Validates that the deployment belongs to this gateway's environment
 func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.Deployment, error) {
 	deployment, hit, err := s.deploymentCache.SWR(ctx, deploymentID, func(ctx context.Context) (db.Deployment, error) {
 		return db.Query.FindDeploymentByID(ctx, s.db.RO(), deploymentID)
@@ -85,7 +79,6 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 		)
 	}
 
-	// Validate deployment belongs to this environment
 	if deployment.EnvironmentID != s.environmentID {
 		s.logger.Warn("deployment does not belong to this environment",
 			"deploymentID", deploymentID,
@@ -104,7 +97,6 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 	return deployment, nil
 }
 
-// SelectInstance returns a healthy instance for the deployment in this region
 func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.Instance, error) {
 	instances, hit, err := s.instancesCache.SWR(ctx, deploymentID, func(ctx context.Context) ([]db.Instance, error) {
 		return db.Query.FindInstancesByDeploymentIdAndRegion(
@@ -131,8 +123,6 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 		)
 	}
 
-	// Filter for running instances in code (not in query) so we can react to health changes
-	// without waiting for cache expiration
 	var runningInstances []db.Instance
 	for _, instance := range instances {
 		if instance.Status == db.InstancesStatusRunning {
@@ -148,7 +138,6 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 		)
 	}
 
-	// Select a random running instance for simple load balancing
 	randomIndex := rand.IntN(len(runningInstances))
 	return runningInstances[randomIndex], nil
 }

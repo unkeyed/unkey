@@ -11,9 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-// Register registers all gateway routes
 func Register(srv *zen.Server, svc *Services) {
-	// Setup middlewares
 	withLogging := zen.WithLogging(svc.Logger)
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
 	withObservability := middleware.WithObservability(svc.Logger, svc.EnvironmentID, svc.Region)
@@ -22,11 +20,10 @@ func Register(srv *zen.Server, svc *Services) {
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
 		withLogging,
-		withObservability, // Combined error handling and metrics
+		withObservability,
 		withTimeout,
 	}
 
-	// Health check endpoint (minimal middlewares)
 	srv.RegisterRoute(
 		[]zen.Middleware{withLogging},
 		&internalHealth.Handler{
@@ -34,7 +31,6 @@ func Register(srv *zen.Server, svc *Services) {
 		},
 	)
 
-	// Create shared transport for connection pooling
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout:   10 * time.Second,
@@ -43,10 +39,9 @@ func Register(srv *zen.Server, svc *Services) {
 		MaxIdleConns:          200,
 		MaxIdleConnsPerHost:   50,
 		IdleConnTimeout:       90 * time.Second,
-		ResponseHeaderTimeout: 30 * time.Second, // Timeout for instance responses
+		ResponseHeaderTimeout: 30 * time.Second,
 	}
 
-	// Catch-all proxy route
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&proxy.Handler{

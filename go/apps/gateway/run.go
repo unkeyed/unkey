@@ -19,11 +19,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-// Run starts the Gateway server
-// Gateway is an HTTP proxy that:
-// - Receives requests from the ingress service with X-Deployment-ID header
-// - Routes requests to the appropriate k8s service for that deployment
-// - Applies deployment-specific middleware (auth, rate limiting, etc.)
 func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
@@ -52,7 +47,6 @@ func Run(ctx context.Context, cfg Config) error {
 		logger = logger.With(slog.String("version", version.Version))
 	}
 
-	// Catch any panics
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Error("panic",
@@ -64,10 +58,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	shutdowns := shutdown.New()
 
-	// Create cached clock
 	clk := clock.New()
 
-	// Initialize OpenTelemetry if enabled
 	if cfg.OtelEnabled {
 		grafanaErr := otel.InitGrafana(
 			ctx,
@@ -86,7 +78,6 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	// Initialize Prometheus if enabled
 	if cfg.PrometheusPort > 0 {
 		prom, promErr := prometheus.New(prometheus.Config{
 			Logger: logger,
@@ -106,7 +97,6 @@ func Run(ctx context.Context, cfg Config) error {
 		}()
 	}
 
-	// Initialize database
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
 		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
@@ -117,7 +107,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	shutdowns.Register(database.Close)
 
-	// Initialize router service
 	routerSvc, err := router.New(router.Config{
 		Logger:        logger,
 		DB:            database,
@@ -129,7 +118,6 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create router service: %w", err)
 	}
 
-	// Create services for routes
 	svcs := &routes.Services{
 		Logger:        logger,
 		RouterService: routerSvc,
@@ -138,7 +126,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Region:        cfg.Region,
 	}
 
-	// Start HTTP proxy server
 	srv, err := zen.New(zen.Config{
 		Logger: logger,
 	})
@@ -147,7 +134,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	shutdowns.RegisterCtx(srv.Shutdown)
 
-	// Register routes
 	routes.Register(srv, svcs)
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
@@ -162,7 +148,6 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}()
 
-	// Wait for shutdown
 	if err := shutdowns.WaitForSignal(ctx, 0); err != nil {
 		return fmt.Errorf("shutdown failed: %w", err)
 	}
