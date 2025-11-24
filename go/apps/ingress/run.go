@@ -72,11 +72,7 @@ func Run(ctx context.Context, cfg Config) error {
 	shutdowns := shutdown.New()
 
 	// Create cached clock with millisecond resolution for efficient time tracking
-	clk := clock.NewCachedClock(time.Millisecond)
-	shutdowns.Register(func() error {
-		clk.Close()
-		return nil
-	})
+	clk := clock.New()
 
 	if cfg.OtelEnabled {
 		grafanaErr := otel.InitGrafana(
