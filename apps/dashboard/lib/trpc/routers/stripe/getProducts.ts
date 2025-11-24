@@ -33,7 +33,9 @@ export const getProducts = t.procedure
     let includeEnterprise = false;
     if (ctx.workspace.stripeSubscriptionId) {
       try {
-        const subscription = await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId);
+        const subscription = await stripe.subscriptions.retrieve(
+          ctx.workspace.stripeSubscriptionId,
+        );
         const currentProductId = subscription.items.data.at(0)?.plan.product?.toString();
         if (currentProductId && e.STRIPE_PRODUCT_IDS_ENTERPRISE.includes(currentProductId)) {
           includeEnterprise = true;
