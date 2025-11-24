@@ -41,24 +41,20 @@ var (
 	)
 )
 
-// ErrorResponse is the standard JSON error response format.
 type ErrorResponse struct {
 	Error ErrorDetail `json:"error"`
 }
 
-// ErrorDetail contains error information.
 type ErrorDetail struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
-// errorPageInfo holds the HTTP status and message for an error.
 type errorPageInfo struct {
 	Status  int
 	Message string
 }
 
-// getErrorPageInfo returns the HTTP status and user-friendly message for an error URN.
 func getErrorPageInfo(urn codes.URN) errorPageInfo {
 	switch urn {
 	// Gateway Routing Errors
@@ -92,7 +88,7 @@ func getErrorPageInfo(urn codes.URN) errorPageInfo {
 	case codes.Gateway.Proxy.BadGateway.URN():
 		return errorPageInfo{
 			Status:  http.StatusBadGateway,
-			Message: "Unable to connect to the backend service. Please try again in a few moments.",
+			Message: "Unable to connect to a instance. Please try again in a few moments.",
 		}
 	case codes.Gateway.Proxy.ProxyForwardFailed.URN():
 		return errorPageInfo{
@@ -133,41 +129,31 @@ func getErrorPageInfo(urn codes.URN) errorPageInfo {
 	}
 }
 
-// categorizeErrorType determines if an error is a customer issue or platform issue
-//
-// When hasError is true: we categorize based on our error codes (platform vs customer infrastructure)
-// When hasError is false: we use the captured status code to determine if customer's instance returned an error
 func categorizeErrorType(urn codes.URN, statusCode int, hasError bool) string {
-	// Success
 	if statusCode >= 200 && statusCode < 300 {
 		return "none"
 	}
 
-	// If we have an error from our code, categorize it
 	if hasError {
-		// Customer errors (their code/instance issues)
 		switch urn {
-		case codes.Gateway.Proxy.GatewayTimeout.URN(), // Instance timeout
-			codes.Gateway.Proxy.BadGateway.URN(),         // Instance returned invalid response
-			codes.Gateway.Proxy.ProxyForwardFailed.URN(): // Failed to forward to instance
+		case codes.Gateway.Proxy.GatewayTimeout.URN(),
+			codes.Gateway.Proxy.BadGateway.URN(),
+			codes.Gateway.Proxy.ProxyForwardFailed.URN():
 			return "customer"
 
-		// Platform errors (our infrastructure issues)
 		case codes.Gateway.Internal.InternalServerError.URN(),
 			codes.Gateway.Internal.InvalidConfiguration.URN(),
 			codes.Gateway.Routing.DeploymentNotFound.URN(),
 			codes.Gateway.Routing.InstanceSelectionFailed.URN(),
-			codes.Gateway.Proxy.ServiceUnavailable.URN(),   // Connection refused - we should health check
-			codes.Gateway.Routing.NoRunningInstances.URN(): // No instances - orchestration issue
+			codes.Gateway.Proxy.ServiceUnavailable.URN(),
+			codes.Gateway.Routing.NoRunningInstances.URN():
 			return "platform"
 
-		// User errors (bad requests)
 		case codes.User.BadRequest.ClientClosedRequest.URN(),
 			codes.User.BadRequest.MissingRequiredHeader.URN():
 			return "user"
 		}
 
-		// Default for errors: if 5xx, assume platform; if 4xx, assume user
 		if statusCode >= 500 {
 			return "platform"
 		}
@@ -175,43 +161,29 @@ func categorizeErrorType(urn codes.URN, statusCode int, hasError bool) string {
 		if statusCode >= 400 {
 			return "user"
 		}
-	} else {
-		// No error from our code, but non-2xx status = customer's code returned error
-		// This happens when we successfully proxy, but instance returns 4xx/5xx
-		if statusCode >= 500 {
-			return "customer" // Customer's instance returned 5xx
-		}
-		if statusCode >= 400 {
-			return "customer" // Customer's instance returned 4xx
-		}
+	} else if statusCode >= 400 {
+		return "customer"
 	}
 
 	return "none"
 }
 
-// WithObservability combines error handling and metrics into a single middleware.
-// This handles errors, writes appropriate responses, and records metrics for monitoring.
 func WithObservability(logger logging.Logger, environmentID, region string) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
 			startTime := time.Now()
 
-			// Increment active requests
 			gatewayActiveRequests.WithLabelValues(environmentID, region).Inc()
 			defer gatewayActiveRequests.WithLabelValues(environmentID, region).Dec()
 
-			// Process request
 			err := next(ctx, s)
 
-			// Get the status code (captured automatically by zen.Session)
 			statusCode := s.StatusCode()
 			errorType := "none"
 			var urn codes.URN
 			hasError := err != nil
 
-			// Handle errors
 			if hasError {
-				// Get the error URN
 				var ok bool
 				urn, ok = fault.GetCode(err)
 				if !ok {
@@ -224,20 +196,16 @@ func WithObservability(logger logging.Logger, environmentID, region string) zen.
 					code = codes.Gateway.Internal.InternalServerError
 				}
 
-				// Get error page info (status and message) based on URN
 				pageInfo := getErrorPageInfo(urn)
 				statusCode = pageInfo.Status
 
-				// Categorize error type for metrics
 				errorType = categorizeErrorType(urn, statusCode, hasError)
 
-				// Use user-facing message from error if no specific message defined
 				userMessage := pageInfo.Message
 				if userMessage == "" {
 					userMessage = fault.UserFacingMessage(err)
 				}
 
-				// Log internal server errors
 				if pageInfo.Status == http.StatusInternalServerError {
 					logger.Error("gateway error",
 						"error", err.Error(),
@@ -249,10 +217,8 @@ func WithObservability(logger logging.Logger, environmentID, region string) zen.
 					)
 				}
 
-				// Mark that this error was generated by the gateway (not customer code)
 				s.ResponseWriter().Header().Set("X-Unkey-Error-Source", "gateway")
 
-				// Write error response (gateway is not user-facing, only ingress calls it)
 				writeErr := s.JSON(pageInfo.Status, ErrorResponse{
 					Error: ErrorDetail{
 						Code:    string(code.URN()),
@@ -263,11 +229,9 @@ func WithObservability(logger logging.Logger, environmentID, region string) zen.
 					logger.Error("failed to write error response", "error", writeErr.Error())
 				}
 			} else {
-				// No error from our code, but check if customer's instance returned error status
 				errorType = categorizeErrorType("", statusCode, hasError)
 			}
 
-			// Record metrics
 			duration := time.Since(startTime).Seconds()
 			statusStr := strconv.Itoa(statusCode)
 
@@ -282,7 +246,6 @@ func WithObservability(logger logging.Logger, environmentID, region string) zen.
 			gatewayRequestsTotal.WithLabelValues(statusStr, errorType, environmentID, region).Inc()
 			gatewayRequestDuration.WithLabelValues(statusStr, errorType, environmentID, region).Observe(duration)
 
-			// Return nil - error has been handled
 			return nil
 		}
 	}

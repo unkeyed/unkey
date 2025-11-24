@@ -82,23 +82,13 @@ func categorizeProxyError(err error) (codes.URN, string) {
 	}
 
 	return codes.Gateway.Proxy.BadGateway.URN(),
-		"Unable to connect to the backend service. Please try again in a few moments."
+		"Unable to connect to a instance. Please try again in a few moments."
 }
 
 func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	req := sess.Request()
 	startTime := h.Clock.Now()
 	var instanceStart, instanceEnd time.Time
-
-	defer func() {
-		gatewayDuration := h.Clock.Now().Sub(startTime)
-		sess.ResponseWriter().Header().Set("X-Unkey-Gateway-Time", fmt.Sprintf("%dms", gatewayDuration.Milliseconds()))
-
-		if !instanceStart.IsZero() && !instanceEnd.IsZero() {
-			instanceDuration := instanceEnd.Sub(instanceStart)
-			sess.ResponseWriter().Header().Set("X-Unkey-Instance-Time", fmt.Sprintf("%dms", instanceDuration.Milliseconds()))
-		}
-	}()
 
 	deploymentID := req.Header.Get("X-Deployment-ID")
 	if deploymentID == "" {
@@ -151,10 +141,27 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		Transport: h.Transport,
 		ModifyResponse: func(resp *http.Response) error {
 			instanceEnd = h.Clock.Now()
+
+			gatewayDuration := h.Clock.Now().Sub(startTime)
+			resp.Header.Set("X-Unkey-Gateway-Time", fmt.Sprintf("%dms", gatewayDuration.Milliseconds()))
+
+			if !instanceStart.IsZero() && !instanceEnd.IsZero() {
+				instanceDuration := instanceEnd.Sub(instanceStart)
+				resp.Header.Set("X-Unkey-Instance-Time", fmt.Sprintf("%dms", instanceDuration.Milliseconds()))
+			}
+
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
 			instanceEnd = h.Clock.Now()
+
+			gatewayDuration := h.Clock.Now().Sub(startTime)
+			sess.ResponseWriter().Header().Set("X-Unkey-Gateway-Time", fmt.Sprintf("%dms", gatewayDuration.Milliseconds()))
+
+			if !instanceStart.IsZero() && !instanceEnd.IsZero() {
+				instanceDuration := instanceEnd.Sub(instanceStart)
+				sess.ResponseWriter().Header().Set("X-Unkey-Instance-Time", fmt.Sprintf("%dms", instanceDuration.Milliseconds()))
+			}
 
 			if ecw, ok := w.(*zen.ErrorCapturingWriter); ok {
 				ecw.SetError(err)
