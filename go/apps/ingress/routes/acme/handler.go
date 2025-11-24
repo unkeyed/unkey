@@ -38,7 +38,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 	_, _, err := h.RouterService.LookupByHostname(ctx, hostname)
 	if err != nil {
-		return err // Error already has proper fault wrapping
+		return err
 	}
 
 	// Extract ACME token from path (last segment after /.well-known/acme-challenge/)

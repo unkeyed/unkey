@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
-// RouteDecision contains the routing decision
 type RouteDecision struct {
 	// LocalGateway is set if there's a healthy gateway in the local region
 	LocalGateway *db.Gateway
@@ -20,18 +19,11 @@ type RouteDecision struct {
 	DeploymentID string
 }
 
-// Service handles route lookups and gateway selection
 type Service interface {
-	// LookupByHostname finds routing info for a hostname
-	// Returns the ingress route and all gateways for that environment
 	LookupByHostname(ctx context.Context, hostname string) (*db.IngressRoute, []db.Gateway, error)
-
-	// SelectGateway picks the best gateway for the request
-	// Returns a RouteDecision with either LocalGateway or NearestNLBRegion set
 	SelectGateway(route *db.IngressRoute, gateways []db.Gateway) (*RouteDecision, error)
 }
 
-// Config holds configuration for the router service
 type Config struct {
 	Logger                logging.Logger
 	Region                string

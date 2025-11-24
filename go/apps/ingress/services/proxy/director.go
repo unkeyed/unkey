@@ -12,20 +12,16 @@ import (
 // The proxyStartTime pointer will be set by the caller when Director is invoked
 func (s *service) makeGatewayDirector(sess *zen.Session, deploymentID string, startTime time.Time) func(*http.Request) {
 	return func(req *http.Request) {
-		// Add metadata headers TO DOWNSTREAM SERVICE (gateway)
-		// These tell the gateway which ingress forwarded the request
 		req.Header.Set(HeaderIngressID, s.ingressID)
 		req.Header.Set(HeaderRegion, s.region)
 		req.Header.Set(HeaderRequestID, sess.RequestID())
 
-		// Add timing to track latency added by this ingress (routing overhead)
 		ingressRoutingTimeMs := s.clock.Now().Sub(startTime).Milliseconds()
 		req.Header.Set(HeaderIngressTime, strconv.FormatInt(ingressRoutingTimeMs, 10))
 
-		// Add standard proxy headers for local gateway
 		req.Header.Set(HeaderForwardedProto, "https")
 
-		// Add deployment ID so gateway knows which deployment to route to
+		// We always want to override the deployment id, even if the client send it.
 		req.Header.Set(HeaderDeploymentID, deploymentID)
 	}
 }
@@ -33,21 +29,18 @@ func (s *service) makeGatewayDirector(sess *zen.Session, deploymentID string, st
 // makeNLBDirector creates a Director function for forwarding to a remote NLB
 func (s *service) makeNLBDirector(sess *zen.Session, startTime time.Time) func(*http.Request) {
 	return func(req *http.Request) {
-		// Add metadata headers TO DOWNSTREAM SERVICE (remote ingress)
-		// These tell the remote ingress which ingress forwarded the request
 		req.Header.Set(HeaderIngressID, s.ingressID)
 		req.Header.Set(HeaderRegion, s.region)
 		req.Header.Set(HeaderRequestID, sess.RequestID())
 
-		// Add timing to track latency added by this ingress (routing overhead)
 		ingressRoutingTimeMs := s.clock.Now().Sub(startTime).Milliseconds()
 		req.Header.Set(HeaderIngressTime, strconv.FormatInt(ingressRoutingTimeMs, 10))
 
-		// Remote ingress - preserve original Host for TLS termination and routing
+		// Preserve original Host so we know where to actually route the request
 		req.Host = sess.Request().Host
 		req.Header.Set("Host", sess.Request().Host)
 
-		// Add parent tracking to trace the forwarding chain
+		// Add parent tracking to trace the forwarding chain, might be useful for debugging
 		req.Header.Set(HeaderParentIngressID, s.ingressID)
 		req.Header.Set(HeaderParentRequestID, sess.RequestID())
 
@@ -61,7 +54,6 @@ func (s *service) makeNLBDirector(sess *zen.Session, startTime time.Time) func(*
 		currentHops++
 		req.Header.Set(HeaderIngressHops, strconv.Itoa(currentHops))
 
-		// Log warning if approaching max hops
 		if currentHops >= s.maxHops-1 {
 			s.logger.Warn("approaching max hops limit",
 				"currentHops", currentHops,

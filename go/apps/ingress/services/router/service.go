@@ -37,7 +37,6 @@ var regionProximity = map[string][]string{
 	"ap-southeast-2": {"ap-southeast-1", "ap-northeast-1", "ap-south-1", "us-west-2", "us-west-1", "us-east-1", "us-east-2", "eu-west-1", "eu-central-1"},
 }
 
-// service implements the Service interface
 type service struct {
 	logger                     logging.Logger
 	region                     string
@@ -48,7 +47,6 @@ type service struct {
 
 var _ Service = (*service)(nil)
 
-// New creates a new router service instance.
 func New(cfg Config) (*service, error) {
 	return &service{
 		logger:                     cfg.Logger,
@@ -59,9 +57,7 @@ func New(cfg Config) (*service, error) {
 	}, nil
 }
 
-// LookupByHostname finds routing info for a hostname.
 func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.IngressRoute, []db.Gateway, error) {
-	// Lookup ingress route from database with SWR cache
 	route, hit, err := s.ingressRouteCache.SWR(ctx, hostname, func(ctx context.Context) (db.IngressRoute, error) {
 		return db.Query.FindIngressRouteByHostname(ctx, s.db.RO(), hostname)
 	}, internalCaches.DefaultFindFirstOp)
@@ -74,14 +70,12 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.In
 	}
 
 	if db.IsNotFound(err) || hit == cache.Null {
-		return nil, nil, fault.New("route not found",
+		return nil, nil, fault.New("no ingress route for hostname: "+hostname,
 			fault.Code(codes.Ingress.Routing.ConfigNotFound.URN()),
-			fault.Internal("no ingress route for hostname: "+hostname),
 			fault.Public("Domain not configured"),
 		)
 	}
 
-	// Lookup gateways for this environment
 	gateways, _, err := s.gatewaysByEnvironmentCache.SWR(ctx, route.EnvironmentID, func(ctx context.Context) ([]db.Gateway, error) {
 		return db.Query.FindGatewaysByEnvironmentID(ctx, s.db.RO(), route.EnvironmentID)
 	}, internalCaches.DefaultFindFirstOp)
@@ -96,7 +90,6 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.In
 	return &route, gateways, nil
 }
 
-// SelectGateway picks the best gateway for the request.
 func (s *service) SelectGateway(route *db.IngressRoute, gateways []db.Gateway) (*RouteDecision, error) {
 	decision := &RouteDecision{
 		DeploymentID:     route.DeploymentID,
@@ -104,11 +97,9 @@ func (s *service) SelectGateway(route *db.IngressRoute, gateways []db.Gateway) (
 		NearestNLBRegion: "",
 	}
 
-	// Group healthy gateways by region
 	healthyByRegion := make(map[string]*db.Gateway)
 	for i := range gateways {
 		gw := &gateways[i]
-		// Check if gateway is healthy
 		if !gw.Health.Valid ||
 			gw.Health.GatewaysHealth != db.GatewaysHealthHealthy {
 			continue
@@ -117,7 +108,6 @@ func (s *service) SelectGateway(route *db.IngressRoute, gateways []db.Gateway) (
 		healthyByRegion[gw.Region] = gw
 	}
 
-	// No healthy gateways anywhere
 	if len(healthyByRegion) == 0 {
 		return nil, fault.New("no healthy gateways",
 			fault.Code(codes.Ingress.Routing.NoRunningInstances.URN()),
@@ -126,13 +116,11 @@ func (s *service) SelectGateway(route *db.IngressRoute, gateways []db.Gateway) (
 		)
 	}
 
-	// Check if local region has a healthy gateway
 	if localGw, ok := healthyByRegion[s.region]; ok {
 		decision.LocalGateway = localGw
 		return decision, nil
 	}
 
-	// Find nearest region with healthy gateway
 	nearestRegion := s.findNearestRegion(healthyByRegion)
 	if nearestRegion != "" {
 		decision.NearestNLBRegion = nearestRegion
@@ -141,9 +129,7 @@ func (s *service) SelectGateway(route *db.IngressRoute, gateways []db.Gateway) (
 	return decision, nil
 }
 
-// findNearestRegion finds the nearest region that has a healthy gateway.
 func (s *service) findNearestRegion(healthyByRegion map[string]*db.Gateway) string {
-	// Check proximity list for our region
 	proximityList, exists := regionProximity[s.region]
 	if exists {
 		for _, region := range proximityList {
@@ -153,7 +139,6 @@ func (s *service) findNearestRegion(healthyByRegion map[string]*db.Gateway) stri
 		}
 	}
 
-	// Fallback to any region
 	for region := range healthyByRegion {
 		return region
 	}

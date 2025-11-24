@@ -43,25 +43,21 @@ var (
 	)
 )
 
-// ErrorResponse is the standard JSON error response format.
 type ErrorResponse struct {
 	Error ErrorDetail `json:"error"`
 }
 
-// ErrorDetail contains error information.
 type ErrorDetail struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
-// errorPageInfo holds the data needed to render an error page.
 type errorPageInfo struct {
 	Status  int
 	Title   string
 	Message string
 }
 
-// categorizeErrorType determines if an error is a customer issue or platform issue
 func categorizeErrorTypeIngress(urn codes.URN, statusCode int, hasError bool) string {
 	if statusCode >= 200 && statusCode < 300 {
 		return "none"
@@ -89,16 +85,13 @@ func categorizeErrorTypeIngress(urn codes.URN, statusCode int, hasError bool) st
 		if statusCode >= 500 {
 			return "platform"
 		}
+
 		if statusCode >= 400 {
 			return "user"
 		}
-	} else {
-		if statusCode >= 500 {
-			return "customer"
-		}
-		if statusCode >= 400 {
-			return "customer"
-		}
+
+	} else if statusCode >= 400 {
+		return "customer"
 	}
 
 	return "unknown"

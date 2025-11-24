@@ -26,14 +26,10 @@ type Caches struct {
 
 // Config defines the configuration options for initializing caches.
 type Config struct {
-	// Logger is used for logging cache operations and errors.
 	Logger logging.Logger
-
-	// Clock provides time functionality, allowing easier testing.
-	Clock clock.Clock
+	Clock  clock.Clock
 }
 
-// New creates and initializes all cache instances with appropriate settings.
 func New(config Config) (Caches, error) {
 	ingressRoute, err := cache.New(cache.Config[string, db.IngressRoute]{
 		Fresh:    time.Second * 5,
