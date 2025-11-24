@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"html"
 	"net/http"
 	"strconv"
 	"strings"
@@ -233,6 +234,10 @@ func getErrorPageInfoIngress(urn codes.URN) errorPageInfo {
 }
 
 func renderErrorHTMLIngress(title, message, errorCode string) []byte {
+	escapedTitle := html.EscapeString(title)
+	escapedMessage := html.EscapeString(message)
+	escapedErrorCode := html.EscapeString(errorCode)
+
 	return fmt.Appendf(nil, `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -251,5 +256,5 @@ func renderErrorHTMLIngress(title, message, errorCode string) []byte {
     <p>%s</p>
     <p class="error-code">Error: %s</p>
 </body>
-</html>`, title, title, message, errorCode)
+</html>`, escapedTitle, escapedTitle, escapedMessage, escapedErrorCode)
 }
