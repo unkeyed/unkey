@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
@@ -63,6 +64,23 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 				resp.Header.Set("X-Unkey-Ingress-Time", fmt.Sprintf("%dms", proxyStartTime.Sub(cfg.startTime).Milliseconds()))
 			}
 			resp.Header.Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
+
+			// If gateway returned 5xx error, convert to error so middleware can do content negotiation
+			if resp.StatusCode >= 500 && resp.Header.Get("X-Unkey-Error-Source") == "gateway" {
+				urn := codes.Ingress.Proxy.BadGateway.URN()
+				if resp.StatusCode == 503 {
+					urn = codes.Ingress.Proxy.ServiceUnavailable.URN()
+				} else if resp.StatusCode == 504 {
+					urn = codes.Ingress.Proxy.GatewayTimeout.URN()
+				}
+
+				return fault.New(
+					fmt.Sprintf("gateway returned %d", resp.StatusCode),
+					fault.Code(urn),
+					fault.Public(http.StatusText(resp.StatusCode)),
+				)
+			}
+
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {

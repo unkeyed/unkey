@@ -11,20 +11,20 @@ import { Mermaid } from "@/app/components/mermaid";
 
 ## What It Does
 
-Ingress is the multi-tenant HTTP ingress service that serves as the entry point for all customer traffic. 
-It handles TLS termination, hostname-based routing, and proxying requests to deployment instances or cross-region gateways.
+Ingress is the multi-tenant HTTP ingress service that serves as the entry point for all customer traffic.
+It handles TLS termination, hostname-based routing, and proxying requests to environment-scoped gateways.
 
 Ingress handles four main responsibilities:
 1. **TLS Termination**: Terminates TLS for custom domains using ACME (Let's Encrypt) or local certificates
-2. **Hostname Routing**: Looks up ingress routes by hostname to find the target deployment
-3. **Instance Selection**: Uses the router service to select a healthy running instance
-4. **Smart Proxying**: Forwards to local instances or cross-region NLBs with hop count protection
+2. **Hostname Routing**: Looks up ingress routes by hostname to find the target deployment and environment
+3. **Gateway Selection**: Routes requests to the appropriate environment-scoped gateway
+4. **Smart Proxying**: Forwards to local gateways or cross-region NLBs with hop count protection
 
 ## Architecture
 
 ### Multi-Tenant Design
 
-Ingress is a multi-tenant service running as a Kubernetes Deployment behind a Network Load Balancer. A single Ingress instance handles traffic for all customer deployments, performing hostname lookups and routing decisions to forward requests to the appropriate deployment instances.
+Ingress is a multi-tenant service running as a Kubernetes Deployment behind a Network Load Balancer. A single Ingress instance handles traffic for all customer deployments, performing hostname lookups and routing decisions to forward requests to the appropriate environment gateway.
 
 ### Request Flow
 
@@ -33,24 +33,19 @@ Ingress is a multi-tenant service running as a Kubernetes Deployment behind a Ne
     participant Client
     participant Ingress
     participant DB as MySQL
-    participant Router as Router Service
-    participant Instance as Deployment Instance
+    participant Gateway as Environment Gateway
 
     Client->>Ingress: HTTPS Request (custom.domain.com)
     Ingress->>Ingress: Terminate TLS (ACME cert)
     Ingress->>DB: SELECT * FROM ingress_routes WHERE hostname=?
     DB->>Ingress: deployment_id, environment_id, project_id
 
-    alt Local running instances exist
-        Ingress->>Router: SelectGateway(deployment_id)
-        Router->>DB: Find running instances for deployment
-        DB->>Router: instance_id, address, region
-        Router->>Ingress: Selected instance address
-        Ingress->>Instance: HTTP proxy to instance
-        Instance->>Ingress: Response
+    alt Local gateway exists
+        Ingress->>Ingress: Lookup gateway for environment_id
+        Ingress->>Gateway: HTTP proxy + X-Deployment-ID header
+        Gateway->>Ingress: Response
         Ingress->>Client: Response
-    else No local instances (cross-region)
-        Router->>Ingress: NoRunningInstances error
+    else No local gateway (cross-region)
         Ingress->>Ingress: Check X-Unkey-Hop-Count < maxHops
         Ingress->>NLB: Forward to region NLB (with hop++)
         Note over Ingress: Remote region handles request
@@ -67,24 +62,11 @@ CREATE TABLE ingress_routes (
     id VARCHAR(128) PRIMARY KEY,
     project_id VARCHAR(255) NOT NULL,
     deployment_id VARCHAR(255) NOT NULL,
-    environment_id VARCHAR(255) NOT NULL,
+    environment_id VARCHAR(255) NOT NULL,  -- Used to route to environment gateway
     hostname VARCHAR(256) NOT NULL UNIQUE,
     sticky ENUM('none','branch','environment','live') NOT NULL DEFAULT 'none',
     created_at BIGINT NOT NULL,
     updated_at BIGINT
-);
-
--- Running deployment instances
-CREATE TABLE instances (
-    id VARCHAR(128) PRIMARY KEY,
-    deployment_id VARCHAR(255) NOT NULL,
-    workspace_id VARCHAR(255) NOT NULL,
-    project_id VARCHAR(255) NOT NULL,
-    region VARCHAR(255) NOT NULL,
-    address VARCHAR(255) NOT NULL UNIQUE,  -- IP:port or hostname:port
-    cpu_millicores INT NOT NULL,
-    memory_mb INT NOT NULL,
-    status ENUM('allocated','provisioning','starting','running','stopping','stopped','failed') NOT NULL
 );
 
 -- ACME certificates (Let's Encrypt)
@@ -123,44 +105,47 @@ cert, key := generateSelfSignedCert("unkey.local")
 1. Client connects with SNI hostname (e.g., `api.customer.com`)
 2. Ingress looks up certificate in database by hostname
 3. TLS handshake completes with customer's certificate
-4. Request is decrypted and forwarded to instance as plain HTTP
+4. Request is decrypted and forwarded to environment gateway as plain HTTP
 
-## Router Service
+## Gateway Routing
 
-Ingress uses a Router service to make intelligent routing decisions:
+Ingress routes requests to environment-scoped gateways based on the `environment_id` from the ingress route lookup.
 
-### Instance Selection
+### Gateway Discovery
 
 ```go
-type RouteDecision struct {
-    InstanceID  string
-    Address     string  // e.g., "127.0.0.1:8787" or "instance-abc.svc.cluster.local:8080"
-    Region      string
-    DeploymentID string
+// After looking up the ingress route, we have:
+type IngressRoute struct {
+    DeploymentID   string
+    EnvironmentID  string  // Key field for gateway routing
+    ProjectID      string
 }
 
-// Router selects a healthy running instance
-decision, err := router.SelectGateway(ctx, deploymentID)
+// Gateway address is determined by environment_id
+// e.g., "gateway-{environment_id}.{namespace}.svc.cluster.local:8080"
+gatewayAddress := fmt.Sprintf("gateway-%s.%s.svc.cluster.local:8080",
+    route.EnvironmentID, namespace)
 ```
 
-### Selection Strategy
+### Routing Strategy
 
-The router queries for instances with:
-- `deployment_id` matches the target deployment
-- `status = 'running'`
-- Current region matches Ingress region (for local routing)
+Ingress routes based on:
+- `environment_id` from the ingress route lookup
+- Gateway service discovery via Kubernetes DNS
+- Current region (for local vs cross-region routing)
 
-If no local instances are found, returns `NoRunningInstances` error, triggering cross-region forwarding.
+If no local gateway is found, Ingress forwards to the region's NLB, triggering cross-region forwarding.
 
-### Health Checks
+### Request Headers
 
-The router filters out unhealthy instances:
-- Checks `instances.status` is `'running'`
-- Future: Active health checks via HTTP probes
+Ingress passes metadata to the Gateway via HTTP headers:
+- `X-Deployment-ID`: The target deployment ID
+- `X-Environment-ID`: The environment ID (for validation)
+- `X-Unkey-Hop-Count`: Hop count for cross-region loop prevention
 
 ## Cross-Region Forwarding
 
-When no local instances are available, Ingress forwards requests to the region's Network Load Balancer.
+When no local gateway is available, Ingress forwards requests to the region's Network Load Balancer.
 
 ### Hop Count Protection
 
@@ -201,12 +186,13 @@ func (p *ProxyService) ForwardToNLB(ctx context.Context, region string, r *http.
 }
 ```
 
-### Why NLB Instead of Direct Instance?
+### Why NLB Instead of Direct Gateway?
 
-Forwarding to the region's NLB (instead of directly to a remote instance) provides:
-- **Load balancing**: NLB distributes across available Ingress instances
+Forwarding to the region's NLB (instead of directly to a remote gateway) provides:
+- **Load balancing**: NLB distributes across available Ingress instances in the target region
 - **Health checking**: NLB only routes to healthy Ingress replicas
-- **Simplicity**: No need for cross-region instance discovery
+- **Simplicity**: No need for cross-region gateway discovery
+- **Consistency**: Same ingress lookup and routing logic applies in the target region
 
 ## Error Handling
 
@@ -219,8 +205,8 @@ type ErrorCode int
 
 const (
     ErrorHostnameNotFound          ErrorCode = 40401  // No ingress route for hostname
-    ErrorNoRunningInstances        ErrorCode = 50301  // Deployment exists but no instances
-    ErrorProxyServiceUnavailable   ErrorCode = 50302  // Failed to proxy to instance
+    ErrorGatewayUnavailable        ErrorCode = 50301  // Environment gateway not available
+    ErrorProxyServiceUnavailable   ErrorCode = 50302  // Failed to proxy to gateway
     ErrorRoutingMaxHopsExceeded    ErrorCode = 50801  // Too many cross-region hops
 )
 ```
@@ -228,14 +214,14 @@ const (
 ### Status Code Mapping
 
 - **404 Not Found**: No ingress route configured for hostname
-- **503 Service Unavailable**: Deployment exists but no running instances
+- **503 Service Unavailable**: Environment gateway not available
 - **508 Loop Detected**: Maximum hop count exceeded (prevents infinite loops)
 
 ## Observability
 
 Ingress uses structured logging for:
 - Hostname lookups and routing decisions
-- Instance selection results
+- Gateway discovery and selection
 - Proxy operations (success/failure)
 - Cross-region forwarding
 - TLS certificate operations
@@ -245,11 +231,8 @@ Ingress uses structured logging for:
 
 ### Planned Features
 
-1. **Connection Pooling**: Reuse HTTP connections to instances for better performance
-2. **Instance Health Checks**: Active health probing instead of relying solely on database status
-3. **Sticky Sessions**: Support sticky routing based on client session
-4. **Metrics**: Prometheus metrics for request rates, latencies, and error rates
-5. **Request Tracing**: OpenTelemetry traces for end-to-end request visibility
+1. **Gateway Health Checks**: Active health probing for environment gateways
+2. **Sticky Sessions**: Support sticky routing based on client session
 
 ### Scalability
 
@@ -257,38 +240,3 @@ Ingress is designed to scale horizontally:
 - **Stateless**: No persistent state, all routing from database
 - **Database-driven**: Routing decisions from MySQL lookups (indexed on hostname)
 - **Minimal processing**: Pure proxy layer, no business logic execution
-
-## Deployment
-
-Ingress runs as a Kubernetes Deployment (not StatefulSet) since it doesn't require stable instance identity. Multiple replicas run behind the NLB for high availability.
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: ingress
-  namespace: unkey-system
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: ingress
-  template:
-    metadata:
-      labels:
-        app: ingress
-    spec:
-      containers:
-      - name: ingress
-        image: unkey/ingress:latest
-        env:
-        - name: UNKEY_REGION
-          value: "us-east-1"
-        - name: UNKEY_BASE_DOMAIN
-          value: "unkey.cloud"
-        ports:
-        - containerPort: 7070
-          name: http
-        - containerPort: 7443
-          name: https
-```
