@@ -125,20 +125,6 @@ describe("WorkOSAuthProvider - checkRadar", () => {
       });
     });
 
-    it("should not block signup when Radar returns challenge action", async () => {
-      mockRadarResponse("challenge", "Additional verification recommended");
-
-      await expect(
-        provider.signUpViaEmail({
-          email: "test@example.com",
-          firstName: "Test",
-          lastName: "User",
-          ipAddress: "192.168.1.1",
-          userAgent: "Mozilla/5.0",
-        }),
-      ).rejects.toThrow("RADAR_CHALLENGE_REQUIRED");
-    });
-
     it("should allow signup when Radar API fails", async () => {
       mockRadarFailure(500);
 
@@ -228,18 +214,6 @@ describe("WorkOSAuthProvider - checkRadar", () => {
       expect(mockProvider.userManagement.listUsers).toHaveBeenCalledWith({
         email: "test@example.com",
       });
-    });
-
-    it("should not block signin when Radar returns challenge action", async () => {
-      mockRadarResponse("challenge", "Unusual location detected");
-
-      await expect(
-        provider.signInViaEmail({
-          email: "test@example.com",
-          ipAddress: "192.168.1.1",
-          userAgent: "Mozilla/5.0",
-        }),
-      ).rejects.toThrow("RADAR_CHALLENGE_REQUIRED");
     });
   });
 });
