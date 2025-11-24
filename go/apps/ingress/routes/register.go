@@ -12,7 +12,6 @@ import (
 
 // Register registers all ingress routes for the HTTPS server
 func Register(srv *zen.Server, svc *Services) {
-	// Setup middlewares
 	withLogging := zen.WithLogging(svc.Logger)
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
 	withObservability := middleware.WithObservability(svc.Logger, svc.Region)
@@ -21,11 +20,10 @@ func Register(srv *zen.Server, svc *Services) {
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
 		withLogging,
-		withObservability, // Combined error handling and metrics
+		withObservability,
 		withTimeout,
 	}
 
-	// Health check endpoint (minimal middlewares)
 	srv.RegisterRoute(
 		[]zen.Middleware{withLogging},
 		&internalHealth.Handler{
@@ -33,7 +31,7 @@ func Register(srv *zen.Server, svc *Services) {
 		},
 	)
 
-	// Catch-all proxy route
+	// Catches all requests and routes them to the gateway or some other region.
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&proxy.Handler{
@@ -66,7 +64,7 @@ func RegisterChallengeServer(srv *zen.Server, svc *Services) {
 		},
 	)
 
-	// ACME challenge endpoint for Let's Encrypt (/.well-known/acme-challenge/*)
+	// Catches /.well-known/acme-challenge/{token} so we can forward to ctrl plane.
 	srv.RegisterRoute(
 		challengeMiddlewares,
 		&acme.Handler{

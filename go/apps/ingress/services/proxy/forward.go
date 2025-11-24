@@ -12,26 +12,20 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-// forwardConfig holds configuration for forwarding a request
 type forwardConfig struct {
 	targetURL    *url.URL
 	startTime    time.Time
 	directorFunc func(*http.Request)
-	logTarget    string // Description for logging (e.g., "gateway", "NLB")
+	logTarget    string
 }
 
-// forward handles the common logic for proxying requests to either gateway or NLB
 func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
-	// Set response headers BACK TO CLIENT so they can see which ingress handled their request
-	// These are useful for debugging and support tickets
 	sess.ResponseWriter().Header().Set(HeaderIngressID, s.ingressID)
 	sess.ResponseWriter().Header().Set(HeaderRegion, s.region)
 	sess.ResponseWriter().Header().Set(HeaderRequestID, sess.RequestID())
 
 	var proxyStartTime time.Time
 
-	// Ensure timing headers are always set on response writer, even when errors occur
-	// This defer runs for both success and error paths
 	defer func() {
 		totalTime := s.clock.Now().Sub(cfg.startTime)
 		if !proxyStartTime.IsZero() {
@@ -40,32 +34,25 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 		sess.ResponseWriter().Header().Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
 	}()
 
-	// Wrap the response writer to capture errors without writing to client
 	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
 
-	// Create reverse proxy with shared transport
 	proxy := &httputil.ReverseProxy{
 		Transport: s.transport,
 		Director: func(req *http.Request) {
-			// Record when we start calling downstream service
 			proxyStartTime = s.clock.Now()
 
-			// Update URL to target
 			req.URL.Scheme = cfg.targetURL.Scheme
 			req.URL.Host = cfg.targetURL.Host
 
-			// Call the specific director function for additional configuration
 			cfg.directorFunc(req)
 		},
 		ModifyResponse: func(resp *http.Response) error {
-			// Add timing headers BEFORE response is written to client
 			totalTime := s.clock.Now().Sub(cfg.startTime)
 			if !proxyStartTime.IsZero() {
 				resp.Header.Set("X-Unkey-Ingress-Time", fmt.Sprintf("%dms", proxyStartTime.Sub(cfg.startTime).Milliseconds()))
 			}
 			resp.Header.Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
 
-			// If gateway returned 5xx error, convert to error so middleware can do content negotiation
 			if resp.StatusCode >= 500 && resp.Header.Get("X-Unkey-Error-Source") == "gateway" {
 				urn := codes.Ingress.Proxy.BadGateway.URN()
 				if resp.StatusCode == 503 {

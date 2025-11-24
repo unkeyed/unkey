@@ -27,10 +27,6 @@ type Config struct {
 	// EnableTLS specifies whether TLS should be enabled for the Ingress server
 	EnableTLS bool
 
-	// MainDomain is the primary domain of the Ingress (e.g., ingress.unkey.com)
-	// Internal endpoints like /_internal/liveness are only accessible on this domain
-	MainDomain string
-
 	// BaseDomain is the base domain for region routing (e.g., unkey.cloud)
 	// Cross-region requests are forwarded to {region}.{BaseDomain}
 	BaseDomain string

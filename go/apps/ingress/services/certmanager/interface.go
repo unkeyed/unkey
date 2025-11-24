@@ -16,13 +16,10 @@ type Service interface {
 }
 
 type Config struct {
-	// Logger is the logger used to log messages.
 	Logger logging.Logger
 
-	// DB is the database used to store certificates.
 	DB db.Database
 
-	// VaultSvc is the vault service used to store certificates.
 	Vault *vault.Service
 
 	TLSCertificateCache cache.Cache[string, tls.Certificate]

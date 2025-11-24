@@ -28,23 +28,19 @@ type service struct {
 
 var _ Service = (*service)(nil)
 
-// New creates a new proxy service instance.
 func New(cfg Config) (*service, error) {
-	// Default MaxHops to 3 if not set
 	maxHops := cfg.MaxHops
 	if maxHops == 0 {
 		maxHops = 3
 	}
 
-	// Use shared transport if provided, otherwise create a new one
 	var transport *http.Transport
 	if cfg.Transport != nil {
 		transport = cfg.Transport
 	} else {
-		// Configure transport with defaults optimized for ingress
 		transport = &http.Transport{
 			Proxy:                 http.ProxyFromEnvironment,
-			MaxIdleConns:          200, // Higher for ingress workload
+			MaxIdleConns:          200,
 			MaxIdleConnsPerHost:   100,
 			IdleConnTimeout:       90 * time.Second,
 			TLSHandshakeTimeout:   10 * time.Second,
@@ -52,7 +48,6 @@ func New(cfg Config) (*service, error) {
 			ResponseHeaderTimeout: 40 * time.Second, // Longer than gateway timeout (30s) to receive its error response
 		}
 
-		// Apply config overrides if provided
 		if cfg.MaxIdleConns > 0 {
 			transport.MaxIdleConns = cfg.MaxIdleConns
 		}
@@ -81,8 +76,6 @@ func New(cfg Config) (*service, error) {
 	}, nil
 }
 
-// ForwardToGateway forwards a request to a local gateway service (HTTP)
-// Adds X-Unkey-Deployment-Id header so gateway knows which deployment to route to
 func (s *service) ForwardToGateway(ctx context.Context, sess *zen.Session, gateway *db.Gateway, deploymentID string) error {
 	startTime, _ := RequestStartTimeFromContext(ctx)
 
@@ -102,12 +95,9 @@ func (s *service) ForwardToGateway(ctx context.Context, sess *zen.Session, gatew
 	})
 }
 
-// ForwardToNLB forwards a request to a remote region's NLB (HTTPS)
-// Keeps original hostname so remote ingress can do TLS termination and routing
 func (s *service) ForwardToNLB(ctx context.Context, sess *zen.Session, targetRegion string) error {
 	startTime, _ := RequestStartTimeFromContext(ctx)
 
-	// Check for too many hops to prevent infinite routing loops
 	if hopCountStr := sess.Request().Header.Get(HeaderIngressHops); hopCountStr != "" {
 		if hops, err := strconv.Atoi(hopCountStr); err == nil && hops >= s.maxHops {
 			s.logger.Error("too many ingress hops - rejecting request",

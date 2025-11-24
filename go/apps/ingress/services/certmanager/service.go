@@ -19,13 +19,10 @@ var _ Service = (*service)(nil)
 
 // service provides a basic certificate manager.
 type service struct {
-	// Logger is the logger used to log messages.
 	logger logging.Logger
 
-	// DB is the database used to store certificates.
 	db db.Database
 
-	// Vault is the vault service used to store certificates.
 	vault *vault.Service
 
 	cache cache.Cache[string, tls.Certificate]
@@ -41,10 +38,9 @@ func New(cfg Config) *service {
 	}
 }
 
-// GetCertificate implements the CertManager interface.
 func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certificate, error) {
 	cert, hit, err := s.cache.SWR(ctx, domain, func(ctx context.Context) (tls.Certificate, error) {
-		// Build lookup candidates: exact match + immediate wildcard
+		// Build lookup candidates: exact match + immediate wildcard incase we have a wildcard cert available
 		candidates := []string{domain}
 
 		// Add wildcard for immediate parent level
@@ -54,7 +50,6 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 			candidates = append(candidates, "*."+parts[1])
 		}
 
-		// Single query for all candidates
 		rows, err := db.Query.FindCertificatesByHostnames(ctx, s.db.RO(), candidates)
 		if err != nil {
 			log.Printf("certmanager: db query error domain=%s err=%v", domain, err)
@@ -65,7 +60,6 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 			return tls.Certificate{}, sql.ErrNoRows
 		}
 
-		// Pick best match: exact > wildcard
 		// Prefer exact match over wildcard
 		var bestRow db.Certificate
 		for _, row := range rows {
@@ -74,7 +68,6 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 				break
 			}
 
-			// First wildcard match wins (there's only one wildcard candidate)
 			if bestRow.Hostname == "" {
 				bestRow = row
 			}
@@ -96,6 +89,7 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 		return cert, nil
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
+		s.logger.Error("Failed to get certificate", "error", err)
 		return nil, err
 	}
 
