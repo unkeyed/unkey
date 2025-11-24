@@ -32,10 +32,15 @@ export const getProducts = t.procedure
     // Check if user has an active enterprise subscription
     let includeEnterprise = false;
     if (ctx.workspace.stripeSubscriptionId) {
-      const subscription = await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId);
-      const currentProductId = subscription.items.data.at(0)?.plan.product?.toString();
-      if (currentProductId && e.STRIPE_PRODUCT_IDS_ENTERPRISE.includes(currentProductId)) {
-        includeEnterprise = true;
+      try {
+        const subscription = await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId);
+        const currentProductId = subscription.items.data.at(0)?.plan.product?.toString();
+        if (currentProductId && e.STRIPE_PRODUCT_IDS_ENTERPRISE.includes(currentProductId)) {
+          includeEnterprise = true;
+        }
+      } catch (error) {
+        // If subscription retrieval fails, default to showing only Pro products
+        console.error("Failed to retrieve subscription:", error);
       }
     }
 

@@ -44,15 +44,7 @@ export const getBillingInfo = t.procedure
       });
     }
 
-    const [products, subscription, hasPreviousSubscriptions] = await Promise.all([
-      stripe.products
-        .list({
-          active: true,
-          ids: e.STRIPE_PRODUCT_IDS_PRO,
-          limit: 100,
-          expand: ["data.default_price"],
-        })
-        .then((res) => res.data.map(mapProduct).sort((a, b) => a.dollar - b.dollar)),
+    const [subscription, hasPreviousSubscriptions] = await Promise.all([
       ctx.workspace.stripeSubscriptionId
         ? await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId)
         : undefined,
@@ -66,6 +58,31 @@ export const getBillingInfo = t.procedure
             .then((res) => res.data.length > 0)
         : false,
     ]);
+
+    // Check if user has an active enterprise subscription
+    let includeEnterprise = false;
+    try {
+      const currentProductId = subscription?.items.data.at(0)?.plan.product?.toString();
+      if (currentProductId && e.STRIPE_PRODUCT_IDS_ENTERPRISE.includes(currentProductId)) {
+        includeEnterprise = true;
+      }
+    } catch (error) {
+      // If subscription retrieval fails, default to showing only Pro products
+      console.error("Error checking enterprise subscription:", error);
+    }
+
+    const productIds = includeEnterprise
+      ? [...e.STRIPE_PRODUCT_IDS_PRO, ...e.STRIPE_PRODUCT_IDS_ENTERPRISE]
+      : e.STRIPE_PRODUCT_IDS_PRO;
+
+    const products = await stripe.products
+      .list({
+        active: true,
+        ids: productIds,
+        limit: 100,
+        expand: ["data.default_price"],
+      })
+      .then((res) => res.data.map(mapProduct).sort((a, b) => a.dollar - b.dollar));
 
     return {
       products,
