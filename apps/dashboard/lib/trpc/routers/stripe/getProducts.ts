@@ -30,7 +30,7 @@ export const getProducts = t.procedure
     }
 
     // Check if user has an active enterprise subscription
-    let includeEnterprise = false;
+    let enterpriseProductId: string | undefined;
     if (ctx.workspace.stripeSubscriptionId) {
       try {
         const subscription = await stripe.subscriptions.retrieve(
@@ -38,7 +38,7 @@ export const getProducts = t.procedure
         );
         const currentProductId = subscription.items.data.at(0)?.plan.product?.toString();
         if (currentProductId && e.STRIPE_PRODUCT_IDS_ENTERPRISE.includes(currentProductId)) {
-          includeEnterprise = true;
+          enterpriseProductId = currentProductId;
         }
       } catch (error) {
         // If subscription retrieval fails, default to showing only Pro products
@@ -46,8 +46,8 @@ export const getProducts = t.procedure
       }
     }
 
-    const productIds = includeEnterprise
-      ? [...e.STRIPE_PRODUCT_IDS_PRO, ...e.STRIPE_PRODUCT_IDS_ENTERPRISE]
+    const productIds = enterpriseProductId
+      ? [...e.STRIPE_PRODUCT_IDS_PRO, enterpriseProductId]
       : e.STRIPE_PRODUCT_IDS_PRO;
 
     const products = await stripe.products
