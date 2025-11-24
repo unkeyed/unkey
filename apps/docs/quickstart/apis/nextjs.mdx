@@ -76,15 +76,14 @@ Create a new route and add the following code
 import { NextRequestWithUnkeyContext, withUnkey } from "@unkey/nextjs";
 
 export const POST = withUnkey(
-    async (req: NextRequestWithUnkeyContext) => {
-      // Process the request here
-      // You have access to the verification response using `req.unkey`
-      console.log(req.unkey);
-  
-      return new Response("Your API key is valid!");
-    },
-    { rootKey: process.env.UNKEY_ROOT_KEY! }
-  );
+  async (req: NextRequestWithUnkeyContext) => {
+    // Process the request here
+    // You have access to the verification response using `req.unkey`
+    console.log(req.unkey);
+
+    return new Response("Your API key is valid!");
+  },
+  { rootKey: process.env.UNKEY_ROOT_KEY! }
 );
 ```
 
