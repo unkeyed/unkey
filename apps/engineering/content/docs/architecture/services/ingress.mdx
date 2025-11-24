@@ -6,12 +6,13 @@ description: Multi-tenant ingress and routing service
 import { Mermaid } from "@/app/components/mermaid";
 
 **Location:** `go/apps/ingress/`
+
 **CLI Command:** [`unkey run ingress`](/cli/run/ingress)
-**Protocol:** HTTPS with mTLS (SPIRE)
 
 ## What It Does
 
-Ingress is the multi-tenant HTTP ingress service that serves as the entry point for all customer traffic. It handles TLS termination, hostname-based routing, and proxying requests to deployment instances or cross-region gateways.
+Ingress is the multi-tenant HTTP ingress service that serves as the entry point for all customer traffic. 
+It handles TLS termination, hostname-based routing, and proxying requests to deployment instances or cross-region gateways.
 
 Ingress handles four main responsibilities:
 1. **TLS Termination**: Terminates TLS for custom domains using ACME (Let's Encrypt) or local certificates
