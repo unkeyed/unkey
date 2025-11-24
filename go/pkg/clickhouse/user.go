@@ -16,6 +16,11 @@ var (
 	// validTableName matches safe ClickHouse table names in database.table format
 	// Allows alphanumeric characters and underscores in both database and table parts
 	validTableName = regexp.MustCompile(`^[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+$`)
+
+	// Table type patterns for retention filter generation
+	rawTablePattern        = regexp.MustCompile(`_raw_v\d+$`)
+	perMinuteHourPattern   = regexp.MustCompile(`_per_minute_v\d+$|_per_hour_v\d+$`)
+	perDayMonthPattern     = regexp.MustCompile(`_per_day_v\d+$|_per_month_v\d+$`)
 )
 
 // UserConfig contains configuration for creating/updating a ClickHouse user
@@ -72,15 +77,15 @@ func validateIdentifiers(config UserConfig) error {
 // All filters are rounded to the start of the day for consistency and predictability.
 func getTimeRetentionFilter(tableName string, retentionDays int32) string {
 	switch {
-	case regexp.MustCompile(`_raw_v\d+$`).MatchString(tableName):
+	case rawTablePattern.MatchString(tableName):
 		// Raw tables use Int64 Unix milliseconds
 		// Round to start of day for clean retention boundaries
 		return fmt.Sprintf("time >= toUnixTimestamp(toStartOfDay(now() - INTERVAL %d DAY)) * 1000", retentionDays)
-	case regexp.MustCompile(`_per_minute_v\d+$|_per_hour_v\d+$`).MatchString(tableName):
+	case perMinuteHourPattern.MatchString(tableName):
 		// Minute/hour aggregation tables use DateTime
 		// Round to start of day for clean retention boundaries
 		return fmt.Sprintf("time >= toStartOfDay(now() - INTERVAL %d DAY)", retentionDays)
-	case regexp.MustCompile(`_per_day_v\d+$|_per_month_v\d+$`).MatchString(tableName):
+	case perDayMonthPattern.MatchString(tableName):
 		// Day/month aggregation tables use Date
 		// today() - INTERVAL already gives start of day
 		return fmt.Sprintf("time >= today() - INTERVAL %d DAY", retentionDays)

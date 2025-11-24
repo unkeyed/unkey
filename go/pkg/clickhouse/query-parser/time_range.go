@@ -141,15 +141,7 @@ func (p *Parser) validateTimeComparison(op *clickhouse.BinaryOperation, earliest
 	case ">=", ">", "=":
 		// time >= 1234567890 - check if 1234567890 is before earliestAllowed
 		if timestamp.Before(earliestAllowed) {
-			return fault.New(
-				fmt.Sprintf("query time range exceeds retention period of %d days", p.config.MaxQueryRangeDays),
-				fault.Code(codes.User.BadRequest.QueryRangeExceedsRetention.URN()),
-				fault.Public(fmt.Sprintf("Cannot query data older than %d days. Your query attempts to access data from %s, but only data from %s onwards is available.",
-					p.config.MaxQueryRangeDays,
-					timestamp.Format("2006-01-02"),
-					earliestAllowed.Format("2006-01-02"),
-				)),
-			)
+			return p.retentionExceededError(timestamp, earliestAllowed)
 		}
 	case "<=", "<":
 		// time <= X - this is OK, it's querying recent data
@@ -171,18 +163,23 @@ func (p *Parser) validateBetweenClause(between *clickhouse.BetweenClause, earlie
 
 	// Check if the lower bound is before the earliest allowed time
 	if lowerBound.Before(earliestAllowed) {
-		return fault.New(
-			fmt.Sprintf("query time range exceeds retention period of %d days", p.config.MaxQueryRangeDays),
-			fault.Code(codes.User.BadRequest.QueryRangeExceedsRetention.URN()),
-			fault.Public(fmt.Sprintf("Cannot query data older than %d days. Your query attempts to access data from %s, but only data from %s onwards is available.",
-				p.config.MaxQueryRangeDays,
-				lowerBound.Format("2006-01-02"),
-				earliestAllowed.Format("2006-01-02"),
-			)),
-		)
+		return p.retentionExceededError(lowerBound, earliestAllowed)
 	}
 
 	return nil
+}
+
+// retentionExceededError creates a standardized error for when a query exceeds retention
+func (p *Parser) retentionExceededError(queriedTime, earliestAllowed time.Time) error {
+	return fault.New(
+		fmt.Sprintf("query time range exceeds retention period of %d days", p.config.MaxQueryRangeDays),
+		fault.Code(codes.User.BadRequest.QueryRangeExceedsRetention.URN()),
+		fault.Public(fmt.Sprintf("Cannot query data older than %d days. Your query attempts to access data from %s, but only data from %s onwards is available.",
+			p.config.MaxQueryRangeDays,
+			queriedTime.Format("2006-01-02"),
+			earliestAllowed.Format("2006-01-02"),
+		)),
+	)
 }
 
 // extractTimestamp extracts a timestamp from a comparison expression
