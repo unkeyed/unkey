@@ -1052,8 +1052,8 @@ type Querier interface {
 	InsertAuditLogTarget(ctx context.Context, db DBTX, arg InsertAuditLogTargetParams) error
 	//InsertCertificate
 	//
-	//  INSERT INTO certificates (workspace_id, hostname, certificate, encrypted_private_key, created_at)
-	//  VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE
+	//  INSERT INTO certificates (id, workspace_id, hostname, certificate, encrypted_private_key, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE
 	//  workspace_id = VALUES(workspace_id),
 	//  hostname = VALUES(hostname),
 	//  certificate = VALUES(certificate),
@@ -1099,6 +1099,7 @@ type Querier interface {
 	//      git_commit_sha,
 	//      git_branch,
 	//      runtime_config,
+	//      gateway_config,
 	//      git_commit_message,
 	//      git_commit_author_handle,
 	//      git_commit_author_avatar_url,
@@ -1109,6 +1110,7 @@ type Querier interface {
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1150,25 +1152,26 @@ type Querier interface {
 	//InsertGateway
 	//
 	//  INSERT INTO gateways (
-	//  id,
-	//  workspace_id,
-	//  k8s_service_name,
-	//  region,
-	//  image,
-	//  health,
-	//  replicas
-	//
-	//  )
-	//  VALUES (
-	//  ?,
-	//  ?,
-	//  ?,
-	//  ?,
-	//  ?,
-	//  ?,
-	//  ?
-	//
-	//  )
+	//      id,
+	//      workspace_id,
+	//      environment_id,
+	//      k8s_service_name,
+	//      region,
+	//      image,
+	//      health,
+	//      replicas
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  ) ON DUPLICATE KEY UPDATE
+	//      health = VALUES(health),
+	//      replicas = VALUES(replicas)
 	InsertGateway(ctx context.Context, db DBTX, arg InsertGatewayParams) error
 	//InsertIdentity
 	//
