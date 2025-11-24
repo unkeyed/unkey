@@ -2,38 +2,35 @@
 title: Migrate keys to Unkey
 ---
 
-<Note>
-Migration endpoints are currently only available in our v1 API. Bulk operations for v2 are planned for a future release.
-</Note>
-
-
 ## Prerequisites
 
-- Created your [Unkey account](https://app.unkey.com/auth/sign-up)
-- Created an API in the [Unkey dashboard](https://app.unkey.com/apis)
-- Create a [root key](https://app.unkey.com/settings/root-keys) with the `api.*.create_key` permission
-
-
-<Info>
-If you plan to encrypt your keys, please contact us at [support@unkey.dev](mailto:support@unkey.dev) to flag you in.
-
-The root key used for migrating must have the `api.*.encrypt_key` permission to encrypt keys.
-
-</Info>
-
-
+- Created your [Unkey account](https://app.unkey.com/auth/sign-up).
+- Create a `Workspace` and `API`. Save the `workspaceId` and `apiId` for later use.
+  - The workspaceId can be found in the upper right corner after navigating to `Settings/General` in the side menu.
+    <Frame>
+    <img src="workspace-general.png" alt="Workspace Page" />
+    </Frame>
+  - The apiId can be found in the upper right corner after navigating to `APIs/<Your API>` in the side menu.
+    <Frame>
+    <img src="your-api.png" alt="Api Page"/>
+    </Frame>
+- Create a `Root Key` under the Settings menu. It will need the `api.*.create_key` permission or `api.<api_id>.create_key` to migrate to a specific API.
+    <Frame>
+    <img src="migrate-root-key.png"/>
+    </Frame>
+- Email us to get a `migrationId` at [support@unkey.dev](mailto:support@unkey.dev) with:
+  - Your workspace ID.
+  - What service the keys will be migrated from.
+  
 Extracting keys from your current system is likely the hardest part. It depends on how your keys are stored and how you can access them.
-Some providers have APIs to list all keys, while others require you to manually export them, some can provide the real key, and some only provide a hashed version.
+Some providers have APIs to list all keys, while others require you to manually export them.
 
-Regardless of how you get your keys, you will need to provide either the plaintext key or the hash, as well as other settings to Unkey via the [migrations.createKeys](/api-reference/v1/migration/keys) endpoint.
+You will need to provide the hash of your keys, as well as other settings to Unkey via the [keys.migrateKeys](/api-reference/v2/keys/migrate-api-keys) endpoint.
 
 
-## Nodejs Example
+## Node.js Example
 
-<CodeGroup>
-
-```js Hash
-
+```js
 const { createHash } = require("node:crypto")
 
 function hash(key) {
@@ -43,64 +40,56 @@ function hash(key) {
   }
 }
 
-const keys = [
-  {
-    hash: hash("my-secret-key"),
-    ownerId: "hello",
-    apiId: "<UNKEY_API_ID>", // the id of the API you created
-    //... other settings
-  },
-  {
-    hash: hash("my-other-secret-key"),
-    name: "name",
-    apiId: "<UNKEY_API_ID>", // the id of the API you created
-    //... other settings
-  },
-]
+const request = {
+  migrationId: "<UNKEY_MIGRATION_ID>", // the id of the migration you created
+  apiId: "<UNKEY_API_ID>", // the id of the API you created
+  keys: [
+    {
+      hash: hash("my-secret-key"),
+      //... other settings
+    },
+    {
+      hash: hash("my-other-secret-key"),
+      //... other settings
+    },
+  ]
+}
 
-fetch("https://api.unkey.dev/v1/migrations.createKeys", {
+fetch("https://api.unkey.dev/v2/keys.migrateKeys", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
     Authorization: "Bearer <UNKEY_ROOT_KEY>",
   },
-  body: JSON.stringify(keys)
+  body: JSON.stringify(request)
 })
-.then(res=>res.json())
-.then(res=>{console.log(res)})
-
+.then(res => res.json())
+.then(res => {
+  console.log("Migrated keys:", res.data.migrated)
+  console.log("Failed hashes:", res.data.failed)
+})
 ```
 
 
-```js Plaintext
+## Response
 
+The endpoint returns a list of successfully migrated keys and any failed hashes:
 
-const keys = [
-  {
-    plaintext: "my_plaintext_key",
-    ownerId: "hello",
-    apiId: "<UNKEY_API_ID>", // the id of the API you created
-    //... other settings
+```json
+{
+  "meta": {
+    "requestId": "req_123"
   },
-  {
-    plaintext: "my_other_plaintext_key",
-    name: "name",
-    apiId: "<UNKEY_API_ID>", // the id of the API you created
-    //... other settings
-  },
-]
-
-fetch("https://api.unkey.dev/v1/migrations.createKeys", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: "Bearer <UNKEY_ROOT_KEY>", // requires `api.*.encrypt_key` permissions
-  },
-  body: JSON.stringify(keys)
-})
-.then(res=>res.json())
-.then(res=>{console.log(res)})
-
+  "data": {
+    "migrated": [
+      {
+        "hash": "abc123...",
+        "keyId": "key_123"
+      }
+    ],
+    "failed": []
+  }
+}
 ```
 
-</CodeGroup>
+Failed hashes indicate Hashes that could not be migrated (e.g., already exist in the system).
