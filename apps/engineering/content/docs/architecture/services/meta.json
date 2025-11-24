@@ -9,7 +9,7 @@
     "clickhouse-proxy",
     "ctrl",
     "deploy",
-    "gw",
+    "ingress",
     "healthcheck",
     "krane",
     "quotacheck",
