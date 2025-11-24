@@ -75,9 +75,8 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
         success: "A new code has been sent to your email",
       });
       await p;
-    } catch (error) {
+    } catch (_error) {
       setIsLoading(false);
-      console.error(error);
     }
   };
 
@@ -100,12 +99,27 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
         </p>
       )}
 
-      <form className="flex flex-col gap-12 mt-10" onSubmit={() => verifyCode(otp)}>
+      <form
+        className="flex flex-col gap-12 mt-10"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (isLoading) {
+            return;
+          }
+          verifyCode(otp);
+        }}
+      >
         <OTPInput
           data-1p-ignore
           value={otp}
           onChange={setOtp}
-          onComplete={() => verifyCode(otp)}
+          onComplete={(value) => {
+            if (isLoading) {
+              return;
+            }
+            verifyCode(value);
+          }}
+          disabled={isLoading}
           maxLength={6}
           render={({ slots }) => (
             <div className="flex items-center justify-between">
@@ -119,9 +133,8 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
 
         <button
           type="submit"
-          className="flex items-center justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
+          className="flex items-center justify-center h-10 gap-2 px-4 mt-8 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
           disabled={isLoading}
-          onClick={() => verifyCode(otp)}
         >
           {clientReady && isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
           Continue
@@ -139,7 +152,7 @@ const Slot: React.FC<SlotProps> = (props) => (
       "transition-all duration-300",
       "group-hover:border-white/50 group-focus-within:border-white/50",
       "outline outline-0 outline-white",
-      { "outline-1 ": props.isActive },
+      { "outline-1": props.isActive },
     )}
   >
     {props.char !== null && <div>{props.char}</div>}

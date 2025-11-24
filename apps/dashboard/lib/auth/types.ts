@@ -90,8 +90,20 @@ export interface PendingEmailVerificationResponse extends AuthErrorResponse {
   cookies: Cookie[];
 }
 
+// Special case for Turnstile challenge
+export interface PendingTurnstileResponse extends AuthErrorResponse {
+  code: AuthErrorCode.RADAR_CHALLENGE_REQUIRED;
+  email: string;
+  challengeParams: {
+    ipAddress?: string;
+    userAgent?: string;
+    authMethod: string;
+    action: string;
+  };
+}
+
 // Union types for different auth operations
-export type EmailAuthResult = StateChangeResponse | AuthErrorResponse;
+export type EmailAuthResult = StateChangeResponse | AuthErrorResponse | PendingTurnstileResponse;
 export type VerificationResult =
   | NavigationResponse
   | PendingOrgSelectionResponse
@@ -201,6 +213,7 @@ export enum AuthErrorCode {
   EMAIL_VERIFICATION_REQUIRED = "EMAIL_VERIFICATION_REQUIRED",
   PENDING_SESSION_EXPIRED = "PENDING_SESSION_EXPIRED",
   RADAR_BLOCKED = "RADAR_BLOCKED",
+  RADAR_CHALLENGE_REQUIRED = "RADAR_CHALLENGE_REQUIRED",
 }
 
 export const errorMessages: Record<AuthErrorCode, string> = {
@@ -222,6 +235,8 @@ export const errorMessages: Record<AuthErrorCode, string> = {
   [AuthErrorCode.RATE_ERROR]: "Limited OTP attempts",
   [AuthErrorCode.RADAR_BLOCKED]:
     "Unable to complete request due to suspicious activity. Please contact support@unkey.dev if you believe this is an error.",
+  [AuthErrorCode.RADAR_CHALLENGE_REQUIRED]:
+    "Please complete the verification challenge to continue.",
 };
 
 export interface MiddlewareConfig {

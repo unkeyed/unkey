@@ -114,7 +114,7 @@ export function DefaultLLMSearch() {
 export function LLMSearchWithCustomPlaceholder() {
   const { isLoading, handleSearch } = useSearchState({
     delay: 800,
-    onSearch: (query) => console.log("Searching for:", query),
+    onSearch: (_query) => {},
   });
 
   return (
