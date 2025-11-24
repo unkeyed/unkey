@@ -82,22 +82,29 @@ Create a new route and add the following code
 import { NextResponse } from 'next/server';
 import { Ratelimit } from "@unkey/ratelimit";
 
+
+if (!process.env.UNKEY_ROOT_KEY) {
+  throw new Error("UNKEY_ROOT_KEY environment variable is not set");
+}
+
 const limiter = new Ratelimit({
   namespace: "next-example",
   limit: 2,
   duration: "30s",
-  rootKey: process.env.UNKEY_ROOT_KEY!
+  rootKey: process.env.UNKEY_ROOT_KEY
 });
 
 export const POST = async (req: Request) => {
+  // Extract user identifier from request headers
   // Use any identifier: userId, visitorId, IP address, etc.
-  const identifier = getUserId();
+  const identifier = req.headers.get('x-user-id') ?? 'anonymous';
 
   const ratelimit = await limiter.limit(identifier);
 
   if (!ratelimit.success) {
     return NextResponse.json(
-      "Please try again later", {status: 429}
+      { error: "Please try again later" },
+      { status: 429 }
     );
   }
 

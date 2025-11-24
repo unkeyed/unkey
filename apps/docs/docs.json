@@ -439,8 +439,12 @@
       "source": "/onboarding/onboarding-api"
     },
     {
-      "destination": "/quickstart/onboarding/onboarding-ratelimiting",
-      "source": "/ratelimiting/introduction"
+      "destination": "/ratelimiting/introduction",
+      "source": "/onboarding/onboarding-ratelimiting"
+    },
+    {
+      "destination": "/ratelimiting/introduction",
+      "source": "/quickstart/onboarding/onboarding-ratelimiting"
     },
     {
       "destination": "api-reference/v2",
