@@ -98,11 +98,7 @@ const PRESETS = {
   },
 } as const;
 
-export function InternalDevTreeGenerator({
-  deploymentId,
-  onGenerate,
-  onReset,
-}: DevTreeGeneratorProps) {
+export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGeneratorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [customConfig, setCustomConfig] = useState<GeneratorConfig>(PRESETS.medium.config);
 
@@ -117,7 +113,6 @@ export function InternalDevTreeGenerator({
 
   const handleGenerate = (config: GeneratorConfig) => {
     generateMutation.mutate({
-      deploymentId,
       ...config,
     });
   };

@@ -1,13 +1,16 @@
 import { useCallback, useMemo, useRef } from "react";
-import { LayoutEngine } from "../../layout-engine";
-import type { Point } from "../../types";
+import { type LayoutConfig, LayoutEngine, type Point } from "../../layout-engine";
 import { type DeploymentNode, NODE_SIZES } from "../nodes/types";
-import { TreeConnectionLine } from "./tree-connection-line";
+import { type AnimationConfig, TreeConnectionLine } from "./tree-connection-line";
 import { TreeElementNode } from "./tree-element-node";
 
 type TreeLayoutProps = {
   data: DeploymentNode;
   nodeSpacing?: { x: number; y: number };
+  layoutConfig?: Omit<LayoutConfig, "spacing" | "direction"> & {
+    direction?: "vertical" | "horizontal";
+  };
+  connectionAnimation?: AnimationConfig;
   onNodeClick?: (node: DeploymentNode) => void;
   renderNode: (node: DeploymentNode, parent?: DeploymentNode) => React.ReactNode;
   renderConnection?: (
@@ -18,12 +21,14 @@ type TreeLayoutProps = {
 };
 
 /**
- * Vertical tree layout component (top to bottom).
+ * Tree layout component with configurable direction and spacing.
  * Uses fixed node dimensions for immediate layout calculation.
  */
 export function TreeLayout({
   data,
   nodeSpacing = { x: 50, y: 50 },
+  layoutConfig,
+  connectionAnimation,
   renderNode,
   renderConnection,
   onNodeClick,
@@ -34,9 +39,11 @@ export function TreeLayout({
     () =>
       new LayoutEngine<DeploymentNode>({
         spacing: nodeSpacing,
-        direction: "vertical",
+        direction: layoutConfig?.direction ?? "vertical",
+        layout: layoutConfig?.layout,
+        connections: layoutConfig?.connections,
       }),
-    [nodeSpacing],
+    [nodeSpacing, layoutConfig],
   );
 
   const parentMap = useMemo(() => {
@@ -54,17 +61,8 @@ export function TreeLayout({
   }, [data]);
 
   const allNodes = useMemo(() => {
-    const flatten = (node: DeploymentNode): DeploymentNode[] => {
-      const result: DeploymentNode[] = [node];
-      if ("children" in node && node.children) {
-        for (const child of node.children) {
-          result.push(...flatten(child));
-        }
-      }
-      return result;
-    };
-    return flatten(data);
-  }, [data]);
+    return layoutEngine.flattenTree(data);
+  }, [data, layoutEngine]);
 
   const handleClick = useCallback(
     (e: React.MouseEvent<SVGGElement>) => {
@@ -104,7 +102,11 @@ export function TreeLayout({
         renderConnection ? (
           renderConnection(conn.path, conn.parent, conn.child)
         ) : (
-          <TreeConnectionLine key={`${conn.parent.id}-${conn.child.id}`} path={conn.path} />
+          <TreeConnectionLine
+            key={`${conn.parent.id}-${conn.child.id}`}
+            path={conn.path}
+            animation={connectionAnimation}
+          />
         ),
       )}
       {layout.nodes.map((positioned) => {

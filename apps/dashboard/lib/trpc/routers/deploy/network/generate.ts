@@ -4,7 +4,6 @@ import type {
   HealthStatus,
   RegionNode,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/[deploymentId]/components/unkey-flow/components/nodes/types";
-import { db } from "@/lib/db";
 import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -21,7 +20,6 @@ const healthStatusSchema = z.enum([
 ]);
 
 const generatorConfigSchema = z.object({
-  deploymentId: z.string(),
   regions: z.number().min(1).max(7),
   instancesPerRegion: z.object({
     min: z.number().min(1).max(20),
@@ -36,22 +34,8 @@ export const generateDeploymentTree = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .input(generatorConfigSchema)
-  .mutation(async ({ ctx, input }): Promise<DeploymentNode> => {
+  .mutation(async ({ input }): Promise<DeploymentNode> => {
     try {
-      // Verify deployment belongs to workspace
-      const deployment = await db.query.deployments.findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
-        columns: { id: true },
-      });
-
-      if (!deployment) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Deployment not found",
-        });
-      }
-
       const healthStatuses: HealthStatus[] = [
         "normal",
         "unstable",

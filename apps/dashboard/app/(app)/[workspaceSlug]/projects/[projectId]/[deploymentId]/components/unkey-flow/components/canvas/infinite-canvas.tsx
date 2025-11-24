@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Point } from "../../types";
+import type { Point } from "../../layout-engine";
 import { GridPattern } from "./grid-pattern";
 
 const DEFAULT_MIN_ZOOM = 0.5;

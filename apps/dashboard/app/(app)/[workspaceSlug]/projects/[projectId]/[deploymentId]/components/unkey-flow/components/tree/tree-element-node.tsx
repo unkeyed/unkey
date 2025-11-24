@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from "react";
-import type { Point } from "../../types";
+import type { Point } from "../../layout-engine";
 
 /**
  * Wrapper that measures rendered node dimensions via DOM.

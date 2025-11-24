@@ -2,34 +2,32 @@
 import { trpc } from "@/lib/trpc/client";
 import { useState } from "react";
 import { useProject } from "../layout-provider";
-import { TreeConnectionLine, TreeLayout } from "./components/unkey-flow";
-import { InfiniteCanvas } from "./components/unkey-flow/components/canvas/infinite-canvas";
 import {
   type DeploymentNode,
   GatewayNode,
+  InfiniteCanvas,
+  InternalDevTreeGenerator,
+  LiveIndicator,
+  NodeDetailsPanel,
   OriginNode,
+  ProjectDetails,
   RegionNode,
   SKELETON_TREE,
   SkeletonNode,
+  TreeConnectionLine,
+  TreeLayout,
   isGatewayNode,
   isOriginNode,
   isRegionNode,
   isSkeletonNode,
-} from "./components/unkey-flow/components/nodes";
-import { LiveIndicator } from "./components/unkey-flow/components/overlay/live";
-import { NodeDetailsPanel } from "./components/unkey-flow/components/overlay/node-details-panel";
-import { ProjectDetails } from "./components/unkey-flow/components/overlay/project-details";
-import { InternalDevTreeGenerator } from "./components/unkey-flow/components/simulate/tree-generate";
+} from "./components/unkey-flow";
 
 export default function DeploymentDetailsPage() {
   const { projectId, liveDeploymentId } = useProject();
   const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(null);
   const [selectedNode, setSelectedNode] = useState<DeploymentNode>();
 
-  const { data: defaultTree, isLoading } = trpc.deploy.network.get.useQuery({
-    // biome-ignore lint/style/noNonNullAssertion: will be fixed later, when we actually implement tRPC logic
-    deploymentId: liveDeploymentId!,
-  });
+  const { data: defaultTree, isLoading } = trpc.deploy.network.get.useQuery();
 
   const currentTree = generatedTree ?? defaultTree ?? SKELETON_TREE;
   const isShowingSkeleton = isLoading && !generatedTree;

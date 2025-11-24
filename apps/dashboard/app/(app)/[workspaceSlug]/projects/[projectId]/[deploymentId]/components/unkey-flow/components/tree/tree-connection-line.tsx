@@ -1,5 +1,5 @@
 import { useMemo, useRef } from "react";
-import type { Point } from "../../types";
+import type { Point } from "../../layout-engine";
 import {
   type LineTo,
   type PathCommand,
@@ -61,7 +61,7 @@ type CustomAnimationConfig = {
   color: string;
 };
 
-type AnimationConfig =
+export type AnimationConfig =
   | { preset: AnimationPreset; color?: string }
   | { custom: Partial<CustomAnimationConfig> };
 

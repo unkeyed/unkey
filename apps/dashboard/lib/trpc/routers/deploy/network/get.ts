@@ -1,29 +1,12 @@
 import type { DeploymentNode } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/[deploymentId]/components/unkey-flow/components/nodes";
-import { db } from "@/lib/db";
 import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 
 export const getDeploymentTree = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
-  .input(z.object({ deploymentId: z.string() }))
-  .query(async ({ ctx, input }) => {
+  .query(async () => {
     try {
-      // Verify deployment belongs to workspace
-      const deployment = await db.query.deployments.findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
-        columns: { id: true },
-      });
-
-      if (!deployment) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Deployment not found",
-        });
-      }
-
       // TODO: When you have real deployment data, query it from the database
       // For now, return a default tree structure
       const defaultTree: DeploymentNode = {

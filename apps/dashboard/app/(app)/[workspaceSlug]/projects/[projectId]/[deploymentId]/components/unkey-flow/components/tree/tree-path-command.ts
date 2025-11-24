@@ -1,9 +1,9 @@
-import type { Point } from "../../types";
-
 // SVG Path Commands:
 // M (MoveTo) - Moves the pen to a point without drawing
 // L (LineTo) - Draws a straight line from current point to target
 // Q (Quadratic curve) - Draws a curved line using one control point
+
+import type { Point } from "../../layout-engine";
 
 export type MoveTo = { type: "M"; point: Point };
 export type LineTo = { type: "L"; point: Point };
