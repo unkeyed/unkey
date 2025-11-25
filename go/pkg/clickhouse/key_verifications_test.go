@@ -119,7 +119,7 @@ func TestKeyVerifications(t *testing.T) {
 	}, time.Minute, time.Second)
 
 	t.Run("totals are correct", func(t *testing.T) {
-		for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
+		for _, table := range []string{"default.key_verifications_per_minute_v3", "default.key_verifications_per_hour_v3", "default.key_verifications_per_day_v3", "default.key_verifications_per_month_v3"} {
 			t.Run(table, func(t *testing.T) {
 				require.EventuallyWithT(t, func(c *assert.CollectT) {
 					queried := int64(0)
@@ -138,7 +138,7 @@ func TestKeyVerifications(t *testing.T) {
 			return acc
 		}, map[string]int{})
 
-		for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
+		for _, table := range []string{"default.key_verifications_per_minute_v3", "default.key_verifications_per_hour_v3", "default.key_verifications_per_day_v3", "default.key_verifications_per_month_v3"} {
 			t.Run(table, func(t *testing.T) {
 				for outcome, count := range countByOutcome {
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -164,7 +164,7 @@ func TestKeyVerifications(t *testing.T) {
 				return acc
 			}, map[string]int{})
 
-			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v3", "default.key_verifications_per_hour_v3", "default.key_verifications_per_day_v3", "default.key_verifications_per_month_v3"} {
 				t.Run(table, func(t *testing.T) {
 					t.Parallel()
 
@@ -191,7 +191,7 @@ func TestKeyVerifications(t *testing.T) {
 				return acc
 			}, map[string]int{})
 
-			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v3", "default.key_verifications_per_hour_v3", "default.key_verifications_per_day_v3", "default.key_verifications_per_month_v3"} {
 				t.Run(table, func(t *testing.T) {
 					for outcome, count := range countByOutcome {
 						require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -219,7 +219,7 @@ func TestKeyVerifications(t *testing.T) {
 				return acc
 			}, map[string]int{})
 
-			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v3", "default.key_verifications_per_hour_v3", "default.key_verifications_per_day_v3", "default.key_verifications_per_month_v3"} {
 				t.Run(table, func(t *testing.T) {
 					for outcome, count := range countByOutcome {
 						require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -242,7 +242,7 @@ func TestKeyVerifications(t *testing.T) {
 		p75 := percentile(latencies, 0.75)
 		p99 := percentile(latencies, 0.99)
 
-		for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
+		for _, table := range []string{"default.key_verifications_per_minute_v3", "default.key_verifications_per_hour_v3", "default.key_verifications_per_day_v3", "default.key_verifications_per_month_v3"} {
 			t.Run(table, func(t *testing.T) {
 				t.Parallel()
 				var (
@@ -266,7 +266,7 @@ func TestKeyVerifications(t *testing.T) {
 			return acc + v.SpentCredits
 		}, int64(0))
 
-		for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
+		for _, table := range []string{"default.key_verifications_per_minute_v3", "default.key_verifications_per_hour_v3", "default.key_verifications_per_day_v3", "default.key_verifications_per_month_v3"} {
 			t.Run(table, func(t *testing.T) {
 				t.Parallel()
 				var queried int64
@@ -287,7 +287,7 @@ func TestKeyVerifications(t *testing.T) {
 				return acc
 			}, int64(0))
 
-			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v3", "default.key_verifications_per_hour_v3", "default.key_verifications_per_day_v3", "default.key_verifications_per_month_v3"} {
 				t.Run(table, func(t *testing.T) {
 					t.Parallel()
 					var queried int64
@@ -311,7 +311,7 @@ func TestKeyVerifications(t *testing.T) {
 				return acc
 			}, int64(0))
 
-			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v3", "default.key_verifications_per_hour_v3", "default.key_verifications_per_day_v3", "default.key_verifications_per_month_v3"} {
 				t.Run(table, func(t *testing.T) {
 					t.Parallel()
 					var queried int64
@@ -332,7 +332,7 @@ func TestKeyVerifications(t *testing.T) {
 			id := identityID
 			expectedExternalID := identityToExternalID[id]
 
-			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v3", "default.key_verifications_per_hour_v3", "default.key_verifications_per_day_v3", "default.key_verifications_per_month_v3"} {
 				tbl := table
 				t.Run(tbl, func(t *testing.T) {
 					t.Parallel()
@@ -360,7 +360,7 @@ func TestKeyVerifications(t *testing.T) {
 				return acc
 			}, 0)
 
-			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v3", "default.key_verifications_per_hour_v3", "default.key_verifications_per_day_v3", "default.key_verifications_per_month_v3"} {
 				tbl := table
 				t.Run(tbl, func(t *testing.T) {
 					t.Parallel()
@@ -389,7 +389,7 @@ func TestKeyVerifications(t *testing.T) {
 				return acc
 			}, map[string]int{})
 
-			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v3", "default.key_verifications_per_hour_v3", "default.key_verifications_per_day_v3", "default.key_verifications_per_month_v3"} {
 				tbl := table
 				t.Run(tbl, func(t *testing.T) {
 					t.Parallel()
@@ -415,7 +415,7 @@ func TestKeyVerifications(t *testing.T) {
 			id := identityID
 			extID := identityToExternalID[id]
 
-			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v3", "default.key_verifications_per_hour_v3", "default.key_verifications_per_day_v3", "default.key_verifications_per_month_v3"} {
 				tbl := table
 				t.Run(tbl, func(t *testing.T) {
 					t.Parallel()
@@ -455,7 +455,7 @@ func TestKeyVerifications(t *testing.T) {
 				return acc
 			}, int64(0))
 
-			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v3", "default.key_verifications_per_hour_v3", "default.key_verifications_per_day_v3", "default.key_verifications_per_month_v3"} {
 				tbl := table
 				t.Run(tbl, func(t *testing.T) {
 					t.Parallel()
