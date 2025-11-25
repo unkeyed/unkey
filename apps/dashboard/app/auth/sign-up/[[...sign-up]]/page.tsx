@@ -38,7 +38,8 @@ export default function AuthenticationPage() {
             email: invitationEmail,
           });
         } catch (err) {
-          console.error("Auto sign-in failed:", err);
+          // Log auto sign-up errors for debugging
+          console.error("Auto sign-up failed:", err);
         } finally {
           // Reset loading state
           setIsLoading(false);

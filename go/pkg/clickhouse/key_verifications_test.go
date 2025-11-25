@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"math/rand"
 	"slices"
 	"testing"
@@ -67,7 +68,7 @@ func TestKeyVerifications(t *testing.T) {
 
 	t0 := time.Now()
 	// Source of truth: track all inserted rows
-	verifications := array.Fill(numRecords, func() schema.KeyVerificationV2 {
+	verifications := array.Fill(numRecords, func() schema.KeyVerification {
 		timeRange := endTime.Sub(startTime)
 		randomOffset := time.Duration(rand.Int63n(int64(timeRange)))
 		timestamp := startTime.Add(randomOffset)
@@ -77,7 +78,7 @@ func TestKeyVerifications(t *testing.T) {
 			latency += rand.Float64() * 400 // Up to 500ms
 		}
 		identityID := array.Random(identities)
-		return schema.KeyVerificationV2{
+		return schema.KeyVerification{
 			RequestID:    uid.New(uid.RequestPrefix),
 			Time:         timestamp.UnixMilli(),
 			WorkspaceID:  workspaceID,
@@ -98,7 +99,7 @@ func TestKeyVerifications(t *testing.T) {
 	for i := 0; i < len(verifications); i += batchSize {
 		t0 = time.Now()
 
-		batch, err := conn.PrepareBatch(ctx, "INSERT INTO key_verifications_raw_v2")
+		batch, err := conn.PrepareBatch(ctx, "INSERT INTO default.key_verifications_raw_v2")
 		require.NoError(t, err)
 
 		for _, row := range verifications[i:min(i+batchSize, len(verifications))] {
@@ -112,17 +113,17 @@ func TestKeyVerifications(t *testing.T) {
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		rawCount := uint64(0)
-		err := conn.QueryRow(ctx, "SELECT COUNT(*) FROM key_verifications_raw_v2 WHERE workspace_id = ?", workspaceID).Scan(&rawCount)
+		err := conn.QueryRow(ctx, "SELECT COUNT(*) FROM default.key_verifications_raw_v2 WHERE workspace_id = ?", workspaceID).Scan(&rawCount)
 		require.NoError(c, err)
 		require.Equal(c, len(verifications), int(rawCount))
 	}, time.Minute, time.Second)
 
 	t.Run("totals are correct", func(t *testing.T) {
-		for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
+		for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
 			t.Run(table, func(t *testing.T) {
 				require.EventuallyWithT(t, func(c *assert.CollectT) {
 					queried := int64(0)
-					err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ?;", table, workspaceID).Scan(&queried)
+					err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(count) FROM %s WHERE workspace_id = ?;", table), workspaceID).Scan(&queried)
 					require.NoError(c, err)
 					t.Logf("expected %d, got %d", len(verifications), queried)
 					require.Equal(c, len(verifications), int(queried))
@@ -132,17 +133,17 @@ func TestKeyVerifications(t *testing.T) {
 	})
 
 	t.Run("all outcomes are correct", func(t *testing.T) {
-		countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerificationV2) map[string]int {
+		countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerification) map[string]int {
 			acc[v.Outcome] = acc[v.Outcome] + 1
 			return acc
 		}, map[string]int{})
 
-		for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
+		for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
 			t.Run(table, func(t *testing.T) {
 				for outcome, count := range countByOutcome {
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						queried := int64(0)
-						err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND outcome = ?;", table, workspaceID, outcome).Scan(&queried)
+						err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(count) FROM %s WHERE workspace_id = ? AND outcome = ?;", table), workspaceID, outcome).Scan(&queried)
 						require.NoError(c, err)
 						t.Logf("%s expected %d, got %d", outcome, count, queried)
 						require.Equal(c, count, int(queried))
@@ -156,21 +157,21 @@ func TestKeyVerifications(t *testing.T) {
 		t.Parallel()
 		for _, keyID := range keys[:10] {
 
-			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerificationV2) map[string]int {
+			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerification) map[string]int {
 				if v.KeyID == keyID {
 					acc[v.Outcome] = acc[v.Outcome] + 1
 				}
 				return acc
 			}, map[string]int{})
 
-			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
 				t.Run(table, func(t *testing.T) {
 					t.Parallel()
 
 					for outcome, count := range countByOutcome {
 						require.EventuallyWithT(t, func(c *assert.CollectT) {
 							queried := int64(0)
-							err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND key_id = ? AND outcome = ?;", table, workspaceID, keyID, outcome).Scan(&queried)
+							err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(count) FROM %s WHERE workspace_id = ? AND key_id = ? AND outcome = ?;", table), workspaceID, keyID, outcome).Scan(&queried)
 							require.NoError(c, err)
 							require.Equal(c, count, int(queried))
 						}, time.Minute, time.Second)
@@ -183,19 +184,19 @@ func TestKeyVerifications(t *testing.T) {
 		t.Parallel()
 		for _, identityID := range identities[:10] {
 
-			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerificationV2) map[string]int {
+			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerification) map[string]int {
 				if v.IdentityID == identityID {
 					acc[v.Outcome] = acc[v.Outcome] + 1
 				}
 				return acc
 			}, map[string]int{})
 
-			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
 				t.Run(table, func(t *testing.T) {
 					for outcome, count := range countByOutcome {
 						require.EventuallyWithT(t, func(c *assert.CollectT) {
 							queried := int64(0)
-							err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND identity_id = ? AND outcome = ?;", table, workspaceID, identityID, outcome).Scan(&queried)
+							err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(count) FROM %s WHERE workspace_id = ? AND identity_id = ? AND outcome = ?;", table), workspaceID, identityID, outcome).Scan(&queried)
 							require.NoError(c, err)
 							require.Equal(c, count, int(queried))
 						}, time.Minute, time.Second)
@@ -211,19 +212,19 @@ func TestKeyVerifications(t *testing.T) {
 				continue
 			}
 			tag := usedTags[0]
-			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerificationV2) map[string]int {
+			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerification) map[string]int {
 				if slices.Contains(v.Tags, tag) {
 					acc[v.Outcome] = acc[v.Outcome] + 1
 				}
 				return acc
 			}, map[string]int{})
 
-			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
 				t.Run(table, func(t *testing.T) {
 					for outcome, count := range countByOutcome {
 						require.EventuallyWithT(t, func(c *assert.CollectT) {
 							queried := int64(0)
-							err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND indexOf(tags, ?) > 0 AND outcome = ?;", table, workspaceID, tag, outcome).Scan(&queried)
+							err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(count) FROM %s WHERE workspace_id = ? AND indexOf(tags, ?) > 0 AND outcome = ?;", table), workspaceID, tag, outcome).Scan(&queried)
 							require.NoError(c, err)
 							require.Equal(c, count, int(queried))
 						}, time.Minute, time.Second)
@@ -234,14 +235,14 @@ func TestKeyVerifications(t *testing.T) {
 	})
 	t.Run("latency aggregates are correct", func(t *testing.T) {
 		t.Parallel()
-		latencies := array.Map(verifications, func(v schema.KeyVerificationV2) float64 {
+		latencies := array.Map(verifications, func(v schema.KeyVerification) float64 {
 			return v.Latency
 		})
 		avg := calculateAverage(latencies)
 		p75 := percentile(latencies, 0.75)
 		p99 := percentile(latencies, 0.99)
 
-		for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
+		for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
 			t.Run(table, func(t *testing.T) {
 				t.Parallel()
 				var (
@@ -249,7 +250,7 @@ func TestKeyVerifications(t *testing.T) {
 					queriedP75 float32
 					queriedP99 float32
 				)
-				err := conn.QueryRow(ctx, "SELECT avgMerge(latency_avg), quantilesTDigestMerge(0.75)(latency_p75)[1], quantilesTDigestMerge(0.99)(latency_p99)[1] FROM ? WHERE workspace_id = ?;", table, workspaceID).Scan(&queriedAvg, &queriedP75, &queriedP99)
+				err := conn.QueryRow(ctx, fmt.Sprintf("SELECT avgMerge(latency_avg), quantilesTDigestMerge(0.75)(latency_p75)[1], quantilesTDigestMerge(0.99)(latency_p99)[1] FROM %s WHERE workspace_id = ?;", table), workspaceID).Scan(&queriedAvg, &queriedP75, &queriedP99)
 				require.NoError(t, err)
 
 				require.InDelta(t, avg, queriedAvg, 0.01)
@@ -261,15 +262,15 @@ func TestKeyVerifications(t *testing.T) {
 
 	t.Run("credits spent globally are correct", func(t *testing.T) {
 		t.Parallel()
-		credits := array.Reduce(verifications, func(acc int64, v schema.KeyVerificationV2) int64 {
+		credits := array.Reduce(verifications, func(acc int64, v schema.KeyVerification) int64 {
 			return acc + v.SpentCredits
 		}, int64(0))
 
-		for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
+		for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
 			t.Run(table, func(t *testing.T) {
 				t.Parallel()
 				var queried int64
-				err := conn.QueryRow(ctx, "SELECT sum(spent_credits) FROM ? WHERE workspace_id = ?;", table, workspaceID).Scan(&queried)
+				err := conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(spent_credits) FROM %s WHERE workspace_id = ?;", table), workspaceID).Scan(&queried)
 				require.NoError(t, err)
 
 				require.Equal(t, credits, queried)
@@ -279,18 +280,18 @@ func TestKeyVerifications(t *testing.T) {
 	t.Run("credits spent per identity are correct", func(t *testing.T) {
 		t.Parallel()
 		for _, identityID := range identities[:10] {
-			credits := array.Reduce(verifications, func(acc int64, v schema.KeyVerificationV2) int64 {
+			credits := array.Reduce(verifications, func(acc int64, v schema.KeyVerification) int64 {
 				if v.IdentityID == identityID {
 					acc += v.SpentCredits
 				}
 				return acc
 			}, int64(0))
 
-			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
 				t.Run(table, func(t *testing.T) {
 					t.Parallel()
 					var queried int64
-					err := conn.QueryRow(ctx, "SELECT sum(spent_credits) FROM ? WHERE workspace_id = ? AND identity_id = ?;", table, workspaceID, identityID).Scan(&queried)
+					err := conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(spent_credits) FROM %s WHERE workspace_id = ? AND identity_id = ?;", table), workspaceID, identityID).Scan(&queried)
 					require.NoError(t, err)
 
 					require.Equal(t, credits, queried)
@@ -303,18 +304,18 @@ func TestKeyVerifications(t *testing.T) {
 	t.Run("credits spent per key are correct", func(t *testing.T) {
 		t.Parallel()
 		for _, keyID := range keys[:10] {
-			credits := array.Reduce(verifications, func(acc int64, v schema.KeyVerificationV2) int64 {
+			credits := array.Reduce(verifications, func(acc int64, v schema.KeyVerification) int64 {
 				if v.KeyID == keyID {
 					acc += v.SpentCredits
 				}
 				return acc
 			}, int64(0))
 
-			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
 				t.Run(table, func(t *testing.T) {
 					t.Parallel()
 					var queried int64
-					err := conn.QueryRow(ctx, "SELECT sum(spent_credits) FROM ? WHERE workspace_id = ? AND key_id = ?;", table, workspaceID, keyID).Scan(&queried)
+					err := conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(spent_credits) FROM %s WHERE workspace_id = ? AND key_id = ?;", table), workspaceID, keyID).Scan(&queried)
 					require.NoError(t, err)
 
 					require.Equal(t, credits, queried)
@@ -331,13 +332,13 @@ func TestKeyVerifications(t *testing.T) {
 			id := identityID
 			expectedExternalID := identityToExternalID[id]
 
-			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
 				tbl := table
 				t.Run(tbl, func(t *testing.T) {
 					t.Parallel()
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedExternalID string
-						err := conn.QueryRow(ctx, "SELECT external_id FROM ? WHERE workspace_id = ? AND identity_id = ? LIMIT 1;", tbl, workspaceID, id).Scan(&queriedExternalID)
+						err := conn.QueryRow(ctx, fmt.Sprintf("SELECT external_id FROM %s WHERE workspace_id = ? AND identity_id = ? LIMIT 1;", tbl), workspaceID, id).Scan(&queriedExternalID)
 						require.NoError(c, err)
 						require.Equal(c, expectedExternalID, queriedExternalID, "external_id should match for identity %s in table %s", id, tbl)
 					}, time.Minute, time.Second)
@@ -352,20 +353,20 @@ func TestKeyVerifications(t *testing.T) {
 		for _, identityID := range identities[:10] {
 			id := identityID
 			extID := identityToExternalID[id]
-			expectedCount := array.Reduce(verifications, func(acc int, v schema.KeyVerificationV2) int {
+			expectedCount := array.Reduce(verifications, func(acc int, v schema.KeyVerification) int {
 				if v.ExternalID == extID {
 					acc++
 				}
 				return acc
 			}, 0)
 
-			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
 				tbl := table
 				t.Run(tbl, func(t *testing.T) {
 					t.Parallel()
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedCount int64
-						err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND external_id = ?;", tbl, workspaceID, extID).Scan(&queriedCount)
+						err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(count) FROM %s WHERE workspace_id = ? AND external_id = ?;", tbl), workspaceID, extID).Scan(&queriedCount)
 						require.NoError(c, err)
 						require.Equal(c, expectedCount, int(queriedCount), "count should match for external_id %s in table %s", extID, tbl)
 					}, time.Minute, time.Second)
@@ -381,14 +382,14 @@ func TestKeyVerifications(t *testing.T) {
 			id := identityID
 			extID := identityToExternalID[id]
 
-			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerificationV2) map[string]int {
+			countByOutcome := array.Reduce(verifications, func(acc map[string]int, v schema.KeyVerification) map[string]int {
 				if v.ExternalID == extID {
 					acc[v.Outcome]++
 				}
 				return acc
 			}, map[string]int{})
 
-			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
 				tbl := table
 				t.Run(tbl, func(t *testing.T) {
 					t.Parallel()
@@ -397,7 +398,7 @@ func TestKeyVerifications(t *testing.T) {
 						expCount := expectedCount
 						require.EventuallyWithT(t, func(c *assert.CollectT) {
 							var queriedCount int64
-							err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND external_id = ? AND outcome = ?;", tbl, workspaceID, extID, out).Scan(&queriedCount)
+							err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(count) FROM %s WHERE workspace_id = ? AND external_id = ? AND outcome = ?;", tbl), workspaceID, extID, out).Scan(&queriedCount)
 							require.NoError(c, err)
 							require.Equal(c, expCount, int(queriedCount), "count for external_id %s and outcome %s should match in table %s", extID, out, tbl)
 						}, time.Minute, time.Second)
@@ -414,7 +415,7 @@ func TestKeyVerifications(t *testing.T) {
 			id := identityID
 			extID := identityToExternalID[id]
 
-			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
 				tbl := table
 				t.Run(tbl, func(t *testing.T) {
 					t.Parallel()
@@ -426,7 +427,7 @@ func TestKeyVerifications(t *testing.T) {
 							wrongIdentityID = identities[(slices.Index(identities, id)+2)%len(identities)]
 						}
 
-						err := conn.QueryRow(ctx, "SELECT SUM(count) FROM ? WHERE workspace_id = ? AND external_id = ? AND identity_id = ?;", tbl, workspaceID, extID, wrongIdentityID).Scan(&countWithWrongIdentity)
+						err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(count) FROM %s WHERE workspace_id = ? AND external_id = ? AND identity_id = ?;", tbl), workspaceID, extID, wrongIdentityID).Scan(&countWithWrongIdentity)
 						if err != nil {
 							// It's OK if there are no rows, that means the mapping is correct
 							if errors.Is(err, sql.ErrNoRows) {
@@ -447,20 +448,20 @@ func TestKeyVerifications(t *testing.T) {
 		for _, identityID := range identities[:10] {
 			id := identityID
 			extID := identityToExternalID[id]
-			expectedCredits := array.Reduce(verifications, func(acc int64, v schema.KeyVerificationV2) int64 {
+			expectedCredits := array.Reduce(verifications, func(acc int64, v schema.KeyVerification) int64 {
 				if v.ExternalID == extID {
 					acc += v.SpentCredits
 				}
 				return acc
 			}, int64(0))
 
-			for _, table := range []string{"key_verifications_per_minute_v2", "key_verifications_per_hour_v2", "key_verifications_per_day_v2", "key_verifications_per_month_v2"} {
+			for _, table := range []string{"default.key_verifications_per_minute_v2", "default.key_verifications_per_hour_v2", "default.key_verifications_per_day_v2", "default.key_verifications_per_month_v2"} {
 				tbl := table
 				t.Run(tbl, func(t *testing.T) {
 					t.Parallel()
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedCredits int64
-						err := conn.QueryRow(ctx, "SELECT SUM(spent_credits) FROM ? WHERE workspace_id = ? AND external_id = ?;", tbl, workspaceID, extID).Scan(&queriedCredits)
+						err := conn.QueryRow(ctx, fmt.Sprintf("SELECT SUM(spent_credits) FROM %s WHERE workspace_id = ? AND external_id = ?;", tbl), workspaceID, extID).Scan(&queriedCredits)
 						require.NoError(c, err)
 						require.Equal(c, expectedCredits, queriedCredits, "spent_credits for external_id %s should match in table %s", extID, tbl)
 					}, time.Minute, time.Second)
@@ -471,7 +472,7 @@ func TestKeyVerifications(t *testing.T) {
 
 	t.Run("billing per workspace is correct", func(t *testing.T) {
 		t.Parallel()
-		billableVerifications := array.Reduce(verifications, func(acc int64, v schema.KeyVerificationV2) int64 {
+		billableVerifications := array.Reduce(verifications, func(acc int64, v schema.KeyVerification) int64 {
 			if v.Outcome == "VALID" {
 				acc += 1
 			}
@@ -479,7 +480,7 @@ func TestKeyVerifications(t *testing.T) {
 		}, int64(0))
 
 		var queried int64
-		err := conn.QueryRow(ctx, "SELECT sum(count) FROM billable_verifications_per_month_v2 WHERE workspace_id = ?;", workspaceID).Scan(&queried)
+		err := conn.QueryRow(ctx, "SELECT sum(count) FROM default.billable_verifications_per_month_v2 WHERE workspace_id = ?;", workspaceID).Scan(&queried)
 
 		require.NoError(t, err)
 

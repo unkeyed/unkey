@@ -141,6 +141,48 @@ func (ns NullApisAuthType) Value() (driver.Value, error) {
 	return string(ns.ApisAuthType), nil
 }
 
+type CustomDomainsChallengeType string
+
+const (
+	CustomDomainsChallengeTypeDns01  CustomDomainsChallengeType = "dns01"
+	CustomDomainsChallengeTypeHttp01 CustomDomainsChallengeType = "http01"
+)
+
+func (e *CustomDomainsChallengeType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = CustomDomainsChallengeType(s)
+	case string:
+		*e = CustomDomainsChallengeType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for CustomDomainsChallengeType: %T", src)
+	}
+	return nil
+}
+
+type NullCustomDomainsChallengeType struct {
+	CustomDomainsChallengeType CustomDomainsChallengeType
+	Valid                      bool // Valid is true if CustomDomainsChallengeType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullCustomDomainsChallengeType) Scan(value interface{}) error {
+	if value == nil {
+		ns.CustomDomainsChallengeType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.CustomDomainsChallengeType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullCustomDomainsChallengeType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.CustomDomainsChallengeType), nil
+}
+
 type DeploymentStepsStatus string
 
 const (
@@ -236,89 +278,180 @@ func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
 	return string(ns.DeploymentsStatus), nil
 }
 
-type DomainsSticky string
+type GatewaysHealth string
 
 const (
-	DomainsStickyBranch      DomainsSticky = "branch"
-	DomainsStickyEnvironment DomainsSticky = "environment"
-	DomainsStickyLive        DomainsSticky = "live"
+	GatewaysHealthPaused    GatewaysHealth = "paused"
+	GatewaysHealthHealthy   GatewaysHealth = "healthy"
+	GatewaysHealthUnhealthy GatewaysHealth = "unhealthy"
 )
 
-func (e *DomainsSticky) Scan(src interface{}) error {
+func (e *GatewaysHealth) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = DomainsSticky(s)
+		*e = GatewaysHealth(s)
 	case string:
-		*e = DomainsSticky(s)
+		*e = GatewaysHealth(s)
 	default:
-		return fmt.Errorf("unsupported scan type for DomainsSticky: %T", src)
+		return fmt.Errorf("unsupported scan type for GatewaysHealth: %T", src)
 	}
 	return nil
 }
 
-type NullDomainsSticky struct {
-	DomainsSticky DomainsSticky
-	Valid         bool // Valid is true if DomainsSticky is not NULL
+type NullGatewaysHealth struct {
+	GatewaysHealth GatewaysHealth
+	Valid          bool // Valid is true if GatewaysHealth is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullDomainsSticky) Scan(value interface{}) error {
+func (ns *NullGatewaysHealth) Scan(value interface{}) error {
 	if value == nil {
-		ns.DomainsSticky, ns.Valid = "", false
+		ns.GatewaysHealth, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.DomainsSticky.Scan(value)
+	return ns.GatewaysHealth.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullDomainsSticky) Value() (driver.Value, error) {
+func (ns NullGatewaysHealth) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.DomainsSticky), nil
+	return string(ns.GatewaysHealth), nil
 }
 
-type DomainsType string
+type IngressRoutesSticky string
 
 const (
-	DomainsTypeCustom   DomainsType = "custom"
-	DomainsTypeWildcard DomainsType = "wildcard"
+	IngressRoutesStickyNone        IngressRoutesSticky = "none"
+	IngressRoutesStickyBranch      IngressRoutesSticky = "branch"
+	IngressRoutesStickyEnvironment IngressRoutesSticky = "environment"
+	IngressRoutesStickyLive        IngressRoutesSticky = "live"
 )
 
-func (e *DomainsType) Scan(src interface{}) error {
+func (e *IngressRoutesSticky) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = DomainsType(s)
+		*e = IngressRoutesSticky(s)
 	case string:
-		*e = DomainsType(s)
+		*e = IngressRoutesSticky(s)
 	default:
-		return fmt.Errorf("unsupported scan type for DomainsType: %T", src)
+		return fmt.Errorf("unsupported scan type for IngressRoutesSticky: %T", src)
 	}
 	return nil
 }
 
-type NullDomainsType struct {
-	DomainsType DomainsType
-	Valid       bool // Valid is true if DomainsType is not NULL
+type NullIngressRoutesSticky struct {
+	IngressRoutesSticky IngressRoutesSticky
+	Valid               bool // Valid is true if IngressRoutesSticky is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullDomainsType) Scan(value interface{}) error {
+func (ns *NullIngressRoutesSticky) Scan(value interface{}) error {
 	if value == nil {
-		ns.DomainsType, ns.Valid = "", false
+		ns.IngressRoutesSticky, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.DomainsType.Scan(value)
+	return ns.IngressRoutesSticky.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullDomainsType) Value() (driver.Value, error) {
+func (ns NullIngressRoutesSticky) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.DomainsType), nil
+	return string(ns.IngressRoutesSticky), nil
+}
+
+type InstancesStatus string
+
+const (
+	InstancesStatusAllocated    InstancesStatus = "allocated"
+	InstancesStatusProvisioning InstancesStatus = "provisioning"
+	InstancesStatusStarting     InstancesStatus = "starting"
+	InstancesStatusRunning      InstancesStatus = "running"
+	InstancesStatusStopping     InstancesStatus = "stopping"
+	InstancesStatusStopped      InstancesStatus = "stopped"
+	InstancesStatusFailed       InstancesStatus = "failed"
+)
+
+func (e *InstancesStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = InstancesStatus(s)
+	case string:
+		*e = InstancesStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for InstancesStatus: %T", src)
+	}
+	return nil
+}
+
+type NullInstancesStatus struct {
+	InstancesStatus InstancesStatus
+	Valid           bool // Valid is true if InstancesStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullInstancesStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.InstancesStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.InstancesStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullInstancesStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.InstancesStatus), nil
+}
+
+type KeyMigrationsAlgorithm string
+
+const (
+	KeyMigrationsAlgorithmSha256                         KeyMigrationsAlgorithm = "sha256"
+	KeyMigrationsAlgorithmGithubcomSeamapiPrefixedApiKey KeyMigrationsAlgorithm = "github.com/seamapi/prefixed-api-key"
+)
+
+func (e *KeyMigrationsAlgorithm) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = KeyMigrationsAlgorithm(s)
+	case string:
+		*e = KeyMigrationsAlgorithm(s)
+	default:
+		return fmt.Errorf("unsupported scan type for KeyMigrationsAlgorithm: %T", src)
+	}
+	return nil
+}
+
+type NullKeyMigrationsAlgorithm struct {
+	KeyMigrationsAlgorithm KeyMigrationsAlgorithm
+	Valid                  bool // Valid is true if KeyMigrationsAlgorithm is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullKeyMigrationsAlgorithm) Scan(value interface{}) error {
+	if value == nil {
+		ns.KeyMigrationsAlgorithm, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.KeyMigrationsAlgorithm.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullKeyMigrationsAlgorithm) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.KeyMigrationsAlgorithm), nil
 }
 
 type RatelimitOverridesSharding string
@@ -503,7 +636,7 @@ type AcmeChallenge struct {
 }
 
 type AcmeUser struct {
-	ID              uint64         `db:"id"`
+	ID              string         `db:"id"`
 	WorkspaceID     string         `db:"workspace_id"`
 	EncryptedKey    string         `db:"encrypted_key"`
 	RegistrationUri sql.NullString `db:"registration_uri"`
@@ -566,6 +699,16 @@ type AuditLogTarget struct {
 	UpdatedAt   sql.NullInt64  `db:"updated_at"`
 }
 
+type Certificate struct {
+	ID                  string        `db:"id"`
+	WorkspaceID         string        `db:"workspace_id"`
+	Hostname            string        `db:"hostname"`
+	Certificate         string        `db:"certificate"`
+	EncryptedPrivateKey string        `db:"encrypted_private_key"`
+	CreatedAt           int64         `db:"created_at"`
+	UpdatedAt           sql.NullInt64 `db:"updated_at"`
+}
+
 type ClickhouseWorkspaceSetting struct {
 	WorkspaceID               string        `db:"workspace_id"`
 	Username                  string        `db:"username"`
@@ -580,6 +723,15 @@ type ClickhouseWorkspaceSetting struct {
 	UpdatedAt                 sql.NullInt64 `db:"updated_at"`
 }
 
+type CustomDomain struct {
+	ID            string                     `db:"id"`
+	WorkspaceID   string                     `db:"workspace_id"`
+	Domain        string                     `db:"domain"`
+	ChallengeType CustomDomainsChallengeType `db:"challenge_type"`
+	CreatedAt     int64                      `db:"created_at"`
+	UpdatedAt     sql.NullInt64              `db:"updated_at"`
+}
+
 type Deployment struct {
 	ID                       string            `db:"id"`
 	WorkspaceID              string            `db:"workspace_id"`
@@ -592,6 +744,7 @@ type Deployment struct {
 	GitCommitAuthorAvatarUrl sql.NullString    `db:"git_commit_author_avatar_url"`
 	GitCommitTimestamp       sql.NullInt64     `db:"git_commit_timestamp"`
 	RuntimeConfig            json.RawMessage   `db:"runtime_config"`
+	GatewayConfig            []byte            `db:"gateway_config"`
 	OpenapiSpec              sql.NullString    `db:"openapi_spec"`
 	Status                   DeploymentsStatus `db:"status"`
 	CreatedAt                int64             `db:"created_at"`
@@ -605,19 +758,6 @@ type DeploymentStep struct {
 	Status       DeploymentStepsStatus `db:"status"`
 	Message      string                `db:"message"`
 	CreatedAt    int64                 `db:"created_at"`
-}
-
-type Domain struct {
-	ID            string            `db:"id"`
-	WorkspaceID   string            `db:"workspace_id"`
-	ProjectID     sql.NullString    `db:"project_id"`
-	EnvironmentID sql.NullString    `db:"environment_id"`
-	DeploymentID  sql.NullString    `db:"deployment_id"`
-	Domain        string            `db:"domain"`
-	Type          DomainsType       `db:"type"`
-	Sticky        NullDomainsSticky `db:"sticky"`
-	CreatedAt     int64             `db:"created_at"`
-	UpdatedAt     sql.NullInt64     `db:"updated_at"`
 }
 
 type EncryptedKey struct {
@@ -635,9 +775,21 @@ type Environment struct {
 	ProjectID        string         `db:"project_id"`
 	Slug             string         `db:"slug"`
 	Description      sql.NullString `db:"description"`
+	GatewayConfig    []byte         `db:"gateway_config"`
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+}
+
+type Gateway struct {
+	ID             string             `db:"id"`
+	WorkspaceID    string             `db:"workspace_id"`
+	EnvironmentID  string             `db:"environment_id"`
+	K8sServiceName string             `db:"k8s_service_name"`
+	Region         string             `db:"region"`
+	Image          string             `db:"image"`
+	Health         NullGatewaysHealth `db:"health"`
+	Replicas       int32              `db:"replicas"`
 }
 
 type Identity struct {
@@ -651,30 +803,54 @@ type Identity struct {
 	UpdatedAt   sql.NullInt64 `db:"updated_at"`
 }
 
+type IngressRoute struct {
+	ID            string              `db:"id"`
+	ProjectID     string              `db:"project_id"`
+	DeploymentID  string              `db:"deployment_id"`
+	EnvironmentID string              `db:"environment_id"`
+	Hostname      string              `db:"hostname"`
+	Sticky        IngressRoutesSticky `db:"sticky"`
+	CreatedAt     int64               `db:"created_at"`
+	UpdatedAt     sql.NullInt64       `db:"updated_at"`
+}
+
+type Instance struct {
+	ID            string          `db:"id"`
+	DeploymentID  string          `db:"deployment_id"`
+	WorkspaceID   string          `db:"workspace_id"`
+	ProjectID     string          `db:"project_id"`
+	Region        string          `db:"region"`
+	Address       string          `db:"address"`
+	CpuMillicores int32           `db:"cpu_millicores"`
+	MemoryMb      int32           `db:"memory_mb"`
+	Status        InstancesStatus `db:"status"`
+}
+
 type Key struct {
-	ID                string         `db:"id"`
-	KeyAuthID         string         `db:"key_auth_id"`
-	Hash              string         `db:"hash"`
-	Start             string         `db:"start"`
-	WorkspaceID       string         `db:"workspace_id"`
-	ForWorkspaceID    sql.NullString `db:"for_workspace_id"`
-	Name              sql.NullString `db:"name"`
-	OwnerID           sql.NullString `db:"owner_id"`
-	IdentityID        sql.NullString `db:"identity_id"`
-	Meta              sql.NullString `db:"meta"`
-	Expires           sql.NullTime   `db:"expires"`
-	CreatedAtM        int64          `db:"created_at_m"`
-	UpdatedAtM        sql.NullInt64  `db:"updated_at_m"`
-	DeletedAtM        sql.NullInt64  `db:"deleted_at_m"`
-	RefillDay         sql.NullInt16  `db:"refill_day"`
-	RefillAmount      sql.NullInt32  `db:"refill_amount"`
-	LastRefillAt      sql.NullTime   `db:"last_refill_at"`
-	Enabled           bool           `db:"enabled"`
-	RemainingRequests sql.NullInt32  `db:"remaining_requests"`
-	RatelimitAsync    sql.NullBool   `db:"ratelimit_async"`
-	RatelimitLimit    sql.NullInt32  `db:"ratelimit_limit"`
-	RatelimitDuration sql.NullInt64  `db:"ratelimit_duration"`
-	Environment       sql.NullString `db:"environment"`
+	ID                 string         `db:"id"`
+	KeyAuthID          string         `db:"key_auth_id"`
+	Hash               string         `db:"hash"`
+	Start              string         `db:"start"`
+	WorkspaceID        string         `db:"workspace_id"`
+	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
+	Name               sql.NullString `db:"name"`
+	OwnerID            sql.NullString `db:"owner_id"`
+	IdentityID         sql.NullString `db:"identity_id"`
+	Meta               sql.NullString `db:"meta"`
+	Expires            sql.NullTime   `db:"expires"`
+	CreatedAtM         int64          `db:"created_at_m"`
+	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
+	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
+	RefillDay          sql.NullInt16  `db:"refill_day"`
+	RefillAmount       sql.NullInt32  `db:"refill_amount"`
+	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
+	Enabled            bool           `db:"enabled"`
+	RemainingRequests  sql.NullInt32  `db:"remaining_requests"`
+	RatelimitAsync     sql.NullBool   `db:"ratelimit_async"`
+	RatelimitLimit     sql.NullInt32  `db:"ratelimit_limit"`
+	RatelimitDuration  sql.NullInt64  `db:"ratelimit_duration"`
+	Environment        sql.NullString `db:"environment"`
+	PendingMigrationID sql.NullString `db:"pending_migration_id"`
 }
 
 type KeyAuth struct {
@@ -688,6 +864,12 @@ type KeyAuth struct {
 	DefaultBytes       sql.NullInt32  `db:"default_bytes"`
 	SizeApprox         int32          `db:"size_approx"`
 	SizeLastUpdatedAt  int64          `db:"size_last_updated_at"`
+}
+
+type KeyMigration struct {
+	ID          string                 `db:"id"`
+	WorkspaceID string                 `db:"workspace_id"`
+	Algorithm   KeyMigrationsAlgorithm `db:"algorithm"`
 }
 
 type KeyMigrationError struct {

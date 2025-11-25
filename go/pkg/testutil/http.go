@@ -58,7 +58,6 @@ type Harness struct {
 
 func NewHarness(t *testing.T) *Harness {
 	clk := clock.NewTestClock()
-
 	logger := logging.New()
 
 	// Start all services in parallel first
@@ -197,7 +196,7 @@ func NewHarness(t *testing.T) *Harness {
 		}),
 		Caches: caches,
 		middleware: []zen.Middleware{
-			zen.WithTracing(),
+			zen.WithObservability(),
 			zen.WithLogging(logger),
 			zen.WithErrorHandling(logger),
 			zen.WithValidation(validator),

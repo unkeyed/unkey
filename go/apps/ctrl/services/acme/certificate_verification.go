@@ -15,7 +15,7 @@ func (s *Service) HandleCertificateVerification(
 ) (*connect.Response[ctrlv1.HandleCertificateVerificationResponse], error) {
 	res := connect.NewResponse(&ctrlv1.HandleCertificateVerificationResponse{Token: ""})
 
-	domain, err := db.Query.FindDomainByDomain(ctx, s.db.RO(), req.Msg.GetDomain())
+	domain, err := db.Query.FindCustomDomainByDomain(ctx, s.db.RO(), req.Msg.GetDomain())
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, err)

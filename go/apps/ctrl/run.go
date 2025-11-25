@@ -26,6 +26,7 @@ import (
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
+	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -115,16 +116,6 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
 
-	partitionDB, err := db.New(db.Config{
-		PrimaryDSN:  cfg.DatabasePartition,
-		ReadOnlyDSN: "",
-		Logger:      logger,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create partition db: %w", err)
-	}
-
-	shutdowns.Register(partitionDB.Close)
 	shutdowns.Register(database.Close)
 
 	// Create krane client for VM operations
@@ -183,6 +174,17 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create build storage: %w", err)
 	}
 
+	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
+	if cfg.ClickhouseURL != "" {
+		ch, err = clickhouse.New(clickhouse.Config{
+			URL:    cfg.ClickhouseURL,
+			Logger: logger,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create clickhouse: %w", err)
+		}
+	}
+
 	var buildService ctrlv1connect.BuildServiceClient
 	switch cfg.BuildBackend {
 	case BuildBackendDocker:
@@ -202,6 +204,7 @@ func Run(ctx context.Context, cfg Config) error {
 			RegistryConfig: depot.RegistryConfig(cfg.GetRegistryConfig()),
 			BuildPlatform:  depot.BuildPlatform(cfg.GetBuildPlatform()),
 			DepotConfig:    depot.DepotConfig(cfg.GetDepotConfig()),
+			Clickhouse:     ch,
 			Logger:         logger,
 			Storage:        buildStorage,
 		})
@@ -218,7 +221,6 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploy.New(deploy.Config{
 		Logger:        logger,
 		DB:            database,
-		PartitionDB:   partitionDB,
 		Krane:         kraneClient,
 		BuildClient:   buildService,
 		DefaultDomain: cfg.DefaultDomain,
@@ -227,15 +229,13 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
 		Logger:        logger,
 		DB:            database,
-		PartitionDB:   partitionDB,
 		DefaultDomain: cfg.DefaultDomain,
 	})))
 
 	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
-		Logger:      logger,
-		DB:          database,
-		PartitionDB: partitionDB,
-		Vault:       vaultSvc,
+		Logger: logger,
+		DB:     database,
+		Vault:  vaultSvc,
 	})))
 
 	go func() {
@@ -316,16 +316,14 @@ func Run(ctx context.Context, cfg Config) error {
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database), connectOptions...))
 	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(deployment.Config{
 		Database:     database,
-		PartitionDB:  partitionDB,
 		Restate:      restateClient,
 		BuildService: buildService,
 		Logger:       logger,
 	}), connectOptions...))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger), connectOptions...))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
-		PartitionDB: partitionDB,
-		DB:          database,
-		Logger:      logger,
+		DB:     database,
+		Logger: logger,
 	}), connectOptions...))
 
 	// Configure server

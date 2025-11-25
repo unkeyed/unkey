@@ -16,7 +16,7 @@
 //
 // The virtual object model ensures that domain operations for a project are serialized,
 // preventing race conditions where concurrent operations could create inconsistent routing
-// state between the main database and partition database.
+// state.
 //
 // # Key Types
 //
@@ -32,7 +32,6 @@
 //
 //	svc := routing.New(routing.Config{
 //	    DB:            mainDB,
-//	    PartitionDB:   partitionDB,
 //	    Logger:        logger,
 //	    DefaultDomain: "unkey.app",
 //	})
@@ -108,16 +107,12 @@
 //
 // # Gateway Configuration Format
 //
-// Gateway configs are stored as JSON (using protojson.Marshal) in the partition database.
+// Gateway configs are stored as JSON (using protojson.Marshal) in the database.
 // This format was chosen for easier debugging and direct database inspection during
 // development. Each config includes deployment ID, VM list, optional auth config, and
 // optional validation config.
 //
 // # Atomicity and Consistency
-//
-// Domain assignment and switching operations affect two databases (main DB for domains,
-// partition DB for gateway configs). While not using distributed transactions, the
-// operations are ordered carefully:
 //
 // - On assignment: Domains first, then gateway configs
 // - On switching: Gateway configs first, then domain reassignment

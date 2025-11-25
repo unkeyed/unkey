@@ -12,6 +12,7 @@ import (
 // NewParser creates a new parser
 func NewParser(config Config) *Parser {
 	return &Parser{
+		stmt:     nil,
 		config:   config,
 		cteNames: make(map[string]bool),
 	}

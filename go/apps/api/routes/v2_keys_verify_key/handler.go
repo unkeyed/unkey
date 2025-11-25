@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/rbac"
@@ -62,9 +63,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, emit, err := h.Keys.Get(ctx, s, req.Key)
+	key, emit, err := h.Keys.Get(ctx, s, hash.Sha256(req.Key))
 	if err != nil {
 		return err
+	}
+
+	if key.Status == keys.StatusNotFound && req.MigrationId != nil {
+		key, emit, err = h.Keys.GetMigrated(ctx, s, req.Key, ptr.SafeDeref(req.MigrationId))
+		if err != nil {
+			return err
+		}
 	}
 
 	// Validate key belongs to authorized workspace
@@ -163,23 +171,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Code:        key.ToOpenAPIStatus(),
 		Valid:       key.Status == keys.StatusValid,
 		Enabled:     ptr.P(key.Key.Enabled),
-		Name:        ptr.P(key.Key.Name.String),
-		KeyId:       ptr.P(key.Key.ID),
-		Permissions: nil,
-		Roles:       nil,
+		Name:        key.Key.Name.String,
+		KeyId:       key.Key.ID,
+		Permissions: key.Permissions,
+		Roles:       key.Roles,
 		Credits:     nil,
-		Expires:     nil,
+		Expires:     0,
 		Identity:    nil,
 		Meta:        nil,
 		Ratelimits:  nil,
 	}
 
-	if len(key.Permissions) > 0 {
-		keyData.Permissions = ptr.P(key.Permissions)
-	}
-
-	if len(key.Roles) > 0 {
-		keyData.Roles = ptr.P(key.Roles)
+	if key.Key.Expires.Valid {
+		keyData.Expires = key.Key.Expires.Time.UnixMilli()
 	}
 
 	remaining := key.Key.RemainingRequests
@@ -187,20 +191,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		keyData.Credits = ptr.P(remaining.Int32)
 	}
 
-	if key.Key.Expires.Valid {
-		keyData.Expires = ptr.P(key.Key.Expires.Time.UnixMilli())
-	}
-
 	if key.Key.Meta.Valid {
 		meta, err := db.UnmarshalNullableJSONTo[map[string]any](key.Key.Meta.String)
 		if err != nil {
-			h.Logger.Error("failed to unmarshal key meta",
-				"keyId", key.Key.ID,
-				"error", err,
-			)
-			// Continue with empty meta (zero value)
+			h.Logger.Error("failed to unmarshal key meta", "keyId", key.Key.ID, "error", err)
 		}
-		keyData.Meta = &meta
+		keyData.Meta = meta
 	}
 
 	if key.Key.IdentityID.Valid {
@@ -227,18 +223,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if len(identityRatelimits) > 0 {
-			keyData.Identity.Ratelimits = ptr.P(identityRatelimits)
+			keyData.Identity.Ratelimits = identityRatelimits
 		}
 
 		meta, err := db.UnmarshalNullableJSONTo[map[string]any](key.Key.IdentityMeta)
 		if err != nil {
-			h.Logger.Error("failed to unmarshal identity meta",
+			h.Logger.Error(
+				"failed to unmarshal identity meta",
 				"identityId", key.Key.IdentityID.String,
 				"error", err,
 			)
-			// Continue with empty meta
 		}
-		keyData.Identity.Meta = &meta
+		keyData.Identity.Meta = meta
 	}
 
 	if len(key.RatelimitResults) > 0 {
@@ -261,7 +257,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if len(ratelimitResponse) > 0 {
-			keyData.Ratelimits = ptr.P(ratelimitResponse)
+			keyData.Ratelimits = ratelimitResponse
 		}
 	}
 

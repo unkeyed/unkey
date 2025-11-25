@@ -8,20 +8,23 @@ import (
 	"time"
 
 	"buf.build/gen/go/depot/api/connectrpc/go/depot/core/v1/corev1connect"
+	corev1 "buf.build/gen/go/depot/api/protocolbuffers/go/depot/core/v1"
 	"connectrpc.com/connect"
 	"github.com/depot/depot-go/build"
 	"github.com/depot/depot-go/machine"
+	cliv1 "github.com/depot/depot-go/proto/depot/cli/v1"
 	"github.com/docker/cli/cli/config/configfile"
 	"github.com/docker/cli/cli/config/types"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth/authprovider"
+	"github.com/opencontainers/go-digest"
 
-	corev1 "buf.build/gen/go/depot/api/protocolbuffers/go/depot/core/v1"
-	cliv1 "github.com/depot/depot-go/proto/depot/cli/v1"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/assert"
+	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 )
 
 const (
@@ -161,8 +164,35 @@ func (s *Depot) CreateBuild(
 		"build_id", buildResp.ID,
 		"unkey_project_id", unkeyProjectID)
 
-	//nolint: exhaustruct
-	solverOptions := client.SolveOpt{
+	buildStatusCh := make(chan *client.SolveStatus, 100)
+	go s.processBuildStatus(buildStatusCh, req.Msg.GetWorkspaceId(), unkeyProjectID, deploymentID)
+
+	solverOptions := s.buildSolverOptions(platform, contextURL, dockerfilePath, imageName)
+	_, buildErr = buildkitClient.Solve(ctx, nil, solverOptions, buildStatusCh)
+	if buildErr != nil {
+		s.logger.Error("Build failed",
+			"error", buildErr,
+			"image_name", imageName,
+			"build_id", buildResp.ID,
+			"depot_project_id", depotProjectID,
+			"unkey_project_id", unkeyProjectID)
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("build failed: %w", buildErr))
+	}
+
+	s.logger.Info("Build completed successfully")
+
+	return connect.NewResponse(&ctrlv1.CreateBuildResponse{
+		ImageName:      imageName,
+		BuildId:        buildResp.ID,
+		DepotProjectId: depotProjectID,
+	}), nil
+}
+
+func (s *Depot) buildSolverOptions(
+	platform, contextURL, dockerfilePath, imageName string,
+) client.SolveOpt {
+	return client.SolveOpt{
 		Frontend: "dockerfile.v0",
 		FrontendAttrs: map[string]string{
 			"platform": platform,
@@ -194,32 +224,6 @@ func (s *Depot) CreateBuild(
 			},
 		},
 	}
-
-	_, buildErr = buildkitClient.Solve(ctx, nil, solverOptions, nil)
-	if buildErr != nil {
-		s.logger.Error("Build failed",
-			"error", buildErr,
-			"image_name", imageName,
-			"build_id", buildResp.ID,
-			"depot_project_id", depotProjectID,
-			"unkey_project_id", unkeyProjectID)
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("build failed: %w", buildErr))
-	}
-
-	s.logger.Info("Build completed successfully",
-		"image_name", imageName,
-		"build_id", buildResp.ID,
-		"depot_project_id", depotProjectID,
-		"platform", platform,
-		"architecture", architecture,
-		"unkey_project_id", unkeyProjectID)
-
-	return connect.NewResponse(&ctrlv1.CreateBuildResponse{
-		ImageName:      imageName,
-		BuildId:        buildResp.ID,
-		DepotProjectId: depotProjectID,
-	}), nil
 }
 
 // getOrCreateDepotProject retrieves or creates a Depot project for the given Unkey project.
@@ -289,4 +293,55 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 		"project_name", projectName)
 
 	return depotProjectID, nil
+}
+
+func (s *Depot) processBuildStatus(
+	statusCh <-chan *client.SolveStatus,
+	workspaceID, projectID, deploymentID string,
+) {
+	completed := map[digest.Digest]bool{}
+	verticesWithLogs := map[digest.Digest]bool{}
+
+	for status := range statusCh {
+		// Mark vertices that have logs
+		for _, log := range status.Logs {
+			verticesWithLogs[log.Vertex] = true
+		}
+
+		// Process completed vertices
+		for _, vertex := range status.Vertexes {
+			if vertex == nil {
+				s.logger.Warn("vertex is nil")
+				continue
+			}
+			if vertex.Completed != nil && !completed[vertex.Digest] {
+				completed[vertex.Digest] = true
+
+				s.clickhouse.BufferBuildStep(schema.BuildStepV1{
+					Error:        vertex.Error,
+					StartedAt:    ptr.SafeDeref(vertex.Started).UnixMilli(),
+					CompletedAt:  ptr.SafeDeref(vertex.Completed).UnixMilli(),
+					WorkspaceID:  workspaceID,
+					ProjectID:    projectID,
+					DeploymentID: deploymentID,
+					StepID:       vertex.Digest.String(),
+					Name:         vertex.Name,
+					Cached:       vertex.Cached,
+					HasLogs:      verticesWithLogs[vertex.Digest],
+				})
+			}
+		}
+
+		// Process logs
+		for _, log := range status.Logs {
+			s.clickhouse.BufferBuildStepLog(schema.BuildStepLogV1{
+				WorkspaceID:  workspaceID,
+				ProjectID:    projectID,
+				DeploymentID: deploymentID,
+				StepID:       log.Vertex.String(),
+				Time:         log.Timestamp.UnixMilli(),
+				Message:      string(log.Data),
+			})
+		}
+	}
 }

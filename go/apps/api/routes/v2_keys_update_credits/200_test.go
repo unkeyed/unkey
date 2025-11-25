@@ -13,6 +13,7 @@ import (
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_update_credits"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/hash"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/go/pkg/zen"
@@ -178,7 +179,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 			Remaining:   &initialCredits,
 		})
 
-		authBefore, _, err := h.Keys.Get(ctx, &zen.Session{}, cacheTestKey.Key)
+		authBefore, _, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(cacheTestKey.Key))
 		require.NoError(t, err)
 
 		err = authBefore.Verify(ctx, keys.WithCredits(1))
@@ -205,7 +206,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.Equal(t, newCredits, updatedRemaining)
 
 		// Verify the key again to check if cache was properly invalidated
-		authAfter, _, err := h.Keys.Get(ctx, &zen.Session{}, cacheTestKey.Key)
+		authAfter, _, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(cacheTestKey.Key))
 		require.NoError(t, err)
 
 		err = authAfter.Verify(ctx, keys.WithCredits(1))

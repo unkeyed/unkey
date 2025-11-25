@@ -1,6 +1,12 @@
 "use server";
 
-import { deleteCookie, getCookie, setCookies, setSessionCookie } from "@/lib/auth/cookies";
+import {
+  deleteCookie,
+  getCookie,
+  setCookies,
+  setLastUsedOrgCookie,
+  setSessionCookie,
+} from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import {
   AuthErrorCode,
@@ -9,6 +15,7 @@ import {
   type NavigationResponse,
   type OAuthResult,
   PENDING_SESSION_COOKIE,
+  type PendingTurnstileResponse,
   type SignInViaOAuthOptions,
   type UserData,
   type VerificationResult,
@@ -17,15 +24,63 @@ import {
 import { requireEmailMatch } from "@/lib/auth/utils";
 import { env } from "@/lib/env";
 import { Ratelimit } from "@unkey/ratelimit";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+
+// Helper to extract request metadata for Radar
+function getRequestMetadata() {
+  const headersList = headers();
+  const ipAddress =
+    headersList.get("x-forwarded-for")?.split(",")[0].trim() ||
+    headersList.get("x-real-ip") ||
+    undefined;
+  const userAgent = headersList.get("user-agent") || undefined;
+
+  return { ipAddress, userAgent };
+}
+
+// Turnstile verification helper
+async function verifyTurnstileToken(token: string): Promise<boolean> {
+  const environment = env();
+  const secretKey = environment.CLOUDFLARE_TURNSTILE_SECRET_KEY;
+
+  if (!secretKey) {
+    return false;
+  }
+
+  try {
+    const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        secret: secretKey,
+        response: token,
+      }),
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const data = await response.json();
+
+    return data.success === true;
+  } catch (_error) {
+    return false;
+  }
+}
+
 // Authentication Actions
 export async function signUpViaEmail(params: UserData): Promise<EmailAuthResult> {
-  return await auth.signUpViaEmail(params);
+  const metadata = getRequestMetadata();
+  return await auth.signUpViaEmail({ ...params, ...metadata });
 }
 
 export async function signInViaEmail(email: string): Promise<EmailAuthResult> {
-  return await auth.signInViaEmail(email);
+  const metadata = getRequestMetadata();
+  return await auth.signInViaEmail({ email, ...metadata });
 }
 
 export async function verifyAuthCode(params: {
@@ -68,7 +123,7 @@ export async function verifyAuthCode(params: {
 
             if (orgSelectionResult.success) {
               // Try to get organization name for better UX in success page
-              const redirectUrl = "/apis";
+              let redirectUrl = "/apis";
               try {
                 const org = await auth.getOrg(invitation.organizationId);
                 if (org?.name) {
@@ -76,11 +131,10 @@ export async function verifyAuthCode(params: {
                     from_invite: "true",
                     org_name: org.name,
                   });
-                  `/join/success?${params.toString()}`;
+                  redirectUrl = `/join/success?${params.toString()}`;
                 }
-              } catch (error) {
+              } catch (_error) {
                 // Don't fail the redirect if we can't get org name
-                console.warn("Could not fetch organization name for success page:", error);
               }
 
               return {
@@ -91,10 +145,7 @@ export async function verifyAuthCode(params: {
             }
           }
         }
-      } catch (error) {
-        console.error("Failed to auto-select invited organization:", {
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
+      } catch (_error) {
         // Fall through to return the original result if auto-selection fails
       }
     }
@@ -116,17 +167,13 @@ export async function verifyAuthCode(params: {
           if (invitation.state === "pending") {
             try {
               await auth.acceptInvitation(invitation.id);
-            } catch (acceptError) {
-              // Log but don't fail - invitation might already be accepted
-              console.warn("Could not accept invitation (might already be accepted):", {
-                invitationId: invitation.id,
-                error: acceptError instanceof Error ? acceptError.message : "Unknown error",
-              });
+            } catch (_acceptError) {
+              // Don't fail - invitation might already be accepted
             }
           }
 
           // Try to get organization name for better UX
-          const redirectUrl = result.redirectTo;
+          let redirectUrl = result.redirectTo;
           try {
             const org = await auth.getOrg(invitation.organizationId);
             if (org?.name) {
@@ -134,16 +181,15 @@ export async function verifyAuthCode(params: {
                 from_invite: "true",
                 org_name: org.name,
               });
-              `/join/success?${params.toString()}`;
+              redirectUrl = `/join/success?${params.toString()}`;
             } else {
               const params = new URLSearchParams({ from_invite: "true" });
-              `/join/success?${params.toString()}`;
+              redirectUrl = `/join/success?${params.toString()}`;
             }
-          } catch (error) {
+          } catch (_error) {
             // Don't fail if we can't get org name, just use join success without org name
-            console.warn("Could not fetch organization name for new user success page:", error);
             const params = new URLSearchParams({ from_invite: "true" });
-            `/join/success?${params.toString()}`;
+            redirectUrl = `/join/success?${params.toString()}`;
           }
 
           return {
@@ -152,24 +198,13 @@ export async function verifyAuthCode(params: {
             cookies: [],
           };
         }
-        console.warn("Invalid invitation or missing organization ID:", {
-          hasInvitation: !!invitation,
-          organizationId: invitation?.organizationId,
-        });
-      } catch (error) {
-        console.error("Failed to process invitation for new user:", {
-          error: error instanceof Error ? error.message : "Unknown error",
-          invitationToken: `${invitationToken.substring(0, 10)}...`,
-        });
+      } catch (_error) {
         // Fall through to return original result
       }
     }
 
     return result;
-  } catch (error) {
-    console.error("Failed to verify auth code:", {
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
+  } catch (_error) {
     return {
       success: false,
       code: AuthErrorCode.UNKNOWN_ERROR,
@@ -185,7 +220,6 @@ export async function verifyEmail(code: string): Promise<VerificationResult> {
     const token = await getCookie(PENDING_SESSION_COOKIE);
 
     if (!token) {
-      console.error("Pending auth token missing or expired");
       return {
         success: false,
         code: AuthErrorCode.UNKNOWN_ERROR,
@@ -200,10 +234,7 @@ export async function verifyEmail(code: string): Promise<VerificationResult> {
     }
 
     return result;
-  } catch (error) {
-    console.error("Failed to verify email:", {
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
+  } catch (_error) {
     return {
       success: false,
       code: AuthErrorCode.UNKNOWN_ERROR,
@@ -216,7 +247,6 @@ export async function resendAuthCode(email: string): Promise<EmailAuthResult> {
   const envVars = env();
   const unkeyRootKey = envVars.UNKEY_ROOT_KEY;
   if (!unkeyRootKey) {
-    console.error("UNKEY_ROOT_KEY environment variable is not set");
     return {
       success: false,
       code: AuthErrorCode.UNKNOWN_ERROR,
@@ -229,8 +259,7 @@ export async function resendAuthCode(email: string): Promise<EmailAuthResult> {
     duration: "5m",
     limit: 5,
     rootKey: unkeyRootKey,
-    onError: (err: Error) => {
-      console.error("Rate limiting error:", err.message);
+    onError: (_err: Error) => {
       return { success: true, limit: 0, remaining: 1, reset: 1 };
     },
   });
@@ -256,7 +285,7 @@ export async function resendAuthCode(email: string): Promise<EmailAuthResult> {
 }
 
 export async function signIntoWorkspace(orgId: string): Promise<VerificationResult> {
-  const pendingToken = cookies().get("sess-temp")?.value;
+  const pendingToken = cookies().get(PENDING_SESSION_COOKIE)?.value;
 
   if (!pendingToken) {
     return {
@@ -274,7 +303,7 @@ export async function signIntoWorkspace(orgId: string): Promise<VerificationResu
 
     if (result.success) {
       await setCookies(result.cookies);
-      await deleteCookie("sess-temp");
+      await deleteCookie(PENDING_SESSION_COOKIE);
       redirect(result.redirectTo);
     }
 
@@ -336,6 +365,12 @@ export async function completeOrgSelection(
     for (const cookie of result.cookies) {
       cookies().set(cookie.name, cookie.value, cookie.options);
     }
+    // Store the last used organization ID in a cookie for auto-selection on next login
+    try {
+      await setLastUsedOrgCookie({ orgId });
+    } catch (_error) {
+      // Ignore cookie setting errors
+    }
   }
 
   return result;
@@ -350,11 +385,16 @@ export async function switchOrg(orgId: string): Promise<{ success: boolean; erro
       throw new Error("Invalid session data returned from auth provider");
     }
     await setSessionCookie({ token: newToken, expiresAt });
+
+    // Store the last used organization ID in a cookie for auto-selection on next login
+    try {
+      await setLastUsedOrgCookie({ orgId });
+    } catch (_error) {
+      // Ignore cookie setting errors
+    }
+
     return { success: true };
   } catch (error) {
-    console.error("Organization switch failed:", {
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to switch organization",
@@ -383,15 +423,76 @@ export async function acceptInvitationAndJoin(
 
     // Set the session cookie securely on the server side
     await setSessionCookie({ token: newToken, expiresAt });
+    try {
+      await setLastUsedOrgCookie({ orgId: organizationId });
+    } catch (_error) {
+      // Ignore cookie setting errors
+    }
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to accept invitation and join organization:", {
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to join organization",
     };
   }
+}
+
+/**
+ * Verify Turnstile token and retry original auth operation
+ */
+export async function verifyTurnstileAndRetry(params: {
+  turnstileToken: string;
+  email: string;
+  challengeParams: PendingTurnstileResponse["challengeParams"];
+  userData?: { firstName: string; lastName: string }; // Only for sign-up
+}): Promise<EmailAuthResult> {
+  const { turnstileToken, email, challengeParams, userData } = params;
+
+  // Verify Turnstile token
+  const isValidToken = await verifyTurnstileToken(turnstileToken);
+
+  if (!isValidToken) {
+    return {
+      success: false,
+      code: AuthErrorCode.UNKNOWN_ERROR,
+      message: "Verification failed. Please try again.",
+    };
+  }
+
+  // Retry original auth operation based on action
+  const metadata = getRequestMetadata();
+
+  if (challengeParams.action === "sign-up" && userData) {
+    // For sign-up, we need the user data
+    return await auth.signUpViaEmail({
+      ...userData,
+      email,
+      ...metadata,
+      bypassRadar: true,
+    });
+  }
+  if (challengeParams.action === "sign-in") {
+    // For sign-in, we just need the email
+    return await auth.signInViaEmail({
+      email,
+      ...metadata,
+      bypassRadar: true,
+    });
+  }
+
+  return {
+    success: false,
+    code: AuthErrorCode.UNKNOWN_ERROR,
+    message: "Invalid challenge parameters.",
+  };
+}
+
+/**
+ * Check if a pending session exists (for workspace selection flow)
+ * This is needed because PENDING_SESSION_COOKIE is HttpOnly and not accessible from client
+ */
+export async function hasPendingSession(): Promise<boolean> {
+  const pendingToken = cookies().get(PENDING_SESSION_COOKIE);
+  return !!pendingToken?.value;
 }

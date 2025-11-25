@@ -14,25 +14,25 @@ import (
 // This interface allows for different implementations, such as a real
 // ClickHouse client or a no-op implementation for testing or development.
 type Bufferer interface {
-	// BufferRequest adds an API request event to the buffer.
-	// These are typically HTTP requests to the API with request and response details.
-	BufferRequest(schema.ApiRequestV1)
-
 	// BufferApiRequest adds an API request event to the buffer.
 	// These are typically HTTP requests to the API with request and response details.
-	BufferApiRequest(schema.ApiRequestV2)
+	BufferApiRequest(schema.ApiRequest)
 
 	// BufferKeyVerification adds a key verification event to the buffer.
 	// These represent API key validation operations with their outcomes.
-	BufferKeyVerification(schema.KeyVerificationRequestV1)
-
-	// BufferKeyVerification adds a key verification event to the buffer.
-	// These represent API key validation operations with their outcomes.
-	BufferKeyVerificationV2(schema.KeyVerificationV2)
+	BufferKeyVerification(schema.KeyVerification)
 
 	// BufferRatelimit adds a ratelimit event to the buffer.
 	// These represent API ratelimit operations with their outcome.
-	BufferRatelimit(schema.RatelimitRequestV1)
+	BufferRatelimit(schema.Ratelimit)
+
+	// BufferRatelimit adds a ratelimit event to the buffer.
+	// These represent API ratelimit operations with their outcome.
+	BufferBuildStep(schema.BuildStepV1)
+
+	// BufferRatelimit adds a ratelimit event to the buffer.
+	// These represent API ratelimit operations with their outcome.
+	BufferBuildStepLog(schema.BuildStepLogV1)
 }
 
 type Querier interface {

@@ -40,28 +40,35 @@ describe("with no data", () => {
 describe.each([
   // generate and query times are different to ensure the query covers the entire generate interval
   // and the used toStartOf function in clickhouse
+  // NOTE: Using dynamic dates to avoid TTL deletion (table has 1 month TTL)
   {
     granularity: "hour",
-    generate: { start: "2024-12-05", end: "2024-12-07" },
-    query: { start: "2024-12-04", end: "2024-12-10" },
+    generateDaysAgo: { start: 5, end: 3 }, // 5 days ago to 3 days ago
+    queryDaysAgo: { start: 6, end: 0 }, // 6 days ago to now
   },
   {
     granularity: "day",
-    generate: { start: "2024-12-05", end: "2024-12-07" },
-    query: { start: "2024-12-01", end: "2024-12-10" },
+    generateDaysAgo: { start: 5, end: 3 },
+    queryDaysAgo: { start: 9, end: 0 },
   },
   {
     granularity: "month",
-    generate: { start: "2024-10-1", end: "2025-10-12" },
-    query: { start: "2023-12-01", end: "2026-12-10" },
+    generateDaysAgo: { start: 25, end: 5 },
+    queryDaysAgo: { start: 28, end: 0 },
   },
 ])("per $granularity", (tc) => {
   test("all verifications are accounted for", { timeout: 120_000 }, async (t) => {
     const h = await IntegrationHarness.init(t);
 
+    const now = Date.now();
+    const generateStart = now - tc.generateDaysAgo.start * 24 * 60 * 60 * 1000;
+    const generateEnd = now - tc.generateDaysAgo.end * 24 * 60 * 60 * 1000;
+    const queryStart = now - tc.queryDaysAgo.start * 24 * 60 * 60 * 1000;
+    const queryEnd = now - tc.queryDaysAgo.end * 24 * 60 * 60 * 1000;
+
     const verifications = generate({
-      start: new Date(tc.generate.start).getTime(),
-      end: new Date(tc.generate.end).getTime(),
+      start: generateStart,
+      end: generateEnd,
       length: 10_000,
       workspaceId: h.resources.userWorkspace.id,
       keySpaceId: h.resources.userKeyAuth.id,
@@ -73,12 +80,13 @@ describe.each([
 
     const inserted = await h.ch.querier.query({
       query:
-        "SELECT COUNT(*) AS count from verifications.raw_key_verifications_v1 WHERE workspace_id={workspaceId:String}",
+        "SELECT COUNT(*) AS count from default.key_verifications_raw_v2 WHERE workspace_id={workspaceId:String}",
       params: z.object({ workspaceId: z.string() }),
       schema: z.object({ count: z.number() }),
     })({
       workspaceId: h.resources.userWorkspace.id,
     });
+
     expect(inserted.err).toEqual(undefined);
     expect(inserted.val!.at(0)?.count).toEqual(verifications.length);
 
@@ -87,8 +95,8 @@ describe.each([
     const res = await h.get<V1AnalyticsGetVerificationsResponse>({
       url: "/v1/analytics.getVerifications",
       searchparams: {
-        start: new Date(tc.query.start).getTime().toString(),
-        end: new Date(tc.query.end).getTime().toString(),
+        start: queryStart.toString(),
+        end: queryEnd.toString(),
         groupBy: tc.granularity,
         apiId: h.resources.userApi.id,
       },
@@ -99,18 +107,78 @@ describe.each([
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
+    // For month/day granularity with Date columns, only count data from buckets
+    // that fall within the query date range (ignoring time component)
+    const queryStartDate = new Date(queryStart);
+    const queryEndDate = new Date(queryEnd);
+    const shouldCountVerification = (v: any) => {
+      if (tc.granularity === "month") {
+        // Get the bucket (month start) for this verification
+        const vDate = new Date(v.time);
+        const bucketDate = new Date(Date.UTC(vDate.getUTCFullYear(), vDate.getUTCMonth(), 1));
+
+        // Compare bucket date against query range (as Date, no time)
+        const startDateOnly = new Date(
+          Date.UTC(
+            queryStartDate.getUTCFullYear(),
+            queryStartDate.getUTCMonth(),
+            queryStartDate.getUTCDate(),
+          ),
+        );
+        const endDateOnly = new Date(
+          Date.UTC(
+            queryEndDate.getUTCFullYear(),
+            queryEndDate.getUTCMonth(),
+            queryEndDate.getUTCDate(),
+          ),
+        );
+
+        return bucketDate >= startDateOnly && bucketDate <= endDateOnly;
+      }
+      if (tc.granularity === "day") {
+        // Get the bucket (day start) for this verification
+        const vDate = new Date(v.time);
+        const bucketDate = new Date(
+          Date.UTC(vDate.getUTCFullYear(), vDate.getUTCMonth(), vDate.getUTCDate()),
+        );
+
+        const startDateOnly = new Date(
+          Date.UTC(
+            queryStartDate.getUTCFullYear(),
+            queryStartDate.getUTCMonth(),
+            queryStartDate.getUTCDate(),
+          ),
+        );
+        const endDateOnly = new Date(
+          Date.UTC(
+            queryEndDate.getUTCFullYear(),
+            queryEndDate.getUTCMonth(),
+            queryEndDate.getUTCDate(),
+          ),
+        );
+
+        return bucketDate >= startDateOnly && bucketDate <= endDateOnly;
+      }
+      return true; // For hour granularity, count all
+    };
+
+    let expectedTotal = 0;
     const outcomes = verifications.reduce(
       (acc, v) => {
+        if (!shouldCountVerification(v)) {
+          return acc;
+        }
         if (!acc[v.outcome]) {
           acc[v.outcome] = 0;
         }
         acc[v.outcome]++;
+        expectedTotal++;
         return acc;
       },
       {} as { [K in (typeof POSSIBLE_OUTCOMES)[number]]: number },
     );
 
-    expect(res.body.reduce((sum, d) => sum + d.total, 0)).toEqual(verifications.length);
+    expect(res.body.reduce((sum, d) => sum + d.total, 0)).toEqual(expectedTotal);
     expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(outcomes.VALID);
     expect(res.body.reduce((sum, d) => sum + (d.notFound ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.forbidden ?? 0), 0)).toEqual(0);
@@ -420,13 +488,32 @@ describe("RFC scenarios", () => {
 
     expect(res.body.length).lte(2);
     expect(res.body.length).gte(1);
+
+    // With Date columns, the API compares Date('start') to Date(bucket)
+    // This includes all months where Date(month_start) falls between Date(start) and Date(end)
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
     let total = 0;
     const outcomes = verifications.reduce(
       (acc, v) => {
-        if (
-          v.identity_id !== identity.id ||
-          new Date(v.time).getUTCMonth() !== new Date(now).getUTCMonth()
-        ) {
+        if (v.identity_id !== identity.id) {
+          return acc;
+        }
+
+        // Check if verification date (as Date, no time) falls within range
+        const vDate = new Date(v.time);
+        const vDateOnly = new Date(
+          Date.UTC(vDate.getUTCFullYear(), vDate.getUTCMonth(), vDate.getUTCDate()),
+        );
+        const startDateOnly = new Date(
+          Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()),
+        );
+        const endDateOnly = new Date(
+          Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate()),
+        );
+
+        if (vDateOnly < startDateOnly || vDateOnly > endDateOnly) {
           return acc;
         }
 

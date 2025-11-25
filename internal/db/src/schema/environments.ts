@@ -5,22 +5,24 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { projects } from "./projects";
+import { longblob } from "./util/longblob";
 export const environments = mysqlTable(
   "environments",
   {
-    id: varchar("id", { length: 256 }).primaryKey(),
+    id: varchar("id", { length: 128 }).primaryKey(),
+
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     projectId: varchar("project_id", { length: 256 }).notNull(),
 
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
     description: varchar("description", { length: 255 }),
 
+    gatewayConfig: longblob("gateway_config").notNull(),
+
     ...deleteProtection,
     ...lifecycleDates,
   },
-  (table) => ({
-    uniqueSlug: uniqueIndex("environments_project_id_slug_idx").on(table.projectId, table.slug),
-  }),
+  (table) => [uniqueIndex("environments_project_id_slug_idx").on(table.projectId, table.slug)],
 );
 
 export const environmentsRelations = relations(environments, ({ one }) => ({

@@ -18,10 +18,9 @@ import (
 // and rate limit violations.
 type Service struct {
 	hydrav1.UnimplementedCertificateServiceServer
-	db          db.Database
-	partitionDB db.Database
-	vault       *vault.Service
-	logger      logging.Logger
+	db     db.Database
+	vault  *vault.Service
+	logger logging.Logger
 }
 
 var _ hydrav1.CertificateServiceServer = (*Service)(nil)
@@ -30,9 +29,6 @@ var _ hydrav1.CertificateServiceServer = (*Service)(nil)
 type Config struct {
 	// DB is the main database connection for workspace and domain data.
 	DB db.Database
-
-	// PartitionDB is the partition database connection for certificate storage.
-	PartitionDB db.Database
 
 	// Vault provides encryption services for private key storage.
 	Vault *vault.Service
@@ -46,7 +42,6 @@ func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedCertificateServiceServer: hydrav1.UnimplementedCertificateServiceServer{},
 		db:                                    cfg.DB,
-		partitionDB:                           cfg.PartitionDB,
 		vault:                                 cfg.Vault,
 		logger:                                cfg.Logger,
 	}

@@ -2,7 +2,7 @@ import type { Deployment } from "@/lib/collections/deploy/deployments";
 import type { Project } from "@/lib/collections/deploy/projects";
 import { db, sql } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
-import { deployments, domains, projects } from "@unkey/db/src/schema";
+import { deployments, ingressRoutes, projects } from "@unkey/db/src/schema";
 
 type ProjectRow = {
   id: string;
@@ -41,7 +41,7 @@ export const listProjects = t.procedure
         ${deployments.gitCommitAuthorAvatarUrl},
         ${deployments.gitCommitTimestamp},
         ${deployments.runtimeConfig},
-        ${domains.domain},
+        ${ingressRoutes.hostname},
         (
           SELECT id
           FROM ${deployments} d
@@ -54,9 +54,8 @@ export const listProjects = t.procedure
       LEFT JOIN ${deployments}
         ON ${projects.liveDeploymentId} = ${deployments.id}
         AND ${deployments.workspaceId} = ${ctx.workspace.id}
-      LEFT JOIN ${domains}
-        ON ${projects.id} = ${domains.projectId}
-        AND ${domains.workspaceId} = ${ctx.workspace.id}
+      LEFT JOIN ${ingressRoutes}
+      ON ${projects.id} = ${ingressRoutes.projectId}
       WHERE ${projects.workspaceId} = ${ctx.workspace.id}
       ORDER BY ${projects.updatedAt} DESC
     `);

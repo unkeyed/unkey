@@ -9,17 +9,18 @@ export const listDomains = t.procedure
   .use(withRatelimit(ratelimit.read))
   .input(z.object({ projectId: z.string() }))
   .query(async ({ ctx, input }) => {
-    return await db.query.domains
-      .findMany({
+    const project = await db.query.projects
+      .findFirst({
         where: (table, { eq, and }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), eq(table.projectId, input.projectId)),
+          and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
         columns: {
           id: true,
-          domain: true,
-          projectId: true,
-          deploymentId: true,
-          type: true,
-          sticky: true,
+        },
+        with: {
+          ingressRoutes: {
+            limit: 500,
+            orderBy: (table, { desc }) => desc(table.updatedAt),
+          },
         },
       })
       .catch((error) => {
@@ -30,4 +31,6 @@ export const listDomains = t.procedure
             "Failed to retrieve domains due to an error. If this issue persists, please contact support.",
         });
       });
+
+    return project?.ingressRoutes ?? [];
   });

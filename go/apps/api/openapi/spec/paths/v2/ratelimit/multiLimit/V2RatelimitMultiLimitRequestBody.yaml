@@ -1,0 +1,6 @@
+type: array
+description: Array of rate limit checks to perform
+minItems: 1
+maxItems: 100
+items:
+  "$ref": "../limit/V2RatelimitLimitRequestBody.yaml"

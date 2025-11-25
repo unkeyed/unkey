@@ -8,7 +8,6 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	pdb "github.com/unkeyed/unkey/go/pkg/partition/db"
 )
 
 // EncryptedCertificate holds a certificate and its encrypted private key.
@@ -34,7 +33,7 @@ type EncryptedCertificate struct {
 // 2. Claim challenge - Acquire exclusive lock on the domain challenge
 // 3. Setup ACME client - Get or create ACME account (TODO: not yet implemented)
 // 4. Obtain certificate - Request certificate from CA (TODO: not yet implemented)
-// 5. Persist certificate - Store in partition DB for gateway access
+// 5. Persist certificate - Store in DB for gateway access
 // 6. Mark verified - Update challenge status with expiry time
 //
 // Returns status "success" if certificate was issued, "failed" if the ACME challenge
@@ -49,8 +48,8 @@ func (s *Service) ProcessChallenge(
 	)
 
 	// Step 1: Resolve domain
-	dom, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Domain, error) {
-		return db.Query.FindDomainByDomain(stepCtx, s.db.RO(), req.GetDomain())
+	dom, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.CustomDomain, error) {
+		return db.Query.FindCustomDomainByDomain(stepCtx, s.db.RO(), req.GetDomain())
 	}, restate.WithName("resolving domain"))
 	if err != nil {
 		return nil, err
@@ -100,7 +99,7 @@ func (s *Service) ProcessChallenge(
 
 	// Step 4: Obtain or renew certificate
 	cert, err := restate.Run(ctx, func(stepCtx restate.RunContext) (EncryptedCertificate, error) {
-		_, err = pdb.Query.FindCertificateByHostname(stepCtx, s.partitionDB.RO(), req.GetDomain())
+		_, err = db.Query.FindCertificateByHostname(stepCtx, s.db.RO(), req.GetDomain())
 		if err != nil && !db.IsNotFound(err) {
 			return EncryptedCertificate{}, err
 		}
@@ -121,10 +120,10 @@ func (s *Service) ProcessChallenge(
 		}, nil
 	}
 
-	// Step 5: Persist certificate to partition DB
+	// Step 5: Persist certificate to DB
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		now := time.Now().UnixMilli()
-		return restate.Void{}, pdb.Query.InsertCertificate(stepCtx, s.partitionDB.RW(), pdb.InsertCertificateParams{
+		return restate.Void{}, db.Query.InsertCertificate(stepCtx, s.db.RW(), db.InsertCertificateParams{
 			WorkspaceID:         dom.WorkspaceID,
 			Hostname:            req.GetDomain(),
 			Certificate:         cert.Certificate,

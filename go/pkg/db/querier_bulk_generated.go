@@ -11,16 +11,20 @@ type BulkQuerier interface {
 	InsertApis(ctx context.Context, db DBTX, args []InsertApiParams) error
 	InsertAuditLogs(ctx context.Context, db DBTX, args []InsertAuditLogParams) error
 	InsertAuditLogTargets(ctx context.Context, db DBTX, args []InsertAuditLogTargetParams) error
+	InsertCertificates(ctx context.Context, db DBTX, args []InsertCertificateParams) error
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
 	InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error
 	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
-	InsertDomains(ctx context.Context, db DBTX, args []InsertDomainParams) error
+	InsertGateways(ctx context.Context, db DBTX, args []InsertGatewayParams) error
 	InsertIdentities(ctx context.Context, db DBTX, args []InsertIdentityParams) error
 	InsertIdentityRatelimits(ctx context.Context, db DBTX, args []InsertIdentityRatelimitParams) error
+	InsertIngressRoutes(ctx context.Context, db DBTX, args []InsertIngressRouteParams) error
+	UpsertInstance(ctx context.Context, db DBTX, args []UpsertInstanceParams) error
 	InsertKeyAuths(ctx context.Context, db DBTX, args []InsertKeyAuthParams) error
 	InsertKeyEncryptions(ctx context.Context, db DBTX, args []InsertKeyEncryptionParams) error
 	InsertKeys(ctx context.Context, db DBTX, args []InsertKeyParams) error
 	InsertKeyRatelimits(ctx context.Context, db DBTX, args []InsertKeyRatelimitParams) error
+	InsertKeyMigrations(ctx context.Context, db DBTX, args []InsertKeyMigrationParams) error
 	InsertKeyPermissions(ctx context.Context, db DBTX, args []InsertKeyPermissionParams) error
 	InsertKeyRoles(ctx context.Context, db DBTX, args []InsertKeyRoleParams) error
 	InsertKeySpaces(ctx context.Context, db DBTX, args []InsertKeySpaceParams) error

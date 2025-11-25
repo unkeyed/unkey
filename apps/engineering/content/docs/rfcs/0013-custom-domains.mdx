@@ -41,14 +41,13 @@ Our SSL certificate management system has several key components:
 - Manages certificate lifecycle (issuance and renewal)
 - Runs a validation server to respond to HTTP-01 challenges
 
-**Gateways (Dataplane)**
+**Ingress (Dataplane)**
 - Handle incoming HTTPS traffic using certificates
 - Redirect challenge requests to the ctrl service validation server
 - Completely independent of control plane for serving user traffic
 
-**Databases**
-- Control plane DB: Stores custom domains, certificate request tracking, and challenge state
-- Dataplane DB: Stores certificates and encrypted private keys for runtime use
+**Database**
+- Stores custom domains, certificate request tracking, challenge state, certificates and encrypted private keys for runtime use
 
 **Vault**
 - Encrypts all private keys before database storage
@@ -62,15 +61,14 @@ This separation ensures that customer HTTPS traffic continues working even if ou
 
 The database design maintains strict separation between control plane operations and dataplane runtime requirements.
 
-**Control Plane Database (`unkey`):**
-- `domains` - Stores custom domains and associated metadata
+**Database (`unkey`):**
+- `custom_domains` - Stores user-owned custom domains
+- `ingress_routes` - Maps hostnames to deployments with sticky behavior
 - `certificate_requests` - Tracks ACME workflow state and metadata for certificate provisioning and renewal
 - `challenges` - Stores ACME challenge responses and metadata
-
-**Dataplane Database (`partition001`):**
 - `certificates` - Production certificates and encrypted private keys for gateway TLS termination
 
-The ctrl service uses the control plane database for certificate request lifecycle management and ACME protocol state tracking, including storing challenge responses. The dataplane database serves runtime TLS needs: gateways query it for certificates during TLS handshakes and cache them in memory.
+The ctrl service uses the database for certificate request lifecycle management and ACME protocol state tracking, including storing challenge responses. Gateways query the same database for certificates during TLS handshakes and cache them in memory.
 
 ## Certificate Provisioning
 
@@ -375,7 +373,7 @@ CREATE INDEX idx_challenges_domain ON challenges(domain);
 CREATE INDEX idx_challenges_cert_request ON challenges(certificate_request_id);
 ```
 
-**Dataplane Database (`partition001`)**
+**Database (`unkey`)**
 ```sql
 CREATE TABLE certificates (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -393,7 +391,7 @@ CREATE UNIQUE INDEX idx_certificates_domain ON certificates(domain);
 CREATE INDEX idx_certificates_expires ON certificates(expires_at);
 ```
 
-The control plane tracks certificate request workflow state and stores challenge responses for ACME validation, while the dataplane stores production certificates and encrypted keys for runtime use. All timestamps use Unix milliseconds (unixmilli) format.
+The system tracks certificate request workflow state and stores challenge responses for ACME validation, while also storing production certificates and encrypted keys for runtime use. All timestamps use Unix milliseconds (unixmilli) format.
 
 ### Mermaid Diagram
 This is the one from above
@@ -404,7 +402,7 @@ sequenceDiagram
     participant CD as Control DB
     participant LE as Let's Encrypt
     participant GW as Gateway
-    participant DD as Dataplane DB
+    participant DD as Database
     participant V as Vault
 
     Note over CS: Setup Phase

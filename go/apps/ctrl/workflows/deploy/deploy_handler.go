@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"context"
 	"database/sql"
 	"encoding/base64"
 	"fmt"
@@ -13,30 +14,11 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
-	partitionv1 "github.com/unkeyed/unkey/go/gen/proto/partition/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	partitiondb "github.com/unkeyed/unkey/go/pkg/partition/db"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 	"google.golang.org/protobuf/proto"
 )
 
-// Deploy orchestrates the complete deployment of a new Docker image.
-//
-// This durable workflow performs the following steps:
-// 1. Load deployment, workspace, project, and environment data
-// 2. Create deployment in Krane (container orchestration)
-// 3. Poll for all instances to become ready
-// 4. Register VMs in partition database
-// 5. Scrape OpenAPI spec from running instances (if available)
-// 6. Assign domains and create gateway configs via routing service
-// 7. Update deployment status to ready
-// 8. Update project's live deployment pointer (if production and not rolled back)
-//
-// Each step is wrapped in restate.Run for durability. If the workflow is interrupted,
-// it resumes from the last completed step. A deferred error handler ensures that
-// failed deployments are properly marked in the database even if the workflow crashes.
-//
-// The workflow uses a 5-minute polling loop to wait for instances to become ready,
-// checking Krane deployment status every second and logging progress every 10 seconds.
 func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
 	finishedSuccessfully := false
 
@@ -78,41 +60,11 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, err
 	}
 
-	// Log deployment pending
-	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		err = db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			WorkspaceID:  deployment.WorkspaceID,
-			ProjectID:    deployment.ProjectID,
-			DeploymentID: deployment.ID,
-			Status:       "pending",
-			Message:      "Deployment queued and ready to start",
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-		return restate.Void{}, err
-	}, restate.WithName("logging deployment pending"))
-	if err != nil {
-		return nil, err
-	}
-
 	var dockerImage string
 
 	if req.GetBuildContextPath() != "" {
 		// Build Docker image from uploaded context
 		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusBuilding); err != nil {
-			return nil, err
-		}
-
-		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-				WorkspaceID:  deployment.WorkspaceID,
-				ProjectID:    deployment.ProjectID,
-				DeploymentID: deployment.ID,
-				Status:       "pending",
-				Message:      "Building Docker image from source",
-				CreatedAt:    time.Now().UnixMilli(),
-			})
-		}, restate.WithName("logging build start"))
-		if err != nil {
 			return nil, err
 		}
 
@@ -123,6 +75,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 			buildReq := connect.NewRequest(&ctrlv1.CreateBuildRequest{
 				UnkeyProjectId:   deployment.ProjectID,
+				WorkspaceId:      deployment.WorkspaceID,
 				DeploymentId:     deployment.ID,
 				BuildContextPath: req.GetBuildContextPath(),
 				DockerfilePath:   proto.String(req.GetDockerfilePath()),
@@ -143,20 +96,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		}, restate.WithName("building docker image"))
 		if err != nil {
 			return nil, fmt.Errorf("failed to build docker image: %w", err)
-		}
-
-		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-				WorkspaceID:  deployment.WorkspaceID,
-				ProjectID:    deployment.ProjectID,
-				DeploymentID: deployment.ID,
-				Status:       "pending",
-				Message:      fmt.Sprintf("Docker image built successfully: %s", dockerImage),
-				CreatedAt:    time.Now().UnixMilli(),
-			})
-		}, restate.WithName("logging build complete"))
-		if err != nil {
-			return nil, err
 		}
 
 	} else if req.GetDockerImage() != "" {
@@ -201,6 +140,9 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	createdInstances, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]*kranev1.Instance, error) {
 		// prevent updating the db unnecessarily
 
+		// instanceID -> status to track if an instance is already in the db and if we need to update it
+		storedInstances := map[string]db.InstancesStatus{}
+
 		for i := range 300 {
 			time.Sleep(time.Second)
 			if i%10 == 0 { // Log every 10 seconds instead of every second
@@ -227,40 +169,44 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 					allReady = false
 				}
 
-				var status partitiondb.VmsStatus
+				var status db.InstancesStatus
 				switch instance.GetStatus() {
 				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING:
-					status = partitiondb.VmsStatusProvisioning
+					status = db.InstancesStatusProvisioning
 				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING:
-					status = partitiondb.VmsStatusRunning
+					status = db.InstancesStatusRunning
 
 				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_TERMINATING:
-					status = partitiondb.VmsStatusStopping
+					status = db.InstancesStatusStopping
 				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED:
-					status = partitiondb.VmsStatusAllocated
+					status = db.InstancesStatusAllocated
 				}
 
-				upsertParams := partitiondb.UpsertVMParams{
-					ID:           instance.GetId(),
-					DeploymentID: deployment.ID,
-					Address:      sql.NullString{Valid: true, String: instance.GetAddress()},
-					// nolint: godox
-					// TODO: Make sure configurable later
-					CpuMillicores: 1000,
-					MemoryMb:      1024,
-					Status:        status,
-				}
-
-				w.logger.Info("upserting VM to database",
-					"vm_id", instance.GetId(),
+				w.logger.Info("upserting instance to database",
+					"instance_id", instance.GetId(),
 					"deployment_id", deployment.ID,
 					"address", instance.GetAddress(),
 					"status", status)
-				if err = partitiondb.Query.UpsertVM(stepCtx, w.partitionDB.RW(), upsertParams); err != nil {
-					return nil, fmt.Errorf("failed to upsert VM %s: %w", instance.GetId(), err)
-				}
 
-				w.logger.Info("successfully upserted VM to database", "vm_id", instance.GetId())
+				previousStatus, ok := storedInstances[instance.GetId()]
+				if !ok || previousStatus != status {
+					if err = db.Query.UpsertInstance(stepCtx, w.db.RW(), db.UpsertInstanceParams{
+						ID:            instance.GetId(),
+						DeploymentID:  deployment.ID,
+						WorkspaceID:   deployment.WorkspaceID,
+						ProjectID:     deployment.ProjectID,
+						Region:        "TODO",
+						Address:       instance.GetAddress(),
+						CpuMillicores: 1000,
+						MemoryMb:      1024,
+						Status:        status,
+					}); err != nil {
+						return nil, fmt.Errorf("failed to upsert instance %s: %w", instance.GetId(), err)
+					}
+					w.logger.Info("successfully upserted instance to database", "instance_id", instance.GetId())
+					storedInstances[instance.GetId()] = status
+
+				}
 
 			}
 
@@ -323,7 +269,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		}, restate.WithName("update deployment openapi spec"))
 	}
 
-	allDomains := buildDomains(
+	allHostnames := buildDomains(
 		workspace.Slug,
 		project.Slug,
 		environment.Slug,
@@ -333,67 +279,49 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD, // hardcoded for now cause I really need to move on
 	)
 
-	// Create VM protobuf objects for gateway config
-	gatewayConfig := &partitionv1.GatewayConfig{
-		Project:          nil,
-		AuthConfig:       nil,
-		ValidationConfig: nil,
-		Deployment: &partitionv1.Deployment{
-			Id:        deployment.ID,
-			IsEnabled: true,
-		},
-		Vms: make([]*partitionv1.VM, len(createdInstances)),
-	}
-
-	for i, vm := range createdInstances {
-		gatewayConfig.Vms[i] = &partitionv1.VM{
-			Id: vm.GetId(),
-		}
-	}
-
-	// Only add AuthConfig if we have a KeyspaceID
-	if req.GetKeyAuthId() != "" {
-		gatewayConfig.AuthConfig = &partitionv1.AuthConfig{
-			KeyAuthId: req.GetKeyAuthId(),
-		}
-	}
-
-	if openapiSpec != "" {
-		gatewayConfig.ValidationConfig = &partitionv1.ValidationConfig{
-			OpenapiSpec: openapiSpec,
-		}
-	}
-
 	// Build domain assignment requests
-	domainRequests := make([]*hydrav1.DomainToAssign, 0, len(allDomains))
-	for _, domain := range allDomains {
-		sticky := hydrav1.DomainSticky_DOMAIN_STICKY_UNSPECIFIED
-		if domain.sticky.Valid {
-			switch domain.sticky.DomainsSticky {
-			case db.DomainsStickyBranch:
-				sticky = hydrav1.DomainSticky_DOMAIN_STICKY_BRANCH
-			case db.DomainsStickyEnvironment:
-				sticky = hydrav1.DomainSticky_DOMAIN_STICKY_ENVIRONMENT
-			case db.DomainsStickyLive:
-				sticky = hydrav1.DomainSticky_DOMAIN_STICKY_LIVE
-			}
-		}
-		domainRequests = append(domainRequests, &hydrav1.DomainToAssign{
-			Name:   domain.domain,
-			Sticky: sticky,
+
+	existingRouteIDs := make([]string, 0)
+
+	for _, hostname := range allHostnames {
+		ingressRouteID, err := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
+			return db.TxWithResult(stepCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
+				found, err := db.Query.FindIngressRouteByHostname(txCtx, tx, hostname.domain)
+				if err != nil {
+					if db.IsNotFound(err) {
+						err = db.Query.InsertIngressRoute(stepCtx, tx, db.InsertIngressRouteParams{
+							ID:            uid.New("todo"),
+							ProjectID:     project.ID,
+							DeploymentID:  deployment.ID,
+							EnvironmentID: deployment.EnvironmentID,
+							Hostname:      hostname.domain,
+							Sticky:        hostname.sticky,
+							CreatedAt:     time.Now().UnixMilli(),
+							UpdatedAt:     sql.NullInt64{Valid: false, Int64: 0},
+						})
+						// return empty string cause this ingress is already updated since we just created it
+						return "", err
+
+					}
+					return "", err
+				}
+				return found.ID, nil
+
+			})
 		})
+		if err != nil {
+			return nil, err
+		}
+		if ingressRouteID != "" {
+			existingRouteIDs = append(existingRouteIDs, ingressRouteID)
+		}
 	}
 
 	// Call RoutingService to assign domains atomically
 	_, err = hydrav1.NewRoutingServiceClient(ctx, project.ID).
-		AssignDomains().Request(&hydrav1.AssignDomainsRequest{
-		WorkspaceId:   workspace.ID,
-		ProjectId:     project.ID,
-		EnvironmentId: environment.ID,
-		DeploymentId:  deployment.ID,
-		Domains:       domainRequests,
-		GatewayConfig: gatewayConfig,
-		IsRolledBack:  project.IsRolledBack,
+		AssignIngressRoutes().Request(&hydrav1.AssignIngressRoutesRequest{
+		DeploymentId:    deployment.ID,
+		IngressRouteIds: existingRouteIDs,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to assign domains: %w", err)
@@ -437,7 +365,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	w.logger.Info("deployment workflow completed",
 		"deployment_id", deployment.ID,
 		"status", "succeeded",
-		"domains", len(allDomains))
+		"hostnames", len(allHostnames),
+	)
 
 	finishedSuccessfully = true
 

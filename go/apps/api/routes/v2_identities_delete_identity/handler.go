@@ -71,26 +71,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	results, err := db.Query.FindIdentityWithRatelimits(ctx, h.DB.RO(), db.FindIdentityWithRatelimitsParams{
+	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		Identity:    req.Identity,
 		Deleted:     false,
 	})
 	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("identity not found",
+				fault.Code(codes.Data.Identity.NotFound.URN()),
+				fault.Internal("identity not found"), fault.Public("This identity does not exist."),
+			)
+		}
+
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database failed to find the identity"), fault.Public("Error finding the identity."),
 		)
 	}
-
-	if len(results) == 0 {
-		return fault.New("identity not found",
-			fault.Code(codes.Data.Identity.NotFound.URN()),
-			fault.Internal("identity not found"), fault.Public("This identity does not exist."),
-		)
-	}
-
-	identity := results[0]
 
 	// Parse ratelimits JSON
 	var ratelimits []db.RatelimitInfo

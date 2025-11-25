@@ -25,8 +25,7 @@ export async function getAuth(req?: NextRequest): Promise<GetAuthResult> {
     }
 
     return session;
-  } catch (error) {
-    console.error("Auth validation error:", error);
+  } catch (_error) {
     return {
       userId: null,
       orgId: null,

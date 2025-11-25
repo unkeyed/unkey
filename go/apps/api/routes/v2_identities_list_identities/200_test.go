@@ -9,11 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	handler "github.com/unkeyed/unkey/go/apps/api/routes/v2_identities_list_identities"
 	"github.com/unkeyed/unkey/go/pkg/db"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/testutil"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
@@ -101,22 +99,22 @@ func TestSuccess(t *testing.T) {
 		for _, identity := range res.Body.Data {
 			for i, id := range externalIDs {
 				if identity.ExternalId == id {
-					assert.Equal(t, externalIDs[i], identity.ExternalId)
+					require.Equal(t, externalIDs[i], identity.ExternalId)
 					found = true
 
 					// Check if this identity should have ratelimits
 					if i%2 == 0 {
-						require.GreaterOrEqual(t, len(*identity.Ratelimits), 1, "identity %s should have at least 1 ratelimit", id)
+						require.GreaterOrEqual(t, len(identity.Ratelimits), 1, "identity %s should have at least 1 ratelimit", id)
 						hasApiCallsLimit := false
-						for _, rl := range *identity.Ratelimits {
+						for _, rl := range identity.Ratelimits {
 							if rl.Name == "api_calls" {
 								hasApiCallsLimit = true
-								assert.Equal(t, int64(100), rl.Limit)
-								assert.Equal(t, int64(60000), rl.Duration)
+								require.Equal(t, int64(100), rl.Limit)
+								require.Equal(t, int64(60000), rl.Duration)
 								break
 							}
 						}
-						assert.True(t, hasApiCallsLimit, "identity should have api_calls ratelimit")
+						require.True(t, hasApiCallsLimit, "identity should have api_calls ratelimit")
 					}
 					break
 				}
@@ -172,7 +170,7 @@ func TestSuccess(t *testing.T) {
 		if len(secondRes.Body.Data) > 0 {
 			sampleExternalID := secondRes.Body.Data[0].ExternalId
 			_, found := firstPageExternalIDs[sampleExternalID]
-			assert.False(t, found, "identity %s should not appear in both pages", sampleExternalID)
+			require.False(t, found, "identity %s should not appear in both pages", sampleExternalID)
 		}
 	})
 
@@ -266,7 +264,7 @@ func TestSuccess(t *testing.T) {
 
 				// Verify Unicode in metadata was preserved
 				require.NotNil(t, identity.Meta)
-				metaMap := *identity.Meta
+				metaMap := identity.Meta
 				require.Equal(t, "名字", metaMap["name"])
 				require.Equal(t, "这是一个测试用户 with 英文 and emoji 👍👨‍👩‍👧‍👦🇯🇵", metaMap["description"])
 
@@ -366,7 +364,7 @@ func TestSuccess(t *testing.T) {
 					require.Nil(t, identity.Ratelimits, "Ratelimits should be nil")
 				} else {
 					require.NotNil(t, identity.Ratelimits, "Ratelimits should be set")
-					require.Len(t, ptr.SafeDeref(identity.Ratelimits), len(identityRatelimits), "Ratelimits should match the database")
+					require.Len(t, identity.Ratelimits, len(identityRatelimits), "Ratelimits should match the database")
 				}
 
 				if len(dbIdentity.Meta) > 0 {

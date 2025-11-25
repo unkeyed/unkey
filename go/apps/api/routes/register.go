@@ -11,10 +11,13 @@ import (
 	chproxyRatelimits "github.com/unkeyed/unkey/go/apps/api/routes/chproxy_ratelimits"
 	chproxyVerifications "github.com/unkeyed/unkey/go/apps/api/routes/chproxy_verifications"
 
+	pprofRoute "github.com/unkeyed/unkey/go/apps/api/routes/pprof"
+
 	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_delete_override"
 	v2RatelimitGetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_get_override"
 	v2RatelimitLimit "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_limit"
 	v2RatelimitListOverrides "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_list_overrides"
+	v2RatelimitMultiLimit "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_multi_limit"
 	v2RatelimitSetOverride "github.com/unkeyed/unkey/go/apps/api/routes/v2_ratelimit_set_override"
 
 	v2ApisCreateApi "github.com/unkeyed/unkey/go/apps/api/routes/v2_apis_create_api"
@@ -42,6 +45,7 @@ import (
 	v2KeysCreateKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_create_key"
 	v2KeysDeleteKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_delete_key"
 	v2KeysGetKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_get_key"
+	v2KeysMigrateKeys "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_migrate_keys"
 	v2KeysRemovePermissions "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_remove_permissions"
 	v2KeysRemoveRoles "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_remove_roles"
 	v2KeysRerollKey "github.com/unkeyed/unkey/go/apps/api/routes/v2_keys_reroll_key"
@@ -59,10 +63,9 @@ import (
 
 // here we register all of the routes.
 // this function runs during startup.
-func Register(srv *zen.Server, svc *Services) {
-	withTracing := zen.WithTracing()
-	withMetrics := zen.WithMetrics(svc.ClickHouse)
-
+func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
+	withObservability := zen.WithObservability()
+	withMetrics := zen.WithMetrics(svc.ClickHouse, info)
 	withLogging := zen.WithLogging(svc.Logger)
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
 	withErrorHandling := zen.WithErrorHandling(svc.Logger)
@@ -71,7 +74,7 @@ func Register(srv *zen.Server, svc *Services) {
 
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
-		withTracing,
+		withObservability,
 		withMetrics,
 		withLogging,
 		withErrorHandling,
@@ -88,6 +91,7 @@ func Register(srv *zen.Server, svc *Services) {
 		chproxyMiddlewares := []zen.Middleware{
 			withMetrics,
 			withLogging,
+			withObservability,
 			withPanicRecovery,
 			withErrorHandling,
 		}
@@ -115,12 +119,45 @@ func Register(srv *zen.Server, svc *Services) {
 	}
 
 	// ---------------------------------------------------------------------------
+	// pprof (internal profiling endpoints)
+
+	if svc.PprofEnabled {
+		pprofMiddlewares := []zen.Middleware{
+			withLogging,
+			withObservability,
+			withPanicRecovery,
+			withErrorHandling,
+		}
+
+		srv.RegisterRoute(pprofMiddlewares, &pprofRoute.Handler{
+			Logger:   svc.Logger,
+			Username: svc.PprofUsername,
+			Password: svc.PprofPassword,
+		})
+	}
+
+	// ---------------------------------------------------------------------------
 	// v2/ratelimit
 
 	// v2/ratelimit.limit
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitLimit.Handler{
+			Logger:                  svc.Logger,
+			DB:                      svc.Database,
+			Keys:                    svc.Keys,
+			ClickHouse:              svc.ClickHouse,
+			Ratelimit:               svc.Ratelimit,
+			RatelimitNamespaceCache: svc.Caches.RatelimitNamespace,
+			TestMode:                srv.Flags().TestMode,
+			Auditlogs:               svc.Auditlogs,
+		},
+	)
+
+	// v2/ratelimit.multiLimit
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2RatelimitMultiLimit.Handler{
 			Logger:                  svc.Logger,
 			DB:                      svc.Database,
 			Keys:                    svc.Keys,
@@ -383,6 +420,18 @@ func Register(srv *zen.Server, svc *Services) {
 		},
 	)
 
+	// v2/keys.migrateKeys
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2KeysMigrateKeys.Handler{
+			Logger:    svc.Logger,
+			ApiCache:  svc.Caches.LiveApiByID,
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+			Keys:      svc.Keys,
+		},
+	)
+
 	// v2/keys.createKey
 	srv.RegisterRoute(
 		defaultMiddlewares,
@@ -560,22 +609,25 @@ func Register(srv *zen.Server, svc *Services) {
 	// ---------------------------------------------------------------------------
 	// misc
 
-	srv.RegisterRoute([]zen.Middleware{
-		withTracing,
+	var miscMiddlewares = []zen.Middleware{
+		withObservability,
 		withMetrics,
 		withLogging,
 		withPanicRecovery,
 		withErrorHandling,
-	}, &reference.Handler{
-		Logger: svc.Logger,
-	})
-	srv.RegisterRoute([]zen.Middleware{
-		withTracing,
-		withMetrics,
-		withLogging,
-		withPanicRecovery,
-		withErrorHandling,
-	}, &openapi.Handler{
-		Logger: svc.Logger,
-	})
+	}
+
+	srv.RegisterRoute(
+		miscMiddlewares,
+		&reference.Handler{
+			Logger: svc.Logger,
+		},
+	)
+
+	srv.RegisterRoute(
+		miscMiddlewares,
+		&openapi.Handler{
+			Logger: svc.Logger,
+		},
+	)
 }

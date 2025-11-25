@@ -302,9 +302,16 @@ func Run(ctx context.Context, cfg Config) error {
 		Caches:                     caches,
 		Vault:                      vaultSvc,
 		ChproxyToken:               cfg.ChproxyToken,
+		PprofEnabled:               cfg.PprofEnabled,
+		PprofUsername:              cfg.PprofUsername,
+		PprofPassword:              cfg.PprofPassword,
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
-	})
+	},
+		zen.InstanceInfo{
+			ID:     cfg.InstanceID,
+			Region: cfg.Region,
+		})
 
 	if cfg.Listener == nil {
 		// Create listener from HttpPort (production)

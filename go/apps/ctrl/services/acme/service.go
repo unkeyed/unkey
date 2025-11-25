@@ -8,22 +8,19 @@ import (
 
 type Service struct {
 	ctrlv1connect.UnimplementedAcmeServiceHandler
-	db          db.Database
-	partitionDB db.Database
-	logger      logging.Logger
+	db     db.Database
+	logger logging.Logger
 }
 
 type Config struct {
-	PartitionDB db.Database
-	DB          db.Database
-	Logger      logging.Logger
+	DB     db.Database
+	Logger logging.Logger
 }
 
 func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedAcmeServiceHandler: ctrlv1connect.UnimplementedAcmeServiceHandler{},
 		db:                              cfg.DB,
-		partitionDB:                     cfg.PartitionDB,
 		logger:                          cfg.Logger,
 	}
 }

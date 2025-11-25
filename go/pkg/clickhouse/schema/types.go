@@ -1,9 +1,9 @@
 package schema
 
-// KeyVerificationV2 represents the v2 key verification raw table structure.
+// KeyVerification represents the v2 key verification raw table structure.
 // This matches the key_verifications_raw_v2 table schema with additional
 // fields like spent_credits and latency compared to v1.
-type KeyVerificationV2 struct {
+type KeyVerification struct {
 	RequestID    string   `ch:"request_id" json:"request_id"`
 	Time         int64    `ch:"time" json:"time"`
 	WorkspaceID  string   `ch:"workspace_id" json:"workspace_id"`
@@ -18,10 +18,10 @@ type KeyVerificationV2 struct {
 	Latency      float64  `ch:"latency" json:"latency"`
 }
 
-// RatelimitV2 represents the v2 ratelimit raw table structure.
+// Ratelimit represents the v2 ratelimit raw table structure.
 // This matches the ratelimits_raw_v2 table schema with additional
 // latency field compared to v1.
-type RatelimitV2 struct {
+type Ratelimit struct {
 	RequestID   string  `ch:"request_id" json:"request_id"`
 	Time        int64   `ch:"time" json:"time"`
 	WorkspaceID string  `ch:"workspace_id" json:"workspace_id"`
@@ -35,10 +35,10 @@ type RatelimitV2 struct {
 	ResetAt     int64   `ch:"reset_at" json:"reset_at"`
 }
 
-// ApiRequestV2 represents the v2 API request raw table structure.
+// ApiRequest represents the v2 API request raw table structure.
 // This matches the api_requests_raw_v2 table schema with query parameters
 // and region field compared to v1.
-type ApiRequestV2 struct {
+type ApiRequest struct {
 	RequestID       string              `ch:"request_id" json:"request_id"`
 	Time            int64               `ch:"time" json:"time"`
 	WorkspaceID     string              `ch:"workspace_id" json:"workspace_id"`
@@ -93,4 +93,32 @@ type ApiRequestAggregated struct {
 	Host           string `ch:"host" json:"host"`
 	Method         string `ch:"method" json:"method"`
 	Count          int64  `ch:"count" json:"count"`
+}
+
+// BuildStepV1 represents the v1 build step raw table structure.
+// This tracks individual build steps within a deployment process
+// including timing, caching, and error information.
+type BuildStepV1 struct {
+	StartedAt    int64  `ch:"started_at" json:"started_at"`
+	CompletedAt  int64  `ch:"completed_at" json:"completed_at"`
+	WorkspaceID  string `ch:"workspace_id" json:"workspace_id"`
+	ProjectID    string `ch:"project_id" json:"project_id"`
+	DeploymentID string `ch:"deployment_id" json:"deployment_id"`
+	StepID       string `ch:"step_id" json:"step_id"`
+	Name         string `ch:"name" json:"name"`
+	Cached       bool   `ch:"cached" json:"cached"`
+	Error        string `ch:"error" json:"error"`
+	HasLogs      bool   `ch:"has_logs" json:"has_logs"`
+}
+
+// BuildStepLogV1 represents the v1 build step log raw table structure.
+// This stores log messages generated during build step execution
+// for debugging and monitoring purposes.
+type BuildStepLogV1 struct {
+	Time         int64  `ch:"time" json:"time"`
+	WorkspaceID  string `ch:"workspace_id" json:"workspace_id"`
+	ProjectID    string `ch:"project_id" json:"project_id"`
+	DeploymentID string `ch:"deployment_id" json:"deployment_id"`
+	StepID       string `ch:"step_id" json:"step_id"`
+	Message      string `ch:"message" json:"message"`
 }

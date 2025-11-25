@@ -182,17 +182,18 @@ func (l *lexer) readIdentifier() string {
 //   - Hyphens (-) for kebab-case identifiers
 //   - Colons (:) for namespace separation (e.g., "system:admin")
 //   - Asterisks (*) for literal permission names (e.g., "api.*")
+//   - Forward slashes (/) for path-like permission names (e.g., "/api/v1/xxx")
 //
 // Note: The asterisk (*) character is treated as a literal character in permission
 // names, NOT as a wildcard pattern. For example, "api.*" matches only the exact
 // permission "api.*", not "api.read" or "api.write".
 //
-// This character set matches the regex: /^[a-zA-Z0-9_:\-\.\*]+$/
+// This character set matches the regex: /^[a-zA-Z0-9_:\-\.\*\/]+$/
 //
 // Characters like spaces, parentheses, and operators are not allowed in
 // permission identifiers and will terminate identifier parsing.
 func isValidPermissionChar(ch byte) bool {
-	return unicode.IsLetter(rune(ch)) || unicode.IsDigit(rune(ch)) || ch == '.' || ch == '_' || ch == '-' || ch == '*' || ch == ':'
+	return unicode.IsLetter(rune(ch)) || unicode.IsDigit(rune(ch)) || ch == '.' || ch == '_' || ch == '-' || ch == '*' || ch == ':' || ch == '/'
 }
 
 // nextToken extracts and returns the next token from the input stream.
@@ -252,7 +253,7 @@ func (l *lexer) nextToken() token {
 			err := fault.New(
 				fmt.Sprintf("invalid character '%c' at position %d in query", char, pos),
 				fault.Code(codes.User.BadRequest.PermissionsQuerySyntaxError.URN()),
-				fault.Public(fmt.Sprintf("Invalid character '%c' found in query at position %d. Only letters, numbers, dots, underscores, hyphens, and parentheses are allowed.", char, pos)),
+				fault.Public(fmt.Sprintf("Invalid character '%c' found in query at position %d. Only letters, numbers, dots, underscores, hyphens, slashes, colons, asterisks, and parentheses are allowed.", char, pos)),
 			)
 
 			tok = token{

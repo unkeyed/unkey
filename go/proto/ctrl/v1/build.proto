@@ -13,6 +13,7 @@ message CreateBuildRequest {
   optional string dockerfile_path = 2; // Path to Dockerfile within the tar
   string unkey_project_id = 3; // Your internal user/project ID
   string deployment_id = 4;
+  string workspace_id = 5;
 }
 
 message CreateBuildResponse {

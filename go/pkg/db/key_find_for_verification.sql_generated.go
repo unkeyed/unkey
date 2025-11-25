@@ -24,6 +24,7 @@ select k.id,
        k.last_refill_at,
        k.enabled,
        k.remaining_requests,
+       k.pending_migration_id,
        a.ip_whitelist,
        a.workspace_id  as api_workspace_id,
        a.id            as api_id,
@@ -103,6 +104,7 @@ type FindKeyForVerificationRow struct {
 	LastRefillAt        sql.NullTime   `db:"last_refill_at"`
 	Enabled             bool           `db:"enabled"`
 	RemainingRequests   sql.NullInt32  `db:"remaining_requests"`
+	PendingMigrationID  sql.NullString `db:"pending_migration_id"`
 	IpWhitelist         sql.NullString `db:"ip_whitelist"`
 	ApiWorkspaceID      string         `db:"api_workspace_id"`
 	ApiID               string         `db:"api_id"`
@@ -133,6 +135,7 @@ type FindKeyForVerificationRow struct {
 //	       k.last_refill_at,
 //	       k.enabled,
 //	       k.remaining_requests,
+//	       k.pending_migration_id,
 //	       a.ip_whitelist,
 //	       a.workspace_id  as api_workspace_id,
 //	       a.id            as api_id,
@@ -213,6 +216,7 @@ func (q *Queries) FindKeyForVerification(ctx context.Context, db DBTX, hash stri
 		&i.LastRefillAt,
 		&i.Enabled,
 		&i.RemainingRequests,
+		&i.PendingMigrationID,
 		&i.IpWhitelist,
 		&i.ApiWorkspaceID,
 		&i.ApiID,

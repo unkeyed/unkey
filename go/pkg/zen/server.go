@@ -3,7 +3,6 @@ package zen
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"sync"
@@ -224,7 +223,7 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 }
 
 // RegisterRoute adds an HTTP route to the server with the specified middleware chain.
-// Routes are matched by both method and path.
+// Routes are matched by both method and path, unless the method is CATCHALL (empty string) which matches all methods.
 //
 // Middleware is applied in the order provided, with each middleware wrapping the next.
 // The innermost handler (last to execute) is the route's handler.
@@ -235,14 +234,26 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 //	    []zen.Middleware{zen.WithLogging(logger), zen.WithErrorHandling()},
 //	    zen.NewRoute("GET", "/health", healthCheckHandler),
 //	)
+//
+//	// Catch-all route that handles all methods
+//	server.RegisterRoute(
+//	    []zen.Middleware{zen.WithLogging(logger)},
+//	    zen.NewRoute(zen.CATCHALL, "/{path...}", proxyHandler),
+//	)
 func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
-	s.logger.Info("registering",
-		"method", route.Method(),
-		"path", route.Path(),
-	)
+	path := route.Path()
+	method := route.Method()
+	s.logger.Info("registering", "method", method, "path", path)
+
+	// Determine the pattern based on whether this is a catch-all route
+	// Empty method means match all HTTP methods
+	pattern := path
+	if method != "" {
+		pattern = method + " " + path
+	}
 
 	s.mux.HandleFunc(
-		fmt.Sprintf("%s %s", route.Method(), route.Path()),
+		pattern,
 		func(w http.ResponseWriter, r *http.Request) {
 			sess, ok := s.getSession().(*Session)
 			if !ok {
@@ -254,31 +265,23 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 				s.returnSession(sess)
 			}()
 
+			handleFn := route.Handle
+
 			err := sess.Init(w, r, s.config.MaxRequestBodySize)
 			if err != nil {
 				s.logger.Error("failed to init session", "error", err)
-
-				// Apply error handling middleware for session initialization errors
-				errorHandler := WithErrorHandling(s.logger)
-				handleFn := func(ctx context.Context, session *Session) error {
+				handleFn = func(_ context.Context, _ *Session) error {
 					return err // Return the session init error
 				}
-				wrappedHandler := errorHandler(handleFn)
-				_ = wrappedHandler(r.Context(), sess)
-
-				return
 			}
-
-			// Apply middleware
-			var handle HandleFunc = route.Handle
 
 			// Reverses the middlewares to run in the desired order.
 			// If middlewares are [A, B, C], this writes [C, B, A] to s.middlewares.
 			for i := len(middlewares) - 1; i >= 0; i-- {
-				handle = middlewares[i](handle)
+				handleFn = middlewares[i](handleFn)
 			}
 
-			err = handle(WithSession(r.Context(), sess), sess)
+			err = handleFn(WithSession(r.Context(), sess), sess)
 
 			if err != nil {
 				panic(err)

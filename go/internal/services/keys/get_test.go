@@ -47,7 +47,7 @@ func TestGetRootKey_WithEmptyRawKey_ReturnsError(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, key)
 	require.NotNil(t, log)
-	require.Contains(t, err.Error(), "rawKey is empty")
+	require.Contains(t, err.Error(), "sha256Hash is empty")
 }
 
 func TestGet_WithEmptyRawKey_ReturnsError(t *testing.T) {
@@ -62,7 +62,7 @@ func TestGet_WithEmptyRawKey_ReturnsError(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, key)
 	require.NotNil(t, log)
-	require.Contains(t, err.Error(), "rawKey is empty")
+	require.Contains(t, err.Error(), "sha256Hash is empty")
 }
 
 func TestGet_EmptyString_Variants(t *testing.T) {
@@ -83,6 +83,6 @@ func TestGet_EmptyString_Variants(t *testing.T) {
 		require.Error(t, err)
 		require.Nil(t, key)
 		require.NotNil(t, log)
-		require.Contains(t, err.Error(), "rawKey is empty")
+		require.Contains(t, err.Error(), "sha256Hash is empty")
 	}
 }

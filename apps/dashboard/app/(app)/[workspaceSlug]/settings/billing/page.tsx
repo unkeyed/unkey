@@ -1,76 +1,54 @@
-import { getAuth } from "@/lib/auth";
-import { clickhouse } from "@/lib/clickhouse";
-import { db } from "@/lib/db";
-import { stripeEnv } from "@/lib/env";
+"use client";
+import { PageLoading } from "@/components/dashboard/page-loading";
 import { formatNumber } from "@/lib/fmt";
+import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { Button, Empty, Input, SettingCard } from "@unkey/ui";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { Suspense } from "react";
-import Stripe from "stripe";
 import { WorkspaceNavbar } from "../workspace-navbar";
 import { Client } from "./client";
 import { Shell } from "./components/shell";
 
-export const dynamic = "force-dynamic";
+export default function BillingPage() {
+  const { workspace, isLoading: isWorkspaceLoading } = useWorkspace();
 
-export default async function BillingPage() {
-  const { orgId } = await getAuth();
+  // Derive isLegacy from workspace data
+  const isLegacy = workspace?.subscriptions && Object.keys(workspace.subscriptions).length > 0;
 
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-    with: {
-      quotas: true,
-    },
+  const {
+    data: usage,
+    isLoading: usageLoading,
+    isError,
+    error,
+  } = trpc.billing.queryUsage.useQuery(undefined, {
+    // Only enable query when workspace is loaded AND it's a legacy subscription
+    enabled: Boolean(workspace && isLegacy),
   });
 
-  if (!workspace) {
-    return redirect("/new");
+  // Derive loading state: loading if workspace is loading OR (if legacy, usage is loading)
+  const isLoading = isWorkspaceLoading || !workspace || (isLegacy && usageLoading);
+
+  // Wait for workspace to load before proceeding
+  if (isLoading) {
+    return <PageLoading message="Loading billing..." />;
   }
-  const e = stripeEnv();
-  if (!e) {
+
+  if (isError) {
     return (
-      <div>
-        <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
-        <Empty>
-          <Empty.Title>Stripe is not configured</Empty.Title>
-          <Empty.Description>
-            If you are selfhosting Unkey, you need to configure Stripe in your environment
-            variables.
-          </Empty.Description>
-        </Empty>
-      </div>
+      <Empty>
+        <Empty.Title>Failed to load usage data</Empty.Title>
+        <Empty.Description>
+          {error?.message ||
+            "There was an error loading your usage information. Please try again later."}
+        </Empty.Description>
+      </Empty>
     );
   }
-
-  const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
-    apiVersion: "2023-10-16",
-    typescript: true,
-  });
-
-  const startOfMonth = new Date();
-  startOfMonth.setUTCDate(1);
-  startOfMonth.setUTCHours(0, 0, 0, 0);
-
-  const year = startOfMonth.getUTCFullYear();
-  const month = startOfMonth.getUTCMonth() + 1;
-
-  const [usedVerifications, usedRatelimits] = await Promise.all([
-    clickhouse.billing.billableVerifications({
-      workspaceId: workspace.id,
-      year,
-      month,
-    }),
-    clickhouse.billing.billableRatelimits({
-      workspaceId: workspace.id,
-      year,
-      month,
-    }),
-  ]);
-
-  const isLegacy = workspace.subscriptions && Object.keys(workspace.subscriptions).length > 0;
-
   if (isLegacy) {
+    // Fetch usage data for legacy display
+    const verifications = usage?.billableVerifications || 0;
+    const ratelimits = usage?.billableRatelimits || 0;
+
     return (
       <Shell>
         <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
@@ -81,7 +59,7 @@ export default async function BillingPage() {
             border="top"
           >
             <div className="w-full">
-              <Input value={formatNumber(usedVerifications)} />
+              <Input value={formatNumber(verifications)} />
             </div>
           </SettingCard>
           <SettingCard
@@ -91,7 +69,7 @@ export default async function BillingPage() {
           >
             <div className="w-full">
               <span className="text-xs text-gray-11">
-                <Input value={formatNumber(usedRatelimits)} />
+                <Input value={formatNumber(ratelimits)} />
               </span>
             </div>
           </SettingCard>
@@ -124,87 +102,6 @@ export default async function BillingPage() {
     );
   }
 
-  const [products, subscription, hasPreviousSubscriptions] = await Promise.all([
-    stripe.products
-      .list({
-        active: true,
-        ids: e.STRIPE_PRODUCT_IDS_PRO,
-        limit: 100,
-        expand: ["data.default_price"],
-      })
-      .then((res) => res.data.map(mapProduct).sort((a, b) => a.dollar - b.dollar)),
-    workspace.stripeSubscriptionId
-      ? await stripe.subscriptions.retrieve(workspace.stripeSubscriptionId)
-      : undefined,
-
-    workspace.stripeCustomerId
-      ? await stripe.subscriptions
-          .list({
-            customer: workspace.stripeCustomerId,
-            status: "canceled",
-          })
-          .then((res) => res.data.length > 0)
-      : false,
-  ]);
-
-  return (
-    <Suspense
-      fallback={
-        <div className="animate-pulse">
-          <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
-          <Shell>
-            <div className="w-full h-[500px] bg-gray-100 dark:bg-gray-800 rounded-lg" />
-          </Shell>
-        </div>
-      }
-    >
-      <Client
-        hasPreviousSubscriptions={hasPreviousSubscriptions}
-        workspace={workspace}
-        products={products}
-        usage={{
-          current: usedVerifications + usedRatelimits,
-          max: workspace.quotas?.requestsPerMonth ?? 150_000,
-        }}
-        subscription={
-          subscription
-            ? {
-                id: subscription.id,
-                status: subscription.status,
-                cancelAt: subscription.cancel_at ? subscription.cancel_at * 1000 : undefined,
-              }
-            : undefined
-        }
-        currentProductId={subscription?.items.data.at(0)?.plan.product?.toString() ?? undefined}
-      />
-    </Suspense>
-  );
+  // For non-legacy workspaces, use the Client component with live data
+  return <Client />;
 }
-
-const mapProduct = (p: Stripe.Product) => {
-  if (!p.default_price) {
-    throw new Error(`Product ${p.id} is missing default_price`);
-  }
-
-  const price = typeof p.default_price === "string" ? null : (p.default_price as Stripe.Price);
-
-  if (!price) {
-    throw new Error(`Product ${p.id} default_price must be expanded`);
-  }
-
-  if (price.unit_amount === null || price.unit_amount === undefined) {
-    throw new Error(`Product ${p.id} price is missing unit_amount`);
-  }
-
-  const quotaValue = Number.parseInt(p.metadata.quota_requests_per_month, 10);
-
-  return {
-    id: p.id,
-    name: p.name,
-    priceId: price.id,
-    dollar: price.unit_amount / 100,
-    quotas: {
-      requestsPerMonth: quotaValue,
-    },
-  };
-};

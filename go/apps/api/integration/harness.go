@@ -149,6 +149,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			DatabasePrimary:         mysqlHostCfg.FormatDSN(),
 			DatabaseReadonlyReplica: "",
 			ClickhouseURL:           clickhouseHostDSN,
+			ClickhouseAnalyticsURL:  "",
 			RedisUrl:                redisHostAddr,
 			Region:                  "test",
 			InstanceID:              fmt.Sprintf("test-node-%d", i),
@@ -162,6 +163,9 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			VaultS3:                 nil,
 			KafkaBrokers:            kafkaBrokers, // Use host brokers for test runner connections
 			DebugCacheHeaders:       true,         // Enable cache debug headers for integration tests
+			PprofEnabled:            true,
+			PprofUsername:           "unkey",
+			PprofPassword:           "password",
 		}
 
 		// Start API server in goroutine

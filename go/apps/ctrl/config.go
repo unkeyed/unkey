@@ -99,8 +99,7 @@ type Config struct {
 	// --- Database configuration ---
 
 	// DatabasePrimary is the primary database connection string for read and write operations
-	DatabasePrimary   string
-	DatabasePartition string
+	DatabasePrimary string
 
 	// --- OpenTelemetry configuration ---
 
@@ -142,6 +141,9 @@ type Config struct {
 	// BuildPlatform defines the target platform for builds (e.g., "linux/amd64", "linux/arm64")
 	BuildPlatform string
 	Depot         DepotConfig
+
+	// ClickhouseURL is the ClickHouse database connection string
+	ClickhouseURL string
 }
 
 type BuildPlatform struct {
@@ -196,6 +198,10 @@ func (c Config) Validate() error {
 		if err := assert.NotEmpty(c.Acme.Cloudflare.ApiToken, "cloudflare API token is required when cloudflare is enabled"); err != nil {
 			return err
 		}
+	}
+
+	if err := assert.NotEmpty(c.ClickhouseURL, "ClickhouseURL is required"); err != nil {
+		return err
 	}
 
 	// Validate build platform format

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSidebar } from "@/components/ui/sidebar";
-import { setSessionCookie } from "@/lib/auth/cookies";
+import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 
@@ -44,23 +44,35 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   );
 
   const changeWorkspace = trpc.user.switchOrg.useMutation({
-    async onSuccess(sessionData) {
+    async onSuccess(sessionData, orgId) {
       if (!sessionData.token || !sessionData.expiresAt) {
         toast.error("Failed to switch workspace. Invalid session data.");
         return;
       }
 
       try {
+        // Critical: Set the session cookie to complete the workspace switch
         await setSessionCookie({
           token: sessionData.token,
           expiresAt: sessionData.expiresAt,
         });
-        // Instead of messing with the cache, we can simply redirect the user and we will refetch the user data.
-        window.location.replace("/");
       } catch (error) {
         console.error("Failed to set session cookie:", error);
         toast.error("Failed to complete workspace switch. Please try again.");
+        return;
       }
+
+      // Non-critical: Store the last used organization ID in a cookie for auto-selection on next login
+      // This runs after the critical operations, and failures won't block the workspace switch
+      try {
+        await setLastUsedOrgCookie({ orgId });
+      } catch (error) {
+        // Swallow the error with a debug log - preference storage failure should not interrupt user flow
+        console.debug("Failed to store last used workspace preference:", error);
+      }
+
+      // Instead of messing with the cache, we can simply redirect the user and we will refetch the user data.
+      window.location.replace("/");
     },
     onError(error) {
       console.error("Failed to switch workspace: ", error);

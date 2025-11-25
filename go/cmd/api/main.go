@@ -88,6 +88,24 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_CHPROXY_AUTH_TOKEN"),
 		),
 
+		// Profiling Configuration
+		cli.Bool(
+			"pprof-enabled",
+			"Enable pprof profiling endpoints at /debug/pprof/*. Default: false",
+			cli.Default(false),
+			cli.EnvVar("UNKEY_PPROF_ENABLED"),
+		),
+		cli.String(
+			"pprof-username",
+			"Username for pprof Basic Auth. Optional - if username and password are not set, pprof will be accessible without authentication.",
+			cli.EnvVar("UNKEY_PPROF_USERNAME"),
+		),
+		cli.String(
+			"pprof-password",
+			"Password for pprof Basic Auth. Optional - if username and password are not set, pprof will be accessible without authentication.",
+			cli.EnvVar("UNKEY_PPROF_PASSWORD"),
+		),
+
 		// Request Body Configuration
 		cli.Int64("max-request-body-size", "Maximum allowed request body size in bytes. Set to 0 or negative to disable limit. Default: 10485760 (10MB)",
 			cli.Default(int64(10485760)), cli.EnvVar("UNKEY_MAX_REQUEST_BODY_SIZE")),
@@ -169,6 +187,11 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// ClickHouse proxy configuration
 		ChproxyToken: cmd.String("chproxy-auth-token"),
+
+		// Profiling configuration
+		PprofEnabled:  cmd.Bool("pprof-enabled"),
+		PprofUsername: cmd.String("pprof-username"),
+		PprofPassword: cmd.String("pprof-password"),
 
 		// Request body configuration
 		MaxRequestBodySize: cmd.Int64("max-request-body-size"),

@@ -5,7 +5,7 @@ COPY deployment/init-databases.sql /docker-entrypoint-initdb.d/00-init-databases
 
 # Copy schemas from their respective packages
 COPY go/pkg/db/schema.sql /docker-entrypoint-initdb.d/01-main-schema.sql
-COPY go/pkg/partition/db/schema.sql /docker-entrypoint-initdb.d/02-partition-schema.sql
 
 # Copy seed data for local development
 COPY deployment/04-seed-workspace.sql /docker-entrypoint-initdb.d/04-seed-workspace.sql
+# COPY deployment/05-seed-chronark.sql /docker-entrypoint-initdb.d/05-seed-chronark.sql

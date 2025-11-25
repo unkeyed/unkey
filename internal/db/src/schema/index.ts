@@ -18,5 +18,10 @@ export * from "./deployments";
 export * from "./deployment_steps";
 export * from "./acme_users";
 
-export * from "./domains";
+export * from "./custom_domains";
 export * from "./acme_challenges";
+
+export * from "./gateways";
+export * from "./instances";
+export * from "./certificates";
+export * from "./ingress_routes";

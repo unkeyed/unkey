@@ -95,6 +95,13 @@ CREATE TABLE `encrypted_keys` (
 	CONSTRAINT `key_id_idx` UNIQUE(`key_id`)
 );
 
+CREATE TABLE `key_migrations` (
+	`id` varchar(255) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`algorithm` enum('sha256','github.com/seamapi/prefixed-api-key') NOT NULL,
+	CONSTRAINT `key_migrations_id_workspace_id_pk` PRIMARY KEY(`id`,`workspace_id`)
+);
+
 CREATE TABLE `keys` (
 	`id` varchar(256) NOT NULL,
 	`key_auth_id` varchar(256) NOT NULL,
@@ -119,6 +126,7 @@ CREATE TABLE `keys` (
 	`ratelimit_limit` int,
 	`ratelimit_duration` bigint,
 	`environment` varchar(256),
+	`pending_migration_id` varchar(256),
 	CONSTRAINT `keys_id` PRIMARY KEY(`id`),
 	CONSTRAINT `hash_idx` UNIQUE(`hash`)
 );
@@ -295,11 +303,12 @@ CREATE TABLE `audit_log_target` (
 );
 
 CREATE TABLE `environments` (
-	`id` varchar(256) NOT NULL,
+	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
 	`description` varchar(255),
+	`gateway_config` longblob NOT NULL,
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -324,7 +333,7 @@ CREATE TABLE `clickhouse_workspace_settings` (
 );
 
 CREATE TABLE `projects` (
-	`id` varchar(256) NOT NULL,
+	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
@@ -341,10 +350,10 @@ CREATE TABLE `projects` (
 );
 
 CREATE TABLE `deployments` (
-	`id` varchar(256) NOT NULL,
+	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
-	`environment_id` varchar(256) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
 	`git_commit_sha` varchar(40),
 	`git_branch` varchar(256),
 	`git_commit_message` text,
@@ -352,6 +361,7 @@ CREATE TABLE `deployments` (
 	`git_commit_author_avatar_url` varchar(512),
 	`git_commit_timestamp` bigint,
 	`runtime_config` json NOT NULL,
+	`gateway_config` longblob NOT NULL,
 	`openapi_spec` longblob,
 	`status` enum('pending','building','deploying','network','ready','failed') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
@@ -370,7 +380,7 @@ CREATE TABLE `deployment_steps` (
 );
 
 CREATE TABLE `acme_users` (
-	`id` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
 	`encrypted_key` text NOT NULL,
 	`registration_uri` text,
@@ -379,18 +389,14 @@ CREATE TABLE `acme_users` (
 	CONSTRAINT `acme_users_id` PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `domains` (
-	`id` varchar(256) NOT NULL,
+CREATE TABLE `custom_domains` (
+	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(256),
-	`environment_id` varchar(256),
-	`deployment_id` varchar(256),
 	`domain` varchar(256) NOT NULL,
-	`type` enum('custom','wildcard') NOT NULL,
-	`sticky` enum('branch','environment','live'),
+	`challenge_type` enum('dns01','http01') NOT NULL DEFAULT 'http01',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `domains_id` PRIMARY KEY(`id`),
+	CONSTRAINT `custom_domains_id` PRIMARY KEY(`id`),
 	CONSTRAINT `unique_domain_idx` UNIQUE(`domain`)
 );
 
@@ -407,10 +413,62 @@ CREATE TABLE `acme_challenges` (
 	CONSTRAINT `acme_challenges_domain_id_pk` PRIMARY KEY(`domain_id`)
 );
 
+CREATE TABLE `gateways` (
+	`id` varchar(128) NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`environment_id` varchar(255) NOT NULL,
+	`k8s_service_name` varchar(255) NOT NULL,
+	`region` varchar(255) NOT NULL,
+	`image` varchar(255) NOT NULL,
+	`health` enum('paused','healthy','unhealthy'),
+	`replicas` int NOT NULL,
+	CONSTRAINT `gateways_id` PRIMARY KEY(`id`)
+);
+
+CREATE TABLE `instances` (
+	`id` varchar(128) NOT NULL,
+	`deployment_id` varchar(255) NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`project_id` varchar(255) NOT NULL,
+	`region` varchar(255) NOT NULL,
+	`address` varchar(255) NOT NULL,
+	`cpu_millicores` int NOT NULL,
+	`memory_mb` int NOT NULL,
+	`status` enum('allocated','provisioning','starting','running','stopping','stopped','failed') NOT NULL,
+	CONSTRAINT `instances_id` PRIMARY KEY(`id`),
+	CONSTRAINT `unique_address` UNIQUE(`address`)
+);
+
+CREATE TABLE `certificates` (
+	`id` varchar(128) NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`hostname` varchar(255) NOT NULL,
+	`certificate` text NOT NULL,
+	`encrypted_private_key` text NOT NULL,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `certificates_id` PRIMARY KEY(`id`),
+	CONSTRAINT `unique_hostname` UNIQUE(`hostname`)
+);
+
+CREATE TABLE `ingress_routes` (
+	`id` varchar(128) NOT NULL,
+	`project_id` varchar(255) NOT NULL,
+	`deployment_id` varchar(255) NOT NULL,
+	`environment_id` varchar(255) NOT NULL,
+	`hostname` varchar(256) NOT NULL,
+	`sticky` enum('none','branch','environment','live') NOT NULL DEFAULT 'none',
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `ingress_routes_id` PRIMARY KEY(`id`),
+	CONSTRAINT `unique_hostname_idx` UNIQUE(`hostname`)
+);
+
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
 CREATE INDEX `idx_keys_on_for_workspace_id` ON `keys` (`for_workspace_id`);
+CREATE INDEX `pending_migration_id_idx` ON `keys` (`pending_migration_id`);
 CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
@@ -430,9 +488,12 @@ CREATE INDEX `workspace_idx` ON `deployments` (`workspace_id`);
 CREATE INDEX `project_idx` ON `deployments` (`project_id`);
 CREATE INDEX `status_idx` ON `deployments` (`status`);
 CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
-CREATE INDEX `workspace_idx` ON `domains` (`workspace_id`);
-CREATE INDEX `project_idx` ON `domains` (`project_id`);
-CREATE INDEX `deployment_idx` ON `domains` (`deployment_id`);
+CREATE INDEX `workspace_idx` ON `custom_domains` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
 CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
+CREATE INDEX `idx_environment_id` ON `gateways` (`environment_id`);
+CREATE INDEX `idx_deployment_id` ON `instances` (`deployment_id`);
+CREATE INDEX `idx_region` ON `instances` (`region`);
+CREATE INDEX `environment_id_idx` ON `ingress_routes` (`environment_id`);
+CREATE INDEX `deployment_id_idx` ON `ingress_routes` (`deployment_id`);
 

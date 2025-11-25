@@ -37,8 +37,6 @@ var Cmd = &cli.Command{
 		// Database Configuration
 		cli.String("database-primary", "MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true",
 			cli.Required(), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
-		cli.String("database-partition", "MySQL connection string for partition database. Required for all deployments. Example: user:pass@host:3306/partition_002?parseTime=true",
-			cli.Required(), cli.EnvVar("UNKEY_DATABASE_PARTITION")),
 
 		// Observability
 		cli.Bool("otel", "Enable OpenTelemetry tracing and metrics",
@@ -117,6 +115,8 @@ var Cmd = &cli.Command{
 			cli.Default(9080), cli.EnvVar("UNKEY_RESTATE_HTTP_PORT")),
 		cli.String("restate-register-as", "URL of this service for self-registration with Restate. Example: http://ctrl:9080",
 			cli.EnvVar("UNKEY_RESTATE_REGISTER_AS")),
+		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
+			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
 	},
 	Action: action,
 }
@@ -152,8 +152,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		RegistryPassword: cmd.String("registry-password"),
 
 		// Database configuration
-		DatabasePrimary:   cmd.String("database-primary"),
-		DatabasePartition: cmd.String("database-partition"),
+		DatabasePrimary: cmd.String("database-primary"),
 
 		// Observability
 		OtelEnabled:           cmd.Bool("otel"),
@@ -212,6 +211,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			HttpPort:   cmd.Int("restate-http-port"),
 			RegisterAs: cmd.String("restate-register-as"),
 		},
+
+		// Clickhouse Configuration
+		ClickhouseURL: cmd.String("clickhouse-url"),
 
 		// Common
 		Clock: clock.New(),

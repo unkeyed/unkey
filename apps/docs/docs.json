@@ -146,6 +146,7 @@
                         ]
                       },
                       "apis/features/revocation",
+                      "apis/features/rerolling-key",
                       "apis/features/enabled",
                       "apis/features/environments"
                     ]
@@ -241,6 +242,7 @@
                       "errors/unkey/data/key_auth_not_found",
                       "errors/unkey/data/key_not_found",
                       "errors/unkey/data/key_space_not_found",
+                      "errors/unkey/data/migration_not_found",
                       "errors/unkey/data/permission_already_exists",
                       "errors/unkey/data/permission_not_found",
                       "errors/unkey/data/ratelimit_namespace_gone",
@@ -266,6 +268,7 @@
                       "errors/user/bad_request/invalid_analytics_table",
                       "errors/user/bad_request/permissions_query_syntax_error",
                       "errors/user/bad_request/request_body_too_large",
+                      "errors/user/bad_request/request_body_unreadable",
                       "errors/user/bad_request/request_timeout"
                     ]
                   },
@@ -306,6 +309,7 @@
                   "api-reference/v1/migration/identities",
                   "api-reference/v1/migration/permissions",
                   "api-reference/v1/migration/ratelimiting",
+                  "api-reference/v1/migration/analytics",
                   "api-reference/v1/migration/errors"
                 ]
               }

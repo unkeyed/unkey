@@ -23,7 +23,6 @@ const hardcodedNamespace = "unkey"
 type Workflow struct {
 	hydrav1.UnimplementedDeploymentServiceServer
 	db            db.Database
-	partitionDB   db.Database
 	logger        logging.Logger
 	krane         kranev1connect.DeploymentServiceClient
 	buildClient   ctrlv1connect.BuildServiceClient
@@ -40,9 +39,6 @@ type Config struct {
 	// DB is the main database connection for workspace, project, and deployment data.
 	DB db.Database
 
-	// PartitionDB is the partition database connection for VM and gateway config storage.
-	PartitionDB db.Database
-
 	// Krane is the client for container orchestration operations.
 	Krane kranev1connect.DeploymentServiceClient
 
@@ -58,7 +54,6 @@ func New(cfg Config) *Workflow {
 	return &Workflow{
 		UnimplementedDeploymentServiceServer: hydrav1.UnimplementedDeploymentServiceServer{},
 		db:                                   cfg.DB,
-		partitionDB:                          cfg.PartitionDB,
 		logger:                               cfg.Logger,
 		krane:                                cfg.Krane,
 		buildClient:                          cfg.BuildClient,

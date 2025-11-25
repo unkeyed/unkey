@@ -11,8 +11,6 @@
         "\\!NEXT_PUBLIC_VERCEL_\\*",
         "AGENT_URL",
         "AGENT_TOKEN",
-        "CLERK_WEBHOOK_SECRET",
-        "CLERK_SECRET_KEY",
         "DATABASE_PASSWORD",
         "DATABASE_USERNAME",
         "DATABASE_HOST",
@@ -40,7 +38,8 @@
         "WORKOS_COOKIE_PASSWORD",
         "WORKOS_API_KEY",
         "WORKOS_CLIENT_ID",
-        "NEXT_PUBLIC_WORKOS_REDIRECT_URI"
+        "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
+        "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY"
       ],
       "outputs": ["dist/**", ".output/**", ".nuxt/**", ".next/**", "!.next/cache/**"]
     },

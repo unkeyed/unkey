@@ -174,10 +174,14 @@ paths:
     $ref: "./spec/paths/v2/keys/whoami/index.yaml"
   /v2/keys.verifyKey:
     $ref: "./spec/paths/v2/keys/verifyKey/index.yaml"
+  /v2/keys.migrateKeys:
+    $ref: "./spec/paths/v2/keys/migrateKeys/index.yaml"
 
   # Ratelimit Endpoints
   /v2/ratelimit.limit:
     $ref: "./spec/paths/v2/ratelimit/limit/index.yaml"
+  /v2/ratelimit.multiLimit:
+    $ref: "./spec/paths/v2/ratelimit/multiLimit/index.yaml"
   /v2/ratelimit.setOverride:
     $ref: "./spec/paths/v2/ratelimit/setOverride/index.yaml"
   /v2/ratelimit.getOverride:
