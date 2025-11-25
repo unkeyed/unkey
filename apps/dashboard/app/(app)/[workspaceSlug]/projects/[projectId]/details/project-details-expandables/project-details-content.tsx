@@ -12,7 +12,6 @@ type ProjectDetailsContentProps = {
 
 export const ProjectDetailsContent = ({ projectId }: ProjectDetailsContentProps) => {
   const { collections } = useProject();
-
   const query = useLiveQuery((q) =>
     q
       .from({ project: collection.projects })
@@ -25,14 +24,13 @@ export const ProjectDetailsContent = ({ projectId }: ProjectDetailsContentProps)
   );
 
   const data = query.data.at(0);
-
   const { data: domainsData } = useLiveQuery(
     (q) =>
       q
         .from({ domain: collections.domains })
         .where(({ domain }) => eq(domain.deploymentId, data?.project.liveDeploymentId))
         .select(({ domain }) => ({
-          domain: domain.domain,
+          domain: domain.hostname,
           environment: domain.sticky,
         }))
         .orderBy(({ domain }) => domain.id, "asc"),
@@ -48,6 +46,7 @@ export const ProjectDetailsContent = ({ projectId }: ProjectDetailsContentProps)
     repository: data.project.gitRepositoryUrl,
   });
 
+  // This "environment" domain never changes even when you do a rollback this one stays stable.
   const mainDomain = domainsData.find((d) => d.environment === "environment")?.domain;
   const gitShaAndBranchNameDomains = domainsData.filter((d) => d.environment !== "environment");
 
