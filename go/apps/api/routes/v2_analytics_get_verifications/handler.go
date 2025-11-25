@@ -30,18 +30,18 @@ type ResponseData = openapi.V2AnalyticsGetVerificationsResponseData
 var (
 	tableAliases = map[string]string{
 		"key_verifications_v1":            "default.key_verifications_raw_v2",
-		"key_verifications_per_minute_v1": "default.key_verifications_per_minute_v2",
-		"key_verifications_per_hour_v1":   "default.key_verifications_per_hour_v2",
-		"key_verifications_per_day_v1":    "default.key_verifications_per_day_v2",
-		"key_verifications_per_month_v1":  "default.key_verifications_per_month_v2",
+		"key_verifications_per_minute_v1": "default.key_verifications_per_minute_v3",
+		"key_verifications_per_hour_v1":   "default.key_verifications_per_hour_v3",
+		"key_verifications_per_day_v1":    "default.key_verifications_per_day_v3",
+		"key_verifications_per_month_v1":  "default.key_verifications_per_month_v3",
 	}
 
 	allowedTables = []string{
 		"default.key_verifications_raw_v2",
-		"default.key_verifications_per_minute_v2",
-		"default.key_verifications_per_hour_v2",
-		"default.key_verifications_per_day_v2",
-		"default.key_verifications_per_month_v2",
+		"default.key_verifications_per_minute_v3",
+		"default.key_verifications_per_hour_v3",
+		"default.key_verifications_per_day_v3",
+		"default.key_verifications_per_month_v3",
 	}
 )
 
