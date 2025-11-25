@@ -1,8 +1,8 @@
+import { createClient } from "@clickhouse/client-web";
+import { ClickHouse } from "@unkey/clickhouse";
 import { Identity, mysqlDrizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 import { z } from "zod";
-import { createClient } from "@clickhouse/client-web";
-import { ClickHouse } from "@unkey/clickhouse";
 
 const tables = [
   // {
@@ -116,7 +116,9 @@ for (const table of tables) {
     console.log(
       `${table.name}: ${new Date(t).toLocaleString("de")} - ${new Date(
         t + table.dt
-      ).toLocaleString("de")}`
+      ).toLocaleString("de")}``${table.name}: ${new Date(
+        t
+      ).toLocaleString()} - ${new Date(t + table.dt).toLocaleString()}`
     );
     const query = ch.querier.query({
       query: `
