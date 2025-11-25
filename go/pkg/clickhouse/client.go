@@ -8,6 +8,7 @@ import (
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/unkeyed/unkey/go/pkg/batch"
+	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -100,6 +101,27 @@ func New(config Config) (*clickhouse, error) {
 		return nil, fault.Wrap(err, fault.Internal("pinging clickhouse failed"))
 	}
 
+	// Shared flush config for all inserts - single circuit breaker since
+	// ClickHouse health affects all tables equally
+	flushCfg := &FlushConfig{
+		CircuitBreaker: circuitbreaker.New[struct{}](
+			"clickhouse_insert",
+			circuitbreaker.WithTripThreshold(5),
+			circuitbreaker.WithTimeout(30*time.Second),
+			circuitbreaker.WithCyclicPeriod(10*time.Second),
+			circuitbreaker.WithMaxRequests(3),
+		),
+		Retry: retry.New(
+			retry.Attempts(5),
+			retry.Backoff(func(n int) time.Duration {
+				return time.Duration(1<<uint(n-1)) * time.Second
+			}),
+			retry.ShouldRetry(func(err error) bool {
+				return !isAuthenticationError(err)
+			}),
+		),
+	}
+
 	c := &clickhouse{
 		conn:   conn,
 		logger: config.Logger,
@@ -113,7 +135,11 @@ func New(config Config) (*clickhouse, error) {
 			Consumers:     2,
 			Flush: func(ctx context.Context, rows []schema.ApiRequest) {
 				table := "default.api_requests_raw_v2"
-				err := flush(ctx, conn, table, rows)
+				err := flush(ctx, conn, table, rows, flushCfg, WithInsertSettings(InsertSettings{
+					AsyncInsert:        true,
+					WaitForAsyncInsert: true,
+					Deduplicate:        true,
+				}))
 				if err != nil {
 					config.Logger.Error("failed to flush batch",
 						"table", table,
@@ -133,7 +159,11 @@ func New(config Config) (*clickhouse, error) {
 				Consumers:     2,
 				Flush: func(ctx context.Context, rows []schema.KeyVerification) {
 					table := "default.key_verifications_raw_v2"
-					err := flush(ctx, conn, table, rows)
+					err := flush(ctx, conn, table, rows, flushCfg, WithInsertSettings(InsertSettings{
+						AsyncInsert:        true,
+						WaitForAsyncInsert: true,
+						Deduplicate:        true,
+					}))
 					if err != nil {
 						config.Logger.Error("failed to flush batch",
 							"table", table,
@@ -154,7 +184,11 @@ func New(config Config) (*clickhouse, error) {
 				Consumers:     2,
 				Flush: func(ctx context.Context, rows []schema.Ratelimit) {
 					table := "default.ratelimits_raw_v2"
-					err := flush(ctx, conn, table, rows)
+					err := flush(ctx, conn, table, rows, flushCfg, WithInsertSettings(InsertSettings{
+						AsyncInsert:        true,
+						WaitForAsyncInsert: true,
+						Deduplicate:        true,
+					}))
 					if err != nil {
 						config.Logger.Error("failed to flush batch",
 							"table", table,
@@ -174,7 +208,7 @@ func New(config Config) (*clickhouse, error) {
 				Consumers:     1,
 				Flush: func(ctx context.Context, rows []schema.BuildStepV1) {
 					table := "default.build_steps_v1"
-					err := flush(ctx, conn, table, rows)
+					err := flush(ctx, conn, table, rows, nil)
 					if err != nil {
 						config.Logger.Error("failed to flush batch",
 							"table", table,
@@ -195,7 +229,7 @@ func New(config Config) (*clickhouse, error) {
 				Consumers:     1,
 				Flush: func(ctx context.Context, rows []schema.BuildStepLogV1) {
 					table := "default.build_step_logs_v1"
-					err := flush(ctx, conn, table, rows)
+					err := flush(ctx, conn, table, rows, nil)
 					if err != nil {
 						config.Logger.Error("failed to flush batch",
 							"table", table,
