@@ -18,9 +18,9 @@ var (
 	validTableName = regexp.MustCompile(`^[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+$`)
 
 	// Table type patterns for retention filter generation
-	rawTablePattern        = regexp.MustCompile(`_raw_v\d+$`)
-	perMinuteHourPattern   = regexp.MustCompile(`_per_minute_v\d+$|_per_hour_v\d+$`)
-	perDayMonthPattern     = regexp.MustCompile(`_per_day_v\d+$|_per_month_v\d+$`)
+	rawTablePattern      = regexp.MustCompile(`_raw_v\d+$`)
+	perMinuteHourPattern = regexp.MustCompile(`_per_minute_v\d+$|_per_hour_v\d+$`)
+	perDayMonthPattern   = regexp.MustCompile(`_per_day_v\d+$|_per_month_v\d+$`)
 )
 
 // UserConfig contains configuration for creating/updating a ClickHouse user
