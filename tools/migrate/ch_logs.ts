@@ -5,22 +5,22 @@ import { createClient } from "@clickhouse/client-web";
 import { ClickHouse } from "@unkey/clickhouse";
 
 const tables = [
-  {
-    name: "default.key_verifications_per_minute_v2",
-    dt: 7 * 24 * 60 * 60 * 1000,
-    retention: 40 * 24 * 60 * 60 * 1000,
-  },
-
-  {
-    name: "default.key_verifications_per_hour_v2",
-    dt: 24 * 60 * 60 * 1000,
-    retention: 40 * 24 * 60 * 60 * 1000,
-  },
-  {
-    name: "default.key_verifications_per_day_v2",
-    dt: 7 * 24 * 60 * 60 * 1000,
-    retention: 7 * 30 * 24 * 60 * 60 * 1000,
-  },
+  // {
+  //   name: "default.key_verifications_per_minute_v2",
+  //   dt: 7 * 24 * 60 * 60 * 1000,
+  //   retention: 40 * 24 * 60 * 60 * 1000,
+  // },
+  //
+  // {
+  //   name: "default.key_verifications_per_hour_v2",
+  //   dt: 24 * 60 * 60 * 1000,
+  //   retention: 40 * 24 * 60 * 60 * 1000,
+  // },
+  // {
+  //   name: "default.key_verifications_per_day_v2",
+  //   dt: 7 * 24 * 60 * 60 * 1000,
+  //   retention: 7 * 30 * 24 * 60 * 60 * 1000,
+  // },
   {
     name: "default.key_verifications_per_month_v2",
     dt: 30 * 24 * 60 * 60 * 1000,
@@ -129,6 +129,7 @@ for (const table of tables) {
     FROM
     ${table.name}
     FINAL
+    --WHERE workspace_id != 'ws_2vUFz88G6TuzMQHZaUhXADNyZWMy'
     WHERE time >= fromUnixTimestamp64Milli(${t})
     AND time < fromUnixTimestamp64Milli(${t + table.dt})
     AND identity_id != ''
@@ -169,7 +170,7 @@ for (const table of tables) {
         key,
         handleRow(table.name, row)
           .then(() => {
-            concurrency = Math.min(500, concurrency + 0.1);
+            concurrency = Math.min(100, concurrency + 0.1);
           })
           .catch(async (err) => {
             console.error(err.message);
@@ -218,10 +219,10 @@ async function handleRow(
   }
   migratedIdentities.set(identity.id, true);
 
-  await rawCH.query({
+  await rawCH.exec({
     query: `
-    ALTER TABLE ${table}
-    UPDATE external_id = '${externalId}'
+    UPDATE ${table}
+    SET external_id = '${externalId}'
     WHERE
     workspace_id = '${row.workspace_id}'
     AND key_space_id = '${row.key_space_id}'

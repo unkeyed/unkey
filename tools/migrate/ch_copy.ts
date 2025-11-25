@@ -3,27 +3,27 @@ import { createClient } from "@clickhouse/client-web";
 const now = Date.now() + 6 * 60 * 60 * 1000;
 
 const tables = [
-  {
-    name: "default.key_verifications_per_minute",
-    dt: 60 * 60 * 1000,
-    start: now - 32 * 24 * 60 * 60 * 1000,
-    end: now,
-  },
-  {
-    name: "default.key_verifications_per_hour",
-    dt: 60 * 60 * 1000,
-    start: now - 40 * 24 * 60 * 60 * 1000,
-    end: now,
-  },
-  {
-    name: "default.key_verifications_per_day",
-    dt: 23 * 60 * 60 * 1000,
-    start: now - 100 * 24 * 60 * 60 * 1000,
-    end: now,
-  },
+  //{
+  //  name: "default.key_verifications_per_minute",
+  //  dt: 60 * 60 * 1000,
+  //  start: now - 32 * 24 * 60 * 60 * 1000,
+  //  end: now,
+  //},
+  //{
+  //  name: "default.key_verifications_per_hour",
+  //  dt: 7 * 24 * 60 * 60 * 1000,
+  //  start: 1763581056759,
+  //  end: now,
+  //},
+  //{
+  //  name: "default.key_verifications_per_day",
+  //  dt: 7 * 24 * 60 * 60 * 1000,
+  //  start: now - 100 * 24 * 60 * 60 * 1000,
+  //  end: now,
+  //},
   {
     name: "default.key_verifications_per_month",
-    dt: 12 * 24 * 60 * 60 * 1000,
+    dt: 1 * 30 * 24 * 60 * 60 * 1000,
     start: now - 4 * 356 * 24 * 60 * 60 * 1000,
     end: now,
   },
@@ -40,6 +40,9 @@ const rawCH = createClient({
     output_format_json_quote_64bit_integers: 0,
     output_format_json_quote_64bit_floats: 0,
     http_send_timeout: 60000,
+    async_insert: 1,
+    async_insert_deduplicate: 1,
+    wait_for_async_insert: 1,
   },
 });
 
@@ -63,7 +66,8 @@ for (const { name, dt, start, end } of tables) {
       query: `
         SELECT DISTINCT key_id
         FROM ${v2}
-        WHERE time >= fromUnixTimestamp64Milli(${t})
+        WHERE NOT startsWith(workspace_id, 'test_')
+        AND time >= fromUnixTimestamp64Milli(${t})
         AND time < fromUnixTimestamp64Milli(${t + dt})
         AND not startsWith(key_id, 'test_')
       `,
@@ -114,7 +118,7 @@ for (const { name, dt, start, end } of tables) {
           `,
           })
           .then(() => {
-            concurrency = Math.min(100, concurrency + 1 / concurrency);
+            concurrency = Math.min(400, concurrency + 10 / concurrency);
           })
           .catch(async (err) => {
             console.error(err.message);

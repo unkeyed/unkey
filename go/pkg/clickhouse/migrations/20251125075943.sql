@@ -14,9 +14,9 @@ CREATE TABLE `default`.`key_verifications_per_day_v3` (
   `latency_avg` AggregateFunction(avg, Float64),
   `latency_p75` AggregateFunction(quantilesTDigest(0.75), Float64),
   `latency_p99` AggregateFunction(quantilesTDigest(0.99), Float64),
-  INDEX `idx_identity_id` ((identity_id)) TYPE bloom_filter GRANULARITY 1,
-  INDEX `idx_key_id` ((key_id)) TYPE bloom_filter GRANULARITY 1,
-  INDEX `idx_tags` ((tags)) TYPE bloom_filter GRANULARITY 1
+  INDEX `idx_identity_id` ((identity_id)) TYPE bloom_filter GRANULARITY 4,
+  INDEX `idx_key_id` ((key_id)) TYPE bloom_filter GRANULARITY 4,
+  INDEX `idx_tags` ((tags)) TYPE bloom_filter GRANULARITY 4
 ) ENGINE = AggregatingMergeTree
 PRIMARY KEY (`workspace_id`, `time`, `key_space_id`, `identity_id`, `external_id`, `key_id`, `outcome`, `tags`) ORDER BY (`workspace_id`, `time`, `key_space_id`, `identity_id`, `external_id`, `key_id`, `outcome`, `tags`) PARTITION BY (toStartOfMonth(time)) TTL time + toIntervalDay(356) SETTINGS index_granularity = 8192;
 -- Create "key_verifications_per_hour_v3" table
@@ -34,9 +34,9 @@ CREATE TABLE `default`.`key_verifications_per_hour_v3` (
   `latency_avg` AggregateFunction(avg, Float64),
   `latency_p75` AggregateFunction(quantilesTDigest(0.75), Float64),
   `latency_p99` AggregateFunction(quantilesTDigest(0.99), Float64),
-  INDEX `idx_identity_id` ((identity_id)) TYPE bloom_filter GRANULARITY 1,
-  INDEX `idx_key_id` ((key_id)) TYPE bloom_filter GRANULARITY 1,
-  INDEX `idx_tags` ((tags)) TYPE bloom_filter GRANULARITY 1
+  INDEX `idx_identity_id` ((identity_id)) TYPE bloom_filter GRANULARITY 4,
+  INDEX `idx_key_id` ((key_id)) TYPE bloom_filter GRANULARITY 4,
+  INDEX `idx_tags` ((tags)) TYPE bloom_filter GRANULARITY 4
 ) ENGINE = AggregatingMergeTree
 PRIMARY KEY (`workspace_id`, `time`, `key_space_id`, `identity_id`, `external_id`, `key_id`, `outcome`, `tags`) ORDER BY (`workspace_id`, `time`, `key_space_id`, `identity_id`, `external_id`, `key_id`, `outcome`, `tags`) PARTITION BY (toStartOfDay(time)) TTL time + toIntervalDay(90) SETTINGS index_granularity = 8192;
 -- Create "key_verifications_per_minute_v3" table
@@ -54,9 +54,9 @@ CREATE TABLE `default`.`key_verifications_per_minute_v3` (
   `latency_avg` AggregateFunction(avg, Float64),
   `latency_p75` AggregateFunction(quantilesTDigest(0.75), Float64),
   `latency_p99` AggregateFunction(quantilesTDigest(0.99), Float64),
-  INDEX `idx_identity_id` ((identity_id)) TYPE bloom_filter GRANULARITY 1,
-  INDEX `idx_key_id` ((key_id)) TYPE bloom_filter GRANULARITY 1,
-  INDEX `idx_tags` ((tags)) TYPE bloom_filter GRANULARITY 1
+  INDEX `idx_identity_id` ((identity_id)) TYPE bloom_filter GRANULARITY 4,
+  INDEX `idx_key_id` ((key_id)) TYPE bloom_filter GRANULARITY 4,
+  INDEX `idx_tags` ((tags)) TYPE bloom_filter GRANULARITY 4
 ) ENGINE = AggregatingMergeTree
 PRIMARY KEY (`workspace_id`, `time`, `key_space_id`, `identity_id`, `external_id`, `key_id`, `outcome`, `tags`) ORDER BY (`workspace_id`, `time`, `key_space_id`, `identity_id`, `external_id`, `key_id`, `outcome`, `tags`) PARTITION BY (toStartOfDay(time)) TTL time + toIntervalDay(90) SETTINGS index_granularity = 8192;
 -- Create "key_verifications_per_month_v3" table
@@ -74,9 +74,9 @@ CREATE TABLE `default`.`key_verifications_per_month_v3` (
   `latency_avg` AggregateFunction(avg, Float64),
   `latency_p75` AggregateFunction(quantilesTDigest(0.75), Float64),
   `latency_p99` AggregateFunction(quantilesTDigest(0.99), Float64),
-  INDEX `idx_identity_id` ((identity_id)) TYPE bloom_filter GRANULARITY 1,
-  INDEX `idx_key_id` ((key_id)) TYPE bloom_filter GRANULARITY 1,
-  INDEX `idx_tags` ((tags)) TYPE bloom_filter GRANULARITY 1
+  INDEX `idx_identity_id` ((identity_id)) TYPE bloom_filter GRANULARITY 4,
+  INDEX `idx_key_id` ((key_id)) TYPE bloom_filter GRANULARITY 4,
+  INDEX `idx_tags` ((tags)) TYPE bloom_filter GRANULARITY 4
 ) ENGINE = AggregatingMergeTree
 PRIMARY KEY (`workspace_id`, `time`, `key_space_id`, `identity_id`, `external_id`, `key_id`, `outcome`, `tags`) ORDER BY (`workspace_id`, `time`, `key_space_id`, `identity_id`, `external_id`, `key_id`, `outcome`, `tags`) PARTITION BY (toStartOfYear(time)) TTL time + toIntervalYear(3) SETTINGS index_granularity = 8192;
 -- Drop "active_workspaces_keys_per_month_mv_v2" view

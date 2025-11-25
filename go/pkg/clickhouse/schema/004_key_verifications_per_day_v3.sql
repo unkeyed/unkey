@@ -12,9 +12,9 @@ CREATE TABLE key_verifications_per_day_v3 (
   latency_avg AggregateFunction (avg, Float64),
   latency_p75 AggregateFunction (quantilesTDigest (0.75), Float64),
   latency_p99 AggregateFunction (quantilesTDigest (0.99), Float64),
-  INDEX idx_identity_id (identity_id) TYPE bloom_filter GRANULARITY 1,
-  INDEX idx_key_id (key_id) TYPE bloom_filter GRANULARITY 1,
-  INDEX idx_tags (tags) TYPE bloom_filter GRANULARITY 1
+  INDEX idx_identity_id (identity_id) TYPE bloom_filter GRANULARITY 4,
+  INDEX idx_key_id (key_id) TYPE bloom_filter GRANULARITY 4,
+  INDEX idx_tags (tags) TYPE bloom_filter GRANULARITY 4
 ) ENGINE = AggregatingMergeTree ()
 ORDER BY
   (
