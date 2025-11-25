@@ -71,6 +71,7 @@ export class Analytics {
         region: string;
         outcome: string;
         identity_id?: string;
+        external_id?: string;
         tags?: string[];
       }) => {
         return await wrap(
