@@ -57,9 +57,7 @@ for (const { name, dt, start, end } of tables) {
 
   for (let t = start; t < end; t += dt) {
     console.log(
-      `${name}: ${new Date(t).toLocaleString("de")} - ${new Date(
-        t + dt
-      ).toLocaleString("de")}`
+      `${name}: ${new Date(t).toLocaleString("de")} - ${new Date(t + dt).toLocaleString("de")}`,
     );
 
     const res = await rawCH.query({
@@ -86,10 +84,7 @@ for (const { name, dt, start, end } of tables) {
         await Promise.race(semaphore.values());
       }
 
-      console.log(
-        semKey,
-        `${i}/${keyIds.length} - ${semaphore.size} / ${Math.floor(concurrency)}`
-      );
+      console.log(semKey, `${i}/${keyIds.length} - ${semaphore.size} / ${Math.floor(concurrency)}`);
 
       semaphore.set(
         semKey,
@@ -127,7 +122,7 @@ for (const { name, dt, start, end } of tables) {
           })
           .finally(() => {
             semaphore.delete(semKey);
-          })
+          }),
       );
     }
   }

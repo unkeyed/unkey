@@ -1,6 +1,6 @@
 import { createClient } from "@clickhouse/client-web";
 import { ClickHouse } from "@unkey/clickhouse";
-import { Identity, mysqlDrizzle, schema } from "@unkey/db";
+import { type Identity, mysqlDrizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 import { z } from "zod";
 
@@ -48,7 +48,7 @@ const rawCH = createClient({
 });
 
 const conn = await mysql.createConnection(
-  `mysql://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:3306/unkey?ssl={}`
+  `mysql://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:3306/unkey?ssl={}`,
 );
 
 await conn.ping();
@@ -58,15 +58,13 @@ const CACHE_FILE = "identity_cache.json";
 
 // Load cache from file if it exists
 let deletedIdentityCache = new Map<string, string | null>();
-let migratedIdentities = new Map<string, boolean>();
+const migratedIdentities = new Map<string, boolean>();
 try {
   const file = Bun.file(CACHE_FILE);
   if (await file.exists()) {
     const cacheData = await file.json();
     deletedIdentityCache = new Map(Object.entries(cacheData));
-    console.info(
-      `Loaded ${deletedIdentityCache.size} cached identities from ${CACHE_FILE}`
-    );
+    console.info(`Loaded ${deletedIdentityCache.size} cached identities from ${CACHE_FILE}`);
   }
 } catch (err) {
   console.warn("Failed to load cache file:", err);
@@ -114,11 +112,11 @@ for (const table of tables) {
 
   for (let t = start; t < end; t += table.dt) {
     console.log(
-      `${table.name}: ${new Date(t).toLocaleString("de")} - ${new Date(
-        t + table.dt
-      ).toLocaleString("de")}``${table.name}: ${new Date(
-        t
-      ).toLocaleString()} - ${new Date(t + table.dt).toLocaleString()}`
+      `${table.name}: ${new Date(t).toLocaleString("de")} - ${new Date(t + table.dt).toLocaleString(
+        "de",
+      )}``${table.name}: ${new Date(
+        t,
+      ).toLocaleString()} - ${new Date(t + table.dt).toLocaleString()}`,
     );
     const query = ch.querier.query({
       query: `
@@ -154,7 +152,7 @@ for (const table of tables) {
         i + 1,
         "/",
         rows.length,
-        `Concurrency: ${semaphore.size} / ${Math.floor(concurrency)}`
+        `Concurrency: ${semaphore.size} / ${Math.floor(concurrency)}`,
       );
       const row = rows[i];
 
@@ -181,7 +179,7 @@ for (const table of tables) {
           })
           .finally(() => {
             semaphore.delete(key);
-          })
+          }),
       );
     }
   }
@@ -193,10 +191,7 @@ for (const table of tables) {
 // Save cache after processing all tables
 await saveCache();
 
-async function handleRow(
-  table: string,
-  row: z.infer<typeof aggregatedSchema>
-): Promise<void> {
+async function handleRow(table: string, row: z.infer<typeof aggregatedSchema>): Promise<void> {
   let externalId = deletedIdentityCache.get(row.identity_id);
   if (externalId === null) {
     return;
