@@ -111,7 +111,7 @@ func flush[T any](ctx context.Context, conn ch.Conn, table string, rows []T, cfg
 	if cfg.Retry != nil {
 		originalDoFlush := doFlush
 		doFlush = func() error {
-			return cfg.Retry.Do(originalDoFlush)
+			return cfg.Retry.DoContext(ctx, originalDoFlush)
 		}
 	}
 
