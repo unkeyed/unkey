@@ -472,11 +472,10 @@ export class LayoutEngine<T extends TreeNode> {
         this.config.connections.horizontal.trunkOffset +
         this.config.connections.horizontal.trunkAdjust;
 
-      // Four-point path:
-      // 1. Start at parent's left edge (at parent's vertical center)
-      // 2. Move left to trunk position (horizontal line)
-      // 3. Move down to child's vertical position (vertical trunk)
-      // 4. Move right to child's left edge (horizontal branch)
+      // Three-point path:
+      // 1. Move to trunk position (at parent's vertical center)
+      // 2. Move down to child's vertical position (vertical trunk)
+      // 3. Move right to child's left edge (horizontal branch)
       return [
         { x: trunkX, y: parentPos.y },
         { x: trunkX, y: childPos.y },
