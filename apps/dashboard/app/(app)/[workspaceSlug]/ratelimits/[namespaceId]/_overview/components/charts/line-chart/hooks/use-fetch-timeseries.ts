@@ -58,6 +58,11 @@ export const useFetchRatelimitOverviewLatencyTimeseries = (namespaceId: string) 
   const { data, isLoading, isError } =
     trpc.ratelimit.overview.logs.queryRatelimitLatencyTimeseries.useQuery(queryParams, {
       refetchInterval: queryParams.endTime ? false : 10_000,
+      trpc: {
+        context: {
+          skipBatch: true,
+        },
+      },
     });
 
   const timeseries = data?.timeseries.map((ts) => ({
