@@ -28,7 +28,7 @@ ORDER BY
     tags
   )
 PARTITION BY toStartOfMonth(time)
-TTL time + INTERVAL 356 DAY DELETE
+TTL time + INTERVAL 365 DAY DELETE
 ;
 
 CREATE MATERIALIZED VIEW key_verifications_per_day_mv_v3 TO key_verifications_per_day_v3 AS
