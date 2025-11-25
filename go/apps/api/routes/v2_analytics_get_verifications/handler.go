@@ -90,8 +90,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	h.Logger.Info("Received request", "requestId", s.RequestID(), "path", "/v2/analytics.getVerifications", "retentionDays", settings.Quotas.LogsRetentionDays)
-
 	parser := chquery.NewParser(chquery.Config{
 		WorkspaceID:       auth.AuthorizedWorkspaceID,
 		Limit:             int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows),
