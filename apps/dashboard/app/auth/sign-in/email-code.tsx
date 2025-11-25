@@ -89,9 +89,8 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
         success: "A new code has been sent to your email",
       });
       await p;
-    } catch (error) {
+    } catch (_error) {
       setIsLoading(false);
-      console.error(error);
     }
   };
 
@@ -114,7 +113,13 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
         </p>
       )}
 
-      <form className="flex flex-col gap-12 mt-10" onSubmit={() => verifyCode(otp)}>
+      <form
+        className="flex flex-col gap-12 mt-10"
+        onSubmit={(e) => {
+          e.preventDefault();
+          verifyCode(otp);
+        }}
+      >
         <OTPInput
           data-1p-ignore
           value={otp}
