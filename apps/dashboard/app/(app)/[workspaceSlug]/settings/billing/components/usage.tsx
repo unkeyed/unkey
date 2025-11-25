@@ -15,6 +15,13 @@ export const Usage: React.FC<{
     // Cache for 30 seconds to reduce unnecessary refetches
     // TRPC automatically scopes by workspace via requireWorkspace middleware
     staleTime: 30_000, // 30 seconds
+    // Skip batching to prevent analytics slowdown from blocking core UI
+    trpc: {
+      context: {
+        skipBatch: true,
+      },
+    },
+    retry: 1,
   });
 
   if (isLoading) {
