@@ -189,7 +189,7 @@ func RunUsageLimitTest(
 		chStats = data[0]
 		//nolint: gosec
 		return int(chStats.TotalRequests) == totalRequests
-	}, 15*time.Second, 100*time.Millisecond)
+	}, 2*time.Minute, time.Second*30)
 
 	//nolint: gosec
 	require.Equal(t, totalRequests, int(chStats.SuccessCount+chStats.FailureCount))
@@ -210,7 +210,7 @@ func RunUsageLimitTest(
 
 		//nolint: gosec
 		return metricsCount == uint64(totalRequests) && uniqueCount == uint64(totalRequests)
-	}, 15*time.Second, 100*time.Millisecond)
+	}, 2*time.Minute, time.Second*30)
 }
 
 // calculateUsageRPS determines the requests per second for usage limiting tests

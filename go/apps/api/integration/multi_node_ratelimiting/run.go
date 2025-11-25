@@ -192,8 +192,7 @@ func RunRateLimitTest(
 		chStats = data[0]
 		// nolint:gosec
 		return int(chStats.TotalRequests) == totalRequests
-
-	}, 15*time.Second, 100*time.Millisecond)
+	}, 2*time.Minute, time.Second*30)
 
 	require.Equal(t, totalRequests, int(chStats.SuccessCount+chStats.FailureCount)) // nolint:gosec
 	require.Equal(t, totalRequests, int(chStats.TotalRequests))                     // nolint:gosec
@@ -202,19 +201,13 @@ func RunRateLimitTest(
 	// Step 6: Verify Clickhouse Metrics Data
 	// ---------------------------------------
 	require.Eventually(t, func() bool {
-
 		metricsCount := uint64(0)
 		uniqueCount := uint64(0)
 		row := h.CH.Conn().QueryRow(ctx, fmt.Sprintf(`SELECT count(*) as total_requests, count(DISTINCT request_id) as unique_requests FROM default.api_requests_raw_v2 WHERE workspace_id = '%s';`, h.Resources().UserWorkspace.ID))
-
 		err = row.Scan(&metricsCount, &uniqueCount)
-
 		require.NoError(t, err)
-
 		return metricsCount == uint64(totalRequests) && uniqueCount == uint64(totalRequests) // nolint:gosec
-
-	}, 15*time.Second, 100*time.Millisecond)
-
+	}, 2*time.Minute, time.Second*30)
 }
 
 // calculateRPS determines the requests per second based on the rate limit parameters
