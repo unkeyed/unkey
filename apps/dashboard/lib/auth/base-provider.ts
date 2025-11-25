@@ -57,6 +57,7 @@ export abstract class BaseAuthProvider {
     email: string;
     ipAddress?: string;
     userAgent?: string;
+    bypassRadar?: boolean;
   }): Promise<EmailAuthResult>;
 
   /**
@@ -77,7 +78,10 @@ export abstract class BaseAuthProvider {
    * @param params - Parameters containing the verification code and token
    * @returns Result of the email verification process
    */
-  abstract verifyEmail(params: { code: string; token: string }): Promise<VerificationResult>;
+  abstract verifyEmail(params: {
+    code: string;
+    token: string;
+  }): Promise<VerificationResult>;
 
   /**
    * Resends an authentication code to the specified email address.
@@ -94,7 +98,11 @@ export abstract class BaseAuthProvider {
    * @returns Result of the sign-up attempt
    */
   abstract signUpViaEmail(
-    params: UserData & { ipAddress?: string; userAgent?: string },
+    params: UserData & {
+      ipAddress?: string;
+      userAgent?: string;
+      bypassRadar?: boolean;
+    },
   ): Promise<EmailAuthResult>;
 
   /**
@@ -153,7 +161,10 @@ export abstract class BaseAuthProvider {
    * @param params - Parameters containing organization name and user ID
    * @returns The ID of the newly created organization
    */
-  abstract createTenant(params: { name: string; userId: string }): Promise<string>;
+  abstract createTenant(params: {
+    name: string;
+    userId: string;
+  }): Promise<string>;
 
   /**
    * Updates an existing organization's information.
@@ -269,8 +280,6 @@ export abstract class BaseAuthProvider {
    * @returns A standardized error response
    */
   protected handleError(error: unknown): AuthErrorResponse {
-    console.error("Auth error:", error);
-
     if (error instanceof Error) {
       // Handle provider-specific errors
       if ("message" in error && typeof error.message === "string") {

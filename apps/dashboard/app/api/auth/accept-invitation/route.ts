@@ -38,10 +38,7 @@ export async function POST(request: NextRequest) {
     let invitation: Invitation | null;
     try {
       invitation = await auth.getInvitation(invitationToken);
-    } catch (error) {
-      console.error("Failed to retrieve invitation:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+    } catch (_error) {
       return NextResponse.json(
         { success: false, error: "Invalid or expired invitation token" },
         { status: 400 },
@@ -96,9 +93,6 @@ export async function POST(request: NextRequest) {
 
       return response;
     } catch (error) {
-      console.error("Failed to accept invitation:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
       return NextResponse.json(
         {
           success: false,
@@ -107,8 +101,7 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       );
     }
-  } catch (error) {
-    console.error("Error in accept invitation API:", error);
+  } catch (_error) {
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
