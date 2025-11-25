@@ -66,11 +66,16 @@ unkey create-clickhouse-user --workspace-id ws_123 --username custom_user --max-
 
 var allowedTables = []string{
 	// Key verifications
+	//
 	"default.key_verifications_raw_v2",
 	"default.key_verifications_per_minute_v2",
+	"default.key_verifications_per_minute_v3",
 	"default.key_verifications_per_hour_v2",
+	"default.key_verifications_per_hour_v3",
 	"default.key_verifications_per_day_v2",
+	"default.key_verifications_per_day_v3",
 	"default.key_verifications_per_month_v2",
+	"default.key_verifications_per_month_v3",
 	// Not used ATM
 	// // Ratelimits
 	// "default.ratelimits_raw_v2",
