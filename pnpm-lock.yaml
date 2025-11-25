@@ -151,6 +151,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^3.4.2
         version: 3.4.2(react-hook-form@7.51.3)
+      '@marsidev/react-turnstile':
+        specifier: ^1.0.2
+        version: 1.0.2(react-dom@18.3.1)(react@18.3.1)
       '@planetscale/database':
         specifier: ^1.16.0
         version: 1.19.0
@@ -633,7 +636,7 @@ importers:
     devDependencies:
       checkly:
         specifier: latest
-        version: 6.8.2(@types/node@20.14.9)(typescript@5.5.3)
+        version: 6.5.0(@types/node@20.14.9)(typescript@5.5.3)
       ts-node:
         specifier: 10.9.1
         version: 10.9.1(@types/node@20.14.9)(typescript@5.5.3)
@@ -5221,6 +5224,16 @@ packages:
       globby: 11.1.0
       read-yaml-file: 1.1.0
     dev: true
+
+  /@marsidev/react-turnstile@1.0.2(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-YkCtJVaCzZ1kcmhPsiFTmTXVughoNzEMRsNHcmTG0K5OdbCQfAG67Q6d5Ze+A72vrHbvVZkvcLgUbldeGcbRjQ==}
+    peerDependencies:
+      react: ^17.0.2 || ^18.0.0
+      react-dom: ^17.0.2 || ^18.0.0
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    dev: false
 
   /@mdx-js/mdx@3.1.1:
     resolution: {integrity: sha512-f6ZO2ifpwAQIpzGWaBQT2TXxPv6z3RBzQKpVftEWN78Vl/YweF1uwussDx8ECAXVtr3Rs89fKyG9YlzUs9DyGQ==}
@@ -12468,8 +12481,8 @@ packages:
     engines: {node: '>= 16'}
     dev: true
 
-  /checkly@6.8.2(@types/node@20.14.9)(typescript@5.5.3):
-    resolution: {integrity: sha512-7HgKD7AbK4sW5HIJNoKJKmOCQNDWcGtG9pwnlVlySTMf25pqARNlKuvWB7kFlB2PRsSwTFuOR64atdM/lPOGNA==}
+  /checkly@6.5.0(@types/node@20.14.9)(typescript@5.5.3):
+    resolution: {integrity: sha512-i90/P+sWL6CmTBRGOHXFAogisrDdomE928XKSaw2g4t9e2dVGcaDfQ72ZdXFCm27gVQd7siXPGrO6LNFwyEsWg==}
     engines: {node: ^18.19.0 || >=20.5.0}
     hasBin: true
     peerDependencies:

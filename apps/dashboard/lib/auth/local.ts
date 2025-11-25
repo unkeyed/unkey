@@ -365,7 +365,11 @@ export class LocalAuthProvider extends BaseAuthProvider {
 
   // Authentication Management
   async signUpViaEmail(
-    _params: UserData & { ipAddress?: string; userAgent?: string },
+    _params: UserData & {
+      ipAddress?: string;
+      userAgent?: string;
+      bypassRadar?: boolean;
+    },
   ): Promise<EmailAuthResult> {
     // always successful
     return { success: true };
@@ -375,6 +379,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     email: string;
     ipAddress?: string;
     userAgent?: string;
+    bypassRadar?: boolean;
   }): Promise<EmailAuthResult> {
     // always successful
     return { success: true };

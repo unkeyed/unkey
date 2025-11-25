@@ -408,6 +408,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
           region: c.req.raw.cf.colo ?? "",
           outcome: val.code,
           identity_id: val.identity?.id,
+          external_id: val.identity?.externalId,
           tags: req.tags ?? [],
         })
         .then(({ err }) => {
