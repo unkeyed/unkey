@@ -22,7 +22,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type HandleCertificateVerificationRequest struct {
+type VerifyCertificateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Domain        string                 `protobuf:"bytes,1,opt,name=domain,proto3" json:"domain,omitempty"`
 	Token         string                 `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
@@ -30,20 +30,20 @@ type HandleCertificateVerificationRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *HandleCertificateVerificationRequest) Reset() {
-	*x = HandleCertificateVerificationRequest{}
+func (x *VerifyCertificateRequest) Reset() {
+	*x = VerifyCertificateRequest{}
 	mi := &file_ctrl_v1_acme_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *HandleCertificateVerificationRequest) String() string {
+func (x *VerifyCertificateRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*HandleCertificateVerificationRequest) ProtoMessage() {}
+func (*VerifyCertificateRequest) ProtoMessage() {}
 
-func (x *HandleCertificateVerificationRequest) ProtoReflect() protoreflect.Message {
+func (x *VerifyCertificateRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_acme_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -55,46 +55,46 @@ func (x *HandleCertificateVerificationRequest) ProtoReflect() protoreflect.Messa
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use HandleCertificateVerificationRequest.ProtoReflect.Descriptor instead.
-func (*HandleCertificateVerificationRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use VerifyCertificateRequest.ProtoReflect.Descriptor instead.
+func (*VerifyCertificateRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_acme_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *HandleCertificateVerificationRequest) GetDomain() string {
+func (x *VerifyCertificateRequest) GetDomain() string {
 	if x != nil {
 		return x.Domain
 	}
 	return ""
 }
 
-func (x *HandleCertificateVerificationRequest) GetToken() string {
+func (x *VerifyCertificateRequest) GetToken() string {
 	if x != nil {
 		return x.Token
 	}
 	return ""
 }
 
-type HandleCertificateVerificationResponse struct {
+type VerifyCertificateResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Authorization string                 `protobuf:"bytes,1,opt,name=authorization,proto3" json:"authorization,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *HandleCertificateVerificationResponse) Reset() {
-	*x = HandleCertificateVerificationResponse{}
+func (x *VerifyCertificateResponse) Reset() {
+	*x = VerifyCertificateResponse{}
 	mi := &file_ctrl_v1_acme_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *HandleCertificateVerificationResponse) String() string {
+func (x *VerifyCertificateResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*HandleCertificateVerificationResponse) ProtoMessage() {}
+func (*VerifyCertificateResponse) ProtoMessage() {}
 
-func (x *HandleCertificateVerificationResponse) ProtoReflect() protoreflect.Message {
+func (x *VerifyCertificateResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_acme_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -106,14 +106,14 @@ func (x *HandleCertificateVerificationResponse) ProtoReflect() protoreflect.Mess
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use HandleCertificateVerificationResponse.ProtoReflect.Descriptor instead.
-func (*HandleCertificateVerificationResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use VerifyCertificateResponse.ProtoReflect.Descriptor instead.
+func (*VerifyCertificateResponse) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_acme_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *HandleCertificateVerificationResponse) GetToken() string {
+func (x *VerifyCertificateResponse) GetAuthorization() string {
 	if x != nil {
-		return x.Token
+		return x.Authorization
 	}
 	return ""
 }
@@ -122,14 +122,14 @@ var File_ctrl_v1_acme_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_acme_proto_rawDesc = "" +
 	"\n" +
-	"\x12ctrl/v1/acme.proto\x12\actrl.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"T\n" +
-	"$HandleCertificateVerificationRequest\x12\x16\n" +
+	"\x12ctrl/v1/acme.proto\x12\actrl.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"H\n" +
+	"\x18VerifyCertificateRequest\x12\x16\n" +
 	"\x06domain\x18\x01 \x01(\tR\x06domain\x12\x14\n" +
-	"\x05token\x18\x02 \x01(\tR\x05token\"=\n" +
-	"%HandleCertificateVerificationResponse\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token2\x90\x01\n" +
-	"\vAcmeService\x12\x80\x01\n" +
-	"\x1dHandleCertificateVerification\x12-.ctrl.v1.HandleCertificateVerificationRequest\x1a..ctrl.v1.HandleCertificateVerificationResponse\"\x00B\x8b\x01\n" +
+	"\x05token\x18\x02 \x01(\tR\x05token\"A\n" +
+	"\x19VerifyCertificateResponse\x12$\n" +
+	"\rauthorization\x18\x01 \x01(\tR\rauthorization2k\n" +
+	"\vAcmeService\x12\\\n" +
+	"\x11VerifyCertificate\x12!.ctrl.v1.VerifyCertificateRequest\x1a\".ctrl.v1.VerifyCertificateResponse\"\x00B\x8b\x01\n" +
 	"\vcom.ctrl.v1B\tAcmeProtoP\x01Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 
 var (
@@ -146,12 +146,12 @@ func file_ctrl_v1_acme_proto_rawDescGZIP() []byte {
 
 var file_ctrl_v1_acme_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ctrl_v1_acme_proto_goTypes = []any{
-	(*HandleCertificateVerificationRequest)(nil),  // 0: ctrl.v1.HandleCertificateVerificationRequest
-	(*HandleCertificateVerificationResponse)(nil), // 1: ctrl.v1.HandleCertificateVerificationResponse
+	(*VerifyCertificateRequest)(nil),  // 0: ctrl.v1.VerifyCertificateRequest
+	(*VerifyCertificateResponse)(nil), // 1: ctrl.v1.VerifyCertificateResponse
 }
 var file_ctrl_v1_acme_proto_depIdxs = []int32{
-	0, // 0: ctrl.v1.AcmeService.HandleCertificateVerification:input_type -> ctrl.v1.HandleCertificateVerificationRequest
-	1, // 1: ctrl.v1.AcmeService.HandleCertificateVerification:output_type -> ctrl.v1.HandleCertificateVerificationResponse
+	0, // 0: ctrl.v1.AcmeService.VerifyCertificate:input_type -> ctrl.v1.VerifyCertificateRequest
+	1, // 1: ctrl.v1.AcmeService.VerifyCertificate:output_type -> ctrl.v1.VerifyCertificateResponse
 	1, // [1:2] is the sub-list for method output_type
 	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

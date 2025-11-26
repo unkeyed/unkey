@@ -12,6 +12,9 @@ export const LOCAL_USER_ID = "user_local_admin";
 export const LOCAL_ORG_ID = "org_localdefault"; // org IDs can only have one underscore
 export const LOCAL_ORG_ROLE = "admin";
 
+// WorkOS API endpoints
+export const WORKOS_RADAR_API_URL = "https://api.workos.com/radar/attempts";
+
 export interface User {
   id: string;
   email: string;
@@ -87,8 +90,20 @@ export interface PendingEmailVerificationResponse extends AuthErrorResponse {
   cookies: Cookie[];
 }
 
+// Special case for Turnstile challenge
+export interface PendingTurnstileResponse extends AuthErrorResponse {
+  code: AuthErrorCode.RADAR_CHALLENGE_REQUIRED;
+  email: string;
+  challengeParams: {
+    ipAddress?: string;
+    userAgent?: string;
+    authMethod: string;
+    action: string;
+  };
+}
+
 // Union types for different auth operations
-export type EmailAuthResult = StateChangeResponse | AuthErrorResponse;
+export type EmailAuthResult = StateChangeResponse | AuthErrorResponse | PendingTurnstileResponse;
 export type VerificationResult =
   | NavigationResponse
   | PendingOrgSelectionResponse
@@ -197,6 +212,8 @@ export enum AuthErrorCode {
   ORGANIZATION_SELECTION_REQUIRED = "ORGANIZATION_SELECTION_REQUIRED",
   EMAIL_VERIFICATION_REQUIRED = "EMAIL_VERIFICATION_REQUIRED",
   PENDING_SESSION_EXPIRED = "PENDING_SESSION_EXPIRED",
+  RADAR_BLOCKED = "RADAR_BLOCKED",
+  RADAR_CHALLENGE_REQUIRED = "RADAR_CHALLENGE_REQUIRED",
 }
 
 export const errorMessages: Record<AuthErrorCode, string> = {
@@ -216,6 +233,10 @@ export const errorMessages: Record<AuthErrorCode, string> = {
   [AuthErrorCode.PENDING_SESSION_EXPIRED]:
     "Pending Authentication has expired. Please sign-in again.",
   [AuthErrorCode.RATE_ERROR]: "Limited OTP attempts",
+  [AuthErrorCode.RADAR_BLOCKED]:
+    "Unable to complete request due to suspicious activity. Please contact support@unkey.dev if you believe this is an error.",
+  [AuthErrorCode.RADAR_CHALLENGE_REQUIRED]:
+    "Please complete the verification challenge to continue.",
 };
 
 export interface MiddlewareConfig {

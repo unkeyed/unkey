@@ -1,0 +1,185 @@
+---
+title: Gateway
+description: Environment-scoped deployment gateway service
+---
+
+import { Mermaid } from "@/app/components/mermaid";
+
+**Location:** `go/apps/gateway/`
+
+**CLI Command:** [`unkey run gateway`](/cli/run/gateway)
+
+## What It Does
+
+Gateway is an environment-scoped HTTP proxy service that receives requests from Ingress and routes them to the appropriate deployment instance.
+
+Each environment has its own Gateway instance(s), and a single Gateway handles all deployments within that environment.
+
+Gateway handles three main responsibilities:
+
+1. **Deployment Validation**: Ensures the requested deployment belongs to this Gateway's environment
+2. **Instance Selection**: Selects a healthy running instance for the deployment in the current region
+3. **Request Proxying**: Forwards the request to the selected instance and returns the response
+
+## Architecture
+
+### Environment-Scoped Design
+
+Gateway is an environment-scoped service, meaning:
+
+- Each environment (e.g., production, staging, dev) has its own Gateway instance(s)
+- A single Gateway handles **all deployments** within its environment
+- Ingress passes the `X-Deployment-ID` header to specify which deployment to route to
+- Gateway validates that the deployment belongs to its configured environment
+
+<Mermaid chart={`graph LR
+    Internet[Internet] --> Ingress[Ingress<br/><i>multi-tenant</i>]
+    Ingress --> Gateway[Gateway<br/><i>per-environment</i>]
+    Gateway --> Instance[Instance<br/><i>per-deployment</i>]
+`} />
+
+### Request Flow
+
+<Mermaid chart={`sequenceDiagram
+    autonumber
+    participant Ingress
+    participant Gateway
+    participant Router as Router Service
+    participant DB as MySQL
+    participant Instance as Deployment Instance
+
+    Ingress->>Gateway: HTTP Request + X-Deployment-ID header
+    Gateway->>Router: GetDeployment(deploymentID)
+    Router->>DB: SELECT * FROM deployments WHERE id=?
+    DB->>Router: deployment (with environment_id)
+    Router->>Router: Validate deployment.environment_id == gateway.environment_id
+
+    alt Deployment belongs to wrong environment
+        Router->>Gateway: DeploymentNotFound error (masked)
+        Gateway->>Ingress: 404 Not Found
+    else Deployment valid
+        Router->>Gateway: Deployment
+        Gateway->>Router: SelectInstance(deploymentID)
+        Router->>DB: SELECT * FROM instances WHERE deployment_id=? AND region=?
+        DB->>Router: instances[]
+        Router->>Router: Filter for status='running'
+        Router->>Router: Select random running instance
+        Router->>Gateway: Selected instance
+        Gateway->>Instance: HTTP proxy to instance.address
+        Instance->>Gateway: Response
+        Gateway->>Ingress: Response
+    end
+
+`} />
+
+## How It Works
+
+Gateway validates that the requested deployment belongs to its configured environment, then selects a healthy instance to proxy the request to.
+
+**Security Note**: Deployments from wrong environments are masked as "not found" rather than "forbidden" to avoid leaking information about deployments in other environments.
+
+## Database Schema
+
+Gateway uses the following tables:
+
+```sql
+-- Deployments (one per git branch/commit)
+CREATE TABLE deployments (
+    id VARCHAR(128) PRIMARY KEY,
+    workspace_id VARCHAR(255) NOT NULL,
+    project_id VARCHAR(255) NOT NULL,
+    environment_id VARCHAR(255) NOT NULL,  -- Gateway validates this matches
+    git_commit_sha VARCHAR(40),
+    git_branch VARCHAR(255),
+    status ENUM('pending','deploying','running','failed','stopped') NOT NULL,
+    runtime_config JSON NOT NULL,
+    gateway_config JSON NOT NULL,
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
+);
+
+-- Running instances (pods/containers)
+CREATE TABLE instances (
+    id VARCHAR(128) PRIMARY KEY,
+    deployment_id VARCHAR(255) NOT NULL,
+    workspace_id VARCHAR(255) NOT NULL,
+    project_id VARCHAR(255) NOT NULL,
+    region VARCHAR(255) NOT NULL,
+    address VARCHAR(255) NOT NULL UNIQUE,  -- e.g., "10.0.1.5:8080"
+    cpu_millicores INT NOT NULL,
+    memory_mb INT NOT NULL,
+    status ENUM('allocated','provisioning','starting','running','stopping','stopped','failed') NOT NULL
+);
+
+-- Index for fast instance lookups
+CREATE INDEX idx_instances_deployment_region ON instances(deployment_id, region, status);
+```
+
+## Error Handling
+
+Gateway uses structured error codes for consistent error handling:
+
+### Error Codes
+
+```go
+// Routing Errors
+codes.Gateway.Routing.DeploymentNotFound      // 404 - Deployment not found or wrong environment
+codes.Gateway.Routing.NoRunningInstances      // 503 - No healthy instances available
+codes.Gateway.Routing.InstanceSelectionFailed // 500 - Failed to select instance
+
+// Proxy Errors
+codes.Gateway.Proxy.BadGateway         // 502 - Invalid response from instance
+codes.Gateway.Proxy.ServiceUnavailable // 503 - Instance unavailable
+codes.Gateway.Proxy.GatewayTimeout     // 504 - Instance timeout
+codes.Gateway.Proxy.ProxyForwardFailed // 502 - Failed to forward request
+
+// Internal Errors
+codes.Gateway.Internal.InternalServerError  // 500 - Generic internal error
+codes.Gateway.Internal.InvalidConfiguration // 500 - Invalid configuration
+```
+
+### Error Middleware
+
+Gateway is not user-facing (only Ingress calls it), so it always returns JSON errors:
+
+```go
+// Error response format
+{
+  "error": {
+    "code": "err:unkey:not_found:deployment_not_found",
+    "message": "The requested deployment could not be found."
+  }
+}
+```
+
+Ingress receives these errors and can decide how to present them to end users.
+
+## Configuration
+
+Gateway is configured per-environment:
+
+```go
+type Config struct {
+    GatewayID     string  // Unique identifier for this gateway instance
+    WorkspaceID   string  // Workspace this gateway serves
+    EnvironmentID string  // Environment this gateway serves (REQUIRED)
+    Region        string  // Region this gateway runs in
+
+    HttpPort int  // Port to listen on (default: 8080)
+
+    // Database
+    DatabasePrimary         string
+    DatabaseReadonlyReplica string
+
+    // Observability
+    OtelEnabled           bool
+    OtelTraceSamplingRate float64
+    PrometheusPort        int
+}
+```
+
+**Key Configuration**: `EnvironmentID` is required and determines which deployments this Gateway can serve.
+
+## Observability
+
+Gateway uses structured logging and metrics for monitoring.

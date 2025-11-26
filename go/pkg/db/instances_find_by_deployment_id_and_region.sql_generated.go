@@ -13,8 +13,12 @@ const findInstancesByDeploymentIdAndRegion = `-- name: FindInstancesByDeployment
 SELECT
   id,
   deployment_id,
+  workspace_id,
+  project_id,
   region,
   address,
+  cpu_millicores,
+  memory_mb,
   status
 FROM instances
 WHERE deployment_id = ? AND region = ?
@@ -25,38 +29,38 @@ type FindInstancesByDeploymentIdAndRegionParams struct {
 	Region       string `db:"region"`
 }
 
-type FindInstancesByDeploymentIdAndRegionRow struct {
-	ID           string          `db:"id"`
-	DeploymentID string          `db:"deployment_id"`
-	Region       string          `db:"region"`
-	Address      string          `db:"address"`
-	Status       InstancesStatus `db:"status"`
-}
-
 // FindInstancesByDeploymentIdAndRegion
 //
 //	SELECT
 //	  id,
 //	  deployment_id,
+//	  workspace_id,
+//	  project_id,
 //	  region,
 //	  address,
+//	  cpu_millicores,
+//	  memory_mb,
 //	  status
 //	FROM instances
 //	WHERE deployment_id = ? AND region = ?
-func (q *Queries) FindInstancesByDeploymentIdAndRegion(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionParams) ([]FindInstancesByDeploymentIdAndRegionRow, error) {
+func (q *Queries) FindInstancesByDeploymentIdAndRegion(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionParams) ([]Instance, error) {
 	rows, err := db.QueryContext(ctx, findInstancesByDeploymentIdAndRegion, arg.Deploymentid, arg.Region)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []FindInstancesByDeploymentIdAndRegionRow
+	var items []Instance
 	for rows.Next() {
-		var i FindInstancesByDeploymentIdAndRegionRow
+		var i Instance
 		if err := rows.Scan(
 			&i.ID,
 			&i.DeploymentID,
+			&i.WorkspaceID,
+			&i.ProjectID,
 			&i.Region,
 			&i.Address,
+			&i.CpuMillicores,
+			&i.MemoryMb,
 			&i.Status,
 		); err != nil {
 			return nil, err
