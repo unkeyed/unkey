@@ -416,3 +416,55 @@ func TestGetRootKey_InsufficientPermissions(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 403, res.Status, "should return 403 for insufficient permissions")
 }
+
+// TestGetRootKey_RegularKeyWithSamePermissions tests that a regular API key cannot be used
+// as a root key even if it has the same permissions. This is a security test to ensure
+// that only keys with ForWorkspaceID set can act as root keys.
+func TestGetRootKey_RegularKeyWithSamePermissions(t *testing.T) {
+	testutil.SkipUnlessIntegration(t)
+
+	ctx := context.Background()
+	h := integration.New(t, integration.Config{NumNodes: 1})
+
+	workspace := h.Resources().UserWorkspace
+
+	// Create an API in the workspace
+	api := h.Seed.CreateAPI(ctx, seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+
+	// Create a regular API key (NOT a root key - no ForWorkspaceID)
+	// Give it the same permission that a root key would have
+	regularKey := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		Permissions: []seed.CreatePermissionRequest{
+			{
+				WorkspaceID: workspace.ID,
+				Name:        "api.*.verify_key",
+				Slug:        "api.*.verify_key",
+			},
+		},
+	})
+
+	// Create another key to verify
+	keyToVerify := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+	})
+
+	// Try to use the regular key as a root key in the Authorization header
+	req := handler.Request{Key: keyToVerify.Key}
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", regularKey.Key)},
+	}
+
+	lb := integration.NewLoadbalancer(h)
+	res, err := integration.CallRandomNode[handler.Request, handler.Response](
+		lb, "POST", "/v2/keys.verifyKey", headers, req)
+
+	require.NoError(t, err)
+	// Should return 401 (same as non-existent key) to avoid leaking that the key exists
+	require.Equal(t, 401, res.Status, "regular key should not be usable as root key, even with same permissions")
+}
