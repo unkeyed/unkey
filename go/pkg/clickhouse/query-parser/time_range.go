@@ -57,34 +57,40 @@ func (p *Parser) validateTimeRange() error {
 }
 
 // validateWhereClause recursively validates time conditions in WHERE clause
-func (p *Parser) validateWhereClause(expr clickhouse.Expr, earliestAllowed time.Time, hasTimeFilter *bool) error {
+func (p *Parser) validateWhereClause(expr clickhouse.Expr, earliestAllowed time.Time, hasLowerBoundTimeFilter *bool) error {
 	switch e := expr.(type) {
 	case *clickhouse.BinaryOperation:
 		// Check if this is a time comparison
-		if p.isTimeComparison(e) {
-			*hasTimeFilter = true
-			if err := p.validateTimeComparison(e, earliestAllowed); err != nil {
+		info := p.analyzeTimeComparison(e)
+		if info.isTimeComparison {
+			hasLowerBound, err := p.validateTimeComparison(e, earliestAllowed, info)
+			if err != nil {
 				return err
+			}
+			// Only set hasLowerBoundTimeFilter if this comparison establishes a lower bound
+			if hasLowerBound {
+				*hasLowerBoundTimeFilter = true
 			}
 		}
 
 		// Recursively check left and right expressions
 		if e.LeftExpr != nil {
-			if err := p.validateWhereClause(e.LeftExpr, earliestAllowed, hasTimeFilter); err != nil {
+			if err := p.validateWhereClause(e.LeftExpr, earliestAllowed, hasLowerBoundTimeFilter); err != nil {
 				return err
 			}
 		}
 
 		if e.RightExpr != nil {
-			if err := p.validateWhereClause(e.RightExpr, earliestAllowed, hasTimeFilter); err != nil {
+			if err := p.validateWhereClause(e.RightExpr, earliestAllowed, hasLowerBoundTimeFilter); err != nil {
 				return err
 			}
 		}
 
 	case *clickhouse.BetweenClause:
 		// Check if this is a time BETWEEN comparison
+		// BETWEEN always establishes a lower bound
 		if p.isTimeColumn(e.Expr) {
-			*hasTimeFilter = true
+			*hasLowerBoundTimeFilter = true
 			if err := p.validateBetweenClause(e, earliestAllowed); err != nil {
 				return err
 			}
@@ -94,61 +100,91 @@ func (p *Parser) validateWhereClause(expr clickhouse.Expr, earliestAllowed time.
 	return nil
 }
 
-// isTimeComparison checks if a binary operation is comparing the 'time' column
-func (p *Parser) isTimeComparison(op *clickhouse.BinaryOperation) bool {
-	// Check if left side is 'time' column
-	if ident, ok := op.LeftExpr.(*clickhouse.NestedIdentifier); ok {
-		if ident.Ident != nil && strings.EqualFold(ident.Ident.Name, "time") {
-			return true
-		}
-	}
+// timeComparisonInfo holds information about a time comparison
+type timeComparisonInfo struct {
+	isTimeComparison bool
+	timeOnLeft       bool // true if time column is on left side, false if on right
+}
 
-	if ident, ok := op.LeftExpr.(*clickhouse.Ident); ok {
-		if strings.EqualFold(ident.Name, "time") {
-			return true
-		}
+// analyzeTimeComparison checks if a binary operation is comparing the 'time' column
+// and determines which side the time column is on
+func (p *Parser) analyzeTimeComparison(op *clickhouse.BinaryOperation) timeComparisonInfo {
+	// Check if left side is 'time' column
+	if p.isTimeColumn(op.LeftExpr) {
+		return timeComparisonInfo{isTimeComparison: true, timeOnLeft: true}
 	}
 
 	// Check if right side is 'time' column (for reversed comparisons like '123456 < time')
-	if ident, ok := op.RightExpr.(*clickhouse.NestedIdentifier); ok {
-		if ident.Ident != nil && strings.EqualFold(ident.Ident.Name, "time") {
-			return true
-		}
-	}
-	if ident, ok := op.RightExpr.(*clickhouse.Ident); ok {
-		if strings.EqualFold(ident.Name, "time") {
-			return true
-		}
+	if p.isTimeColumn(op.RightExpr) {
+		return timeComparisonInfo{isTimeComparison: true, timeOnLeft: false}
 	}
 
-	return false
+	return timeComparisonInfo{isTimeComparison: false, timeOnLeft: false}
 }
 
-// validateTimeComparison validates that a time comparison doesn't access data beyond retention
-func (p *Parser) validateTimeComparison(op *clickhouse.BinaryOperation, earliestAllowed time.Time) error {
+// validateTimeComparison validates that a time comparison doesn't access data beyond retention.
+// Returns (hasLowerBound, error) - hasLowerBound indicates if this comparison establishes a lower bound on time.
+func (p *Parser) validateTimeComparison(op *clickhouse.BinaryOperation, earliestAllowed time.Time, info timeComparisonInfo) (bool, error) {
 	// Extract the timestamp being compared
 	timestamp, err := p.extractTimestamp(op)
 	if err != nil {
 		// If we can't parse the timestamp, allow it and let ClickHouse handle it
-		return nil
+		// But we don't know if it's a lower bound, so return false to be safe
+		// (this will cause default time filter injection if no other lower bound exists)
+		return false, nil
 	}
 
-	// Check if the query is trying to access data older than allowed
-	// For operations like: time >= X, time > X, time BETWEEN X AND Y
-	// We want to ensure X is not before earliestAllowed
+	// Normalize the operator to always be from the perspective of "time <op> value"
+	// If time is on the right side, we need to flip the operator:
+	//   value <= time  is equivalent to  time >= value
+	//   value < time   is equivalent to  time > value
+	//   value >= time  is equivalent to  time <= value
+	//   value > time   is equivalent to  time < value
+	//   value = time   is equivalent to  time = value
 	operation := strings.ToUpper(string(op.Operation))
-	switch operation {
-	case ">=", ">", "=":
-		// time >= 1234567890 - check if 1234567890 is before earliestAllowed
-		if timestamp.Before(earliestAllowed) {
-			return p.retentionExceededError(timestamp, earliestAllowed)
-		}
-	case "<=", "<":
-		// time <= X - this is OK, it's querying recent data
-		// We only care about the lower bound
+	if !info.timeOnLeft {
+		operation = flipOperator(operation)
 	}
 
-	return nil
+	// Now check from the perspective of "time <op> value"
+	// Lower bounds: time >= X, time > X, time = X
+	// Upper bounds: time <= X, time < X (these don't establish a lower bound)
+	switch operation {
+	case ">=", ">":
+		// time >= X or time > X - this establishes a lower bound
+		if timestamp.Before(earliestAllowed) {
+			return true, p.retentionExceededError(timestamp, earliestAllowed)
+		}
+		return true, nil
+	case "=":
+		// time = X - this establishes both bounds (exact match)
+		if timestamp.Before(earliestAllowed) {
+			return true, p.retentionExceededError(timestamp, earliestAllowed)
+		}
+		return true, nil
+	case "<=", "<":
+		// time <= X or time < X - upper bound only, does NOT establish a lower bound
+		return false, nil
+	}
+
+	// Unknown operator - don't treat as lower bound
+	return false, nil
+}
+
+// flipOperator flips a comparison operator (for when time is on the right side)
+func flipOperator(op string) string {
+	switch op {
+	case ">=":
+		return "<="
+	case ">":
+		return "<"
+	case "<=":
+		return ">="
+	case "<":
+		return ">"
+	default:
+		return op // = and other operators are symmetric
+	}
 }
 
 // validateBetweenClause validates that a BETWEEN clause doesn't access data beyond retention

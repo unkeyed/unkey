@@ -538,3 +538,124 @@ func TestParser_ValidateTimeRange_NumericTimestamps(t *testing.T) {
 		})
 	}
 }
+
+func TestParser_ValidateTimeRange_ReversedComparisons(t *testing.T) {
+	tests := []struct {
+		name       string
+		query      string
+		shouldPass bool
+	}{
+		{
+			name:       "reversed lower bound (value <= time) within retention",
+			query:      "SELECT * FROM key_verifications_per_hour_v1 WHERE now() - INTERVAL 5 DAY <= time",
+			shouldPass: true,
+		},
+		{
+			name:       "reversed lower bound (value <= time) exceeds retention",
+			query:      "SELECT * FROM key_verifications_per_hour_v1 WHERE now() - INTERVAL 90 DAY <= time",
+			shouldPass: false,
+		},
+		{
+			name:       "reversed lower bound (value < time) within retention",
+			query:      "SELECT * FROM key_verifications_per_hour_v1 WHERE now() - INTERVAL 5 DAY < time",
+			shouldPass: true,
+		},
+		{
+			name:       "reversed lower bound (value < time) exceeds retention",
+			query:      "SELECT * FROM key_verifications_per_hour_v1 WHERE now() - INTERVAL 90 DAY < time",
+			shouldPass: false,
+		},
+		{
+			name:       "reversed upper bound (value >= time) - should inject default filter",
+			query:      "SELECT * FROM key_verifications_per_hour_v1 WHERE now() >= time",
+			shouldPass: true, // Should inject default time filter
+		},
+		{
+			name:       "reversed upper bound (value > time) - should inject default filter",
+			query:      "SELECT * FROM key_verifications_per_hour_v1 WHERE now() > time",
+			shouldPass: true, // Should inject default time filter
+		},
+		{
+			name:       "combined: reversed lower bound with upper bound",
+			query:      "SELECT * FROM key_verifications_per_hour_v1 WHERE now() - INTERVAL 5 DAY <= time AND time <= now()",
+			shouldPass: true,
+		},
+		{
+			name:       "combined: reversed lower bound exceeds retention with upper bound",
+			query:      "SELECT * FROM key_verifications_per_hour_v1 WHERE now() - INTERVAL 90 DAY <= time AND time <= now()",
+			shouldPass: false,
+		},
+	}
+
+	parser := NewParser(Config{
+		WorkspaceID: "test_ws",
+		TableAliases: map[string]string{
+			"key_verifications_per_hour_v1": "default.key_verifications_per_hour_v2",
+		},
+		AllowedTables: []string{
+			"default.key_verifications_per_hour_v2",
+		},
+		MaxQueryRangeDays: 7,
+		Logger:            logging.NewNoop(),
+	})
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := parser.Parse(context.Background(), tt.query)
+
+			if tt.shouldPass {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+			}
+		})
+	}
+}
+
+func TestParser_ValidateTimeRange_UpperBoundOnly(t *testing.T) {
+	parser := NewParser(Config{
+		WorkspaceID: "test_ws",
+		TableAliases: map[string]string{
+			"key_verifications_per_hour_v1": "default.key_verifications_per_hour_v2",
+		},
+		AllowedTables: []string{
+			"default.key_verifications_per_hour_v2",
+		},
+		MaxQueryRangeDays: 7,
+		Logger:            logging.NewNoop(),
+	})
+
+	tests := []struct {
+		name                 string
+		query                string
+		shouldInjectTimeFilter bool
+	}{
+		{
+			name:                 "time <= old_date should inject default time filter (no lower bound)",
+			query:                "SELECT * FROM key_verifications_per_hour_v1 WHERE time <= now() - INTERVAL 90 DAY",
+			shouldInjectTimeFilter: true,
+		},
+		{
+			name:                 "time < old_date should inject default time filter (no lower bound)",
+			query:                "SELECT * FROM key_verifications_per_hour_v1 WHERE time < now() - INTERVAL 90 DAY",
+			shouldInjectTimeFilter: true,
+		},
+		{
+			name:                 "time <= now() should inject default time filter (no lower bound)",
+			query:                "SELECT * FROM key_verifications_per_hour_v1 WHERE time <= now()",
+			shouldInjectTimeFilter: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := parser.Parse(context.Background(), tt.query)
+			require.NoError(t, err)
+
+			if tt.shouldInjectTimeFilter {
+				// The result should contain a time >= filter that was injected
+				require.Contains(t, result, "time >=", "expected default time filter to be injected")
+			}
+		})
+	}
+}
