@@ -78,7 +78,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	err = db.Tx(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
-		err := db.BulkQuery.UpsertWorkspace(ctx, tx, []db.UpsertWorkspaceParams{
+		err = db.BulkQuery.UpsertWorkspace(ctx, tx, []db.UpsertWorkspaceParams{
 			{
 				ID:           workspaceID,
 				OrgID:        orgID,

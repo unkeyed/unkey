@@ -163,14 +163,15 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		}
 
 		// Encrypt password
-		encRes, err := v.Encrypt(ctx, &vaultv1.EncryptRequest{
+		var encRes *vaultv1.EncryptResponse
+		encRes, err = v.Encrypt(ctx, &vaultv1.EncryptRequest{
 			Keyring: workspaceID,
 			Data:    password,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to encrypt password: %w", err)
 		}
-		passwordEncrypted = encRes.Encrypted
+		passwordEncrypted = encRes.GetEncrypted()
 
 		// Insert into MySQL
 		err = db.Query.InsertClickhouseWorkspaceSettings(ctx, database.RW(), db.InsertClickhouseWorkspaceSettingsParams{
@@ -195,8 +196,9 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		// User exists - update quotas only (preserve password)
 		logger.Info("updating existing user quotas", "workspace_id", workspaceID, "username", existing.Username)
 		username = existing.Username
-		passwordEncrypted = existing.PasswordEncrypted
-		decrypted, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
+		var decrypted *vaultv1.DecryptResponse
+
+		decrypted, err = v.Decrypt(ctx, &vaultv1.DecryptRequest{
 			Keyring:   workspaceID,
 			Encrypted: existing.PasswordEncrypted,
 		})

@@ -26,6 +26,6 @@ func (s *Service) CreateProject(
 	}
 
 	return connect.NewResponse(&ctrlv1.CreateProjectResponse{
-		Id: res.ProjectId,
+		Id: res.GetProjectId(),
 	}), nil
 }

@@ -64,7 +64,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 			if len(parts) < 3 {
 				return nil, emptyLog, fault.Wrap(
 					fmt.Errorf("expected at least 3 segments, got %d", len(parts)),
-					fault.Code(codes.URN(codes.Auth.Authentication.Malformed.URN())),
+					fault.Code(codes.Auth.Authentication.Malformed.URN()),
 					fault.Public("Invalid key format"),
 				)
 			}

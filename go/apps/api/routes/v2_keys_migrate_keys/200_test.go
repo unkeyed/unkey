@@ -83,6 +83,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 	}
 
 	t.Run("basic migration", func(t *testing.T) {
+		t.Parallel()
 		req := handler.Request{
 			ApiId:       api.ID,
 			MigrationId: "unkeyed",

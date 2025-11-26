@@ -121,9 +121,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	keySpaceIds := parser.ExtractColumn("key_space_id")
 	if len(keySpaceIds) > 0 {
-		apiPermissions, err := h.buildAPIPermissionsFromKeySpaces(ctx, auth, keySpaceIds)
-		if err != nil {
-			return err
+		apiPermissions, permErr := h.buildAPIPermissionsFromKeySpaces(ctx, auth, keySpaceIds)
+		if permErr != nil {
+			return permErr
 		}
 		permissionChecks = append(permissionChecks, rbac.And(apiPermissions...))
 	}

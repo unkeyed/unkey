@@ -2,6 +2,7 @@ package batchrand
 
 import (
 	"crypto/rand"
+	"errors"
 	"sync"
 )
 
@@ -48,7 +49,11 @@ func Read(p []byte) error {
 	}
 
 	// Get a buffer from the pool
-	rb := bufferPool.Get().(*randBuffer)
+	rb, ok := bufferPool.Get().(*randBuffer)
+	if !ok {
+		// this should never happen, so it will probably happen
+		return errors.New("failed to get buffer from pool")
+	}
 	defer bufferPool.Put(rb)
 
 	// Refill buffer if insufficient bytes available

@@ -18,7 +18,6 @@ linters:
     - loggercheck
     - musttag
     - nestif
-    - nilnil
     - predeclared
     - promlinter
     - protogetter
@@ -35,6 +34,10 @@ linters:
     - usestdlibvars
     - wastedassign
   settings:
+    gosec:
+      excludes:
+        - G115 # Potential integer overflow when converting between integer types
+        - G404
     nestif:
       min-complexity: 15
     cyclop:
@@ -116,10 +119,8 @@ linters:
     govet:
       disable:
         - fieldalignment
+        - shadow
       enable-all: true
-      settings:
-        shadow:
-          strict: false
     inamedparam:
       skip-single-param: true
     lll:

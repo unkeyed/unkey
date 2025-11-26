@@ -264,9 +264,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	rolesToFind = deduplicate(rolesToFind)
 
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		usedHashes, err := db.Query.FindKeysByHash(ctx, tx, hashes)
-		if err != nil && !db.IsNotFound(err) {
-			return fault.Wrap(err,
+		usedHashes, findErr := db.Query.FindKeysByHash(ctx, tx, hashes)
+		if findErr != nil && !db.IsNotFound(findErr) {
+			return fault.Wrap(findErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"),
 				fault.Public("Failed to check for duplicate keys."),
@@ -542,7 +542,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(permissionsToInsert) > 0 {
 			chunks := chunk(permissionsToInsert, ChunkSize)
 			for _, chunk := range chunks {
-				if err := db.BulkQuery.InsertPermissions(ctx, tx, chunk); err != nil {
+				if err = db.BulkQuery.InsertPermissions(ctx, tx, chunk); err != nil {
 					return err
 				}
 			}
@@ -551,7 +551,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(identitiesToInsert) > 0 {
 			chunks := chunk(identitiesToInsert, ChunkSize)
 			for _, chunk := range chunks {
-				if err := db.BulkQuery.InsertIdentities(ctx, tx, chunk); err != nil {
+				if err = db.BulkQuery.InsertIdentities(ctx, tx, chunk); err != nil {
 					return err
 				}
 			}
@@ -560,7 +560,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(rolesToInsert) > 0 {
 			chunks := chunk(rolesToInsert, ChunkSize)
 			for _, chunk := range chunks {
-				if err := db.BulkQuery.InsertRoles(ctx, tx, chunk); err != nil {
+				if err = db.BulkQuery.InsertRoles(ctx, tx, chunk); err != nil {
 					return err
 				}
 			}
@@ -569,7 +569,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(keysArray) > 0 {
 			chunks := chunk(keysArray, ChunkSize)
 			for _, chunk := range chunks {
-				if err := db.BulkQuery.InsertKeys(ctx, tx, chunk); err != nil {
+				if err = db.BulkQuery.InsertKeys(ctx, tx, chunk); err != nil {
 					return err
 				}
 			}
@@ -578,7 +578,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(keyRolesToInsert) > 0 {
 			chunks := chunk(keyRolesToInsert, ChunkSize)
 			for _, chunk := range chunks {
-				if err := db.BulkQuery.InsertKeyRoles(ctx, tx, chunk); err != nil {
+				if err = db.BulkQuery.InsertKeyRoles(ctx, tx, chunk); err != nil {
 					return err
 				}
 			}
@@ -587,7 +587,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(keyPermissionsToInsert) > 0 {
 			chunks := chunk(keyPermissionsToInsert, ChunkSize)
 			for _, chunk := range chunks {
-				if err := db.BulkQuery.InsertKeyPermissions(ctx, tx, chunk); err != nil {
+				if err = db.BulkQuery.InsertKeyPermissions(ctx, tx, chunk); err != nil {
 					return err
 				}
 			}
@@ -596,7 +596,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(ratelimitsToInsert) > 0 {
 			chunks := chunk(ratelimitsToInsert, ChunkSize)
 			for _, chunk := range chunks {
-				if err := db.BulkQuery.InsertKeyRatelimits(ctx, tx, chunk); err != nil {
+				if err = db.BulkQuery.InsertKeyRatelimits(ctx, tx, chunk); err != nil {
 					return err
 				}
 			}
