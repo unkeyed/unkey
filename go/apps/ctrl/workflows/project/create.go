@@ -116,7 +116,7 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 					Namespace:     workspace.ID,
 					WorkspaceId:   workspace.ID,
 					GatewayId:     gatewayID,
-					Image:         "nginx:latest", // TODO
+					Image:         "nginx:latest",
 					Replicas:      replicas,
 					CpuMillicores: uint32(128),
 					MemorySizeMib: uint64(256),
