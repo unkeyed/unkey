@@ -9,10 +9,10 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "typescript": "^5.5.3"
+    "typescript": "5.5.3"
   },
   "dependencies": {
     "@unkey/hash": "workspace:^",
-    "base-x": "^4.0.1"
+    "base-x": "4.0.1"
   }
 }

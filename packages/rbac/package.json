@@ -21,15 +21,15 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@types/node": "^20.14.9",
+    "@types/node": "20.14.9",
     "@unkey/tsconfig": "workspace:*",
-    "tsup": "^8.0.2",
-    "typescript": "^5.5.3",
-    "vitest": "^1.6.1"
+    "tsup": "8.0.2",
+    "typescript": "5.5.3",
+    "vitest": "1.6.1"
   },
   "dependencies": {
     "@unkey/error": "workspace:^",
-    "zod": "^3.23.5"
+    "zod": "3.23.5"
   },
   "type": "module"
 }

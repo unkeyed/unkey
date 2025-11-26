@@ -2,18 +2,15 @@
 // @generated from file ctrl/v1/project.proto (package ctrl.v1, syntax proto3)
 /* eslint-disable */
 
-import type { Message } from "@bufbuild/protobuf";
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/project.proto.
  */
-export const file_ctrl_v1_project: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChVjdHJsL3YxL3Byb2plY3QucHJvdG8SB2N0cmwudjEiYAoUQ3JlYXRlUHJvamVjdFJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEc2x1ZxgDIAEoCRIWCg5naXRfcmVwb3NpdG9yeRgEIAEoCSIjChVDcmVhdGVQcm9qZWN0UmVzcG9uc2USCgoCaWQYASABKAkyYgoOUHJvamVjdFNlcnZpY2USUAoNQ3JlYXRlUHJvamVjdBIdLmN0cmwudjEuQ3JlYXRlUHJvamVjdFJlcXVlc3QaHi5jdHJsLnYxLkNyZWF0ZVByb2plY3RSZXNwb25zZSIAQo4BCgtjb20uY3RybC52MUIMUHJvamVjdFByb3RvUAFaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z",
-  );
+export const file_ctrl_v1_project: GenFile = /*@__PURE__*/
+  fileDesc("ChVjdHJsL3YxL3Byb2plY3QucHJvdG8SB2N0cmwudjEiYAoUQ3JlYXRlUHJvamVjdFJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEc2x1ZxgDIAEoCRIWCg5naXRfcmVwb3NpdG9yeRgEIAEoCSIjChVDcmVhdGVQcm9qZWN0UmVzcG9uc2USCgoCaWQYASABKAkyYgoOUHJvamVjdFNlcnZpY2USUAoNQ3JlYXRlUHJvamVjdBIdLmN0cmwudjEuQ3JlYXRlUHJvamVjdFJlcXVlc3QaHi5jdHJsLnYxLkNyZWF0ZVByb2plY3RSZXNwb25zZSIAQo4BCgtjb20uY3RybC52MUIMUHJvamVjdFByb3RvUAFaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z");
 
 /**
  * @generated from message ctrl.v1.CreateProjectRequest
@@ -44,8 +41,7 @@ export type CreateProjectRequest = Message<"ctrl.v1.CreateProjectRequest"> & {
  * Describes the message ctrl.v1.CreateProjectRequest.
  * Use `create(CreateProjectRequestSchema)` to create a new message.
  */
-export const CreateProjectRequestSchema: GenMessage<CreateProjectRequest> =
-  /*@__PURE__*/
+export const CreateProjectRequestSchema: GenMessage<CreateProjectRequest> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_project, 0);
 
 /**
@@ -62,8 +58,7 @@ export type CreateProjectResponse = Message<"ctrl.v1.CreateProjectResponse"> & {
  * Describes the message ctrl.v1.CreateProjectResponse.
  * Use `create(CreateProjectResponseSchema)` to create a new message.
  */
-export const CreateProjectResponseSchema: GenMessage<CreateProjectResponse> =
-  /*@__PURE__*/
+export const CreateProjectResponseSchema: GenMessage<CreateProjectResponse> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_project, 1);
 
 /**
@@ -77,5 +72,7 @@ export const ProjectService: GenService<{
     methodKind: "unary";
     input: typeof CreateProjectRequestSchema;
     output: typeof CreateProjectResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_ctrl_v1_project, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_ctrl_v1_project, 0);
+
