@@ -770,15 +770,15 @@ type EncryptedKey struct {
 }
 
 type Environment struct {
-	ID               string         `db:"id"`
-	WorkspaceID      string         `db:"workspace_id"`
-	ProjectID        string         `db:"project_id"`
-	Slug             string         `db:"slug"`
-	Description      sql.NullString `db:"description"`
-	GatewayConfig    []byte         `db:"gateway_config"`
-	DeleteProtection sql.NullBool   `db:"delete_protection"`
-	CreatedAt        int64          `db:"created_at"`
-	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+	ID               string        `db:"id"`
+	WorkspaceID      string        `db:"workspace_id"`
+	ProjectID        string        `db:"project_id"`
+	Slug             string        `db:"slug"`
+	Description      string        `db:"description"`
+	GatewayConfig    []byte        `db:"gateway_config"`
+	DeleteProtection sql.NullBool  `db:"delete_protection"`
+	CreatedAt        int64         `db:"created_at"`
+	UpdatedAt        sql.NullInt64 `db:"updated_at"`
 }
 
 type Gateway struct {
