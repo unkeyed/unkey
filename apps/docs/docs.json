@@ -266,6 +266,7 @@
                       "errors/user/bad_request/invalid_analytics_query",
                       "errors/user/bad_request/invalid_analytics_query_type",
                       "errors/user/bad_request/invalid_analytics_table",
+                      "errors/user/bad_request/missing_required_header",
                       "errors/user/bad_request/permissions_query_syntax_error",
                       "errors/user/bad_request/request_body_too_large",
                       "errors/user/bad_request/request_body_unreadable",
