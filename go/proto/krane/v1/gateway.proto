@@ -69,5 +69,4 @@ enum GatewayStatus {
 message GatewayInstance {
   string id = 1;
   GatewayStatus status = 2;
-  
 }

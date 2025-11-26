@@ -1144,6 +1144,20 @@ type Querier interface {
 	//      message = VALUES(message),
 	//      created_at = VALUES(created_at)
 	InsertDeploymentStep(ctx context.Context, db DBTX, arg InsertDeploymentStepParams) error
+	//InsertEnvironment
+	//
+	//  INSERT INTO environments (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      slug,
+	//      description,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?, ?, ?, ?, ?, ?, ?
+	//  )
+	InsertEnvironment(ctx context.Context, db DBTX, arg InsertEnvironmentParams) error
 	//InsertGateway
 	//
 	//  INSERT INTO gateways (

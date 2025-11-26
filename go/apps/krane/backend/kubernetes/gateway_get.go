@@ -41,13 +41,13 @@ func (k *k8s) GetGateway(ctx context.Context, req *connect.Request[kranev1.GetGa
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
 	}
 
-	// Check if this deployment is managed by Krane
+	// Check if this gateway is managed by Krane
 	managedBy, exists := deployment.Labels["unkey.managed.by"]
 	if !exists || managedBy != "krane" {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", k8sgatewayID))
 	}
 
-	// Determine deployment status
+	// Determine gateway status
 	var status kranev1.GatewayStatus
 	if deployment.Status.AvailableReplicas == deployment.Status.Replicas {
 		status = kranev1.GatewayStatus_GATEWAY_STATUS_RUNNING

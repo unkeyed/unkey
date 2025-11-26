@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/hydra/v1;hydrav1";
+
+service ProjectService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // AssignIngressRoutes creates or reassigns ingress routes to a deployment
+  rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse) {}
+
+}
+
+
+message CreateProjectRequest {
+    string workspace_id = 1;
+string name = 2;
+  string slug= 3;
+ string git_repository = 4;
+
+
+}
+
+message CreateProjectResponse {
+  string project_id = 1;
+}

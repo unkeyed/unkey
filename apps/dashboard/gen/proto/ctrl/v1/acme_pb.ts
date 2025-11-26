@@ -2,16 +2,20 @@
 // @generated from file ctrl/v1/acme.proto (package ctrl.v1, syntax proto3)
 /* eslint-disable */
 
+import type { Message } from "@bufbuild/protobuf";
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
-import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/acme.proto.
  */
-export const file_ctrl_v1_acme: GenFile = /*@__PURE__*/
-  fileDesc("ChJjdHJsL3YxL2FjbWUucHJvdG8SB2N0cmwudjEiOQoYVmVyaWZ5Q2VydGlmaWNhdGVSZXF1ZXN0Eg4KBmRvbWFpbhgBIAEoCRINCgV0b2tlbhgCIAEoCSIyChlWZXJpZnlDZXJ0aWZpY2F0ZVJlc3BvbnNlEhUKDWF1dGhvcml6YXRpb24YASABKAkyawoLQWNtZVNlcnZpY2USXAoRVmVyaWZ5Q2VydGlmaWNhdGUSIS5jdHJsLnYxLlZlcmlmeUNlcnRpZmljYXRlUmVxdWVzdBoiLmN0cmwudjEuVmVyaWZ5Q2VydGlmaWNhdGVSZXNwb25zZSIAQosBCgtjb20uY3RybC52MUIJQWNtZVByb3RvUAFaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+export const file_ctrl_v1_acme: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "ChJjdHJsL3YxL2FjbWUucHJvdG8SB2N0cmwudjEiOQoYVmVyaWZ5Q2VydGlmaWNhdGVSZXF1ZXN0Eg4KBmRvbWFpbhgBIAEoCRINCgV0b2tlbhgCIAEoCSIyChlWZXJpZnlDZXJ0aWZpY2F0ZVJlc3BvbnNlEhUKDWF1dGhvcml6YXRpb24YASABKAkyawoLQWNtZVNlcnZpY2USXAoRVmVyaWZ5Q2VydGlmaWNhdGUSIS5jdHJsLnYxLlZlcmlmeUNlcnRpZmljYXRlUmVxdWVzdBoiLmN0cmwudjEuVmVyaWZ5Q2VydGlmaWNhdGVSZXNwb25zZSIAQosBCgtjb20uY3RybC52MUIJQWNtZVByb3RvUAFaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z",
+    [file_google_protobuf_timestamp],
+  );
 
 /**
  * @generated from message ctrl.v1.VerifyCertificateRequest
@@ -32,7 +36,8 @@ export type VerifyCertificateRequest = Message<"ctrl.v1.VerifyCertificateRequest
  * Describes the message ctrl.v1.VerifyCertificateRequest.
  * Use `create(VerifyCertificateRequestSchema)` to create a new message.
  */
-export const VerifyCertificateRequestSchema: GenMessage<VerifyCertificateRequest> = /*@__PURE__*/
+export const VerifyCertificateRequestSchema: GenMessage<VerifyCertificateRequest> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_acme, 0);
 
 /**
@@ -49,7 +54,8 @@ export type VerifyCertificateResponse = Message<"ctrl.v1.VerifyCertificateRespon
  * Describes the message ctrl.v1.VerifyCertificateResponse.
  * Use `create(VerifyCertificateResponseSchema)` to create a new message.
  */
-export const VerifyCertificateResponseSchema: GenMessage<VerifyCertificateResponse> = /*@__PURE__*/
+export const VerifyCertificateResponseSchema: GenMessage<VerifyCertificateResponse> =
+  /*@__PURE__*/
   messageDesc(file_ctrl_v1_acme, 1);
 
 /**
@@ -63,7 +69,5 @@ export const AcmeService: GenService<{
     methodKind: "unary";
     input: typeof VerifyCertificateRequestSchema;
     output: typeof VerifyCertificateResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_ctrl_v1_acme, 0);
-
+  };
+}> = /*@__PURE__*/ serviceDesc(file_ctrl_v1_acme, 0);
