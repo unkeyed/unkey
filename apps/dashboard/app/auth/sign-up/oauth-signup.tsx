@@ -30,8 +30,7 @@ export function OAuthSignUp() {
       } else {
         throw new Error("Failed to get OAuth URL");
       }
-    } catch (err) {
-      console.error(err);
+    } catch (_err) {
       toast.error("Failed to initiate login. Please try again.");
     } finally {
       setIsLoading(null);

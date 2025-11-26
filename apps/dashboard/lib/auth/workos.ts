@@ -29,6 +29,7 @@ import {
   type User,
   type UserData,
   type VerificationResult,
+  WORKOS_RADAR_API_URL,
 } from "./types";
 
 type WorkOSErrorCode =
@@ -70,10 +71,16 @@ type ProviderUser = {
   profilePictureUrl: string | null;
 };
 
+type Decision = {
+  action: "allow" | "block" | "challenge";
+  reason?: string;
+};
+
 export class WorkOSAuthProvider extends BaseAuthProvider {
   //INFO: Best to leave this alone, some other class might be accessing `instance` implicitly
   private static instance: WorkOSAuthProvider | null = null;
   private readonly provider: WorkOS;
+  private readonly apiKey: string;
   private readonly clientId: string;
   private readonly cookiePassword: string;
 
@@ -86,11 +93,51 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     // Initialize properties after validation
+    this.apiKey = config.apiKey;
     this.clientId = config.clientId;
     this.cookiePassword = cookiePassword; // TypeScript now knows this is string
     this.provider = new WorkOS(config.apiKey, { clientId: config.clientId });
 
     WorkOSAuthProvider.instance = this;
+  }
+
+  private async checkRadar(params: {
+    email: string;
+    ipAddress?: string;
+    userAgent?: string;
+    auth_method?: string;
+    action?: string;
+  }): Promise<Decision> {
+    try {
+      const response = await fetch(WORKOS_RADAR_API_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: params.email,
+          ip_address: params.ipAddress,
+          user_agent: params.userAgent,
+          auth_method: params.auth_method,
+          action: params.action,
+        }),
+      });
+
+      if (!response.ok) {
+        return { action: "allow" };
+      }
+
+      const data = await response.json();
+      const decision = {
+        action: data.verdict || "block",
+        reason: data.reason,
+      };
+
+      return decision;
+    } catch (_error) {
+      return { action: "allow" };
+    }
   }
 
   // Session Management
@@ -119,10 +166,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       }
 
       return { isValid: false, shouldRefresh: true };
-    } catch (error) {
-      console.error("Session validation error:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+    } catch (_error) {
       return { isValid: false, shouldRefresh: false };
     }
   }
@@ -132,44 +176,37 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       throw new Error("No session token provided");
     }
 
-    try {
-      const session = this.provider.userManagement.loadSealedSession({
-        sessionData: sessionToken,
-        cookiePassword: this.cookiePassword,
-      });
+    const session = this.provider.userManagement.loadSealedSession({
+      sessionData: sessionToken,
+      cookiePassword: this.cookiePassword,
+    });
 
-      const refreshResult = await session.refresh({
-        cookiePassword: this.cookiePassword,
-      });
+    const refreshResult = await session.refresh({
+      cookiePassword: this.cookiePassword,
+    });
 
-      if (refreshResult.authenticated && refreshResult.session) {
-        // Set expiration to 7 days from now
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7);
+    if (refreshResult.authenticated && refreshResult.session) {
+      // Set expiration to 7 days from now
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
 
-        if (!refreshResult.sealedSession) {
-          throw new Error("Session refresh failed due to missing sealedSession");
-        }
-
-        return {
-          newToken: refreshResult.sealedSession,
-          expiresAt,
-          session: {
-            userId: refreshResult.session.user.id,
-            orgId: refreshResult.session.organizationId ?? null,
-            role: refreshResult.role ?? null,
-          },
-          impersonator: refreshResult.session.impersonator,
-        };
+      if (!refreshResult.sealedSession) {
+        throw new Error("Session refresh failed due to missing sealedSession");
       }
 
-      throw new Error("reason" in refreshResult ? refreshResult.reason : "Session refresh failed");
-    } catch (error) {
-      console.error("Session refresh error:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-      throw error;
+      return {
+        newToken: refreshResult.sealedSession,
+        expiresAt,
+        session: {
+          userId: refreshResult.session.user.id,
+          orgId: refreshResult.session.organizationId ?? null,
+          role: refreshResult.role ?? null,
+        },
+        impersonator: refreshResult.session.impersonator,
+      };
     }
+
+    throw new Error("reason" in refreshResult ? refreshResult.reason : "Session refresh failed");
   }
 
   // User Management
@@ -185,10 +222,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       }
 
       return this.transformUserData(user);
-    } catch (error) {
-      console.error("Failed to get user:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+    } catch (_error) {
       return null;
     }
   }
@@ -207,10 +241,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       }
 
       return this.transformUserData(user.data[0]);
-    } catch (error) {
-      console.error("Failed to find user:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+    } catch (_error) {
       return null;
     }
   }
@@ -290,42 +321,33 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       throw new Error("No active session found");
     }
 
-    try {
-      // Load the current session
-      const session = this.provider.userManagement.loadSealedSession({
-        sessionData: currentToken,
-        cookiePassword: this.cookiePassword,
-      });
+    // Load the current session
+    const session = this.provider.userManagement.loadSealedSession({
+      sessionData: currentToken,
+      cookiePassword: this.cookiePassword,
+    });
 
-      // Create a new session with the new organization ID
-      const refreshResult = await session.refresh({
-        cookiePassword: this.cookiePassword,
-        organizationId: newOrgId,
-      });
+    const refreshResult = await session.refresh({
+      cookiePassword: this.cookiePassword,
+      organizationId: newOrgId,
+    });
 
-      if (!refreshResult.authenticated || !refreshResult.session || !refreshResult.sealedSession) {
-        const errMsg = refreshResult.authenticated ? "" : refreshResult.reason;
-        throw new Error(`Organization switch failed ${errMsg}`);
-      }
-
-      // Set expiration to 7 days from now
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
-
-      return {
-        newToken: refreshResult.sealedSession,
-        expiresAt,
-        session: {
-          userId: refreshResult.session.user.id,
-          orgId: newOrgId,
-        },
-      };
-    } catch (error) {
-      console.error("Organization switch error:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-      throw error;
+    if (!refreshResult.authenticated || !refreshResult.session || !refreshResult.sealedSession) {
+      const errMsg = refreshResult.authenticated ? "" : refreshResult.reason;
+      throw new Error(`Organization switch failed ${errMsg}`);
     }
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    return {
+      newToken: refreshResult.sealedSession,
+      expiresAt,
+      session: {
+        userId: refreshResult.session.user.id,
+        orgId: newOrgId,
+      },
+    };
   }
 
   // Membership Management
@@ -504,10 +526,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           .filter((invitation) => invitation.state === "pending" || invitation.state === "expired"),
         metadata: invitationsList.listMetadata || {},
       };
-    } catch (error) {
-      console.error("Failed to get organization invitations list:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+    } catch (_error) {
       return {
         data: [],
         metadata: {},
@@ -524,10 +543,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       const invitation = await this.provider.userManagement.findInvitationByToken(invitationToken);
 
       return this.transformInvitationData(invitation);
-    } catch (error) {
-      console.error("Error retrieving invitation:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+    } catch (_error) {
       return null;
     }
   }
@@ -559,8 +575,48 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
   // Authentication Management
 
-  async signUpViaEmail(params: UserData): Promise<EmailAuthResult> {
-    const { email, firstName, lastName } = params;
+  async signUpViaEmail(
+    params: UserData & {
+      ipAddress?: string;
+      userAgent?: string;
+      bypassRadar?: boolean;
+    },
+  ): Promise<EmailAuthResult> {
+    const { email, firstName, lastName, ipAddress, userAgent, bypassRadar } = params;
+    const auth_method = "Email_OTP"; // WorkOS value
+    const action = "sign-up"; // WorkOS value
+    /**
+     * We can bypass radar after the user has gone through the cloudflare challenge, as we already verified they are in fact human.
+     */
+    if (!bypassRadar) {
+      const radarDecision = await this.checkRadar({
+        email,
+        ipAddress,
+        userAgent,
+        auth_method,
+        action,
+      });
+
+      // Handle challenge decisions with Turnstile
+      if (radarDecision.action === "challenge") {
+        return {
+          success: false,
+          code: AuthErrorCode.RADAR_CHALLENGE_REQUIRED,
+          message: "Please complete the verification challenge to continue.",
+          email,
+          challengeParams: {
+            ipAddress,
+            userAgent,
+            authMethod: auth_method,
+            action,
+          },
+        };
+      }
+
+      if (radarDecision.action === "block") {
+        throw new Error(AuthErrorCode.RADAR_BLOCKED);
+      }
+    }
 
     try {
       // Create the user with WorkOS
@@ -590,7 +646,48 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async signInViaEmail(email: string): Promise<EmailAuthResult> {
+  async signInViaEmail(params: {
+    email: string;
+    ipAddress?: string;
+    userAgent?: string;
+    bypassRadar?: boolean;
+  }): Promise<EmailAuthResult> {
+    const { email, ipAddress, userAgent, bypassRadar } = params;
+    const auth_method = "Email_OTP"; // WorkOS value
+    const action = "sign-in"; // WorkOS value
+
+    /**
+     * We can bypass radar after the user has gone through the cloudflare challenge, as we already verified they are in fact human.
+     */
+    if (!bypassRadar) {
+      const radarDecision = await this.checkRadar({
+        email,
+        ipAddress,
+        userAgent,
+        auth_method,
+        action,
+      });
+
+      if (radarDecision.action === "challenge") {
+        return {
+          success: false,
+          code: AuthErrorCode.RADAR_CHALLENGE_REQUIRED,
+          message: "Please complete the verification challenge to continue.",
+          email,
+          challengeParams: {
+            ipAddress,
+            userAgent,
+            authMethod: auth_method,
+            action,
+          },
+        };
+      }
+
+      if (radarDecision.action === "block") {
+        throw new Error(AuthErrorCode.RADAR_BLOCKED);
+      }
+    }
+
     try {
       const { data } = await this.provider.userManagement.listUsers({ email });
 
@@ -707,10 +804,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       };
     } catch (error: unknown) {
       // Handle organization selection required case
-      console.error("Email verification error:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-
       const authError = error as WorkOSAuthError;
 
       if (authError.rawData?.code === "organization_selection_required") {
@@ -782,10 +875,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       });
 
       return await session.getLogoutUrl();
-    } catch (error) {
-      console.error("Failed to get sign out URL:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+    } catch (_error) {
       return null;
     }
   }

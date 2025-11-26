@@ -50,10 +50,15 @@ export abstract class BaseAuthProvider {
   /**
    * Initiates an email-based sign-in process for the specified email.
    *
-   * @param email - The email address to sign in with
+   * @param params - Parameters containing email and optional request metadata
    * @returns Result of the sign-in attempt
    */
-  abstract signInViaEmail(email: string): Promise<EmailAuthResult>;
+  abstract signInViaEmail(params: {
+    email: string;
+    ipAddress?: string;
+    userAgent?: string;
+    bypassRadar?: boolean;
+  }): Promise<EmailAuthResult>;
 
   /**
    * Verifies an authentication code sent to a user's email.
@@ -73,7 +78,10 @@ export abstract class BaseAuthProvider {
    * @param params - Parameters containing the verification code and token
    * @returns Result of the email verification process
    */
-  abstract verifyEmail(params: { code: string; token: string }): Promise<VerificationResult>;
+  abstract verifyEmail(params: {
+    code: string;
+    token: string;
+  }): Promise<VerificationResult>;
 
   /**
    * Resends an authentication code to the specified email address.
@@ -86,10 +94,16 @@ export abstract class BaseAuthProvider {
   /**
    * Creates a new user account with the provided user data.
    *
-   * @param params - User data including email, first name, and last name
+   * @param params - User data including email, first name, last name, and optional request metadata
    * @returns Result of the sign-up attempt
    */
-  abstract signUpViaEmail(params: UserData): Promise<EmailAuthResult>;
+  abstract signUpViaEmail(
+    params: UserData & {
+      ipAddress?: string;
+      userAgent?: string;
+      bypassRadar?: boolean;
+    },
+  ): Promise<EmailAuthResult>;
 
   /**
    * Gets the URL to redirect users to for signing out.
@@ -147,7 +161,10 @@ export abstract class BaseAuthProvider {
    * @param params - Parameters containing organization name and user ID
    * @returns The ID of the newly created organization
    */
-  abstract createTenant(params: { name: string; userId: string }): Promise<string>;
+  abstract createTenant(params: {
+    name: string;
+    userId: string;
+  }): Promise<string>;
 
   /**
    * Updates an existing organization's information.
@@ -263,8 +280,6 @@ export abstract class BaseAuthProvider {
    * @returns A standardized error response
    */
   protected handleError(error: unknown): AuthErrorResponse {
-    console.error("Auth error:", error);
-
     if (error instanceof Error) {
       // Handle provider-specific errors
       if ("message" in error && typeof error.message === "string") {

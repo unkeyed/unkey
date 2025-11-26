@@ -129,7 +129,7 @@ func (k *k8s) CreateGateway(ctx context.Context, req *connect.Request[kranev1.Cr
 						"unkey.managed.by": "krane",
 					},
 					Annotations: map[string]string{
-						"unkey.deployment.id": k8sGatewayID,
+						"unkey.gateway.id": k8sGatewayID,
 					},
 					OwnerReferences: []metav1.OwnerReference{
 						// Automatically clean up the service when the Deployment gets deleted
@@ -151,8 +151,8 @@ func (k *k8s) CreateGateway(ctx context.Context, req *connect.Request[kranev1.Cr
 					//nolint:exhaustruct
 					Ports: []corev1.ServicePort{
 						{
-							Port:       8080,
-							TargetPort: intstr.FromInt(8080),
+							Port:       8040,
+							TargetPort: intstr.FromInt(8040),
 							Protocol:   corev1.ProtocolTCP,
 						},
 					},

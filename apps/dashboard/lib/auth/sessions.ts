@@ -46,7 +46,9 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
       } catch (_error) {
         headers.append(
           "Set-Cookie",
-          `${UNKEY_SESSION_COOKIE}=${localSessionToken}; Path=/; SameSite=Strict; Max-Age=${60 * 60 * 24 * 365 * 10}`,
+          `${UNKEY_SESSION_COOKIE}=${localSessionToken}; Path=/; SameSite=Strict; Max-Age=${
+            60 * 60 * 24 * 365 * 10
+          }`,
         );
       }
     }
@@ -109,7 +111,11 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
             // For middleware/trpc routes with request object
             headers.append(
               "Set-Cookie",
-              `${UNKEY_SESSION_COOKIE}=${refreshedSession.newToken}; ${await getCookieOptionsAsString({ expiresAt: refreshedSession.expiresAt })}`,
+              `${UNKEY_SESSION_COOKIE}=${
+                refreshedSession.newToken
+              }; ${await getCookieOptionsAsString({
+                expiresAt: refreshedSession.expiresAt,
+              })}`,
             );
           } else {
             // For client-side or RSC or when no request is available
@@ -123,7 +129,11 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
               // Fall back to headers approach if cookie setting fails
               headers.append(
                 "Set-Cookie",
-                `${UNKEY_SESSION_COOKIE}=${refreshedSession.newToken}; ${await getCookieOptionsAsString({ expiresAt: refreshedSession.expiresAt })}`,
+                `${UNKEY_SESSION_COOKIE}=${
+                  refreshedSession.newToken
+                }; ${await getCookieOptionsAsString({
+                  expiresAt: refreshedSession.expiresAt,
+                })}`,
               );
             }
           }
@@ -141,8 +151,7 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
               headers,
             };
           }
-        } catch (refreshError) {
-          console.error("Failed to refresh session:", refreshError);
+        } catch (_refreshError) {
           // If refresh fails, treat as no session
           return { session: null, headers };
         }
@@ -150,12 +159,10 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
 
       // Session is neither valid nor refreshable
       return { session: null, headers };
-    } catch (validationError) {
-      console.error("Session validation failed:", validationError);
+    } catch (_validationError) {
       return { session: null, headers };
     }
-  } catch (error) {
-    console.error("Error in updateSession:", error);
+  } catch (_error) {
     return { session: null, headers };
   }
 }

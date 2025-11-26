@@ -13,50 +13,48 @@ import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 export const file_ctrl_v1_acme: GenFile =
   /*@__PURE__*/
   fileDesc(
-    "ChJjdHJsL3YxL2FjbWUucHJvdG8SB2N0cmwudjEiRQokSGFuZGxlQ2VydGlmaWNhdGVWZXJpZmljYXRpb25SZXF1ZXN0Eg4KBmRvbWFpbhgBIAEoCRINCgV0b2tlbhgCIAEoCSI2CiVIYW5kbGVDZXJ0aWZpY2F0ZVZlcmlmaWNhdGlvblJlc3BvbnNlEg0KBXRva2VuGAEgASgJMpABCgtBY21lU2VydmljZRKAAQodSGFuZGxlQ2VydGlmaWNhdGVWZXJpZmljYXRpb24SLS5jdHJsLnYxLkhhbmRsZUNlcnRpZmljYXRlVmVyaWZpY2F0aW9uUmVxdWVzdBouLmN0cmwudjEuSGFuZGxlQ2VydGlmaWNhdGVWZXJpZmljYXRpb25SZXNwb25zZSIAQosBCgtjb20uY3RybC52MUIJQWNtZVByb3RvUAFaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z",
+    "ChJjdHJsL3YxL2FjbWUucHJvdG8SB2N0cmwudjEiOQoYVmVyaWZ5Q2VydGlmaWNhdGVSZXF1ZXN0Eg4KBmRvbWFpbhgBIAEoCRINCgV0b2tlbhgCIAEoCSIyChlWZXJpZnlDZXJ0aWZpY2F0ZVJlc3BvbnNlEhUKDWF1dGhvcml6YXRpb24YASABKAkyawoLQWNtZVNlcnZpY2USXAoRVmVyaWZ5Q2VydGlmaWNhdGUSIS5jdHJsLnYxLlZlcmlmeUNlcnRpZmljYXRlUmVxdWVzdBoiLmN0cmwudjEuVmVyaWZ5Q2VydGlmaWNhdGVSZXNwb25zZSIAQosBCgtjb20uY3RybC52MUIJQWNtZVByb3RvUAFaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z",
     [file_google_protobuf_timestamp],
   );
 
 /**
- * @generated from message ctrl.v1.HandleCertificateVerificationRequest
+ * @generated from message ctrl.v1.VerifyCertificateRequest
  */
-export type HandleCertificateVerificationRequest =
-  Message<"ctrl.v1.HandleCertificateVerificationRequest"> & {
-    /**
-     * @generated from field: string domain = 1;
-     */
-    domain: string;
+export type VerifyCertificateRequest = Message<"ctrl.v1.VerifyCertificateRequest"> & {
+  /**
+   * @generated from field: string domain = 1;
+   */
+  domain: string;
 
-    /**
-     * @generated from field: string token = 2;
-     */
-    token: string;
-  };
+  /**
+   * @generated from field: string token = 2;
+   */
+  token: string;
+};
 
 /**
- * Describes the message ctrl.v1.HandleCertificateVerificationRequest.
- * Use `create(HandleCertificateVerificationRequestSchema)` to create a new message.
+ * Describes the message ctrl.v1.VerifyCertificateRequest.
+ * Use `create(VerifyCertificateRequestSchema)` to create a new message.
  */
-export const HandleCertificateVerificationRequestSchema: GenMessage<HandleCertificateVerificationRequest> =
+export const VerifyCertificateRequestSchema: GenMessage<VerifyCertificateRequest> =
   /*@__PURE__*/
   messageDesc(file_ctrl_v1_acme, 0);
 
 /**
- * @generated from message ctrl.v1.HandleCertificateVerificationResponse
+ * @generated from message ctrl.v1.VerifyCertificateResponse
  */
-export type HandleCertificateVerificationResponse =
-  Message<"ctrl.v1.HandleCertificateVerificationResponse"> & {
-    /**
-     * @generated from field: string token = 1;
-     */
-    token: string;
-  };
+export type VerifyCertificateResponse = Message<"ctrl.v1.VerifyCertificateResponse"> & {
+  /**
+   * @generated from field: string authorization = 1;
+   */
+  authorization: string;
+};
 
 /**
- * Describes the message ctrl.v1.HandleCertificateVerificationResponse.
- * Use `create(HandleCertificateVerificationResponseSchema)` to create a new message.
+ * Describes the message ctrl.v1.VerifyCertificateResponse.
+ * Use `create(VerifyCertificateResponseSchema)` to create a new message.
  */
-export const HandleCertificateVerificationResponseSchema: GenMessage<HandleCertificateVerificationResponse> =
+export const VerifyCertificateResponseSchema: GenMessage<VerifyCertificateResponse> =
   /*@__PURE__*/
   messageDesc(file_ctrl_v1_acme, 1);
 
@@ -65,11 +63,11 @@ export const HandleCertificateVerificationResponseSchema: GenMessage<HandleCerti
  */
 export const AcmeService: GenService<{
   /**
-   * @generated from rpc ctrl.v1.AcmeService.HandleCertificateVerification
+   * @generated from rpc ctrl.v1.AcmeService.VerifyCertificate
    */
-  handleCertificateVerification: {
+  verifyCertificate: {
     methodKind: "unary";
-    input: typeof HandleCertificateVerificationRequestSchema;
-    output: typeof HandleCertificateVerificationResponseSchema;
+    input: typeof VerifyCertificateRequestSchema;
+    output: typeof VerifyCertificateResponseSchema;
   };
 }> = /*@__PURE__*/ serviceDesc(file_ctrl_v1_acme, 0);

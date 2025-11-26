@@ -152,7 +152,7 @@ export function ToastWithActions() {
                 description: "Your changes have been saved.",
                 action: {
                   label: "Undo",
-                  onClick: () => console.log("Undo clicked"),
+                  onClick: () => {},
                 },
               })
             }
@@ -165,11 +165,11 @@ export function ToastWithActions() {
                 description: "Are you sure you want to delete this item?",
                 action: {
                   label: "Delete",
-                  onClick: () => console.log("Delete confirmed"),
+                  onClick: () => {},
                 },
                 cancel: {
                   label: "Cancel",
-                  onClick: () => console.log("Delete cancelled"),
+                  onClick: () => {},
                 },
               })
             }
