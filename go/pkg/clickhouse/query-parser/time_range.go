@@ -432,7 +432,7 @@ func (p *Parser) injectDefaultTimeFilter() error {
 		// Combine with existing WHERE using AND
 		p.stmt.Where.Expr = &clickhouse.BinaryOperation{
 			LeftExpr:  p.stmt.Where.Expr,
-			Operation: clickhouse.TokenKind(clickhouse.KeywordAnd),
+			Operation: "AND",
 			RightExpr: timeFilter,
 		}
 	}
