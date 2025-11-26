@@ -59,9 +59,8 @@ func (d *docker) GetGateway(ctx context.Context, req *connect.Request[kranev1.Ge
 		)
 
 		res.Instances = append(res.Instances, &kranev1.GatewayInstance{
-			Id:      c.ID,
-			Address: fmt.Sprintf("host.docker.internal:%d", c.Ports[0].PublicPort),
-			Status:  status,
+			Id:     c.ID,
+			Status: status,
 		})
 	}
 
