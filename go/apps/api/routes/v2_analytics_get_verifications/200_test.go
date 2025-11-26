@@ -428,7 +428,7 @@ func Test200_RLSWorkspaceIsolation(t *testing.T) {
 		Query: "SELECT COUNT(*) as count FROM key_verifications_v1 WHERE time >= now() - INTERVAL 1 DAY",
 	}
 
-	time.Sleep(5 * time.Second) // Wait for data to be flushed to ClickHouse
+	time.Sleep(10 * time.Second) // Wait for data to be flushed to ClickHouse
 
 	res := testutil.CallRoute[Request, Response](h, route, headers, req)
 	require.Equal(t, 200, res.Status)
