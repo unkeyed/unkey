@@ -1151,7 +1151,7 @@ test("grouping by tags", { timeout: 120_000 }, async (t) => {
     h.createKey(),
   ]);
 
-  const now = new Date("2023-01-07T00:00:00Z").getTime();
+  const now = Date.now();
 
   const tags = [["a", "b"], ["a"], [], ["b", "c"]];
 

@@ -7,10 +7,10 @@
   "keywords": [],
   "author": "Andreas Thomas",
   "devDependencies": {
-    "@types/react": "^18.3.11",
+    "@types/react": "18.3.11",
     "@unkey/tsconfig": "workspace:^"
   },
   "dependencies": {
-    "react": "^18.2.0"
+    "react": "18.2.0"
   }
 }

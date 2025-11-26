@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// retry holds the configuration for retry attempts and backoff strategy.
-type retry struct {
+// Retry holds the configuration for retry attempts and backoff strategy.
+type Retry struct {
 	// attempts is the maximum number of times to try the operation
 	attempts int
 
@@ -62,8 +62,8 @@ type retry struct {
 //	}),
 //
 // )
-func New(applies ...Apply) *retry {
-	r := &retry{
+func New(applies ...Apply) *Retry {
+	r := &Retry{
 		attempts:    3,
 		backoff:     func(n int) time.Duration { return time.Duration(n) * 100 * time.Millisecond },
 		shouldRetry: nil, // nil means all errors are retryable
@@ -76,12 +76,12 @@ func New(applies ...Apply) *retry {
 }
 
 // Apply modifies r and returns it
-type Apply func(r *retry) *retry
+type Apply func(r *Retry) *Retry
 
 // Attempts sets the maximum number of retry attempts.
 // The operation will be attempted up to this many times before giving up.
 func Attempts(attempts int) Apply {
-	return func(r *retry) *retry {
+	return func(r *Retry) *Retry {
 		r.attempts = attempts
 		return r
 	}
@@ -91,7 +91,7 @@ func Attempts(attempts int) Apply {
 // The function receives the current attempt number (starting with 1) and
 // should return the duration to wait before the next attempt.
 func Backoff(backoff func(n int) time.Duration) Apply {
-	return func(r *retry) *retry {
+	return func(r *Retry) *Retry {
 		r.backoff = backoff
 		return r
 	}
@@ -115,7 +115,7 @@ func Backoff(backoff func(n int) time.Duration) Apply {
 //		}),
 //	)
 func ShouldRetry(shouldRetry func(error) bool) Apply {
-	return func(r *retry) *retry {
+	return func(r *Retry) *Retry {
 		r.shouldRetry = shouldRetry
 		return r
 	}
@@ -129,7 +129,7 @@ func ShouldRetry(shouldRetry func(error) bool) Apply {
 // Returns nil if the operation succeeds, or the last error encountered if all retries fail
 // or if the error is non-retryable according to shouldRetry.
 // Returns an error if attempts is configured to less than 1.
-func (r *retry) Do(fn func() error) error {
+func (r *Retry) Do(fn func() error) error {
 	if r.attempts < 1 {
 		return fmt.Errorf("attempts must be greater than 0")
 	}
@@ -169,7 +169,7 @@ func (r *retry) Do(fn func() error) error {
 //	if err != nil {
 //		log.Printf("failed to fetch user after 3 attempts: %v", err)
 //	}
-func DoWithResult[T any](r *retry, fn func() (T, error)) (T, error) {
+func DoWithResult[T any](r *Retry, fn func() (T, error)) (T, error) {
 	var result T
 	err := r.Do(func() error {
 		var retryErr error
@@ -200,7 +200,7 @@ func DoWithResult[T any](r *retry, fn func() (T, error)) (T, error) {
 //	err := r.DoContext(ctx, func() error {
 //		return someNetworkCall()
 //	})
-func (r *retry) DoContext(ctx context.Context, fn func() error) error {
+func (r *Retry) DoContext(ctx context.Context, fn func() error) error {
 	if r.attempts < 1 {
 		return fmt.Errorf("attempts must be greater than 0")
 	}
@@ -252,7 +252,7 @@ func (r *retry) DoContext(ctx context.Context, fn func() error) error {
 // DoWithResultContext executes the given function with configured retry behavior, context support, and returns a result.
 // Works like DoContext() but for functions that return a value along with an error.
 // On failure, returns the result from the last attempt along with the final error.
-func DoWithResultContext[T any](r *retry, ctx context.Context, fn func() (T, error)) (T, error) {
+func DoWithResultContext[T any](r *Retry, ctx context.Context, fn func() (T, error)) (T, error) {
 	var result T
 	err := r.DoContext(ctx, func() error {
 		var retryErr error

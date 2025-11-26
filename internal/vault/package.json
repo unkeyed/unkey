@@ -7,8 +7,8 @@
   "keywords": [],
   "author": "",
   "devDependencies": {
-    "@types/node": "^20.14.9",
+    "@types/node": "20.14.9",
     "@unkey/tsconfig": "workspace:*",
-    "typescript": "^5.5.3"
+    "typescript": "5.5.3"
   }
 }

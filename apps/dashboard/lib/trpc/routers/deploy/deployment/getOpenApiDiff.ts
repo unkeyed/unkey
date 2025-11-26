@@ -1,10 +1,10 @@
+import { OpenApiService } from "@/gen/proto/ctrl/v1/openapi_pb";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
 import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 import { TRPCError } from "@trpc/server";
-import { type GetOpenApiDiffResponse, OpenApiService } from "@unkey/proto";
 import { z } from "zod";
 
 export const getOpenApiDiff = t.procedure
@@ -67,9 +67,9 @@ export const getOpenApiDiff = t.procedure
       });
 
       return {
-        hasBreakingChanges: (resp as GetOpenApiDiffResponse).hasBreakingChanges,
-        summary: (resp as GetOpenApiDiffResponse).summary,
-        changes: (resp as GetOpenApiDiffResponse).changes,
+        hasBreakingChanges: resp.hasBreakingChanges,
+        summary: resp.summary,
+        changes: resp.changes,
       };
     } catch (error) {
       console.error("Failed to get OpenAPI diff:", error);
