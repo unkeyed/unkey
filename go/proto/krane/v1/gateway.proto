@@ -55,6 +55,7 @@ message GetGatewayRequest {
 }
 
 message GetGatewayResponse {
+  string address = 1;
   repeated GatewayInstance instances = 2;
 }
 
@@ -67,6 +68,6 @@ enum GatewayStatus {
 
 message GatewayInstance {
   string id = 1;
-  string address = 2;
-  GatewayStatus status = 3;
+  GatewayStatus status = 2;
+  
 }

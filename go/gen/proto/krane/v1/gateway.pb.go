@@ -483,6 +483,7 @@ func (x *GetGatewayRequest) GetGatewayId() string {
 
 type GetGatewayResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Address       string                 `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
 	Instances     []*GatewayInstance     `protobuf:"bytes,2,rep,name=instances,proto3" json:"instances,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -518,6 +519,13 @@ func (*GetGatewayResponse) Descriptor() ([]byte, []int) {
 	return file_krane_v1_gateway_proto_rawDescGZIP(), []int{8}
 }
 
+func (x *GetGatewayResponse) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
 func (x *GetGatewayResponse) GetInstances() []*GatewayInstance {
 	if x != nil {
 		return x.Instances
@@ -528,8 +536,7 @@ func (x *GetGatewayResponse) GetInstances() []*GatewayInstance {
 type GatewayInstance struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
-	Status        GatewayStatus          `protobuf:"varint,3,opt,name=status,proto3,enum=krane.v1.GatewayStatus" json:"status,omitempty"`
+	Status        GatewayStatus          `protobuf:"varint,2,opt,name=status,proto3,enum=krane.v1.GatewayStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -571,13 +578,6 @@ func (x *GatewayInstance) GetId() string {
 	return ""
 }
 
-func (x *GatewayInstance) GetAddress() string {
-	if x != nil {
-		return x.Address
-	}
-	return ""
-}
-
 func (x *GatewayInstance) GetStatus() GatewayStatus {
 	if x != nil {
 		return x.Status
@@ -615,13 +615,13 @@ const file_krane_v1_gateway_proto_rawDesc = "" +
 	"\x11GetGatewayRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x1d\n" +
 	"\n" +
-	"gateway_id\x18\x02 \x01(\tR\tgatewayId\"M\n" +
-	"\x12GetGatewayResponse\x127\n" +
-	"\tinstances\x18\x02 \x03(\v2\x19.krane.v1.GatewayInstanceR\tinstances\"l\n" +
+	"gateway_id\x18\x02 \x01(\tR\tgatewayId\"g\n" +
+	"\x12GetGatewayResponse\x12\x18\n" +
+	"\aaddress\x18\x01 \x01(\tR\aaddress\x127\n" +
+	"\tinstances\x18\x02 \x03(\v2\x19.krane.v1.GatewayInstanceR\tinstances\"R\n" +
 	"\x0fGatewayInstance\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
-	"\aaddress\x18\x02 \x01(\tR\aaddress\x12/\n" +
-	"\x06status\x18\x03 \x01(\x0e2\x17.krane.v1.GatewayStatusR\x06status*\x87\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12/\n" +
+	"\x06status\x18\x02 \x01(\x0e2\x17.krane.v1.GatewayStatusR\x06status*\x87\x01\n" +
 	"\rGatewayStatus\x12\x1e\n" +
 	"\x1aGATEWAY_STATUS_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16GATEWAY_STATUS_PENDING\x10\x01\x12\x1a\n" +
