@@ -626,23 +626,23 @@ func TestParser_ValidateTimeRange_UpperBoundOnly(t *testing.T) {
 	})
 
 	tests := []struct {
-		name                 string
-		query                string
+		name                   string
+		query                  string
 		shouldInjectTimeFilter bool
 	}{
 		{
-			name:                 "time <= old_date should inject default time filter (no lower bound)",
-			query:                "SELECT * FROM key_verifications_per_hour_v1 WHERE time <= now() - INTERVAL 90 DAY",
+			name:                   "time <= old_date should inject default time filter (no lower bound)",
+			query:                  "SELECT * FROM key_verifications_per_hour_v1 WHERE time <= now() - INTERVAL 90 DAY",
 			shouldInjectTimeFilter: true,
 		},
 		{
-			name:                 "time < old_date should inject default time filter (no lower bound)",
-			query:                "SELECT * FROM key_verifications_per_hour_v1 WHERE time < now() - INTERVAL 90 DAY",
+			name:                   "time < old_date should inject default time filter (no lower bound)",
+			query:                  "SELECT * FROM key_verifications_per_hour_v1 WHERE time < now() - INTERVAL 90 DAY",
 			shouldInjectTimeFilter: true,
 		},
 		{
-			name:                 "time <= now() should inject default time filter (no lower bound)",
-			query:                "SELECT * FROM key_verifications_per_hour_v1 WHERE time <= now()",
+			name:                   "time <= now() should inject default time filter (no lower bound)",
+			query:                  "SELECT * FROM key_verifications_per_hour_v1 WHERE time <= now()",
 			shouldInjectTimeFilter: true,
 		},
 	}

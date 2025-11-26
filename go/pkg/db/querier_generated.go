@@ -2159,6 +2159,20 @@ type Querier interface {
 	//      workspace_id = VALUES(workspace_id),
 	//      store_encrypted_keys = VALUES(store_encrypted_keys)
 	UpsertKeySpace(ctx context.Context, db DBTX, arg UpsertKeySpaceParams) error
+	//UpsertQuota
+	//
+	//  INSERT INTO quota (
+	//      workspace_id,
+	//      requests_per_month,
+	//      audit_logs_retention_days,
+	//      logs_retention_days,
+	//      team
+	//  ) VALUES (?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      requests_per_month = VALUES(requests_per_month),
+	//      audit_logs_retention_days = VALUES(audit_logs_retention_days),
+	//      logs_retention_days = VALUES(logs_retention_days)
+	UpsertQuota(ctx context.Context, db DBTX, arg UpsertQuotaParams) error
 	//UpsertWorkspace
 	//
 	//  INSERT INTO workspaces (
