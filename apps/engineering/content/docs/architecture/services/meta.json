@@ -10,6 +10,7 @@
     "ctrl",
     "deploy",
     "ingress",
+    "gateway",
     "healthcheck",
     "krane",
     "quotacheck",

@@ -186,25 +186,8 @@ type Querier interface {
 	FindCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      environment_id,
-	//      git_commit_sha,
-	//      git_branch,
-	//      runtime_config,
-	//      git_commit_message,
-	//      git_commit_author_handle,
-	//      git_commit_author_avatar_url,
-	//      git_commit_timestamp,
-	//      openapi_spec,
-	//      status,
-	//      created_at,
-	//      updated_at
-	//  FROM `deployments`
-	//  WHERE id = ?
-	FindDeploymentById(ctx context.Context, db DBTX, id string) (FindDeploymentByIdRow, error)
+	//  SELECT id, workspace_id, project_id, environment_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, runtime_config, gateway_config, openapi_spec, status, created_at, updated_at FROM `deployments` WHERE id = ?
+	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentStepsByDeploymentId
 	//
 	//  SELECT
@@ -359,12 +342,16 @@ type Querier interface {
 	//  SELECT
 	//    id,
 	//    deployment_id,
+	//    workspace_id,
+	//    project_id,
 	//    region,
 	//    address,
+	//    cpu_millicores,
+	//    memory_mb,
 	//    status
 	//  FROM instances
 	//  WHERE deployment_id = ? AND region = ?
-	FindInstancesByDeploymentIdAndRegion(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionParams) ([]FindInstancesByDeploymentIdAndRegionRow, error)
+	FindInstancesByDeploymentIdAndRegion(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionParams) ([]Instance, error)
 	//FindKeyAuthsByIds
 	//
 	//  SELECT ka.id as key_auth_id, a.id as api_id
