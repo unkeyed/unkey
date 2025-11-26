@@ -6,7 +6,7 @@
   "types": "./src/index.ts",
   "author": "Andreas Thomas",
   "devDependencies": {
-    "typescript": "^5.5.3"
+    "typescript": "5.5.3"
   },
   "dependencies": {
     "@unkey/logs": "workspace:^"

@@ -6,9 +6,9 @@
   "types": "./src/index.ts",
   "author": "Andreas Thomas",
   "devDependencies": {
-    "drizzle-kit": "^0.31.4",
-    "typescript": "^5.5.3",
-    "vitest": "^1.6.1"
+    "drizzle-kit": "0.31.4",
+    "typescript": "5.5.3",
+    "vitest": "1.6.1"
   },
   "dependencies": {
     "@unkey/encoding": "workspace:^",

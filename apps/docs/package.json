@@ -11,6 +11,6 @@
     "mintlify": "4.2.213"
   },
   "dependencies": {
-    "sharp": "^0.34.3"
+    "sharp": "0.34.3"
   }
 }
