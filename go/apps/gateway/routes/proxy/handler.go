@@ -90,11 +90,11 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	startTime := h.Clock.Now()
 	var instanceStart, instanceEnd time.Time
 
-	deploymentID := req.Header.Get("X-Deployment-ID")
+	deploymentID := req.Header.Get("X-Deployment-Id")
 	if deploymentID == "" {
 		return fault.New("missing deployment ID",
 			fault.Code(codes.User.BadRequest.MissingRequiredHeader.URN()),
-			fault.Internal("X-Deployment-ID header not set"),
+			fault.Internal("X-Deployment-Id header not set"),
 			fault.Public("Bad request"),
 		)
 	}
