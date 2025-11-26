@@ -54,7 +54,7 @@ func (k *k8s) CreateGateway(ctx context.Context, req *connect.Request[kranev1.Cr
 						RestartPolicy: corev1.RestartPolicyAlways,
 						Containers: []corev1.Container{
 							{
-								Name:  req.Msg.GetGateway().GetGatewayId(),
+								Name:  k8sGatewayID,
 								Image: req.Msg.GetGateway().GetImage(),
 								Ports: []corev1.ContainerPort{
 									{
@@ -98,11 +98,11 @@ func (k *k8s) CreateGateway(ctx context.Context, req *connect.Request[kranev1.Cr
 					Name:      k8sGatewayID,
 					Namespace: req.Msg.GetGateway().GetNamespace(),
 					Labels: map[string]string{
-						"unkey.deployment.id": k8sGatewayID,
-						"unkey.managed.by":    "krane",
+						"unkey.gateway.id": k8sGatewayID,
+						"unkey.managed.by": "krane",
 					},
 					Annotations: map[string]string{
-						"unkey.deployment.id": k8sGatewayID,
+						"unkey.gateway.id": k8sGatewayID,
 					},
 					OwnerReferences: []metav1.OwnerReference{
 						// Automatically clean up the service when the Deployment gets deleted
@@ -119,13 +119,13 @@ func (k *k8s) CreateGateway(ctx context.Context, req *connect.Request[kranev1.Cr
 				Spec: corev1.ServiceSpec{
 					Type: corev1.ServiceTypeClusterIP, // Use ClusterIP for internal communication
 					Selector: map[string]string{
-						"unkey.deployment.id": k8sGatewayID,
+						"unkey.gateway.id": k8sGatewayID,
 					},
 					//nolint:exhaustruct
 					Ports: []corev1.ServicePort{
 						{
-							Port:       8080,
-							TargetPort: intstr.FromInt(8080),
+							Port:       8040,
+							TargetPort: intstr.FromInt(8040),
 							Protocol:   corev1.ProtocolTCP,
 						},
 					},
