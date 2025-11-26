@@ -10,37 +10,54 @@ import (
 )
 
 // flush writes a batch of rows to the specified ClickHouse table.
-// It handles the preparation of the batch, appending each row as a struct,
-// and finally sending the batch to ClickHouse.
+// It automatically applies:
+//   - Async insert settings (async_insert=1, wait_for_async_insert=1, async_insert_deduplicate=1)
+//   - Retry with exponential backoff (5 attempts)
+//   - Circuit breaker protection
 //
-// This function is used internally by the batch processors to efficiently
-// insert data in batches rather than individual rows.
-//
-// Parameters:
-//   - ctx: Context for the operation, allowing for cancellation and timeouts
-//   - conn: The ClickHouse connection to use
-//   - table: The name of the destination table
-//   - rows: A slice of structs representing the rows to insert
-//
-// Returns an error if any part of the batch operation fails.
-func flush[T any](ctx context.Context, conn ch.Conn, table string, rows []T) error {
-	batch, err := conn.PrepareBatch(
-		ctx,
-		fmt.Sprintf("INSERT INTO %s", table),
-		driver.WithReleaseConnection(),
-	)
-	if err != nil {
-		return fault.Wrap(err, fault.Internal("preparing batch failed"))
-	}
-	for _, row := range rows {
-		err = batch.AppendStruct(&row)
+// Returns an error if any part of the batch operation fails after all retries.
+func flush[T any](c *clickhouse, ctx context.Context, table string, rows []T) error {
+	// Apply async insert settings
+	ctx = ch.Context(ctx, ch.WithSettings(ch.Settings{
+		"async_insert":             "1",
+		"wait_for_async_insert":    "1",
+		"async_insert_deduplicate": "1",
+	}))
+
+	doFlush := func() error {
+		batch, err := c.conn.PrepareBatch(
+			ctx,
+			fmt.Sprintf("INSERT INTO %s", table),
+			driver.WithReleaseConnection(),
+		)
 		if err != nil {
-			return fault.Wrap(err, fault.Internal("appending struct to batch failed"))
+			return fault.Wrap(err, fault.Internal("preparing batch failed"))
 		}
+		defer func() {
+			if err := batch.Close(); err != nil {
+				c.logger.Error("failed to close batch", "error", err.Error())
+			}
+		}()
+
+		for _, row := range rows {
+			err = batch.AppendStruct(&row)
+			if err != nil {
+				return fault.Wrap(err, fault.Internal("appending struct to batch failed"))
+			}
+		}
+
+		err = batch.Send()
+		if err != nil {
+			return fault.Wrap(err, fault.Internal("committing batch failed"))
+		}
+
+		return nil
 	}
-	err = batch.Send()
-	if err != nil {
-		return fault.Wrap(err, fault.Internal("committing batch failed"))
-	}
-	return nil
+
+	// Wrap with retry, then circuit breaker
+	_, err := c.circuitBreaker.Do(ctx, func(ctx context.Context) (struct{}, error) {
+		return struct{}{}, c.retry.DoContext(ctx, doFlush)
+	})
+
+	return err
 }
