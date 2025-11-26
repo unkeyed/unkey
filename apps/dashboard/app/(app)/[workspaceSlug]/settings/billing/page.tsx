@@ -23,6 +23,13 @@ export default function BillingPage() {
   } = trpc.billing.queryUsage.useQuery(undefined, {
     // Only enable query when workspace is loaded AND it's a legacy subscription
     enabled: Boolean(workspace && isLegacy),
+    // Skip batching to prevent analytics slowdown from blocking core UI
+    trpc: {
+      context: {
+        skipBatch: true,
+      },
+    },
+    retry: 1,
   });
 
   // Derive loading state: loading if workspace is loading OR (if legacy, usage is loading)
