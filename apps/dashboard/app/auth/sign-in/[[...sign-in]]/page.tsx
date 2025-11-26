@@ -50,8 +50,8 @@ function SignInContent() {
           setLastUsedOrgId(value);
         }
       })
-      .catch((error) => {
-        console.error("Failed to read last used org cookie:", error);
+      .catch((_error) => {
+        // Ignore cookie read errors
       })
       .finally(() => {
         setClientReady(true);
@@ -85,8 +85,7 @@ function SignInContent() {
           // On success, redirect to the dashboard
           router.push(result.redirectTo);
         })
-        .catch((err) => {
-          console.error("Auto org selection failed:", err);
+        .catch((_err) => {
           setError("Failed to automatically sign in. Please select your workspace.");
           setIsLoading(false);
           setIsAutoSelecting(false);
@@ -123,8 +122,8 @@ function SignInContent() {
         try {
           // Attempt sign-in with the provided email
           await handleSignInViaEmail(invitationEmail);
-        } catch (err) {
-          console.error("Auto sign-in failed:", err);
+        } catch (_err) {
+          // Ignore auto sign-in errors
         } finally {
           // Reset loading state
           setIsLoading(false);

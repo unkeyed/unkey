@@ -48,10 +48,7 @@ export async function POST(request: NextRequest) {
       success: true,
       organizationId: result.organizationId,
     });
-  } catch (error) {
-    console.error("Error processing invitation:", {
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
+  } catch (_error) {
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500, headers: { "Cache-Control": "no-store" } },

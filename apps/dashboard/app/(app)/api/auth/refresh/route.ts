@@ -8,7 +8,6 @@ export async function POST(request: Request) {
     // Get the current token from the request
     const currentToken = request.headers.get("x-current-token");
     if (!currentToken) {
-      console.error("Session refresh failed: no current token");
       return Response.json({ success: false, error: "Failed to refresh session" }, { status: 401 });
     }
     // Call refreshSession logic here and get new token

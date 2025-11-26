@@ -94,9 +94,6 @@ export function PostAuthInvitationHandler({
           return;
         }
 
-        console.error("Failed to process invitation:", {
-          error: result.error,
-        });
         onComplete?.(false, result.error);
       }
     } catch (error) {
@@ -111,9 +108,6 @@ export function PostAuthInvitationHandler({
         return;
       }
 
-      console.error("Error processing invitation:", {
-        error: errorMessage,
-      });
       onComplete?.(false, errorMessage);
     } finally {
       setIsProcessing(false);

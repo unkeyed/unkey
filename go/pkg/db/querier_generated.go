@@ -152,6 +152,10 @@ type Querier interface {
 	//
 	//  SELECT id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
 	FindCertificateByHostname(ctx context.Context, db DBTX, hostname string) (Certificate, error)
+	//FindCertificatesByHostnames
+	//
+	//  SELECT id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname IN (/*SLICE:hostnames*/?)
+	FindCertificatesByHostnames(ctx context.Context, db DBTX, hostnames []string) ([]Certificate, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT workspace_id, username, password_encrypted, quota_duration_seconds, max_queries_per_window, max_execution_time_per_window, max_query_execution_time, max_query_memory_bytes, max_query_result_rows, created_at, updated_at FROM `clickhouse_workspace_settings`
@@ -182,25 +186,8 @@ type Querier interface {
 	FindCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      environment_id,
-	//      git_commit_sha,
-	//      git_branch,
-	//      runtime_config,
-	//      git_commit_message,
-	//      git_commit_author_handle,
-	//      git_commit_author_avatar_url,
-	//      git_commit_timestamp,
-	//      openapi_spec,
-	//      status,
-	//      created_at,
-	//      updated_at
-	//  FROM `deployments`
-	//  WHERE id = ?
-	FindDeploymentById(ctx context.Context, db DBTX, id string) (FindDeploymentByIdRow, error)
+	//  SELECT id, workspace_id, project_id, environment_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, runtime_config, gateway_config, openapi_spec, status, created_at, updated_at FROM `deployments` WHERE id = ?
+	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentStepsByDeploymentId
 	//
 	//  SELECT
@@ -226,6 +213,10 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (FindEnvironmentByProjectIdAndSlugRow, error)
+	//FindGatewaysByEnvironmentID
+	//
+	//  SELECT id, workspace_id, environment_id, k8s_service_name, region, image, health, replicas FROM gateways WHERE environment_id = ?
+	FindGatewaysByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Gateway, error)
 	//FindIdentities
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -351,12 +342,16 @@ type Querier interface {
 	//  SELECT
 	//    id,
 	//    deployment_id,
+	//    workspace_id,
+	//    project_id,
 	//    region,
 	//    address,
+	//    cpu_millicores,
+	//    memory_mb,
 	//    status
 	//  FROM instances
 	//  WHERE deployment_id = ? AND region = ?
-	FindInstancesByDeploymentIdAndRegion(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionParams) ([]FindInstancesByDeploymentIdAndRegionRow, error)
+	FindInstancesByDeploymentIdAndRegion(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionParams) ([]Instance, error)
 	//FindKeyAuthsByIds
 	//
 	//  SELECT ka.id as key_auth_id, a.id as api_id
@@ -1052,8 +1047,8 @@ type Querier interface {
 	InsertAuditLogTarget(ctx context.Context, db DBTX, arg InsertAuditLogTargetParams) error
 	//InsertCertificate
 	//
-	//  INSERT INTO certificates (workspace_id, hostname, certificate, encrypted_private_key, created_at)
-	//  VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE
+	//  INSERT INTO certificates (id, workspace_id, hostname, certificate, encrypted_private_key, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE
 	//  workspace_id = VALUES(workspace_id),
 	//  hostname = VALUES(hostname),
 	//  certificate = VALUES(certificate),
@@ -1099,6 +1094,7 @@ type Querier interface {
 	//      git_commit_sha,
 	//      git_branch,
 	//      runtime_config,
+	//      gateway_config,
 	//      git_commit_message,
 	//      git_commit_author_handle,
 	//      git_commit_author_avatar_url,
@@ -1109,6 +1105,7 @@ type Querier interface {
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1150,25 +1147,26 @@ type Querier interface {
 	//InsertGateway
 	//
 	//  INSERT INTO gateways (
-	//  id,
-	//  workspace_id,
-	//  k8s_service_name,
-	//  region,
-	//  image,
-	//  health,
-	//  replicas
-	//
-	//  )
-	//  VALUES (
-	//  ?,
-	//  ?,
-	//  ?,
-	//  ?,
-	//  ?,
-	//  ?,
-	//  ?
-	//
-	//  )
+	//      id,
+	//      workspace_id,
+	//      environment_id,
+	//      k8s_service_name,
+	//      region,
+	//      image,
+	//      health,
+	//      replicas
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  ) ON DUPLICATE KEY UPDATE
+	//      health = VALUES(health),
+	//      replicas = VALUES(replicas)
 	InsertGateway(ctx context.Context, db DBTX, arg InsertGatewayParams) error
 	//InsertIdentity
 	//
@@ -2078,6 +2076,18 @@ type Querier interface {
 	//  SET plan = ?
 	//  WHERE id = ?
 	UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) (sql.Result, error)
+	//UpsertEnvironment
+	//
+	//  INSERT INTO environments (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      slug,
+	//      gateway_config,
+	//      created_at
+	//  ) VALUES (?, ?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE slug = VALUES(slug)
+	UpsertEnvironment(ctx context.Context, db DBTX, arg UpsertEnvironmentParams) error
 	//UpsertInstance
 	//
 	//  INSERT INTO instances (
@@ -2108,6 +2118,52 @@ type Querier interface {
 	//  	memory_mb = ?,
 	//  	status = ?
 	UpsertInstance(ctx context.Context, db DBTX, arg UpsertInstanceParams) error
+	//UpsertKeySpace
+	//
+	//  INSERT INTO key_auth (
+	//      id,
+	//      workspace_id,
+	//      created_at_m,
+	//      default_prefix,
+	//      default_bytes,
+	//      store_encrypted_keys
+	//  ) VALUES (?, ?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      workspace_id = VALUES(workspace_id),
+	//      store_encrypted_keys = VALUES(store_encrypted_keys)
+	UpsertKeySpace(ctx context.Context, db DBTX, arg UpsertKeySpaceParams) error
+	//UpsertQuota
+	//
+	//  INSERT INTO quota (
+	//      workspace_id,
+	//      requests_per_month,
+	//      audit_logs_retention_days,
+	//      logs_retention_days,
+	//      team
+	//  ) VALUES (?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      requests_per_month = VALUES(requests_per_month),
+	//      audit_logs_retention_days = VALUES(audit_logs_retention_days),
+	//      logs_retention_days = VALUES(logs_retention_days)
+	UpsertQuota(ctx context.Context, db DBTX, arg UpsertQuotaParams) error
+	//UpsertWorkspace
+	//
+	//  INSERT INTO workspaces (
+	//      id,
+	//      org_id,
+	//      name,
+	//      slug,
+	//      created_at_m,
+	//      tier,
+	//      beta_features,
+	//      features,
+	//      enabled,
+	//      delete_protection
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, '{}', true, false)
+	//  ON DUPLICATE KEY UPDATE
+	//      beta_features = VALUES(beta_features),
+	//      name = VALUES(name)
+	UpsertWorkspace(ctx context.Context, db DBTX, arg UpsertWorkspaceParams) error
 }
 
 var _ Querier = (*Queries)(nil)

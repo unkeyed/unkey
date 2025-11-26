@@ -17,11 +17,11 @@
   "author": "Andreas Thomas",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^20.14.9",
-    "tsup": "^8.0.2",
-    "typescript": "^5.5.3"
+    "@types/node": "20.14.9",
+    "tsup": "8.0.2",
+    "typescript": "5.5.3"
   },
   "dependencies": {
-    "zod": "^3.23.5"
+    "zod": "3.23.5"
   }
 }
