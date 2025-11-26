@@ -261,80 +261,80 @@ type TimeInterval = {
 const INTERVALS: Record<string, TimeInterval> = {
   // Minute-based intervals
   minute: {
-    table: "default.key_verifications_per_minute_v2",
+    table: "default.key_verifications_per_minute_v3",
     step: "MINUTE",
     stepSize: 1,
   },
   fiveMinutes: {
-    table: "default.key_verifications_per_minute_v2",
+    table: "default.key_verifications_per_minute_v3",
     step: "MINUTE",
     stepSize: 5,
   },
   fifteenMinutes: {
-    table: "default.key_verifications_per_minute_v2",
+    table: "default.key_verifications_per_minute_v3",
     step: "MINUTE",
     stepSize: 15,
   },
   thirtyMinutes: {
-    table: "default.key_verifications_per_minute_v2",
+    table: "default.key_verifications_per_minute_v3",
     step: "MINUTE",
     stepSize: 30,
   },
   // Hour-based intervals
   hour: {
-    table: "default.key_verifications_per_hour_v2",
+    table: "default.key_verifications_per_hour_v3",
     step: "HOUR",
     stepSize: 1,
   },
   twoHours: {
-    table: "default.key_verifications_per_hour_v2",
+    table: "default.key_verifications_per_hour_v3",
     step: "HOUR",
     stepSize: 2,
   },
   fourHours: {
-    table: "default.key_verifications_per_hour_v2",
+    table: "default.key_verifications_per_hour_v3",
     step: "HOUR",
     stepSize: 4,
   },
   sixHours: {
-    table: "default.key_verifications_per_hour_v2",
+    table: "default.key_verifications_per_hour_v3",
     step: "HOUR",
     stepSize: 6,
   },
   twelveHours: {
-    table: "default.key_verifications_per_hour_v2",
+    table: "default.key_verifications_per_hour_v3",
     step: "HOUR",
     stepSize: 12,
   },
   // Day-based intervals
   day: {
-    table: "default.key_verifications_per_day_v2",
+    table: "default.key_verifications_per_day_v3",
     step: "DAY",
     stepSize: 1,
   },
   threeDays: {
-    table: "default.key_verifications_per_day_v2",
+    table: "default.key_verifications_per_day_v3",
     step: "DAY",
     stepSize: 3,
   },
   week: {
-    table: "default.key_verifications_per_day_v2",
+    table: "default.key_verifications_per_day_v3",
     step: "DAY",
     stepSize: 7,
   },
   twoWeeks: {
-    table: "default.key_verifications_per_day_v2",
+    table: "default.key_verifications_per_day_v3",
     step: "DAY",
     stepSize: 14,
   },
   // Monthly-based intervals
   month: {
-    table: "default.key_verifications_per_month_v2",
+    table: "default.key_verifications_per_month_v3",
     step: "MONTH",
     stepSize: 1,
   },
   quarter: {
-    table: "default.key_verifications_per_month_v2",
+    table: "default.key_verifications_per_month_v3",
     step: "MONTH",
     stepSize: 3,
   },

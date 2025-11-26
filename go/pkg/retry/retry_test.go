@@ -13,7 +13,7 @@ import (
 func TestRetry(t *testing.T) {
 	tests := []struct {
 		name          string
-		retry         *retry
+		retry         *Retry
 		fn            func() error
 		expectedCalls int
 		expectedError bool
@@ -189,7 +189,7 @@ func TestShouldRetry(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var retrier *retry
+			var retrier *Retry
 			if tt.shouldRetry != nil {
 				retrier = New(ShouldRetry(tt.shouldRetry))
 			} else {
@@ -299,7 +299,7 @@ func TestDoWithResult(t *testing.T) {
 func TestDoContext(t *testing.T) {
 	tests := []struct {
 		name          string
-		retry         *retry
+		retry         *Retry
 		fn            func() error
 		setupContext  func() (context.Context, context.CancelFunc)
 		cancelAfter   time.Duration

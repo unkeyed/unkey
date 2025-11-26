@@ -3,7 +3,7 @@ import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 
 // Import service definition that you want to connect to.
-import { DeploymentService } from "@unkey/proto";
+import { DeploymentService } from "@/gen/proto/ctrl/v1/deployment_pb";
 
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";

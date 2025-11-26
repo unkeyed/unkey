@@ -92,6 +92,11 @@ export const useFetchTimeseries = () => {
 
   const { data, isLoading, isError } = trpc.logs.queryTimeseries.useQuery(queryParams, {
     refetchInterval: queryParams.endTime ? false : 10_000,
+    trpc: {
+      context: {
+        skipBatch: true,
+      },
+    },
   });
 
   const timeseries = data?.timeseries.map((ts) => ({

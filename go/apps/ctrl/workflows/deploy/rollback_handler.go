@@ -40,7 +40,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	}
 
 	// Get source deployment
-	sourceDeployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindDeploymentByIdRow, error) {
+	sourceDeployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
 		return db.Query.FindDeploymentById(stepCtx, w.db.RO(), req.GetSourceDeploymentId())
 	}, restate.WithName("finding source deployment"))
 	if err != nil {
@@ -51,7 +51,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	}
 
 	// Get target deployment
-	targetDeployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindDeploymentByIdRow, error) {
+	targetDeployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
 		return db.Query.FindDeploymentById(stepCtx, w.db.RO(), req.GetTargetDeploymentId())
 	}, restate.WithName("finding target deployment"))
 	if err != nil {

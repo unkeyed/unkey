@@ -21,15 +21,15 @@
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "@changesets/cli": "^2.28.1",
-    "@types/node": "^22.14.0",
-    "@vitest/ui": "^3.2.4",
-    "cz-conventional-changelog": "^3.3.0",
-    "knip": "^5.45.0",
-    "turbo": "^2.4.3",
-    "typescript": "^5.7.3",
-    "vitest": "^3.2.4"
+    "@biomejs/biome": "1.9.4",
+    "@changesets/cli": "2.28.1",
+    "@types/node": "22.14.0",
+    "@vitest/ui": "3.2.4",
+    "cz-conventional-changelog": "3.3.0",
+    "knip": "5.45.0",
+    "turbo": "2.4.3",
+    "typescript": "5.7.3",
+    "vitest": "3.2.4"
   },
   "pnpm": {
     "overrides": {

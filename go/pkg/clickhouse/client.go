@@ -8,6 +8,7 @@ import (
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/unkeyed/unkey/go/pkg/batch"
+	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -18,8 +19,10 @@ import (
 // It provides batch processing for different event types to efficiently store
 // high volumes of data while minimizing connection overhead.
 type clickhouse struct {
-	conn   ch.Conn
-	logger logging.Logger
+	conn           ch.Conn
+	logger         logging.Logger
+	circuitBreaker *circuitbreaker.CB[struct{}]
+	retry          *retry.Retry
 
 	// Batched processors for different event types
 	apiRequests      *batch.BatchProcessor[schema.ApiRequest]
@@ -103,109 +106,98 @@ func New(config Config) (*clickhouse, error) {
 	c := &clickhouse{
 		conn:   conn,
 		logger: config.Logger,
-
-		apiRequests: batch.New(batch.Config[schema.ApiRequest]{
-			Name:          "api_requests",
-			Drop:          true,
-			BatchSize:     50_000,
-			BufferSize:    200_000,
-			FlushInterval: 60 * time.Second,
-			Consumers:     2,
-			Flush: func(ctx context.Context, rows []schema.ApiRequest) {
-				table := "default.api_requests_raw_v2"
-				err := flush(ctx, conn, table, rows)
-				if err != nil {
-					config.Logger.Error("failed to flush batch",
-						"table", table,
-						"err", err.Error(),
-					)
-				}
-			},
-		}),
-
-		keyVerifications: batch.New[schema.KeyVerification](
-			batch.Config[schema.KeyVerification]{
-				Name:          "key_verifications_v2",
-				Drop:          true,
-				BatchSize:     50_000,
-				BufferSize:    200_000,
-				FlushInterval: 60 * time.Second,
-				Consumers:     2,
-				Flush: func(ctx context.Context, rows []schema.KeyVerification) {
-					table := "default.key_verifications_raw_v2"
-					err := flush(ctx, conn, table, rows)
-					if err != nil {
-						config.Logger.Error("failed to flush batch",
-							"table", table,
-							"error", err.Error(),
-						)
-					}
-				},
-			},
+		circuitBreaker: circuitbreaker.New[struct{}](
+			"clickhouse_insert",
+			circuitbreaker.WithTripThreshold(5),
+			circuitbreaker.WithTimeout(30*time.Second),
+			circuitbreaker.WithCyclicPeriod(10*time.Second),
+			circuitbreaker.WithMaxRequests(3),
 		),
-
-		ratelimits: batch.New(
-			batch.Config[schema.Ratelimit]{
-				Name:          "ratelimits",
-				Drop:          true,
-				BatchSize:     50_000,
-				BufferSize:    200_000,
-				FlushInterval: 60 * time.Second,
-				Consumers:     2,
-				Flush: func(ctx context.Context, rows []schema.Ratelimit) {
-					table := "default.ratelimits_raw_v2"
-					err := flush(ctx, conn, table, rows)
-					if err != nil {
-						config.Logger.Error("failed to flush batch",
-							"table", table,
-							"error", err.Error(),
-						)
-					}
-				},
+		retry: retry.New(
+			retry.Attempts(5),
+			retry.Backoff(func(n int) time.Duration {
+				return time.Duration(1<<uint(n-1)) * time.Second
 			}),
-
-		buildSteps: batch.New(
-			batch.Config[schema.BuildStepV1]{
-				Name:          "build_steps_v1",
-				Drop:          true,
-				BatchSize:     50_000,
-				BufferSize:    200_000,
-				FlushInterval: 2 * time.Second,
-				Consumers:     1,
-				Flush: func(ctx context.Context, rows []schema.BuildStepV1) {
-					table := "default.build_steps_v1"
-					err := flush(ctx, conn, table, rows)
-					if err != nil {
-						config.Logger.Error("failed to flush batch",
-							"table", table,
-							"error", err.Error(),
-						)
-					}
-				},
-			},
-		),
-
-		buildStepLogs: batch.New(
-			batch.Config[schema.BuildStepLogV1]{
-				Name:          "build_step_logs_v1",
-				Drop:          true,
-				BatchSize:     50_000,
-				BufferSize:    200_000,
-				FlushInterval: 2 * time.Second,
-				Consumers:     1,
-				Flush: func(ctx context.Context, rows []schema.BuildStepLogV1) {
-					table := "default.build_step_logs_v1"
-					err := flush(ctx, conn, table, rows)
-					if err != nil {
-						config.Logger.Error("failed to flush batch",
-							"table", table,
-							"error", err.Error(),
-						)
-					}
-				},
-			},
+			retry.ShouldRetry(func(err error) bool {
+				return !isAuthenticationError(err)
+			}),
 		),
 	}
+
+	c.apiRequests = batch.New(batch.Config[schema.ApiRequest]{
+		Name:          "api_requests",
+		Drop:          true,
+		BatchSize:     50_000,
+		BufferSize:    200_000,
+		FlushInterval: 5 * time.Second,
+		Consumers:     2,
+		Flush: func(ctx context.Context, rows []schema.ApiRequest) {
+			table := "default.api_requests_raw_v2"
+			if err := flush(c, ctx, table, rows); err != nil {
+				c.logger.Error("failed to flush batch", "table", table, "error", err.Error())
+			}
+		},
+	})
+
+	c.keyVerifications = batch.New(batch.Config[schema.KeyVerification]{
+		Name:          "key_verifications_v2",
+		Drop:          true,
+		BatchSize:     50_000,
+		BufferSize:    200_000,
+		FlushInterval: 5 * time.Second,
+		Consumers:     2,
+		Flush: func(ctx context.Context, rows []schema.KeyVerification) {
+			table := "default.key_verifications_raw_v2"
+			if err := flush(c, ctx, table, rows); err != nil {
+				c.logger.Error("failed to flush batch", "table", table, "error", err.Error())
+			}
+		},
+	})
+
+	c.ratelimits = batch.New(batch.Config[schema.Ratelimit]{
+		Name:          "ratelimits",
+		Drop:          true,
+		BatchSize:     50_000,
+		BufferSize:    200_000,
+		FlushInterval: 5 * time.Second,
+		Consumers:     2,
+		Flush: func(ctx context.Context, rows []schema.Ratelimit) {
+			table := "default.ratelimits_raw_v2"
+			if err := flush(c, ctx, table, rows); err != nil {
+				c.logger.Error("failed to flush batch", "table", table, "error", err.Error())
+			}
+		},
+	})
+
+	c.buildSteps = batch.New(batch.Config[schema.BuildStepV1]{
+		Name:          "build_steps_v1",
+		Drop:          true,
+		BatchSize:     50_000,
+		BufferSize:    200_000,
+		FlushInterval: 2 * time.Second,
+		Consumers:     1,
+		Flush: func(ctx context.Context, rows []schema.BuildStepV1) {
+			table := "default.build_steps_v1"
+			if err := flush(c, ctx, table, rows); err != nil {
+				c.logger.Error("failed to flush batch", "table", table, "error", err.Error())
+			}
+		},
+	})
+
+	c.buildStepLogs = batch.New(batch.Config[schema.BuildStepLogV1]{
+		Name:          "build_step_logs_v1",
+		Drop:          true,
+		BatchSize:     50_000,
+		BufferSize:    200_000,
+		FlushInterval: 2 * time.Second,
+		Consumers:     1,
+		Flush: func(ctx context.Context, rows []schema.BuildStepLogV1) {
+			table := "default.build_step_logs_v1"
+			if err := flush(c, ctx, table, rows); err != nil {
+				c.logger.Error("failed to flush batch", "table", table, "error", err.Error())
+			}
+		},
+	})
 
 	return c, nil
 }
