@@ -80,7 +80,7 @@ export const OverridesTable = ({ namespaceId }: Props) => {
             }
             position={{ side: "bottom", align: "start" }}
           >
-            <div className="flex flex-row justify-center items-center font-mono text-xs text-gray-11 truncate">
+            <div className="font-mono text-xs text-gray-11 sm:max-w-[100px] md:max-w-[100px] lg:max-w-full truncate">
               {override.id}
             </div>
           </InfoTooltip>
@@ -147,7 +147,7 @@ export const OverridesTable = ({ namespaceId }: Props) => {
     {
       key: "lastUsed",
       header: "Last used",
-      width: "10%",
+      width: { min: 150, max: 200 },
       render: (override) => (
         <LastUsedCell namespaceId={namespaceId} identifier={override.identifier} />
       ),
