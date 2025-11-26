@@ -15,7 +15,7 @@ export const environments = mysqlTable(
     projectId: varchar("project_id", { length: 256 }).notNull(),
 
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
-    description: varchar("description", { length: 255 }),
+    description: varchar("description", { length: 255 }).notNull().default(""),
 
     gatewayConfig: longblob("gateway_config").notNull(),
 

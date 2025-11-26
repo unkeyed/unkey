@@ -6,11 +6,11 @@
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
   "devDependencies": {
-    "@types/node": "^20.14.9",
+    "@types/node": "20.14.9",
     "@unkey/tsconfig": "workspace:*",
-    "typescript": "^5.5.3"
+    "typescript": "5.5.3"
   },
   "dependencies": {
-    "zod": "^3.23.5"
+    "zod": "3.23.5"
   }
 }

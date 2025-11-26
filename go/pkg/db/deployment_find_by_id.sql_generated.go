@@ -7,72 +7,18 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
 )
 
 const findDeploymentById = `-- name: FindDeploymentById :one
-SELECT
-    id,
-    workspace_id,
-    project_id,
-    environment_id,
-    git_commit_sha,
-    git_branch,
-    runtime_config,
-    git_commit_message,
-    git_commit_author_handle,
-    git_commit_author_avatar_url,
-    git_commit_timestamp,
-    openapi_spec,
-    status,
-    created_at,
-    updated_at
-FROM ` + "`" + `deployments` + "`" + `
-WHERE id = ?
+SELECT id, workspace_id, project_id, environment_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, runtime_config, gateway_config, openapi_spec, status, created_at, updated_at FROM ` + "`" + `deployments` + "`" + ` WHERE id = ?
 `
-
-type FindDeploymentByIdRow struct {
-	ID                       string            `db:"id"`
-	WorkspaceID              string            `db:"workspace_id"`
-	ProjectID                string            `db:"project_id"`
-	EnvironmentID            string            `db:"environment_id"`
-	GitCommitSha             sql.NullString    `db:"git_commit_sha"`
-	GitBranch                sql.NullString    `db:"git_branch"`
-	RuntimeConfig            json.RawMessage   `db:"runtime_config"`
-	GitCommitMessage         sql.NullString    `db:"git_commit_message"`
-	GitCommitAuthorHandle    sql.NullString    `db:"git_commit_author_handle"`
-	GitCommitAuthorAvatarUrl sql.NullString    `db:"git_commit_author_avatar_url"`
-	GitCommitTimestamp       sql.NullInt64     `db:"git_commit_timestamp"`
-	OpenapiSpec              sql.NullString    `db:"openapi_spec"`
-	Status                   DeploymentsStatus `db:"status"`
-	CreatedAt                int64             `db:"created_at"`
-	UpdatedAt                sql.NullInt64     `db:"updated_at"`
-}
 
 // FindDeploymentById
 //
-//	SELECT
-//	    id,
-//	    workspace_id,
-//	    project_id,
-//	    environment_id,
-//	    git_commit_sha,
-//	    git_branch,
-//	    runtime_config,
-//	    git_commit_message,
-//	    git_commit_author_handle,
-//	    git_commit_author_avatar_url,
-//	    git_commit_timestamp,
-//	    openapi_spec,
-//	    status,
-//	    created_at,
-//	    updated_at
-//	FROM `deployments`
-//	WHERE id = ?
-func (q *Queries) FindDeploymentById(ctx context.Context, db DBTX, id string) (FindDeploymentByIdRow, error) {
+//	SELECT id, workspace_id, project_id, environment_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, runtime_config, gateway_config, openapi_spec, status, created_at, updated_at FROM `deployments` WHERE id = ?
+func (q *Queries) FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error) {
 	row := db.QueryRowContext(ctx, findDeploymentById, id)
-	var i FindDeploymentByIdRow
+	var i Deployment
 	err := row.Scan(
 		&i.ID,
 		&i.WorkspaceID,
@@ -80,11 +26,12 @@ func (q *Queries) FindDeploymentById(ctx context.Context, db DBTX, id string) (F
 		&i.EnvironmentID,
 		&i.GitCommitSha,
 		&i.GitBranch,
-		&i.RuntimeConfig,
 		&i.GitCommitMessage,
 		&i.GitCommitAuthorHandle,
 		&i.GitCommitAuthorAvatarUrl,
 		&i.GitCommitTimestamp,
+		&i.RuntimeConfig,
+		&i.GatewayConfig,
 		&i.OpenapiSpec,
 		&i.Status,
 		&i.CreatedAt,

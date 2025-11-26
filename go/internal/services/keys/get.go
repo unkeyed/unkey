@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/cache"
+	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
 	"github.com/unkeyed/unkey/go/pkg/hash"
@@ -37,11 +38,6 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 		return nil, log, err
 	}
 
-	if key.Key.ForWorkspaceID.Valid {
-		key.AuthorizedWorkspaceID = key.Key.ForWorkspaceID.String
-	}
-	sess.WorkspaceID = key.AuthorizedWorkspaceID
-
 	if key.Status != StatusValid {
 		return nil, log, fault.Wrap(
 			key.ToFault(),
@@ -49,6 +45,21 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 			fault.Public("The provided root key is invalid."),
 		)
 	}
+
+	// A root key MUST have ForWorkspaceID set - this distinguishes it from a regular API key.
+	// Without this check, a regular key could be used in the Authorization header and
+	// gain access to root key operations using its own workspace as the target.
+	// We return the same error as a non-existent key to avoid leaking that the key exists.
+	if !key.Key.ForWorkspaceID.Valid {
+		return nil, log, fault.New("not a root key",
+			fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+			fault.Internal("key does not have ForWorkspaceID set - not a root key"),
+			fault.Public("The provided root key is invalid."),
+		)
+	}
+
+	key.AuthorizedWorkspaceID = key.Key.ForWorkspaceID.String
+	sess.WorkspaceID = key.AuthorizedWorkspaceID
 
 	return key, log, nil
 }

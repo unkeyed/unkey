@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertCertificate is the base query for bulk insert
-const bulkInsertCertificate = `INSERT INTO certificates (workspace_id, hostname, certificate, encrypted_private_key, created_at) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkInsertCertificate = `INSERT INTO certificates (id, workspace_id, hostname, certificate, encrypted_private_key, created_at) VALUES %s ON DUPLICATE KEY UPDATE
 workspace_id = VALUES(workspace_id),
 hostname = VALUES(hostname),
 certificate = VALUES(certificate),
@@ -26,7 +26,7 @@ func (q *BulkQueries) InsertCertificates(ctx context.Context, db DBTX, args []In
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "(?, ?, ?, ?, ?)"
+		valueClauses[i] = "(?, ?, ?, ?, ?, ?)"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertCertificate, strings.Join(valueClauses, ", "))
@@ -34,6 +34,7 @@ func (q *BulkQueries) InsertCertificates(ctx context.Context, db DBTX, args []In
 	// Collect all arguments
 	var allArgs []any
 	for _, arg := range args {
+		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.Hostname)
 		allArgs = append(allArgs, arg.Certificate)
