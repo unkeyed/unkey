@@ -62,10 +62,13 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 				}
 
 				urn := codes.Ingress.Proxy.BadGateway.URN()
-				if resp.StatusCode == 503 {
+				switch resp.StatusCode {
+				case http.StatusServiceUnavailable:
 					urn = codes.Ingress.Proxy.ServiceUnavailable.URN()
-				} else if resp.StatusCode == 504 {
+				case http.StatusGatewayTimeout:
 					urn = codes.Ingress.Proxy.GatewayTimeout.URN()
+				case http.StatusBadGateway:
+					urn = codes.Ingress.Proxy.BadGateway.URN()
 				}
 
 				return fault.New(
