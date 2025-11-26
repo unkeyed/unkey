@@ -84,6 +84,11 @@ linters:
         - ^github.com/AfterShip/clickhouse-sql-parser/parser.*ColumnExprList$
         - ^github.com/AfterShip/clickhouse-sql-parser/parser.*ColumnExpr$
         - ^database/sql\.Null.*$
+        - ^k8s.io/api/core/v1.*$
+        - ^k8s.io/api/apps/v1.*$
+        - ^k8s.io/apimachinery/pkg/apis/meta/v1.*$
+        - ^github.com/moby/buildkit/client.*$
+
     funlen:
       lines: 100
       statements: 50

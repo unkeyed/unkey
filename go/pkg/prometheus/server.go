@@ -77,6 +77,8 @@ func New(config Config) (*zen.Server, error) {
 		Logger:             config.Logger,
 		Flags:              nil,
 		TLS:                nil,
+		ReadTimeout:        0,
+		WriteTimeout:       0,
 	})
 	if err != nil {
 		return nil, err

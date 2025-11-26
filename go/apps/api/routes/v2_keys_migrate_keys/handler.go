@@ -407,6 +407,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						Duration:    ratelimit.Duration,
 						CreatedAt:   now,
 						AutoApply:   ratelimit.AutoApply,
+						UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
 					})
 				}
 			}

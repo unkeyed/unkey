@@ -22,6 +22,7 @@ type randBuffer struct {
 var bufferPool = sync.Pool{
 	New: func() any {
 		return &randBuffer{
+			buf: [bufferSize]byte{},
 			pos: bufferSize, // Start exhausted to force initial fill
 		}
 	},

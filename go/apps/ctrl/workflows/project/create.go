@@ -54,6 +54,7 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 			Slug:             req.Slug,
 			GitRepositoryUrl: sql.NullString{Valid: req.GitRepository != "", String: req.GitRepository},
 			DefaultBranch:    sql.NullString{Valid: true, String: "main"},
+			DeleteProtection: sql.NullBool{Valid: true, Bool: true},
 
 			CreatedAt: time.Now().UnixMilli(),
 			UpdatedAt: sql.NullInt64{Valid: false, Int64: 0},

@@ -260,7 +260,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				WorkspaceID:  rootWorkspaceID,
 				Name:         perm,
 				Slug:         perm,
-				Description:  dbtype.NullString{},
+				Description:  dbtype.NullString{Valid: false, String: ""},
 				CreatedAtM:   now,
 			}
 		}

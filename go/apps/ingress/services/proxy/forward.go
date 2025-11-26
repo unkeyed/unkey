@@ -35,7 +35,7 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 	}()
 
 	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
-
+	// nolint:exhaustruct
 	proxy := &httputil.ReverseProxy{
 		Transport: s.transport,
 		Director: func(req *http.Request) {

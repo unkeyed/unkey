@@ -120,7 +120,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	}
 
 	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
-
+	// nolint:exhaustruct
 	proxy := &httputil.ReverseProxy{
 		Director: func(outReq *http.Request) {
 			instanceStart = h.Clock.Now()

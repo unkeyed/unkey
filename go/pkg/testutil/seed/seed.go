@@ -126,21 +126,22 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 	key := uid.New("test_root_key")
 
 	insertKeyParams := db.InsertKeyParams{
-		ID:                uid.New("test_root_key"),
-		Hash:              hash.Sha256(key),
-		WorkspaceID:       s.Resources.RootWorkspace.ID,
-		ForWorkspaceID:    sql.NullString{String: workspaceID, Valid: true},
-		KeySpaceID:        s.Resources.RootKeySpace.ID,
-		Start:             key[:4],
-		CreatedAtM:        time.Now().UnixMilli(),
-		Enabled:           true,
-		Name:              sql.NullString{String: "", Valid: false},
-		IdentityID:        sql.NullString{String: "", Valid: false},
-		Meta:              sql.NullString{String: "", Valid: false},
-		Expires:           sql.NullTime{Time: time.Time{}, Valid: false},
-		RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
-		RefillDay:         sql.NullInt16{Int16: 0, Valid: false},
-		RefillAmount:      sql.NullInt32{Int32: 0, Valid: false},
+		ID:                 uid.New("test_root_key"),
+		Hash:               hash.Sha256(key),
+		WorkspaceID:        s.Resources.RootWorkspace.ID,
+		ForWorkspaceID:     sql.NullString{String: workspaceID, Valid: true},
+		KeySpaceID:         s.Resources.RootKeySpace.ID,
+		Start:              key[:4],
+		CreatedAtM:         time.Now().UnixMilli(),
+		Enabled:            true,
+		Name:               sql.NullString{String: "", Valid: false},
+		IdentityID:         sql.NullString{String: "", Valid: false},
+		Meta:               sql.NullString{String: "", Valid: false},
+		Expires:            sql.NullTime{Time: time.Time{}, Valid: false},
+		RemainingRequests:  sql.NullInt32{Int32: 0, Valid: false},
+		RefillDay:          sql.NullInt16{Int16: 0, Valid: false},
+		RefillAmount:       sql.NullInt32{Int32: 0, Valid: false},
+		PendingMigrationID: sql.NullString{Valid: false, String: ""},
 	}
 
 	err := db.Query.InsertKey(ctx, s.DB.RW(), insertKeyParams)
