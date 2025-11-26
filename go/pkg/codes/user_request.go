@@ -2,6 +2,8 @@ package codes
 
 // userBadRequest defines errors related to invalid user input and bad requests.
 type userBadRequest struct {
+	// MissingRequiredHeader indicates a required HTTP header is missing from the request.
+	MissingRequiredHeader Code
 	// PermissionsQuerySyntaxError indicates a syntax or lexical error in verifyKey permissions query parsing.
 	PermissionsQuerySyntaxError Code
 	// RequestBodyTooLarge indicates the request body exceeds the maximum allowed size.
@@ -54,6 +56,7 @@ type UserErrors struct {
 // for consistent error handling throughout the application.
 var User = UserErrors{
 	BadRequest: userBadRequest{
+		MissingRequiredHeader:       Code{SystemUser, CategoryUserBadRequest, "missing_required_header"},
 		PermissionsQuerySyntaxError: Code{SystemUser, CategoryUserBadRequest, "permissions_query_syntax_error"},
 		RequestBodyTooLarge:         Code{SystemUser, CategoryUserBadRequest, "request_body_too_large"},
 		RequestBodyUnreadable:       Code{SystemUser, CategoryUserBadRequest, "request_body_unreadable"},

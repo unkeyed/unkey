@@ -152,6 +152,10 @@ type Querier interface {
 	//
 	//  SELECT id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
 	FindCertificateByHostname(ctx context.Context, db DBTX, hostname string) (Certificate, error)
+	//FindCertificatesByHostnames
+	//
+	//  SELECT id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname IN (/*SLICE:hostnames*/?)
+	FindCertificatesByHostnames(ctx context.Context, db DBTX, hostnames []string) ([]Certificate, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT workspace_id, username, password_encrypted, quota_duration_seconds, max_queries_per_window, max_execution_time_per_window, max_query_execution_time, max_query_memory_bytes, max_query_result_rows, created_at, updated_at FROM `clickhouse_workspace_settings`
@@ -182,25 +186,8 @@ type Querier interface {
 	FindCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      environment_id,
-	//      git_commit_sha,
-	//      git_branch,
-	//      runtime_config,
-	//      git_commit_message,
-	//      git_commit_author_handle,
-	//      git_commit_author_avatar_url,
-	//      git_commit_timestamp,
-	//      openapi_spec,
-	//      status,
-	//      created_at,
-	//      updated_at
-	//  FROM `deployments`
-	//  WHERE id = ?
-	FindDeploymentById(ctx context.Context, db DBTX, id string) (FindDeploymentByIdRow, error)
+	//  SELECT id, workspace_id, project_id, environment_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, runtime_config, gateway_config, openapi_spec, status, created_at, updated_at FROM `deployments` WHERE id = ?
+	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentStepsByDeploymentId
 	//
 	//  SELECT
@@ -226,6 +213,10 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (FindEnvironmentByProjectIdAndSlugRow, error)
+	//FindGatewaysByEnvironmentID
+	//
+	//  SELECT id, workspace_id, environment_id, k8s_service_name, region, image, health, replicas FROM gateways WHERE environment_id = ?
+	FindGatewaysByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Gateway, error)
 	//FindIdentities
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -351,12 +342,16 @@ type Querier interface {
 	//  SELECT
 	//    id,
 	//    deployment_id,
+	//    workspace_id,
+	//    project_id,
 	//    region,
 	//    address,
+	//    cpu_millicores,
+	//    memory_mb,
 	//    status
 	//  FROM instances
 	//  WHERE deployment_id = ? AND region = ?
-	FindInstancesByDeploymentIdAndRegion(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionParams) ([]FindInstancesByDeploymentIdAndRegionRow, error)
+	FindInstancesByDeploymentIdAndRegion(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionParams) ([]Instance, error)
 	//FindKeyAuthsByIds
 	//
 	//  SELECT ka.id as key_auth_id, a.id as api_id
