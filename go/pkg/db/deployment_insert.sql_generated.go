@@ -27,10 +27,12 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     git_commit_timestamp, -- Unix epoch milliseconds
     openapi_spec,
     status,
+    gateway_config,
     created_at,
     updated_at
 )
 VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -86,10 +88,12 @@ type InsertDeploymentParams struct {
 //	    git_commit_timestamp, -- Unix epoch milliseconds
 //	    openapi_spec,
 //	    status,
+//	    gateway_config,
 //	    created_at,
 //	    updated_at
 //	)
 //	VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -123,6 +127,7 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.GitCommitTimestamp,
 		arg.OpenapiSpec,
 		arg.Status,
+		arg.GatewayConfig,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
