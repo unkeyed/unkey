@@ -162,7 +162,7 @@ func Run(ctx context.Context, cfg Config) error {
 		certManager = certmanager.New(certmanager.Config{
 			Logger:              logger,
 			DB:                  db,
-			TLSCertificateCache: cache.TLSCertificate,
+			TLSCertificateCache: cache.TLSCertificates,
 			Vault:               vaultSvc,
 		})
 	}
@@ -172,7 +172,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:                logger,
 		Region:                cfg.Region,
 		DB:                    db,
-		IngressRouteCache:     cache.IngressRoute,
+		IngressRouteCache:     cache.IngressRoutes,
 		GatewaysByEnvironment: cache.GatewaysByEnvironment,
 	})
 	if err != nil {

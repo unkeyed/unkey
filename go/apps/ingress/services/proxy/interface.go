@@ -18,10 +18,10 @@ type Service interface {
 	// Request start time is retrieved from context
 	ForwardToGateway(ctx context.Context, sess *zen.Session, gateway *db.Gateway, deploymentID string) error
 
-	// ForwardToNLB forwards a request to a remote region's NLB (HTTPS)
+	// ForwardToRegion forwards a request to a remote region (HTTPS)
 	// Keeps the original hostname so the remote ingress can do TLS termination and routing
 	// Request start time is retrieved from context
-	ForwardToNLB(ctx context.Context, sess *zen.Session, targetRegion string) error
+	ForwardToRegion(ctx context.Context, sess *zen.Session, targetRegion string) error
 }
 
 // Config holds configuration for the proxy service.

@@ -95,7 +95,7 @@ func (s *service) ForwardToGateway(ctx context.Context, sess *zen.Session, gatew
 	})
 }
 
-func (s *service) ForwardToNLB(ctx context.Context, sess *zen.Session, targetRegion string) error {
+func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, targetRegion string) error {
 	startTime, _ := RequestStartTimeFromContext(ctx)
 
 	if hopCountStr := sess.Request().Header.Get(HeaderIngressHops); hopCountStr != "" {
@@ -125,7 +125,7 @@ func (s *service) ForwardToNLB(ctx context.Context, sess *zen.Session, targetReg
 	return s.forward(sess, forwardConfig{
 		targetURL:    targetURL,
 		startTime:    startTime,
-		directorFunc: s.makeNLBDirector(sess, startTime),
-		logTarget:    "NLB",
+		directorFunc: s.makeRegionDirector(sess, startTime),
+		logTarget:    "region",
 	})
 }

@@ -47,14 +47,6 @@ func Register(srv *zen.Server, svc *Services) {
 // RegisterChallengeServer registers routes for the HTTP challenge server (Let's Encrypt ACME)
 func RegisterChallengeServer(srv *zen.Server, svc *Services) {
 	withLogging := zen.WithLogging(svc.Logger)
-	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
-	withObservability := middleware.WithObservability(svc.Logger, svc.Region)
-
-	challengeMiddlewares := []zen.Middleware{
-		withPanicRecovery,
-		withLogging,
-		withObservability,
-	}
 
 	// Health check endpoint
 	srv.RegisterRoute(
@@ -66,7 +58,11 @@ func RegisterChallengeServer(srv *zen.Server, svc *Services) {
 
 	// Catches /.well-known/acme-challenge/{token} so we can forward to ctrl plane.
 	srv.RegisterRoute(
-		challengeMiddlewares,
+		[]zen.Middleware{
+			zen.WithPanicRecovery(svc.Logger),
+			withLogging,
+			middleware.WithObservability(svc.Logger, svc.Region),
+		},
 		&acme.Handler{
 			Logger:        svc.Logger,
 			RouterService: svc.RouterService,

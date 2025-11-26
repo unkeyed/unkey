@@ -26,8 +26,8 @@ func (s *service) makeGatewayDirector(sess *zen.Session, deploymentID string, st
 	}
 }
 
-// makeNLBDirector creates a Director function for forwarding to a remote NLB
-func (s *service) makeNLBDirector(sess *zen.Session, startTime time.Time) func(*http.Request) {
+// makeRegionDirector creates a Director function for forwarding to a remote region
+func (s *service) makeRegionDirector(sess *zen.Session, startTime time.Time) func(*http.Request) {
 	return func(req *http.Request) {
 		req.Header.Set(HeaderIngressID, s.ingressID)
 		req.Header.Set(HeaderRegion, s.region)

@@ -15,13 +15,13 @@ import (
 // Caches holds all cache instances used throughout ingress.
 type Caches struct {
 	// HostName -> IngressRoute
-	IngressRoute cache.Cache[string, db.IngressRoute]
+	IngressRoutes cache.Cache[string, db.IngressRoute]
 
 	// EnvironmentID -> List of Gateways
 	GatewaysByEnvironment cache.Cache[string, []db.Gateway]
 
 	// HostName -> Certificate
-	TLSCertificate cache.Cache[string, tls.Certificate]
+	TLSCertificates cache.Cache[string, tls.Certificate]
 }
 
 // Config defines the configuration options for initializing caches.
@@ -68,8 +68,8 @@ func New(config Config) (Caches, error) {
 	}
 
 	return Caches{
-		IngressRoute:          middleware.WithTracing(ingressRoute),
+		IngressRoutes:         middleware.WithTracing(ingressRoute),
 		GatewaysByEnvironment: middleware.WithTracing(gatewaysByEnvironment),
-		TLSCertificate:        middleware.WithTracing(tlsCertificate),
+		TLSCertificates:       middleware.WithTracing(tlsCertificate),
 	}, nil
 }
