@@ -131,7 +131,7 @@ type Querier interface {
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
 	//FindAcmeChallengeByToken
 	//
-	//  SELECT domain_id, workspace_id, token, type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
+	//  SELECT domain_id, workspace_id, token, challenge_type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
 	FindAcmeChallengeByToken(ctx context.Context, db DBTX, arg FindAcmeChallengeByTokenParams) (AcmeChallenge, error)
 	//FindAcmeUserByWorkspaceID
 	//
@@ -941,7 +941,7 @@ type Querier interface {
 	//      token,
 	//      authorization,
 	//      status,
-	//      type,
+	//      challenge_type,
 	//      created_at,
 	//      updated_at,
 	//      expires_at
@@ -1559,12 +1559,12 @@ type Querier interface {
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
 	//ListExecutableChallenges
 	//
-	//  SELECT dc.workspace_id, dc.type, d.domain FROM acme_challenges dc
+	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
 	//  JOIN custom_domains d ON dc.domain_id = d.id
 	//  WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY)))
-	//  AND dc.type IN (/*SLICE:verification_types*/?)
+	//  AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC
-	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesType) ([]ListExecutableChallengesRow, error)
+	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error)
 	//ListIdentities
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
