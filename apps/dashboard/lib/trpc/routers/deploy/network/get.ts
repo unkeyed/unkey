@@ -12,12 +12,13 @@ export const getDeploymentTree = t.procedure
       const defaultTree: DeploymentNode = {
         id: "internet",
         label: "INTERNET",
+        direction: "horizontal",
         metadata: { type: "origin" },
         children: [
           {
             id: "us-east-1",
             label: "us-east-1",
-            direction: "horizontal",
+            direction: "vertical",
             metadata: {
               type: "region",
               flagCode: "us",
@@ -65,7 +66,7 @@ export const getDeploymentTree = t.procedure
           {
             id: "eu-central-1",
             label: "eu-central-1",
-            direction: "horizontal",
+            direction: "vertical",
             metadata: {
               type: "region",
               flagCode: "de",
@@ -127,7 +128,7 @@ export const getDeploymentTree = t.procedure
           {
             id: "ap-southeast-2",
             label: "ap-southeast-2",
-            direction: "horizontal",
+            direction: "vertical",
             metadata: {
               type: "region",
               flagCode: "au",

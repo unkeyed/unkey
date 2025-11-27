@@ -87,6 +87,7 @@ export const generateDeploymentTree = t.procedure
       const tree: DeploymentNode = {
         id: "internet",
         label: "INTERNET",
+        direction: input.regionDirection ?? "horizontal",
         metadata: { type: "origin" },
         children: selectedRegions.map((regionId): RegionNode => {
           const instanceCount = getRandomInt(
@@ -99,7 +100,7 @@ export const generateDeploymentTree = t.procedure
           return {
             id: regionId,
             label: regionId,
-            direction: input.instanceDirection ?? "vertical",
+            direction: input.instanceDirection ?? "horizontal",
             metadata: {
               type: "region",
               flagCode: flags[regionId],

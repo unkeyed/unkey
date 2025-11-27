@@ -25,8 +25,8 @@ const PRESETS = {
     config: {
       regions: 3,
       instancesPerRegion: { min: 1, max: 3 },
-      regionDirection: "vertical" as const,
-      instanceDirection: "vertical" as const,
+      regionDirection: "horizontal" as const,
+      instanceDirection: "horizontal" as const,
       healthDistribution: {
         normal: 80,
         unstable: 10,
@@ -44,8 +44,8 @@ const PRESETS = {
     config: {
       regions: 5,
       instancesPerRegion: { min: 2, max: 5 },
-      regionDirection: "vertical" as const,
-      instanceDirection: "vertical" as const,
+      regionDirection: "horizontal" as const,
+      instanceDirection: "horizontal" as const,
       healthDistribution: {
         normal: 70,
         unstable: 15,
@@ -63,8 +63,8 @@ const PRESETS = {
     config: {
       regions: 7,
       instancesPerRegion: { min: 5, max: 10 },
-      regionDirection: "vertical" as const,
-      instanceDirection: "vertical" as const,
+      regionDirection: "horizontal" as const,
+      instanceDirection: "horizontal" as const,
       healthDistribution: {
         normal: 60,
         unstable: 20,
@@ -82,8 +82,8 @@ const PRESETS = {
     config: {
       regions: 7,
       instancesPerRegion: { min: 15, max: 20 },
-      regionDirection: "vertical" as const,
-      instanceDirection: "vertical" as const,
+      regionDirection: "horizontal" as const,
+      instanceDirection: "horizontal" as const,
       healthDistribution: {
         normal: 50,
         unstable: 20,
@@ -209,8 +209,8 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
                   disabled={generateMutation.isLoading}
                   className="flex-1 px-2 py-1 text-xs rounded border border-grayA-4 bg-gray-1"
                 >
-                  <option value="vertical">Vertical</option>
-                  <option value="horizontal">Horizontal</option>
+                  <option value="horizontal">Horizontal (side-by-side)</option>
+                  <option value="vertical">Vertical (stacked)</option>
                 </select>
               </div>
               <div className="flex items-center gap-2">
@@ -226,8 +226,8 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
                   disabled={generateMutation.isLoading}
                   className="flex-1 px-2 py-1 text-xs rounded border border-grayA-4 bg-gray-1"
                 >
-                  <option value="vertical">Vertical</option>
-                  <option value="horizontal">Horizontal</option>
+                  <option value="horizontal">Horizontal (side-by-side)</option>
+                  <option value="vertical">Vertical (stacked)</option>
                 </select>
               </div>
             </div>

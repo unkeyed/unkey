@@ -8,7 +8,7 @@ export type TreeNode = {
   [key: string]: unknown;
 };
 
-export type PositionedNode<T> = {
+export type PositionedNode<T extends TreeNode> = {
   node: T;
   position: Point;
   level: number;
@@ -36,36 +36,26 @@ type Connection<T extends TreeNode> = {
  */
 export type LayoutConfig = {
   /** Space between adjacent nodes */
-  spacing: {
-    x: number;
-    y: number;
-  };
-
-  /** Tree growth direction */
-  direction: "vertical" | "horizontal";
-
+  spacing: { x: number; y: number };
+  /** Tree growth direction - defaults to horizontal (children spread left-to-right) */
+  direction?: "vertical" | "horizontal"; // default: "horizontal"
   /** Layout tuning for different orientations */
   layout?: {
-    /** Horizontal indent from parent to children (horizontal layout only) */
+    /** Horizontal indent from parent to children (vertical layout only) */
     horizontalIndent?: number; // default: 60
-
-    /** Vertical offset from calculated child position (horizontal layout only) */
+    /** Vertical offset from calculated child position (vertical layout only) */
     verticalOffset?: number; // default: -25
-
     /** How tightly subtrees pack together (0-1, lower = more overlap) */
     subtreeOverlap?: number; // default: 0.4
-
-    /** Sibling spacing multiplier for horizontal layout (e.g., 0.833 makes siblings closer) */
-    horizontalSiblingSpacing?: number; // default: 0.833 (equivalent to current / 1.2)
+    /** Sibling spacing multiplier for vertical layout (e.g., 0.833 makes siblings closer) */
+    verticalSiblingSpacing?: number; // default: 0.833
   };
-
   /** Connection line configuration */
   connections?: {
-    /** Horizontal layout (trunk + branches) */
-    horizontal?: {
+    /** Vertical layout (trunk + branches) */
+    vertical?: {
       /** Distance trunk extends from parent's left edge */
       trunkOffset?: number; // default: 0
-
       /** Additional offset for trunk positioning */
       trunkAdjust?: number; // default: 20
     };
@@ -87,9 +77,9 @@ type LayoutResult<T extends TreeNode> = {
  */
 export class LayoutEngine<T extends TreeNode> {
   private config: Required<LayoutConfig> & {
-    layout: Required<NonNullable<LayoutConfig["layout"]>>;
-    connections: Required<NonNullable<LayoutConfig["connections"]>> & {
-      horizontal: Required<NonNullable<NonNullable<LayoutConfig["connections"]>["horizontal"]>>;
+    layout: Required<Required<LayoutConfig>["layout"]>;
+    connections: Required<Required<LayoutConfig>["connections"]> & {
+      vertical: Required<Required<Required<LayoutConfig>["connections"]>["vertical"]>;
     };
   };
   private dimensions: Map<string, NodeDimensions>;
@@ -97,17 +87,17 @@ export class LayoutEngine<T extends TreeNode> {
   constructor(config: LayoutConfig) {
     this.config = {
       spacing: config.spacing,
-      direction: config.direction,
+      direction: config.direction ?? "horizontal",
       layout: {
         horizontalIndent: config.layout?.horizontalIndent ?? 60,
         verticalOffset: config.layout?.verticalOffset ?? -25,
         subtreeOverlap: config.layout?.subtreeOverlap ?? 0.4,
-        horizontalSiblingSpacing: config.layout?.horizontalSiblingSpacing ?? 0.833,
+        verticalSiblingSpacing: config.layout?.verticalSiblingSpacing ?? 0.833,
       },
       connections: {
-        horizontal: {
-          trunkOffset: config.connections?.horizontal?.trunkOffset ?? 0,
-          trunkAdjust: config.connections?.horizontal?.trunkAdjust ?? 20,
+        vertical: {
+          trunkOffset: config.connections?.vertical?.trunkOffset ?? 0,
+          trunkAdjust: config.connections?.vertical?.trunkAdjust ?? 20,
         },
       },
     };
@@ -126,11 +116,11 @@ export class LayoutEngine<T extends TreeNode> {
       "Layout subtreeOverlap must be defined",
     );
     invariant(
-      this.config.layout.horizontalSiblingSpacing !== undefined,
-      "Layout horizontalSiblingSpacing must be defined",
+      this.config.layout.verticalSiblingSpacing !== undefined,
+      "Layout verticalSiblingSpacing must be defined",
     );
     invariant(
-      this.config.connections.horizontal.trunkAdjust !== undefined,
+      this.config.connections.vertical.trunkAdjust !== undefined,
       "Connection trunkAdjust must be defined",
     );
 
@@ -165,6 +155,7 @@ export class LayoutEngine<T extends TreeNode> {
 
     const positioned = this.buildNodeLayout(root, 0, { x: 0, y: 0 });
     const connections = this.buildConnections(positioned);
+
     return { nodes: positioned, connections };
   }
 
@@ -190,42 +181,19 @@ export class LayoutEngine<T extends TreeNode> {
    */
   private buildNodeLayout(node: T, level: number, parentPosition: Point): PositionedNode<T>[] {
     const positioned: PositionedNode<T>[] = [];
-
     const nodeDim = this.dimensions.get(node.id);
     invariant(nodeDim, `Missing dimensions for node ${node.id}`);
 
     // Position this node
     const nodePosition = level === 0 ? { x: 0, y: 0 } : parentPosition;
-
-    positioned.push({
-      node,
-      position: nodePosition,
-      level,
-    });
+    positioned.push({ node, position: nodePosition, level });
 
     // Layout children if they exist
     if (node.children && node.children.length > 0) {
       const parentDirection = this.getNodeDirection(node);
 
       if (parentDirection === "vertical") {
-        // Children spread horizontally below parent
-        const subtreeWidths = node.children.map((child) => this.calculateSubtreeWidth(child as T));
-
-        node.children.forEach((child, index) => {
-          const childX = this.calculateChildXPosition(nodePosition.x, index, subtreeWidths);
-          const childY = nodePosition.y + nodeDim.height / 2 + this.config.spacing.y;
-
-          const childDim = this.dimensions.get(child.id);
-          invariant(childDim, `Missing dimensions for child ${child.id}`);
-
-          const childPositioned = this.buildNodeLayout(child as T, level + 1, {
-            x: childX,
-            y: childY + childDim.height / 2,
-          });
-          positioned.push(...childPositioned);
-        });
-      } else {
-        // Children spread vertically to the right of parent (top to bottom)
+        // VERTICAL: Children spread vertically below parent (stacked top to bottom)
         const subtreeHeights = node.children.map((child) =>
           this.calculateSubtreeHeight(child as T),
         );
@@ -245,6 +213,25 @@ export class LayoutEngine<T extends TreeNode> {
             x: childX + childDim.width / 2 + this.config.layout.horizontalIndent,
             y: childY + this.config.layout.verticalOffset,
           });
+
+          positioned.push(...childPositioned);
+        });
+      } else {
+        // HORIZONTAL: Children spread horizontally beside parent (left to right)
+        const subtreeWidths = node.children.map((child) => this.calculateSubtreeWidth(child as T));
+
+        node.children.forEach((child, index) => {
+          const childX = this.calculateChildXPosition(nodePosition.x, index, subtreeWidths);
+          const childY = nodePosition.y + nodeDim.height / 2 + this.config.spacing.y;
+
+          const childDim = this.dimensions.get(child.id);
+          invariant(childDim, `Missing dimensions for child ${child.id}`);
+
+          const childPositioned = this.buildNodeLayout(child as T, level + 1, {
+            x: childX,
+            y: childY + childDim.height / 2,
+          });
+
           positioned.push(...childPositioned);
         });
       }
@@ -267,7 +254,7 @@ export class LayoutEngine<T extends TreeNode> {
 
     const parentDirection = this.getNodeDirection(node);
 
-    if (parentDirection === "vertical") {
+    if (parentDirection === "horizontal") {
       // Children spread horizontally
       const childWidths = node.children.map((child) => this.calculateSubtreeWidth(child as T));
       const totalChildWidth = childWidths.reduce((sum, w) => sum + w, 0);
@@ -297,7 +284,7 @@ export class LayoutEngine<T extends TreeNode> {
 
     const childDirection = this.getNodeDirection(node);
 
-    if (childDirection === "horizontal") {
+    if (childDirection === "vertical") {
       // Children spread vertically (top to bottom)
       const childHeights = node.children.map((child) => this.calculateSubtreeHeight(child as T));
       const totalChildHeight = childHeights.reduce((sum, h) => sum + h, 0);
@@ -367,7 +354,7 @@ export class LayoutEngine<T extends TreeNode> {
     for (let i = 0; i < childIndex; i++) {
       y +=
         subtreeHeights[i] / 2 +
-        this.config.spacing.y * this.config.layout.horizontalSiblingSpacing +
+        this.config.spacing.y * this.config.layout.verticalSiblingSpacing +
         subtreeHeights[i + 1] / 2;
     }
 
@@ -392,6 +379,7 @@ export class LayoutEngine<T extends TreeNode> {
         parentDim,
         `Parent dimensions cannot be empty or undefined for node ${pos.node.id}`,
       );
+
       const parentEdges = getNodeEdges(pos.position, parentDim);
       const parentDirection = this.getNodeDirection(pos.node);
 
@@ -401,6 +389,7 @@ export class LayoutEngine<T extends TreeNode> {
 
         const childDim = this.dimensions.get(child.id);
         invariant(childDim, `Child dimensions cannot be empty or undefined for node ${child.id}`);
+
         const childEdges = getNodeEdges(childPos.position, childDim);
 
         const path = this.buildConnectionPath(
@@ -426,7 +415,7 @@ export class LayoutEngine<T extends TreeNode> {
    * Build a connection path between parent and child nodes.
    * Returns an ordered array of points that forms the visual connection.
    *
-   * Horizontal layout (trunk-and-branch):
+   * Vertical layout (trunk-and-branch):
    * ```
    * Parent ───┐
    *           │ (vertical trunk)
@@ -436,7 +425,7 @@ export class LayoutEngine<T extends TreeNode> {
    * ```
    * Path: parent's left edge → trunk X → down to child Y → child's left edge
    *
-   * Vertical layout (Z-shape):
+   * Horizontal layout (Z-shape):
    * ```
    * Parent
    *   │ (go down)
@@ -462,15 +451,15 @@ export class LayoutEngine<T extends TreeNode> {
     childEdges: ReturnType<typeof getNodeEdges>,
     direction: "vertical" | "horizontal",
   ): Point[] {
-    if (direction === "horizontal") {
-      // Horizontal layout uses a vertical trunk with horizontal branches
+    if (direction === "vertical") {
+      // Vertical layout uses a vertical trunk with horizontal branches
       // This creates a "tree" appearance where siblings share a common trunk
 
       // Calculate trunk X position: offset from parent's left edge
       const trunkX =
         parentEdges.left -
-        this.config.connections.horizontal.trunkOffset +
-        this.config.connections.horizontal.trunkAdjust;
+        this.config.connections.vertical.trunkOffset +
+        this.config.connections.vertical.trunkAdjust;
 
       // Three-point path:
       // 1. Move to trunk position (at parent's vertical center)
@@ -483,7 +472,7 @@ export class LayoutEngine<T extends TreeNode> {
       ];
     }
 
-    // Vertical layout uses a Z-shaped path
+    // Horizontal layout uses a Z-shaped path
     // This provides clear visual separation between parent and child
 
     // Calculate midpoint: halfway between parent's bottom and child's top
