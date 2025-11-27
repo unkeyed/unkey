@@ -10,8 +10,8 @@ import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
 import type React from "react";
 import { Suspense } from "react";
-import { ReactQueryProvider } from "./react-query-provider";
-import { ThemeProvider } from "./theme-provider";
+import { ReactQueryProvider } from "../providers/react-query-provider";
+import { ThemeProvider } from "../providers/theme-provider";
 
 export const metadata = {
   metadataBase: new URL("https://unkey.dev"),

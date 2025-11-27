@@ -1,4 +1,4 @@
-import { t } from "../trpc";
+import { router } from "../trpc";
 import { createApi } from "./api/create";
 import { deleteApi } from "./api/delete";
 import { keysLlmSearch } from "./api/keys/llm-search";
@@ -134,16 +134,16 @@ import { getCurrentWorkspace } from "./workspace/getCurrent";
 import { onboardingKeyCreation } from "./workspace/onboarding";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
-export const router = t.router({
-  key: t.router({
+export const appRouter = router({
+  key: router({
     create: createKey,
     delete: deleteKeys,
     fetchPermissions: fetchKeyPermissions,
-    logs: t.router({
+    logs: router({
       query: queryKeyDetailsLogs,
       timeseries: keyDetailsVerificationsTimeseries,
     }),
-    update: t.router({
+    update: router({
       enabled: updateKeysEnabled,
       expiration: updateKeyExpiration,
       metadata: updateKeyMetadata,
@@ -151,13 +151,13 @@ export const router = t.router({
       ownerId: updateKeyOwner,
       ratelimit: updateKeyRatelimit,
       remaining: updateKeyRemaining,
-      rbac: t.router({
+      rbac: router({
         update: updateKeyRbac,
-        roles: t.router({
+        roles: router({
           search: searchKeysRoles,
           query: queryKeysRoles,
         }),
-        permissions: t.router({
+        permissions: router({
           search: searchRolesPermissions,
           query: queryKeysPermissions,
         }),
@@ -166,23 +166,23 @@ export const router = t.router({
     queryPermissionSlugs: getPermissionSlugs,
     connectedRolesAndPerms: getConnectedRolesAndPerms,
   }),
-  rootKey: t.router({
+  rootKey: router({
     create: createRootKey,
-    update: t.router({
+    update: router({
       name: updateRootKeyName,
       // NOTE: permissions replaces the full permission set for a root key.
       // Clients must send the authoritative list to avoid lost updates.
       permissions: updateRootKeyPermissions,
     }),
   }),
-  settings: t.router({
-    rootKeys: t.router({
+  settings: router({
+    rootKeys: router({
       query: queryRootKeys,
       llmSearch: rootKeysLlmSearch,
       delete: deleteRootKeys,
     }),
   }),
-  api: t.router({
+  api: router({
     create: createApi,
     delete: deleteApi,
     updateName: updateApiName,
@@ -191,7 +191,7 @@ export const router = t.router({
     updateIpWhitelist: updateApiIpWhitelist,
     updateDeleteProtection: updateAPIDeleteProtection,
     queryApiKeyDetails,
-    keys: t.router({
+    keys: router({
       timeseries: keyVerificationsTimeseries,
       activeKeysTimeseries: activeKeysTimeseries,
       query: queryKeysOverviewLogs,
@@ -202,13 +202,13 @@ export const router = t.router({
       usageTimeseries: keyUsageTimeseries,
       latestVerification: keyLastVerificationTime,
     }),
-    overview: t.router({
+    overview: router({
       timeseries: queryVerificationTimeseries,
       query: queryApisOverview,
       search: overviewApiSearch,
     }),
   }),
-  workspace: t.router({
+  workspace: router({
     create: createWorkspace,
     getCurrent: getCurrentWorkspace,
     getById: getWorkspaceById,
@@ -216,7 +216,7 @@ export const router = t.router({
     optIntoBeta: optWorkspaceIntoBeta,
     onboarding: onboardingKeyCreation,
   }),
-  stripe: t.router({
+  stripe: router({
     createSubscription,
     updateSubscription,
     cancelSubscription,
@@ -230,23 +230,23 @@ export const router = t.router({
     updateWorkspaceStripeCustomer,
   }),
   vercel: vercelRouter,
-  plain: t.router({
+  plain: router({
     createIssue: createPlainIssue,
   }),
-  authorization: t.router({
-    permissions: t.router({
+  authorization: router({
+    permissions: router({
       query: queryPermissions,
       upsert: upsertPermission,
       delete: deletePermissionWithRelations,
       llmSearch: permissionsLlmSearch,
     }),
-    roles: t.router({
+    roles: router({
       query: queryRoles,
-      keys: t.router({
+      keys: router({
         search: searchKeys,
         query: queryKeys,
       }),
-      permissions: t.router({
+      permissions: router({
         search: searchRolesPermissions,
         query: queryRolesPermissions,
       }),
@@ -258,7 +258,7 @@ export const router = t.router({
       connectedPerms: queryRolePermissions,
     }),
   }),
-  rbac: t.router({
+  rbac: router({
     connectPermissionToRole: connectPermissionToRole,
     connectRoleToKey: connectRoleToKey,
     createPermission: createPermission,
@@ -270,84 +270,84 @@ export const router = t.router({
     updatePermission: updatePermission,
     updateRole: updateRole,
   }),
-  ratelimit: t.router({
-    logs: t.router({
+  ratelimit: router({
+    logs: router({
       query: queryRatelimitLogs,
       ratelimitLlmSearch,
       queryRatelimitTimeseries,
     }),
-    overview: t.router({
-      logs: t.router({
+    overview: router({
+      logs: router({
         query: queryRatelimitOverviewLogs,
         queryRatelimitLatencyTimeseries,
       }),
     }),
-    namespace: t.router({
+    namespace: router({
       list: listRatelimitNamespaces,
       queryRatelimitLastUsed,
       create: createNamespace,
-      update: t.router({
+      update: router({
         name: updateNamespaceName,
       }),
       delete: deleteNamespace,
     }),
-    override: t.router({
+    override: router({
       list: listRatelimitOverrides,
       create: createOverride,
       update: updateOverride,
       delete: deleteOverride,
     }),
   }),
-  logs: t.router({
+  logs: router({
     queryLogs,
     queryTimeseries,
     llmSearch,
   }),
-  billing: t.router({
+  billing: router({
     queryUsage,
   }),
-  audit: t.router({
+  audit: router({
     logs: fetchAuditLog,
     llmSearch: auditLogsSearch,
   }),
-  user: t.router({
+  user: router({
     getCurrentUser,
     listMemberships,
     switchOrg,
   }),
-  org: t.router({
+  org: router({
     getOrg,
-    members: t.router({
+    members: router({
       list: getOrganizationMemberList,
       remove: removeMembership,
       update: updateMembership,
     }),
-    invitations: t.router({
+    invitations: router({
       list: getInvitationList,
       create: inviteMember,
       remove: revokeInvitation,
     }),
   }),
-  identity: t.router({
+  identity: router({
     searchWithRelations: searchIdentitiesWithRelations,
     create: createIdentity,
     query: queryIdentities,
     search: searchIdentities,
     getById: getIdentityById,
   }),
-  deploy: t.router({
-    project: t.router({
+  deploy: router({
+    project: router({
       list: listProjects,
       create: createProject,
     }),
-    environment: t.router({
+    environment: router({
       list_dummy: getEnvs,
       list: listEnvironments,
     }),
-    domain: t.router({
+    domain: router({
       list: listDomains,
     }),
-    deployment: t.router({
+    deployment: router({
       list: listDeployments,
       buildSteps: getDeploymentBuildSteps,
       search: searchDeployments,
@@ -358,5 +358,4 @@ export const router = t.router({
   }),
 });
 
-// export type definition of API
-export type Router = typeof router;
+export type AppRouter = typeof appRouter;

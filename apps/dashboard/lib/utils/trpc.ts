@@ -1,11 +1,11 @@
-import type { Router } from "@/lib/trpc/routers";
+import type { AppRouter } from "@/lib/trpc/routers";
 import type { TRPCClientErrorLike } from "@trpc/client";
 
 /**
  * Check if a tRPC error is a WorkOS redirect (307) that should be ignored
  * If a user is genuinely not authed they'd be redirected to the login page.
  */
-export const isWorkOSRedirect = (error: TRPCClientErrorLike<Router> | null): boolean => {
+export const isWorkOSRedirect = (error: TRPCClientErrorLike<AppRouter> | null): boolean => {
   if (!error) {
     return false;
   }
@@ -16,7 +16,7 @@ export const isWorkOSRedirect = (error: TRPCClientErrorLike<Router> | null): boo
 /**
  * Check if a tRPC error represents an authentication failure
  */
-export const isAuthError = (error: TRPCClientErrorLike<Router> | null): boolean => {
+export const isAuthError = (error: TRPCClientErrorLike<AppRouter> | null): boolean => {
   if (!error) {
     return false;
   }
@@ -29,13 +29,13 @@ export const isAuthError = (error: TRPCClientErrorLike<Router> | null): boolean 
  */
 export const createRetryFn =
   (maxRetries = 2) =>
-  (failureCount: number, error: TRPCClientErrorLike<Router>) => {
-    // Don't retry on auth errors or WorkOS redirects
-    if (isAuthError(error) || isWorkOSRedirect(error)) {
-      return false;
-    }
-    return failureCount < maxRetries;
-  };
+    (failureCount: number, error: TRPCClientErrorLike<AppRouter>) => {
+      // Don't retry on auth errors or WorkOS redirects
+      if (isAuthError(error) || isWorkOSRedirect(error)) {
+        return false;
+      }
+      return failureCount < maxRetries;
+    };
 
 /**
  * Shared query options for consistent tRPC behavior
@@ -46,3 +46,5 @@ export const baseQueryOptions = {
   refetchOnWindowFocus: false,
   refetchOnReconnect: true,
 };
+
+

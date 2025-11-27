@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { Context } from "./context";
 
 export const t = initTRPC.context<Context>().create({ transformer: superjson });
+export const router = t.router;
 
 export const requireUser = t.middleware(({ next, ctx }) => {
   if (!ctx.user?.id) {
@@ -88,35 +89,35 @@ const onError = (err: Error, identifier: string) => {
 
 export const ratelimit = env().UNKEY_ROOT_KEY
   ? {
-      create: new Ratelimit({
-        rootKey: env().UNKEY_ROOT_KEY ?? "",
-        namespace: "trpc_create",
-        limit: 25,
-        duration: "3s",
-        onError,
-      }),
-      read: new Ratelimit({
-        rootKey: env().UNKEY_ROOT_KEY ?? "",
-        namespace: "trpc_read",
-        limit: 100,
-        duration: "10s",
-        onError,
-      }),
-      update: new Ratelimit({
-        rootKey: env().UNKEY_ROOT_KEY ?? "",
-        namespace: "trpc_update",
-        limit: 25,
-        duration: "5s",
-        onError,
-      }),
-      delete: new Ratelimit({
-        rootKey: env().UNKEY_ROOT_KEY ?? "",
-        namespace: "trpc_delete",
-        limit: 25,
-        duration: "5s",
-        onError,
-      }),
-    }
+    create: new Ratelimit({
+      rootKey: env().UNKEY_ROOT_KEY ?? "",
+      namespace: "trpc_create",
+      limit: 25,
+      duration: "3s",
+      onError,
+    }),
+    read: new Ratelimit({
+      rootKey: env().UNKEY_ROOT_KEY ?? "",
+      namespace: "trpc_read",
+      limit: 100,
+      duration: "10s",
+      onError,
+    }),
+    update: new Ratelimit({
+      rootKey: env().UNKEY_ROOT_KEY ?? "",
+      namespace: "trpc_update",
+      limit: 25,
+      duration: "5s",
+      onError,
+    }),
+    delete: new Ratelimit({
+      rootKey: env().UNKEY_ROOT_KEY ?? "",
+      namespace: "trpc_delete",
+      limit: 25,
+      duration: "5s",
+      onError,
+    }),
+  }
   : {};
 
 export const withRatelimit = (ratelimit: Ratelimit | undefined) =>
@@ -147,12 +148,12 @@ export const LLM_LIMITS = {
 
 const llmRatelimit = env().UNKEY_ROOT_KEY
   ? new Ratelimit({
-      rootKey: env().UNKEY_ROOT_KEY ?? "",
-      namespace: "trpc_llm",
-      limit: LLM_LIMITS.RATE_LIMIT,
-      duration: LLM_LIMITS.RATE_DURATION,
-      onError,
-    })
+    rootKey: env().UNKEY_ROOT_KEY ?? "",
+    namespace: "trpc_llm",
+    limit: LLM_LIMITS.RATE_LIMIT,
+    duration: LLM_LIMITS.RATE_DURATION,
+    onError,
+  })
   : null;
 
 const llmQuerySchema = z.object({
