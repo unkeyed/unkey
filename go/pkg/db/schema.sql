@@ -393,7 +393,7 @@ CREATE TABLE `custom_domains` (
 	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`domain` varchar(256) NOT NULL,
-	`challenge_type` enum('dns01','http01') NOT NULL DEFAULT 'http01',
+	`challenge_type` enum('HTTP-01','DNS-01') NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `custom_domains_id` PRIMARY KEY(`id`),
@@ -404,7 +404,7 @@ CREATE TABLE `acme_challenges` (
 	`domain_id` varchar(255) NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
 	`token` varchar(255) NOT NULL,
-	`type` enum('HTTP-01','DNS-01') NOT NULL,
+	`challenge_type` enum('HTTP-01','DNS-01') NOT NULL,
 	`authorization` varchar(255) NOT NULL,
 	`status` enum('waiting','pending','verified','failed') NOT NULL,
 	`expires_at` bigint NOT NULL,
@@ -420,7 +420,7 @@ CREATE TABLE `gateways` (
 	`k8s_service_name` varchar(255) NOT NULL,
 	`region` varchar(255) NOT NULL,
 	`image` varchar(255) NOT NULL,
-	`health` enum('paused','healthy','unhealthy'),
+	`health` enum('unknown','paused','healthy','unhealthy') NOT NULL DEFAULT 'unknown',
 	`replicas` int NOT NULL,
 	CONSTRAINT `gateways_id` PRIMARY KEY(`id`)
 );
