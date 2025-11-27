@@ -1,5 +1,5 @@
-"use client"
-import { type AppRouter } from "./routers";
-import { createTRPCContext } from '@trpc/tanstack-react-query';
+"use client";
+import { createTRPCContext } from "@trpc/tanstack-react-query";
+import type { AppRouter } from "./routers";
 
 export const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<AppRouter>();

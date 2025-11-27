@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -37,10 +37,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTRPC } from "@/lib/trpc/client";
+import { useMutation } from "@tanstack/react-query";
 import { Button, Input, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -54,22 +54,24 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const router = useRouter();
 
-  const deleteKey = useMutation(trpc.settings.rootKeys.delete.mutationOptions({
-    onSuccess: (_data, variables) => {
-      setRowSelection({});
-      toast.success(
-        variables.keyIds.length > 1
-          ? `All ${variables.keyIds.length} keys were deleted`
-          : "Key deleted",
-      );
-      router.refresh();
-    },
-    onError: (err, variables) => {
-      router.refresh();
-      console.error(err);
-      toast.error(`Could not delete key ${JSON.stringify(variables)}`);
-    },
-  }));
+  const deleteKey = useMutation(
+    trpc.settings.rootKeys.delete.mutationOptions({
+      onSuccess: (_data, variables) => {
+        setRowSelection({});
+        toast.success(
+          variables.keyIds.length > 1
+            ? `All ${variables.keyIds.length} keys were deleted`
+            : "Key deleted",
+        );
+        router.refresh();
+      },
+      onError: (err, variables) => {
+        router.refresh();
+        console.error(err);
+        toast.error(`Could not delete key ${JSON.stringify(variables)}`);
+      },
+    }),
+  );
   const table = useReactTable({
     data,
     columns,

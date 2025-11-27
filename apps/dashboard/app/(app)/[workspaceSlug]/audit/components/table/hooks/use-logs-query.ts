@@ -106,12 +106,14 @@ export function useAuditLogsQuery({ limit = 50 }: UseLogsQueryParams) {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = useInfiniteQuery(trpc.audit.logs.infiniteQueryOptions(queryParams, {
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  }));
+  } = useInfiniteQuery(
+    trpc.audit.logs.infiniteQueryOptions(queryParams, {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      staleTime: Number.POSITIVE_INFINITY,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    }),
+  );
 
   // Update historical logs effect
   useEffect(() => {

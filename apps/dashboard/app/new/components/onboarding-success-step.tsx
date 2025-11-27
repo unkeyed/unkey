@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { KeySecretSection } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/key-secret-section";
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";

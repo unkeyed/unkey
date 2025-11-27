@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { PageLoading } from "@/components/dashboard/page-loading";
 import { formatNumber } from "@/lib/fmt";
 import { useTRPC } from "@/lib/trpc/client";
@@ -23,17 +23,19 @@ export default function BillingPage() {
     isLoading: usageLoading,
     isError,
     error,
-  } = useQuery(trpc.billing.queryUsage.queryOptions(undefined, {
-    // Only enable query when workspace is loaded AND it's a legacy subscription
-    enabled: Boolean(workspace && isLegacy),
-    // Skip batching to prevent analytics slowdown from blocking core UI
-    trpc: {
-      context: {
-        skipBatch: true,
+  } = useQuery(
+    trpc.billing.queryUsage.queryOptions(undefined, {
+      // Only enable query when workspace is loaded AND it's a legacy subscription
+      enabled: Boolean(workspace && isLegacy),
+      // Skip batching to prevent analytics slowdown from blocking core UI
+      trpc: {
+        context: {
+          skipBatch: true,
+        },
       },
-    },
-    retry: 1,
-  }));
+      retry: 1,
+    }),
+  );
 
   // Derive loading state: loading if workspace is loading OR (if legacy, usage is loading)
   const isLoading = isWorkspaceLoading || !workspace || (isLegacy && usageLoading);

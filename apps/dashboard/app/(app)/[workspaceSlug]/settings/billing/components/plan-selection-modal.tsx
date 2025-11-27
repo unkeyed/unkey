@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { formatNumber } from "@/lib/fmt";
 import { useTRPC } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
@@ -64,32 +64,36 @@ export const PlanSelectionModal = ({
     ]);
   }, []);
 
-  const createSubscription = useMutation(trpc.stripe.createSubscription.mutationOptions({
-    onSuccess: async () => {
-      handleOpenChange(false);
-      setIsLoading(false);
-      toast.success("Plan activated successfully!");
-      await revalidateData();
-      router.push(`/${workspaceSlug}/settings/billing`);
-    },
-    onError: (err) => {
-      setIsLoading(false);
-      toast.error(err.message);
-    },
-  }));
+  const createSubscription = useMutation(
+    trpc.stripe.createSubscription.mutationOptions({
+      onSuccess: async () => {
+        handleOpenChange(false);
+        setIsLoading(false);
+        toast.success("Plan activated successfully!");
+        await revalidateData();
+        router.push(`/${workspaceSlug}/settings/billing`);
+      },
+      onError: (err) => {
+        setIsLoading(false);
+        toast.error(err.message);
+      },
+    }),
+  );
 
-  const updateSubscription = useMutation(trpc.stripe.updateSubscription.mutationOptions({
-    onSuccess: async () => {
-      handleOpenChange(false);
-      setIsLoading(false);
-      toast.success("Plan changed successfully!");
-      await revalidateData();
-    },
-    onError: (err) => {
-      setIsLoading(false);
-      toast.error(err.message);
-    },
-  }));
+  const updateSubscription = useMutation(
+    trpc.stripe.updateSubscription.mutationOptions({
+      onSuccess: async () => {
+        handleOpenChange(false);
+        setIsLoading(false);
+        toast.success("Plan changed successfully!");
+        await revalidateData();
+      },
+      onError: (err) => {
+        setIsLoading(false);
+        toast.error(err.message);
+      },
+    }),
+  );
 
   const handleSelectPlan = async () => {
     if (!selectedProductId) {
@@ -136,7 +140,7 @@ export const PlanSelectionModal = ({
             : "Select a plan to get started with your new payment method"
         }
         showCloseWarning={true}
-        onAttemptClose={() => { }}
+        onAttemptClose={() => {}}
         footer={<div className="w-full flex flex-col gap-3" />}
       >
         <div className="space-y-4">
@@ -174,8 +178,9 @@ export const PlanSelectionModal = ({
             onClick={handleSelectPlan}
           >
             {selectedProduct
-              ? `${isChangingPlan ? "Change to" : "Start"} ${selectedProduct.name
-              } Plan - $${selectedProduct.dollar}/mo`
+              ? `${isChangingPlan ? "Change to" : "Start"} ${
+                  selectedProduct.name
+                } Plan - $${selectedProduct.dollar}/mo`
               : "Select a plan first"}
           </Button>
           <Button

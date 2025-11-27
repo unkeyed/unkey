@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { EmptyComponentSpacer } from "@/components/empty-component-spacer";
 import { useTRPC } from "@/lib/trpc/client";
 import { BookBookmark } from "@unkey/icons";
@@ -28,12 +28,14 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteQuery(trpc.api.overview.query.infiniteQueryOptions(
-    { limit: DEFAULT_LIMIT },
-    {
-      getNextPageParam: (lastPage) => lastPage.nextCursor,
-    },
-  ));
+  } = useInfiniteQuery(
+    trpc.api.overview.query.infiniteQueryOptions(
+      { limit: DEFAULT_LIMIT },
+      {
+        getNextPageParam: (lastPage) => lastPage.nextCursor,
+      },
+    ),
+  );
 
   const allApis = useMemo(() => {
     if (!apisData?.pages) {
@@ -69,7 +71,7 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
           {Array.from({ length: DEFAULT_LIMIT }).map((_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: It's okay to use index
-            (<ApiCardSkeleton key={i} />)
+            <ApiCardSkeleton key={i} />
           ))}
         </div>
       ) : apiList.length > 0 ? (

@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { PageLoading } from "@/components/dashboard/page-loading";
 import { useTRPC } from "@/lib/trpc/client";
 import { Empty } from "@unkey/ui";
@@ -33,8 +33,9 @@ function SuccessContent() {
   const [error, setError] = useState<string | null>(null);
 
   const updateCustomerMutation = useMutation(trpc.stripe.updateCustomer.mutationOptions());
-  const updateWorkspaceStripeCustomerMutation =
-    useMutation(trpc.stripe.updateWorkspaceStripeCustomer.mutationOptions());
+  const updateWorkspaceStripeCustomerMutation = useMutation(
+    trpc.stripe.updateWorkspaceStripeCustomer.mutationOptions(),
+  );
 
   const queryClient = useQueryClient();
 
@@ -59,9 +60,11 @@ function SuccessContent() {
         setLoading(true);
 
         // Get checkout session
-        const sessionResponse = await queryClient.fetchQuery(trpc.stripe.getCheckoutSession.queryOptions({
-          sessionId: sessionId,
-        }));
+        const sessionResponse = await queryClient.fetchQuery(
+          trpc.stripe.getCheckoutSession.queryOptions({
+            sessionId: sessionId,
+          }),
+        );
 
         if (!sessionResponse) {
           console.warn("Stripe session not found");
@@ -85,9 +88,11 @@ function SuccessContent() {
         }
 
         // Get workspace details to get the slug
-        const workspace = await queryClient.fetchQuery(trpc.workspace.getById.queryOptions({
-          workspaceId: workspaceId,
-        }));
+        const workspace = await queryClient.fetchQuery(
+          trpc.workspace.getById.queryOptions({
+            workspaceId: workspaceId,
+          }),
+        );
 
         if (!isMounted) {
           return;
@@ -105,18 +110,22 @@ function SuccessContent() {
         }
 
         // Get customer details
-        const customer = await queryClient.fetchQuery(trpc.stripe.getCustomer.queryOptions({
-          customerId: sessionResponse.customer,
-        }));
+        const customer = await queryClient.fetchQuery(
+          trpc.stripe.getCustomer.queryOptions({
+            customerId: sessionResponse.customer,
+          }),
+        );
 
         if (!isMounted) {
           return;
         }
 
         // Get setup intent details
-        const setupIntent = await queryClient.fetchQuery(trpc.stripe.getSetupIntent.queryOptions({
-          setupIntentId: sessionResponse.setup_intent,
-        }));
+        const setupIntent = await queryClient.fetchQuery(
+          trpc.stripe.getSetupIntent.queryOptions({
+            setupIntentId: sessionResponse.setup_intent,
+          }),
+        );
 
         if (!isMounted) {
           return;
@@ -183,7 +192,9 @@ function SuccessContent() {
 
         // Check if this is a first-time user by getting billing info
         try {
-          const billingInfo = await queryClient.fetchQuery(trpc.stripe.getBillingInfo.queryOptions());
+          const billingInfo = await queryClient.fetchQuery(
+            trpc.stripe.getBillingInfo.queryOptions(),
+          );
 
           if (!isMounted) {
             return;

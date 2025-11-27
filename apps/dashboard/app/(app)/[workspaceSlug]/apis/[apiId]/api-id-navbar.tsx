@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
@@ -113,21 +113,23 @@ const NavbarContent = ({
     data: keyData,
     isLoading: isKeyLoading,
     error: keyError,
-  } = useQuery(trpc.api.keys.list.queryOptions(
-    {
-      // This cannot be empty string but required to silence TS errors
-      keyAuthId: keyspaceId ?? "",
-      // This cannot be empty string but required to silence TS errors
-      keyIds: [{ operator: "is", value: keyId ?? "" }],
-      cursor: null,
-      identities: null,
-      limit: 1,
-      names: null,
-    },
-    {
-      enabled: shouldFetchKey,
-    },
-  ));
+  } = useQuery(
+    trpc.api.keys.list.queryOptions(
+      {
+        // This cannot be empty string but required to silence TS errors
+        keyAuthId: keyspaceId ?? "",
+        // This cannot be empty string but required to silence TS errors
+        keyIds: [{ operator: "is", value: keyId ?? "" }],
+        cursor: null,
+        identities: null,
+        limit: 1,
+        names: null,
+      },
+      {
+        enabled: shouldFetchKey,
+      },
+    ),
+  );
 
   if (keyError) {
     throw new Error(`Failed to fetch key details: ${keyError.message}`);
@@ -236,14 +238,16 @@ export const ApisNavbar = ({ apiId, keyspaceId, keyId, activePage }: ApisNavbarP
     data: layoutData,
     isLoading,
     error,
-  } = useQuery(trpc.api.queryApiKeyDetails.queryOptions(
-    { apiId },
-    {
-      enabled: Boolean(apiId), // Only run query if apiId exists
-      retry: 3,
-      retryDelay: 1000,
-    },
-  ));
+  } = useQuery(
+    trpc.api.queryApiKeyDetails.queryOptions(
+      { apiId },
+      {
+        enabled: Boolean(apiId), // Only run query if apiId exists
+        retry: 3,
+        retryDelay: 1000,
+      },
+    ),
+  );
 
   // Show loading state while fetching data
   if (isLoading || !layoutData) {

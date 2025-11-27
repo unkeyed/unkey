@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useTRPC } from "@/lib/trpc/client";
 import { Button, Input, SettingCard } from "@unkey/ui";
 import { Controller, useForm } from "react-hook-form";
@@ -45,10 +45,12 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     },
   });
 
-  const updateName = useMutation(trpc.api.updateName.mutationOptions({
-    onSuccess: onUpdateSuccess("API name updated successfully"),
-    onError,
-  }));
+  const updateName = useMutation(
+    trpc.api.updateName.mutationOptions({
+      onSuccess: onUpdateSuccess("API name updated successfully"),
+      onError,
+    }),
+  );
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (

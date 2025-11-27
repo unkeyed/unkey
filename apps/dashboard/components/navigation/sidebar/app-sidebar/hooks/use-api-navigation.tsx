@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import type { NavItem } from "@/components/navigation/sidebar/workspace-navigations";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useTRPC } from "@/lib/trpc/client";
@@ -15,15 +15,16 @@ export const useApiNavigation = (baseNavItems: NavItem[]) => {
   const workspace = useWorkspaceNavigation();
   const segments = useSelectedLayoutSegments() ?? [];
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    useInfiniteQuery(trpc.api.overview.query.infiniteQueryOptions(
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery(
+    trpc.api.overview.query.infiniteQueryOptions(
       {
         limit: DEFAULT_LIMIT,
       },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
       },
-    ));
+    ),
+  );
 
   // Convert API data to navigation items with sub-items for settings and keys
   const apiNavItems = useMemo(() => {

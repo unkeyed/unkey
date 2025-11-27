@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import type { GetOpenApiDiffResponse } from "@/gen/proto/ctrl/v1/openapi_pb";
 import { shortenId } from "@/lib/shorten-id";
 import { useTRPC } from "@/lib/trpc/client";
@@ -46,10 +46,12 @@ export const OpenApiDiff = () => {
 
   const newDeployment = query.data?.find((d) => d.id !== liveDeploymentId);
 
-  const diff = useQuery(trpc.deploy.deployment.getOpenApiDiff.queryOptions({
-    newDeploymentId: newDeployment?.id ?? "",
-    oldDeploymentId: liveDeploymentId ?? "",
-  }));
+  const diff = useQuery(
+    trpc.deploy.deployment.getOpenApiDiff.queryOptions({
+      newDeploymentId: newDeployment?.id ?? "",
+      oldDeploymentId: liveDeploymentId ?? "",
+    }),
+  );
 
   // @ts-expect-error I have no idea why this whines about type diff
   const status = getDiffStatus(diff.data);

@@ -56,15 +56,17 @@ export const useFetchVerificationTimeseries = (keyAuthId: string, keyId: string)
     data,
     isLoading: trpcIsLoading,
     isError,
-  } = useQuery(trpc.api.keys.usageTimeseries.queryOptions(queryParams, {
-    // CRITICAL: Only enable the query if we should fetch
-    enabled: shouldFetch,
-    // Prevent automatic refetching
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchInterval: shouldFetch && queryParams.endTime >= Date.now() - 60_000 ? 10_000 : false,
-  }));
+  } = useQuery(
+    trpc.api.keys.usageTimeseries.queryOptions(queryParams, {
+      // CRITICAL: Only enable the query if we should fetch
+      enabled: shouldFetch,
+      // Prevent automatic refetching
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      staleTime: Number.POSITIVE_INFINITY,
+      refetchInterval: shouldFetch && queryParams.endTime >= Date.now() - 60_000 ? 10_000 : false,
+    }),
+  );
 
   // Process the timeseries data - using cached or fresh data
   const effectiveData = data || (cachedData ? cachedData.data : undefined);

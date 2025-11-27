@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useTRPC } from "@/lib/trpc/client";
 import { Lock } from "@unkey/icons";
@@ -55,13 +55,15 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
 
   const isValid = watch("name") === api.name && watch("intent") === intent;
 
-  const deleteApi = useMutation(trpc.api.delete.mutationOptions({
-    async onSuccess() {
-      onDeleteSuccess(keys)();
-      router.push(`/${workspace.slug}/apis`);
-    },
-    onError,
-  }));
+  const deleteApi = useMutation(
+    trpc.api.delete.mutationOptions({
+      async onSuccess() {
+        onDeleteSuccess(keys)();
+        router.push(`/${workspace.slug}/apis`);
+      },
+      onError,
+    }),
+  );
 
   async function onSubmit(_values: z.infer<typeof formSchema>) {
     deleteApi.mutate({ apiId: api.id });

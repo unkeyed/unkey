@@ -90,14 +90,16 @@ export const useFetchVerificationTimeseries = (keyId: string, keyspaceId: string
     return params;
   }, [filters, timestamp, keyId, keyspaceId]);
 
-  const { data, isLoading, isError } = useQuery(trpc.key.logs.timeseries.queryOptions(queryParams, {
-    refetchInterval: queryParams.endTime === timestamp ? 10_000 : false,
-    trpc: {
-      context: {
-        skipBatch: true,
+  const { data, isLoading, isError } = useQuery(
+    trpc.key.logs.timeseries.queryOptions(queryParams, {
+      refetchInterval: queryParams.endTime === timestamp ? 10_000 : false,
+      trpc: {
+        context: {
+          skipBatch: true,
+        },
       },
-    },
-  }));
+    }),
+  );
 
   const timeseries = useMemo(() => {
     if (!data?.timeseries) {

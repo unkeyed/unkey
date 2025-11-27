@@ -143,8 +143,9 @@ export const SelectionControls = ({
         onConfirm={performDisableKeys}
         triggerRef={disableButtonRef}
         title="Confirm disabling keys"
-        description={`This will disable ${selectedKeys.size} key${selectedKeys.size > 1 ? "s" : ""
-          } and prevent any verification requests from being processed.`}
+        description={`This will disable ${selectedKeys.size} key${
+          selectedKeys.size > 1 ? "s" : ""
+        } and prevent any verification requests from being processed.`}
         confirmButtonText="Disable keys"
         cancelButtonText="Cancel"
         variant="danger"
@@ -156,8 +157,9 @@ export const SelectionControls = ({
         onConfirm={performKeyDeletion}
         triggerRef={deleteButtonRef}
         title="Confirm key deletion"
-        description={`This action is irreversible. All data associated with ${selectedKeys.size > 1 ? "these keys" : "this key"
-          } will be permanently deleted.`}
+        description={`This action is irreversible. All data associated with ${
+          selectedKeys.size > 1 ? "these keys" : "this key"
+        } will be permanently deleted.`}
         confirmButtonText={`Delete key${selectedKeys.size > 1 ? "s" : ""}`}
         cancelButtonText="Cancel"
         variant="danger"

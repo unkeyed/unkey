@@ -92,8 +92,9 @@ export const SelectionControls = ({ selectedRoles, setSelectedRoles }: Selection
         onConfirm={performRoleDeletion}
         triggerRef={deleteButtonRef}
         title="Confirm role deletion"
-        description={`This action is irreversible. All data associated with ${selectedRoles.size > 1 ? "these roles" : "this role"
-          } will be permanently deleted.`}
+        description={`This action is irreversible. All data associated with ${
+          selectedRoles.size > 1 ? "these roles" : "this role"
+        } will be permanently deleted.`}
         confirmButtonText={`Delete role${selectedRoles.size > 1 ? "s" : ""}`}
         cancelButtonText="Cancel"
         variant="danger"

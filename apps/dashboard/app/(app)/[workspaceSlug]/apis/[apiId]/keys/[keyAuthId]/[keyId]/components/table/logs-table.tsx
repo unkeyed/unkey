@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { shortenId } from "@/lib/shorten-id";
@@ -215,24 +215,26 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
       if (log.request_id !== hoveredLogId) {
         setHoveredLogId(log.request_id);
 
-        queryClient.prefetchQuery(trpc.logs.queryLogs.queryOptions({
-          limit: 1,
-          startTime: 0,
-          endTime: timestamp,
-          host: { filters: [] },
-          method: { filters: [] },
-          path: { filters: [] },
-          status: { filters: [] },
-          requestId: {
-            filters: [
-              {
-                operator: "is",
-                value: log.request_id,
-              },
-            ],
-          },
-          since: "",
-        }));
+        queryClient.prefetchQuery(
+          trpc.logs.queryLogs.queryOptions({
+            limit: 1,
+            startTime: 0,
+            endTime: timestamp,
+            host: { filters: [] },
+            method: { filters: [] },
+            path: { filters: [] },
+            status: { filters: [] },
+            requestId: {
+              filters: [
+                {
+                  operator: "is",
+                  value: log.request_id,
+                },
+              ],
+            },
+            since: "",
+          }),
+        );
       }
     },
     [hoveredLogId, timestamp],

@@ -14,22 +14,24 @@ export const AssignedItemsCell = ({
   isSelected?: boolean;
 }) => {
   const trpc = useTRPC();
-  const { data: keysData, isLoading: keysLoading } =
-    useQuery(trpc.authorization.roles.connectedKeys.queryOptions(
+  const { data: keysData, isLoading: keysLoading } = useQuery(
+    trpc.authorization.roles.connectedKeys.queryOptions(
       { roleId },
       {
         enabled: kind === "keys",
         staleTime: 5 * 60 * 1000,
       },
-    ));
-  const { data: permissionsData, isLoading: permissionsLoading } =
-    useQuery(trpc.authorization.roles.connectedPerms.queryOptions(
+    ),
+  );
+  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
+    trpc.authorization.roles.connectedPerms.queryOptions(
       { roleId },
       {
         enabled: kind === "permissions",
         staleTime: 5 * 60 * 1000,
       },
-    ));
+    ),
+  );
 
   const data = kind === "keys" ? keysData : permissionsData;
   const isLoading = kind === "keys" ? keysLoading : permissionsLoading;

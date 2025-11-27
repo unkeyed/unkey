@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
 import { useTRPC } from "@/lib/trpc/client";
 import {
@@ -30,15 +30,17 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
     const isAdmin = userMembership?.role === "admin";
     const queryClient = useQueryClient();
 
-    const updateMember = useMutation(trpc.org.members.update.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries(trpc.org.members.list.pathFilter());
-        toast.success("Role updated");
-      },
-      onError: (error) => {
-        toast.error(error.message || "Failed to update role");
-      },
-    }));
+    const updateMember = useMutation(
+      trpc.org.members.update.mutationOptions({
+        onSuccess: () => {
+          queryClient.invalidateQueries(trpc.org.members.list.pathFilter());
+          toast.success("Role updated");
+        },
+        onError: (error) => {
+          toast.error(error.message || "Failed to update role");
+        },
+      }),
+    );
 
     async function handleRoleUpdate(newRole: string) {
       if (!organization) {

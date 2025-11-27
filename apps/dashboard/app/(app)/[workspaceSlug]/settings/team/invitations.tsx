@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import {
   Table,
   TableBody,
@@ -25,19 +25,23 @@ type InvitationsProps = {
 
 export const Invitations = memo<InvitationsProps>(({ user, organization }) => {
   const trpc = useTRPC();
-  const { data: invitationsList, isLoading } = useQuery(trpc.org.invitations.list.queryOptions(organization.id));
+  const { data: invitationsList, isLoading } = useQuery(
+    trpc.org.invitations.list.queryOptions(organization.id),
+  );
   const invitations = invitationsList?.data;
   const queryClient = useQueryClient();
-  const revokeInvitation = useMutation(trpc.org.invitations.remove.mutationOptions({
-    onSuccess: () => {
-      // Invalidate the invitation list query to trigger a refetch
-      queryClient.invalidateQueries(trpc.org.invitations.list.pathFilter());
-      toast.success("Invitation revoked successfully");
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to revoke invitation");
-    },
-  }));
+  const revokeInvitation = useMutation(
+    trpc.org.invitations.remove.mutationOptions({
+      onSuccess: () => {
+        // Invalidate the invitation list query to trigger a refetch
+        queryClient.invalidateQueries(trpc.org.invitations.list.pathFilter());
+        toast.success("Invitation revoked successfully");
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to revoke invitation");
+      },
+    }),
+  );
 
   if (isLoading) {
     return (

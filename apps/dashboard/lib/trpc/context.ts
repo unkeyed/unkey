@@ -84,9 +84,9 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
     workspace: ws,
     tenant: authResult.orgId
       ? {
-        id: authResult.orgId,
-        role: authResult.role,
-      }
+          id: authResult.orgId,
+          role: authResult.role,
+        }
       : null,
   };
 }

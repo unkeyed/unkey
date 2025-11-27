@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleInfo } from "@unkey/icons";
@@ -51,16 +51,18 @@ export const Feedback: React.FC = () => {
     },
   });
 
-  const create = useMutation(trpc.plain.createIssue.mutationOptions({
-    onSuccess: () => {
-      setOpen(false);
-      toast.success("Your issue has been created, we'll get back to you as soon as possible");
-    },
-    onError(err) {
-      console.error(err);
-      toast.error(err.message);
-    },
-  }));
+  const create = useMutation(
+    trpc.plain.createIssue.mutationOptions({
+      onSuccess: () => {
+        setOpen(false);
+        toast.success("Your issue has been created, we'll get back to you as soon as possible");
+      },
+      onError(err) {
+        console.error(err);
+        toast.error(err.message);
+      },
+    }),
+  );
 
   const onSubmitForm = async (values: FormValues) => {
     try {

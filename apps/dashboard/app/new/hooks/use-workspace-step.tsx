@@ -58,77 +58,81 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
     },
   });
 
-  const switchOrgMutation = useMutation(trpc.user.switchOrg.mutationOptions({
-    onSuccess: async (sessionData) => {
-      if (!sessionData.expiresAt) {
-        console.error("Missing session data: ", sessionData);
-        toast.error(`Failed to switch organizations: ${sessionData.error}`);
-        return;
-      }
+  const switchOrgMutation = useMutation(
+    trpc.user.switchOrg.mutationOptions({
+      onSuccess: async (sessionData) => {
+        if (!sessionData.expiresAt) {
+          console.error("Missing session data: ", sessionData);
+          toast.error(`Failed to switch organizations: ${sessionData.error}`);
+          return;
+        }
 
-      await setSessionCookie({
-        token: sessionData.token,
-        expiresAt: sessionData.expiresAt,
-      });
-
-      // invalidate the user cache and workspace cache.
-      await queryClient.invalidateQueries(trpc.user.getCurrentUser.pathFilter());
-      await queryClient.invalidateQueries(trpc.workspace.getCurrent.pathFilter());
-      await queryClient.invalidateQueries(trpc.api.pathFilter());
-      await queryClient.invalidateQueries(trpc.ratelimit.pathFilter());
-      await queryClient.invalidateQueries(trpc.stripe.pathFilter());
-      // Force a router refresh to ensure the server-side layout
-      // re-renders with the new session context and fresh workspace data
-      router.refresh();
-    },
-    onError: (error) => {
-      toast.error(`Failed to load new workspace: ${error.message}`);
-    },
-  }));
-
-  const createWorkspace = useMutation(trpc.workspace.create.mutationOptions({
-    onSuccess: async ({ orgId }) => {
-      setWorkspaceCreated(true);
-
-      await switchOrgMutation.mutateAsync(orgId);
-      try {
-        await setLastUsedOrgCookie({ orgId });
-      } catch (error) {
-        console.error("Failed to persist last-used workspace:", error);
-        // Continue anyway - cookie is a UX enhancement, not critical
-      }
-
-      props.advance();
-    },
-    onError: (error) => {
-      if (error.data?.code === "METHOD_NOT_SUPPORTED") {
-        toast.error("", {
-          style: {
-            display: "flex",
-            flexDirection: "column",
-          },
-          duration: 20000,
-          description: error.message,
-          action: (
-            <div className="mx-auto pt-2">
-              <Button
-                onClick={() => {
-                  toast.dismiss();
-                  router.push("/apis");
-                }}
-              >
-                Return to APIs
-              </Button>
-            </div>
-          ),
+        await setSessionCookie({
+          token: sessionData.token,
+          expiresAt: sessionData.expiresAt,
         });
-      } else if (error.data?.code === "CONFLICT") {
-        form.setError("slug", { message: error.message }, { shouldFocus: true });
-      } else {
-        toast.error(`Failed to create workspace: ${error.message}`);
-      }
-    },
-  }));
+
+        // invalidate the user cache and workspace cache.
+        await queryClient.invalidateQueries(trpc.user.getCurrentUser.pathFilter());
+        await queryClient.invalidateQueries(trpc.workspace.getCurrent.pathFilter());
+        await queryClient.invalidateQueries(trpc.api.pathFilter());
+        await queryClient.invalidateQueries(trpc.ratelimit.pathFilter());
+        await queryClient.invalidateQueries(trpc.stripe.pathFilter());
+        // Force a router refresh to ensure the server-side layout
+        // re-renders with the new session context and fresh workspace data
+        router.refresh();
+      },
+      onError: (error) => {
+        toast.error(`Failed to load new workspace: ${error.message}`);
+      },
+    }),
+  );
+
+  const createWorkspace = useMutation(
+    trpc.workspace.create.mutationOptions({
+      onSuccess: async ({ orgId }) => {
+        setWorkspaceCreated(true);
+
+        await switchOrgMutation.mutateAsync(orgId);
+        try {
+          await setLastUsedOrgCookie({ orgId });
+        } catch (error) {
+          console.error("Failed to persist last-used workspace:", error);
+          // Continue anyway - cookie is a UX enhancement, not critical
+        }
+
+        props.advance();
+      },
+      onError: (error) => {
+        if (error.data?.code === "METHOD_NOT_SUPPORTED") {
+          toast.error("", {
+            style: {
+              display: "flex",
+              flexDirection: "column",
+            },
+            duration: 20000,
+            description: error.message,
+            action: (
+              <div className="mx-auto pt-2">
+                <Button
+                  onClick={() => {
+                    toast.dismiss();
+                    router.push("/apis");
+                  }}
+                >
+                  Return to APIs
+                </Button>
+              </div>
+            ),
+          });
+        } else if (error.data?.code === "CONFLICT") {
+          form.setError("slug", { message: error.message }, { shouldFocus: true });
+        } else {
+          toast.error(`Failed to create workspace: ${error.message}`);
+        }
+      },
+    }),
+  );
 
   const onSubmit = async (data: WorkspaceFormData) => {
     if (workspaceCreated) {

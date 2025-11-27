@@ -55,12 +55,14 @@ export function useKeysListQuery({ keyAuthId }: UseKeysListQueryParams) {
     fetchNextPage,
     isFetchingNextPage,
     isLoading: isLoadingInitial,
-  } = useInfiniteQuery(trpc.api.keys.list.infiniteQueryOptions(queryParams, {
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  }));
+  } = useInfiniteQuery(
+    trpc.api.keys.list.infiniteQueryOptions(queryParams, {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      staleTime: Number.POSITIVE_INFINITY,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    }),
+  );
 
   useEffect(() => {
     if (keysData) {

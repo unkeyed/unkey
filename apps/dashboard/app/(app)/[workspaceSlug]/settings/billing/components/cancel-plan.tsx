@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useTRPC } from "@/lib/trpc/client";
 import { Button, SettingCard, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -12,24 +12,26 @@ export const CancelPlan: React.FC = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  const cancelSubscription = useMutation(trpc.stripe.cancelSubscription.mutationOptions({
-    onSuccess: async () => {
-      // Revalidate helper: invalidate AND explicitly refetch to ensure UI updates
-      await Promise.all([
-        queryClient.invalidateQueries(trpc.workspace.getCurrent.pathFilter()),
-        queryClient.invalidateQueries(trpc.billing.queryUsage.pathFilter()),
-        queryClient.invalidateQueries(trpc.stripe.getBillingInfo.pathFilter()),
-        queryClient.refetchQueries(trpc.workspace.getCurrent.pathFilter()),
-        queryClient.refetchQueries(trpc.billing.queryUsage.pathFilter()),
-        queryClient.refetchQueries(trpc.stripe.getBillingInfo.pathFilter()),
-      ]);
-      router.refresh();
-      toast.info("Subscription cancelled");
-    },
-    onError: (err) => {
-      toast.error(err.message);
-    },
-  }));
+  const cancelSubscription = useMutation(
+    trpc.stripe.cancelSubscription.mutationOptions({
+      onSuccess: async () => {
+        // Revalidate helper: invalidate AND explicitly refetch to ensure UI updates
+        await Promise.all([
+          queryClient.invalidateQueries(trpc.workspace.getCurrent.pathFilter()),
+          queryClient.invalidateQueries(trpc.billing.queryUsage.pathFilter()),
+          queryClient.invalidateQueries(trpc.stripe.getBillingInfo.pathFilter()),
+          queryClient.refetchQueries(trpc.workspace.getCurrent.pathFilter()),
+          queryClient.refetchQueries(trpc.billing.queryUsage.pathFilter()),
+          queryClient.refetchQueries(trpc.stripe.getBillingInfo.pathFilter()),
+        ]);
+        router.refresh();
+        toast.info("Subscription cancelled");
+      },
+      onError: (err) => {
+        toast.error(err.message);
+      },
+    }),
+  );
 
   return (
     <SettingCard

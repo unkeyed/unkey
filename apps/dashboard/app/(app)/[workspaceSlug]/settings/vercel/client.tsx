@@ -3,7 +3,7 @@
  * Hiding for now until we decide if we want to fix it up or toss it
  */
 
-"use client";;
+"use client";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -55,12 +55,12 @@ type Props = {
       Record<
         VercelBinding["resourceType"],
         | (VercelBinding & {
-          updatedBy: {
-            id: string;
-            name: string;
-            image: string | null;
-          };
-        })
+            updatedBy: {
+              id: string;
+              name: string;
+              image: string | null;
+            };
+          })
         | null
       >
     >;
@@ -196,14 +196,14 @@ const ConnectedResource: React.FC<{
   integrationId: string;
   environment: VercelBinding["environment"];
   binding:
-  | (VercelBinding & {
-    updatedBy: {
-      id: string;
-      name: string;
-      image: string | null;
-    };
-  })
-  | null;
+    | (VercelBinding & {
+        updatedBy: {
+          id: string;
+          name: string;
+          image: string | null;
+        };
+      })
+    | null;
   apis: Record<string, Api>;
   rootKeys: Record<string, Key>;
 }> = (props) => {
@@ -211,39 +211,45 @@ const ConnectedResource: React.FC<{
   const router = useRouter();
   const [selectedResourceId, setSelectedResourceId] = useState(props.binding?.resourceId);
 
-  const updateApiId = useMutation(trpc.vercel.upsertApiId.mutationOptions({
-    onSuccess: () => {
-      router.refresh();
-      toast.success("Updated the environment variable in Vercel");
-    },
-    onError(err) {
-      console.error(err);
-      toast.error(err.message);
-    },
-  }));
+  const updateApiId = useMutation(
+    trpc.vercel.upsertApiId.mutationOptions({
+      onSuccess: () => {
+        router.refresh();
+        toast.success("Updated the environment variable in Vercel");
+      },
+      onError(err) {
+        console.error(err);
+        toast.error(err.message);
+      },
+    }),
+  );
 
-  const rerollRootKey = useMutation(trpc.vercel.upsertNewRootKey.mutationOptions({
-    onSuccess: () => {
-      router.refresh();
-      toast.success(
-        "Successfully rolled your root key and updated the environment variable in Vercel",
-      );
-    },
-    onError(err) {
-      console.error(err);
-      toast.error(err.message);
-    },
-  }));
-  const unbind = useMutation(trpc.vercel.unbind.mutationOptions({
-    onSuccess: () => {
-      router.refresh();
-      toast.success(`Successfully unbound ${props.type} from Vercel`);
-    },
-    onError(err) {
-      console.error(err);
-      toast.error(err.message);
-    },
-  }));
+  const rerollRootKey = useMutation(
+    trpc.vercel.upsertNewRootKey.mutationOptions({
+      onSuccess: () => {
+        router.refresh();
+        toast.success(
+          "Successfully rolled your root key and updated the environment variable in Vercel",
+        );
+      },
+      onError(err) {
+        console.error(err);
+        toast.error(err.message);
+      },
+    }),
+  );
+  const unbind = useMutation(
+    trpc.vercel.unbind.mutationOptions({
+      onSuccess: () => {
+        router.refresh();
+        toast.success(`Successfully unbound ${props.type} from Vercel`);
+      },
+      onError(err) {
+        console.error(err);
+        toast.error(err.message);
+      },
+    }),
+  );
 
   const isLoading = updateApiId.isPending || rerollRootKey.isPending || unbind.isPending;
 
@@ -302,8 +308,8 @@ const ConnectedResource: React.FC<{
                   Edited{" "}
                   {props.binding.updatedAtM
                     ? formatDistanceToNow(new Date(props.binding.updatedAtM), {
-                      addSuffix: true,
-                    })
+                        addSuffix: true,
+                      })
                     : "recently"}{" "}
                   by {props.binding.updatedBy.name}
                 </span>

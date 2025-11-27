@@ -107,14 +107,16 @@ export const useGatewayLogsTimeseries = () => {
     return params;
   }, [filters, timestamp]);
 
-  const { data, isLoading, isError } = useQuery(trpc.logs.queryTimeseries.queryOptions(queryParams, {
-    refetchInterval: queryParams.endTime ? false : 10_000,
-    trpc: {
-      context: {
-        skipBatch: true,
+  const { data, isLoading, isError } = useQuery(
+    trpc.logs.queryTimeseries.queryOptions(queryParams, {
+      refetchInterval: queryParams.endTime ? false : 10_000,
+      trpc: {
+        context: {
+          skipBatch: true,
+        },
       },
-    },
-  }));
+    }),
+  );
 
   const timeseries = data?.timeseries.map((ts) => ({
     displayX: formatTimestampForChart(ts.x, data.granularity),

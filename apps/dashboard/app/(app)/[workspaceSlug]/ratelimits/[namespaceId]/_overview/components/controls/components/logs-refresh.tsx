@@ -1,7 +1,7 @@
 import { useTRPC } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
-import { RefreshButton } from "@unkey/ui";
 import { useQueryClient } from "@tanstack/react-query";
+import { RefreshButton } from "@unkey/ui";
 
 export const LogsRefresh = () => {
   const { refreshQueryTime } = useQueryTime();
@@ -12,14 +12,14 @@ export const LogsRefresh = () => {
     refreshQueryTime();
     await Promise.all([
       queryClient.invalidateQueries({
-        queryKey: trpc.ratelimit.overview.logs.query.queryKey()
+        queryKey: trpc.ratelimit.overview.logs.query.queryKey(),
       }),
       queryClient.invalidateQueries({
-        queryKey: trpc.ratelimit.overview.logs.queryRatelimitLatencyTimeseries.queryKey()
+        queryKey: trpc.ratelimit.overview.logs.queryRatelimitLatencyTimeseries.queryKey(),
       }),
       queryClient.invalidateQueries({
-        queryKey: trpc.ratelimit.logs.queryRatelimitTimeseries.queryKey()
-      })
+        queryKey: trpc.ratelimit.logs.queryRatelimitTimeseries.queryKey(),
+      }),
     ]);
   };
 

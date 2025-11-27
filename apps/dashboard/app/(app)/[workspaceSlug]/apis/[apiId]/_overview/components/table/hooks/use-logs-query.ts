@@ -131,12 +131,14 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     fetchNextPage,
     isFetchingNextPage,
     isLoading: isLoadingInitial,
-  } = useInfiniteQuery(trpc.api.keys.query.infiniteQueryOptions(queryParams, {
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  }));
+  } = useInfiniteQuery(
+    trpc.api.keys.query.infiniteQueryOptions(queryParams, {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      staleTime: Number.POSITIVE_INFINITY,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    }),
+  );
 
   // Update historical logs effect
   useEffect(() => {

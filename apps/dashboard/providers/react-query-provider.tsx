@@ -1,12 +1,10 @@
 "use client";
-import { TRPCProvider } from '@/lib/trpc/client';
-import type { AppRouter } from '@/lib/trpc/routers';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createTRPCClient, httpBatchLink, httpLink, splitLink } from '@trpc/client';
-import type React from 'react';
-import { PropsWithChildren, useState } from 'react';
-import SuperJSON from 'superjson';
-
+import { TRPCProvider } from "@/lib/trpc/client";
+import type { AppRouter } from "@/lib/trpc/routers";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createTRPCClient, httpBatchLink, httpLink, splitLink } from "@trpc/client";
+import { type PropsWithChildren, useState } from "react";
+import SuperJSON from "superjson";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -25,7 +23,7 @@ function makeQueryClient() {
 export let browserQueryClient: QueryClient | undefined = undefined;
 
 function getQueryClient() {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     // Server: always make a new query client
     return makeQueryClient();
   }
@@ -37,9 +35,9 @@ function getQueryClient() {
 }
 
 function getBaseUrl() {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     // Browser should use relative path
-    return '';
+    return "";
   }
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
@@ -70,7 +68,7 @@ export function ReactQueryProvider({ children }: PropsWithChildren) {
           }),
         }),
       ],
-    })
+    }),
   );
   return (
     <QueryClientProvider client={queryClient}>

@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useTRPC } from "@/lib/trpc/client";
 import type { Workspace } from "@unkey/db";
 import { Button, Empty, toast } from "@unkey/ui";
@@ -17,15 +17,17 @@ type Props = {
 export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
   const trpc = useTRPC();
   const router = useRouter();
-  const optIn = useMutation(trpc.workspace.optIntoBeta.mutationOptions({
-    onSuccess() {
-      toast.success("Successfully opted in");
-      router.refresh();
-    },
-    onError(err) {
-      toast.error(err.message);
-    },
-  }));
+  const optIn = useMutation(
+    trpc.workspace.optIntoBeta.mutationOptions({
+      onSuccess() {
+        toast.success("Successfully opted in");
+        router.refresh();
+      },
+      onError(err) {
+        toast.error(err.message);
+      },
+    }),
+  );
   return (
     <Empty>
       <Empty.Icon />

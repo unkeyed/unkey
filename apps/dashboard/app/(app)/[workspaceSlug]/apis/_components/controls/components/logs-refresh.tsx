@@ -1,6 +1,6 @@
 import { useTRPC } from "@/lib/trpc/client";
-import { RefreshButton } from "@unkey/ui";
 import { useQueryClient } from "@tanstack/react-query";
+import { RefreshButton } from "@unkey/ui";
 
 export const LogsRefresh = () => {
   const trpc = useTRPC();

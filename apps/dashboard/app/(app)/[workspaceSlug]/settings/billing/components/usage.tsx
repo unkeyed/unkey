@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { formatNumber } from "@/lib/fmt";
 import { useTRPC } from "@/lib/trpc/client";
 import { SettingCard } from "@unkey/ui";
@@ -14,18 +14,20 @@ export const Usage: React.FC<{
     isLoading,
     error,
     refetch,
-  } = useQuery(trpc.billing.queryUsage.queryOptions(undefined, {
-    // Cache for 30 seconds to reduce unnecessary refetches
-    // TRPC automatically scopes by workspace via requireWorkspace middleware
-    staleTime: 30_000, // 30 seconds
-    // Skip batching to prevent analytics slowdown from blocking core UI
-    trpc: {
-      context: {
-        skipBatch: true,
+  } = useQuery(
+    trpc.billing.queryUsage.queryOptions(undefined, {
+      // Cache for 30 seconds to reduce unnecessary refetches
+      // TRPC automatically scopes by workspace via requireWorkspace middleware
+      staleTime: 30_000, // 30 seconds
+      // Skip batching to prevent analytics slowdown from blocking core UI
+      trpc: {
+        context: {
+          skipBatch: true,
+        },
       },
-    },
-    retry: 1,
-  }));
+      retry: 1,
+    }),
+  );
 
   if (isLoading) {
     return (

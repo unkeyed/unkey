@@ -123,9 +123,9 @@ export const EditExternalId = ({
           currentIdentity={
             keyDetails.identity_id
               ? {
-                id: keyDetails.identity_id,
-                externalId: keyDetails.owner_id || "",
-              }
+                  id: keyDetails.identity_id,
+                  externalId: keyDetails.owner_id || "",
+                }
               : undefined
           }
           disabled={updateKeyOwner.isPending || Boolean(originalIdentityId)}

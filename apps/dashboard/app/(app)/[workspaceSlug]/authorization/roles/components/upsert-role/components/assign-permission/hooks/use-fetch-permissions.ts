@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useTRPC } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
 import { useMemo } from "react";
@@ -11,15 +11,16 @@ export const MAX_PERMS_FETCH_LIMIT = 10;
 export const useFetchPermissions = (limit = MAX_PERMS_FETCH_LIMIT) => {
   const trpc = useTRPC();
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, error } =
-    useInfiniteQuery(trpc.authorization.roles.permissions.query.infiniteQueryOptions(
-      {
-        limit,
-      },
-      {
-        getNextPageParam: (lastPage) => lastPage.nextCursor,
-      },
-    ));
-
+    useInfiniteQuery(
+      trpc.authorization.roles.permissions.query.infiniteQueryOptions(
+        {
+          limit,
+        },
+        {
+          getNextPageParam: (lastPage) => lastPage.nextCursor,
+        },
+      ),
+    );
 
   if (error) {
     if (error.data?.code === "NOT_FOUND") {

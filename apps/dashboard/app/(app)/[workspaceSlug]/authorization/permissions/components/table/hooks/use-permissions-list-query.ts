@@ -52,12 +52,14 @@ export function usePermissionsListQuery() {
     fetchNextPage,
     isFetchingNextPage,
     isLoading: isLoadingInitial,
-  } = useInfiniteQuery(trpc.authorization.permissions.query.infiniteQueryOptions(queryParams, {
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  }));
+  } = useInfiniteQuery(
+    trpc.authorization.permissions.query.infiniteQueryOptions(queryParams, {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      staleTime: Number.POSITIVE_INFINITY,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    }),
+  );
 
   useEffect(() => {
     if (permissionsData) {

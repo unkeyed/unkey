@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { revalidate } from "@/app/actions";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useTRPC } from "@/lib/trpc/client";
@@ -45,10 +45,12 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
     },
   });
 
-  const setDefaultPrefix = useMutation(trpc.api.setDefaultPrefix.mutationOptions({
-    onSuccess: onUpdateSuccess("Default Prefix Updated"),
-    onError,
-  }));
+  const setDefaultPrefix = useMutation(
+    trpc.api.setDefaultPrefix.mutationOptions({
+      onSuccess: onUpdateSuccess("Default Prefix Updated"),
+      onError,
+    }),
+  );
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!workspace) {

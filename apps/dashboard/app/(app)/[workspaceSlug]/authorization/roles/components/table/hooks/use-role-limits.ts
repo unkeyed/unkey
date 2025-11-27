@@ -25,18 +25,22 @@ export const useRoleLimits = (roleId?: string) => {
     if (!roleId) {
       return null;
     }
-    return queryClient.getQueryData(trpc.authorization.roles.connectedKeys.queryKey({
-      roleId,
-    }));
+    return queryClient.getQueryData(
+      trpc.authorization.roles.connectedKeys.queryKey({
+        roleId,
+      }),
+    );
   };
 
   const getPermsPreview = () => {
     if (!roleId) {
       return null;
     }
-    return queryClient.getQueryData(trpc.authorization.roles.connectedPerms.queryKey({
-      roleId,
-    }));
+    return queryClient.getQueryData(
+      trpc.authorization.roles.connectedPerms.queryKey({
+        roleId,
+      }),
+    );
   };
 
   const calculateLimits = (
@@ -79,9 +83,11 @@ export const useRoleLimits = (roleId?: string) => {
     const { shouldPrefetch } = calculateLimits();
 
     if (shouldPrefetch) {
-      await queryClient.prefetchQuery(trpc.authorization.roles.connectedKeysAndPerms.queryOptions({
-        roleId,
-      }));
+      await queryClient.prefetchQuery(
+        trpc.authorization.roles.connectedKeysAndPerms.queryOptions({
+          roleId,
+        }),
+      );
     }
   };
 

@@ -48,12 +48,14 @@ export function useRolesListQuery() {
     fetchNextPage,
     isFetchingNextPage,
     isLoading: isLoadingInitial,
-  } = useInfiniteQuery(trpc.authorization.roles.query.infiniteQueryOptions(queryParams, {
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  }));
+  } = useInfiniteQuery(
+    trpc.authorization.roles.query.infiniteQueryOptions(queryParams, {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      staleTime: Number.POSITIVE_INFINITY,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    }),
+  );
 
   useEffect(() => {
     if (rolesData) {

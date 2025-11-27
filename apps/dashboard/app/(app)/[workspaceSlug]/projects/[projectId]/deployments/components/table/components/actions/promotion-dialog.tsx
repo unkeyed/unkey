@@ -35,32 +35,34 @@ export const PromotionDialog = ({
       .where(({ domain }) => inArray(domain.sticky, ["environment", "live"]))
       .where(({ domain }) => eq(domain.deploymentId, liveDeployment.id)),
   );
-  const promote = useMutation(trpc.deploy.deployment.promote.mutationOptions({
-    onSuccess: () => {
-      queryClient.invalidateQueries(trpc.pathFilter());
-      toast.success("Promotion completed", {
-        description: `Successfully promoted to deployment ${targetDeployment.id}`,
-      });
-      // hack to revalidate
-      try {
-        // @ts-expect-error Their docs say it's here
-        collection.projects.utils.refetch();
-        // @ts-expect-error Their docs say it's here
-        collection.deployments.utils.refetch();
-        // @ts-expect-error Their docs say it's here
-        collection.domains.utils.refetch();
-      } catch (error) {
-        console.error("Refetch error:", error);
-      }
+  const promote = useMutation(
+    trpc.deploy.deployment.promote.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries(trpc.pathFilter());
+        toast.success("Promotion completed", {
+          description: `Successfully promoted to deployment ${targetDeployment.id}`,
+        });
+        // hack to revalidate
+        try {
+          // @ts-expect-error Their docs say it's here
+          collection.projects.utils.refetch();
+          // @ts-expect-error Their docs say it's here
+          collection.deployments.utils.refetch();
+          // @ts-expect-error Their docs say it's here
+          collection.domains.utils.refetch();
+        } catch (error) {
+          console.error("Refetch error:", error);
+        }
 
-      onClose();
-    },
-    onError: (error) => {
-      toast.error("Promotion failed", {
-        description: error.message,
-      });
-    },
-  }));
+        onClose();
+      },
+      onError: (error) => {
+        toast.error("Promotion failed", {
+          description: error.message,
+        });
+      },
+    }),
+  );
 
   const handlePromotion = async () => {
     await promote

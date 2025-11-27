@@ -1,11 +1,11 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useTRPC } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFilters } from "../../../hooks/use-filters";
 import type { RatelimitQueryLogsPayload } from "../query-logs.schema";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 
 type UseLogsQueryParams = {
   limit?: number;
@@ -112,7 +112,7 @@ export function useRatelimitLogsQuery({
       staleTime: Number.POSITIVE_INFINITY,
       refetchOnMount: false,
       refetchOnWindowFocus: false,
-    })
+    }),
   );
 
   // Query for new logs (polling)
@@ -124,7 +124,7 @@ export function useRatelimitLogsQuery({
           ...queryParams,
           startTime: latestTime ?? Date.now() - pollIntervalMs,
           endTime: Date.now(),
-        })
+        }),
       );
 
       if (result.ratelimitLogs.length === 0) {

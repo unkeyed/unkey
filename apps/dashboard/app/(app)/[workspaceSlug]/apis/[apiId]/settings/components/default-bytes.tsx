@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { revalidate } from "@/app/actions";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useTRPC } from "@/lib/trpc/client";
@@ -45,10 +45,12 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
     },
   });
 
-  const setDefaultBytes = useMutation(trpc.api.setDefaultBytes.mutationOptions({
-    onSuccess: onUpdateSuccess("Default Byte Length Updated"),
-    onError,
-  }));
+  const setDefaultBytes = useMutation(
+    trpc.api.setDefaultBytes.mutationOptions({
+      onSuccess: onUpdateSuccess("Default Byte Length Updated"),
+      onError,
+    }),
+  );
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (

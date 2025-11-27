@@ -1,10 +1,10 @@
-import { useQueryTime } from "@/providers/query-time-provider";
-import { RefreshButton } from "@unkey/ui";
-import { useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc/client";
+import { useQueryTime } from "@/providers/query-time-provider";
+import { useQueryClient } from "@tanstack/react-query";
+import { RefreshButton } from "@unkey/ui";
 
 export const LogsRefresh = () => {
-  const trpc = useTRPC()
+  const trpc = useTRPC();
   const { refreshQueryTime } = useQueryTime();
   const queryClient = useQueryClient();
 

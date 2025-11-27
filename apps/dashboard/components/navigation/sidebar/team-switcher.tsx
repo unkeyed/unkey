@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -33,13 +33,14 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const isCollapsed = state === "collapsed" && !isMobile;
 
   const { data: user } = useQuery(trpc.user.getCurrentUser.queryOptions());
-  const { data: memberships, isLoading: isUserMembershipsLoading } =
-    useQuery(trpc.user.listMemberships.queryOptions(
+  const { data: memberships, isLoading: isUserMembershipsLoading } = useQuery(
+    trpc.user.listMemberships.queryOptions(
       user?.id as string, // make typescript happy
       {
         enabled: !!user,
       },
-    ));
+    ),
+  );
 
   const userMemberships = memberships?.data;
 
@@ -47,42 +48,44 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
     (membership) => membership.organization.id === user?.orgId,
   );
 
-  const changeWorkspace = useMutation(trpc.user.switchOrg.mutationOptions({
-    async onSuccess(sessionData, orgId) {
-      if (!sessionData.token || !sessionData.expiresAt) {
-        toast.error("Failed to switch workspace. Invalid session data.");
-        return;
-      }
+  const changeWorkspace = useMutation(
+    trpc.user.switchOrg.mutationOptions({
+      async onSuccess(sessionData, orgId) {
+        if (!sessionData.token || !sessionData.expiresAt) {
+          toast.error("Failed to switch workspace. Invalid session data.");
+          return;
+        }
 
-      try {
-        // Critical: Set the session cookie to complete the workspace switch
-        await setSessionCookie({
-          token: sessionData.token,
-          expiresAt: sessionData.expiresAt,
-        });
-      } catch (error) {
-        console.error("Failed to set session cookie:", error);
-        toast.error("Failed to complete workspace switch. Please try again.");
-        return;
-      }
+        try {
+          // Critical: Set the session cookie to complete the workspace switch
+          await setSessionCookie({
+            token: sessionData.token,
+            expiresAt: sessionData.expiresAt,
+          });
+        } catch (error) {
+          console.error("Failed to set session cookie:", error);
+          toast.error("Failed to complete workspace switch. Please try again.");
+          return;
+        }
 
-      // Non-critical: Store the last used organization ID in a cookie for auto-selection on next login
-      // This runs after the critical operations, and failures won't block the workspace switch
-      try {
-        await setLastUsedOrgCookie({ orgId });
-      } catch (error) {
-        // Swallow the error with a debug log - preference storage failure should not interrupt user flow
-        console.debug("Failed to store last used workspace preference:", error);
-      }
+        // Non-critical: Store the last used organization ID in a cookie for auto-selection on next login
+        // This runs after the critical operations, and failures won't block the workspace switch
+        try {
+          await setLastUsedOrgCookie({ orgId });
+        } catch (error) {
+          // Swallow the error with a debug log - preference storage failure should not interrupt user flow
+          console.debug("Failed to store last used workspace preference:", error);
+        }
 
-      // Instead of messing with the cache, we can simply redirect the user and we will refetch the user data.
-      window.location.replace("/");
-    },
-    onError(error) {
-      console.error("Failed to switch workspace: ", error);
-      toast.error("Failed to switch workspace. Contact support if error persists.");
-    },
-  }));
+        // Instead of messing with the cache, we can simply redirect the user and we will refetch the user data.
+        window.location.replace("/");
+      },
+      onError(error) {
+        console.error("Failed to switch workspace: ", error);
+        toast.error("Failed to switch workspace. Contact support if error persists.");
+      },
+    }),
+  );
 
   const [search, _setSearch] = useState("");
   const filteredOrgs = useMemo(() => {

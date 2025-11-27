@@ -15,13 +15,15 @@ export const useSearchIdentities = (query: string, debounceMs = 300) => {
     return () => clearTimeout(timer);
   }, [query, debounceMs]);
 
-  const { data, isLoading, error } = useQuery(trpc.identity.search.queryOptions(
-    { query: debouncedQuery },
-    {
-      enabled: debouncedQuery.length > 0,
-      staleTime: 30_000,
-    },
-  ));
+  const { data, isLoading, error } = useQuery(
+    trpc.identity.search.queryOptions(
+      { query: debouncedQuery },
+      {
+        enabled: debouncedQuery.length > 0,
+        staleTime: 30_000,
+      },
+    ),
+  );
 
   const searchResults = useMemo(() => {
     return data?.identities || [];

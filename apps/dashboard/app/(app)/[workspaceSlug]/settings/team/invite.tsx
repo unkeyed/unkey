@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
 import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -50,22 +50,24 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
     },
   });
 
-  const createInvitation = useMutation(trpc.org.invitations.create.mutationOptions({
-    onSuccess: () => {
-      // Invalidate the invitations list query to trigger a refetch
-      queryClient.invalidateQueries(trpc.org.invitations.list.pathFilter());
+  const createInvitation = useMutation(
+    trpc.org.invitations.create.mutationOptions({
+      onSuccess: () => {
+        // Invalidate the invitations list query to trigger a refetch
+        queryClient.invalidateQueries(trpc.org.invitations.list.pathFilter());
 
-      toast.success(
-        `We have sent an email to ${getValues(
-          "email",
-        )} with instructions on how to join your workspace.`,
-      );
-      setDialogOpen(false);
-    },
-    onError: (error: { message: string }) => {
-      toast.error(`Failed to send invitation: ${error.message}`);
-    },
-  }));
+        toast.success(
+          `We have sent an email to ${getValues(
+            "email",
+          )} with instructions on how to join your workspace.`,
+        );
+        setDialogOpen(false);
+      },
+      onError: (error: { message: string }) => {
+        toast.error(`Failed to send invitation: ${error.message}`);
+      },
+    }),
+  );
 
   // If user or organization isn't available yet, return null or a loading state
   if (!user.orgId || !organization) {

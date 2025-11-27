@@ -5,6 +5,7 @@ import {
 } from "@/components/logs/table-action.popover";
 import { useTRPC } from "@/lib/trpc/client";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import dynamic from "next/dynamic";
@@ -12,7 +13,6 @@ import { MAX_KEYS_FETCH_LIMIT } from "../../../upsert-role/components/assign-key
 import { MAX_PERMS_FETCH_LIMIT } from "../../../upsert-role/components/assign-permission/hooks/use-fetch-permissions";
 import { DeleteRole } from "./components/delete-role";
 import { EditRole } from "./components/edit-role";
-import { useQueryClient } from "@tanstack/react-query";
 
 // Wrapper component to handle React Loadable props
 const LoadingTrigger = () => <TableActionPopoverDefaultTrigger />;
@@ -50,17 +50,17 @@ const getRolesTableActionItems = (
           queryClient.prefetchInfiniteQuery(
             trpc.authorization.roles.keys.query.infiniteQueryOptions({
               limit: MAX_KEYS_FETCH_LIMIT,
-            })
+            }),
           ),
           queryClient.prefetchInfiniteQuery(
             trpc.authorization.roles.permissions.query.infiniteQueryOptions({
               limit: MAX_PERMS_FETCH_LIMIT,
-            })
+            }),
           ),
           queryClient.prefetchQuery(
             trpc.authorization.roles.connectedKeysAndPerms.queryOptions({
               roleId: role.roleId,
-            })
+            }),
           ),
         ]);
       },

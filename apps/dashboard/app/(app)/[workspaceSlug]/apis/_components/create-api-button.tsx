@@ -3,6 +3,7 @@ import { revalidate } from "@/app/actions";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "@unkey/icons";
 import { Button, FormInput, toast } from "@unkey/ui";
 import dynamic from "next/dynamic";
@@ -11,7 +12,6 @@ import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const DynamicDialogContainer = dynamic(
   () =>
@@ -64,7 +64,7 @@ export const CreateApiButton = ({
         console.error(err);
         toast.error(err.message);
       },
-    })
+    }),
   );
 
   async function onSubmit(values: z.infer<typeof formSchema>) {

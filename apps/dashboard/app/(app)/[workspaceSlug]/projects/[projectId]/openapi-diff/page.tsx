@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { shortenId } from "@/lib/shorten-id";
 import { useTRPC } from "@/lib/trpc/client";
 import { eq, useLiveQuery } from "@tanstack/react-db";
@@ -70,15 +70,17 @@ export default function DiffPage() {
     data: diffData,
     isLoading: diffLoading,
     error: diffError,
-  } = useQuery(trpc.deploy.deployment.getOpenApiDiff.queryOptions(
-    {
-      oldDeploymentId: selectedFromDeployment,
-      newDeploymentId: selectedToDeployment,
-    },
-    {
-      enabled: Boolean(selectedFromDeployment) && Boolean(selectedToDeployment),
-    },
-  ));
+  } = useQuery(
+    trpc.deploy.deployment.getOpenApiDiff.queryOptions(
+      {
+        oldDeploymentId: selectedFromDeployment,
+        newDeploymentId: selectedToDeployment,
+      },
+      {
+        enabled: Boolean(selectedFromDeployment) && Boolean(selectedToDeployment),
+      },
+    ),
+  );
 
   const getDeploymentLabel = useCallback(
     (deploymentId: string): string => {

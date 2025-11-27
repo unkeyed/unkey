@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useTRPC } from "@/lib/trpc/client";
 
 import { useQuery } from "@tanstack/react-query";
@@ -9,20 +9,22 @@ export const useFetchPermissionSlugs = (
   enabled = true,
 ) => {
   const trpc = useTRPC();
-  const { data, isLoading, error, refetch } = useQuery(trpc.key.queryPermissionSlugs.queryOptions(
-    {
-      roleIds,
-      permissionIds: directPermissionIds,
-    },
-    {
-      enabled,
-      trpc: {
-        context: {
-          skipBatch: true,
+  const { data, isLoading, error, refetch } = useQuery(
+    trpc.key.queryPermissionSlugs.queryOptions(
+      {
+        roleIds,
+        permissionIds: directPermissionIds,
+      },
+      {
+        enabled,
+        trpc: {
+          context: {
+            skipBatch: true,
+          },
         },
       },
-    },
-  ));
+    ),
+  );
 
   return {
     data,

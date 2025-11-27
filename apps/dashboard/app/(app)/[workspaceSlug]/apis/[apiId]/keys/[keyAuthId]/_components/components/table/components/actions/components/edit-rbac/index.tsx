@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
@@ -66,9 +66,11 @@ export const KeyRbacDialog = ({
   onClose: externalOnClose,
 }: KeyRbacDialogProps) => {
   const trpc = useTRPC();
-  const { data: connectedRolesAndPerms, isLoading } = useQuery(trpc.key.connectedRolesAndPerms.queryOptions({
-    keyId: existingKey.id,
-  }));
+  const { data: connectedRolesAndPerms, isLoading } = useQuery(
+    trpc.key.connectedRolesAndPerms.queryOptions({
+      keyId: existingKey.id,
+    }),
+  );
 
   const [internalIsOpen, setInternalIsOpen] = useState(false);
 

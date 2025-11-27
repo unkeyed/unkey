@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useTRPC } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
 import { useMemo } from "react";
@@ -12,15 +12,16 @@ export const useFetchIdentities = (limit = MAX_IDENTITY_FETCH_LIMIT) => {
   const queryClient = useQueryClient();
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, error } =
-    useInfiniteQuery(trpc.identity.query.infiniteQueryOptions(
-      {
-        limit,
-      },
-      {
-        getNextPageParam: (lastPage) => lastPage.nextCursor,
-      },
-    ));
-
+    useInfiniteQuery(
+      trpc.identity.query.infiniteQueryOptions(
+        {
+          limit,
+        },
+        {
+          getNextPageParam: (lastPage) => lastPage.nextCursor,
+        },
+      ),
+    );
 
   if (error) {
     if (error.data?.code === "NOT_FOUND") {

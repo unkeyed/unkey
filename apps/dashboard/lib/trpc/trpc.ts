@@ -8,7 +8,9 @@ import type { Context } from "./context";
 export const t = initTRPC.context<Context>().create({ transformer: superjson });
 export const router = t.router;
 
-export const requireUser = t.middleware(({ next, ctx }) => {
+export const requireUser = t.middleware((opts) => {
+  const { next, ctx } = opts;
+
   if (!ctx.user?.id) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
@@ -21,7 +23,9 @@ export const requireUser = t.middleware(({ next, ctx }) => {
   });
 });
 
-export const requireWorkspace = t.middleware(({ next, ctx }) => {
+export const requireWorkspace = t.middleware((opts) => {
+  const { next, ctx } = opts;
+
   if (!ctx.workspace) {
     throw new TRPCError({
       code: "NOT_FOUND",
@@ -36,7 +40,11 @@ export const requireWorkspace = t.middleware(({ next, ctx }) => {
   });
 });
 
-export const requireSelf = t.middleware(({ next, ctx, rawInput }) => {
+export const requireSelf = t.middleware(async (opts) => {
+  const { next, ctx, getRawInput } = opts;
+
+  const rawInput = await getRawInput();
+
   // Runtime check
   if (typeof rawInput !== "string") {
     throw new TRPCError({
@@ -45,9 +53,7 @@ export const requireSelf = t.middleware(({ next, ctx, rawInput }) => {
     });
   }
 
-  const userId = rawInput;
-
-  if (ctx.user?.id !== userId) {
+  if (ctx.user?.id !== rawInput) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "You can only access your own data",
@@ -56,14 +62,21 @@ export const requireSelf = t.middleware(({ next, ctx, rawInput }) => {
   return next();
 });
 
-export const requireOrgAdmin = t.middleware(async ({ next, ctx, rawInput }) => {
+export const requireOrgAdmin = t.middleware(async (opts) => {
+  const { next, ctx, getRawInput } = opts;
+
+  const rawInput = await getRawInput();
   let orgId: string | undefined;
 
-  // rawInput can be a string with just the orgId, or an object containing the orgId when it passed with other parameters
   if (typeof rawInput === "string") {
     orgId = rawInput;
-  } else if (rawInput && typeof rawInput === "object" && "orgId" in rawInput) {
-    orgId = rawInput.orgId as string;
+  } else if (
+    rawInput !== null &&
+    typeof rawInput === "object" &&
+    "orgId" in rawInput &&
+    typeof (rawInput as { orgId: unknown }).orgId === "string"
+  ) {
+    orgId = (rawInput as { orgId: string }).orgId;
   }
 
   if (!orgId) {
@@ -72,24 +85,17 @@ export const requireOrgAdmin = t.middleware(async ({ next, ctx, rawInput }) => {
       message: "Organization ID is required",
     });
   }
-  try {
-    const isAdmin = ctx.tenant?.role === "admin";
 
-    if (!isAdmin) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "This action requires admin privileges.",
-      });
-    }
+  const isAdmin = ctx.tenant?.role === "admin";
 
-    return next();
-  } catch (error) {
+  if (!isAdmin) {
     throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to verify admin privilege.",
-      cause: error,
+      code: "FORBIDDEN",
+      message: "This action requires admin privileges.",
     });
   }
+
+  return next();
 });
 
 const onError = (err: Error, identifier: string) => {
@@ -99,39 +105,41 @@ const onError = (err: Error, identifier: string) => {
 
 export const ratelimit = env().UNKEY_ROOT_KEY
   ? {
-    create: new Ratelimit({
-      rootKey: env().UNKEY_ROOT_KEY ?? "",
-      namespace: "trpc_create",
-      limit: 25,
-      duration: "3s",
-      onError,
-    }),
-    read: new Ratelimit({
-      rootKey: env().UNKEY_ROOT_KEY ?? "",
-      namespace: "trpc_read",
-      limit: 100,
-      duration: "10s",
-      onError,
-    }),
-    update: new Ratelimit({
-      rootKey: env().UNKEY_ROOT_KEY ?? "",
-      namespace: "trpc_update",
-      limit: 25,
-      duration: "5s",
-      onError,
-    }),
-    delete: new Ratelimit({
-      rootKey: env().UNKEY_ROOT_KEY ?? "",
-      namespace: "trpc_delete",
-      limit: 25,
-      duration: "5s",
-      onError,
-    }),
-  }
+      create: new Ratelimit({
+        rootKey: env().UNKEY_ROOT_KEY ?? "",
+        namespace: "trpc_create",
+        limit: 25,
+        duration: "3s",
+        onError,
+      }),
+      read: new Ratelimit({
+        rootKey: env().UNKEY_ROOT_KEY ?? "",
+        namespace: "trpc_read",
+        limit: 100,
+        duration: "10s",
+        onError,
+      }),
+      update: new Ratelimit({
+        rootKey: env().UNKEY_ROOT_KEY ?? "",
+        namespace: "trpc_update",
+        limit: 25,
+        duration: "5s",
+        onError,
+      }),
+      delete: new Ratelimit({
+        rootKey: env().UNKEY_ROOT_KEY ?? "",
+        namespace: "trpc_delete",
+        limit: 25,
+        duration: "5s",
+        onError,
+      }),
+    }
   : {};
 
 export const withRatelimit = (ratelimit: Ratelimit | undefined) =>
-  t.middleware(async ({ next, ctx }) => {
+  t.middleware(async (opts) => {
+    const { next, ctx } = opts;
+
     const userId = ctx.user?.id;
     if (!ratelimit || !userId) {
       return next();
@@ -158,12 +166,12 @@ export const LLM_LIMITS = {
 
 const llmRatelimit = env().UNKEY_ROOT_KEY
   ? new Ratelimit({
-    rootKey: env().UNKEY_ROOT_KEY ?? "",
-    namespace: "trpc_llm",
-    limit: LLM_LIMITS.RATE_LIMIT,
-    duration: LLM_LIMITS.RATE_DURATION,
-    onError,
-  })
+      rootKey: env().UNKEY_ROOT_KEY ?? "",
+      namespace: "trpc_llm",
+      limit: LLM_LIMITS.RATE_LIMIT,
+      duration: LLM_LIMITS.RATE_DURATION,
+      onError,
+    })
   : null;
 
 const llmQuerySchema = z.object({
@@ -175,7 +183,9 @@ const llmQuerySchema = z.object({
 });
 
 export const withLlmAccess = () =>
-  t.middleware(async ({ next, ctx, rawInput }) => {
+  t.middleware(async (opts) => {
+    const { next, ctx, getRawInput } = opts;
+
     const userId = ctx.user?.id;
     if (llmRatelimit && userId) {
       const response = await llmRatelimit.limit(userId);
@@ -187,6 +197,7 @@ export const withLlmAccess = () =>
       }
     }
 
+    const rawInput = await getRawInput();
     let validatedInput: z.infer<typeof llmQuerySchema>;
     try {
       validatedInput = llmQuerySchema.parse(rawInput);

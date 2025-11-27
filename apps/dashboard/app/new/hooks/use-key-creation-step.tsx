@@ -50,27 +50,29 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  const createApiAndKey = useMutation(trpc.workspace.onboarding.mutationOptions({
-    onSuccess: (data) => {
-      setApiCreated(true);
-      startTransition(() => {
-        const params = new URLSearchParams(searchParams?.toString());
-        params.set(API_ID_PARAM, data.apiId);
-        params.set(KEY_PARAM, data.key);
-        router.push(`?${params.toString()}`);
-      });
-    },
-    onError: (error) => {
-      console.error("Failed to create API and key:", error);
+  const createApiAndKey = useMutation(
+    trpc.workspace.onboarding.mutationOptions({
+      onSuccess: (data) => {
+        setApiCreated(true);
+        startTransition(() => {
+          const params = new URLSearchParams(searchParams?.toString());
+          params.set(API_ID_PARAM, data.apiId);
+          params.set(KEY_PARAM, data.key);
+          router.push(`?${params.toString()}`);
+        });
+      },
+      onError: (error) => {
+        console.error("Failed to create API and key:", error);
 
-      if (error.data?.code === "NOT_FOUND") {
-        // In case users try to feed tRPC with weird workspaceId or non existing one
-        toast.error("Invalid workspace. Please go back and create a new workspace.");
-      } else {
-        toast.error(`Failed to create API and key: ${error.message}`);
-      }
-    },
-  }));
+        if (error.data?.code === "NOT_FOUND") {
+          // In case users try to feed tRPC with weird workspaceId or non existing one
+          toast.error("Invalid workspace. Please go back and create a new workspace.");
+        } else {
+          toast.error(`Failed to create API and key: ${error.message}`);
+        }
+      },
+    }),
+  );
 
   const methods = useForm<FormValues & { apiName: string }>({
     resolver: zodResolver(extendedFormSchema),
@@ -239,11 +241,11 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
     onStepNext: apiCreated
       ? () => true
       : () => {
-        if (!isLoading) {
-          formRef.current?.requestSubmit();
-        }
-        return false;
-      },
+          if (!isLoading) {
+            formRef.current?.requestSubmit();
+          }
+          return false;
+        },
     isLoading,
   };
 };

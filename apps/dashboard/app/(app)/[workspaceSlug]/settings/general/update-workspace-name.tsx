@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -44,21 +44,23 @@ export function UpdateWorkspaceName() {
     },
   });
 
-  const updateName = useMutation(trpc.workspace.updateName.mutationOptions({
-    onSuccess() {
-      toast.success("Workspace name updated");
-      // invalidate the current user so it refetches
-      queryClient.invalidateQueries(trpc.user.getCurrentUser.pathFilter());
-      queryClient.invalidateQueries(trpc.workspace.pathFilter());
-      setName(watch("workspaceName"));
-      router.refresh();
-    },
-    onError(err) {
-      toast.error("Failed to update workspace name", {
-        description: err.message,
-      });
-    },
-  }));
+  const updateName = useMutation(
+    trpc.workspace.updateName.mutationOptions({
+      onSuccess() {
+        toast.success("Workspace name updated");
+        // invalidate the current user so it refetches
+        queryClient.invalidateQueries(trpc.user.getCurrentUser.pathFilter());
+        queryClient.invalidateQueries(trpc.workspace.pathFilter());
+        setName(watch("workspaceName"));
+        router.refresh();
+      },
+      onError(err) {
+        toast.error("Failed to update workspace name", {
+          description: err.message,
+        });
+      },
+    }),
+  );
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (workspace?.name === values.workspaceName || !values.workspaceName) {

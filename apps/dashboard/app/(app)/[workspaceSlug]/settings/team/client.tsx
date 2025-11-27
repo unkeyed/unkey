@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useTRPC } from "@/lib/trpc/client";
@@ -31,17 +31,17 @@ export function TeamPageClient({ team }: { team: boolean }) {
 
   const { data: user } = useQuery(trpc.user.getCurrentUser.queryOptions());
 
-  const { data: memberships, isLoading: isUserMembershipsLoading } =
-    useQuery(trpc.user.listMemberships.queryOptions(user?.id || "", {
+  const { data: memberships, isLoading: isUserMembershipsLoading } = useQuery(
+    trpc.user.listMemberships.queryOptions(user?.id || "", {
       enabled: !!user,
-    }));
+    }),
+  );
 
-  const { data: organization, isLoading: isOrganizationLoading } = useQuery(trpc.org.getOrg.queryOptions(
-    user?.orgId || "",
-    {
+  const { data: organization, isLoading: isOrganizationLoading } = useQuery(
+    trpc.org.getOrg.queryOptions(user?.orgId || "", {
       enabled: !!user,
-    },
-  ));
+    }),
+  );
 
   const userMemberships = memberships?.data;
 

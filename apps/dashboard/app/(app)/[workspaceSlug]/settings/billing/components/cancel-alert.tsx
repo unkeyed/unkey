@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useTRPC } from "@/lib/trpc/client";
 import { Button, SettingCard, toast } from "@unkey/ui";
 import ms from "ms";
@@ -11,24 +11,28 @@ export const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
   const trpc = useTRPC();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const uncancelSubscription = useMutation(trpc.stripe.uncancelSubscription.mutationOptions({
-    onSuccess: async () => {
-      // Revalidate helper: invalidate AND explicitly refetch to ensure UI updates
-      await Promise.all([
-        queryClient.invalidateQueries(trpc.workspace.getCurrent.pathFilter()),
-        queryClient.invalidateQueries(trpc.billing.queryUsage.pathFilter()),
-        queryClient.invalidateQueries(trpc.stripe.getBillingInfo.pathFilter()),
-        queryClient.refetchQueries(trpc.workspace.getCurrent.pathFilter()),
-        queryClient.refetchQueries(trpc.stripe.getBillingInfo.pathFilter()),
-      ]);
-      router.refresh();
-      toast.info("Subscription resumed");
-    },
-    onError: (err) => {
-      toast.error("Failed to resume subscription. Please try again or contact support@unkey.dev.");
-      console.error("Subscription resumption error:", err);
-    },
-  }));
+  const uncancelSubscription = useMutation(
+    trpc.stripe.uncancelSubscription.mutationOptions({
+      onSuccess: async () => {
+        // Revalidate helper: invalidate AND explicitly refetch to ensure UI updates
+        await Promise.all([
+          queryClient.invalidateQueries(trpc.workspace.getCurrent.pathFilter()),
+          queryClient.invalidateQueries(trpc.billing.queryUsage.pathFilter()),
+          queryClient.invalidateQueries(trpc.stripe.getBillingInfo.pathFilter()),
+          queryClient.refetchQueries(trpc.workspace.getCurrent.pathFilter()),
+          queryClient.refetchQueries(trpc.stripe.getBillingInfo.pathFilter()),
+        ]);
+        router.refresh();
+        toast.info("Subscription resumed");
+      },
+      onError: (err) => {
+        toast.error(
+          "Failed to resume subscription. Please try again or contact support@unkey.dev.",
+        );
+        console.error("Subscription resumption error:", err);
+      },
+    }),
+  );
 
   if (!props.cancelAt) {
     return null;

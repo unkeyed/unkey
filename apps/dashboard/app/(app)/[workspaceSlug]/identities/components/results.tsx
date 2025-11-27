@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useTRPC } from "@/lib/trpc/client";
 import { Row } from "../row";
@@ -11,10 +11,12 @@ export const Results: React.FC<{ search: string; limit: number }> = (props) => {
     data: workspace,
     isLoading,
     error,
-  } = useQuery(trpc.identity.searchWithRelations.queryOptions({
-    search: props.search,
-    limit: props.limit,
-  }));
+  } = useQuery(
+    trpc.identity.searchWithRelations.queryOptions({
+      search: props.search,
+      limit: props.limit,
+    }),
+  );
 
   if (isLoading) {
     return (

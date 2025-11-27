@@ -8,13 +8,15 @@ export const useFetchConnectedKeysAndPermsData = (roleId: string) => {
   const { calculateLimits } = useRoleLimits(roleId);
   const { shouldPrefetch } = calculateLimits();
 
-  const query = useQuery(trpc.authorization.roles.connectedKeysAndPerms.queryOptions(
-    { roleId },
-    {
-      enabled: shouldPrefetch && Boolean(roleId),
-      staleTime: 5 * 60 * 1000,
-    },
-  ));
+  const query = useQuery(
+    trpc.authorization.roles.connectedKeysAndPerms.queryOptions(
+      { roleId },
+      {
+        enabled: shouldPrefetch && Boolean(roleId),
+        staleTime: 5 * 60 * 1000,
+      },
+    ),
+  );
 
   return {
     keys: query.data?.keys || [],

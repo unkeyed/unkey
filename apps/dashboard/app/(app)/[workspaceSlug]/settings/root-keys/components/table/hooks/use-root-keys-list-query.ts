@@ -48,12 +48,14 @@ export function useRootKeysListQuery() {
     fetchNextPage,
     isFetchingNextPage,
     isLoading: isLoadingInitial,
-  } = useInfiniteQuery(trpc.settings.rootKeys.query.infiniteQueryOptions(queryParams, {
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  }));
+  } = useInfiniteQuery(
+    trpc.settings.rootKeys.query.infiniteQueryOptions(queryParams, {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      staleTime: Number.POSITIVE_INFINITY,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    }),
+  );
 
   useEffect(() => {
     if (rootKeyData) {

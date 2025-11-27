@@ -1,8 +1,8 @@
 "use client";
 import { useTRPC } from "@/lib/trpc/client";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
 import { useMemo } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
 
 // No need to fetch more than 10 items, because combobox allows seeing 6 items at a time so even if users scroll 10 items are more than enough.
 export const MAX_ROLES_FETCH_LIMIT = 10;
@@ -17,8 +17,8 @@ export const useFetchKeysRoles = (limit = MAX_ROLES_FETCH_LIMIT) => {
         },
         {
           getNextPageParam: (lastPage) => lastPage.nextCursor,
-        }
-      )
+        },
+      ),
     );
 
   if (error) {
@@ -29,8 +29,7 @@ export const useFetchKeysRoles = (limit = MAX_ROLES_FETCH_LIMIT) => {
       });
     } else if (error.data?.code === "INTERNAL_SERVER_ERROR") {
       toast.error("Server Error", {
-        description:
-          "We were unable to load roles. Please try again or contact support@unkey.dev",
+        description: "We were unable to load roles. Please try again or contact support@unkey.dev",
       });
     } else {
       toast.error("Failed to Load Roles", {

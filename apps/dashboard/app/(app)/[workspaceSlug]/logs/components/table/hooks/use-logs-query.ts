@@ -145,7 +145,7 @@ export function useLogsQuery({
       staleTime: Number.POSITIVE_INFINITY,
       refetchOnMount: false,
       refetchOnWindowFocus: false,
-    })
+    }),
   );
 
   // Query for new logs (polling)
@@ -157,7 +157,7 @@ export function useLogsQuery({
           ...queryParams,
           startTime: latestTime ?? Date.now() - pollIntervalMs,
           endTime: Date.now(),
-        })
+        }),
       );
 
       if (result.logs.length === 0) {

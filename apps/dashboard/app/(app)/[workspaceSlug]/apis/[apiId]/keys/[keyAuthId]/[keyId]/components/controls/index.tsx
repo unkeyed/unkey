@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/status-badge";
 import {
   ControlsContainer,
@@ -28,10 +28,12 @@ export function KeysDetailsLogsControls({
   apiId: string;
 }) {
   const trpc = useTRPC();
-  const { data, error, isLoading } = useQuery(trpc.key.fetchPermissions.queryOptions({
-    keyId,
-    keyspaceId,
-  }));
+  const { data, error, isLoading } = useQuery(
+    trpc.key.fetchPermissions.queryOptions({
+      keyId,
+      keyspaceId,
+    }),
+  );
 
   // Safe access to remaining credit with fallback
   const hasRemainingCredit =

@@ -119,15 +119,17 @@ export const useFetchActiveKeysTimeseries = (apiId: string | null) => {
     return params;
   }, [filters, timestamp, apiId]);
 
-  const { data, isLoading, isError } = useQuery(trpc.api.keys.activeKeysTimeseries.queryOptions(queryParams, {
-    refetchInterval: queryParams.endTime === timestamp ? 10_000 : false,
-    enabled: Boolean(apiId),
-    trpc: {
-      context: {
-        skipBatch: true,
+  const { data, isLoading, isError } = useQuery(
+    trpc.api.keys.activeKeysTimeseries.queryOptions(queryParams, {
+      refetchInterval: queryParams.endTime === timestamp ? 10_000 : false,
+      enabled: Boolean(apiId),
+      trpc: {
+        context: {
+          skipBatch: true,
+        },
       },
-    },
-  }));
+    }),
+  );
 
   const timeseries = useMemo(() => {
     if (!data?.timeseries) {

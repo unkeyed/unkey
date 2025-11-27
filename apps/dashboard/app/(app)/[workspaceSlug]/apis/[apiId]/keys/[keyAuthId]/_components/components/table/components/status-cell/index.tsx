@@ -19,17 +19,19 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
   const { primary, count, isLoading, statuses, isError } = useKeyStatus(keyAuthId, keyData);
   const queryClient = useQueryClient();
 
-  const enableKeyMutation = useMutation(trpc.api.keys.enableKey.mutationOptions({
-    onSuccess: async () => {
-      toast.success("Key enabled successfully!");
-      await queryClient.invalidateQueries(trpc.api.keys.list.queryFilter({ keyAuthId }));
-    },
-    onError: (error) => {
-      toast.error("Failed to enable key", {
-        description: error.message || "An unknown error occurred.",
-      });
-    },
-  }));
+  const enableKeyMutation = useMutation(
+    trpc.api.keys.enableKey.mutationOptions({
+      onSuccess: async () => {
+        toast.success("Key enabled successfully!");
+        await queryClient.invalidateQueries(trpc.api.keys.list.queryFilter({ keyAuthId }));
+      },
+      onError: (error) => {
+        toast.error("Failed to enable key", {
+          description: error.message || "An unknown error occurred.",
+        });
+      },
+    }),
+  );
 
   if (isLoading) {
     return (

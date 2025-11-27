@@ -14,10 +14,12 @@ type LastUsedCellProps = {
 
 export const LastUsedCell = ({ namespaceId, identifier }: LastUsedCellProps) => {
   const trpc = useTRPC();
-  const { data, isLoading, isError } = useQuery(trpc.ratelimit.namespace.queryRatelimitLastUsed.queryOptions({
-    namespaceId,
-    identifier,
-  }));
+  const { data, isLoading, isError } = useQuery(
+    trpc.ratelimit.namespace.queryRatelimitLastUsed.queryOptions({
+      namespaceId,
+      identifier,
+    }),
+  );
   const badgeRef = useRef<HTMLDivElement>(null);
   const [showTooltip, setShowTooltip] = useState(false);
 

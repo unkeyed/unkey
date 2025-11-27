@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { TableActionPopover } from "@/components/logs/table-action.popover";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { useTRPC } from "@/lib/trpc/client";
@@ -14,7 +14,7 @@ interface KeySettingsDialogProps {
 
 export const KeySettingsDialog = ({ keyData }: KeySettingsDialogProps) => {
   const queryClient = useQueryClient();
-  const trpc = useTRPC()
+  const trpc = useTRPC();
   const items = getKeysTableActionItems(keyData, queryClient, trpc);
 
   return (

@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useTRPC } from "@/lib/trpc/client";
 
 import type {
@@ -20,12 +20,14 @@ export const useFetchApiOverview = (
   const [total, setTotal] = useState(initialData.total);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
-  const { data, isFetching, refetch } = useQuery(trpc.api.overview.query.queryOptions(
-    { limit: DEFAULT_OVERVIEW_FETCH_LIMIT, cursor },
-    {
-      enabled: false,
-    },
-  ));
+  const { data, isFetching, refetch } = useQuery(
+    trpc.api.overview.query.queryOptions(
+      { limit: DEFAULT_OVERVIEW_FETCH_LIMIT, cursor },
+      {
+        enabled: false,
+      },
+    ),
+  );
 
   useEffect(() => {
     if (!data) {

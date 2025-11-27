@@ -1,7 +1,7 @@
 import { useTRPC } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
-import { RefreshButton } from "@unkey/ui";
 import { useQueryClient } from "@tanstack/react-query";
+import { RefreshButton } from "@unkey/ui";
 
 export const LogsRefresh = () => {
   const trpc = useTRPC();
@@ -11,7 +11,7 @@ export const LogsRefresh = () => {
   const handleRefresh = () => {
     refreshQueryTime();
     queryClient.invalidateQueries({
-      queryKey: trpc.audit.logs.queryKey()
+      queryKey: trpc.audit.logs.queryKey(),
     });
   };
 

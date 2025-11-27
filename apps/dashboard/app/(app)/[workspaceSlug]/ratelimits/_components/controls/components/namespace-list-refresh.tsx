@@ -4,10 +4,10 @@ import { RefreshButton } from "@unkey/ui";
 
 export const NamespaceListRefresh = () => {
   const trpc = useTRPC();
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   const handleRefresh = () => {
-    queryClient.invalidateQueries(trpc.ratelimit.logs.queryRatelimitTimeseries.pathFilter())
+    queryClient.invalidateQueries(trpc.ratelimit.logs.queryRatelimitTimeseries.pathFilter());
   };
 
   return <RefreshButton onRefresh={handleRefresh} isEnabled />;

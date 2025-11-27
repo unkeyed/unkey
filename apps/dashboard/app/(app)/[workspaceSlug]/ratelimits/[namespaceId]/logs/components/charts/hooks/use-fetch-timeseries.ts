@@ -58,17 +58,16 @@ export const useFetchRatelimitTimeseries = (namespaceId: string) => {
     return params;
   }, [filters, namespaceId, timestamp]);
 
-  const { data, isLoading, isError } = useQuery(trpc.ratelimit.logs.queryRatelimitTimeseries.queryOptions(
-    queryParams,
-    {
+  const { data, isLoading, isError } = useQuery(
+    trpc.ratelimit.logs.queryRatelimitTimeseries.queryOptions(queryParams, {
       refetchInterval: queryParams.endTime ? false : 10_000,
       trpc: {
         context: {
           skipBatch: true,
         },
       },
-    },
-  ));
+    }),
+  );
 
   const timeseries = data?.timeseries.map((ts) => ({
     displayX: formatTimestampForChart(ts.x, data.granularity),

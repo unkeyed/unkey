@@ -66,12 +66,14 @@ export function useRootKeyDialog({
     hasNextPage,
     isFetchingNextPage,
     isLoading: apisLoading,
-  } = useInfiniteQuery(trpc.api.overview.query.infiniteQueryOptions(
-    { limit: ROOT_KEY_CONSTANTS.DEFAULT_LIMIT },
-    {
-      getNextPageParam: (lastPage) => lastPage.nextCursor,
-    },
-  ));
+  } = useInfiniteQuery(
+    trpc.api.overview.query.infiniteQueryOptions(
+      { limit: ROOT_KEY_CONSTANTS.DEFAULT_LIMIT },
+      {
+        getNextPageParam: (lastPage) => lastPage.nextCursor,
+      },
+    ),
+  );
 
   const allApis = useMemo(() => {
     if (!apisData?.pages) {
@@ -86,40 +88,46 @@ export function useRootKeyDialog({
   }, [apisData]);
 
   // Mutations
-  const key = useMutation(trpc.rootKey.create.mutationOptions({
-    onSuccess() {
-      toast.success(ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_GENERATED);
-      queryClient.invalidateQueries(trpc.settings.rootKeys.query.pathFilter());
-    },
-    onError(err) {
-      if (err.data?.code === "BAD_REQUEST") {
-        toast.error("You need to add at least one permission.");
-      } else {
-        toast.error("Something went wrong. Please try again.");
-      }
-    },
-  }));
+  const key = useMutation(
+    trpc.rootKey.create.mutationOptions({
+      onSuccess() {
+        toast.success(ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_GENERATED);
+        queryClient.invalidateQueries(trpc.settings.rootKeys.query.pathFilter());
+      },
+      onError(err) {
+        if (err.data?.code === "BAD_REQUEST") {
+          toast.error("You need to add at least one permission.");
+        } else {
+          toast.error("Something went wrong. Please try again.");
+        }
+      },
+    }),
+  );
 
-  const updateName = useMutation(trpc.rootKey.update.name.mutationOptions({
-    onSuccess() {
-      toast.success(ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_UPDATED_NAME);
-      queryClient.invalidateQueries(trpc.settings.rootKeys.query.pathFilter());
-    },
-    onError(err: { message: string }) {
-      toast.error(err.message);
-    },
-  }));
+  const updateName = useMutation(
+    trpc.rootKey.update.name.mutationOptions({
+      onSuccess() {
+        toast.success(ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_UPDATED_NAME);
+        queryClient.invalidateQueries(trpc.settings.rootKeys.query.pathFilter());
+      },
+      onError(err: { message: string }) {
+        toast.error(err.message);
+      },
+    }),
+  );
 
-  const updatePermissions = useMutation(trpc.rootKey.update.permissions.mutationOptions({
-    onSuccess(_data, variables) {
-      const count = variables?.permissions?.length ?? 0;
-      toast.success(`${ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_UPDATED_PERMISSIONS} ${count}`);
-      queryClient.invalidateQueries(trpc.settings.rootKeys.query.pathFilter());
-    },
-    onError(err: { message: string }) {
-      toast.error(err.message);
-    },
-  }));
+  const updatePermissions = useMutation(
+    trpc.rootKey.update.permissions.mutationOptions({
+      onSuccess(_data, variables) {
+        const count = variables?.permissions?.length ?? 0;
+        toast.success(`${ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_UPDATED_PERMISSIONS} ${count}`);
+        queryClient.invalidateQueries(trpc.settings.rootKeys.query.pathFilter());
+      },
+      onError(err: { message: string }) {
+        toast.error(err.message);
+      },
+    }),
+  );
 
   const fetchMoreApis = useCallback(() => {
     if (hasNextPage) {

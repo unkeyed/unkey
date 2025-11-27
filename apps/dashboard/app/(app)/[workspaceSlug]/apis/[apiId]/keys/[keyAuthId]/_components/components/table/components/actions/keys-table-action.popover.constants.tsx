@@ -1,6 +1,8 @@
 import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/components/assign-key/hooks/use-fetch-keys";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { useTRPC } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowOppositeDirectionY,
   Ban,
@@ -26,8 +28,6 @@ import { EditRatelimits } from "./components/edit-ratelimits";
 import { KeyRbacDialog } from "./components/edit-rbac";
 import { MAX_PERMS_FETCH_LIMIT } from "./components/edit-rbac/components/assign-permission/hooks/use-fetch-keys-permissions";
 import { MAX_ROLES_FETCH_LIMIT } from "./components/edit-rbac/components/assign-role/hooks/use-fetch-keys-roles";
-import { useQueryClient } from "@tanstack/react-query";
-import { useTRPC } from "@/lib/trpc/client";
 
 export const getKeysTableActionItems = (
   key: KeyDetails,
@@ -119,7 +119,7 @@ export const getKeysTableActionItems = (
           const connectedData = await queryClient.fetchQuery(
             trpc.key.connectedRolesAndPerms.queryOptions({
               keyId: key.id,
-            })
+            }),
           );
 
           const currentRoleIds = connectedData?.roles?.map((r) => r.id) ?? [];
@@ -139,8 +139,8 @@ export const getKeysTableActionItems = (
                 trpc.key.queryPermissionSlugs.queryOptions({
                   roleIds: currentRoleIds,
                   permissionIds: allEffectivePermissionIds,
-                })
-              )
+                }),
+              ),
             );
           }
 
@@ -149,22 +149,22 @@ export const getKeysTableActionItems = (
             queryClient.prefetchInfiniteQuery(
               trpc.key.update.rbac.permissions.query.infiniteQueryOptions({
                 limit: MAX_PERMS_FETCH_LIMIT,
-              })
+              }),
             ),
             queryClient.prefetchInfiniteQuery(
               trpc.key.update.rbac.roles.query.infiniteQueryOptions({
                 limit: MAX_ROLES_FETCH_LIMIT,
-              })
+              }),
             ),
             queryClient.prefetchInfiniteQuery(
               trpc.authorization.roles.keys.query.infiniteQueryOptions({
                 limit: MAX_KEYS_FETCH_LIMIT,
-              })
+              }),
             ),
             queryClient.prefetchInfiniteQuery(
               trpc.authorization.roles.permissions.query.infiniteQueryOptions({
                 limit: MAX_PERMS_FETCH_LIMIT,
-              })
+              }),
             ),
           ]);
 
@@ -176,22 +176,22 @@ export const getKeysTableActionItems = (
               queryClient.prefetchInfiniteQuery(
                 trpc.key.update.rbac.permissions.query.infiniteQueryOptions({
                   limit: MAX_PERMS_FETCH_LIMIT,
-                })
+                }),
               ),
               queryClient.prefetchInfiniteQuery(
                 trpc.key.update.rbac.roles.query.infiniteQueryOptions({
                   limit: MAX_ROLES_FETCH_LIMIT,
-                })
+                }),
               ),
               queryClient.prefetchInfiniteQuery(
                 trpc.authorization.roles.keys.query.infiniteQueryOptions({
                   limit: MAX_KEYS_FETCH_LIMIT,
-                })
+                }),
               ),
               queryClient.prefetchInfiniteQuery(
                 trpc.authorization.roles.permissions.query.infiniteQueryOptions({
                   limit: MAX_PERMS_FETCH_LIMIT,
-                })
+                }),
               ),
             ]);
           } catch (fallbackError) {

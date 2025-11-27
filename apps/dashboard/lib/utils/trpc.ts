@@ -29,13 +29,13 @@ export const isAuthError = (error: TRPCClientErrorLike<AppRouter> | null): boole
  */
 export const createRetryFn =
   (maxRetries = 2) =>
-    (failureCount: number, error: TRPCClientErrorLike<AppRouter>) => {
-      // Don't retry on auth errors or WorkOS redirects
-      if (isAuthError(error) || isWorkOSRedirect(error)) {
-        return false;
-      }
-      return failureCount < maxRetries;
-    };
+  (failureCount: number, error: TRPCClientErrorLike<AppRouter>) => {
+    // Don't retry on auth errors or WorkOS redirects
+    if (isAuthError(error) || isWorkOSRedirect(error)) {
+      return false;
+    }
+    return failureCount < maxRetries;
+  };
 
 /**
  * Shared query options for consistent tRPC behavior
@@ -46,5 +46,3 @@ export const baseQueryOptions = {
   refetchOnWindowFocus: false,
   refetchOnReconnect: true,
 };
-
-

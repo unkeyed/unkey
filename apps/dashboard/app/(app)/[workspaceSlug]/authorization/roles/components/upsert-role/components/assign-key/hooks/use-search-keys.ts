@@ -15,13 +15,15 @@ export const useSearchKeys = (query: string, debounceMs = 300) => {
     return () => clearTimeout(timer);
   }, [query, debounceMs]);
 
-  const { data, isLoading, error } = useQuery(trpc.authorization.roles.keys.search.queryOptions(
-    { query: debouncedQuery },
-    {
-      enabled: debouncedQuery.length > 0, // Only search when there's a debounced query
-      staleTime: 30_000,
-    },
-  ));
+  const { data, isLoading, error } = useQuery(
+    trpc.authorization.roles.keys.search.queryOptions(
+      { query: debouncedQuery },
+      {
+        enabled: debouncedQuery.length > 0, // Only search when there's a debounced query
+        staleTime: 30_000,
+      },
+    ),
+  );
 
   const searchResults = useMemo(() => {
     return data?.keys || [];

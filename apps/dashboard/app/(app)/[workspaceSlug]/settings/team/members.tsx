@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { Confirm } from "@/components/dashboard/confirm";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -28,21 +28,25 @@ type MembersProps = {
 
 export const Members = memo<MembersProps>(({ organization, user, userMembership }) => {
   const trpc = useTRPC();
-  const { data: orgMemberships, isLoading } = useQuery(trpc.org.members.list.queryOptions(organization?.id));
+  const { data: orgMemberships, isLoading } = useQuery(
+    trpc.org.members.list.queryOptions(organization?.id),
+  );
   const memberships = orgMemberships?.data;
   const isAdmin = userMembership?.role === "admin";
   const queryClient = useQueryClient();
 
-  const removeMember = useMutation(trpc.org.members.remove.mutationOptions({
-    onSuccess: () => {
-      // Invalidate the member list query to trigger a refetch
-      queryClient.invalidateQueries(trpc.org.members.list.pathFilter());
-      toast.success("Member removed successfully");
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to remove member");
-    },
-  }));
+  const removeMember = useMutation(
+    trpc.org.members.remove.mutationOptions({
+      onSuccess: () => {
+        // Invalidate the member list query to trigger a refetch
+        queryClient.invalidateQueries(trpc.org.members.list.pathFilter());
+        toast.success("Member removed successfully");
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to remove member");
+      },
+    }),
+  );
 
   if (isLoading) {
     return (

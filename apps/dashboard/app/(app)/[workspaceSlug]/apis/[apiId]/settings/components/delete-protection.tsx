@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useTRPC } from "@/lib/trpc/client";
 import { ArrowUpRight, TriangleWarning2 } from "@unkey/icons";
 import { Button, DialogContainer, InlineLink, Input, SettingCard } from "@unkey/ui";
@@ -47,14 +47,16 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
 
   const isValid = watch("name") === api.name;
 
-  const updateDeleteProtection = useMutation(trpc.api.updateDeleteProtection.mutationOptions({
-    async onSuccess(_, { enabled }) {
-      onDeleteProtectionSuccess(api.name, enabled)();
-      setOpen(false);
-      reset();
-    },
-    onError,
-  }));
+  const updateDeleteProtection = useMutation(
+    trpc.api.updateDeleteProtection.mutationOptions({
+      async onSuccess(_, { enabled }) {
+        onDeleteProtectionSuccess(api.name, enabled)();
+        setOpen(false);
+        reset();
+      },
+      onError,
+    }),
+  );
 
   async function onSubmit(_values: z.infer<typeof formSchema>) {
     updateDeleteProtection.mutate({

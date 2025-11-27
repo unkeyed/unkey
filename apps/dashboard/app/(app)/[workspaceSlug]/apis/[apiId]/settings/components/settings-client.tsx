@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useTRPC } from "@/lib/trpc/client";
 import { CopyApiId } from "./copy-api-id";
 import { CopyKeySpaceId } from "./copy-key-space-id";
@@ -18,9 +18,11 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
     data: layoutData,
     isLoading,
     error,
-  } = useQuery(trpc.api.queryApiKeyDetails.queryOptions({
-    apiId,
-  }));
+  } = useQuery(
+    trpc.api.queryApiKeyDetails.queryOptions({
+      apiId,
+    }),
+  );
 
   if (isLoading) {
     return <SettingsClientSkeleton />;

@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import type { AuthenticatedUser } from "@/lib/auth/types";
 import { useTRPC } from "@/lib/trpc/client";
 import type { AppRouter } from "@/lib/trpc/routers";
@@ -42,11 +42,13 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
   const pathname = usePathname();
 
   // Get user state first
-  const userQuery = useQuery(trpc.user.getCurrentUser.queryOptions(undefined, {
-    ...baseQueryOptions,
-    retry: createRetryFn(2),
-    refetchInterval: 1000 * 60 * 10, // 10 minutes
-  }));
+  const userQuery = useQuery(
+    trpc.user.getCurrentUser.queryOptions(undefined, {
+      ...baseQueryOptions,
+      retry: createRetryFn(2),
+      refetchInterval: 1000 * 60 * 10, // 10 minutes
+    }),
+  );
 
   const { data: user, isLoading: userLoading, error: userError } = userQuery;
   const shouldEnableWorkspaceQuery = useMemo(
@@ -54,11 +56,13 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
     [userLoading, user?.id, user?.orgId, userError],
   );
 
-  const workspaceQuery = useQuery(trpc.workspace.getCurrent.queryOptions(undefined, {
-    ...baseQueryOptions,
-    enabled: shouldEnableWorkspaceQuery,
-    retry: createRetryFn(2),
-  }));
+  const workspaceQuery = useQuery(
+    trpc.workspace.getCurrent.queryOptions(undefined, {
+      ...baseQueryOptions,
+      enabled: shouldEnableWorkspaceQuery,
+      retry: createRetryFn(2),
+    }),
+  );
 
   const { data: workspace, isLoading: workspaceLoading, error: workspaceError } = workspaceQuery;
 

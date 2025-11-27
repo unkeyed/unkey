@@ -63,35 +63,39 @@ export function useDeploymentLogs({
   const scrollRef = useRef<HTMLDivElement>(null);
   const { queryTime: timestamp } = useQueryTime();
 
-  const { data: buildData, isLoading: buildLoading } = useQuery(trpc.deploy.deployment.buildSteps.queryOptions(
-    {
-      // without this check TS yells at us
-      deploymentId: deploymentId ?? "",
-    },
-    {
-      enabled: showBuildSteps && isExpanded && Boolean(deploymentId),
-      refetchInterval: BUILD_STEPS_REFETCH_INTERVAL,
-    },
-  ));
+  const { data: buildData, isLoading: buildLoading } = useQuery(
+    trpc.deploy.deployment.buildSteps.queryOptions(
+      {
+        // without this check TS yells at us
+        deploymentId: deploymentId ?? "",
+      },
+      {
+        enabled: showBuildSteps && isExpanded && Boolean(deploymentId),
+        refetchInterval: BUILD_STEPS_REFETCH_INTERVAL,
+      },
+    ),
+  );
 
-  const { data: gatewayData, isLoading: gatewayLoading } = useQuery(trpc.logs.queryLogs.queryOptions(
-    {
-      limit: GATEWAY_LOGS_LIMIT,
-      endTime: timestamp,
-      startTime: timestamp,
-      host: { filters: [], exclude: EXCLUDED_HOSTS },
-      method: { filters: [] },
-      path: { filters: [] },
-      status: { filters: [] },
-      requestId: null,
-      since: GATEWAY_LOGS_SINCE,
-    },
-    {
-      enabled: !showBuildSteps && isExpanded,
-      refetchInterval: GATEWAY_LOGS_REFETCH_INTERVAL,
-      refetchOnWindowFocus: false,
-    },
-  ));
+  const { data: gatewayData, isLoading: gatewayLoading } = useQuery(
+    trpc.logs.queryLogs.queryOptions(
+      {
+        limit: GATEWAY_LOGS_LIMIT,
+        endTime: timestamp,
+        startTime: timestamp,
+        host: { filters: [], exclude: EXCLUDED_HOSTS },
+        method: { filters: [] },
+        path: { filters: [] },
+        status: { filters: [] },
+        requestId: null,
+        since: GATEWAY_LOGS_SINCE,
+      },
+      {
+        enabled: !showBuildSteps && isExpanded,
+        refetchInterval: GATEWAY_LOGS_REFETCH_INTERVAL,
+        refetchOnWindowFocus: false,
+      },
+    ),
+  );
 
   // Update stored logs when build data changes
   useEffect(() => {

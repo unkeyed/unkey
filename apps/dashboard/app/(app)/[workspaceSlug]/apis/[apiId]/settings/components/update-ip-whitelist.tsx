@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useTRPC } from "@/lib/trpc/client";
 import type { Workspace } from "@unkey/db";
 import { ArrowUpRight, Lock, Shield } from "@unkey/icons";
@@ -46,10 +46,12 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
     },
   });
 
-  const updateIps = useMutation(trpc.api.updateIpWhitelist.mutationOptions({
-    onSuccess: onUpdateSuccess("IP whitelist updated successfully"),
-    onError,
-  }));
+  const updateIps = useMutation(
+    trpc.api.updateIpWhitelist.mutationOptions({
+      onSuccess: onUpdateSuccess("IP whitelist updated successfully"),
+      onError,
+    }),
+  );
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await updateIps.mutateAsync(values);

@@ -9,7 +9,6 @@ import { useFilters } from "../../../hooks/use-filters";
 import type { KeyDetailsLogsPayload } from "../query-logs.schema";
 
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { browserQueryClient } from "@/providers/react-query-provider";
 
 // Maximum number of real-time logs to store
 const REALTIME_DATA_LIMIT = 100;
@@ -134,23 +133,27 @@ export function useKeyDetailsLogsQuery({
     fetchNextPage,
     isFetchingNextPage,
     isLoading,
-  } = useInfiniteQuery(trpc.key.logs.query.infiniteQueryOptions(queryParams, {
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  }));
+  } = useInfiniteQuery(
+    trpc.key.logs.query.infiniteQueryOptions(queryParams, {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      staleTime: Number.POSITIVE_INFINITY,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    }),
+  );
 
   // Query for new logs (polling)
   const pollForNewLogs = useCallback(async () => {
     try {
       const latestTime = realtimeLogs[0]?.time ?? historicalLogs[0]?.time;
 
-      const result = await queryClient.fetchQuery(trpc.key.logs.query.queryOptions({
-        ...queryParams,
-        startTime: latestTime ?? Date.now() - pollIntervalMs,
-        endTime: Date.now(),
-      }));
+      const result = await queryClient.fetchQuery(
+        trpc.key.logs.query.queryOptions({
+          ...queryParams,
+          startTime: latestTime ?? Date.now() - pollIntervalMs,
+          endTime: Date.now(),
+        }),
+      );
 
       if (result.logs.length === 0) {
         return;

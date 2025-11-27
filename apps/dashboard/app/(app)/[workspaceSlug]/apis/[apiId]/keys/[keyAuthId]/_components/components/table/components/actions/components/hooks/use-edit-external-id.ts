@@ -2,9 +2,9 @@ import { useTRPC } from "@/lib/trpc/client";
 import type { TRPCClientErrorLike } from "@trpc/client";
 import { toast } from "@unkey/ui";
 
+import type { AppRouter } from "@/lib/trpc/routers";
 import { useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
-import { AppRouter } from "@/lib/trpc/routers";
 
 const handleKeyOwnerUpdateError = (err: TRPCClientErrorLike<AppRouter>) => {
   if (err.data?.code === "NOT_FOUND") {
@@ -37,32 +37,34 @@ const handleKeyOwnerUpdateError = (err: TRPCClientErrorLike<AppRouter>) => {
 export const useEditExternalId = (onSuccess?: () => void) => {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const updateKeyOwner = useMutation(trpc.key.update.ownerId.mutationOptions({
-    onSuccess(_, variables) {
-      let description = "";
-      const keyId = Array.isArray(variables.keyIds) ? variables.keyIds[0] : variables.keyIds;
+  const updateKeyOwner = useMutation(
+    trpc.key.update.ownerId.mutationOptions({
+      onSuccess(_, variables) {
+        let description = "";
+        const keyId = Array.isArray(variables.keyIds) ? variables.keyIds[0] : variables.keyIds;
 
-      if (variables.ownerType === "v2") {
-        if (variables.identity?.id) {
-          description = `Identity for key ${keyId} has been updated`;
-        } else {
-          description = `Identity has been removed from key ${keyId}`;
+        if (variables.ownerType === "v2") {
+          if (variables.identity?.id) {
+            description = `Identity for key ${keyId} has been updated`;
+          } else {
+            description = `Identity has been removed from key ${keyId}`;
+          }
         }
-      }
-      toast.success("Key External ID Updated", {
-        description,
-        duration: 5000,
-      });
+        toast.success("Key External ID Updated", {
+          description,
+          duration: 5000,
+        });
 
-      queryClient.invalidateQueries(trpc.api.keys.list.pathFilter());
-      if (onSuccess) {
-        onSuccess();
-      }
-    },
-    onError(err) {
-      handleKeyOwnerUpdateError(err);
-    },
-  }));
+        queryClient.invalidateQueries(trpc.api.keys.list.pathFilter());
+        if (onSuccess) {
+          onSuccess();
+        }
+      },
+      onError(err) {
+        handleKeyOwnerUpdateError(err);
+      },
+    }),
+  );
 
   return updateKeyOwner;
 };
@@ -70,47 +72,52 @@ export const useEditExternalId = (onSuccess?: () => void) => {
 export const useBatchEditExternalId = (onSuccess?: () => void) => {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const batchUpdateKeyOwner = useMutation(trpc.key.update.ownerId.mutationOptions({
-    onSuccess(data, variables) {
-      const updatedCount = data.updatedCount;
-      let description = "";
+  const batchUpdateKeyOwner = useMutation(
+    trpc.key.update.ownerId.mutationOptions({
+      onSuccess(data, variables) {
+        const updatedCount = data.updatedCount;
+        let description = "";
 
-      if (variables.ownerType === "v2") {
-        if (variables.identity?.id) {
-          description = `Identity has been updated for ${updatedCount} ${updatedCount === 1 ? "key" : "keys"
+        if (variables.ownerType === "v2") {
+          if (variables.identity?.id) {
+            description = `Identity has been updated for ${updatedCount} ${
+              updatedCount === 1 ? "key" : "keys"
             }`;
-        } else {
-          description = `Identity has been removed from ${updatedCount} ${updatedCount === 1 ? "key" : "keys"
+          } else {
+            description = `Identity has been removed from ${updatedCount} ${
+              updatedCount === 1 ? "key" : "keys"
             }`;
+          }
         }
-      }
-      toast.success("Key External ID Updated", {
-        description,
-        duration: 5000,
-      });
-
-      // Show warning if some keys were not found (if that info is available in the response)
-      const missingCount = Array.isArray(variables.keyIds)
-        ? variables.keyIds.length - updatedCount
-        : 0;
-
-      if (missingCount > 0) {
-        toast.warning("Some Keys Not Found", {
-          description: `${missingCount} ${missingCount === 1 ? "key was" : "keys were"
-            } not found and could not be updated.`,
-          duration: 7000,
+        toast.success("Key External ID Updated", {
+          description,
+          duration: 5000,
         });
-      }
 
-      queryClient.invalidateQueries(trpc.api.keys.list.pathFilter());
-      if (onSuccess) {
-        onSuccess();
-      }
-    },
-    onError(err) {
-      handleKeyOwnerUpdateError(err);
-    },
-  }));
+        // Show warning if some keys were not found (if that info is available in the response)
+        const missingCount = Array.isArray(variables.keyIds)
+          ? variables.keyIds.length - updatedCount
+          : 0;
+
+        if (missingCount > 0) {
+          toast.warning("Some Keys Not Found", {
+            description: `${missingCount} ${
+              missingCount === 1 ? "key was" : "keys were"
+            } not found and could not be updated.`,
+            duration: 7000,
+          });
+        }
+
+        queryClient.invalidateQueries(trpc.api.keys.list.pathFilter());
+        if (onSuccess) {
+          onSuccess();
+        }
+      },
+      onError(err) {
+        handleKeyOwnerUpdateError(err);
+      },
+    }),
+  );
 
   return batchUpdateKeyOwner;
 };

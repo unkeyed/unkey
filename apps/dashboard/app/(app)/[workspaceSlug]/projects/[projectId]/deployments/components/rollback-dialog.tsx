@@ -54,32 +54,34 @@ export const RollbackDialog = ({
       .where(({ domain }) => inArray(domain.sticky, ["environment", "live"])),
   );
 
-  const rollback = useMutation(trpc.deploy.deployment.rollback.mutationOptions({
-    onSuccess: () => {
-      queryClient.invalidateQueries(trpc.pathFilter());
-      toast.success("Rollback completed", {
-        description: `Successfully rolled back to deployment ${targetDeployment.id}`,
-      });
-      // hack to revalidate
-      try {
-        // @ts-expect-error Their docs say it's here
-        collection.projects.utils.refetch();
-        // @ts-expect-error Their docs say it's here
-        collection.deployments.utils.refetch();
-        // @ts-expect-error Their docs say it's here
-        collection.domains.utils.refetch();
-      } catch (error) {
-        console.error("Refetch error:", error);
-      }
+  const rollback = useMutation(
+    trpc.deploy.deployment.rollback.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries(trpc.pathFilter());
+        toast.success("Rollback completed", {
+          description: `Successfully rolled back to deployment ${targetDeployment.id}`,
+        });
+        // hack to revalidate
+        try {
+          // @ts-expect-error Their docs say it's here
+          collection.projects.utils.refetch();
+          // @ts-expect-error Their docs say it's here
+          collection.deployments.utils.refetch();
+          // @ts-expect-error Their docs say it's here
+          collection.domains.utils.refetch();
+        } catch (error) {
+          console.error("Refetch error:", error);
+        }
 
-      onClose();
-    },
-    onError: (error) => {
-      toast.error("Rollback failed", {
-        description: error.message,
-      });
-    },
-  }));
+        onClose();
+      },
+      onError: (error) => {
+        toast.error("Rollback failed", {
+          description: error.message,
+        });
+      },
+    }),
+  );
 
   const handleRollback = async () => {
     await rollback

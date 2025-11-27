@@ -3,7 +3,7 @@
  * Hiding for now until we decide if we want to fix it up or toss it
  */
 
-"use client";;
+"use client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,13 +28,14 @@ import { useQueryClient } from "@tanstack/react-query";
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const trpc = useTRPC();
   const { data: user } = useQuery(trpc.user.getCurrentUser.queryOptions());
-  const { data: memberships, isLoading: isUserMembershipsLoading } =
-    useQuery(trpc.user.listMemberships.queryOptions(
+  const { data: memberships, isLoading: isUserMembershipsLoading } = useQuery(
+    trpc.user.listMemberships.queryOptions(
       user?.id as string, // make typescript happy
       {
         enabled: !!user,
       },
-    ));
+    ),
+  );
   const queryClient = useQueryClient();
   // const { switchOrganization } = useUser();
   // const { organization: currentOrg } = useOrganization();
@@ -49,30 +50,32 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
     (membership) => membership.organization.id === user?.orgId,
   );
 
-  const changeWorkspace = useMutation(trpc.user.switchOrg.mutationOptions({
-    async onSuccess(sessionData) {
-      if (!sessionData.token || !sessionData.expiresAt) {
-        console.error("Invalid session data received:", sessionData);
-        toast.error("Failed to switch workspace. Invalid session data.");
-        return;
-      }
+  const changeWorkspace = useMutation(
+    trpc.user.switchOrg.mutationOptions({
+      async onSuccess(sessionData) {
+        if (!sessionData.token || !sessionData.expiresAt) {
+          console.error("Invalid session data received:", sessionData);
+          toast.error("Failed to switch workspace. Invalid session data.");
+          return;
+        }
 
-      try {
-        await setSessionCookie({
-          token: sessionData.token,
-          expiresAt: sessionData.expiresAt,
-        });
-        queryClient.invalidateQueries(trpc.user.getCurrentUser.pathFilter());
-      } catch (error) {
-        console.error("Failed to set session cookie:", error);
-        toast.error("Failed to complete workspace switch. Please try again.");
-      }
-    },
-    onError(error) {
-      console.error("Failed to switch workspace: ", error);
-      toast.error("Failed to switch workspace. Contact support if error persists.");
-    },
-  }));
+        try {
+          await setSessionCookie({
+            token: sessionData.token,
+            expiresAt: sessionData.expiresAt,
+          });
+          queryClient.invalidateQueries(trpc.user.getCurrentUser.pathFilter());
+        } catch (error) {
+          console.error("Failed to set session cookie:", error);
+          toast.error("Failed to complete workspace switch. Please try again.");
+        }
+      },
+      onError(error) {
+        console.error("Failed to switch workspace: ", error);
+        toast.error("Failed to switch workspace. Contact support if error persists.");
+      },
+    }),
+  );
 
   async function changeOrg(orgId: string | null) {
     if (!orgId) {

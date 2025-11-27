@@ -9,54 +9,58 @@ export const useDeleteRole = (
 ) => {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const deleteRole = useMutation(trpc.authorization.roles.delete.mutationOptions({
-    onSuccess(data, variables) {
-      queryClient.invalidateQueries(trpc.authorization.roles.pathFilter());
+  const deleteRole = useMutation(
+    trpc.authorization.roles.delete.mutationOptions({
+      onSuccess(data, variables) {
+        queryClient.invalidateQueries(trpc.authorization.roles.pathFilter());
 
-      const roleCount = data.deletedCount;
-      const isPlural = roleCount > 1;
+        const roleCount = data.deletedCount;
+        const isPlural = roleCount > 1;
 
-      toast.success(isPlural ? "Roles Deleted" : "Role Deleted", {
-        description: isPlural
-          ? `${roleCount} roles have been successfully removed from your workspace.`
-          : "The role has been successfully removed from your workspace.",
-      });
+        toast.success(isPlural ? "Roles Deleted" : "Role Deleted", {
+          description: isPlural
+            ? `${roleCount} roles have been successfully removed from your workspace.`
+            : "The role has been successfully removed from your workspace.",
+        });
 
-      onSuccess({
-        roleIds: variables.roleIds,
-        message: isPlural ? `${roleCount} roles deleted successfully` : "Role deleted successfully",
-      });
-    },
-    onError(err) {
-      if (err.data?.code === "NOT_FOUND") {
-        toast.error("Role(s) Not Found", {
-          description:
-            "One or more roles you're trying to delete no longer exist or you don't have access to them.",
+        onSuccess({
+          roleIds: variables.roleIds,
+          message: isPlural
+            ? `${roleCount} roles deleted successfully`
+            : "Role deleted successfully",
         });
-      } else if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid Request", {
-          description: err.message || "Please provide at least one role to delete.",
-        });
-      } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
-        toast.error("Server Error", {
-          description:
-            "We encountered an issue while deleting your roles. Please try again later or contact support.",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
-          },
-        });
-      } else {
-        toast.error("Failed to Delete Role(s)", {
-          description: err.message || "An unexpected error occurred. Please try again later.",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
-          },
-        });
-      }
-    },
-  }));
+      },
+      onError(err) {
+        if (err.data?.code === "NOT_FOUND") {
+          toast.error("Role(s) Not Found", {
+            description:
+              "One or more roles you're trying to delete no longer exist or you don't have access to them.",
+          });
+        } else if (err.data?.code === "BAD_REQUEST") {
+          toast.error("Invalid Request", {
+            description: err.message || "Please provide at least one role to delete.",
+          });
+        } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
+          toast.error("Server Error", {
+            description:
+              "We encountered an issue while deleting your roles. Please try again later or contact support.",
+            action: {
+              label: "Contact Support",
+              onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+            },
+          });
+        } else {
+          toast.error("Failed to Delete Role(s)", {
+            description: err.message || "An unexpected error occurred. Please try again later.",
+            action: {
+              label: "Contact Support",
+              onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+            },
+          });
+        }
+      },
+    }),
+  );
 
   return deleteRole;
 };

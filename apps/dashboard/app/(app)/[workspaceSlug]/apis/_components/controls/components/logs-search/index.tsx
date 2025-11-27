@@ -1,8 +1,8 @@
 import { useTRPC } from "@/lib/trpc/client";
 import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
+import { useMutation } from "@tanstack/react-query";
 import { LLMSearch, toast } from "@unkey/ui";
 import { useRef } from "react";
-import { useMutation } from "@tanstack/react-query";
 type Props = {
   apiList: ApiOverview[];
   onApiListChange: (apiList: ApiOverview[]) => void;
@@ -13,27 +13,29 @@ export const LogsSearch = ({ onSearch, onApiListChange, apiList }: Props) => {
   const trpc = useTRPC();
   const originalApiList = useRef<ApiOverview[]>([]);
   const isSearchingRef = useRef<boolean>(false);
-  const searchApiOverview = useMutation(trpc.api.overview.search.mutationOptions({
-    onSuccess(data) {
-      // Store original list before first search
-      if (!isSearchingRef.current) {
-        originalApiList.current = [...apiList];
-        isSearchingRef.current = true;
-      }
-      onSearch(true);
-      onApiListChange(data);
-    },
-    onError(error) {
-      toast.error(error.message, {
-        duration: 8000,
-        position: "top-right",
-        style: {
-          whiteSpace: "pre-line",
-        },
-        className: "font-medium",
-      });
-    },
-  }));
+  const searchApiOverview = useMutation(
+    trpc.api.overview.search.mutationOptions({
+      onSuccess(data) {
+        // Store original list before first search
+        if (!isSearchingRef.current) {
+          originalApiList.current = [...apiList];
+          isSearchingRef.current = true;
+        }
+        onSearch(true);
+        onApiListChange(data);
+      },
+      onError(error) {
+        toast.error(error.message, {
+          duration: 8000,
+          position: "top-right",
+          style: {
+            whiteSpace: "pre-line",
+          },
+          className: "font-medium",
+        });
+      },
+    }),
+  );
 
   const handleClear = () => {
     // Reset to original state when search is cleared
