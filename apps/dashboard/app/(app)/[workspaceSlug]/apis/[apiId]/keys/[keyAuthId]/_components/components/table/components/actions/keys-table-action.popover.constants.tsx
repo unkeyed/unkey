@@ -1,6 +1,5 @@
 import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/components/assign-key/hooks/use-fetch-keys";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import {
   ArrowOppositeDirectionY,
@@ -27,10 +26,13 @@ import { EditRatelimits } from "./components/edit-ratelimits";
 import { KeyRbacDialog } from "./components/edit-rbac";
 import { MAX_PERMS_FETCH_LIMIT } from "./components/edit-rbac/components/assign-permission/hooks/use-fetch-keys-permissions";
 import { MAX_ROLES_FETCH_LIMIT } from "./components/edit-rbac/components/assign-role/hooks/use-fetch-keys-roles";
+import { useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "@/lib/trpc/client";
 
 export const getKeysTableActionItems = (
   key: KeyDetails,
-  trpcUtils: ReturnType<typeof trpc.useUtils>,
+  queryClient: ReturnType<typeof useQueryClient>,
+  trpc: ReturnType<typeof useTRPC>,
 ): MenuItem[] => {
   return [
     {
@@ -114,9 +116,11 @@ export const getKeysTableActionItems = (
       prefetch: async () => {
         try {
           // Primary data - always needed when dialog opens
-          const connectedData = await trpcUtils.key.connectedRolesAndPerms.fetch({
-            keyId: key.id,
-          });
+          const connectedData = await queryClient.fetchQuery(
+            trpc.key.connectedRolesAndPerms.queryOptions({
+              keyId: key.id,
+            })
+          );
 
           const currentRoleIds = connectedData?.roles?.map((r) => r.id) ?? [];
           const directPermissionIds =
@@ -131,27 +135,37 @@ export const getKeysTableActionItems = (
 
           if (allEffectivePermissionIds.length > 0 || currentRoleIds.length > 0) {
             dependentPrefetches.push(
-              trpcUtils.key.queryPermissionSlugs.prefetch({
-                roleIds: currentRoleIds,
-                permissionIds: allEffectivePermissionIds,
-              }),
+              queryClient.prefetchQuery(
+                trpc.key.queryPermissionSlugs.queryOptions({
+                  roleIds: currentRoleIds,
+                  permissionIds: allEffectivePermissionIds,
+                })
+              )
             );
           }
 
           // Always prefetch combobox data - independent of connectedData
           const comboboxDataPromise = Promise.all([
-            trpcUtils.key.update.rbac.permissions.query.prefetchInfinite({
-              limit: MAX_PERMS_FETCH_LIMIT,
-            }),
-            trpcUtils.key.update.rbac.roles.query.prefetchInfinite({
-              limit: MAX_ROLES_FETCH_LIMIT,
-            }),
-            trpcUtils.authorization.roles.keys.query.prefetchInfinite({
-              limit: MAX_KEYS_FETCH_LIMIT,
-            }),
-            trpcUtils.authorization.roles.permissions.query.prefetchInfinite({
-              limit: MAX_PERMS_FETCH_LIMIT,
-            }),
+            queryClient.prefetchInfiniteQuery(
+              trpc.key.update.rbac.permissions.query.infiniteQueryOptions({
+                limit: MAX_PERMS_FETCH_LIMIT,
+              })
+            ),
+            queryClient.prefetchInfiniteQuery(
+              trpc.key.update.rbac.roles.query.infiniteQueryOptions({
+                limit: MAX_ROLES_FETCH_LIMIT,
+              })
+            ),
+            queryClient.prefetchInfiniteQuery(
+              trpc.authorization.roles.keys.query.infiniteQueryOptions({
+                limit: MAX_KEYS_FETCH_LIMIT,
+              })
+            ),
+            queryClient.prefetchInfiniteQuery(
+              trpc.authorization.roles.permissions.query.infiniteQueryOptions({
+                limit: MAX_PERMS_FETCH_LIMIT,
+              })
+            ),
           ]);
 
           await Promise.all([comboboxDataPromise, ...dependentPrefetches]);
@@ -159,18 +173,26 @@ export const getKeysTableActionItems = (
           // Fallback: prefetch only the combobox data which doesn't depend on connectedData
           try {
             await Promise.all([
-              trpcUtils.key.update.rbac.permissions.query.prefetchInfinite({
-                limit: MAX_PERMS_FETCH_LIMIT,
-              }),
-              trpcUtils.key.update.rbac.roles.query.prefetchInfinite({
-                limit: MAX_ROLES_FETCH_LIMIT,
-              }),
-              trpcUtils.authorization.roles.keys.query.prefetchInfinite({
-                limit: MAX_KEYS_FETCH_LIMIT,
-              }),
-              trpcUtils.authorization.roles.permissions.query.prefetchInfinite({
-                limit: MAX_PERMS_FETCH_LIMIT,
-              }),
+              queryClient.prefetchInfiniteQuery(
+                trpc.key.update.rbac.permissions.query.infiniteQueryOptions({
+                  limit: MAX_PERMS_FETCH_LIMIT,
+                })
+              ),
+              queryClient.prefetchInfiniteQuery(
+                trpc.key.update.rbac.roles.query.infiniteQueryOptions({
+                  limit: MAX_ROLES_FETCH_LIMIT,
+                })
+              ),
+              queryClient.prefetchInfiniteQuery(
+                trpc.authorization.roles.keys.query.infiniteQueryOptions({
+                  limit: MAX_KEYS_FETCH_LIMIT,
+                })
+              ),
+              queryClient.prefetchInfiniteQuery(
+                trpc.authorization.roles.permissions.query.infiniteQueryOptions({
+                  limit: MAX_PERMS_FETCH_LIMIT,
+                })
+              ),
             ]);
           } catch (fallbackError) {
             console.warn("Failed to prefetch combobox data:", fallbackError);
@@ -193,7 +215,8 @@ type KeysTableActionsProps = {
 };
 
 export const KeysTableActions = ({ keyData }: KeysTableActionsProps) => {
-  const trpcUtils = trpc.useUtils();
-  const items = getKeysTableActionItems(keyData, trpcUtils);
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const items = getKeysTableActionItems(keyData, queryClient, trpc);
   return <TableActionPopover items={items} />;
 };

@@ -1,11 +1,15 @@
 import { UNNAMED_KEY } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.constants";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
 
-export const useEditKeyName = (onSuccess: () => void) => {
-  const trpcUtils = trpc.useUtils();
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
-  const key = trpc.key.update.name.useMutation({
+export const useEditKeyName = (onSuccess: () => void) => {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  const key = useMutation(trpc.key.update.name.mutationOptions({
     onSuccess(data) {
       const nameChange =
         data.previousName !== data.newName
@@ -17,7 +21,7 @@ export const useEditKeyName = (onSuccess: () => void) => {
         duration: 5000,
       });
 
-      trpcUtils.api.keys.list.invalidate();
+      queryClient.invalidateQueries(trpc.api.keys.list.pathFilter());
       onSuccess();
     },
     onError(err) {
@@ -50,7 +54,7 @@ export const useEditKeyName = (onSuccess: () => void) => {
         });
       }
     },
-  });
+  }));
 
   return key;
 };

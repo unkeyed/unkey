@@ -1,13 +1,17 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
+
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const useDeleteRole = (
   onSuccess: (data: { roleIds: string[] | string; message: string }) => void,
 ) => {
-  const trpcUtils = trpc.useUtils();
-  const deleteRole = trpc.authorization.roles.delete.useMutation({
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const deleteRole = useMutation(trpc.authorization.roles.delete.mutationOptions({
     onSuccess(data, variables) {
-      trpcUtils.authorization.roles.invalidate();
+      queryClient.invalidateQueries(trpc.authorization.roles.pathFilter());
 
       const roleCount = data.deletedCount;
       const isPlural = roleCount > 1;
@@ -52,7 +56,7 @@ export const useDeleteRole = (
         });
       }
     },
-  });
+  }));
 
   return deleteRole;
 };

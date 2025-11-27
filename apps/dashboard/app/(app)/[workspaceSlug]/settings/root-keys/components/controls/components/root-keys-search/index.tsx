@@ -1,12 +1,15 @@
 import { transformStructuredOutputToFilters } from "@/components/logs/validation/utils/transform-structured-output-filter-format";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { LLMSearch, toast } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
 
+import { useMutation } from "@tanstack/react-query";
+
 export const RootKeysSearch = () => {
+  const trpc = useTRPC();
   const { filters, updateFilters } = useFilters();
 
-  const queryLLMForStructuredOutput = trpc.settings.rootKeys.llmSearch.useMutation({
+  const queryLLMForStructuredOutput = useMutation(trpc.settings.rootKeys.llmSearch.mutationOptions({
     onSuccess(data) {
       if (!data?.filters?.length) {
         toast.error(
@@ -25,9 +28,8 @@ export const RootKeysSearch = () => {
       updateFilters(transformedFilters);
     },
     onError(error) {
-      const errorMessage = `Unable to process your search request${
-        error.message ? `: ${error.message}` : "."
-      } Please try again or refine your search criteria.`;
+      const errorMessage = `Unable to process your search request${error.message ? `: ${error.message}` : "."
+        } Please try again or refine your search criteria.`;
       toast.error(errorMessage, {
         duration: 8000,
         position: "top-right",
@@ -37,7 +39,7 @@ export const RootKeysSearch = () => {
         className: "font-medium",
       });
     },
-  });
+  }));
 
   return (
     <LLMSearch
@@ -47,7 +49,7 @@ export const RootKeysSearch = () => {
         "Find keys named exactly 'super_admin'",
         "Show keys with write permissions and user keys",
       ]}
-      isLoading={queryLLMForStructuredOutput.isLoading}
+      isLoading={queryLLMForStructuredOutput.isPending}
       searchMode="manual"
       onSearch={(query) =>
         queryLLMForStructuredOutput.mutateAsync({

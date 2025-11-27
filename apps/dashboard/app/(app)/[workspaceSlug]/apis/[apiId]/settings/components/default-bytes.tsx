@@ -1,7 +1,7 @@
-"use client";
+"use client";;
 import { revalidate } from "@/app/actions";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { Button, Input, SettingCard } from "@unkey/ui";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -12,6 +12,8 @@ import {
   getStandardButtonProps,
   validateFormChange,
 } from "./key-settings-form-helper";
+
+import { useMutation } from "@tanstack/react-query";
 
 const formSchema = z.object({
   keyAuthId: z.string(),
@@ -27,6 +29,7 @@ type Props = {
 };
 
 export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
+  const trpc = useTRPC();
   const { onUpdateSuccess, onError } = createMutationHandlers();
   const workspace = useWorkspaceNavigation();
 
@@ -42,10 +45,10 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
     },
   });
 
-  const setDefaultBytes = trpc.api.setDefaultBytes.useMutation({
+  const setDefaultBytes = useMutation(trpc.api.setDefaultBytes.mutationOptions({
     onSuccess: onUpdateSuccess("Default Byte Length Updated"),
     onError,
-  });
+  }));
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (

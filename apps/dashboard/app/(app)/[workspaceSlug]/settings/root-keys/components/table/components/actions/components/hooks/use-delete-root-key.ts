@@ -1,13 +1,17 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
+
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const useDeleteRootKey = (
   onSuccess: (data: { keyIds: string[]; message: string }) => void,
 ) => {
-  const trpcUtils = trpc.useUtils();
-  const deleteRootKey = trpc.settings.rootKeys.delete.useMutation({
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const deleteRootKey = useMutation(trpc.settings.rootKeys.delete.mutationOptions({
     onSuccess(_, variables) {
-      trpcUtils.settings.rootKeys.query.invalidate();
+      queryClient.invalidateQueries(trpc.settings.rootKeys.query.pathFilter());
       toast.success("Root Key Deleted", {
         description:
           "The root key has been permanently deleted and can no longer create resources.",
@@ -46,6 +50,6 @@ export const useDeleteRootKey = (
         });
       }
     },
-  });
+  }));
   return deleteRootKey;
 };

@@ -1,16 +1,26 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { RefreshButton } from "@unkey/ui";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const LogsRefresh = () => {
   const { refreshQueryTime } = useQueryTime();
-  const { ratelimit } = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     refreshQueryTime();
-    ratelimit.overview.logs.query.invalidate();
-    ratelimit.overview.logs.queryRatelimitLatencyTimeseries.invalidate();
-    ratelimit.logs.queryRatelimitTimeseries.invalidate();
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: trpc.ratelimit.overview.logs.query.queryKey()
+      }),
+      queryClient.invalidateQueries({
+        queryKey: trpc.ratelimit.overview.logs.queryRatelimitLatencyTimeseries.queryKey()
+      }),
+      queryClient.invalidateQueries({
+        queryKey: trpc.ratelimit.logs.queryRatelimitTimeseries.queryKey()
+      })
+    ]);
   };
 
   return <RefreshButton onRefresh={handleRefresh} isEnabled />;

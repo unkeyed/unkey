@@ -1,5 +1,5 @@
-"use client";
-import { trpc } from "@/lib/trpc/client";
+"use client";;
+import { useTRPC } from "@/lib/trpc/client";
 import { ArrowUpRight, TriangleWarning2 } from "@unkey/icons";
 import { Button, DialogContainer, InlineLink, Input, SettingCard } from "@unkey/ui";
 import type React from "react";
@@ -8,6 +8,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { createApiFormConfig, createMutationHandlers } from "./key-settings-form-helper";
 import { StatusBadge } from "./status-badge";
+
+import { useMutation } from "@tanstack/react-query";
 
 type Props = {
   api: {
@@ -19,6 +21,7 @@ type Props = {
 };
 
 export const DeleteProtection: React.FC<Props> = ({ api }) => {
+  const trpc = useTRPC();
   const { onDeleteProtectionSuccess, onError } = createMutationHandlers();
   const [open, setOpen] = useState(false);
 
@@ -44,14 +47,14 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
 
   const isValid = watch("name") === api.name;
 
-  const updateDeleteProtection = trpc.api.updateDeleteProtection.useMutation({
+  const updateDeleteProtection = useMutation(trpc.api.updateDeleteProtection.mutationOptions({
     async onSuccess(_, { enabled }) {
       onDeleteProtectionSuccess(api.name, enabled)();
       setOpen(false);
       reset();
     },
     onError,
-  });
+  }));
 
   async function onSubmit(_values: z.infer<typeof formSchema>) {
     updateDeleteProtection.mutate({

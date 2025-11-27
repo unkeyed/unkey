@@ -1,5 +1,4 @@
-"use client";
-
+"use client";;
 import { Confirm } from "@/components/dashboard/confirm";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -11,11 +10,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { Button, Empty, Loading, toast } from "@unkey/ui";
 import { memo } from "react";
 import { InviteButton } from "./invite";
 import { RoleSwitcher } from "./role-switcher";
+
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 type MembersProps = {
   organization: Organization;
@@ -24,21 +27,22 @@ type MembersProps = {
 };
 
 export const Members = memo<MembersProps>(({ organization, user, userMembership }) => {
-  const { data: orgMemberships, isLoading } = trpc.org.members.list.useQuery(organization?.id);
+  const trpc = useTRPC();
+  const { data: orgMemberships, isLoading } = useQuery(trpc.org.members.list.queryOptions(organization?.id));
   const memberships = orgMemberships?.data;
   const isAdmin = userMembership?.role === "admin";
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
-  const removeMember = trpc.org.members.remove.useMutation({
+  const removeMember = useMutation(trpc.org.members.remove.mutationOptions({
     onSuccess: () => {
       // Invalidate the member list query to trigger a refetch
-      utils.org.members.list.invalidate();
+      queryClient.invalidateQueries(trpc.org.members.list.pathFilter());
       toast.success("Member removed successfully");
     },
     onError: (error) => {
       toast.error(error.message || "Failed to remove member");
     },
-  });
+  }));
 
   if (isLoading) {
     return (

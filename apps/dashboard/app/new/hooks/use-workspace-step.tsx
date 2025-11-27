@@ -1,5 +1,5 @@
 import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { StackPerspective2 } from "@unkey/icons";
 import { Button, FormInput, toast } from "@unkey/ui";
@@ -8,6 +8,9 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import type { OnboardingStep } from "../components/onboarding-wizard";
+
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 const workspaceSchema = z.object({
   workspaceName: z
@@ -34,12 +37,13 @@ type Props = {
 };
 
 export const useWorkspaceStep = (props: Props): OnboardingStep => {
+  const trpc = useTRPC();
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [workspaceCreated, setWorkspaceCreated] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     setIsMounted(true);
@@ -54,7 +58,7 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
     },
   });
 
-  const switchOrgMutation = trpc.user.switchOrg.useMutation({
+  const switchOrgMutation = useMutation(trpc.user.switchOrg.mutationOptions({
     onSuccess: async (sessionData) => {
       if (!sessionData.expiresAt) {
         console.error("Missing session data: ", sessionData);
@@ -68,11 +72,11 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
       });
 
       // invalidate the user cache and workspace cache.
-      await utils.user.getCurrentUser.invalidate();
-      await utils.workspace.getCurrent.invalidate();
-      await utils.api.invalidate();
-      await utils.ratelimit.invalidate();
-      await utils.stripe.invalidate();
+      await queryClient.invalidateQueries(trpc.user.getCurrentUser.pathFilter());
+      await queryClient.invalidateQueries(trpc.workspace.getCurrent.pathFilter());
+      await queryClient.invalidateQueries(trpc.api.pathFilter());
+      await queryClient.invalidateQueries(trpc.ratelimit.pathFilter());
+      await queryClient.invalidateQueries(trpc.stripe.pathFilter());
       // Force a router refresh to ensure the server-side layout
       // re-renders with the new session context and fresh workspace data
       router.refresh();
@@ -80,9 +84,9 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
     onError: (error) => {
       toast.error(`Failed to load new workspace: ${error.message}`);
     },
-  });
+  }));
 
-  const createWorkspace = trpc.workspace.create.useMutation({
+  const createWorkspace = useMutation(trpc.workspace.create.mutationOptions({
     onSuccess: async ({ orgId }) => {
       setWorkspaceCreated(true);
 
@@ -124,7 +128,7 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
         toast.error(`Failed to create workspace: ${error.message}`);
       }
     },
-  });
+  }));
 
   const onSubmit = async (data: WorkspaceFormData) => {
     if (workspaceCreated) {
@@ -148,7 +152,7 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
     return !hasError && hasValue;
   }).length;
 
-  const isLoading = createWorkspace.isLoading;
+  const isLoading = createWorkspace.isPending;
   return {
     name: "Workspace",
     icon: <StackPerspective2 iconSize="sm-regular" className="text-gray-11" />,

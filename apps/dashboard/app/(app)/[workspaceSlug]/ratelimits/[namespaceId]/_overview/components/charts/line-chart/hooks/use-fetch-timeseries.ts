@@ -1,12 +1,15 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useMemo } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 import type { RatelimitOverviewQueryTimeseriesPayload } from "../../bar-chart/query-timeseries.schema";
 
+import { useQuery } from "@tanstack/react-query";
+
 export const useFetchRatelimitOverviewLatencyTimeseries = (namespaceId: string) => {
+  const trpc = useTRPC();
   const { filters } = useFilters();
   const { queryTime: timestamp } = useQueryTime();
 
@@ -56,14 +59,16 @@ export const useFetchRatelimitOverviewLatencyTimeseries = (namespaceId: string) 
   }, [filters, timestamp, namespaceId]);
 
   const { data, isLoading, isError } =
-    trpc.ratelimit.overview.logs.queryRatelimitLatencyTimeseries.useQuery(queryParams, {
-      refetchInterval: queryParams.endTime ? false : 10_000,
-      trpc: {
-        context: {
-          skipBatch: true,
+    useQuery(
+      trpc.ratelimit.overview.logs.queryRatelimitLatencyTimeseries.queryOptions(queryParams, {
+        refetchInterval: queryParams.endTime ? false : 10_000,
+        trpc: {
+          context: {
+            skipBatch: true,
+          },
         },
-      },
-    });
+      })
+    );
 
   const timeseries = data?.timeseries.map((ts) => ({
     displayX: formatTimestampForChart(ts.x, data.granularity),

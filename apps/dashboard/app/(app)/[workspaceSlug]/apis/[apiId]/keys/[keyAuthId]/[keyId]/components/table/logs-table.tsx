@@ -1,8 +1,8 @@
-"use client";
+"use client";;
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { shortenId } from "@/lib/shorten-id";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
@@ -21,6 +21,8 @@ import { useCallback, useState } from "react";
 import { useKeyDetailsLogsContext } from "../../context/logs";
 import { StatusBadge } from "./components/status-badge";
 import { useKeyDetailsLogsQuery } from "./hooks/use-logs-query";
+
+import { useQueryClient } from "@tanstack/react-query";
 
 type LogOutcomeType = (typeof KEY_VERIFICATION_OUTCOMES)[number];
 type LogOutcomeInfo = {
@@ -180,6 +182,7 @@ type Props = {
 };
 
 export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelect }: Props) => {
+  const trpc = useTRPC();
   const { isLive } = useKeyDetailsLogsContext();
   const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore, hasMore, totalCount } =
     useKeyDetailsLogsQuery({
@@ -205,14 +208,14 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
 
   const [hoveredLogId, setHoveredLogId] = useState<string | null>(null);
   const { queryTime: timestamp } = useQueryTime();
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   const handleRowHover = useCallback(
     (log: KeyDetailsLog) => {
       if (log.request_id !== hoveredLogId) {
         setHoveredLogId(log.request_id);
 
-        utils.logs.queryLogs.prefetch({
+        queryClient.prefetchQuery(trpc.logs.queryLogs.queryOptions({
           limit: 1,
           startTime: 0,
           endTime: timestamp,
@@ -229,10 +232,10 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
             ],
           },
           since: "",
-        });
+        }));
       }
     },
-    [hoveredLogId, utils.logs.queryLogs, timestamp],
+    [hoveredLogId, timestamp],
   );
 
   const handleRowMouseLeave = useCallback(() => {

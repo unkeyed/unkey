@@ -1,14 +1,17 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import { useEffect, useMemo, useState } from "react";
 import { useFilters } from "../../../hooks/use-filters";
 import { type AuditQueryLogsPayload, DEFAULT_BUCKET_NAME } from "../query-logs.schema";
+
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 type UseLogsQueryParams = {
   limit?: number;
 };
 
 export function useAuditLogsQuery({ limit = 50 }: UseLogsQueryParams) {
+  const trpc = useTRPC();
   const [historicalLogsMap, setHistoricalLogsMap] = useState(() => new Map<string, AuditLog>());
 
   const { filters } = useFilters();
@@ -103,12 +106,12 @@ export function useAuditLogsQuery({ limit = 50 }: UseLogsQueryParams) {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = trpc.audit.logs.useInfiniteQuery(queryParams, {
+  } = useInfiniteQuery(trpc.audit.logs.infiniteQueryOptions(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
-  });
+  }));
 
   // Update historical logs effect
   useEffect(() => {

@@ -1,7 +1,6 @@
-"use client";
-
+"use client";;
 import { EmptyComponentSpacer } from "@/components/empty-component-spacer";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -12,9 +11,12 @@ import { ApiListControls } from "./controls";
 import { CreateApiButton } from "./create-api-button";
 import { ApiCardSkeleton } from "./skeleton";
 
+import { useInfiniteQuery } from "@tanstack/react-query";
+
 const DEFAULT_LIMIT = 10;
 
 export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const searchParams = useSearchParams();
   const isNewApi = searchParams?.get("new") === "true";
@@ -26,12 +28,12 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = trpc.api.overview.query.useInfiniteQuery(
+  } = useInfiniteQuery(trpc.api.overview.query.infiniteQueryOptions(
     { limit: DEFAULT_LIMIT },
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
     },
-  );
+  ));
 
   const allApis = useMemo(() => {
     if (!apisData?.pages) {
@@ -63,12 +65,11 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
     <div className="flex flex-col">
       <ApiListControls apiList={allApis} onApiListChange={setApiList} onSearch={setIsSearching} />
       <ApiListControlCloud />
-
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
           {Array.from({ length: DEFAULT_LIMIT }).map((_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: It's okay to use index
-            <ApiCardSkeleton key={i} />
+            (<ApiCardSkeleton key={i} />)
           ))}
         </div>
       ) : apiList.length > 0 ? (

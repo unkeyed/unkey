@@ -1,7 +1,6 @@
-"use client";
-
+"use client";;
 import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import {
   Loading,
   Select,
@@ -14,6 +13,9 @@ import {
 } from "@unkey/ui";
 import { memo, useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+
 type RoleSwitcherProps = {
   member: { id: string; role: string };
   organization: Organization;
@@ -23,19 +25,20 @@ type RoleSwitcherProps = {
 
 export const RoleSwitcher = memo<RoleSwitcherProps>(
   ({ member, organization, user, userMembership }) => {
+    const trpc = useTRPC();
     const [role, setRole] = useState(member.role);
     const isAdmin = userMembership?.role === "admin";
-    const utils = trpc.useUtils();
+    const queryClient = useQueryClient();
 
-    const updateMember = trpc.org.members.update.useMutation({
+    const updateMember = useMutation(trpc.org.members.update.mutationOptions({
       onSuccess: () => {
-        utils.org.members.list.invalidate();
+        queryClient.invalidateQueries(trpc.org.members.list.pathFilter());
         toast.success("Role updated");
       },
       onError: (error) => {
         toast.error(error.message || "Failed to update role");
       },
-    });
+    }));
 
     async function handleRoleUpdate(newRole: string) {
       if (!organization) {
@@ -60,11 +63,11 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
         <div className="w-fit">
           <Select
             value={role}
-            disabled={(Boolean(user) && member.id === user?.id) || updateMember.isLoading}
+            disabled={(Boolean(user) && member.id === user?.id) || updateMember.isPending}
             onValueChange={handleRoleUpdate}
           >
             <SelectTrigger className="w-[180px] max-sm:w-36">
-              {updateMember.isLoading ? <Loading /> : <SelectValue />}
+              {updateMember.isPending ? <Loading /> : <SelectValue />}
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>

@@ -3,7 +3,7 @@
  * Hiding for now until we decide if we want to fix it up or toss it
  */
 
-"use client";
+"use client";;
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { Api, Key, VercelBinding } from "@unkey/db";
 import { Dots, ExternalLink, Link4, Plus, Refresh3, Trash, Unlink } from "@unkey/icons";
@@ -39,6 +39,8 @@ import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 type Props = {
   integration: {
     id: string;
@@ -53,12 +55,12 @@ type Props = {
       Record<
         VercelBinding["resourceType"],
         | (VercelBinding & {
-            updatedBy: {
-              id: string;
-              name: string;
-              image: string | null;
-            };
-          })
+          updatedBy: {
+            id: string;
+            name: string;
+            image: string | null;
+          };
+        })
         | null
       >
     >;
@@ -194,21 +196,22 @@ const ConnectedResource: React.FC<{
   integrationId: string;
   environment: VercelBinding["environment"];
   binding:
-    | (VercelBinding & {
-        updatedBy: {
-          id: string;
-          name: string;
-          image: string | null;
-        };
-      })
-    | null;
+  | (VercelBinding & {
+    updatedBy: {
+      id: string;
+      name: string;
+      image: string | null;
+    };
+  })
+  | null;
   apis: Record<string, Api>;
   rootKeys: Record<string, Key>;
 }> = (props) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const [selectedResourceId, setSelectedResourceId] = useState(props.binding?.resourceId);
 
-  const updateApiId = trpc.vercel.upsertApiId.useMutation({
+  const updateApiId = useMutation(trpc.vercel.upsertApiId.mutationOptions({
     onSuccess: () => {
       router.refresh();
       toast.success("Updated the environment variable in Vercel");
@@ -217,9 +220,9 @@ const ConnectedResource: React.FC<{
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
-  const rerollRootKey = trpc.vercel.upsertNewRootKey.useMutation({
+  const rerollRootKey = useMutation(trpc.vercel.upsertNewRootKey.mutationOptions({
     onSuccess: () => {
       router.refresh();
       toast.success(
@@ -230,8 +233,8 @@ const ConnectedResource: React.FC<{
       console.error(err);
       toast.error(err.message);
     },
-  });
-  const unbind = trpc.vercel.unbind.useMutation({
+  }));
+  const unbind = useMutation(trpc.vercel.unbind.mutationOptions({
     onSuccess: () => {
       router.refresh();
       toast.success(`Successfully unbound ${props.type} from Vercel`);
@@ -240,9 +243,9 @@ const ConnectedResource: React.FC<{
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
-  const isLoading = updateApiId.isLoading || rerollRootKey.isLoading || unbind.isLoading;
+  const isLoading = updateApiId.isPending || rerollRootKey.isPending || unbind.isPending;
 
   return (
     <div className="flex items-center w-full gap-2 ">
@@ -299,8 +302,8 @@ const ConnectedResource: React.FC<{
                   Edited{" "}
                   {props.binding.updatedAtM
                     ? formatDistanceToNow(new Date(props.binding.updatedAtM), {
-                        addSuffix: true,
-                      })
+                      addSuffix: true,
+                    })
                     : "recently"}{" "}
                   by {props.binding.updatedBy.name}
                 </span>
@@ -344,7 +347,7 @@ const ConnectedResource: React.FC<{
 
           {props.type === "Root Key ID" ? (
             <DropdownMenuItem
-              disabled={unbind.isLoading}
+              disabled={unbind.isPending}
               onClick={() => {
                 rerollRootKey.mutate({
                   integrationId: props.integrationId,

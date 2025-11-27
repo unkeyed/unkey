@@ -1,6 +1,8 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Key2, Page2 } from "@unkey/icons";
+
+import { useQuery } from "@tanstack/react-query";
 
 export const AssignedItemsCell = ({
   roleId,
@@ -11,22 +13,23 @@ export const AssignedItemsCell = ({
   kind: "keys" | "permissions";
   isSelected?: boolean;
 }) => {
+  const trpc = useTRPC();
   const { data: keysData, isLoading: keysLoading } =
-    trpc.authorization.roles.connectedKeys.useQuery(
+    useQuery(trpc.authorization.roles.connectedKeys.queryOptions(
       { roleId },
       {
         enabled: kind === "keys",
         staleTime: 5 * 60 * 1000,
       },
-    );
+    ));
   const { data: permissionsData, isLoading: permissionsLoading } =
-    trpc.authorization.roles.connectedPerms.useQuery(
+    useQuery(trpc.authorization.roles.connectedPerms.queryOptions(
       { roleId },
       {
         enabled: kind === "permissions",
         staleTime: 5 * 60 * 1000,
       },
-    );
+    ));
 
   const data = kind === "keys" ? keysData : permissionsData;
   const isLoading = kind === "keys" ? keysLoading : permissionsLoading;

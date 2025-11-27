@@ -1,7 +1,10 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useEffect, useMemo, useState } from "react";
 
+import { useQuery } from "@tanstack/react-query";
+
 export const useSearchKeysRoles = (query: string, debounceMs = 300) => {
+  const trpc = useTRPC();
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
   useEffect(() => {
@@ -12,13 +15,13 @@ export const useSearchKeysRoles = (query: string, debounceMs = 300) => {
     return () => clearTimeout(timer);
   }, [query, debounceMs]);
 
-  const { data, isLoading, error } = trpc.key.update.rbac.roles.search.useQuery(
+  const { data, isLoading, error } = useQuery(trpc.key.update.rbac.roles.search.queryOptions(
     { query: debouncedQuery },
     {
       enabled: debouncedQuery.length > 0, // Only search when there's a debounced query
       staleTime: 30_000,
     },
-  );
+  ));
 
   const searchResults = useMemo(() => {
     return data?.roles || [];

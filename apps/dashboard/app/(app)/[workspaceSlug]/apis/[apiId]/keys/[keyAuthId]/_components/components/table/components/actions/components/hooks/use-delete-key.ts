@@ -1,9 +1,13 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
 
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+
 export const useDeleteKey = (onSuccess?: () => void) => {
-  const trpcUtils = trpc.useUtils();
-  const deleteKey = trpc.key.delete.useMutation({
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const deleteKey = useMutation(trpc.key.delete.mutationOptions({
     onSuccess(data, variable) {
       const deletedCount = data.totalDeleted;
 
@@ -30,7 +34,7 @@ export const useDeleteKey = (onSuccess?: () => void) => {
         });
       }
 
-      trpcUtils.api.keys.list.invalidate();
+      queryClient.invalidateQueries(trpc.api.keys.list.pathFilter());
       if (onSuccess) {
         onSuccess();
       }
@@ -64,7 +68,7 @@ export const useDeleteKey = (onSuccess?: () => void) => {
         });
       }
     },
-  });
+  }));
 
   return deleteKey;
 };

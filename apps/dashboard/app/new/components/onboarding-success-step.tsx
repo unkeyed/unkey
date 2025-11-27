@@ -1,12 +1,14 @@
-"use client";
+"use client";;
 import { KeySecretSection } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/key-secret-section";
 import { ConfirmPopover } from "@/components/confirmation-popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { TriangleWarning } from "@unkey/icons";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef } from "react";
 import { API_ID_PARAM, KEY_PARAM } from "../constants";
+
+import { useQueryClient } from "@tanstack/react-query";
 
 type OnboardingSuccessStepProps = {
   isConfirmOpen: boolean;
@@ -17,13 +19,14 @@ export const OnboardingSuccessStep = ({
   isConfirmOpen,
   setIsConfirmOpen,
 }: OnboardingSuccessStepProps) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const anchorRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
   const workspace = useWorkspaceNavigation();
   const apiId = searchParams?.get(API_ID_PARAM);
   const key = searchParams?.get(KEY_PARAM);
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   if (!apiId || !key) {
     return (
@@ -57,7 +60,7 @@ export const OnboardingSuccessStep = ({
         onOpenChange={setIsConfirmOpen}
         onConfirm={() => {
           setIsConfirmOpen(false);
-          utils.workspace.getCurrent.invalidate();
+          queryClient.invalidateQueries(trpc.workspace.getCurrent.pathFilter());
           router.push(`/${workspace.slug}/apis`);
         }}
         triggerRef={anchorRef}

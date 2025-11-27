@@ -100,7 +100,7 @@ export const EditMetadata = ({ keyDetails, isOpen, onClose }: EditMetadataProps)
                 size="xlg"
                 className="w-full rounded-lg"
                 disabled={!isValid || isSubmitting}
-                loading={updateMetadata.isLoading}
+                loading={updateMetadata.isPending}
               >
                 Update metadata
               </Button>

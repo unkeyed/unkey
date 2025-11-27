@@ -1,12 +1,15 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useMemo } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 import type { RatelimitOverviewQueryTimeseriesPayload } from "../query-timeseries.schema";
 
+import { useQuery } from "@tanstack/react-query";
+
 export const useFetchRatelimitOverviewTimeseries = (namespaceId: string) => {
+  const trpc = useTRPC();
   const { filters } = useFilters();
   const { queryTime: timestamp } = useQueryTime();
 
@@ -55,7 +58,7 @@ export const useFetchRatelimitOverviewTimeseries = (namespaceId: string) => {
     return params;
   }, [filters, timestamp, namespaceId]);
 
-  const { data, isLoading, isError } = trpc.ratelimit.logs.queryRatelimitTimeseries.useQuery(
+  const { data, isLoading, isError } = useQuery(trpc.ratelimit.logs.queryRatelimitTimeseries.queryOptions(
     queryParams,
     {
       refetchInterval: queryParams.endTime ? false : 10_000,
@@ -65,7 +68,7 @@ export const useFetchRatelimitOverviewTimeseries = (namespaceId: string) => {
         },
       },
     },
-  );
+  ));
 
   const timeseries = data?.timeseries.map((ts) => ({
     displayX: formatTimestampForChart(ts.x, data.granularity),

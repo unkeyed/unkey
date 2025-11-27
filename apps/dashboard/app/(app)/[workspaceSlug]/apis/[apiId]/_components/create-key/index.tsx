@@ -202,7 +202,7 @@ export const CreateKeyDialog = ({
                     size="xlg"
                     className="w-full rounded-lg"
                     disabled={!formState.isValid}
-                    loading={key.isLoading}
+                    loading={key.isPending}
                   >
                     Create new key
                   </Button>

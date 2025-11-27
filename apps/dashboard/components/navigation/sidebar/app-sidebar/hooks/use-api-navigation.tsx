@@ -1,26 +1,29 @@
-"use client";
+"use client";;
 import type { NavItem } from "@/components/navigation/sidebar/workspace-navigations";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { ArrowOppositeDirectionY, Gear, Key2 } from "@unkey/icons";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 
+import { useInfiniteQuery } from "@tanstack/react-query";
+
 const DEFAULT_LIMIT = 10;
 
 export const useApiNavigation = (baseNavItems: NavItem[]) => {
+  const trpc = useTRPC();
   const workspace = useWorkspaceNavigation();
   const segments = useSelectedLayoutSegments() ?? [];
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    trpc.api.overview.query.useInfiniteQuery(
+    useInfiniteQuery(trpc.api.overview.query.infiniteQueryOptions(
       {
         limit: DEFAULT_LIMIT,
       },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
       },
-    );
+    ));
 
   // Convert API data to navigation items with sub-items for settings and keys
   const apiNavItems = useMemo(() => {

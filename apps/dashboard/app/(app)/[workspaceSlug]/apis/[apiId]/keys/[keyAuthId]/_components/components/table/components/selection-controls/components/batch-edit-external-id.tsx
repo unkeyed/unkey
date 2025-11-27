@@ -74,9 +74,8 @@ export const BatchEditExternalId = ({
     <>
       <DialogContainer
         isOpen={isOpen}
-        subTitle={`Provide an External ID to ${totalKeys} selected ${
-          totalKeys === 1 ? "key" : "keys"
-        }, like a userID from your system`}
+        subTitle={`Provide an External ID to ${totalKeys} selected ${totalKeys === 1 ? "key" : "keys"
+          }, like a userID from your system`}
         onOpenChange={handleDialogOpenChange}
         title="Edit External IDs"
         footer={
@@ -88,7 +87,7 @@ export const BatchEditExternalId = ({
                   variant="primary"
                   size="xlg"
                   className="rounded-lg flex-1"
-                  loading={updateKeyOwner.isLoading}
+                  loading={updateKeyOwner.isPending}
                   onClick={handleSubmit}
                 >
                   Update External ID
@@ -100,7 +99,7 @@ export const BatchEditExternalId = ({
                   color="danger"
                   size="xlg"
                   className="rounded-lg flex-1"
-                  loading={updateKeyOwner.isLoading}
+                  loading={updateKeyOwner.isPending}
                   onClick={handleClearButtonClick}
                   ref={clearButtonRef}
                   disabled={!hasKeysWithExternalIds}
@@ -148,7 +147,7 @@ export const BatchEditExternalId = ({
               setSelectedIdentityId(identityId);
               setSelectedExternalId(externalId);
             }}
-            disabled={updateKeyOwner.isLoading}
+            disabled={updateKeyOwner.isPending}
           />
         </div>
       </DialogContainer>
@@ -158,13 +157,10 @@ export const BatchEditExternalId = ({
         onConfirm={clearSelection}
         triggerRef={clearButtonRef}
         title={`Confirm removing External ${keysWithExternalIds > 1 ? "IDs" : "ID"}`}
-        description={`This will remove the External ID association from ${keysWithExternalIds} ${
-          keysWithExternalIds === 1 ? "key" : "keys"
-        }. Any tracking or analytics related to ${
-          keysWithExternalIds === 1 ? "this ID" : "these IDs"
-        } will no longer be associated with ${
-          keysWithExternalIds === 1 ? "this key" : "these keys"
-        }.`}
+        description={`This will remove the External ID association from ${keysWithExternalIds} ${keysWithExternalIds === 1 ? "key" : "keys"
+          }. Any tracking or analytics related to ${keysWithExternalIds === 1 ? "this ID" : "these IDs"
+          } will no longer be associated with ${keysWithExternalIds === 1 ? "this key" : "these keys"
+          }.`}
         confirmButtonText={`Remove External ${keysWithExternalIds > 1 ? "IDs" : "ID"}`}
         cancelButtonText="Cancel"
         variant="danger"

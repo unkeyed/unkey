@@ -1,11 +1,14 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { useEffect, useMemo, useState } from "react";
 import { rootKeysFilterFieldConfig, rootKeysListFilterFieldNames } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
 import type { RootKeysQueryPayload } from "../query-logs.schema";
 
+import { useInfiniteQuery } from "@tanstack/react-query";
+
 export function useRootKeysListQuery() {
+  const trpc = useTRPC();
   const [totalCount, setTotalCount] = useState(0);
   const [rootKeysMap, setRootKeysMap] = useState(() => new Map<string, RootKey>());
   const { filters } = useFilters();
@@ -45,12 +48,12 @@ export function useRootKeysListQuery() {
     fetchNextPage,
     isFetchingNextPage,
     isLoading: isLoadingInitial,
-  } = trpc.settings.rootKeys.query.useInfiniteQuery(queryParams, {
+  } = useInfiniteQuery(trpc.settings.rootKeys.query.infiniteQueryOptions(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
-  });
+  }));
 
   useEffect(() => {
     if (rootKeyData) {

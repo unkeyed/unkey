@@ -1,17 +1,20 @@
-"use client";
+"use client";;
 import { formatNumber } from "@/lib/fmt";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { SettingCard } from "@unkey/ui";
+
+import { useQuery } from "@tanstack/react-query";
 
 export const Usage: React.FC<{
   quota: number;
 }> = ({ quota }) => {
+  const trpc = useTRPC();
   const {
     data: usage,
     isLoading,
     error,
     refetch,
-  } = trpc.billing.queryUsage.useQuery(undefined, {
+  } = useQuery(trpc.billing.queryUsage.queryOptions(undefined, {
     // Cache for 30 seconds to reduce unnecessary refetches
     // TRPC automatically scopes by workspace via requireWorkspace middleware
     staleTime: 30_000, // 30 seconds
@@ -22,7 +25,7 @@ export const Usage: React.FC<{
       },
     },
     retry: 1,
-  });
+  }));
 
   if (isLoading) {
     return (

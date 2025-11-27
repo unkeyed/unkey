@@ -1,11 +1,13 @@
-"use client";
-
+"use client";;
 import { PageLoading } from "@/components/dashboard/page-loading";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { Empty } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { SuccessClient } from "./client";
+
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 type ProcessedData = {
   workspaceSlug?: string;
@@ -22,6 +24,7 @@ type ProcessedData = {
 };
 
 function SuccessContent() {
+  const trpc = useTRPC();
   const searchParams = useSearchParams();
   const sessionId = searchParams?.get("session_id") ?? null;
 
@@ -29,11 +32,11 @@ function SuccessContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const updateCustomerMutation = trpc.stripe.updateCustomer.useMutation();
+  const updateCustomerMutation = useMutation(trpc.stripe.updateCustomer.mutationOptions());
   const updateWorkspaceStripeCustomerMutation =
-    trpc.stripe.updateWorkspaceStripeCustomer.useMutation();
+    useMutation(trpc.stripe.updateWorkspaceStripeCustomer.mutationOptions());
 
-  const trpcUtils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     // Track if component is still mounted to prevent state updates after unmount
@@ -56,9 +59,9 @@ function SuccessContent() {
         setLoading(true);
 
         // Get checkout session
-        const sessionResponse = await trpcUtils.stripe.getCheckoutSession.fetch({
+        const sessionResponse = await queryClient.fetchQuery(trpc.stripe.getCheckoutSession.queryOptions({
           sessionId: sessionId,
-        });
+        }));
 
         if (!sessionResponse) {
           console.warn("Stripe session not found");
@@ -82,9 +85,9 @@ function SuccessContent() {
         }
 
         // Get workspace details to get the slug
-        const workspace = await trpcUtils.workspace.getById.fetch({
+        const workspace = await queryClient.fetchQuery(trpc.workspace.getById.queryOptions({
           workspaceId: workspaceId,
-        });
+        }));
 
         if (!isMounted) {
           return;
@@ -102,18 +105,18 @@ function SuccessContent() {
         }
 
         // Get customer details
-        const customer = await trpcUtils.stripe.getCustomer.fetch({
+        const customer = await queryClient.fetchQuery(trpc.stripe.getCustomer.queryOptions({
           customerId: sessionResponse.customer,
-        });
+        }));
 
         if (!isMounted) {
           return;
         }
 
         // Get setup intent details
-        const setupIntent = await trpcUtils.stripe.getSetupIntent.fetch({
+        const setupIntent = await queryClient.fetchQuery(trpc.stripe.getSetupIntent.queryOptions({
           setupIntentId: sessionResponse.setup_intent,
-        });
+        }));
 
         if (!isMounted) {
           return;
@@ -164,9 +167,9 @@ function SuccessContent() {
             return;
           }
 
-          await trpcUtils.workspace.invalidate();
-          await trpcUtils.stripe.invalidate();
-          await trpcUtils.billing.invalidate();
+          await queryClient.invalidateQueries(trpc.workspace.pathFilter());
+          await queryClient.invalidateQueries(trpc.stripe.pathFilter());
+          await queryClient.invalidateQueries(trpc.billing.pathFilter());
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : "Unknown error";
           console.error("Failed to update workspace with payment method:", { error: errorMessage });
@@ -180,7 +183,7 @@ function SuccessContent() {
 
         // Check if this is a first-time user by getting billing info
         try {
-          const billingInfo = await trpcUtils.stripe.getBillingInfo.fetch();
+          const billingInfo = await queryClient.fetchQuery(trpc.stripe.getBillingInfo.queryOptions());
 
           if (!isMounted) {
             return;
@@ -237,7 +240,6 @@ function SuccessContent() {
     };
   }, [
     sessionId,
-    trpcUtils,
     updateCustomerMutation.mutateAsync,
     updateWorkspaceStripeCustomerMutation.mutateAsync,
   ]);

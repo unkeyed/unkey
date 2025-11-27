@@ -1,11 +1,12 @@
-"use client";
-
-import { trpc } from "@/lib/trpc/client";
+"use client";;
+import { useTRPC } from "@/lib/trpc/client";
 import type { Workspace } from "@unkey/db";
 import { Button, Empty, toast } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
+
+import { useMutation } from "@tanstack/react-query";
 
 type Props = {
   title: string;
@@ -14,8 +15,9 @@ type Props = {
 };
 
 export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
+  const trpc = useTRPC();
   const router = useRouter();
-  const optIn = trpc.workspace.optIntoBeta.useMutation({
+  const optIn = useMutation(trpc.workspace.optIntoBeta.mutationOptions({
     onSuccess() {
       toast.success("Successfully opted in");
       router.refresh();
@@ -23,7 +25,7 @@ export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
     onError(err) {
       toast.error(err.message);
     },
-  });
+  }));
   return (
     <Empty>
       <Empty.Icon />
@@ -38,7 +40,7 @@ export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
         <Button
           variant="primary"
           onClick={() => optIn.mutate({ feature })}
-          loading={optIn.isLoading}
+          loading={optIn.isPending}
         >
           Opt In
         </Button>

@@ -92,7 +92,7 @@ export const EditRatelimits = ({ keyDetails, isOpen, onClose }: EditRatelimitsPr
                 size="xlg"
                 className="w-full rounded-lg"
                 disabled={!isValid || isSubmitting}
-                loading={key.isLoading}
+                loading={key.isPending}
               >
                 Update ratelimit
               </Button>

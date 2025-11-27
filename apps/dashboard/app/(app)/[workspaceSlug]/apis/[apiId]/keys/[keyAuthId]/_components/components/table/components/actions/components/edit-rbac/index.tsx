@@ -1,9 +1,9 @@
-"use client";
+"use client";;
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { KeyPermission, KeyRole } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenWriting3 } from "@unkey/icons";
@@ -17,6 +17,8 @@ import { RoleField } from "./components/assign-role/role-field";
 import { GrantedAccess } from "./components/granted-access";
 import { useFetchPermissionSlugs } from "./components/hooks/use-fetch-permission-slugs";
 import { type FormValues, updateKeyRbacSchema } from "./update-key-rbac.schema";
+
+import { useQuery } from "@tanstack/react-query";
 
 const FORM_STORAGE_KEY = "unkey_key_rbac_form_state";
 
@@ -63,9 +65,10 @@ export const KeyRbacDialog = ({
   isOpen: externalIsOpen,
   onClose: externalOnClose,
 }: KeyRbacDialogProps) => {
-  const { data: connectedRolesAndPerms, isLoading } = trpc.key.connectedRolesAndPerms.useQuery({
+  const trpc = useTRPC();
+  const { data: connectedRolesAndPerms, isLoading } = useQuery(trpc.key.connectedRolesAndPerms.queryOptions({
     keyId: existingKey.id,
-  });
+  }));
 
   const [internalIsOpen, setInternalIsOpen] = useState(false);
 
@@ -195,8 +198,8 @@ export const KeyRbacDialog = ({
                   variant="primary"
                   size="xlg"
                   className="w-full rounded-lg transition-all duration-200"
-                  disabled={!isValid || updateKeyRbacMutation.isLoading}
-                  loading={updateKeyRbacMutation.isLoading}
+                  disabled={!isValid || updateKeyRbacMutation.isPending}
+                  loading={updateKeyRbacMutation.isPending}
                 >
                   {DIALOG_CONFIG.buttonText}
                 </Button>

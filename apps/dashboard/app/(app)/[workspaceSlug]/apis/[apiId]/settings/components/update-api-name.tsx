@@ -1,5 +1,5 @@
-"use client";
-import { trpc } from "@/lib/trpc/client";
+"use client";;
+import { useTRPC } from "@/lib/trpc/client";
 import { Button, Input, SettingCard } from "@unkey/ui";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -9,6 +9,8 @@ import {
   getStandardButtonProps,
   validateFormChange,
 } from "./key-settings-form-helper";
+
+import { useMutation } from "@tanstack/react-query";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +29,7 @@ type Props = {
 };
 
 export const UpdateApiName: React.FC<Props> = ({ api }) => {
+  const trpc = useTRPC();
   const { onUpdateSuccess, onError } = createMutationHandlers();
 
   const {
@@ -42,10 +45,10 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     },
   });
 
-  const updateName = trpc.api.updateName.useMutation({
+  const updateName = useMutation(trpc.api.updateName.mutationOptions({
     onSuccess: onUpdateSuccess("API name updated successfully"),
     onError,
-  });
+  }));
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (

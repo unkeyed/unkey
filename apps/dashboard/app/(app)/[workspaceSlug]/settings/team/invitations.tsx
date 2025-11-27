@@ -1,5 +1,4 @@
-"use client";
-
+"use client";;
 import {
   Table,
   TableBody,
@@ -9,11 +8,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { Button, Empty, Loading, toast } from "@unkey/ui";
 import { memo } from "react";
 import { InviteButton } from "./invite";
 import { StatusBadge } from "./status-badge";
+
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 type InvitationsProps = {
   user: AuthenticatedUser;
@@ -21,19 +24,20 @@ type InvitationsProps = {
 };
 
 export const Invitations = memo<InvitationsProps>(({ user, organization }) => {
-  const { data: invitationsList, isLoading } = trpc.org.invitations.list.useQuery(organization.id);
+  const trpc = useTRPC();
+  const { data: invitationsList, isLoading } = useQuery(trpc.org.invitations.list.queryOptions(organization.id));
   const invitations = invitationsList?.data;
-  const utils = trpc.useUtils();
-  const revokeInvitation = trpc.org.invitations.remove.useMutation({
+  const queryClient = useQueryClient();
+  const revokeInvitation = useMutation(trpc.org.invitations.remove.mutationOptions({
     onSuccess: () => {
       // Invalidate the invitation list query to trigger a refetch
-      utils.org.invitations.list.invalidate();
+      queryClient.invalidateQueries(trpc.org.invitations.list.pathFilter());
       toast.success("Invitation revoked successfully");
     },
     onError: (error) => {
       toast.error(error.message || "Failed to revoke invitation");
     },
-  });
+  }));
 
   if (isLoading) {
     return (

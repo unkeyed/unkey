@@ -66,7 +66,7 @@ export const RootKeyDialog = ({
     onOpenChange,
   });
 
-  const isMutating = key.isLoading || updateName.isLoading || updatePermissions.isLoading;
+  const isMutating = key.isPending || updateName.isPending || updatePermissions.isPending;
   const isBusy = isMutating || apisLoading;
 
   const removePermission = (permission: UnkeyPermission) =>

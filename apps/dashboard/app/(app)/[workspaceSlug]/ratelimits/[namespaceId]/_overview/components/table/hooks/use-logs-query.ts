@@ -1,5 +1,5 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { useEffect, useMemo, useState } from "react";
@@ -7,12 +7,15 @@ import { useSort } from "../../../../../../../../../components/logs/hooks/use-so
 import { useFilters } from "../../../hooks/use-filters";
 import type { RatelimitQueryOverviewLogsPayload, SortFields } from "../query-logs.schema";
 
+import { useInfiniteQuery } from "@tanstack/react-query";
+
 type UseLogsQueryParams = {
   limit?: number;
   namespaceId: string;
 };
 
 export function useRatelimitOverviewLogsQuery({ namespaceId, limit = 50 }: UseLogsQueryParams) {
+  const trpc = useTRPC();
   const [totalCount, setTotalCount] = useState(0);
   const [historicalLogsMap, setHistoricalLogsMap] = useState(
     () => new Map<string, RatelimitOverviewLog>(),
@@ -95,12 +98,12 @@ export function useRatelimitOverviewLogsQuery({ namespaceId, limit = 50 }: UseLo
     fetchNextPage,
     isFetchingNextPage,
     isLoading: isLoadingInitial,
-  } = trpc.ratelimit.overview.logs.query.useInfiniteQuery(queryParams, {
+  } = useInfiniteQuery(trpc.ratelimit.overview.logs.query.infiniteQueryOptions(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
-  });
+  }));
 
   // Update historical logs effect
   useEffect(() => {

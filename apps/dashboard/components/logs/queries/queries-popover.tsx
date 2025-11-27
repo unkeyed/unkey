@@ -1,7 +1,7 @@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import type { User } from "@/lib/auth/types";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { KeyboardButton } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
 import type { FilterValue } from "../validation/filter.types";
@@ -9,6 +9,8 @@ import { EmptyQueries } from "./empty";
 import { ListGroup } from "./list-group";
 import { QueriesProvider, type QueryParamsTypes, useQueries } from "./queries-context";
 import { QueriesTabs } from "./queries-tabs";
+
+import { useQuery } from "@tanstack/react-query";
 
 type QueriesPopoverProps<T extends FilterValue, U extends QueryParamsTypes> = {
   children: React.ReactNode;
@@ -32,7 +34,8 @@ export function QueriesPopover<T extends FilterValue, U extends QueryParamsTypes
   getFilterFieldIcon,
   shouldTruncateRow,
 }: QueriesPopoverProps<T, U>) {
-  const { data: user } = trpc.user.getCurrentUser.useQuery();
+  const trpc = useTRPC();
+  const { data: user } = useQuery(trpc.user.getCurrentUser.queryOptions());
   const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [focusedTabIndex, setFocusedTabIndex] = useState(0);

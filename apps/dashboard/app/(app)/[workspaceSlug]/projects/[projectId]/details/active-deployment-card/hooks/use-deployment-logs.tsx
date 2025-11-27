@@ -1,7 +1,9 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EXCLUDED_HOSTS } from "../../../gateway-logs/constants";
+
+import { useQuery } from "@tanstack/react-query";
 
 const BUILD_STEPS_REFETCH_INTERVAL = 500;
 const GATEWAY_LOGS_REFETCH_INTERVAL = 2000;
@@ -52,6 +54,7 @@ export function useDeploymentLogs({
   deploymentId,
   showBuildSteps,
 }: UseDeploymentLogsProps): UseDeploymentLogsReturn {
+  const trpc = useTRPC();
   const [logFilter, setLogFilter] = useState<LogFilter>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
@@ -60,7 +63,7 @@ export function useDeploymentLogs({
   const scrollRef = useRef<HTMLDivElement>(null);
   const { queryTime: timestamp } = useQueryTime();
 
-  const { data: buildData, isLoading: buildLoading } = trpc.deploy.deployment.buildSteps.useQuery(
+  const { data: buildData, isLoading: buildLoading } = useQuery(trpc.deploy.deployment.buildSteps.queryOptions(
     {
       // without this check TS yells at us
       deploymentId: deploymentId ?? "",
@@ -69,9 +72,9 @@ export function useDeploymentLogs({
       enabled: showBuildSteps && isExpanded && Boolean(deploymentId),
       refetchInterval: BUILD_STEPS_REFETCH_INTERVAL,
     },
-  );
+  ));
 
-  const { data: gatewayData, isLoading: gatewayLoading } = trpc.logs.queryLogs.useQuery(
+  const { data: gatewayData, isLoading: gatewayLoading } = useQuery(trpc.logs.queryLogs.queryOptions(
     {
       limit: GATEWAY_LOGS_LIMIT,
       endTime: timestamp,
@@ -88,7 +91,7 @@ export function useDeploymentLogs({
       refetchInterval: GATEWAY_LOGS_REFETCH_INTERVAL,
       refetchOnWindowFocus: false,
     },
-  );
+  ));
 
   // Update stored logs when build data changes
   useEffect(() => {

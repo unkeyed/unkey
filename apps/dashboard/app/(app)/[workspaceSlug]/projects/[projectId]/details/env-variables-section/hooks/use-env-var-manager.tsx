@@ -1,5 +1,7 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { Environment } from "../types";
+
+import { useQuery } from "@tanstack/react-query";
 
 type UseEnvVarsManagerProps = {
   projectId: string;
@@ -7,7 +9,8 @@ type UseEnvVarsManagerProps = {
 };
 
 export function useEnvVarsManager({ projectId, environment }: UseEnvVarsManagerProps) {
-  const { data } = trpc.deploy.environment.list_dummy.useQuery({ projectId });
+  const trpc = useTRPC();
+  const { data } = useQuery(trpc.deploy.environment.list_dummy.queryOptions({ projectId }));
 
   const envVars = data?.[environment] ?? [];
 

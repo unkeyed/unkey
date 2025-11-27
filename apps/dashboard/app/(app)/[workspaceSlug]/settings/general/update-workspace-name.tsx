@@ -1,6 +1,6 @@
-"use client";
+"use client";;
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, FormInput, SettingCard, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -8,10 +8,14 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+
 export function UpdateWorkspaceName() {
+  const trpc = useTRPC();
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   const [name, setName] = useState(workspace?.name);
 
@@ -40,12 +44,12 @@ export function UpdateWorkspaceName() {
     },
   });
 
-  const updateName = trpc.workspace.updateName.useMutation({
+  const updateName = useMutation(trpc.workspace.updateName.mutationOptions({
     onSuccess() {
       toast.success("Workspace name updated");
       // invalidate the current user so it refetches
-      utils.user.getCurrentUser.invalidate();
-      utils.workspace.invalidate();
+      queryClient.invalidateQueries(trpc.user.getCurrentUser.pathFilter());
+      queryClient.invalidateQueries(trpc.workspace.pathFilter());
       setName(watch("workspaceName"));
       router.refresh();
     },
@@ -54,7 +58,7 @@ export function UpdateWorkspaceName() {
         description: err.message,
       });
     },
-  });
+  }));
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (workspace?.name === values.workspaceName || !values.workspaceName) {
@@ -98,9 +102,9 @@ export function UpdateWorkspaceName() {
             variant="primary"
             size="lg"
             disabled={
-              updateName.isLoading || isSubmitting || !isValid || watch("workspaceName") === name
+              updateName.isPending || isSubmitting || !isValid || watch("workspaceName") === name
             }
-            loading={updateName.isLoading || isSubmitting}
+            loading={updateName.isPending || isSubmitting}
           >
             Save
           </Button>

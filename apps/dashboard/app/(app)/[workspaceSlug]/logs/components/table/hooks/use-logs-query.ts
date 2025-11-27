@@ -1,10 +1,12 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import type { LogsRequestSchema } from "@/lib/schemas/logs.schema";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFilters } from "../../../hooks/use-filters";
+
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 
 // Duration in milliseconds for historical data fetch window (12 hours)
 type UseLogsQueryParams = {
@@ -20,12 +22,13 @@ export function useLogsQuery({
   pollIntervalMs = 5000,
   startPolling = false,
 }: UseLogsQueryParams = {}) {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const [historicalLogsMap, setHistoricalLogsMap] = useState(() => new Map<string, Log>());
   const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, Log>());
-  const [totalCount, setTotalCount] = useState(0);
 
+  const [totalCount, setTotalCount] = useState(0);
   const { filters } = useFilters();
-  const queryClient = trpc.useUtils();
   const { queryTime: timestamp } = useQueryTime();
 
   const realtimeLogs = useMemo(() => {
@@ -136,22 +139,26 @@ export function useLogsQuery({
     fetchNextPage,
     isFetchingNextPage,
     isLoading: isLoadingInitial,
-  } = trpc.logs.queryLogs.useInfiniteQuery(queryParams, {
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  });
+  } = useInfiniteQuery(
+    trpc.logs.queryLogs.infiniteQueryOptions(queryParams, {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      staleTime: Number.POSITIVE_INFINITY,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    })
+  );
 
   // Query for new logs (polling)
   const pollForNewLogs = useCallback(async () => {
     try {
       const latestTime = realtimeLogs[0]?.time ?? historicalLogs[0]?.time;
-      const result = await queryClient.logs.queryLogs.fetch({
-        ...queryParams,
-        startTime: latestTime ?? Date.now() - pollIntervalMs,
-        endTime: Date.now(),
-      });
+      const result = await queryClient.fetchQuery(
+        trpc.logs.queryLogs.queryOptions({
+          ...queryParams,
+          startTime: latestTime ?? Date.now() - pollIntervalMs,
+          endTime: Date.now(),
+        })
+      );
 
       if (result.logs.length === 0) {
         return;
@@ -188,6 +195,7 @@ export function useLogsQuery({
   }, [
     queryParams,
     queryClient,
+    trpc.logs.queryLogs,
     limit,
     pollIntervalMs,
     historicalLogsMap,

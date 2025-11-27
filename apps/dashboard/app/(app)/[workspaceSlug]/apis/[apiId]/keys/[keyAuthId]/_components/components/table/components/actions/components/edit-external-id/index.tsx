@@ -85,7 +85,7 @@ export const EditExternalId = ({
                   color="danger"
                   size="xlg"
                   className="rounded-lg flex-1"
-                  loading={updateKeyOwner.isLoading}
+                  loading={updateKeyOwner.isPending}
                   onClick={handleClearButtonClick}
                   ref={clearButtonRef}
                 >
@@ -98,7 +98,7 @@ export const EditExternalId = ({
                   variant="primary"
                   size="xlg"
                   className="rounded-lg flex-1"
-                  loading={updateKeyOwner.isLoading}
+                  loading={updateKeyOwner.isPending}
                   onClick={handleSubmit}
                   disabled={!originalIdentityId && !selectedIdentityId}
                 >
@@ -123,12 +123,12 @@ export const EditExternalId = ({
           currentIdentity={
             keyDetails.identity_id
               ? {
-                  id: keyDetails.identity_id,
-                  externalId: keyDetails.owner_id || "",
-                }
+                id: keyDetails.identity_id,
+                externalId: keyDetails.owner_id || "",
+              }
               : undefined
           }
-          disabled={updateKeyOwner.isLoading || Boolean(originalIdentityId)}
+          disabled={updateKeyOwner.isPending || Boolean(originalIdentityId)}
         />
       </DialogContainer>
       <ConfirmPopover

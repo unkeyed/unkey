@@ -1,6 +1,5 @@
-"use client";
-
-import { trpc } from "@/lib/trpc/client";
+"use client";;
+import { useTRPC } from "@/lib/trpc/client";
 import { CopyApiId } from "./copy-api-id";
 import { CopyKeySpaceId } from "./copy-key-space-id";
 import { DefaultBytes } from "./default-bytes";
@@ -11,14 +10,17 @@ import { SettingsClientSkeleton } from "./skeleton";
 import { UpdateApiName } from "./update-api-name";
 import { UpdateIpWhitelist } from "./update-ip-whitelist";
 
+import { useQuery } from "@tanstack/react-query";
+
 export const SettingsClient = ({ apiId }: { apiId: string }) => {
+  const trpc = useTRPC();
   const {
     data: layoutData,
     isLoading,
     error,
-  } = trpc.api.queryApiKeyDetails.useQuery({
+  } = useQuery(trpc.api.queryApiKeyDetails.queryOptions({
     apiId,
-  });
+  }));
 
   if (isLoading) {
     return <SettingsClientSkeleton />;

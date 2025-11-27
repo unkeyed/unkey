@@ -1,9 +1,12 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { cn } from "@/lib/utils";
 import { InfoTooltip, toast } from "@unkey/ui";
 import { StatusBadge } from "./components/status-badge";
 import { useKeyStatus } from "./use-key-status";
+
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 type StatusDisplayProps = {
   keyData: KeyDetails;
@@ -12,20 +15,21 @@ type StatusDisplayProps = {
 };
 
 export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayProps) => {
+  const trpc = useTRPC();
   const { primary, count, isLoading, statuses, isError } = useKeyStatus(keyAuthId, keyData);
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
-  const enableKeyMutation = trpc.api.keys.enableKey.useMutation({
+  const enableKeyMutation = useMutation(trpc.api.keys.enableKey.mutationOptions({
     onSuccess: async () => {
       toast.success("Key enabled successfully!");
-      await utils.api.keys.list.invalidate({ keyAuthId });
+      await queryClient.invalidateQueries(trpc.api.keys.list.queryFilter({ keyAuthId }));
     },
     onError: (error) => {
       toast.error("Failed to enable key", {
         description: error.message || "An unknown error occurred.",
       });
     },
-  });
+  }));
 
   if (isLoading) {
     return (
@@ -100,7 +104,7 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
                       <button
                         type="button"
                         onClick={() => {
-                          if (enableKeyMutation.isLoading) {
+                          if (enableKeyMutation.isPending) {
                             return;
                           }
 
@@ -110,18 +114,18 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
                             toast.error("Could not enable key: Missing key information.");
                           }
                         }}
-                        disabled={enableKeyMutation.isLoading}
+                        disabled={enableKeyMutation.isPending}
                         className={cn(
                           "bg-transparent border-none p-0 m-0 text-left",
                           "font-medium",
                           "text-xs",
                           "transition-colors duration-150 ease-in-out",
-                          enableKeyMutation.isLoading
+                          enableKeyMutation.isPending
                             ? "text-gray-10 cursor-not-allowed"
                             : "text-info-11 hover:text-info-12 hover:underline cursor-pointer",
                         )}
                       >
-                        {enableKeyMutation.isLoading ? "Enabling..." : "Re-enable this key"}
+                        {enableKeyMutation.isPending ? "Enabling..." : "Re-enable this key"}
                       </button>{" "}
                     </div>
                   ) : (

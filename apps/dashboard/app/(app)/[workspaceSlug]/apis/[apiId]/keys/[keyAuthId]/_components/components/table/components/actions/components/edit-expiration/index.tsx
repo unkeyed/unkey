@@ -90,7 +90,7 @@ export const EditExpiration = ({ keyDetails, isOpen, onClose }: EditExpirationPr
                 size="xlg"
                 className="w-full rounded-lg"
                 disabled={!isValid || isSubmitting}
-                loading={updateExpiration.isLoading}
+                loading={updateExpiration.isPending}
               >
                 Update expiration
               </Button>

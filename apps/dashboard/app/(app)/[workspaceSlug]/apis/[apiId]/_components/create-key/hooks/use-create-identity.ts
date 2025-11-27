@@ -1,20 +1,24 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
+
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const useCreateIdentity = (
   onSuccess?: (data: { identityId: string; externalId: string }) => void,
 ) => {
-  const trpcUtils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
-  const createIdentityMutation = trpc.identity.create.useMutation({
+  const createIdentityMutation = useMutation(trpc.identity.create.mutationOptions({
     onSuccess(data) {
       toast.success("Identity Created", {
         description: `Identity "${data.externalId}" has been created successfully`,
         duration: 5000,
       });
 
-      trpcUtils.identity.query.invalidate();
-      trpcUtils.identity.search.invalidate();
+      queryClient.invalidateQueries(trpc.identity.query.pathFilter());
+      queryClient.invalidateQueries(trpc.identity.search.pathFilter());
 
       if (onSuccess) {
         onSuccess(data);
@@ -42,7 +46,7 @@ export const useCreateIdentity = (
         });
       }
     },
-  });
+  }));
 
   return createIdentityMutation;
 };

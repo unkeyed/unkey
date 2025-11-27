@@ -1,11 +1,13 @@
-"use client";
-
+"use client";;
 import { formatNumber } from "@/lib/fmt";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 type PlanSelectionModalProps = {
   isOpen: boolean;
@@ -32,13 +34,14 @@ export const PlanSelectionModal = ({
   currentProductId,
   isChangingPlan = false,
 }: PlanSelectionModalProps) => {
+  const trpc = useTRPC();
   const [selectedProductId, setSelectedProductId] = useState<string | null>(
     currentProductId ?? null,
   );
   const [isLoading, setIsLoading] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const router = useRouter();
-  const trpcUtils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   // Set hasMounted flag after initial mount to prevent hydration mismatch
   useEffect(() => {
@@ -54,14 +57,14 @@ export const PlanSelectionModal = ({
 
   const revalidateData = useCallback(async () => {
     await Promise.all([
-      trpcUtils.stripe.getBillingInfo.invalidate(),
-      trpcUtils.billing.queryUsage.invalidate(),
-      trpcUtils.workspace.getCurrent.invalidate(),
-      trpcUtils.workspace.getCurrent.refetch(),
+      queryClient.invalidateQueries(trpc.stripe.getBillingInfo.pathFilter()),
+      queryClient.invalidateQueries(trpc.billing.queryUsage.pathFilter()),
+      queryClient.invalidateQueries(trpc.workspace.getCurrent.pathFilter()),
+      queryClient.refetchQueries(trpc.workspace.getCurrent.pathFilter()),
     ]);
-  }, [trpcUtils]);
+  }, []);
 
-  const createSubscription = trpc.stripe.createSubscription.useMutation({
+  const createSubscription = useMutation(trpc.stripe.createSubscription.mutationOptions({
     onSuccess: async () => {
       handleOpenChange(false);
       setIsLoading(false);
@@ -73,9 +76,9 @@ export const PlanSelectionModal = ({
       setIsLoading(false);
       toast.error(err.message);
     },
-  });
+  }));
 
-  const updateSubscription = trpc.stripe.updateSubscription.useMutation({
+  const updateSubscription = useMutation(trpc.stripe.updateSubscription.mutationOptions({
     onSuccess: async () => {
       handleOpenChange(false);
       setIsLoading(false);
@@ -86,7 +89,7 @@ export const PlanSelectionModal = ({
       setIsLoading(false);
       toast.error(err.message);
     },
-  });
+  }));
 
   const handleSelectPlan = async () => {
     if (!selectedProductId) {
@@ -133,7 +136,7 @@ export const PlanSelectionModal = ({
             : "Select a plan to get started with your new payment method"
         }
         showCloseWarning={true}
-        onAttemptClose={() => {}}
+        onAttemptClose={() => { }}
         footer={<div className="w-full flex flex-col gap-3" />}
       >
         <div className="space-y-4">
@@ -171,9 +174,8 @@ export const PlanSelectionModal = ({
             onClick={handleSelectPlan}
           >
             {selectedProduct
-              ? `${isChangingPlan ? "Change to" : "Start"} ${
-                  selectedProduct.name
-                } Plan - $${selectedProduct.dollar}/mo`
+              ? `${isChangingPlan ? "Change to" : "Start"} ${selectedProduct.name
+              } Plan - $${selectedProduct.dollar}/mo`
               : "Select a plan first"}
           </Button>
           <Button

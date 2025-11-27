@@ -1,7 +1,9 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { VerificationTimeseriesDataPoint } from "@unkey/clickhouse/src/verifications";
 import { useEffect, useMemo, useRef, useState } from "react";
+
+import { useQuery } from "@tanstack/react-query";
 
 export type ProcessedTimeseriesDataPoint = {
   valid: number;
@@ -24,6 +26,7 @@ type CacheEntry = {
 const timeseriesCache = new Map<string, CacheEntry>();
 
 export const useFetchVerificationTimeseries = (keyAuthId: string, keyId: string) => {
+  const trpc = useTRPC();
   // Use a ref for the initial timestamp to keep it stable
   const initialTimeRef = useRef(Date.now());
   const cacheKey = `${keyAuthId}-${keyId}`;
@@ -53,7 +56,7 @@ export const useFetchVerificationTimeseries = (keyAuthId: string, keyId: string)
     data,
     isLoading: trpcIsLoading,
     isError,
-  } = trpc.api.keys.usageTimeseries.useQuery(queryParams, {
+  } = useQuery(trpc.api.keys.usageTimeseries.queryOptions(queryParams, {
     // CRITICAL: Only enable the query if we should fetch
     enabled: shouldFetch,
     // Prevent automatic refetching
@@ -61,7 +64,7 @@ export const useFetchVerificationTimeseries = (keyAuthId: string, keyId: string)
     refetchOnWindowFocus: false,
     staleTime: Number.POSITIVE_INFINITY,
     refetchInterval: shouldFetch && queryParams.endTime >= Date.now() - 60_000 ? 10_000 : false,
-  });
+  }));
 
   // Process the timeseries data - using cached or fresh data
   const effectiveData = data || (cachedData ? cachedData.data : undefined);

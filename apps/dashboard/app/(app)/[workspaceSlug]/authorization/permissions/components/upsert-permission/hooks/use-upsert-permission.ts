@@ -1,5 +1,8 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
+
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const useUpsertPermission = (
   onSuccess: (data: {
@@ -8,11 +11,12 @@ export const useUpsertPermission = (
     message: string;
   }) => void,
 ) => {
-  const trpcUtils = trpc.useUtils();
-  const permission = trpc.authorization.permissions.upsert.useMutation({
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const permission = useMutation(trpc.authorization.permissions.upsert.mutationOptions({
     onSuccess(data) {
-      trpcUtils.authorization.permissions.invalidate();
-      trpcUtils.authorization.roles.invalidate();
+      queryClient.invalidateQueries(trpc.authorization.permissions.pathFilter());
+      queryClient.invalidateQueries(trpc.authorization.roles.pathFilter());
       // Show success toast
       toast.success(data.isUpdate ? "Permission Updated" : "Permission Created", {
         description: data.message,
@@ -53,6 +57,6 @@ export const useUpsertPermission = (
         });
       }
     },
-  });
+  }));
   return permission;
 };

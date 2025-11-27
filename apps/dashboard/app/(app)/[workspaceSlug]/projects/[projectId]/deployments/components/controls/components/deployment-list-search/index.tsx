@@ -1,12 +1,15 @@
 import { transformStructuredOutputToFilters } from "@/components/logs/validation/utils/transform-structured-output-filter-format";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { LLMSearch, toast } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
 
+import { useMutation } from "@tanstack/react-query";
+
 export const DeploymentListSearch = () => {
+  const trpc = useTRPC();
   const { filters, updateFilters } = useFilters();
 
-  const queryLLMForStructuredOutput = trpc.deploy.deployment.search.useMutation({
+  const queryLLMForStructuredOutput = useMutation(trpc.deploy.deployment.search.mutationOptions({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(
@@ -25,9 +28,8 @@ export const DeploymentListSearch = () => {
       updateFilters(transformedFilters);
     },
     onError(error) {
-      const errorMessage = `Unable to process your search request${
-        error.message ? `: ${error.message}` : "."
-      } Please try again or refine your search criteria.`;
+      const errorMessage = `Unable to process your search request${error.message ? `: ${error.message}` : "."
+        } Please try again or refine your search criteria.`;
       toast.error(errorMessage, {
         duration: 8000,
         position: "top-right",
@@ -37,7 +39,7 @@ export const DeploymentListSearch = () => {
         className: "font-medium",
       });
     },
-  });
+  }));
 
   return (
     <LLMSearch
@@ -47,7 +49,7 @@ export const DeploymentListSearch = () => {
         "deployments from main branch",
         "recent deployments",
       ]}
-      isLoading={queryLLMForStructuredOutput.isLoading}
+      isLoading={queryLLMForStructuredOutput.isPending}
       searchMode="manual"
       onSearch={(query) =>
         queryLLMForStructuredOutput.mutateAsync({

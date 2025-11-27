@@ -1,7 +1,6 @@
-"use client";
-
+"use client";;
 import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
 import {
@@ -20,6 +19,9 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+
 const formSchema = z.object({
   email: z.string().email(),
   role: z.enum(["admin", "basic_member"]),
@@ -31,8 +33,9 @@ interface InviteButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement
 }
 
 export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps) => {
+  const trpc = useTRPC();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   const {
     register,
@@ -47,10 +50,10 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
     },
   });
 
-  const createInvitation = trpc.org.invitations.create.useMutation({
+  const createInvitation = useMutation(trpc.org.invitations.create.mutationOptions({
     onSuccess: () => {
       // Invalidate the invitations list query to trigger a refetch
-      utils.org.invitations.list.invalidate();
+      queryClient.invalidateQueries(trpc.org.invitations.list.pathFilter());
 
       toast.success(
         `We have sent an email to ${getValues(
@@ -62,7 +65,7 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
     onError: (error: { message: string }) => {
       toast.error(`Failed to send invitation: ${error.message}`);
     },
-  });
+  }));
 
   // If user or organization isn't available yet, return null or a loading state
   if (!user.orgId || !organization) {
@@ -112,8 +115,8 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
               form="invite-form"
               variant="primary"
               size="xlg"
-              disabled={!isValid || isSubmitting || createInvitation.isLoading}
-              loading={isSubmitting || createInvitation.isLoading}
+              disabled={!isValid || isSubmitting || createInvitation.isPending}
+              loading={isSubmitting || createInvitation.isPending}
               type="submit"
               className="w-full rounded-lg"
             >

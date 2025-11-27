@@ -1,12 +1,14 @@
-"use client";
-
+"use client";;
 import { type Deployment, collection } from "@/lib/collections";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { inArray, useLiveQuery } from "@tanstack/react-db";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { useProject } from "../../../../../layout-provider";
 import { DeploymentSection } from "./components/deployment-section";
 import { DomainsSection } from "./components/domains-section";
+
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 type RollbackDialogProps = {
   isOpen: boolean;
@@ -21,7 +23,8 @@ export const RollbackDialog = ({
   targetDeployment,
   liveDeployment,
 }: RollbackDialogProps) => {
-  const utils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
   const {
     collections: { domains: domainCollection },
@@ -32,9 +35,9 @@ export const RollbackDialog = ({
       .where(({ domain }) => inArray(domain.sticky, ["environment", "live"])),
   );
 
-  const rollback = trpc.deploy.deployment.rollback.useMutation({
+  const rollback = useMutation(trpc.deploy.deployment.rollback.mutationOptions({
     onSuccess: () => {
-      utils.invalidate();
+      queryClient.invalidateQueries(trpc.pathFilter());
       toast.success("Rollback completed", {
         description: `Successfully rolled back to deployment ${targetDeployment.id}`,
       });
@@ -57,7 +60,7 @@ export const RollbackDialog = ({
         description: error.message,
       });
     },
-  });
+  }));
 
   const handleRollback = async () => {
     await rollback
@@ -80,8 +83,8 @@ export const RollbackDialog = ({
           variant="primary"
           size="xlg"
           onClick={handleRollback}
-          disabled={rollback.isLoading}
-          loading={rollback.isLoading}
+          disabled={rollback.isPending}
+          loading={rollback.isPending}
           className="w-full rounded-lg"
         >
           Rollback to target version

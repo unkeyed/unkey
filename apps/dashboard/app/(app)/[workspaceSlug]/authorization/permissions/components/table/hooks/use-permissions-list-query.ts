@@ -1,4 +1,4 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -8,7 +8,10 @@ import {
 import { useFilters } from "../../../hooks/use-filters";
 import type { PermissionsQueryPayload } from "../query-logs.schema";
 
+import { useInfiniteQuery } from "@tanstack/react-query";
+
 export function usePermissionsListQuery() {
+  const trpc = useTRPC();
   const [totalCount, setTotalCount] = useState(0);
   const [permissionsMap, setPermissionsMap] = useState(() => new Map<string, Permission>());
   const { filters } = useFilters();
@@ -49,12 +52,12 @@ export function usePermissionsListQuery() {
     fetchNextPage,
     isFetchingNextPage,
     isLoading: isLoadingInitial,
-  } = trpc.authorization.permissions.query.useInfiniteQuery(queryParams, {
+  } = useInfiniteQuery(trpc.authorization.permissions.query.infiniteQueryOptions(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
-  });
+  }));
 
   useEffect(() => {
     if (permissionsData) {

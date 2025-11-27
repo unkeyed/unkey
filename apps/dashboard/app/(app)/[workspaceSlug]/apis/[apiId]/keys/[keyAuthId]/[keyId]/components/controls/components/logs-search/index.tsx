@@ -1,12 +1,15 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { LLMSearch, toast, transformStructuredOutputToFilters } from "@unkey/ui";
 import type { KeyDetailsFilterValue } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 
+import { useMutation } from "@tanstack/react-query";
+
 const VALID_FIELDS = ["startTime", "endTime", "since", "outcomes"] as const;
 export const LogsSearch = ({ apiId }: { apiId: string }) => {
+  const trpc = useTRPC();
   const { filters, updateFilters } = useFilters();
-  const queryLLMForStructuredOutput = trpc.api.keys.llmSearch.useMutation({
+  const queryLLMForStructuredOutput = useMutation(trpc.api.keys.llmSearch.mutationOptions({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(
@@ -32,9 +35,8 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
       updateFilters(validFilters);
     },
     onError(error) {
-      const errorMessage = `Unable to process your search request${
-        error.message ? `' ${error.message} '` : "."
-      } Please try again or refine your search criteria.`;
+      const errorMessage = `Unable to process your search request${error.message ? `' ${error.message} '` : "."
+        } Please try again or refine your search criteria.`;
 
       toast.error(errorMessage, {
         duration: 8000,
@@ -45,12 +47,12 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
         className: "font-medium",
       });
     },
-  });
+  }));
 
   return (
     <LLMSearch
       exampleQueries={["Show rate limited outcomes"]}
-      isLoading={queryLLMForStructuredOutput.isLoading}
+      isLoading={queryLLMForStructuredOutput.isPending}
       searchMode="manual"
       onSearch={(query) =>
         queryLLMForStructuredOutput.mutateAsync({

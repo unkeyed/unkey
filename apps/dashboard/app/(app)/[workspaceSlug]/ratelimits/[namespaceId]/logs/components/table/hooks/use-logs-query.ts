@@ -1,10 +1,11 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFilters } from "../../../hooks/use-filters";
 import type { RatelimitQueryLogsPayload } from "../query-logs.schema";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 
 type UseLogsQueryParams = {
   limit?: number;
@@ -14,20 +15,23 @@ type UseLogsQueryParams = {
 };
 
 const REALTIME_DATA_LIMIT = 100;
+
 export function useRatelimitLogsQuery({
   namespaceId,
   limit = 50,
   pollIntervalMs = 5000,
   startPolling = false,
 }: UseLogsQueryParams) {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const [historicalLogsMap, setHistoricalLogsMap] = useState(() => new Map<string, RatelimitLog>());
   const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, RatelimitLog>());
+
   const [totalCount, setTotalCount] = useState(0);
 
   const { queryTime: timestamp } = useQueryTime();
 
   const { filters } = useFilters();
-  const queryClient = trpc.useUtils();
 
   const realtimeLogs = useMemo(() => {
     return sortLogs(Array.from(realtimeLogsMap.values()));
@@ -102,22 +106,26 @@ export function useRatelimitLogsQuery({
     fetchNextPage,
     isFetchingNextPage,
     isLoading: isLoadingInitial,
-  } = trpc.ratelimit.logs.query.useInfiniteQuery(queryParams, {
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  });
+  } = useInfiniteQuery(
+    trpc.ratelimit.logs.query.infiniteQueryOptions(queryParams, {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      staleTime: Number.POSITIVE_INFINITY,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    })
+  );
 
   // Query for new logs (polling)
   const pollForNewLogs = useCallback(async () => {
     try {
       const latestTime = realtimeLogs[0]?.time ?? historicalLogs[0]?.time;
-      const result = await queryClient.ratelimit.logs.query.fetch({
-        ...queryParams,
-        startTime: latestTime ?? Date.now() - pollIntervalMs,
-        endTime: Date.now(),
-      });
+      const result = await queryClient.fetchQuery(
+        trpc.ratelimit.logs.query.queryOptions({
+          ...queryParams,
+          startTime: latestTime ?? Date.now() - pollIntervalMs,
+          endTime: Date.now(),
+        })
+      );
 
       if (result.ratelimitLogs.length === 0) {
         return;
@@ -157,6 +165,7 @@ export function useRatelimitLogsQuery({
   }, [
     queryParams,
     queryClient,
+    trpc,
     limit,
     pollIntervalMs,
     historicalLogsMap,

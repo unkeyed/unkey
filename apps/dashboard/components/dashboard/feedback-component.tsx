@@ -1,6 +1,5 @@
-"use client";
-
-import { trpc } from "@/lib/trpc/client";
+"use client";;
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleInfo } from "@unkey/icons";
 import {
@@ -18,6 +17,8 @@ import { parseAsBoolean, useQueryState } from "nuqs";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { useMutation } from "@tanstack/react-query";
+
 export const useFeedback = () => {
   return useQueryState("feedback", {
     ...parseAsBoolean,
@@ -34,6 +35,7 @@ const feedbackSchema = z.object({
 type FormValues = z.infer<typeof feedbackSchema>;
 
 export const Feedback: React.FC = () => {
+  const trpc = useTRPC();
   const [open, setOpen] = useFeedback();
 
   const {
@@ -49,7 +51,7 @@ export const Feedback: React.FC = () => {
     },
   });
 
-  const create = trpc.plain.createIssue.useMutation({
+  const create = useMutation(trpc.plain.createIssue.mutationOptions({
     onSuccess: () => {
       setOpen(false);
       toast.success("Your issue has been created, we'll get back to you as soon as possible");
@@ -58,7 +60,7 @@ export const Feedback: React.FC = () => {
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
   const onSubmitForm = async (values: FormValues) => {
     try {
@@ -81,8 +83,8 @@ export const Feedback: React.FC = () => {
             form="feedback-form"
             variant="primary"
             size="xlg"
-            disabled={isSubmitting || create.isLoading}
-            loading={isSubmitting || create.isLoading}
+            disabled={isSubmitting || create.isPending}
+            loading={isSubmitting || create.isPending}
             className="w-full rounded-lg"
           >
             Send

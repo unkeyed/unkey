@@ -1,21 +1,23 @@
-"use client";
+"use client";;
 import { ProgressCircle } from "@/app/(app)/[workspaceSlug]/settings/billing/components/usage";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { Quotas } from "@unkey/db";
 import { Button, Loading } from "@unkey/ui";
 import Link from "next/link";
 import type React from "react";
 import { Suspense } from "react";
 import { FlatNavItem } from "./app-sidebar/components/nav-items/flat-nav-item";
+import { useQuery } from "@tanstack/react-query";
 type Props = {
   quotas: Quotas | null;
 };
 
 export const UsageBanner: React.FC<Props> = ({ quotas }) => {
+  const trpc = useTRPC();
   const workspace = useWorkspaceNavigation();
 
-  const usage = trpc.billing.queryUsage.useQuery(undefined, {
+  const usage = useQuery(trpc.billing.queryUsage.queryOptions(undefined, {
     refetchOnMount: true,
     refetchInterval: 60 * 1000,
     // Skip batching to prevent analytics slowdown from blocking core UI
@@ -25,7 +27,7 @@ export const UsageBanner: React.FC<Props> = ({ quotas }) => {
       },
     },
     retry: 1,
-  });
+  }));
 
   const current = usage.data?.billableTotal ?? 0;
   const max = quotas?.requestsPerMonth;

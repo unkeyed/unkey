@@ -1,5 +1,8 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
+
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const useDeletePermission = (
   onSuccess: (data: {
@@ -7,10 +10,11 @@ export const useDeletePermission = (
     message: string;
   }) => void,
 ) => {
-  const trpcUtils = trpc.useUtils();
-  const deletePermission = trpc.authorization.permissions.delete.useMutation({
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const deletePermission = useMutation(trpc.authorization.permissions.delete.mutationOptions({
     onSuccess(data, variables) {
-      trpcUtils.authorization.permissions.invalidate();
+      queryClient.invalidateQueries(trpc.authorization.permissions.pathFilter());
       const permissionCount = data.deletedCount;
       const isPlural = permissionCount > 1;
       toast.success(isPlural ? "Permissions Deleted" : "Permission Deleted", {
@@ -54,6 +58,6 @@ export const useDeletePermission = (
         });
       }
     },
-  });
+  }));
   return deletePermission;
 };

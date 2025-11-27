@@ -2,11 +2,14 @@
 
 import { type Deployment, collection, collectionManager } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { DeploymentSection } from "./components/deployment-section";
 import { DomainsSection } from "./components/domains-section";
+
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 type PromotionDialogProps = {
   isOpen: boolean;
@@ -21,7 +24,8 @@ export const PromotionDialog = ({
   targetDeployment,
   liveDeployment,
 }: PromotionDialogProps) => {
-  const utils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const domainCollection = collectionManager.getProjectCollections(
     liveDeployment.projectId,
   ).domains;
@@ -31,9 +35,9 @@ export const PromotionDialog = ({
       .where(({ domain }) => inArray(domain.sticky, ["environment", "live"]))
       .where(({ domain }) => eq(domain.deploymentId, liveDeployment.id)),
   );
-  const promote = trpc.deploy.deployment.promote.useMutation({
+  const promote = useMutation(trpc.deploy.deployment.promote.mutationOptions({
     onSuccess: () => {
-      utils.invalidate();
+      queryClient.invalidateQueries(trpc.pathFilter());
       toast.success("Promotion completed", {
         description: `Successfully promoted to deployment ${targetDeployment.id}`,
       });
@@ -56,7 +60,7 @@ export const PromotionDialog = ({
         description: error.message,
       });
     },
-  });
+  }));
 
   const handlePromotion = async () => {
     await promote
@@ -79,8 +83,8 @@ export const PromotionDialog = ({
           variant="primary"
           size="xlg"
           onClick={handlePromotion}
-          disabled={promote.isLoading}
-          loading={promote.isLoading}
+          disabled={promote.isPending}
+          loading={promote.isPending}
           className="w-full rounded-lg"
         >
           Promote to

@@ -1,9 +1,13 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
 
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+
 export const useEditExpiration = (onSuccess?: () => void) => {
-  const trpcUtils = trpc.useUtils();
-  const updateKeyExpiration = trpc.key.update.expiration.useMutation({
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const updateKeyExpiration = useMutation(trpc.key.update.expiration.mutationOptions({
     onSuccess(_, variables) {
       let description = "";
       if (variables.expiration?.enabled && variables.expiration.data) {
@@ -18,7 +22,7 @@ export const useEditExpiration = (onSuccess?: () => void) => {
         description,
         duration: 5000,
       });
-      trpcUtils.api.keys.list.invalidate();
+      queryClient.invalidateQueries(trpc.api.keys.list.pathFilter());
       if (onSuccess) {
         onSuccess();
       }
@@ -50,6 +54,6 @@ export const useEditExpiration = (onSuccess?: () => void) => {
         });
       }
     },
-  });
+  }));
   return updateKeyExpiration;
 };

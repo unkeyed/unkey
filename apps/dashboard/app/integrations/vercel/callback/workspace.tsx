@@ -3,8 +3,7 @@
  * Hiding for now until we decide if we want to fix it up or toss it
  */
 
-"use client";
-
+"use client";;
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,19 +18,24 @@ import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { setSessionCookie } from "@/lib/auth/cookies";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { Loading, toast } from "@unkey/ui";
 
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
-  const { data: user } = trpc.user.getCurrentUser.useQuery();
+  const trpc = useTRPC();
+  const { data: user } = useQuery(trpc.user.getCurrentUser.queryOptions());
   const { data: memberships, isLoading: isUserMembershipsLoading } =
-    trpc.user.listMemberships.useQuery(
+    useQuery(trpc.user.listMemberships.queryOptions(
       user?.id as string, // make typescript happy
       {
         enabled: !!user,
       },
-    );
-  const utils = trpc.useUtils();
+    ));
+  const queryClient = useQueryClient();
   // const { switchOrganization } = useUser();
   // const { organization: currentOrg } = useOrganization();
   const [isLoading, setLoading] = useState(false);
@@ -45,7 +49,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
     (membership) => membership.organization.id === user?.orgId,
   );
 
-  const changeWorkspace = trpc.user.switchOrg.useMutation({
+  const changeWorkspace = useMutation(trpc.user.switchOrg.mutationOptions({
     async onSuccess(sessionData) {
       if (!sessionData.token || !sessionData.expiresAt) {
         console.error("Invalid session data received:", sessionData);
@@ -58,7 +62,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
           token: sessionData.token,
           expiresAt: sessionData.expiresAt,
         });
-        utils.user.getCurrentUser.invalidate();
+        queryClient.invalidateQueries(trpc.user.getCurrentUser.pathFilter());
       } catch (error) {
         console.error("Failed to set session cookie:", error);
         toast.error("Failed to complete workspace switch. Please try again.");
@@ -68,7 +72,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
       console.error("Failed to switch workspace: ", error);
       toast.error("Failed to switch workspace. Contact support if error persists.");
     },
-  });
+  }));
 
   async function changeOrg(orgId: string | null) {
     if (!orgId) {

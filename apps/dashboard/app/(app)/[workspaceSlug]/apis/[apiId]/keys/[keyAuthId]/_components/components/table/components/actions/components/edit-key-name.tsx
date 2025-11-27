@@ -105,7 +105,7 @@ export const EditKeyName = ({ keyDetails, isOpen, onClose }: EditKeyNameProps) =
                 size="xlg"
                 className="w-full rounded-lg"
                 disabled={!isValid || isSubmitting}
-                loading={key.isLoading}
+                loading={key.isPending}
               >
                 {isSubmitting ? "Saving..." : "Update key name"}
               </Button>

@@ -166,8 +166,8 @@ export const UpsertPermissionDialog = ({
                   variant="primary"
                   size="xlg"
                   className="w-full rounded-lg"
-                  disabled={!isValid || upsertPermissionMutation.isLoading}
-                  loading={upsertPermissionMutation.isLoading}
+                  disabled={!isValid || upsertPermissionMutation.isPending}
+                  loading={upsertPermissionMutation.isPending}
                 >
                   {dialogConfig.buttonText}
                 </Button>

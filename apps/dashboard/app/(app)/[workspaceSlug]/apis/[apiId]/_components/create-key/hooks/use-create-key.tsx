@@ -1,5 +1,8 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
+
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const useCreateKey = (
   onSuccess: (data: {
@@ -8,10 +11,11 @@ export const useCreateKey = (
     name?: string;
   }) => void,
 ) => {
-  const trpcUtils = trpc.useUtils();
-  const key = trpc.key.create.useMutation({
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const key = useMutation(trpc.key.create.mutationOptions({
     onSuccess(data) {
-      trpcUtils.api.keys.list.invalidate();
+      queryClient.invalidateQueries(trpc.api.keys.list.pathFilter());
       onSuccess(data);
     },
     onError(err) {
@@ -39,7 +43,7 @@ export const useCreateKey = (
         });
       }
     },
-  });
+  }));
 
   return key;
 };

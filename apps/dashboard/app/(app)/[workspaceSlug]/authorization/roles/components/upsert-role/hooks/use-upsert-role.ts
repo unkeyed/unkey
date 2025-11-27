@@ -1,5 +1,8 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
+
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const useUpsertRole = (
   onSuccess: (data: {
@@ -8,22 +11,23 @@ export const useUpsertRole = (
     message: string;
   }) => void,
 ) => {
-  const trpcUtils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
-  const role = trpc.authorization.roles.upsert.useMutation({
+  const role = useMutation(trpc.authorization.roles.upsert.mutationOptions({
     async onSuccess(data) {
       await Promise.all([
-        trpcUtils.authorization.roles.query.invalidate(),
-        trpcUtils.authorization.permissions.query.refetch(),
-        trpcUtils.authorization.roles.connectedKeysAndPerms.invalidate({
+        queryClient.invalidateQueries(trpc.authorization.roles.query.pathFilter()),
+        queryClient.refetchQueries(trpc.authorization.permissions.query.pathFilter()),
+        queryClient.invalidateQueries(trpc.authorization.roles.connectedKeysAndPerms.queryFilter({
           roleId: data.roleId,
-        }),
-        trpcUtils.authorization.roles.connectedKeys.invalidate({
+        })),
+        queryClient.invalidateQueries(trpc.authorization.roles.connectedKeys.queryFilter({
           roleId: data.roleId,
-        }),
-        trpcUtils.authorization.roles.connectedPerms.invalidate({
+        })),
+        queryClient.invalidateQueries(trpc.authorization.roles.connectedPerms.queryFilter({
           roleId: data.roleId,
-        }),
+        })),
       ]);
 
       // Show success toast
@@ -66,7 +70,7 @@ export const useUpsertRole = (
         });
       }
     },
-  });
+  }));
 
   return role;
 };

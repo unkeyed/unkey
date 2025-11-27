@@ -1,13 +1,15 @@
-"use client";
+"use client";;
 import type { GetOpenApiDiffResponse } from "@/gen/proto/ctrl/v1/openapi_pb";
 import { shortenId } from "@/lib/shorten-id";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useLiveQuery } from "@tanstack/react-db";
 import { ArrowRight } from "@unkey/icons";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useProject } from "../../../layout-provider";
 import { type DiffStatus, StatusIndicator } from "../../active-deployment-card/status-indicator";
+
+import { useQuery } from "@tanstack/react-query";
 
 const getDiffStatus = (data?: GetOpenApiDiffResponse): DiffStatus => {
   if (!data) {
@@ -26,6 +28,7 @@ const getDiffStatus = (data?: GetOpenApiDiffResponse): DiffStatus => {
 };
 
 export const OpenApiDiff = () => {
+  const trpc = useTRPC();
   const params = useParams();
   const { collections, liveDeploymentId } = useProject();
 
@@ -43,10 +46,10 @@ export const OpenApiDiff = () => {
 
   const newDeployment = query.data?.find((d) => d.id !== liveDeploymentId);
 
-  const diff = trpc.deploy.deployment.getOpenApiDiff.useQuery({
+  const diff = useQuery(trpc.deploy.deployment.getOpenApiDiff.queryOptions({
     newDeploymentId: newDeployment?.id ?? "",
     oldDeploymentId: liveDeploymentId ?? "",
-  });
+  }));
 
   // @ts-expect-error I have no idea why this whines about type diff
   const status = getDiffStatus(diff.data);

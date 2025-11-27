@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -12,7 +12,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSidebar } from "@/components/ui/sidebar";
 import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
@@ -22,20 +22,24 @@ import Link from "next/link";
 import type React from "react";
 import { useMemo, useState } from "react";
 
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
+  const trpc = useTRPC();
   const { isMobile, state } = useSidebar();
   const workspace = useWorkspaceNavigation();
   // Only collapsed in desktop mode, not in mobile mode
   const isCollapsed = state === "collapsed" && !isMobile;
 
-  const { data: user } = trpc.user.getCurrentUser.useQuery();
+  const { data: user } = useQuery(trpc.user.getCurrentUser.queryOptions());
   const { data: memberships, isLoading: isUserMembershipsLoading } =
-    trpc.user.listMemberships.useQuery(
+    useQuery(trpc.user.listMemberships.queryOptions(
       user?.id as string, // make typescript happy
       {
         enabled: !!user,
       },
-    );
+    ));
 
   const userMemberships = memberships?.data;
 
@@ -43,7 +47,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
     (membership) => membership.organization.id === user?.orgId,
   );
 
-  const changeWorkspace = trpc.user.switchOrg.useMutation({
+  const changeWorkspace = useMutation(trpc.user.switchOrg.mutationOptions({
     async onSuccess(sessionData, orgId) {
       if (!sessionData.token || !sessionData.expiresAt) {
         toast.error("Failed to switch workspace. Invalid session data.");
@@ -78,7 +82,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
       console.error("Failed to switch workspace: ", error);
       toast.error("Failed to switch workspace. Contact support if error persists.");
     },
-  });
+  }));
 
   const [search, _setSearch] = useState("");
   const filteredOrgs = useMemo(() => {

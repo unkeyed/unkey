@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -11,12 +11,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { signOut } from "@/lib/auth/utils";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { Laptop2, MoonStars, Sun } from "@unkey/icons";
 import { useTheme } from "next-themes";
 import type React from "react";
+
+import { useQuery } from "@tanstack/react-query";
 
 type UserButtonProps = {
   isCollapsed?: boolean;
@@ -31,7 +33,8 @@ export const UserButton: React.FC<UserButtonProps> = ({
   isMobileSidebarOpen = false,
   className,
 }) => {
-  const { data: user, isLoading } = trpc.user.getCurrentUser.useQuery();
+  const trpc = useTRPC();
+  const { data: user, isLoading } = useQuery(trpc.user.getCurrentUser.queryOptions());
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
 

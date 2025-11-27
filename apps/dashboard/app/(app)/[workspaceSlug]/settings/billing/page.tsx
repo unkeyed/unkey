@@ -1,7 +1,7 @@
-"use client";
+"use client";;
 import { PageLoading } from "@/components/dashboard/page-loading";
 import { formatNumber } from "@/lib/fmt";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { Button, Empty, Input, SettingCard } from "@unkey/ui";
 import Link from "next/link";
@@ -9,7 +9,10 @@ import { WorkspaceNavbar } from "../workspace-navbar";
 import { Client } from "./client";
 import { Shell } from "./components/shell";
 
+import { useQuery } from "@tanstack/react-query";
+
 export default function BillingPage() {
+  const trpc = useTRPC();
   const { workspace, isLoading: isWorkspaceLoading } = useWorkspace();
 
   // Derive isLegacy from workspace data
@@ -20,7 +23,7 @@ export default function BillingPage() {
     isLoading: usageLoading,
     isError,
     error,
-  } = trpc.billing.queryUsage.useQuery(undefined, {
+  } = useQuery(trpc.billing.queryUsage.queryOptions(undefined, {
     // Only enable query when workspace is loaded AND it's a legacy subscription
     enabled: Boolean(workspace && isLegacy),
     // Skip batching to prevent analytics slowdown from blocking core UI
@@ -30,7 +33,7 @@ export default function BillingPage() {
       },
     },
     retry: 1,
-  });
+  }));
 
   // Derive loading state: loading if workspace is loading OR (if legacy, usage is loading)
   const isLoading = isWorkspaceLoading || !workspace || (isLegacy && usageLoading);

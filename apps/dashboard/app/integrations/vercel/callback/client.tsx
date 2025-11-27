@@ -3,11 +3,11 @@
  * Hiding for now until we decide if we want to fix it up or toss it
  */
 
-"use client";
+"use client";;
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { Api, VercelBinding } from "@unkey/db";
 import { XMark } from "@unkey/icons";
 import {
@@ -22,6 +22,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { WorkspaceSwitcher } from "./workspace";
+import { useMutation } from "@tanstack/react-query";
 type Props = {
   projects: { id: string; name: string }[];
   apis: Api[];
@@ -39,6 +40,7 @@ export const Client: React.FC<Props> = ({
   accessToken,
   vercelTeamId,
 }) => {
+  const trpc = useTRPC();
   const [projectId, setProjectId] = useState<string | undefined>(
     projects.length === 1 ? projects[0].id : undefined,
   );
@@ -55,7 +57,7 @@ export const Client: React.FC<Props> = ({
   const disabled =
     !projectId || !(selectedApis.development || selectedApis.preview || selectedApis.production);
 
-  const create = trpc.vercel.setupProject.useMutation({
+  const create = useMutation(trpc.vercel.setupProject.mutationOptions({
     onSuccess: () => {
       toast.success("Successfully added environment variables to your Vercel project");
 
@@ -66,7 +68,7 @@ export const Client: React.FC<Props> = ({
       console.error(err);
       toast.error(err.message);
     },
-  });
+  }));
 
   return (
     <div className="container min-h-screen mx-auto mt-8">

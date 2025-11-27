@@ -1,9 +1,24 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { TRPCClientErrorLike } from "@trpc/client";
-import type { TRPCErrorShape } from "@trpc/server/rpc";
 import { toast } from "@unkey/ui";
 
-const handleKeyUpdateError = (err: TRPCClientErrorLike<TRPCErrorShape>) => {
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { DefaultErrorShape } from "@trpc/server/unstable-core-do-not-import";
+
+const handleKeyUpdateError = (err: TRPCClientErrorLike<{
+  input: {
+    enabled: boolean;
+    keyIds: string | string[];
+  };
+  output: {
+    enabled: boolean;
+    updatedKeyIds: string[];
+    missingKeyIds: string[] | undefined;
+  };
+  transformer: true;
+  errorShape: DefaultErrorShape
+}>) => {
   const errorMessage = err.message || "";
   if (err.data?.code === "NOT_FOUND") {
     toast.error("Key Update Failed", {
@@ -26,17 +41,17 @@ const handleKeyUpdateError = (err: TRPCClientErrorLike<TRPCErrorShape>) => {
 };
 
 export const useUpdateKeyStatus = (onSuccess?: () => void) => {
-  const trpcUtils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
-  const updateKeyEnabled = trpc.key.update.enabled.useMutation({
+  const updateKeyEnabled = useMutation(trpc.key.update.enabled.mutationOptions({
     onSuccess(data) {
       toast.success(`Key ${data.enabled ? "Enabled" : "Disabled"}`, {
-        description: `Your key ${data.updatedKeyIds[0]} has been ${
-          data.enabled ? "enabled" : "disabled"
-        } successfully`,
+        description: `Your key ${data.updatedKeyIds[0]} has been ${data.enabled ? "enabled" : "disabled"
+          } successfully`,
         duration: 5000,
       });
-      trpcUtils.api.keys.list.invalidate();
+      queryClient.invalidateQueries(trpc.api.keys.list.pathFilter());
       if (onSuccess) {
         onSuccess();
       }
@@ -44,35 +59,34 @@ export const useUpdateKeyStatus = (onSuccess?: () => void) => {
     onError(err) {
       handleKeyUpdateError(err);
     },
-  });
+  }));
 
   return updateKeyEnabled;
 };
 
 export const useBatchUpdateKeyStatus = (onSuccess?: () => void) => {
-  const trpcUtils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
-  const updateMultipleKeysEnabled = trpc.key.update.enabled.useMutation({
+  const updateMultipleKeysEnabled = useMutation(trpc.key.update.enabled.mutationOptions({
     onSuccess(data) {
       const updatedCount = data.updatedKeyIds.length;
       toast.success(`Keys ${data.enabled ? "Enabled" : "Disabled"}`, {
-        description: `${updatedCount} ${
-          updatedCount === 1 ? "key has" : "keys have"
-        } been ${data.enabled ? "enabled" : "disabled"} successfully`,
+        description: `${updatedCount} ${updatedCount === 1 ? "key has" : "keys have"
+          } been ${data.enabled ? "enabled" : "disabled"} successfully`,
         duration: 5000,
       });
 
       // Show warning if some keys were not found
       if (data.missingKeyIds && data.missingKeyIds.length > 0) {
         toast.warning("Some Keys Not Found", {
-          description: `${data.missingKeyIds.length} ${
-            data.missingKeyIds.length === 1 ? "key was" : "keys were"
-          } not found and could not be updated.`,
+          description: `${data.missingKeyIds.length} ${data.missingKeyIds.length === 1 ? "key was" : "keys were"
+            } not found and could not be updated.`,
           duration: 7000,
         });
       }
 
-      trpcUtils.api.keys.list.invalidate();
+      queryClient.invalidateQueries(trpc.api.keys.list.pathFilter());
       if (onSuccess) {
         onSuccess();
       }
@@ -80,7 +94,7 @@ export const useBatchUpdateKeyStatus = (onSuccess?: () => void) => {
     onError(err) {
       handleKeyUpdateError(err);
     },
-  });
+  }));
 
   return updateMultipleKeysEnabled;
 };

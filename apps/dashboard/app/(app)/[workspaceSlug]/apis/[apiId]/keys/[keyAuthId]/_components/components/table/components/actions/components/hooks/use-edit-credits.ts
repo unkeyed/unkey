@@ -1,9 +1,13 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
 
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+
 export const useEditCredits = (onSuccess?: () => void) => {
-  const trpcUtils = trpc.useUtils();
-  const updateKeyRemaining = trpc.key.update.remaining.useMutation({
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const updateKeyRemaining = useMutation(trpc.key.update.remaining.mutationOptions({
     onSuccess(data, variables) {
       const remainingChange = variables.limit?.enabled
         ? `with ${variables.limit.data.remaining} uses remaining`
@@ -13,7 +17,7 @@ export const useEditCredits = (onSuccess?: () => void) => {
         description: `Your key ${data.keyId} has been updated successfully ${remainingChange}`,
         duration: 5000,
       });
-      trpcUtils.api.keys.list.invalidate();
+      queryClient.invalidateQueries(trpc.api.keys.list.pathFilter());
       if (onSuccess) {
         onSuccess();
       }
@@ -38,6 +42,6 @@ export const useEditCredits = (onSuccess?: () => void) => {
         });
       }
     },
-  });
+  }));
   return updateKeyRemaining;
 };

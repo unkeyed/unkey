@@ -1,11 +1,13 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import type { TimeseriesRequestSchema } from "@/lib/schemas/logs.schema";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useMemo } from "react";
 import { EXCLUDED_HOSTS } from "../../../constants";
 import { useGatewayLogsFilters } from "../../../hooks/use-gateway-logs-filters";
+
+import { useQuery } from "@tanstack/react-query";
 
 // Constants
 const FILTER_FIELD_MAPPING = {
@@ -18,6 +20,7 @@ const FILTER_FIELD_MAPPING = {
 const TIME_FIELDS = ["startTime", "endTime", "since"] as const;
 
 export const useGatewayLogsTimeseries = () => {
+  const trpc = useTRPC();
   const { filters } = useGatewayLogsFilters();
   const { queryTime: timestamp } = useQueryTime();
 
@@ -104,14 +107,14 @@ export const useGatewayLogsTimeseries = () => {
     return params;
   }, [filters, timestamp]);
 
-  const { data, isLoading, isError } = trpc.logs.queryTimeseries.useQuery(queryParams, {
+  const { data, isLoading, isError } = useQuery(trpc.logs.queryTimeseries.queryOptions(queryParams, {
     refetchInterval: queryParams.endTime ? false : 10_000,
     trpc: {
       context: {
         skipBatch: true,
       },
     },
-  });
+  }));
 
   const timeseries = data?.timeseries.map((ts) => ({
     displayX: formatTimestampForChart(ts.x, data.granularity),

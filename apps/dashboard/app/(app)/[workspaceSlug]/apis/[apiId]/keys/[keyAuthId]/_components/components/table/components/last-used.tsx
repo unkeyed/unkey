@@ -1,9 +1,11 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChartActivity2 } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { STATUS_STYLES } from "../utils/get-row-class";
+
+import { useQuery } from "@tanstack/react-query";
 
 export const LastUsedCell = ({
   keyAuthId,
@@ -14,7 +16,8 @@ export const LastUsedCell = ({
   keyId: string;
   isSelected: boolean;
 }) => {
-  const { data, isLoading, isError } = trpc.api.keys.latestVerification.useQuery(
+  const trpc = useTRPC();
+  const { data, isLoading, isError } = useQuery(trpc.api.keys.latestVerification.queryOptions(
     {
       keyAuthId,
       keyId,
@@ -26,7 +29,7 @@ export const LastUsedCell = ({
         },
       },
     },
-  );
+  ));
   const badgeRef = useRef<HTMLDivElement>(null);
   const [showTooltip, setShowTooltip] = useState(false);
 

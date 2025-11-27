@@ -1,11 +1,13 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { RefreshButton } from "@unkey/ui";
 
 export const NamespaceListRefresh = () => {
-  const { ratelimit } = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient()
 
   const handleRefresh = () => {
-    ratelimit.logs.queryRatelimitTimeseries.invalidate();
+    queryClient.invalidateQueries(trpc.ratelimit.logs.queryRatelimitTimeseries.pathFilter())
   };
 
   return <RefreshButton onRefresh={handleRefresh} isEnabled />;

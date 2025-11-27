@@ -1,11 +1,14 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { LLMSearch, toast, transformStructuredOutputToFilters } from "@unkey/ui";
 
 import { useFilters } from "../../../../hooks/use-filters";
 
+import { useMutation } from "@tanstack/react-query";
+
 export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
+  const trpc = useTRPC();
   const { filters, updateFilters } = useFilters();
-  const queryLLMForStructuredOutput = trpc.api.keys.listLlmSearch.useMutation({
+  const queryLLMForStructuredOutput = useMutation(trpc.api.keys.listLlmSearch.mutationOptions({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(
@@ -24,9 +27,8 @@ export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
       updateFilters(transformedFilters);
     },
     onError(error) {
-      const errorMessage = `Unable to process your search request${
-        error.message ? `: ${error.message}` : "."
-      } Please try again or refine your search criteria.`;
+      const errorMessage = `Unable to process your search request${error.message ? `: ${error.message}` : "."
+        } Please try again or refine your search criteria.`;
 
       toast.error(errorMessage, {
         duration: 8000,
@@ -37,7 +39,7 @@ export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
         className: "font-medium",
       });
     },
-  });
+  }));
 
   return (
     <LLMSearch
@@ -47,7 +49,7 @@ export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
         "Show keys with name 'Temp Key' and ID starting with 'temp_'",
         "Find keys where identity is 'dev_user' or name contains 'debug'",
       ]}
-      isLoading={queryLLMForStructuredOutput.isLoading}
+      isLoading={queryLLMForStructuredOutput.isPending}
       searchMode="manual"
       onSearch={(query) =>
         queryLLMForStructuredOutput.mutateAsync({

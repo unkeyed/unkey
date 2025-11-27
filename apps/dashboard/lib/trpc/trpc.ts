@@ -36,7 +36,17 @@ export const requireWorkspace = t.middleware(({ next, ctx }) => {
   });
 });
 
-export const requireSelf = t.middleware(({ next, ctx, rawInput: userId }) => {
+export const requireSelf = t.middleware(({ next, ctx, rawInput }) => {
+  // Runtime check
+  if (typeof rawInput !== "string") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "User ID must be a string",
+    });
+  }
+
+  const userId = rawInput;
+
   if (ctx.user?.id !== userId) {
     throw new TRPCError({
       code: "FORBIDDEN",

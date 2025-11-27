@@ -1,11 +1,14 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { LLMSearch, toast, transformStructuredOutputToFilters } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
 
+import { useMutation } from "@tanstack/react-query";
+
 export const RolesSearch = () => {
+  const trpc = useTRPC();
   const { filters, updateFilters } = useFilters();
 
-  const queryLLMForStructuredOutput = trpc.authorization.roles.llmSearch.useMutation({
+  const queryLLMForStructuredOutput = useMutation(trpc.authorization.roles.llmSearch.mutationOptions({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(
@@ -24,9 +27,8 @@ export const RolesSearch = () => {
       updateFilters(transformedFilters);
     },
     onError(error) {
-      const errorMessage = `Unable to process your search request${
-        error.message ? `: ${error.message}` : "."
-      } Please try again or refine your search criteria.`;
+      const errorMessage = `Unable to process your search request${error.message ? `: ${error.message}` : "."
+        } Please try again or refine your search criteria.`;
       toast.error(errorMessage, {
         duration: 8000,
         position: "top-right",
@@ -36,7 +38,7 @@ export const RolesSearch = () => {
         className: "font-medium",
       });
     },
-  });
+  }));
 
   return (
     <LLMSearch
@@ -48,7 +50,7 @@ export const RolesSearch = () => {
         "Find roles named exactly 'super_admin'",
         "Show roles with write permissions and user keys",
       ]}
-      isLoading={queryLLMForStructuredOutput.isLoading}
+      isLoading={queryLLMForStructuredOutput.isPending}
       searchMode="manual"
       onSearch={(query) =>
         queryLLMForStructuredOutput.mutateAsync({

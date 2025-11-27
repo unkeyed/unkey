@@ -1,25 +1,28 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "@unkey/ui";
 import type { z } from "zod";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 const createInvalidationHelper = () => {
-  const utils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   return {
     /**
      * Invalidates common API-related queries
      * Used after most API mutations (update name, whitelist, default bytes, etc.)
      */
     invalidateApiQueries: () => {
-      utils.api.overview.query.invalidate();
-      utils.api.queryApiKeyDetails.invalidate();
+      queryClient.invalidateQueries(trpc.api.overview.query.pathFilter());
+      queryClient.invalidateQueries(trpc.api.queryApiKeyDetails.pathFilter());
     },
     /**
      * Invalidates only workspace-level queries after API deletion
      * Doesn't invalidate API-specific queries since the API no longer exists
      */
     invalidateAfterApiDeletion: () => {
-      utils.api.overview.query.invalidate();
+      queryClient.invalidateQueries(trpc.api.overview.query.pathFilter());
     },
   };
 };

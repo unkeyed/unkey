@@ -1,5 +1,4 @@
-"use client";
-
+"use client";;
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -37,23 +36,25 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { Button, Input, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
 }
 
 export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData, TValue>) {
+  const trpc = useTRPC();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = useState({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const router = useRouter();
 
-  const deleteKey = trpc.settings.rootKeys.delete.useMutation({
+  const deleteKey = useMutation(trpc.settings.rootKeys.delete.mutationOptions({
     onSuccess: (_data, variables) => {
       setRowSelection({});
       toast.success(
@@ -68,7 +69,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
       console.error(err);
       toast.error(`Could not delete key ${JSON.stringify(variables)}`);
     },
-  });
+  }));
   const table = useReactTable({
     data,
     columns,
@@ -109,7 +110,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
 
                 <DialogFooter>
                   <Button
-                    disabled={deleteKey.isLoading}
+                    disabled={deleteKey.isPending}
                     onClick={() => {
                       const keyIds = table
                         .getSelectedRowModel()
@@ -117,7 +118,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
                         .rows.map((row) => row.original.id as string);
                       deleteKey.mutate({ keyIds });
                     }}
-                    loading={deleteKey.isLoading}
+                    loading={deleteKey.isPending}
                   >
                     Delete permanently
                   </Button>

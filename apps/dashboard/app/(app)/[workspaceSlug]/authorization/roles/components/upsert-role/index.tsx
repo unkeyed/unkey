@@ -187,8 +187,8 @@ export const UpsertRoleDialog = ({
                   variant="primary"
                   size="xlg"
                   className="w-full rounded-lg"
-                  disabled={!isValid || upsertRoleMutation.isLoading}
-                  loading={upsertRoleMutation.isLoading}
+                  disabled={!isValid || upsertRoleMutation.isPending}
+                  loading={upsertRoleMutation.isPending}
                 >
                   {dialogConfig.buttonText}
                 </Button>

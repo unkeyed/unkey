@@ -67,8 +67,8 @@ export const SelectionControls = ({
                   variant="outline"
                   size="sm"
                   className="text-gray-12 font-medium text-[13px]"
-                  disabled={deletePermission.isLoading}
-                  loading={deletePermission.isLoading}
+                  disabled={deletePermission.isPending}
+                  loading={deletePermission.isPending}
                   onClick={handleDeleteButtonClick}
                   ref={deleteButtonRef}
                 >
@@ -95,9 +95,8 @@ export const SelectionControls = ({
         onConfirm={performPermissionDelete}
         triggerRef={deleteButtonRef}
         title="Confirm permission deletion"
-        description={`This action is irreversible. All data associated with ${
-          selectedPermissions.size > 1 ? "these permissions" : "this permission"
-        } will be permanently deleted.`}
+        description={`This action is irreversible. All data associated with ${selectedPermissions.size > 1 ? "these permissions" : "this permission"
+          } will be permanently deleted.`}
         confirmButtonText={`Delete permission${selectedPermissions.size > 1 ? "s" : ""}`}
         cancelButtonText="Cancel"
         variant="danger"

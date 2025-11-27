@@ -1,13 +1,16 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
+
+import { useQuery } from "@tanstack/react-query";
 
 type useFetchRequestDetails = {
   requestId?: string;
 };
 
 export function useFetchRequestDetails({ requestId }: useFetchRequestDetails) {
+  const trpc = useTRPC();
   const { queryTime: timestamp } = useQueryTime();
-  const query = trpc.logs.queryLogs.useQuery(
+  const query = useQuery(trpc.logs.queryLogs.queryOptions(
     {
       limit: 1,
       startTime: 0,
@@ -33,7 +36,7 @@ export function useFetchRequestDetails({ requestId }: useFetchRequestDetails) {
       refetchOnWindowFocus: false,
       refetchOnMount: false,
     },
-  );
+  ));
 
   return {
     log: query.data?.logs[0],

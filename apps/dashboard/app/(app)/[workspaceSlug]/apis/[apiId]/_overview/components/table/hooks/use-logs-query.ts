@@ -1,6 +1,6 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useSort } from "@/components/logs/hooks/use-sort";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES, type KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { useEffect, useMemo, useState } from "react";
@@ -8,12 +8,15 @@ import { keysOverviewFilterFieldConfig } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
 import type { KeysQueryOverviewLogsPayload, SortFields } from "../query-logs.schema";
 
+import { useInfiniteQuery } from "@tanstack/react-query";
+
 type UseLogsQueryParams = {
   limit?: number;
   apiId: string;
 };
 
 export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryParams) {
+  const trpc = useTRPC();
   const [historicalLogsMap, setHistoricalLogsMap] = useState(
     () => new Map<string, KeysOverviewLog>(),
   );
@@ -128,12 +131,12 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     fetchNextPage,
     isFetchingNextPage,
     isLoading: isLoadingInitial,
-  } = trpc.api.keys.query.useInfiniteQuery(queryParams, {
+  } = useInfiniteQuery(trpc.api.keys.query.infiniteQueryOptions(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
-  });
+  }));
 
   // Update historical logs effect
   useEffect(() => {

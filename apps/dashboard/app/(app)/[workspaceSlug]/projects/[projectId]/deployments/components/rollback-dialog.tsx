@@ -2,12 +2,15 @@
 
 import { type Deployment, collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { inArray, useLiveQuery } from "@tanstack/react-db";
 import { CircleInfo, CodeBranch, CodeCommit, Link4 } from "@unkey/icons";
 import { Badge, Button, DialogContainer, toast } from "@unkey/ui";
 import { StatusIndicator } from "../../details/active-deployment-card/status-indicator";
 import { useProject } from "../../layout-provider";
+
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 type DeploymentSectionProps = {
   title: string;
@@ -39,7 +42,8 @@ export const RollbackDialog = ({
   targetDeployment,
   liveDeployment,
 }: RollbackDialogProps) => {
-  const utils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
   const {
     collections: { domains: domainCollection },
@@ -50,9 +54,9 @@ export const RollbackDialog = ({
       .where(({ domain }) => inArray(domain.sticky, ["environment", "live"])),
   );
 
-  const rollback = trpc.deploy.deployment.rollback.useMutation({
+  const rollback = useMutation(trpc.deploy.deployment.rollback.mutationOptions({
     onSuccess: () => {
-      utils.invalidate();
+      queryClient.invalidateQueries(trpc.pathFilter());
       toast.success("Rollback completed", {
         description: `Successfully rolled back to deployment ${targetDeployment.id}`,
       });
@@ -75,7 +79,7 @@ export const RollbackDialog = ({
         description: error.message,
       });
     },
-  });
+  }));
 
   const handleRollback = async () => {
     await rollback
@@ -98,8 +102,8 @@ export const RollbackDialog = ({
           variant="primary"
           size="xlg"
           onClick={handleRollback}
-          disabled={rollback.isLoading}
-          loading={rollback.isLoading}
+          disabled={rollback.isPending}
+          loading={rollback.isPending}
           className="w-full rounded-lg"
         >
           Rollback to target version

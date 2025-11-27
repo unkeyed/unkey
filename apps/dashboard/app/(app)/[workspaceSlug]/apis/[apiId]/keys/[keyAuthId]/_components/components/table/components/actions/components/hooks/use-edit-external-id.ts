@@ -1,9 +1,12 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { TRPCClientErrorLike } from "@trpc/client";
-import type { TRPCErrorShape } from "@trpc/server/rpc";
 import { toast } from "@unkey/ui";
 
-const handleKeyOwnerUpdateError = (err: TRPCClientErrorLike<TRPCErrorShape>) => {
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { AppRouter } from "@/lib/trpc/routers";
+
+const handleKeyOwnerUpdateError = (err: TRPCClientErrorLike<AppRouter>) => {
   if (err.data?.code === "NOT_FOUND") {
     toast.error("Key Update Failed", {
       description: "Unable to find the key(s). Please refresh and try again.",
@@ -32,8 +35,9 @@ const handleKeyOwnerUpdateError = (err: TRPCClientErrorLike<TRPCErrorShape>) => 
 };
 
 export const useEditExternalId = (onSuccess?: () => void) => {
-  const trpcUtils = trpc.useUtils();
-  const updateKeyOwner = trpc.key.update.ownerId.useMutation({
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const updateKeyOwner = useMutation(trpc.key.update.ownerId.mutationOptions({
     onSuccess(_, variables) {
       let description = "";
       const keyId = Array.isArray(variables.keyIds) ? variables.keyIds[0] : variables.keyIds;
@@ -50,7 +54,7 @@ export const useEditExternalId = (onSuccess?: () => void) => {
         duration: 5000,
       });
 
-      trpcUtils.api.keys.list.invalidate();
+      queryClient.invalidateQueries(trpc.api.keys.list.pathFilter());
       if (onSuccess) {
         onSuccess();
       }
@@ -58,27 +62,26 @@ export const useEditExternalId = (onSuccess?: () => void) => {
     onError(err) {
       handleKeyOwnerUpdateError(err);
     },
-  });
+  }));
 
   return updateKeyOwner;
 };
 
 export const useBatchEditExternalId = (onSuccess?: () => void) => {
-  const trpcUtils = trpc.useUtils();
-  const batchUpdateKeyOwner = trpc.key.update.ownerId.useMutation({
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const batchUpdateKeyOwner = useMutation(trpc.key.update.ownerId.mutationOptions({
     onSuccess(data, variables) {
       const updatedCount = data.updatedCount;
       let description = "";
 
       if (variables.ownerType === "v2") {
         if (variables.identity?.id) {
-          description = `Identity has been updated for ${updatedCount} ${
-            updatedCount === 1 ? "key" : "keys"
-          }`;
+          description = `Identity has been updated for ${updatedCount} ${updatedCount === 1 ? "key" : "keys"
+            }`;
         } else {
-          description = `Identity has been removed from ${updatedCount} ${
-            updatedCount === 1 ? "key" : "keys"
-          }`;
+          description = `Identity has been removed from ${updatedCount} ${updatedCount === 1 ? "key" : "keys"
+            }`;
         }
       }
       toast.success("Key External ID Updated", {
@@ -93,14 +96,13 @@ export const useBatchEditExternalId = (onSuccess?: () => void) => {
 
       if (missingCount > 0) {
         toast.warning("Some Keys Not Found", {
-          description: `${missingCount} ${
-            missingCount === 1 ? "key was" : "keys were"
-          } not found and could not be updated.`,
+          description: `${missingCount} ${missingCount === 1 ? "key was" : "keys were"
+            } not found and could not be updated.`,
           duration: 7000,
         });
       }
 
-      trpcUtils.api.keys.list.invalidate();
+      queryClient.invalidateQueries(trpc.api.keys.list.pathFilter());
       if (onSuccess) {
         onSuccess();
       }
@@ -108,7 +110,7 @@ export const useBatchEditExternalId = (onSuccess?: () => void) => {
     onError(err) {
       handleKeyOwnerUpdateError(err);
     },
-  });
+  }));
 
   return batchUpdateKeyOwner;
 };

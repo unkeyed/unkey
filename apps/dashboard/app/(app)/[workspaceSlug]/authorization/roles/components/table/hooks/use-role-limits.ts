@@ -1,4 +1,6 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
+
+import { useQueryClient } from "@tanstack/react-query";
 
 export type RoleLimitState = {
   totalKeys: number;
@@ -16,24 +18,25 @@ export type RoleLimitState = {
 export const MAX_ATTACH_LIMIT = 50;
 
 export const useRoleLimits = (roleId?: string) => {
-  const trpcUtils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
   const getKeysPreview = () => {
     if (!roleId) {
       return null;
     }
-    return trpcUtils.authorization.roles.connectedKeys.getData({
+    return queryClient.getQueryData(trpc.authorization.roles.connectedKeys.queryKey({
       roleId,
-    });
+    }));
   };
 
   const getPermsPreview = () => {
     if (!roleId) {
       return null;
     }
-    return trpcUtils.authorization.roles.connectedPerms.getData({
+    return queryClient.getQueryData(trpc.authorization.roles.connectedPerms.queryKey({
       roleId,
-    });
+    }));
   };
 
   const calculateLimits = (
@@ -76,9 +79,9 @@ export const useRoleLimits = (roleId?: string) => {
     const { shouldPrefetch } = calculateLimits();
 
     if (shouldPrefetch) {
-      await trpcUtils.authorization.roles.connectedKeysAndPerms.prefetch({
+      await queryClient.prefetchQuery(trpc.authorization.roles.connectedKeysAndPerms.queryOptions({
         roleId,
-      });
+      }));
     }
   };
 

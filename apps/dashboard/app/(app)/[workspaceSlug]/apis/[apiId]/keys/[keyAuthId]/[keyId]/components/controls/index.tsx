@@ -1,4 +1,4 @@
-"use client";
+"use client";;
 import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/status-badge";
 import {
   ControlsContainer,
@@ -6,7 +6,7 @@ import {
   ControlsRight,
 } from "@/components/logs/controls-container";
 import { formatNumber } from "@/lib/fmt";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { Coins } from "@unkey/icons";
 import { Separator } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
@@ -15,6 +15,8 @@ import { LogsFilters } from "./components/logs-filters";
 import { LogsLiveSwitch } from "./components/logs-live-switch";
 import { LogsRefresh } from "./components/logs-refresh";
 import { LogsSearch } from "./components/logs-search";
+
+import { useQuery } from "@tanstack/react-query";
 
 export function KeysDetailsLogsControls({
   keyspaceId,
@@ -25,10 +27,11 @@ export function KeysDetailsLogsControls({
   keyspaceId: string;
   apiId: string;
 }) {
-  const { data, error, isLoading } = trpc.key.fetchPermissions.useQuery({
+  const trpc = useTRPC();
+  const { data, error, isLoading } = useQuery(trpc.key.fetchPermissions.queryOptions({
     keyId,
     keyspaceId,
-  });
+  }));
 
   // Safe access to remaining credit with fallback
   const hasRemainingCredit =

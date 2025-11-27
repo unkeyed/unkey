@@ -1,8 +1,12 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { toast } from "@unkey/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ROOT_KEY_CONSTANTS, ROOT_KEY_MESSAGES } from "../constants";
+
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Utility function for robust permission array comparison using Set-based equality check
 function arePermissionArraysEqual(
@@ -48,7 +52,8 @@ export function useRootKeyDialog({
   existingKey,
   onOpenChange,
 }: UseRootKeyDialogProps) {
-  const trpcUtils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const [name, setName] = useState(existingKey?.name ?? "");
   const [selectedPermissions, setSelectedPermissions] = useState<UnkeyPermission[]>(
     existingKey?.permissions ?? [],
@@ -61,12 +66,12 @@ export function useRootKeyDialog({
     hasNextPage,
     isFetchingNextPage,
     isLoading: apisLoading,
-  } = trpc.api.overview.query.useInfiniteQuery(
+  } = useInfiniteQuery(trpc.api.overview.query.infiniteQueryOptions(
     { limit: ROOT_KEY_CONSTANTS.DEFAULT_LIMIT },
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
     },
-  );
+  ));
 
   const allApis = useMemo(() => {
     if (!apisData?.pages) {
@@ -81,10 +86,10 @@ export function useRootKeyDialog({
   }, [apisData]);
 
   // Mutations
-  const key = trpc.rootKey.create.useMutation({
+  const key = useMutation(trpc.rootKey.create.mutationOptions({
     onSuccess() {
       toast.success(ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_GENERATED);
-      trpcUtils.settings.rootKeys.query.invalidate();
+      queryClient.invalidateQueries(trpc.settings.rootKeys.query.pathFilter());
     },
     onError(err) {
       if (err.data?.code === "BAD_REQUEST") {
@@ -93,28 +98,28 @@ export function useRootKeyDialog({
         toast.error("Something went wrong. Please try again.");
       }
     },
-  });
+  }));
 
-  const updateName = trpc.rootKey.update.name.useMutation({
+  const updateName = useMutation(trpc.rootKey.update.name.mutationOptions({
     onSuccess() {
       toast.success(ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_UPDATED_NAME);
-      trpcUtils.settings.rootKeys.query.invalidate();
+      queryClient.invalidateQueries(trpc.settings.rootKeys.query.pathFilter());
     },
     onError(err: { message: string }) {
       toast.error(err.message);
     },
-  });
+  }));
 
-  const updatePermissions = trpc.rootKey.update.permissions.useMutation({
+  const updatePermissions = useMutation(trpc.rootKey.update.permissions.mutationOptions({
     onSuccess(_data, variables) {
       const count = variables?.permissions?.length ?? 0;
       toast.success(`${ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_UPDATED_PERMISSIONS} ${count}`);
-      trpcUtils.settings.rootKeys.query.invalidate();
+      queryClient.invalidateQueries(trpc.settings.rootKeys.query.pathFilter());
     },
     onError(err: { message: string }) {
       toast.error(err.message);
     },
-  });
+  }));
 
   const fetchMoreApis = useCallback(() => {
     if (hasNextPage) {

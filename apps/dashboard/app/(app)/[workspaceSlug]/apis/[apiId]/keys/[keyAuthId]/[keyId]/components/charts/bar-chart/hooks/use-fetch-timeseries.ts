@@ -1,6 +1,6 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { useMemo } from "react";
@@ -8,7 +8,10 @@ import { keyDetailsFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import type { KeyDetailsQueryTimeseriesPayload } from "../query-timeseries.schema";
 
+import { useQuery } from "@tanstack/react-query";
+
 export const useFetchVerificationTimeseries = (keyId: string, keyspaceId: string) => {
+  const trpc = useTRPC();
   const { filters } = useFilters();
   const { queryTime: timestamp } = useQueryTime();
 
@@ -87,14 +90,14 @@ export const useFetchVerificationTimeseries = (keyId: string, keyspaceId: string
     return params;
   }, [filters, timestamp, keyId, keyspaceId]);
 
-  const { data, isLoading, isError } = trpc.key.logs.timeseries.useQuery(queryParams, {
+  const { data, isLoading, isError } = useQuery(trpc.key.logs.timeseries.queryOptions(queryParams, {
     refetchInterval: queryParams.endTime === timestamp ? 10_000 : false,
     trpc: {
       context: {
         skipBatch: true,
       },
     },
-  });
+  }));
 
   const timeseries = useMemo(() => {
     if (!data?.timeseries) {

@@ -89,8 +89,8 @@ export const SelectionControls = ({
               variant="outline"
               size="sm"
               className="text-gray-12 font-medium text-[13px]"
-              disabled={getSelectedKeysState() !== "all-disabled" || updateKeyStatus.isLoading}
-              loading={updateKeyStatus.isLoading}
+              disabled={getSelectedKeysState() !== "all-disabled" || updateKeyStatus.isPending}
+              loading={updateKeyStatus.isPending}
               onClick={() =>
                 updateKeyStatus.mutate({
                   enabled: true,
@@ -105,8 +105,8 @@ export const SelectionControls = ({
               variant="outline"
               size="sm"
               className="text-gray-12 font-medium text-[13px]"
-              disabled={getSelectedKeysState() !== "all-enabled" || updateKeyStatus.isLoading}
-              loading={updateKeyStatus.isLoading}
+              disabled={getSelectedKeysState() !== "all-enabled" || updateKeyStatus.isPending}
+              loading={updateKeyStatus.isPending}
               onClick={handleDisableButtonClick}
               ref={disableButtonRef}
             >
@@ -117,8 +117,8 @@ export const SelectionControls = ({
               variant="outline"
               size="sm"
               className="text-gray-12 font-medium text-[13px]"
-              disabled={deleteKey.isLoading}
-              loading={deleteKey.isLoading}
+              disabled={deleteKey.isPending}
+              loading={deleteKey.isPending}
               onClick={handleDeleteButtonClick}
               ref={deleteButtonRef}
             >
@@ -143,9 +143,8 @@ export const SelectionControls = ({
         onConfirm={performDisableKeys}
         triggerRef={disableButtonRef}
         title="Confirm disabling keys"
-        description={`This will disable ${selectedKeys.size} key${
-          selectedKeys.size > 1 ? "s" : ""
-        } and prevent any verification requests from being processed.`}
+        description={`This will disable ${selectedKeys.size} key${selectedKeys.size > 1 ? "s" : ""
+          } and prevent any verification requests from being processed.`}
         confirmButtonText="Disable keys"
         cancelButtonText="Cancel"
         variant="danger"
@@ -157,9 +156,8 @@ export const SelectionControls = ({
         onConfirm={performKeyDeletion}
         triggerRef={deleteButtonRef}
         title="Confirm key deletion"
-        description={`This action is irreversible. All data associated with ${
-          selectedKeys.size > 1 ? "these keys" : "this key"
-        } will be permanently deleted.`}
+        description={`This action is irreversible. All data associated with ${selectedKeys.size > 1 ? "these keys" : "this key"
+          } will be permanently deleted.`}
         confirmButtonText={`Delete key${selectedKeys.size > 1 ? "s" : ""}`}
         cancelButtonText="Cancel"
         variant="danger"

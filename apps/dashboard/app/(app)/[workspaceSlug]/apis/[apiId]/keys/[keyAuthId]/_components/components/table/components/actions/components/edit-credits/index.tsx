@@ -5,7 +5,7 @@ import {
 } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, toast } from "@unkey/ui";
@@ -15,12 +15,15 @@ import { useEditCredits } from "../hooks/use-edit-credits";
 import { KeyInfo } from "../key-info";
 import { getKeyLimitDefaults } from "./utils";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 const EDIT_CREDITS_FORM_STORAGE_KEY = "unkey_edit_credits_form_state";
 
 type EditCreditsProps = { keyDetails: KeyDetails } & ActionComponentProps;
 
 export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) => {
-  const trpcUtil = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const methods = usePersistedForm<CreditsFormValues>(
     `${EDIT_CREDITS_FORM_STORAGE_KEY}_${keyDetails.id}`,
     {
@@ -52,7 +55,7 @@ export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) =
   const key = useEditCredits(() => {
     reset(getKeyLimitDefaults(keyDetails));
     clearPersistedData();
-    trpcUtil.key.fetchPermissions.invalidate();
+    queryClient.invalidateQueries(trpc.key.fetchPermissions.pathFilter());
     onClose();
   });
 
@@ -113,7 +116,7 @@ export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) =
                 size="xlg"
                 className="w-full rounded-lg"
                 disabled={!isValid || isSubmitting}
-                loading={key.isLoading}
+                loading={key.isPending}
               >
                 Update credits
               </Button>

@@ -1,6 +1,6 @@
-"use client";
+"use client";;
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { Button, Empty, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -15,9 +15,12 @@ import { Shell } from "./components/shell";
 import { SubscriptionStatus } from "./components/subscription-status";
 import { Usage } from "./components/usage";
 
+import { useQuery } from "@tanstack/react-query";
+
 const MAX_QUOTA = 150000;
 
 export const Client: React.FC = () => {
+  const trpc = useTRPC();
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
   const [showPlanModal, setShowPlanModal] = useState(false);
@@ -28,11 +31,11 @@ export const Client: React.FC = () => {
     data: billingInfo,
     isLoading: billingLoading,
     error: billingError,
-  } = trpc.stripe.getBillingInfo.useQuery(undefined, {
+  } = useQuery(trpc.stripe.getBillingInfo.queryOptions(undefined, {
     // Cache for 30 seconds to reduce unnecessary refetches
     // TRPC automatically scopes by workspace via requireWorkspace middleware
     staleTime: 30_000, // 30 seconds
-  });
+  }));
 
   // Handle loading states - don't render until we have billing info
   if (billingLoading || !billingInfo) {

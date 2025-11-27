@@ -1,11 +1,15 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
 import { formatDuration, intervalToDuration } from "date-fns";
 
-export const useEditRatelimits = (onSuccess?: () => void) => {
-  const trpcUtils = trpc.useUtils();
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
-  const updateKeyRemaining = trpc.key.update.ratelimit.useMutation({
+export const useEditRatelimits = (onSuccess?: () => void) => {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  const updateKeyRemaining = useMutation(trpc.key.update.ratelimit.mutationOptions({
     onSuccess(data, variables) {
       let description = "";
 
@@ -31,7 +35,7 @@ export const useEditRatelimits = (onSuccess?: () => void) => {
         duration: 5000,
       });
 
-      trpcUtils.api.keys.list.invalidate();
+      queryClient.invalidateQueries(trpc.api.keys.list.pathFilter());
       if (onSuccess) {
         onSuccess();
       }
@@ -56,7 +60,7 @@ export const useEditRatelimits = (onSuccess?: () => void) => {
         });
       }
     },
-  });
+  }));
 
   return updateKeyRemaining;
 };

@@ -1,17 +1,25 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { RefreshButton } from "@unkey/ui";
+import { useQueryClient } from "@tanstack/react-query";
 import { useGatewayLogsContext } from "../../../context/gateway-logs-provider";
 
 export const GatewayLogsRefresh = () => {
   const { toggleLive, isLive } = useGatewayLogsContext();
   const { refreshQueryTime } = useQueryTime();
-  const { logs } = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     refreshQueryTime();
-    logs.queryLogs.invalidate();
-    logs.queryTimeseries.invalidate();
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: trpc.logs.queryLogs.queryKey()
+      }),
+      queryClient.invalidateQueries({
+        queryKey: trpc.logs.queryTimeseries.queryKey()
+      })
+    ]);
   };
 
   return (

@@ -1,9 +1,11 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { useEffect, useMemo, useState } from "react";
 import { keysListFilterFieldConfig, keysListFilterFieldNames } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
 import type { KeysQueryListPayload } from "../query-logs.schema";
+
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 type UseKeysListQueryParams = {
   keyAuthId: string;
@@ -11,6 +13,7 @@ type UseKeysListQueryParams = {
 
 const CURSOR_LIMIT = 50;
 export function useKeysListQuery({ keyAuthId }: UseKeysListQueryParams) {
+  const trpc = useTRPC();
   const [totalCount, setTotalCount] = useState(0);
   const [keysMap, setKeysMap] = useState(() => new Map<string, KeyDetails>());
 
@@ -52,12 +55,12 @@ export function useKeysListQuery({ keyAuthId }: UseKeysListQueryParams) {
     fetchNextPage,
     isFetchingNextPage,
     isLoading: isLoadingInitial,
-  } = trpc.api.keys.list.useInfiniteQuery(queryParams, {
+  } = useInfiniteQuery(trpc.api.keys.list.infiniteQueryOptions(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
-  });
+  }));
 
   useEffect(() => {
     if (keysData) {

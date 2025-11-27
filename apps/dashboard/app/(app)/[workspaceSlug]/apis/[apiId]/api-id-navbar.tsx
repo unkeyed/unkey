@@ -1,16 +1,17 @@
-"use client";
-
+"use client";;
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { Workspace } from "@unkey/db";
 import { ChevronExpandY, Gear, Nodes, Plus, TaskUnchecked } from "@unkey/icons";
 import { CreateKeyDialog } from "./_components/create-key";
 import { KeySettingsDialog } from "./_components/key-settings-dialog";
+
+import { useQuery } from "@tanstack/react-query";
 
 // Types for better type safety
 interface ApiLayoutData {
@@ -104,6 +105,7 @@ const NavbarContent = ({
   isMobile,
   layoutData,
 }: NavbarContentProps) => {
+  const trpc = useTRPC();
   const shouldFetchKey = Boolean(keyspaceId && keyId);
 
   // Fetch key details when viewing a specific key
@@ -111,7 +113,7 @@ const NavbarContent = ({
     data: keyData,
     isLoading: isKeyLoading,
     error: keyError,
-  } = trpc.api.keys.list.useQuery(
+  } = useQuery(trpc.api.keys.list.queryOptions(
     {
       // This cannot be empty string but required to silence TS errors
       keyAuthId: keyspaceId ?? "",
@@ -125,7 +127,7 @@ const NavbarContent = ({
     {
       enabled: shouldFetchKey,
     },
-  );
+  ));
 
   if (keyError) {
     throw new Error(`Failed to fetch key details: ${keyError.message}`);
@@ -224,6 +226,7 @@ const NavbarContent = ({
 
 // Main component
 export const ApisNavbar = ({ apiId, keyspaceId, keyId, activePage }: ApisNavbarProps) => {
+  const trpc = useTRPC();
   const workspace = useWorkspaceNavigation();
 
   const isMobile = useIsMobile();
@@ -233,14 +236,14 @@ export const ApisNavbar = ({ apiId, keyspaceId, keyId, activePage }: ApisNavbarP
     data: layoutData,
     isLoading,
     error,
-  } = trpc.api.queryApiKeyDetails.useQuery(
+  } = useQuery(trpc.api.queryApiKeyDetails.queryOptions(
     { apiId },
     {
       enabled: Boolean(apiId), // Only run query if apiId exists
       retry: 3,
       retryDelay: 1000,
     },
-  );
+  ));
 
   // Show loading state while fetching data
   if (isLoading || !layoutData) {

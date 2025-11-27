@@ -1,8 +1,7 @@
 "use client";
-
 import { revalidate } from "@/app/actions";
 import { NavbarActionButton } from "@/components/navigation/action-button";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
 import { Button, FormInput, toast } from "@unkey/ui";
@@ -12,6 +11,7 @@ import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const DynamicDialogContainer = dynamic(
   () =>
@@ -35,9 +35,11 @@ export const CreateApiButton = ({
   workspaceSlug,
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & Props) => {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   const router = useRouter();
-  const { api } = trpc.useUtils();
+
   const {
     register,
     handleSubmit,
@@ -47,19 +49,23 @@ export const CreateApiButton = ({
     mode: "onChange",
   });
 
-  const create = trpc.api.create.useMutation({
-    async onSuccess(res) {
-      toast.success("Your API has been created");
-      await revalidate(`/${workspaceSlug}/apis`);
-      api.overview.query.invalidate();
-      router.push(`/${workspaceSlug}/apis/${res.id}`);
-      setIsOpen(false);
-    },
-    onError(err) {
-      console.error(err);
-      toast.error(err.message);
-    },
-  });
+  const create = useMutation(
+    trpc.api.create.mutationOptions({
+      async onSuccess(res) {
+        toast.success("Your API has been created");
+        await revalidate(`/${workspaceSlug}/apis`);
+        queryClient.invalidateQueries({
+          queryKey: trpc.api.overview.query.queryKey(),
+        });
+        router.push(`/${workspaceSlug}/apis/${res.id}`);
+        setIsOpen(false);
+      },
+      onError(err) {
+        console.error(err);
+        toast.error(err.message);
+      },
+    })
+  );
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     create.mutate(values);
@@ -76,7 +82,6 @@ export const CreateApiButton = ({
         <Plus />
         Create new API
       </NavbarActionButton>
-
       <DynamicDialogContainer
         isOpen={isOpen}
         onOpenChange={setIsOpen}
@@ -88,8 +93,8 @@ export const CreateApiButton = ({
               form="create-api-form"
               variant="primary"
               size="xlg"
-              disabled={create.isLoading || isSubmitting || !isValid}
-              loading={create.isLoading || isSubmitting}
+              disabled={create.isPending || isSubmitting || !isValid}
+              loading={create.isPending || isSubmitting}
               className="w-full rounded-lg"
             >
               Create API

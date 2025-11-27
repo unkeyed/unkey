@@ -14,7 +14,7 @@ import {
   formValuesToApiInput,
   getDefaultValues,
 } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.utils";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarClock, ChartPie, Code, Gauge, Key2, StackPerspective2 } from "@unkey/icons";
 import { FormInput, toast } from "@unkey/ui";
@@ -26,6 +26,8 @@ import { z } from "zod";
 import { ExpandableSettings } from "../components/expandable-settings";
 import type { OnboardingStep } from "../components/onboarding-wizard";
 import { API_ID_PARAM, KEY_PARAM } from "../constants";
+
+import { useMutation } from "@tanstack/react-query";
 
 const extendedFormSchema = formSchema.and(
   z.object({
@@ -41,13 +43,14 @@ type Props = {
   advance: () => void;
 };
 export const useKeyCreationStep = (props: Props): OnboardingStep => {
+  const trpc = useTRPC();
   const [apiCreated, setApiCreated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  const createApiAndKey = trpc.workspace.onboarding.useMutation({
+  const createApiAndKey = useMutation(trpc.workspace.onboarding.mutationOptions({
     onSuccess: (data) => {
       setApiCreated(true);
       startTransition(() => {
@@ -67,7 +70,7 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
         toast.error(`Failed to create API and key: ${error.message}`);
       }
     },
-  });
+  }));
 
   const methods = useForm<FormValues & { apiName: string }>({
     resolver: zodResolver(extendedFormSchema),
@@ -105,7 +108,7 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
 
   const apiNameValue = watch("apiName");
   const isFormReady = Boolean(apiNameValue);
-  const isLoading = createApiAndKey.isLoading || isPending;
+  const isLoading = createApiAndKey.isPending || isPending;
 
   const tooltipContent = apiCreated
     ? "API already created - settings cannot be modified"
@@ -236,11 +239,11 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
     onStepNext: apiCreated
       ? () => true
       : () => {
-          if (!isLoading) {
-            formRef.current?.requestSubmit();
-          }
-          return false;
-        },
+        if (!isLoading) {
+          formRef.current?.requestSubmit();
+        }
+        return false;
+      },
     isLoading,
   };
 };

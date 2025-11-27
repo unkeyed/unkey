@@ -1,12 +1,15 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useEffect, useMemo, useState } from "react";
 import type { VerificationQueryTimeseriesPayload } from "./query-timeseries.schema";
 import { useFilters } from "./use-filters";
 
+import { useQuery } from "@tanstack/react-query";
+
 export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
+  const trpc = useTRPC();
   const [enabled, setEnabled] = useState(false);
   const { filters } = useFilters();
   const { queryTime: timestamp } = useQueryTime();
@@ -51,7 +54,7 @@ export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
     setTimeout(() => setEnabled(true), 2000);
   }, []);
 
-  const { data, isLoading, isError } = trpc.api.overview.timeseries.useQuery(queryParams, {
+  const { data, isLoading, isError } = useQuery(trpc.api.overview.timeseries.queryOptions(queryParams, {
     refetchInterval: queryParams.endTime ? false : 10_000,
     enabled,
     trpc: {
@@ -59,7 +62,7 @@ export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
         skipBatch: true,
       },
     },
-  });
+  }));
 
   const timeseries = (data?.timeseries ?? []).map((ts) => ({
     displayX: formatTimestampForChart(ts.x, data?.granularity ?? "per12Hours"),

@@ -1,5 +1,8 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
+
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const useUpdateKeyRbac = (
   onSuccess: (data: {
@@ -10,12 +13,13 @@ export const useUpdateKeyRbac = (
     totalEffectivePermissions: number;
   }) => void,
 ) => {
-  const trpcUtils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
-  const updateKeyRbac = trpc.key.update.rbac.update.useMutation({
+  const updateKeyRbac = useMutation(trpc.key.update.rbac.update.mutationOptions({
     onSuccess(data) {
-      trpcUtils.key.connectedRolesAndPerms.invalidate();
-      trpcUtils.api.keys.list.invalidate();
+      queryClient.invalidateQueries(trpc.key.connectedRolesAndPerms.pathFilter());
+      queryClient.invalidateQueries(trpc.api.keys.list.pathFilter());
 
       const { rolesAssigned, directPermissionsAssigned, totalEffectivePermissions } = data;
 
@@ -85,7 +89,7 @@ export const useUpdateKeyRbac = (
         });
       }
     },
-  });
+  }));
 
   return updateKeyRbac;
 };

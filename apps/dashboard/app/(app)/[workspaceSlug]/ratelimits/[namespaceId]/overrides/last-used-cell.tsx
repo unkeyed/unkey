@@ -1,9 +1,11 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChartActivity2 } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { STATUS_STYLES } from "../_overview/components/table/utils/get-row-class";
+
+import { useQuery } from "@tanstack/react-query";
 
 type LastUsedCellProps = {
   namespaceId: string;
@@ -11,10 +13,11 @@ type LastUsedCellProps = {
 };
 
 export const LastUsedCell = ({ namespaceId, identifier }: LastUsedCellProps) => {
-  const { data, isLoading, isError } = trpc.ratelimit.namespace.queryRatelimitLastUsed.useQuery({
+  const trpc = useTRPC();
+  const { data, isLoading, isError } = useQuery(trpc.ratelimit.namespace.queryRatelimitLastUsed.queryOptions({
     namespaceId,
     identifier,
-  });
+  }));
   const badgeRef = useRef<HTMLDivElement>(null);
   const [showTooltip, setShowTooltip] = useState(false);
 

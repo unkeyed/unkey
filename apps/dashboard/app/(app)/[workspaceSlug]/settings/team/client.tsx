@@ -1,8 +1,7 @@
-"use client";
-
+"use client";;
 import { PageHeader } from "@/components/dashboard/page-header";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import {
   Button,
   Empty,
@@ -20,26 +19,29 @@ import { Invitations } from "./invitations";
 import { InviteButton } from "./invite";
 import { Members } from "./members";
 
+import { useQuery } from "@tanstack/react-query";
+
 export function TeamPageClient({ team }: { team: boolean }) {
+  const trpc = useTRPC();
   const workspace = useWorkspaceNavigation();
 
   if (!workspace) {
     return null;
   }
 
-  const { data: user } = trpc.user.getCurrentUser.useQuery();
+  const { data: user } = useQuery(trpc.user.getCurrentUser.queryOptions());
 
   const { data: memberships, isLoading: isUserMembershipsLoading } =
-    trpc.user.listMemberships.useQuery(user?.id || "", {
+    useQuery(trpc.user.listMemberships.queryOptions(user?.id || "", {
       enabled: !!user,
-    });
+    }));
 
-  const { data: organization, isLoading: isOrganizationLoading } = trpc.org.getOrg.useQuery(
+  const { data: organization, isLoading: isOrganizationLoading } = useQuery(trpc.org.getOrg.queryOptions(
     user?.orgId || "",
     {
       enabled: !!user,
     },
-  );
+  ));
 
   const userMemberships = memberships?.data;
 

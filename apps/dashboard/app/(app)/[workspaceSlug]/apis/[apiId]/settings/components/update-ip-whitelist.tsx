@@ -1,5 +1,5 @@
-"use client";
-import { trpc } from "@/lib/trpc/client";
+"use client";;
+import { useTRPC } from "@/lib/trpc/client";
 import type { Workspace } from "@unkey/db";
 import { ArrowUpRight, Lock, Shield } from "@unkey/icons";
 import { Button, FormTextarea, InlineLink, SettingCard } from "@unkey/ui";
@@ -7,6 +7,8 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { createApiFormConfig, createMutationHandlers } from "./key-settings-form-helper";
 import { StatusBadge } from "./status-badge";
+
+import { useMutation } from "@tanstack/react-query";
 
 const formSchema = z.object({
   ipWhitelist: z.string(),
@@ -27,6 +29,7 @@ type Props = {
 };
 
 export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
+  const trpc = useTRPC();
   const { onUpdateSuccess, onError } = createMutationHandlers();
   const isEnabled = workspace.features.ipWhitelist;
 
@@ -43,10 +46,10 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
     },
   });
 
-  const updateIps = trpc.api.updateIpWhitelist.useMutation({
+  const updateIps = useMutation(trpc.api.updateIpWhitelist.mutationOptions({
     onSuccess: onUpdateSuccess("IP whitelist updated successfully"),
     onError,
-  });
+  }));
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await updateIps.mutateAsync(values);

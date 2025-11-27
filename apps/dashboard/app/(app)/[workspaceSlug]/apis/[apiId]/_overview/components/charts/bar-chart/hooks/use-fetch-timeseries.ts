@@ -1,6 +1,6 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { useMemo } from "react";
@@ -8,7 +8,10 @@ import { keysOverviewFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import type { KeysOverviewQueryTimeseriesPayload } from "../query-timeseries.schema";
 
+import { useQuery } from "@tanstack/react-query";
+
 export const useFetchVerificationTimeseries = (apiId: string | null) => {
+  const trpc = useTRPC();
   const { filters } = useFilters();
   const { queryTime: timestamp } = useQueryTime();
 
@@ -116,7 +119,7 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
     return params;
   }, [filters, timestamp, apiId]);
 
-  const { data, isLoading, isError } = trpc.api.keys.timeseries.useQuery(queryParams, {
+  const { data, isLoading, isError } = useQuery(trpc.api.keys.timeseries.queryOptions(queryParams, {
     refetchInterval: queryParams.endTime === timestamp ? 10_000 : false,
     enabled: Boolean(apiId),
     trpc: {
@@ -124,7 +127,7 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
         skipBatch: true,
       },
     },
-  });
+  }));
 
   const timeseries = useMemo(() => {
     if (!data?.timeseries) {

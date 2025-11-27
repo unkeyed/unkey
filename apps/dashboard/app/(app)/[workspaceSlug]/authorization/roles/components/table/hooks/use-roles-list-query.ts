@@ -1,11 +1,14 @@
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { useEffect, useMemo, useState } from "react";
 import { rolesFilterFieldConfig, rolesListFilterFieldNames } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
 import type { RolesQueryPayload } from "../query-logs.schema";
 
+import { useInfiniteQuery } from "@tanstack/react-query";
+
 export function useRolesListQuery() {
+  const trpc = useTRPC();
   const [totalCount, setTotalCount] = useState(0);
   const [rolesMap, setRolesMap] = useState(() => new Map<string, RoleBasic>());
   const { filters } = useFilters();
@@ -45,12 +48,12 @@ export function useRolesListQuery() {
     fetchNextPage,
     isFetchingNextPage,
     isLoading: isLoadingInitial,
-  } = trpc.authorization.roles.query.useInfiniteQuery(queryParams, {
+  } = useInfiniteQuery(trpc.authorization.roles.query.infiniteQueryOptions(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
-  });
+  }));
 
   useEffect(() => {
     if (rolesData) {

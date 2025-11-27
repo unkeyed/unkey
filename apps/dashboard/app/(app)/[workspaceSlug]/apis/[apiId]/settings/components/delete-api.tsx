@@ -1,6 +1,6 @@
-"use client";
+"use client";;
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import { Lock } from "@unkey/icons";
 import { Button, DialogContainer, Input, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -10,6 +10,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { createApiFormConfig, createMutationHandlers } from "./key-settings-form-helper";
 import { StatusBadge } from "./status-badge";
+
+import { useMutation } from "@tanstack/react-query";
 
 type Props = {
   keys: number;
@@ -22,6 +24,7 @@ type Props = {
 };
 
 export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
+  const trpc = useTRPC();
   const workspace = useWorkspaceNavigation();
   const { onDeleteSuccess, onError } = createMutationHandlers();
   const [open, setOpen] = useState(false);
@@ -52,13 +55,13 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
 
   const isValid = watch("name") === api.name && watch("intent") === intent;
 
-  const deleteApi = trpc.api.delete.useMutation({
+  const deleteApi = useMutation(trpc.api.delete.mutationOptions({
     async onSuccess() {
       onDeleteSuccess(keys)();
       router.push(`/${workspace.slug}/apis`);
     },
     onError,
-  });
+  }));
 
   async function onSubmit(_values: z.infer<typeof formSchema>) {
     deleteApi.mutate({ apiId: api.id });

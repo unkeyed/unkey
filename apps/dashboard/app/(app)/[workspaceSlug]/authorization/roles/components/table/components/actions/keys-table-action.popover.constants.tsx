@@ -1,10 +1,9 @@
 "use client";
-
 import {
   type MenuItem,
   TableActionPopoverDefaultTrigger,
 } from "@/components/logs/table-action.popover";
-import { trpc } from "@/lib/trpc/client";
+import { useTRPC } from "@/lib/trpc/client";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
 import { toast } from "@unkey/ui";
@@ -13,10 +12,10 @@ import { MAX_KEYS_FETCH_LIMIT } from "../../../upsert-role/components/assign-key
 import { MAX_PERMS_FETCH_LIMIT } from "../../../upsert-role/components/assign-permission/hooks/use-fetch-permissions";
 import { DeleteRole } from "./components/delete-role";
 import { EditRole } from "./components/edit-role";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Wrapper component to handle React Loadable props
 const LoadingTrigger = () => <TableActionPopoverDefaultTrigger />;
-
 const KeysTableActionPopover = dynamic(
   () => import("@/components/logs/table-action.popover").then((mod) => mod.TableActionPopover),
   {
@@ -29,15 +28,16 @@ type RolesTableActionsProps = {
 };
 
 export const RolesTableActions = ({ role }: RolesTableActionsProps) => {
-  const trpcUtils = trpc.useUtils();
-  const menuItems = getRolesTableActionItems(role, trpcUtils);
-
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const menuItems = getRolesTableActionItems(role, queryClient, trpc);
   return <KeysTableActionPopover items={menuItems} />;
 };
 
 const getRolesTableActionItems = (
   role: RoleBasic,
-  trpcUtils: ReturnType<typeof trpc.useUtils>,
+  queryClient: ReturnType<typeof useQueryClient>,
+  trpc: ReturnType<typeof useTRPC>,
 ): MenuItem[] => {
   return [
     {
@@ -47,15 +47,21 @@ const getRolesTableActionItems = (
       ActionComponent: (props) => <EditRole role={role} {...props} />,
       prefetch: async () => {
         await Promise.all([
-          trpcUtils.authorization.roles.keys.query.prefetchInfinite({
-            limit: MAX_KEYS_FETCH_LIMIT,
-          }),
-          trpcUtils.authorization.roles.permissions.query.prefetchInfinite({
-            limit: MAX_PERMS_FETCH_LIMIT,
-          }),
-          trpcUtils.authorization.roles.connectedKeysAndPerms.prefetch({
-            roleId: role.roleId,
-          }),
+          queryClient.prefetchInfiniteQuery(
+            trpc.authorization.roles.keys.query.infiniteQueryOptions({
+              limit: MAX_KEYS_FETCH_LIMIT,
+            })
+          ),
+          queryClient.prefetchInfiniteQuery(
+            trpc.authorization.roles.permissions.query.infiniteQueryOptions({
+              limit: MAX_PERMS_FETCH_LIMIT,
+            })
+          ),
+          queryClient.prefetchQuery(
+            trpc.authorization.roles.connectedKeysAndPerms.queryOptions({
+              roleId: role.roleId,
+            })
+          ),
         ]);
       },
     },

@@ -1,5 +1,5 @@
-"use client";
-import { trpc } from "@/lib/trpc/client";
+"use client";;
+import { useTRPC } from "@/lib/trpc/client";
 
 import type {
   ApiOverview,
@@ -8,21 +8,24 @@ import type {
 import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 import { DEFAULT_OVERVIEW_FETCH_LIMIT } from "../constants";
 
+import { useQuery } from "@tanstack/react-query";
+
 export const useFetchApiOverview = (
   initialData: ApisOverviewResponse,
   setApiList: Dispatch<SetStateAction<ApiOverview[]>>,
 ) => {
+  const trpc = useTRPC();
   const [hasMore, setHasMore] = useState(initialData.hasMore);
   const [cursor, setCursor] = useState(initialData.nextCursor);
   const [total, setTotal] = useState(initialData.total);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
-  const { data, isFetching, refetch } = trpc.api.overview.query.useQuery(
+  const { data, isFetching, refetch } = useQuery(trpc.api.overview.query.queryOptions(
     { limit: DEFAULT_OVERVIEW_FETCH_LIMIT, cursor },
     {
       enabled: false,
     },
-  );
+  ));
 
   useEffect(() => {
     if (!data) {

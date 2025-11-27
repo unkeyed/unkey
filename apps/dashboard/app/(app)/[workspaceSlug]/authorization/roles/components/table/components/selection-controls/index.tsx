@@ -64,8 +64,8 @@ export const SelectionControls = ({ selectedRoles, setSelectedRoles }: Selection
                   variant="outline"
                   size="sm"
                   className="text-gray-12 font-medium text-[13px]"
-                  disabled={deleteRole.isLoading}
-                  loading={deleteRole.isLoading}
+                  disabled={deleteRole.isPending}
+                  loading={deleteRole.isPending}
                   onClick={handleDeleteButtonClick}
                   ref={deleteButtonRef}
                 >
@@ -92,9 +92,8 @@ export const SelectionControls = ({ selectedRoles, setSelectedRoles }: Selection
         onConfirm={performRoleDeletion}
         triggerRef={deleteButtonRef}
         title="Confirm role deletion"
-        description={`This action is irreversible. All data associated with ${
-          selectedRoles.size > 1 ? "these roles" : "this role"
-        } will be permanently deleted.`}
+        description={`This action is irreversible. All data associated with ${selectedRoles.size > 1 ? "these roles" : "this role"
+          } will be permanently deleted.`}
         confirmButtonText={`Delete role${selectedRoles.size > 1 ? "s" : ""}`}
         cancelButtonText="Cancel"
         variant="danger"
