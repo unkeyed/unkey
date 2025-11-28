@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
+	"github.com/unkeyed/unkey/go/apps/krane/backend/kubernetes/labels"
 	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -27,25 +27,34 @@ func (k *k8s) GetGateway(ctx context.Context, req *connect.Request[kranev1.GetGa
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	k8sgatewayID := safeIDForK8s(req.Msg.GetGatewayId())
-	namespace := safeIDForK8s(req.Msg.GetNamespace())
+	gatewayID := req.Msg.GetGatewayId()
+	namespace := req.Msg.GetNamespace()
 
-	k.logger.Info("getting gateway", "gateway_id", k8sgatewayID)
+	k.logger.Info("getting gateway", "gateway_id", gatewayID)
 
-	// Get the deployment by name (gateway_id)
+	// Create label selector for this gateway
+	labelSelector := fmt.Sprintf("%s=%s", labels.GatewayID, gatewayID)
+
+	// List Deployments with this gateway-id label
 	// nolint: exhaustruct
-	deployment, err := k.clientset.AppsV1().Deployments(namespace).Get(ctx, k8sgatewayID, metav1.GetOptions{})
+	deployments, err := k.clientset.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labelSelector,
+	})
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", k8sgatewayID))
-		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list deployments: %w", err))
 	}
 
+	if len(deployments.Items) == 0 {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("gateway not found: %s", gatewayID))
+	}
+
+	// Use the first (and should be only) Deployment
+	deployment := &deployments.Items[0]
+
 	// Check if this gateway is managed by Krane
-	managedBy, exists := deployment.Labels["unkey.managed.by"]
+	managedBy, exists := deployment.Labels[labels.ManagedBy]
 	if !exists || managedBy != "krane" {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", k8sgatewayID))
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("gateway not found: %s", gatewayID))
 	}
 
 	// Determine gateway status
@@ -56,12 +65,22 @@ func (k *k8s) GetGateway(ctx context.Context, req *connect.Request[kranev1.GetGa
 		status = kranev1.GatewayStatus_GATEWAY_STATUS_PENDING
 	}
 
-	// Get the service to retrieve port info
-	service, err := k.clientset.CoreV1().Services(namespace).Get(ctx, k8sgatewayID, metav1.GetOptions{})
+	// List Services with this gateway-id label
+	// nolint: exhaustruct
+	services, err := k.clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labelSelector,
+	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not load service: %s", k8sgatewayID))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list services: %w", err))
 	}
-	var port int32 = 8080 // default
+
+	if len(services.Items) == 0 {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("no service found for gateway: %s", gatewayID))
+	}
+
+	// Use the first service
+	service := &services.Items[0]
+	var port int32 = 8040 // default gateway port
 	if len(service.Spec.Ports) > 0 {
 		port = service.Spec.Ports[0].Port
 	}
@@ -102,8 +121,8 @@ func (k *k8s) GetGateway(ctx context.Context, req *connect.Request[kranev1.GetGa
 		})
 	}
 
-	k.logger.Info("deployment found",
-		"deployment_id", k8sgatewayID,
+	k.logger.Info("gateway found",
+		"gateway_id", gatewayID,
 		"status", status.String(),
 		"port", port,
 		"pod_count", len(instances),
