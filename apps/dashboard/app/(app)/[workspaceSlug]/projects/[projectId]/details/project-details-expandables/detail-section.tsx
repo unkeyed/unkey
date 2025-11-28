@@ -8,7 +8,7 @@ type DetailRowProps = {
   alignment?: "center" | "start";
 };
 
-function DetailRow({ icon, label, children, alignment = "center" }: DetailRowProps) {
+export function DetailRow({ icon, label, children, alignment = "center" }: DetailRowProps) {
   const alignmentClass = alignment === "start" ? "items-start" : "items-center";
 
   // If both icon and label are missing, let children take full space

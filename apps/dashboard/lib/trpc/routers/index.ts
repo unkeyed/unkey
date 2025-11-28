@@ -45,6 +45,8 @@ import { promote } from "./deploy/deployment/promote";
 import { rollback } from "./deploy/deployment/rollback";
 import { listDomains } from "./deploy/domains/list";
 import { getEnvs } from "./deploy/envs/list";
+import { generateDeploymentTree } from "./deploy/network/generate";
+import { getDeploymentTree } from "./deploy/network/get";
 import { createProject } from "./deploy/project/create";
 import { listProjects } from "./deploy/project/list";
 import { listEnvironments } from "./environment/list";
@@ -336,6 +338,10 @@ export const router = t.router({
     getById: getIdentityById,
   }),
   deploy: t.router({
+    network: t.router({
+      generate: generateDeploymentTree,
+      get: getDeploymentTree,
+    }),
     project: t.router({
       list: listProjects,
       create: createProject,
