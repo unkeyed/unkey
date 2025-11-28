@@ -82,19 +82,6 @@ export const TableActionPopover = ({
     }
   };
 
-  // Reason for useEffect, https://github.com/radix-ui/primitives/issues/2122
-  useEffect(() => {
-    if (open) {
-      // Pushing the change to the end of the call stack
-      const timer = setTimeout(() => {
-        document.body.style.pointerEvents = "";
-      }, 0);
-
-      return () => clearTimeout(timer);
-    }
-    document.body.style.pointerEvents = "auto";
-  }, [open]);
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
