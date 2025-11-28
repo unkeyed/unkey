@@ -79,7 +79,7 @@ export const ConfirmPopover = ({
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={onOpenChange} modal>
+    <Popover open={isOpen} onOpenChange={onOpenChange}>
       <PopoverAnchor virtualRef={anchorRef} />
       <PopoverContent {...mergedPopoverProps}>
         <div className="p-4 w-full">
