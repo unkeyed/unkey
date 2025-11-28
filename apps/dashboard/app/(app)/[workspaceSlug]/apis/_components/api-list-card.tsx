@@ -6,20 +6,26 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { formatNumber } from "@/lib/fmt";
 import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 import { Key, ProgressBar } from "@unkey/icons";
-import { Loading } from "@unkey/ui";
+import { InfoTooltip, Loading } from "@unkey/ui";
 import { Suspense } from "react";
+import { useFetchKeyCount } from "./hooks/use-query-key-count";
 import { useFetchVerificationTimeseries } from "./hooks/use-query-timeseries";
+import { KeyCountSkeleton } from "./skeleton";
+
 type Props = {
   api: ApiOverview;
 };
 
 export const ApiListCard = ({ api }: Props) => {
   const { timeseries, isError } = useFetchVerificationTimeseries(api.keyspaceId);
+  const { count: keyCount, isLoading: isLoadingKeyCount } = useFetchKeyCount({
+    apiId: api.id,
+  });
   const workspace = useWorkspaceNavigation();
+
   const passed = timeseries?.reduce((acc, crr) => acc + crr.success, 0) ?? 0;
   const blocked = timeseries?.reduce((acc, crr) => acc + crr.error, 0) ?? 0;
 
-  const keyCount = api.keys.reduce((acc, crr) => acc + crr.count, 0);
   return (
     <Suspense fallback={<Loading type="spinner" />}>
       <StatsCard
@@ -29,7 +35,6 @@ export const ApiListCard = ({ api }: Props) => {
         chart={
           <StatsTimeseriesBarChart
             data={timeseries}
-            // INFO: Causing too much lag when there are too many Charts. We'll try to optimize this in the future.
             isLoading={false}
             isError={isError}
             config={{
@@ -52,12 +57,20 @@ export const ApiListCard = ({ api }: Props) => {
               successLabel="VALID"
               errorLabel="INVALID"
             />
-            <div className="flex items-center gap-2 min-w-0 max-w-[40%]">
-              <Key className="text-accent-11 flex-shrink-0" />
-              <div className="text-xs text-accent-9 truncate">
-                {`${formatNumber(keyCount)} ${keyCount === 1 ? "Key" : "Keys"}`}
+            {isLoadingKeyCount ? (
+              <KeyCountSkeleton />
+            ) : (
+              <div className="flex items-center gap-1.5 max-w-[40%]">
+                <Key className="text-accent-11 flex-shrink-0" iconSize="md-medium" />
+                <InfoTooltip
+                  content={`${keyCount.toLocaleString()} ${keyCount === 1 ? "Key" : "Keys"}`}
+                >
+                  <div className="text-xs text-accent-9 tabular-nums flex-1 min-w-0">
+                    {formatNumber(keyCount)} {keyCount === 1 ? "Key" : "Keys"}
+                  </div>
+                </InfoTooltip>
               </div>
-            </div>
+            )}
           </>
         }
         icon={<ProgressBar className="text-accent-11" />}
