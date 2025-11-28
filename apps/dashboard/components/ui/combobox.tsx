@@ -112,7 +112,7 @@ export function Combobox({
   );
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal>
+    <Popover open={open} onOpenChange={setOpen}>
       <div className={cn(comboboxWrapperVariants({ variant }), wrapperClassName)}>
         {leftIcon && (
           <div className="absolute left-3 flex items-center pointer-events-none">{leftIcon}</div>
