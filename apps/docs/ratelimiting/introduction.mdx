@@ -16,7 +16,10 @@ upstream services.
 
 <Steps>
   <Step title="Go to the dashboard">
-    Visit [/app/settings-root-keys/new](https://app.unkey.com/settings/root-keys/new)
+    1. Sign into your [dashboard](https://app.unkey.com). 
+    2. Navigate to the `Settings` in the sidebar and click `Root Keys` in the sub menu.
+    3. Click `+ New root key` at the top right of the page.
+  
   </Step>
   <Step title="Enter a name">
     You can give your key a name to make it easier to find later, but that's optional.
@@ -26,12 +29,12 @@ upstream services.
     - `create_namespace`
     - `limit`
 
-    <Frame>
-    <img src="/ratelimiting/create-root-key-permissions.png"/>
-    </Frame>
+  <Frame>
+  <img src="/ratelimiting/create-root-key-permissions.png"/>
+  </Frame>
 
 
-  After selecting both permissions, click `Create New Key` at the bottom of the page and copy the generated key to your `.env` file.
+  After selecting both permissions, click `Create New Key` at the bottom of the modal and copy the generated key to your `.env` file.
   For security reasons, this key can not be shown again. In case you lose it, you need to create a new one.
   <Frame>
 
