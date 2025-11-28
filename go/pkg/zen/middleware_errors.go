@@ -31,7 +31,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				logger.Error("failed to parse error code", "error", parseErr.Error())
 				code = codes.App.Internal.UnexpectedError
 			}
-
+			//nolint:exhaustive
 			switch urn {
 			// Not Found errors
 			case codes.UnkeyDataErrorsKeyNotFound,

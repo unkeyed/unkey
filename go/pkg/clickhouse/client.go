@@ -122,6 +122,11 @@ func New(config Config) (*clickhouse, error) {
 				return !isAuthenticationError(err)
 			}),
 		),
+		apiRequests:      nil,
+		keyVerifications: nil,
+		ratelimits:       nil,
+		buildSteps:       nil,
+		buildStepLogs:    nil,
 	}
 
 	c.apiRequests = batch.New(batch.Config[schema.ApiRequest]{

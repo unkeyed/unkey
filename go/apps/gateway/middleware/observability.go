@@ -56,6 +56,8 @@ type errorPageInfo struct {
 }
 
 func getErrorPageInfo(urn codes.URN) errorPageInfo {
+
+	//nolint:exhaustive
 	switch urn {
 	// Gateway Routing Errors
 	case codes.Gateway.Routing.DeploymentNotFound.URN():
@@ -135,6 +137,7 @@ func categorizeErrorType(urn codes.URN, statusCode int, hasError bool) string {
 	}
 
 	if hasError {
+		//nolint:exhaustive
 		switch urn {
 		case codes.Gateway.Proxy.GatewayTimeout.URN(),
 			codes.Gateway.Proxy.BadGateway.URN(),
@@ -179,7 +182,7 @@ func WithObservability(logger logging.Logger, environmentID, region string) zen.
 			err := next(ctx, s)
 
 			statusCode := s.StatusCode()
-			errorType := "none"
+			var errorType string
 			var urn codes.URN
 			hasError := err != nil
 

@@ -64,7 +64,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 			if len(parts) < 3 {
 				return nil, emptyLog, fault.Wrap(
 					fmt.Errorf("expected at least 3 segments, got %d", len(parts)),
-					fault.Code(codes.URN(codes.Auth.Authentication.Malformed.URN())),
+					fault.Code(codes.Auth.Authentication.Malformed.URN()),
 					fault.Public("Invalid key format"),
 				)
 			}
@@ -92,6 +92,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 	case db.KeyMigrationsAlgorithmSha256:
 		// If we have a sha256 already migrated key and we didn't find it in the first place
 		// then it doesn't exist, and there is nothing to migrate here.
+		// nolint:exhaustruct
 		return &KeyVerifier{
 			Status:  StatusNotFound,
 			message: "key does not exist",

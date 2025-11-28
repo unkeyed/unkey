@@ -65,6 +65,8 @@ func categorizeErrorTypeIngress(urn codes.URN, statusCode int, hasError bool) st
 	}
 
 	if hasError {
+
+		//nolint:exhaustive
 		switch urn {
 		case codes.Ingress.Proxy.GatewayTimeout.URN():
 			return "customer"
@@ -109,7 +111,7 @@ func WithObservability(logger logging.Logger, region string) zen.Middleware {
 			err := next(ctx, s)
 
 			statusCode := s.StatusCode()
-			errorType := "none"
+			var errorType string
 			var urn codes.URN
 			hasError := err != nil
 
@@ -192,6 +194,7 @@ func WithObservability(logger logging.Logger, region string) zen.Middleware {
 }
 
 func getErrorPageInfoIngress(urn codes.URN) errorPageInfo {
+	//nolint:exhaustive
 	switch urn {
 	case codes.User.BadRequest.ClientClosedRequest.URN():
 		return errorPageInfo{

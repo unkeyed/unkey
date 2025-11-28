@@ -337,7 +337,7 @@ func (s *Seeder) createIdentitiesBatched(ctx context.Context, workspaceID string
 		// Generate unique external ID using the identity ID to guarantee uniqueness
 		externalID := fmt.Sprintf("user-%s@%s",
 			uid.New("ex"),
-			domains[rand.IntN(len(domains))],
+			array.Random(domains),
 		)
 
 		identity := Identity{
@@ -383,7 +383,7 @@ func (s *Seeder) createIdentitiesBatched(ctx context.Context, workspaceID string
 	return identities, nil
 }
 
-func (s *Seeder) generateVerifications(ctx context.Context, workspaceID string, keys []Key, keyAuthID string) error {
+func (s *Seeder) generateVerifications(_ context.Context, workspaceID string, keys []Key, keyAuthID string) error {
 	startTime := time.Now().AddDate(0, 0, -s.daysBack)
 	endTime := time.Now().AddDate(0, 0, s.daysForward)
 
@@ -503,10 +503,10 @@ func (s *Seeder) generateVerifications(ctx context.Context, workspaceID string, 
 }
 
 // normalDistribution returns a random value from a normal distribution
-func normalDistribution(mean, stdDev, min, max float64) float64 {
-	// If min == max, just return that value to avoid infinite loop
-	if min >= max {
-		return min
+func normalDistribution(mean, stdDev, minimum, maximum float64) float64 {
+	// If minimum == maximum, just return that value to avoid infinite loop
+	if minimum >= maximum {
+		return minimum
 	}
 
 	for {
@@ -517,7 +517,7 @@ func normalDistribution(mean, stdDev, min, max float64) float64 {
 
 		value := mean + z*stdDev
 
-		if value >= min && value <= max {
+		if value >= minimum && value <= maximum {
 			return value
 		}
 	}

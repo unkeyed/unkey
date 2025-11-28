@@ -17,15 +17,15 @@ import (
 func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreateProjectRequest) (*hydrav1.CreateProjectResponse, error) {
 
 	if err := assert.All(
-		assert.NotEmpty(req.WorkspaceId),
-		assert.NotEmpty(req.Name),
-		assert.NotEmpty(req.Slug),
+		assert.NotEmpty(req.GetWorkspaceId()),
+		assert.NotEmpty(req.GetName()),
+		assert.NotEmpty(req.GetSlug()),
 	); err != nil {
 		return nil, restate.TerminalError(err)
 	}
 
 	workspace, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
-		found, err := db.Query.FindWorkspaceByID(ctx, s.db.RW(), req.WorkspaceId)
+		found, err := db.Query.FindWorkspaceByID(ctx, s.db.RW(), req.GetWorkspaceId())
 		if err != nil {
 			if db.IsNotFound(err) {
 				return db.Workspace{}, restate.TerminalError(errors.New("workspace not found"))
@@ -50,10 +50,11 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 		return restate.Void{}, db.Query.InsertProject(runCtx, s.db.RW(), db.InsertProjectParams{
 			ID:               projectID,
 			WorkspaceID:      workspace.ID,
-			Name:             req.Name,
-			Slug:             req.Slug,
-			GitRepositoryUrl: sql.NullString{Valid: req.GitRepository != "", String: req.GitRepository},
+			Name:             req.GetName(),
+			Slug:             req.GetSlug(),
+			GitRepositoryUrl: sql.NullString{Valid: req.GetGitRepository() != "", String: req.GetGitRepository()},
 			DefaultBranch:    sql.NullString{Valid: true, String: "main"},
+			DeleteProtection: sql.NullBool{Valid: true, Bool: true},
 
 			CreatedAt: time.Now().UnixMilli(),
 			UpdatedAt: sql.NullInt64{Valid: false, Int64: 0},
@@ -110,12 +111,12 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 		}
 
 		_, err = restate.Run(ctx, func(runCtx restate.RunContext) (restate.Void, error) {
-			_, err := s.krane.CreateGateway(runCtx, connect.NewRequest(&kranev1.CreateGatewayRequest{
+			_, err = s.krane.CreateGateway(runCtx, connect.NewRequest(&kranev1.CreateGatewayRequest{
 				Gateway: &kranev1.GatewayRequest{
 					Namespace:     workspace.ID,
 					WorkspaceId:   workspace.ID,
 					GatewayId:     gatewayID,
-					Image:         "nginx:latest", // TODO
+					Image:         "nginx:latest",
 					Replicas:      replicas,
 					CpuMillicores: uint32(128),
 					MemorySizeMib: uint64(256),

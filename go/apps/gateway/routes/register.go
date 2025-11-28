@@ -32,6 +32,7 @@ func Register(srv *zen.Server, svc *Services) {
 	)
 
 	transport := &http.Transport{
+		// nolint:exhaustruct
 		DialContext: (&net.Dialer{
 			Timeout:   10 * time.Second,
 			KeepAlive: 30 * time.Second,

@@ -8,6 +8,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
 // EncryptedCertificate holds a certificate and its encrypted private key.
@@ -124,12 +125,13 @@ func (s *Service) ProcessChallenge(
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		now := time.Now().UnixMilli()
 		return restate.Void{}, db.Query.InsertCertificate(stepCtx, s.db.RW(), db.InsertCertificateParams{
+			ID:                  uid.New(uid.CertificatePrefix),
 			WorkspaceID:         dom.WorkspaceID,
 			Hostname:            req.GetDomain(),
 			Certificate:         cert.Certificate,
 			EncryptedPrivateKey: cert.EncryptedPrivateKey,
 			CreatedAt:           now,
-			UpdatedAt:           sql.NullInt64{Valid: true, Int64: now},
+			UpdatedAt:           sql.NullInt64{Valid: false, Int64: 0},
 		})
 	}, restate.WithName("persisting certificate"))
 	if err != nil {

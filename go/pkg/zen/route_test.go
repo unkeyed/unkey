@@ -28,7 +28,7 @@ func TestCatchAllRoute(t *testing.T) {
 	)
 
 	// Test multiple HTTP methods on the same CATCHALL route
-	methods := []string{"GET", "POST", "PUT", "DELETE", "PATCH"}
+	methods := []string{http.MethodGet, http.MethodPost, http.MethodPut, "DELETE", "PATCH"}
 	for _, method := range methods {
 		t.Run(method, func(t *testing.T) {
 			req := httptest.NewRequest(method, "/api/catchall", nil)
@@ -55,20 +55,20 @@ func TestMethodSpecificRoute(t *testing.T) {
 	// Register method-specific routes
 	srv.RegisterRoute(
 		[]Middleware{},
-		NewRoute("GET", "/api/specific", func(ctx context.Context, s *Session) error {
-			return s.JSON(http.StatusOK, map[string]string{"method": "GET"})
+		NewRoute(http.MethodGet, "/api/specific", func(ctx context.Context, s *Session) error {
+			return s.JSON(http.StatusOK, map[string]string{"method": http.MethodGet})
 		}),
 	)
 
 	srv.RegisterRoute(
 		[]Middleware{},
-		NewRoute("POST", "/api/specific", func(ctx context.Context, s *Session) error {
-			return s.JSON(http.StatusCreated, map[string]string{"method": "POST"})
+		NewRoute(http.MethodPost, "/api/specific", func(ctx context.Context, s *Session) error {
+			return s.JSON(http.StatusCreated, map[string]string{"method": http.MethodPost})
 		}),
 	)
 
 	t.Run("GET request", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/specific", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/specific", nil)
 		w := httptest.NewRecorder()
 
 		srv.Mux().ServeHTTP(w, req)
@@ -78,11 +78,11 @@ func TestMethodSpecificRoute(t *testing.T) {
 		var response map[string]string
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
-		require.Equal(t, "GET", response["method"])
+		require.Equal(t, http.MethodGet, response["method"])
 	})
 
 	t.Run("POST request", func(t *testing.T) {
-		req := httptest.NewRequest("POST", "/api/specific", nil)
+		req := httptest.NewRequest(http.MethodPost, "/api/specific", nil)
 		w := httptest.NewRecorder()
 
 		srv.Mux().ServeHTTP(w, req)
@@ -92,11 +92,11 @@ func TestMethodSpecificRoute(t *testing.T) {
 		var response map[string]string
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
-		require.Equal(t, "POST", response["method"])
+		require.Equal(t, http.MethodPost, response["method"])
 	})
 
 	t.Run("PUT request (not registered)", func(t *testing.T) {
-		req := httptest.NewRequest("PUT", "/api/specific", nil)
+		req := httptest.NewRequest(http.MethodPut, "/api/specific", nil)
 		w := httptest.NewRecorder()
 
 		srv.Mux().ServeHTTP(w, req)
@@ -114,7 +114,7 @@ func TestRoutePrecedence(t *testing.T) {
 	// Register a method-specific route first
 	srv.RegisterRoute(
 		[]Middleware{},
-		NewRoute("POST", "/api/precedence", func(ctx context.Context, s *Session) error {
+		NewRoute(http.MethodPost, "/api/precedence", func(ctx context.Context, s *Session) error {
 			return s.JSON(http.StatusOK, map[string]string{"handler": "POST-specific"})
 		}),
 	)
@@ -128,7 +128,7 @@ func TestRoutePrecedence(t *testing.T) {
 	)
 
 	t.Run("POST should use specific handler", func(t *testing.T) {
-		req := httptest.NewRequest("POST", "/api/precedence", nil)
+		req := httptest.NewRequest(http.MethodPost, "/api/precedence", nil)
 		w := httptest.NewRecorder()
 
 		srv.Mux().ServeHTTP(w, req)
@@ -144,7 +144,7 @@ func TestRoutePrecedence(t *testing.T) {
 	})
 
 	t.Run("GET should use CATCHALL handler", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/precedence", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/precedence", nil)
 		w := httptest.NewRecorder()
 
 		srv.Mux().ServeHTTP(w, req)
@@ -161,11 +161,11 @@ func TestRoutePrecedence(t *testing.T) {
 
 func TestNewRoute(t *testing.T) {
 	t.Run("creates route with correct method and path", func(t *testing.T) {
-		route := NewRoute("GET", "/test", func(ctx context.Context, s *Session) error {
+		route := NewRoute(http.MethodGet, "/test", func(ctx context.Context, s *Session) error {
 			return nil
 		})
 
-		require.Equal(t, "GET", route.Method())
+		require.Equal(t, http.MethodGet, route.Method())
 		require.Equal(t, "/test", route.Path())
 	})
 
@@ -184,14 +184,14 @@ func TestNewRoute(t *testing.T) {
 		require.NoError(t, err)
 
 		called := false
-		route := NewRoute("POST", "/test", func(ctx context.Context, s *Session) error {
+		route := NewRoute(http.MethodPost, "/test", func(ctx context.Context, s *Session) error {
 			called = true
 			return s.JSON(http.StatusOK, map[string]string{"status": "ok"})
 		})
 
 		srv.RegisterRoute([]Middleware{}, route)
 
-		req := httptest.NewRequest("POST", "/test", nil)
+		req := httptest.NewRequest(http.MethodPost, "/test", nil)
 		w := httptest.NewRecorder()
 
 		srv.Mux().ServeHTTP(w, req)

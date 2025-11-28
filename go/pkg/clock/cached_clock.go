@@ -15,7 +15,7 @@ type CachedClock struct {
 	nanos      atomic.Int64
 	resolution time.Duration
 	ticker     *time.Ticker
-	close      chan struct{}
+	done       chan struct{}
 }
 
 // NewCachedClock creates a new CachedClock that uses the system time cached every [resolution].
@@ -26,14 +26,14 @@ type CachedClock struct {
 //	currentTime := clock.Now()
 func NewCachedClock(resolution time.Duration) *CachedClock {
 
-	close := make(chan struct{})
+	done := make(chan struct{})
 	ticker := time.NewTicker(resolution)
 
 	c := &CachedClock{
 		nanos:      atomic.Int64{},
 		resolution: resolution,
 		ticker:     ticker,
-		close:      close,
+		done:       done,
 	}
 
 	// Initialize with current time
@@ -44,7 +44,7 @@ func NewCachedClock(resolution time.Duration) *CachedClock {
 			select {
 			case <-ticker.C:
 				c.nanos.Store(time.Now().UnixNano())
-			case <-close:
+			case <-done:
 				ticker.Stop()
 				return
 			}
@@ -70,5 +70,5 @@ func (c *CachedClock) Now() time.Time {
 // but will no longer update. This method should be called to clean up resources
 // when the CachedClock is no longer needed.
 func (c *CachedClock) Close() {
-	close(c.close)
+	close(c.done)
 }

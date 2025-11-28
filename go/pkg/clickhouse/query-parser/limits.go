@@ -8,9 +8,9 @@ import (
 
 // EnforceLimit enforces the limit configuration on the query statement.
 // It walks the entire AST to enforce limits on all SELECT statements including subqueries.
-func (p *Parser) enforceLimit() error {
+func (p *Parser) enforceLimit() {
 	if p.config.Limit == 0 {
-		return nil
+		return
 	}
 
 	// Walk the AST to enforce limits on all SELECT statements including subqueries
@@ -22,7 +22,6 @@ func (p *Parser) enforceLimit() error {
 		return true
 	})
 
-	return nil
 }
 
 // enforceLimitOnSelect enforces the limit on a single SELECT statement

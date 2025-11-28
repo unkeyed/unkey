@@ -320,6 +320,7 @@ func TestCreateKeyWithCreditsRemainingNull(t *testing.T) {
 	}
 
 	t.Run("credits.remaining null without refill should succeed", func(t *testing.T) {
+		t.Parallel()
 		req := handler.Request{
 			ApiId: api.ID,
 			Credits: &openapi.KeyCreditsData{
