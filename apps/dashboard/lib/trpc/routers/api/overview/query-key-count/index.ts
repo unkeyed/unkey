@@ -1,5 +1,6 @@
 import { and, count, db, eq, isNull } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { TRPCError } from "@trpc/server";
 import { apis, keys } from "@unkey/db/src/schema";
 import { z } from "zod";
 
@@ -21,7 +22,7 @@ export const getKeyCount = t.procedure
   .input(getKeyCountRequestSchema)
   .output(getKeyCountResponseSchema)
   .query(async ({ ctx, input }) => {
-    const [result] = await db
+    const results = await db
       .select({
         count: count(keys.id),
       })
@@ -33,9 +34,24 @@ export const getKeyCount = t.procedure
           eq(keys.workspaceId, ctx.workspace.id),
           isNull(keys.deletedAtM),
         ),
-      );
+      )
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to retrieve the key count. Please try again or contact support@unkey.dev",
+        });
+      });
+
+    if (!results || results.length === 0) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message:
+          "We are unable to find the specified API. Please try again or contact support@unkey.dev.",
+      });
+    }
 
     return {
-      count: result.count,
+      count: results[0].count,
     };
   });

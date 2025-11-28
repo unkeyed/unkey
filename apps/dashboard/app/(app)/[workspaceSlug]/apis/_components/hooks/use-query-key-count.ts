@@ -5,7 +5,7 @@ type UseFetchKeyCountProps = {
 };
 
 export const useFetchKeyCount = ({ apiId }: UseFetchKeyCountProps) => {
-  const { data, isLoading, isError } = trpc.api.overview.keyCount.useQuery(
+  const { data, isLoading, isError, error } = trpc.api.overview.keyCount.useQuery(
     { apiId },
     {
       enabled: Boolean(apiId),
@@ -16,5 +16,6 @@ export const useFetchKeyCount = ({ apiId }: UseFetchKeyCountProps) => {
     count: data?.count ?? 0,
     isLoading,
     isError,
+    error,
   };
 };

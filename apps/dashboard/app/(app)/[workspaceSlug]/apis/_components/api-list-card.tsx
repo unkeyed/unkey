@@ -18,7 +18,12 @@ type Props = {
 
 export const ApiListCard = ({ api }: Props) => {
   const { timeseries, isError } = useFetchVerificationTimeseries(api.keyspaceId);
-  const { count: keyCount, isLoading: isLoadingKeyCount } = useFetchKeyCount({
+  const {
+    count: keyCount,
+    isLoading: isLoadingKeyCount,
+    isError: isKeyCountError,
+    error: keyCountError,
+  } = useFetchKeyCount({
     apiId: api.id,
   });
   const workspace = useWorkspaceNavigation();
@@ -59,6 +64,15 @@ export const ApiListCard = ({ api }: Props) => {
             />
             {isLoadingKeyCount ? (
               <KeyCountSkeleton />
+            ) : isKeyCountError ? (
+              <div className="flex items-center gap-1.5 max-w-[40%]">
+                <Key className="text-red-11 flex-shrink-0" iconSize="md-medium" />
+                <InfoTooltip
+                  content={keyCountError?.message || "Failed to load key count. Please try again."}
+                >
+                  <div className="text-xs text-red-9 flex-1 min-w-0">Failed to load</div>
+                </InfoTooltip>
+              </div>
             ) : (
               <div className="flex items-center gap-1.5 max-w-[40%]">
                 <Key className="text-accent-11 flex-shrink-0" iconSize="md-medium" />
