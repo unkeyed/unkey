@@ -158,9 +158,13 @@ type Querier interface {
 	FindCertificatesByHostnames(ctx context.Context, db DBTX, hostnames []string) ([]Certificate, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
-	//  SELECT workspace_id, username, password_encrypted, quota_duration_seconds, max_queries_per_window, max_execution_time_per_window, max_query_execution_time, max_query_memory_bytes, max_query_result_rows, created_at, updated_at FROM `clickhouse_workspace_settings`
-	//  WHERE workspace_id = ?
-	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (ClickhouseWorkspaceSetting, error)
+	//  SELECT
+	//      c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
+	//      q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
+	//  FROM `clickhouse_workspace_settings` c
+	//  JOIN `quota` q ON c.workspace_id = q.workspace_id
+	//  WHERE c.workspace_id = ?
+	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
 	//FindCustomDomainByDomain
 	//
 	//  SELECT
@@ -813,6 +817,12 @@ type Querier interface {
 	//  WHERE workspace_id = ? AND slug = ?
 	//  LIMIT 1
 	FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (FindProjectByWorkspaceSlugRow, error)
+	//FindQuotaByWorkspaceID
+	//
+	//  SELECT workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team
+	//  FROM `quota`
+	//  WHERE workspace_id = ?
+	FindQuotaByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Quotum, error)
 	//FindRatelimitNamespace
 	//
 	//  SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,

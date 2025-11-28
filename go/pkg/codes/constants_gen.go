@@ -32,6 +32,8 @@ const (
 	UserErrorsBadRequestInvalidAnalyticsFunction URN = "err:user:bad_request:invalid_analytics_function"
 	// InvalidAnalyticsQueryType indicates the query type or operation is not supported (e.g., INSERT, UPDATE, DELETE).
 	UserErrorsBadRequestInvalidAnalyticsQueryType URN = "err:user:bad_request:invalid_analytics_query_type"
+	// QueryRangeExceedsRetention indicates the query attempts to access data older than the workspace's retention period.
+	UserErrorsBadRequestQueryRangeExceedsRetention URN = "err:user:bad_request:query_range_exceeds_retention"
 
 	// UnprocessableEntity
 

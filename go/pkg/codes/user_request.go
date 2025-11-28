@@ -22,6 +22,8 @@ type userBadRequest struct {
 	InvalidAnalyticsFunction Code
 	// InvalidAnalyticsQueryType indicates the query type or operation is not supported (e.g., INSERT, UPDATE, DELETE).
 	InvalidAnalyticsQueryType Code
+	// QueryRangeExceedsRetention indicates the query attempts to access data older than the workspace's retention period.
+	QueryRangeExceedsRetention Code
 }
 
 // userUnprocessableEntity defines errors for requests that are syntactically correct but cannot be processed.
@@ -66,6 +68,7 @@ var User = UserErrors{
 		InvalidAnalyticsTable:       Code{SystemUser, CategoryUserBadRequest, "invalid_analytics_table"},
 		InvalidAnalyticsFunction:    Code{SystemUser, CategoryUserBadRequest, "invalid_analytics_function"},
 		InvalidAnalyticsQueryType:   Code{SystemUser, CategoryUserBadRequest, "invalid_analytics_query_type"},
+		QueryRangeExceedsRetention:  Code{SystemUser, CategoryUserBadRequest, "query_range_exceeds_retention"},
 	},
 	UnprocessableEntity: userUnprocessableEntity{
 		QueryExecutionTimeout:    Code{SystemUser, CategoryUserUnprocessableEntity, "query_execution_timeout"},

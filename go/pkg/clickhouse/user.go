@@ -16,6 +16,11 @@ var (
 	// validTableName matches safe ClickHouse table names in database.table format
 	// Allows alphanumeric characters and underscores in both database and table parts
 	validTableName = regexp.MustCompile(`^[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+$`)
+
+	// Table type patterns for retention filter generation
+	rawTablePattern      = regexp.MustCompile(`_raw_v\d+$`)
+	perMinuteHourPattern = regexp.MustCompile(`_per_minute_v\d+$|_per_hour_v\d+$`)
+	perDayMonthPattern   = regexp.MustCompile(`_per_day_v\d+$|_per_month_v\d+$`)
 )
 
 // UserConfig contains configuration for creating/updating a ClickHouse user
@@ -36,6 +41,9 @@ type UserConfig struct {
 	MaxQueryExecutionTime int32
 	MaxQueryMemoryBytes   int64
 	MaxQueryResultRows    int32
+
+	// Data retention (in days) - read from quotas table
+	RetentionDays int32
 }
 
 // validateIdentifiers checks that all identifiers in the config are safe to use in SQL statements.
@@ -59,6 +67,32 @@ func validateIdentifiers(config UserConfig) error {
 	}
 
 	return nil
+}
+
+// getTimeRetentionFilter returns the appropriate retention filter based on table type and retention days.
+// Different tables use different time column types:
+// - Raw tables (_raw_v2): time Int64 (Unix milliseconds)
+// - Per-minute/hour tables: time DateTime
+// - Per-day/month tables: time Date
+// All filters are rounded to the start of the day for consistency and predictability.
+func getTimeRetentionFilter(tableName string, retentionDays int32) string {
+	switch {
+	case rawTablePattern.MatchString(tableName):
+		// Raw tables use Int64 Unix milliseconds
+		// Round to start of day for clean retention boundaries
+		return fmt.Sprintf("time >= toUnixTimestamp(toStartOfDay(now() - INTERVAL %d DAY)) * 1000", retentionDays)
+	case perMinuteHourPattern.MatchString(tableName):
+		// Minute/hour aggregation tables use DateTime
+		// Round to start of day for clean retention boundaries
+		return fmt.Sprintf("time >= toStartOfDay(now() - INTERVAL %d DAY)", retentionDays)
+	case perDayMonthPattern.MatchString(tableName):
+		// Day/month aggregation tables use Date
+		// today() - INTERVAL already gives start of day
+		return fmt.Sprintf("time >= today() - INTERVAL %d DAY", retentionDays)
+	default:
+		// Default to DateTime format for unknown table types, rounded to start of day
+		return fmt.Sprintf("time >= toStartOfDay(now() - INTERVAL %d DAY)", retentionDays)
+	}
 }
 
 // ConfigureUser creates or updates a ClickHouse user with all necessary permissions, quotas, and settings.
@@ -100,11 +134,14 @@ func (c *clickhouse) ConfigureUser(ctx context.Context, config UserConfig) error
 	// Create row-level security (RLS) policies
 	policyName := fmt.Sprintf("workspace_%s_rls", config.WorkspaceID)
 	for _, table := range config.AllowedTables {
-		logger.Debug("creating row policy", "table", table, "policy", policyName)
+		logger.Debug("creating row policy", "table", table, "policy", policyName, "retention_days", config.RetentionDays)
+
+		// Build time retention filter based on table type and configured retention period
+		timeFilter := getTimeRetentionFilter(table, config.RetentionDays)
 
 		createPolicySQL := fmt.Sprintf(
-			"CREATE ROW POLICY OR REPLACE %s ON %s FOR SELECT USING workspace_id = '%s' TO %s",
-			policyName, table, config.WorkspaceID, config.Username,
+			"CREATE ROW POLICY OR REPLACE %s ON %s FOR SELECT USING workspace_id = '%s' AND (%s) TO %s",
+			policyName, table, config.WorkspaceID, timeFilter, config.Username,
 		)
 		err = c.Exec(ctx, createPolicySQL)
 		if err != nil {
