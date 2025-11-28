@@ -11,6 +11,7 @@ import { queryKeysOverviewLogs } from "./api/keys/query-overview-logs";
 import { keyVerificationsTimeseries } from "./api/keys/query-overview-timeseries";
 import { enableKey } from "./api/keys/toggle-key-enabled";
 import { overviewApiSearch } from "./api/overview-api-search";
+import { getKeyCount } from "./api/overview/query-key-count";
 import { queryApisOverview } from "./api/overview/query-overview";
 import { queryVerificationTimeseries } from "./api/overview/query-timeseries";
 import { queryApiKeyDetails } from "./api/query-api-key-details";
@@ -203,6 +204,7 @@ export const router = t.router({
       latestVerification: keyLastVerificationTime,
     }),
     overview: t.router({
+      keyCount: getKeyCount,
       timeseries: queryVerificationTimeseries,
       query: queryApisOverview,
       search: overviewApiSearch,

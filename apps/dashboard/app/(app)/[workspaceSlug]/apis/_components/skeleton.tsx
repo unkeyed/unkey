@@ -54,3 +54,10 @@ export const ApiCardSkeleton = () => {
     </div>
   );
 };
+
+export const KeyCountSkeleton = () => (
+  <div className="flex items-center gap-1.5 max-w-[40%]">
+    <Key className="text-accent-11 flex-shrink-0" iconSize="md-medium" />
+    <div className="h-3 w-10 bg-grayA-3 rounded animate-pulse" />
+  </div>
+);

@@ -31,8 +31,7 @@ export async function fetchApiOverview({
     with: {
       keyAuth: {
         columns: {
-          id: true, // Include the keyspace ID
-          sizeApprox: true,
+          id: true,
         },
       },
     },
@@ -55,11 +54,6 @@ export async function fetchApiOverview({
         id: api.id,
         name: api.name,
         keyspaceId,
-        keys: [
-          {
-            count: api.keyAuth?.sizeApprox || 0,
-          },
-        ],
       };
     }),
   );
