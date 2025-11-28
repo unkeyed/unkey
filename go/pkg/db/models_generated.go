@@ -1015,6 +1015,7 @@ type Workspace struct {
 	Name                 string             `db:"name"`
 	Slug                 string             `db:"slug"`
 	PartitionID          sql.NullString     `db:"partition_id"`
+	K8sNamespace         sql.NullString     `db:"k8s_namespace"`
 	Plan                 NullWorkspacesPlan `db:"plan"`
 	Tier                 sql.NullString     `db:"tier"`
 	StripeCustomerID     sql.NullString     `db:"stripe_customer_id"`

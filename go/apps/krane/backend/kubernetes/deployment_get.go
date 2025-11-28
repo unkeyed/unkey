@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
+	"github.com/unkeyed/unkey/go/apps/krane/backend/kubernetes/labels"
 	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -19,34 +19,37 @@ import (
 // It returns detailed information about each pod instance including stable
 // DNS addresses, current status, and resource allocation.
 func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.GetDeploymentRequest]) (*connect.Response[kranev1.GetDeploymentResponse], error) {
+	deploymentID := req.Msg.GetDeploymentId()
+	namespace := req.Msg.GetNamespace()
+
 	err := assert.All(
-		assert.NotEmpty(req.Msg.GetNamespace()),
-		assert.NotEmpty(req.Msg.GetDeploymentId()),
+		assert.NotEmpty(namespace),
+		assert.NotEmpty(deploymentID),
 	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	k8sDeploymentID := safeIDForK8s(req.Msg.GetDeploymentId())
-	namespace := safeIDForK8s(req.Msg.GetNamespace())
+	k.logger.Info("getting deployment", "deployment_id", deploymentID)
 
-	k.logger.Info("getting deployment", "deployment_id", k8sDeploymentID)
+	// Create label selector for this deployment
+	labelSelector := fmt.Sprintf("%s=%s,%s=%s", labels.DeploymentID, deploymentID, labels.ManagedBy, krane)
 
-	// Get the Job by name (deployment_id)
+	// List StatefulSets with this deployment-id label
 	// nolint: exhaustruct
-	sfs, err := k.clientset.AppsV1().StatefulSets(namespace).Get(ctx, k8sDeploymentID, metav1.GetOptions{})
+	statefulSets, err := k.clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labelSelector,
+	})
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", k8sDeploymentID))
-		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list statefulsets: %w", err))
 	}
 
-	// Check if this job is managed by Krane
-	managedBy, exists := sfs.Labels["unkey.managed.by"]
-	if !exists || managedBy != "krane" {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", k8sDeploymentID))
+	if len(statefulSets.Items) == 0 {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", deploymentID))
 	}
+
+	// Use the first (and should be only) StatefulSet
+	sfs := &statefulSets.Items[0]
 
 	// Determine job status
 	var status kranev1.DeploymentStatus
@@ -56,26 +59,35 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 		status = kranev1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING
 	}
 
-	// Get the service to retrieve port info
+	// List Services with this deployment-id label
 	// nolint: exhaustruct
-	service, err := k.clientset.CoreV1().Services(namespace).Get(ctx, k8sDeploymentID, metav1.GetOptions{})
+	services, err := k.clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labelSelector,
+	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not load service: %s", k8sDeploymentID))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list services: %w", err))
 	}
+
+	if len(services.Items) == 0 {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("no service found for deployment: %s", deploymentID))
+	}
+
+	// Use the first service
+	service := &services.Items[0]
 	var port int32 = 8080 // default
 	if len(service.Spec.Ports) > 0 {
 		port = service.Spec.Ports[0].Port
 	}
 
 	// Get all pods belonging to this stateful set
-	labelSelector := metav1.FormatLabelSelector(&metav1.LabelSelector{
+	podLabelSelector := metav1.FormatLabelSelector(&metav1.LabelSelector{
 		MatchExpressions: nil,
 		MatchLabels:      sfs.Spec.Selector.MatchLabels,
 	})
 
 	//nolint: exhaustruct
 	pods, err := k.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: labelSelector,
+		LabelSelector: podLabelSelector,
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list pods: %w", err))
@@ -113,7 +125,7 @@ func (k *k8s) GetDeployment(ctx context.Context, req *connect.Request[kranev1.Ge
 	}
 
 	k.logger.Info("deployment found",
-		"deployment_id", k8sDeploymentID,
+		"deployment_id", deploymentID,
 		"status", status.String(),
 		"port", port,
 		"pod_count", len(instances),

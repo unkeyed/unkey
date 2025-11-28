@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
+	"github.com/unkeyed/unkey/go/apps/krane/backend/kubernetes/labels"
 	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	appsv1 "k8s.io/api/apps/v1"
@@ -16,11 +17,12 @@ import (
 )
 
 func (k *k8s) CreateGateway(ctx context.Context, req *connect.Request[kranev1.CreateGatewayRequest]) (*connect.Response[kranev1.CreateGatewayResponse], error) {
-	k8sGatewayID := safeIDForK8s(req.Msg.GetGateway().GetGatewayId())
-	namespace := safeIDForK8s(req.Msg.GetGateway().GetNamespace())
-	k.logger.Info("creating deployment",
+	gatewayID := req.Msg.GetGateway().GetGatewayId()
+	namespace := req.Msg.GetGateway().GetNamespace()
+
+	k.logger.Info("creating gateway",
 		"namespace", namespace,
-		"deployment_id", k8sGatewayID,
+		"gateway_id", gatewayID,
 	)
 
 	// Ensure namespace exists
@@ -34,7 +36,7 @@ func (k *k8s) CreateGateway(ctx context.Context, req *connect.Request[kranev1.Cr
 				ObjectMeta: metav1.ObjectMeta{
 					Name: namespace,
 					Labels: map[string]string{
-						"unkey.managed.by": "krane",
+						labels.ManagedBy: krane,
 					},
 				},
 			}, metav1.CreateOptions{})
@@ -53,11 +55,11 @@ func (k *k8s) CreateGateway(ctx context.Context, req *connect.Request[kranev1.Cr
 		//nolint: exhaustruct
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      k8sGatewayID,
-				Namespace: namespace,
+				GenerateName: "gw-",
+				Namespace:    namespace,
 				Labels: map[string]string{
-					"unkey.gateway.id": k8sGatewayID,
-					"unkey.managed.by": "krane",
+					labels.GatewayID: gatewayID,
+					labels.ManagedBy: krane,
 				},
 			},
 
@@ -66,14 +68,14 @@ func (k *k8s) CreateGateway(ctx context.Context, req *connect.Request[kranev1.Cr
 				Replicas: ptr.P(int32(req.Msg.GetGateway().GetReplicas())), //nolint: gosec
 				Selector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
-						"unkey.gateway.id": k8sGatewayID,
+						labels.GatewayID: gatewayID,
 					},
 				},
 				Template: corev1.PodTemplateSpec{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
-							"unkey.gateway.id": k8sGatewayID,
-							"unkey.managed.by": "krane",
+							labels.GatewayID: gatewayID,
+							labels.ManagedBy: krane,
 						},
 						Annotations: map[string]string{},
 					},
@@ -81,7 +83,7 @@ func (k *k8s) CreateGateway(ctx context.Context, req *connect.Request[kranev1.Cr
 						RestartPolicy: corev1.RestartPolicyAlways,
 						Containers: []corev1.Container{
 							{
-								Name:  k8sGatewayID,
+								Name:  "gateway",
 								Image: req.Msg.GetGateway().GetImage(),
 								Ports: []corev1.ContainerPort{
 									{
@@ -122,14 +124,11 @@ func (k *k8s) CreateGateway(ctx context.Context, req *connect.Request[kranev1.Cr
 			//nolint:exhaustruct
 			&corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      k8sGatewayID,
-					Namespace: namespace,
+					GenerateName: "gw-svc-",
+					Namespace:    namespace,
 					Labels: map[string]string{
-						"unkey.gateway.id": k8sGatewayID,
-						"unkey.managed.by": "krane",
-					},
-					Annotations: map[string]string{
-						"unkey.gateway.id": k8sGatewayID,
+						labels.GatewayID: gatewayID,
+						labels.ManagedBy: krane,
 					},
 					OwnerReferences: []metav1.OwnerReference{
 						// Automatically clean up the service when the Deployment gets deleted
@@ -137,7 +136,7 @@ func (k *k8s) CreateGateway(ctx context.Context, req *connect.Request[kranev1.Cr
 						{
 							APIVersion: "apps/v1",
 							Kind:       "Deployment",
-							Name:       k8sGatewayID,
+							Name:       deployment.Name,
 							UID:        deployment.UID,
 						},
 					},
@@ -146,7 +145,7 @@ func (k *k8s) CreateGateway(ctx context.Context, req *connect.Request[kranev1.Cr
 				Spec: corev1.ServiceSpec{
 					Type: corev1.ServiceTypeClusterIP, // Use ClusterIP for internal communication
 					Selector: map[string]string{
-						"unkey.gateway.id": k8sGatewayID,
+						labels.GatewayID: gatewayID,
 					},
 					//nolint:exhaustruct
 					Ports: []corev1.ServicePort{
