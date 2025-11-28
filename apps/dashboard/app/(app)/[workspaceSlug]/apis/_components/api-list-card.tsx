@@ -63,7 +63,7 @@ export const ApiListCard = ({ api }: Props) => {
               <div className="flex items-center gap-1.5 max-w-[40%]">
                 <Key className="text-accent-11 flex-shrink-0" iconSize="md-medium" />
                 <InfoTooltip
-                  content={`${keyCount.toLocaleString()} ${keyCount === 1 ? "Key" : "Keys"}`}
+                  content={`This API has ${keyCount.toLocaleString()} total ${keyCount === 1 ? "key" : "keys"}`}
                 >
                   <div className="text-xs text-accent-9 tabular-nums flex-1 min-w-0">
                     {formatNumber(keyCount)} {keyCount === 1 ? "Key" : "Keys"}
