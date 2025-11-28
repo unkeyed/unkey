@@ -96,7 +96,7 @@ export const TableActionPopover = ({
   }, [open]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         {children ?? <TableActionPopoverDefaultTrigger onClick={(e) => e.stopPropagation()} />}
       </PopoverTrigger>
