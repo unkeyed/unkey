@@ -39,7 +39,7 @@ export const LastUsedCell = ({ namespaceId, identifier }: LastUsedCellProps) => 
       </div>
       <div className="truncate">
         {isLoading ? (
-          <div className="flex items-center w-full space-x-1">
+          <div className="flex items-center space-x-1">
             <div className="h-2 w-2 bg-grayA-5 rounded-full animate-pulse" />
             <div className="h-2 w-12 bg-grayA-5 rounded animate-pulse" />
             <div className="h-2 w-12 bg-grayA-5 rounded animate-pulse" />
