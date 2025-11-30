@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/bytedance/gopkg/util/logger"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
-	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
+	"github.com/unkeyed/unkey/go/apps/krane/backend"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
@@ -24,15 +25,13 @@ type docker struct {
 	client       *client.Client
 	registryAuth string // base64 encoded auth for pulls
 
-	kranev1connect.UnimplementedDeploymentServiceHandler
-	kranev1connect.UnimplementedGatewayServiceHandler
 }
 
-var _ kranev1connect.DeploymentServiceHandler = (*docker)(nil)
-var _ kranev1connect.GatewayServiceHandler = (*docker)(nil)
+var _ backend.Backend = (*docker)(nil)
 
 // Config holds configuration for the Docker backend
 type Config struct {
+	Logger           logging.Logger
 	SocketPath       string
 	RegistryURL      string
 	RegistryUsername string
@@ -48,7 +47,7 @@ type Config struct {
 //
 // Returns an error if the Docker daemon is unreachable or the socket
 // path is invalid. The socket must be accessible with appropriate permissions.
-func New(logger logging.Logger, cfg Config) (*docker, error) {
+func New(cfg Config) (*docker, error) {
 	// Create Docker client with configurable socket path
 	// socketPath must not include protocol (e.g., "var/run/docker.sock")
 	dockerClient, err := client.NewClientWithOpts(
@@ -70,10 +69,9 @@ func New(logger logging.Logger, cfg Config) (*docker, error) {
 	logger.Info("Docker client initialized successfully", "socket", cfg.SocketPath)
 
 	d := &docker{
-		registryAuth:                          "",
-		UnimplementedDeploymentServiceHandler: kranev1connect.UnimplementedDeploymentServiceHandler{},
-		logger:                                logger,
-		client:                                dockerClient,
+		registryAuth: "",
+		logger:       cfg.Logger,
+		client:       dockerClient,
 	}
 
 	// Encode registry credentials if provided.

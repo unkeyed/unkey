@@ -433,9 +433,7 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 				GitCommitAuthorHandle:    sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
 				GitCommitAuthorAvatarUrl: sql.NullString{String: gitCommitAuthorAvatarUrl, Valid: gitCommitAuthorAvatarUrl != ""},
 				GitCommitTimestamp:       sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
-				RuntimeConfig:            []byte("{}"),
 				OpenapiSpec:              sql.NullString{String: "", Valid: false},
-				UpdatedAt:                sql.NullInt64{Int64: 1724251845000, Valid: true},
 			}
 
 			// Assert Git field mappings are correct

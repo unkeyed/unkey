@@ -5,10 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"connectrpc.com/connect"
 	restate "github.com/restatedev/sdk-go"
+	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
-	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -39,6 +38,33 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 		return nil, err
 	}
 
+	k8sNamespace := workspace.K8sNamespace.String
+	// This should really be in a dedicated createWorkspace call I think,
+	// but this works for now
+	if k8sNamespace == "" {
+		k8sNamespace, err = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+			name := uid.Nano(12)
+			res, err := db.Query.UpdateWorkspaceK8sNamespace(runCtx, s.db.RW(), db.UpdateWorkspaceK8sNamespaceParams{
+				ID:           workspace.ID,
+				K8sNamespace: sql.NullString{Valid: true, String: name},
+			})
+			if err != nil {
+				return "", err
+			}
+			affected, err := res.RowsAffected()
+			if err != nil {
+				return "", err
+			}
+			if affected != 1 {
+				return "", errors.New("failed to update workspace k8s namespace")
+			}
+			return name, nil
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	projectID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
 		return uid.New(uid.ProjectPrefix), nil
 	}, restate.WithName("generate project ID"))
@@ -46,8 +72,8 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 		return nil, err
 	}
 
-	_, err = restate.Run(ctx, func(runCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.InsertProject(runCtx, s.db.RW(), db.InsertProjectParams{
+	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return db.Query.InsertProject(runCtx, s.db.RW(), db.InsertProjectParams{
 			ID:               projectID,
 			WorkspaceID:      workspace.ID,
 			Name:             req.Name,
@@ -81,8 +107,8 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 			return nil, err
 		}
 
-		_, err = restate.Run(ctx, func(runCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.InsertEnvironment(runCtx, s.db.RW(), db.InsertEnvironmentParams{
+		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+			return db.Query.InsertEnvironment(runCtx, s.db.RW(), db.InsertEnvironmentParams{
 				ID:            environmentID,
 				WorkspaceID:   workspace.ID,
 				ProjectID:     projectID,
@@ -104,30 +130,55 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 			return nil, err
 		}
 
-		replicas := uint32(1)
+		replicas := int32(1)
 		if env.Slug == "production" {
-			replicas = uint32(3)
+			replicas = int32(3)
 		}
 
-		_, err = restate.Run(ctx, func(runCtx restate.RunContext) (restate.Void, error) {
-			_, err := s.krane.CreateGateway(runCtx, connect.NewRequest(&kranev1.CreateGatewayRequest{
-				Gateway: &kranev1.GatewayRequest{
-					Namespace:     workspace.ID,
-					WorkspaceId:   workspace.ID,
-					GatewayId:     gatewayID,
-					Image:         "nginx:latest", // TODO
-					Replicas:      replicas,
-					CpuMillicores: uint32(128),
-					MemorySizeMib: uint64(256),
-				},
-			}))
-			return restate.Void{}, err
-		}, restate.WithName("provision gateway"))
-
+		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+			return db.Query.InsertGateway(runCtx, s.db.RW(), db.InsertGatewayParams{
+				ID:             gatewayID,
+				WorkspaceID:    workspace.ID,
+				ProjectID:      projectID,
+				EnvironmentID:  environmentID,
+				K8sServiceName: "TODO",
+				Region:         "aws:us-east-1",
+				Image:          "nginx:latest",
+				Health:         db.GatewaysHealthUnknown,
+				Replicas:       replicas,
+				CpuMillicores:  1024,
+				MemoryMib:      1024,
+				CreatedAt:      time.Now().UnixMilli(),
+			})
+		}, restate.WithName("insert gateway"))
 		if err != nil {
 			return nil, err
 		}
 
+		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+			return s.cluster.EmitEvent(runCtx, map[string]string{"region": "aws:us-east-1"}, &ctrlv1.InfraEvent{
+				Event: &ctrlv1.InfraEvent_GatewayEvent{
+					GatewayEvent: &ctrlv1.GatewayEvent{
+						Event: &ctrlv1.GatewayEvent_Apply{
+							Apply: &ctrlv1.ApplyGateway{
+								Namespace:     workspace.K8sNamespace.String,
+								WorkspaceId:   workspace.ID,
+								ProjectId:     projectID,
+								EnvironmentId: environmentID,
+								GatewayId:     gatewayID,
+								Image:         "nginx:latest",
+								Replicas:      uint32(replicas),
+								CpuMillicores: 1024,
+								MemorySizeMib: 1024,
+							},
+						},
+					},
+				},
+			})
+		}, restate.WithName("apply gateway"))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &hydrav1.CreateProjectResponse{

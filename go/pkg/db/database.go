@@ -77,14 +77,18 @@ func New(config Config) (*database, error) {
 
 	// Initialize primary replica
 	writeReplica := &Replica{
-		db:   write,
-		mode: "rw",
+		db:        write,
+		mode:      "rw",
+		logger:    config.Logger,
+		debugLogs: true,
 	}
 
 	// Initialize read replica with primary by default
 	readReplica := &Replica{
-		db:   write,
-		mode: "rw",
+		db:        write,
+		mode:      "rw",
+		logger:    config.Logger,
+		debugLogs: true,
 	}
 
 	// If a separate read-only DSN is provided, establish that connection

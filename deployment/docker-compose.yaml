@@ -294,12 +294,14 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       # Server configuration
-      UNKEY_HTTP_PORT: "8080"
+      UNKEY_REGION: "aws:us-east-1" # currently required to receive filteres events from ctrl
+      UNKEY_IMAGE: "unkey:dev"
+      UNKEY_CONTROL_PLANE_URL: "http://ctrl:7091"
+      UNKEY_CONTROL_PLANE_BEARER: "your-local-dev-key"
 
       # Backend configuration - use Docker backend for development
       UNKEY_KRANE_BACKEND: "docker"
       UNKEY_DOCKER_SOCKET: "/var/run/docker.sock"
-      UNKEY_DEPLOYMENT_EVICTION_TTL: "10m"
 
       UNKEY_REGISTRY_URL: "${UNKEY_REGISTRY_URL:-}"
       UNKEY_REGISTRY_USERNAME: "${UNKEY_REGISTRY_USERNAME:-}"
@@ -349,6 +351,9 @@ services:
         condition: service_started
         required: true
       restate:
+        condition: service_healthy
+        required: true
+      clickhouse:
         condition: service_healthy
         required: true
     volumes:

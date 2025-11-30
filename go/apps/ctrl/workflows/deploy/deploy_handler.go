@@ -13,7 +13,6 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
-	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"google.golang.org/protobuf/proto"
@@ -107,41 +106,60 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, fmt.Errorf("either build_context_path or docker_image must be specified")
 	}
 
-	// Update version status to deploying
-	if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusDeploying); err != nil {
-		return nil, err
+	// TODO: read this from project config
+	regions := []string{"aws:us-east-1"}
+
+	topologies := make([]db.InsertDeploymentTopologyParams, len(regions))
+	for i, region := range regions {
+		topologies[i] = db.InsertDeploymentTopologyParams{
+			DeploymentID: deployment.ID,
+			Region:       region,
+			Replicas:     1,
+			Status:       db.DeploymentTopologyStatusStarting,
+		}
 	}
 
-	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		// Create deployment request
-
-		_, err = w.krane.CreateDeployment(stepCtx, connect.NewRequest(&kranev1.CreateDeploymentRequest{
-			Deployment: &kranev1.DeploymentRequest{
-				Namespace:     hardcodedNamespace,
-				DeploymentId:  deployment.ID,
-				Image:         dockerImage,
-				Replicas:      1,
-				CpuMillicores: 512,
-				MemorySizeMib: 512,
-			},
-		}))
-		if err != nil {
-			return restate.Void{}, fmt.Errorf("krane CreateDeployment failed for image %s: %w", dockerImage, err)
-		}
-
-		return restate.Void{}, nil
-	}, restate.WithName("creating deployment in krane"))
+	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return db.BulkQuery.InsertDeploymentTopologies(runCtx, w.db.RW(), topologies)
+	}, restate.WithName("insert-deployment-topologies"))
 	if err != nil {
 		return nil, err
 	}
 
+	if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusDeploying); err != nil {
+		return nil, err
+	}
+
+	for _, region := range regions {
+		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+			return w.cluster.EmitEvent(runCtx, map[string]string{"region": region}, &ctrlv1.InfraEvent{
+				Event: &ctrlv1.InfraEvent_DeploymentEvent{
+					DeploymentEvent: &ctrlv1.DeploymentEvent{
+						Event: &ctrlv1.DeploymentEvent_Apply{
+							Apply: &ctrlv1.ApplyDeployment{
+								Namespace:     workspace.K8sNamespace.String,
+								WorkspaceId:   workspace.ID,
+								ProjectId:     project.ID,
+								EnvironmentId: environment.ID,
+								DeploymentId:  deployment.ID,
+								Image:         req.GetDockerImage(),
+								Replicas:      1,
+								CpuMillicores: 1024,
+								MemorySizeMib: 1024,
+							},
+						},
+					},
+				},
+			})
+		}, restate.WithName(fmt.Sprintf("apply deployment in %s", region)))
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	w.logger.Info("deployment created", "deployment_id", deployment.ID)
 
-	createdInstances, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]*kranev1.Instance, error) {
-		// prevent updating the db unnecessarily
-
-		// instanceID -> status to track if an instance is already in the db and if we need to update it
-		storedInstances := map[string]db.InstancesStatus{}
+	createdInstances, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.Instance, error) {
 
 		for i := range 300 {
 			time.Sleep(time.Second)
@@ -149,71 +167,26 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				w.logger.Info("polling deployment status", "deployment_id", deployment.ID, "iteration", i)
 			}
 
-			var resp *connect.Response[kranev1.GetDeploymentResponse]
-			resp, err = w.krane.GetDeployment(stepCtx, connect.NewRequest(&kranev1.GetDeploymentRequest{
-				Namespace:    hardcodedNamespace,
-				DeploymentId: deployment.ID,
-			}))
+			instances, err := db.Query.FindInstancesByDeploymentId(stepCtx, w.db.RO(), deployment.ID)
 			if err != nil {
-				return nil, fmt.Errorf("krane GetDeployment failed for deployment %s: %w", deployment.ID, err)
+				return nil, fmt.Errorf("failed to find instances for deployment %s: %w", deployment.ID, err)
 			}
-
-			w.logger.Info("deployment status",
-				"deployment_id", deployment.ID,
-				"status", resp.Msg,
-			)
+			if len(instances) == 0 {
+				continue
+			}
 
 			allReady := true
-			for _, instance := range resp.Msg.GetInstances() {
-				if instance.GetStatus() != kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING {
+			for _, instance := range instances {
+				if instance.Status != db.InstancesStatusRunning {
 					allReady = false
-				}
-
-				var status db.InstancesStatus
-				switch instance.GetStatus() {
-				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING:
-					status = db.InstancesStatusProvisioning
-				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING:
-					status = db.InstancesStatusRunning
-
-				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_TERMINATING:
-					status = db.InstancesStatusStopping
-				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED:
-					status = db.InstancesStatusAllocated
-				}
-
-				w.logger.Info("upserting instance to database",
-					"instance_id", instance.GetId(),
-					"deployment_id", deployment.ID,
-					"address", instance.GetAddress(),
-					"status", status)
-
-				previousStatus, ok := storedInstances[instance.GetId()]
-				if !ok || previousStatus != status {
-					if err = db.Query.UpsertInstance(stepCtx, w.db.RW(), db.UpsertInstanceParams{
-						ID:            instance.GetId(),
-						DeploymentID:  deployment.ID,
-						WorkspaceID:   deployment.WorkspaceID,
-						ProjectID:     deployment.ProjectID,
-						Region:        "TODO",
-						Address:       instance.GetAddress(),
-						CpuMillicores: 1000,
-						MemoryMb:      1024,
-						Status:        status,
-					}); err != nil {
-						return nil, fmt.Errorf("failed to upsert instance %s: %w", instance.GetId(), err)
-					}
-					w.logger.Info("successfully upserted instance to database", "instance_id", instance.GetId())
-					storedInstances[instance.GetId()] = status
-
-				}
-
-				if allReady {
-					return resp.Msg.GetInstances(), nil
+					break
 				}
 			}
-			// next loop
 
+			if allReady {
+				return instances, nil
+			}
+			// next loop
 		}
 
 		return nil, fmt.Errorf("deployment never became ready")
@@ -224,19 +197,19 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	openapiSpec, err := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
 		for _, instance := range createdInstances {
-			openapiURL := fmt.Sprintf("http://%s/openapi.yaml", instance.GetAddress())
-			w.logger.Info("trying to scrape OpenAPI spec", "url", openapiURL, "host_port", instance.GetAddress(), "deployment_id", deployment.ID)
+			openapiURL := fmt.Sprintf("http://%s/openapi.yaml", instance.Address)
+			w.logger.Info("trying to scrape OpenAPI spec", "url", openapiURL, "host_port", instance.Address, "deployment_id", deployment.ID)
 
 			var resp *http.Response
 			resp, err = http.DefaultClient.Get(openapiURL)
 			if err != nil {
-				w.logger.Warn("openapi scraping failed for host address", "error", err, "host_addr", instance.GetAddress(), "deployment_id", deployment.ID)
+				w.logger.Warn("openapi scraping failed for host address", "error", err, "host_addr", instance.Address, "deployment_id", deployment.ID)
 				continue
 			}
 			defer resp.Body.Close()
 
 			if resp.StatusCode != http.StatusOK {
-				w.logger.Warn("openapi endpoint returned non-200 status", "status", resp.StatusCode, "host_addr", instance.GetAddress(), "deployment_id", deployment.ID)
+				w.logger.Warn("openapi endpoint returned non-200 status", "status", resp.StatusCode, "host_addr", instance.Address, "deployment_id", deployment.ID)
 				continue
 			}
 
@@ -244,11 +217,11 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			var specBytes []byte
 			specBytes, err = io.ReadAll(resp.Body)
 			if err != nil {
-				w.logger.Warn("failed to read OpenAPI spec response", "error", err, "host_addr", instance.GetAddress(), "deployment_id", deployment.ID)
+				w.logger.Warn("failed to read OpenAPI spec response", "error", err, "host_addr", instance.Address, "deployment_id", deployment.ID)
 				continue
 			}
 
-			w.logger.Info("openapi spec scraped successfully", "host_addr", instance.GetAddress(), "deployment_id", deployment.ID, "spec_size", len(specBytes))
+			w.logger.Info("openapi spec scraped successfully", "host_addr", instance.Address, "deployment_id", deployment.ID, "spec_size", len(specBytes))
 			return base64.StdEncoding.EncodeToString(specBytes), nil
 		}
 		// not an error really, just no OpenAPI spec found
@@ -262,8 +235,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		_, err = restate.Run(ctx, func(innerCtx restate.RunContext) (restate.Void, error) {
 			return restate.Void{}, db.Query.UpdateDeploymentOpenapiSpec(innerCtx, w.db.RW(), db.UpdateDeploymentOpenapiSpecParams{
 				ID:          deployment.ID,
-				UpdatedAt:   sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				OpenapiSpec: sql.NullString{Valid: true, String: openapiSpec},
+				UpdatedAt:   sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 			})
 		}, restate.WithName("update deployment openapi spec"))
 	}

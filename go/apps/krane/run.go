@@ -4,18 +4,16 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/http"
-	"time"
 
+	"github.com/unkeyed/unkey/go/apps/krane/backend"
 	"github.com/unkeyed/unkey/go/apps/krane/backend/docker"
 	"github.com/unkeyed/unkey/go/apps/krane/backend/kubernetes"
-	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
+	"github.com/unkeyed/unkey/go/apps/krane/sync"
+	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
 	pkgversion "github.com/unkeyed/unkey/go/pkg/version"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 )
 
 // Run starts the krane server with the provided configuration.
@@ -53,9 +51,6 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.InstanceID != "" {
 		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
 	}
-	if cfg.Platform != "" {
-		logger = logger.With(slog.String("platform", cfg.Platform))
-	}
 	if cfg.Region != "" {
 		logger = logger.With(slog.String("region", cfg.Region))
 	}
@@ -63,83 +58,87 @@ func Run(ctx context.Context, cfg Config) error {
 		logger = logger.With(slog.String("version", pkgversion.Version))
 	}
 
-	// Create the connect handler
-	mux := http.NewServeMux()
-
-	var svc Svc
+	var b backend.Backend
 	switch cfg.Backend {
-	case Kubernetes:
-		{
-
-			svc, err = kubernetes.New(kubernetes.Config{
-				Logger:                logger,
-				DeploymentEvictionTTL: cfg.DeploymentEvictionTTL,
-			})
-			if err != nil {
-				return fmt.Errorf("unable to init kubernetes backend: %w", err)
-			}
-			break
-		}
 	case Docker:
-		{
-			svc, err = docker.New(logger, docker.Config{
-				SocketPath:       cfg.DockerSocketPath,
-				RegistryURL:      cfg.RegistryURL,
-				RegistryUsername: cfg.RegistryUsername,
-				RegistryPassword: cfg.RegistryPassword,
-			})
-			if err != nil {
-				return fmt.Errorf("unable to init docker backend: %w", err)
-			}
+		b, err = docker.New(docker.Config{
+			Logger:           logger,
+			SocketPath:       cfg.DockerSocketPath,
+			RegistryURL:      cfg.RegistryURL,
+			RegistryUsername: cfg.RegistryUsername,
+			RegistryPassword: cfg.RegistryPassword,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create docker backend: %w", err)
+		}
+	case Kubernetes:
+		b, err = kubernetes.New(kubernetes.Config{
+			Logger: logger,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create kubernetes backend: %w", err)
 		}
 	default:
 		return fmt.Errorf("unsupported backend: %s", cfg.Backend)
 	}
 
-	// Create the service handlers with interceptors
-	mux.Handle(kranev1connect.NewDeploymentServiceHandler(svc))
-	mux.Handle(kranev1connect.NewGatewayServiceHandler(svc))
-
-	// Configure server
-	addr := fmt.Sprintf(":%d", cfg.HttpPort)
-
-	// Use h2c for HTTP/2 without TLS (for development)
-	h2cHandler := h2c.NewHandler(mux, &http2.Server{
-		MaxHandlers:                  0,
-		MaxConcurrentStreams:         0,
-		MaxDecoderHeaderTableSize:    0,
-		MaxEncoderHeaderTableSize:    0,
-		MaxReadFrameSize:             0,
-		PermitProhibitedCipherSuites: false,
-		IdleTimeout:                  0,
-		ReadIdleTimeout:              0,
-		PingTimeout:                  0,
-		WriteByteTimeout:             0,
-		MaxUploadBufferPerConnection: 0,
-		MaxUploadBufferPerStream:     0,
-		NewWriteScheduler:            nil,
-		CountError:                   nil,
+	s, err := sync.New(sync.Config{
+		Logger:             logger,
+		Region:             cfg.Region,
+		InstanceID:         cfg.InstanceID,
+		ControlPlaneURL:    cfg.ControlPlaneURL,
+		ControlPlaneBearer: cfg.ControlPlaneBearer,
 	})
-
-	server := &http.Server{
-		Addr:         addr,
-		Handler:      h2cHandler,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  120 * time.Second,
+	if err != nil {
+		return fmt.Errorf("failed to create sync engine: %w", err)
 	}
 
-	// Register server shutdown
-	shutdowns.RegisterCtx(server.Shutdown)
+	dm := deploymentManager{
+		logger:  logger,
+		backend: b,
+	}
 
-	// Start server
+	gm := gatewayManager{
+		logger:  logger,
+		backend: b,
+	}
+
 	go func() {
-		logger.Info("Starting krane server", "addr", addr)
+		for e := range s.Subscribe() {
+			ctx := context.Background()
+			logger.Info("Event received", "event", e)
 
-		listenErr := server.ListenAndServe()
+			var backendErr error
+			switch x := e.Event.(type) {
+			case *ctrlv1.InfraEvent_DeploymentEvent:
+				{
+					switch y := x.DeploymentEvent.Event.(type) {
+					case *ctrlv1.DeploymentEvent_Apply:
+						backendErr = dm.HandleApply(ctx, y.Apply)
+					case *ctrlv1.DeploymentEvent_Delete:
+						backendErr = dm.HandleDelete(ctx, y.Delete)
+					}
 
-		if listenErr != nil && listenErr != http.ErrServerClosed {
-			logger.Error("Server failed", "error", listenErr.Error())
+				}
+				switch x := e.Event.(type) {
+				case *ctrlv1.InfraEvent_GatewayEvent:
+					{
+						switch y := x.GatewayEvent.Event.(type) {
+						case *ctrlv1.GatewayEvent_Apply:
+							backendErr = gm.HandleApply(ctx, y.Apply)
+						case *ctrlv1.GatewayEvent_Delete:
+							backendErr = gm.HandleDelete(ctx, y.Delete)
+						}
+
+					}
+				}
+
+			default:
+				logger.Warn("Unknown event type", "event", x)
+			}
+			if backendErr != nil {
+				logger.Error("unable to enact infra event", "error", backendErr)
+			}
 		}
 	}()
 
@@ -152,9 +151,4 @@ func Run(ctx context.Context, cfg Config) error {
 
 	logger.Info("krane server shut down successfully")
 	return nil
-}
-
-type Svc interface {
-	kranev1connect.DeploymentServiceHandler
-	kranev1connect.GatewayServiceHandler
 }

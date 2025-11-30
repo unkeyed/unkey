@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, json, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, int, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
 import { deploymentSteps } from "./deployment_steps";
 import { environments } from "./environments";
 import { gateways } from "./gateways";
@@ -19,6 +19,9 @@ export const deployments = mysqlTable(
 
     // Environment configuration (production, preview, etc.)
     environmentId: varchar("environment_id", { length: 128 }).notNull(),
+    // the docker image
+    // null until the build is done
+    image: varchar("image", { length: 256 }),
 
     // Git information
     gitCommitSha: varchar("git_commit_sha", { length: 40 }),
@@ -32,19 +35,15 @@ export const deployments = mysqlTable(
     }),
     gitCommitTimestamp: bigint("git_commit_timestamp", { mode: "number" }), // Unix epoch milliseconds
 
-    // Immutable configuration snapshot
-    runtimeConfig: json("runtime_config")
-      .$type<{
-        regions: Array<{ region: string; vmCount: number }>;
-        cpus: number;
-        memory: number;
-      }>()
-      .notNull(),
-
     gatewayConfig: longblob("gateway_config").notNull(),
 
     // OpenAPI specification
     openapiSpec: longblob("openapi_spec"),
+    cpuMillicores: int("cpu_millicores").notNull(),
+    memoryMib: int("memory_mib").notNull(),
+    desiredState: mysqlEnum("desired_state", ["running", "standby", "archived"])
+      .notNull()
+      .default("running"),
 
     // Deployment status
     status: mysqlEnum("status", ["pending", "building", "deploying", "network", "ready", "failed"])

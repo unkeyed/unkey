@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"connectrpc.com/connect"
-	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
+	"github.com/unkeyed/unkey/go/apps/krane/backend"
+	"github.com/unkeyed/unkey/go/apps/krane/backend/kubernetes/labels"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -66,13 +66,15 @@ import (
 //
 // Returns DEPLOYMENT_STATUS_PENDING as pods may not be immediately scheduled
 // and ready for traffic after creation.
-func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1.CreateDeploymentRequest]) (*connect.Response[kranev1.CreateDeploymentResponse], error) {
-	k8sDeploymentID := safeIDForK8s(req.Msg.GetDeployment().GetDeploymentId())
-	namespace := safeIDForK8s(req.Msg.GetDeployment().GetNamespace())
+func (k *k8s) CreateDeployment(ctx context.Context, req backend.CreateDeploymentRequest) error {
+
+	namespace := req.Namespace
+	deploymentID := req.DeploymentID
+	const krane = "krane"
 
 	k.logger.Info("creating deployment",
 		"namespace", namespace,
-		"deployment_id", k8sDeploymentID,
+		"deployment_id", deploymentID,
 	)
 
 	service, err := k.clientset.CoreV1().
@@ -88,15 +90,11 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 			//nolint:exhaustruct
 			&corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      k8sDeploymentID,
-					Namespace: namespace,
+					GenerateName: "svc-",
+					Namespace:    namespace,
 					Labels: map[string]string{
-						"unkey.deployment.id": k8sDeploymentID,
-						"unkey.managed.by":    "krane",
-					},
-
-					Annotations: map[string]string{
-						"unkey.deployment.id": k8sDeploymentID,
+						labels.DeploymentID: deploymentID,
+						labels.ManagedBy:    krane,
 					},
 				},
 
@@ -104,7 +102,8 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 				Spec: corev1.ServiceSpec{
 					Type: corev1.ServiceTypeClusterIP, // Use ClusterIP for internal communication
 					Selector: map[string]string{
-						"unkey.deployment.id": k8sDeploymentID,
+						labels.DeploymentID: deploymentID,
+						labels.ManagedBy:    krane,
 					},
 					ClusterIP:                "None",
 					PublishNotReadyAddresses: true,
@@ -123,35 +122,35 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 			metav1.CreateOptions{},
 		)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create service: %w", err))
+		return fmt.Errorf("failed to create service: %w", err)
 	}
 
 	sfs, err := k.clientset.AppsV1().StatefulSets(namespace).Create(ctx,
 		//nolint: exhaustruct
 		&appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      k8sDeploymentID,
-				Namespace: namespace,
+				GenerateName: "dpl-",
+				Namespace:    namespace,
 				Labels: map[string]string{
-					"unkey.deployment.id": k8sDeploymentID,
-					"unkey.managed.by":    "krane",
+					labels.DeploymentID: deploymentID,
+					labels.ManagedBy:    krane,
 				},
 			},
 
 			//nolint: exhaustruct
 			Spec: appsv1.StatefulSetSpec{
 				ServiceName: service.Name,
-				Replicas:    ptr.P(int32(req.Msg.GetDeployment().GetReplicas())), //nolint: gosec
+				Replicas:    ptr.P(int32(req.Replicas)), //nolint: gosec
 				Selector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
-						"unkey.deployment.id": k8sDeploymentID,
+						labels.DeploymentID: deploymentID,
 					},
 				},
 				Template: corev1.PodTemplateSpec{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
-							"unkey.deployment.id": k8sDeploymentID,
-							"unkey.managed.by":    "krane",
+							labels.DeploymentID: deploymentID,
+							labels.ManagedBy:    krane,
 						},
 						Annotations: map[string]string{},
 					},
@@ -159,7 +158,7 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 
 						ImagePullSecrets: func() []corev1.LocalObjectReference {
 							// Only add imagePullSecrets if using Depot registry
-							if strings.HasPrefix(req.Msg.GetDeployment().GetImage(), "registry.depot.dev/") {
+							if strings.HasPrefix(req.Image, "registry.depot.dev/") {
 								return []corev1.LocalObjectReference{
 									{
 										Name: "depot-registry",
@@ -171,8 +170,13 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 						RestartPolicy: corev1.RestartPolicyAlways,
 						Containers: []corev1.Container{
 							{
-								Name:  "todo",
-								Image: req.Msg.GetDeployment().GetImage(),
+
+								Image: req.Image,
+								Env: []corev1.EnvVar{
+									{Name: "UNKEY_PROJECT_ID", Value: req.ProjectID},
+									{Name: "UNKEY_ENVIRONMENT_ID", Value: req.EnvironmentID},
+									{Name: "UNKEY_DEPLOYMENT_ID", Value: req.DeploymentID},
+								},
 								Ports: []corev1.ContainerPort{
 									{
 										ContainerPort: 8080,
@@ -182,14 +186,14 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 								Resources: corev1.ResourceRequirements{
 									// nolint: exhaustive
 									Requests: corev1.ResourceList{
-										corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.Msg.GetDeployment().GetCpuMillicores()), resource.DecimalSI),
-										corev1.ResourceMemory: *resource.NewQuantity(int64(req.Msg.GetDeployment().GetMemorySizeMib())*1024*1024, resource.DecimalSI), //nolint: gosec
+										corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.CpuMillicores), resource.DecimalSI),
+										corev1.ResourceMemory: *resource.NewQuantity(int64(req.MemorySizeMib)*1024*1024, resource.DecimalSI), //nolint: gosec
 
 									},
 									// nolint: exhaustive
 									Limits: corev1.ResourceList{
-										corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.Msg.GetDeployment().GetCpuMillicores()), resource.DecimalSI),
-										corev1.ResourceMemory: *resource.NewQuantity(int64(req.Msg.GetDeployment().GetMemorySizeMib())*1024*1024, resource.DecimalSI), //nolint: gosec
+										corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.CpuMillicores), resource.DecimalSI),
+										corev1.ResourceMemory: *resource.NewQuantity(int64(req.MemorySizeMib)*1024*1024, resource.DecimalSI), //nolint: gosec
 									},
 								},
 							},
@@ -210,7 +214,7 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 			k.logger.Error("Failed to delete service", "error", rollbackErr.Error())
 		}
 
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create deployment: %w", err))
+		return fmt.Errorf("failed to create deployment: %w", err)
 	}
 
 	service.OwnerReferences = []metav1.OwnerReference{
@@ -219,14 +223,14 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 		{
 			APIVersion: "apps/v1",
 			Kind:       "StatefulSet",
-			Name:       k8sDeploymentID,
+			Name:       sfs.Name,
 			UID:        sfs.UID,
 		},
 	}
 	//nolint:exhaustruct
 	_, err = k.clientset.CoreV1().Services(namespace).Update(ctx, service, metav1.UpdateOptions{})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update deployment: %w", err))
+		return fmt.Errorf("failed to update deployment: %w", err)
 	}
 
 	k.logger.Info("Deployment created successfully",
@@ -234,7 +238,5 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 		"service", service.String(),
 	)
 
-	return connect.NewResponse(&kranev1.CreateDeploymentResponse{
-		Status: kranev1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING,
-	}), nil
+	return nil
 }

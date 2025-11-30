@@ -15,6 +15,7 @@ type BulkQuerier interface {
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
 	InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error
 	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
+	InsertDeploymentTopologies(ctx context.Context, db DBTX, args []InsertDeploymentTopologyParams) error
 	InsertEnvironments(ctx context.Context, db DBTX, args []InsertEnvironmentParams) error
 	UpsertEnvironment(ctx context.Context, db DBTX, args []UpsertEnvironmentParams) error
 	InsertGateways(ctx context.Context, db DBTX, args []InsertGatewayParams) error

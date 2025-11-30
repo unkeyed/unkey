@@ -47,10 +47,6 @@ func Run(ctx context.Context, cfg Config) error {
 		logger = logger.With(slog.String("instanceID", cfg.IngressID))
 	}
 
-	if cfg.Platform != "" {
-		logger = logger.With(slog.String("platform", cfg.Platform))
-	}
-
 	if cfg.Region != "" {
 		logger = logger.With(slog.String("region", cfg.Region))
 	}

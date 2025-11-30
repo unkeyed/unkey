@@ -4,65 +4,53 @@ import (
 	"context"
 	"fmt"
 
-	"connectrpc.com/connect"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
-	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
-	"github.com/unkeyed/unkey/go/pkg/array"
+	"github.com/unkeyed/unkey/go/apps/krane/backend"
 )
 
 // GetGateway retrieves container status and addresses for a deployment.
 //
 // Finds containers by gateway ID label and returns instance information
 // with host.docker.internal addresses using dynamically assigned ports.
-func (d *docker) GetGateway(ctx context.Context, req *connect.Request[kranev1.GetGatewayRequest]) (*connect.Response[kranev1.GetGatewayResponse], error) {
-	gatewayID := req.Msg.GetGatewayId()
-	d.logger.Info("getting gateway", "gateway_id", gatewayID)
+func (d *docker) GetGateway(ctx context.Context, req backend.GetGatewayRequest) (backend.GetGatewayResponse, error) {
+	d.logger.Info("getting gateway", "gateway_id", req.GatewayID)
 
 	//nolint:exhaustruct // Docker SDK types have many optional fields
 	containers, err := d.client.ContainerList(ctx, container.ListOptions{
 		All: true,
 		Filters: filters.NewArgs(
-			filters.Arg("label", fmt.Sprintf("unkey.gateway.id=%s", gatewayID)),
+			filters.Arg("label", fmt.Sprintf("unkey.gateway.id=%s", req.GatewayID)),
 		),
 	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list containers: %w", err))
+		return backend.GetGatewayResponse{}, fmt.Errorf("failed to list containers: %w", err)
 	}
 
-	res := &kranev1.GetGatewayResponse{
-		// This is pretty nasty, we just return a random container's address, but it's better than nothing
-		// Docker is really just meant for development and testing purposes, not production use.
-		Address:   fmt.Sprintf("host.docker.internal:%d", array.Random(containers).Ports[0].PublicPort),
-		Instances: []*kranev1.GatewayInstance{},
+	res := backend.GetGatewayResponse{
+		Status: backend.GATEWAY_STATUS_UNSPECIFIED,
 	}
+
+	statuses := map[container.ContainerState]int{}
 
 	for _, c := range containers {
-		d.logger.Info("container found", "container", c)
+		count, ok := statuses[c.Status]
+		if !ok {
+			statuses[c.Status] = 1
+		} else {
+			statuses[c.Status] = count + 1
 
-		// Determine container status
-		status := kranev1.GatewayStatus_GATEWAY_STATUS_UNSPECIFIED
-		switch c.State {
-		case container.StateRunning:
-			status = kranev1.GatewayStatus_GATEWAY_STATUS_RUNNING
-		case container.StateExited:
-			status = kranev1.GatewayStatus_GATEWAY_STATUS_TERMINATING
-		case container.StateCreated:
-			status = kranev1.GatewayStatus_GATEWAY_STATUS_PENDING
 		}
-
-		d.logger.Info("gateway found",
-			"gateway_id", gatewayID,
-			"container_id", c.ID,
-			"status", status.String(),
-			"port", c.Ports[0].PublicPort,
-		)
-
-		res.Instances = append(res.Instances, &kranev1.GatewayInstance{
-			Id:     c.ID,
-			Status: status,
-		})
 	}
 
-	return connect.NewResponse(res), nil
+	// TODO this is not exhaustive not correct
+	if statuses[container.StateRunning] > 0 {
+		res.Status = backend.GATEWAY_STATUS_RUNNING
+	} else if statuses[container.StateExited] > 0 || statuses[container.StateRemoving] > 0 {
+		res.Status = backend.GATEWAY_STATUS_TERMINATING
+	} else {
+		res.Status = backend.GATEWAY_STATUS_PENDING
+	}
+
+	return res, nil
 }

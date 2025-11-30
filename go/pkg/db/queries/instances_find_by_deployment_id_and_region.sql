@@ -7,7 +7,7 @@ SELECT
   region,
   address,
   cpu_millicores,
-  memory_mb,
+  memory_mib,
   status
 FROM instances
 WHERE deployment_id = sqlc.arg(deploymentId) AND region = sqlc.arg(region);

@@ -3,20 +3,29 @@ INSERT INTO gateways (
     id,
     workspace_id,
     environment_id,
+    project_id,
     k8s_service_name,
     region,
     image,
     health,
-    replicas
+    replicas,
+    cpu_millicores,
+    memory_mib,
+    created_at
 ) VALUES (
     sqlc.arg(id),
     sqlc.arg(workspace_id),
     sqlc.arg(environment_id),
+    sqlc.arg(project_id),
     sqlc.arg(k8s_service_name),
     sqlc.arg(region),
     sqlc.arg(image),
     sqlc.arg(health),
-    sqlc.arg(replicas)
+    sqlc.arg(replicas),
+    sqlc.arg(cpu_millicores),
+    sqlc.arg(memory_mib),
+    sqlc.arg(created_at)
 ) ON DUPLICATE KEY UPDATE
     health = VALUES(health),
-    replicas = VALUES(replicas)
+    replicas = VALUES(replicas),
+  updated_at = VALUES(updated_at);

@@ -11,7 +11,7 @@ import (
 )
 
 const updateDeploymentOpenapiSpec = `-- name: UpdateDeploymentOpenapiSpec :exec
-UPDATE deployments 
+UPDATE deployments
 SET openapi_spec = ?, updated_at = ?
 WHERE id = ?
 `
