@@ -18,7 +18,7 @@ SELECT
   region,
   address,
   cpu_millicores,
-  memory_mb,
+  memory_mib,
   status
 FROM instances
 WHERE deployment_id = ? AND region = ?
@@ -39,7 +39,7 @@ type FindInstancesByDeploymentIdAndRegionParams struct {
 //	  region,
 //	  address,
 //	  cpu_millicores,
-//	  memory_mb,
+//	  memory_mib,
 //	  status
 //	FROM instances
 //	WHERE deployment_id = ? AND region = ?
@@ -60,7 +60,7 @@ func (q *Queries) FindInstancesByDeploymentIdAndRegion(ctx context.Context, db D
 			&i.Region,
 			&i.Address,
 			&i.CpuMillicores,
-			&i.MemoryMb,
+			&i.MemoryMib,
 			&i.Status,
 		); err != nil {
 			return nil, err

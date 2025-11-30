@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"connectrpc.com/connect"
-	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
+	"github.com/unkeyed/unkey/go/apps/krane/backend"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,9 +16,9 @@ import (
 // the Service and StatefulSet resources. Resources are selected by their
 // deployment-id label rather than by name, following Kubernetes best practices
 // for resource management.
-func (k *k8s) DeleteDeployment(ctx context.Context, req *connect.Request[kranev1.DeleteDeploymentRequest]) (*connect.Response[kranev1.DeleteDeploymentResponse], error) {
-	deploymentID := req.Msg.GetDeploymentId()
-	namespace := req.Msg.GetNamespace()
+func (k *k8s) DeleteDeployment(ctx context.Context, req backend.DeleteDeploymentRequest) error {
+	deploymentID := req.DeploymentID
+	namespace := req.Namespace
 
 	k.logger.Info("deleting deployment",
 		"namespace", namespace,
@@ -40,7 +39,7 @@ func (k *k8s) DeleteDeployment(ctx context.Context, req *connect.Request[kranev1
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list services: %w", err))
+		return fmt.Errorf("failed to list services: %w", err)
 	}
 
 	for _, service := range serviceList.Items {
@@ -50,7 +49,7 @@ func (k *k8s) DeleteDeployment(ctx context.Context, req *connect.Request[kranev1
 		)
 		err = k.clientset.CoreV1().Services(namespace).Delete(ctx, service.Name, deleteOptions)
 		if err != nil && !apierrors.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete service %s: %w", service.Name, err))
+			return fmt.Errorf("failed to delete service %s: %w", service.Name, err)
 		}
 	}
 
@@ -60,7 +59,7 @@ func (k *k8s) DeleteDeployment(ctx context.Context, req *connect.Request[kranev1
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list statefulsets: %w", err))
+		return fmt.Errorf("failed to list statefulsets: %w", err)
 	}
 
 	for _, statefulSet := range statefulSetList.Items {
@@ -70,7 +69,7 @@ func (k *k8s) DeleteDeployment(ctx context.Context, req *connect.Request[kranev1
 		)
 		err = k.clientset.AppsV1().StatefulSets(namespace).Delete(ctx, statefulSet.Name, deleteOptions)
 		if err != nil && !apierrors.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete statefulset %s: %w", statefulSet.Name, err))
+			return fmt.Errorf("failed to delete statefulset %s: %w", statefulSet.Name, err)
 		}
 	}
 
@@ -81,5 +80,5 @@ func (k *k8s) DeleteDeployment(ctx context.Context, req *connect.Request[kranev1
 		"statefulsets_deleted", len(statefulSetList.Items),
 	)
 
-	return connect.NewResponse(&kranev1.DeleteDeploymentResponse{}), nil
+	return nil
 }

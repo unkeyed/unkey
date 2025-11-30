@@ -3,7 +3,6 @@ package deployment
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -132,26 +131,22 @@ func (s *Service) CreateDeployment(
 
 	// Insert deployment into database
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
-		ID:            deploymentID,
-		WorkspaceID:   workspaceID,
-		ProjectID:     req.Msg.GetProjectId(),
-		EnvironmentID: env.ID,
-		RuntimeConfig: json.RawMessage(`{
-		"regions": [{"region":"us-east-1", "vmCount": 1}],
-		"cpus": 2,
-		"memory": 2048
-		}`),
+		ID:                       deploymentID,
+		WorkspaceID:              workspaceID,
+		ProjectID:                req.Msg.GetProjectId(),
+		EnvironmentID:            env.ID,
 		OpenapiSpec:              sql.NullString{String: "", Valid: false},
 		GatewayConfig:            env.GatewayConfig,
 		Status:                   db.DeploymentsStatusPending,
 		CreatedAt:                now,
-		UpdatedAt:                sql.NullInt64{Int64: now, Valid: true},
 		GitCommitSha:             sql.NullString{String: gitCommitSha, Valid: gitCommitSha != ""},
 		GitBranch:                sql.NullString{String: gitBranch, Valid: true},
 		GitCommitMessage:         sql.NullString{String: gitCommitMessage, Valid: gitCommitMessage != ""},
 		GitCommitAuthorHandle:    sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
 		GitCommitAuthorAvatarUrl: sql.NullString{String: gitCommitAuthorAvatarURL, Valid: gitCommitAuthorAvatarURL != ""},
 		GitCommitTimestamp:       sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
+		CpuMillicores:            1024,
+		MemoryMib:                1024,
 	})
 	if err != nil {
 		s.logger.Error("failed to insert deployment", "error", err.Error())

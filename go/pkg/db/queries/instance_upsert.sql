@@ -8,7 +8,7 @@ INSERT INTO instances (
 	region,
 	address,
 	cpu_millicores,
-	memory_mb,
+	memory_mib,
 	status
 )
 VALUES (
@@ -25,6 +25,6 @@ VALUES (
 ON DUPLICATE KEY UPDATE
 	address = sqlc.arg(address),
 	cpu_millicores = sqlc.arg(cpu_millicores),
-	memory_mb = sqlc.arg(memory_mb),
+	memory_mib = sqlc.arg(memory_mib),
 	status = sqlc.arg(status)
 ;

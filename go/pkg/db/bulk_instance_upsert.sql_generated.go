@@ -9,10 +9,10 @@ import (
 )
 
 // bulkUpsertInstance is the base query for bulk insert
-const bulkUpsertInstance = `INSERT INTO instances ( id, deployment_id, workspace_id, project_id, region, address, cpu_millicores, memory_mb, status ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkUpsertInstance = `INSERT INTO instances ( id, deployment_id, workspace_id, project_id, region, address, cpu_millicores, memory_mib, status ) VALUES %s ON DUPLICATE KEY UPDATE
 	address = ?,
 	cpu_millicores = ?,
-	memory_mb = ?,
+	memory_mib = ?,
 	status = ?`
 
 // UpsertInstance performs bulk insert in a single query
@@ -48,7 +48,7 @@ func (q *BulkQueries) UpsertInstance(ctx context.Context, db DBTX, args []Upsert
 	if len(args) > 0 {
 		allArgs = append(allArgs, args[0].Address)
 		allArgs = append(allArgs, args[0].CpuMillicores)
-		allArgs = append(allArgs, args[0].MemoryMb)
+		allArgs = append(allArgs, args[0].MemoryMib)
 		allArgs = append(allArgs, args[0].Status)
 	}
 

@@ -4,20 +4,18 @@ import (
 	"context"
 	"fmt"
 
-	"connectrpc.com/connect"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
-	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
+	"github.com/unkeyed/unkey/go/apps/krane/backend"
 )
 
 // DeleteGateway removes all containers for a gateway.
 //
 // Finds containers by gateway ID label and forcibly removes them with
 // volumes and network links to ensure complete cleanup.
-func (d *docker) DeleteGateway(ctx context.Context, req *connect.Request[kranev1.DeleteGatewayRequest]) (*connect.Response[kranev1.DeleteGatewayResponse], error) {
-	gatewayID := req.Msg.GetGatewayId()
+func (d *docker) DeleteGateway(ctx context.Context, req backend.DeleteGatewayRequest) error {
 
-	d.logger.Info("getting gateway", "gateway_id", gatewayID)
+	d.logger.Info("getting gateway", "gateway_id", req.GatewayID)
 
 	containers, err := d.client.ContainerList(ctx, container.ListOptions{
 		Size:   false,
@@ -27,11 +25,11 @@ func (d *docker) DeleteGateway(ctx context.Context, req *connect.Request[kranev1
 		Limit:  0,
 		All:    true,
 		Filters: filters.NewArgs(
-			filters.Arg("label", fmt.Sprintf("unkey.gateway.id=%s", gatewayID)),
+			filters.Arg("label", fmt.Sprintf("unkey.gateway.id=%s", req.GatewayID)),
 		),
 	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list containers: %w", err))
+		return fmt.Errorf("failed to list containers: %w", err)
 	}
 
 	for _, c := range containers {
@@ -41,8 +39,8 @@ func (d *docker) DeleteGateway(ctx context.Context, req *connect.Request[kranev1
 			Force:         true,
 		})
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to remove container: %w", err))
+			return fmt.Errorf("failed to remove container: %w", err)
 		}
 	}
-	return connect.NewResponse(&kranev1.DeleteGatewayResponse{}), nil
+	return nil
 }

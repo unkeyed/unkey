@@ -1,0 +1,245 @@
+syntax = "proto3";
+
+// Package ctrl.v1 provides the Cluster service for multi-cluster deployment orchestration.
+//
+// The Cluster service enables a central control plane to coordinate deployments and gateways
+// across multiple Kubernetes clusters. Each cluster runs an agent (such as krane) that establishes
+// a long-lived watch connection to receive deployment and gateway configuration events.
+//
+// This design follows the Kubernetes watch pattern where agents (like kubelet) maintain
+// a streaming connection to receive incremental updates, enabling real-time deployment
+// orchestration across distributed clusters.
+package ctrl.v1;
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
+
+// ClusterService coordinates deployment and gateway configurations across multiple clusters.
+//
+// Agents in each cluster establish a watch stream to receive configuration events
+// from the control plane. The service streams deployment and gateway lifecycle events
+// (apply, delete) to the appropriate clusters based on their cluster_id and region.
+//
+// The watch connection is designed to be long-lived with automatic reconnection on failure.
+// When an agent reconnects, it should initiate reconciliation to ensure consistency.
+service ClusterService {
+
+  // Watch establishes a stream for receiving deployment and gateway events for a specific cluster.
+  //
+  // The cluster agent initiates this connection and keeps it open to receive real-time updates.
+  // Events are filtered server-side based on the cluster_id and region provided in the request.
+  //
+  // The stream sends events as they occur, eliminating the need for polling. If the connection
+  // is lost, the agent should reconnect and use reconciliation mechanisms to catch up
+  // on any missed events.
+  rpc Watch(WatchRequest) returns (stream InfraEvent);
+
+  // returns a watch events for compatibility but will never return a delete event
+  // only apply events from currently desired infrastructure are included
+  rpc GetDesiredState(GetDesiredStateRequest) returns (stream InfraEvent);
+}
+
+// WatchRequest identifies the cluster requesting a watch stream.
+message WatchRequest {
+
+  // client_id uniquely identifies the client requesting the watch stream.
+  string client_id = 1;
+
+  // labels to match events for
+  // typically regions are used
+  // [region]: aws:us-east-1
+  //
+  // The server must only send events where all labels match the selector.
+  map<string, string> selectors= 2;
+}
+
+
+// GetDesiredStateRequest identifies the cluster requesting a full sync stream.
+message GetDesiredStateRequest {
+
+  // client_id uniquely identifies the client requesting the sync stream.
+  string client_id = 1;
+
+  // labels to match events for
+  // typically regions are used
+  // [region]: aws:us-east-1
+  //
+  // The server must only send infrastructure configs where all labels match the selector.
+  map<string, string> selectors= 2;
+}
+
+// GatewayEvent represents a lifecycle event for an API gateway configuration.
+//
+// Gateways are ingress points for services, typically handling routing, load balancing,
+// and API management. The event follows a declarative model where the cluster agent ensures
+// the cluster state matches the desired configuration.
+message GatewayEvent {
+  // event contains the specific gateway operation to perform.
+  // Only one event type is set per message, determining the action the agent should take.
+  oneof event {
+    // apply indicates the gateway should exist with this configuration.
+    // The agent will create the gateway if it doesn't exist or update it if it does.
+    // This follows the same semantics as "kubectl apply" - declare desired state
+    // and let the agent determine the appropriate action.
+    ApplyGateway apply = 1;
+
+    // delete indicates the gateway should be removed from the cluster.
+    DeleteGateway delete = 2;
+  }
+}
+
+// DeploymentEvent represents a lifecycle event for an application deployment.
+//
+// Deployments are the primary workload type, representing stateless applications
+// that can be scaled horizontally. The event follows a declarative model where
+// the cluster agent ensures the cluster state matches the desired configuration.
+message DeploymentEvent {
+  // event contains the specific deployment operation to perform.
+  // Only one event type is set per message, determining the action the agent should take.
+  oneof event {
+    // apply indicates the deployment should exist with this configuration.
+    // The agent will create the deployment if it doesn't exist or update it if it does.
+    // This follows the same semantics as "kubectl apply" - declare desired state
+    // and let the agent determine the appropriate action.
+    ApplyDeployment apply = 1;
+
+    // delete indicates the deployment should be removed from the cluster.
+    DeleteDeployment delete = 2;
+  }
+}
+
+// ApplyGateway contains the desired configuration for a gateway.
+//
+// The cluster agent will ensure a gateway exists with this exact configuration, creating it if
+// it doesn't exist or updating it if it does. All fields except namespace are required.
+// The control plane ensures that gateway_id is unique within the namespace.
+message ApplyGateway {
+  // namespace is the Kubernetes namespace where the gateway should exist.
+    string namespace = 1;
+
+  // workspace_id identifies the workspace that owns this gateway.
+  string workspace_id = 2;
+
+  // project_id identifies the project within the workspace.
+  string project_id = 3;
+
+  // environment_id in which the gateway should exist.
+  string environment_id = 4;
+
+  // gateway_id is the unique identifier for this gateway within the namespace.
+  string gateway_id = 5;
+
+  // image is the container image to deploy for the gateway.
+  // Must be a valid container registry URL accessible by the cluster.
+  // Example: "ghcr.io/unkeyed/gateway:v1.2.3"
+  string image = 6;
+
+  // replicas is the desired number of gateway instances.
+  // Must be at least 1. For high availability, use 3 or more.
+  uint32 replicas = 7;
+
+  // cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
+  // This ensures the gateway has sufficient CPU resources.
+  // Example: 500 = 0.5 CPU cores
+  uint32 cpu_millicores = 8;
+
+  // memory_size_mib is the memory request/limit in mebibytes.
+  // This ensures the gateway has sufficient memory.
+  // Example: 512 = 512 MiB
+  uint32 memory_size_mib = 9;
+}
+
+// DeleteGateway identifies a gateway to remove from the cluster.
+//
+// The gateway and all its resources (pods, services, ingress) will be deleted.
+// In-flight requests may be disrupted unless proper connection draining is configured.
+message DeleteGateway {
+  // namespace where the gateway exists.
+  string namespace = 1;
+
+  // gateway_id identifies the gateway to delete.
+  // All resources with this gateway_id in the namespace will be removed.
+  string gateway_id = 2;
+}
+
+// ApplyDeployment contains the desired configuration for a deployment.
+//
+// The cluster agent will ensure a deployment exists with this exact configuration, creating it if
+// it doesn't exist or updating it if it does. All fields except namespace are required.
+// The control plane ensures that deployment_id is unique within the namespace.
+message ApplyDeployment {
+  // namespace is the Kubernetes namespace where the deployment should exist.
+  // If empty, defaults to "default".
+  string namespace = 1;
+
+  // workspace_id identifies the workspace that owns this deployment.
+  // Used for multi-tenancy and access control.
+  string workspace_id = 2;
+
+  // project_id identifies the project within the workspace.
+  // Deployments are scoped to projects for organizational purposes.
+  string project_id = 3;
+
+  // environment_id specifies the environment (e.g., "production", "staging", "development").
+  // Used for environment-specific configuration and isolation.
+  string environment_id = 4;
+
+  // deployment_id is the unique identifier for this deployment within the namespace.
+  string deployment_id = 5;
+
+  // image is the container image to deploy.
+  // Must be a valid container registry URL accessible by the cluster.
+  // Example: "gcr.io/myproject/app:v2.1.0"
+  string image = 6;
+
+  // replicas is the desired number of pod instances.
+  // Must be at least 1. Set higher for increased availability and load distribution.
+  uint32 replicas = 7;
+
+  // cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
+  // This ensures each pod has sufficient CPU resources.
+  // Example: 250 = 0.25 CPU cores
+  uint32 cpu_millicores = 8;
+
+  // memory_size_mib is the memory request/limit in mebibytes.
+  // This ensures each pod has sufficient memory.
+  // Example: 256 = 256 MiB
+  uint32 memory_size_mib = 9;
+}
+
+// DeleteDeployment identifies a deployment to remove from the cluster.
+//
+// The deployment and all its pods will be terminated gracefully according to
+// the configured termination grace period. All associated resources (services,
+// configmaps specific to this deployment) will also be cleaned up.
+message DeleteDeployment {
+  // namespace where the deployment exists.
+  string namespace = 1;
+
+  // deployment_id identifies the deployment to delete.
+  // All resources with this deployment_id in the namespace will be removed.
+  string deployment_id = 2;
+}
+
+// InfraEvent is streamed from the control plane to cluster agents.
+//
+// Each event contains either a gateway or deployment configuration change that
+// the agent should apply to its cluster. Events are sent in real-time as
+// changes occur in the control plane, enabling immediate propagation of updates
+// across the fleet of clusters.
+//
+// The agent should process events idempotently since the same event may be
+// delivered multiple times during network issues or reconnections.
+message InfraEvent {
+  // event contains the specific event to process.
+  // Only one event type is set per InfraEvent, allowing the client to
+  // handle different resource types with appropriate logic.
+  oneof event {
+    // gateway_event contains a gateway lifecycle event (apply or delete).
+    // The client should apply this to gateway resources in the cluster.
+    GatewayEvent gateway_event = 2;
+
+    // deployment_event contains a deployment lifecycle event (apply or delete).
+    // The client should apply this to deployment resources in the cluster.
+    DeploymentEvent deployment_event = 3;
+  }
+}

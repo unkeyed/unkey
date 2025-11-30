@@ -11,7 +11,7 @@ import (
 )
 
 const updateDeploymentStatus = `-- name: UpdateDeploymentStatus :exec
-UPDATE deployments 
+UPDATE deployments
 SET status = ?, updated_at = ?
 WHERE id = ?
 `

@@ -4,20 +4,18 @@ import (
 	"context"
 	"fmt"
 
-	"connectrpc.com/connect"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
-	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
+	"github.com/unkeyed/unkey/go/apps/krane/backend"
 )
 
 // DeleteDeployment removes all containers for a deployment.
 //
 // Finds containers by deployment ID label and forcibly removes them with
 // volumes and network links to ensure complete cleanup.
-func (d *docker) DeleteDeployment(ctx context.Context, req *connect.Request[kranev1.DeleteDeploymentRequest]) (*connect.Response[kranev1.DeleteDeploymentResponse], error) {
-	deploymentID := req.Msg.GetDeploymentId()
+func (d *docker) DeleteDeployment(ctx context.Context, req backend.DeleteDeploymentRequest) error {
 
-	d.logger.Info("getting deployment", "deployment_id", deploymentID)
+	d.logger.Info("getting deployment", "deployment_id", req.DeploymentID)
 
 	containers, err := d.client.ContainerList(ctx, container.ListOptions{
 		Size:   false,
@@ -27,11 +25,11 @@ func (d *docker) DeleteDeployment(ctx context.Context, req *connect.Request[kran
 		Limit:  0,
 		All:    true,
 		Filters: filters.NewArgs(
-			filters.Arg("label", fmt.Sprintf("unkey.deployment.id=%s", deploymentID)),
+			filters.Arg("label", fmt.Sprintf("unkey.deployment.id=%s", req.DeploymentID)),
 		),
 	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list containers: %w", err))
+		return fmt.Errorf("failed to list containers: %w", err)
 	}
 
 	for _, c := range containers {
@@ -41,8 +39,8 @@ func (d *docker) DeleteDeployment(ctx context.Context, req *connect.Request[kran
 			Force:         true,
 		})
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to remove container: %w", err))
+			return fmt.Errorf("failed to remove container: %w", err)
 		}
 	}
-	return connect.NewResponse(&kranev1.DeleteDeploymentResponse{}), nil
+	return nil
 }

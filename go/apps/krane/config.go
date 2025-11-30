@@ -8,16 +8,16 @@ import (
 )
 
 // Backend represents the container orchestration backend type.
-type Backend string
+type BackendName string
 
 const (
 	// Docker backend uses Docker Engine API for container management.
 	// Suitable for local development and single-node deployments.
-	Docker Backend = "docker"
+	Docker BackendName = "docker"
 
 	// Kubernetes backend uses Kubernetes API for container orchestration.
 	// Designed for production multi-node cluster deployments.
-	Kubernetes Backend = "kubernetes"
+	Kubernetes BackendName = "kubernetes"
 )
 
 // Config holds krane server configuration for Docker or Kubernetes backends.
@@ -26,11 +26,6 @@ type Config struct {
 	// Used for distributed tracing, logging correlation, and cluster coordination.
 	// Should be unique across all running krane instances.
 	InstanceID string
-
-	// Platform identifies the cloud platform where the node is running.
-	// Examples: "aws", "gcp", "azure", "hetzner", "bare-metal"
-	// Used for observability tagging and platform-specific optimizations.
-	Platform string
 
 	// Image specifies the container image identifier including repository and tag.
 	// This field may be deprecated in future versions as images should be
@@ -50,7 +45,7 @@ type Config struct {
 	// Backend specifies the container orchestration system to use.
 	// Must be either Docker or Kubernetes. Determines which backend
 	// implementation is instantiated and which configuration fields are required.
-	Backend Backend
+	Backend BackendName
 
 	// DockerSocketPath specifies the Docker daemon socket path.
 	// Required when Backend is Docker. Common values:
@@ -95,6 +90,11 @@ type Config struct {
 	// Clock provides time operations for testing and time zone handling.
 	// Use clock.RealClock{} for production, mock clocks for testing.
 	Clock clock.Clock
+
+	// ControlPlaneURL is the address of the control plane service.
+	// Example: "http://localhost:8080"
+	ControlPlaneURL    string
+	ControlPlaneBearer string
 }
 
 func (c Config) Validate() error {

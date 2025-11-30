@@ -117,7 +117,7 @@ message DeploymentStep {
 
 message Topology {
   int32 cpu_millicores = 1;
-  int32 memory_mb = 2;
+  int32 memory_mib = 2;
 
   // Regional configuration
   repeated RegionalConfig regions = 3;

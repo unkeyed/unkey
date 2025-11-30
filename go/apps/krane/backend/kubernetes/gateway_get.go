@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"connectrpc.com/connect"
+	"github.com/unkeyed/unkey/go/apps/krane/backend"
 	"github.com/unkeyed/unkey/go/apps/krane/backend/kubernetes/labels"
-	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
 	"github.com/unkeyed/unkey/go/pkg/assert"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -18,64 +16,57 @@ import (
 // pod information to provide a comprehensive view of the deployment state.
 // It returns detailed information about each pod instance including stable
 // DNS addresses, current status, and resource allocation.
-func (k *k8s) GetGateway(ctx context.Context, req *connect.Request[kranev1.GetGatewayRequest]) (*connect.Response[kranev1.GetGatewayResponse], error) {
+func (k *k8s) GetGateway(ctx context.Context, req backend.GetGatewayRequest) (backend.GetGatewayResponse, error) {
 	err := assert.All(
-		assert.NotEmpty(req.Msg.GetNamespace()),
-		assert.NotEmpty(req.Msg.GetGatewayId()),
+		assert.NotEmpty(req.Namespace),
+		assert.NotEmpty(req.GatewayID),
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return backend.GetGatewayResponse{}, err
 	}
 
-	gatewayID := req.Msg.GetGatewayId()
-	namespace := req.Msg.GetNamespace()
-
-	k.logger.Info("getting gateway", "gateway_id", gatewayID)
+	k.logger.Info("getting gateway", "gateway_id", req.GatewayID)
 
 	// Create label selector for this gateway
-	labelSelector := fmt.Sprintf("%s=%s", labels.GatewayID, gatewayID)
+	labelSelector := fmt.Sprintf("%s=%s,%s=%s", labels.GatewayID, req.GatewayID, labels.ManagedBy, krane)
 
 	// List Deployments with this gateway-id label
 	// nolint: exhaustruct
-	deployments, err := k.clientset.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{
+	deployments, err := k.clientset.AppsV1().Deployments(req.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list deployments: %w", err))
+		return backend.GetGatewayResponse{}, fmt.Errorf("failed to list deployments: %w", err)
 	}
 
 	if len(deployments.Items) == 0 {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("gateway not found: %s", gatewayID))
+		return backend.GetGatewayResponse{}, fmt.Errorf("gateway not found: %s", req.GatewayID)
 	}
 
 	// Use the first (and should be only) Deployment
 	deployment := &deployments.Items[0]
 
-	// Check if this gateway is managed by Krane
-	managedBy, exists := deployment.Labels[labels.ManagedBy]
-	if !exists || managedBy != "krane" {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("gateway not found: %s", gatewayID))
-	}
+	// Chec
 
 	// Determine gateway status
-	var status kranev1.GatewayStatus
+	var status backend.GatewayStatus
 	if deployment.Status.AvailableReplicas == deployment.Status.Replicas {
-		status = kranev1.GatewayStatus_GATEWAY_STATUS_RUNNING
+		status = backend.GATEWAY_STATUS_RUNNING
 	} else {
-		status = kranev1.GatewayStatus_GATEWAY_STATUS_PENDING
+		status = backend.GATEWAY_STATUS_PENDING
 	}
 
 	// List Services with this gateway-id label
 	// nolint: exhaustruct
-	services, err := k.clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{
+	services, err := k.clientset.CoreV1().Services(req.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list services: %w", err))
+		return backend.GetGatewayResponse{}, fmt.Errorf("failed to list services: %w", err)
 	}
 
 	if len(services.Items) == 0 {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("no service found for gateway: %s", gatewayID))
+		return backend.GetGatewayResponse{}, fmt.Errorf("no service found for gateway: %s", req.GatewayID)
 	}
 
 	// Use the first service
@@ -85,51 +76,15 @@ func (k *k8s) GetGateway(ctx context.Context, req *connect.Request[kranev1.GetGa
 		port = service.Spec.Ports[0].Port
 	}
 
-	pods, err := k.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: metav1.FormatLabelSelector(&metav1.LabelSelector{
-			MatchExpressions: nil,
-			MatchLabels:      deployment.Spec.Selector.MatchLabels,
-		}),
-	})
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list pods: %w", err))
-	}
-
-	// Build instances from pods
-	var instances []*kranev1.GatewayInstance
-	for _, pod := range pods.Items {
-		// Determine pod status
-		var podStatus kranev1.GatewayStatus
-		switch pod.Status.Phase {
-		case corev1.PodPending:
-			podStatus = kranev1.GatewayStatus_GATEWAY_STATUS_PENDING
-		case corev1.PodRunning:
-			podStatus = kranev1.GatewayStatus_GATEWAY_STATUS_RUNNING
-		case corev1.PodFailed:
-			podStatus = kranev1.GatewayStatus_GATEWAY_STATUS_TERMINATING
-		case corev1.PodSucceeded:
-			// Handling to handle at this point
-		case corev1.PodUnknown:
-			podStatus = kranev1.GatewayStatus_GATEWAY_STATUS_UNSPECIFIED
-		default:
-			podStatus = kranev1.GatewayStatus_GATEWAY_STATUS_UNSPECIFIED
-		}
-
-		instances = append(instances, &kranev1.GatewayInstance{
-			Id:     pod.Name,
-			Status: podStatus,
-		})
-	}
-
+	// Gateway status is the overall status from deployment - we don't need pod-level details
+	// for the new interface
 	k.logger.Info("gateway found",
-		"gateway_id", gatewayID,
-		"status", status.String(),
+		"gateway_id", req.GatewayID,
+		"status", string(status),
 		"port", port,
-		"pod_count", len(instances),
 	)
 
-	return connect.NewResponse(&kranev1.GetGatewayResponse{
-		Address:   fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, service.Namespace),
-		Instances: instances,
-	}), nil
+	return backend.GetGatewayResponse{
+		Status: status,
+	}, nil
 }

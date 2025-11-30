@@ -6,7 +6,6 @@ INSERT INTO `deployments` (
     environment_id,
     git_commit_sha,
     git_branch,
-    runtime_config,
     gateway_config,
     git_commit_message,
     git_commit_author_handle,
@@ -14,9 +13,9 @@ INSERT INTO `deployments` (
     git_commit_timestamp, -- Unix epoch milliseconds
     openapi_spec,
     status,
-    gateway_config,
-    created_at,
-    updated_at
+    cpu_millicores,
+		memory_mib,
+    created_at
 )
 VALUES (
     sqlc.arg(id),
@@ -25,7 +24,6 @@ VALUES (
     sqlc.arg(environment_id),
     sqlc.arg(git_commit_sha),
     sqlc.arg(git_branch),
-    sqlc.arg(runtime_config),
     sqlc.arg(gateway_config),
     sqlc.arg(git_commit_message),
     sqlc.arg(git_commit_author_handle),
@@ -33,7 +31,7 @@ VALUES (
     sqlc.arg(git_commit_timestamp),
     sqlc.arg(openapi_spec),
     sqlc.arg(status),
-    sqlc.arg(gateway_config),
-    sqlc.arg(created_at),
-    sqlc.arg(updated_at)
+    sqlc.arg(cpu_millicores),
+		sqlc.arg(memory_mib),
+		sqlc.arg(created_at)
 );

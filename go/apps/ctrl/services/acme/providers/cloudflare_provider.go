@@ -82,7 +82,7 @@ func (p *CloudflareProvider) Present(domain, token, keyAuth string) error {
 		Status:        db.AcmeChallengesStatusPending,
 		Token:         token,
 		Authorization: keyAuth,
-		UpdatedAt:     sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 	})
 
 	if err != nil {

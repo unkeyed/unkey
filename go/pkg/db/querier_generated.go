@@ -186,7 +186,7 @@ type Querier interface {
 	FindCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT id, workspace_id, project_id, environment_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, runtime_config, gateway_config, openapi_spec, status, created_at, updated_at FROM `deployments` WHERE id = ?
+	//  SELECT id, workspace_id, project_id, environment_id, image, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, gateway_config, openapi_spec, cpu_millicores, memory_mib, desired_state, status, created_at, updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentStepsByDeploymentId
 	//
@@ -215,7 +215,7 @@ type Querier interface {
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
 	//FindGatewaysByEnvironmentID
 	//
-	//  SELECT id, workspace_id, environment_id, k8s_service_name, region, image, health, replicas FROM gateways WHERE environment_id = ?
+	//  SELECT id, workspace_id, project_id, environment_id, k8s_service_name, region, image, desired_state, health, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE environment_id = ?
 	FindGatewaysByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Gateway, error)
 	//FindIdentities
 	//
@@ -332,7 +332,7 @@ type Querier interface {
 	//      region,
 	//      address,
 	//      cpu_millicores,
-	//      memory_mb,
+	//      memory_mib,
 	//      status
 	//  FROM instances
 	//  WHERE deployment_id = ?
@@ -347,7 +347,7 @@ type Querier interface {
 	//    region,
 	//    address,
 	//    cpu_millicores,
-	//    memory_mb,
+	//    memory_mib,
 	//    status
 	//  FROM instances
 	//  WHERE deployment_id = ? AND region = ?
@@ -1093,7 +1093,6 @@ type Querier interface {
 	//      environment_id,
 	//      git_commit_sha,
 	//      git_branch,
-	//      runtime_config,
 	//      gateway_config,
 	//      git_commit_message,
 	//      git_commit_author_handle,
@@ -1101,9 +1100,9 @@ type Querier interface {
 	//      git_commit_timestamp, -- Unix epoch milliseconds
 	//      openapi_spec,
 	//      status,
-	//      gateway_config,
-	//      created_at,
-	//      updated_at
+	//      cpu_millicores,
+	//  		memory_mib,
+	//      created_at
 	//  )
 	//  VALUES (
 	//      ?,
@@ -1120,9 +1119,8 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
+	//  		?,
+	//  		?
 	//  )
 	InsertDeployment(ctx context.Context, db DBTX, arg InsertDeploymentParams) error
 	//InsertDeploymentStep
@@ -1146,6 +1144,24 @@ type Querier interface {
 	//      message = VALUES(message),
 	//      created_at = VALUES(created_at)
 	InsertDeploymentStep(ctx context.Context, db DBTX, arg InsertDeploymentStepParams) error
+	//InsertDeploymentTopology
+	//
+	//  INSERT INTO `deployment_topology` (
+	//      workspace_id,
+	//      deployment_id,
+	//      region,
+	//      replicas,
+	//      status,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertDeploymentTopology(ctx context.Context, db DBTX, arg InsertDeploymentTopologyParams) error
 	//InsertEnvironment
 	//
 	//  INSERT INTO environments (
@@ -1167,12 +1183,20 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      environment_id,
+	//      project_id,
 	//      k8s_service_name,
 	//      region,
 	//      image,
 	//      health,
-	//      replicas
+	//      replicas,
+	//      cpu_millicores,
+	//      memory_mib,
+	//      created_at
 	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1183,7 +1207,8 @@ type Querier interface {
 	//      ?
 	//  ) ON DUPLICATE KEY UPDATE
 	//      health = VALUES(health),
-	//      replicas = VALUES(replicas)
+	//      replicas = VALUES(replicas),
+	//    updated_at = VALUES(updated_at)
 	InsertGateway(ctx context.Context, db DBTX, arg InsertGatewayParams) error
 	//InsertIdentity
 	//
@@ -1549,6 +1574,51 @@ type Querier interface {
 	//      true
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
+	//ListDesiredDeploymentTopology
+	//
+	//  SELECT
+	//      d.id as deployment_id,
+	//      d.workspace_id,
+	//      d.project_id,
+	//      d.environment_id,
+	//      d.image,
+	//      w.k8s_namespace as k8s_namespace,
+	//      dt.region,
+	//      d.cpu_millicores,
+	//      d.memory_mib,
+	//      dt.replicas
+	//  FROM `deployment_topology` dt
+	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
+	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
+	//  WHERE (? = '' OR dt.region = ?)
+	//      AND d.desired_state = ?
+	//      AND dt.deployment_id > ?
+	//  ORDER BY dt.deployment_id ASC
+	//  LIMIT ?
+	ListDesiredDeploymentTopology(ctx context.Context, db DBTX, arg ListDesiredDeploymentTopologyParams) ([]ListDesiredDeploymentTopologyRow, error)
+	//ListDesiredGateways
+	//
+	//  SELECT
+	//      g.id as gateway_id,
+	//      g.workspace_id,
+	//      g.environment_id,
+	//      g.k8s_service_name,
+	//      g.region,
+	//      g.image,
+	//      g.desired_state,
+	//      g.replicas,
+	//      g.cpu_millicores,
+	//      g.memory_mib,
+	//      g.project_id,
+	//      w.k8s_namespace as k8s_namespace
+	//  FROM `gateways` g
+	//  INNER JOIN `workspaces` w ON g.workspace_id = w.id
+	//  WHERE (? = '' OR g.region = ?)
+	//      AND g.desired_state = ?
+	//      AND g.id > ?
+	//  ORDER BY g.id ASC
+	//  LIMIT ?
+	ListDesiredGateways(ctx context.Context, db DBTX, arg ListDesiredGatewaysParams) ([]ListDesiredGatewaysRow, error)
 	//ListDirectPermissionsByKeyID
 	//
 	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -2121,7 +2191,7 @@ type Querier interface {
 	//  	region,
 	//  	address,
 	//  	cpu_millicores,
-	//  	memory_mb,
+	//  	memory_mib,
 	//  	status
 	//  )
 	//  VALUES (
@@ -2138,7 +2208,7 @@ type Querier interface {
 	//  ON DUPLICATE KEY UPDATE
 	//  	address = ?,
 	//  	cpu_millicores = ?,
-	//  	memory_mb = ?,
+	//  	memory_mib = ?,
 	//  	status = ?
 	UpsertInstance(ctx context.Context, db DBTX, arg UpsertInstanceParams) error
 	//UpsertKeySpace

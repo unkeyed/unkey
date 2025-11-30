@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"connectrpc.com/connect"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/go-connections/nat"
-	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
+	"github.com/unkeyed/unkey/go/apps/krane/backend"
 )
 
 // CreateDeployment creates containers for a deployment with the specified replica count.
@@ -16,17 +15,16 @@ import (
 // Creates multiple containers with shared labels, dynamic port mapping to port 8080,
 // and resource limits. Returns DEPLOYMENT_STATUS_PENDING as containers may not be
 // immediately ready.
-func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kranev1.CreateDeploymentRequest]) (*connect.Response[kranev1.CreateDeploymentResponse], error) {
-	deployment := req.Msg.GetDeployment()
+func (d *docker) CreateDeployment(ctx context.Context, req backend.CreateDeploymentRequest) error {
+
 	d.logger.Info("creating deployment",
-		"deployment_id", deployment.GetDeploymentId(),
-		"image", deployment.GetImage(),
+		"deployment_id", req.DeploymentID,
+		"image", req.Image,
 	)
 
 	// Ensure image exists locally (pull if not present)
-	if err := d.ensureImageExists(ctx, deployment.GetImage()); err != nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to ensure image exists: %w", err))
+	if err := d.ensureImageExists(ctx, req.Image); err != nil {
+		return fmt.Errorf("failed to ensure image exists: %w", err)
 	}
 
 	// Configure port mapping
@@ -44,19 +42,21 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 	}
 
 	// Configure resource limits
-	cpuNanos := int64(deployment.GetCpuMillicores()) * 1_000_000      // Convert millicores to nanoseconds
-	memoryBytes := int64(deployment.GetMemorySizeMib()) * 1024 * 1024 //nolint:gosec // Intentional conversion
+	cpuNanos := int64(req.CpuMillicores) * 1_000_000      // Convert millicores to nanoseconds
+	memoryBytes := int64(req.MemorySizeMib) * 1024 * 1024 //nolint:gosec // Intentional conversion
 
 	//nolint:exhaustruct // Docker SDK types have many optional fields
 	containerConfig := &container.Config{
-		Image: deployment.GetImage(),
+		Image: req.Image,
 		Labels: map[string]string{
-			"unkey.deployment.id": deployment.GetDeploymentId(),
+			"unkey.deployment.id": req.DeploymentID,
 			"unkey.managed.by":    "krane",
 		},
 		ExposedPorts: exposedPorts,
 		Env: []string{
-			fmt.Sprintf("DEPLOYMENT_ID=%s", deployment.GetDeploymentId()),
+			fmt.Sprintf("UNKEY_PROJECT_ID=%s", req.ProjectID),
+			fmt.Sprintf("UNKEY_ENVIRONMENT_ID=%s", req.EnvironmentID),
+			fmt.Sprintf("UNKEY_DEPLOYMENT_ID=%s", req.DeploymentID),
 		},
 	}
 
@@ -77,7 +77,7 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 
 	// Create container
 
-	for i := range req.Msg.GetDeployment().GetReplicas() {
+	for i := range req.Replicas {
 		//nolint:exhaustruct // Docker SDK types have many optional fields
 		resp, err := d.client.ContainerCreate(
 			ctx,
@@ -85,20 +85,18 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 			hostConfig,
 			networkConfig,
 			nil,
-			fmt.Sprintf("%s-%d", deployment.GetDeploymentId(), i),
+			fmt.Sprintf("%s-%d", req.DeploymentID, i),
 		)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create container: %w", err))
+			return fmt.Errorf("failed to create container: %w", err)
 		}
 
 		//nolint:exhaustruct // Docker SDK types have many optional fields
 		err = d.client.ContainerStart(ctx, resp.ID, container.StartOptions{})
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to start container: %w", err))
+			return fmt.Errorf("failed to start container: %w", err)
 		}
 	}
 
-	return connect.NewResponse(&kranev1.CreateDeploymentResponse{
-		Status: kranev1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING,
-	}), nil
+	return nil
 }

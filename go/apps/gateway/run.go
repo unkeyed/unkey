@@ -35,10 +35,6 @@ func Run(ctx context.Context, cfg Config) error {
 		slog.String("environmentID", cfg.EnvironmentID),
 	)
 
-	if cfg.Platform != "" {
-		logger = logger.With(slog.String("platform", cfg.Platform))
-	}
-
 	if cfg.Region != "" {
 		logger = logger.With(slog.String("region", cfg.Region))
 	}

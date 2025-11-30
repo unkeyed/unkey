@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/go/pkg/prometheus/metrics"
 	"go.opentelemetry.io/otel/attribute"
@@ -15,8 +16,10 @@ import (
 // Replica wraps a standard SQL database connection and implements the gen.DBTX interface
 // to enable interaction with the generated database code.
 type Replica struct {
-	mode string
-	db   *sql.DB // Underlying database connection
+	mode      string
+	db        *sql.DB // Underlying database connection
+	logger    logging.Logger
+	debugLogs bool
 }
 
 // Ensure Replica implements the gen.DBTX interface
@@ -31,6 +34,10 @@ func (r *Replica) ExecContext(ctx context.Context, query string, args ...any) (s
 		attribute.String("mode", r.mode),
 		attribute.String("query", query),
 	)
+
+	if r.debugLogs {
+		r.logger.Debug("ExecContext", "query", query)
+	}
 
 	// Track metrics
 	start := time.Now()
@@ -57,6 +64,10 @@ func (r *Replica) PrepareContext(ctx context.Context, query string) (*sql.Stmt, 
 		attribute.String("mode", r.mode),
 		attribute.String("query", query),
 	)
+
+	if r.debugLogs {
+		r.logger.Debug("PrepareContext", "query", query)
+	}
 
 	// Track metrics
 	start := time.Now()
@@ -85,6 +96,10 @@ func (r *Replica) QueryContext(ctx context.Context, query string, args ...any) (
 		attribute.String("query", query),
 	)
 
+	if r.debugLogs {
+		r.logger.Debug("QueryContext", "query", query)
+	}
+
 	// Track metrics
 	start := time.Now()
 	//nolint:sqlclosecheck // Rows returned to caller, who must close them
@@ -112,6 +127,9 @@ func (r *Replica) QueryRowContext(ctx context.Context, query string, args ...any
 		attribute.String("query", query),
 	)
 
+	if r.debugLogs {
+		r.logger.Debug("QueryRowContext", "query", query)
+	}
 	// Track metrics
 	start := time.Now()
 	row := r.db.QueryRowContext(ctx, query, args...)

@@ -30,9 +30,6 @@ var Cmd = &cli.Command{
 		cli.String("environment-id", "Environment ID this gateway serves (handles all deployments in this environment). Required.",
 			cli.Required(), cli.EnvVar("UNKEY_ENVIRONMENT_ID")),
 
-		cli.String("platform", "Cloud platform identifier for this node. Used for logging and metrics.",
-			cli.EnvVar("UNKEY_PLATFORM")),
-
 		cli.String("region", "Geographic region identifier. Used for logging. Default: unknown",
 			cli.Default("unknown"), cli.EnvVar("UNKEY_REGION"), cli.EnvVar("AWS_REGION")),
 
@@ -60,7 +57,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		GatewayID:     cmd.String("gateway-id"),
 		WorkspaceID:   cmd.String("workspace-id"),
 		EnvironmentID: cmd.String("environment-id"),
-		Platform:      cmd.String("platform"),
 		Region:        cmd.String("region"),
 
 		// HTTP configuration

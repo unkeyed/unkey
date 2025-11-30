@@ -232,6 +232,93 @@ func (ns NullDeploymentStepsStatus) Value() (driver.Value, error) {
 	return string(ns.DeploymentStepsStatus), nil
 }
 
+type DeploymentTopologyStatus string
+
+const (
+	DeploymentTopologyStatusStarting DeploymentTopologyStatus = "starting"
+	DeploymentTopologyStatusStarted  DeploymentTopologyStatus = "started"
+	DeploymentTopologyStatusStopping DeploymentTopologyStatus = "stopping"
+	DeploymentTopologyStatusStopped  DeploymentTopologyStatus = "stopped"
+)
+
+func (e *DeploymentTopologyStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentTopologyStatus(s)
+	case string:
+		*e = DeploymentTopologyStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentTopologyStatus: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentTopologyStatus struct {
+	DeploymentTopologyStatus DeploymentTopologyStatus
+	Valid                    bool // Valid is true if DeploymentTopologyStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentTopologyStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentTopologyStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentTopologyStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentTopologyStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentTopologyStatus), nil
+}
+
+type DeploymentsDesiredState string
+
+const (
+	DeploymentsDesiredStateRunning  DeploymentsDesiredState = "running"
+	DeploymentsDesiredStateStandby  DeploymentsDesiredState = "standby"
+	DeploymentsDesiredStateArchived DeploymentsDesiredState = "archived"
+)
+
+func (e *DeploymentsDesiredState) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentsDesiredState(s)
+	case string:
+		*e = DeploymentsDesiredState(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentsDesiredState: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentsDesiredState struct {
+	DeploymentsDesiredState DeploymentsDesiredState
+	Valid                   bool // Valid is true if DeploymentsDesiredState is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentsDesiredState) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentsDesiredState, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentsDesiredState.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentsDesiredState) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentsDesiredState), nil
+}
+
 type DeploymentsStatus string
 
 const (
@@ -276,6 +363,49 @@ func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.DeploymentsStatus), nil
+}
+
+type GatewaysDesiredState string
+
+const (
+	GatewaysDesiredStateRunning  GatewaysDesiredState = "running"
+	GatewaysDesiredStateStandby  GatewaysDesiredState = "standby"
+	GatewaysDesiredStateArchived GatewaysDesiredState = "archived"
+)
+
+func (e *GatewaysDesiredState) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = GatewaysDesiredState(s)
+	case string:
+		*e = GatewaysDesiredState(s)
+	default:
+		return fmt.Errorf("unsupported scan type for GatewaysDesiredState: %T", src)
+	}
+	return nil
+}
+
+type NullGatewaysDesiredState struct {
+	GatewaysDesiredState GatewaysDesiredState
+	Valid                bool // Valid is true if GatewaysDesiredState is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullGatewaysDesiredState) Scan(value interface{}) error {
+	if value == nil {
+		ns.GatewaysDesiredState, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.GatewaysDesiredState.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullGatewaysDesiredState) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.GatewaysDesiredState), nil
 }
 
 type GatewaysHealth string
@@ -734,22 +864,25 @@ type CustomDomain struct {
 }
 
 type Deployment struct {
-	ID                       string            `db:"id"`
-	WorkspaceID              string            `db:"workspace_id"`
-	ProjectID                string            `db:"project_id"`
-	EnvironmentID            string            `db:"environment_id"`
-	GitCommitSha             sql.NullString    `db:"git_commit_sha"`
-	GitBranch                sql.NullString    `db:"git_branch"`
-	GitCommitMessage         sql.NullString    `db:"git_commit_message"`
-	GitCommitAuthorHandle    sql.NullString    `db:"git_commit_author_handle"`
-	GitCommitAuthorAvatarUrl sql.NullString    `db:"git_commit_author_avatar_url"`
-	GitCommitTimestamp       sql.NullInt64     `db:"git_commit_timestamp"`
-	RuntimeConfig            json.RawMessage   `db:"runtime_config"`
-	GatewayConfig            []byte            `db:"gateway_config"`
-	OpenapiSpec              sql.NullString    `db:"openapi_spec"`
-	Status                   DeploymentsStatus `db:"status"`
-	CreatedAt                int64             `db:"created_at"`
-	UpdatedAt                sql.NullInt64     `db:"updated_at"`
+	ID                       string                  `db:"id"`
+	WorkspaceID              string                  `db:"workspace_id"`
+	ProjectID                string                  `db:"project_id"`
+	EnvironmentID            string                  `db:"environment_id"`
+	Image                    sql.NullString          `db:"image"`
+	GitCommitSha             sql.NullString          `db:"git_commit_sha"`
+	GitBranch                sql.NullString          `db:"git_branch"`
+	GitCommitMessage         sql.NullString          `db:"git_commit_message"`
+	GitCommitAuthorHandle    sql.NullString          `db:"git_commit_author_handle"`
+	GitCommitAuthorAvatarUrl sql.NullString          `db:"git_commit_author_avatar_url"`
+	GitCommitTimestamp       sql.NullInt64           `db:"git_commit_timestamp"`
+	GatewayConfig            []byte                  `db:"gateway_config"`
+	OpenapiSpec              sql.NullString          `db:"openapi_spec"`
+	CpuMillicores            int32                   `db:"cpu_millicores"`
+	MemoryMib                int32                   `db:"memory_mib"`
+	DesiredState             DeploymentsDesiredState `db:"desired_state"`
+	Status                   DeploymentsStatus       `db:"status"`
+	CreatedAt                int64                   `db:"created_at"`
+	UpdatedAt                sql.NullInt64           `db:"updated_at"`
 }
 
 type DeploymentStep struct {
@@ -759,6 +892,16 @@ type DeploymentStep struct {
 	Status       DeploymentStepsStatus `db:"status"`
 	Message      string                `db:"message"`
 	CreatedAt    int64                 `db:"created_at"`
+}
+
+type DeploymentTopology struct {
+	WorkspaceID  string                   `db:"workspace_id"`
+	DeploymentID string                   `db:"deployment_id"`
+	Region       string                   `db:"region"`
+	Replicas     int32                    `db:"replicas"`
+	Status       DeploymentTopologyStatus `db:"status"`
+	CreatedAt    int64                    `db:"created_at"`
+	UpdatedAt    sql.NullInt64            `db:"updated_at"`
 }
 
 type EncryptedKey struct {
@@ -783,14 +926,20 @@ type Environment struct {
 }
 
 type Gateway struct {
-	ID             string         `db:"id"`
-	WorkspaceID    string         `db:"workspace_id"`
-	EnvironmentID  string         `db:"environment_id"`
-	K8sServiceName string         `db:"k8s_service_name"`
-	Region         string         `db:"region"`
-	Image          string         `db:"image"`
-	Health         GatewaysHealth `db:"health"`
-	Replicas       int32          `db:"replicas"`
+	ID             string               `db:"id"`
+	WorkspaceID    string               `db:"workspace_id"`
+	ProjectID      string               `db:"project_id"`
+	EnvironmentID  string               `db:"environment_id"`
+	K8sServiceName string               `db:"k8s_service_name"`
+	Region         string               `db:"region"`
+	Image          string               `db:"image"`
+	DesiredState   GatewaysDesiredState `db:"desired_state"`
+	Health         GatewaysHealth       `db:"health"`
+	Replicas       int32                `db:"replicas"`
+	CpuMillicores  int32                `db:"cpu_millicores"`
+	MemoryMib      int32                `db:"memory_mib"`
+	CreatedAt      int64                `db:"created_at"`
+	UpdatedAt      sql.NullInt64        `db:"updated_at"`
 }
 
 type Identity struct {
@@ -823,7 +972,7 @@ type Instance struct {
 	Region        string          `db:"region"`
 	Address       string          `db:"address"`
 	CpuMillicores int32           `db:"cpu_millicores"`
-	MemoryMb      int32           `db:"memory_mb"`
+	MemoryMib     int32           `db:"memory_mib"`
 	Status        InstancesStatus `db:"status"`
 }
 

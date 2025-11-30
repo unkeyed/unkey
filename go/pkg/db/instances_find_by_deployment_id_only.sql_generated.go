@@ -18,7 +18,7 @@ SELECT
     region,
     address,
     cpu_millicores,
-    memory_mb,
+    memory_mib,
     status
 FROM instances
 WHERE deployment_id = ?
@@ -34,7 +34,7 @@ WHERE deployment_id = ?
 //	    region,
 //	    address,
 //	    cpu_millicores,
-//	    memory_mb,
+//	    memory_mib,
 //	    status
 //	FROM instances
 //	WHERE deployment_id = ?
@@ -55,7 +55,7 @@ func (q *Queries) FindInstancesByDeploymentId(ctx context.Context, db DBTX, depl
 			&i.Region,
 			&i.Address,
 			&i.CpuMillicores,
-			&i.MemoryMb,
+			&i.MemoryMib,
 			&i.Status,
 		); err != nil {
 			return nil, err

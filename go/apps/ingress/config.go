@@ -9,9 +9,6 @@ type Config struct {
 	// IngressID is the unique identifier for this instance of the Ingress server
 	IngressID string
 
-	// Platform identifies the cloud platform where the node is running (e.g., aws, gcp, hetzner)
-	Platform string
-
 	// Image specifies the container image identifier including repository and tag
 	Image string
 

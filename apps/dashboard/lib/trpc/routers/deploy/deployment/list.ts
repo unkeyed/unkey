@@ -22,7 +22,6 @@ export const listDeployments = t.procedure
           gitCommitAuthorHandle: true,
           gitCommitAuthorAvatarUrl: true,
           gitCommitTimestamp: true,
-          runtimeConfig: true,
           status: true,
           openapiSpec: true,
           createdAt: true,

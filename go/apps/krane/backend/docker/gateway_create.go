@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"connectrpc.com/connect"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/go-connections/nat"
-	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
+	"github.com/unkeyed/unkey/go/apps/krane/backend"
 )
 
 // CreateGateway creates containers for a gateway with the specified replica count.
@@ -16,17 +15,15 @@ import (
 // Creates multiple containers with shared labels, dynamic port mapping to port 8040,
 // and resource limits. Returns GATEWAY_STATUS_PENDING as containers may not be
 // immediately ready.
-func (d *docker) CreateGateway(ctx context.Context, req *connect.Request[kranev1.CreateGatewayRequest]) (*connect.Response[kranev1.CreateGatewayResponse], error) {
-	gateway := req.Msg.GetGateway()
+func (d *docker) CreateGateway(ctx context.Context, req backend.CreateGatewayRequest) error {
 	d.logger.Info("creating gateway",
-		"gateway_id", gateway.GetGatewayId(),
-		"image", gateway.GetImage(),
+		"gateway_id", req.GatewayID,
+		"image", req.Image,
 	)
 
 	// Ensure image exists locally (pull if not present)
-	if err := d.ensureImageExists(ctx, gateway.GetImage()); err != nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to ensure image exists: %w", err))
+	if err := d.ensureImageExists(ctx, req.Image); err != nil {
+		return fmt.Errorf("failed to ensure image exists: %w", err)
 	}
 
 	// Configure port mapping
@@ -44,21 +41,23 @@ func (d *docker) CreateGateway(ctx context.Context, req *connect.Request[kranev1
 	}
 
 	// Configure resource limits
-	cpuNanos := int64(gateway.GetCpuMillicores()) * 1_000_000      // Convert millicores to nanoseconds
-	memoryBytes := int64(gateway.GetMemorySizeMib()) * 1024 * 1024 //nolint:gosec // Intentional conversion
+	cpuNanos := int64(req.CpuMillicores) * 1_000_000      // Convert millicores to nanoseconds
+	memoryBytes := int64(req.MemorySizeMib) * 1024 * 1024 //nolint:gosec // Intentional conversion
 
 	//nolint:exhaustruct // Docker SDK types have many optional fields
 	containerConfig := &container.Config{
-		Image: gateway.GetImage(),
+		Image: req.Image,
 		Labels: map[string]string{
-			"unkey.gateway.id": gateway.GetGatewayId(),
+			"unkey.gateway.id": req.GatewayID,
 			"unkey.managed.by": "krane",
 		},
 		ExposedPorts: exposedPorts,
 		Env: []string{
-			fmt.Sprintf("UNKEY_WORKSPACE_ID=%s", gateway.GetWorkspaceId()),
-			fmt.Sprintf("UNKEY_GATEWAY_ID=%s", gateway.GetGatewayId()),
-			fmt.Sprintf("UNKEY_IMAGE=%s", gateway.GetImage()),
+			fmt.Sprintf("UNKEY_WORKSPACE_ID=%s", req.WorkspaceID),
+			fmt.Sprintf("UNKEY_PROJECT_ID=%s", req.ProjectID),
+			fmt.Sprintf("UNKEY_ENVIRONMENT_ID=%s", req.EnvironmentID),
+			fmt.Sprintf("UNKEY_GATEWAY_ID=%s", req.GatewayID),
+			fmt.Sprintf("UNKEY_IMAGE=%s", req.Image),
 		},
 	}
 
@@ -79,7 +78,7 @@ func (d *docker) CreateGateway(ctx context.Context, req *connect.Request[kranev1
 
 	// Create container
 
-	for i := range req.Msg.GetGateway().GetReplicas() {
+	for i := range req.Replicas {
 		//nolint:exhaustruct // Docker SDK types have many optional fields
 		resp, err := d.client.ContainerCreate(
 			ctx,
@@ -87,20 +86,18 @@ func (d *docker) CreateGateway(ctx context.Context, req *connect.Request[kranev1
 			hostConfig,
 			networkConfig,
 			nil,
-			fmt.Sprintf("%s-%d", gateway.GetGatewayId(), i),
+			fmt.Sprintf("%s-%d", req.GatewayID, i),
 		)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create container: %w", err))
+			return fmt.Errorf("failed to create container: %w", err)
 		}
 
 		//nolint:exhaustruct // Docker SDK types have many optional fields
 		err = d.client.ContainerStart(ctx, resp.ID, container.StartOptions{})
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to start container: %w", err))
+			return fmt.Errorf("failed to start container: %w", err)
 		}
 	}
 
-	return connect.NewResponse(&kranev1.CreateGatewayResponse{
-		Status: kranev1.GatewayStatus_GATEWAY_STATUS_PENDING,
-	}), nil
+	return nil
 }

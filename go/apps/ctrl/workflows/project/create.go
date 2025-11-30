@@ -5,10 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"connectrpc.com/connect"
 	restate "github.com/restatedev/sdk-go"
+	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
-	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
 	"github.com/unkeyed/unkey/go/pkg/assert"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/uid"
@@ -131,30 +130,55 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 			return nil, err
 		}
 
-		replicas := uint32(1)
+		replicas := int32(1)
 		if env.Slug == "production" {
-			replicas = uint32(3)
+			replicas = int32(3)
 		}
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			_, err := s.krane.CreateGateway(runCtx, connect.NewRequest(&kranev1.CreateGatewayRequest{
-				Gateway: &kranev1.GatewayRequest{
-					Namespace:     k8sNamespace,
-					WorkspaceId:   workspace.ID,
-					GatewayId:     gatewayID,
-					Image:         "nginx:latest", // TODO
-					Replicas:      replicas,
-					CpuMillicores: uint32(128),
-					MemorySizeMib: uint64(256),
-				},
-			}))
-			return err
-		}, restate.WithName("provision gateway"))
-
+			return db.Query.InsertGateway(runCtx, s.db.RW(), db.InsertGatewayParams{
+				ID:             gatewayID,
+				WorkspaceID:    workspace.ID,
+				ProjectID:      projectID,
+				EnvironmentID:  environmentID,
+				K8sServiceName: "TODO",
+				Region:         "aws:us-east-1",
+				Image:          "nginx:latest",
+				Health:         db.GatewaysHealthUnknown,
+				Replicas:       replicas,
+				CpuMillicores:  1024,
+				MemoryMib:      1024,
+				CreatedAt:      time.Now().UnixMilli(),
+			})
+		}, restate.WithName("insert gateway"))
 		if err != nil {
 			return nil, err
 		}
 
+		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+			return s.cluster.EmitEvent(runCtx, map[string]string{"region": "aws:us-east-1"}, &ctrlv1.InfraEvent{
+				Event: &ctrlv1.InfraEvent_GatewayEvent{
+					GatewayEvent: &ctrlv1.GatewayEvent{
+						Event: &ctrlv1.GatewayEvent_Apply{
+							Apply: &ctrlv1.ApplyGateway{
+								Namespace:     workspace.K8sNamespace.String,
+								WorkspaceId:   workspace.ID,
+								ProjectId:     projectID,
+								EnvironmentId: environmentID,
+								GatewayId:     gatewayID,
+								Image:         "nginx:latest",
+								Replicas:      uint32(replicas),
+								CpuMillicores: 1024,
+								MemorySizeMib: 1024,
+							},
+						},
+					},
+				},
+			})
+		}, restate.WithName("apply gateway"))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &hydrav1.CreateProjectResponse{

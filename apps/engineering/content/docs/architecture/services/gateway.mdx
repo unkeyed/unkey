@@ -92,7 +92,6 @@ CREATE TABLE deployments (
     git_commit_sha VARCHAR(40),
     git_branch VARCHAR(255),
     status ENUM('pending','deploying','running','failed','stopped') NOT NULL,
-    runtime_config JSON NOT NULL,
     gateway_config JSON NOT NULL,
     created_at BIGINT NOT NULL,
     updated_at BIGINT NOT NULL

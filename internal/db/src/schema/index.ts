@@ -15,6 +15,7 @@ export * from "./clickhouse_workspace_settings";
 // Deployment platform tables
 export * from "./projects";
 export * from "./deployments";
+export * from "./deployment_topology";
 export * from "./deployment_steps";
 export * from "./acme_users";
 

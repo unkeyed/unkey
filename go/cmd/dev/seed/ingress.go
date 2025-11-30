@@ -3,7 +3,6 @@ package seed
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -105,7 +104,6 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 			EnvironmentID:            envID,
 			GitCommitSha:             sql.NullString{String: "abc123", Valid: true},
 			GitBranch:                sql.NullString{String: "main", Valid: true},
-			RuntimeConfig:            json.RawMessage(`{}`),
 			GatewayConfig:            []byte("{}"),
 			GitCommitMessage:         sql.NullString{String: "Local dev seed", Valid: true},
 			GitCommitAuthorHandle:    sql.NullString{String: "local", Valid: true},
@@ -114,7 +112,6 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 			OpenapiSpec:              sql.NullString{},
 			Status:                   db.DeploymentsStatusReady,
 			CreatedAt:                now,
-			UpdatedAt:                sql.NullInt64{},
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {
 			return fmt.Errorf("failed to create deployment: %w", err)
@@ -129,6 +126,10 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 			Image:          "unkey/gateway:local",
 			Health:         db.GatewaysHealthHealthy,
 			Replicas:       1,
+			ProjectID:      projectID,
+			CpuMillicores:  1000,
+			MemoryMib:      512,
+			CreatedAt:      now,
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {
 			return fmt.Errorf("failed to create gateway: %w", err)
@@ -142,7 +143,7 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 			Region:        region,
 			Address:       address,
 			CpuMillicores: 1000,
-			MemoryMb:      512,
+			MemoryMib:     512,
 			Status:        db.InstancesStatusRunning,
 		})
 		if err != nil {

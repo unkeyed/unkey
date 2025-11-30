@@ -17,7 +17,7 @@ export const instances = mysqlTable(
     // the kubernetes pod dns address from the stateful set
     address: varchar("address", { length: 255 }).notNull(),
     cpuMillicores: int("cpu_millicores").notNull(),
-    memoryMb: int("memory_mb").notNull(),
+    memoryMib: int("memory_mib").notNull(),
     status: mysqlEnum("status", [
       "allocated",
       "provisioning",

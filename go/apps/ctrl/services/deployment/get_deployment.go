@@ -67,9 +67,6 @@ func (s *Service) GetDeployment(
 	if deployment.GitCommitTimestamp.Valid {
 		protoDeployment.GitCommitTimestamp = deployment.GitCommitTimestamp.Int64
 	}
-	if deployment.UpdatedAt.Valid {
-		protoDeployment.UpdatedAt = deployment.UpdatedAt.Int64
-	}
 
 	// Fetch deployment steps
 	deploymentSteps, err := db.Query.FindDeploymentStepsByDeploymentId(ctx, s.db.RO(), deployment.ID)
