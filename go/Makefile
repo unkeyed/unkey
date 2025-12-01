@@ -157,8 +157,6 @@ start-restate: k8s-check ## Deploy only Restate
 start-api: k8s-check ## Deploy only API service (3 replicas)
 	$(call deploy-service,api,API,unkey:latest,.)
 
-start-gw: k8s-check ## Deploy only Gateway service
-	$(call deploy-service,gw,Gateway,unkey:latest,.)
 
 start-ctrl: k8s-check ## Deploy only ctrl service
 	$(call deploy-service,ctrl,Control Plane,unkey:latest,.)
@@ -166,7 +164,7 @@ start-ctrl: k8s-check ## Deploy only ctrl service
 start-dashboard: k8s-check ## Deploy only dashboard service
 	$(call deploy-service,dashboard,Dashboard,unkey/dashboard:latest,-f ../apps/dashboard/Dockerfile ../)
 
-start-unkey-services: start-api start-gw start-ctrl start-dashboard ## Deploy all Unkey services
+start-unkey-services: start-api start-ctrl start-dashboard ## Deploy all Unkey services
 
 start-dependencies: start-mysql start-clickhouse start-redis start-s3 start-planetscale start-observability start-restate ## Deploy all dependency services
 

@@ -31,10 +31,16 @@ spec:
               protocol: TCP
           env:
             # Server configuration
-            - name: UNKEY_HTTP_PORT
-              value: "8080"
-            - name: UNKEY_DEPLOYMENT_EVICTION_TTL
-              value: "10m"
+            - name: UNKEY_REGION
+              value: "aws:us-east-1"
+            - name: UNKEY_IMAGE
+              value: "unkey:dev"
+            - name: "UNKEY_CONTROL_PLANE_URL"
+              value: "http://ctrl:7091"
+            - name: "UNKEY_CONTROL_PLANE_BEARER"
+              value: "your-local-dev-key"
+            - name: UNKEY_KRANE_BACKEND
+              value: kubernetes
 
 ---
 apiVersion: v1

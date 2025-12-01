@@ -363,7 +363,6 @@ services:
 
       # Control plane configuration
       UNKEY_HTTP_PORT: "7091"
-      UNKEY_KRANE_ADDRESS: "http://krane:8080"
       UNKEY_DEFAULT_DOMAIN: "unkey.local"
 
       # Restate configuration

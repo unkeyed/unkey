@@ -98,7 +98,7 @@
       ".content-collections",
       ".source",
       ".trigger",
-      "./internal/auth-migrator",
+      "./internal/auth-migrator"
     ]
   },
   "organizeImports": {
@@ -111,7 +111,7 @@
       ".wrangler",
       ".react-email",
       ".content-collections",
-      "./internal/auth-migrator",
+      "./internal/auth-migrator"
     ]
   },
   "overrides": [

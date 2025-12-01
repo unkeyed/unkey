@@ -33,15 +33,6 @@ start_dashboard = 'all' in services or 'dashboard' in services
 # Apply RBAC
 k8s_yaml('k8s/manifests/rbac.yaml')
 
-# Registry Proxy service (always needed for pulling images from depot)
-print("Setting up Registry Proxy...")
-k8s_yaml('k8s/manifests/registry-proxy.yaml')
-k8s_resource(
-    'registry-proxy',
-    port_forwards='5000:5000',
-    resource_deps=[],
-    labels=['infrastructure']
-)
 # Redis service
 redis_started = False
 if start_api:  # Redis is needed by API service

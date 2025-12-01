@@ -1,12 +1,12 @@
-package kubernetes
+package deploymentcontroller
 
 import (
 	"context"
 	"fmt"
 	"strings"
 
-	"github.com/unkeyed/unkey/go/apps/krane/backend"
-	"github.com/unkeyed/unkey/go/apps/krane/backend/kubernetes/labels"
+	"github.com/unkeyed/unkey/go/apps/krane/k8s"
+	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	appsv1 "k8s.io/api/apps/v1"
 
@@ -71,27 +71,28 @@ import (
 //	The method is designed to be retry-safe. Network errors, timeouts, and
 //	partial failures can all be recovered by retrying this method. Multiple
 //	resources with the same labels are treated as an error condition.
-func (k *k8s) ApplyDeployment(ctx context.Context, req backend.ApplyDeploymentRequest) error {
+func (c *DeploymentController) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) error {
 
 	namespace := req.Namespace
-	deploymentID := req.DeploymentID
+	deploymentID := req.GetDeploymentId()
 	const krane = "krane"
 
-	k.logger.Info("creating deployment",
+	c.logger.Info("creating deployment",
 		"namespace", namespace,
 		"deployment_id", deploymentID,
 	)
 
 	usedLabels := map[string]string{
-		labels.DeploymentID: deploymentID,
-		labels.ManagedBy:    krane,
+		k8s.LabelDeploymentID: deploymentID,
+		k8s.LabelManagedBy:    krane,
+		k8s.LavelComponent:    "deployment",
 	}
 
 	labelSelector := metav1.FormatLabelSelector(&metav1.LabelSelector{
 		MatchLabels: usedLabels,
 	})
 
-	services, err := k.clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{
+	services, err := c.clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -105,7 +106,7 @@ func (k *k8s) ApplyDeployment(ctx context.Context, req backend.ApplyDeploymentRe
 		return fmt.Errorf("multiple services found")
 	} else {
 
-		service, err = k.clientset.CoreV1().
+		service, err = c.clientset.CoreV1().
 			Services(namespace).
 			Create(ctx,
 				// This implementation of using stateful sets is very likely not what we want to
@@ -148,7 +149,7 @@ func (k *k8s) ApplyDeployment(ctx context.Context, req backend.ApplyDeploymentRe
 		}
 	}
 
-	statefulsets, err := k.clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{
+	statefulsets, err := c.clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -162,16 +163,13 @@ func (k *k8s) ApplyDeployment(ctx context.Context, req backend.ApplyDeploymentRe
 		return fmt.Errorf("multiple stateful sets found")
 	} else {
 
-		sfs, err = k.clientset.AppsV1().StatefulSets(namespace).Create(ctx,
+		sfs, err = c.clientset.AppsV1().StatefulSets(namespace).Create(ctx,
 			//nolint: exhaustruct
 			&appsv1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "dpl-",
 					Namespace:    namespace,
-					Labels: map[string]string{
-						labels.DeploymentID: deploymentID,
-						labels.ManagedBy:    krane,
-					},
+					Labels:       usedLabels,
 				},
 
 				//nolint: exhaustruct
@@ -180,7 +178,7 @@ func (k *k8s) ApplyDeployment(ctx context.Context, req backend.ApplyDeploymentRe
 					Replicas:    ptr.P(int32(req.Replicas)), //nolint: gosec
 					Selector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{
-							labels.DeploymentID: deploymentID,
+							k8s.LabelDeploymentID: deploymentID,
 						},
 					},
 					Template: corev1.PodTemplateSpec{
@@ -204,12 +202,12 @@ func (k *k8s) ApplyDeployment(ctx context.Context, req backend.ApplyDeploymentRe
 							RestartPolicy: corev1.RestartPolicyAlways,
 							Containers: []corev1.Container{
 								{
-
+									Name:  "container",
 									Image: req.Image,
 									Env: []corev1.EnvVar{
-										{Name: "UNKEY_PROJECT_ID", Value: req.ProjectID},
-										{Name: "UNKEY_ENVIRONMENT_ID", Value: req.EnvironmentID},
-										{Name: "UNKEY_DEPLOYMENT_ID", Value: req.DeploymentID},
+										{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
+										{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
+										{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
 									},
 									Ports: []corev1.ContainerPort{
 										{
@@ -257,7 +255,7 @@ func (k *k8s) ApplyDeployment(ctx context.Context, req backend.ApplyDeploymentRe
 		},
 	}
 	//nolint:exhaustruct
-	_, err = k.clientset.CoreV1().Services(namespace).Update(ctx, service, metav1.UpdateOptions{})
+	_, err = c.clientset.CoreV1().Services(namespace).Update(ctx, service, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update deployment: %w", err)
 	}

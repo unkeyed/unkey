@@ -2012,6 +2012,12 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE workspace_id = ?
 	UpdateClickhouseWorkspaceSettingsLimits(ctx context.Context, db DBTX, arg UpdateClickhouseWorkspaceSettingsLimitsParams) error
+	//UpdateDeploymentImage
+	//
+	//  UPDATE deployments
+	//  SET image = ?, updated_at = ?
+	//  WHERE id = ?
+	UpdateDeploymentImage(ctx context.Context, db DBTX, arg UpdateDeploymentImageParams) error
 	//UpdateDeploymentOpenapiSpec
 	//
 	//  UPDATE deployments

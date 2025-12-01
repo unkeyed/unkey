@@ -456,7 +456,7 @@ CREATE TABLE `instances` (
 	`address` varchar(255) NOT NULL,
 	`cpu_millicores` int NOT NULL,
 	`memory_mib` int NOT NULL,
-	`status` enum('allocated','provisioning','starting','running','stopping','stopped','failed') NOT NULL,
+	`status` enum('inactive','pending','running','failed') NOT NULL,
 	CONSTRAINT `instances_id` PRIMARY KEY(`id`),
 	CONSTRAINT `unique_address` UNIQUE(`address`)
 );

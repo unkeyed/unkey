@@ -3,6 +3,7 @@ package project
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -43,7 +44,7 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 	// but this works for now
 	if k8sNamespace == "" {
 		k8sNamespace, err = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-			name := uid.Nano(12)
+			name := fmt.Sprintf("user-%s", uid.Nano(12))
 			res, err := db.Query.UpdateWorkspaceK8sNamespace(runCtx, s.db.RW(), db.UpdateWorkspaceK8sNamespaceParams{
 				ID:           workspace.ID,
 				K8sNamespace: sql.NullString{Valid: true, String: name},
@@ -95,7 +96,7 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 		Slug        string
 		Description string
 	}{
-		{Slug: "development", Description: "Development environment"},
+		{Slug: "preview", Description: "Preview environment"},
 		{Slug: "production", Description: "Production environment"},
 	}
 

@@ -36,7 +36,65 @@ service ClusterService {
   // returns a watch events for compatibility but will never return a delete event
   // only apply events from currently desired infrastructure are included
   rpc GetDesiredState(GetDesiredStateRequest) returns (stream InfraEvent);
+
+
+  rpc UpdateDeploymentStatus(UpdateDeploymentStatusRequest) returns (UpdateDeploymentStatusResponse);
+  rpc UpdateGatewayStatus(UpdateGatewayStatusRequest) returns (UpdateGatewayStatusResponse);
 }
+
+
+message UpdateDeploymentStatusRequest {
+  string deployment_id = 1;
+  string region = 2;
+  message Instance {
+
+
+    string id = 1;
+    string address = 2;
+
+    enum Status {
+      STATUS_UNSPECIFIED = 0;
+      STATUS_INACTIVE=1;
+      STATUS_PENDING = 2; // Deployment request accepted, container/pod creation in progress
+      STATUS_RUNNING = 3; // Container/pod is running and healthy
+      STATUS_FAILED = 4; // Container/pod failed to start
+    }
+
+    Status status = 3;
+  }
+  repeated Instance instances = 3;
+
+}
+
+message UpdateDeploymentStatusResponse {
+
+}
+
+
+message UpdateGatewayStatusRequest {
+  string gateway_id = 1;
+  string region = 2;
+
+    string address = 3;
+
+    enum Status {
+      STATUS_UNSPECIFIED = 0;
+      STATUS_INACTIVE=1;
+      STATUS_PENDING = 2; // Deployment request accepted, container/pod creation in progress
+      STATUS_RUNNING = 3; // Container/pod is running and healthy
+      STATUS_FAILED = 4; // Container/pod failed to start
+    }
+
+    Status status = 4;
+
+
+}
+
+message UpdateGatewayStatusResponse {
+
+}
+
+
 
 // WatchRequest identifies the cluster requesting a watch stream.
 message WatchRequest {

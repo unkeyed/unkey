@@ -1,11 +1,11 @@
-package kubernetes
+package gatewaycontroller
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/unkeyed/unkey/go/apps/krane/backend"
-	"github.com/unkeyed/unkey/go/apps/krane/backend/kubernetes/labels"
+	"github.com/unkeyed/unkey/go/apps/krane/k8s"
+	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,15 +17,15 @@ import (
 // the Service and Deployment resources. Resources are selected by their
 // gateway-id label rather than by name, following Kubernetes best practices
 // for resource management.
-func (k *k8s) DeleteGateway(ctx context.Context, req backend.DeleteGatewayRequest) error {
+func (c *GatewayController) DeleteGateway(ctx context.Context, req *ctrlv1.DeleteGateway) error {
 
-	k.logger.Info("deleting gateway",
+	c.logger.Info("deleting gateway",
 		"namespace", req.Namespace,
-		"gateway_id", req.GatewayID,
+		"gateway_id", req.GetGatewayId(),
 	)
 
 	// Create label selector for this gateway
-	labelSelector := fmt.Sprintf("%s=%s,%s=%s", labels.GatewayID, req.GatewayID, labels.ManagedBy, krane)
+	labelSelector := fmt.Sprintf("%s=%s,%s=%s", k8s.LabelGatewayID, req.GetGatewayId(), k8s.LabelManagedBy, "krane")
 
 	//nolint: exhaustruct
 	deleteOptions := metav1.DeleteOptions{
@@ -34,7 +34,7 @@ func (k *k8s) DeleteGateway(ctx context.Context, req backend.DeleteGatewayReques
 
 	// List and delete Services with this gateway-id label
 	//nolint: exhaustruct
-	serviceList, err := k.clientset.CoreV1().Services(req.Namespace).List(ctx, metav1.ListOptions{
+	serviceList, err := c.clientset.CoreV1().Services(req.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -42,11 +42,11 @@ func (k *k8s) DeleteGateway(ctx context.Context, req backend.DeleteGatewayReques
 	}
 
 	for _, service := range serviceList.Items {
-		k.logger.Debug("deleting service",
+		c.logger.Debug("deleting service",
 			"name", service.Name,
-			"gateway_id", req.GatewayID,
+			"gateway_id", req.GetGatewayId(),
 		)
-		err = k.clientset.CoreV1().Services(req.Namespace).Delete(ctx, service.Name, deleteOptions)
+		err = c.clientset.CoreV1().Services(req.Namespace).Delete(ctx, service.Name, deleteOptions)
 		if err != nil && !apierrors.IsNotFound(err) {
 			return fmt.Errorf("failed to delete service %s: %w", service.Name, err)
 		}
@@ -54,7 +54,7 @@ func (k *k8s) DeleteGateway(ctx context.Context, req backend.DeleteGatewayReques
 
 	// List and delete Deployments with this gateway-id label
 	//nolint: exhaustruct
-	deploymentList, err := k.clientset.AppsV1().Deployments(req.Namespace).List(ctx, metav1.ListOptions{
+	deploymentList, err := c.clientset.AppsV1().Deployments(req.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -62,19 +62,19 @@ func (k *k8s) DeleteGateway(ctx context.Context, req backend.DeleteGatewayReques
 	}
 
 	for _, deployment := range deploymentList.Items {
-		k.logger.Debug("deleting deployment",
+		c.logger.Debug("deleting deployment",
 			"name", deployment.Name,
-			"gateway_id", req.GatewayID,
+			"gateway_id", req.GetGatewayId(),
 		)
-		err = k.clientset.AppsV1().Deployments(req.Namespace).Delete(ctx, deployment.Name, deleteOptions)
+		err = c.clientset.AppsV1().Deployments(req.Namespace).Delete(ctx, deployment.Name, deleteOptions)
 		if err != nil && !apierrors.IsNotFound(err) {
 			return fmt.Errorf("failed to delete deployment %s: %w", deployment.Name, err)
 		}
 	}
 
-	k.logger.Info("gateway deleted successfully",
+	c.logger.Info("gateway deleted successfully",
 		"namespace", req.Namespace,
-		"gateway_id", req.GatewayID,
+		"gateway_id", req.GetGatewayId(),
 		"services_deleted", len(serviceList.Items),
 		"deployments_deleted", len(deploymentList.Items),
 	)

@@ -499,13 +499,10 @@ func (ns NullIngressRoutesSticky) Value() (driver.Value, error) {
 type InstancesStatus string
 
 const (
-	InstancesStatusAllocated    InstancesStatus = "allocated"
-	InstancesStatusProvisioning InstancesStatus = "provisioning"
-	InstancesStatusStarting     InstancesStatus = "starting"
-	InstancesStatusRunning      InstancesStatus = "running"
-	InstancesStatusStopping     InstancesStatus = "stopping"
-	InstancesStatusStopped      InstancesStatus = "stopped"
-	InstancesStatusFailed       InstancesStatus = "failed"
+	InstancesStatusInactive InstancesStatus = "inactive"
+	InstancesStatusPending  InstancesStatus = "pending"
+	InstancesStatusRunning  InstancesStatus = "running"
+	InstancesStatusFailed   InstancesStatus = "failed"
 )
 
 func (e *InstancesStatus) Scan(src interface{}) error {

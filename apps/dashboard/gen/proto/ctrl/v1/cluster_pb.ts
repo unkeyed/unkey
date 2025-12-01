@@ -12,18 +12,211 @@
 // a streaming connection to receive incremental updates, enabling real-time deployment
 // orchestration across distributed clusters.
 
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 
 /**
  * Describes the file ctrl/v1/cluster.proto.
  */
-export const file_ctrl_v1_cluster: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEijAEKDFdhdGNoUmVxdWVzdBIRCgljbGllbnRfaWQYASABKAkSNwoJc2VsZWN0b3JzGAIgAygLMiQuY3RybC52MS5XYXRjaFJlcXVlc3QuU2VsZWN0b3JzRW50cnkaMAoOU2VsZWN0b3JzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKgAQoWR2V0RGVzaXJlZFN0YXRlUmVxdWVzdBIRCgljbGllbnRfaWQYASABKAkSQQoJc2VsZWN0b3JzGAIgAygLMi4uY3RybC52MS5HZXREZXNpcmVkU3RhdGVSZXF1ZXN0LlNlbGVjdG9yc0VudHJ5GjAKDlNlbGVjdG9yc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiaQoMR2F0ZXdheUV2ZW50EiYKBWFwcGx5GAEgASgLMhUuY3RybC52MS5BcHBseUdhdGV3YXlIABIoCgZkZWxldGUYAiABKAsyFi5jdHJsLnYxLkRlbGV0ZUdhdGV3YXlIAEIHCgVldmVudCJyCg9EZXBsb3ltZW50RXZlbnQSKQoFYXBwbHkYASABKAsyGC5jdHJsLnYxLkFwcGx5RGVwbG95bWVudEgAEisKBmRlbGV0ZRgCIAEoCzIZLmN0cmwudjEuRGVsZXRlRGVwbG95bWVudEgAQgcKBWV2ZW50IskBCgxBcHBseUdhdGV3YXkSEQoJbmFtZXNwYWNlGAEgASgJEhQKDHdvcmtzcGFjZV9pZBgCIAEoCRISCgpwcm9qZWN0X2lkGAMgASgJEhYKDmVudmlyb25tZW50X2lkGAQgASgJEhIKCmdhdGV3YXlfaWQYBSABKAkSDQoFaW1hZ2UYBiABKAkSEAoIcmVwbGljYXMYByABKA0SFgoOY3B1X21pbGxpY29yZXMYCCABKA0SFwoPbWVtb3J5X3NpemVfbWliGAkgASgNIjYKDURlbGV0ZUdhdGV3YXkSEQoJbmFtZXNwYWNlGAEgASgJEhIKCmdhdGV3YXlfaWQYAiABKAkizwEKD0FwcGx5RGVwbG95bWVudBIRCgluYW1lc3BhY2UYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSFgoOZW52aXJvbm1lbnRfaWQYBCABKAkSFQoNZGVwbG95bWVudF9pZBgFIAEoCRINCgVpbWFnZRgGIAEoCRIQCghyZXBsaWNhcxgHIAEoDRIWCg5jcHVfbWlsbGljb3JlcxgIIAEoDRIXCg9tZW1vcnlfc2l6ZV9taWIYCSABKA0iPAoQRGVsZXRlRGVwbG95bWVudBIRCgluYW1lc3BhY2UYASABKAkSFQoNZGVwbG95bWVudF9pZBgCIAEoCSJ7CgpJbmZyYUV2ZW50Ei4KDWdhdGV3YXlfZXZlbnQYAiABKAsyFS5jdHJsLnYxLkdhdGV3YXlFdmVudEgAEjQKEGRlcGxveW1lbnRfZXZlbnQYAyABKAsyGC5jdHJsLnYxLkRlcGxveW1lbnRFdmVudEgAQgcKBWV2ZW50MpIBCg5DbHVzdGVyU2VydmljZRI1CgVXYXRjaBIVLmN0cmwudjEuV2F0Y2hSZXF1ZXN0GhMuY3RybC52MS5JbmZyYUV2ZW50MAESSQoPR2V0RGVzaXJlZFN0YXRlEh8uY3RybC52MS5HZXREZXNpcmVkU3RhdGVSZXF1ZXN0GhMuY3RybC52MS5JbmZyYUV2ZW50MAFCjgEKC2NvbS5jdHJsLnYxQgxDbHVzdGVyUHJvdG9QAVo0Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM",
-  );
+export const file_ctrl_v1_cluster: GenFile = /*@__PURE__*/
+  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEi7gIKHVVwZGF0ZURlcGxveW1lbnRTdGF0dXNSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkSDgoGcmVnaW9uGAIgASgJEkIKCWluc3RhbmNlcxgDIAMoCzIvLmN0cmwudjEuVXBkYXRlRGVwbG95bWVudFN0YXR1c1JlcXVlc3QuSW5zdGFuY2Ua4QEKCEluc3RhbmNlEgoKAmlkGAEgASgJEg8KB2FkZHJlc3MYAiABKAkSRgoGc3RhdHVzGAMgASgOMjYuY3RybC52MS5VcGRhdGVEZXBsb3ltZW50U3RhdHVzUmVxdWVzdC5JbnN0YW5jZS5TdGF0dXMicAoGU3RhdHVzEhYKElNUQVRVU19VTlNQRUNJRklFRBAAEhMKD1NUQVRVU19JTkFDVElWRRABEhIKDlNUQVRVU19QRU5ESU5HEAISEgoOU1RBVFVTX1JVTk5JTkcQAxIRCg1TVEFUVVNfRkFJTEVEEAQiIAoeVXBkYXRlRGVwbG95bWVudFN0YXR1c1Jlc3BvbnNlIv8BChpVcGRhdGVHYXRld2F5U3RhdHVzUmVxdWVzdBISCgpnYXRld2F5X2lkGAEgASgJEg4KBnJlZ2lvbhgCIAEoCRIPCgdhZGRyZXNzGAMgASgJEjoKBnN0YXR1cxgEIAEoDjIqLmN0cmwudjEuVXBkYXRlR2F0ZXdheVN0YXR1c1JlcXVlc3QuU3RhdHVzInAKBlN0YXR1cxIWChJTVEFUVVNfVU5TUEVDSUZJRUQQABITCg9TVEFUVVNfSU5BQ1RJVkUQARISCg5TVEFUVVNfUEVORElORxACEhIKDlNUQVRVU19SVU5OSU5HEAMSEQoNU1RBVFVTX0ZBSUxFRBAEIh0KG1VwZGF0ZUdhdGV3YXlTdGF0dXNSZXNwb25zZSKMAQoMV2F0Y2hSZXF1ZXN0EhEKCWNsaWVudF9pZBgBIAEoCRI3CglzZWxlY3RvcnMYAiADKAsyJC5jdHJsLnYxLldhdGNoUmVxdWVzdC5TZWxlY3RvcnNFbnRyeRowCg5TZWxlY3RvcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIqABChZHZXREZXNpcmVkU3RhdGVSZXF1ZXN0EhEKCWNsaWVudF9pZBgBIAEoCRJBCglzZWxlY3RvcnMYAiADKAsyLi5jdHJsLnYxLkdldERlc2lyZWRTdGF0ZVJlcXVlc3QuU2VsZWN0b3JzRW50cnkaMAoOU2VsZWN0b3JzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJpCgxHYXRld2F5RXZlbnQSJgoFYXBwbHkYASABKAsyFS5jdHJsLnYxLkFwcGx5R2F0ZXdheUgAEigKBmRlbGV0ZRgCIAEoCzIWLmN0cmwudjEuRGVsZXRlR2F0ZXdheUgAQgcKBWV2ZW50InIKD0RlcGxveW1lbnRFdmVudBIpCgVhcHBseRgBIAEoCzIYLmN0cmwudjEuQXBwbHlEZXBsb3ltZW50SAASKwoGZGVsZXRlGAIgASgLMhkuY3RybC52MS5EZWxldGVEZXBsb3ltZW50SABCBwoFZXZlbnQiyQEKDEFwcGx5R2F0ZXdheRIRCgluYW1lc3BhY2UYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSFgoOZW52aXJvbm1lbnRfaWQYBCABKAkSEgoKZ2F0ZXdheV9pZBgFIAEoCRINCgVpbWFnZRgGIAEoCRIQCghyZXBsaWNhcxgHIAEoDRIWCg5jcHVfbWlsbGljb3JlcxgIIAEoDRIXCg9tZW1vcnlfc2l6ZV9taWIYCSABKA0iNgoNRGVsZXRlR2F0ZXdheRIRCgluYW1lc3BhY2UYASABKAkSEgoKZ2F0ZXdheV9pZBgCIAEoCSLPAQoPQXBwbHlEZXBsb3ltZW50EhEKCW5hbWVzcGFjZRgBIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAiABKAkSEgoKcHJvamVjdF9pZBgDIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgEIAEoCRIVCg1kZXBsb3ltZW50X2lkGAUgASgJEg0KBWltYWdlGAYgASgJEhAKCHJlcGxpY2FzGAcgASgNEhYKDmNwdV9taWxsaWNvcmVzGAggASgNEhcKD21lbW9yeV9zaXplX21pYhgJIAEoDSI8ChBEZWxldGVEZXBsb3ltZW50EhEKCW5hbWVzcGFjZRgBIAEoCRIVCg1kZXBsb3ltZW50X2lkGAIgASgJInsKCkluZnJhRXZlbnQSLgoNZ2F0ZXdheV9ldmVudBgCIAEoCzIVLmN0cmwudjEuR2F0ZXdheUV2ZW50SAASNAoQZGVwbG95bWVudF9ldmVudBgDIAEoCzIYLmN0cmwudjEuRGVwbG95bWVudEV2ZW50SABCBwoFZXZlbnQy3wIKDkNsdXN0ZXJTZXJ2aWNlEjUKBVdhdGNoEhUuY3RybC52MS5XYXRjaFJlcXVlc3QaEy5jdHJsLnYxLkluZnJhRXZlbnQwARJJCg9HZXREZXNpcmVkU3RhdGUSHy5jdHJsLnYxLkdldERlc2lyZWRTdGF0ZVJlcXVlc3QaEy5jdHJsLnYxLkluZnJhRXZlbnQwARJpChZVcGRhdGVEZXBsb3ltZW50U3RhdHVzEiYuY3RybC52MS5VcGRhdGVEZXBsb3ltZW50U3RhdHVzUmVxdWVzdBonLmN0cmwudjEuVXBkYXRlRGVwbG95bWVudFN0YXR1c1Jlc3BvbnNlEmAKE1VwZGF0ZUdhdGV3YXlTdGF0dXMSIy5jdHJsLnYxLlVwZGF0ZUdhdGV3YXlTdGF0dXNSZXF1ZXN0GiQuY3RybC52MS5VcGRhdGVHYXRld2F5U3RhdHVzUmVzcG9uc2VCjgEKC2NvbS5jdHJsLnYxQgxDbHVzdGVyUHJvdG9QAVo0Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM");
+
+/**
+ * @generated from message ctrl.v1.UpdateDeploymentStatusRequest
+ */
+export type UpdateDeploymentStatusRequest = Message<"ctrl.v1.UpdateDeploymentStatusRequest"> & {
+  /**
+   * @generated from field: string deployment_id = 1;
+   */
+  deploymentId: string;
+
+  /**
+   * @generated from field: string region = 2;
+   */
+  region: string;
+
+  /**
+   * @generated from field: repeated ctrl.v1.UpdateDeploymentStatusRequest.Instance instances = 3;
+   */
+  instances: UpdateDeploymentStatusRequest_Instance[];
+};
+
+/**
+ * Describes the message ctrl.v1.UpdateDeploymentStatusRequest.
+ * Use `create(UpdateDeploymentStatusRequestSchema)` to create a new message.
+ */
+export const UpdateDeploymentStatusRequestSchema: GenMessage<UpdateDeploymentStatusRequest> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 0);
+
+/**
+ * @generated from message ctrl.v1.UpdateDeploymentStatusRequest.Instance
+ */
+export type UpdateDeploymentStatusRequest_Instance = Message<"ctrl.v1.UpdateDeploymentStatusRequest.Instance"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string address = 2;
+   */
+  address: string;
+
+  /**
+   * @generated from field: ctrl.v1.UpdateDeploymentStatusRequest.Instance.Status status = 3;
+   */
+  status: UpdateDeploymentStatusRequest_Instance_Status;
+};
+
+/**
+ * Describes the message ctrl.v1.UpdateDeploymentStatusRequest.Instance.
+ * Use `create(UpdateDeploymentStatusRequest_InstanceSchema)` to create a new message.
+ */
+export const UpdateDeploymentStatusRequest_InstanceSchema: GenMessage<UpdateDeploymentStatusRequest_Instance> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 0, 0);
+
+/**
+ * @generated from enum ctrl.v1.UpdateDeploymentStatusRequest.Instance.Status
+ */
+export enum UpdateDeploymentStatusRequest_Instance_Status {
+  /**
+   * @generated from enum value: STATUS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: STATUS_INACTIVE = 1;
+   */
+  INACTIVE = 1,
+
+  /**
+   * Deployment request accepted, container/pod creation in progress
+   *
+   * @generated from enum value: STATUS_PENDING = 2;
+   */
+  PENDING = 2,
+
+  /**
+   * Container/pod is running and healthy
+   *
+   * @generated from enum value: STATUS_RUNNING = 3;
+   */
+  RUNNING = 3,
+
+  /**
+   * Container/pod failed to start
+   *
+   * @generated from enum value: STATUS_FAILED = 4;
+   */
+  FAILED = 4,
+}
+
+/**
+ * Describes the enum ctrl.v1.UpdateDeploymentStatusRequest.Instance.Status.
+ */
+export const UpdateDeploymentStatusRequest_Instance_StatusSchema: GenEnum<UpdateDeploymentStatusRequest_Instance_Status> = /*@__PURE__*/
+  enumDesc(file_ctrl_v1_cluster, 0, 0, 0);
+
+/**
+ * @generated from message ctrl.v1.UpdateDeploymentStatusResponse
+ */
+export type UpdateDeploymentStatusResponse = Message<"ctrl.v1.UpdateDeploymentStatusResponse"> & {
+};
+
+/**
+ * Describes the message ctrl.v1.UpdateDeploymentStatusResponse.
+ * Use `create(UpdateDeploymentStatusResponseSchema)` to create a new message.
+ */
+export const UpdateDeploymentStatusResponseSchema: GenMessage<UpdateDeploymentStatusResponse> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 1);
+
+/**
+ * @generated from message ctrl.v1.UpdateGatewayStatusRequest
+ */
+export type UpdateGatewayStatusRequest = Message<"ctrl.v1.UpdateGatewayStatusRequest"> & {
+  /**
+   * @generated from field: string gateway_id = 1;
+   */
+  gatewayId: string;
+
+  /**
+   * @generated from field: string region = 2;
+   */
+  region: string;
+
+  /**
+   * @generated from field: string address = 3;
+   */
+  address: string;
+
+  /**
+   * @generated from field: ctrl.v1.UpdateGatewayStatusRequest.Status status = 4;
+   */
+  status: UpdateGatewayStatusRequest_Status;
+};
+
+/**
+ * Describes the message ctrl.v1.UpdateGatewayStatusRequest.
+ * Use `create(UpdateGatewayStatusRequestSchema)` to create a new message.
+ */
+export const UpdateGatewayStatusRequestSchema: GenMessage<UpdateGatewayStatusRequest> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 2);
+
+/**
+ * @generated from enum ctrl.v1.UpdateGatewayStatusRequest.Status
+ */
+export enum UpdateGatewayStatusRequest_Status {
+  /**
+   * @generated from enum value: STATUS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: STATUS_INACTIVE = 1;
+   */
+  INACTIVE = 1,
+
+  /**
+   * Deployment request accepted, container/pod creation in progress
+   *
+   * @generated from enum value: STATUS_PENDING = 2;
+   */
+  PENDING = 2,
+
+  /**
+   * Container/pod is running and healthy
+   *
+   * @generated from enum value: STATUS_RUNNING = 3;
+   */
+  RUNNING = 3,
+
+  /**
+   * Container/pod failed to start
+   *
+   * @generated from enum value: STATUS_FAILED = 4;
+   */
+  FAILED = 4,
+}
+
+/**
+ * Describes the enum ctrl.v1.UpdateGatewayStatusRequest.Status.
+ */
+export const UpdateGatewayStatusRequest_StatusSchema: GenEnum<UpdateGatewayStatusRequest_Status> = /*@__PURE__*/
+  enumDesc(file_ctrl_v1_cluster, 2, 0);
+
+/**
+ * @generated from message ctrl.v1.UpdateGatewayStatusResponse
+ */
+export type UpdateGatewayStatusResponse = Message<"ctrl.v1.UpdateGatewayStatusResponse"> & {
+};
+
+/**
+ * Describes the message ctrl.v1.UpdateGatewayStatusResponse.
+ * Use `create(UpdateGatewayStatusResponseSchema)` to create a new message.
+ */
+export const UpdateGatewayStatusResponseSchema: GenMessage<UpdateGatewayStatusResponse> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 3);
 
 /**
  * WatchRequest identifies the cluster requesting a watch stream.
@@ -54,9 +247,8 @@ export type WatchRequest = Message<"ctrl.v1.WatchRequest"> & {
  * Describes the message ctrl.v1.WatchRequest.
  * Use `create(WatchRequestSchema)` to create a new message.
  */
-export const WatchRequestSchema: GenMessage<WatchRequest> =
-  /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 0);
+export const WatchRequestSchema: GenMessage<WatchRequest> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 4);
 
 /**
  * GetDesiredStateRequest identifies the cluster requesting a full sync stream.
@@ -87,9 +279,8 @@ export type GetDesiredStateRequest = Message<"ctrl.v1.GetDesiredStateRequest"> &
  * Describes the message ctrl.v1.GetDesiredStateRequest.
  * Use `create(GetDesiredStateRequestSchema)` to create a new message.
  */
-export const GetDesiredStateRequestSchema: GenMessage<GetDesiredStateRequest> =
-  /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 1);
+export const GetDesiredStateRequestSchema: GenMessage<GetDesiredStateRequest> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 5);
 
 /**
  * GatewayEvent represents a lifecycle event for an API gateway configuration.
@@ -107,38 +298,34 @@ export type GatewayEvent = Message<"ctrl.v1.GatewayEvent"> & {
    *
    * @generated from oneof ctrl.v1.GatewayEvent.event
    */
-  event:
-    | {
-        /**
-         * apply indicates the gateway should exist with this configuration.
-         * The agent will create the gateway if it doesn't exist or update it if it does.
-         * This follows the same semantics as "kubectl apply" - declare desired state
-         * and let the agent determine the appropriate action.
-         *
-         * @generated from field: ctrl.v1.ApplyGateway apply = 1;
-         */
-        value: ApplyGateway;
-        case: "apply";
-      }
-    | {
-        /**
-         * delete indicates the gateway should be removed from the cluster.
-         *
-         * @generated from field: ctrl.v1.DeleteGateway delete = 2;
-         */
-        value: DeleteGateway;
-        case: "delete";
-      }
-    | { case: undefined; value?: undefined };
+  event: {
+    /**
+     * apply indicates the gateway should exist with this configuration.
+     * The agent will create the gateway if it doesn't exist or update it if it does.
+     * This follows the same semantics as "kubectl apply" - declare desired state
+     * and let the agent determine the appropriate action.
+     *
+     * @generated from field: ctrl.v1.ApplyGateway apply = 1;
+     */
+    value: ApplyGateway;
+    case: "apply";
+  } | {
+    /**
+     * delete indicates the gateway should be removed from the cluster.
+     *
+     * @generated from field: ctrl.v1.DeleteGateway delete = 2;
+     */
+    value: DeleteGateway;
+    case: "delete";
+  } | { case: undefined; value?: undefined };
 };
 
 /**
  * Describes the message ctrl.v1.GatewayEvent.
  * Use `create(GatewayEventSchema)` to create a new message.
  */
-export const GatewayEventSchema: GenMessage<GatewayEvent> =
-  /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 2);
+export const GatewayEventSchema: GenMessage<GatewayEvent> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 6);
 
 /**
  * DeploymentEvent represents a lifecycle event for an application deployment.
@@ -156,38 +343,34 @@ export type DeploymentEvent = Message<"ctrl.v1.DeploymentEvent"> & {
    *
    * @generated from oneof ctrl.v1.DeploymentEvent.event
    */
-  event:
-    | {
-        /**
-         * apply indicates the deployment should exist with this configuration.
-         * The agent will create the deployment if it doesn't exist or update it if it does.
-         * This follows the same semantics as "kubectl apply" - declare desired state
-         * and let the agent determine the appropriate action.
-         *
-         * @generated from field: ctrl.v1.ApplyDeployment apply = 1;
-         */
-        value: ApplyDeployment;
-        case: "apply";
-      }
-    | {
-        /**
-         * delete indicates the deployment should be removed from the cluster.
-         *
-         * @generated from field: ctrl.v1.DeleteDeployment delete = 2;
-         */
-        value: DeleteDeployment;
-        case: "delete";
-      }
-    | { case: undefined; value?: undefined };
+  event: {
+    /**
+     * apply indicates the deployment should exist with this configuration.
+     * The agent will create the deployment if it doesn't exist or update it if it does.
+     * This follows the same semantics as "kubectl apply" - declare desired state
+     * and let the agent determine the appropriate action.
+     *
+     * @generated from field: ctrl.v1.ApplyDeployment apply = 1;
+     */
+    value: ApplyDeployment;
+    case: "apply";
+  } | {
+    /**
+     * delete indicates the deployment should be removed from the cluster.
+     *
+     * @generated from field: ctrl.v1.DeleteDeployment delete = 2;
+     */
+    value: DeleteDeployment;
+    case: "delete";
+  } | { case: undefined; value?: undefined };
 };
 
 /**
  * Describes the message ctrl.v1.DeploymentEvent.
  * Use `create(DeploymentEventSchema)` to create a new message.
  */
-export const DeploymentEventSchema: GenMessage<DeploymentEvent> =
-  /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 3);
+export const DeploymentEventSchema: GenMessage<DeploymentEvent> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 7);
 
 /**
  * ApplyGateway contains the desired configuration for a gateway.
@@ -274,9 +457,8 @@ export type ApplyGateway = Message<"ctrl.v1.ApplyGateway"> & {
  * Describes the message ctrl.v1.ApplyGateway.
  * Use `create(ApplyGatewaySchema)` to create a new message.
  */
-export const ApplyGatewaySchema: GenMessage<ApplyGateway> =
-  /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 4);
+export const ApplyGatewaySchema: GenMessage<ApplyGateway> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 8);
 
 /**
  * DeleteGateway identifies a gateway to remove from the cluster.
@@ -307,9 +489,8 @@ export type DeleteGateway = Message<"ctrl.v1.DeleteGateway"> & {
  * Describes the message ctrl.v1.DeleteGateway.
  * Use `create(DeleteGatewaySchema)` to create a new message.
  */
-export const DeleteGatewaySchema: GenMessage<DeleteGateway> =
-  /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 5);
+export const DeleteGatewaySchema: GenMessage<DeleteGateway> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 9);
 
 /**
  * ApplyDeployment contains the desired configuration for a deployment.
@@ -400,9 +581,8 @@ export type ApplyDeployment = Message<"ctrl.v1.ApplyDeployment"> & {
  * Describes the message ctrl.v1.ApplyDeployment.
  * Use `create(ApplyDeploymentSchema)` to create a new message.
  */
-export const ApplyDeploymentSchema: GenMessage<ApplyDeployment> =
-  /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 6);
+export const ApplyDeploymentSchema: GenMessage<ApplyDeployment> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 10);
 
 /**
  * DeleteDeployment identifies a deployment to remove from the cluster.
@@ -434,9 +614,8 @@ export type DeleteDeployment = Message<"ctrl.v1.DeleteDeployment"> & {
  * Describes the message ctrl.v1.DeleteDeployment.
  * Use `create(DeleteDeploymentSchema)` to create a new message.
  */
-export const DeleteDeploymentSchema: GenMessage<DeleteDeployment> =
-  /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 7);
+export const DeleteDeploymentSchema: GenMessage<DeleteDeployment> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 11);
 
 /**
  * InfraEvent is streamed from the control plane to cluster agents.
@@ -459,37 +638,33 @@ export type InfraEvent = Message<"ctrl.v1.InfraEvent"> & {
    *
    * @generated from oneof ctrl.v1.InfraEvent.event
    */
-  event:
-    | {
-        /**
-         * gateway_event contains a gateway lifecycle event (apply or delete).
-         * The client should apply this to gateway resources in the cluster.
-         *
-         * @generated from field: ctrl.v1.GatewayEvent gateway_event = 2;
-         */
-        value: GatewayEvent;
-        case: "gatewayEvent";
-      }
-    | {
-        /**
-         * deployment_event contains a deployment lifecycle event (apply or delete).
-         * The client should apply this to deployment resources in the cluster.
-         *
-         * @generated from field: ctrl.v1.DeploymentEvent deployment_event = 3;
-         */
-        value: DeploymentEvent;
-        case: "deploymentEvent";
-      }
-    | { case: undefined; value?: undefined };
+  event: {
+    /**
+     * gateway_event contains a gateway lifecycle event (apply or delete).
+     * The client should apply this to gateway resources in the cluster.
+     *
+     * @generated from field: ctrl.v1.GatewayEvent gateway_event = 2;
+     */
+    value: GatewayEvent;
+    case: "gatewayEvent";
+  } | {
+    /**
+     * deployment_event contains a deployment lifecycle event (apply or delete).
+     * The client should apply this to deployment resources in the cluster.
+     *
+     * @generated from field: ctrl.v1.DeploymentEvent deployment_event = 3;
+     */
+    value: DeploymentEvent;
+    case: "deploymentEvent";
+  } | { case: undefined; value?: undefined };
 };
 
 /**
  * Describes the message ctrl.v1.InfraEvent.
  * Use `create(InfraEventSchema)` to create a new message.
  */
-export const InfraEventSchema: GenMessage<InfraEvent> =
-  /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 8);
+export const InfraEventSchema: GenMessage<InfraEvent> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 12);
 
 /**
  * ClusterService coordinates deployment and gateway configurations across multiple clusters.
@@ -520,7 +695,7 @@ export const ClusterService: GenService<{
     methodKind: "server_streaming";
     input: typeof WatchRequestSchema;
     output: typeof InfraEventSchema;
-  };
+  },
   /**
    * returns a watch events for compatibility but will never return a delete event
    * only apply events from currently desired infrastructure are included
@@ -531,5 +706,23 @@ export const ClusterService: GenService<{
     methodKind: "server_streaming";
     input: typeof GetDesiredStateRequestSchema;
     output: typeof InfraEventSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_ctrl_v1_cluster, 0);
+  },
+  /**
+   * @generated from rpc ctrl.v1.ClusterService.UpdateDeploymentStatus
+   */
+  updateDeploymentStatus: {
+    methodKind: "unary";
+    input: typeof UpdateDeploymentStatusRequestSchema;
+    output: typeof UpdateDeploymentStatusResponseSchema;
+  },
+  /**
+   * @generated from rpc ctrl.v1.ClusterService.UpdateGatewayStatus
+   */
+  updateGatewayStatus: {
+    methodKind: "unary";
+    input: typeof UpdateGatewayStatusRequestSchema;
+    output: typeof UpdateGatewayStatusResponseSchema;
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_ctrl_v1_cluster, 0);
+

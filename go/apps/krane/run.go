@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/unkeyed/unkey/go/apps/krane/backend"
-	"github.com/unkeyed/unkey/go/apps/krane/backend/docker"
-	"github.com/unkeyed/unkey/go/apps/krane/backend/kubernetes"
+	deploymentcontroller "github.com/unkeyed/unkey/go/apps/krane/deployment_controller"
+	gatewaycontroller "github.com/unkeyed/unkey/go/apps/krane/gateway_controller"
 	"github.com/unkeyed/unkey/go/apps/krane/sync"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/otel"
@@ -58,30 +57,6 @@ func Run(ctx context.Context, cfg Config) error {
 		logger = logger.With(slog.String("version", pkgversion.Version))
 	}
 
-	var b backend.Backend
-	switch cfg.Backend {
-	case Docker:
-		b, err = docker.New(docker.Config{
-			Logger:           logger,
-			SocketPath:       cfg.DockerSocketPath,
-			RegistryURL:      cfg.RegistryURL,
-			RegistryUsername: cfg.RegistryUsername,
-			RegistryPassword: cfg.RegistryPassword,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create docker backend: %w", err)
-		}
-	case Kubernetes:
-		b, err = kubernetes.New(kubernetes.Config{
-			Logger: logger,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create kubernetes backend: %w", err)
-		}
-	default:
-		return fmt.Errorf("unsupported backend: %s", cfg.Backend)
-	}
-
 	s, err := sync.New(sync.Config{
 		Logger:             logger,
 		Region:             cfg.Region,
@@ -93,14 +68,20 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create sync engine: %w", err)
 	}
 
-	dm := deploymentManager{
-		logger:  logger,
-		backend: b,
+	dc, err := deploymentcontroller.New(deploymentcontroller.Config{
+		Logger: logger,
+		Buffer: s.DeploymentUpdateBuffer,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create deployment controller: %w", err)
 	}
 
-	gm := gatewayManager{
-		logger:  logger,
-		backend: b,
+	gc, err := gatewaycontroller.New(gatewaycontroller.Config{
+		Logger: logger,
+		Buffer: s.GatewayUpdateBuffer,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create gateway controller: %w", err)
 	}
 
 	go func() {
@@ -114,9 +95,9 @@ func Run(ctx context.Context, cfg Config) error {
 				{
 					switch y := x.DeploymentEvent.Event.(type) {
 					case *ctrlv1.DeploymentEvent_Apply:
-						backendErr = dm.HandleApply(ctx, y.Apply)
+						backendErr = dc.ApplyDeployment(ctx, y.Apply)
 					case *ctrlv1.DeploymentEvent_Delete:
-						backendErr = dm.HandleDelete(ctx, y.Delete)
+						backendErr = dc.DeleteDeployment(ctx, y.Delete)
 					}
 
 				}
@@ -125,9 +106,9 @@ func Run(ctx context.Context, cfg Config) error {
 					{
 						switch y := x.GatewayEvent.Event.(type) {
 						case *ctrlv1.GatewayEvent_Apply:
-							backendErr = gm.HandleApply(ctx, y.Apply)
+							backendErr = gc.ApplyGateway(ctx, y.Apply)
 						case *ctrlv1.GatewayEvent_Delete:
-							backendErr = gm.HandleDelete(ctx, y.Delete)
+							backendErr = gc.DeleteGateway(ctx, y.Delete)
 						}
 
 					}

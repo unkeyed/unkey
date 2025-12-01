@@ -106,12 +106,24 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, fmt.Errorf("either build_context_path or docker_image must be specified")
 	}
 
+	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return db.Query.UpdateDeploymentImage(runCtx, w.db.RW(), db.UpdateDeploymentImageParams{
+			ID:        deployment.ID,
+			Image:     sql.NullString{Valid: true, String: dockerImage},
+			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+	}, restate.WithName("update deployment image"))
+	if err != nil {
+		return nil, err
+	}
+
 	// TODO: read this from project config
 	regions := []string{"aws:us-east-1"}
 
 	topologies := make([]db.InsertDeploymentTopologyParams, len(regions))
 	for i, region := range regions {
 		topologies[i] = db.InsertDeploymentTopologyParams{
+			WorkspaceID:  workspace.ID,
 			DeploymentID: deployment.ID,
 			Region:       region,
 			Replicas:     1,
@@ -142,7 +154,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 								ProjectId:     project.ID,
 								EnvironmentId: environment.ID,
 								DeploymentId:  deployment.ID,
-								Image:         req.GetDockerImage(),
+								Image:         dockerImage,
 								Replicas:      1,
 								CpuMillicores: 1024,
 								MemorySizeMib: 1024,
