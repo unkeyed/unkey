@@ -1,6 +1,9 @@
-import { type Table, flexRender } from "@tanstack/react-table";
+"use client";
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+import * as React from "react";
+
+import { type Row, type Table, flexRender } from "@tanstack/react-table";
 import type { VirtualItem } from "@tanstack/react-virtual";
-import type React from "react";
 import { TABLE_CLASS_NAMES } from "../constants";
 import { EmptyState } from "./empty-state";
 import { TableSkeleton } from "./skeleton";
@@ -82,7 +85,7 @@ export function TableBody<TData>({
       )}
 
       {/* Render rows */}
-      {rowsToRender.map((row, index) => {
+      {rowsToRender.map((row: Row<TData> | undefined, index: number) => {
         if (!row) {
           return null;
         }

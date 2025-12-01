@@ -1,3 +1,6 @@
+"use client";
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+import * as React from "react";
 import { DEFAULT_EMPTY_STATE_CONFIG, TABLE_CLASS_NAMES } from "../constants";
 import type { EmptyStateConfig } from "../types";
 
