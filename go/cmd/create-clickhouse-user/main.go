@@ -206,7 +206,6 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		// User exists - update quotas only (preserve password, get retention from quota)
 		logger.Info("updating existing user quotas", "workspace_id", workspaceID, "username", existing.ClickhouseWorkspaceSetting.Username)
 		username = existing.ClickhouseWorkspaceSetting.Username
-		passwordEncrypted = existing.ClickhouseWorkspaceSetting.PasswordEncrypted
 		retentionDays = existing.Quotas.LogsRetentionDays
 		decrypted, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
 			Keyring:   workspaceID,
