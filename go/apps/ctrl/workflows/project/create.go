@@ -39,6 +39,33 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 		return nil, err
 	}
 
+	k8sNamespace := workspace.K8sNamespace.String
+	// This should really be in a dedicated createWorkspace call I think,
+	// but this works for now
+	if k8sNamespace == "" {
+		k8sNamespace, err = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+			name := uid.Nano(12)
+			res, err := db.Query.UpdateWorkspaceK8sNamespace(runCtx, s.db.RW(), db.UpdateWorkspaceK8sNamespaceParams{
+				ID:           workspace.ID,
+				K8sNamespace: sql.NullString{Valid: true, String: name},
+			})
+			if err != nil {
+				return "", err
+			}
+			affected, err := res.RowsAffected()
+			if err != nil {
+				return "", err
+			}
+			if affected != 1 {
+				return "", errors.New("failed to update workspace k8s namespace")
+			}
+			return name, nil
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	projectID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
 		return uid.New(uid.ProjectPrefix), nil
 	}, restate.WithName("generate project ID"))
@@ -46,8 +73,8 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 		return nil, err
 	}
 
-	_, err = restate.Run(ctx, func(runCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.InsertProject(runCtx, s.db.RW(), db.InsertProjectParams{
+	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return db.Query.InsertProject(runCtx, s.db.RW(), db.InsertProjectParams{
 			ID:               projectID,
 			WorkspaceID:      workspace.ID,
 			Name:             req.Name,
@@ -81,8 +108,8 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 			return nil, err
 		}
 
-		_, err = restate.Run(ctx, func(runCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.InsertEnvironment(runCtx, s.db.RW(), db.InsertEnvironmentParams{
+		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+			return db.Query.InsertEnvironment(runCtx, s.db.RW(), db.InsertEnvironmentParams{
 				ID:            environmentID,
 				WorkspaceID:   workspace.ID,
 				ProjectID:     projectID,
@@ -109,10 +136,10 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 			replicas = uint32(3)
 		}
 
-		_, err = restate.Run(ctx, func(runCtx restate.RunContext) (restate.Void, error) {
+		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			_, err := s.krane.CreateGateway(runCtx, connect.NewRequest(&kranev1.CreateGatewayRequest{
 				Gateway: &kranev1.GatewayRequest{
-					Namespace:     workspace.ID,
+					Namespace:     k8sNamespace,
 					WorkspaceId:   workspace.ID,
 					GatewayId:     gatewayID,
 					Image:         "nginx:latest", // TODO
@@ -121,7 +148,7 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 					MemorySizeMib: uint64(256),
 				},
 			}))
-			return restate.Void{}, err
+			return err
 		}, restate.WithName("provision gateway"))
 
 		if err != nil {
