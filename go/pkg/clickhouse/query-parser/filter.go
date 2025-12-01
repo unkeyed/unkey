@@ -14,6 +14,7 @@ func (p *Parser) injectWorkspaceFilter() error {
 				p.injectWorkspaceFilterOnSelect(selectQuery)
 			}
 		}
+
 		return true
 	})
 
@@ -97,6 +98,7 @@ func (p *Parser) selectReferencesTable(stmt *clickhouse.SelectQuery) bool {
 			hasTable = true
 			return false // Stop walking
 		}
+
 		return true
 	})
 
