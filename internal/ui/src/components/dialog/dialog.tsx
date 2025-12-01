@@ -38,10 +38,23 @@ const DialogContent = React.forwardRef<
     showCloseWarning?: boolean;
     onAttemptClose?: () => void;
     xButtonRef?: React.RefObject<HTMLButtonElement>;
+    modal?: boolean;
+    preventOutsideClose?: boolean;
+    showOverlay?: boolean;
   }
 >(
   (
-    { className, children, showCloseWarning = false, onAttemptClose, xButtonRef, ...props },
+    {
+      className,
+      children,
+      showCloseWarning = false,
+      onAttemptClose,
+      xButtonRef,
+      modal = true,
+      preventOutsideClose = false,
+      showOverlay = true,
+      ...props
+    },
     ref,
   ) => {
     const handleCloseAttempt = React.useCallback(() => {
@@ -57,7 +70,16 @@ const DialogContent = React.forwardRef<
 
     return (
       <DialogPortal>
-        <DialogOverlay showCloseWarning={showCloseWarning} onAttemptClose={handleCloseAttempt} />
+        {/* Conditionally render overlay */}
+        {showOverlay &&
+          (modal ? (
+            <DialogOverlay
+              showCloseWarning={showCloseWarning}
+              onAttemptClose={handleCloseAttempt}
+            />
+          ) : (
+            <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+          ))}
         <DialogPrimitive.Content
           ref={ref}
           className={cn(
@@ -71,10 +93,9 @@ const DialogContent = React.forwardRef<
             }
           }}
           onPointerDownOutside={(e) => {
-            // Prevent closing only if warning is active and click is outside content
-            if (showCloseWarning) {
-              // Basic check: If the target is the overlay, it's handled there.
-              // More robust checks might be needed depending on content complexity.
+            if (preventOutsideClose) {
+              e.preventDefault();
+            } else if (showCloseWarning) {
               const contentElement = (e.target as HTMLElement)?.closest('[role="dialog"]');
               if (!contentElement || contentElement !== e.currentTarget) {
                 e.preventDefault();
