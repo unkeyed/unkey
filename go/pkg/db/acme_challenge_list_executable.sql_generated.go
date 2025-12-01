@@ -11,27 +11,27 @@ import (
 )
 
 const listExecutableChallenges = `-- name: ListExecutableChallenges :many
-SELECT dc.workspace_id, dc.type, d.domain FROM acme_challenges dc
+SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
 JOIN custom_domains d ON dc.domain_id = d.id
 WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY)))
-AND dc.type IN (/*SLICE:verification_types*/?)
+AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 ORDER BY d.created_at ASC
 `
 
 type ListExecutableChallengesRow struct {
-	WorkspaceID string             `db:"workspace_id"`
-	Type        AcmeChallengesType `db:"type"`
-	Domain      string             `db:"domain"`
+	WorkspaceID   string                      `db:"workspace_id"`
+	ChallengeType AcmeChallengesChallengeType `db:"challenge_type"`
+	Domain        string                      `db:"domain"`
 }
 
 // ListExecutableChallenges
 //
-//	SELECT dc.workspace_id, dc.type, d.domain FROM acme_challenges dc
+//	SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
 //	JOIN custom_domains d ON dc.domain_id = d.id
 //	WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY)))
-//	AND dc.type IN (/*SLICE:verification_types*/?)
+//	AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 //	ORDER BY d.created_at ASC
-func (q *Queries) ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesType) ([]ListExecutableChallengesRow, error) {
+func (q *Queries) ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error) {
 	query := listExecutableChallenges
 	var queryParams []interface{}
 	if len(verificationTypes) > 0 {
@@ -50,7 +50,7 @@ func (q *Queries) ListExecutableChallenges(ctx context.Context, db DBTX, verific
 	var items []ListExecutableChallengesRow
 	for rows.Next() {
 		var i ListExecutableChallengesRow
-		if err := rows.Scan(&i.WorkspaceID, &i.Type, &i.Domain); err != nil {
+		if err := rows.Scan(&i.WorkspaceID, &i.ChallengeType, &i.Domain); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -1,0 +1,31 @@
+{
+  "name": "@unkey/rbac",
+  "version": "0.3.1",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "license": "MIT",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": ["unkey", "rbac"],
+  "bugs": {
+    "url": "https://github.com/unkeyed/unkey/issues"
+  },
+  "homepage": "https://github.com/unkeyed/unkey#readme",
+  "author": "Andreas Thomas <andreas@chronark.com>",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.9",
+    "@unkey/tsconfig": "workspace:*",
+    "typescript": "5.5.3",
+    "vitest": "1.6.1"
+  },
+  "dependencies": {
+    "@unkey/error": "workspace:^",
+    "zod": "3.23.5"
+  },
+  "type": "module"
+}

@@ -14,10 +14,19 @@ export const LastUsedCell = ({
   keyId: string;
   isSelected: boolean;
 }) => {
-  const { data, isLoading, isError } = trpc.api.keys.latestVerification.useQuery({
-    keyAuthId,
-    keyId,
-  });
+  const { data, isLoading, isError } = trpc.api.keys.latestVerification.useQuery(
+    {
+      keyAuthId,
+      keyId,
+    },
+    {
+      trpc: {
+        context: {
+          skipBatch: true,
+        },
+      },
+    },
+  );
   const badgeRef = useRef<HTMLDivElement>(null);
   const [showTooltip, setShowTooltip] = useState(false);
 

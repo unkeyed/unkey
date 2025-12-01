@@ -5,7 +5,7 @@ INSERT INTO acme_challenges (
     token,
     authorization,
     status,
-    type,
+    challenge_type,
     created_at,
     updated_at,
     expires_at

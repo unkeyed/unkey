@@ -89,6 +89,11 @@ export const useFetchVerificationTimeseries = (keyId: string, keyspaceId: string
 
   const { data, isLoading, isError } = trpc.key.logs.timeseries.useQuery(queryParams, {
     refetchInterval: queryParams.endTime === timestamp ? 10_000 : false,
+    trpc: {
+      context: {
+        skipBatch: true,
+      },
+    },
   });
 
   const timeseries = useMemo(() => {

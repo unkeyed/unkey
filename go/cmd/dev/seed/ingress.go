@@ -127,7 +127,7 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 			K8sServiceName: fmt.Sprintf("gateway-%s", slug),
 			Region:         region,
 			Image:          "unkey/gateway:local",
-			Health:         db.NullGatewaysHealth{GatewaysHealth: db.GatewaysHealthHealthy, Valid: true},
+			Health:         db.GatewaysHealthHealthy,
 			Replicas:       1,
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {

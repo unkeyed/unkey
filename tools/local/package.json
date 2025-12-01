@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "local": "tsx ./src/prepare.ts && tsx ./src/main.ts",
+    "local": "tsx ./src/main.ts",
     "seed": "tsx ./src/seed.ts"
   },
   "keywords": [],
