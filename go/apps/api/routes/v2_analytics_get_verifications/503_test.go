@@ -21,9 +21,19 @@ func Test503_ClickHouseConnectionFailure(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
+	// Create quota first (required for analytics)
+	err := db.Query.UpsertQuota(context.Background(), h.DB.RW(), db.UpsertQuotaParams{
+		WorkspaceID:            workspace.ID,
+		LogsRetentionDays:      30,
+		AuditLogsRetentionDays: 30,
+		RequestsPerMonth:       1_000_000,
+		Team:                   false,
+	})
+	require.NoError(t, err)
+
 	// Set up ClickHouse workspace settings with invalid connection info
 	now := h.Clock.Now().UnixMilli()
-	err := db.Query.InsertClickhouseWorkspaceSettings(context.Background(), h.DB.RW(), db.InsertClickhouseWorkspaceSettingsParams{
+	err = db.Query.InsertClickhouseWorkspaceSettings(context.Background(), h.DB.RW(), db.InsertClickhouseWorkspaceSettingsParams{
 		WorkspaceID:               workspace.ID,
 		Username:                  workspace.ID,
 		PasswordEncrypted:         "invalid_password", // Invalid password will cause connection failure
