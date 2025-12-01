@@ -1,4 +1,5 @@
-import { index, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { challengeType } from "./acme_challenges";
 import { lifecycleDates } from "./util/lifecycle_dates";
 
 export const customDomains = mysqlTable(
@@ -8,7 +9,7 @@ export const customDomains = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
 
     domain: varchar("domain", { length: 256 }).notNull(),
-    challengeType: mysqlEnum("challenge_type", ["dns01", "http01"]).notNull().default("http01"),
+    challengeType: challengeType,
 
     ...lifecycleDates,
   },

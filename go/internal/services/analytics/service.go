@@ -18,14 +18,9 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/vault"
 )
 
-// ConnectionManager is the interface for managing per-workspace ClickHouse connections for analytics
-type ConnectionManager interface {
-	GetConnection(ctx context.Context, workspaceID string) (clickhouse.ClickHouse, db.ClickhouseWorkspaceSetting, error)
-}
-
 // connectionManager is the default implementation that manages per-workspace ClickHouse connections
 type connectionManager struct {
-	settingsCache   cache.Cache[string, db.ClickhouseWorkspaceSetting]
+	settingsCache   cache.Cache[string, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow]
 	connectionCache cache.Cache[string, clickhouse.ClickHouse]
 	database        db.Database
 	logger          logging.Logger
@@ -35,7 +30,7 @@ type connectionManager struct {
 
 // ConnectionManagerConfig contains configuration for the connection manager
 type ConnectionManagerConfig struct {
-	SettingsCache cache.Cache[string, db.ClickhouseWorkspaceSetting]
+	SettingsCache cache.Cache[string, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow]
 	Database      db.Database
 	Logger        logging.Logger
 	Clock         clock.Clock
@@ -85,14 +80,14 @@ func NewConnectionManager(config ConnectionManagerConfig) (ConnectionManager, er
 }
 
 // GetConnection returns a cached connection and settings for the workspace or creates a new one
-func (m *connectionManager) GetConnection(ctx context.Context, workspaceID string) (clickhouse.ClickHouse, db.ClickhouseWorkspaceSetting, error) {
+func (m *connectionManager) GetConnection(ctx context.Context, workspaceID string) (clickhouse.ClickHouse, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
 	// Try to get cached connection
 	conn, hit := m.connectionCache.Get(ctx, workspaceID)
 	if hit == cache.Hit {
 		// Still need to get settings
 		settings, err := m.getSettings(ctx, workspaceID)
 		if err != nil {
-			return nil, db.ClickhouseWorkspaceSetting{}, err
+			return nil, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{}, err
 		}
 
 		return conn, settings, nil
@@ -101,7 +96,7 @@ func (m *connectionManager) GetConnection(ctx context.Context, workspaceID strin
 	// Create new connection
 	conn, settings, err := m.createConnection(ctx, workspaceID)
 	if err != nil {
-		return nil, db.ClickhouseWorkspaceSetting{}, err
+		return nil, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{}, err
 	}
 
 	// Store in cache
@@ -111,28 +106,20 @@ func (m *connectionManager) GetConnection(ctx context.Context, workspaceID strin
 }
 
 // getSettings retrieves the workspace settings from cache
-func (m *connectionManager) getSettings(ctx context.Context, workspaceID string) (db.ClickhouseWorkspaceSetting, error) {
-	settings, hit, err := m.settingsCache.SWR(ctx, workspaceID, func(ctx context.Context) (db.ClickhouseWorkspaceSetting, error) {
+func (m *connectionManager) getSettings(ctx context.Context, workspaceID string) (db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
+	settings, hit, err := m.settingsCache.SWR(ctx, workspaceID, func(ctx context.Context) (db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
 		return db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(ctx, m.database.RO(), workspaceID)
 	}, caches.DefaultFindFirstOp)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return db.ClickhouseWorkspaceSetting{}, fault.New(
-				"workspace settings not found",
-				fault.Public("ClickHouse analytics is not configured for this workspace"),
-				fault.Code(codes.Data.Analytics.NotConfigured.URN()),
-			)
-		}
-
-		return db.ClickhouseWorkspaceSetting{}, fault.Wrap(err,
+	if err != nil && !db.IsNotFound(err) {
+		return db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{}, fault.Wrap(err,
 			fault.Public("Failed to fetch workspace analytics configuration"),
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 		)
 	}
 
-	if hit == cache.Null {
-		return db.ClickhouseWorkspaceSetting{}, fault.New(
-			"workspace settings null",
+	if hit == cache.Null || db.IsNotFound(err) {
+		return db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{}, fault.New(
+			"workspace settings not found or null",
 			fault.Public("ClickHouse analytics is not configured for this workspace"),
 			fault.Code(codes.Data.Analytics.NotConfigured.URN()),
 		)
@@ -142,19 +129,19 @@ func (m *connectionManager) getSettings(ctx context.Context, workspaceID string)
 }
 
 // createConnection creates a new ClickHouse connection for a workspace
-func (m *connectionManager) createConnection(ctx context.Context, workspaceID string) (clickhouse.ClickHouse, db.ClickhouseWorkspaceSetting, error) {
+func (m *connectionManager) createConnection(ctx context.Context, workspaceID string) (clickhouse.ClickHouse, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
 	settings, err := m.getSettings(ctx, workspaceID)
 	if err != nil {
-		return nil, db.ClickhouseWorkspaceSetting{}, err
+		return nil, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{}, err
 	}
 
 	// Decrypt password using vault
 	decrypted, err := m.vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-		Encrypted: settings.PasswordEncrypted,
-		Keyring:   settings.WorkspaceID,
+		Encrypted: settings.ClickhouseWorkspaceSetting.PasswordEncrypted,
+		Keyring:   settings.ClickhouseWorkspaceSetting.WorkspaceID,
 	})
 	if err != nil {
-		return nil, db.ClickhouseWorkspaceSetting{}, fault.Wrap(err,
+		return nil, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{}, fault.Wrap(err,
 			fault.Public("Failed to connect to ClickHouse analytics database"),
 			fault.Code(codes.Data.Analytics.ConnectionFailed.URN()),
 		)
@@ -163,41 +150,24 @@ func (m *connectionManager) createConnection(ctx context.Context, workspaceID st
 	// Parse base URL and inject workspace-specific credentials
 	parsedURL, err := url.Parse(m.baseURL)
 	if err != nil {
-		return nil, db.ClickhouseWorkspaceSetting{}, fault.Wrap(err,
+		return nil, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{}, fault.Wrap(err,
 			fault.Public("Invalid ClickHouse URL configuration"),
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 		)
 	}
 
 	// Inject workspace credentials
-	parsedURL.User = url.UserPassword(settings.Username, decrypted.GetPlaintext())
+	parsedURL.User = url.UserPassword(settings.ClickhouseWorkspaceSetting.Username, decrypted.GetPlaintext())
 	conn, err := clickhouse.New(clickhouse.Config{
 		URL:    parsedURL.String(),
 		Logger: m.logger,
 	})
 	if err != nil {
-		return nil, db.ClickhouseWorkspaceSetting{}, fault.Wrap(err,
+		return nil, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{}, fault.Wrap(err,
 			fault.Public("Failed to connect to ClickHouse analytics database"),
 			fault.Code(codes.Data.Analytics.ConnectionFailed.URN()),
 		)
 	}
 
 	return conn, settings, nil
-}
-
-// noopConnectionManager is a no-op implementation that returns errors indicating analytics is not configured
-type noopConnectionManager struct{}
-
-// NewNoopConnectionManager creates a new no-op connection manager for when analytics is not configured
-func NewNoopConnectionManager() ConnectionManager {
-	return &noopConnectionManager{}
-}
-
-// GetConnection always returns an error indicating analytics is not configured
-func (m *noopConnectionManager) GetConnection(ctx context.Context, workspaceID string) (clickhouse.ClickHouse, db.ClickhouseWorkspaceSetting, error) {
-	return nil, db.ClickhouseWorkspaceSetting{}, fault.New(
-		"analytics not configured",
-		fault.Code(codes.Data.Analytics.NotConfigured.URN()),
-		fault.Public("Analytics are not configured for this instance"),
-	)
 }

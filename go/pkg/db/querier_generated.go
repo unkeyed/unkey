@@ -131,7 +131,7 @@ type Querier interface {
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
 	//FindAcmeChallengeByToken
 	//
-	//  SELECT domain_id, workspace_id, token, type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
+	//  SELECT domain_id, workspace_id, token, challenge_type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
 	FindAcmeChallengeByToken(ctx context.Context, db DBTX, arg FindAcmeChallengeByTokenParams) (AcmeChallenge, error)
 	//FindAcmeUserByWorkspaceID
 	//
@@ -158,9 +158,13 @@ type Querier interface {
 	FindCertificatesByHostnames(ctx context.Context, db DBTX, hostnames []string) ([]Certificate, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
-	//  SELECT workspace_id, username, password_encrypted, quota_duration_seconds, max_queries_per_window, max_execution_time_per_window, max_query_execution_time, max_query_memory_bytes, max_query_result_rows, created_at, updated_at FROM `clickhouse_workspace_settings`
-	//  WHERE workspace_id = ?
-	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (ClickhouseWorkspaceSetting, error)
+	//  SELECT
+	//      c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
+	//      q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
+	//  FROM `clickhouse_workspace_settings` c
+	//  JOIN `quota` q ON c.workspace_id = q.workspace_id
+	//  WHERE c.workspace_id = ?
+	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
 	//FindCustomDomainByDomain
 	//
 	//  SELECT
@@ -207,12 +211,12 @@ type Querier interface {
 	FindEnvironmentById(ctx context.Context, db DBTX, id string) (FindEnvironmentByIdRow, error)
 	//FindEnvironmentByProjectIdAndSlug
 	//
-	//  SELECT id, workspace_id, project_id, slug, description
+	//  SELECT id, workspace_id, project_id, slug, description, gateway_config, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE workspace_id = ?
 	//    AND project_id = ?
 	//    AND slug = ?
-	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (FindEnvironmentByProjectIdAndSlugRow, error)
+	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
 	//FindGatewaysByEnvironmentID
 	//
 	//  SELECT id, workspace_id, environment_id, k8s_service_name, region, image, health, replicas FROM gateways WHERE environment_id = ?
@@ -813,6 +817,12 @@ type Querier interface {
 	//  WHERE workspace_id = ? AND slug = ?
 	//  LIMIT 1
 	FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (FindProjectByWorkspaceSlugRow, error)
+	//FindQuotaByWorkspaceID
+	//
+	//  SELECT workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team
+	//  FROM `quota`
+	//  WHERE workspace_id = ?
+	FindQuotaByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Quotum, error)
 	//FindRatelimitNamespace
 	//
 	//  SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
@@ -941,7 +951,7 @@ type Querier interface {
 	//      token,
 	//      authorization,
 	//      status,
-	//      type,
+	//      challenge_type,
 	//      created_at,
 	//      updated_at,
 	//      expires_at
@@ -1101,10 +1111,12 @@ type Querier interface {
 	//      git_commit_timestamp, -- Unix epoch milliseconds
 	//      openapi_spec,
 	//      status,
+	//      gateway_config,
 	//      created_at,
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1153,9 +1165,10 @@ type Querier interface {
 	//      slug,
 	//      description,
 	//      created_at,
-	//      updated_at
+	//      updated_at,
+	//      gateway_config
 	//  ) VALUES (
-	//      ?, ?, ?, ?, ?, ?, ?
+	//      ?, ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertEnvironment(ctx context.Context, db DBTX, arg InsertEnvironmentParams) error
 	//InsertGateway
@@ -1556,12 +1569,12 @@ type Querier interface {
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
 	//ListExecutableChallenges
 	//
-	//  SELECT dc.workspace_id, dc.type, d.domain FROM acme_challenges dc
+	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
 	//  JOIN custom_domains d ON dc.domain_id = d.id
 	//  WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY)))
-	//  AND dc.type IN (/*SLICE:verification_types*/?)
+	//  AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC
-	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesType) ([]ListExecutableChallengesRow, error)
+	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error)
 	//ListIdentities
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at

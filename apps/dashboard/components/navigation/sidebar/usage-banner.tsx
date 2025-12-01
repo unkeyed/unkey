@@ -18,6 +18,13 @@ export const UsageBanner: React.FC<Props> = ({ quotas }) => {
   const usage = trpc.billing.queryUsage.useQuery(undefined, {
     refetchOnMount: true,
     refetchInterval: 60 * 1000,
+    // Skip batching to prevent analytics slowdown from blocking core UI
+    trpc: {
+      context: {
+        skipBatch: true,
+      },
+    },
+    retry: 1,
   });
 
   const current = usage.data?.billableTotal ?? 0;

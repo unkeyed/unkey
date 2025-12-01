@@ -283,9 +283,6 @@ importers:
       '@unkey/keys':
         specifier: workspace:^
         version: link:../../internal/keys
-      '@unkey/proto':
-        specifier: workspace:^
-        version: link:../../internal/proto
       '@unkey/ratelimit':
         specifier: 2.1.3
         version: 2.1.3

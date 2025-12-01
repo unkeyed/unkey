@@ -28,12 +28,13 @@ func (k *k8s) GetGateway(ctx context.Context, req *connect.Request[kranev1.GetGa
 	}
 
 	k8sgatewayID := safeIDForK8s(req.Msg.GetGatewayId())
+	namespace := safeIDForK8s(req.Msg.GetNamespace())
 
 	k.logger.Info("getting gateway", "gateway_id", k8sgatewayID)
 
 	// Get the deployment by name (gateway_id)
 	// nolint: exhaustruct
-	deployment, err := k.clientset.AppsV1().Deployments(req.Msg.GetNamespace()).Get(ctx, k8sgatewayID, metav1.GetOptions{})
+	deployment, err := k.clientset.AppsV1().Deployments(namespace).Get(ctx, k8sgatewayID, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", k8sgatewayID))
@@ -56,16 +57,16 @@ func (k *k8s) GetGateway(ctx context.Context, req *connect.Request[kranev1.GetGa
 	}
 
 	// Get the service to retrieve port info
-	service, err := k.clientset.CoreV1().Services(req.Msg.GetNamespace()).Get(ctx, k8sgatewayID, metav1.GetOptions{})
+	service, err := k.clientset.CoreV1().Services(namespace).Get(ctx, k8sgatewayID, metav1.GetOptions{})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not load service %s: %w", k8sgatewayID, err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not load service: %s", k8sgatewayID))
 	}
 	var port int32 = 8080 // default
 	if len(service.Spec.Ports) > 0 {
 		port = service.Spec.Ports[0].Port
 	}
 
-	pods, err := k.clientset.CoreV1().Pods(req.Msg.GetNamespace()).List(ctx, metav1.ListOptions{
+	pods, err := k.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: metav1.FormatLabelSelector(&metav1.LabelSelector{
 			MatchExpressions: nil,
 			MatchLabels:      deployment.Spec.Selector.MatchLabels,

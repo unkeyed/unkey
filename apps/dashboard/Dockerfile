@@ -7,10 +7,6 @@ RUN npm install -g pnpm
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 
-# Packages
-COPY ./packages/cache/package.json ./packages/cache/package.json
-COPY ./packages/error/package.json ./packages/error/package.json
-COPY ./packages/rbac/package.json ./packages/rbac/package.json
 
 # Apps
 COPY ./apps/dashboard/package.json ./apps/dashboard/package.json
@@ -33,6 +29,8 @@ COPY ./internal/ui/package.json ./internal/ui/package.json
 COPY ./internal/validation/package.json ./internal/validation/package.json
 COPY ./internal/vault/package.json ./internal/vault/package.json
 COPY ./internal/vercel/package.json ./internal/vercel/package.json
+COPY ./internal/error/package.json ./internal/error/package.json
+COPY ./internal/rbac/package.json ./internal/rbac/package.json
 
 # Install dependencies
 RUN pnpm install -r
@@ -40,7 +38,6 @@ RUN pnpm install -r
 # Copy code
 COPY ./apps/dashboard ./apps/dashboard
 COPY ./internal ./internal
-COPY ./packages ./packages
 
 # Build
 RUN pnpm turbo run build --filter=@unkey/dashboard
