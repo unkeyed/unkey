@@ -100,8 +100,7 @@ func (s *service) SelectGateway(route *db.IngressRoute, gateways []db.Gateway) (
 	healthyByRegion := make(map[string]*db.Gateway)
 	for i := range gateways {
 		gw := &gateways[i]
-		if !gw.Health.Valid ||
-			gw.Health.GatewaysHealth != db.GatewaysHealthHealthy {
+		if gw.Health != db.GatewaysHealthHealthy {
 			continue
 		}
 

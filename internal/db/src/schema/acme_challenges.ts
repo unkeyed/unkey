@@ -4,24 +4,26 @@ import { customDomains } from "./custom_domains";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
+export const challengeType = mysqlEnum("challenge_type", ["HTTP-01", "DNS-01"]).notNull();
+
 export const acmeChallenges = mysqlTable(
   "acme_challenges",
   {
     domainId: varchar("domain_id", { length: 255 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     token: varchar("token", { length: 255 }).notNull(),
-    type: mysqlEnum("type", ["HTTP-01", "DNS-01"]).notNull(),
+    type: challengeType,
     authorization: varchar("authorization", { length: 255 }).notNull(),
     status: mysqlEnum("status", ["waiting", "pending", "verified", "failed"]).notNull(),
     expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
 
     ...lifecycleDates,
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.domainId] }),
-    workspaceIdx: index("workspace_idx").on(table.workspaceId),
-    statusIdx: index("status_idx").on(table.status),
-  }),
+  (table) => [
+    primaryKey({ columns: [table.domainId] }),
+    index("workspace_idx").on(table.workspaceId),
+    index("status_idx").on(table.status),
+  ],
 );
 
 export const acmeChallengeRelations = relations(acmeChallenges, ({ one }) => ({

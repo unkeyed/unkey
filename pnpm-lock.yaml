@@ -74,7 +74,7 @@ importers:
         version: link:../../internal/encryption
       '@unkey/error':
         specifier: workspace:^
-        version: link:../../packages/error
+        version: link:../../internal/error
       '@unkey/hash':
         specifier: workspace:^
         version: link:../../internal/hash
@@ -92,7 +92,7 @@ importers:
         version: link:../../internal/metrics
       '@unkey/rbac':
         specifier: workspace:^
-        version: link:../../packages/rbac
+        version: link:../../internal/rbac
       '@unkey/schema':
         specifier: workspace:^
         version: link:../../internal/schema
@@ -267,7 +267,7 @@ importers:
         version: link:../../internal/encryption
       '@unkey/error':
         specifier: workspace:^
-        version: link:../../packages/error
+        version: link:../../internal/error
       '@unkey/events':
         specifier: workspace:^
         version: link:../../internal/events
@@ -283,15 +283,12 @@ importers:
       '@unkey/keys':
         specifier: workspace:^
         version: link:../../internal/keys
-      '@unkey/proto':
-        specifier: workspace:^
-        version: link:../../internal/proto
       '@unkey/ratelimit':
         specifier: 2.1.3
         version: 2.1.3
       '@unkey/rbac':
         specifier: workspace:^
-        version: link:../../packages/rbac
+        version: link:../../internal/rbac
       '@unkey/resend':
         specifier: workspace:^
         version: link:../../internal/resend
@@ -614,7 +611,7 @@ importers:
         version: 1.5.2(ws@8.18.3)
       '@unkey/error':
         specifier: workspace:^
-        version: link:../../packages/error
+        version: link:../error
       ai:
         specifier: 3.0.23
         version: 3.0.23(react@18.3.1)(solid-js@1.9.9)(svelte@4.2.20)(vue@3.5.22)(zod@3.23.8)
@@ -654,7 +651,7 @@ importers:
         version: 1.11.1
       '@unkey/error':
         specifier: workspace:^
-        version: link:../../packages/error
+        version: link:../error
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -725,7 +722,7 @@ importers:
         version: link:../encoding
       '@unkey/error':
         specifier: workspace:^
-        version: link:../../packages/error
+        version: link:../error
     devDependencies:
       drizzle-kit:
         specifier: 0.31.4
@@ -736,6 +733,19 @@ importers:
       vitest:
         specifier: 1.6.1
         version: 1.6.1(@types/node@22.14.0)(@vitest/ui@3.2.4)(jsdom@26.0.0)
+
+  internal/error:
+    dependencies:
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+    devDependencies:
+      '@types/node':
+        specifier: 20.14.9
+        version: 20.14.9
+      typescript:
+        specifier: 5.5.3
+        version: 5.5.3
 
   internal/events:
     dependencies:
@@ -863,6 +873,28 @@ importers:
       typescript:
         specifier: 5.7.3
         version: 5.7.3
+
+  internal/rbac:
+    dependencies:
+      '@unkey/error':
+        specifier: workspace:^
+        version: link:../error
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+    devDependencies:
+      '@types/node':
+        specifier: 20.14.9
+        version: 20.14.9
+      '@unkey/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      typescript:
+        specifier: 5.5.3
+        version: 5.5.3
+      vitest:
+        specifier: 1.6.1
+        version: 1.6.1(@types/node@20.14.9)(@vitest/ui@3.2.4)
 
   internal/resend:
     dependencies:
@@ -1057,7 +1089,7 @@ importers:
     dependencies:
       '@unkey/error':
         specifier: workspace:^
-        version: link:../../packages/error
+        version: link:../error
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -1086,7 +1118,7 @@ importers:
         version: 1.4.1
       '@unkey/error':
         specifier: workspace:^
-        version: link:../error
+        version: link:../../internal/error
       superjson:
         specifier: 2.2.1
         version: 2.2.1
@@ -1109,47 +1141,6 @@ importers:
       vitest:
         specifier: 3.2.4
         version: 3.2.4(@types/node@20.14.9)(@vitest/ui@3.2.4)
-
-  packages/error:
-    dependencies:
-      zod:
-        specifier: 3.23.8
-        version: 3.23.8
-    devDependencies:
-      '@types/node':
-        specifier: 20.14.9
-        version: 20.14.9
-      tsup:
-        specifier: 8.0.2
-        version: 8.0.2(typescript@5.5.3)
-      typescript:
-        specifier: 5.5.3
-        version: 5.5.3
-
-  packages/rbac:
-    dependencies:
-      '@unkey/error':
-        specifier: workspace:^
-        version: link:../error
-      zod:
-        specifier: 3.23.8
-        version: 3.23.8
-    devDependencies:
-      '@types/node':
-        specifier: 20.14.9
-        version: 20.14.9
-      '@unkey/tsconfig':
-        specifier: workspace:*
-        version: link:../../internal/tsconfig
-      tsup:
-        specifier: 8.0.2
-        version: 8.0.2(typescript@5.5.3)
-      typescript:
-        specifier: 5.5.3
-        version: 5.5.3
-      vitest:
-        specifier: 1.6.1
-        version: 1.6.1(@types/node@20.14.9)(@vitest/ui@3.2.4)
 
   tools/k6:
     devDependencies:
@@ -23462,7 +23453,7 @@ packages:
       execa: 5.1.1
       globby: 11.1.0
       joycon: 3.1.1
-      postcss-load-config: 4.0.2(postcss@8.5.6)
+      postcss-load-config: 4.0.2(postcss@8.4.45)
       resolve-from: 5.0.0
       rollup: 4.52.5
       source-map: 0.8.0-beta.0
