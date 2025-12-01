@@ -19,7 +19,6 @@ import (
 )
 
 func TestMigrateKeysSuccess(t *testing.T) {
-	t.Parallel()
 
 	h := testutil.NewHarness(t)
 	ctx := context.Background()
@@ -83,7 +82,6 @@ func TestMigrateKeysSuccess(t *testing.T) {
 	}
 
 	t.Run("basic migration", func(t *testing.T) {
-		t.Parallel()
 		req := handler.Request{
 			ApiId:       api.ID,
 			MigrationId: "unkeyed",
