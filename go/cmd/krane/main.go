@@ -22,30 +22,60 @@ EXAMPLES:
 unkey run krane                                   # Run with default configuration`,
 	Flags: []cli.Flag{
 		// Server Configuration
-		cli.Int("http-port", "Port for the server to listen on. Default: 8080",
-			cli.Default(8080), cli.EnvVar("UNKEY_HTTP_PORT")),
+		cli.String("control-plane-url",
+			"URL of the control plane to connect to",
+			cli.Default("https://control.unkey.cloud"),
+			cli.EnvVar("UNKEY_CONTROL_PLANE_URL"),
+		),
+		cli.String("control-plane-bearer",
+			"Bearer token for authenticating with the control plane",
+			cli.Default(""),
+			cli.EnvVar("UNKEY_CONTROL_PLANE_BEARER"),
+		),
 
 		// Instance Identification
-		cli.String("instance-id", "Unique identifier for this instance. Auto-generated if not provided.",
-			cli.Default(uid.New(uid.InstancePrefix, 4)), cli.EnvVar("UNKEY_INSTANCE_ID")),
+		cli.String("instance-id",
+			"Unique identifier for this instance. Auto-generated if not provided.",
+			cli.Default(uid.New(uid.InstancePrefix, 4)),
+			cli.EnvVar("UNKEY_INSTANCE_ID"),
+		),
+		cli.String("region",
+			"The cloud region with platform, e.g. aws:us-east-1",
+			cli.Required(),
+			cli.EnvVar("UNKEY_REGION"),
+		),
+		cli.String("image",
+			"The docker image running",
+			cli.Required(),
+			cli.EnvVar("UNKEY_IMAGE"),
+		),
 
-		cli.String("backend", "Backend type for the service. Either kubernetes or docker. Default: kubernetes",
-			cli.Default("kubernetes"), cli.EnvVar("UNKEY_KRANE_BACKEND")),
+		cli.String("backend",
+			"Backend type for the service. Either kubernetes or docker. Default: kubernetes",
+			cli.Default("kubernetes"),
+			cli.EnvVar("UNKEY_KRANE_BACKEND"),
+		),
 
-		cli.String("docker-socket", "Path to the docker socket. Only used if backend is docker. Default: /var/run/docker.sock",
-			cli.Default("/var/run/docker.sock"), cli.EnvVar("UNKEY_DOCKER_SOCKET")),
+		cli.String("docker-socket",
+			"Path to the docker socket. Only used if backend is docker. Default: /var/run/docker.sock",
+			cli.Default("/var/run/docker.sock"),
+			cli.EnvVar("UNKEY_DOCKER_SOCKET"),
+		),
 
-		cli.String("registry-url", "URL of the container registry for pulling images. Example: registry.depot.dev",
-			cli.EnvVar("UNKEY_REGISTRY_URL")),
+		cli.String("registry-url",
+			"URL of the container registry for pulling images. Example: registry.depot.dev",
+			cli.EnvVar("UNKEY_REGISTRY_URL"),
+		),
 
-		cli.String("registry-username", "Username for authenticating with the container registry.",
-			cli.EnvVar("UNKEY_REGISTRY_USERNAME")),
+		cli.String("registry-username",
+			"Username for authenticating with the container registry.",
+			cli.EnvVar("UNKEY_REGISTRY_USERNAME"),
+		),
 
-		cli.String("registry-password", "Password/token for authenticating with the container registry.",
-			cli.EnvVar("UNKEY_REGISTRY_PASSWORD")),
-
-		// This has no use outside of our demo cluster and will be removed soon
-		cli.Duration("deployment-eviction-ttl", "Automatically delete deployments after some time. Use go duration formats such as 2h30m", cli.EnvVar("UNKEY_DEPLOYMENT_EVICTION_TTL")),
+		cli.String("registry-password",
+			"Password/token for authenticating with the container registry.",
+			cli.EnvVar("UNKEY_REGISTRY_PASSWORD"),
+		),
 	},
 	Action: action,
 }
@@ -58,10 +88,10 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 	config := krane.Config{
 		Clock:                 nil,
-		HttpPort:              cmd.Int("http-port"),
+		ControlPlaneURL:       cmd.String("control-plane-url"),
+		ControlPlaneBearer:    cmd.String("control-plane-bearer"),
 		Backend:               backend,
-		Platform:              cmd.String("platform"),
-		Image:                 cmd.String("image"),
+		Image:                 cmd.RequireString("image"),
 		Region:                cmd.String("region"),
 		OtelEnabled:           false,
 		OtelTraceSamplingRate: 1.0,
@@ -70,7 +100,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		RegistryURL:           cmd.String("registry-url"),
 		RegistryUsername:      cmd.String("registry-username"),
 		RegistryPassword:      cmd.String("registry-password"),
-		DeploymentEvictionTTL: cmd.Duration("deployment-eviction-ttl"),
 	}
 
 	// Validate configuration
@@ -83,7 +112,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 	return krane.Run(ctx, config)
 }
 
-func parseBackend(s string) (krane.Backend, error) {
+func parseBackend(s string) (krane.BackendName, error) {
 	switch s {
 	case "docker":
 		return krane.Docker, nil

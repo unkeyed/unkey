@@ -1,4 +1,3 @@
-import type { Deployment } from "@/lib/collections/deploy/deployments";
 import type { Project } from "@/lib/collections/deploy/projects";
 import { db, sql } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
@@ -16,7 +15,6 @@ type ProjectRow = {
   git_commit_author_handle: string | null;
   git_commit_author_avatar_url: string | null;
   git_commit_timestamp: number | null;
-  runtime_config: Deployment["runtimeConfig"] | null;
   domain: string | null;
   latest_deployment_id: string | null;
 };
@@ -40,7 +38,6 @@ export const listProjects = t.procedure
         ${deployments.gitCommitAuthorHandle},
         ${deployments.gitCommitAuthorAvatarUrl},
         ${deployments.gitCommitTimestamp},
-        ${deployments.runtimeConfig},
         ${ingressRoutes.hostname},
         (
           SELECT id
@@ -73,7 +70,7 @@ export const listProjects = t.procedure
         author: row.git_commit_author_handle,
         commitTimestamp: Number(row.git_commit_timestamp),
         authorAvatar: row.git_commit_author_avatar_url,
-        regions: row.runtime_config?.regions?.map((r) => r.region) ?? ["us-east-1"],
+        regions: ["aws:us-east-1"],
         domain: row.domain,
         latestDeploymentId: row.latest_deployment_id,
       }),

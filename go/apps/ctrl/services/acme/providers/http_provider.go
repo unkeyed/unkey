@@ -50,7 +50,7 @@ func (p *HTTPProvider) Present(domain, token, keyAuth string) error {
 		Status:        db.AcmeChallengesStatusPending,
 		Token:         token,
 		Authorization: keyAuth,
-		UpdatedAt:     sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 	})
 
 	if err != nil {
@@ -74,7 +74,7 @@ func (p *HTTPProvider) CleanUp(domain, token, keyAuth string) error {
 	err = db.Query.ClearAcmeChallengeTokens(ctx, p.db.RW(), db.ClearAcmeChallengeTokensParams{
 		Token:         "", // Clear token
 		Authorization: "", // Clear authorization
-		UpdatedAt:     sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		DomainID:      dom.ID,
 	})
 

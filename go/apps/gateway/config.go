@@ -12,8 +12,6 @@ type Config struct {
 	// handles all of them based on the deployment ID passed in each request
 	EnvironmentID string
 
-	Platform string
-
 	Region string
 
 	HttpPort int

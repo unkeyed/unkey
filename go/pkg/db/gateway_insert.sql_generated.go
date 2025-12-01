@@ -14,12 +14,20 @@ INSERT INTO gateways (
     id,
     workspace_id,
     environment_id,
+    project_id,
     k8s_service_name,
     region,
     image,
     health,
-    replicas
+    replicas,
+    cpu_millicores,
+    memory_mib,
+    created_at
 ) VALUES (
+    ?,
+    ?,
+    ?,
+    ?,
     ?,
     ?,
     ?,
@@ -30,18 +38,23 @@ INSERT INTO gateways (
     ?
 ) ON DUPLICATE KEY UPDATE
     health = VALUES(health),
-    replicas = VALUES(replicas)
+    replicas = VALUES(replicas),
+  updated_at = VALUES(updated_at)
 `
 
 type InsertGatewayParams struct {
 	ID             string         `db:"id"`
 	WorkspaceID    string         `db:"workspace_id"`
 	EnvironmentID  string         `db:"environment_id"`
+	ProjectID      string         `db:"project_id"`
 	K8sServiceName string         `db:"k8s_service_name"`
 	Region         string         `db:"region"`
 	Image          string         `db:"image"`
 	Health         GatewaysHealth `db:"health"`
 	Replicas       int32          `db:"replicas"`
+	CpuMillicores  int32          `db:"cpu_millicores"`
+	MemoryMib      int32          `db:"memory_mib"`
+	CreatedAt      int64          `db:"created_at"`
 }
 
 // InsertGateway
@@ -50,12 +63,20 @@ type InsertGatewayParams struct {
 //	    id,
 //	    workspace_id,
 //	    environment_id,
+//	    project_id,
 //	    k8s_service_name,
 //	    region,
 //	    image,
 //	    health,
-//	    replicas
+//	    replicas,
+//	    cpu_millicores,
+//	    memory_mib,
+//	    created_at
 //	) VALUES (
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -66,17 +87,22 @@ type InsertGatewayParams struct {
 //	    ?
 //	) ON DUPLICATE KEY UPDATE
 //	    health = VALUES(health),
-//	    replicas = VALUES(replicas)
+//	    replicas = VALUES(replicas),
+//	  updated_at = VALUES(updated_at)
 func (q *Queries) InsertGateway(ctx context.Context, db DBTX, arg InsertGatewayParams) error {
 	_, err := db.ExecContext(ctx, insertGateway,
 		arg.ID,
 		arg.WorkspaceID,
 		arg.EnvironmentID,
+		arg.ProjectID,
 		arg.K8sServiceName,
 		arg.Region,
 		arg.Image,
 		arg.Health,
 		arg.Replicas,
+		arg.CpuMillicores,
+		arg.MemoryMib,
+		arg.CreatedAt,
 	)
 	return err
 }

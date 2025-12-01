@@ -1,9 +1,9 @@
 package deploy
 
 import (
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/cluster"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
@@ -24,7 +24,7 @@ type Workflow struct {
 	hydrav1.UnimplementedDeploymentServiceServer
 	db            db.Database
 	logger        logging.Logger
-	krane         kranev1connect.DeploymentServiceClient
+	cluster       *cluster.Service
 	buildClient   ctrlv1connect.BuildServiceClient
 	defaultDomain string
 }
@@ -39,8 +39,8 @@ type Config struct {
 	// DB is the main database connection for workspace, project, and deployment data.
 	DB db.Database
 
-	// Krane is the client for container orchestration operations.
-	Krane kranev1connect.DeploymentServiceClient
+	// Cluster is the client for container orchestration operations.
+	Cluster *cluster.Service
 
 	// BuildClient is the client for building Docker images from source.
 	BuildClient ctrlv1connect.BuildServiceClient
@@ -55,7 +55,7 @@ func New(cfg Config) *Workflow {
 		UnimplementedDeploymentServiceServer: hydrav1.UnimplementedDeploymentServiceServer{},
 		db:                                   cfg.DB,
 		logger:                               cfg.Logger,
-		krane:                                cfg.Krane,
+		cluster:                              cfg.Cluster,
 		buildClient:                          cfg.BuildClient,
 		defaultDomain:                        cfg.DefaultDomain,
 	}

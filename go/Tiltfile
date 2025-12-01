@@ -26,7 +26,6 @@ start_observability = 'all' in services or 'observability' in services
 start_planetscale = 'all' in services or 'planetscale' in services
 start_restate = 'all' in services or 'restate' in services
 start_api = 'all' in services or 'api' in services
-start_gw = 'all' in services or 'gateway' in services or 'gw' in services
 start_ctrl = 'all' in services or 'ctrl' in services
 start_krane = 'all' in services or 'krane' in services
 start_dashboard = 'all' in services or 'dashboard' in services
@@ -34,6 +33,15 @@ start_dashboard = 'all' in services or 'dashboard' in services
 # Apply RBAC
 k8s_yaml('k8s/manifests/rbac.yaml')
 
+# Registry Proxy service (always needed for pulling images from depot)
+print("Setting up Registry Proxy...")
+k8s_yaml('k8s/manifests/registry-proxy.yaml')
+k8s_resource(
+    'registry-proxy',
+    port_forwards='5000:5000',
+    resource_deps=[],
+    labels=['infrastructure']
+)
 # Redis service
 redis_started = False
 if start_api:  # Redis is needed by API service
@@ -141,7 +149,7 @@ if start_observability:
     )
 
 # Build Unkey binary locally (independent of infrastructure)
-if start_api or start_gw or start_ctrl or start_krane:
+if start_api or start_ctrl or start_krane:
     print("Building Unkey binary...")
     # Build locally first for faster updates
     local_resource(
@@ -164,7 +172,7 @@ if start_api:
         live_update=[
             sync('./bin/unkey', '/unkey'),
         ],
-        ignore=['./cmd/gw', './cmd/ctrl', './apps/gw', './apps/ctrl']
+        ignore=['./cmd/ctrl', './apps/ctrl']
     )
 
     k8s_yaml('k8s/manifests/api.yaml')
@@ -187,38 +195,6 @@ if start_api:
         trigger_mode=TRIGGER_MODE_MANUAL if debug_mode else TRIGGER_MODE_AUTO
     )
 
-# Gateway service (1 replica)
-if start_gw:
-    print("Setting up Gateway service...")
-
-    docker_build_with_restart(
-        'unkey-gw:latest',
-        '.',
-        dockerfile='Dockerfile.tilt',
-        entrypoint=['/unkey', 'run', 'gw'],
-        only=['./bin'],
-        live_update=[
-            sync('./bin/unkey', '/unkey'),
-        ],
-        ignore=['./cmd/api', './cmd/ctrl', './apps/api', './apps/ctrl']
-    )
-
-    k8s_yaml('k8s/manifests/gw.yaml')
-
-    # Build dependency list
-    gw_deps = []
-    if start_mysql: gw_deps.append('mysql')
-    # Add compilation dependency for Unkey services
-    gw_deps.append('unkey-compile')
-
-    k8s_resource(
-        'gw',
-        port_forwards=['8080:8080', '8443:8443'],
-        resource_deps=gw_deps,
-        labels=['unkey'],
-        auto_init=True,
-        trigger_mode=TRIGGER_MODE_MANUAL if debug_mode else TRIGGER_MODE_AUTO
-    )
 
 # Ctrl service (1 replica)
 if start_ctrl:
@@ -233,7 +209,7 @@ if start_ctrl:
         live_update=[
             sync('./bin/unkey', '/unkey'),
         ],
-        ignore=['./cmd/api', './cmd/gw', './apps/api', './apps/gw']
+        ignore=['./cmd/api', './apps/api']
     )
 
     k8s_yaml('k8s/manifests/ctrl.yaml')
@@ -268,7 +244,7 @@ if start_krane:
         live_update=[
             sync('./bin/unkey', '/unkey'),
         ],
-        ignore=['./cmd/api', './cmd/gw', './cmd/ctrl', './apps/api', './apps/gw', './apps/ctrl']
+        ignore=['./cmd/api', './cmd/ctrl', './apps/api', './apps/ctrl']
     )
 
     k8s_yaml('k8s/manifests/krane.yaml')
@@ -326,7 +302,6 @@ if start_planetscale: active_services.append('planetscale')
 if start_observability: active_services.extend(['prometheus', 'otel-collector'])
 if start_restate: active_services.append('restate')
 if start_api: active_services.append('api')
-if start_gw: active_services.append('gw')
 if start_ctrl: active_services.append('ctrl')
 if start_dashboard: active_services.append('dashboard')
 

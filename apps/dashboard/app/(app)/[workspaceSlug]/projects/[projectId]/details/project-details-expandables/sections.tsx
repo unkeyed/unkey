@@ -35,8 +35,6 @@ export type DetailSection = {
 export const createDetailSections = (
   details: Deployment & { repository: string | null },
 ): DetailSection[] => {
-  const vmCount = details.runtimeConfig.regions.reduce((acc, region) => acc + region.vmCount, 0);
-
   return [
     {
       title: "OpenAPI changes",
@@ -123,8 +121,7 @@ export const createDetailSections = (
           label: "Instances",
           content: (
             <div className="text-grayA-10">
-              <span className="text-gray-12 font-medium">{vmCount}</span>{" "}
-              {vmCount === 1 ? "VM" : "VMs"}
+              <span className="text-gray-12 font-medium">TODO</span>
             </div>
           ),
         },
@@ -134,12 +131,12 @@ export const createDetailSections = (
           alignment: "start",
           content: (
             <div className="flex flex-wrap gap-1 font-medium">
-              {details.runtimeConfig.regions.map((region) => (
+              {["us-east-1"].map((region) => (
                 <span
-                  key={region.region}
+                  key={region}
                   className="px-1.5 py-1 bg-grayA-3 rounded text-gray-12 text-xs font-mono"
                 >
-                  {region.region}
+                  {region}
                 </span>
               ))}
             </div>
@@ -150,8 +147,7 @@ export const createDetailSections = (
           label: "CPU",
           content: (
             <div className="text-grayA-10">
-              <span className="text-gray-12 font-medium">{details.runtimeConfig.cpus}</span>{" "}
-              {details.runtimeConfig.cpus === 1 ? "vCPU" : "vCPUs"}
+              <span className="text-gray-12 font-medium">TODO</span> vCPUs
             </div>
           ),
         },
@@ -160,7 +156,7 @@ export const createDetailSections = (
           label: "Memory",
           content: (
             <div className="text-grayA-10">
-              <span className="text-gray-12 font-medium">{details.runtimeConfig.memory}</span> MB
+              <span className="text-gray-12 font-medium">TODO</span> MB
             </div>
           ),
         },

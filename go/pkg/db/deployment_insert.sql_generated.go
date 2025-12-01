@@ -8,7 +8,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 )
 
 const insertDeployment = `-- name: InsertDeployment :exec
@@ -19,7 +18,6 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     environment_id,
     git_commit_sha,
     git_branch,
-    runtime_config,
     gateway_config,
     git_commit_message,
     git_commit_author_handle,
@@ -27,9 +25,9 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     git_commit_timestamp, -- Unix epoch milliseconds
     openapi_spec,
     status,
-    gateway_config,
-    created_at,
-    updated_at
+    cpu_millicores,
+		memory_mib,
+    created_at
 )
 VALUES (
     ?,
@@ -46,9 +44,8 @@ VALUES (
     ?,
     ?,
     ?,
-    ?,
-    ?,
-    ?
+		?,
+		?
 )
 `
 
@@ -59,7 +56,6 @@ type InsertDeploymentParams struct {
 	EnvironmentID            string            `db:"environment_id"`
 	GitCommitSha             sql.NullString    `db:"git_commit_sha"`
 	GitBranch                sql.NullString    `db:"git_branch"`
-	RuntimeConfig            json.RawMessage   `db:"runtime_config"`
 	GatewayConfig            []byte            `db:"gateway_config"`
 	GitCommitMessage         sql.NullString    `db:"git_commit_message"`
 	GitCommitAuthorHandle    sql.NullString    `db:"git_commit_author_handle"`
@@ -67,8 +63,9 @@ type InsertDeploymentParams struct {
 	GitCommitTimestamp       sql.NullInt64     `db:"git_commit_timestamp"`
 	OpenapiSpec              sql.NullString    `db:"openapi_spec"`
 	Status                   DeploymentsStatus `db:"status"`
+	CpuMillicores            int32             `db:"cpu_millicores"`
+	MemoryMib                int32             `db:"memory_mib"`
 	CreatedAt                int64             `db:"created_at"`
-	UpdatedAt                sql.NullInt64     `db:"updated_at"`
 }
 
 // InsertDeployment
@@ -80,7 +77,6 @@ type InsertDeploymentParams struct {
 //	    environment_id,
 //	    git_commit_sha,
 //	    git_branch,
-//	    runtime_config,
 //	    gateway_config,
 //	    git_commit_message,
 //	    git_commit_author_handle,
@@ -88,9 +84,9 @@ type InsertDeploymentParams struct {
 //	    git_commit_timestamp, -- Unix epoch milliseconds
 //	    openapi_spec,
 //	    status,
-//	    gateway_config,
-//	    created_at,
-//	    updated_at
+//	    cpu_millicores,
+//			memory_mib,
+//	    created_at
 //	)
 //	VALUES (
 //	    ?,
@@ -107,9 +103,8 @@ type InsertDeploymentParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
-//	    ?,
-//	    ?,
-//	    ?
+//			?,
+//			?
 //	)
 func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeploymentParams) error {
 	_, err := db.ExecContext(ctx, insertDeployment,
@@ -119,7 +114,6 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.EnvironmentID,
 		arg.GitCommitSha,
 		arg.GitBranch,
-		arg.RuntimeConfig,
 		arg.GatewayConfig,
 		arg.GitCommitMessage,
 		arg.GitCommitAuthorHandle,
@@ -127,9 +121,9 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.GitCommitTimestamp,
 		arg.OpenapiSpec,
 		arg.Status,
-		arg.GatewayConfig,
+		arg.CpuMillicores,
+		arg.MemoryMib,
 		arg.CreatedAt,
-		arg.UpdatedAt,
 	)
 	return err
 }

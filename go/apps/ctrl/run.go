@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/build/backend/depot"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/build/backend/docker"
 	buildStorage "github.com/unkeyed/unkey/go/apps/ctrl/services/build/storage"
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/cluster"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
@@ -24,10 +25,8 @@ import (
 	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/deploy"
 	projectWorkflow "github.com/unkeyed/unkey/go/apps/ctrl/workflows/project"
 	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/routing"
-	deployTLS "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel"
@@ -120,61 +119,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	shutdowns.Register(database.Close)
 
-	// Create krane client for VM operations
-	var httpClient *http.Client
-	var authMode string
-
-	if cfg.SPIFFESocketPath != "" {
-		// Use SPIRE authentication when socket path is provided
-		tlsConfig := deployTLS.Config{
-			Mode:              deployTLS.ModeSPIFFE,
-			SPIFFESocketPath:  cfg.SPIFFESocketPath,
-			CertFile:          "",
-			KeyFile:           "",
-			CAFile:            "",
-			SPIFFETimeout:     "",
-			EnableCertCaching: false,
-			CertCacheTTL:      0,
-		}
-
-		tlsProvider, tlsErr := deployTLS.NewProvider(ctx, tlsConfig)
-		if tlsErr != nil {
-			return fmt.Errorf("failed to create TLS provider for krane: %w", tlsErr)
-		}
-
-		httpClient = tlsProvider.HTTPClient()
-		authMode = "SPIRE"
-	} else {
-		// Fall back to plain HTTP for local development
-		httpClient = &http.Client{}
-		authMode = "plain HTTP"
-	}
-
-	httpClient.Timeout = 30 * time.Second
-
-	kraneDeploymentClient := kranev1connect.NewDeploymentServiceClient(
-		httpClient,
-		cfg.KraneAddress,
-		connect.WithInterceptors(connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
-			return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-				req.Header().Set("Authorization", "Bearer dev_user_ctrl")
-				return next(ctx, req)
-			}
-		})),
-	)
-
-	kraneGatewayClient := kranev1connect.NewGatewayServiceClient(
-		httpClient,
-		cfg.KraneAddress,
-		connect.WithInterceptors(connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
-			return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-				req.Header().Set("Authorization", "Bearer dev_user_ctrl")
-				return next(ctx, req)
-			}
-		})),
-	)
-	logger.Info("krane client configured", "address", cfg.KraneAddress, "auth_mode", authMode)
-
 	buildStorage, err := buildStorage.NewS3(buildStorage.S3Config{
 		Logger:            logger,
 		S3URL:             cfg.BuildS3.URL,
@@ -227,6 +171,11 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unknown build backend: %s (must be 'docker' or 'depot')", cfg.BuildBackend)
 	}
 
+	clusterSvc := cluster.New(cluster.Config{
+		Database: database,
+		Logger:   logger,
+	})
+
 	// Restate Client and Server
 	restateClient := restateIngress.NewClient(cfg.Restate.IngressURL)
 	restateSrv := restateServer.NewRestate()
@@ -234,7 +183,7 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploy.New(deploy.Config{
 		Logger:        logger,
 		DB:            database,
-		Krane:         kraneDeploymentClient,
+		Cluster:       clusterSvc,
 		BuildClient:   buildService,
 		DefaultDomain: cfg.DefaultDomain,
 	})))
@@ -251,9 +200,9 @@ func Run(ctx context.Context, cfg Config) error {
 		Vault:  vaultSvc,
 	})))
 	restateSrv.Bind(hydrav1.NewProjectServiceServer(projectWorkflow.New(projectWorkflow.Config{
-		Logger: logger,
-		DB:     database,
-		Krane:  kraneGatewayClient,
+		Logger:  logger,
+		DB:      database,
+		Cluster: clusterSvc,
 	})))
 
 	go func() {
@@ -348,6 +297,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:     database,
 		Logger: logger,
 	}), connectOptions...))
+	mux.Handle(ctrlv1connect.NewClusterServiceHandler(clusterSvc, connectOptions...))
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)
@@ -371,11 +321,10 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	server := &http.Server{
-		Addr:         addr,
-		Handler:      h2cHandler,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		Addr:              addr,
+		Handler:           h2cHandler,
+		ReadHeaderTimeout: 30 * time.Second,
+		// Do not set timeouts here, our streaming rpcs will get canceled too frequently
 	}
 
 	// Register server shutdown

@@ -27,10 +27,6 @@ var Cmd = &cli.Command{
 		cli.Bool("tls-enabled", "Enable TLS termination for the ingress. Default: true",
 			cli.Default(true), cli.EnvVar("UNKEY_TLS_ENABLED")),
 
-		// Instance Identification
-		cli.String("platform", "Cloud platform identifier for this node. Used for logging and metrics.",
-			cli.EnvVar("UNKEY_PLATFORM")),
-
 		cli.String("image", "Container image identifier. Used for logging and metrics.",
 			cli.EnvVar("UNKEY_IMAGE")),
 
@@ -97,7 +93,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 	config := ingress.Config{
 		// Basic configuration
 		IngressID: cmd.String("ingress-id"),
-		Platform:  cmd.String("platform"),
 		Image:     cmd.String("image"),
 		Region:    cmd.String("region"),
 

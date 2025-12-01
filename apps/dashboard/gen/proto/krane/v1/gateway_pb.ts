@@ -2,18 +2,15 @@
 // @generated from file krane/v1/gateway.proto (package krane.v1, syntax proto3)
 /* eslint-disable */
 
-import type { Message } from "@bufbuild/protobuf";
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file krane/v1/gateway.proto.
  */
-export const file_krane_v1_gateway: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChZrcmFuZS92MS9nYXRld2F5LnByb3RvEghrcmFuZS52MSKfAQoOR2F0ZXdheVJlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEhQKDHdvcmtzcGFjZV9pZBgCIAEoCRISCgpnYXRld2F5X2lkGAMgASgJEg0KBWltYWdlGAQgASgJEhAKCHJlcGxpY2FzGAUgASgNEhYKDmNwdV9taWxsaWNvcmVzGAYgASgNEhcKD21lbW9yeV9zaXplX21pYhgHIAEoBCJBChRDcmVhdGVHYXRld2F5UmVxdWVzdBIpCgdnYXRld2F5GAEgASgLMhgua3JhbmUudjEuR2F0ZXdheVJlcXVlc3QiQAoVQ3JlYXRlR2F0ZXdheVJlc3BvbnNlEicKBnN0YXR1cxgBIAEoDjIXLmtyYW5lLnYxLkdhdGV3YXlTdGF0dXMiQQoUVXBkYXRlR2F0ZXdheVJlcXVlc3QSKQoHZ2F0ZXdheRgBIAEoCzIYLmtyYW5lLnYxLkdhdGV3YXlSZXF1ZXN0IigKFVVwZGF0ZUdhdGV3YXlSZXNwb25zZRIPCgdwb2RfaWRzGAEgAygJIj0KFERlbGV0ZUdhdGV3YXlSZXF1ZXN0EhEKCW5hbWVzcGFjZRgBIAEoCRISCgpnYXRld2F5X2lkGAIgASgJIhcKFURlbGV0ZUdhdGV3YXlSZXNwb25zZSI6ChFHZXRHYXRld2F5UmVxdWVzdBIRCgluYW1lc3BhY2UYASABKAkSEgoKZ2F0ZXdheV9pZBgCIAEoCSJTChJHZXRHYXRld2F5UmVzcG9uc2USDwoHYWRkcmVzcxgBIAEoCRIsCglpbnN0YW5jZXMYAiADKAsyGS5rcmFuZS52MS5HYXRld2F5SW5zdGFuY2UiRgoPR2F0ZXdheUluc3RhbmNlEgoKAmlkGAEgASgJEicKBnN0YXR1cxgCIAEoDjIXLmtyYW5lLnYxLkdhdGV3YXlTdGF0dXMqhwEKDUdhdGV3YXlTdGF0dXMSHgoaR0FURVdBWV9TVEFUVVNfVU5TUEVDSUZJRUQQABIaChZHQVRFV0FZX1NUQVRVU19QRU5ESU5HEAESGgoWR0FURVdBWV9TVEFUVVNfUlVOTklORxACEh4KGkdBVEVXQVlfU1RBVFVTX1RFUk1JTkFUSU5HEAMy/QEKDkdhdGV3YXlTZXJ2aWNlElAKDUNyZWF0ZUdhdGV3YXkSHi5rcmFuZS52MS5DcmVhdGVHYXRld2F5UmVxdWVzdBofLmtyYW5lLnYxLkNyZWF0ZUdhdGV3YXlSZXNwb25zZRJHCgpHZXRHYXRld2F5Ehsua3JhbmUudjEuR2V0R2F0ZXdheVJlcXVlc3QaHC5rcmFuZS52MS5HZXRHYXRld2F5UmVzcG9uc2USUAoNRGVsZXRlR2F0ZXdheRIeLmtyYW5lLnYxLkRlbGV0ZUdhdGV3YXlSZXF1ZXN0Gh8ua3JhbmUudjEuRGVsZXRlR2F0ZXdheVJlc3BvbnNlQpUBCgxjb20ua3JhbmUudjFCDEdhdGV3YXlQcm90b1ABWjZnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2tyYW5lL3YxO2tyYW5ldjGiAgNLWFiqAghLcmFuZS5WMcoCCEtyYW5lXFYx4gIUS3JhbmVcVjFcR1BCTWV0YWRhdGHqAglLcmFuZTo6VjFiBnByb3RvMw",
-  );
+export const file_krane_v1_gateway: GenFile = /*@__PURE__*/
+  fileDesc("ChZrcmFuZS92MS9nYXRld2F5LnByb3RvEghrcmFuZS52MSKfAQoOR2F0ZXdheVJlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEhQKDHdvcmtzcGFjZV9pZBgCIAEoCRISCgpnYXRld2F5X2lkGAMgASgJEg0KBWltYWdlGAQgASgJEhAKCHJlcGxpY2FzGAUgASgNEhYKDmNwdV9taWxsaWNvcmVzGAYgASgNEhcKD21lbW9yeV9zaXplX21pYhgHIAEoBCJBChRDcmVhdGVHYXRld2F5UmVxdWVzdBIpCgdnYXRld2F5GAEgASgLMhgua3JhbmUudjEuR2F0ZXdheVJlcXVlc3QiQAoVQ3JlYXRlR2F0ZXdheVJlc3BvbnNlEicKBnN0YXR1cxgBIAEoDjIXLmtyYW5lLnYxLkdhdGV3YXlTdGF0dXMiQQoUVXBkYXRlR2F0ZXdheVJlcXVlc3QSKQoHZ2F0ZXdheRgBIAEoCzIYLmtyYW5lLnYxLkdhdGV3YXlSZXF1ZXN0IigKFVVwZGF0ZUdhdGV3YXlSZXNwb25zZRIPCgdwb2RfaWRzGAEgAygJIj0KFERlbGV0ZUdhdGV3YXlSZXF1ZXN0EhEKCW5hbWVzcGFjZRgBIAEoCRISCgpnYXRld2F5X2lkGAIgASgJIhcKFURlbGV0ZUdhdGV3YXlSZXNwb25zZSI6ChFHZXRHYXRld2F5UmVxdWVzdBIRCgluYW1lc3BhY2UYASABKAkSEgoKZ2F0ZXdheV9pZBgCIAEoCSJTChJHZXRHYXRld2F5UmVzcG9uc2USDwoHYWRkcmVzcxgBIAEoCRIsCglpbnN0YW5jZXMYAiADKAsyGS5rcmFuZS52MS5HYXRld2F5SW5zdGFuY2UiRgoPR2F0ZXdheUluc3RhbmNlEgoKAmlkGAEgASgJEicKBnN0YXR1cxgCIAEoDjIXLmtyYW5lLnYxLkdhdGV3YXlTdGF0dXMqhwEKDUdhdGV3YXlTdGF0dXMSHgoaR0FURVdBWV9TVEFUVVNfVU5TUEVDSUZJRUQQABIaChZHQVRFV0FZX1NUQVRVU19QRU5ESU5HEAESGgoWR0FURVdBWV9TVEFUVVNfUlVOTklORxACEh4KGkdBVEVXQVlfU1RBVFVTX1RFUk1JTkFUSU5HEAMy/QEKDkdhdGV3YXlTZXJ2aWNlElAKDUNyZWF0ZUdhdGV3YXkSHi5rcmFuZS52MS5DcmVhdGVHYXRld2F5UmVxdWVzdBofLmtyYW5lLnYxLkNyZWF0ZUdhdGV3YXlSZXNwb25zZRJHCgpHZXRHYXRld2F5Ehsua3JhbmUudjEuR2V0R2F0ZXdheVJlcXVlc3QaHC5rcmFuZS52MS5HZXRHYXRld2F5UmVzcG9uc2USUAoNRGVsZXRlR2F0ZXdheRIeLmtyYW5lLnYxLkRlbGV0ZUdhdGV3YXlSZXF1ZXN0Gh8ua3JhbmUudjEuRGVsZXRlR2F0ZXdheVJlc3BvbnNlQpUBCgxjb20ua3JhbmUudjFCDEdhdGV3YXlQcm90b1ABWjZnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2tyYW5lL3YxO2tyYW5ldjGiAgNLWFiqAghLcmFuZS5WMcoCCEtyYW5lXFYx4gIUS3JhbmVcVjFcR1BCTWV0YWRhdGHqAglLcmFuZTo6VjFiBnByb3RvMw");
 
 /**
  * @generated from message krane.v1.GatewayRequest
@@ -59,8 +56,7 @@ export type GatewayRequest = Message<"krane.v1.GatewayRequest"> & {
  * Describes the message krane.v1.GatewayRequest.
  * Use `create(GatewayRequestSchema)` to create a new message.
  */
-export const GatewayRequestSchema: GenMessage<GatewayRequest> =
-  /*@__PURE__*/
+export const GatewayRequestSchema: GenMessage<GatewayRequest> = /*@__PURE__*/
   messageDesc(file_krane_v1_gateway, 0);
 
 /**
@@ -77,8 +73,7 @@ export type CreateGatewayRequest = Message<"krane.v1.CreateGatewayRequest"> & {
  * Describes the message krane.v1.CreateGatewayRequest.
  * Use `create(CreateGatewayRequestSchema)` to create a new message.
  */
-export const CreateGatewayRequestSchema: GenMessage<CreateGatewayRequest> =
-  /*@__PURE__*/
+export const CreateGatewayRequestSchema: GenMessage<CreateGatewayRequest> = /*@__PURE__*/
   messageDesc(file_krane_v1_gateway, 1);
 
 /**
@@ -95,8 +90,7 @@ export type CreateGatewayResponse = Message<"krane.v1.CreateGatewayResponse"> & 
  * Describes the message krane.v1.CreateGatewayResponse.
  * Use `create(CreateGatewayResponseSchema)` to create a new message.
  */
-export const CreateGatewayResponseSchema: GenMessage<CreateGatewayResponse> =
-  /*@__PURE__*/
+export const CreateGatewayResponseSchema: GenMessage<CreateGatewayResponse> = /*@__PURE__*/
   messageDesc(file_krane_v1_gateway, 2);
 
 /**
@@ -113,8 +107,7 @@ export type UpdateGatewayRequest = Message<"krane.v1.UpdateGatewayRequest"> & {
  * Describes the message krane.v1.UpdateGatewayRequest.
  * Use `create(UpdateGatewayRequestSchema)` to create a new message.
  */
-export const UpdateGatewayRequestSchema: GenMessage<UpdateGatewayRequest> =
-  /*@__PURE__*/
+export const UpdateGatewayRequestSchema: GenMessage<UpdateGatewayRequest> = /*@__PURE__*/
   messageDesc(file_krane_v1_gateway, 3);
 
 /**
@@ -131,8 +124,7 @@ export type UpdateGatewayResponse = Message<"krane.v1.UpdateGatewayResponse"> & 
  * Describes the message krane.v1.UpdateGatewayResponse.
  * Use `create(UpdateGatewayResponseSchema)` to create a new message.
  */
-export const UpdateGatewayResponseSchema: GenMessage<UpdateGatewayResponse> =
-  /*@__PURE__*/
+export const UpdateGatewayResponseSchema: GenMessage<UpdateGatewayResponse> = /*@__PURE__*/
   messageDesc(file_krane_v1_gateway, 4);
 
 /**
@@ -154,21 +146,20 @@ export type DeleteGatewayRequest = Message<"krane.v1.DeleteGatewayRequest"> & {
  * Describes the message krane.v1.DeleteGatewayRequest.
  * Use `create(DeleteGatewayRequestSchema)` to create a new message.
  */
-export const DeleteGatewayRequestSchema: GenMessage<DeleteGatewayRequest> =
-  /*@__PURE__*/
+export const DeleteGatewayRequestSchema: GenMessage<DeleteGatewayRequest> = /*@__PURE__*/
   messageDesc(file_krane_v1_gateway, 5);
 
 /**
  * @generated from message krane.v1.DeleteGatewayResponse
  */
-export type DeleteGatewayResponse = Message<"krane.v1.DeleteGatewayResponse"> & {};
+export type DeleteGatewayResponse = Message<"krane.v1.DeleteGatewayResponse"> & {
+};
 
 /**
  * Describes the message krane.v1.DeleteGatewayResponse.
  * Use `create(DeleteGatewayResponseSchema)` to create a new message.
  */
-export const DeleteGatewayResponseSchema: GenMessage<DeleteGatewayResponse> =
-  /*@__PURE__*/
+export const DeleteGatewayResponseSchema: GenMessage<DeleteGatewayResponse> = /*@__PURE__*/
   messageDesc(file_krane_v1_gateway, 6);
 
 /**
@@ -190,8 +181,7 @@ export type GetGatewayRequest = Message<"krane.v1.GetGatewayRequest"> & {
  * Describes the message krane.v1.GetGatewayRequest.
  * Use `create(GetGatewayRequestSchema)` to create a new message.
  */
-export const GetGatewayRequestSchema: GenMessage<GetGatewayRequest> =
-  /*@__PURE__*/
+export const GetGatewayRequestSchema: GenMessage<GetGatewayRequest> = /*@__PURE__*/
   messageDesc(file_krane_v1_gateway, 7);
 
 /**
@@ -213,8 +203,7 @@ export type GetGatewayResponse = Message<"krane.v1.GetGatewayResponse"> & {
  * Describes the message krane.v1.GetGatewayResponse.
  * Use `create(GetGatewayResponseSchema)` to create a new message.
  */
-export const GetGatewayResponseSchema: GenMessage<GetGatewayResponse> =
-  /*@__PURE__*/
+export const GetGatewayResponseSchema: GenMessage<GetGatewayResponse> = /*@__PURE__*/
   messageDesc(file_krane_v1_gateway, 8);
 
 /**
@@ -236,8 +225,7 @@ export type GatewayInstance = Message<"krane.v1.GatewayInstance"> & {
  * Describes the message krane.v1.GatewayInstance.
  * Use `create(GatewayInstanceSchema)` to create a new message.
  */
-export const GatewayInstanceSchema: GenMessage<GatewayInstance> =
-  /*@__PURE__*/
+export const GatewayInstanceSchema: GenMessage<GatewayInstance> = /*@__PURE__*/
   messageDesc(file_krane_v1_gateway, 9);
 
 /**
@@ -274,8 +262,7 @@ export enum GatewayStatus {
 /**
  * Describes the enum krane.v1.GatewayStatus.
  */
-export const GatewayStatusSchema: GenEnum<GatewayStatus> =
-  /*@__PURE__*/
+export const GatewayStatusSchema: GenEnum<GatewayStatus> = /*@__PURE__*/
   enumDesc(file_krane_v1_gateway, 0);
 
 /**
@@ -291,7 +278,7 @@ export const GatewayService: GenService<{
     methodKind: "unary";
     input: typeof CreateGatewayRequestSchema;
     output: typeof CreateGatewayResponseSchema;
-  };
+  },
   /**
    * GetGateway
    *
@@ -301,7 +288,7 @@ export const GatewayService: GenService<{
     methodKind: "unary";
     input: typeof GetGatewayRequestSchema;
     output: typeof GetGatewayResponseSchema;
-  };
+  },
   /**
    * DeleteGateway
    *
@@ -311,5 +298,7 @@ export const GatewayService: GenService<{
     methodKind: "unary";
     input: typeof DeleteGatewayRequestSchema;
     output: typeof DeleteGatewayResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_krane_v1_gateway, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_krane_v1_gateway, 0);
+

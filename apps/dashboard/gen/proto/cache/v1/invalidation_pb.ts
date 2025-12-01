@@ -2,18 +2,15 @@
 // @generated from file cache/v1/invalidation.proto (package cache.v1, syntax proto3)
 /* eslint-disable */
 
-import type { Message } from "@bufbuild/protobuf";
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file cache/v1/invalidation.proto.
  */
-export const file_cache_v1_invalidation: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChtjYWNoZS92MS9pbnZhbGlkYXRpb24ucHJvdG8SCGNhY2hlLnYxImsKFkNhY2hlSW52YWxpZGF0aW9uRXZlbnQSEgoKY2FjaGVfbmFtZRgBIAEoCRIRCgljYWNoZV9rZXkYAiABKAkSEQoJdGltZXN0YW1wGAMgASgDEhcKD3NvdXJjZV9pbnN0YW5jZRgEIAEoCUKaAQoMY29tLmNhY2hlLnYxQhFJbnZhbGlkYXRpb25Qcm90b1ABWjZnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2NhY2hlL3YxO2NhY2hldjGiAgNDWFiqAghDYWNoZS5WMcoCCENhY2hlXFYx4gIUQ2FjaGVcVjFcR1BCTWV0YWRhdGHqAglDYWNoZTo6VjFiBnByb3RvMw",
-  );
+export const file_cache_v1_invalidation: GenFile = /*@__PURE__*/
+  fileDesc("ChtjYWNoZS92MS9pbnZhbGlkYXRpb24ucHJvdG8SCGNhY2hlLnYxImsKFkNhY2hlSW52YWxpZGF0aW9uRXZlbnQSEgoKY2FjaGVfbmFtZRgBIAEoCRIRCgljYWNoZV9rZXkYAiABKAkSEQoJdGltZXN0YW1wGAMgASgDEhcKD3NvdXJjZV9pbnN0YW5jZRgEIAEoCUKaAQoMY29tLmNhY2hlLnYxQhFJbnZhbGlkYXRpb25Qcm90b1ABWjZnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2NhY2hlL3YxO2NhY2hldjGiAgNDWFiqAghDYWNoZS5WMcoCCENhY2hlXFYx4gIUQ2FjaGVcVjFcR1BCTWV0YWRhdGHqAglDYWNoZTo6VjFiBnByb3RvMw");
 
 /**
  * CacheInvalidationEvent represents a cache invalidation event
@@ -54,6 +51,6 @@ export type CacheInvalidationEvent = Message<"cache.v1.CacheInvalidationEvent"> 
  * Describes the message cache.v1.CacheInvalidationEvent.
  * Use `create(CacheInvalidationEventSchema)` to create a new message.
  */
-export const CacheInvalidationEventSchema: GenMessage<CacheInvalidationEvent> =
-  /*@__PURE__*/
+export const CacheInvalidationEventSchema: GenMessage<CacheInvalidationEvent> = /*@__PURE__*/
   messageDesc(file_cache_v1_invalidation, 0);
+

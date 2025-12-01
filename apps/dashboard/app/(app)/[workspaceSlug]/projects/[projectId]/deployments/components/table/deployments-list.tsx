@@ -129,17 +129,12 @@ export const DeploymentsList = () => {
               key: "instances" as const,
               header: "Instances",
               width: "10%",
-              render: ({ deployment }: { deployment: Deployment }) => {
+              render: () => {
                 return (
                   <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
                     <Cube className="text-gray-12" iconSize="sm-regular" />
                     <div className="flex gap-0.5">
-                      <span className="font-semibold text-grayA-12 tabular-nums">
-                        {deployment.runtimeConfig.regions.reduce(
-                          (acc, region) => acc + region.vmCount,
-                          0,
-                        )}
-                      </span>
+                      <span className="font-semibold text-grayA-12 tabular-nums">TODO</span>
                       <span>VMs</span>
                     </div>
                   </div>
@@ -150,22 +145,18 @@ export const DeploymentsList = () => {
               key: "size" as const,
               header: "Size",
               width: "10%",
-              render: ({ deployment }: { deployment: Deployment }) => {
+              render: () => {
                 return (
                   <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
                     <Cube className="text-gray-12" iconSize="sm-regular" />
                     <div className="flex gap-1">
                       <div className="flex gap-0.5">
-                        <span className="font-semibold text-grayA-12 tabular-nums">
-                          {deployment.runtimeConfig.cpus}
-                        </span>
+                        <span className="font-semibold text-grayA-12 tabular-nums">TODO</span>
                         <span>CPU</span>
                       </div>
                       <span> / </span>
                       <div className="flex gap-0.5">
-                        <span className="font-semibold text-grayA-12 tabular-nums">
-                          {deployment.runtimeConfig.memory}
-                        </span>
+                        <span className="font-semibold text-grayA-12 tabular-nums">TODO</span>
                         <span>MB</span>
                       </div>
                     </div>
