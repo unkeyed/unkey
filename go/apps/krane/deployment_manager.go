@@ -14,7 +14,7 @@ type deploymentManager struct {
 }
 
 func (m *deploymentManager) HandleApply(ctx context.Context, event *ctrlv1.ApplyDeployment) error {
-	return m.backend.CreateDeployment(ctx, backend.CreateDeploymentRequest{
+	return m.backend.ApplyDeployment(ctx, backend.ApplyDeploymentRequest{
 		Namespace:     event.GetNamespace(),
 		WorkspaceID:   event.GetWorkspaceId(),
 		ProjectID:     event.GetProjectId(),

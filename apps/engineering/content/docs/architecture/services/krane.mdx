@@ -1,34 +1,60 @@
 ---
 title: Krane
-description: Kubernetes deployment orchestration service
+description: Kubernetes cluster agent for deployment orchestration
 ---
 
 import { Mermaid } from "@/app/components/mermaid";
 
 **Location:** `go/apps/krane/`
 **CLI Command:** [`unkey run krane`](/cli/run/krane)
-**Protocol:** Connect RPC (HTTP/2)
-**Proto:** `go/proto/krane/v1/deployment.proto`
+**Control Plane Client:** Connect RPC (HTTP/2)
+**Proto Definition:** `go/proto/ctrl/v1/cluster.proto`
 
 ## What It Does
 
-Krane is the deployment backend for ctrl. When ctrl needs to deploy a container, it calls Krane instead of talking directly to Kubernetes or Docker. This abstraction lets us deploy containers into multiple clusters across regions without replicating the heavy control plane.
+Krane is a Kubernetes cluster agent that follows a pull-based model similar to the Kubernetes kubelet. It connects to the control plane (ctrl) and maintains a long-lived streaming connection to receive deployment and gateway configuration events. This architecture enables multi-cluster orchestration without the control plane needing direct access to individual clusters.
 
-Krane handles three operations: create deployments with resource limits, query deployment status, and delete deployments. Deployments are labeled for easy management and cleanup.
+Krane pulls desired state from ctrl and ensures the actual cluster state matches. It handles deployment and gateway lifecycle operations (create, update, delete) by translating high-level events into Kubernetes resources or Docker containers.
 
 ## Architecture
 
+### Pull-Based Model
+
+Krane implements a pull-based architecture where agents in each cluster:
+
+1. **Establish a Watch Stream**: Connect to ctrl's ClusterService and maintain a long-lived streaming connection
+2. **Pull Desired State**: Periodically sync the full desired state to ensure consistency
+3. **Receive Real-Time Events**: Get deployment and gateway events pushed through the watch stream
+4. **Apply Changes Locally**: Translate events into Kubernetes resources or Docker containers
+
+This model eliminates the need for the control plane to know about individual clusters, improving security and scalability.
+
 ### Backend Abstraction
 
-Krane supports two backends with the same RPC interface. Kubernetes uses StatefulSets and headless Services for production multi-node clusters. Docker uses the Engine API for single-node local development.
+Krane supports two backends for resource management. The Kubernetes backend creates StatefulSets and Services in production clusters. The Docker backend manages containers directly for local development.
 
-Ctrl doesn't know which backend Krane uses. It calls `CreateDeployment` with an image and resources, and Krane handles the platform details.
+The control plane sends abstract deployment and gateway events. Krane translates these into platform-specific resources based on the configured backend.
+
+### Event-Driven Synchronization
+
+The sync engine (`sync/`) manages the connection to the control plane:
+
+1. **Watch Stream**: Maintains a persistent connection to receive real-time events
+2. **Pull Sync**: Periodically, pulls the complete desired state as a safety net
+3. **Event Buffer**: Queues events for processing with configurable capacity
+4. **Automatic Reconnection**: Handles connection failures with exponential backoff
+
+Events flow through the system:
+- Control plane emits `InfraEvent` messages containing `ApplyDeployment` or `DeleteDeployment`
+- Krane's sync engine receives and buffers these events
+- The deployment manager processes events and calls the appropriate backend
+- The backend translates events into platform-specific resources
 
 ### Why StatefulSets Instead of Deployments?
 
-We use StatefulSets for stateless containers, which is unusual. Ctrl and gateways expect each instance to have a stable DNS address that doesn't change when pods restart.
+We use StatefulSets for stateless containers, which is unusual. The system expects each instance to have a stable DNS address that doesn't change when pods restart.
 
-StatefulSets guarantee this. Each pod gets a predictable name (`dep-abc-0`) and DNS record (`dep-abc-0.dep-abc.unkey.svc.cluster.local`). Ctrl registers these addresses in the database for gateway routing.
+StatefulSets guarantee this. Each pod gets a predictable name (`dep-abc-0`) and DNS record (`dep-abc-0.dep-abc.unkey.svc.cluster.local`). The control plane tracks these addresses for service discovery and routing.
 
 Standard Deployments use random pod names and changing DNS addresses. This works fine behind a load balancer, but our current architecture needs stable instance addressing.
 
@@ -38,39 +64,38 @@ This is a known design compromise. Future versions might move instance addressin
 
 <Mermaid chart={`sequenceDiagram
     autonumber
+    participant User
     participant Ctrl as Control Plane
-    participant Krane
+    participant DB as Database
+    participant Krane as Krane Agent
     participant K8s as Kubernetes API
     participant Pod
 
-    Ctrl->>Krane: CreateDeployment(image, replicas, resources)
-    Krane->>K8s: Create headless Service
-    K8s->>Krane: Service created
-    Krane->>K8s: Create StatefulSet
+    User->>Ctrl: Create deployment request
+    Ctrl->>DB: Store desired state
+    DB->>Ctrl: Acknowledged
+
+    Note over Krane: Watch Stream Active
+
+    Ctrl->>Krane: InfraEvent: ApplyDeployment
+    Note right of Krane: Event pushed through watch stream
+
+    Krane->>K8s: Create/Update Service
+    K8s->>Krane: Service ready
+    Krane->>K8s: Create/Update StatefulSet
     K8s->>Krane: StatefulSet created
-    Krane->>Ctrl: Status: PENDING
 
     K8s->>K8s: Schedule pods
     K8s->>Pod: Pull image & start container
-    Pod->>Pod: Running
+    Pod->>Pod: Container running
 
-    loop Poll every second
-        Ctrl->>Krane: GetDeployment()
-        Krane->>K8s: Get StatefulSet status
-        K8s->>Krane: AvailableReplicas: 0/1
-        Krane->>K8s: List pods
-        K8s->>Krane: Pod status: Pending
-        Krane->>Ctrl: Instances: [{id, addr, status: PENDING}]
-    end
-
-    Pod->>Pod: Container ready
-
-    Ctrl->>Krane: GetDeployment()
-    Krane->>K8s: Get StatefulSet status
-    K8s->>Krane: AvailableReplicas: 1/1
-    Krane->>K8s: List pods
-    K8s->>Krane: Pod status: Running
-    Krane->>Ctrl: Instances: [{id, addr, status: RUNNING}]
+    Note over Krane: Periodic sync (15 min)
+    
+    Krane->>Ctrl: GetDesiredState()
+    Ctrl->>DB: Query desired deployments
+    DB->>Ctrl: Return configurations
+    Ctrl->>Krane: Stream all ApplyDeployment events
+    Krane->>Krane: Reconcile actual vs desired
 
 `} />
 
@@ -161,17 +186,66 @@ For local development without Kubernetes, run Krane with the Docker backend:
 # Ensure Docker is running
 docker ps
 
-# Run Krane with Docker backend
+# Run Krane with Docker backend pointing to local control plane
 unkey run krane \
   --backend=docker \
   --docker-socket=/var/run/docker.sock \
-  --http-port=8080
+  --control-plane-url=http://localhost:8080 \
+  --instance-id=local-krane \
+  --region=local
 ```
 
-The control plane can then create deployments that run as Docker containers on your local machine. This provides a fast inner development loop without requiring a full Kubernetes cluster.
+Krane will:
+1. Connect to your local control plane instance
+2. Establish a watch stream for the "local" region
+3. Pull any existing desired state
+4. Apply deployments as Docker containers
+5. Continue watching for new events
+
+This provides a fast inner development loop without requiring a full Kubernetes cluster.
+
+## Control Plane Integration
+
+The control plane (`ctrl`) manages the desired state and coordinates multiple Krane agents:
+
+### ClusterService API
+
+The control plane exposes a `ClusterService` with two key RPCs:
+
+- **Watch**: Long-lived stream for real-time event delivery
+- **GetDesiredState**: Returns all current desired infrastructure configurations
+
+### Event Distribution
+
+When deployment changes occur:
+1. Control plane stores the desired state in the database
+2. Emits events to all connected Krane agents matching the region selector
+3. Each Krane agent applies changes to its local cluster
+
+### Multi-Region Support
+
+Krane agents connect with selectors (typically `region: aws-us-east-1`) to receive only relevant events. This enables:
+- Region-specific deployments
+- Cross-region failover capabilities
+- Isolated development environments
 
 ## Future Improvements
 
-The current StatefulSet-based implementation is acknowledged as a design compromise in the codebase. Future improvements might include switching to standard Deployments with service meshes for instance addressing, implementing native load balancing instead of requiring stable instance DNS, adopting more cloud-native patterns for service discovery, and potentially supporting additional orchestration platforms beyond Kubernetes and Docker.
+The current implementation has several planned enhancements:
 
-These changes would require coordinated updates to the control plane, gateway, and database to remove the assumption of stable instance addresses. The abstraction layer Krane provides makes such changes possible without affecting the rest of the system.
+### Architecture Evolution
+- Move from StatefulSets to standard Deployments with service mesh for addressing
+- Implement status reporting from Krane back to control plane
+- Add health checking and automated remediation
+
+### Operational Improvements
+- Enhanced observability with metrics and tracing
+- Deployment strategies (rolling updates, blue-green, canary)
+- Resource quota management and multi-tenancy isolation
+
+### Platform Expansion
+- Support for additional orchestration platforms (ECS, Cloud Run)
+- Edge deployment capabilities
+- Serverless function orchestration
+
+The pull-based architecture and abstraction layers make these changes possible without disrupting the overall system design.

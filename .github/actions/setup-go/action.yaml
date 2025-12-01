@@ -16,8 +16,8 @@ runs:
         go-version-file: ./go/go.mod
         cache-dependency-path: ./go/go.sum
 
-    - name: Download Go modules
-      run: go mod download
+    - name: Install
+      run: make install
       shell: bash
       working-directory: ./go
       env:

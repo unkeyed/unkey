@@ -14,7 +14,7 @@ type gatewayManager struct {
 }
 
 func (m *gatewayManager) HandleApply(ctx context.Context, event *ctrlv1.ApplyGateway) error {
-	return m.backend.CreateGateway(ctx, backend.CreateGatewayRequest{
+	return m.backend.ApplyGateway(ctx, backend.ApplyGatewayRequest{
 		Namespace:     event.GetNamespace(),
 		WorkspaceID:   event.GetWorkspaceId(),
 		ProjectID:     event.GetProjectId(),

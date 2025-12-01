@@ -153,6 +153,8 @@ func Run(ctx context.Context, cfg Config) error {
 		},
 		TLS:                cfg.TLSConfig,
 		MaxRequestBodySize: cfg.MaxRequestBodySize,
+		ReadTimeout:        0,
+		WriteTimeout:       0,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
