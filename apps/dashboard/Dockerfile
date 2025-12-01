@@ -1,17 +1,17 @@
-FROM node:22.18.0
-
-WORKDIR /unkey
-
-# Install pnpm
+# ---- Base ----
+FROM node:22-alpine AS base
 RUN npm install -g pnpm
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+# ---- Dependencies ----
+FROM base AS deps
+WORKDIR /unkey
 
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 
 # Apps
 COPY ./apps/dashboard/package.json ./apps/dashboard/package.json
 
-# Internal
+# Internal packages
 COPY ./internal/billing/package.json ./internal/billing/package.json
 COPY ./internal/clickhouse/package.json ./internal/clickhouse/package.json
 COPY ./internal/db/package.json ./internal/db/package.json
@@ -32,20 +32,46 @@ COPY ./internal/vercel/package.json ./internal/vercel/package.json
 COPY ./internal/error/package.json ./internal/error/package.json
 COPY ./internal/rbac/package.json ./internal/rbac/package.json
 
-# Install dependencies
-RUN pnpm install -r
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 
-# Copy code
+# ---- Builder ----
+FROM base AS builder
+WORKDIR /unkey
+
+COPY --from=deps /unkey/node_modules ./node_modules
+COPY --from=deps /unkey/apps/dashboard/node_modules ./apps/dashboard/node_modules
+COPY --from=deps /unkey/internal ./internal
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY ./apps/dashboard ./apps/dashboard
 COPY ./internal ./internal
 
-# Build
-RUN pnpm turbo run build --filter=@unkey/dashboard
+RUN --mount=type=cache,id=turbo,target=/unkey/.turbo pnpm turbo run build --filter=@unkey/dashboard
 
-# Set hostname to 0.0.0.0 to allow external connections
+# ---- Runner ----
+FROM node:22-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy public assets
+COPY --from=builder /unkey/apps/dashboard/public ./public
+
+# Set correct permissions for prerender cache
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
+
+# Copy standalone build output
+COPY --from=builder --chown=nextjs:nodejs /unkey/apps/dashboard/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /unkey/apps/dashboard/.next/static ./apps/dashboard/.next/static
+
+USER nextjs
+
 EXPOSE 3000
 
-# Run in production mode
-CMD ["pnpm", "--filter", "@unkey/dashboard", "start"]
+CMD ["node", "apps/dashboard/server.js"]
