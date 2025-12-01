@@ -127,7 +127,12 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	srv, err := zen.New(zen.Config{
-		Logger: logger,
+		Logger:             logger,
+		TLS:                nil,
+		Flags:              nil,
+		MaxRequestBodySize: 0,
+		ReadTimeout:        0,
+		WriteTimeout:       0,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)

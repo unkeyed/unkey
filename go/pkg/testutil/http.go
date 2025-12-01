@@ -90,7 +90,9 @@ func NewHarness(t *testing.T) *Harness {
 		Flags: &zen.Flags{
 			TestMode: true,
 		},
-		TLS: nil,
+		TLS:          nil,
+		ReadTimeout:  0,
+		WriteTimeout: 0,
 	})
 	require.NoError(t, err)
 
@@ -354,7 +356,7 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 	err = db.Query.InsertClickhouseWorkspaceSettings(ctx, h.DB.RW(), db.InsertClickhouseWorkspaceSettingsParams{
 		WorkspaceID:               workspaceID,
 		Username:                  username,
-		PasswordEncrypted:         encryptRes.Encrypted,
+		PasswordEncrypted:         encryptRes.GetEncrypted(),
 		QuotaDurationSeconds:      config.QuotaDurationSeconds,
 		MaxQueriesPerWindow:       config.MaxQueriesPerWindow,
 		MaxExecutionTimePerWindow: config.MaxExecutionTimePerWindow,

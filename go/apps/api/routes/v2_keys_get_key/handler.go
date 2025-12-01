@@ -107,9 +107,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var plaintext string
 	decrypt := ptr.SafeDeref(req.Decrypt, false)
 	if decrypt {
-		rawKey, err := h.decryptKey(ctx, auth, keyData)
-		if err != nil {
-			return err
+		rawKey, decryptErr := h.decryptKey(ctx, auth, keyData)
+		if decryptErr != nil {
+			return decryptErr
 		}
 		if rawKey != nil {
 			plaintext = *rawKey
@@ -170,9 +170,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if len(keyData.Identity.Meta) > 0 {
-			identityMeta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta)
+			identityMeta, getMetaError := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta)
 			response.Identity.Meta = identityMeta
-			if err != nil {
+			if getMetaError != nil {
 				h.Logger.Error("failed to unmarshal identity meta", "error", err)
 			}
 		}

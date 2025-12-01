@@ -57,21 +57,14 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 	p.buildCTERegistry()
 
 	// Inject security filters
-	if err := p.injectSecurityFilters(); err != nil {
-		return "", err
-	}
-
+	p.injectSecurityFilters()
 	if err := p.rewriteTables(); err != nil {
 		return "", err
 	}
 
-	if err := p.injectWorkspaceFilter(); err != nil {
-		return "", err
-	}
+	p.injectWorkspaceFilter()
 
-	if err := p.enforceLimit(); err != nil {
-		return "", err
-	}
+	p.enforceLimit()
 
 	if err := p.validateFunctions(); err != nil {
 		return "", err
