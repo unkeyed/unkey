@@ -59,12 +59,12 @@ ENV PORT=3000
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy public assets
-COPY --from=builder /unkey/apps/dashboard/public ./public
+# Copy public assets into the app directory, matching standalone server layout
+COPY --from=builder --chown=nextjs:nodejs /unkey/apps/dashboard/public ./apps/dashboard/public
 
 # Set correct permissions for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
+RUN mkdir -p apps/dashboard/.next
+RUN chown nextjs:nodejs apps/dashboard/.next
 
 # Copy standalone build output
 COPY --from=builder --chown=nextjs:nodejs /unkey/apps/dashboard/.next/standalone ./
