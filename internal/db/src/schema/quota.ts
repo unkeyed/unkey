@@ -44,6 +44,16 @@ export const quotas = mysqlTable("quota", {
    * Default value is false, requiring explicit upgrade to enable team features.
    */
   team: boolean("team").notNull().default(false),
+
+  /**
+   * applySubscriptionChanges controls whether automated subscription changes
+   * from Stripe should modify this workspace's quotas and trigger customer alerts.
+   * When true, subscription updates will update quotas and fire alerts as normal.
+   * When false, automated subscription changes (like 1st-of-month renewals) will
+   * not update quotas or fire customer alerts, preventing unnecessary notifications.
+   * Default value is true, maintaining current behavior for existing workspaces.
+   */
+  applySubscriptionChanges: boolean("apply_subscription_changes").notNull().default(true),
 });
 export const quotasRelations = relations(quotas, ({ one }) => ({
   workspace: one(workspaces, {

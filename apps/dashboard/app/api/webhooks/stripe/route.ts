@@ -11,6 +11,57 @@ import {
 } from "@/lib/utils/slackAlerts";
 import Stripe from "stripe";
 
+interface PreviousAttributes {
+  // Billing period dates (change during automated renewals)
+  current_period_end?: number;
+  current_period_start?: number;
+
+  // Subscription items and pricing (change during manual updates)
+  items?: {
+    data?: Array<{
+      price?: {
+        id?: string;
+      };
+    }>;
+  };
+
+  // Other subscription properties that can change manually
+  plan?: Stripe.Plan | null;
+  quantity?: number;
+  discount?: Stripe.Discount | null;
+  cancel_at_period_end?: boolean;
+  collection_method?: string;
+}
+
+function isAutomatedBillingRenewal(
+  sub: Stripe.Subscription,
+  previousAttributes: PreviousAttributes | undefined,
+): boolean {
+  // Treat as automated renewal when:
+  // 1. subscription status is active
+  // 2. previousAttributes exists
+  // 3. Object.keys(previousAttributes) contains exactly "current_period_start" and "current_period_end"
+  // 4. cancel_at_period_end and collection_method are not present among keys
+
+  if (sub.status !== "active" || !previousAttributes) {
+    return false;
+  }
+
+  // Get all keys that changed in previousAttributes
+  const changedKeys = Object.keys(previousAttributes);
+
+  // Define expected keys for automated renewal
+  const expectedRenewalKeys = ["current_period_start", "current_period_end"];
+
+  // Check if changed keys match exactly the expected renewal keys
+  const hasOnlyExpectedKeys =
+    changedKeys.length === expectedRenewalKeys.length &&
+    expectedRenewalKeys.every((key) => changedKeys.includes(key)) &&
+    changedKeys.every((key) => expectedRenewalKeys.includes(key));
+
+  return hasOnlyExpectedKeys;
+}
+
 function validateAndParseQuotas(product: Stripe.Product): {
   valid: boolean;
   requestsPerMonth?: number;
@@ -98,6 +149,10 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK", { status: 200 });
         }
 
+        const currentQuotas = await db.query.quotas.findFirst({
+          where: eq(schema.quotas.workspaceId, ws.id),
+        });
+
         const previousAttributes = event.data.previous_attributes;
 
         if (!sub.items?.data?.[0]?.price?.id || !sub.customer) {
@@ -145,47 +200,50 @@ export const POST = async (req: Request): Promise<Response> => {
 
         const { requestsPerMonth, logsRetentionDays, auditLogsRetentionDays } = quotas;
 
-        await db.transaction(async (tx) => {
-          await tx
-            .update(schema.workspaces)
-            .set({
-              tier: product.name,
-            })
-            .where(eq(schema.workspaces.id, ws.id));
+        // Only update quotas if flag allows
+        if (currentQuotas?.applySubscriptionChanges !== false) {
+          await db.transaction(async (tx) => {
+            await tx
+              .update(schema.workspaces)
+              .set({
+                tier: product.name,
+              })
+              .where(eq(schema.workspaces.id, ws.id));
 
-          await tx
-            .insert(schema.quotas)
-            .values({
-              workspaceId: ws.id,
-              requestsPerMonth,
-              logsRetentionDays,
-              auditLogsRetentionDays,
-              team: true,
-            })
-            .onDuplicateKeyUpdate({
-              set: {
+            await tx
+              .insert(schema.quotas)
+              .values({
+                workspaceId: ws.id,
                 requestsPerMonth,
                 logsRetentionDays,
                 auditLogsRetentionDays,
                 team: true,
+              })
+              .onDuplicateKeyUpdate({
+                set: {
+                  requestsPerMonth,
+                  logsRetentionDays,
+                  auditLogsRetentionDays,
+                  team: true,
+                },
+              });
+
+            await insertAuditLogs(tx, {
+              workspaceId: ws.id,
+              actor: {
+                type: "system",
+                id: "stripe",
+              },
+              event: "workspace.update",
+              description: `Subscription updated to ${product.name} plan.`,
+              resources: [],
+              context: {
+                location: "",
+                userAgent: undefined,
               },
             });
-
-          await insertAuditLogs(tx, {
-            workspaceId: ws.id,
-            actor: {
-              type: "system",
-              id: "stripe",
-            },
-            event: "workspace.update",
-            description: `Subscription updated to ${product.name} plan.`,
-            resources: [],
-            context: {
-              location: "",
-              userAgent: undefined,
-            },
           });
-        });
+        }
 
         /**
          * To make the updates more useful, we detect if they are downgrading or upgrading their subscription
@@ -226,10 +284,15 @@ export const POST = async (req: Request): Promise<Response> => {
           }
         }
 
-        if (customer && !customer.deleted && customer.email) {
+        // Check if we should fire alerts
+        const shouldFireAlert =
+          currentQuotas?.applySubscriptionChanges !== false &&
+          !isAutomatedBillingRenewal(sub, previousAttributes);
+
+        if (shouldFireAlert && customer && !customer.deleted && customer.email) {
           const formattedPrice = formatPrice(price.unit_amount);
 
-          // Send notification for any subscription update
+          // Send notification for subscription update
           await alertSubscriptionUpdate(
             product.name,
             formattedPrice,
