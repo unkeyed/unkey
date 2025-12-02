@@ -72,6 +72,7 @@ func New(logger logging.Logger, cfg Config) (*docker, error) {
 	d := &docker{
 		registryAuth:                          "",
 		UnimplementedDeploymentServiceHandler: kranev1connect.UnimplementedDeploymentServiceHandler{},
+		UnimplementedGatewayServiceHandler:    kranev1connect.UnimplementedGatewayServiceHandler{},
 		logger:                                logger,
 		client:                                dockerClient,
 	}

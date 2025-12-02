@@ -283,7 +283,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	existingRouteIDs := make([]string, 0)
 
 	for _, hostname := range allHostnames {
-		ingressRouteID, err := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
+		ingressRouteID, getIngressRouteErr := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
 			return db.TxWithResult(stepCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
 				found, err := db.Query.FindIngressRouteByHostname(txCtx, tx, hostname.domain)
 				if err != nil {
@@ -308,8 +308,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 			})
 		})
-		if err != nil {
-			return nil, err
+		if getIngressRouteErr != nil {
+			return nil, getIngressRouteErr
 		}
 		if ingressRouteID != "" {
 			existingRouteIDs = append(existingRouteIDs, ingressRouteID)

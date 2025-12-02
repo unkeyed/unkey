@@ -10,7 +10,7 @@ import (
 )
 
 const findAcmeChallengeByToken = `-- name: FindAcmeChallengeByToken :one
-SELECT domain_id, workspace_id, token, type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
+SELECT domain_id, workspace_id, token, challenge_type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
 `
 
 type FindAcmeChallengeByTokenParams struct {
@@ -21,7 +21,7 @@ type FindAcmeChallengeByTokenParams struct {
 
 // FindAcmeChallengeByToken
 //
-//	SELECT domain_id, workspace_id, token, type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
+//	SELECT domain_id, workspace_id, token, challenge_type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
 func (q *Queries) FindAcmeChallengeByToken(ctx context.Context, db DBTX, arg FindAcmeChallengeByTokenParams) (AcmeChallenge, error) {
 	row := db.QueryRowContext(ctx, findAcmeChallengeByToken, arg.WorkspaceID, arg.DomainID, arg.Token)
 	var i AcmeChallenge
@@ -29,7 +29,7 @@ func (q *Queries) FindAcmeChallengeByToken(ctx context.Context, db DBTX, arg Fin
 		&i.DomainID,
 		&i.WorkspaceID,
 		&i.Token,
-		&i.Type,
+		&i.ChallengeType,
 		&i.Authorization,
 		&i.Status,
 		&i.ExpiresAt,
