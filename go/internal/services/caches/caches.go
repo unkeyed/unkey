@@ -32,8 +32,8 @@ type Caches struct {
 	LiveApiByID cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
 
 	// Clickhouse Configuration caches clickhouse configuration lookups by workspace ID.
-	// Keys are string (workspace ID) and values are db.ClickhouseWorkspaceSetting.
-	ClickhouseSetting cache.Cache[string, db.ClickhouseWorkspaceSetting]
+	// Keys are string (workspace ID) and values are db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow.
+	ClickhouseSetting cache.Cache[string, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow]
 
 	// KeyAuthToApiRow caches key_auth_id to api row mappings.
 	// Keys are string (key_auth_id) and values are db.FindKeyAuthsByKeyAuthIdsRow (has both KeyAuthID and ApiID).
@@ -248,7 +248,7 @@ func New(config Config) (Caches, error) {
 	clickhouseSetting, err := createCache(
 		config,
 		dispatcher,
-		cache.Config[string, db.ClickhouseWorkspaceSetting]{
+		cache.Config[string, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow]{
 			Fresh:    time.Minute,
 			Stale:    24 * time.Hour,
 			Logger:   config.Logger,

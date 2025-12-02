@@ -180,6 +180,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Initialize proxy service with shared transport for connection pooling
+	// nolint:exhaustruct
 	proxySvc, err := proxy.New(proxy.Config{
 		Logger:     logger,
 		IngressID:  cfg.IngressID,
@@ -223,8 +224,10 @@ func Run(ctx context.Context, cfg Config) error {
 			// Use longer timeouts for proxy operations
 			// WriteTimeout must be longer than the transport's ResponseHeaderTimeout (30s)
 			// so that transport timeouts can be caught and handled properly in ErrorHandler
-			ReadTimeout:  30 * time.Second,
-			WriteTimeout: 60 * time.Second,
+			ReadTimeout:        30 * time.Second,
+			WriteTimeout:       60 * time.Second,
+			Flags:              nil,
+			MaxRequestBodySize: 0,
 		})
 		if httpsErr != nil {
 			return fmt.Errorf("unable to create HTTPS server: %w", httpsErr)
@@ -251,7 +254,12 @@ func Run(ctx context.Context, cfg Config) error {
 	// Start HTTP challenge server (ACME only for Let's Encrypt)
 	if cfg.HttpPort > 0 {
 		httpSrv, httpErr := zen.New(zen.Config{
-			Logger: logger,
+			Logger:             logger,
+			TLS:                nil,
+			Flags:              nil,
+			MaxRequestBodySize: 0,
+			ReadTimeout:        0,
+			WriteTimeout:       0,
 		})
 		if httpErr != nil {
 			return fmt.Errorf("unable to create HTTP server: %w", httpErr)

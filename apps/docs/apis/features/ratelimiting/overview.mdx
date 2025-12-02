@@ -107,48 +107,6 @@ curl -X POST https://api.unkey.com/v2/keys.createKey \
 
 You can apply different costs to operations by specifying a cost parameter during verification. This allows resource-intensive operations to consume more of the rate limit than simple operations.
 
-## Migration from Legacy System
-
-<Note>
-The legacy `ratelimit` field is deprecated. Use the `ratelimits` array instead.
-</Note>
-
-Existing keys with the legacy `ratelimit` field are automatically migrated to use a special "default" ratelimit with `autoApply: true`. This maintains backward compatibility without requiring code changes.
-
-The legacy format converts automatically:
-
-```bash
-# Legacy format (deprecated)
-curl -X POST https://api.unkey.com/v2/keys.createKey \
-  -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "apiId": "api_123",
-    "ratelimit": {
-      "limit": 100,
-      "duration": 60000
-    }
-  }'
-
-# Automatically becomes
-curl -X POST https://api.unkey.com/v2/keys.createKey \
-  -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "apiId": "api_123",
-    "ratelimits": [
-      {
-        "name": "default",
-        "limit": 100,
-        "duration": 60000,
-        "autoApply": true
-      }
-    ]
-  }'
-```
-
-Remove the automatically migrated "default" ratelimit through the key settings in the dashboard or via the updateKey API endpoint if you no longer need it.
-
 ## Identity-Level Ratelimits
 
 Configure ratelimits at the identity level to share limits across multiple keys. Identity ratelimits work alongside key-level ratelimits, with key-level settings taking precedence for naming conflicts.

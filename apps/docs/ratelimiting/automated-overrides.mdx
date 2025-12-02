@@ -47,24 +47,30 @@ Retrieve a single override for an identifier within a namespace.
 import { Unkey } from "@unkey/api";
 
 const unkey = new Unkey({
-  rootKey: process.env.UNKEY_ROOT_KEY!,
+  rootKey: process.env["UNKEY_ROOT_KEY"] ?? "",
 });
 
-const override = await unkey.ratelimits.getOverride({
-  namespaceName: "email.send",
-  identifier: "*@customer.com",
-})
+async function run() {
+  const result = await unkey.ratelimit.getOverride({
+    namespace: "api.requests",
+    identifier: "premium_user_123",
+  });
 
-console.log(override)
+  console.log(result);
+}
+
+run();
 
 {
-  "result": {
-    "id": "rlor_123",
-    "identifier": "*@calendso.com",
-    "limit": 10,
-    "duration": 60000,
-    "async": true
-  }
+  meta: {
+      requestId: "req_123",
+    },
+    data: {
+      overrideId: "<id>",
+      duration: 949068,
+      identifier: "<value>",
+      limit: 641349,
+    },
 }
 ```
 
@@ -78,29 +84,29 @@ You can list all of the configured overirdes for a namespace to build your own d
 import { Unkey } from "@unkey/api";
 
 const unkey = new Unkey({
-  rootKey: process.env.UNKEY_ROOT_KEY!,
+  rootKey: process.env["UNKEY_ROOT_KEY"] ?? "",
 });
 
-const res = await unkey.ratelimits.listOverrides({
-  namespaceName: "email.send",
-})
+async function run() {
+  const result = await unkey.ratelimit.listOverrides({
+    namespace: "api.requests",
+    limit: 20,
+  });
 
-console.log(res)
+  console.log(result);
+}
+
+run();
 
 {
-  "result": {
-    "overrides": [
-      {
-        "id": "rlor_123",
-        "identifier": "*@calendso.com",
-        "limit": 10,
-        "duration": 60000,
-        "async": true
-      }
-    ],
-    "cursor": "eyJrZXkiOiJrZXlfMTIzNCJ9",
-    "total": 1
-  }
+  meta: {
+      requestId: "req_123",
+    },
+    data: [],
+    pagination: {
+      cursor: "eyJrZXkiOiJrZXlfMTIzNCIsInRzIjoxNjk5Mzc4ODAwfQ==",
+      hasMore: true,
+    },
 }
 ```
 
@@ -114,13 +120,26 @@ Once they downgrade their plan, we can revoke any overrides:
 import { Unkey } from "@unkey/api";
 
 const unkey = new Unkey({
-  rootKey: process.env.UNKEY_ROOT_KEY!,
+  rootKey: process.env["UNKEY_ROOT_KEY"] ?? "",
 });
 
-await unkey.ratelimits.deleteOverride({
-  namespaceName: "email.send",
-  identifier: "*@customer.com",
-})
+async function run() {
+  const result = await unkey.ratelimit.deleteOverride({
+    namespace: "api.requests",
+    identifier: "premium_user_123",
+  });
+
+  console.log(result);
+}
+
+run();
+
+{
+  meta: {
+    requestId: "req_123",
+    },
+    data: {},
+}
 ```
 
 [API Reference ->](/api-reference/v2/overview)

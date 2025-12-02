@@ -6,6 +6,7 @@ const securityHeaders = [
   },
 ];
 const nextConfig = {
+  output: "standalone",
   reactStrictMode: true,
   pageExtensions: ["tsx", "mdx", "ts", "js"],
   productionBrowserSourceMaps: true,

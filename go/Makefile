@@ -72,7 +72,7 @@ test-integration: export INTEGRATION_TEST=true
 test-integration: export SIMULATION_TEST=false
 test-integration: up
 	@echo "Running integration tests w/$(PARALLEL_PROCS) parallel test processes"
-	@go test -tags=integration -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | go run github.com/mfridman/tparse@ba2512e7be150bfcbd6f6220d517d3741f8f2f75 -all -smallscreen
+	@go test -tags=integration -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | go run github.com/mfridman/tparse@ba2512e7be150bfcbd6f6220d517d3741f8f2f75 -smallscreen
 
 # ============================================================================
 # Kubernetes Development Commands

@@ -119,6 +119,11 @@ export const useFetchVerificationTimeseries = (apiId: string | null) => {
   const { data, isLoading, isError } = trpc.api.keys.timeseries.useQuery(queryParams, {
     refetchInterval: queryParams.endTime === timestamp ? 10_000 : false,
     enabled: Boolean(apiId),
+    trpc: {
+      context: {
+        skipBatch: true,
+      },
+    },
   });
 
   const timeseries = useMemo(() => {

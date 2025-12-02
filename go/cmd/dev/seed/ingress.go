@@ -127,7 +127,7 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 			K8sServiceName: fmt.Sprintf("gateway-%s", slug),
 			Region:         region,
 			Image:          "unkey/gateway:local",
-			Health:         db.NullGatewaysHealth{GatewaysHealth: db.GatewaysHealthHealthy, Valid: true},
+			Health:         db.GatewaysHealthHealthy,
 			Replicas:       1,
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {
@@ -196,7 +196,7 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 }
 
 func generateMkcertCertificate(hostname string) (certPEM []byte, keyPEM []byte, err error) {
-	if _, err := exec.LookPath("mkcert"); err != nil {
+	if _, err = exec.LookPath("mkcert"); err != nil {
 		return nil, nil, fmt.Errorf("mkcert not found - install with: brew install mkcert (or visit https://github.com/FiloSottile/mkcert)")
 	}
 

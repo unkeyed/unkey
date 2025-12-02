@@ -48,7 +48,7 @@ export const PermissionSheet = ({
   });
 
   return (
-    <Sheet modal={true}>
+    <Sheet modal={false}>
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent
         disableClose={false}

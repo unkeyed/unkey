@@ -34,14 +34,14 @@ INSERT INTO gateways (
 `
 
 type InsertGatewayParams struct {
-	ID             string             `db:"id"`
-	WorkspaceID    string             `db:"workspace_id"`
-	EnvironmentID  string             `db:"environment_id"`
-	K8sServiceName string             `db:"k8s_service_name"`
-	Region         string             `db:"region"`
-	Image          string             `db:"image"`
-	Health         NullGatewaysHealth `db:"health"`
-	Replicas       int32              `db:"replicas"`
+	ID             string         `db:"id"`
+	WorkspaceID    string         `db:"workspace_id"`
+	EnvironmentID  string         `db:"environment_id"`
+	K8sServiceName string         `db:"k8s_service_name"`
+	Region         string         `db:"region"`
+	Image          string         `db:"image"`
+	Health         GatewaysHealth `db:"health"`
+	Replicas       int32          `db:"replicas"`
 }
 
 // InsertGateway

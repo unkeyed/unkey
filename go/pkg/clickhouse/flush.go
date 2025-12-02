@@ -34,7 +34,7 @@ func flush[T any](c *clickhouse, ctx context.Context, table string, rows []T) er
 			return fault.Wrap(err, fault.Internal("preparing batch failed"))
 		}
 		defer func() {
-			if err := batch.Close(); err != nil {
+			if err = batch.Close(); err != nil {
 				c.logger.Error("failed to close batch", "error", err.Error())
 			}
 		}()

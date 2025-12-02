@@ -19,7 +19,11 @@ Users of our app can have the following permissions:
 - `domain.read_domain`
 - `domain.update_domain`
 
-Create them in your dashboard under `Authorization`.
+Sign into your [dashboard](https://app.unkey.com).
+    - For `Roles`, navigate to the `Authorization/Roles`. Default when navigating to `Authorization`.
+    - For `Permissions`, navigate to the `Authorization/Permissions`.
+
+Create them in your `Authorization/Permissions` page. Use the button in the upper right. `+ Create new permission`
 
 <Frame>
   <img src="/apis/features/authorization/domains-permissions.png" alt="Example permissions"/>
@@ -28,21 +32,21 @@ Create them in your dashboard under `Authorization`.
 
 <Step titleSize="h2" title="Creating roles">
 
-
-And we define the following roles:
-- `admin`: An admin can do everything
-- `dns.manager`: Can create, read, update and delete dns records but not access the domain itself
+We define the following roles:
+- `admin`: An admin can do everything.
+- `dns.manager`: Can create, read, update and delete dns records but not access the domain itself.
 - `read-only`: Can read domain or dns record information.
+
+Create them in your `Authorization/Roles` page. Use the button in the upper right. `+ Create new role`
+
 <Frame>
   <img src="/apis/features/authorization/domains-roles.png" alt="Example roles"/>
-  </Frame>
-Create them in your [dashboard](https://app.unkey.com/authorization/roles) too.
-
+</Frame>
+  
 </Step>
 
 <Step titleSize="h2" title="Connecting">
 For each role, we need to connect the permissions it should have.
-Go to [/app/authorization/roles](https://app.unkey.com/authorization/roles) and click on the role to go to the permissions screen.
 
 <Tabs>
 <Tab title="admin">
@@ -69,41 +73,35 @@ Go to [/app/authorization/roles](https://app.unkey.com/authorization/roles) and 
 
 
 </Step>
-<Step title="Create a key">
+<Step title="Connect a key">
 Now that we have permissions and roles in place, we can connect them to keys.
 
 <Tabs>
 <Tab title="Dashboard">
 
 1. In the sidebar, click on one of your APIs
-2. In the breakcrumb navigation on the top click Reqests and then keys
+2. Next click on keys in the expanded API you selected.
     <Frame>
       <img src="/apis/features/authorization/api-keys-navigation.png" alt="Breadcrumb Navigation"/>
     </Frame>
 
-3. Select one of your existing keys by clicking on it
-4. Scroll down to the `Roles` section if not visible.
+3. On the key you want to use, click on the action menu (`...`) at the end of that table row.
+4. Select `Manage roles and permissions..` 
 
-You should now be on `/app/keys/key_auth_???/key_???`
+
 
 <Frame>
   <img src="/apis/features/authorization/api-key-screen.png" alt="Unconnected roles and permissions"/>
   </Frame>
 
 
-  You can connect a role to your key by clicking on the checkbox.
-
-  Let's give this key the `dns.manager` and `read-only` roles.
-  A toast message should come up in the lower corner when the action has been completed.
-
+5. You can connect a role to your key by using the `Assign role` input. Let's give this key the `dns.manager` and `read-only` roles.
 
 <Frame>
   <img src="/apis/features/authorization/role-add-example.png" alt="Unconnected roles and permissions"/>
   </Frame>
 
-As you can see, now the key now contains 2 `roles` and 5 `permissions` shown just above the Roles section:
-
-
+As you can see, the key now contains 2 `roles` and 5 `permissions` shown just above the Roles section:
 
 </Tab>
 
