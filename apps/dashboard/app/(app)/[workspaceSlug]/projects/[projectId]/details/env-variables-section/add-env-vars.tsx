@@ -1,8 +1,8 @@
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Plus, Trash } from "@unkey/icons";
-import { Button, Input } from "@unkey/ui";
-import { useEffect, useRef, useState } from "react";
+import { Button, Input, toast } from "@unkey/ui";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EnvVarSecretSwitch } from "./components/env-var-secret-switch";
 import { ENV_VAR_KEY_REGEX, type EnvVar, type EnvVarType } from "./types";
 
@@ -84,11 +84,12 @@ export function AddEnvVars({
 }: AddEnvVarsProps) {
   const createMutation = trpc.deploy.envVar.create.useMutation();
   const containerRef = useRef<HTMLDivElement>(null);
+  const keyInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+  const valueInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
   const [entries, setEntries] = useState<EnvVarEntry[]>([
     { id: crypto.randomUUID(), key: "", value: "", type: "recoverable" },
   ]);
 
-  // Scroll into view when component mounts
   useEffect(() => {
     containerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, []);
@@ -99,10 +100,7 @@ export function AddEnvVars({
     const newEntry = { id: crypto.randomUUID(), key: "", value: "", type: "recoverable" as const };
     setEntries([...entries, newEntry]);
     setTimeout(() => {
-      const inputs = containerRef.current?.querySelectorAll<HTMLInputElement>(
-        'input[placeholder="KEY_NAME"]',
-      );
-      inputs?.[inputs.length - 1]?.focus();
+      keyInputRefs.current.get(newEntry.id)?.focus();
     }, 0);
   };
 
@@ -115,16 +113,12 @@ export function AddEnvVars({
       if (field === "value" && isLastEntry) {
         addEntry();
       } else if (field === "key") {
-        const valueInput = (e.target as HTMLInputElement)
-          .closest(".flex")
-          ?.querySelector<HTMLInputElement>('input[placeholder="Variable value"]');
-        valueInput?.focus();
+        valueInputRefs.current.get(entryId)?.focus();
       } else if (field === "value" && !isLastEntry) {
-        const allRows = containerRef.current?.querySelectorAll<HTMLDivElement>(
-          ".flex.items-center.gap-2",
-        );
-        const nextRow = allRows?.[entryIndex + 1];
-        nextRow?.querySelector<HTMLInputElement>('input[placeholder="KEY_NAME"]')?.focus();
+        const nextEntryId = entries[entryIndex + 1]?.id;
+        if (nextEntryId) {
+          keyInputRefs.current.get(nextEntryId)?.focus();
+        }
       }
     } else if (e.key === "Escape") {
       onCancel();
@@ -134,6 +128,8 @@ export function AddEnvVars({
   const removeEntry = (id: string) => {
     if (entries.length > 1) {
       setEntries(entries.filter((e) => e.id !== id));
+      keyInputRefs.current.delete(id);
+      valueInputRefs.current.delete(id);
     }
   };
 
@@ -175,28 +171,42 @@ export function AddEnvVars({
     return errors;
   };
 
-  const validEntries = entries.filter((e) => {
-    const errors = getErrors(e);
-    return e.key && e.value && !errors.key && !errors.value;
-  });
+  const validEntries = useMemo(
+    () =>
+      entries.filter((e) => {
+        const errors = getErrors(e);
+        return e.key && e.value && !errors.key && !errors.value;
+      }),
+    [entries, getExistingEnvVar],
+  );
 
   const handleSave = async () => {
     if (validEntries.length === 0) {
       return;
     }
 
+    const mutation = createMutation.mutateAsync({
+      environmentId,
+      variables: validEntries.map((e) => ({
+        key: e.key,
+        value: e.value,
+        type: e.type,
+      })),
+    });
+
+    toast.promise(mutation, {
+      loading: "Adding environment variables...",
+      success: `Added ${validEntries.length} environment variable${validEntries.length > 1 ? "s" : ""}`,
+      error: (err) => ({
+        message: "Failed to add environment variables",
+        description: err.message || "Please try again",
+      }),
+    });
+
     try {
-      await createMutation.mutateAsync({
-        environmentId,
-        variables: validEntries.map((e) => ({
-          key: e.key,
-          value: e.value,
-          type: e.type,
-        })),
-      });
+      await mutation;
       onSuccess();
-    } catch (error) {
-      console.error("Failed to add env vars:", error);
+    } catch {
     }
   };
 
@@ -218,6 +228,11 @@ export function AddEnvVars({
             >
               <div className="w-[108px]">
                 <Input
+                  ref={(el) => {
+                    if (el) {
+                      keyInputRefs.current.set(entry.id, el);
+                    }
+                  }}
                   type="text"
                   placeholder="KEY_NAME"
                   value={entry.key}
@@ -234,6 +249,11 @@ export function AddEnvVars({
               </div>
               <span className="text-gray-9 text-xs px-1">=</span>
               <Input
+                ref={(el) => {
+                  if (el) {
+                    valueInputRefs.current.set(entry.id, el);
+                  }
+                }}
                 type={entry.type === "writeonly" ? "password" : "text"}
                 placeholder="Variable value"
                 value={entry.value}

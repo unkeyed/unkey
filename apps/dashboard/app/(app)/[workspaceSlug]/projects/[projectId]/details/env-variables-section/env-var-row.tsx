@@ -1,7 +1,7 @@
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Eye, EyeSlash, PenWriting3, Trash } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, toast } from "@unkey/ui";
 import { useState } from "react";
 import { EnvVarForm } from "./components/env-var-form";
 import type { EnvVar } from "./types";
@@ -30,11 +30,21 @@ export function EnvVarRow({
   const deleteMutation = trpc.deploy.envVar.delete.useMutation();
 
   const handleDelete = async () => {
+    const mutation = deleteMutation.mutateAsync({ envVarId: envVar.id });
+
+    toast.promise(mutation, {
+      loading: `Deleting environment variable ${envVar.key}...`,
+      success: `Deleted environment variable ${envVar.key}`,
+      error: (err) => ({
+        message: "Failed to delete environment variable",
+        description: err.message || "Please try again",
+      }),
+    });
+
     try {
-      await deleteMutation.mutateAsync({ envVarId: envVar.id });
+      await mutation;
       onDelete?.();
-    } catch (error) {
-      console.error("Failed to delete:", error);
+    } catch {
     }
   };
 

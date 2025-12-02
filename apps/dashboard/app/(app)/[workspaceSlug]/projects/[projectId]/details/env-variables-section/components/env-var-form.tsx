@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "@unkey/ui";
 import { useForm } from "react-hook-form";
 import { type EnvVar, type EnvVarFormData, EnvVarFormSchema } from "../types";
 import { EnvVarInputs } from "./env-var-inputs";
@@ -21,7 +22,7 @@ type EnvVarFormProps = {
 export function EnvVarForm({
   envVarId,
   initialData,
-  projectId,
+  projectId: _projectId,
   getExistingEnvVar,
   onSuccess,
   onCancel,
@@ -29,7 +30,6 @@ export function EnvVarForm({
   autoFocus = false,
   className = "w-full flex px-4 py-3 bg-gray-2 border-b border-gray-4 last:border-b-0",
 }: EnvVarFormProps) {
-  console.debug(projectId);
   const updateMutation = trpc.deploy.envVar.update.useMutation();
 
   // Writeonly vars cannot have their key renamed
@@ -60,17 +60,26 @@ export function EnvVarForm({
   const watchedType = watch("type");
 
   const handleSave = async (formData: EnvVarFormData) => {
+    const mutation = updateMutation.mutateAsync({
+      envVarId,
+      key: isWriteOnly ? undefined : formData.key,
+      value: formData.value,
+      type: formData.type,
+    });
+
+    toast.promise(mutation, {
+      loading: `Updating environment variable ${formData.key}...`,
+      success: `Updated environment variable ${formData.key}`,
+      error: (err) => ({
+        message: "Failed to update environment variable",
+        description: err.message || "Please try again",
+      }),
+    });
+
     try {
-      await updateMutation.mutateAsync({
-        envVarId,
-        key: isWriteOnly ? undefined : formData.key,
-        value: formData.value,
-        type: formData.type,
-      });
+      await mutation;
       onSuccess();
-    } catch (error) {
-      console.error("Failed to save env var:", error);
-      throw error;
+    } catch {
     }
   };
 
