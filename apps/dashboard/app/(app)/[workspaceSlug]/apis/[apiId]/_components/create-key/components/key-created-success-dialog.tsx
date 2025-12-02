@@ -2,7 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { ArrowRight, Check, Key2, Plus } from "@unkey/icons";
-import { Button, Dialog, DialogContent, InfoTooltip, ConfirmPopover, toast } from "@unkey/ui";
+import { Button, ConfirmPopover, Dialog, DialogContent, InfoTooltip, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { type FC, useEffect, useRef, useState } from "react";
 import { UNNAMED_KEY } from "../create-key.constants";
