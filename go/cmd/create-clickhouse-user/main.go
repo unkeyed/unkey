@@ -34,10 +34,8 @@ This command:
 
 The script is idempotent - it can be run multiple times to update quotas without regenerating passwords.
 
-By default, grants SELECT on all v2 analytics tables:
+By default, grants SELECT on only key verification v2 analytics tables:
   - Key verifications (raw + per minute/hour/day/month)
-  - Ratelimits (raw + per minute/hour/day/month + last used)
-  - API requests (raw + per minute/hour/day/month)
 
 EXAMPLES:
 unkey create-clickhouse-user --workspace-id ws_123
@@ -66,12 +64,19 @@ unkey create-clickhouse-user --workspace-id ws_123 --username custom_user --max-
 
 var allowedTables = []string{
 	// Key verifications
+	//
 	"default.key_verifications_raw_v2",
 	"default.key_verifications_per_minute_v2",
+	"default.key_verifications_per_minute_v3",
 	"default.key_verifications_per_hour_v2",
+	"default.key_verifications_per_hour_v3",
 	"default.key_verifications_per_day_v2",
+	"default.key_verifications_per_day_v3",
 	"default.key_verifications_per_month_v2",
-	// Not used ATM
+	"default.key_verifications_per_month_v3",
+
+	// === Not used ATM ===
+
 	// // Ratelimits
 	// "default.ratelimits_raw_v2",
 	// "default.ratelimits_per_minute_v2",
@@ -79,6 +84,7 @@ var allowedTables = []string{
 	// "default.ratelimits_per_day_v2",
 	// "default.ratelimits_per_month_v2",
 	// "default.ratelimits_last_used_v2",
+
 	// // API requests
 	// "default.api_requests_raw_v2",
 	// "default.api_requests_per_minute_v2",
@@ -140,32 +146,42 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	clk := clock.New()
 	now := clk.Now().UnixMilli()
 
-	// Check if user already exists
+	// Check if user already exists (also fetches quota with retention days)
 	existing, err := db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(ctx, database.RO(), workspaceID)
 	var password string
 	var passwordEncrypted string
+	var retentionDays int32
 
 	if err != nil {
 		if !db.IsNotFound(err) {
 			return fmt.Errorf("failed to check existing user: %w", err)
 		}
 
-		// User doesn't exist - generate new password
+		// User doesn't exist - need to fetch quota separately and generate new password
 		logger.Info("creating new user", "workspace_id", workspaceID, "username", username)
+
+		// Fetch workspace quota for retention days
+		quota, err := db.Query.FindQuotaByWorkspaceID(ctx, database.RO(), workspaceID)
+		if err != nil {
+			return fmt.Errorf("failed to fetch workspace quota: %w", err)
+		}
+		retentionDays = quota.LogsRetentionDays
+
 		password, err = generateSecurePassword(64)
 		if err != nil {
 			return fmt.Errorf("failed to generate password: %w", err)
 		}
 
 		// Encrypt password
-		encRes, err := v.Encrypt(ctx, &vaultv1.EncryptRequest{
+		var encRes *vaultv1.EncryptResponse
+		encRes, err = v.Encrypt(ctx, &vaultv1.EncryptRequest{
 			Keyring: workspaceID,
 			Data:    password,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to encrypt password: %w", err)
 		}
-		passwordEncrypted = encRes.Encrypted
+		passwordEncrypted = encRes.GetEncrypted()
 
 		// Insert into MySQL
 		err = db.Query.InsertClickhouseWorkspaceSettings(ctx, database.RW(), db.InsertClickhouseWorkspaceSettingsParams{
@@ -187,13 +203,13 @@ func run(ctx context.Context, cmd *cli.Command) error {
 
 		logger.Info("stored credentials in database")
 	} else {
-		// User exists - update quotas only (preserve password)
-		logger.Info("updating existing user quotas", "workspace_id", workspaceID, "username", existing.Username)
-		username = existing.Username
-		passwordEncrypted = existing.PasswordEncrypted
+		// User exists - update quotas only (preserve password, get retention from quota)
+		logger.Info("updating existing user quotas", "workspace_id", workspaceID, "username", existing.ClickhouseWorkspaceSetting.Username)
+		username = existing.ClickhouseWorkspaceSetting.Username
+		retentionDays = existing.Quotas.LogsRetentionDays
 		decrypted, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
 			Keyring:   workspaceID,
-			Encrypted: existing.PasswordEncrypted,
+			Encrypted: existing.ClickhouseWorkspaceSetting.PasswordEncrypted,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to decrypt password: %w", err)
@@ -230,6 +246,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		MaxQueryExecutionTime:     int32(cmd.Int("max-query-execution-time")),
 		MaxQueryMemoryBytes:       cmd.Int64("max-query-memory-bytes"),
 		MaxQueryResultRows:        int32(cmd.Int("max-query-result-rows")),
+		RetentionDays:             retentionDays,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to configure clickhouse user: %w", err)

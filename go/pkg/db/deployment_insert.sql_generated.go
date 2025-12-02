@@ -20,16 +20,20 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     git_commit_sha,
     git_branch,
     runtime_config,
+    gateway_config,
     git_commit_message,
     git_commit_author_handle,
     git_commit_author_avatar_url,
     git_commit_timestamp, -- Unix epoch milliseconds
     openapi_spec,
     status,
+    gateway_config,
     created_at,
     updated_at
 )
 VALUES (
+    ?,
+    ?,
     ?,
     ?,
     ?,
@@ -56,6 +60,7 @@ type InsertDeploymentParams struct {
 	GitCommitSha             sql.NullString    `db:"git_commit_sha"`
 	GitBranch                sql.NullString    `db:"git_branch"`
 	RuntimeConfig            json.RawMessage   `db:"runtime_config"`
+	GatewayConfig            []byte            `db:"gateway_config"`
 	GitCommitMessage         sql.NullString    `db:"git_commit_message"`
 	GitCommitAuthorHandle    sql.NullString    `db:"git_commit_author_handle"`
 	GitCommitAuthorAvatarUrl sql.NullString    `db:"git_commit_author_avatar_url"`
@@ -76,16 +81,20 @@ type InsertDeploymentParams struct {
 //	    git_commit_sha,
 //	    git_branch,
 //	    runtime_config,
+//	    gateway_config,
 //	    git_commit_message,
 //	    git_commit_author_handle,
 //	    git_commit_author_avatar_url,
 //	    git_commit_timestamp, -- Unix epoch milliseconds
 //	    openapi_spec,
 //	    status,
+//	    gateway_config,
 //	    created_at,
 //	    updated_at
 //	)
 //	VALUES (
+//	    ?,
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -111,12 +120,14 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.GitCommitSha,
 		arg.GitBranch,
 		arg.RuntimeConfig,
+		arg.GatewayConfig,
 		arg.GitCommitMessage,
 		arg.GitCommitAuthorHandle,
 		arg.GitCommitAuthorAvatarUrl,
 		arg.GitCommitTimestamp,
 		arg.OpenapiSpec,
 		arg.Status,
+		arg.GatewayConfig,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)

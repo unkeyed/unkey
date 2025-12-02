@@ -7,16 +7,16 @@
     "build": "wrangler build"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241022.0",
-    "typescript": "^5.0.4",
-    "wrangler": "^4.10.0"
+    "@cloudflare/workers-types": "4.20241022.0",
+    "typescript": "5.0.4",
+    "wrangler": "4.10.0"
   },
   "dependencies": {
-    "@planetscale/database": "^1.19.0",
+    "@planetscale/database": "1.19.0",
     "@unkey/billing": "workspace:^",
     "@unkey/clickhouse": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/id": "workspace:^",
-    "stripe": "^14.23.0"
+    "stripe": "14.23.0"
   }
 }

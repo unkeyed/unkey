@@ -9,14 +9,14 @@
     "clean": "rm -rf dist generated"
   },
   "devDependencies": {
-    "@bufbuild/buf": "^1.47.2",
-    "@bufbuild/protobuf": "^1.10.0",
-    "@connectrpc/protoc-gen-connect-es": "^1.6.1",
-    "@bufbuild/protoc-gen-es": "^1.10.0",
-    "typescript": "^5.7.3"
+    "@bufbuild/buf": "1.47.2",
+    "@bufbuild/protobuf": "1.10.0",
+    "@connectrpc/protoc-gen-connect-es": "1.6.1",
+    "@bufbuild/protoc-gen-es": "1.10.0",
+    "typescript": "5.7.3"
   },
   "dependencies": {
-    "@bufbuild/protobuf": "^2.8.0",
-    "@connectrpc/connect": "^1.6.1"
+    "@bufbuild/protobuf": "2.8.0",
+    "@connectrpc/connect": "1.6.1"
   }
 }

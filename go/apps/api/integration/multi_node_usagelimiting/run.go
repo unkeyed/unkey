@@ -79,6 +79,7 @@ func RunUsageLimitTest(
 			//nolint: gosec
 			Cost: int32(costPerRequest),
 		},
+		MigrationId: nil,
 	}
 
 	// Step 3: Calculate expected limits

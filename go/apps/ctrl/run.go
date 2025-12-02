@@ -19,8 +19,10 @@ import (
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/project"
 	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/certificate"
 	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/deploy"
+	projectWorkflow "github.com/unkeyed/unkey/go/apps/ctrl/workflows/project"
 	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/routing"
 	deployTLS "github.com/unkeyed/unkey/go/deploy/pkg/tls"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
@@ -150,7 +152,18 @@ func Run(ctx context.Context, cfg Config) error {
 
 	httpClient.Timeout = 30 * time.Second
 
-	kraneClient := kranev1connect.NewDeploymentServiceClient(
+	kraneDeploymentClient := kranev1connect.NewDeploymentServiceClient(
+		httpClient,
+		cfg.KraneAddress,
+		connect.WithInterceptors(connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
+			return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+				req.Header().Set("Authorization", "Bearer dev_user_ctrl")
+				return next(ctx, req)
+			}
+		})),
+	)
+
+	kraneGatewayClient := kranev1connect.NewGatewayServiceClient(
 		httpClient,
 		cfg.KraneAddress,
 		connect.WithInterceptors(connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
@@ -221,7 +234,7 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploy.New(deploy.Config{
 		Logger:        logger,
 		DB:            database,
-		Krane:         kraneClient,
+		Krane:         kraneDeploymentClient,
 		BuildClient:   buildService,
 		DefaultDomain: cfg.DefaultDomain,
 	})))
@@ -236,6 +249,11 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger: logger,
 		DB:     database,
 		Vault:  vaultSvc,
+	})))
+	restateSrv.Bind(hydrav1.NewProjectServiceServer(projectWorkflow.New(projectWorkflow.Config{
+		Logger: logger,
+		DB:     database,
+		Krane:  kraneGatewayClient,
 	})))
 
 	go func() {
@@ -319,6 +337,11 @@ func Run(ctx context.Context, cfg Config) error {
 		Restate:      restateClient,
 		BuildService: buildService,
 		Logger:       logger,
+	}), connectOptions...))
+	mux.Handle(ctrlv1connect.NewProjectServiceHandler(project.New(project.Config{
+		Database: database,
+		Restate:  restateClient,
+		Logger:   logger,
 	}), connectOptions...))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger), connectOptions...))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{

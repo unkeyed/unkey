@@ -11,6 +11,7 @@ import { queryKeysOverviewLogs } from "./api/keys/query-overview-logs";
 import { keyVerificationsTimeseries } from "./api/keys/query-overview-timeseries";
 import { enableKey } from "./api/keys/toggle-key-enabled";
 import { overviewApiSearch } from "./api/overview-api-search";
+import { getKeyCount } from "./api/overview/query-key-count";
 import { queryApisOverview } from "./api/overview/query-overview";
 import { queryVerificationTimeseries } from "./api/overview/query-timeseries";
 import { queryApiKeyDetails } from "./api/query-api-key-details";
@@ -45,6 +46,8 @@ import { promote } from "./deploy/deployment/promote";
 import { rollback } from "./deploy/deployment/rollback";
 import { listDomains } from "./deploy/domains/list";
 import { getEnvs } from "./deploy/envs/list";
+import { generateDeploymentTree } from "./deploy/network/generate";
+import { getDeploymentTree } from "./deploy/network/get";
 import { createProject } from "./deploy/project/create";
 import { listProjects } from "./deploy/project/list";
 import { listEnvironments } from "./environment/list";
@@ -203,6 +206,7 @@ export const router = t.router({
       latestVerification: keyLastVerificationTime,
     }),
     overview: t.router({
+      keyCount: getKeyCount,
       timeseries: queryVerificationTimeseries,
       query: queryApisOverview,
       search: overviewApiSearch,
@@ -336,6 +340,10 @@ export const router = t.router({
     getById: getIdentityById,
   }),
   deploy: t.router({
+    network: t.router({
+      generate: generateDeploymentTree,
+      get: getDeploymentTree,
+    }),
     project: t.router({
       list: listProjects,
       create: createProject,

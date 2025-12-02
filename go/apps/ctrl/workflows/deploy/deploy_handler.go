@@ -22,7 +22,7 @@ import (
 func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
 	finishedSuccessfully := false
 
-	deployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindDeploymentByIdRow, error) {
+	deployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
 		return db.Query.FindDeploymentById(stepCtx, w.db.RW(), req.GetDeploymentId())
 	}, restate.WithName("finding deployment"))
 	if err != nil {
@@ -208,10 +208,9 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 				}
 
-			}
-
-			if allReady {
-				return resp.Msg.GetInstances(), nil
+				if allReady {
+					return resp.Msg.GetInstances(), nil
+				}
 			}
 			// next loop
 
@@ -284,7 +283,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	existingRouteIDs := make([]string, 0)
 
 	for _, hostname := range allHostnames {
-		ingressRouteID, err := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
+		ingressRouteID, getIngressRouteErr := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
 			return db.TxWithResult(stepCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
 				found, err := db.Query.FindIngressRouteByHostname(txCtx, tx, hostname.domain)
 				if err != nil {
@@ -309,8 +308,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 			})
 		})
-		if err != nil {
-			return nil, err
+		if getIngressRouteErr != nil {
+			return nil, getIngressRouteErr
 		}
 		if ingressRouteID != "" {
 			existingRouteIDs = append(existingRouteIDs, ingressRouteID)

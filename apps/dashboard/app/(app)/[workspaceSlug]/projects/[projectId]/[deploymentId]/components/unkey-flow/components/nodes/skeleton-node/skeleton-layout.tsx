@@ -1,0 +1,68 @@
+import type { DeploymentNode } from "../types";
+
+export const SKELETON_TREE: DeploymentNode = {
+  id: "internet",
+  label: "INTERNET",
+  metadata: { type: "origin" },
+  children: [
+    {
+      id: "us-east-1-skeleton",
+      label: "us-east-1",
+      direction: "horizontal",
+      metadata: { type: "skeleton" },
+      children: [
+        {
+          id: "us-east-1-gw-1-skeleton",
+          label: "gw-skeleton-1",
+          metadata: { type: "skeleton" },
+        },
+        {
+          id: "us-east-1-gw-2-skeleton",
+          label: "gw-skeleton-2",
+          metadata: { type: "skeleton" },
+        },
+      ],
+    },
+    {
+      id: "eu-central-1-skeleton",
+      label: "eu-central-1",
+      direction: "horizontal",
+      metadata: { type: "skeleton" },
+      children: [
+        {
+          id: "eu-central-1-gw-1-skeleton",
+          label: "gw-skeleton-1",
+          metadata: { type: "skeleton" },
+        },
+        {
+          id: "eu-central-1-gw-2-skeleton",
+          label: "gw-skeleton-2",
+          metadata: { type: "skeleton" },
+        },
+        {
+          id: "eu-central-1-gw-3-skeleton",
+          label: "gw-skeleton-3",
+          metadata: { type: "skeleton" },
+        },
+      ],
+    },
+    {
+      id: "ap-southeast-2-skeleton",
+      label: "ap-southeast-2",
+      direction: "horizontal",
+      metadata: { type: "skeleton" },
+      children: [
+        {
+          id: "ap-southeast-2-gw-1-skeleton",
+          label: "gw-skeleton-1",
+          metadata: { type: "skeleton" },
+        },
+        {
+          id: "ap-southeast-2-gw-2-skeleton",
+          label: "gw-skeleton-2",
+          metadata: { type: "skeleton" },
+        },
+      ],
+    },
+  ],
+};

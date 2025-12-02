@@ -11,21 +11,21 @@
     "test:benchmark": "vitest run -c vitest.benchmark.ts"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.8.12",
-    "@cloudflare/workers-types": "^4.20240603.0",
+    "@cloudflare/vitest-pool-workers": "0.8.12",
+    "@cloudflare/workers-types": "4.20240603.0",
     "@unkey/api": "2.0.3",
     "@unkey/tsconfig": "workspace:^",
-    "@vitest/ui": "^1.6.0",
-    "typescript": "^5.5.3",
-    "vitest": "^1.6.1",
-    "wrangler": "^4.10.0"
+    "@vitest/ui": "1.6.0",
+    "typescript": "5.5.3",
+    "vitest": "1.6.1",
+    "wrangler": "4.10.0"
   },
   "dependencies": {
     "@axiomhq/js": "1.0.0-rc.2",
-    "@hono/zod-openapi": "^0.11.0",
-    "@hono/zod-validator": "^0.2.1",
-    "@planetscale/database": "^1.16.0",
-    "@unkey/cache": "workspace:^",
+    "@hono/zod-openapi": "0.11.0",
+    "@hono/zod-validator": "0.2.1",
+    "@planetscale/database": "1.16.0",
+    "@unkey/cache": "1.5.0",
     "@unkey/clickhouse": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/encryption": "workspace:^",
@@ -39,8 +39,8 @@
     "@unkey/schema": "workspace:^",
     "@unkey/validation": "workspace:^",
     "@unkey/worker-logging": "workspace:^",
-    "hono": "^4.6.3",
-    "superjson": "^2.2.1",
-    "zod": "^3.23.5"
+    "hono": "4.6.3",
+    "superjson": "2.2.1",
+    "zod": "3.23.5"
   }
 }
