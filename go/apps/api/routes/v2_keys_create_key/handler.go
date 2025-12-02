@@ -183,21 +183,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	for attempt := range 3 {
 		txErr = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 			insertKeyParams := db.InsertKeyParams{
-				ID:                keyID,
-				KeySpaceID:        api.KeyAuthID.String,
-				Hash:              keyResult.Hash,
-				Start:             keyResult.Start,
-				WorkspaceID:       auth.AuthorizedWorkspaceID,
-				ForWorkspaceID:    sql.NullString{String: "", Valid: false},
-				CreatedAtM:        now,
-				Enabled:           true,
-				RemainingRequests: sql.NullInt32{Int32: 0, Valid: false},
-				RefillDay:         sql.NullInt16{Int16: 0, Valid: false},
-				RefillAmount:      sql.NullInt32{Int32: 0, Valid: false},
-				Name:              sql.NullString{String: "", Valid: false},
-				IdentityID:        sql.NullString{String: "", Valid: false},
-				Meta:              sql.NullString{String: "", Valid: false},
-				Expires:           sql.NullTime{Time: time.Time{}, Valid: false},
+				ID:                 keyID,
+				KeySpaceID:         api.KeyAuthID.String,
+				Hash:               keyResult.Hash,
+				Start:              keyResult.Start,
+				WorkspaceID:        auth.AuthorizedWorkspaceID,
+				ForWorkspaceID:     sql.NullString{String: "", Valid: false},
+				CreatedAtM:         now,
+				Enabled:            true,
+				RemainingRequests:  sql.NullInt32{Int32: 0, Valid: false},
+				RefillDay:          sql.NullInt16{Int16: 0, Valid: false},
+				RefillAmount:       sql.NullInt32{Int32: 0, Valid: false},
+				Name:               sql.NullString{String: "", Valid: false},
+				IdentityID:         sql.NullString{String: "", Valid: false},
+				Meta:               sql.NullString{String: "", Valid: false},
+				Expires:            sql.NullTime{Time: time.Time{}, Valid: false},
+				PendingMigrationID: sql.NullString{Valid: false, String: ""},
 			}
 
 			// Set optional fields

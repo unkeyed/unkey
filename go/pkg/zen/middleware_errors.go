@@ -31,7 +31,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				logger.Error("failed to parse error code", "error", parseErr.Error())
 				code = codes.App.Internal.UnexpectedError
 			}
-
+			//nolint:exhaustive
 			switch urn {
 			// Not Found errors
 			case codes.UnkeyDataErrorsKeyNotFound,
@@ -45,8 +45,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				codes.UnkeyDataErrorsRatelimitNamespaceNotFound,
 				codes.UnkeyDataErrorsRatelimitOverrideNotFound,
 				codes.UnkeyDataErrorsIdentityNotFound,
-				codes.UnkeyDataErrorsAuditLogNotFound,
-				codes.UnkeyGatewayErrorsRoutingConfigNotFound:
+				codes.UnkeyDataErrorsAuditLogNotFound:
 				return s.JSON(http.StatusNotFound, openapi.NotFoundErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -64,9 +63,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				codes.UnkeyAuthErrorsAuthenticationMissing,
 				codes.UnkeyAuthErrorsAuthenticationMalformed,
 				codes.UserErrorsBadRequestPermissionsQuerySyntaxError,
-				codes.UnkeyGatewayErrorsValidationRequestInvalid,
-				codes.UserErrorsBadRequestRequestBodyUnreadable,
-				codes.UnkeyGatewayErrorsValidationResponseInvalid:
+				codes.UserErrorsBadRequestRequestBodyUnreadable:
 				return s.JSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -84,7 +81,8 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			case codes.UserErrorsBadRequestInvalidAnalyticsQuery,
 				codes.UserErrorsBadRequestInvalidAnalyticsTable,
 				codes.UserErrorsBadRequestInvalidAnalyticsFunction,
-				codes.UserErrorsBadRequestInvalidAnalyticsQueryType:
+				codes.UserErrorsBadRequestInvalidAnalyticsQueryType,
+				codes.UserErrorsBadRequestQueryRangeExceedsRetention:
 				return s.JSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -188,8 +186,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				})
 
 			// Unauthorized errors
-			case codes.UnkeyAuthErrorsAuthenticationKeyNotFound,
-				codes.UnkeyGatewayErrorsAuthUnauthorized:
+			case codes.UnkeyAuthErrorsAuthenticationKeyNotFound:
 				return s.JSON(http.StatusUnauthorized, openapi.UnauthorizedErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -324,32 +321,10 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 					},
 				})
 
-			// Rate Limited errors
-			case codes.UnkeyGatewayErrorsAuthRateLimited:
-				return s.JSON(http.StatusTooManyRequests, openapi.BadRequestErrorResponse{
-					Meta: openapi.Meta{
-						RequestId: s.RequestID(),
-					},
-					Error: openapi.BadRequestErrorDetails{
-						Title:  "Too Many Requests",
-						Type:   code.DocsURL(),
-						Detail: fault.UserFacingMessage(err),
-						Status: http.StatusTooManyRequests,
-						Errors: []openapi.ValidationError{},
-					},
-				})
-
 			// Internal errors
 			case codes.UnkeyAppErrorsInternalUnexpectedError,
-				codes.UnkeyGatewayErrorsProxyGatewayTimeout,
-				codes.UnkeyGatewayErrorsProxyBadGateway,
-				codes.UnkeyGatewayErrorsProxyServiceUnavailable,
 				codes.UnkeyAppErrorsInternalServiceUnavailable,
-				codes.UnkeyAppErrorsValidationAssertionFailed,
-				codes.UnkeyGatewayErrorsProxyProxyForwardFailed,
-				codes.UnkeyGatewayErrorsRoutingVMSelectionFailed,
-				codes.UnkeyGatewayErrorsInternalInternalServerError,
-				codes.UnkeyGatewayErrorsInternalKeyVerificationFailed:
+				codes.UnkeyAppErrorsValidationAssertionFailed:
 				// Fall through to default 500 error
 			}
 

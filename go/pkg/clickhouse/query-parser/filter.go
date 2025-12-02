@@ -4,7 +4,7 @@ import (
 	clickhouse "github.com/AfterShip/clickhouse-sql-parser/parser"
 )
 
-func (p *Parser) injectWorkspaceFilter() error {
+func (p *Parser) injectWorkspaceFilter() {
 	// Walk the AST to inject workspace filter only on SELECT statements that directly access tables
 	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
 		// Check if this is a SELECT query
@@ -14,10 +14,10 @@ func (p *Parser) injectWorkspaceFilter() error {
 				p.injectWorkspaceFilterOnSelect(selectQuery)
 			}
 		}
+
 		return true
 	})
 
-	return nil
 }
 
 // injectWorkspaceFilterOnSelect injects the workspace filter on a single SELECT statement
@@ -45,7 +45,7 @@ func (p *Parser) injectWorkspaceFilterOnSelect(stmt *clickhouse.SelectQuery) {
 	}
 }
 
-func (p *Parser) injectSecurityFilters() error {
+func (p *Parser) injectSecurityFilters() {
 	for _, securityFilter := range p.config.SecurityFilters {
 		if len(securityFilter.AllowedValues) == 0 {
 			continue
@@ -64,7 +64,6 @@ func (p *Parser) injectSecurityFilters() error {
 		})
 	}
 
-	return nil
 }
 
 // selectReferencesTable checks if a SELECT statement directly references a table in its FROM clause
@@ -97,6 +96,7 @@ func (p *Parser) selectReferencesTable(stmt *clickhouse.SelectQuery) bool {
 			hasTable = true
 			return false // Stop walking
 		}
+
 		return true
 	})
 

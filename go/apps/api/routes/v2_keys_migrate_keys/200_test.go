@@ -19,7 +19,6 @@ import (
 )
 
 func TestMigrateKeysSuccess(t *testing.T) {
-	t.Parallel()
 
 	h := testutil.NewHarness(t)
 	ctx := context.Background()

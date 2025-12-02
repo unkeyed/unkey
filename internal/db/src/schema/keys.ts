@@ -97,7 +97,6 @@ export const keys = mysqlTable(
     workspaceIdIndex: index("idx_keys_on_workspace_id").on(table.workspaceId),
     ownerIdIndex: index("owner_id_idx").on(table.ownerId),
     identityIdIndex: index("identity_id_idx").on(table.identityId),
-    deletedIndex: index("deleted_at_idx").on(table.deletedAtM),
   }),
 );
 

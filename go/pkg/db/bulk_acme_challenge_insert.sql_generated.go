@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertAcmeChallenge is the base query for bulk insert
-const bulkInsertAcmeChallenge = `INSERT INTO acme_challenges ( workspace_id, domain_id, token, authorization, status, type, created_at, updated_at, expires_at ) VALUES %s`
+const bulkInsertAcmeChallenge = `INSERT INTO acme_challenges ( workspace_id, domain_id, token, authorization, status, challenge_type, created_at, updated_at, expires_at ) VALUES %s`
 
 // InsertAcmeChallenges performs bulk insert in a single query
 func (q *BulkQueries) InsertAcmeChallenges(ctx context.Context, db DBTX, args []InsertAcmeChallengeParams) error {
@@ -34,7 +34,7 @@ func (q *BulkQueries) InsertAcmeChallenges(ctx context.Context, db DBTX, args []
 		allArgs = append(allArgs, arg.Token)
 		allArgs = append(allArgs, arg.Authorization)
 		allArgs = append(allArgs, arg.Status)
-		allArgs = append(allArgs, arg.Type)
+		allArgs = append(allArgs, arg.ChallengeType)
 		allArgs = append(allArgs, arg.CreatedAt)
 		allArgs = append(allArgs, arg.UpdatedAt)
 		allArgs = append(allArgs, arg.ExpiresAt)

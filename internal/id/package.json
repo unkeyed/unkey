@@ -11,12 +11,12 @@
     "test": "vitest run -c ./vitest.config.ts"
   },
   "devDependencies": {
-    "@types/node": "^20.14.9",
+    "@types/node": "20.14.9",
     "@unkey/tsconfig": "workspace:*",
-    "typescript": "^5.5.3",
-    "vitest": "^1.6.1"
+    "typescript": "5.5.3",
+    "vitest": "1.6.1"
   },
   "dependencies": {
-    "base-x": "^4.0.1"
+    "base-x": "4.0.1"
   }
 }

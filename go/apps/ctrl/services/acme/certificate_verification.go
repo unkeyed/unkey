@@ -9,11 +9,11 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
-func (s *Service) HandleCertificateVerification(
+func (s *Service) VerifyCertificate(
 	ctx context.Context,
-	req *connect.Request[ctrlv1.HandleCertificateVerificationRequest],
-) (*connect.Response[ctrlv1.HandleCertificateVerificationResponse], error) {
-	res := connect.NewResponse(&ctrlv1.HandleCertificateVerificationResponse{Token: ""})
+	req *connect.Request[ctrlv1.VerifyCertificateRequest],
+) (*connect.Response[ctrlv1.VerifyCertificateResponse], error) {
+	res := connect.NewResponse(&ctrlv1.VerifyCertificateResponse{Authorization: ""})
 
 	domain, err := db.Query.FindCustomDomainByDomain(ctx, s.db.RO(), req.Msg.GetDomain())
 	if err != nil {
@@ -41,6 +41,6 @@ func (s *Service) HandleCertificateVerification(
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("challenge hasn't been issued yet"))
 	}
 
-	res.Msg.Token = challenge.Authorization
+	res.Msg.Authorization = challenge.Authorization
 	return res, nil
 }

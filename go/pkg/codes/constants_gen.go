@@ -12,6 +12,8 @@ const (
 
 	// BadRequest
 
+	// MissingRequiredHeader indicates a required HTTP header is missing from the request.
+	UserErrorsBadRequestMissingRequiredHeader URN = "err:user:bad_request:missing_required_header"
 	// PermissionsQuerySyntaxError indicates a syntax or lexical error in verifyKey permissions query parsing.
 	UserErrorsBadRequestPermissionsQuerySyntaxError URN = "err:user:bad_request:permissions_query_syntax_error"
 	// RequestBodyTooLarge indicates the request body exceeds the maximum allowed size.
@@ -30,6 +32,8 @@ const (
 	UserErrorsBadRequestInvalidAnalyticsFunction URN = "err:user:bad_request:invalid_analytics_function"
 	// InvalidAnalyticsQueryType indicates the query type or operation is not supported (e.g., INSERT, UPDATE, DELETE).
 	UserErrorsBadRequestInvalidAnalyticsQueryType URN = "err:user:bad_request:invalid_analytics_query_type"
+	// QueryRangeExceedsRetention indicates the query attempts to access data older than the workspace's retention period.
+	UserErrorsBadRequestQueryRangeExceedsRetention URN = "err:user:bad_request:query_range_exceeds_retention"
 
 	// UnprocessableEntity
 
@@ -178,45 +182,37 @@ const (
 	UnkeyAppErrorsPreconditionPreconditionFailed URN = "err:unkey:application:precondition_failed"
 
 	// ----------------
-	// UnkeyGatewayErrors
+	// UnkeyIngressErrors
 	// ----------------
 
 	// Proxy
 
 	// BadGateway represents a 502 error - invalid response from upstream server
-	UnkeyGatewayErrorsProxyBadGateway URN = "err:unkey:bad_gateway:bad_gateway"
+	UnkeyIngressErrorsProxyBadGateway URN = "err:unkey:bad_gateway:bad_gateway"
 	// ServiceUnavailable represents a 503 error - backend service is unavailable
-	UnkeyGatewayErrorsProxyServiceUnavailable URN = "err:unkey:service_unavailable:service_unavailable"
+	UnkeyIngressErrorsProxyServiceUnavailable URN = "err:unkey:service_unavailable:service_unavailable"
 	// GatewayTimeout represents a 504 error - upstream server timeout
-	UnkeyGatewayErrorsProxyGatewayTimeout URN = "err:unkey:gateway_timeout:gateway_timeout"
+	UnkeyIngressErrorsProxyGatewayTimeout URN = "err:unkey:gateway_timeout:gateway_timeout"
 	// ProxyForwardFailed represents a 502 error - failed to forward request to backend
-	UnkeyGatewayErrorsProxyProxyForwardFailed URN = "err:unkey:bad_gateway:proxy_forward_failed"
+	UnkeyIngressErrorsProxyProxyForwardFailed URN = "err:unkey:bad_gateway:proxy_forward_failed"
 
 	// Routing
 
-	// ConfigNotFound represents a 404 error - no gateway configuration found for the requested host
-	UnkeyGatewayErrorsRoutingConfigNotFound URN = "err:unkey:not_found:config_not_found"
-	// VMSelectionFailed represents a 500 error - failed to select an available VM
-	UnkeyGatewayErrorsRoutingVMSelectionFailed URN = "err:unkey:internal_server_error:vm_selection_failed"
-
-	// Auth
-
-	// Unauthorized represents a 401 error - authentication required or failed
-	UnkeyGatewayErrorsAuthUnauthorized URN = "err:unkey:unauthorized:unauthorized"
-	// RateLimited represents a 429 error - rate limit exceeded
-	UnkeyGatewayErrorsAuthRateLimited URN = "err:unkey:rate_limited:rate_limited"
-
-	// Validation
-
-	// RequestInvalid represents a 400 error - request validation failed
-	UnkeyGatewayErrorsValidationRequestInvalid URN = "err:unkey:bad_request:request_invalid"
-	// ResponseInvalid represents a 502 error - response validation failed
-	UnkeyGatewayErrorsValidationResponseInvalid URN = "err:unkey:bad_request:response_invalid"
+	// ConfigNotFound represents a 404 error - no configuration found for the requested hostname
+	UnkeyIngressErrorsRoutingConfigNotFound URN = "err:unkey:not_found:config_not_found"
+	// DeploymentSelectionFailed represents a 500 error - failed to select an available deployment
+	UnkeyIngressErrorsRoutingDeploymentSelectionFailed URN = "err:unkey:internal_server_error:deployment_selection_failed"
+	// DeploymentDisabled represents a 503 error - all deployments are currently disabled
+	UnkeyIngressErrorsRoutingDeploymentDisabled URN = "err:unkey:service_unavailable:deployment_disabled"
+	// NoRunningInstances represents a 503 error - no deployments have running instances
+	UnkeyIngressErrorsRoutingNoRunningInstances URN = "err:unkey:service_unavailable:no_running_instances"
 
 	// Internal
 
 	// InternalServerError represents a 500 error - internal server error
-	UnkeyGatewayErrorsInternalInternalServerError URN = "err:unkey:internal_server_error:internal_server_error"
-	// KeyVerificationFailed represents a 500 error - key verification service failure
-	UnkeyGatewayErrorsInternalKeyVerificationFailed URN = "err:unkey:internal_server_error:key_verification_failed"
+	UnkeyIngressErrorsInternalInternalServerError URN = "err:unkey:internal_server_error:internal_server_error"
+	// ConfigLoadFailed represents a 500 error - failed to load configuration
+	UnkeyIngressErrorsInternalConfigLoadFailed URN = "err:unkey:internal_server_error:config_load_failed"
+	// InstanceLoadFailed represents a 500 error - failed to load instance information
+	UnkeyIngressErrorsInternalInstanceLoadFailed URN = "err:unkey:internal_server_error:instance_load_failed"
 )
