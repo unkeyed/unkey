@@ -10,12 +10,12 @@ import (
 )
 
 const findDeploymentById = `-- name: FindDeploymentById :one
-SELECT id, workspace_id, project_id, environment_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, runtime_config, gateway_config, openapi_spec, status, created_at, updated_at FROM ` + "`" + `deployments` + "`" + ` WHERE id = ?
+SELECT id, workspace_id, project_id, environment_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, runtime_config, gateway_config, openapi_spec, secrets_config, status, created_at, updated_at FROM ` + "`" + `deployments` + "`" + ` WHERE id = ?
 `
 
 // FindDeploymentById
 //
-//	SELECT id, workspace_id, project_id, environment_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, runtime_config, gateway_config, openapi_spec, status, created_at, updated_at FROM `deployments` WHERE id = ?
+//	SELECT id, workspace_id, project_id, environment_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, runtime_config, gateway_config, openapi_spec, secrets_config, status, created_at, updated_at FROM `deployments` WHERE id = ?
 func (q *Queries) FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error) {
 	row := db.QueryRowContext(ctx, findDeploymentById, id)
 	var i Deployment
@@ -33,6 +33,7 @@ func (q *Queries) FindDeploymentById(ctx context.Context, db DBTX, id string) (D
 		&i.RuntimeConfig,
 		&i.GatewayConfig,
 		&i.OpenapiSpec,
+		&i.SecretsConfig,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
