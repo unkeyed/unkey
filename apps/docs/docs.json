@@ -52,13 +52,7 @@
                 "group": "Quickstart",
                 "icon": "rocket",
                 "pages": [
-                  {
-                    "group": "Onboarding",
-                    "pages": [
-                      "quickstart/onboarding/onboarding-api",
-                      "quickstart/onboarding/onboarding-ratelimiting"
-                    ]
-                  },
+                  "quickstart/onboarding/onboarding-api",
                   {
                     "group": "API Keys",
                     "pages": [
@@ -447,8 +441,12 @@
       "source": "/onboarding/onboarding-api"
     },
     {
-      "destination": "/quickstart/onboarding/onboarding-ratelimiting",
+      "destination": "/ratelimiting/introduction",
       "source": "/onboarding/onboarding-ratelimiting"
+    },
+    {
+      "destination": "/ratelimiting/introduction",
+      "source": "/quickstart/onboarding/onboarding-ratelimiting"
     },
     {
       "destination": "api-reference/v2",

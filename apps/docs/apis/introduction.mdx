@@ -9,37 +9,31 @@ Unkey provides a simple feature rich API key management system. You can use Unke
 <CodeGroup>
 
 ```ts Typescript
-import { verifyKey } from '@unkey/api';
+import { Unkey } from "@unkey/api";
 
-const { result, error } = await verifyKey({
-  apiId: "api_123",
-  key: "xyz_123"
-})
+const unkey = new Unkey({
+  rootKey: process.env["UNKEY_ROOT_KEY"] ?? "",
+});
 
-if ( error ) {
-  // handle network error
-}
+async function run() {
+  const result = await unkey.keys.verifyKey({
+    key: "sk_1234abcdef"
+  });
 
-if ( !result.valid ) {
-  // reject unauthorized request
+  console.log(result);
 }
 ```
 
 ```py Python
-import asyncio
-import os
-import unkey
+from unkey.py import Unkey
 
-async def main() -> None:
-  client = unkey.Client(api_key=os.environ["API_KEY"])
-  await client.start()
 
-  result = await client.keys.verify_key("prefix_abc123")
+with Unkey(root_key="<YOUR_BEARER_TOKEN_HERE>") as unkey:
 
-  if result.is_ok:
-    print(data.valid)
-  else:
-    print(result.unwrap_err())
+    res = unkey.keys.verify_key(key="sk_1234abcdef")
+
+    # Handle response
+    print(res)
 
 ```
 ```go Golang
@@ -47,26 +41,26 @@ package main
 
 import(
 	"context"
-	unkeygo "github.com/unkeyed/unkey-go"
-	"github.com/unkeyed/unkey-go/models/components"
+	"os"
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"log"
 )
 
 func main() {
     ctx := context.Background()
 
-    s := unkeygo.New(
-        unkeygo.WithSecurity("UNKEY_ROOT_KEY"),
+    s := unkey.New(
+        unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
     )
 
-    res, err := s.Keys.VerifyKey(ctx, components.V1KeysVerifyKeyRequest{
-        APIID: unkeygo.String("api_1234"),
-        Key: "sk_1234",
+    res, err := s.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{
+        Key: "sk_1234abcdef"
     })
     if err != nil {
         log.Fatal(err)
     }
-    if res.V1KeysVerifyKeyResponse != nil {
+    if res.V2KeysVerifyKeyResponseBody != nil {
         // handle response
     }
 }
