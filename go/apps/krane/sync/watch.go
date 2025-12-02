@@ -2,12 +2,10 @@ package sync
 
 import (
 	"context"
-	"net/http"
 	"time"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 )
 
 // Watch starts watching for events from the control plane
@@ -53,20 +51,12 @@ func (s *SyncEngine) watch() {
 
 func (s *SyncEngine) newStream() (*connect.ServerStreamForClient[ctrlv1.InfraEvent], error) {
 	s.logger.Info("connecting to control plane to start stream")
-	httpClient := &http.Client{
-		Timeout: 0,
-		Transport: &http.Transport{
-			IdleConnTimeout: time.Hour,
-		},
-	}
 
-	// TODO: add auth
-	ctrlClient := ctrlv1connect.NewClusterServiceClient(httpClient, s.controlPlaneUrl)
-
-	return ctrlClient.Watch(context.Background(), connect.NewRequest(&ctrlv1.WatchRequest{
+	return s.ctrl.Watch(context.Background(), connect.NewRequest(&ctrlv1.WatchRequest{
 		ClientId: s.instanceID,
 		Selectors: map[string]string{
 			"region": s.region,
+			"shard":  s.shard,
 		},
 	}))
 

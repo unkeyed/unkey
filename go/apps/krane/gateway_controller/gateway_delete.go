@@ -20,12 +20,11 @@ import (
 func (c *GatewayController) DeleteGateway(ctx context.Context, req *ctrlv1.DeleteGateway) error {
 
 	c.logger.Info("deleting gateway",
-		"namespace", req.Namespace,
 		"gateway_id", req.GetGatewayId(),
 	)
 
 	// Create label selector for this gateway
-	labelSelector := fmt.Sprintf("%s=%s,%s=%s", k8s.LabelGatewayID, req.GetGatewayId(), k8s.LabelManagedBy, "krane")
+	labelSelector := fmt.Sprintf("%s=%s,%s=%s", k8s.LabelKeyGatewayID, req.GetGatewayId(), k8s.LabelKeyManagedBy, "krane")
 
 	//nolint: exhaustruct
 	deleteOptions := metav1.DeleteOptions{
@@ -34,7 +33,7 @@ func (c *GatewayController) DeleteGateway(ctx context.Context, req *ctrlv1.Delet
 
 	// List and delete Services with this gateway-id label
 	//nolint: exhaustruct
-	serviceList, err := c.clientset.CoreV1().Services(req.Namespace).List(ctx, metav1.ListOptions{
+	serviceList, err := c.clientset.CoreV1().Services(k8s.UntrustedNamespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -46,7 +45,7 @@ func (c *GatewayController) DeleteGateway(ctx context.Context, req *ctrlv1.Delet
 			"name", service.Name,
 			"gateway_id", req.GetGatewayId(),
 		)
-		err = c.clientset.CoreV1().Services(req.Namespace).Delete(ctx, service.Name, deleteOptions)
+		err = c.clientset.CoreV1().Services(k8s.UntrustedNamespace).Delete(ctx, service.Name, deleteOptions)
 		if err != nil && !apierrors.IsNotFound(err) {
 			return fmt.Errorf("failed to delete service %s: %w", service.Name, err)
 		}
@@ -54,7 +53,7 @@ func (c *GatewayController) DeleteGateway(ctx context.Context, req *ctrlv1.Delet
 
 	// List and delete Deployments with this gateway-id label
 	//nolint: exhaustruct
-	deploymentList, err := c.clientset.AppsV1().Deployments(req.Namespace).List(ctx, metav1.ListOptions{
+	deploymentList, err := c.clientset.AppsV1().Deployments(k8s.UntrustedNamespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -66,14 +65,13 @@ func (c *GatewayController) DeleteGateway(ctx context.Context, req *ctrlv1.Delet
 			"name", deployment.Name,
 			"gateway_id", req.GetGatewayId(),
 		)
-		err = c.clientset.AppsV1().Deployments(req.Namespace).Delete(ctx, deployment.Name, deleteOptions)
+		err = c.clientset.AppsV1().Deployments(k8s.UntrustedNamespace).Delete(ctx, deployment.Name, deleteOptions)
 		if err != nil && !apierrors.IsNotFound(err) {
 			return fmt.Errorf("failed to delete deployment %s: %w", deployment.Name, err)
 		}
 	}
 
 	c.logger.Info("gateway deleted successfully",
-		"namespace", req.Namespace,
 		"gateway_id", req.GetGatewayId(),
 		"services_deleted", len(serviceList.Items),
 		"deployments_deleted", len(deploymentList.Items),

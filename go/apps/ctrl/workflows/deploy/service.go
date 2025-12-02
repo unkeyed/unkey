@@ -8,8 +8,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
-const hardcodedNamespace = "unkey"
-
 // Workflow orchestrates deployment lifecycle operations.
 //
 // This workflow manages the complete deployment lifecycle including deploying new versions,

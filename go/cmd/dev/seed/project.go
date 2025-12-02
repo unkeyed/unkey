@@ -106,6 +106,7 @@ func seedProject(ctx context.Context, cmd *cli.Command) error {
 			Source: &ctrlv1.CreateDeploymentRequest_DockerImage{
 				DockerImage: dockerImage,
 			},
+			KeyspaceId: nil,
 			GitCommit: &ctrlv1.GitCommitInfo{
 				CommitSha:       "abc123def456",
 				CommitMessage:   "Initial deployment via seed",

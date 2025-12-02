@@ -12,20 +12,27 @@ import (
 const updateInstanceStatus = `-- name: UpdateInstanceStatus :exec
 UPDATE instances SET
 	status = ?
-WHERE id = ?
+WHERE pod_name = ? AND shard = ? AND region = ?
 `
 
 type UpdateInstanceStatusParams struct {
-	Status InstancesStatus `db:"status"`
-	ID     string          `db:"id"`
+	Status  InstancesStatus `db:"status"`
+	PodName string          `db:"pod_name"`
+	Shard   string          `db:"shard"`
+	Region  string          `db:"region"`
 }
 
 // UpdateInstanceStatus
 //
 //	UPDATE instances SET
 //		status = ?
-//	WHERE id = ?
+//	WHERE pod_name = ? AND shard = ? AND region = ?
 func (q *Queries) UpdateInstanceStatus(ctx context.Context, db DBTX, arg UpdateInstanceStatusParams) error {
-	_, err := db.ExecContext(ctx, updateInstanceStatus, arg.Status, arg.ID)
+	_, err := db.ExecContext(ctx, updateInstanceStatus,
+		arg.Status,
+		arg.PodName,
+		arg.Shard,
+		arg.Region,
+	)
 	return err
 }

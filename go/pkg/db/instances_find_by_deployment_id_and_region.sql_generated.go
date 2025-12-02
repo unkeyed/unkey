@@ -11,15 +11,7 @@ import (
 
 const findInstancesByDeploymentIdAndRegion = `-- name: FindInstancesByDeploymentIdAndRegion :many
 SELECT
-  id,
-  deployment_id,
-  workspace_id,
-  project_id,
-  region,
-  address,
-  cpu_millicores,
-  memory_mib,
-  status
+ id, deployment_id, workspace_id, project_id, region, shard, pod_name, address, cpu_millicores, memory_mib, status
 FROM instances
 WHERE deployment_id = ? AND region = ?
 `
@@ -32,15 +24,7 @@ type FindInstancesByDeploymentIdAndRegionParams struct {
 // FindInstancesByDeploymentIdAndRegion
 //
 //	SELECT
-//	  id,
-//	  deployment_id,
-//	  workspace_id,
-//	  project_id,
-//	  region,
-//	  address,
-//	  cpu_millicores,
-//	  memory_mib,
-//	  status
+//	 id, deployment_id, workspace_id, project_id, region, shard, pod_name, address, cpu_millicores, memory_mib, status
 //	FROM instances
 //	WHERE deployment_id = ? AND region = ?
 func (q *Queries) FindInstancesByDeploymentIdAndRegion(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionParams) ([]Instance, error) {
@@ -58,6 +42,8 @@ func (q *Queries) FindInstancesByDeploymentIdAndRegion(ctx context.Context, db D
 			&i.WorkspaceID,
 			&i.ProjectID,
 			&i.Region,
+			&i.Shard,
+			&i.PodName,
 			&i.Address,
 			&i.CpuMillicores,
 			&i.MemoryMib,

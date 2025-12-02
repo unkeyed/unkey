@@ -9,9 +9,10 @@ import (
 
 type Service struct {
 	hydrav1.UnimplementedProjectServiceServer
-	db      db.Database
-	logger  logging.Logger
-	cluster *cluster.Service
+	db           db.Database
+	logger       logging.Logger
+	cluster      *cluster.Service
+	gatewayImage string
 }
 
 var _ hydrav1.ProjectServiceServer = (*Service)(nil)
@@ -25,6 +26,9 @@ type Config struct {
 	DB db.Database
 
 	Cluster *cluster.Service
+
+	// The image that gets deployed into new gateways
+	GatewayImage string
 }
 
 // New creates a new project service instance.
@@ -34,5 +38,6 @@ func New(cfg Config) *Service {
 		db:                                cfg.DB,
 		logger:                            cfg.Logger,
 		cluster:                           cfg.Cluster,
+		gatewayImage:                      cfg.GatewayImage,
 	}
 }

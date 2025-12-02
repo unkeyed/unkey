@@ -3,10 +3,10 @@ package router
 import (
 	"context"
 	"fmt"
-	"math/rand/v2"
 	"time"
 
 	"github.com/unkeyed/unkey/go/internal/services/caches"
+	"github.com/unkeyed/unkey/go/pkg/array"
 	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/codes"
@@ -142,6 +142,5 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 		)
 	}
 
-	randomIndex := rand.IntN(len(runningInstances))
-	return runningInstances[randomIndex], nil
+	return array.Random(runningInstances), nil
 }

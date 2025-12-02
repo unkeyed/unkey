@@ -15,14 +15,14 @@ type DeploymentController struct {
 	logger    logging.Logger
 	clientset *kubernetes.Clientset
 
-	buffer *buffer.Buffer[*ctrlv1.UpdateDeploymentStatusRequest]
+	buffer *buffer.Buffer[*ctrlv1.UpdateInstanceRequest]
 }
 
 // Config holds configuration for the Kubernetes backend.
 type Config struct {
 	// Logger for Kubernetes operations.
 	Logger logging.Logger
-	Buffer *buffer.Buffer[*ctrlv1.UpdateDeploymentStatusRequest]
+	Buffer *buffer.Buffer[*ctrlv1.UpdateInstanceRequest]
 }
 
 func New(cfg Config) (*DeploymentController, error) {

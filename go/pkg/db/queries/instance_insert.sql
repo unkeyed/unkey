@@ -1,11 +1,13 @@
 
--- name: UpsertInstance :exec
+-- name: InsertInstance :exec
 INSERT INTO instances (
 	id,
 	deployment_id,
 	workspace_id,
 	project_id,
 	region,
+	shard,
+	pod_name,
 	address,
 	cpu_millicores,
 	memory_mib,
@@ -17,14 +19,10 @@ VALUES (
 	sqlc.arg(workspace_id),
 	sqlc.arg(project_id),
 	sqlc.arg(region),
+	sqlc.arg(shard),
+	sqlc.arg(pod_name),
 	sqlc.arg(address),
 	sqlc.arg(cpu_millicores),
-	sqlc.arg(memory_mb),
+	sqlc.arg(memory_mib),
 	sqlc.arg(status)
-)
-ON DUPLICATE KEY UPDATE
-	address = sqlc.arg(address),
-	cpu_millicores = sqlc.arg(cpu_millicores),
-	memory_mib = sqlc.arg(memory_mib),
-	status = sqlc.arg(status)
-;
+);

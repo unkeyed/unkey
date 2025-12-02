@@ -52,12 +52,6 @@ spec:
             - name: UNKEY_OTEL
               value: "false"
             # Control Plane Specific
-            - name: UNKEY_AUTH_TOKEN
-              value: "dev-auth-token"
-            - name: UNKEY_KRANE_ADDRESS
-              value: "http://krane:8080"
-            - name: UNKEY_SPIFFE_SOCKET_PATH
-              value: "/var/lib/spire/agent/agent.sock"
             # Vault Configuration (required)
             - name: UNKEY_VAULT_MASTER_KEYS
               value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
@@ -141,20 +135,15 @@ spec:
               value: "http://ctrl:9080"
 
             # API Key
-            - name: UNKEY_API_KEY
+            - name: UNKEY_AUTH_TOKEN
               value: "your-local-dev-key"
 
             # ClickHouse Configuration
             - name: UNKEY_CLICKHOUSE_URL
               value: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
 
-            # Docker Configuration (for Docker build backend)
-            - name: UNKEY_DOCKER_SOCKET
-              value: "/var/run/docker.sock"
-
-            # Deployment Configuration
-            - name: UNKEY_DEPLOYMENT_EVICTION_TTL
-              value: "10m"
+            - name: UNKEY_GATEWAY_IMAGE
+              value: "unkey:dev"
 
           command: ["/unkey", "run", "ctrl"]
           volumeMounts:

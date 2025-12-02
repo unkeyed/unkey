@@ -26,11 +26,15 @@ type Service struct {
 	clientsMu sync.RWMutex
 	// clientID -> stream
 	clients map[string]*client
+
+	// static bearer token for authentication
+	bearer string
 }
 
 type Config struct {
 	Database db.Database
 	Logger   logging.Logger
+	Bearer   string
 }
 
 func New(cfg Config) *Service {
@@ -40,6 +44,7 @@ func New(cfg Config) *Service {
 		logger:                             cfg.Logger,
 		clientsMu:                          sync.RWMutex{},
 		clients:                            make(map[string]*client),
+		bearer:                             cfg.Bearer,
 	}
 
 	return s

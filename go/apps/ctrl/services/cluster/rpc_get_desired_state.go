@@ -11,6 +11,10 @@ import (
 
 func (s *Service) GetDesiredState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredStateRequest], stream *connect.ServerStream[ctrlv1.InfraEvent]) error {
 
+	if err := s.authenticate(req); err != nil {
+		return err
+	}
+
 	clientID := req.Msg.GetClientId()
 	selectors := req.Msg.GetSelectors()
 
@@ -20,7 +24,7 @@ func (s *Service) GetDesiredState(ctx context.Context, req *connect.Request[ctrl
 	)
 
 	// missing labels means we accept all regions
-	region := req.Msg.Selectors["region"]
+	region := req.Msg.GetSelectors()["region"]
 
 	// deployments
 	cursor := ""
@@ -44,8 +48,6 @@ func (s *Service) GetDesiredState(ctx context.Context, req *connect.Request[ctrl
 		for _, t := range topologies {
 
 			if err := assert.All(
-				assert.True(t.K8sNamespace.Valid, "missing k8s namespace"),
-				assert.NotEmpty(t.K8sNamespace.String, "missing k8s namespace"),
 				assert.True(t.Image.Valid, "missing image"),
 				assert.NotEmpty(t.Image.String, "missing image"),
 			); err != nil {
@@ -58,7 +60,6 @@ func (s *Service) GetDesiredState(ctx context.Context, req *connect.Request[ctrl
 					DeploymentEvent: &ctrlv1.DeploymentEvent{
 						Event: &ctrlv1.DeploymentEvent_Apply{
 							Apply: &ctrlv1.ApplyDeployment{
-								Namespace:     t.K8sNamespace.String,
 								WorkspaceId:   t.WorkspaceID,
 								ProjectId:     t.ProjectID,
 								EnvironmentId: t.EnvironmentID,
@@ -101,20 +102,11 @@ func (s *Service) GetDesiredState(ctx context.Context, req *connect.Request[ctrl
 
 		for _, t := range topologies {
 
-			if err := assert.All(
-				assert.True(t.K8sNamespace.Valid, "missing k8s namespace"),
-				assert.NotEmpty(t.K8sNamespace.String, "missing k8s namespace"),
-			); err != nil {
-				s.logger.Error("invalid configuration", "error", err.Error())
-				continue
-			}
-
 			err = stream.Send(&ctrlv1.InfraEvent{
 				Event: &ctrlv1.InfraEvent_GatewayEvent{
 					GatewayEvent: &ctrlv1.GatewayEvent{
 						Event: &ctrlv1.GatewayEvent_Apply{
 							Apply: &ctrlv1.ApplyGateway{
-								Namespace:     t.K8sNamespace.String,
 								WorkspaceId:   t.WorkspaceID,
 								EnvironmentId: t.EnvironmentID,
 								ProjectId:     t.ProjectID,

@@ -192,7 +192,6 @@ CREATE TABLE `workspaces` (
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(64) NOT NULL,
 	`partition_id` varchar(256),
-	`k8s_namespace` varchar(63),
 	`plan` enum('free','pro','enterprise') DEFAULT 'free',
 	`tier` varchar(256) DEFAULT 'Free',
 	`stripe_customer_id` varchar(256),
@@ -207,8 +206,7 @@ CREATE TABLE `workspaces` (
 	`deleted_at_m` bigint,
 	CONSTRAINT `workspaces_id` PRIMARY KEY(`id`),
 	CONSTRAINT `workspaces_org_id_unique` UNIQUE(`org_id`),
-	CONSTRAINT `workspaces_slug_unique` UNIQUE(`slug`),
-	CONSTRAINT `workspaces_k8s_namespace_unique` UNIQUE(`k8s_namespace`)
+	CONSTRAINT `workspaces_slug_unique` UNIQUE(`slug`)
 );
 
 CREATE TABLE `key_migration_errors` (
@@ -382,7 +380,8 @@ CREATE TABLE `deployment_topology` (
 	`status` enum('starting','started','stopping','stopped') NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `deployment_topology_deployment_id_region_pk` PRIMARY KEY(`deployment_id`,`region`)
+	CONSTRAINT `deployment_topology_deployment_id_region_pk` PRIMARY KEY(`deployment_id`,`region`),
+	CONSTRAINT `unique_region_per_deployment` UNIQUE(`deployment_id`,`region`)
 );
 
 CREATE TABLE `deployment_steps` (
@@ -453,12 +452,15 @@ CREATE TABLE `instances` (
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
 	`region` varchar(255) NOT NULL,
+	`shard` varchar(255) NOT NULL,
+	`pod_name` varchar(255) NOT NULL,
 	`address` varchar(255) NOT NULL,
 	`cpu_millicores` int NOT NULL,
 	`memory_mib` int NOT NULL,
 	`status` enum('inactive','pending','running','failed') NOT NULL,
 	CONSTRAINT `instances_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_address` UNIQUE(`address`)
+	CONSTRAINT `unique_address_per_shard` UNIQUE(`address`,`shard`),
+	CONSTRAINT `unique_pod_name_per_shard` UNIQUE(`pod_name`,`shard`)
 );
 
 CREATE TABLE `certificates` (

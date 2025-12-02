@@ -3,7 +3,6 @@ package project
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -37,33 +36,6 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 
 	if err != nil {
 		return nil, err
-	}
-
-	k8sNamespace := workspace.K8sNamespace.String
-	// This should really be in a dedicated createWorkspace call I think,
-	// but this works for now
-	if k8sNamespace == "" {
-		k8sNamespace, err = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-			name := fmt.Sprintf("user-%s", uid.Nano(12))
-			res, err := db.Query.UpdateWorkspaceK8sNamespace(runCtx, s.db.RW(), db.UpdateWorkspaceK8sNamespaceParams{
-				ID:           workspace.ID,
-				K8sNamespace: sql.NullString{Valid: true, String: name},
-			})
-			if err != nil {
-				return "", err
-			}
-			affected, err := res.RowsAffected()
-			if err != nil {
-				return "", err
-			}
-			if affected != 1 {
-				return "", errors.New("failed to update workspace k8s namespace")
-			}
-			return name, nil
-		})
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	projectID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
@@ -145,7 +117,7 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 				EnvironmentID:  environmentID,
 				K8sServiceName: "TODO",
 				Region:         "aws:us-east-1",
-				Image:          "nginx:latest",
+				Image:          s.gatewayImage,
 				Health:         db.GatewaysHealthUnknown,
 				Replicas:       replicas,
 				CpuMillicores:  1024,
@@ -158,17 +130,16 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 		}
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return s.cluster.EmitEvent(runCtx, map[string]string{"region": "aws:us-east-1"}, &ctrlv1.InfraEvent{
+			return s.cluster.EmitEvent(runCtx, map[string]string{"region": "aws:us-east-1", "shard": "default"}, &ctrlv1.InfraEvent{
 				Event: &ctrlv1.InfraEvent_GatewayEvent{
 					GatewayEvent: &ctrlv1.GatewayEvent{
 						Event: &ctrlv1.GatewayEvent_Apply{
 							Apply: &ctrlv1.ApplyGateway{
-								Namespace:     workspace.K8sNamespace.String,
 								WorkspaceId:   workspace.ID,
 								ProjectId:     projectID,
 								EnvironmentId: environmentID,
 								GatewayId:     gatewayID,
-								Image:         "nginx:latest",
+								Image:         s.gatewayImage,
 								Replicas:      uint32(replicas),
 								CpuMillicores: 1024,
 								MemorySizeMib: 1024,

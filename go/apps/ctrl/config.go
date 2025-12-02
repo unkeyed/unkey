@@ -116,9 +116,6 @@ type Config struct {
 	// KraneAddress is the full URL of the krane service for deployment operations (e.g., "https://krane.example.com:8080")
 	KraneAddress string
 
-	// APIKey is the API key for simple authentication (demo purposes only)
-	APIKey string
-
 	// SPIFFESocketPath is the path to the SPIFFE agent socket for mTLS authentication
 	SPIFFESocketPath string
 
@@ -144,6 +141,9 @@ type Config struct {
 
 	// ClickhouseURL is the ClickHouse database connection string
 	ClickhouseURL string
+
+	// The image new gateways get deployed with
+	GatewayImage string
 }
 
 type BuildPlatform struct {

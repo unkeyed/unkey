@@ -17,6 +17,7 @@ print("Tilt starting with services: %s" % services)
 
 # Create namespace using the extension with allow_duplicates
 namespace_create('unkey', allow_duplicates=True)
+namespace_create('untrusted', allow_duplicates=True)
 
 # Define which services to start
 start_mysql = 'all' in services or 'mysql' in services

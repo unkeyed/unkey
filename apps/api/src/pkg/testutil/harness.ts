@@ -269,7 +269,6 @@ export abstract class Harness {
       updatedAtM: null,
       deletedAtM: null,
       partitionId: null,
-      k8sNamespace: null,
     };
     const userWorkspace: Workspace = {
       id: newId("test"),
@@ -289,7 +288,6 @@ export abstract class Harness {
       updatedAtM: null,
       deletedAtM: null,
       partitionId: null,
-      k8sNamespace: null,
     };
 
     const unkeyKeyAuth: KeyAuth = {

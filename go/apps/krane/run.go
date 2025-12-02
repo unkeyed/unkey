@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 
 	deploymentcontroller "github.com/unkeyed/unkey/go/apps/krane/deployment_controller"
 	gatewaycontroller "github.com/unkeyed/unkey/go/apps/krane/gateway_controller"
 	"github.com/unkeyed/unkey/go/apps/krane/sync"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/prometheus"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
 	pkgversion "github.com/unkeyed/unkey/go/pkg/version"
 )
@@ -31,21 +32,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	shutdowns := shutdown.New()
 
-	if cfg.OtelEnabled {
-		grafanaErr := otel.InitGrafana(ctx, otel.Config{
-			Application:     "krane",
-			Version:         pkgversion.Version,
-			InstanceID:      cfg.InstanceID,
-			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
-		},
-			shutdowns,
-		)
-		if grafanaErr != nil {
-			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
-		}
-	}
-
 	logger := logging.New()
 	if cfg.InstanceID != "" {
 		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
@@ -60,6 +46,7 @@ func Run(ctx context.Context, cfg Config) error {
 	s, err := sync.New(sync.Config{
 		Logger:             logger,
 		Region:             cfg.Region,
+		Shard:              cfg.Shard,
 		InstanceID:         cfg.InstanceID,
 		ControlPlaneURL:    cfg.ControlPlaneURL,
 		ControlPlaneBearer: cfg.ControlPlaneBearer,
@@ -70,7 +57,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	dc, err := deploymentcontroller.New(deploymentcontroller.Config{
 		Logger: logger,
-		Buffer: s.DeploymentUpdateBuffer,
+		Buffer: s.InstanceUpdateBuffer,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create deployment controller: %w", err)
@@ -90,10 +77,10 @@ func Run(ctx context.Context, cfg Config) error {
 			logger.Info("Event received", "event", e)
 
 			var backendErr error
-			switch x := e.Event.(type) {
+			switch x := e.GetEvent().(type) {
 			case *ctrlv1.InfraEvent_DeploymentEvent:
 				{
-					switch y := x.DeploymentEvent.Event.(type) {
+					switch y := x.DeploymentEvent.GetEvent().(type) {
 					case *ctrlv1.DeploymentEvent_Apply:
 						backendErr = dc.ApplyDeployment(ctx, y.Apply)
 					case *ctrlv1.DeploymentEvent_Delete:
@@ -101,17 +88,15 @@ func Run(ctx context.Context, cfg Config) error {
 					}
 
 				}
-				switch x := e.Event.(type) {
-				case *ctrlv1.InfraEvent_GatewayEvent:
-					{
-						switch y := x.GatewayEvent.Event.(type) {
-						case *ctrlv1.GatewayEvent_Apply:
-							backendErr = gc.ApplyGateway(ctx, y.Apply)
-						case *ctrlv1.GatewayEvent_Delete:
-							backendErr = gc.DeleteGateway(ctx, y.Delete)
-						}
-
+			case *ctrlv1.InfraEvent_GatewayEvent:
+				{
+					switch y := x.GatewayEvent.GetEvent().(type) {
+					case *ctrlv1.GatewayEvent_Apply:
+						backendErr = gc.ApplyGateway(ctx, y.Apply)
+					case *ctrlv1.GatewayEvent_Delete:
+						backendErr = gc.DeleteGateway(ctx, y.Delete)
 					}
+
 				}
 
 			default:
@@ -123,6 +108,28 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}()
 
+	if cfg.PrometheusPort > 0 {
+
+		prom, err := prometheus.New(prometheus.Config{
+			Logger: logger,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create prometheus server: %w", err)
+		}
+
+		shutdowns.RegisterCtx(prom.Shutdown)
+		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+		if err != nil {
+			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, err)
+		}
+		go func() {
+			logger.Info("prometheus started", "port", cfg.PrometheusPort)
+			if err := prom.Serve(ctx, ln); err != nil {
+				logger.Error("failed to start prometheus server", "error", err)
+			}
+		}()
+
+	}
 	// Wait for signal and handle shutdown
 	logger.Info("Krane server started successfully")
 	if err := shutdowns.WaitForSignal(ctx); err != nil {

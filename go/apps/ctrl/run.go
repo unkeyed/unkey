@@ -8,10 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"connectrpc.com/connect"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	restateServer "github.com/restatedev/sdk-go/server"
-	"github.com/unkeyed/unkey/go/apps/ctrl/middleware"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/build/backend/depot"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/build/backend/docker"
@@ -174,6 +172,7 @@ func Run(ctx context.Context, cfg Config) error {
 	clusterSvc := cluster.New(cluster.Config{
 		Database: database,
 		Logger:   logger,
+		Bearer:   cfg.AuthToken,
 	})
 
 	// Restate Client and Server
@@ -200,9 +199,10 @@ func Run(ctx context.Context, cfg Config) error {
 		Vault:  vaultSvc,
 	})))
 	restateSrv.Bind(hydrav1.NewProjectServiceServer(projectWorkflow.New(projectWorkflow.Config{
-		Logger:  logger,
-		DB:      database,
-		Cluster: clusterSvc,
+		Logger:       logger,
+		DB:           database,
+		GatewayImage: cfg.GatewayImage,
+		Cluster:      clusterSvc,
 	})))
 
 	go func() {
@@ -263,41 +263,25 @@ func Run(ctx context.Context, cfg Config) error {
 	// Create the connect handler
 	mux := http.NewServeMux()
 
-	// Create authentication middleware (required except for health check and ACME routes)
-	authMiddleware := middleware.NewAuthMiddleware(middleware.AuthConfig{
-		APIKey: cfg.APIKey,
-	})
-	authInterceptor := authMiddleware.ConnectInterceptor()
-
-	if cfg.APIKey != "" {
-		logger.Info("API key authentication enabled for ctrl service")
-	} else {
-		logger.Warn("No API key configured - authentication will reject all requests except health check and ACME routes")
-	}
-
-	// Create the service handlers with auth interceptor (always applied)
-	connectOptions := []connect.HandlerOption{
-		connect.WithInterceptors(authInterceptor),
-	}
-	mux.Handle(ctrlv1connect.NewBuildServiceHandler(buildService, connectOptions...))
-	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database), connectOptions...))
+	mux.Handle(ctrlv1connect.NewBuildServiceHandler(buildService))
+	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
 	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(deployment.Config{
 		Database:     database,
 		Restate:      restateClient,
 		BuildService: buildService,
 		Logger:       logger,
-	}), connectOptions...))
+	})))
 	mux.Handle(ctrlv1connect.NewProjectServiceHandler(project.New(project.Config{
 		Database: database,
 		Restate:  restateClient,
 		Logger:   logger,
-	}), connectOptions...))
-	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger), connectOptions...))
+	})))
+	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger)))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
 		DB:     database,
 		Logger: logger,
-	}), connectOptions...))
-	mux.Handle(ctrlv1connect.NewClusterServiceHandler(clusterSvc, connectOptions...))
+	})))
+	mux.Handle(ctrlv1connect.NewClusterServiceHandler(clusterSvc))
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)

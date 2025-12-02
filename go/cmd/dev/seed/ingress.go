@@ -111,6 +111,8 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 			GitCommitTimestamp:       sql.NullInt64{Int64: now, Valid: true},
 			OpenapiSpec:              sql.NullString{},
 			Status:                   db.DeploymentsStatusReady,
+			CpuMillicores:            1024,
+			MemoryMib:                1024,
 			CreatedAt:                now,
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {
@@ -135,12 +137,14 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create gateway: %w", err)
 		}
 
-		err = db.Query.UpsertInstance(ctx, tx, db.UpsertInstanceParams{
+		err = db.Query.InsertInstance(ctx, tx, db.InsertInstanceParams{
 			ID:            instanceID,
 			DeploymentID:  deploymentID,
 			WorkspaceID:   workspaceID,
 			ProjectID:     projectID,
 			Region:        region,
+			Shard:         "default",
+			PodName:       uid.Nano(8),
 			Address:       address,
 			CpuMillicores: 1000,
 			MemoryMib:     512,

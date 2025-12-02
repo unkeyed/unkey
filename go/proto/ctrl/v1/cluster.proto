@@ -38,59 +38,101 @@ service ClusterService {
   rpc GetDesiredState(GetDesiredStateRequest) returns (stream InfraEvent);
 
 
-  rpc UpdateDeploymentStatus(UpdateDeploymentStatusRequest) returns (UpdateDeploymentStatusResponse);
-  rpc UpdateGatewayStatus(UpdateGatewayStatusRequest) returns (UpdateGatewayStatusResponse);
+  rpc UpdateInstance(UpdateInstanceRequest) returns (UpdateInstanceResponse);
+  rpc UpdateGateway(UpdateGatewayRequest) returns (UpdateGatewayResponse);
 }
 
 
-message UpdateDeploymentStatusRequest {
+
+
+message DeleteInstanceRequest {
   string deployment_id = 1;
-  string region = 2;
-  message Instance {
+  string pod_name = 2;
+}
 
+message DeleteInstanceResponse {
+}
 
-    string id = 1;
-    string address = 2;
-
-    enum Status {
-      STATUS_UNSPECIFIED = 0;
-      STATUS_INACTIVE=1;
-      STATUS_PENDING = 2; // Deployment request accepted, container/pod creation in progress
-      STATUS_RUNNING = 3; // Container/pod is running and healthy
-      STATUS_FAILED = 4; // Container/pod failed to start
-    }
-
-    Status status = 3;
+message UpdateInstanceRequest {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_PENDING = 1; // Deployment request accepted, container/pod creation in progress
+    STATUS_RUNNING = 2; // Container/pod is running and healthy
+    STATUS_FAILED = 3; // Container/pod failed to start
   }
-  repeated Instance instances = 3;
-
-}
-
-message UpdateDeploymentStatusResponse {
-
-}
 
 
-message UpdateGatewayStatusRequest {
-  string gateway_id = 1;
-  string region = 2;
 
+  message Create {
+    string deployment_id = 1;
+    string pod_name = 2;
     string address = 3;
+    int32 cpu_millicores = 4;
+    int32 memory_mib = 5;
 
-    enum Status {
-      STATUS_UNSPECIFIED = 0;
-      STATUS_INACTIVE=1;
-      STATUS_PENDING = 2; // Deployment request accepted, container/pod creation in progress
-      STATUS_RUNNING = 3; // Container/pod is running and healthy
-      STATUS_FAILED = 4; // Container/pod failed to start
+
+      Status status = 6;
+
+  }
+  message Update {
+
+
+    string deployment_id = 1;
+    string pod_name = 2;
+
+
+      Status status = 3;
+
+  }
+  message Delete {
+    string deployment_id = 1;
+    string pod_name = 2;
+
+  }
+
+
+
+  oneof change {
+    Create create = 1;
+    Update update = 2;
+    Delete delete = 3;
+
+  }
+
+}
+
+message UpdateInstanceResponse {
+
+}
+
+
+message UpdateGatewayRequest {
+
+
+
+    message Create {
+      string gateway_id = 1;
+        int32 running_replicas = 2;
+    }
+    message Update {
+      string gateway_id = 1;
+        int32 running_replicas = 2;
+
+    }
+    message Delete {
+      string gateway_id = 1;
     }
 
-    Status status = 4;
+    oneof change {
+      Create create = 1;
+      Update update = 2;
+      Delete delete = 3;
 
+    }
 
 }
 
-message UpdateGatewayStatusResponse {
+message UpdateGatewayResponse {
 
 }
 
@@ -171,39 +213,37 @@ message DeploymentEvent {
 // it doesn't exist or updating it if it does. All fields except namespace are required.
 // The control plane ensures that gateway_id is unique within the namespace.
 message ApplyGateway {
-  // namespace is the Kubernetes namespace where the gateway should exist.
-    string namespace = 1;
 
   // workspace_id identifies the workspace that owns this gateway.
-  string workspace_id = 2;
+  string workspace_id = 1;
 
   // project_id identifies the project within the workspace.
-  string project_id = 3;
+  string project_id = 2;
 
   // environment_id in which the gateway should exist.
-  string environment_id = 4;
+  string environment_id = 3;
 
   // gateway_id is the unique identifier for this gateway within the namespace.
-  string gateway_id = 5;
+  string gateway_id = 4;
 
   // image is the container image to deploy for the gateway.
   // Must be a valid container registry URL accessible by the cluster.
   // Example: "ghcr.io/unkeyed/gateway:v1.2.3"
-  string image = 6;
+  string image = 5;
 
   // replicas is the desired number of gateway instances.
   // Must be at least 1. For high availability, use 3 or more.
-  uint32 replicas = 7;
+  uint32 replicas = 6;
 
   // cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
   // This ensures the gateway has sufficient CPU resources.
   // Example: 500 = 0.5 CPU cores
-  uint32 cpu_millicores = 8;
+  uint32 cpu_millicores = 7;
 
   // memory_size_mib is the memory request/limit in mebibytes.
   // This ensures the gateway has sufficient memory.
   // Example: 512 = 512 MiB
-  uint32 memory_size_mib = 9;
+  uint32 memory_size_mib = 8;
 }
 
 // DeleteGateway identifies a gateway to remove from the cluster.
@@ -211,12 +251,10 @@ message ApplyGateway {
 // The gateway and all its resources (pods, services, ingress) will be deleted.
 // In-flight requests may be disrupted unless proper connection draining is configured.
 message DeleteGateway {
-  // namespace where the gateway exists.
-  string namespace = 1;
 
   // gateway_id identifies the gateway to delete.
   // All resources with this gateway_id in the namespace will be removed.
-  string gateway_id = 2;
+  string gateway_id = 1;
 }
 
 // ApplyDeployment contains the desired configuration for a deployment.
@@ -225,43 +263,40 @@ message DeleteGateway {
 // it doesn't exist or updating it if it does. All fields except namespace are required.
 // The control plane ensures that deployment_id is unique within the namespace.
 message ApplyDeployment {
-  // namespace is the Kubernetes namespace where the deployment should exist.
-  // If empty, defaults to "default".
-  string namespace = 1;
 
   // workspace_id identifies the workspace that owns this deployment.
   // Used for multi-tenancy and access control.
-  string workspace_id = 2;
+  string workspace_id = 1;
 
   // project_id identifies the project within the workspace.
   // Deployments are scoped to projects for organizational purposes.
-  string project_id = 3;
+  string project_id = 2;
 
   // environment_id specifies the environment (e.g., "production", "staging", "development").
   // Used for environment-specific configuration and isolation.
-  string environment_id = 4;
+  string environment_id = 3;
 
   // deployment_id is the unique identifier for this deployment within the namespace.
-  string deployment_id = 5;
+  string deployment_id = 4;
 
   // image is the container image to deploy.
   // Must be a valid container registry URL accessible by the cluster.
   // Example: "gcr.io/myproject/app:v2.1.0"
-  string image = 6;
+  string image = 5;
 
   // replicas is the desired number of pod instances.
   // Must be at least 1. Set higher for increased availability and load distribution.
-  uint32 replicas = 7;
+  uint32 replicas = 6;
 
   // cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
   // This ensures each pod has sufficient CPU resources.
   // Example: 250 = 0.25 CPU cores
-  uint32 cpu_millicores = 8;
+  uint32 cpu_millicores = 7;
 
   // memory_size_mib is the memory request/limit in mebibytes.
   // This ensures each pod has sufficient memory.
   // Example: 256 = 256 MiB
-  uint32 memory_size_mib = 9;
+  uint32 memory_size_mib = 8;
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.
@@ -270,12 +305,10 @@ message ApplyDeployment {
 // the configured termination grace period. All associated resources (services,
 // configmaps specific to this deployment) will also be cleaned up.
 message DeleteDeployment {
-  // namespace where the deployment exists.
-  string namespace = 1;
 
   // deployment_id identifies the deployment to delete.
   // All resources with this deployment_id in the namespace will be removed.
-  string deployment_id = 2;
+  string deployment_id = 1;
 }
 
 // InfraEvent is streamed from the control plane to cluster agents.

@@ -14,14 +14,14 @@ import (
 type GatewayController struct {
 	logger    logging.Logger
 	clientset *kubernetes.Clientset
-	buffer    *buffer.Buffer[*ctrlv1.UpdateGatewayStatusRequest]
+	buffer    *buffer.Buffer[*ctrlv1.UpdateGatewayRequest]
 }
 
 // Config holds configuration for the Kubernetes backend.
 type Config struct {
 	// Logger for Kubernetes operations.
 	Logger logging.Logger
-	Buffer *buffer.Buffer[*ctrlv1.UpdateGatewayStatusRequest]
+	Buffer *buffer.Buffer[*ctrlv1.UpdateGatewayRequest]
 }
 
 func New(cfg Config) (*GatewayController, error) {
@@ -35,6 +35,10 @@ func New(cfg Config) (*GatewayController, error) {
 		logger:    cfg.Logger,
 		clientset: clientset,
 		buffer:    cfg.Buffer,
+	}
+	err = c.watch()
+	if err != nil {
+		return nil, fmt.Errorf("failed to start watch: %w", err)
 	}
 
 	return c, nil

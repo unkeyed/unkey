@@ -170,7 +170,11 @@ start-dependencies: start-mysql start-clickhouse start-redis start-s3 start-plan
 
 start-all: start-dependencies start-unkey-services ## Deploy all services individually
 
-dev: ## Start with Tilt (if available) or fallback to k8s-up
+
+image:
+	@docker build -t unkey:dev .
+
+dev: image## Start with Tilt (if available) or fallback to k8s-up
 	@if command -v tilt >/dev/null 2>&1; then \
 		echo "Starting with Tilt..."; \
 		tilt up; \

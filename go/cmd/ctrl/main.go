@@ -55,8 +55,6 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_AUTH_TOKEN")),
 		cli.String("krane-address", "Full URL of the krane service for VM operations. Required for deployments. Example: https://krane.example.com:8080",
 			cli.Required(), cli.EnvVar("UNKEY_KRANE_ADDRESS")),
-		cli.String("api-key", "API key for simple authentication (demo purposes only). Will be replaced with JWT authentication.",
-			cli.Required(), cli.EnvVar("UNKEY_API_KEY")),
 		cli.String("spiffe-socket-path", "Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/agent/agent.sock",
 			cli.Default("/var/lib/spire/agent/agent.sock"), cli.EnvVar("UNKEY_SPIFFE_SOCKET_PATH")),
 
@@ -117,6 +115,9 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_RESTATE_REGISTER_AS")),
 		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
 			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
+
+		// The image new gateways get deployed with
+		cli.String("gateway-image", "The image new gateways get deployed with", cli.Default("ghcr.io/unkeyed/unkey:latest"), cli.EnvVar("UNKEY_GATEWAY_IMAGE")),
 	},
 	Action: action,
 }
@@ -164,7 +165,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Control Plane Specific
 		AuthToken:        cmd.String("auth-token"),
 		KraneAddress:     cmd.String("krane-address"),
-		APIKey:           cmd.String("api-key"),
 		SPIFFESocketPath: cmd.String("spiffe-socket-path"),
 
 		// Vault configuration
@@ -217,6 +217,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Common
 		Clock: clock.New(),
+
+		// Gateway configuration
+		GatewayImage: cmd.String("gateway-image"),
 	}
 
 	err := config.Validate()

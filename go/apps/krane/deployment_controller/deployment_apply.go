@@ -73,26 +73,23 @@ import (
 //	resources with the same labels are treated as an error condition.
 func (c *DeploymentController) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) error {
 
-	namespace := req.Namespace
 	deploymentID := req.GetDeploymentId()
-	const krane = "krane"
 
 	c.logger.Info("creating deployment",
-		"namespace", namespace,
 		"deployment_id", deploymentID,
 	)
 
-	usedLabels := map[string]string{
-		k8s.LabelDeploymentID: deploymentID,
-		k8s.LabelManagedBy:    krane,
-		k8s.LavelComponent:    "deployment",
-	}
+	usedLabels := k8s.NewLabels().
+		DeploymentID(deploymentID).
+		ManagedByKrane().
+		ComponentDeployment().
+		ToMap()
 
 	labelSelector := metav1.FormatLabelSelector(&metav1.LabelSelector{
 		MatchLabels: usedLabels,
 	})
 
-	services, err := c.clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{
+	services, err := c.clientset.CoreV1().Services(k8s.UntrustedNamespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -107,7 +104,7 @@ func (c *DeploymentController) ApplyDeployment(ctx context.Context, req *ctrlv1.
 	} else {
 
 		service, err = c.clientset.CoreV1().
-			Services(namespace).
+			Services(k8s.UntrustedNamespace).
 			Create(ctx,
 				// This implementation of using stateful sets is very likely not what we want to
 				// use in v1.
@@ -120,7 +117,7 @@ func (c *DeploymentController) ApplyDeployment(ctx context.Context, req *ctrlv1.
 				&corev1.Service{
 					ObjectMeta: metav1.ObjectMeta{
 						GenerateName: "svc-",
-						Namespace:    namespace,
+						Namespace:    k8s.UntrustedNamespace,
 						Labels:       usedLabels,
 					},
 
@@ -149,7 +146,7 @@ func (c *DeploymentController) ApplyDeployment(ctx context.Context, req *ctrlv1.
 		}
 	}
 
-	statefulsets, err := c.clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{
+	statefulsets, err := c.clientset.AppsV1().StatefulSets(k8s.UntrustedNamespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -163,34 +160,34 @@ func (c *DeploymentController) ApplyDeployment(ctx context.Context, req *ctrlv1.
 		return fmt.Errorf("multiple stateful sets found")
 	} else {
 
-		sfs, err = c.clientset.AppsV1().StatefulSets(namespace).Create(ctx,
+		sfs, err = c.clientset.AppsV1().StatefulSets(k8s.UntrustedNamespace).Create(ctx,
 			//nolint: exhaustruct
 			&appsv1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "dpl-",
-					Namespace:    namespace,
+					Namespace:    k8s.UntrustedNamespace,
 					Labels:       usedLabels,
 				},
 
 				//nolint: exhaustruct
 				Spec: appsv1.StatefulSetSpec{
 					ServiceName: service.Name,
-					Replicas:    ptr.P(int32(req.Replicas)), //nolint: gosec
+					Replicas:    ptr.P(int32(req.GetReplicas())), //nolint: gosec
 					Selector: &metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							k8s.LabelDeploymentID: deploymentID,
-						},
+						MatchLabels: k8s.NewLabels().
+							DeploymentID(deploymentID).
+							ToMap(),
 					},
+					PodManagementPolicy: appsv1.ParallelPodManagement,
 					Template: corev1.PodTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
 							Labels:      usedLabels,
 							Annotations: map[string]string{},
 						},
 						Spec: corev1.PodSpec{
-
 							ImagePullSecrets: func() []corev1.LocalObjectReference {
 								// Only add imagePullSecrets if using Depot registry
-								if strings.HasPrefix(req.Image, "registry.depot.dev/") {
+								if strings.HasPrefix(req.GetImage(), "registry.depot.dev/") {
 									return []corev1.LocalObjectReference{
 										{
 											Name: "depot-registry",
@@ -203,7 +200,7 @@ func (c *DeploymentController) ApplyDeployment(ctx context.Context, req *ctrlv1.
 							Containers: []corev1.Container{
 								{
 									Name:  "container",
-									Image: req.Image,
+									Image: req.GetImage(),
 									Env: []corev1.EnvVar{
 										{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
 										{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
@@ -218,14 +215,14 @@ func (c *DeploymentController) ApplyDeployment(ctx context.Context, req *ctrlv1.
 									Resources: corev1.ResourceRequirements{
 										// nolint: exhaustive
 										Requests: corev1.ResourceList{
-											corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.CpuMillicores), resource.DecimalSI),
-											corev1.ResourceMemory: *resource.NewQuantity(int64(req.MemorySizeMib)*1024*1024, resource.DecimalSI), //nolint: gosec
+											corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.GetCpuMillicores()), resource.DecimalSI),
+											corev1.ResourceMemory: *resource.NewQuantity(int64(req.GetMemorySizeMib())*1024*1024, resource.DecimalSI), //nolint: gosec
 
 										},
 										// nolint: exhaustive
 										Limits: corev1.ResourceList{
-											corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.CpuMillicores), resource.DecimalSI),
-											corev1.ResourceMemory: *resource.NewQuantity(int64(req.MemorySizeMib)*1024*1024, resource.DecimalSI), //nolint: gosec
+											corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.GetCpuMillicores()), resource.DecimalSI),
+											corev1.ResourceMemory: *resource.NewQuantity(int64(req.GetMemorySizeMib())*1024*1024, resource.DecimalSI), //nolint: gosec
 										},
 									},
 								},
@@ -255,7 +252,7 @@ func (c *DeploymentController) ApplyDeployment(ctx context.Context, req *ctrlv1.
 		},
 	}
 	//nolint:exhaustruct
-	_, err = c.clientset.CoreV1().Services(namespace).Update(ctx, service, metav1.UpdateOptions{})
+	_, err = c.clientset.CoreV1().Services(k8s.UntrustedNamespace).Update(ctx, service, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update deployment: %w", err)
 	}

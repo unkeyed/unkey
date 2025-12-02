@@ -47,12 +47,12 @@ const (
 	// ClusterServiceGetDesiredStateProcedure is the fully-qualified name of the ClusterService's
 	// GetDesiredState RPC.
 	ClusterServiceGetDesiredStateProcedure = "/ctrl.v1.ClusterService/GetDesiredState"
-	// ClusterServiceUpdateDeploymentStatusProcedure is the fully-qualified name of the ClusterService's
-	// UpdateDeploymentStatus RPC.
-	ClusterServiceUpdateDeploymentStatusProcedure = "/ctrl.v1.ClusterService/UpdateDeploymentStatus"
-	// ClusterServiceUpdateGatewayStatusProcedure is the fully-qualified name of the ClusterService's
-	// UpdateGatewayStatus RPC.
-	ClusterServiceUpdateGatewayStatusProcedure = "/ctrl.v1.ClusterService/UpdateGatewayStatus"
+	// ClusterServiceUpdateInstanceProcedure is the fully-qualified name of the ClusterService's
+	// UpdateInstance RPC.
+	ClusterServiceUpdateInstanceProcedure = "/ctrl.v1.ClusterService/UpdateInstance"
+	// ClusterServiceUpdateGatewayProcedure is the fully-qualified name of the ClusterService's
+	// UpdateGateway RPC.
+	ClusterServiceUpdateGatewayProcedure = "/ctrl.v1.ClusterService/UpdateGateway"
 )
 
 // ClusterServiceClient is a client for the ctrl.v1.ClusterService service.
@@ -69,8 +69,8 @@ type ClusterServiceClient interface {
 	// returns a watch events for compatibility but will never return a delete event
 	// only apply events from currently desired infrastructure are included
 	GetDesiredState(context.Context, *connect.Request[v1.GetDesiredStateRequest]) (*connect.ServerStreamForClient[v1.InfraEvent], error)
-	UpdateDeploymentStatus(context.Context, *connect.Request[v1.UpdateDeploymentStatusRequest]) (*connect.Response[v1.UpdateDeploymentStatusResponse], error)
-	UpdateGatewayStatus(context.Context, *connect.Request[v1.UpdateGatewayStatusRequest]) (*connect.Response[v1.UpdateGatewayStatusResponse], error)
+	UpdateInstance(context.Context, *connect.Request[v1.UpdateInstanceRequest]) (*connect.Response[v1.UpdateInstanceResponse], error)
+	UpdateGateway(context.Context, *connect.Request[v1.UpdateGatewayRequest]) (*connect.Response[v1.UpdateGatewayResponse], error)
 }
 
 // NewClusterServiceClient constructs a client for the ctrl.v1.ClusterService service. By default,
@@ -96,16 +96,16 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(clusterServiceMethods.ByName("GetDesiredState")),
 			connect.WithClientOptions(opts...),
 		),
-		updateDeploymentStatus: connect.NewClient[v1.UpdateDeploymentStatusRequest, v1.UpdateDeploymentStatusResponse](
+		updateInstance: connect.NewClient[v1.UpdateInstanceRequest, v1.UpdateInstanceResponse](
 			httpClient,
-			baseURL+ClusterServiceUpdateDeploymentStatusProcedure,
-			connect.WithSchema(clusterServiceMethods.ByName("UpdateDeploymentStatus")),
+			baseURL+ClusterServiceUpdateInstanceProcedure,
+			connect.WithSchema(clusterServiceMethods.ByName("UpdateInstance")),
 			connect.WithClientOptions(opts...),
 		),
-		updateGatewayStatus: connect.NewClient[v1.UpdateGatewayStatusRequest, v1.UpdateGatewayStatusResponse](
+		updateGateway: connect.NewClient[v1.UpdateGatewayRequest, v1.UpdateGatewayResponse](
 			httpClient,
-			baseURL+ClusterServiceUpdateGatewayStatusProcedure,
-			connect.WithSchema(clusterServiceMethods.ByName("UpdateGatewayStatus")),
+			baseURL+ClusterServiceUpdateGatewayProcedure,
+			connect.WithSchema(clusterServiceMethods.ByName("UpdateGateway")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -113,10 +113,10 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // clusterServiceClient implements ClusterServiceClient.
 type clusterServiceClient struct {
-	watch                  *connect.Client[v1.WatchRequest, v1.InfraEvent]
-	getDesiredState        *connect.Client[v1.GetDesiredStateRequest, v1.InfraEvent]
-	updateDeploymentStatus *connect.Client[v1.UpdateDeploymentStatusRequest, v1.UpdateDeploymentStatusResponse]
-	updateGatewayStatus    *connect.Client[v1.UpdateGatewayStatusRequest, v1.UpdateGatewayStatusResponse]
+	watch           *connect.Client[v1.WatchRequest, v1.InfraEvent]
+	getDesiredState *connect.Client[v1.GetDesiredStateRequest, v1.InfraEvent]
+	updateInstance  *connect.Client[v1.UpdateInstanceRequest, v1.UpdateInstanceResponse]
+	updateGateway   *connect.Client[v1.UpdateGatewayRequest, v1.UpdateGatewayResponse]
 }
 
 // Watch calls ctrl.v1.ClusterService.Watch.
@@ -129,14 +129,14 @@ func (c *clusterServiceClient) GetDesiredState(ctx context.Context, req *connect
 	return c.getDesiredState.CallServerStream(ctx, req)
 }
 
-// UpdateDeploymentStatus calls ctrl.v1.ClusterService.UpdateDeploymentStatus.
-func (c *clusterServiceClient) UpdateDeploymentStatus(ctx context.Context, req *connect.Request[v1.UpdateDeploymentStatusRequest]) (*connect.Response[v1.UpdateDeploymentStatusResponse], error) {
-	return c.updateDeploymentStatus.CallUnary(ctx, req)
+// UpdateInstance calls ctrl.v1.ClusterService.UpdateInstance.
+func (c *clusterServiceClient) UpdateInstance(ctx context.Context, req *connect.Request[v1.UpdateInstanceRequest]) (*connect.Response[v1.UpdateInstanceResponse], error) {
+	return c.updateInstance.CallUnary(ctx, req)
 }
 
-// UpdateGatewayStatus calls ctrl.v1.ClusterService.UpdateGatewayStatus.
-func (c *clusterServiceClient) UpdateGatewayStatus(ctx context.Context, req *connect.Request[v1.UpdateGatewayStatusRequest]) (*connect.Response[v1.UpdateGatewayStatusResponse], error) {
-	return c.updateGatewayStatus.CallUnary(ctx, req)
+// UpdateGateway calls ctrl.v1.ClusterService.UpdateGateway.
+func (c *clusterServiceClient) UpdateGateway(ctx context.Context, req *connect.Request[v1.UpdateGatewayRequest]) (*connect.Response[v1.UpdateGatewayResponse], error) {
+	return c.updateGateway.CallUnary(ctx, req)
 }
 
 // ClusterServiceHandler is an implementation of the ctrl.v1.ClusterService service.
@@ -153,8 +153,8 @@ type ClusterServiceHandler interface {
 	// returns a watch events for compatibility but will never return a delete event
 	// only apply events from currently desired infrastructure are included
 	GetDesiredState(context.Context, *connect.Request[v1.GetDesiredStateRequest], *connect.ServerStream[v1.InfraEvent]) error
-	UpdateDeploymentStatus(context.Context, *connect.Request[v1.UpdateDeploymentStatusRequest]) (*connect.Response[v1.UpdateDeploymentStatusResponse], error)
-	UpdateGatewayStatus(context.Context, *connect.Request[v1.UpdateGatewayStatusRequest]) (*connect.Response[v1.UpdateGatewayStatusResponse], error)
+	UpdateInstance(context.Context, *connect.Request[v1.UpdateInstanceRequest]) (*connect.Response[v1.UpdateInstanceResponse], error)
+	UpdateGateway(context.Context, *connect.Request[v1.UpdateGatewayRequest]) (*connect.Response[v1.UpdateGatewayResponse], error)
 }
 
 // NewClusterServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -176,16 +176,16 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 		connect.WithSchema(clusterServiceMethods.ByName("GetDesiredState")),
 		connect.WithHandlerOptions(opts...),
 	)
-	clusterServiceUpdateDeploymentStatusHandler := connect.NewUnaryHandler(
-		ClusterServiceUpdateDeploymentStatusProcedure,
-		svc.UpdateDeploymentStatus,
-		connect.WithSchema(clusterServiceMethods.ByName("UpdateDeploymentStatus")),
+	clusterServiceUpdateInstanceHandler := connect.NewUnaryHandler(
+		ClusterServiceUpdateInstanceProcedure,
+		svc.UpdateInstance,
+		connect.WithSchema(clusterServiceMethods.ByName("UpdateInstance")),
 		connect.WithHandlerOptions(opts...),
 	)
-	clusterServiceUpdateGatewayStatusHandler := connect.NewUnaryHandler(
-		ClusterServiceUpdateGatewayStatusProcedure,
-		svc.UpdateGatewayStatus,
-		connect.WithSchema(clusterServiceMethods.ByName("UpdateGatewayStatus")),
+	clusterServiceUpdateGatewayHandler := connect.NewUnaryHandler(
+		ClusterServiceUpdateGatewayProcedure,
+		svc.UpdateGateway,
+		connect.WithSchema(clusterServiceMethods.ByName("UpdateGateway")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/ctrl.v1.ClusterService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -194,10 +194,10 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 			clusterServiceWatchHandler.ServeHTTP(w, r)
 		case ClusterServiceGetDesiredStateProcedure:
 			clusterServiceGetDesiredStateHandler.ServeHTTP(w, r)
-		case ClusterServiceUpdateDeploymentStatusProcedure:
-			clusterServiceUpdateDeploymentStatusHandler.ServeHTTP(w, r)
-		case ClusterServiceUpdateGatewayStatusProcedure:
-			clusterServiceUpdateGatewayStatusHandler.ServeHTTP(w, r)
+		case ClusterServiceUpdateInstanceProcedure:
+			clusterServiceUpdateInstanceHandler.ServeHTTP(w, r)
+		case ClusterServiceUpdateGatewayProcedure:
+			clusterServiceUpdateGatewayHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -215,10 +215,10 @@ func (UnimplementedClusterServiceHandler) GetDesiredState(context.Context, *conn
 	return connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.GetDesiredState is not implemented"))
 }
 
-func (UnimplementedClusterServiceHandler) UpdateDeploymentStatus(context.Context, *connect.Request[v1.UpdateDeploymentStatusRequest]) (*connect.Response[v1.UpdateDeploymentStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.UpdateDeploymentStatus is not implemented"))
+func (UnimplementedClusterServiceHandler) UpdateInstance(context.Context, *connect.Request[v1.UpdateInstanceRequest]) (*connect.Response[v1.UpdateInstanceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.UpdateInstance is not implemented"))
 }
 
-func (UnimplementedClusterServiceHandler) UpdateGatewayStatus(context.Context, *connect.Request[v1.UpdateGatewayStatusRequest]) (*connect.Response[v1.UpdateGatewayStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.UpdateGatewayStatus is not implemented"))
+func (UnimplementedClusterServiceHandler) UpdateGateway(context.Context, *connect.Request[v1.UpdateGatewayRequest]) (*connect.Response[v1.UpdateGatewayResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.UpdateGateway is not implemented"))
 }

@@ -17,14 +17,12 @@ SELECT
     d.project_id,
     d.environment_id,
     d.image,
-    w.k8s_namespace as k8s_namespace,
     dt.region,
     d.cpu_millicores,
     d.memory_mib,
     dt.replicas
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `deployments` + "`" + ` d ON dt.deployment_id = d.id
-INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
 WHERE (? = '' OR dt.region = ?)
     AND d.desired_state = ?
     AND dt.deployment_id > ?
@@ -45,7 +43,6 @@ type ListDesiredDeploymentTopologyRow struct {
 	ProjectID     string         `db:"project_id"`
 	EnvironmentID string         `db:"environment_id"`
 	Image         sql.NullString `db:"image"`
-	K8sNamespace  sql.NullString `db:"k8s_namespace"`
 	Region        string         `db:"region"`
 	CpuMillicores int32          `db:"cpu_millicores"`
 	MemoryMib     int32          `db:"memory_mib"`
@@ -60,14 +57,12 @@ type ListDesiredDeploymentTopologyRow struct {
 //	    d.project_id,
 //	    d.environment_id,
 //	    d.image,
-//	    w.k8s_namespace as k8s_namespace,
 //	    dt.region,
 //	    d.cpu_millicores,
 //	    d.memory_mib,
 //	    dt.replicas
 //	FROM `deployment_topology` dt
 //	INNER JOIN `deployments` d ON dt.deployment_id = d.id
-//	INNER JOIN `workspaces` w ON d.workspace_id = w.id
 //	WHERE (? = '' OR dt.region = ?)
 //	    AND d.desired_state = ?
 //	    AND dt.deployment_id > ?
@@ -94,7 +89,6 @@ func (q *Queries) ListDesiredDeploymentTopology(ctx context.Context, db DBTX, ar
 			&i.ProjectID,
 			&i.EnvironmentID,
 			&i.Image,
-			&i.K8sNamespace,
 			&i.Region,
 			&i.CpuMillicores,
 			&i.MemoryMib,

@@ -117,7 +117,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, err
 	}
 
-	// TODO: read this from project config
+	// later we read this from project config
 	regions := []string{"aws:us-east-1"}
 
 	topologies := make([]db.InsertDeploymentTopologyParams, len(regions))
@@ -128,6 +128,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			Region:       region,
 			Replicas:     1,
 			Status:       db.DeploymentTopologyStatusStarting,
+			CreatedAt:    time.Now().UnixMilli(),
 		}
 	}
 
@@ -144,12 +145,11 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	for _, region := range regions {
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return w.cluster.EmitEvent(runCtx, map[string]string{"region": region}, &ctrlv1.InfraEvent{
+			return w.cluster.EmitEvent(runCtx, map[string]string{"region": region, "shard": "default"}, &ctrlv1.InfraEvent{
 				Event: &ctrlv1.InfraEvent_DeploymentEvent{
 					DeploymentEvent: &ctrlv1.DeploymentEvent{
 						Event: &ctrlv1.DeploymentEvent_Apply{
 							Apply: &ctrlv1.ApplyDeployment{
-								Namespace:     workspace.K8sNamespace.String,
 								WorkspaceId:   workspace.ID,
 								ProjectId:     project.ID,
 								EnvironmentId: environment.ID,

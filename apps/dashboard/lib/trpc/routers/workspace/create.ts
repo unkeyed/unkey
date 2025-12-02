@@ -81,7 +81,6 @@ export const createWorkspace = t.procedure
           updatedAtM: null,
           deletedAtM: null,
           partitionId: null,
-          k8sNamespace: null,
         };
 
         await tx.insert(schema.workspaces).values(workspace);

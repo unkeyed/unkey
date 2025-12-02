@@ -7,29 +7,26 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const listDesiredGateways = `-- name: ListDesiredGateways :many
 SELECT
-    g.id as gateway_id,
-    g.workspace_id,
-    g.environment_id,
-    g.k8s_service_name,
-    g.region,
-    g.image,
-    g.desired_state,
-    g.replicas,
-    g.cpu_millicores,
-    g.memory_mib,
-    g.project_id,
-    w.k8s_namespace as k8s_namespace
-FROM ` + "`" + `gateways` + "`" + ` g
-INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON g.workspace_id = w.id
-WHERE (? = '' OR g.region = ?)
-    AND g.desired_state = ?
-    AND g.id > ?
-ORDER BY g.id ASC
+    id as gateway_id,
+    workspace_id,
+    environment_id,
+    k8s_service_name,
+    region,
+    image,
+    desired_state,
+    replicas,
+    cpu_millicores,
+    memory_mib,
+    project_id
+FROM ` + "`" + `gateways` + "`" + `
+WHERE (? = '' OR region = ?)
+    AND desired_state = ?
+    AND id > ?
+ORDER BY id ASC
 LIMIT ?
 `
 
@@ -52,30 +49,27 @@ type ListDesiredGatewaysRow struct {
 	CpuMillicores  int32                `db:"cpu_millicores"`
 	MemoryMib      int32                `db:"memory_mib"`
 	ProjectID      string               `db:"project_id"`
-	K8sNamespace   sql.NullString       `db:"k8s_namespace"`
 }
 
 // ListDesiredGateways
 //
 //	SELECT
-//	    g.id as gateway_id,
-//	    g.workspace_id,
-//	    g.environment_id,
-//	    g.k8s_service_name,
-//	    g.region,
-//	    g.image,
-//	    g.desired_state,
-//	    g.replicas,
-//	    g.cpu_millicores,
-//	    g.memory_mib,
-//	    g.project_id,
-//	    w.k8s_namespace as k8s_namespace
-//	FROM `gateways` g
-//	INNER JOIN `workspaces` w ON g.workspace_id = w.id
-//	WHERE (? = '' OR g.region = ?)
-//	    AND g.desired_state = ?
-//	    AND g.id > ?
-//	ORDER BY g.id ASC
+//	    id as gateway_id,
+//	    workspace_id,
+//	    environment_id,
+//	    k8s_service_name,
+//	    region,
+//	    image,
+//	    desired_state,
+//	    replicas,
+//	    cpu_millicores,
+//	    memory_mib,
+//	    project_id
+//	FROM `gateways`
+//	WHERE (? = '' OR region = ?)
+//	    AND desired_state = ?
+//	    AND id > ?
+//	ORDER BY id ASC
 //	LIMIT ?
 func (q *Queries) ListDesiredGateways(ctx context.Context, db DBTX, arg ListDesiredGatewaysParams) ([]ListDesiredGatewaysRow, error) {
 	rows, err := db.QueryContext(ctx, listDesiredGateways,
@@ -104,7 +98,6 @@ func (q *Queries) ListDesiredGateways(ctx context.Context, db DBTX, arg ListDesi
 			&i.CpuMillicores,
 			&i.MemoryMib,
 			&i.ProjectID,
-			&i.K8sNamespace,
 		); err != nil {
 			return nil, err
 		}

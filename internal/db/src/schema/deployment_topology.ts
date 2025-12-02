@@ -1,5 +1,13 @@
 import { relations } from "drizzle-orm";
-import { index, int, mysqlEnum, mysqlTable, primaryKey, varchar } from "drizzle-orm/mysql-core";
+import {
+  index,
+  int,
+  mysqlEnum,
+  mysqlTable,
+  primaryKey,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -20,6 +28,7 @@ export const deploymentTopology = mysqlTable(
   },
   (table) => [
     primaryKey({ columns: [table.deploymentId, table.region] }),
+    uniqueIndex("unique_region_per_deployment").on(table.deploymentId, table.region),
     index("workspace_idx").on(table.workspaceId),
     index("deployment_idx").on(table.deploymentId),
     index("region_idx").on(table.region),

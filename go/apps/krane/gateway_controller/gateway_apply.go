@@ -9,7 +9,6 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/ptr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -18,50 +17,24 @@ import (
 func (c *GatewayController) ApplyGateway(ctx context.Context, req *ctrlv1.ApplyGateway) error {
 
 	c.logger.Info("creating gateway",
-		"namespace", req.Namespace,
 		"gateway_id", req.GetGatewayId(),
 	)
-
-	// Ensure namespace exists (idempotent)
-	// It's not ideal to do it here, but it's the best I can do for now without rebuilding the entire workspace creation system.
-	_, err := c.clientset.CoreV1().Namespaces().Get(ctx, req.Namespace, metav1.GetOptions{})
-	if err != nil {
-		// If namespace doesn't exist, create it
-		if errors.IsNotFound(err) {
-			c.logger.Info("namespace not found, creating it", "namespace", req.Namespace)
-			_, createErr := c.clientset.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: req.Namespace,
-					Labels: map[string]string{
-						k8s.LabelManagedBy: "krane",
-					},
-				},
-			}, metav1.CreateOptions{})
-			if createErr != nil && !errors.IsAlreadyExists(createErr) {
-				return fmt.Errorf("failed to create namespace: %w", createErr)
-			}
-			c.logger.Info("namespace created successfully", "namespace", req.Namespace)
-		} else {
-			// Some other error occurred while getting the namespace
-			return fmt.Errorf("failed to get namespace: %w", err)
-		}
-	}
-
 	// Define labels for resource selection
-	usedLabels := map[string]string{
-		k8s.LabelWorkspaceID:   req.GetWorkspaceId(),
-		k8s.LabelProjectID:     req.GetProjectId(),
-		k8s.LabelEnvironmentID: req.GetEnvironmentId(),
-		k8s.LabelGatewayID:     req.GetGatewayId(),
-		k8s.LabelManagedBy:     "krane",
-	}
+	usedLabels := k8s.NewLabels().
+		WorkspaceID(req.GetWorkspaceId()).
+		ProjectID(req.GetProjectId()).
+		EnvironmentID(req.GetEnvironmentId()).
+		ComponentGateway().
+		GatewayID(req.GetGatewayId()).
+		ManagedByKrane().
+		ToMap()
 
 	labelSelector := metav1.FormatLabelSelector(&metav1.LabelSelector{
 		MatchLabels: usedLabels,
 	})
 
 	// Check if Deployment already exists (idempotent)
-	deployments, err := c.clientset.AppsV1().Deployments(req.Namespace).List(ctx, metav1.ListOptions{
+	deployments, err := c.clientset.AppsV1().Deployments(k8s.UntrustedNamespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -76,25 +49,25 @@ func (c *GatewayController) ApplyGateway(ctx context.Context, req *ctrlv1.ApplyG
 		return fmt.Errorf("multiple deployments found for gateway %s", req.GetGatewayId())
 	} else {
 		// Create Deployment only if it doesn't exist
-		deployment, err = c.clientset.AppsV1().Deployments(req.Namespace).Create(ctx,
+		deployment, err = c.clientset.AppsV1().Deployments(k8s.UntrustedNamespace).Create(ctx,
 			//nolint: exhaustruct
 			&appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "gw-",
-					Namespace:    req.Namespace,
+					Namespace:    k8s.UntrustedNamespace,
 					Labels:       usedLabels,
 				},
 
 				//nolint: exhaustruct
 				Spec: appsv1.DeploymentSpec{
-					Replicas: ptr.P(int32(req.Replicas)), //nolint: gosec
+					Replicas: ptr.P(int32(req.GetReplicas())), //nolint: gosec
 					Selector: &metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							k8s.LabelWorkspaceID:   req.GetWorkspaceId(),
-							k8s.LabelProjectID:     req.GetProjectId(),
-							k8s.LabelEnvironmentID: req.GetEnvironmentId(),
-							k8s.LabelGatewayID:     req.GetGatewayId(),
-						},
+						MatchLabels: k8s.NewLabels().
+							WorkspaceID(req.GetWorkspaceId()).
+							ProjectID(req.GetProjectId()).
+							EnvironmentID(req.GetEnvironmentId()).
+							GatewayID(req.GetGatewayId()).
+							ToMap(),
 					},
 					Template: corev1.PodTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
@@ -106,13 +79,13 @@ func (c *GatewayController) ApplyGateway(ctx context.Context, req *ctrlv1.ApplyG
 							Containers: []corev1.Container{
 								{
 									Name:  "gateway",
-									Image: req.Image,
+									Image: req.GetImage(),
 									Env: []corev1.EnvVar{
 										{Name: "UNKEY_WORKSPACE_ID", Value: req.GetWorkspaceId()},
 										{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
 										{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
 										{Name: "UNKEY_GATEWAY_ID", Value: req.GetGatewayId()},
-										{Name: "UNKEY_IMAGE", Value: req.Image},
+										{Name: "UNKEY_IMAGE", Value: req.GetImage()},
 									},
 									Ports: []corev1.ContainerPort{
 										{
@@ -123,14 +96,14 @@ func (c *GatewayController) ApplyGateway(ctx context.Context, req *ctrlv1.ApplyG
 									Resources: corev1.ResourceRequirements{
 										// nolint: exhaustive
 										Requests: corev1.ResourceList{
-											corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.CpuMillicores), resource.DecimalSI),
-											corev1.ResourceMemory: *resource.NewQuantity(int64(req.MemorySizeMib)*1024*1024, resource.DecimalSI), //nolint: gosec
+											corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.GetCpuMillicores()), resource.DecimalSI),
+											corev1.ResourceMemory: *resource.NewQuantity(int64(req.GetMemorySizeMib())*1024*1024, resource.DecimalSI), //nolint: gosec
 
 										},
 										// nolint: exhaustive
 										Limits: corev1.ResourceList{
-											corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.CpuMillicores), resource.DecimalSI),
-											corev1.ResourceMemory: *resource.NewQuantity(int64(req.MemorySizeMib)*1024*1024, resource.DecimalSI), //nolint: gosec
+											corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.GetCpuMillicores()), resource.DecimalSI),
+											corev1.ResourceMemory: *resource.NewQuantity(int64(req.GetMemorySizeMib())*1024*1024, resource.DecimalSI), //nolint: gosec
 										},
 									},
 								},
@@ -146,7 +119,7 @@ func (c *GatewayController) ApplyGateway(ctx context.Context, req *ctrlv1.ApplyG
 	}
 
 	// Check if Service already exists (idempotent)
-	services, err := c.clientset.CoreV1().Services(req.Namespace).List(ctx, metav1.ListOptions{
+	services, err := c.clientset.CoreV1().Services(k8s.UntrustedNamespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -162,7 +135,7 @@ func (c *GatewayController) ApplyGateway(ctx context.Context, req *ctrlv1.ApplyG
 	} else {
 		// Create Service only if it doesn't exist
 		service, err = c.clientset.CoreV1().
-			Services(req.Namespace).
+			Services(k8s.UntrustedNamespace).
 			Create(ctx,
 				// This implementation uses Deployments with ClusterIP services
 				// for better scalability while maintaining internal accessibility via service name.
@@ -171,7 +144,7 @@ func (c *GatewayController) ApplyGateway(ctx context.Context, req *ctrlv1.ApplyG
 				&corev1.Service{
 					ObjectMeta: metav1.ObjectMeta{
 						GenerateName: "gw-svc-",
-						Namespace:    req.Namespace,
+						Namespace:    k8s.UntrustedNamespace,
 						Labels:       usedLabels,
 					},
 					//nolint:exhaustruct
@@ -227,7 +200,7 @@ func (c *GatewayController) ApplyGateway(ctx context.Context, req *ctrlv1.ApplyG
 			},
 		}
 		//nolint:exhaustruct
-		_, err = c.clientset.CoreV1().Services(req.Namespace).Update(ctx, service, metav1.UpdateOptions{})
+		_, err = c.clientset.CoreV1().Services(k8s.UntrustedNamespace).Update(ctx, service, metav1.UpdateOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to update service owner references: %w", err)
 		}
