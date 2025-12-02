@@ -44,8 +44,7 @@ export function EnvVarRow({
     try {
       await mutation;
       onDelete?.();
-    } catch {
-    }
+    } catch {}
   };
 
   const isDeleting = deleteMutation.isLoading;

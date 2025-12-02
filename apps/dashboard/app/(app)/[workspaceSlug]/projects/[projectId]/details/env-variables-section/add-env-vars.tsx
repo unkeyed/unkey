@@ -206,8 +206,7 @@ export function AddEnvVars({
     try {
       await mutation;
       onSuccess();
-    } catch {
-    }
+    } catch {}
   };
 
   return (

@@ -79,8 +79,7 @@ export function EnvVarForm({
     try {
       await mutation;
       onSuccess();
-    } catch {
-    }
+    } catch {}
   };
 
   const isSubmitting = updateMutation.isLoading;
