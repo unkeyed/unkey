@@ -150,13 +150,18 @@ export const TableActionPopover = ({
         (item) =>
           item.ActionComponent &&
           enabledItem === item.id && (
-            <item.ActionComponent
+            <div
               key={item.id}
-              isOpen
-              onClose={() => {
-                handleActionSelection("none");
-              }}
-            />
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              <item.ActionComponent
+                isOpen
+                onClose={() => {
+                  handleActionSelection("none");
+                }}
+              />
+            </div>
           ),
       )}
     </>

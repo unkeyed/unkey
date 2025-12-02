@@ -117,13 +117,13 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
       <DialogContent
-        className="drop-shadow-2xl transform-gpu border-gray-4 !rounded-2xl p-0 gap-0 min-w-[760px] max-h-[90vh] overflow-auto"
+        className="drop-shadow-2xl transform-gpu border-gray-4 !rounded-2xl p-0 gap-0 min-w-[760px] max-h-[90vh] overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         showCloseWarning
         onAttemptClose={() => handleCloseAttempt("close")}
       >
         <>
-          <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px] overflow-auto">
-            <div className="py-4 mt-[30px]">
+          <div className="bg-grayA-2 py-6 flex flex-col items-center justify-center w-full px-[120px] overflow-auto">
+            <div className="py-4">
               <div className="flex gap-4">
                 <div className="border border-grayA-4 rounded-[14px] size-14 opacity-35" />
                 <div className="border border-grayA-4 rounded-[14px] size-14" />
@@ -141,7 +141,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
                 <div className="border border-grayA-4 rounded-[14px] size-14 opacity-35" />
               </div>
             </div>
-            <div className="mt-5 flex flex-col gap-2 items-center">
+            <div className="mt-2 flex flex-col gap-2 items-center">
               <div className="font-semibold text-gray-12 text-[16px] leading-[24px]">
                 Key Created
               </div>
@@ -150,7 +150,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
                 <br /> Use this key to authenticate requests from your application.
               </div>
             </div>
-            <div className="p-1 w-full my-8">
+            <div className="p-1 w-full my-4">
               <div className="h-[1px] bg-grayA-3 w-full" />
             </div>
             <div className="flex flex-col gap-2 items-start w-full">
