@@ -13,7 +13,6 @@ const findEnvironmentVariablesByEnvironmentId = `-- name: FindEnvironmentVariabl
 SELECT ` + "`" + `key` + "`" + `, value
 FROM environment_variables
 WHERE environment_id = ?
-  AND deleted_at IS NULL
 `
 
 type FindEnvironmentVariablesByEnvironmentIdRow struct {
@@ -26,7 +25,6 @@ type FindEnvironmentVariablesByEnvironmentIdRow struct {
 //	SELECT `key`, value
 //	FROM environment_variables
 //	WHERE environment_id = ?
-//	  AND deleted_at IS NULL
 func (q *Queries) FindEnvironmentVariablesByEnvironmentId(ctx context.Context, db DBTX, environmentID string) ([]FindEnvironmentVariablesByEnvironmentIdRow, error) {
 	rows, err := db.QueryContext(ctx, findEnvironmentVariablesByEnvironmentId, environmentID)
 	if err != nil {

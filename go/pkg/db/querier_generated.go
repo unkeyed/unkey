@@ -222,7 +222,6 @@ type Querier interface {
 	//  SELECT `key`, value
 	//  FROM environment_variables
 	//  WHERE environment_id = ?
-	//    AND deleted_at IS NULL
 	FindEnvironmentVariablesByEnvironmentId(ctx context.Context, db DBTX, environmentID string) ([]FindEnvironmentVariablesByEnvironmentIdRow, error)
 	//FindGatewaysByEnvironmentID
 	//
