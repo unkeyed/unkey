@@ -1,6 +1,5 @@
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dots } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { type FC, type PropsWithChildren, forwardRef, useEffect, useRef, useState } from "react";
 

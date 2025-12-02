@@ -5,7 +5,7 @@ import { TriangleWarning2 } from "@unkey/icons";
 import React from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "../buttons/button";
-import { Popover, PopoverContent } from "../popover";
+import { Popover, PopoverContent } from "./popover";
 
 const PopoverAnchor = PopoverPrimitive.Anchor;
 const PopoverClose = PopoverPrimitive.Close;
@@ -46,7 +46,7 @@ const DEFAULT_POPOVER_PROPS = {
   align: "center" as const,
   className:
     "bg-white dark:bg-black flex flex-col items-center justify-center border-grayA-4 overflow-hidden !rounded-[10px] p-0 gap-0 min-w-[344px]",
-  onOpenAutoFocus: (e: Event) => e.stopPropagation(),
+  onOpenAutoFocus: (e: Event) => e.preventDefault(),
 };
 
 export const ConfirmPopover = ({
