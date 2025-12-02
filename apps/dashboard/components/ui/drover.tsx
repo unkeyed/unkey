@@ -7,7 +7,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import React from "react";
 import { Drawer } from "./drawer";
-import { Popover, PopoverContent, PopoverTrigger } from "./popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 
 type PrimitiveDivProps = React.ComponentPropsWithoutRef<"div">;
 type PrimitiveButtonElement = React.ElementRef<"button">;
