@@ -2,15 +2,6 @@
 
 import { Alert } from "@/components/ui/alert";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -19,7 +10,19 @@ import {
 import { trpc } from "@/lib/trpc/client";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowOppositeDirectionY, Dots, Minus, Trash } from "@unkey/icons";
-import { Badge, Button, Checkbox, InfoTooltip, toast } from "@unkey/ui";
+import {
+Badge,
+Button,
+Checkbox,
+Dialog,
+DialogContent,
+DialogDescription,
+DialogFooter,
+DialogHeader,
+DialogTitle,
+DialogTrigger,
+InfoTooltip,
+toast } from "@unkey/ui";
 import ms from "ms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

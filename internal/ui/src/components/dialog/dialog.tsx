@@ -1,9 +1,9 @@
 "use client";
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { XMark } from "@unkey/icons";
 import * as React from "react";
 
-import { XMark } from "@unkey/icons";
 import { cn } from "../../lib/utils";
 
 const Dialog = DialogPrimitive.Root;
@@ -38,23 +38,10 @@ const DialogContent = React.forwardRef<
     showCloseWarning?: boolean;
     onAttemptClose?: () => void;
     xButtonRef?: React.RefObject<HTMLButtonElement>;
-    modal?: boolean;
-    preventOutsideClose?: boolean;
-    showOverlay?: boolean;
   }
 >(
   (
-    {
-      className,
-      children,
-      showCloseWarning = false,
-      onAttemptClose,
-      xButtonRef,
-      modal = true,
-      preventOutsideClose = false,
-      showOverlay = true,
-      ...props
-    },
+    { className, children, showCloseWarning = false, onAttemptClose, xButtonRef, ...props },
     ref,
   ) => {
     const handleCloseAttempt = React.useCallback(() => {
@@ -70,16 +57,7 @@ const DialogContent = React.forwardRef<
 
     return (
       <DialogPortal>
-        {/* Conditionally render overlay */}
-        {showOverlay &&
-          (modal ? (
-            <DialogOverlay
-              showCloseWarning={showCloseWarning}
-              onAttemptClose={handleCloseAttempt}
-            />
-          ) : (
-            <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
-          ))}
+        <DialogOverlay showCloseWarning={showCloseWarning} onAttemptClose={handleCloseAttempt} />
         <DialogPrimitive.Content
           ref={ref}
           className={cn(
@@ -93,9 +71,10 @@ const DialogContent = React.forwardRef<
             }
           }}
           onPointerDownOutside={(e) => {
-            if (preventOutsideClose) {
-              e.preventDefault();
-            } else if (showCloseWarning) {
+            // Prevent closing only if warning is active and click is outside content
+            if (showCloseWarning) {
+              // Basic check: If the target is the overlay, it's handled there.
+              // More robust checks might be needed depending on content complexity.
               const contentElement = (e.target as HTMLElement)?.closest('[role="dialog"]');
               if (!contentElement || contentElement !== e.currentTarget) {
                 e.preventDefault();
@@ -116,13 +95,13 @@ const DialogContent = React.forwardRef<
               className={buttonClassNames}
               aria-label="Close dialog with confirmation"
             >
-              <XMark iconSize="md-medium" />
+              <XMark className="md-medium" />
             </button>
           ) : (
             // Use DialogPrimitive.Close for standard behavior
             <DialogPrimitive.Close asChild>
               <button type="button" className={buttonClassNames} aria-label="Close dialog">
-                <XMark iconSize="md-medium" />
+                <XMark className="md-medium" />
               </button>
             </DialogPrimitive.Close>
           )}
