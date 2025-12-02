@@ -6,7 +6,7 @@ import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { useLiveQuery } from "@tanstack/react-db";
-import { ChevronExpandY, Gauge, TaskUnchecked } from "@unkey/icons";
+import { ChevronExpandY, Gauge, Plus, TaskUnchecked } from "@unkey/icons";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 
@@ -127,6 +127,7 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
           <NavbarActionButton title="Override Identifier" onClick={() => setOpen(true)}>
+            <Plus />
             Override Identifier
           </NavbarActionButton>
           <CopyableIDButton value={namespaceId} />
