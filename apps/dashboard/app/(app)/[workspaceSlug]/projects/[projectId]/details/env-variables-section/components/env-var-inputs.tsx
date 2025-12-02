@@ -28,6 +28,7 @@ export const EnvVarInputs = forwardRef<HTMLDivElement, EnvVarInputsProps>(
                 return;
               }
               // Auto-uppercase the key and replace spaces with underscores
+              // nothing else should be valid in an env var...
               setValue("key", e.target.value.toUpperCase().replace(/ /g, "_"), {
                 shouldValidate: true,
               });
