@@ -47,6 +47,14 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 	cpuNanos := int64(deployment.GetCpuMillicores()) * 1_000_000      // Convert millicores to nanoseconds
 	memoryBytes := int64(deployment.GetMemorySizeMib()) * 1024 * 1024 //nolint:gosec // Intentional conversion
 
+	// Build environment variables list
+	env := []string{
+		fmt.Sprintf("DEPLOYMENT_ID=%s", deployment.GetDeploymentId()),
+	}
+	for k, v := range deployment.GetEnvVars() {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+
 	//nolint:exhaustruct // Docker SDK types have many optional fields
 	containerConfig := &container.Config{
 		Image: deployment.GetImage(),
@@ -55,9 +63,7 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 			"unkey.managed.by":    "krane",
 		},
 		ExposedPorts: exposedPorts,
-		Env: []string{
-			fmt.Sprintf("DEPLOYMENT_ID=%s", deployment.GetDeploymentId()),
-		},
+		Env:          env,
 	}
 
 	//nolint:exhaustruct // Docker SDK types have many optional fields
