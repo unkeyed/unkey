@@ -101,13 +101,13 @@ const DialogContent = React.forwardRef<
               className={buttonClassNames}
               aria-label="Close dialog with confirmation"
             >
-              <XMark className="md-medium" />
+              <XMark iconSize="md-medium" />
             </button>
           ) : (
             // Use DialogPrimitive.Close for standard behavior
             <DialogPrimitive.Close asChild>
               <button type="button" className={buttonClassNames} aria-label="Close dialog">
-                <XMark className="md-medium" />
+                <XMark iconSize="md-medium" />
               </button>
             </DialogPrimitive.Close>
           )}
