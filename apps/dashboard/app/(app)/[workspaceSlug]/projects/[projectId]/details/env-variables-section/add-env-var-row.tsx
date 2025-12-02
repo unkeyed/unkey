@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { EnvVarInputs } from "./components/env-var-inputs";
@@ -6,21 +7,26 @@ import { EnvVarSecretSwitch } from "./components/env-var-secret-switch";
 import { type EnvVar, type EnvVarFormData, EnvVarFormSchema } from "./types";
 
 type AddEnvVarRowProps = {
-  projectId: string;
+  environmentId: string;
   getExistingEnvVar: (key: string, excludeId?: string) => EnvVar | undefined;
   onCancel: () => void;
+  onSuccess: () => void;
 };
 
-export function AddEnvVarRow({ getExistingEnvVar, onCancel }: AddEnvVarRowProps) {
-  // TODO: Add mutation when available
-  // const upsertMutation = trpc.deploy.project.envs.upsert.useMutation();
+export function AddEnvVarRow({
+  environmentId,
+  getExistingEnvVar,
+  onCancel,
+  onSuccess,
+}: AddEnvVarRowProps) {
+  const createMutation = trpc.deploy.envVar.create.useMutation();
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
-    formState: { errors, isValid, isSubmitting },
+    formState: { errors, isValid },
   } = useForm<EnvVarFormData>({
     resolver: zodResolver(
       EnvVarFormSchema.superRefine((data, ctx) => {
@@ -37,28 +43,26 @@ export function AddEnvVarRow({ getExistingEnvVar, onCancel }: AddEnvVarRowProps)
     defaultValues: {
       key: "",
       value: "",
-      type: "env",
+      type: "recoverable",
     },
   });
 
   const watchedType = watch("type");
+  const isSubmitting = createMutation.isLoading;
 
-  const handleSave = async (_formData: EnvVarFormData) => {
+  const handleSave = async (formData: EnvVarFormData) => {
     try {
-      // TODO: Call tRPC upsert when available
-      // await upsertMutation.mutateAsync({
-      //   projectId,
-      //   ...formData
-      // });
-
-      // Mock successful save for now
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Invalidate to refresh data
-      // TODO
-      //await trpcUtils.project.envs.getEnvs.invalidate({ projectId });
-
-      onCancel(); // Close the add form
+      await createMutation.mutateAsync({
+        environmentId,
+        variables: [
+          {
+            key: formData.key,
+            value: formData.value,
+            type: formData.type,
+          },
+        ],
+      });
+      onSuccess();
     } catch (error) {
       console.error("Failed to add env var:", error);
     }
@@ -77,16 +81,17 @@ export function AddEnvVarRow({ getExistingEnvVar, onCancel }: AddEnvVarRowProps)
       <form onSubmit={handleSubmit(handleSave)} className="w-full flex items-center gap-2 h-12">
         <EnvVarInputs
           register={register}
+          setValue={setValue}
           errors={errors}
-          isSecret={watchedType === "secret"}
+          isSecret={watchedType === "writeonly"}
           onKeyDown={handleKeyDown}
           autoFocus
         />
         <div className="flex items-center gap-2 ml-auto">
           <EnvVarSecretSwitch
-            isSecret={watchedType === "secret"}
+            isSecret={watchedType === "writeonly"}
             onCheckedChange={(checked) =>
-              setValue("type", checked ? "secret" : "env", {
+              setValue("type", checked ? "writeonly" : "recoverable", {
                 shouldDirty: true,
                 shouldValidate: true,
               })
