@@ -130,7 +130,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
               sideOffset: 5,
               alignOffset: 30,
               // Let the popover auto-focus internally to meet WCAG 2.4.3/2.1.1
-              // onOpenAutoFocus: (e) => e.preventDefault(),
+              onOpenAutoFocus: (e) => e.preventDefault(),
             }}
           />
         </>
