@@ -61,7 +61,7 @@ export const ConfirmPopover = ({
   variant = "warning",
   popoverProps = {},
 }: ConfirmPopoverProps): JSX.Element => {
-  const defaultRef = React.useRef<HTMLButtonElement>(null);
+  const defaultRef = React.useRef<HTMLSpanElement>(null);
   const anchorRef = triggerRef || defaultRef;
 
   const handleConfirm = () => {
@@ -81,6 +81,8 @@ export const ConfirmPopover = ({
 
   return (
     <Popover open={isOpen} onOpenChange={onOpenChange}>
+      {/* Render a hidden anchor element when no external trigger is provided */}
+      {!triggerRef && <span ref={defaultRef} className="sr-only" aria-hidden="true" />}
       <PopoverAnchor virtualRef={anchorRef} />
       <PopoverContent {...mergedPopoverProps}>
         <div className="p-4 w-full">
