@@ -23,7 +23,6 @@ type AddEnvVarsProps = {
 function cleanEnvValue(raw: string): string {
   let value = raw.trim();
 
-  // Check if value is quoted
   const isDoubleQuoted = value.startsWith('"');
   const isSingleQuoted = value.startsWith("'");
 
@@ -31,23 +30,14 @@ function cleanEnvValue(raw: string): string {
     const quote = isDoubleQuoted ? '"' : "'";
     const endQuoteIndex = value.indexOf(quote, 1);
     if (endQuoteIndex !== -1) {
-      // Extract content between quotes
       value = value.slice(1, endQuoteIndex);
     } else {
-      // No closing quote, just remove the opening one
       value = value.slice(1);
     }
   } else {
-    // Unquoted value - remove trailing comments
     const commentIndex = value.indexOf(" #");
     if (commentIndex !== -1) {
       value = value.slice(0, commentIndex);
-    }
-    // Also check for # without space (less common but valid)
-    const hashIndex = value.indexOf("#");
-    if (hashIndex !== -1 && !value.slice(0, hashIndex).includes(" ")) {
-      // Only trim if # appears to be a comment, not part of the value
-      // This is a heuristic - if there's no space before #, it might be part of value
     }
   }
 
@@ -60,7 +50,6 @@ function parseEnvFile(content: string): EnvVarEntry[] {
 
   for (const line of lines) {
     const trimmed = line.trim();
-    // Skip empty lines and comments
     if (!trimmed || trimmed.startsWith("#")) {
       continue;
     }
@@ -109,7 +98,6 @@ export function AddEnvVars({
   const addEntry = () => {
     const newEntry = { id: crypto.randomUUID(), key: "", value: "", type: "recoverable" as const };
     setEntries([...entries, newEntry]);
-    // Focus the new entry's key input after render
     setTimeout(() => {
       const inputs = containerRef.current?.querySelectorAll<HTMLInputElement>(
         'input[placeholder="KEY_NAME"]',
@@ -125,16 +113,13 @@ export function AddEnvVars({
       const isLastEntry = entryIndex === entries.length - 1;
 
       if (field === "value" && isLastEntry) {
-        // On last entry's value field, create a new row
         addEntry();
       } else if (field === "key") {
-        // Move focus to value field
         const valueInput = (e.target as HTMLInputElement)
           .closest(".flex")
           ?.querySelector<HTMLInputElement>('input[placeholder="Variable value"]');
         valueInput?.focus();
       } else if (field === "value" && !isLastEntry) {
-        // Move focus to next row's key field
         const allRows = containerRef.current?.querySelectorAll<HTMLDivElement>(
           ".flex.items-center.gap-2",
         );
@@ -153,7 +138,6 @@ export function AddEnvVars({
   };
 
   const updateEntry = (id: string, field: keyof EnvVarEntry, value: string | EnvVarType) => {
-    // Auto-uppercase the key field and replace spaces with underscores
     const transformedValue =
       field === "key" && typeof value === "string" ? value.toUpperCase().replace(/ /g, "_") : value;
     setEntries(entries.map((e) => (e.id === id ? { ...e, [field]: transformedValue } : e)));
@@ -162,12 +146,10 @@ export function AddEnvVars({
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>, entryId: string) => {
     const pastedText = e.clipboardData.getData("text");
 
-    // Check if it looks like an .env file (multiple lines with = signs)
     if (pastedText.includes("\n") && pastedText.includes("=")) {
       e.preventDefault();
       const parsed = parseEnvFile(pastedText);
       if (parsed.length > 0) {
-        // Replace the current entry and add new ones
         const currentIndex = entries.findIndex((e) => e.id === entryId);
         const newEntries = [...entries];
         newEntries.splice(currentIndex, 1, ...parsed);
@@ -184,7 +166,6 @@ export function AddEnvVars({
     } else if (entry.key && getExistingEnvVar(entry.key)) {
       errors.key = "Already exists";
     } else if (entry.key) {
-      // Check for duplicates within the current entries
       const duplicates = entries.filter((e) => e.key === entry.key);
       if (duplicates.length > 1) {
         errors.key = "Duplicate";
