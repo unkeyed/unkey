@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+// Regex for valid environment variable keys: must start with uppercase letter,
+// followed by uppercase letters, numbers, or underscores
+export const ENV_VAR_KEY_REGEX = /^[A-Z][A-Z0-9_]*$/;
+
 // Both types are encrypted in the database
 // - recoverable: can be decrypted and shown in the UI
 // - writeonly: cannot be read back after creation
@@ -21,7 +25,7 @@ export const EnvVarFormSchema = z.object({
     .string()
     .trim()
     .min(1, "Variable name is required")
-    .regex(/^[A-Z][A-Z0-9_]*$/, "Must be UPPERCASE with letters, numbers, and underscores only"),
+    .regex(ENV_VAR_KEY_REGEX, "Must be UPPERCASE with letters, numbers, and underscores only"),
   value: z.string().min(1, "Variable value is required"),
   type: EnvVarTypeSchema,
 });

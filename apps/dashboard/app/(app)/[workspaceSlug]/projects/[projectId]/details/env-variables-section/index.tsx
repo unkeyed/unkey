@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { ChevronDown, Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { type ReactNode, useState } from "react";
-import { BulkAddEnvVars } from "./bulk-add-env-vars";
+import { AddEnvVars } from "./add-env-vars";
 import { EnvVarRow } from "./env-var-row";
 import { useEnvVarsManager } from "./hooks/use-env-var-manager";
 import type { Environment } from "./types";
@@ -119,7 +119,7 @@ export function EnvironmentVariablesSection({
             ))}
 
             {isAddingNew && environmentId && (
-              <BulkAddEnvVars
+              <AddEnvVars
                 environmentId={environmentId}
                 getExistingEnvVar={getExistingEnvVar}
                 onCancel={cancelAdding}

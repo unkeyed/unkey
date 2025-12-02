@@ -12,27 +12,19 @@ export const deleteEnvVar = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    // Verify the env var belongs to this workspace
-    const envVar = await db.query.environmentVariables.findFirst({
-      where: and(
-        eq(schema.environmentVariables.id, input.envVarId),
-        eq(schema.environmentVariables.workspaceId, ctx.workspace.id),
-      ),
-      columns: {
-        id: true,
-      },
-    });
+    const result = await db
+      .delete(schema.environmentVariables)
+      .where(
+        and(
+          eq(schema.environmentVariables.id, input.envVarId),
+          eq(schema.environmentVariables.workspaceId, ctx.workspace.id),
+        ),
+      );
 
-    if (!envVar) {
+    if (result.rowsAffected === 0) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Environment variable not found",
       });
     }
-
-    await db
-      .delete(schema.environmentVariables)
-      .where(eq(schema.environmentVariables.id, input.envVarId));
-
-    return { success: true };
   });

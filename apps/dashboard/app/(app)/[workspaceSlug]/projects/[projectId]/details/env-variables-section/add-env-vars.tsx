@@ -1,10 +1,10 @@
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Plus, Trash } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, Input } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
 import { EnvVarSecretSwitch } from "./components/env-var-secret-switch";
-import type { EnvVar, EnvVarType } from "./types";
+import { ENV_VAR_KEY_REGEX, type EnvVar, type EnvVarType } from "./types";
 
 type EnvVarEntry = {
   id: string;
@@ -13,7 +13,7 @@ type EnvVarEntry = {
   type: EnvVarType;
 };
 
-type BulkAddEnvVarsProps = {
+type AddEnvVarsProps = {
   environmentId: string;
   getExistingEnvVar: (key: string, excludeId?: string) => EnvVar | undefined;
   onCancel: () => void;
@@ -74,7 +74,7 @@ function parseEnvFile(content: string): EnvVarEntry[] {
     const value = cleanEnvValue(trimmed.slice(eqIndex + 1));
 
     const upperKey = key.toUpperCase();
-    if (upperKey && /^[A-Z][A-Z0-9_]*$/.test(upperKey)) {
+    if (upperKey && ENV_VAR_KEY_REGEX.test(upperKey)) {
       entries.push({
         id: crypto.randomUUID(),
         key: upperKey,
@@ -87,12 +87,12 @@ function parseEnvFile(content: string): EnvVarEntry[] {
   return entries;
 }
 
-export function BulkAddEnvVars({
+export function AddEnvVars({
   environmentId,
   getExistingEnvVar,
   onCancel,
   onSuccess,
-}: BulkAddEnvVarsProps) {
+}: AddEnvVarsProps) {
   const createMutation = trpc.deploy.envVar.create.useMutation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [entries, setEntries] = useState<EnvVarEntry[]>([
@@ -112,7 +112,7 @@ export function BulkAddEnvVars({
     // Focus the new entry's key input after render
     setTimeout(() => {
       const inputs = containerRef.current?.querySelectorAll<HTMLInputElement>(
-        'input[placeholder="KEY"]',
+        'input[placeholder="KEY_NAME"]',
       );
       inputs?.[inputs.length - 1]?.focus();
     }, 0);
@@ -131,7 +131,7 @@ export function BulkAddEnvVars({
         // Move focus to value field
         const valueInput = (e.target as HTMLInputElement)
           .closest(".flex")
-          ?.querySelector<HTMLInputElement>('input[placeholder="value"]');
+          ?.querySelector<HTMLInputElement>('input[placeholder="Variable value"]');
         valueInput?.focus();
       } else if (field === "value" && !isLastEntry) {
         // Move focus to next row's key field
@@ -139,7 +139,7 @@ export function BulkAddEnvVars({
           ".flex.items-center.gap-2",
         );
         const nextRow = allRows?.[entryIndex + 1];
-        nextRow?.querySelector<HTMLInputElement>('input[placeholder="KEY"]')?.focus();
+        nextRow?.querySelector<HTMLInputElement>('input[placeholder="KEY_NAME"]')?.focus();
       }
     } else if (e.key === "Escape") {
       onCancel();
@@ -179,7 +179,7 @@ export function BulkAddEnvVars({
   const getErrors = (entry: EnvVarEntry): { key?: string; value?: string } => {
     const errors: { key?: string; value?: string } = {};
 
-    if (entry.key && !/^[A-Z][A-Z0-9_]*$/.test(entry.key)) {
+    if (entry.key && !ENV_VAR_KEY_REGEX.test(entry.key)) {
       errors.key = "Must be UPPERCASE";
     } else if (entry.key && getExistingEnvVar(entry.key)) {
       errors.key = "Already exists";
@@ -233,31 +233,35 @@ export function BulkAddEnvVars({
           return (
             <div
               key={entry.id}
-              className="flex items-center gap-2 px-4 py-2 border-b border-gray-3 last:border-b-0"
+              className="flex items-center gap-2 px-4 py-3 border-b border-gray-4 last:border-b-0"
             >
-              <input
-                type="text"
-                placeholder="KEY"
-                value={entry.key}
-                onChange={(e) => updateEntry(entry.id, "key", e.target.value)}
-                onKeyDown={(e) => handleKeyDown(e, entry.id, "key")}
-                onPaste={(e) => handlePaste(e, entry.id)}
-                className={cn(
-                  "w-32 px-2 py-1 text-xs font-mono bg-gray-3 border rounded focus:outline-none focus:ring-1",
-                  errors.key
-                    ? "border-error-9 focus:ring-error-9"
-                    : "border-gray-6 focus:ring-accent-9",
-                )}
-              />
-              <span className="text-gray-9 text-xs">=</span>
-              <input
+              <div className="w-[108px]">
+                <Input
+                  type="text"
+                  placeholder="KEY_NAME"
+                  value={entry.key}
+                  onChange={(e) => updateEntry(entry.id, "key", e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, entry.id, "key")}
+                  onPaste={(e) => handlePaste(e, entry.id)}
+                  className={cn(
+                    "min-h-[32px] text-xs w-[108px] font-mono uppercase",
+                    errors.key && "border-red-6 focus:border-red-7",
+                  )}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </div>
+              <span className="text-gray-9 text-xs px-1">=</span>
+              <Input
                 type={entry.type === "writeonly" ? "password" : "text"}
-                placeholder="value"
+                placeholder="Variable value"
                 value={entry.value}
                 onChange={(e) => updateEntry(entry.id, "value", e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, entry.id, "value")}
                 onPaste={(e) => handlePaste(e, entry.id)}
-                className="flex-1 px-2 py-1 text-xs font-mono bg-gray-3 border border-gray-6 rounded focus:outline-none focus:ring-1 focus:ring-accent-9"
+                className="min-h-[32px] text-xs flex-1 font-mono"
+                autoComplete={entry.type === "writeonly" ? "new-password" : "off"}
+                spellCheck={false}
               />
               <EnvVarSecretSwitch
                 isSecret={entry.type === "writeonly"}
@@ -280,7 +284,7 @@ export function BulkAddEnvVars({
         })}
       </div>
 
-      <div className="px-4 py-2 flex items-center justify-between border-t border-gray-4">
+      <div className="px-4 py-2 flex items-center justify-between border-t border-gray-4 sticky bottom-0 bg-gray-2">
         <Button size="sm" variant="ghost" onClick={addEntry} className="text-xs text-gray-11 gap-1">
           <Plus className="!size-3" />
           Add more
