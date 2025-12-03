@@ -113,6 +113,7 @@ export function EnvVarRow({
         onSuccess={() => {
           setIsEditing(false);
           setIsRevealed(false);
+          setDecryptedValue(undefined);
           onUpdate?.();
         }}
         onCancel={() => {
