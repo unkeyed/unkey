@@ -111,18 +111,19 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return db.Query.InsertGateway(runCtx, s.db.RW(), db.InsertGatewayParams{
-				ID:             gatewayID,
-				WorkspaceID:    workspace.ID,
-				ProjectID:      projectID,
-				EnvironmentID:  environmentID,
-				K8sServiceName: "TODO",
-				Region:         "aws:us-east-1",
-				Image:          s.gatewayImage,
-				Health:         db.GatewaysHealthUnknown,
-				Replicas:       replicas,
-				CpuMillicores:  1024,
-				MemoryMib:      1024,
-				CreatedAt:      time.Now().UnixMilli(),
+				ID:              gatewayID,
+				WorkspaceID:     workspace.ID,
+				ProjectID:       projectID,
+				EnvironmentID:   environmentID,
+				K8sServiceName:  "TODO",
+				Region:          "aws:us-east-1",
+				Image:           s.gatewayImage,
+				Health:          db.GatewaysHealthUnknown,
+				DesiredReplicas: replicas,
+				Replicas:        0,
+				CpuMillicores:   256,
+				MemoryMib:       256,
+				CreatedAt:       time.Now().UnixMilli(),
 			})
 		}, restate.WithName("insert gateway"))
 		if err != nil {
@@ -141,8 +142,8 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 								GatewayId:     gatewayID,
 								Image:         s.gatewayImage,
 								Replicas:      uint32(replicas),
-								CpuMillicores: 1024,
-								MemorySizeMib: 1024,
+								CpuMillicores: 256,
+								MemorySizeMib: 256,
 							},
 						},
 					},

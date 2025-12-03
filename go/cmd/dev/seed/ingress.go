@@ -111,8 +111,8 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 			GitCommitTimestamp:       sql.NullInt64{Int64: now, Valid: true},
 			OpenapiSpec:              sql.NullString{},
 			Status:                   db.DeploymentsStatusReady,
-			CpuMillicores:            1024,
-			MemoryMib:                1024,
+			CpuMillicores:            256,
+			MemoryMib:                256,
 			CreatedAt:                now,
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {
@@ -120,18 +120,19 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 		}
 
 		err = db.Query.InsertGateway(ctx, tx, db.InsertGatewayParams{
-			ID:             gatewayID,
-			WorkspaceID:    workspaceID,
-			EnvironmentID:  envID,
-			K8sServiceName: fmt.Sprintf("gateway-%s", slug),
-			Region:         region,
-			Image:          "unkey/gateway:local",
-			Health:         db.GatewaysHealthHealthy,
-			Replicas:       1,
-			ProjectID:      projectID,
-			CpuMillicores:  1000,
-			MemoryMib:      512,
-			CreatedAt:      now,
+			ID:              gatewayID,
+			WorkspaceID:     workspaceID,
+			EnvironmentID:   envID,
+			K8sServiceName:  fmt.Sprintf("gateway-%s", slug),
+			Region:          region,
+			Image:           "unkey/gateway:local",
+			Health:          db.GatewaysHealthHealthy,
+			DesiredReplicas: 1,
+			Replicas:        0,
+			ProjectID:       projectID,
+			CpuMillicores:   512,
+			MemoryMib:       512,
+			CreatedAt:       now,
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {
 			return fmt.Errorf("failed to create gateway: %w", err)

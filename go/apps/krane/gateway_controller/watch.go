@@ -46,7 +46,7 @@ func (c *GatewayController) watch() error {
 					continue
 				}
 
-				c.buffer.Buffer(&ctrlv1.UpdateGatewayRequest{
+				c.updates.Buffer(&ctrlv1.UpdateGatewayRequest{
 					Change: &ctrlv1.UpdateGatewayRequest_Create_{
 						Create: &ctrlv1.UpdateGatewayRequest_Create{
 							GatewayId:       gatewayID,
@@ -67,7 +67,7 @@ func (c *GatewayController) watch() error {
 					c.logger.Error("deployment missing gateway id", "name", deployment.Name)
 					continue
 				}
-				c.buffer.Buffer(&ctrlv1.UpdateGatewayRequest{
+				c.updates.Buffer(&ctrlv1.UpdateGatewayRequest{
 					Change: &ctrlv1.UpdateGatewayRequest_Update_{
 						Update: &ctrlv1.UpdateGatewayRequest_Update{
 							GatewayId:       gatewayID,
@@ -89,7 +89,7 @@ func (c *GatewayController) watch() error {
 					continue
 				}
 
-				c.buffer.Buffer(&ctrlv1.UpdateGatewayRequest{
+				c.updates.Buffer(&ctrlv1.UpdateGatewayRequest{
 					Change: &ctrlv1.UpdateGatewayRequest_Delete_{
 						Delete: &ctrlv1.UpdateGatewayRequest_Delete{
 							GatewayId: gatewayID,

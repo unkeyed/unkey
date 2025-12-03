@@ -923,20 +923,21 @@ type Environment struct {
 }
 
 type Gateway struct {
-	ID             string               `db:"id"`
-	WorkspaceID    string               `db:"workspace_id"`
-	ProjectID      string               `db:"project_id"`
-	EnvironmentID  string               `db:"environment_id"`
-	K8sServiceName string               `db:"k8s_service_name"`
-	Region         string               `db:"region"`
-	Image          string               `db:"image"`
-	DesiredState   GatewaysDesiredState `db:"desired_state"`
-	Health         GatewaysHealth       `db:"health"`
-	Replicas       int32                `db:"replicas"`
-	CpuMillicores  int32                `db:"cpu_millicores"`
-	MemoryMib      int32                `db:"memory_mib"`
-	CreatedAt      int64                `db:"created_at"`
-	UpdatedAt      sql.NullInt64        `db:"updated_at"`
+	ID              string               `db:"id"`
+	WorkspaceID     string               `db:"workspace_id"`
+	ProjectID       string               `db:"project_id"`
+	EnvironmentID   string               `db:"environment_id"`
+	K8sServiceName  string               `db:"k8s_service_name"`
+	Region          string               `db:"region"`
+	Image           string               `db:"image"`
+	DesiredState    GatewaysDesiredState `db:"desired_state"`
+	Health          GatewaysHealth       `db:"health"`
+	DesiredReplicas int32                `db:"desired_replicas"`
+	Replicas        int32                `db:"replicas"`
+	CpuMillicores   int32                `db:"cpu_millicores"`
+	MemoryMib       int32                `db:"memory_mib"`
+	CreatedAt       int64                `db:"created_at"`
+	UpdatedAt       sql.NullInt64        `db:"updated_at"`
 }
 
 type Identity struct {

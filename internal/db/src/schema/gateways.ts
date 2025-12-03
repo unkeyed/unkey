@@ -28,6 +28,7 @@ export const gateways = mysqlTable(
     health: mysqlEnum("health", ["unknown", "paused", "healthy", "unhealthy"])
       .notNull()
       .default("unknown"), // needs better status types
+    desiredReplicas: int("desired_replicas").notNull(),
     replicas: int("replicas").notNull(),
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),

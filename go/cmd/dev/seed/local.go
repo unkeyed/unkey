@@ -141,7 +141,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			ID:            envID,
 			WorkspaceID:   workspaceID,
 			ProjectID:     projectID,
-			Slug:          "development",
+			Slug:          "preview",
 			GatewayConfig: []byte("{}"),
 			CreatedAt:     now,
 		})

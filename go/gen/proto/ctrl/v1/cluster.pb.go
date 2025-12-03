@@ -80,31 +80,30 @@ func (x UpdateInstanceRequest_Status) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use UpdateInstanceRequest_Status.Descriptor instead.
 func (UpdateInstanceRequest_Status) EnumDescriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2, 0}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{3, 0}
 }
 
-type DeleteInstanceRequest struct {
+type GetDesiredGatewayStateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	PodName       string                 `protobuf:"bytes,2,opt,name=pod_name,json=podName,proto3" json:"pod_name,omitempty"`
+	GatewayId     string                 `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DeleteInstanceRequest) Reset() {
-	*x = DeleteInstanceRequest{}
+func (x *GetDesiredGatewayStateRequest) Reset() {
+	*x = GetDesiredGatewayStateRequest{}
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DeleteInstanceRequest) String() string {
+func (x *GetDesiredGatewayStateRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DeleteInstanceRequest) ProtoMessage() {}
+func (*GetDesiredGatewayStateRequest) ProtoMessage() {}
 
-func (x *DeleteInstanceRequest) ProtoReflect() protoreflect.Message {
+func (x *GetDesiredGatewayStateRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -116,21 +115,58 @@ func (x *DeleteInstanceRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteInstanceRequest.ProtoReflect.Descriptor instead.
-func (*DeleteInstanceRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetDesiredGatewayStateRequest.ProtoReflect.Descriptor instead.
+func (*GetDesiredGatewayStateRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *DeleteInstanceRequest) GetDeploymentId() string {
+func (x *GetDesiredGatewayStateRequest) GetGatewayId() string {
 	if x != nil {
-		return x.DeploymentId
+		return x.GatewayId
 	}
 	return ""
 }
 
-func (x *DeleteInstanceRequest) GetPodName() string {
+type GetDesiredDeploymentStateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDesiredDeploymentStateRequest) Reset() {
+	*x = GetDesiredDeploymentStateRequest{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDesiredDeploymentStateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDesiredDeploymentStateRequest) ProtoMessage() {}
+
+func (x *GetDesiredDeploymentStateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[1]
 	if x != nil {
-		return x.PodName
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDesiredDeploymentStateRequest.ProtoReflect.Descriptor instead.
+func (*GetDesiredDeploymentStateRequest) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *GetDesiredDeploymentStateRequest) GetDeploymentId() string {
+	if x != nil {
+		return x.DeploymentId
 	}
 	return ""
 }
@@ -143,7 +179,7 @@ type DeleteInstanceResponse struct {
 
 func (x *DeleteInstanceResponse) Reset() {
 	*x = DeleteInstanceResponse{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[1]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -155,7 +191,7 @@ func (x *DeleteInstanceResponse) String() string {
 func (*DeleteInstanceResponse) ProtoMessage() {}
 
 func (x *DeleteInstanceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[1]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -168,7 +204,7 @@ func (x *DeleteInstanceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteInstanceResponse.ProtoReflect.Descriptor instead.
 func (*DeleteInstanceResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{1}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2}
 }
 
 type UpdateInstanceRequest struct {
@@ -185,7 +221,7 @@ type UpdateInstanceRequest struct {
 
 func (x *UpdateInstanceRequest) Reset() {
 	*x = UpdateInstanceRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[2]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -197,7 +233,7 @@ func (x *UpdateInstanceRequest) String() string {
 func (*UpdateInstanceRequest) ProtoMessage() {}
 
 func (x *UpdateInstanceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[2]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -210,7 +246,7 @@ func (x *UpdateInstanceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateInstanceRequest.ProtoReflect.Descriptor instead.
 func (*UpdateInstanceRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *UpdateInstanceRequest) GetChange() isUpdateInstanceRequest_Change {
@@ -277,7 +313,7 @@ type UpdateInstanceResponse struct {
 
 func (x *UpdateInstanceResponse) Reset() {
 	*x = UpdateInstanceResponse{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[3]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -289,7 +325,7 @@ func (x *UpdateInstanceResponse) String() string {
 func (*UpdateInstanceResponse) ProtoMessage() {}
 
 func (x *UpdateInstanceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[3]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -302,7 +338,7 @@ func (x *UpdateInstanceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateInstanceResponse.ProtoReflect.Descriptor instead.
 func (*UpdateInstanceResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{3}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{4}
 }
 
 type UpdateGatewayRequest struct {
@@ -319,7 +355,7 @@ type UpdateGatewayRequest struct {
 
 func (x *UpdateGatewayRequest) Reset() {
 	*x = UpdateGatewayRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[4]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -331,7 +367,7 @@ func (x *UpdateGatewayRequest) String() string {
 func (*UpdateGatewayRequest) ProtoMessage() {}
 
 func (x *UpdateGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[4]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -344,7 +380,7 @@ func (x *UpdateGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGatewayRequest.ProtoReflect.Descriptor instead.
 func (*UpdateGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{4}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *UpdateGatewayRequest) GetChange() isUpdateGatewayRequest_Change {
@@ -411,7 +447,7 @@ type UpdateGatewayResponse struct {
 
 func (x *UpdateGatewayResponse) Reset() {
 	*x = UpdateGatewayResponse{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -423,7 +459,7 @@ func (x *UpdateGatewayResponse) String() string {
 func (*UpdateGatewayResponse) ProtoMessage() {}
 
 func (x *UpdateGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -436,7 +472,7 @@ func (x *UpdateGatewayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGatewayResponse.ProtoReflect.Descriptor instead.
 func (*UpdateGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{6}
 }
 
 // WatchRequest identifies the cluster requesting a watch stream.
@@ -456,7 +492,7 @@ type WatchRequest struct {
 
 func (x *WatchRequest) Reset() {
 	*x = WatchRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -468,7 +504,7 @@ func (x *WatchRequest) String() string {
 func (*WatchRequest) ProtoMessage() {}
 
 func (x *WatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -481,7 +517,7 @@ func (x *WatchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchRequest.ProtoReflect.Descriptor instead.
 func (*WatchRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{6}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *WatchRequest) GetClientId() string {
@@ -515,7 +551,7 @@ type GetDesiredStateRequest struct {
 
 func (x *GetDesiredStateRequest) Reset() {
 	*x = GetDesiredStateRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -527,7 +563,7 @@ func (x *GetDesiredStateRequest) String() string {
 func (*GetDesiredStateRequest) ProtoMessage() {}
 
 func (x *GetDesiredStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -540,7 +576,7 @@ func (x *GetDesiredStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDesiredStateRequest.ProtoReflect.Descriptor instead.
 func (*GetDesiredStateRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{7}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetDesiredStateRequest) GetClientId() string {
@@ -578,7 +614,7 @@ type GatewayEvent struct {
 
 func (x *GatewayEvent) Reset() {
 	*x = GatewayEvent{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -590,7 +626,7 @@ func (x *GatewayEvent) String() string {
 func (*GatewayEvent) ProtoMessage() {}
 
 func (x *GatewayEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -603,7 +639,7 @@ func (x *GatewayEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GatewayEvent.ProtoReflect.Descriptor instead.
 func (*GatewayEvent) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{8}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GatewayEvent) GetEvent() isGatewayEvent_Event {
@@ -673,7 +709,7 @@ type DeploymentEvent struct {
 
 func (x *DeploymentEvent) Reset() {
 	*x = DeploymentEvent{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -685,7 +721,7 @@ func (x *DeploymentEvent) String() string {
 func (*DeploymentEvent) ProtoMessage() {}
 
 func (x *DeploymentEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -698,7 +734,7 @@ func (x *DeploymentEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeploymentEvent.ProtoReflect.Descriptor instead.
 func (*DeploymentEvent) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{9}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DeploymentEvent) GetEvent() isDeploymentEvent_Event {
@@ -783,7 +819,7 @@ type ApplyGateway struct {
 
 func (x *ApplyGateway) Reset() {
 	*x = ApplyGateway{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -795,7 +831,7 @@ func (x *ApplyGateway) String() string {
 func (*ApplyGateway) ProtoMessage() {}
 
 func (x *ApplyGateway) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -808,7 +844,7 @@ func (x *ApplyGateway) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplyGateway.ProtoReflect.Descriptor instead.
 func (*ApplyGateway) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{10}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ApplyGateway) GetWorkspaceId() string {
@@ -882,7 +918,7 @@ type DeleteGateway struct {
 
 func (x *DeleteGateway) Reset() {
 	*x = DeleteGateway{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -894,7 +930,7 @@ func (x *DeleteGateway) String() string {
 func (*DeleteGateway) ProtoMessage() {}
 
 func (x *DeleteGateway) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -907,7 +943,7 @@ func (x *DeleteGateway) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteGateway.ProtoReflect.Descriptor instead.
 func (*DeleteGateway) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{11}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *DeleteGateway) GetGatewayId() string {
@@ -956,7 +992,7 @@ type ApplyDeployment struct {
 
 func (x *ApplyDeployment) Reset() {
 	*x = ApplyDeployment{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -968,7 +1004,7 @@ func (x *ApplyDeployment) String() string {
 func (*ApplyDeployment) ProtoMessage() {}
 
 func (x *ApplyDeployment) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -981,7 +1017,7 @@ func (x *ApplyDeployment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplyDeployment.ProtoReflect.Descriptor instead.
 func (*ApplyDeployment) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{12}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ApplyDeployment) GetWorkspaceId() string {
@@ -1056,7 +1092,7 @@ type DeleteDeployment struct {
 
 func (x *DeleteDeployment) Reset() {
 	*x = DeleteDeployment{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1068,7 +1104,7 @@ func (x *DeleteDeployment) String() string {
 func (*DeleteDeployment) ProtoMessage() {}
 
 func (x *DeleteDeployment) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1081,7 +1117,7 @@ func (x *DeleteDeployment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDeployment.ProtoReflect.Descriptor instead.
 func (*DeleteDeployment) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{13}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DeleteDeployment) GetDeploymentId() string {
@@ -1117,7 +1153,7 @@ type InfraEvent struct {
 
 func (x *InfraEvent) Reset() {
 	*x = InfraEvent{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1129,7 +1165,7 @@ func (x *InfraEvent) String() string {
 func (*InfraEvent) ProtoMessage() {}
 
 func (x *InfraEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1142,7 +1178,7 @@ func (x *InfraEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InfraEvent.ProtoReflect.Descriptor instead.
 func (*InfraEvent) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{14}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *InfraEvent) GetEvent() isInfraEvent_Event {
@@ -1204,7 +1240,7 @@ type UpdateInstanceRequest_Create struct {
 
 func (x *UpdateInstanceRequest_Create) Reset() {
 	*x = UpdateInstanceRequest_Create{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1216,7 +1252,7 @@ func (x *UpdateInstanceRequest_Create) String() string {
 func (*UpdateInstanceRequest_Create) ProtoMessage() {}
 
 func (x *UpdateInstanceRequest_Create) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1229,7 +1265,7 @@ func (x *UpdateInstanceRequest_Create) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateInstanceRequest_Create.ProtoReflect.Descriptor instead.
 func (*UpdateInstanceRequest_Create) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2, 0}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{3, 0}
 }
 
 func (x *UpdateInstanceRequest_Create) GetDeploymentId() string {
@@ -1285,7 +1321,7 @@ type UpdateInstanceRequest_Update struct {
 
 func (x *UpdateInstanceRequest_Update) Reset() {
 	*x = UpdateInstanceRequest_Update{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[16]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1297,7 +1333,7 @@ func (x *UpdateInstanceRequest_Update) String() string {
 func (*UpdateInstanceRequest_Update) ProtoMessage() {}
 
 func (x *UpdateInstanceRequest_Update) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[16]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1310,7 +1346,7 @@ func (x *UpdateInstanceRequest_Update) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateInstanceRequest_Update.ProtoReflect.Descriptor instead.
 func (*UpdateInstanceRequest_Update) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2, 1}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{3, 1}
 }
 
 func (x *UpdateInstanceRequest_Update) GetDeploymentId() string {
@@ -1344,7 +1380,7 @@ type UpdateInstanceRequest_Delete struct {
 
 func (x *UpdateInstanceRequest_Delete) Reset() {
 	*x = UpdateInstanceRequest_Delete{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[17]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1356,7 +1392,7 @@ func (x *UpdateInstanceRequest_Delete) String() string {
 func (*UpdateInstanceRequest_Delete) ProtoMessage() {}
 
 func (x *UpdateInstanceRequest_Delete) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[17]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1369,7 +1405,7 @@ func (x *UpdateInstanceRequest_Delete) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateInstanceRequest_Delete.ProtoReflect.Descriptor instead.
 func (*UpdateInstanceRequest_Delete) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2, 2}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{3, 2}
 }
 
 func (x *UpdateInstanceRequest_Delete) GetDeploymentId() string {
@@ -1396,7 +1432,7 @@ type UpdateGatewayRequest_Create struct {
 
 func (x *UpdateGatewayRequest_Create) Reset() {
 	*x = UpdateGatewayRequest_Create{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1408,7 +1444,7 @@ func (x *UpdateGatewayRequest_Create) String() string {
 func (*UpdateGatewayRequest_Create) ProtoMessage() {}
 
 func (x *UpdateGatewayRequest_Create) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1421,7 +1457,7 @@ func (x *UpdateGatewayRequest_Create) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGatewayRequest_Create.ProtoReflect.Descriptor instead.
 func (*UpdateGatewayRequest_Create) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{4, 0}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5, 0}
 }
 
 func (x *UpdateGatewayRequest_Create) GetGatewayId() string {
@@ -1448,7 +1484,7 @@ type UpdateGatewayRequest_Update struct {
 
 func (x *UpdateGatewayRequest_Update) Reset() {
 	*x = UpdateGatewayRequest_Update{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1460,7 +1496,7 @@ func (x *UpdateGatewayRequest_Update) String() string {
 func (*UpdateGatewayRequest_Update) ProtoMessage() {}
 
 func (x *UpdateGatewayRequest_Update) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1473,7 +1509,7 @@ func (x *UpdateGatewayRequest_Update) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGatewayRequest_Update.ProtoReflect.Descriptor instead.
 func (*UpdateGatewayRequest_Update) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{4, 1}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5, 1}
 }
 
 func (x *UpdateGatewayRequest_Update) GetGatewayId() string {
@@ -1499,7 +1535,7 @@ type UpdateGatewayRequest_Delete struct {
 
 func (x *UpdateGatewayRequest_Delete) Reset() {
 	*x = UpdateGatewayRequest_Delete{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1511,7 +1547,7 @@ func (x *UpdateGatewayRequest_Delete) String() string {
 func (*UpdateGatewayRequest_Delete) ProtoMessage() {}
 
 func (x *UpdateGatewayRequest_Delete) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1524,7 +1560,7 @@ func (x *UpdateGatewayRequest_Delete) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGatewayRequest_Delete.ProtoReflect.Descriptor instead.
 func (*UpdateGatewayRequest_Delete) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{4, 2}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5, 2}
 }
 
 func (x *UpdateGatewayRequest_Delete) GetGatewayId() string {
@@ -1538,10 +1574,12 @@ var File_ctrl_v1_cluster_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\n" +
-	"\x15ctrl/v1/cluster.proto\x12\actrl.v1\"W\n" +
-	"\x15DeleteInstanceRequest\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12\x19\n" +
-	"\bpod_name\x18\x02 \x01(\tR\apodName\"\x18\n" +
+	"\x15ctrl/v1/cluster.proto\x12\actrl.v1\">\n" +
+	"\x1dGetDesiredGatewayStateRequest\x12\x1d\n" +
+	"\n" +
+	"gateway_id\x18\x01 \x01(\tR\tgatewayId\"G\n" +
+	" GetDesiredDeploymentStateRequest\x12#\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x18\n" +
 	"\x16DeleteInstanceResponse\"\xff\x05\n" +
 	"\x15UpdateInstanceRequest\x12?\n" +
 	"\x06create\x18\x01 \x01(\v2%.ctrl.v1.UpdateInstanceRequest.CreateH\x00R\x06create\x12?\n" +
@@ -1636,10 +1674,12 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"InfraEvent\x12<\n" +
 	"\rgateway_event\x18\x02 \x01(\v2\x15.ctrl.v1.GatewayEventH\x00R\fgatewayEvent\x12E\n" +
 	"\x10deployment_event\x18\x03 \x01(\v2\x18.ctrl.v1.DeploymentEventH\x00R\x0fdeploymentEventB\a\n" +
-	"\x05event2\xb5\x02\n" +
+	"\x05event2\xf0\x03\n" +
 	"\x0eClusterService\x125\n" +
 	"\x05Watch\x12\x15.ctrl.v1.WatchRequest\x1a\x13.ctrl.v1.InfraEvent0\x01\x12I\n" +
-	"\x0fGetDesiredState\x12\x1f.ctrl.v1.GetDesiredStateRequest\x1a\x13.ctrl.v1.InfraEvent0\x01\x12Q\n" +
+	"\x0fGetDesiredState\x12\x1f.ctrl.v1.GetDesiredStateRequest\x1a\x13.ctrl.v1.InfraEvent0\x01\x12`\n" +
+	"\x19GetDesiredDeploymentState\x12).ctrl.v1.GetDesiredDeploymentStateRequest\x1a\x18.ctrl.v1.DeploymentEvent\x12W\n" +
+	"\x16GetDesiredGatewayState\x12&.ctrl.v1.GetDesiredGatewayStateRequest\x1a\x15.ctrl.v1.GatewayEvent\x12Q\n" +
 	"\x0eUpdateInstance\x12\x1e.ctrl.v1.UpdateInstanceRequest\x1a\x1f.ctrl.v1.UpdateInstanceResponse\x12N\n" +
 	"\rUpdateGateway\x12\x1d.ctrl.v1.UpdateGatewayRequest\x1a\x1e.ctrl.v1.UpdateGatewayResponseB\x8e\x01\n" +
 	"\vcom.ctrl.v1B\fClusterProtoP\x01Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
@@ -1657,60 +1697,65 @@ func file_ctrl_v1_cluster_proto_rawDescGZIP() []byte {
 }
 
 var file_ctrl_v1_cluster_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ctrl_v1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_ctrl_v1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_ctrl_v1_cluster_proto_goTypes = []any{
-	(UpdateInstanceRequest_Status)(0),    // 0: ctrl.v1.UpdateInstanceRequest.Status
-	(*DeleteInstanceRequest)(nil),        // 1: ctrl.v1.DeleteInstanceRequest
-	(*DeleteInstanceResponse)(nil),       // 2: ctrl.v1.DeleteInstanceResponse
-	(*UpdateInstanceRequest)(nil),        // 3: ctrl.v1.UpdateInstanceRequest
-	(*UpdateInstanceResponse)(nil),       // 4: ctrl.v1.UpdateInstanceResponse
-	(*UpdateGatewayRequest)(nil),         // 5: ctrl.v1.UpdateGatewayRequest
-	(*UpdateGatewayResponse)(nil),        // 6: ctrl.v1.UpdateGatewayResponse
-	(*WatchRequest)(nil),                 // 7: ctrl.v1.WatchRequest
-	(*GetDesiredStateRequest)(nil),       // 8: ctrl.v1.GetDesiredStateRequest
-	(*GatewayEvent)(nil),                 // 9: ctrl.v1.GatewayEvent
-	(*DeploymentEvent)(nil),              // 10: ctrl.v1.DeploymentEvent
-	(*ApplyGateway)(nil),                 // 11: ctrl.v1.ApplyGateway
-	(*DeleteGateway)(nil),                // 12: ctrl.v1.DeleteGateway
-	(*ApplyDeployment)(nil),              // 13: ctrl.v1.ApplyDeployment
-	(*DeleteDeployment)(nil),             // 14: ctrl.v1.DeleteDeployment
-	(*InfraEvent)(nil),                   // 15: ctrl.v1.InfraEvent
-	(*UpdateInstanceRequest_Create)(nil), // 16: ctrl.v1.UpdateInstanceRequest.Create
-	(*UpdateInstanceRequest_Update)(nil), // 17: ctrl.v1.UpdateInstanceRequest.Update
-	(*UpdateInstanceRequest_Delete)(nil), // 18: ctrl.v1.UpdateInstanceRequest.Delete
-	(*UpdateGatewayRequest_Create)(nil),  // 19: ctrl.v1.UpdateGatewayRequest.Create
-	(*UpdateGatewayRequest_Update)(nil),  // 20: ctrl.v1.UpdateGatewayRequest.Update
-	(*UpdateGatewayRequest_Delete)(nil),  // 21: ctrl.v1.UpdateGatewayRequest.Delete
-	nil,                                  // 22: ctrl.v1.WatchRequest.SelectorsEntry
-	nil,                                  // 23: ctrl.v1.GetDesiredStateRequest.SelectorsEntry
+	(UpdateInstanceRequest_Status)(0),        // 0: ctrl.v1.UpdateInstanceRequest.Status
+	(*GetDesiredGatewayStateRequest)(nil),    // 1: ctrl.v1.GetDesiredGatewayStateRequest
+	(*GetDesiredDeploymentStateRequest)(nil), // 2: ctrl.v1.GetDesiredDeploymentStateRequest
+	(*DeleteInstanceResponse)(nil),           // 3: ctrl.v1.DeleteInstanceResponse
+	(*UpdateInstanceRequest)(nil),            // 4: ctrl.v1.UpdateInstanceRequest
+	(*UpdateInstanceResponse)(nil),           // 5: ctrl.v1.UpdateInstanceResponse
+	(*UpdateGatewayRequest)(nil),             // 6: ctrl.v1.UpdateGatewayRequest
+	(*UpdateGatewayResponse)(nil),            // 7: ctrl.v1.UpdateGatewayResponse
+	(*WatchRequest)(nil),                     // 8: ctrl.v1.WatchRequest
+	(*GetDesiredStateRequest)(nil),           // 9: ctrl.v1.GetDesiredStateRequest
+	(*GatewayEvent)(nil),                     // 10: ctrl.v1.GatewayEvent
+	(*DeploymentEvent)(nil),                  // 11: ctrl.v1.DeploymentEvent
+	(*ApplyGateway)(nil),                     // 12: ctrl.v1.ApplyGateway
+	(*DeleteGateway)(nil),                    // 13: ctrl.v1.DeleteGateway
+	(*ApplyDeployment)(nil),                  // 14: ctrl.v1.ApplyDeployment
+	(*DeleteDeployment)(nil),                 // 15: ctrl.v1.DeleteDeployment
+	(*InfraEvent)(nil),                       // 16: ctrl.v1.InfraEvent
+	(*UpdateInstanceRequest_Create)(nil),     // 17: ctrl.v1.UpdateInstanceRequest.Create
+	(*UpdateInstanceRequest_Update)(nil),     // 18: ctrl.v1.UpdateInstanceRequest.Update
+	(*UpdateInstanceRequest_Delete)(nil),     // 19: ctrl.v1.UpdateInstanceRequest.Delete
+	(*UpdateGatewayRequest_Create)(nil),      // 20: ctrl.v1.UpdateGatewayRequest.Create
+	(*UpdateGatewayRequest_Update)(nil),      // 21: ctrl.v1.UpdateGatewayRequest.Update
+	(*UpdateGatewayRequest_Delete)(nil),      // 22: ctrl.v1.UpdateGatewayRequest.Delete
+	nil,                                      // 23: ctrl.v1.WatchRequest.SelectorsEntry
+	nil,                                      // 24: ctrl.v1.GetDesiredStateRequest.SelectorsEntry
 }
 var file_ctrl_v1_cluster_proto_depIdxs = []int32{
-	16, // 0: ctrl.v1.UpdateInstanceRequest.create:type_name -> ctrl.v1.UpdateInstanceRequest.Create
-	17, // 1: ctrl.v1.UpdateInstanceRequest.update:type_name -> ctrl.v1.UpdateInstanceRequest.Update
-	18, // 2: ctrl.v1.UpdateInstanceRequest.delete:type_name -> ctrl.v1.UpdateInstanceRequest.Delete
-	19, // 3: ctrl.v1.UpdateGatewayRequest.create:type_name -> ctrl.v1.UpdateGatewayRequest.Create
-	20, // 4: ctrl.v1.UpdateGatewayRequest.update:type_name -> ctrl.v1.UpdateGatewayRequest.Update
-	21, // 5: ctrl.v1.UpdateGatewayRequest.delete:type_name -> ctrl.v1.UpdateGatewayRequest.Delete
-	22, // 6: ctrl.v1.WatchRequest.selectors:type_name -> ctrl.v1.WatchRequest.SelectorsEntry
-	23, // 7: ctrl.v1.GetDesiredStateRequest.selectors:type_name -> ctrl.v1.GetDesiredStateRequest.SelectorsEntry
-	11, // 8: ctrl.v1.GatewayEvent.apply:type_name -> ctrl.v1.ApplyGateway
-	12, // 9: ctrl.v1.GatewayEvent.delete:type_name -> ctrl.v1.DeleteGateway
-	13, // 10: ctrl.v1.DeploymentEvent.apply:type_name -> ctrl.v1.ApplyDeployment
-	14, // 11: ctrl.v1.DeploymentEvent.delete:type_name -> ctrl.v1.DeleteDeployment
-	9,  // 12: ctrl.v1.InfraEvent.gateway_event:type_name -> ctrl.v1.GatewayEvent
-	10, // 13: ctrl.v1.InfraEvent.deployment_event:type_name -> ctrl.v1.DeploymentEvent
+	17, // 0: ctrl.v1.UpdateInstanceRequest.create:type_name -> ctrl.v1.UpdateInstanceRequest.Create
+	18, // 1: ctrl.v1.UpdateInstanceRequest.update:type_name -> ctrl.v1.UpdateInstanceRequest.Update
+	19, // 2: ctrl.v1.UpdateInstanceRequest.delete:type_name -> ctrl.v1.UpdateInstanceRequest.Delete
+	20, // 3: ctrl.v1.UpdateGatewayRequest.create:type_name -> ctrl.v1.UpdateGatewayRequest.Create
+	21, // 4: ctrl.v1.UpdateGatewayRequest.update:type_name -> ctrl.v1.UpdateGatewayRequest.Update
+	22, // 5: ctrl.v1.UpdateGatewayRequest.delete:type_name -> ctrl.v1.UpdateGatewayRequest.Delete
+	23, // 6: ctrl.v1.WatchRequest.selectors:type_name -> ctrl.v1.WatchRequest.SelectorsEntry
+	24, // 7: ctrl.v1.GetDesiredStateRequest.selectors:type_name -> ctrl.v1.GetDesiredStateRequest.SelectorsEntry
+	12, // 8: ctrl.v1.GatewayEvent.apply:type_name -> ctrl.v1.ApplyGateway
+	13, // 9: ctrl.v1.GatewayEvent.delete:type_name -> ctrl.v1.DeleteGateway
+	14, // 10: ctrl.v1.DeploymentEvent.apply:type_name -> ctrl.v1.ApplyDeployment
+	15, // 11: ctrl.v1.DeploymentEvent.delete:type_name -> ctrl.v1.DeleteDeployment
+	10, // 12: ctrl.v1.InfraEvent.gateway_event:type_name -> ctrl.v1.GatewayEvent
+	11, // 13: ctrl.v1.InfraEvent.deployment_event:type_name -> ctrl.v1.DeploymentEvent
 	0,  // 14: ctrl.v1.UpdateInstanceRequest.Create.status:type_name -> ctrl.v1.UpdateInstanceRequest.Status
 	0,  // 15: ctrl.v1.UpdateInstanceRequest.Update.status:type_name -> ctrl.v1.UpdateInstanceRequest.Status
-	7,  // 16: ctrl.v1.ClusterService.Watch:input_type -> ctrl.v1.WatchRequest
-	8,  // 17: ctrl.v1.ClusterService.GetDesiredState:input_type -> ctrl.v1.GetDesiredStateRequest
-	3,  // 18: ctrl.v1.ClusterService.UpdateInstance:input_type -> ctrl.v1.UpdateInstanceRequest
-	5,  // 19: ctrl.v1.ClusterService.UpdateGateway:input_type -> ctrl.v1.UpdateGatewayRequest
-	15, // 20: ctrl.v1.ClusterService.Watch:output_type -> ctrl.v1.InfraEvent
-	15, // 21: ctrl.v1.ClusterService.GetDesiredState:output_type -> ctrl.v1.InfraEvent
-	4,  // 22: ctrl.v1.ClusterService.UpdateInstance:output_type -> ctrl.v1.UpdateInstanceResponse
-	6,  // 23: ctrl.v1.ClusterService.UpdateGateway:output_type -> ctrl.v1.UpdateGatewayResponse
-	20, // [20:24] is the sub-list for method output_type
-	16, // [16:20] is the sub-list for method input_type
+	8,  // 16: ctrl.v1.ClusterService.Watch:input_type -> ctrl.v1.WatchRequest
+	9,  // 17: ctrl.v1.ClusterService.GetDesiredState:input_type -> ctrl.v1.GetDesiredStateRequest
+	2,  // 18: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
+	1,  // 19: ctrl.v1.ClusterService.GetDesiredGatewayState:input_type -> ctrl.v1.GetDesiredGatewayStateRequest
+	4,  // 20: ctrl.v1.ClusterService.UpdateInstance:input_type -> ctrl.v1.UpdateInstanceRequest
+	6,  // 21: ctrl.v1.ClusterService.UpdateGateway:input_type -> ctrl.v1.UpdateGatewayRequest
+	16, // 22: ctrl.v1.ClusterService.Watch:output_type -> ctrl.v1.InfraEvent
+	16, // 23: ctrl.v1.ClusterService.GetDesiredState:output_type -> ctrl.v1.InfraEvent
+	11, // 24: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentEvent
+	10, // 25: ctrl.v1.ClusterService.GetDesiredGatewayState:output_type -> ctrl.v1.GatewayEvent
+	5,  // 26: ctrl.v1.ClusterService.UpdateInstance:output_type -> ctrl.v1.UpdateInstanceResponse
+	7,  // 27: ctrl.v1.ClusterService.UpdateGateway:output_type -> ctrl.v1.UpdateGatewayResponse
+	22, // [22:28] is the sub-list for method output_type
+	16, // [16:22] is the sub-list for method input_type
 	16, // [16:16] is the sub-list for extension type_name
 	16, // [16:16] is the sub-list for extension extendee
 	0,  // [0:16] is the sub-list for field type_name
@@ -1721,25 +1766,25 @@ func file_ctrl_v1_cluster_proto_init() {
 	if File_ctrl_v1_cluster_proto != nil {
 		return
 	}
-	file_ctrl_v1_cluster_proto_msgTypes[2].OneofWrappers = []any{
+	file_ctrl_v1_cluster_proto_msgTypes[3].OneofWrappers = []any{
 		(*UpdateInstanceRequest_Create_)(nil),
 		(*UpdateInstanceRequest_Update_)(nil),
 		(*UpdateInstanceRequest_Delete_)(nil),
 	}
-	file_ctrl_v1_cluster_proto_msgTypes[4].OneofWrappers = []any{
+	file_ctrl_v1_cluster_proto_msgTypes[5].OneofWrappers = []any{
 		(*UpdateGatewayRequest_Create_)(nil),
 		(*UpdateGatewayRequest_Update_)(nil),
 		(*UpdateGatewayRequest_Delete_)(nil),
 	}
-	file_ctrl_v1_cluster_proto_msgTypes[8].OneofWrappers = []any{
+	file_ctrl_v1_cluster_proto_msgTypes[9].OneofWrappers = []any{
 		(*GatewayEvent_Apply)(nil),
 		(*GatewayEvent_Delete)(nil),
 	}
-	file_ctrl_v1_cluster_proto_msgTypes[9].OneofWrappers = []any{
+	file_ctrl_v1_cluster_proto_msgTypes[10].OneofWrappers = []any{
 		(*DeploymentEvent_Apply)(nil),
 		(*DeploymentEvent_Delete)(nil),
 	}
-	file_ctrl_v1_cluster_proto_msgTypes[14].OneofWrappers = []any{
+	file_ctrl_v1_cluster_proto_msgTypes[15].OneofWrappers = []any{
 		(*InfraEvent_GatewayEvent)(nil),
 		(*InfraEvent_DeploymentEvent)(nil),
 	}
@@ -1749,7 +1794,7 @@ func file_ctrl_v1_cluster_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_cluster_proto_rawDesc), len(file_ctrl_v1_cluster_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   23,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -19,6 +19,7 @@ INSERT INTO gateways (
     region,
     image,
     health,
+    desired_replicas,
     replicas,
     cpu_millicores,
     memory_mib,
@@ -35,26 +36,25 @@ INSERT INTO gateways (
     ?,
     ?,
     ?,
+    ?,
     ?
-) ON DUPLICATE KEY UPDATE
-    health = VALUES(health),
-    replicas = VALUES(replicas),
-  updated_at = VALUES(updated_at)
+)
 `
 
 type InsertGatewayParams struct {
-	ID             string         `db:"id"`
-	WorkspaceID    string         `db:"workspace_id"`
-	EnvironmentID  string         `db:"environment_id"`
-	ProjectID      string         `db:"project_id"`
-	K8sServiceName string         `db:"k8s_service_name"`
-	Region         string         `db:"region"`
-	Image          string         `db:"image"`
-	Health         GatewaysHealth `db:"health"`
-	Replicas       int32          `db:"replicas"`
-	CpuMillicores  int32          `db:"cpu_millicores"`
-	MemoryMib      int32          `db:"memory_mib"`
-	CreatedAt      int64          `db:"created_at"`
+	ID              string         `db:"id"`
+	WorkspaceID     string         `db:"workspace_id"`
+	EnvironmentID   string         `db:"environment_id"`
+	ProjectID       string         `db:"project_id"`
+	K8sServiceName  string         `db:"k8s_service_name"`
+	Region          string         `db:"region"`
+	Image           string         `db:"image"`
+	Health          GatewaysHealth `db:"health"`
+	DesiredReplicas int32          `db:"desired_replicas"`
+	Replicas        int32          `db:"replicas"`
+	CpuMillicores   int32          `db:"cpu_millicores"`
+	MemoryMib       int32          `db:"memory_mib"`
+	CreatedAt       int64          `db:"created_at"`
 }
 
 // InsertGateway
@@ -68,6 +68,7 @@ type InsertGatewayParams struct {
 //	    region,
 //	    image,
 //	    health,
+//	    desired_replicas,
 //	    replicas,
 //	    cpu_millicores,
 //	    memory_mib,
@@ -84,11 +85,9 @@ type InsertGatewayParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //	    ?
-//	) ON DUPLICATE KEY UPDATE
-//	    health = VALUES(health),
-//	    replicas = VALUES(replicas),
-//	  updated_at = VALUES(updated_at)
+//	)
 func (q *Queries) InsertGateway(ctx context.Context, db DBTX, arg InsertGatewayParams) error {
 	_, err := db.ExecContext(ctx, insertGateway,
 		arg.ID,
@@ -99,6 +98,7 @@ func (q *Queries) InsertGateway(ctx context.Context, db DBTX, arg InsertGatewayP
 		arg.Region,
 		arg.Image,
 		arg.Health,
+		arg.DesiredReplicas,
 		arg.Replicas,
 		arg.CpuMillicores,
 		arg.MemoryMib,

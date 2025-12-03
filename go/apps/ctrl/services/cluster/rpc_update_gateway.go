@@ -17,8 +17,8 @@ func (s *Service) UpdateGateway(ctx context.Context, req *connect.Request[ctrlv1
 		return nil, err
 	}
 
-	region := req.Header().Get("X-Unkey-Region")
-	shard := req.Header().Get("X-Unkey-Shard")
+	region := req.Header().Get("X-Krane-Region")
+	shard := req.Header().Get("X-Krane-Shard")
 
 	err := assert.All(
 		assert.NotEmpty(region, "region is required"),
@@ -43,6 +43,10 @@ func (s *Service) UpdateGateway(ctx context.Context, req *connect.Request[ctrlv1
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 			if err != nil {
+				if db.IsDuplicateKeyError(err) {
+					// This is expected, cause kubernetes frequently replays existing gateways
+					return connect.NewResponse(&ctrlv1.UpdateGatewayResponse{}), nil
+				}
 				return nil, err
 			}
 

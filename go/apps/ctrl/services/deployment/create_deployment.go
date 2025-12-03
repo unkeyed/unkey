@@ -145,8 +145,8 @@ func (s *Service) CreateDeployment(
 		GitCommitAuthorHandle:    sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
 		GitCommitAuthorAvatarUrl: sql.NullString{String: gitCommitAuthorAvatarURL, Valid: gitCommitAuthorAvatarURL != ""},
 		GitCommitTimestamp:       sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
-		CpuMillicores:            1024,
-		MemoryMib:                1024,
+		CpuMillicores:            256,
+		MemoryMib:                256,
 	})
 	if err != nil {
 		s.logger.Error("failed to insert deployment", "error", err.Error())

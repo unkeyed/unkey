@@ -10,6 +10,7 @@ import (
 	gatewaycontroller "github.com/unkeyed/unkey/go/apps/krane/gateway_controller"
 	"github.com/unkeyed/unkey/go/apps/krane/sync"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/go/pkg/buffer"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/prometheus"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
@@ -43,70 +44,63 @@ func Run(ctx context.Context, cfg Config) error {
 		logger = logger.With(slog.String("version", pkgversion.Version))
 	}
 
-	s, err := sync.New(sync.Config{
-		Logger:             logger,
-		Region:             cfg.Region,
-		Shard:              cfg.Shard,
-		InstanceID:         cfg.InstanceID,
-		ControlPlaneURL:    cfg.ControlPlaneURL,
-		ControlPlaneBearer: cfg.ControlPlaneBearer,
+	gatewayUpdates := buffer.New[*ctrlv1.UpdateGatewayRequest](buffer.Config{
+		Capacity: 1000,
+		Drop:     false,
+		Name:     "krane_gateway_updates",
 	})
-	if err != nil {
-		return fmt.Errorf("failed to create sync engine: %w", err)
-	}
+	gatewayEvents := buffer.New[*ctrlv1.GatewayEvent](buffer.Config{
+		Capacity: 1000,
+		Drop:     false,
+		Name:     "krane_gateway_events",
+	})
+
+	deploymentEvents := buffer.New[*ctrlv1.DeploymentEvent](buffer.Config{
+		Capacity: 1000,
+		Drop:     false,
+		Name:     "krane_deployment_events",
+	})
+
+	instanceUpdates := buffer.New[*ctrlv1.UpdateInstanceRequest](buffer.Config{
+		Capacity: 1000,
+		Drop:     false,
+		Name:     "krane_instance_updates",
+	})
 
 	dc, err := deploymentcontroller.New(deploymentcontroller.Config{
-		Logger: logger,
-		Buffer: s.InstanceUpdateBuffer,
+		Logger:  logger,
+		Events:  deploymentEvents,
+		Updates: instanceUpdates,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create deployment controller: %w", err)
 	}
 
 	gc, err := gatewaycontroller.New(gatewaycontroller.Config{
-		Logger: logger,
-		Buffer: s.GatewayUpdateBuffer,
+		Logger:  logger,
+		Events:  gatewayEvents,
+		Updates: gatewayUpdates,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create gateway controller: %w", err)
 	}
+	s, err := sync.New(sync.Config{
+		Logger:               logger,
+		Region:               cfg.Region,
+		Shard:                cfg.Shard,
+		InstanceID:           cfg.InstanceID,
+		ControlPlaneURL:      cfg.ControlPlaneURL,
+		ControlPlaneBearer:   cfg.ControlPlaneBearer,
+		InstanceUpdates:      instanceUpdates,
+		GatewayUpdates:       gatewayUpdates,
+		DeploymentController: dc,
+		GatewayController:    gc,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create sync engine: %w", err)
+	}
 
-	go func() {
-		for e := range s.Subscribe() {
-			ctx := context.Background()
-			logger.Info("Event received", "event", e)
-
-			var backendErr error
-			switch x := e.GetEvent().(type) {
-			case *ctrlv1.InfraEvent_DeploymentEvent:
-				{
-					switch y := x.DeploymentEvent.GetEvent().(type) {
-					case *ctrlv1.DeploymentEvent_Apply:
-						backendErr = dc.ApplyDeployment(ctx, y.Apply)
-					case *ctrlv1.DeploymentEvent_Delete:
-						backendErr = dc.DeleteDeployment(ctx, y.Delete)
-					}
-
-				}
-			case *ctrlv1.InfraEvent_GatewayEvent:
-				{
-					switch y := x.GatewayEvent.GetEvent().(type) {
-					case *ctrlv1.GatewayEvent_Apply:
-						backendErr = gc.ApplyGateway(ctx, y.Apply)
-					case *ctrlv1.GatewayEvent_Delete:
-						backendErr = gc.DeleteGateway(ctx, y.Delete)
-					}
-
-				}
-
-			default:
-				logger.Warn("Unknown event type", "event", x)
-			}
-			if backendErr != nil {
-				logger.Error("unable to enact infra event", "error", backendErr)
-			}
-		}
-	}()
+	var _ = s
 
 	if cfg.PrometheusPort > 0 {
 

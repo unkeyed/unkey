@@ -438,6 +438,7 @@ CREATE TABLE `gateways` (
 	`image` varchar(255) NOT NULL,
 	`desired_state` enum('running','standby','archived') NOT NULL DEFAULT 'running',
 	`health` enum('unknown','paused','healthy','unhealthy') NOT NULL DEFAULT 'unknown',
+	`desired_replicas` int NOT NULL,
 	`replicas` int NOT NULL,
 	`cpu_millicores` int NOT NULL,
 	`memory_mib` int NOT NULL,

@@ -11,6 +11,7 @@ import (
 
 func (s *Service) GetDesiredState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredStateRequest], stream *connect.ServerStream[ctrlv1.InfraEvent]) error {
 
+	s.logger.Info("get desired state", "headers", req.Header())
 	if err := s.authenticate(req); err != nil {
 		return err
 	}
@@ -98,7 +99,7 @@ func (s *Service) GetDesiredState(ctx context.Context, req *connect.Request[ctrl
 		if len(topologies) == 0 {
 			break
 		}
-		cursor = topologies[len(topologies)-1].GatewayID
+		cursor = topologies[len(topologies)-1].ID
 
 		for _, t := range topologies {
 
@@ -110,9 +111,9 @@ func (s *Service) GetDesiredState(ctx context.Context, req *connect.Request[ctrl
 								WorkspaceId:   t.WorkspaceID,
 								EnvironmentId: t.EnvironmentID,
 								ProjectId:     t.ProjectID,
-								GatewayId:     t.GatewayID,
+								GatewayId:     t.ID,
 								Image:         t.Image,
-								Replicas:      uint32(t.Replicas),
+								Replicas:      uint32(t.DesiredReplicas),
 								CpuMillicores: uint32(t.CpuMillicores),
 								MemorySizeMib: uint32(t.MemoryMib),
 							},

@@ -39,12 +39,7 @@ func (s *SyncEngine) watch() {
 			time.Sleep(time.Second)
 			continue
 		}
-		event := stream.Msg()
-
-		// process event
-		s.logger.Info("received event", "event", event.String())
-		s.events.Buffer(event)
-
+		s.route(stream.Msg())
 	}
 
 }
@@ -56,7 +51,6 @@ func (s *SyncEngine) newStream() (*connect.ServerStreamForClient[ctrlv1.InfraEve
 		ClientId: s.instanceID,
 		Selectors: map[string]string{
 			"region": s.region,
-			"shard":  s.shard,
 		},
 	}))
 

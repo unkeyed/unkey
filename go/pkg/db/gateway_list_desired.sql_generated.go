@@ -11,17 +11,7 @@ import (
 
 const listDesiredGateways = `-- name: ListDesiredGateways :many
 SELECT
-    id as gateway_id,
-    workspace_id,
-    environment_id,
-    k8s_service_name,
-    region,
-    image,
-    desired_state,
-    replicas,
-    cpu_millicores,
-    memory_mib,
-    project_id
+    id, workspace_id, project_id, environment_id, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at
 FROM ` + "`" + `gateways` + "`" + `
 WHERE (? = '' OR region = ?)
     AND desired_state = ?
@@ -37,41 +27,17 @@ type ListDesiredGatewaysParams struct {
 	Limit            int32                `db:"limit"`
 }
 
-type ListDesiredGatewaysRow struct {
-	GatewayID      string               `db:"gateway_id"`
-	WorkspaceID    string               `db:"workspace_id"`
-	EnvironmentID  string               `db:"environment_id"`
-	K8sServiceName string               `db:"k8s_service_name"`
-	Region         string               `db:"region"`
-	Image          string               `db:"image"`
-	DesiredState   GatewaysDesiredState `db:"desired_state"`
-	Replicas       int32                `db:"replicas"`
-	CpuMillicores  int32                `db:"cpu_millicores"`
-	MemoryMib      int32                `db:"memory_mib"`
-	ProjectID      string               `db:"project_id"`
-}
-
 // ListDesiredGateways
 //
 //	SELECT
-//	    id as gateway_id,
-//	    workspace_id,
-//	    environment_id,
-//	    k8s_service_name,
-//	    region,
-//	    image,
-//	    desired_state,
-//	    replicas,
-//	    cpu_millicores,
-//	    memory_mib,
-//	    project_id
+//	    id, workspace_id, project_id, environment_id, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at
 //	FROM `gateways`
 //	WHERE (? = '' OR region = ?)
 //	    AND desired_state = ?
 //	    AND id > ?
 //	ORDER BY id ASC
 //	LIMIT ?
-func (q *Queries) ListDesiredGateways(ctx context.Context, db DBTX, arg ListDesiredGatewaysParams) ([]ListDesiredGatewaysRow, error) {
+func (q *Queries) ListDesiredGateways(ctx context.Context, db DBTX, arg ListDesiredGatewaysParams) ([]Gateway, error) {
 	rows, err := db.QueryContext(ctx, listDesiredGateways,
 		arg.Region,
 		arg.Region,
@@ -83,21 +49,25 @@ func (q *Queries) ListDesiredGateways(ctx context.Context, db DBTX, arg ListDesi
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListDesiredGatewaysRow
+	var items []Gateway
 	for rows.Next() {
-		var i ListDesiredGatewaysRow
+		var i Gateway
 		if err := rows.Scan(
-			&i.GatewayID,
+			&i.ID,
 			&i.WorkspaceID,
+			&i.ProjectID,
 			&i.EnvironmentID,
 			&i.K8sServiceName,
 			&i.Region,
 			&i.Image,
 			&i.DesiredState,
+			&i.Health,
+			&i.DesiredReplicas,
 			&i.Replicas,
 			&i.CpuMillicores,
 			&i.MemoryMib,
-			&i.ProjectID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

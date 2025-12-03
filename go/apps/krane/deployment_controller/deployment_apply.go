@@ -89,6 +89,31 @@ func (c *DeploymentController) ApplyDeployment(ctx context.Context, req *ctrlv1.
 		MatchLabels: usedLabels,
 	})
 
+	desiredService := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "svc-",
+			Namespace:    k8s.UntrustedNamespace,
+			Labels:       usedLabels,
+		},
+
+		//nolint:exhaustruct
+		Spec: corev1.ServiceSpec{
+			Type:                     corev1.ServiceTypeClusterIP, // Use ClusterIP for internal communication
+			Selector:                 usedLabels,
+			ClusterIP:                "None",
+			PublishNotReadyAddresses: true,
+
+			//nolint:exhaustruct
+			Ports: []corev1.ServicePort{
+				{
+					Port:       8080,
+					TargetPort: intstr.FromInt(8080),
+					Protocol:   corev1.ProtocolTCP,
+				},
+			},
+		},
+	}
+
 	services, err := c.clientset.CoreV1().Services(k8s.UntrustedNamespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
@@ -97,8 +122,13 @@ func (c *DeploymentController) ApplyDeployment(ctx context.Context, req *ctrlv1.
 	}
 
 	var service *corev1.Service
-	if len(services.Items) == 1 {
-		service = &services.Items[0]
+	if len(services.Items) > 0 {
+		desiredService.Name = services.Items[0].Name
+		service, err = c.clientset.CoreV1().Services(k8s.UntrustedNamespace).Update(ctx, desiredService, metav1.UpdateOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to get service: %w", err)
+		}
+
 	} else if len(services.Items) > 1 {
 		return fmt.Errorf("multiple services found")
 	} else {
@@ -114,36 +144,87 @@ func (c *DeploymentController) ApplyDeployment(ctx context.Context, req *ctrlv1.
 				//
 				// I believe going forward we need to re-evaluate that cause it's the wrong abstraction.
 				//nolint:exhaustruct
-				&corev1.Service{
-					ObjectMeta: metav1.ObjectMeta{
-						GenerateName: "svc-",
-						Namespace:    k8s.UntrustedNamespace,
-						Labels:       usedLabels,
-					},
-
-					//nolint:exhaustruct
-					Spec: corev1.ServiceSpec{
-						Type:                     corev1.ServiceTypeClusterIP, // Use ClusterIP for internal communication
-						Selector:                 usedLabels,
-						ClusterIP:                "None",
-						PublishNotReadyAddresses: true,
-
-						//nolint:exhaustruct
-						Ports: []corev1.ServicePort{
-							{
-								Port:       8080,
-								TargetPort: intstr.FromInt(8080),
-								Protocol:   corev1.ProtocolTCP,
-							},
-						},
-					},
-				},
+				desiredService,
 				//nolint:exhaustruct
 				metav1.CreateOptions{},
 			)
 		if err != nil {
 			return fmt.Errorf("failed to create service: %w", err)
 		}
+	}
+
+	desired := &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "dpl-",
+			Namespace:    k8s.UntrustedNamespace,
+			Labels:       usedLabels,
+		},
+
+		//nolint: exhaustruct
+		Spec: appsv1.StatefulSetSpec{
+			ServiceName: service.Name,
+			Replicas:    ptr.P(int32(req.GetReplicas())), //nolint: gosec
+			Selector: &metav1.LabelSelector{
+				MatchLabels: k8s.NewLabels().
+					DeploymentID(deploymentID).
+					ToMap(),
+			},
+			PodManagementPolicy: appsv1.ParallelPodManagement,
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels:      usedLabels,
+					Annotations: map[string]string{},
+				},
+				Spec: corev1.PodSpec{
+					ImagePullSecrets: func() []corev1.LocalObjectReference {
+						// Only add imagePullSecrets if using Depot registry
+						if strings.HasPrefix(req.GetImage(), "registry.depot.dev/") {
+							return []corev1.LocalObjectReference{
+								{
+									Name: "depot-registry",
+								},
+							}
+						}
+						return nil
+					}(),
+					RestartPolicy: corev1.RestartPolicyAlways,
+					Containers: []corev1.Container{
+						{
+							Name:  "container",
+							Image: req.GetImage(),
+							Env: []corev1.EnvVar{
+								{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
+								{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
+								{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
+							},
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 8080,
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
+							Resources: corev1.ResourceRequirements{
+								// nolint: exhaustive
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.GetCpuMillicores()), resource.DecimalSI),
+									corev1.ResourceMemory: *resource.NewQuantity(int64(req.GetMemorySizeMib())*1024*1024, resource.DecimalSI), //nolint: gosec
+
+								},
+								// nolint: exhaustive
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.GetCpuMillicores()), resource.DecimalSI),
+									corev1.ResourceMemory: *resource.NewQuantity(int64(req.GetMemorySizeMib())*1024*1024, resource.DecimalSI), //nolint: gosec
+								},
+							},
+						},
+					},
+				},
+			},
+			PersistentVolumeClaimRetentionPolicy: &appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy{
+				WhenDeleted: appsv1.DeletePersistentVolumeClaimRetentionPolicyType,
+				WhenScaled:  appsv1.DeletePersistentVolumeClaimRetentionPolicyType,
+			},
+		},
 	}
 
 	statefulsets, err := c.clientset.AppsV1().StatefulSets(k8s.UntrustedNamespace).List(ctx, metav1.ListOptions{
@@ -154,107 +235,58 @@ func (c *DeploymentController) ApplyDeployment(ctx context.Context, req *ctrlv1.
 	}
 
 	var sfs *appsv1.StatefulSet
-	if len(statefulsets.Items) == 1 {
-		sfs = &statefulsets.Items[0]
-	} else if len(statefulsets.Items) > 1 {
-		return fmt.Errorf("multiple stateful sets found")
+	if len(statefulsets.Items) > 0 {
+		desired.Name = statefulsets.Items[0].Name
+		sfs, err = c.clientset.AppsV1().StatefulSets(k8s.UntrustedNamespace).Update(ctx,
+			desired, metav1.UpdateOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to update stateful set: %w", err)
+		}
 	} else {
 
 		sfs, err = c.clientset.AppsV1().StatefulSets(k8s.UntrustedNamespace).Create(ctx,
 			//nolint: exhaustruct
-			&appsv1.StatefulSet{
-				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: "dpl-",
-					Namespace:    k8s.UntrustedNamespace,
-					Labels:       usedLabels,
-				},
-
-				//nolint: exhaustruct
-				Spec: appsv1.StatefulSetSpec{
-					ServiceName: service.Name,
-					Replicas:    ptr.P(int32(req.GetReplicas())), //nolint: gosec
-					Selector: &metav1.LabelSelector{
-						MatchLabels: k8s.NewLabels().
-							DeploymentID(deploymentID).
-							ToMap(),
-					},
-					PodManagementPolicy: appsv1.ParallelPodManagement,
-					Template: corev1.PodTemplateSpec{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels:      usedLabels,
-							Annotations: map[string]string{},
-						},
-						Spec: corev1.PodSpec{
-							ImagePullSecrets: func() []corev1.LocalObjectReference {
-								// Only add imagePullSecrets if using Depot registry
-								if strings.HasPrefix(req.GetImage(), "registry.depot.dev/") {
-									return []corev1.LocalObjectReference{
-										{
-											Name: "depot-registry",
-										},
-									}
-								}
-								return nil
-							}(),
-							RestartPolicy: corev1.RestartPolicyAlways,
-							Containers: []corev1.Container{
-								{
-									Name:  "container",
-									Image: req.GetImage(),
-									Env: []corev1.EnvVar{
-										{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
-										{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
-										{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
-									},
-									Ports: []corev1.ContainerPort{
-										{
-											ContainerPort: 8080,
-											Protocol:      corev1.ProtocolTCP,
-										},
-									},
-									Resources: corev1.ResourceRequirements{
-										// nolint: exhaustive
-										Requests: corev1.ResourceList{
-											corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.GetCpuMillicores()), resource.DecimalSI),
-											corev1.ResourceMemory: *resource.NewQuantity(int64(req.GetMemorySizeMib())*1024*1024, resource.DecimalSI), //nolint: gosec
-
-										},
-										// nolint: exhaustive
-										Limits: corev1.ResourceList{
-											corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.GetCpuMillicores()), resource.DecimalSI),
-											corev1.ResourceMemory: *resource.NewQuantity(int64(req.GetMemorySizeMib())*1024*1024, resource.DecimalSI), //nolint: gosec
-										},
-									},
-								},
-							},
-						},
-					},
-					PersistentVolumeClaimRetentionPolicy: &appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy{
-						WhenDeleted: appsv1.DeletePersistentVolumeClaimRetentionPolicyType,
-						WhenScaled:  appsv1.DeletePersistentVolumeClaimRetentionPolicyType,
-					},
-				},
-			}, metav1.CreateOptions{})
+			desired, metav1.CreateOptions{})
 		if err != nil {
 
 			return fmt.Errorf("failed to create stateful set: %w", err)
 		}
 	}
 
-	service.OwnerReferences = []metav1.OwnerReference{
-		// Automatically clean up the service, when the deployment gets deleted
-		//nolint:exhaustruct
-		{
-			APIVersion: "apps/v1",
-			Kind:       "StatefulSet",
-			Name:       sfs.Name,
-			UID:        sfs.UID,
-		},
+	// Update Service with owner reference to Deployment (idempotent - always set)
+	needsUpdate := false
+	if len(service.OwnerReferences) == 0 {
+		needsUpdate = true
+	} else {
+		// Check if the deployment is already an owner
+		found := false
+		for _, ref := range service.OwnerReferences {
+			if ref.UID == sfs.UID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			needsUpdate = true
+		}
 	}
-	//nolint:exhaustruct
-	_, err = c.clientset.CoreV1().Services(k8s.UntrustedNamespace).Update(ctx, service, metav1.UpdateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to update deployment: %w", err)
+	if needsUpdate {
+
+		service.OwnerReferences = []metav1.OwnerReference{
+			// Automatically clean up the service, when the deployment gets deleted
+			//nolint:exhaustruct
+			{
+				APIVersion: "apps/v1",
+				Kind:       "StatefulSet",
+				Name:       sfs.Name,
+				UID:        sfs.UID,
+			},
+		}
+		//nolint:exhaustruct
+		_, err = c.clientset.CoreV1().Services(k8s.UntrustedNamespace).Update(ctx, service, metav1.UpdateOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to update deployment: %w", err)
+		}
 	}
 
 	return nil

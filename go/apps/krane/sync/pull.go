@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
+	"github.com/bytedance/gopkg/util/logger"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 )
 
@@ -15,23 +16,33 @@ func (s *SyncEngine) pull() error {
 		ClientId: s.instanceID,
 		Selectors: map[string]string{
 			"region": s.region,
+			"shard":  s.shard,
 		},
 	}))
 	if err != nil {
+		s.logger.Warn("failed to pull desired state", "error", err)
 		return err
 	}
 
 	totalEvents := 0
 	for stream.Receive() {
+		switch x := stream.Msg().GetEvent().(type) {
+		case *ctrlv1.InfraEvent_DeploymentEvent:
+			s.deploymentcontroller.BufferEvent(x.DeploymentEvent)
 
-		s.logger.Info("received desired state")
-		s.events.Buffer(stream.Msg())
+		case *ctrlv1.InfraEvent_GatewayEvent:
+			s.gatewaycontroller.BufferEvent(x.GatewayEvent)
+
+		default:
+			logger.Warn("Unknown event type", "event", x)
+		}
 	}
 	err = stream.Err()
 	if err != nil {
+		s.logger.Warn("failed to pull desired state", "error", err)
 		return err
 	}
-	s.logger.Info("completed pull from control plane",
+	s.logger.Debug("completed pull from control plane",
 		"total_events", totalEvents,
 	)
 

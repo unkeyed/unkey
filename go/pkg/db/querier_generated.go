@@ -207,6 +207,25 @@ type Querier interface {
 	//  WHERE deployment_id = ?
 	//  ORDER BY created_at ASC
 	FindDeploymentStepsByDeploymentId(ctx context.Context, db DBTX, deploymentID string) ([]FindDeploymentStepsByDeploymentIdRow, error)
+	//FindDeploymentTopologyByIDAndRegion
+	//
+	//  SELECT
+	//      d.id,
+	//      d.workspace_id,
+	//      d.project_id,
+	//      d.environment_id,
+	//      d.image,
+	//      dt.region,
+	//      d.cpu_millicores,
+	//      d.memory_mib,
+	//      dt.replicas,
+	//      d.desired_state
+	//  FROM `deployment_topology` dt
+	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
+	//  WHERE  dt.region = ?
+	//      AND dt.deployment_id = ?
+	//  LIMIT 1
+	FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DBTX, arg FindDeploymentTopologyByIDAndRegionParams) (FindDeploymentTopologyByIDAndRegionRow, error)
 	//FindEnvironmentById
 	//
 	//  SELECT id, workspace_id, project_id, slug, description
@@ -221,14 +240,14 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
+	//FindGatewayByID
+	//
+	//  SELECT id, workspace_id, project_id, environment_id, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE id = ? LIMIT 1
+	FindGatewayByID(ctx context.Context, db DBTX, id string) (Gateway, error)
 	//FindGatewaysByEnvironmentID
 	//
-	//  SELECT id, workspace_id, project_id, environment_id, k8s_service_name, region, image, desired_state, health, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE environment_id = ?
+	//  SELECT id, workspace_id, project_id, environment_id, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE environment_id = ?
 	FindGatewaysByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Gateway, error)
-	//FindGatewaysByID
-	//
-	//  SELECT id, workspace_id, project_id, environment_id, k8s_service_name, region, image, desired_state, health, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE id = ?
-	FindGatewaysByID(ctx context.Context, db DBTX, id string) ([]Gateway, error)
 	//FindIdentities
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -1197,6 +1216,7 @@ type Querier interface {
 	//      region,
 	//      image,
 	//      health,
+	//      desired_replicas,
 	//      replicas,
 	//      cpu_millicores,
 	//      memory_mib,
@@ -1213,11 +1233,9 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
+	//      ?,
 	//      ?
-	//  ) ON DUPLICATE KEY UPDATE
-	//      health = VALUES(health),
-	//      replicas = VALUES(replicas),
-	//    updated_at = VALUES(updated_at)
+	//  )
 	InsertGateway(ctx context.Context, db DBTX, arg InsertGatewayParams) error
 	//InsertIdentity
 	//
@@ -1635,24 +1653,14 @@ type Querier interface {
 	//ListDesiredGateways
 	//
 	//  SELECT
-	//      id as gateway_id,
-	//      workspace_id,
-	//      environment_id,
-	//      k8s_service_name,
-	//      region,
-	//      image,
-	//      desired_state,
-	//      replicas,
-	//      cpu_millicores,
-	//      memory_mib,
-	//      project_id
+	//      id, workspace_id, project_id, environment_id, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at
 	//  FROM `gateways`
 	//  WHERE (? = '' OR region = ?)
 	//      AND desired_state = ?
 	//      AND id > ?
 	//  ORDER BY id ASC
 	//  LIMIT ?
-	ListDesiredGateways(ctx context.Context, db DBTX, arg ListDesiredGatewaysParams) ([]ListDesiredGatewaysRow, error)
+	ListDesiredGateways(ctx context.Context, db DBTX, arg ListDesiredGatewaysParams) ([]Gateway, error)
 	//ListDirectPermissionsByKeyID
 	//
 	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m

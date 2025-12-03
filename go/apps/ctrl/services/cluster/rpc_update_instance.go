@@ -15,8 +15,8 @@ func (s *Service) UpdateInstance(ctx context.Context, req *connect.Request[ctrlv
 	if err := s.authenticate(req); err != nil {
 		return nil, err
 	}
-	region := req.Header().Get("X-Unkey-Region")
-	shard := req.Header().Get("X-Unkey-Shard")
+	region := req.Header().Get("X-Krane-Region")
+	shard := req.Header().Get("X-Krane-Shard")
 
 	err := assert.All(
 		assert.NotEmpty(region, "region is required"),
@@ -48,6 +48,10 @@ func (s *Service) UpdateInstance(ctx context.Context, req *connect.Request[ctrlv
 				Status:        db.InstancesStatusPending,
 			})
 			if err != nil {
+				if db.IsDuplicateKeyError(err) {
+					// This is expected, cause kubernetes frequently replays existing instances
+					return connect.NewResponse(&ctrlv1.UpdateInstanceResponse{}), nil
+				}
 				return nil, err
 			}
 

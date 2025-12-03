@@ -113,9 +113,6 @@ type Config struct {
 	// AuthToken is the authentication token for control plane API access
 	AuthToken string
 
-	// KraneAddress is the full URL of the krane service for deployment operations (e.g., "https://krane.example.com:8080")
-	KraneAddress string
-
 	// SPIFFESocketPath is the path to the SPIFFE agent socket for mTLS authentication
 	SPIFFESocketPath string
 

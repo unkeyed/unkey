@@ -15,14 +15,16 @@ type DeploymentController struct {
 	logger    logging.Logger
 	clientset *kubernetes.Clientset
 
-	buffer *buffer.Buffer[*ctrlv1.UpdateInstanceRequest]
+	events  *buffer.Buffer[*ctrlv1.DeploymentEvent]
+	updates *buffer.Buffer[*ctrlv1.UpdateInstanceRequest]
 }
 
 // Config holds configuration for the Kubernetes backend.
 type Config struct {
 	// Logger for Kubernetes operations.
-	Logger logging.Logger
-	Buffer *buffer.Buffer[*ctrlv1.UpdateInstanceRequest]
+	Logger  logging.Logger
+	Events  *buffer.Buffer[*ctrlv1.DeploymentEvent]
+	Updates *buffer.Buffer[*ctrlv1.UpdateInstanceRequest]
 }
 
 func New(cfg Config) (*DeploymentController, error) {
@@ -35,12 +37,14 @@ func New(cfg Config) (*DeploymentController, error) {
 	c := &DeploymentController{
 		logger:    cfg.Logger,
 		clientset: clientset,
-		buffer:    cfg.Buffer,
+		events:    cfg.Events,
+		updates:   cfg.Updates,
 	}
-	err = c.watch()
-	if err != nil {
+	if err = c.watch(); err != nil {
 		return nil, fmt.Errorf("failed to start watch: %w", err)
 	}
+
+	go c.apply()
 
 	return c, nil
 }

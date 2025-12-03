@@ -37,17 +37,24 @@ service ClusterService {
   // only apply events from currently desired infrastructure are included
   rpc GetDesiredState(GetDesiredStateRequest) returns (stream InfraEvent);
 
+  // request a single deployment and return its desired state
+  rpc GetDesiredDeploymentState(GetDesiredDeploymentStateRequest) returns (DeploymentEvent);
+  // request a single gateway and return its desired state
+  rpc GetDesiredGatewayState(GetDesiredGatewayStateRequest) returns (GatewayEvent);
+
 
   rpc UpdateInstance(UpdateInstanceRequest) returns (UpdateInstanceResponse);
   rpc UpdateGateway(UpdateGatewayRequest) returns (UpdateGatewayResponse);
+
 }
 
 
+message GetDesiredGatewayStateRequest {
+  string gateway_id = 1;
+}
 
-
-message DeleteInstanceRequest {
+message GetDesiredDeploymentStateRequest {
   string deployment_id = 1;
-  string pod_name = 2;
 }
 
 message DeleteInstanceResponse {

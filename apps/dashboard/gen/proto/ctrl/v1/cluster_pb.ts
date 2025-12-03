@@ -22,31 +22,45 @@ import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf
 export const file_ctrl_v1_cluster: GenFile =
   /*@__PURE__*/
   fileDesc(
-    "ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiQAoVRGVsZXRlSW5zdGFuY2VSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkSEAoIcG9kX25hbWUYAiABKAkiGAoWRGVsZXRlSW5zdGFuY2VSZXNwb25zZSLuBAoVVXBkYXRlSW5zdGFuY2VSZXF1ZXN0EjcKBmNyZWF0ZRgBIAEoCzIlLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VSZXF1ZXN0LkNyZWF0ZUgAEjcKBnVwZGF0ZRgCIAEoCzIlLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VSZXF1ZXN0LlVwZGF0ZUgAEjcKBmRlbGV0ZRgDIAEoCzIlLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VSZXF1ZXN0LkRlbGV0ZUgAGqUBCgZDcmVhdGUSFQoNZGVwbG95bWVudF9pZBgBIAEoCRIQCghwb2RfbmFtZRgCIAEoCRIPCgdhZGRyZXNzGAMgASgJEhYKDmNwdV9taWxsaWNvcmVzGAQgASgFEhIKCm1lbW9yeV9taWIYBSABKAUSNQoGc3RhdHVzGAYgASgOMiUuY3RybC52MS5VcGRhdGVJbnN0YW5jZVJlcXVlc3QuU3RhdHVzGmgKBlVwZGF0ZRIVCg1kZXBsb3ltZW50X2lkGAEgASgJEhAKCHBvZF9uYW1lGAIgASgJEjUKBnN0YXR1cxgDIAEoDjIlLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VSZXF1ZXN0LlN0YXR1cxoxCgZEZWxldGUSFQoNZGVwbG95bWVudF9pZBgBIAEoCRIQCghwb2RfbmFtZRgCIAEoCSJbCgZTdGF0dXMSFgoSU1RBVFVTX1VOU1BFQ0lGSUVEEAASEgoOU1RBVFVTX1BFTkRJTkcQARISCg5TVEFUVVNfUlVOTklORxACEhEKDVNUQVRVU19GQUlMRUQQA0IICgZjaGFuZ2UiGAoWVXBkYXRlSW5zdGFuY2VSZXNwb25zZSLWAgoUVXBkYXRlR2F0ZXdheVJlcXVlc3QSNgoGY3JlYXRlGAEgASgLMiQuY3RybC52MS5VcGRhdGVHYXRld2F5UmVxdWVzdC5DcmVhdGVIABI2CgZ1cGRhdGUYAiABKAsyJC5jdHJsLnYxLlVwZGF0ZUdhdGV3YXlSZXF1ZXN0LlVwZGF0ZUgAEjYKBmRlbGV0ZRgDIAEoCzIkLmN0cmwudjEuVXBkYXRlR2F0ZXdheVJlcXVlc3QuRGVsZXRlSAAaNgoGQ3JlYXRlEhIKCmdhdGV3YXlfaWQYASABKAkSGAoQcnVubmluZ19yZXBsaWNhcxgCIAEoBRo2CgZVcGRhdGUSEgoKZ2F0ZXdheV9pZBgBIAEoCRIYChBydW5uaW5nX3JlcGxpY2FzGAIgASgFGhwKBkRlbGV0ZRISCgpnYXRld2F5X2lkGAEgASgJQggKBmNoYW5nZSIXChVVcGRhdGVHYXRld2F5UmVzcG9uc2UijAEKDFdhdGNoUmVxdWVzdBIRCgljbGllbnRfaWQYASABKAkSNwoJc2VsZWN0b3JzGAIgAygLMiQuY3RybC52MS5XYXRjaFJlcXVlc3QuU2VsZWN0b3JzRW50cnkaMAoOU2VsZWN0b3JzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKgAQoWR2V0RGVzaXJlZFN0YXRlUmVxdWVzdBIRCgljbGllbnRfaWQYASABKAkSQQoJc2VsZWN0b3JzGAIgAygLMi4uY3RybC52MS5HZXREZXNpcmVkU3RhdGVSZXF1ZXN0LlNlbGVjdG9yc0VudHJ5GjAKDlNlbGVjdG9yc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiaQoMR2F0ZXdheUV2ZW50EiYKBWFwcGx5GAEgASgLMhUuY3RybC52MS5BcHBseUdhdGV3YXlIABIoCgZkZWxldGUYAiABKAsyFi5jdHJsLnYxLkRlbGV0ZUdhdGV3YXlIAEIHCgVldmVudCJyCg9EZXBsb3ltZW50RXZlbnQSKQoFYXBwbHkYASABKAsyGC5jdHJsLnYxLkFwcGx5RGVwbG95bWVudEgAEisKBmRlbGV0ZRgCIAEoCzIZLmN0cmwudjEuRGVsZXRlRGVwbG95bWVudEgAQgcKBWV2ZW50IrYBCgxBcHBseUdhdGV3YXkSFAoMd29ya3NwYWNlX2lkGAEgASgJEhIKCnByb2plY3RfaWQYAiABKAkSFgoOZW52aXJvbm1lbnRfaWQYAyABKAkSEgoKZ2F0ZXdheV9pZBgEIAEoCRINCgVpbWFnZRgFIAEoCRIQCghyZXBsaWNhcxgGIAEoDRIWCg5jcHVfbWlsbGljb3JlcxgHIAEoDRIXCg9tZW1vcnlfc2l6ZV9taWIYCCABKA0iIwoNRGVsZXRlR2F0ZXdheRISCgpnYXRld2F5X2lkGAEgASgJIrwBCg9BcHBseURlcGxveW1lbnQSFAoMd29ya3NwYWNlX2lkGAEgASgJEhIKCnByb2plY3RfaWQYAiABKAkSFgoOZW52aXJvbm1lbnRfaWQYAyABKAkSFQoNZGVwbG95bWVudF9pZBgEIAEoCRINCgVpbWFnZRgFIAEoCRIQCghyZXBsaWNhcxgGIAEoDRIWCg5jcHVfbWlsbGljb3JlcxgHIAEoDRIXCg9tZW1vcnlfc2l6ZV9taWIYCCABKA0iKQoQRGVsZXRlRGVwbG95bWVudBIVCg1kZXBsb3ltZW50X2lkGAEgASgJInsKCkluZnJhRXZlbnQSLgoNZ2F0ZXdheV9ldmVudBgCIAEoCzIVLmN0cmwudjEuR2F0ZXdheUV2ZW50SAASNAoQZGVwbG95bWVudF9ldmVudBgDIAEoCzIYLmN0cmwudjEuRGVwbG95bWVudEV2ZW50SABCBwoFZXZlbnQytQIKDkNsdXN0ZXJTZXJ2aWNlEjUKBVdhdGNoEhUuY3RybC52MS5XYXRjaFJlcXVlc3QaEy5jdHJsLnYxLkluZnJhRXZlbnQwARJJCg9HZXREZXNpcmVkU3RhdGUSHy5jdHJsLnYxLkdldERlc2lyZWRTdGF0ZVJlcXVlc3QaEy5jdHJsLnYxLkluZnJhRXZlbnQwARJRCg5VcGRhdGVJbnN0YW5jZRIeLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VSZXF1ZXN0Gh8uY3RybC52MS5VcGRhdGVJbnN0YW5jZVJlc3BvbnNlEk4KDVVwZGF0ZUdhdGV3YXkSHS5jdHJsLnYxLlVwZGF0ZUdhdGV3YXlSZXF1ZXN0Gh4uY3RybC52MS5VcGRhdGVHYXRld2F5UmVzcG9uc2VCjgEKC2NvbS5jdHJsLnYxQgxDbHVzdGVyUHJvdG9QAVo0Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM",
+    "ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiMwodR2V0RGVzaXJlZEdhdGV3YXlTdGF0ZVJlcXVlc3QSEgoKZ2F0ZXdheV9pZBgBIAEoCSI5CiBHZXREZXNpcmVkRGVwbG95bWVudFN0YXRlUmVxdWVzdBIVCg1kZXBsb3ltZW50X2lkGAEgASgJIhgKFkRlbGV0ZUluc3RhbmNlUmVzcG9uc2Ui7gQKFVVwZGF0ZUluc3RhbmNlUmVxdWVzdBI3CgZjcmVhdGUYASABKAsyJS5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVxdWVzdC5DcmVhdGVIABI3CgZ1cGRhdGUYAiABKAsyJS5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVxdWVzdC5VcGRhdGVIABI3CgZkZWxldGUYAyABKAsyJS5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVxdWVzdC5EZWxldGVIABqlAQoGQ3JlYXRlEhUKDWRlcGxveW1lbnRfaWQYASABKAkSEAoIcG9kX25hbWUYAiABKAkSDwoHYWRkcmVzcxgDIAEoCRIWCg5jcHVfbWlsbGljb3JlcxgEIAEoBRISCgptZW1vcnlfbWliGAUgASgFEjUKBnN0YXR1cxgGIAEoDjIlLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VSZXF1ZXN0LlN0YXR1cxpoCgZVcGRhdGUSFQoNZGVwbG95bWVudF9pZBgBIAEoCRIQCghwb2RfbmFtZRgCIAEoCRI1CgZzdGF0dXMYAyABKA4yJS5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVxdWVzdC5TdGF0dXMaMQoGRGVsZXRlEhUKDWRlcGxveW1lbnRfaWQYASABKAkSEAoIcG9kX25hbWUYAiABKAkiWwoGU3RhdHVzEhYKElNUQVRVU19VTlNQRUNJRklFRBAAEhIKDlNUQVRVU19QRU5ESU5HEAESEgoOU1RBVFVTX1JVTk5JTkcQAhIRCg1TVEFUVVNfRkFJTEVEEANCCAoGY2hhbmdlIhgKFlVwZGF0ZUluc3RhbmNlUmVzcG9uc2Ui1gIKFFVwZGF0ZUdhdGV3YXlSZXF1ZXN0EjYKBmNyZWF0ZRgBIAEoCzIkLmN0cmwudjEuVXBkYXRlR2F0ZXdheVJlcXVlc3QuQ3JlYXRlSAASNgoGdXBkYXRlGAIgASgLMiQuY3RybC52MS5VcGRhdGVHYXRld2F5UmVxdWVzdC5VcGRhdGVIABI2CgZkZWxldGUYAyABKAsyJC5jdHJsLnYxLlVwZGF0ZUdhdGV3YXlSZXF1ZXN0LkRlbGV0ZUgAGjYKBkNyZWF0ZRISCgpnYXRld2F5X2lkGAEgASgJEhgKEHJ1bm5pbmdfcmVwbGljYXMYAiABKAUaNgoGVXBkYXRlEhIKCmdhdGV3YXlfaWQYASABKAkSGAoQcnVubmluZ19yZXBsaWNhcxgCIAEoBRocCgZEZWxldGUSEgoKZ2F0ZXdheV9pZBgBIAEoCUIICgZjaGFuZ2UiFwoVVXBkYXRlR2F0ZXdheVJlc3BvbnNlIowBCgxXYXRjaFJlcXVlc3QSEQoJY2xpZW50X2lkGAEgASgJEjcKCXNlbGVjdG9ycxgCIAMoCzIkLmN0cmwudjEuV2F0Y2hSZXF1ZXN0LlNlbGVjdG9yc0VudHJ5GjAKDlNlbGVjdG9yc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEioAEKFkdldERlc2lyZWRTdGF0ZVJlcXVlc3QSEQoJY2xpZW50X2lkGAEgASgJEkEKCXNlbGVjdG9ycxgCIAMoCzIuLmN0cmwudjEuR2V0RGVzaXJlZFN0YXRlUmVxdWVzdC5TZWxlY3RvcnNFbnRyeRowCg5TZWxlY3RvcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBImkKDEdhdGV3YXlFdmVudBImCgVhcHBseRgBIAEoCzIVLmN0cmwudjEuQXBwbHlHYXRld2F5SAASKAoGZGVsZXRlGAIgASgLMhYuY3RybC52MS5EZWxldGVHYXRld2F5SABCBwoFZXZlbnQicgoPRGVwbG95bWVudEV2ZW50EikKBWFwcGx5GAEgASgLMhguY3RybC52MS5BcHBseURlcGxveW1lbnRIABIrCgZkZWxldGUYAiABKAsyGS5jdHJsLnYxLkRlbGV0ZURlcGxveW1lbnRIAEIHCgVldmVudCK2AQoMQXBwbHlHYXRld2F5EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEhYKDmVudmlyb25tZW50X2lkGAMgASgJEhIKCmdhdGV3YXlfaWQYBCABKAkSDQoFaW1hZ2UYBSABKAkSEAoIcmVwbGljYXMYBiABKA0SFgoOY3B1X21pbGxpY29yZXMYByABKA0SFwoPbWVtb3J5X3NpemVfbWliGAggASgNIiMKDURlbGV0ZUdhdGV3YXkSEgoKZ2F0ZXdheV9pZBgBIAEoCSK8AQoPQXBwbHlEZXBsb3ltZW50EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEhYKDmVudmlyb25tZW50X2lkGAMgASgJEhUKDWRlcGxveW1lbnRfaWQYBCABKAkSDQoFaW1hZ2UYBSABKAkSEAoIcmVwbGljYXMYBiABKA0SFgoOY3B1X21pbGxpY29yZXMYByABKA0SFwoPbWVtb3J5X3NpemVfbWliGAggASgNIikKEERlbGV0ZURlcGxveW1lbnQSFQoNZGVwbG95bWVudF9pZBgBIAEoCSJ7CgpJbmZyYUV2ZW50Ei4KDWdhdGV3YXlfZXZlbnQYAiABKAsyFS5jdHJsLnYxLkdhdGV3YXlFdmVudEgAEjQKEGRlcGxveW1lbnRfZXZlbnQYAyABKAsyGC5jdHJsLnYxLkRlcGxveW1lbnRFdmVudEgAQgcKBWV2ZW50MvADCg5DbHVzdGVyU2VydmljZRI1CgVXYXRjaBIVLmN0cmwudjEuV2F0Y2hSZXF1ZXN0GhMuY3RybC52MS5JbmZyYUV2ZW50MAESSQoPR2V0RGVzaXJlZFN0YXRlEh8uY3RybC52MS5HZXREZXNpcmVkU3RhdGVSZXF1ZXN0GhMuY3RybC52MS5JbmZyYUV2ZW50MAESYAoZR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZRIpLmN0cmwudjEuR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZVJlcXVlc3QaGC5jdHJsLnYxLkRlcGxveW1lbnRFdmVudBJXChZHZXREZXNpcmVkR2F0ZXdheVN0YXRlEiYuY3RybC52MS5HZXREZXNpcmVkR2F0ZXdheVN0YXRlUmVxdWVzdBoVLmN0cmwudjEuR2F0ZXdheUV2ZW50ElEKDlVwZGF0ZUluc3RhbmNlEh4uY3RybC52MS5VcGRhdGVJbnN0YW5jZVJlcXVlc3QaHy5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVzcG9uc2USTgoNVXBkYXRlR2F0ZXdheRIdLmN0cmwudjEuVXBkYXRlR2F0ZXdheVJlcXVlc3QaHi5jdHJsLnYxLlVwZGF0ZUdhdGV3YXlSZXNwb25zZUKOAQoLY29tLmN0cmwudjFCDENsdXN0ZXJQcm90b1ABWjRnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw",
   );
 
 /**
- * @generated from message ctrl.v1.DeleteInstanceRequest
+ * @generated from message ctrl.v1.GetDesiredGatewayStateRequest
  */
-export type DeleteInstanceRequest = Message<"ctrl.v1.DeleteInstanceRequest"> & {
+export type GetDesiredGatewayStateRequest = Message<"ctrl.v1.GetDesiredGatewayStateRequest"> & {
   /**
-   * @generated from field: string deployment_id = 1;
+   * @generated from field: string gateway_id = 1;
    */
-  deploymentId: string;
-
-  /**
-   * @generated from field: string pod_name = 2;
-   */
-  podName: string;
+  gatewayId: string;
 };
 
 /**
- * Describes the message ctrl.v1.DeleteInstanceRequest.
- * Use `create(DeleteInstanceRequestSchema)` to create a new message.
+ * Describes the message ctrl.v1.GetDesiredGatewayStateRequest.
+ * Use `create(GetDesiredGatewayStateRequestSchema)` to create a new message.
  */
-export const DeleteInstanceRequestSchema: GenMessage<DeleteInstanceRequest> =
+export const GetDesiredGatewayStateRequestSchema: GenMessage<GetDesiredGatewayStateRequest> =
   /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 0);
+
+/**
+ * @generated from message ctrl.v1.GetDesiredDeploymentStateRequest
+ */
+export type GetDesiredDeploymentStateRequest =
+  Message<"ctrl.v1.GetDesiredDeploymentStateRequest"> & {
+    /**
+     * @generated from field: string deployment_id = 1;
+     */
+    deploymentId: string;
+  };
+
+/**
+ * Describes the message ctrl.v1.GetDesiredDeploymentStateRequest.
+ * Use `create(GetDesiredDeploymentStateRequestSchema)` to create a new message.
+ */
+export const GetDesiredDeploymentStateRequestSchema: GenMessage<GetDesiredDeploymentStateRequest> =
+  /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 1);
 
 /**
  * @generated from message ctrl.v1.DeleteInstanceResponse
@@ -59,7 +73,7 @@ export type DeleteInstanceResponse = Message<"ctrl.v1.DeleteInstanceResponse"> &
  */
 export const DeleteInstanceResponseSchema: GenMessage<DeleteInstanceResponse> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 1);
+  messageDesc(file_ctrl_v1_cluster, 2);
 
 /**
  * @generated from message ctrl.v1.UpdateInstanceRequest
@@ -99,7 +113,7 @@ export type UpdateInstanceRequest = Message<"ctrl.v1.UpdateInstanceRequest"> & {
  */
 export const UpdateInstanceRequestSchema: GenMessage<UpdateInstanceRequest> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 2);
+  messageDesc(file_ctrl_v1_cluster, 3);
 
 /**
  * @generated from message ctrl.v1.UpdateInstanceRequest.Create
@@ -142,7 +156,7 @@ export type UpdateInstanceRequest_Create = Message<"ctrl.v1.UpdateInstanceReques
  */
 export const UpdateInstanceRequest_CreateSchema: GenMessage<UpdateInstanceRequest_Create> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 2, 0);
+  messageDesc(file_ctrl_v1_cluster, 3, 0);
 
 /**
  * @generated from message ctrl.v1.UpdateInstanceRequest.Update
@@ -170,7 +184,7 @@ export type UpdateInstanceRequest_Update = Message<"ctrl.v1.UpdateInstanceReques
  */
 export const UpdateInstanceRequest_UpdateSchema: GenMessage<UpdateInstanceRequest_Update> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 2, 1);
+  messageDesc(file_ctrl_v1_cluster, 3, 1);
 
 /**
  * @generated from message ctrl.v1.UpdateInstanceRequest.Delete
@@ -193,7 +207,7 @@ export type UpdateInstanceRequest_Delete = Message<"ctrl.v1.UpdateInstanceReques
  */
 export const UpdateInstanceRequest_DeleteSchema: GenMessage<UpdateInstanceRequest_Delete> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 2, 2);
+  messageDesc(file_ctrl_v1_cluster, 3, 2);
 
 /**
  * @generated from enum ctrl.v1.UpdateInstanceRequest.Status
@@ -231,7 +245,7 @@ export enum UpdateInstanceRequest_Status {
  */
 export const UpdateInstanceRequest_StatusSchema: GenEnum<UpdateInstanceRequest_Status> =
   /*@__PURE__*/
-  enumDesc(file_ctrl_v1_cluster, 2, 0);
+  enumDesc(file_ctrl_v1_cluster, 3, 0);
 
 /**
  * @generated from message ctrl.v1.UpdateInstanceResponse
@@ -244,7 +258,7 @@ export type UpdateInstanceResponse = Message<"ctrl.v1.UpdateInstanceResponse"> &
  */
 export const UpdateInstanceResponseSchema: GenMessage<UpdateInstanceResponse> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 3);
+  messageDesc(file_ctrl_v1_cluster, 4);
 
 /**
  * @generated from message ctrl.v1.UpdateGatewayRequest
@@ -284,7 +298,7 @@ export type UpdateGatewayRequest = Message<"ctrl.v1.UpdateGatewayRequest"> & {
  */
 export const UpdateGatewayRequestSchema: GenMessage<UpdateGatewayRequest> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 4);
+  messageDesc(file_ctrl_v1_cluster, 5);
 
 /**
  * @generated from message ctrl.v1.UpdateGatewayRequest.Create
@@ -307,7 +321,7 @@ export type UpdateGatewayRequest_Create = Message<"ctrl.v1.UpdateGatewayRequest.
  */
 export const UpdateGatewayRequest_CreateSchema: GenMessage<UpdateGatewayRequest_Create> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 4, 0);
+  messageDesc(file_ctrl_v1_cluster, 5, 0);
 
 /**
  * @generated from message ctrl.v1.UpdateGatewayRequest.Update
@@ -330,7 +344,7 @@ export type UpdateGatewayRequest_Update = Message<"ctrl.v1.UpdateGatewayRequest.
  */
 export const UpdateGatewayRequest_UpdateSchema: GenMessage<UpdateGatewayRequest_Update> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 4, 1);
+  messageDesc(file_ctrl_v1_cluster, 5, 1);
 
 /**
  * @generated from message ctrl.v1.UpdateGatewayRequest.Delete
@@ -348,7 +362,7 @@ export type UpdateGatewayRequest_Delete = Message<"ctrl.v1.UpdateGatewayRequest.
  */
 export const UpdateGatewayRequest_DeleteSchema: GenMessage<UpdateGatewayRequest_Delete> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 4, 2);
+  messageDesc(file_ctrl_v1_cluster, 5, 2);
 
 /**
  * @generated from message ctrl.v1.UpdateGatewayResponse
@@ -361,7 +375,7 @@ export type UpdateGatewayResponse = Message<"ctrl.v1.UpdateGatewayResponse"> & {
  */
 export const UpdateGatewayResponseSchema: GenMessage<UpdateGatewayResponse> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 5);
+  messageDesc(file_ctrl_v1_cluster, 6);
 
 /**
  * WatchRequest identifies the cluster requesting a watch stream.
@@ -394,7 +408,7 @@ export type WatchRequest = Message<"ctrl.v1.WatchRequest"> & {
  */
 export const WatchRequestSchema: GenMessage<WatchRequest> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 6);
+  messageDesc(file_ctrl_v1_cluster, 7);
 
 /**
  * GetDesiredStateRequest identifies the cluster requesting a full sync stream.
@@ -427,7 +441,7 @@ export type GetDesiredStateRequest = Message<"ctrl.v1.GetDesiredStateRequest"> &
  */
 export const GetDesiredStateRequestSchema: GenMessage<GetDesiredStateRequest> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 7);
+  messageDesc(file_ctrl_v1_cluster, 8);
 
 /**
  * GatewayEvent represents a lifecycle event for an API gateway configuration.
@@ -476,7 +490,7 @@ export type GatewayEvent = Message<"ctrl.v1.GatewayEvent"> & {
  */
 export const GatewayEventSchema: GenMessage<GatewayEvent> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 8);
+  messageDesc(file_ctrl_v1_cluster, 9);
 
 /**
  * DeploymentEvent represents a lifecycle event for an application deployment.
@@ -525,7 +539,7 @@ export type DeploymentEvent = Message<"ctrl.v1.DeploymentEvent"> & {
  */
 export const DeploymentEventSchema: GenMessage<DeploymentEvent> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 9);
+  messageDesc(file_ctrl_v1_cluster, 10);
 
 /**
  * ApplyGateway contains the desired configuration for a gateway.
@@ -607,7 +621,7 @@ export type ApplyGateway = Message<"ctrl.v1.ApplyGateway"> & {
  */
 export const ApplyGatewaySchema: GenMessage<ApplyGateway> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 10);
+  messageDesc(file_ctrl_v1_cluster, 11);
 
 /**
  * DeleteGateway identifies a gateway to remove from the cluster.
@@ -633,7 +647,7 @@ export type DeleteGateway = Message<"ctrl.v1.DeleteGateway"> & {
  */
 export const DeleteGatewaySchema: GenMessage<DeleteGateway> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 11);
+  messageDesc(file_ctrl_v1_cluster, 12);
 
 /**
  * ApplyDeployment contains the desired configuration for a deployment.
@@ -718,7 +732,7 @@ export type ApplyDeployment = Message<"ctrl.v1.ApplyDeployment"> & {
  */
 export const ApplyDeploymentSchema: GenMessage<ApplyDeployment> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 12);
+  messageDesc(file_ctrl_v1_cluster, 13);
 
 /**
  * DeleteDeployment identifies a deployment to remove from the cluster.
@@ -745,7 +759,7 @@ export type DeleteDeployment = Message<"ctrl.v1.DeleteDeployment"> & {
  */
 export const DeleteDeploymentSchema: GenMessage<DeleteDeployment> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 13);
+  messageDesc(file_ctrl_v1_cluster, 14);
 
 /**
  * InfraEvent is streamed from the control plane to cluster agents.
@@ -798,7 +812,7 @@ export type InfraEvent = Message<"ctrl.v1.InfraEvent"> & {
  */
 export const InfraEventSchema: GenMessage<InfraEvent> =
   /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 14);
+  messageDesc(file_ctrl_v1_cluster, 15);
 
 /**
  * ClusterService coordinates deployment and gateway configurations across multiple clusters.
@@ -840,6 +854,26 @@ export const ClusterService: GenService<{
     methodKind: "server_streaming";
     input: typeof GetDesiredStateRequestSchema;
     output: typeof InfraEventSchema;
+  };
+  /**
+   * request a single deployment and return its desired state
+   *
+   * @generated from rpc ctrl.v1.ClusterService.GetDesiredDeploymentState
+   */
+  getDesiredDeploymentState: {
+    methodKind: "unary";
+    input: typeof GetDesiredDeploymentStateRequestSchema;
+    output: typeof DeploymentEventSchema;
+  };
+  /**
+   * request a single gateway and return its desired state
+   *
+   * @generated from rpc ctrl.v1.ClusterService.GetDesiredGatewayState
+   */
+  getDesiredGatewayState: {
+    methodKind: "unary";
+    input: typeof GetDesiredGatewayStateRequestSchema;
+    output: typeof GatewayEventSchema;
   };
   /**
    * @generated from rpc ctrl.v1.ClusterService.UpdateInstance

@@ -48,14 +48,25 @@ func (c *DeploymentController) watch() error {
 					continue
 				}
 
-				c.buffer.Buffer(&ctrlv1.UpdateInstanceRequest{
+				cpuMillicores := int64(0)
+				memoryMib := int64(0)
+				for _, container := range pod.Spec.Containers {
+
+					if container.Name == "container" {
+						cpuMillicores = container.Resources.Limits.Cpu().MilliValue()
+						memoryMib = container.Resources.Limits.Memory().Value() / 1024 / 1024
+
+					}
+				}
+
+				c.updates.Buffer(&ctrlv1.UpdateInstanceRequest{
 					Change: &ctrlv1.UpdateInstanceRequest_Create_{
 						Create: &ctrlv1.UpdateInstanceRequest_Create{
 							DeploymentId:  deploymentID,
 							PodName:       pod.Name,
-							Address:       fmt.Sprintf("%s-%s.untrusted.svc.cluster.local", pod.Name, "TODO"),
-							CpuMillicores: 0, //int32(pod.Spec.Resources.Limits.Cpu().MilliValue()),
-							MemoryMib:     0, //int32(pod.Spec.Resources.Limits.Memory().Value() / (1024 * 1024)),
+							Address:       fmt.Sprintf("%s.untrusted.svc.cluster.local", pod.Name),
+							CpuMillicores: int32(cpuMillicores),
+							MemoryMib:     int32(memoryMib),
 							Status:        k8sStatusToProto(pod.Status),
 						},
 					},
@@ -74,7 +85,7 @@ func (c *DeploymentController) watch() error {
 					continue
 				}
 
-				c.buffer.Buffer(&ctrlv1.UpdateInstanceRequest{
+				c.updates.Buffer(&ctrlv1.UpdateInstanceRequest{
 					Change: &ctrlv1.UpdateInstanceRequest_Update_{
 						Update: &ctrlv1.UpdateInstanceRequest_Update{
 							DeploymentId: deploymentID,
@@ -97,7 +108,7 @@ func (c *DeploymentController) watch() error {
 					continue
 				}
 
-				c.buffer.Buffer(&ctrlv1.UpdateInstanceRequest{
+				c.updates.Buffer(&ctrlv1.UpdateInstanceRequest{
 					Change: &ctrlv1.UpdateInstanceRequest_Delete_{
 						Delete: &ctrlv1.UpdateInstanceRequest_Delete{
 							DeploymentId: deploymentID,

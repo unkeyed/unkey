@@ -8,6 +8,7 @@ INSERT INTO gateways (
     region,
     image,
     health,
+    desired_replicas,
     replicas,
     cpu_millicores,
     memory_mib,
@@ -21,11 +22,9 @@ INSERT INTO gateways (
     sqlc.arg(region),
     sqlc.arg(image),
     sqlc.arg(health),
+    sqlc.arg(desired_replicas),
     sqlc.arg(replicas),
     sqlc.arg(cpu_millicores),
     sqlc.arg(memory_mib),
     sqlc.arg(created_at)
-) ON DUPLICATE KEY UPDATE
-    health = VALUES(health),
-    replicas = VALUES(replicas),
-  updated_at = VALUES(updated_at);
+);

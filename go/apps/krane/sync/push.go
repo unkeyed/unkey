@@ -23,7 +23,7 @@ func (s *SyncEngine) push() {
 		select {
 		case <-s.close:
 			return
-		case d := <-s.InstanceUpdateBuffer.Consume():
+		case d := <-s.instanceUpdates.Consume():
 			err := r.Do(func() error {
 				_, err := cb.Do(context.Background(), func(ctx context.Context) (any, error) {
 					_, err := s.ctrl.UpdateInstance(ctx, connect.NewRequest(d))
@@ -35,7 +35,7 @@ func (s *SyncEngine) push() {
 				s.logger.Error("failed to push deployment update", "error", err.Error())
 			}
 
-		case g := <-s.GatewayUpdateBuffer.Consume():
+		case g := <-s.gatewayUpdates.Consume():
 			err := r.Do(func() error {
 				_, err := cb.Do(context.Background(), func(ctx context.Context) (any, error) {
 					_, err := s.ctrl.UpdateGateway(ctx, connect.NewRequest(g))
