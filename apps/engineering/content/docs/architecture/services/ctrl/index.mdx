@@ -5,34 +5,41 @@ description: The control plane service for managing deployments and infrastructu
 
 import { Mermaid } from "@/app/components/mermaid";
 
-**Location:** `go/apps/ctrl/`
-**CLI Command:** [`unkey run ctrl`](/cli/run/ctrl)
-**Protocol:** Connect RPC (HTTP/2)
 
-## What It Does
 
 The ctrl service provides a deployment platform similar to Vercel, Railway, or Fly.io. When a customer deploys their application, ctrl:
 
 1. **Builds** container images from source code using Depot.dev
-2. **Deploys** containers to Kubernetes via Krane
-3. **Assigns** domains to route traffic and configure gateways
-4. **Secures** applications with automatic TLS certificate provisioning
+2. **Orchestrates** deployment across regions through event streaming to Krane agents
+3. **Deploys** containers to Kubernetes via the pull-based infrastructure model
+4. **Assigns** domains to route traffic and configure gateways
+5. **Secures** applications with automatic TLS certificate provisioning
 
-All multi-step operations are durable, using Restate workflows to ensure consistency even during failures, network partitions, or process crashes.
+All multi-step operations are durable, using Restate workflows to ensure consistency even during failures, network partitions, or process crashes. The pull-based architecture ensures deployments remain resilient even when individual regions experience connectivity issues.
 
 ## Architecture
 
 ### Service Composition
 
-The ctrl service is composed of several specialized services and workflows. The RPC services handle synchronous operations like container image building through `BuildService`, deployment creation and management through `DeploymentService`, ACME challenge coordination through `AcmeService`, OpenAPI spec management through `OpenApiService`, and health checks through `CtrlService`.
+The ctrl service is composed of several specialized services and workflows. The RPC services handle synchronous operations like pull-based infrastructure coordination through `ClusterService`, container image building through `BuildService`, deployment creation and management through `DeploymentService`, ACME challenge coordination through `AcmeService`, OpenAPI spec management through `OpenApiService`, and health checks through `CtrlService`.
 
 Running alongside these are the Restate workflows that provide durable orchestration. The `DeploymentService` workflow orchestrates the full deployment lifecycle, the `RoutingService` workflow manages domain and gateway configuration, and the `CertificateService` workflow handles TLS certificate provisioning through the ACME protocol.
 
 ### Technology Stack
 
-The ctrl service is built on Connect RPC for service-to-service communication using HTTP/2. Restate provides durable workflow orchestration with exactly-once semantics, ensuring operations complete reliably even during failures. A single MySQL database stores all persistent state: projects, deployments, domains, VM instances, gateway configurations, and certificates. S3 stores build contexts and encrypted vault data. Krane provides a Kubernetes deployment abstraction, and Depot.dev handles remote container image building with persistent layer caching.
+The ctrl service is built on Connect RPC for service-to-service communication using HTTP/2, with gRPC streaming for the ClusterService. Restate provides durable workflow orchestration with exactly-once semantics, ensuring operations complete reliably even during failures. A single MySQL database stores all persistent state: projects, deployments, deployment topology, instances, domains, gateway configurations, and certificates. S3 stores build contexts and encrypted vault data. The ClusterService coordinates with Krane agents using event streaming for pull-based deployments to Kubernetes. Depot.dev handles remote container image building with persistent layer caching.
 
 ## Services
+
+### Cluster Service
+
+The cluster service implements the pull-based infrastructure orchestration model, enabling the control plane to coordinate deployments across multiple regions through event streaming. It maintains persistent connections with Krane agents deployed in each region, distributing deployment and gateway events while collecting status updates.
+
+The service provides four key RPCs. `Watch` establishes long-lived streaming connections with agents for real-time event delivery. `GetDesiredState` streams the complete desired infrastructure state for reconciliation. `UpdateInstance` receives pod status updates from agents. `UpdateGateway` receives gateway health and status updates.
+
+This pull-based architecture ensures resilience during network partitions, as agents continue operating autonomously and reconcile when connectivity returns. The service uses label-based routing to distribute events to appropriate regions and shards without requiring direct addressing.
+
+[Read detailed ClusterService docs →](./cluster-service)
 
 ### Build Service
 
@@ -76,12 +83,12 @@ Workflows are implemented as Restate services for durable execution. The Deploym
 
 ## Database Schema
 
-The ctrl service uses a single MySQL database (`unkey`) that stores all data: projects, environments, and workspaces, along with deployments and deployment history, domains and SSL certificates, ACME users and challenges, VMs representing container instances, gateway configurations as JSON blobs, and certificate storage in PEM format.
+The ctrl service uses a single MySQL database (`unkey`) that stores all data: projects, environments, and workspaces, along with deployments and deployment history, deployment topology for regional distribution, instances tracking individual pods, domains and SSL certificates, ACME users and challenges, gateway configurations as JSON blobs, and certificate storage in PEM format. The new pull-based architecture adds the `deployment_topology` table for multi-region deployments and enhanced `instances` table for pod-level tracking.
 
 ## Monitoring
 
-The ctrl service exposes metrics and logs through OpenTelemetry. Key metrics include deployment duration broken down by phase, build success and failure rates, the number of Krane poll iterations required for deployments to become ready, domain assignment latency, and ACME challenge success rates.
+The ctrl service exposes metrics and logs through OpenTelemetry. Key metrics include deployment duration broken down by phase, build success and failure rates, the number of Krane poll iterations required for deployments to become ready, domain assignment latency, ACME challenge success rates, connected Krane agents by region, event distribution latency, and instance status update processing time.
 
-All operations include structured logging fields for correlation and debugging. Common fields include `deployment_id`, `project_id`, and `workspace_id` across all operations. Build operations add `build_id` and `depot_project_id`. System-level logs include `instance_id`, `region`, and `platform` to identify which ctrl instance handled the operation.
+All operations include structured logging fields for correlation and debugging. Common fields include `deployment_id`, `project_id`, and `workspace_id` across all operations. Build operations add `build_id` and `depot_project_id`. ClusterService operations add `agent_id`, `region`, and `shard` for tracking agent connections. System-level logs include `instance_id`, `region`, and `platform` to identify which ctrl instance handled the operation.
 
 Logs are shipped to Grafana Loki in production for centralized log aggregation and querying.

@@ -5,16 +5,11 @@ description: Kubernetes cluster agent for deployment orchestration
 
 import { Mermaid } from "@/app/components/mermaid";
 
-**Location:** `go/apps/krane/`
-**CLI Command:** [`unkey run krane`](/cli/run/krane)
-**Control Plane Client:** Connect RPC (HTTP/2)
-**Proto Definition:** `go/proto/ctrl/v1/cluster.proto`
 
-## What It Does
 
 Krane is a Kubernetes cluster agent that follows a pull-based model similar to the Kubernetes kubelet. It connects to the control plane (ctrl) and maintains a long-lived streaming connection to receive deployment and gateway configuration events. This architecture enables multi-cluster orchestration without the control plane needing direct access to individual clusters.
 
-Krane pulls desired state from ctrl and ensures the actual cluster state matches. It handles deployment and gateway lifecycle operations (create, update, delete) by translating high-level events into Kubernetes resources or Docker containers.
+Krane pulls desired state from ctrl and ensures the actual cluster state matches. It handles deployment and gateway lifecycle operations (create, update, delete) by translating high-level events into Kubernetes resources.
 
 ## Architecture
 
@@ -25,15 +20,10 @@ Krane implements a pull-based architecture where agents in each cluster:
 1. **Establish a Watch Stream**: Connect to ctrl's ClusterService and maintain a long-lived streaming connection
 2. **Pull Desired State**: Periodically sync the full desired state to ensure consistency
 3. **Receive Real-Time Events**: Get deployment and gateway events pushed through the watch stream
-4. **Apply Changes Locally**: Translate events into Kubernetes resources or Docker containers
+4. **Apply Changes Locally**: Translate events into Kubernetes resources
 
 This model eliminates the need for the control plane to know about individual clusters, improving security and scalability.
 
-### Backend Abstraction
-
-Krane supports two backends for resource management. The Kubernetes backend creates StatefulSets and Services in production clusters. The Docker backend manages containers directly for local development.
-
-The control plane sends abstract deployment and gateway events. Krane translates these into platform-specific resources based on the configured backend.
 
 ### Event-Driven Synchronization
 
@@ -130,22 +120,6 @@ Creating a deployment creates two resources:
 
 Resource limits are enforced at the pod level. Exceeding memory kills the pod. Exceeding CPU throttles it.
 
-## Docker Backend
-
-The Docker backend provides a lightweight alternative for local development and testing. It manages containers directly through the Docker Engine API, communicating with the Docker daemon via its Unix socket. This backend doesn't support multi-node clusters or advanced networking features, but it's simple to set up and doesn't require Kubernetes infrastructure.
-
-### Container Management
-
-When creating a deployment, the Docker backend pulls the container image from the registry, authenticating if credentials were provided during startup. It then creates containers with the specified resource limits, port mappings exposing container port 8080 to a random host port, the container name following a predictable pattern, and restart policy to always restart unless explicitly stopped.
-
-The Docker backend supports a subset of Krane's features. It can create, query, and delete deployments, but it doesn't support true multi-replica deployments since there's no built-in load balancing. Each "deployment" is actually a single container on the local machine. This limitation is acceptable for local development where developers typically run one instance at a time.
-
-### Instance Addressing
-
-Since Docker containers don't have Kubernetes-style DNS service discovery, the Docker backend returns instance addresses using localhost with the randomly assigned port. For example, `localhost:32768`. This works for local development where the control plane and containers run on the same machine, but it wouldn't work in a distributed production environment.
-
-The control plane doesn't need to be aware of these addressing differences. It receives instance addresses from Krane and stores them in the database. When using the Docker backend locally, gateway configurations point to localhost addresses. When using Kubernetes in production, they point to cluster DNS addresses.
-
 ## RBAC Requirements
 
 The Kubernetes backend requires specific RBAC permissions to function. Krane needs the ability to create, read, and delete StatefulSets in the Apps API group, create, read, and delete Services in the Core API group, and list and read Pods in the Core API group to query status.
@@ -178,35 +152,6 @@ All resources created by Krane are labeled with `unkey.managed.by=krane` and `un
 
 When querying deployments, Krane verifies the `unkey.managed.by` label matches `krane`. This prevents it from returning information about deployments created by other tools or controllers in the same namespace.
 
-## Local Development
-
-For local development without Kubernetes, run Krane with the Docker backend:
-
-```bash
-# Ensure Docker is running
-docker ps
-
-# Run Krane with Docker backend pointing to local control plane
-unkey run krane \
-  --backend=docker \
-  --docker-socket=/var/run/docker.sock \
-  --control-plane-url=http://localhost:8080 \
-  --instance-id=local-krane \
-  --region=local
-```
-
-Krane will:
-1. Connect to your local control plane instance
-2. Establish a watch stream for the "local" region
-3. Pull any existing desired state
-4. Apply deployments as Docker containers
-5. Continue watching for new events
-
-This provides a fast inner development loop without requiring a full Kubernetes cluster.
-
-## Control Plane Integration
-
-The control plane (`ctrl`) manages the desired state and coordinates multiple Krane agents:
 
 ### ClusterService API
 
@@ -228,24 +173,3 @@ Krane agents connect with selectors (typically `region: aws-us-east-1`) to recei
 - Region-specific deployments
 - Cross-region failover capabilities
 - Isolated development environments
-
-## Future Improvements
-
-The current implementation has several planned enhancements:
-
-### Architecture Evolution
-- Move from StatefulSets to standard Deployments with service mesh for addressing
-- Implement status reporting from Krane back to control plane
-- Add health checking and automated remediation
-
-### Operational Improvements
-- Enhanced observability with metrics and tracing
-- Deployment strategies (rolling updates, blue-green, canary)
-- Resource quota management and multi-tenancy isolation
-
-### Platform Expansion
-- Support for additional orchestration platforms (ECS, Cloud Run)
-- Edge deployment capabilities
-- Serverless function orchestration
-
-The pull-based architecture and abstraction layers make these changes possible without disrupting the overall system design.

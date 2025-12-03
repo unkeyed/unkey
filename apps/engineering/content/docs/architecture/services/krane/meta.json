@@ -1,0 +1,6 @@
+{
+  "title": "Krane",
+  "icon": "Container",
+  "root": false,
+  "pages": ["index", "sync-engine"]
+}

@@ -1,0 +1,169 @@
+---
+title: Pull-Based Provisioning
+description: Event-driven infrastructure orchestration with autonomous agents, persistent streaming connections, and eventual consistency
+---
+
+import { Mermaid } from "@/app/components/mermaid";
+
+
+
+Unkey's infrastructure orchestration implements a pull-based model where autonomous *krane* instances maintain persistent connections to the control plane and continuously reconcile desired state with actual state. This architecture follows cloud-native patterns similar to Kubernetes' kubelet-apiserver relationship, enabling resilient, scalable, and observable infrastructure management across multiple regions.
+
+The architecture's core principle is to enable autonomous reconciliation and self-healing.
+
+## Architecture
+
+<Mermaid
+  chart="
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant DB as Database
+    participant CP as Control Plane (Ctrl)
+    participant K1 as Krane Agent (Region A)
+    participant K8s as Kubernetes API
+    
+    K1->>CP: Watch(region=a, shard=1)
+    Note over K1,CP: Persistent streaming connection
+    
+    U->>CP: Create deployment
+    CP->>CP: Build artifacts
+    CP->>DB: Store deployment topology
+
+    CP-->>K1: Stream InfraEvent (deploy)
+    
+    K1->>K8s: Apply deployment
+    
+    K8s-->>K1: Pod status change
+    K1->>CP: UpdateInstance(status=running)
+    CP->>DB: Upsert Instance table
+
+    
+    CP->>U: Notify deployment status
+    
+    Note over K1: Asynchronous reconciliation"
+/>
+
+
+## Krane Agent
+
+Krane agents act as autonomous controllers that reconcile desired state with actual Kubernetes resources in their respective regions.
+Each kubernetes runs a single Krane agent.
+
+This diagram shows the control loop for deployments only. Gateways are handled in the same way, but have their own buffers and controllers.
+
+<Mermaid
+  chart="
+graph TB
+    subgraph 'Control Plane'
+        CP[ClusterService]
+    end
+    subgraph 'Krane Agent'
+        SE[Sync Engine]
+        DC[Deployment Controller]
+        B[Buffer]
+        
+        SE --> DC
+        DC --> B
+        B -->|UpdateInstance| CP
+    end
+    
+   
+    
+    subgraph Kubernetes
+        K8s[K8s API Server]
+    end
+    
+    SE -.->|Watch/GetDesiredState| CP
+   
+    
+    DC -->|Apply/Delete| K8s
+    K8s -->|Watch Events| DC
+    "
+/>
+
+**Agent Components:**
+
+**Sync Engine**: Maintains persistent streaming connection using HTTP/2 with gRPC for efficient multiplexing and automatic reconnection.
+
+**Dual Controllers**: Separate deployment and gateway controllers for each infra type.
+
+**Buffered Updates**: Status updates are buffered in memory to smooth over spikes in traffic and reduce the load on the control plane.
+
+## Communication Protocol
+
+### Watch Stream
+
+Krane agents connect to control.unkey.cloud to create a stream to listen for changes and periodic full state syncs.
+If a stream is lost, the control plane buffers updates for a while to allow krane to reconnect.
+To ensure all events are sent, we do a full sync on first connect and then move to streaming mode.
+
+### Push Updates
+
+Changes in kubernetes need to be known to our database to display them in our UI. Krane watches the kubernetes API for changes and pushes updates to the control plane using regular unary RPCs using buffers, retries and circuitbreakers to ensure reliability and availability.
+
+
+
+## Deployment Workflow
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant User
+    participant API
+    participant Workflow as Deploy Workflow
+    participant DB
+    participant Ctrl as Control Plane
+    participant Krane
+    participant K8s as Kubernetes
+    
+    User->>API: Deploy request
+    API->>Workflow: Start deployment
+    
+    Workflow->>DB: Create deployment
+    Workflow->>DB: Create topology entries
+    Workflow->>Ctrl: Emit deployment event
+    
+    Ctrl-->>Krane: Stream deployment event
+    
+    Krane->>K8s: Apply deployment
+    K8s-->>Krane: Pod created
+    
+    Krane->>Ctrl: UpdateInstance(pending)
+    Ctrl->>DB: Update instance status
+    
+    loop Poll for completion
+        Workflow->>DB: Check instance status
+        alt All instances running
+            Workflow->>DB: Update deployment status=ready
+            Workflow-->>API: Success
+        else Timeout or failed
+            Workflow->>DB: Update deployment status=failed
+            Workflow-->>API: Failure
+        end
+    end
+    
+    K8s-->>Krane: Pod running
+    Krane->>Ctrl: UpdateInstance(running)
+    Ctrl->>DB: Update instance status"
+/>
+
+The deployment workflow operates asynchronously, with polling for completion rather than callbacks. This design ensures resilience to control plane restarts and simplifies error handling.
+
+## Reconciliation
+
+To prevent drift from missed events, we use two reconciliation mechanisms.
+
+To ensure everything that should be running is running, krane periodically initiates a full sync of the desired state by calling `ctrl.GetDesiredState` and ensuring the current state matches the desired state.
+
+In addition, krane periodically goes through all existing state and for each resource, it checks for the desired state in the control plane. If the desired state is not met, it initiates a reconciliation process to bring the resource back to the desired state.
+
+ 
+
+## Database Schema
+
+The `deployment_topology` table enables multi-region deployments with independent scaling and lifecycle management. It represents the **desired state** of each deployment.
+
+The `instances` table is a representation of the current state. We only write to it in response to events from kubernetes. For example, if kubernetes deletes a pod, we reflect that in this table.
+
+The `gateways` table is a mix of desired and actual state. Because we do not care about individual pods, we only need to configure the desired cpu, memory and replicas. We update the actual state columns from kubernetes events.

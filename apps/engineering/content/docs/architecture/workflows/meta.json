@@ -3,5 +3,11 @@
   "description": "Restate-based workflow orchestration",
   "icon": "Workflow",
   "root": false,
-  "pages": ["index", "deployment-service", "routing-service", "creating-services"]
+  "pages": [
+    "index",
+    "deployment-service",
+    "deployment-workflow-pull-based",
+    "routing-service",
+    "creating-services"
+  ]
 }
