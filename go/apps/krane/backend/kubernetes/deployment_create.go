@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -152,13 +153,17 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 						Labels: map[string]string{
 							"unkey.deployment.id": k8sDeploymentID,
 							"unkey.managed.by":    "krane",
+							"unkey.com/inject":    "true", // Enable secrets injection via mutating webhook
 						},
-						Annotations: map[string]string{},
+						Annotations: map[string]string{
+							"unkey.com/deployment-id": req.Msg.GetDeployment().GetDeploymentId(),
+						},
 					},
 					Spec: corev1.PodSpec{
-						// Use a restricted service account with no API access
+						// Use a restricted service account with no K8s API permissions.
+						// Token is mounted for unkey-env to authenticate with secrets provider.
 						ServiceAccountName:           "customer-workload",
-						AutomountServiceAccountToken: ptr.P(false),
+						AutomountServiceAccountToken: ptr.P(true),
 
 						ImagePullSecrets: func() []corev1.LocalObjectReference {
 							// Only add imagePullSecrets if using Depot registry
@@ -183,17 +188,47 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 									},
 								},
 								Env: func() []corev1.EnvVar {
-									envVars := req.Msg.GetDeployment().GetEnvVars()
-									if len(envVars) == 0 {
-										return nil
+									deployment := req.Msg.GetDeployment()
+
+									// Unkey-provided environment variables
+									env := []corev1.EnvVar{
+										{
+											Name:  "UNKEY_DEPLOYMENT_ID",
+											Value: deployment.GetDeploymentId(),
+										},
+										{
+											Name:  "UNKEY_ENVIRONMENT_ID",
+											Value: deployment.GetEnvironmentId(),
+										},
+										{
+											Name:  "UNKEY_REGION",
+											Value: k.region,
+										},
+										{
+											Name:  "UNKEY_ENVIRONMENT_SLUG",
+											Value: deployment.GetEnvironmentSlug(),
+										},
+										// Use Downward API to inject pod name as instance ID
+										{
+											Name: "UNKEY_INSTANCE_ID",
+											//nolint:exhaustruct
+											ValueFrom: &corev1.EnvVarSource{
+												//nolint:exhaustruct
+												FieldRef: &corev1.ObjectFieldSelector{
+													FieldPath: "metadata.name",
+												},
+											},
+										},
 									}
-									env := make([]corev1.EnvVar, 0, len(envVars))
-									for k, v := range envVars {
+
+									// Add encrypted secrets blob (base64 encoded)
+									if len(deployment.GetEncryptedSecretsBlob()) > 0 {
 										env = append(env, corev1.EnvVar{
-											Name:  k,
-											Value: v,
+											Name:  "UNKEY_SECRETS_BLOB",
+											Value: base64.StdEncoding.EncodeToString(deployment.GetEncryptedSecretsBlob()),
 										})
 									}
+
 									return env
 								}(),
 								Resources: corev1.ResourceRequirements{

@@ -114,41 +114,48 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, err
 	}
 
-	// Unmarshal secrets config to get environment variables
-	var secretsConfig ctrlv1.SecretsConfig
-	if len(deployment.SecretsConfig) > 0 {
-		if err = protojson.Unmarshal(deployment.SecretsConfig, &secretsConfig); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal secrets config: %w", err)
-		}
-	}
+	// Prepare encrypted secrets blob for pod spec
+	// Double encryption for defense in depth:
+	// 1. Each value in secrets_config is already encrypted individually (with environment keyring)
+	// 2. We encrypt the whole blob on top of that
+	// At runtime, krane decrypts outer layer, then each value individually.
+	var encryptedSecretsBlob []byte
 
-	// Decrypt environment variables using the workspace's keyring
-	decryptedEnvVars := make(map[string]string, len(secretsConfig.GetSecrets()))
-	if w.vault != nil {
-		for key, encryptedValue := range secretsConfig.GetSecrets() {
-			decrypted, decryptErr := w.vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-				Keyring:   deployment.WorkspaceID,
-				Encrypted: encryptedValue,
-			})
-			if decryptErr != nil {
-				return nil, fmt.Errorf("failed to decrypt env var %s: %w", key, decryptErr)
-			}
-			decryptedEnvVars[key] = decrypted.GetPlaintext()
+	if len(deployment.SecretsConfig) > 0 && w.vault != nil {
+		// Validate secrets config structure
+		var secretsConfig ctrlv1.SecretsConfig
+		if err = protojson.Unmarshal(deployment.SecretsConfig, &secretsConfig); err != nil {
+			return nil, fmt.Errorf("invalid secrets config: %w", err)
 		}
+
+		// Encrypt the whole secrets_config as a single blob using environment keyring
+		// (individual values inside are already encrypted with the same keyring)
+		encrypted, encryptErr := w.vault.Encrypt(ctx, &vaultv1.EncryptRequest{
+			Keyring: deployment.EnvironmentID,
+			Data:    string(deployment.SecretsConfig),
+		})
+		if encryptErr != nil {
+			return nil, fmt.Errorf("failed to encrypt secrets blob: %w", encryptErr)
+		}
+		encryptedSecretsBlob = []byte(encrypted.GetEncrypted())
 	}
 
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		// Create deployment request
+		// Secrets are passed as an encrypted blob - decrypted at runtime by unkey-env.
+		// This keeps secrets encrypted in etcd and invisible in kubectl describe.
 
 		_, err = w.krane.CreateDeployment(stepCtx, connect.NewRequest(&kranev1.CreateDeploymentRequest{
 			Deployment: &kranev1.DeploymentRequest{
-				Namespace:     hardcodedNamespace,
-				DeploymentId:  deployment.ID,
-				Image:         dockerImage,
-				Replicas:      1,
-				CpuMillicores: 512,
-				MemorySizeMib: 512,
-				EnvVars:       decryptedEnvVars,
+				Namespace:            hardcodedNamespace,
+				DeploymentId:         deployment.ID,
+				Image:                dockerImage,
+				Replicas:             1,
+				CpuMillicores:        512,
+				MemorySizeMib:        512,
+				EnvironmentSlug:      environment.Slug,
+				EncryptedSecretsBlob: encryptedSecretsBlob,
+				EnvironmentId:        deployment.EnvironmentID,
 			},
 		}))
 		if err != nil {

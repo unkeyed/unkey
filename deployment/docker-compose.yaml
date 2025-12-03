@@ -381,6 +381,7 @@ services:
       UNKEY_VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       # ACME Vault - Let's Encrypt certificates
+      UNKEY_ACME_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       UNKEY_ACME_VAULT_S3_URL: "http://s3:3902"
       UNKEY_ACME_VAULT_S3_BUCKET: "acme-vault"
       UNKEY_ACME_VAULT_S3_ACCESS_KEY_ID: "minio_root_user"

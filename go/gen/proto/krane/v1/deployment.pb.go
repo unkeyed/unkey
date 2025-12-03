@@ -81,9 +81,14 @@ type DeploymentRequest struct {
 	Replicas      uint32                 `protobuf:"varint,4,opt,name=replicas,proto3" json:"replicas,omitempty"`
 	CpuMillicores uint32                 `protobuf:"varint,5,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`
 	MemorySizeMib uint64                 `protobuf:"varint,6,opt,name=memory_size_mib,json=memorySizeMib,proto3" json:"memory_size_mib,omitempty"`
-	// Environment variables to inject into the container.
-	// Keys are variable names, values are the (decrypted) values.
-	EnvVars       map[string]string `protobuf:"bytes,7,rep,name=env_vars,json=envVars,proto3" json:"env_vars,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Environment slug (e.g., production, staging).
+	EnvironmentSlug string `protobuf:"bytes,7,opt,name=environment_slug,json=environmentSlug,proto3" json:"environment_slug,omitempty"`
+	// Encrypted secrets blob to be decrypted at runtime by unkey-env.
+	// This is set as UNKEY_SECRETS_BLOB env var in the container.
+	// unkey-env calls krane's DecryptSecretsBlob RPC to decrypt.
+	EncryptedSecretsBlob []byte `protobuf:"bytes,8,opt,name=encrypted_secrets_blob,json=encryptedSecretsBlob,proto3" json:"encrypted_secrets_blob,omitempty"`
+	// Environment ID for secrets decryption (keyring identifier).
+	EnvironmentId string `protobuf:"bytes,9,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -160,11 +165,25 @@ func (x *DeploymentRequest) GetMemorySizeMib() uint64 {
 	return 0
 }
 
-func (x *DeploymentRequest) GetEnvVars() map[string]string {
+func (x *DeploymentRequest) GetEnvironmentSlug() string {
 	if x != nil {
-		return x.EnvVars
+		return x.EnvironmentSlug
+	}
+	return ""
+}
+
+func (x *DeploymentRequest) GetEncryptedSecretsBlob() []byte {
+	if x != nil {
+		return x.EncryptedSecretsBlob
 	}
 	return nil
+}
+
+func (x *DeploymentRequest) GetEnvironmentId() string {
+	if x != nil {
+		return x.EnvironmentId
+	}
+	return ""
 }
 
 type CreateDeploymentRequest struct {
@@ -591,18 +610,17 @@ var File_krane_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_krane_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x19krane/v1/deployment.proto\x12\bkrane.v1\"\xd8\x02\n" +
+	"\x19krane/v1/deployment.proto\x12\bkrane.v1\"\xdf\x02\n" +
 	"\x11DeploymentRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12#\n" +
 	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\x12\x14\n" +
 	"\x05image\x18\x03 \x01(\tR\x05image\x12\x1a\n" +
 	"\breplicas\x18\x04 \x01(\rR\breplicas\x12%\n" +
 	"\x0ecpu_millicores\x18\x05 \x01(\rR\rcpuMillicores\x12&\n" +
-	"\x0fmemory_size_mib\x18\x06 \x01(\x04R\rmemorySizeMib\x12C\n" +
-	"\benv_vars\x18\a \x03(\v2(.krane.v1.DeploymentRequest.EnvVarsEntryR\aenvVars\x1a:\n" +
-	"\fEnvVarsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"V\n" +
+	"\x0fmemory_size_mib\x18\x06 \x01(\x04R\rmemorySizeMib\x12)\n" +
+	"\x10environment_slug\x18\a \x01(\tR\x0fenvironmentSlug\x124\n" +
+	"\x16encrypted_secrets_blob\x18\b \x01(\fR\x14encryptedSecretsBlob\x12%\n" +
+	"\x0eenvironment_id\x18\t \x01(\tR\renvironmentId\"V\n" +
 	"\x17CreateDeploymentRequest\x12;\n" +
 	"\n" +
 	"deployment\x18\x01 \x01(\v2\x1b.krane.v1.DeploymentRequestR\n" +
@@ -652,7 +670,7 @@ func file_krane_v1_deployment_proto_rawDescGZIP() []byte {
 }
 
 var file_krane_v1_deployment_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_krane_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_krane_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_krane_v1_deployment_proto_goTypes = []any{
 	(DeploymentStatus)(0),            // 0: krane.v1.DeploymentStatus
 	(*DeploymentRequest)(nil),        // 1: krane.v1.DeploymentRequest
@@ -665,26 +683,24 @@ var file_krane_v1_deployment_proto_goTypes = []any{
 	(*GetDeploymentRequest)(nil),     // 8: krane.v1.GetDeploymentRequest
 	(*GetDeploymentResponse)(nil),    // 9: krane.v1.GetDeploymentResponse
 	(*Instance)(nil),                 // 10: krane.v1.Instance
-	nil,                              // 11: krane.v1.DeploymentRequest.EnvVarsEntry
 }
 var file_krane_v1_deployment_proto_depIdxs = []int32{
-	11, // 0: krane.v1.DeploymentRequest.env_vars:type_name -> krane.v1.DeploymentRequest.EnvVarsEntry
-	1,  // 1: krane.v1.CreateDeploymentRequest.deployment:type_name -> krane.v1.DeploymentRequest
-	0,  // 2: krane.v1.CreateDeploymentResponse.status:type_name -> krane.v1.DeploymentStatus
-	1,  // 3: krane.v1.UpdateDeploymentRequest.deployment:type_name -> krane.v1.DeploymentRequest
-	10, // 4: krane.v1.GetDeploymentResponse.instances:type_name -> krane.v1.Instance
-	0,  // 5: krane.v1.Instance.status:type_name -> krane.v1.DeploymentStatus
-	2,  // 6: krane.v1.DeploymentService.CreateDeployment:input_type -> krane.v1.CreateDeploymentRequest
-	8,  // 7: krane.v1.DeploymentService.GetDeployment:input_type -> krane.v1.GetDeploymentRequest
-	6,  // 8: krane.v1.DeploymentService.DeleteDeployment:input_type -> krane.v1.DeleteDeploymentRequest
-	3,  // 9: krane.v1.DeploymentService.CreateDeployment:output_type -> krane.v1.CreateDeploymentResponse
-	9,  // 10: krane.v1.DeploymentService.GetDeployment:output_type -> krane.v1.GetDeploymentResponse
-	7,  // 11: krane.v1.DeploymentService.DeleteDeployment:output_type -> krane.v1.DeleteDeploymentResponse
-	9,  // [9:12] is the sub-list for method output_type
-	6,  // [6:9] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	1,  // 0: krane.v1.CreateDeploymentRequest.deployment:type_name -> krane.v1.DeploymentRequest
+	0,  // 1: krane.v1.CreateDeploymentResponse.status:type_name -> krane.v1.DeploymentStatus
+	1,  // 2: krane.v1.UpdateDeploymentRequest.deployment:type_name -> krane.v1.DeploymentRequest
+	10, // 3: krane.v1.GetDeploymentResponse.instances:type_name -> krane.v1.Instance
+	0,  // 4: krane.v1.Instance.status:type_name -> krane.v1.DeploymentStatus
+	2,  // 5: krane.v1.DeploymentService.CreateDeployment:input_type -> krane.v1.CreateDeploymentRequest
+	8,  // 6: krane.v1.DeploymentService.GetDeployment:input_type -> krane.v1.GetDeploymentRequest
+	6,  // 7: krane.v1.DeploymentService.DeleteDeployment:input_type -> krane.v1.DeleteDeploymentRequest
+	3,  // 8: krane.v1.DeploymentService.CreateDeployment:output_type -> krane.v1.CreateDeploymentResponse
+	9,  // 9: krane.v1.DeploymentService.GetDeployment:output_type -> krane.v1.GetDeploymentResponse
+	7,  // 10: krane.v1.DeploymentService.DeleteDeployment:output_type -> krane.v1.DeleteDeploymentResponse
+	8,  // [8:11] is the sub-list for method output_type
+	5,  // [5:8] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_krane_v1_deployment_proto_init() }
@@ -698,7 +714,7 @@ func file_krane_v1_deployment_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_krane_v1_deployment_proto_rawDesc), len(file_krane_v1_deployment_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   11,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

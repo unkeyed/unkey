@@ -35,6 +35,7 @@ export const decryptEnvVar = t.procedure
           id: true,
           value: true,
           type: true,
+          environmentId: true,
         },
       });
 
@@ -53,7 +54,7 @@ export const decryptEnvVar = t.procedure
       }
 
       const { plaintext } = await vault.decrypt({
-        keyring: ctx.workspace.id,
+        keyring: envVar.environmentId,
         encrypted: envVar.value,
       });
 
