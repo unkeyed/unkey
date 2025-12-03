@@ -26,3 +26,4 @@ export * from "./components/timestamp-info";
 export * from "./components/tooltip";
 export * from "./components/separator";
 export * from "./components/toaster";
+export * from "./components/table/index";

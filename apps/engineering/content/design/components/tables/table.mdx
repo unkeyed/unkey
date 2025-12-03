@@ -1,0 +1,337 @@
+---
+title: Table
+description: A production-ready, feature-rich data table component with virtualization, sorting, filtering, and more.
+---
+import {
+  BasicTable,
+  SortableTable,
+  SearchableTable,
+  VirtualizedTable,
+  SelectableTable,
+  ResizableTable,
+  ExportableTable,
+  FullFeaturedTable,
+} from "./table.example";
+
+## Overview
+
+The Table component is a powerful data table built with **@tanstack/react-table** and **@tanstack/react-virtual**. It provides enterprise-grade features including virtual scrolling for performance, sorting, filtering, column resizing, row selection, and data export capabilities.
+
+## Usage
+
+```tsx
+import { Table, type ColumnDef } from "@unkey/ui";
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+const columns: ColumnDef<User>[] = [
+  { accessorKey: "name", header: "Name" },
+  { accessorKey: "email", header: "Email" },
+  { accessorKey: "role", header: "Role" },
+];
+
+export default function MyComponent() {
+  const [users, setUsers] = useState<User[]>([]);
+
+  return (
+    <Table
+      data={users}
+      columns={columns}
+      enableSorting
+      enableVirtualization
+    />
+  );
+}
+```
+
+## Examples
+
+### Basic Table
+A simple table displaying data with custom cell rendering.
+
+<BasicTable />
+
+### Sortable Table
+Enable sorting on columns by clicking headers. Supports multi-column sorting with Shift+Click.
+
+<SortableTable />
+
+### Searchable Table
+Add global search and column visibility controls with built-in toolbar.
+
+<SearchableTable />
+
+### Virtualized Table
+Handle large datasets (1000s of rows) efficiently with virtual scrolling. Only renders visible rows in the viewport.
+
+<VirtualizedTable />
+
+### Selectable Table
+Enable row selection with checkboxes for bulk operations.
+
+<SelectableTable />
+
+### Resizable Columns
+Allow users to resize columns by dragging. Column widths persist to localStorage.
+
+<ResizableTable />
+
+### Exportable Table
+Export table data to CSV or JSON format with one click.
+
+<ExportableTable />
+
+### Full-Featured Table
+All features combined: virtualization, sorting, filtering, resizing, and export.
+
+<FullFeaturedTable />
+
+## Features
+
+### Core Features
+- **Virtual Scrolling**: Handles 10,000+ rows with excellent performance using `@tanstack/react-virtual`
+- **State Management**: Full table state management with `@tanstack/react-table`
+- **TypeScript First**: Complete type safety with generic data types
+- **Responsive**: Works on all screen sizes with proper overflow handling
+
+### Data Operations
+- **Sorting**: Single and multi-column sorting (client & server-side)
+- **Filtering**: Column filters and global search
+- **Pagination**: Client-side, server-side, or infinite scroll modes
+- **Export**: CSV and JSON export with customizable options
+
+### Column Features
+- **Resizing**: Drag to resize columns with min/max constraints
+- **Reordering**: Drag and drop to reorder columns (coming soon)
+- **Visibility**: Toggle column visibility with built-in UI
+- **Custom Rendering**: Full control over cell and header rendering
+
+### Interaction
+- **Row Selection**: Single or multi-row selection
+- **Keyboard Navigation**: Arrow keys and Vim bindings (j/k)
+- **Row Actions**: Click handlers for row interactions
+- **Loading States**: Skeleton loaders and custom loading states
+
+### Persistence
+- **LocalStorage**: Save column sizes, order, and visibility
+- **Automatic**: Debounced saves to prevent performance issues
+- **Per-Table**: Unique persistence keys for multiple tables
+
+## Props
+
+### Required Props
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `data` | `TData[]` | Array of data objects to display |
+| `columns` | `ColumnDef<TData>[]` | Column definitions using TanStack Table format |
+
+### Feature Flags
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `enableSorting` | `boolean` | `true` | Enable column sorting |
+| `enableFiltering` | `boolean` | `false` | Enable column filters |
+| `enableGlobalFilter` | `boolean` | `false` | Enable global search |
+| `enablePagination` | `boolean` | `false` | Enable pagination |
+| `enableRowSelection` | `boolean` | `false` | Enable row selection |
+| `enableColumnResizing` | `boolean` | `false` | Enable column resizing |
+| `enableColumnVisibility` | `boolean` | `false` | Enable column visibility toggle |
+| `enableVirtualization` | `boolean` | `true` | Enable virtual scrolling |
+| `enableInfiniteScroll` | `boolean` | `false` | Enable infinite scroll |
+| `enableExport` | `boolean` | `false` | Enable data export |
+| `enableKeyboardNavigation` | `boolean` | `true` | Enable keyboard shortcuts |
+
+### Data Mode
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `manualSorting` | `boolean` | `false` | Use server-side sorting |
+| `manualFiltering` | `boolean` | `false` | Use server-side filtering |
+| `manualPagination` | `boolean` | `false` | Use server-side pagination |
+
+### Callbacks
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `onRowClick` | `(row: TData) => void` | Called when a row is clicked |
+| `onFetchMore` | `() => void` | Called to load more data (infinite scroll) |
+| `getRowId` | `(row: TData, index: number) => string` | Custom row ID function |
+
+### Styling
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `maxHeight` | `string \| number` | `"600px"` | Maximum table height |
+| `className` | `string` | - | Additional CSS classes |
+| `rowClassName` | `string \| ((row: TData) => string)` | - | Row CSS classes |
+| `stickyHeader` | `boolean` | `false` | Make header sticky on scroll |
+
+### Persistence
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `persistenceKey` | `string` | Unique key for localStorage |
+| `persistColumnOrder` | `boolean` | Persist column order |
+| `persistColumnSizing` | `boolean` | Persist column sizes |
+| `persistColumnVisibility` | `boolean` | Persist column visibility |
+
+### Export
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `exportFilename` | `string` | `"table-export"` | Filename for exports |
+| `exportFormats` | `ExportFormat[]` | `["csv", "json"]` | Available export formats |
+
+## Column Definition
+
+Columns use the standard `@tanstack/react-table` `ColumnDef` type:
+
+```tsx
+const columns: ColumnDef<User>[] = [
+  {
+    accessorKey: "name",
+    header: "Name",
+    size: 200,
+    minSize: 100,
+    maxSize: 400,
+    enableSorting: true,
+    enableResizing: true,
+    cell: ({ row }) => (
+      <div className="font-medium">{row.getValue("name")}</div>
+    ),
+  },
+];
+```
+
+### Column Properties
+
+- **accessorKey**: Key to access data in row object
+- **header**: Column header (string or component)
+- **cell**: Custom cell renderer
+- **size**: Default column width
+- **minSize/maxSize**: Min/max width for resizing
+- **enableSorting**: Allow sorting this column
+- **enableResizing**: Allow resizing this column
+- **sortingFn**: Custom sorting function
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `↑` / `k` | Move selection up |
+| `↓` / `j` | Move selection down |
+| `Enter` | Activate selected row |
+| `Space` | Toggle row selection |
+| `Escape` | Clear selection |
+
+## Performance
+
+### Virtual Scrolling
+The table uses virtual scrolling to render only visible rows:
+
+```tsx
+<Table
+  data={largeDataset}
+  columns={columns}
+  enableVirtualization={true}
+  estimateSize={52}  // Row height in pixels
+  overscan={5}       // Extra rows to render
+/>
+```
+
+### Best Practices
+- Enable virtualization for > 100 rows
+- Use `useMemo` for column definitions
+- Use `getRowId` for stable row keys
+- Enable server-side operations for very large datasets
+
+## Server-Side Operations
+
+For large datasets, use server-side operations:
+
+```tsx
+const [sorting, setSorting] = useState<SortingState>([]);
+const [data, setData] = useState([]);
+
+// Fetch data when sorting changes
+useEffect(() => {
+  fetchData({ sorting }).then(setData);
+}, [sorting]);
+
+<Table
+  data={data}
+  columns={columns}
+  enableSorting={true}
+  manualSorting={true}
+  sorting={sorting}
+  onSortingChange={setSorting}
+/>
+```
+
+## Accessibility
+
+The Table component follows WCAG accessibility guidelines:
+
+- **Keyboard Navigation**: Full keyboard support with arrow keys
+- **Screen Readers**: Proper ARIA labels and semantic HTML
+- **Focus Management**: Clear focus indicators
+- **Sort Indicators**: Visual and text indicators for screen readers
+- **Color Contrast**: Meets WCAG AA standards
+
+## Migration from Old Tables
+
+If migrating from the previous VirtualTable implementation:
+
+1. **Column definitions**: Use TanStack Table's `ColumnDef` instead of custom column format
+2. **Sorting**: Built-in instead of manual implementation
+3. **State management**: Automatic instead of manual hooks
+4. **Filtering**: Built-in instead of custom filters
+5. **Export**: Built-in instead of custom implementation
+
+Example migration:
+
+```tsx
+// Old VirtualTable
+<VirtualTable
+  data={data}
+  columns={[
+    { key: 'name', render: (item) => item.name }
+  ]}
+/>
+
+// New Table
+<Table
+  data={data}
+  columns={[
+    { accessorKey: 'name', header: 'Name' }
+  ]}
+/>
+```
+
+## Architecture
+
+The table component integrates two powerful libraries:
+
+- **@tanstack/react-table**: Handles table state, sorting, filtering, pagination
+- **@tanstack/react-virtual**: Provides virtual scrolling for performance
+
+This combination provides:
+- Full feature set from TanStack Table
+- Excellent performance with virtual scrolling
+- Standard API that many developers know
+- Active community and extensive documentation
+
+## Examples in Production
+
+The Table component is used throughout the Unkey dashboard:
+
+- **API Keys List**: Virtualized table with sorting and selection
+- **Authorization Roles**: Table with filters and bulk actions
+- **Audit Logs**: Real-time table with infinite scroll
+- **Root Keys**: Resizable columns with persistence
