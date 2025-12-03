@@ -109,7 +109,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create separate vault service for ACME certificates
 	var acmeVaultSvc *vault.Service
-	if len(cfg.VaultMasterKeys) > 0 && cfg.AcmeVaultS3.URL != "" {
+	if len(cfg.AcmeVaultMasterKeys) > 0 && cfg.AcmeVaultS3.URL != "" {
 		acmeVaultStorage, acmeStorageErr := storage.NewS3(storage.S3Config{
 			Logger:            logger,
 			S3URL:             cfg.AcmeVaultS3.URL,
@@ -124,7 +124,7 @@ func Run(ctx context.Context, cfg Config) error {
 		acmeVaultSvc, err = vault.New(vault.Config{
 			Logger:     logger,
 			Storage:    acmeVaultStorage,
-			MasterKeys: cfg.VaultMasterKeys,
+			MasterKeys: cfg.AcmeVaultMasterKeys,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create ACME vault service: %w", err)
