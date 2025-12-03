@@ -58,10 +58,6 @@ unkey run krane                                   # Run with default configurati
 			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
 		cli.String("vault-s3-access-key-secret", "S3 access key secret for vault storage",
 			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
-
-		// Kubernetes Configuration
-		cli.String("workload-namespace", "Kubernetes namespace for customer workloads",
-			cli.Default("unkey"), cli.EnvVar("UNKEY_WORKLOAD_NAMESPACE")),
 	},
 	Action: action,
 }
@@ -94,7 +90,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
 			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
 		},
-		WorkloadNamespace: cmd.String("workload-namespace"),
 	}
 
 	// Validate configuration

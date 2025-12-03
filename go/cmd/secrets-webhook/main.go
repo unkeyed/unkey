@@ -8,39 +8,19 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Version:  "",
-	Aliases:  []string{},
-	Commands: []*cli.Command{},
-	Name:     "secrets-webhook",
-	Usage:    "Run the secrets injection webhook",
-	Description: `secrets-webhook is a Kubernetes mutating admission webhook that injects
-the unkey-env binary into pods to provide secure secrets injection.
-
-The webhook intercepts pod creation requests and, for pods with the
-appropriate labels, modifies them to:
-1. Add an init container that copies the unkey-env binary
-2. Mount a shared volume for the binary
-3. Rewrite container commands to use unkey-env as the entrypoint
-4. Add environment variables for secrets configuration
-
-EXAMPLES:
-unkey run secrets-webhook --tls-cert-file=/certs/tls.crt --tls-key-file=/certs/tls.key`,
+	Name:  "secrets-webhook",
+	Usage: "Run the secrets injection webhook",
 	Flags: []cli.Flag{
-		cli.Int("port", "Port for the webhook server to listen on",
+		cli.Int("port", "Port for the webhook server",
 			cli.Default(8443), cli.EnvVar("WEBHOOK_PORT")),
-
-		cli.String("tls-cert-file", "Path to TLS certificate file (required)",
+		cli.String("tls-cert-file", "Path to TLS certificate file",
 			cli.Required(), cli.EnvVar("WEBHOOK_TLS_CERT_FILE")),
-
-		cli.String("tls-key-file", "Path to TLS private key file (required)",
+		cli.String("tls-key-file", "Path to TLS private key file",
 			cli.Required(), cli.EnvVar("WEBHOOK_TLS_KEY_FILE")),
-
 		cli.String("unkey-env-image", "Container image for unkey-env binary",
 			cli.Default("unkey-env:latest"), cli.EnvVar("UNKEY_ENV_IMAGE")),
-
 		cli.String("krane-endpoint", "Endpoint for Krane secrets service",
 			cli.Default("http://krane.unkey.svc.cluster.local:8080"), cli.EnvVar("KRANE_ENDPOINT")),
-
 		cli.String("annotation-prefix", "Annotation prefix for pod configuration",
 			cli.Default("unkey.com"), cli.EnvVar("ANNOTATION_PREFIX")),
 	},

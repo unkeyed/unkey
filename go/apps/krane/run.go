@@ -117,9 +117,8 @@ func Run(ctx context.Context, cfg Config) error {
 			// For K8s backend, use K8s service account token validator
 			tokenValidator = token.NewK8sValidator(token.K8sValidatorConfig{
 				Clientset: k8sClientset,
-				Namespace: cfg.WorkloadNamespace,
 			})
-			logger.Info("Using K8s service account token validator", "namespace", cfg.WorkloadNamespace)
+			logger.Info("Using K8s service account token validator")
 		}
 	case Docker:
 		{

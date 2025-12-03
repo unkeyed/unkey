@@ -16,14 +16,12 @@ import (
 	"github.com/unkeyed/unkey/go/apps/krane/secrets/token"
 )
 
-// Config configures the secrets service
 type Config struct {
 	Logger         logging.Logger
 	Vault          *vault.Service
 	TokenValidator token.Validator
 }
 
-// Service handles secrets retrieval for deployments
 type Service struct {
 	kranev1connect.UnimplementedSecretsServiceHandler
 	logger         logging.Logger
@@ -31,7 +29,6 @@ type Service struct {
 	tokenValidator token.Validator
 }
 
-// New creates a new secrets service
 func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedSecretsServiceHandler: kranev1connect.UnimplementedSecretsServiceHandler{},
@@ -41,8 +38,6 @@ func New(cfg Config) *Service {
 	}
 }
 
-// DecryptSecretsBlob decrypts an encrypted secrets blob passed in the pod spec.
-// This avoids DB lookups - the encrypted blob travels with the pod.
 func (s *Service) DecryptSecretsBlob(
 	ctx context.Context,
 	req *connect.Request[kranev1.DecryptSecretsBlobRequest],
@@ -57,8 +52,6 @@ func (s *Service) DecryptSecretsBlob(
 		"environment_id", environmentID,
 	)
 
-	// Validate token - verifies the request comes from a valid pod belonging to this deployment
-	// Environment ID is trusted from the pod spec (set by krane when creating the deployment)
 	_, err := s.tokenValidator.Validate(ctx, requestToken, deploymentID)
 	if err != nil {
 		s.logger.Warn("token validation failed",
@@ -69,27 +62,23 @@ func (s *Service) DecryptSecretsBlob(
 	}
 
 	if len(encryptedBlob) == 0 {
-		// No secrets to decrypt
 		return connect.NewResponse(&kranev1.DecryptSecretsBlobResponse{
 			EnvVars: map[string]string{},
 		}), nil
 	}
 
-	// Double encryption: outer layer wraps the SecretsConfig, inner layer encrypts each value.
-	// Step 1: Decrypt outer layer to get SecretsConfig JSON
 	decryptedBlobResp, err := s.vault.Decrypt(ctx, &vaultv1.DecryptRequest{
 		Keyring:   environmentID,
 		Encrypted: string(encryptedBlob),
 	})
 	if err != nil {
-		s.logger.Error("failed to decrypt secrets blob (outer layer)",
+		s.logger.Error("failed to decrypt secrets blob",
 			"deployment_id", deploymentID,
 			"error", err,
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to decrypt secrets blob"))
 	}
 
-	// Step 2: Parse the SecretsConfig (values inside are still encrypted)
 	var secretsConfig ctrlv1.SecretsConfig
 	if err = protojson.Unmarshal([]byte(decryptedBlobResp.GetPlaintext()), &secretsConfig); err != nil {
 		s.logger.Error("failed to unmarshal secrets config",
@@ -99,7 +88,6 @@ func (s *Service) DecryptSecretsBlob(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to parse secrets config"))
 	}
 
-	// Step 3: Decrypt each value individually
 	envVars := make(map[string]string, len(secretsConfig.GetSecrets()))
 	for key, encryptedValue := range secretsConfig.GetSecrets() {
 		decrypted, decryptErr := s.vault.Decrypt(ctx, &vaultv1.DecryptRequest{
@@ -117,7 +105,7 @@ func (s *Service) DecryptSecretsBlob(
 		envVars[key] = decrypted.GetPlaintext()
 	}
 
-	s.logger.Info("successfully decrypted secrets blob",
+	s.logger.Info("decrypted secrets blob",
 		"deployment_id", deploymentID,
 		"num_secrets", len(envVars),
 	)

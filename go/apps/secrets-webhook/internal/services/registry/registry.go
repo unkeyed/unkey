@@ -14,19 +14,16 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
-// ImageConfig contains the entrypoint and command from a container image.
 type ImageConfig struct {
 	Entrypoint []string
 	Cmd        []string
 }
 
-// Registry fetches image configuration from container registries.
 type Registry struct {
 	logger    logging.Logger
 	clientset kubernetes.Interface
 }
 
-// New creates a new Registry.
 func New(logger logging.Logger, clientset kubernetes.Interface) *Registry {
 	return &Registry{
 		logger:    logger,
@@ -34,15 +31,12 @@ func New(logger logging.Logger, clientset kubernetes.Interface) *Registry {
 	}
 }
 
-// GetImageConfig fetches the entrypoint and command from a container image.
-// It uses K8s authentication chain to handle image pull secrets.
 func (r *Registry) GetImageConfig(
 	ctx context.Context,
 	namespace string,
 	container *corev1.Container,
 	podSpec *corev1.PodSpec,
 ) (*ImageConfig, error) {
-	// Build K8s auth chain options
 	chainOpts := k8schain.Options{
 		Namespace:          namespace,
 		ServiceAccountName: podSpec.ServiceAccountName,
@@ -56,13 +50,11 @@ func (r *Registry) GetImageConfig(
 		return nil, fmt.Errorf("failed to create k8s auth chain: %w", err)
 	}
 
-	// Parse image reference
 	ref, err := name.ParseReference(container.Image)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse image reference %q: %w", container.Image, err)
 	}
 
-	// Fetch image descriptor
 	options := []remote.Option{
 		remote.WithAuthFromKeychain(authChain),
 		remote.WithContext(ctx),
@@ -73,7 +65,6 @@ func (r *Registry) GetImageConfig(
 		return nil, fmt.Errorf("failed to fetch image descriptor for %q: %w", container.Image, err)
 	}
 
-	// Handle multi-arch images (index) vs single images
 	var image v1.Image
 	if descriptor.MediaType.IsIndex() {
 		index, indexErr := descriptor.ImageIndex()
@@ -90,7 +81,6 @@ func (r *Registry) GetImageConfig(
 			return nil, fmt.Errorf("no manifests found in image index for %q", container.Image)
 		}
 
-		// Use first available image (usually linux/amd64)
 		image, err = index.Image(manifest.Manifests[0].Digest)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get image from manifest: %w", err)
@@ -102,7 +92,6 @@ func (r *Registry) GetImageConfig(
 		}
 	}
 
-	// Get image config
 	configFile, err := image.ConfigFile()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image config: %w", err)

@@ -110,11 +110,6 @@ type Config struct {
 
 	// VaultS3 configures S3 storage for encrypted vault data.
 	VaultS3 S3Config
-
-	// WorkloadNamespace is the Kubernetes namespace where customer workloads run.
-	// Used by the K8s token validator to verify pod identity.
-	// Only used when Backend is Kubernetes.
-	WorkloadNamespace string
 }
 
 func (c Config) Validate() error {

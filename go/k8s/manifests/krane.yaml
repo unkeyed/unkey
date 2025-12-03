@@ -35,8 +35,6 @@ spec:
               value: "8080"
             - name: UNKEY_DEPLOYMENT_EVICTION_TTL
               value: "10m"
-            - name: UNKEY_WORKLOAD_NAMESPACE
-              value: "unkey"
             # Vault Configuration
             - name: UNKEY_VAULT_MASTER_KEYS
               value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
