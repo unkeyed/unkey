@@ -36,17 +36,20 @@ export const searchIdentities = t.procedure
             like(identity.externalId, `%${query}%`),
           );
         },
+        with: {
+          keys: {
+            columns: {
+              id: true,
+            },
+          },
+          ratelimits: {
+            columns: {
+              id: true,
+            },
+          },
+        },
         limit: LIMIT,
         orderBy: (identities, { asc }) => [asc(identities.externalId)],
-        columns: {
-          id: true,
-          externalId: true,
-          workspaceId: true,
-          environment: true,
-          meta: true,
-          createdAt: true,
-          updatedAt: true,
-        },
       });
 
       const transformedIdentities = identitiesQuery.map((identity) => ({
@@ -57,6 +60,8 @@ export const searchIdentities = t.procedure
         meta: identity.meta,
         createdAt: identity.createdAt,
         updatedAt: identity.updatedAt ? identity.updatedAt : null,
+        keys: identity.keys,
+        ratelimits: identity.ratelimits,
       }));
 
       return {

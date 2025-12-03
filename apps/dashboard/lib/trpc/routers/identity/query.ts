@@ -6,6 +6,7 @@ import { ratelimit, requireWorkspace, t, withRatelimit } from "../../trpc";
 const identitiesQueryPayload = z.object({
   cursor: z.string().optional(),
   limit: z.number().optional().default(50),
+  search: z.string().optional(),
 });
 
 export const IdentityResponseSchema = z.object({
@@ -16,6 +17,8 @@ export const IdentityResponseSchema = z.object({
   meta: z.record(z.unknown()).nullable(),
   createdAt: z.number(),
   updatedAt: z.number().nullable(),
+  keys: z.array(z.object({ id: z.string() })),
+  ratelimits: z.array(z.object({ id: z.string() })),
 });
 
 const IdentitiesResponse = z.object({
@@ -31,18 +34,40 @@ export const queryIdentities = t.procedure
   .output(IdentitiesResponse)
   .query(async ({ ctx, input }) => {
     try {
-      const { limit = 50, cursor } = input;
+      const { limit = 50, cursor, search } = input;
       const workspaceId = ctx.workspace.id;
 
       const identitiesQuery = await db.query.identities.findMany({
-        where: (identity, { and, eq, lt }) => {
+        where: (identity, { and, eq, lt, or, like }) => {
           const conditions = [eq(identity.workspaceId, workspaceId), eq(identity.deleted, false)];
 
           if (cursor) {
             conditions.push(lt(identity.id, cursor));
           }
 
+          if (search) {
+            const searchCondition = or(
+              like(identity.externalId, `%${search}%`),
+              like(identity.id, `%${search}%`),
+            );
+            if (searchCondition) {
+              conditions.push(searchCondition);
+            }
+          }
+
           return and(...conditions);
+        },
+        with: {
+          keys: {
+            columns: {
+              id: true,
+            },
+          },
+          ratelimits: {
+            columns: {
+              id: true,
+            },
+          },
         },
         limit: limit + 1, // Fetch one extra to determine if there are more results
         orderBy: (identities, { desc }) => desc(identities.id),
@@ -62,6 +87,8 @@ export const queryIdentities = t.procedure
         meta: identity.meta,
         createdAt: identity.createdAt,
         updatedAt: identity.updatedAt ? identity.updatedAt : null,
+        keys: identity.keys,
+        ratelimits: identity.ratelimits,
       }));
 
       const lastId = identities.length > 0 ? identities[identities.length - 1].id : null;
