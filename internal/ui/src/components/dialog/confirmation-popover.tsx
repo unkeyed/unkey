@@ -2,6 +2,7 @@
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import type { PopoverContentProps } from "@radix-ui/react-popover";
 import { TriangleWarning2 } from "@unkey/icons";
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import React from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "../buttons/button";
@@ -16,7 +17,7 @@ type ConfirmPopoverProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
-  triggerRef?: React.RefObject<HTMLElement>;
+  triggerRef: React.RefObject<HTMLElement>;
   title?: string;
   description?: string;
   confirmButtonText?: string;
@@ -61,9 +62,6 @@ export const ConfirmPopover = ({
   variant = "warning",
   popoverProps = {},
 }: ConfirmPopoverProps): JSX.Element => {
-  const defaultRef = React.useRef<HTMLSpanElement>(null);
-  const anchorRef = triggerRef || defaultRef;
-
   const handleConfirm = () => {
     onConfirm();
     onOpenChange(false);
@@ -81,9 +79,7 @@ export const ConfirmPopover = ({
 
   return (
     <Popover open={isOpen} onOpenChange={onOpenChange}>
-      {/* Render a hidden anchor element when no external trigger is provided */}
-      {!triggerRef && <span ref={defaultRef} className="sr-only" aria-hidden="true" />}
-      <PopoverAnchor virtualRef={anchorRef} />
+      <PopoverAnchor virtualRef={triggerRef} />
       <PopoverContent {...mergedPopoverProps}>
         <div className="p-4 w-full">
           <div className="flex gap-3 items-center justify-start">
