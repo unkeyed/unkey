@@ -125,8 +125,12 @@ type Config struct {
 	Clock clock.Clock
 
 	// --- Vault Configuration ---
+	// VaultMasterKeys are the master encryption keys for both vaults
 	VaultMasterKeys []string
-	VaultS3         S3Config
+	// VaultS3 is used for general secrets (env vars, API keys, etc.)
+	VaultS3 S3Config
+	// AcmeVaultS3 is used specifically for ACME/Let's Encrypt certificate storage
+	AcmeVaultS3 S3Config
 
 	// --- ACME/Cloudflare Configuration ---
 	Acme AcmeConfig
