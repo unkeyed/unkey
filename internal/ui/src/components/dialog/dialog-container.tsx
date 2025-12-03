@@ -33,7 +33,7 @@ const DialogContainer = ({
   children,
   footer,
   contentClassName,
-  preventAutoFocus = true,
+  preventAutoFocus = false,
   showCloseWarning = false,
   onAttemptClose,
   modal = false,

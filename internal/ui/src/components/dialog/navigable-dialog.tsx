@@ -48,7 +48,7 @@ const NavigableDialogRoot = <TStepName extends string>({
   isOpen,
   onOpenChange,
   dialogClassName,
-  preventAutoFocus = true,
+  preventAutoFocus = false,
 }: {
   children: ReactNode;
   isOpen: boolean;
