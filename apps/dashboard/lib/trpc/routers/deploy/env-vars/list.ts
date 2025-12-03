@@ -61,7 +61,6 @@ export const listEnvVars = t.procedure
         },
       });
 
-      // Group by environment slug
       const result: Record<string, z.infer<typeof environmentOutputSchema>> = {};
 
       for (const env of envs) {
@@ -72,7 +71,7 @@ export const listEnvVars = t.procedure
           variables: vars.map((v) => ({
             id: v.id,
             key: v.key,
-            // Always masked - use decrypt endpoint to reveal
+            // Decrypted by decrypt endpoint
             value: "••••••••",
             type: v.type,
             description: v.description,
@@ -81,11 +80,7 @@ export const listEnvVars = t.procedure
       }
 
       return result;
-    } catch (error) {
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-      console.error("Failed to fetch environment variables:", error);
+    } catch {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to fetch environment variables",

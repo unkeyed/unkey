@@ -29,26 +29,24 @@ export const createEnvVars = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    // Verify the environment belongs to this workspace
-    const environment = await db.query.environments.findFirst({
-      where: and(
-        eq(environments.id, input.environmentId),
-        eq(environments.workspaceId, ctx.workspace.id),
-      ),
-      columns: {
-        id: true,
-      },
-    });
-
-    if (!environment) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Environment not found",
-      });
-    }
-
     try {
-      // Encrypt all values
+      const environment = await db.query.environments.findFirst({
+        where: and(
+          eq(environments.id, input.environmentId),
+          eq(environments.workspaceId, ctx.workspace.id),
+        ),
+        columns: {
+          id: true,
+        },
+      });
+
+      if (!environment) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Environment not found",
+        });
+      }
+
       const encryptedVars = await Promise.all(
         input.variables.map(async (v) => {
           const { encrypted } = await vault.encrypt({
@@ -68,15 +66,12 @@ export const createEnvVars = t.procedure
         }),
       );
 
-      // Insert all in one query
       await db.insert(schema.environmentVariables).values(encryptedVars);
-
-      return {
-        count: encryptedVars.length,
-        ids: encryptedVars.map((v) => v.id),
-      };
     } catch (error) {
-      console.error("Failed to create environment variables:", error);
+      if (error instanceof TRPCError) {
+        throw error;
+      }
+      
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to create environment variables",

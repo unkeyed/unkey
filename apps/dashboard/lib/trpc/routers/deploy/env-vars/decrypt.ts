@@ -25,35 +25,33 @@ export const decryptEnvVar = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    // Fetch the environment variable
-    const envVar = await db.query.environmentVariables.findFirst({
-      where: and(
-        eq(environmentVariables.id, input.envVarId),
-        eq(environmentVariables.workspaceId, ctx.workspace.id),
-      ),
-      columns: {
-        id: true,
-        value: true,
-        type: true,
-      },
-    });
-
-    if (!envVar) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Environment variable not found",
-      });
-    }
-
-    // Only recoverable vars can be decrypted
-    if (envVar.type === "writeonly") {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Writeonly environment variables cannot be decrypted",
-      });
-    }
-
     try {
+      const envVar = await db.query.environmentVariables.findFirst({
+        where: and(
+          eq(environmentVariables.id, input.envVarId),
+          eq(environmentVariables.workspaceId, ctx.workspace.id),
+        ),
+        columns: {
+          id: true,
+          value: true,
+          type: true,
+        },
+      });
+
+      if (!envVar) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Environment variable not found",
+        });
+      }
+
+      if (envVar.type === "writeonly") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Writeonly environment variables cannot be decrypted",
+        });
+      }
+
       const { plaintext } = await vault.decrypt({
         keyring: ctx.workspace.id,
         encrypted: envVar.value,
@@ -61,7 +59,10 @@ export const decryptEnvVar = t.procedure
 
       return { value: plaintext };
     } catch (error) {
-      console.error("Failed to decrypt environment variable:", error);
+      if (error instanceof TRPCError) {
+        throw error;
+      }
+      
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to decrypt environment variable",
