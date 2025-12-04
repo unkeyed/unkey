@@ -153,7 +153,7 @@ export const POST = async (req: Request): Promise<Response> => {
 
         // Skip database updates and notifications for automated billing renewals
         if (isAutomatedBillingRenewal(sub, previousAttributes)) {
-          return new Response("OK");
+          return new Response("Skip", { status: 201 });
         }
 
         if (!sub.items?.data?.[0]?.price?.id || !sub.customer) {
