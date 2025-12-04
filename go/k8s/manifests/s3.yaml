@@ -33,9 +33,9 @@ spec:
         - name: minio
           image: bitnamilegacy/minio:2025.7.23-debian-12-r5
           ports:
-            - containerPort: 9000
+            - containerPort: 3902
               name: api
-            - containerPort: 9001
+            - containerPort: 3903
               name: console
           env:
             - name: MINIO_ROOT_USER
@@ -43,9 +43,9 @@ spec:
             - name: MINIO_ROOT_PASSWORD
               value: "minio_root_password"
             - name: MINIO_API_PORT_NUMBER
-              value: "9000"
+              value: "3902"
             - name: MINIO_CONSOLE_PORT_NUMBER
-              value: "9001"
+              value: "3903"
             - name: MINIO_DEFAULT_BUCKETS
               value: "vault"
           volumeMounts:
@@ -54,13 +54,13 @@ spec:
           readinessProbe:
             httpGet:
               path: /minio/health/ready
-              port: 9000
+              port: 3902
             initialDelaySeconds: 30
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /minio/health/live
-              port: 9000
+              port: 3902
             initialDelaySeconds: 60
             periodSeconds: 30
       volumes:
@@ -82,25 +82,10 @@ spec:
   ports:
     - name: api
       port: 3902
-      targetPort: 9000
+      targetPort: 3902
       protocol: TCP
-  type: LoadBalancer
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: s3-console
-  namespace: unkey
-  labels:
-    app: s3
-    service: console
-spec:
-  selector:
-    app: s3
-  ports:
     - name: console
       port: 3903
-      targetPort: 9001
+      targetPort: 3903
       protocol: TCP
-  type: LoadBalancer
+  type: ClusterIP

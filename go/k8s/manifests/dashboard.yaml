@@ -23,8 +23,8 @@ spec:
             - sh
             - -c
             - |
-              until nc -z planetscale 3900; do
-                echo waiting for planetscale
+              until nc -z planetscale 3900 && nc -z agent 8080; do
+                echo waiting for dependencies
                 sleep 2
               done
       containers:
@@ -52,6 +52,11 @@ spec:
               value: "http://ctrl:7091"
             - name: CTRL_API_KEY
               value: "your-local-dev-key"
+            # Agent configuration
+            - name: AGENT_URL
+              value: "http://agent:8080"
+            - name: AGENT_TOKEN
+              value: "agent-auth-secret"
           readinessProbe:
             httpGet:
               path: /
