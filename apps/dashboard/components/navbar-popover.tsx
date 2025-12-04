@@ -1,9 +1,8 @@
 "use client";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { CaretRight } from "@unkey/icons";
-import { KeyboardButton } from "@unkey/ui";
+import { KeyboardButton, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { usePathname, useRouter } from "next/navigation";
 import { type PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";

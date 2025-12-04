@@ -1,9 +1,9 @@
 "use client";
 import { KeySecretSection } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/key-secret-section";
-import { ConfirmPopover } from "@/components/confirmation-popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { TriangleWarning } from "@unkey/icons";
+import { ConfirmPopover } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef } from "react";
 import { API_ID_PARAM, KEY_PARAM } from "../constants";

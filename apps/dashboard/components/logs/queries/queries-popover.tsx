@@ -1,8 +1,7 @@
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import type { User } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
-import { KeyboardButton } from "@unkey/ui";
+import { KeyboardButton, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
 import type { FilterValue } from "../validation/filter.types";
 import { EmptyQueries } from "./empty";
