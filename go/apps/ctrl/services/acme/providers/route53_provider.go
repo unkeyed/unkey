@@ -2,7 +2,6 @@ package providers
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/go-acme/lego/v4/providers/dns/route53"
@@ -25,16 +24,13 @@ type Route53Config struct {
 
 // NewRoute53Provider creates a new DNS-01 challenge provider using AWS Route53.
 //
-// CNAME following is always disabled via LEGO_DISABLE_CNAME_SUPPORT to prevent lego
-// from following wildcard CNAMEs (e.g., *.example.com -> loadbalancer.aws.com) and
-// failing to find the correct Route53 zone.
+// Important: LEGO_DISABLE_CNAME_SUPPORT must be set to "true" before calling this
+// function to prevent lego from following wildcard CNAMEs and failing zone lookup.
+// This should be done once at application startup (see run.go).
 //
 // HostedZoneID should be provided to explicitly specify which Route53 zone to use,
 // bypassing zone auto-discovery.
 func NewRoute53Provider(cfg Route53Config) (*Provider, error) {
-	// Disable CNAME following in lego to prevent it from following wildcard CNAMEs
-	// and failing to find the correct Route53 zone.
-	os.Setenv("LEGO_DISABLE_CNAME_SUPPORT", "true")
 
 	config := route53.NewDefaultConfig()
 	config.PropagationTimeout = time.Minute * 5

@@ -118,7 +118,12 @@ func (s *Service) ProcessChallenge(
 // globalAcmeUserID is the fixed user ID for the single global ACME account
 const globalAcmeUserID = "acme"
 
-func (s *Service) getOrCreateAcmeClient(ctx context.Context, _ string) (*lego.Client, error) {
+// isWildcard returns true if the domain starts with "*."
+func isWildcard(domain string) bool {
+	return len(domain) > 2 && domain[0] == '*' && domain[1] == '.'
+}
+
+func (s *Service) getOrCreateAcmeClient(ctx context.Context, domain string) (*lego.Client, error) {
 	// Use a single global ACME user for all certificates
 	client, err := acme.GetOrCreateUser(ctx, acme.UserConfig{
 		DB:          s.db,
@@ -131,10 +136,24 @@ func (s *Service) getOrCreateAcmeClient(ctx context.Context, _ string) (*lego.Cl
 		return nil, fmt.Errorf("failed to get/create ACME user: %w", err)
 	}
 
-	if s.dnsProvider != nil {
+	// Wildcard certificates require DNS-01 challenge
+	// Regular domains use HTTP-01 (faster, no DNS propagation wait)
+	if isWildcard(domain) {
+		if s.dnsProvider == nil {
+			return nil, fmt.Errorf("DNS provider required for wildcard certificate: %s", domain)
+		}
 		if err := client.Challenge.SetDNS01Provider(s.dnsProvider); err != nil {
 			return nil, fmt.Errorf("failed to set DNS-01 provider: %w", err)
 		}
+		s.logger.Info("using DNS-01 challenge for wildcard domain", "domain", domain)
+	} else {
+		if s.httpProvider == nil {
+			return nil, fmt.Errorf("HTTP provider required for certificate: %s", domain)
+		}
+		if err := client.Challenge.SetHTTP01Provider(s.httpProvider); err != nil {
+			return nil, fmt.Errorf("failed to set HTTP-01 provider: %w", err)
+		}
+		s.logger.Info("using HTTP-01 challenge for domain", "domain", domain)
 	}
 
 	return client, nil
@@ -144,7 +163,7 @@ func (s *Service) obtainCertificate(ctx context.Context, workspaceID string, dom
 	// Create ACME client inside this function because lego.Client cannot be
 	// serialized through Restate (contains internal pointers that become nil)
 	s.logger.Info("creating ACME client", "domain", domain)
-	client, err := s.getOrCreateAcmeClient(ctx, workspaceID)
+	client, err := s.getOrCreateAcmeClient(ctx, domain)
 	if err != nil {
 		return EncryptedCertificate{}, fmt.Errorf("failed to create ACME client: %w", err)
 	}
@@ -161,7 +180,8 @@ func (s *Service) obtainCertificate(ctx context.Context, workspaceID string, dom
 		retry.Attempts(3),
 		retry.Backoff(func(attempt int) time.Duration {
 			// Exponential backoff: 30s, 60s, 120s (capped at 5min)
-			delay := time.Duration(30<<attempt) * time.Second
+			// attempt is 1-indexed, so use (attempt-1) for correct doubling
+			delay := time.Duration(30<<(attempt-1)) * time.Second
 			if delay > 5*time.Minute {
 				delay = 5 * time.Minute
 			}

@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -105,7 +104,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	for _, identity := range identities {
 		// Fetch ratelimits for this identity
 		ratelimits, err := db.Query.ListIdentityRatelimits(ctx, h.DB.RO(), sql.NullString{Valid: true, String: identity.ID})
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		if err != nil && !db.IsNotFound(err) {
 			return fault.Wrap(err,
 				fault.Internal("unable to fetch ratelimits"), fault.Public("We're unable to retrieve ratelimits for the identities."),
 			)

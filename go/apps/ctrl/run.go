@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"connectrpc.com/connect"
@@ -14,6 +15,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	restateServer "github.com/restatedev/sdk-go/server"
+	ctrlCaches "github.com/unkeyed/unkey/go/apps/ctrl/internal/caches"
 	"github.com/unkeyed/unkey/go/apps/ctrl/middleware"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme/providers"
@@ -51,6 +53,11 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
 	}
+
+	// Disable CNAME following in lego to prevent it from following wildcard CNAMEs
+	// (e.g., *.example.com -> loadbalancer.aws.com) and failing Route53 zone lookup.
+	// Must be set before creating any ACME DNS providers.
+	os.Setenv("LEGO_DISABLE_CNAME_SUPPORT", "true")
 
 	shutdowns := shutdown.New()
 
@@ -250,20 +257,43 @@ func Run(ctx context.Context, cfg Config) error {
 		DefaultDomain: cfg.DefaultDomain,
 	})))
 
-	// Setup DNS provider for ACME challenges
+	// Setup ACME challenge providers
 	var dnsProvider challenge.Provider
+	var httpProvider challenge.Provider
 	if cfg.Acme.Enabled {
+		// Initialize shared caches for ACME providers
+		caches, cacheErr := ctrlCaches.New(ctrlCaches.Config{
+			Logger: logger,
+		})
+		if cacheErr != nil {
+			return fmt.Errorf("failed to create ACME caches: %w", cacheErr)
+		}
+
+		// HTTP-01 provider for regular (non-wildcard) domains
+		httpProv, httpErr := providers.NewHTTPProvider(providers.HTTPConfig{
+			DB:          database,
+			Logger:      logger,
+			DomainCache: caches.Domains,
+		})
+		if httpErr != nil {
+			return fmt.Errorf("failed to create HTTP-01 provider: %w", httpErr)
+		}
+		httpProvider = httpProv
+		logger.Info("ACME HTTP-01 provider enabled")
+
+		// DNS-01 provider for wildcard domains (requires DNS provider config)
 		if cfg.Acme.Cloudflare.Enabled {
 			cfProvider, cfErr := providers.NewCloudflareProvider(providers.CloudflareConfig{
-				DB:       database,
-				Logger:   logger,
-				APIToken: cfg.Acme.Cloudflare.ApiToken,
+				DB:          database,
+				Logger:      logger,
+				APIToken:    cfg.Acme.Cloudflare.ApiToken,
+				DomainCache: caches.Domains,
 			})
 			if cfErr != nil {
 				return fmt.Errorf("failed to create Cloudflare DNS provider: %w", cfErr)
 			}
 			dnsProvider = cfProvider
-			logger.Info("ACME Cloudflare DNS provider enabled")
+			logger.Info("ACME Cloudflare DNS-01 provider enabled for wildcard certs")
 		} else if cfg.Acme.Route53.Enabled {
 			r53Provider, r53Err := providers.NewRoute53Provider(providers.Route53Config{
 				DB:              database,
@@ -272,12 +302,13 @@ func Run(ctx context.Context, cfg Config) error {
 				SecretAccessKey: cfg.Acme.Route53.SecretAccessKey,
 				Region:          cfg.Acme.Route53.Region,
 				HostedZoneID:    cfg.Acme.Route53.HostedZoneID,
+				DomainCache:     caches.Domains,
 			})
 			if r53Err != nil {
 				return fmt.Errorf("failed to create Route53 DNS provider: %w", r53Err)
 			}
 			dnsProvider = r53Provider
-			logger.Info("ACME Route53 DNS provider enabled")
+			logger.Info("ACME Route53 DNS-01 provider enabled for wildcard certs")
 		}
 	}
 
@@ -290,6 +321,7 @@ func Run(ctx context.Context, cfg Config) error {
 		EmailDomain:   cfg.Acme.EmailDomain,
 		DefaultDomain: cfg.DefaultDomain,
 		DNSProvider:   dnsProvider,
+		HTTPProvider:  httpProvider,
 	}), restate.WithInactivityTimeout(15*time.Minute)))
 	restateSrv.Bind(hydrav1.NewProjectServiceServer(projectWorkflow.New(projectWorkflow.Config{
 		Logger: logger,
@@ -484,7 +516,7 @@ func bootstrapWildcardDomain(ctx context.Context, database db.Database, logger l
 		logger.Info("Wildcard domain already exists", "domain", wildcardDomain)
 		return
 	}
-	if err != sql.ErrNoRows {
+	if !db.IsNotFound(err) {
 		logger.Error("Failed to check for existing wildcard domain", "error", err, "domain", wildcardDomain)
 		return
 	}

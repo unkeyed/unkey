@@ -24,7 +24,8 @@ type Service struct {
 	logger        logging.Logger
 	emailDomain   string
 	defaultDomain string
-	dnsProvider   challenge.Provider
+	dnsProvider   challenge.Provider  // For DNS-01 challenges (wildcard certs)
+	httpProvider  challenge.Provider  // For HTTP-01 challenges (regular certs)
 }
 
 var _ hydrav1.CertificateServiceServer = (*Service)(nil)
@@ -46,8 +47,11 @@ type Config struct {
 	// DefaultDomain is the base domain for wildcard certificates
 	DefaultDomain string
 
-	// DNSProvider is the challenge provider for DNS-01 challenges (Cloudflare or Route53)
+	// DNSProvider is the challenge provider for DNS-01 challenges (wildcard certs)
 	DNSProvider challenge.Provider
+
+	// HTTPProvider is the challenge provider for HTTP-01 challenges (regular certs)
+	HTTPProvider challenge.Provider
 }
 
 // New creates a new certificate service instance.
@@ -60,5 +64,6 @@ func New(cfg Config) *Service {
 		emailDomain:                           cfg.EmailDomain,
 		defaultDomain:                         cfg.DefaultDomain,
 		dnsProvider:                           cfg.DNSProvider,
+		httpProvider:                          cfg.HTTPProvider,
 	}
 }
