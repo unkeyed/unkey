@@ -21,7 +21,13 @@ export const RatelimitLogDetails = ({ distanceToTop }: Props) => {
   };
 
   return (
-    <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
+    <LogDetails
+      distanceToTop={distanceToTop}
+      log={log}
+      onClose={handleClose}
+      isLoading={false}
+      isError={false}
+    >
       <LogDetails.Header onClose={handleClose} />
       <LogDetails.Sections />
       <LogDetails.Spacer delay={ANIMATION_DELAY} />
