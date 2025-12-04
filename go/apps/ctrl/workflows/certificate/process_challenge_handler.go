@@ -160,8 +160,6 @@ func (s *Service) getOrCreateAcmeClient(ctx context.Context, domain string) (*le
 }
 
 func (s *Service) obtainCertificate(ctx context.Context, workspaceID string, dom db.CustomDomain, domain string) (EncryptedCertificate, error) {
-	// Create ACME client inside this function because lego.Client cannot be
-	// serialized through Restate (contains internal pointers that become nil)
 	s.logger.Info("creating ACME client", "domain", domain)
 	client, err := s.getOrCreateAcmeClient(ctx, domain)
 	if err != nil {
@@ -180,12 +178,7 @@ func (s *Service) obtainCertificate(ctx context.Context, workspaceID string, dom
 		retry.Attempts(3),
 		retry.Backoff(func(attempt int) time.Duration {
 			// Exponential backoff: 30s, 60s, 120s (capped at 5min)
-			// attempt is 1-indexed, so use (attempt-1) for correct doubling
-			delay := time.Duration(30<<(attempt-1)) * time.Second
-			if delay > 5*time.Minute {
-				delay = 5 * time.Minute
-			}
-			return delay
+			return min(time.Duration(30<<(attempt-1))*time.Second, 5*time.Minute)
 		}),
 	)
 
