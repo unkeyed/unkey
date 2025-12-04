@@ -86,6 +86,9 @@ func (m *Mutator) buildContainerPatches(
 		}
 	}
 
+	// We replace the container's command with unkey-env, which decrypts secrets and then
+	// exec's the original entrypoint. If the pod spec doesn't define a command, we need to
+	// fetch the image's ENTRYPOINT/CMD from the registry so we know what to exec into.
 	var args []string
 	if len(container.Command) == 0 {
 		m.logger.Info("container has no command, fetching from registry",

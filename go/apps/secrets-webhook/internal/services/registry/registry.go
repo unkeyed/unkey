@@ -15,10 +15,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
-const (
-	defaultOS   = "linux"
-	defaultArch = "amd64"
-)
+const defaultOS = "linux"
 
 type ImageConfig struct {
 	Entrypoint []string
@@ -147,10 +144,9 @@ func targetOS() string {
 	return runtime.GOOS
 }
 
+// targetArch returns the architecture to look for in multi-arch image manifests.
+// We assume the webhook runs on the same architecture as the workloads it mutates.
+// If this assumption changes, adjust this function accordingly.
 func targetArch() string {
-	arch := runtime.GOARCH
-	if arch == "arm64" {
-		return "arm64"
-	}
-	return defaultArch
+	return runtime.GOARCH
 }
