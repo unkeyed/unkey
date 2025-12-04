@@ -11,6 +11,86 @@ import {
 } from "@/lib/utils/slackAlerts";
 import Stripe from "stripe";
 
+interface PreviousAttributes {
+  // Billing period dates (change during automated renewals)
+  current_period_end?: number;
+  current_period_start?: number;
+
+  // Subscription items and pricing (change during manual updates)
+  items?: {
+    data?: Partial<Stripe.SubscriptionItem>[];
+  };
+
+  // Other subscription properties that can change manually
+  plan?: Stripe.Plan | null;
+  quantity?: number;
+  discount?: Stripe.Discount | null;
+  cancel_at_period_end?: boolean;
+  collection_method?: string;
+  latest_invoice?: string | Stripe.Invoice | null;
+}
+
+function isAutomatedBillingRenewal(
+  sub: Stripe.Subscription,
+  previousAttributes: PreviousAttributes | undefined,
+): boolean {
+  // Treat as automated renewal when:
+  // 1. subscription status is active
+  // 2. previousAttributes exists
+  // 3. Only contains billing period changes (current_period_start, current_period_end) and optionally items/latest_invoice
+  // 4. If items changed, only the period dates within items actually changed (not price/plan/quantity)
+  // 5. cancel_at_period_end and collection_method are not present among keys
+
+  if (sub.status !== "active" || !previousAttributes) {
+    return false;
+  }
+
+  // Get all keys that changed in previousAttributes
+  const changedKeys = Object.keys(previousAttributes);
+
+  // Define keys that indicate manual changes (not automated renewals)
+  const manualChangeKeys = [
+    "cancel_at_period_end",
+    "collection_method",
+    "plan",
+    "quantity",
+    "discount",
+  ];
+
+  // If any manual change keys are present, this is not an automated renewal
+  if (manualChangeKeys.some((key) => changedKeys.includes(key))) {
+    return false;
+  }
+
+  // Check if items changed and verify only period dates changed
+  if (changedKeys.includes("items")) {
+    const itemsChange = previousAttributes.items;
+    if (!itemsChange || !itemsChange.data || !itemsChange.data[0] || !sub.items?.data?.[0]) {
+      return false;
+    }
+
+    const previousItem = itemsChange.data[0];
+    const currentItem = sub.items.data[0];
+
+    // Check if price, plan, or quantity actually changed by comparing current vs previous
+    if (
+      previousItem.price?.id !== currentItem.price?.id ||
+      previousItem.plan?.id !== currentItem.plan?.id ||
+      previousItem.quantity !== currentItem.quantity
+    ) {
+      return false;
+    }
+  }
+
+  // Define expected keys for automated renewal (period dates + optional items/latest_invoice)
+  const allowedKeys = ["current_period_start", "current_period_end", "items", "latest_invoice"];
+
+  // Check if all changed keys are allowed for automated renewals
+  const hasOnlyAllowedKeys = changedKeys.every((key) => allowedKeys.includes(key));
+
+  return hasOnlyAllowedKeys;
+}
+
 function validateAndParseQuotas(product: Stripe.Product): {
   valid: boolean;
   requestsPerMonth?: number;
@@ -100,6 +180,11 @@ export const POST = async (req: Request): Promise<Response> => {
 
         const previousAttributes = event.data.previous_attributes;
 
+        // Skip database updates and notifications for automated billing renewals
+        if (isAutomatedBillingRenewal(sub, previousAttributes)) {
+          return new Response("Skip", { status: 201 });
+        }
+
         if (!sub.items?.data?.[0]?.price?.id || !sub.customer) {
           return new Response("OK");
         }
@@ -145,6 +230,7 @@ export const POST = async (req: Request): Promise<Response> => {
 
         const { requestsPerMonth, logsRetentionDays, auditLogsRetentionDays } = quotas;
 
+        // Update quotas and workspace tier
         await db.transaction(async (tx) => {
           await tx
             .update(schema.workspaces)
@@ -226,10 +312,10 @@ export const POST = async (req: Request): Promise<Response> => {
           }
         }
 
+        // Send notification for subscription update
         if (customer && !customer.deleted && customer.email) {
           const formattedPrice = formatPrice(price.unit_amount);
 
-          // Send notification for any subscription update
           await alertSubscriptionUpdate(
             product.name,
             formattedPrice,
