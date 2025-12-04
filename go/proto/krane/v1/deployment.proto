@@ -24,6 +24,10 @@ message DeploymentRequest {
   uint32 replicas = 4;
   uint32 cpu_millicores = 5;
   uint64 memory_size_mib = 6;
+
+  // Environment variables to inject into the container.
+  // Keys are variable names, values are the (decrypted) values.
+  map<string, string> env_vars = 7;
 }
 
 message CreateDeploymentRequest {
