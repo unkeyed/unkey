@@ -48,8 +48,11 @@ func (v *K8sValidator) Validate(ctx context.Context, token string, deploymentID 
 	}
 
 	parts := strings.Split(username, ":")
-	if len(parts) < 3 {
-		return nil, fmt.Errorf("invalid service account username format: %s", username)
+	if len(parts) != 4 {
+		return nil, fmt.Errorf("invalid service account username format (expected 4 parts): %s", username)
+	}
+	if parts[0] != "system" || parts[1] != "serviceaccount" {
+		return nil, fmt.Errorf("username is not a service account (expected system:serviceaccount:...): %s", username)
 	}
 	tokenNamespace := parts[2]
 

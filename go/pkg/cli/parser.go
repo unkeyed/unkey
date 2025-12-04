@@ -90,8 +90,8 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 	// Reject positional arguments unless the command explicitly accepts them
 	if len(commandArgs) > 0 && !c.AcceptsArgs {
 		availableFlags := c.getAvailableFlags()
-		return fmt.Errorf("unexpected argument: %s\nAvailable flags: %s",
-			commandArgs[0], availableFlags)
+		return fmt.Errorf("command %q does not accept positional arguments, got: %s\nAvailable flags: %s",
+			c.Name, commandArgs[0], availableFlags)
 	}
 
 	// Validate all required flags are present
