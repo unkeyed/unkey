@@ -218,9 +218,21 @@ func (s *Service) obtainCertificate(ctx context.Context, workspaceID string, dom
 func (s *Service) persistCertificate(ctx context.Context, dom db.CustomDomain, domain string, cert EncryptedCertificate) (string, error) {
 	now := time.Now().UnixMilli()
 
+	// Check if certificate already exists for this hostname (renewal case)
+	// If it does, we keep the existing ID; otherwise use the new ID
+	certID := cert.CertificateID
+	existingCert, err := db.Query.FindCertificateByHostname(ctx, s.db.RO(), domain)
+	if err != nil && !db.IsNotFound(err) {
+		return "", fmt.Errorf("failed to check for existing certificate: %w", err)
+	}
+	if err == nil {
+		// Renewal: keep the existing certificate ID
+		certID = existingCert.ID
+	}
+
 	// InsertCertificate uses ON DUPLICATE KEY UPDATE, so this handles both insert and renewal
-	err := db.Query.InsertCertificate(ctx, s.db.RW(), db.InsertCertificateParams{
-		ID:                  cert.CertificateID,
+	err = db.Query.InsertCertificate(ctx, s.db.RW(), db.InsertCertificateParams{
+		ID:                  certID,
 		WorkspaceID:         dom.WorkspaceID,
 		Hostname:            domain,
 		Certificate:         cert.Certificate,
@@ -232,7 +244,7 @@ func (s *Service) persistCertificate(ctx context.Context, dom db.CustomDomain, d
 		return "", fmt.Errorf("failed to persist certificate: %w", err)
 	}
 
-	return cert.CertificateID, nil
+	return certID, nil
 }
 
 func (s *Service) markChallengeFailed(ctx restate.ObjectContext, domainID string) {
