@@ -149,11 +149,12 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK", { status: 200 });
         }
 
-        const currentQuotas = await db.query.quotas.findFirst({
-          where: eq(schema.quotas.workspaceId, ws.id),
-        });
-
         const previousAttributes = event.data.previous_attributes;
+
+        // Skip database updates and notifications for automated billing renewals
+        if (isAutomatedBillingRenewal(sub, previousAttributes)) {
+          return new Response("OK");
+        }
 
         if (!sub.items?.data?.[0]?.price?.id || !sub.customer) {
           return new Response("OK");
@@ -200,50 +201,48 @@ export const POST = async (req: Request): Promise<Response> => {
 
         const { requestsPerMonth, logsRetentionDays, auditLogsRetentionDays } = quotas;
 
-        // Only update quotas if flag allows
-        if (currentQuotas?.applySubscriptionChanges !== false) {
-          await db.transaction(async (tx) => {
-            await tx
-              .update(schema.workspaces)
-              .set({
-                tier: product.name,
-              })
-              .where(eq(schema.workspaces.id, ws.id));
+        // Update quotas and workspace tier
+        await db.transaction(async (tx) => {
+          await tx
+            .update(schema.workspaces)
+            .set({
+              tier: product.name,
+            })
+            .where(eq(schema.workspaces.id, ws.id));
 
-            await tx
-              .insert(schema.quotas)
-              .values({
-                workspaceId: ws.id,
+          await tx
+            .insert(schema.quotas)
+            .values({
+              workspaceId: ws.id,
+              requestsPerMonth,
+              logsRetentionDays,
+              auditLogsRetentionDays,
+              team: true,
+            })
+            .onDuplicateKeyUpdate({
+              set: {
                 requestsPerMonth,
                 logsRetentionDays,
                 auditLogsRetentionDays,
                 team: true,
-              })
-              .onDuplicateKeyUpdate({
-                set: {
-                  requestsPerMonth,
-                  logsRetentionDays,
-                  auditLogsRetentionDays,
-                  team: true,
-                },
-              });
-
-            await insertAuditLogs(tx, {
-              workspaceId: ws.id,
-              actor: {
-                type: "system",
-                id: "stripe",
-              },
-              event: "workspace.update",
-              description: `Subscription updated to ${product.name} plan.`,
-              resources: [],
-              context: {
-                location: "",
-                userAgent: undefined,
               },
             });
+
+          await insertAuditLogs(tx, {
+            workspaceId: ws.id,
+            actor: {
+              type: "system",
+              id: "stripe",
+            },
+            event: "workspace.update",
+            description: `Subscription updated to ${product.name} plan.`,
+            resources: [],
+            context: {
+              location: "",
+              userAgent: undefined,
+            },
           });
-        }
+        });
 
         /**
          * To make the updates more useful, we detect if they are downgrading or upgrading their subscription
@@ -284,15 +283,10 @@ export const POST = async (req: Request): Promise<Response> => {
           }
         }
 
-        // Check if we should fire alerts
-        const shouldFireAlert =
-          currentQuotas?.applySubscriptionChanges !== false &&
-          !isAutomatedBillingRenewal(sub, previousAttributes);
-
-        if (shouldFireAlert && customer && !customer.deleted && customer.email) {
+        // Send notification for subscription update
+        if (customer && !customer.deleted && customer.email) {
           const formattedPrice = formatPrice(price.unit_amount);
 
-          // Send notification for subscription update
           await alertSubscriptionUpdate(
             product.name,
             formattedPrice,
