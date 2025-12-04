@@ -14,8 +14,10 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
+	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/uid"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -112,6 +114,29 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, err
 	}
 
+	// Unmarshal secrets config to get environment variables
+	var secretsConfig ctrlv1.SecretsConfig
+	if len(deployment.SecretsConfig) > 0 {
+		if err = protojson.Unmarshal(deployment.SecretsConfig, &secretsConfig); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal secrets config: %w", err)
+		}
+	}
+
+	// Decrypt environment variables using the workspace's keyring
+	decryptedEnvVars := make(map[string]string, len(secretsConfig.GetSecrets()))
+	if w.vault != nil {
+		for key, encryptedValue := range secretsConfig.GetSecrets() {
+			decrypted, decryptErr := w.vault.Decrypt(ctx, &vaultv1.DecryptRequest{
+				Keyring:   deployment.WorkspaceID,
+				Encrypted: encryptedValue,
+			})
+			if decryptErr != nil {
+				return nil, fmt.Errorf("failed to decrypt env var %s: %w", key, decryptErr)
+			}
+			decryptedEnvVars[key] = decrypted.GetPlaintext()
+		}
+	}
+
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		// Create deployment request
 
@@ -123,6 +148,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				Replicas:      1,
 				CpuMillicores: 512,
 				MemorySizeMib: 512,
+				EnvVars:       decryptedEnvVars,
 			},
 		}))
 		if err != nil {

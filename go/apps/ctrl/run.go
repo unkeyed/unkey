@@ -105,8 +105,6 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to create vault service: %w", err)
 		}
 	}
-	// make go happy
-	_ = vaultSvc
 
 	// Initialize database
 	database, err := db.New(db.Config{
@@ -237,6 +235,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Krane:         kraneDeploymentClient,
 		BuildClient:   buildService,
 		DefaultDomain: cfg.DefaultDomain,
+		Vault:         vaultSvc,
 	})))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
