@@ -1,18 +1,169 @@
+"use client";
+
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
-import { cn } from "@unkey/ui/src/lib/utils";
+import { useWaveAnimation } from "@/components/logs/overview-charts/hooks";
+import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Area, AreaChart, ResponsiveContainer, YAxis } from "recharts";
-import type { TimeseriesChartLabels } from "./overview-area-chart";
+import { Area, AreaChart, Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
+import type { ChartLoadingProps } from "./types";
 
-type TimeseriesChartLoadingProps = {
-  labels: TimeseriesChartLabels;
+/**
+ * Unified chart loading component that handles three display variants:
+ *
+ * - "simple": Minimal loading with static wave (for stats cards)
+ * - "compact": Loading with animated waves and time labels (for logs charts)
+ * - "full": Complete layout with header, animated area chart, and footer (for overview charts)
+ *
+ * @example
+ * // Simple variant (stats card) - static animation
+ * <ChartLoading variant="simple" animate={false} dataPoints={100} />
+ *
+ * @example
+ * // Compact variant (logs chart) - animated waves
+ * <ChartLoading variant="compact" height={50} dataPoints={300} />
+ *
+ * @example
+ * // Full variant (overview charts) - complete area chart
+ * <ChartLoading
+ *   variant="full"
+ *   labels={{
+ *     rangeLabel: "Last 24h",
+ *     metrics: [
+ *       { key: "success", label: "Success", color: "#10b981" },
+ *       { key: "error", label: "Error", color: "#ef4444" }
+ *     ]
+ *   }}
+ * />
+ */
+export const ChartLoading = ({
+  variant = "simple",
+  labels,
+  height = 50,
+  className,
+  animate = true,
+  dataPoints,
+}: ChartLoadingProps) => {
+  // Simple variant: minimal loading with static or animated bar chart
+  if (variant === "simple") {
+    const { mockData } = useWaveAnimation({
+      animate: false,
+      dataPoints: dataPoints ?? 100,
+      labels: {
+        primaryKey: "success",
+        title: "Loading",
+        primaryLabel: "Success",
+        secondaryLabel: "Error",
+        secondaryKey: "error",
+      },
+    });
+
+    return (
+      <div className={cn("flex flex-col h-full animate-pulse", className)}>
+        <div className="flex-1 min-h-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+              <YAxis domain={[0, 1]} hide />
+              <Bar
+                dataKey="success"
+                fill="hsl(var(--accent-3))"
+                stackId="a"
+                isAnimationActive={false}
+              />
+              <Bar
+                dataKey="error"
+                fill="hsl(var(--accent-3))"
+                stackId="a"
+                isAnimationActive={false}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    );
+  }
+
+  // Compact variant: with animated waves and time labels
+  if (variant === "compact") {
+    const { mockData, currentTime } = useWaveAnimation({
+      dataPoints: dataPoints ?? 300,
+      animate: animate,
+      labels: {
+        primaryKey: "success",
+        title: "Loading",
+        primaryLabel: "Success",
+        secondaryLabel: "",
+        secondaryKey: "",
+      },
+    });
+
+    return (
+      <div className={cn("w-full relative", className)}>
+        <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between">
+          {calculateTimePoints(currentTime, currentTime).map((time, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static time display array
+            <div key={i} className="z-10">
+              {formatTimestampLabel(time)}
+            </div>
+          ))}
+        </div>
+        <ResponsiveContainer height={height} className="border-b border-gray-4" width="100%">
+          <BarChart
+            margin={{ top: 0, right: -20, bottom: 0, left: -20 }}
+            barGap={0}
+            data={mockData}
+          >
+            <YAxis domain={[0, 1.2]} hide />
+            <Bar dataKey="success" fill="hsl(var(--accent-3))" isAnimationActive={false} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  }
+
+  // Full variant: complete layout with animated area chart and multiple metrics
+  if (variant === "full" && labels) {
+    return <FullChartLoader labels={labels} className={className} />;
+  }
+
+  // Fallback to simple if variant is "full" but no labels provided
+  const { mockData } = useWaveAnimation({
+    animate: false,
+    dataPoints: dataPoints ?? 100,
+    labels: {
+      primaryKey: "success",
+      title: "Loading",
+      primaryLabel: "Success",
+      secondaryLabel: "",
+      secondaryKey: "",
+    },
+  });
+
+  return (
+    <div className={cn("flex flex-col h-full animate-pulse", className)}>
+      <div className="flex-1 min-h-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+            <YAxis domain={[0, 1]} hide />
+            <Bar dataKey="success" fill="hsl(var(--accent-3))" isAnimationActive={false} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
 };
 
 /**
- * Enhanced loading component for timeseries area chart displays with fluid, animated waves
+ * Full chart loader with custom animation using requestAnimationFrame
+ * This provides the most sophisticated loading experience for overview area charts
  */
-export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps) => {
+function FullChartLoader({
+  labels,
+  className,
+}: {
+  labels: NonNullable<ChartLoadingProps["labels"]>;
+  className?: string;
+}) {
   const labelsWithDefaults = {
     ...labels,
     showRightSide: labels.showRightSide !== undefined ? labels.showRightSide : true,
@@ -35,7 +186,6 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
   }
 
   // Animation frame function with smooth, continuous wave patterns
-
   const animate = useCallback(() => {
     setPhase((prev) => prev + 0.01);
     animationRef.current = requestAnimationFrame(animate);
@@ -86,7 +236,7 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
   const timePoints = calculateTimePoints(currentTime - 100 * 60000, currentTime);
 
   return (
-    <div className="flex flex-col h-full animate-pulse">
+    <div className={cn("flex flex-col h-full animate-pulse", className)}>
       {/* Header section with support for reverse layout */}
       <div
         className={cn(
@@ -172,7 +322,7 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
       {/* Time labels footer */}
       <div className="border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between">
         {timePoints.map((time, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+          // biome-ignore lint/suspicious/noArrayIndexKey: static time display array
           <div key={i} className="z-10">
             {formatTimestampLabel(time)}
           </div>
@@ -180,4 +330,4 @@ export const OverviewAreaChartLoader = ({ labels }: TimeseriesChartLoadingProps)
       </div>
     </div>
   );
-};
+}
