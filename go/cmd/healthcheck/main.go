@@ -9,12 +9,13 @@ import (
 )
 
 var Cmd = &cli.Command{
-	Aliases:  []string{},
-	Version:  "",
-	Commands: []*cli.Command{},
-	Flags:    []cli.Flag{},
-	Name:     "healthcheck",
-	Usage:    "Perform an HTTP healthcheck against a given URL",
+	Aliases:     []string{},
+	Version:     "",
+	Commands:    []*cli.Command{},
+	Flags:       []cli.Flag{},
+	AcceptsArgs: true,
+	Name:        "healthcheck",
+	Usage:       "Perform an HTTP healthcheck against a given URL",
 	Description: `This command sends an HTTP GET request to the specified URL and validates the response. It exits with code 0 if the server returns a 200 status code, otherwise exits with code 1.
 
 USE CASES:

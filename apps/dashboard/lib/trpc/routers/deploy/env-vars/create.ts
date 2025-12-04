@@ -50,7 +50,7 @@ export const createEnvVars = t.procedure
       const encryptedVars = await Promise.all(
         input.variables.map(async (v) => {
           const { encrypted } = await vault.encrypt({
-            keyring: ctx.workspace.id,
+            keyring: input.environmentId,
             data: v.value,
           });
 

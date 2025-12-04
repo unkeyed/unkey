@@ -31,6 +31,7 @@ type Command struct {
 	Flags       []Flag     // Available flags for this command
 	Action      Action     // Function to execute when command is run
 	Aliases     []string   // Alternative names for this command
+	AcceptsArgs bool       // Whether this command accepts positional arguments
 	commandPath string     // Full command path for MDX generation (e.g., "run api")
 
 	// Runtime state (populated during parsing)

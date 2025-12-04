@@ -15,6 +15,7 @@ import (
 type k8s struct {
 	logger    logging.Logger
 	clientset *kubernetes.Clientset
+	region    string
 	kranev1connect.UnimplementedDeploymentServiceHandler
 	kranev1connect.UnimplementedGatewayServiceHandler
 }
@@ -26,6 +27,9 @@ var _ kranev1connect.GatewayServiceHandler = (*k8s)(nil)
 type Config struct {
 	// Logger for Kubernetes operations.
 	Logger logging.Logger
+
+	// Region where this krane instance is deployed.
+	Region string
 
 	// DeploymentEvictionTTL for automatic cleanup of old deployments.
 	// Set to 0 to to disable automatic eviction.
@@ -53,7 +57,14 @@ func New(cfg Config) (*k8s, error) {
 		UnimplementedGatewayServiceHandler:    kranev1connect.UnimplementedGatewayServiceHandler{},
 		logger:                                cfg.Logger,
 		clientset:                             clientset,
+		region:                                cfg.Region,
 	}
 
 	return k, nil
+}
+
+// GetClientset returns the Kubernetes clientset for use by other services
+// such as the token validator for service account authentication.
+func (k *k8s) GetClientset() kubernetes.Interface {
+	return k.clientset
 }

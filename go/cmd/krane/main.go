@@ -46,6 +46,18 @@ unkey run krane                                   # Run with default configurati
 
 		// This has no use outside of our demo cluster and will be removed soon
 		cli.Duration("deployment-eviction-ttl", "Automatically delete deployments after some time. Use go duration formats such as 2h30m", cli.EnvVar("UNKEY_DEPLOYMENT_EVICTION_TTL")),
+
+		// Vault Configuration
+		cli.StringSlice("vault-master-keys", "Master keys for vault encryption (base64 encoded)",
+			cli.EnvVar("UNKEY_VAULT_MASTER_KEYS")),
+		cli.String("vault-s3-url", "S3 URL for vault storage",
+			cli.EnvVar("UNKEY_VAULT_S3_URL")),
+		cli.String("vault-s3-bucket", "S3 bucket for vault storage",
+			cli.EnvVar("UNKEY_VAULT_S3_BUCKET")),
+		cli.String("vault-s3-access-key-id", "S3 access key ID for vault storage",
+			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
+		cli.String("vault-s3-access-key-secret", "S3 access key secret for vault storage",
+			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 	},
 	Action: action,
 }
@@ -71,6 +83,13 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		RegistryUsername:      cmd.String("registry-username"),
 		RegistryPassword:      cmd.String("registry-password"),
 		DeploymentEvictionTTL: cmd.Duration("deployment-eviction-ttl"),
+		VaultMasterKeys:       cmd.StringSlice("vault-master-keys"),
+		VaultS3: krane.S3Config{
+			URL:             cmd.String("vault-s3-url"),
+			Bucket:          cmd.String("vault-s3-bucket"),
+			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
+			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
+		},
 	}
 
 	// Validate configuration

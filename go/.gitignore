@@ -1,3 +1,4 @@
-unkey
+/unkey
+/unkey-env
 # Added by goreleaser init:
 dist/

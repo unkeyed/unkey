@@ -7,6 +7,14 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 )
 
+// S3Config holds S3 configuration for vault storage
+type S3Config struct {
+	URL             string
+	Bucket          string
+	AccessKeyID     string
+	AccessKeySecret string
+}
+
 // Backend represents the container orchestration backend type.
 type Backend string
 
@@ -95,6 +103,13 @@ type Config struct {
 	// Clock provides time operations for testing and time zone handling.
 	// Use clock.RealClock{} for production, mock clocks for testing.
 	Clock clock.Clock
+
+	// VaultMasterKeys are the encryption keys for vault operations.
+	// Required for decrypting environment variable secrets.
+	VaultMasterKeys []string
+
+	// VaultS3 configures S3 storage for encrypted vault data.
+	VaultS3 S3Config
 }
 
 func (c Config) Validate() error {

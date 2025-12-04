@@ -31,12 +31,13 @@ AVAILABLE COMMANDS:
 }
 
 var getCmd = &cli.Command{
-	Flags:    []cli.Flag{},
-	Version:  "",
-	Commands: []*cli.Command{},
-	Aliases:  []string{},
-	Name:     "get",
-	Usage:    "Get details about a version",
+	Flags:       []cli.Flag{},
+	Version:     "",
+	Commands:    []*cli.Command{},
+	Aliases:     []string{},
+	AcceptsArgs: true,
+	Name:        "get",
+	Usage:       "Get details about a version",
 	Description: `Get comprehensive details about a specific version including status, branch, creation time, and associated hostnames.
 
 EXAMPLES:
@@ -105,8 +106,9 @@ unkey version list --branch main --status active --limit 3  # Combine filters`,
 
 // nolint: exhaustruct
 var rollbackCmd = &cli.Command{
-	Name:  "rollback",
-	Usage: "Rollback to a previous version",
+	AcceptsArgs: true,
+	Name:        "rollback",
+	Usage:       "Rollback to a previous version",
 	Description: `Rollback a hostname to a previous version. This operation will switch traffic from the current version to the specified target version.
 
 WARNING:
