@@ -43,23 +43,15 @@ type Route53ProviderConfig struct {
 
 // NewRoute53Provider creates a new DNS-01 challenge provider using AWS Route53.
 //
-// When HostedZoneID is provided, CNAME following is disabled via LEGO_DISABLE_CNAME_SUPPORT.
-// This is required when domains have wildcard CNAMEs (e.g., *.example.com -> loadbalancer.aws.com)
-// that would cause lego to follow the CNAME chain and fail to find the correct Route53 zone.
+// CNAME following is always disabled via LEGO_DISABLE_CNAME_SUPPORT to prevent lego
+// from following wildcard CNAMEs (e.g., *.example.com -> loadbalancer.aws.com) and
+// failing to find the correct Route53 zone.
 //
-// Without this, lego would:
-//  1. Look up _acme-challenge.example.com
-//  2. Follow CNAME to *.example.com -> loadbalancer.aws.com
-//  3. Try to find a Route53 zone for loadbalancer.aws.com (fails)
-//
-// With HostedZoneID + LEGO_DISABLE_CNAME_SUPPORT:
-//  1. Create TXT record directly at _acme-challenge.example.com in the specified zone
+// HostedZoneID should be provided to explicitly specify which Route53 zone to use,
+// bypassing zone auto-discovery.
 func NewRoute53Provider(cfg Route53ProviderConfig) (*Route53Provider, error) {
-	// When HostedZoneID is explicitly set, disable CNAME following in lego.
-	// This prevents lego from following wildcard CNAMEs to non-Route53 domains.
-	// if cfg.HostedZoneID != "" {
+	// disable CNAME following in lego
 	os.Setenv("LEGO_DISABLE_CNAME_SUPPORT", "true")
-	// }
 
 	config := route53.NewDefaultConfig()
 	config.PropagationTimeout = time.Minute * 5
