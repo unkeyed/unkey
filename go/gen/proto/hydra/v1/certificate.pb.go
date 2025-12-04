@@ -126,6 +126,111 @@ func (x *ProcessChallengeResponse) GetStatus() string {
 	return ""
 }
 
+type RenewExpiringCertificatesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Number of days before expiry to start renewal (default: 30)
+	DaysBeforeExpiry int32 `protobuf:"varint,1,opt,name=days_before_expiry,json=daysBeforeExpiry,proto3" json:"days_before_expiry,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *RenewExpiringCertificatesRequest) Reset() {
+	*x = RenewExpiringCertificatesRequest{}
+	mi := &file_hydra_v1_certificate_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenewExpiringCertificatesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenewExpiringCertificatesRequest) ProtoMessage() {}
+
+func (x *RenewExpiringCertificatesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_certificate_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenewExpiringCertificatesRequest.ProtoReflect.Descriptor instead.
+func (*RenewExpiringCertificatesRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_certificate_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RenewExpiringCertificatesRequest) GetDaysBeforeExpiry() int32 {
+	if x != nil {
+		return x.DaysBeforeExpiry
+	}
+	return 0
+}
+
+type RenewExpiringCertificatesResponse struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	CertificatesChecked int32                  `protobuf:"varint,1,opt,name=certificates_checked,json=certificatesChecked,proto3" json:"certificates_checked,omitempty"`
+	RenewalsTriggered   int32                  `protobuf:"varint,2,opt,name=renewals_triggered,json=renewalsTriggered,proto3" json:"renewals_triggered,omitempty"`
+	FailedDomains       []string               `protobuf:"bytes,3,rep,name=failed_domains,json=failedDomains,proto3" json:"failed_domains,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *RenewExpiringCertificatesResponse) Reset() {
+	*x = RenewExpiringCertificatesResponse{}
+	mi := &file_hydra_v1_certificate_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenewExpiringCertificatesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenewExpiringCertificatesResponse) ProtoMessage() {}
+
+func (x *RenewExpiringCertificatesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_certificate_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenewExpiringCertificatesResponse.ProtoReflect.Descriptor instead.
+func (*RenewExpiringCertificatesResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_certificate_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *RenewExpiringCertificatesResponse) GetCertificatesChecked() int32 {
+	if x != nil {
+		return x.CertificatesChecked
+	}
+	return 0
+}
+
+func (x *RenewExpiringCertificatesResponse) GetRenewalsTriggered() int32 {
+	if x != nil {
+		return x.RenewalsTriggered
+	}
+	return 0
+}
+
+func (x *RenewExpiringCertificatesResponse) GetFailedDomains() []string {
+	if x != nil {
+		return x.FailedDomains
+	}
+	return nil
+}
+
 var File_hydra_v1_certificate_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_certificate_proto_rawDesc = "" +
@@ -136,9 +241,16 @@ const file_hydra_v1_certificate_proto_rawDesc = "" +
 	"\x06domain\x18\x02 \x01(\tR\x06domain\"Y\n" +
 	"\x18ProcessChallengeResponse\x12%\n" +
 	"\x0ecertificate_id\x18\x01 \x01(\tR\rcertificateId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status2w\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\"P\n" +
+	" RenewExpiringCertificatesRequest\x12,\n" +
+	"\x12days_before_expiry\x18\x01 \x01(\x05R\x10daysBeforeExpiry\"\xac\x01\n" +
+	"!RenewExpiringCertificatesResponse\x121\n" +
+	"\x14certificates_checked\x18\x01 \x01(\x05R\x13certificatesChecked\x12-\n" +
+	"\x12renewals_triggered\x18\x02 \x01(\x05R\x11renewalsTriggered\x12%\n" +
+	"\x0efailed_domains\x18\x03 \x03(\tR\rfailedDomains2\xef\x01\n" +
 	"\x12CertificateService\x12[\n" +
-	"\x10ProcessChallenge\x12!.hydra.v1.ProcessChallengeRequest\x1a\".hydra.v1.ProcessChallengeResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x99\x01\n" +
+	"\x10ProcessChallenge\x12!.hydra.v1.ProcessChallengeRequest\x1a\".hydra.v1.ProcessChallengeResponse\"\x00\x12v\n" +
+	"\x19RenewExpiringCertificates\x12*.hydra.v1.RenewExpiringCertificatesRequest\x1a+.hydra.v1.RenewExpiringCertificatesResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x99\x01\n" +
 	"\fcom.hydra.v1B\x10CertificateProtoP\x01Z6github.com/unkeyed/unkey/go/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -153,16 +265,20 @@ func file_hydra_v1_certificate_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_certificate_proto_rawDescData
 }
 
-var file_hydra_v1_certificate_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_hydra_v1_certificate_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_hydra_v1_certificate_proto_goTypes = []any{
-	(*ProcessChallengeRequest)(nil),  // 0: hydra.v1.ProcessChallengeRequest
-	(*ProcessChallengeResponse)(nil), // 1: hydra.v1.ProcessChallengeResponse
+	(*ProcessChallengeRequest)(nil),           // 0: hydra.v1.ProcessChallengeRequest
+	(*ProcessChallengeResponse)(nil),          // 1: hydra.v1.ProcessChallengeResponse
+	(*RenewExpiringCertificatesRequest)(nil),  // 2: hydra.v1.RenewExpiringCertificatesRequest
+	(*RenewExpiringCertificatesResponse)(nil), // 3: hydra.v1.RenewExpiringCertificatesResponse
 }
 var file_hydra_v1_certificate_proto_depIdxs = []int32{
 	0, // 0: hydra.v1.CertificateService.ProcessChallenge:input_type -> hydra.v1.ProcessChallengeRequest
-	1, // 1: hydra.v1.CertificateService.ProcessChallenge:output_type -> hydra.v1.ProcessChallengeResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: hydra.v1.CertificateService.RenewExpiringCertificates:input_type -> hydra.v1.RenewExpiringCertificatesRequest
+	1, // 2: hydra.v1.CertificateService.ProcessChallenge:output_type -> hydra.v1.ProcessChallengeResponse
+	3, // 3: hydra.v1.CertificateService.RenewExpiringCertificates:output_type -> hydra.v1.RenewExpiringCertificatesResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -179,7 +295,7 @@ func file_hydra_v1_certificate_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_certificate_proto_rawDesc), len(file_hydra_v1_certificate_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
