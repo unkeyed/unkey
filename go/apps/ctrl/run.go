@@ -254,11 +254,10 @@ func Run(ctx context.Context, cfg Config) error {
 	var dnsProvider challenge.Provider
 	if cfg.Acme.Enabled {
 		if cfg.Acme.Cloudflare.Enabled {
-			cfProvider, cfErr := providers.NewCloudflareProvider(providers.CloudflareProviderConfig{
-				DB:            database,
-				Logger:        logger,
-				APIToken:      cfg.Acme.Cloudflare.ApiToken,
-				DefaultDomain: cfg.DefaultDomain,
+			cfProvider, cfErr := providers.NewCloudflareProvider(providers.CloudflareConfig{
+				DB:       database,
+				Logger:   logger,
+				APIToken: cfg.Acme.Cloudflare.ApiToken,
 			})
 			if cfErr != nil {
 				return fmt.Errorf("failed to create Cloudflare DNS provider: %w", cfErr)
@@ -266,14 +265,13 @@ func Run(ctx context.Context, cfg Config) error {
 			dnsProvider = cfProvider
 			logger.Info("ACME Cloudflare DNS provider enabled")
 		} else if cfg.Acme.Route53.Enabled {
-			r53Provider, r53Err := providers.NewRoute53Provider(providers.Route53ProviderConfig{
+			r53Provider, r53Err := providers.NewRoute53Provider(providers.Route53Config{
 				DB:              database,
 				Logger:          logger,
 				AccessKeyID:     cfg.Acme.Route53.AccessKeyID,
 				SecretAccessKey: cfg.Acme.Route53.SecretAccessKey,
 				Region:          cfg.Acme.Route53.Region,
 				HostedZoneID:    cfg.Acme.Route53.HostedZoneID,
-				DefaultDomain:   cfg.DefaultDomain,
 			})
 			if r53Err != nil {
 				return fmt.Errorf("failed to create Route53 DNS provider: %w", r53Err)
