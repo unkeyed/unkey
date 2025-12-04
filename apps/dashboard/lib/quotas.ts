@@ -5,5 +5,4 @@ export const freeTierQuotas: Omit<Quotas, "workspaceId"> = {
   logsRetentionDays: 7,
   auditLogsRetentionDays: 30,
   team: false,
-  applySubscriptionChanges: true,
 };
