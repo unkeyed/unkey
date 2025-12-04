@@ -74,9 +74,10 @@
       ".next",
       "dist",
       ".nuxt",
+      "./apps/docs/docs.json",
       "./packages/api/src/openapi.d.ts",
       "./internal/auth-migrator/",
-      "./internal/proto/generated/**/*.ts",
+      "./apps/dashboard/gen/proto/**/*.ts",
       ".wrangler",
       ".react-email",
       ".content-collections",
@@ -100,7 +101,9 @@
       ".source",
       ".trigger",
       "./internal/auth-migrator",
-      "./internal/proto/generated/**/*.ts"
+      "./internal/proto/generated/**/*.ts",
+      "./apps/dashboard/gen/proto/**/*.ts",
+      "./apps/docs/docs.json"
     ]
   },
   "organizeImports": {
@@ -114,7 +117,9 @@
       ".react-email",
       ".content-collections",
       "./internal/auth-migrator",
-      "./internal/proto/generated/**/*.ts"
+      "./internal/proto/generated/**/*.ts",
+      "./apps/dashboard/gen/proto/**/*.ts",
+      "./apps/docs/docs.json"
     ]
   },
   "overrides": [

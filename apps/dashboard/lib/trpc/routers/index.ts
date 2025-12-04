@@ -45,7 +45,11 @@ import { searchDeployments } from "./deploy/deployment/llm-search";
 import { promote } from "./deploy/deployment/promote";
 import { rollback } from "./deploy/deployment/rollback";
 import { listDomains } from "./deploy/domains/list";
-import { getEnvs } from "./deploy/envs/list";
+import { createEnvVars } from "./deploy/env-vars/create";
+import { decryptEnvVar } from "./deploy/env-vars/decrypt";
+import { deleteEnvVar } from "./deploy/env-vars/delete";
+import { listEnvVars } from "./deploy/env-vars/list";
+import { updateEnvVar } from "./deploy/env-vars/update";
 import { generateDeploymentTree } from "./deploy/network/generate";
 import { getDeploymentTree } from "./deploy/network/get";
 import { createProject } from "./deploy/project/create";
@@ -349,8 +353,14 @@ export const router = t.router({
       create: createProject,
     }),
     environment: t.router({
-      list_dummy: getEnvs,
       list: listEnvironments,
+    }),
+    envVar: t.router({
+      list: listEnvVars,
+      create: createEnvVars,
+      update: updateEnvVar,
+      decrypt: decryptEnvVar,
+      delete: deleteEnvVar,
     }),
     domain: t.router({
       list: listDomains,
