@@ -18,13 +18,7 @@ interface PreviousAttributes {
 
   // Subscription items and pricing (change during manual updates)
   items?: {
-    data?: Array<{
-      current_period_end?: number;
-      current_period_start?: number;
-      price?: {
-        id?: string;
-      };
-    }>;
+    data?: Partial<Stripe.SubscriptionItem>[];
   };
 
   // Other subscription properties that can change manually
@@ -43,8 +37,8 @@ function isAutomatedBillingRenewal(
   // Treat as automated renewal when:
   // 1. subscription status is active
   // 2. previousAttributes exists
-  // 3. Only contains billing period changes (current_period_start, current_period_end) and optionally items
-  // 4. items object only contains period date changes, not price/plan changes
+  // 3. Only contains billing period changes (current_period_start, current_period_end) and optionally items/latest_invoice
+  // 4. If items changed, only the period dates within items actually changed (not price/plan/quantity)
   // 5. cancel_at_period_end and collection_method are not present among keys
 
   if (sub.status !== "active" || !previousAttributes) {
@@ -68,26 +62,27 @@ function isAutomatedBillingRenewal(
     return false;
   }
 
-  // Check if items changed and if so, ensure it's only period date changes
+  // Check if items changed and verify only period dates changed
   if (changedKeys.includes("items")) {
     const itemsChange = previousAttributes.items;
-    if (!itemsChange || !itemsChange.data || !itemsChange.data[0]) {
+    if (!itemsChange || !itemsChange.data || !itemsChange.data[0] || !sub.items?.data?.[0]) {
       return false;
     }
 
-    const itemChange = itemsChange.data[0];
-    const itemChangedKeys = Object.keys(itemChange);
+    const previousItem = itemsChange.data[0];
+    const currentItem = sub.items.data[0];
 
-    // Define keys that indicate manual subscription changes (not automated renewals)
-    const manualItemChangeKeys = ["price", "plan", "quantity", "discount"];
-
-    // If any manual item change keys are present, this is not an automated renewal
-    if (manualItemChangeKeys.some((key) => itemChangedKeys.includes(key))) {
+    // Check if price, plan, or quantity actually changed by comparing current vs previous
+    if (
+      previousItem.price?.id !== currentItem.price?.id ||
+      previousItem.plan?.id !== currentItem.plan?.id ||
+      previousItem.quantity !== currentItem.quantity
+    ) {
       return false;
     }
   }
 
-  // Define expected keys for automated renewal (period dates + optional items)
+  // Define expected keys for automated renewal (period dates + optional items/latest_invoice)
   const allowedKeys = ["current_period_start", "current_period_end", "items", "latest_invoice"];
 
   // Check if all changed keys are allowed for automated renewals
