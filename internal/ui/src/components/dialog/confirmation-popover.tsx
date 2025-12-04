@@ -1,10 +1,12 @@
-import { Popover, PopoverContent } from "@/components/ui/popover";
+"use client";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import type { PopoverContentProps } from "@radix-ui/react-popover";
 import { TriangleWarning2 } from "@unkey/icons";
-import { Button } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
-import { useRef } from "react";
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+import React from "react";
+import { cn } from "../../lib/utils";
+import { Button } from "../buttons/button";
+import { Popover, PopoverContent } from "./popover";
 
 const PopoverAnchor = PopoverPrimitive.Anchor;
 const PopoverClose = PopoverPrimitive.Close;
@@ -15,7 +17,7 @@ type ConfirmPopoverProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
-  triggerRef?: React.RefObject<HTMLElement>;
+  triggerRef: React.RefObject<HTMLElement>;
   title?: string;
   description?: string;
   confirmButtonText?: string;
@@ -45,7 +47,7 @@ const DEFAULT_POPOVER_PROPS = {
   align: "center" as const,
   className:
     "bg-white dark:bg-black flex flex-col items-center justify-center border-grayA-4 overflow-hidden !rounded-[10px] p-0 gap-0 min-w-[344px]",
-  onOpenAutoFocus: (e: Event) => e.stopPropagation(),
+  onOpenAutoFocus: (e: Event) => e.preventDefault(),
 };
 
 export const ConfirmPopover = ({
@@ -60,9 +62,6 @@ export const ConfirmPopover = ({
   variant = "warning",
   popoverProps = {},
 }: ConfirmPopoverProps): JSX.Element => {
-  const defaultRef = useRef<HTMLButtonElement>(null);
-  const anchorRef = triggerRef || defaultRef;
-
   const handleConfirm = () => {
     onConfirm();
     onOpenChange(false);
@@ -80,7 +79,7 @@ export const ConfirmPopover = ({
 
   return (
     <Popover open={isOpen} onOpenChange={onOpenChange}>
-      <PopoverAnchor virtualRef={anchorRef} />
+      <PopoverAnchor virtualRef={triggerRef} />
       <PopoverContent {...mergedPopoverProps}>
         <div className="p-4 w-full">
           <div className="flex gap-3 items-center justify-start">

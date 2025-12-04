@@ -1,7 +1,6 @@
-import { ConfirmPopover } from "@/components/confirmation-popover";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { ArrowOppositeDirectionY, Ban, CircleCheck, Trash, XMark } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, ConfirmPopover } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useRef, useState } from "react";
 import { useDeleteKey } from "../actions/components/hooks/use-delete-key";
