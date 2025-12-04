@@ -11,7 +11,8 @@ import (
 
 // Caches holds all shared cache instances for the ctrl application.
 type Caches struct {
-	Domains cache.Cache[string, db.CustomDomain]
+	Domains    cache.Cache[string, db.CustomDomain]
+	Challenges cache.Cache[string, db.AcmeChallenge]
 }
 
 type Config struct {
@@ -37,7 +38,21 @@ func New(cfg Config) (*Caches, error) {
 		return nil, err
 	}
 
+	// Short TTL for challenges since they change during ACME flow
+	challenges, err := cache.New(cache.Config[string, db.AcmeChallenge]{
+		Fresh:    10 * time.Second,
+		Stale:    30 * time.Second,
+		MaxSize:  1000,
+		Logger:   cfg.Logger,
+		Resource: "acme_challenges",
+		Clock:    clk,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &Caches{
-		Domains: domains,
+		Domains:    domains,
+		Challenges: challenges,
 	}, nil
 }

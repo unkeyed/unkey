@@ -257,18 +257,18 @@ func Run(ctx context.Context, cfg Config) error {
 		DefaultDomain: cfg.DefaultDomain,
 	})))
 
+	// Initialize shared caches for ACME (needed for verification endpoint regardless of provider config)
+	caches, cacheErr := ctrlCaches.New(ctrlCaches.Config{
+		Logger: logger,
+	})
+	if cacheErr != nil {
+		return fmt.Errorf("failed to create ACME caches: %w", cacheErr)
+	}
+
 	// Setup ACME challenge providers
 	var dnsProvider challenge.Provider
 	var httpProvider challenge.Provider
 	if cfg.Acme.Enabled {
-		// Initialize shared caches for ACME providers
-		caches, cacheErr := ctrlCaches.New(ctrlCaches.Config{
-			Logger: logger,
-		})
-		if cacheErr != nil {
-			return fmt.Errorf("failed to create ACME caches: %w", cacheErr)
-		}
-
 		// HTTP-01 provider for regular (non-wildcard) domains
 		httpProv, httpErr := providers.NewHTTPProvider(providers.HTTPConfig{
 			DB:          database,
@@ -439,8 +439,10 @@ func Run(ctx context.Context, cfg Config) error {
 	}), connectOptions...))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger), connectOptions...))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
-		DB:     database,
-		Logger: logger,
+		DB:             database,
+		Logger:         logger,
+		DomainCache:    caches.Domains,
+		ChallengeCache: caches.Challenges,
 	}), connectOptions...))
 
 	// Configure server
