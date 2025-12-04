@@ -33,7 +33,7 @@ const DialogContainer = ({
   children,
   footer,
   contentClassName,
-  preventAutoFocus = true,
+  preventAutoFocus = false,
   showCloseWarning = false,
   onAttemptClose,
   modal = false,
@@ -41,7 +41,6 @@ const DialogContainer = ({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange} modal={modal}>
       <DialogContent
-        modal={modal}
         className={cn(
           "drop-shadow-2xl transform-gpu border-gray-4 max-h-[90vh] overflow-hidden !rounded-2xl p-0 gap-0 flex flex-col flex-grow",
           "w-[90%] md:w-[70%] lg:w-[70%] xl:w-[50%] 2xl:w-[45%] max-w-[600px] max-h-[90vh] sm:max-h-[90vh] md:max-h-[70vh] lg:max-h-[90vh] xl:max-h-[80vh]",

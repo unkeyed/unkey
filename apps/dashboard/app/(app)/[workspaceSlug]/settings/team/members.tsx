@@ -1,6 +1,5 @@
 "use client";
 
-import { ConfirmPopover } from "@/components/confirmation-popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Table,
@@ -12,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
-import { Button, Empty, Loading, toast } from "@unkey/ui";
+import { Button, ConfirmPopover, Empty, Loading, toast } from "@unkey/ui";
 import { memo, useRef, useState } from "react";
 import { InviteButton } from "./invite";
 import { RoleSwitcher } from "./role-switcher";

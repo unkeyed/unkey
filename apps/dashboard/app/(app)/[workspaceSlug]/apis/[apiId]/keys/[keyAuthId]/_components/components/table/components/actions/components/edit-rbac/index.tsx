@@ -72,7 +72,11 @@ export const KeyRbacDialog = ({
   const isDialogOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
   const setIsDialogOpen =
     externalOnClose !== undefined
-      ? (open: boolean) => !open && externalOnClose()
+      ? (open: boolean) => {
+          if (!open) {
+            externalOnClose();
+          }
+        }
       : setInternalIsOpen;
 
   const storageKey = `${FORM_STORAGE_KEY}_${existingKey.id}`;
