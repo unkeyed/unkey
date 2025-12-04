@@ -64,7 +64,7 @@ func (s *Service) ProcessChallenge(
 
 	// Compensation: if anything fails after claiming, mark challenge as failed
 	defer func() {
-		if err != nil || (resp != nil && resp.Status == "failed") {
+		if err != nil || (resp != nil && resp.GetStatus() == "failed") {
 			s.markChallengeFailed(ctx, dom.ID)
 		}
 	}()
@@ -159,7 +159,7 @@ func (s *Service) getOrCreateAcmeClient(ctx context.Context, domain string) (*le
 	return client, nil
 }
 
-func (s *Service) obtainCertificate(ctx context.Context, workspaceID string, dom db.CustomDomain, domain string) (EncryptedCertificate, error) {
+func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.CustomDomain, domain string) (EncryptedCertificate, error) {
 	s.logger.Info("creating ACME client", "domain", domain)
 	client, err := s.getOrCreateAcmeClient(ctx, domain)
 	if err != nil {
@@ -169,8 +169,17 @@ func (s *Service) obtainCertificate(ctx context.Context, workspaceID string, dom
 
 	// Request certificate from Let's Encrypt with retry and exponential backoff
 	request := certificate.ObtainRequest{
-		Domains: []string{domain},
-		Bundle:  true,
+		Domains:                        []string{domain},
+		Bundle:                         true,
+		PrivateKey:                     nil,
+		MustStaple:                     false,
+		EmailAddresses:                 nil,
+		NotBefore:                      time.Time{},
+		NotAfter:                       time.Time{},
+		PreferredChain:                 "",
+		Profile:                        "",
+		AlwaysDeactivateAuthorizations: false,
+		ReplacesCertID:                 "",
 	}
 
 	var certificates *certificate.Resource

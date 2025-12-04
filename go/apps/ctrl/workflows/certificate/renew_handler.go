@@ -87,7 +87,9 @@ func (s *Service) RenewExpiringCertificates(
 	nextRunDate := time.Now().Add(renewalInterval).Format("2006-01-02")
 	selfClient := hydrav1.NewCertificateServiceClient(ctx, renewalKey)
 	selfClient.RenewExpiringCertificates().Send(
-		&hydrav1.RenewExpiringCertificatesRequest{},
+		&hydrav1.RenewExpiringCertificatesRequest{
+			DaysBeforeExpiry: 30,
+		},
 		restate.WithDelay(renewalInterval),
 		restate.WithIdempotencyKey("cert-renewal-"+nextRunDate),
 	)

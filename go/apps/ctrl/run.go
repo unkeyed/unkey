@@ -260,6 +260,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Initialize shared caches for ACME (needed for verification endpoint regardless of provider config)
 	caches, cacheErr := ctrlCaches.New(ctrlCaches.Config{
 		Logger: logger,
+		Clock:  clock.New(),
 	})
 	if cacheErr != nil {
 		return fmt.Errorf("failed to create ACME caches: %w", cacheErr)
@@ -392,7 +393,9 @@ func Run(ctx context.Context, cfg Config) error {
 					certClient := hydrav1.NewCertificateServiceIngressClient(restateClient, "global")
 					_, startErr := certClient.RenewExpiringCertificates().Send(
 						ctx,
-						&hydrav1.RenewExpiringCertificatesRequest{},
+						&hydrav1.RenewExpiringCertificatesRequest{
+							DaysBeforeExpiry: 30,
+						},
 						restate.WithIdempotencyKey("cert-renewal-cron-startup"),
 					)
 					if startErr != nil {
