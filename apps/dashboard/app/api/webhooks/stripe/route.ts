@@ -19,6 +19,8 @@ interface PreviousAttributes {
   // Subscription items and pricing (change during manual updates)
   items?: {
     data?: Array<{
+      current_period_end?: number;
+      current_period_start?: number;
       price?: {
         id?: string;
       };
@@ -31,6 +33,7 @@ interface PreviousAttributes {
   discount?: Stripe.Discount | null;
   cancel_at_period_end?: boolean;
   collection_method?: string;
+  latest_invoice?: string | Stripe.Invoice | null;
 }
 
 function isAutomatedBillingRenewal(
@@ -40,8 +43,9 @@ function isAutomatedBillingRenewal(
   // Treat as automated renewal when:
   // 1. subscription status is active
   // 2. previousAttributes exists
-  // 3. Object.keys(previousAttributes) contains exactly "current_period_start" and "current_period_end"
-  // 4. cancel_at_period_end and collection_method are not present among keys
+  // 3. Only contains billing period changes (current_period_start, current_period_end) and optionally items
+  // 4. items object only contains period date changes, not price/plan changes
+  // 5. cancel_at_period_end and collection_method are not present among keys
 
   if (sub.status !== "active" || !previousAttributes) {
     return false;
@@ -50,16 +54,46 @@ function isAutomatedBillingRenewal(
   // Get all keys that changed in previousAttributes
   const changedKeys = Object.keys(previousAttributes);
 
-  // Define expected keys for automated renewal
-  const expectedRenewalKeys = ["current_period_start", "current_period_end"];
+  // Define keys that indicate manual changes (not automated renewals)
+  const manualChangeKeys = [
+    "cancel_at_period_end",
+    "collection_method",
+    "plan",
+    "quantity",
+    "discount",
+  ];
 
-  // Check if changed keys match exactly the expected renewal keys
-  const hasOnlyExpectedKeys =
-    changedKeys.length === expectedRenewalKeys.length &&
-    expectedRenewalKeys.every((key) => changedKeys.includes(key)) &&
-    changedKeys.every((key) => expectedRenewalKeys.includes(key));
+  // If any manual change keys are present, this is not an automated renewal
+  if (manualChangeKeys.some((key) => changedKeys.includes(key))) {
+    return false;
+  }
 
-  return hasOnlyExpectedKeys;
+  // Check if items changed and if so, ensure it's only period date changes
+  if (changedKeys.includes("items")) {
+    const itemsChange = previousAttributes.items;
+    if (!itemsChange || !itemsChange.data || !itemsChange.data[0]) {
+      return false;
+    }
+
+    const itemChange = itemsChange.data[0];
+    const itemChangedKeys = Object.keys(itemChange);
+
+    // Define keys that indicate manual subscription changes (not automated renewals)
+    const manualItemChangeKeys = ["price", "plan", "quantity", "discount"];
+
+    // If any manual item change keys are present, this is not an automated renewal
+    if (manualItemChangeKeys.some((key) => itemChangedKeys.includes(key))) {
+      return false;
+    }
+  }
+
+  // Define expected keys for automated renewal (period dates + optional items)
+  const allowedKeys = ["current_period_start", "current_period_end", "items", "latest_invoice"];
+
+  // Check if all changed keys are allowed for automated renewals
+  const hasOnlyAllowedKeys = changedKeys.every((key) => allowedKeys.includes(key));
+
+  return hasOnlyAllowedKeys;
 }
 
 function validateAndParseQuotas(product: Stripe.Product): {
