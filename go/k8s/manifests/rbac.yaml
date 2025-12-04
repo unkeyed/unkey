@@ -9,6 +9,19 @@ metadata:
     component: krane
 
 ---
+# Restricted service account for customer workloads
+# This account has NO permissions - customers cannot query the K8s API
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: customer-workload
+  namespace: unkey
+  labels:
+    app: unkey
+    component: customer
+# automountServiceAccountToken is also disabled at pod level for defense in depth
+
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
