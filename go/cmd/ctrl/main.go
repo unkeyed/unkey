@@ -186,6 +186,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			Bucket:          cmd.String("vault-s3-bucket"),
 			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
 			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
+			ExternalURL:     "",
 		},
 		// ACME Vault configuration - Let's Encrypt certificates
 		AcmeVaultMasterKeys: cmd.StringSlice("acme-vault-master-keys"),
@@ -194,6 +195,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			Bucket:          cmd.String("acme-vault-s3-bucket"),
 			AccessKeyID:     cmd.String("acme-vault-s3-access-key-id"),
 			AccessKeySecret: cmd.String("acme-vault-s3-access-key-secret"),
+			ExternalURL:     "",
 		},
 
 		// Build configuration

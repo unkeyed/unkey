@@ -3,9 +3,10 @@ package mutator
 import "fmt"
 
 const (
-	unkeyEnvVolumeName      = "unkey-env-bin"
-	unkeyEnvMountPath       = "/unkey"
-	unkeyEnvBinary          = "/unkey/unkey-env"
+	unkeyEnvVolumeName = "unkey-env-bin"
+	unkeyEnvMountPath  = "/unkey"
+	unkeyEnvBinary     = "/unkey/unkey-env"
+	//nolint:gosec // G101: This is a file path, not credentials
 	ServiceAccountTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 )
 
@@ -31,7 +32,10 @@ type podConfig struct {
 }
 
 func (m *Mutator) loadPodConfig(annotations map[string]string) (*podConfig, error) {
-	cfg := &podConfig{}
+	cfg := &podConfig{
+		DeploymentID:     "",
+		ProviderEndpoint: "",
+	}
 
 	cfg.DeploymentID = annotations[m.cfg.GetAnnotation(AnnotationDeploymentID)]
 	if cfg.DeploymentID == "" {
