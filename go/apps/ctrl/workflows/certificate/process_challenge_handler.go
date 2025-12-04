@@ -168,18 +168,10 @@ func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.Custom
 	s.logger.Info("ACME client created, requesting certificate", "domain", domain)
 
 	// Request certificate from Let's Encrypt with retry and exponential backoff
+	//nolint:exhaustruct // external library type
 	request := certificate.ObtainRequest{
-		Domains:                        []string{domain},
-		Bundle:                         true,
-		PrivateKey:                     nil,
-		MustStaple:                     false,
-		EmailAddresses:                 nil,
-		NotBefore:                      time.Time{},
-		NotAfter:                       time.Time{},
-		PreferredChain:                 "",
-		Profile:                        "",
-		AlwaysDeactivateAuthorizations: false,
-		ReplacesCertID:                 "",
+		Domains: []string{domain},
+		Bundle:  true,
 	}
 
 	var certificates *certificate.Resource

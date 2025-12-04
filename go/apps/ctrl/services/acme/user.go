@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"time"
 
-	legoacme "github.com/go-acme/lego/v4/acme"
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/registration"
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
@@ -78,9 +77,9 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 
 	// If we have a valid registration URI, use it
 	if foundUser.RegistrationUri.Valid && foundUser.RegistrationUri.String != "" {
+		//nolint:exhaustruct // external library type
 		user.Registration = &registration.Resource{
-			URI:  foundUser.RegistrationUri.String,
-			Body: legoacme.Account{},
+			URI: foundUser.RegistrationUri.String,
 		}
 	}
 
