@@ -23,6 +23,7 @@ func NewK8sValidator(cfg K8sValidatorConfig) *K8sValidator {
 }
 
 func (v *K8sValidator) Validate(ctx context.Context, token string, deploymentID string) (*ValidationResult, error) {
+	//nolint:exhaustruct // k8s API types have many optional fields
 	tokenReview := &authv1.TokenReview{
 		Spec: authv1.TokenReviewSpec{Token: token},
 	}

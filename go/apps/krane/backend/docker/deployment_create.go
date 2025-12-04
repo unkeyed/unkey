@@ -79,7 +79,7 @@ func (d *docker) CreateDeployment(ctx context.Context, req *connect.Request[kran
 			"unkey.managed.by":    "krane",
 		},
 		ExposedPorts: exposedPorts,
-		Env:          env,
+		// Env is set per-instance below with UNKEY_INSTANCE_ID
 	}
 
 	//nolint:exhaustruct // Docker SDK types have many optional fields

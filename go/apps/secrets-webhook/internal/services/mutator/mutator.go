@@ -41,7 +41,7 @@ func (m *Mutator) ShouldMutate(pod *corev1.Pod) bool {
 
 func (m *Mutator) Mutate(ctx context.Context, pod *corev1.Pod, namespace string) (*Result, error) {
 	if !m.ShouldMutate(pod) {
-		return &Result{Mutated: false, Message: "pod not annotated for injection"}, nil
+		return &Result{Mutated: false, Patch: nil, Message: "pod not annotated for injection"}, nil
 	}
 
 	annotations := pod.GetAnnotations()

@@ -42,6 +42,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to load TLS certificates: %w", err)
 	}
 
+	//nolint:exhaustruct // zen.Config has many optional fields with sensible defaults
 	server, err := zen.New(zen.Config{
 		Logger: logger,
 		TLS:    tlsConfig,
