@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -47,13 +48,12 @@ func (p *KraneVaultProvider) Name() string {
 func (p *KraneVaultProvider) FetchSecrets(ctx context.Context, opts FetchOptions) (map[string]string, error) {
 	token := opts.Token
 
-	// If TokenPath is set, read token from file (e.g., K8s service account token)
 	if opts.TokenPath != "" {
 		tokenBytes, err := os.ReadFile(opts.TokenPath)
 		if err != nil {
 			return nil, err
 		}
-		token = string(tokenBytes)
+		token = strings.TrimSpace(string(tokenBytes))
 	}
 
 	if err := assert.All(
@@ -81,14 +81,5 @@ func (p *KraneVaultProvider) FetchSecrets(ctx context.Context, opts FetchOptions
 		return resp.Msg.GetEnvVars(), nil
 	}
 
-	// Fallback to GetDeploymentSecrets (requires DB lookup in krane)
-	resp, err := p.client.GetDeploymentSecrets(ctx, connect.NewRequest(&kranev1.GetDeploymentSecretsRequest{
-		DeploymentId: opts.DeploymentID,
-		Token:        token,
-	}))
-	if err != nil {
-		return nil, err
-	}
-
-	return resp.Msg.GetEnvVars(), nil
+	return make(map[string]string), nil
 }

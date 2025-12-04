@@ -52,6 +52,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	m := mutator.New(&mutator.Config{
 		UnkeyEnvImage:           cfg.UnkeyEnvImage,
+		UnkeyEnvImagePullPolicy: cfg.UnkeyEnvImagePullPolicy,
 		AnnotationPrefix:        cfg.AnnotationPrefix,
 		DefaultProviderEndpoint: cfg.KraneEndpoint,
 	}, logger, reg)

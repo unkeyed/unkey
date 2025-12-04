@@ -19,6 +19,8 @@ var Cmd = &cli.Command{
 			cli.Required(), cli.EnvVar("WEBHOOK_TLS_KEY_FILE")),
 		cli.String("unkey-env-image", "Container image for unkey-env binary",
 			cli.Default("unkey-env:latest"), cli.EnvVar("UNKEY_ENV_IMAGE")),
+		cli.String("unkey-env-image-pull-policy", "Image pull policy (Always, IfNotPresent, Never)",
+			cli.Default("IfNotPresent"), cli.EnvVar("UNKEY_ENV_IMAGE_PULL_POLICY")),
 		cli.String("krane-endpoint", "Endpoint for Krane secrets service",
 			cli.Default("http://krane.unkey.svc.cluster.local:8080"), cli.EnvVar("KRANE_ENDPOINT")),
 		cli.String("annotation-prefix", "Annotation prefix for pod configuration",
@@ -29,12 +31,13 @@ var Cmd = &cli.Command{
 
 func action(ctx context.Context, cmd *cli.Command) error {
 	config := webhook.Config{
-		HttpPort:         cmd.Int("port"),
-		TLSCertFile:      cmd.String("tls-cert-file"),
-		TLSKeyFile:       cmd.String("tls-key-file"),
-		UnkeyEnvImage:    cmd.String("unkey-env-image"),
-		KraneEndpoint:    cmd.String("krane-endpoint"),
-		AnnotationPrefix: cmd.String("annotation-prefix"),
+		HttpPort:                cmd.Int("port"),
+		TLSCertFile:             cmd.String("tls-cert-file"),
+		TLSKeyFile:              cmd.String("tls-key-file"),
+		UnkeyEnvImage:           cmd.String("unkey-env-image"),
+		UnkeyEnvImagePullPolicy: cmd.String("unkey-env-image-pull-policy"),
+		KraneEndpoint:           cmd.String("krane-endpoint"),
+		AnnotationPrefix:        cmd.String("annotation-prefix"),
 	}
 
 	if err := config.Validate(); err != nil {

@@ -3,6 +3,7 @@ package registry
 import (
 	"context"
 	"fmt"
+	"runtime"
 
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -12,6 +13,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+)
+
+const (
+	defaultOS   = "linux"
+	defaultArch = "amd64"
 )
 
 type ImageConfig struct {
@@ -81,7 +87,17 @@ func (r *Registry) GetImageConfig(
 			return nil, fmt.Errorf("no manifests found in image index for %q", container.Image)
 		}
 
-		image, err = index.Image(manifest.Manifests[0].Digest)
+		digest, found := r.findPlatformManifest(manifest.Manifests)
+		if !found {
+			r.logger.Warn("no matching platform found in image index, using first manifest",
+				"image", container.Image,
+				"wanted_os", targetOS(),
+				"wanted_arch", targetArch(),
+			)
+			digest = manifest.Manifests[0].Digest
+		}
+
+		image, err = index.Image(digest)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get image from manifest: %w", err)
 		}
@@ -107,4 +123,34 @@ func (r *Registry) GetImageConfig(
 		Entrypoint: configFile.Config.Entrypoint,
 		Cmd:        configFile.Config.Cmd,
 	}, nil
+}
+
+func (r *Registry) findPlatformManifest(manifests []v1.Descriptor) (v1.Hash, bool) {
+	wantOS := targetOS()
+	wantArch := targetArch()
+
+	for _, m := range manifests {
+		if m.Platform == nil {
+			continue
+		}
+		if m.Platform.OS == wantOS && m.Platform.Architecture == wantArch {
+			return m.Digest, true
+		}
+	}
+	return v1.Hash{}, false
+}
+
+func targetOS() string {
+	if runtime.GOOS == "darwin" {
+		return defaultOS
+	}
+	return runtime.GOOS
+}
+
+func targetArch() string {
+	arch := runtime.GOARCH
+	if arch == "arm64" {
+		return "arm64"
+	}
+	return defaultArch
 }

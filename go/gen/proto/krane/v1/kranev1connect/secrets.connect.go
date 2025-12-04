@@ -33,9 +33,6 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// SecretsServiceGetDeploymentSecretsProcedure is the fully-qualified name of the SecretsService's
-	// GetDeploymentSecrets RPC.
-	SecretsServiceGetDeploymentSecretsProcedure = "/krane.v1.SecretsService/GetDeploymentSecrets"
 	// SecretsServiceDecryptSecretsBlobProcedure is the fully-qualified name of the SecretsService's
 	// DecryptSecretsBlob RPC.
 	SecretsServiceDecryptSecretsBlobProcedure = "/krane.v1.SecretsService/DecryptSecretsBlob"
@@ -43,10 +40,6 @@ const (
 
 // SecretsServiceClient is a client for the krane.v1.SecretsService service.
 type SecretsServiceClient interface {
-	// GetDeploymentSecrets returns decrypted environment variables for a deployment.
-	// Authentication is via a token generated at deployment creation time.
-	// DEPRECATED: Use DecryptSecretsBlob instead for better performance.
-	GetDeploymentSecrets(context.Context, *connect.Request[v1.GetDeploymentSecretsRequest]) (*connect.Response[v1.GetDeploymentSecretsResponse], error)
 	// DecryptSecretsBlob decrypts an encrypted secrets blob passed in the pod spec.
 	// This avoids DB lookups - the encrypted blob travels with the pod.
 	// Authentication is via K8s service account token or DB-stored token.
@@ -64,12 +57,6 @@ func NewSecretsServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 	baseURL = strings.TrimRight(baseURL, "/")
 	secretsServiceMethods := v1.File_krane_v1_secrets_proto.Services().ByName("SecretsService").Methods()
 	return &secretsServiceClient{
-		getDeploymentSecrets: connect.NewClient[v1.GetDeploymentSecretsRequest, v1.GetDeploymentSecretsResponse](
-			httpClient,
-			baseURL+SecretsServiceGetDeploymentSecretsProcedure,
-			connect.WithSchema(secretsServiceMethods.ByName("GetDeploymentSecrets")),
-			connect.WithClientOptions(opts...),
-		),
 		decryptSecretsBlob: connect.NewClient[v1.DecryptSecretsBlobRequest, v1.DecryptSecretsBlobResponse](
 			httpClient,
 			baseURL+SecretsServiceDecryptSecretsBlobProcedure,
@@ -81,13 +68,7 @@ func NewSecretsServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // secretsServiceClient implements SecretsServiceClient.
 type secretsServiceClient struct {
-	getDeploymentSecrets *connect.Client[v1.GetDeploymentSecretsRequest, v1.GetDeploymentSecretsResponse]
-	decryptSecretsBlob   *connect.Client[v1.DecryptSecretsBlobRequest, v1.DecryptSecretsBlobResponse]
-}
-
-// GetDeploymentSecrets calls krane.v1.SecretsService.GetDeploymentSecrets.
-func (c *secretsServiceClient) GetDeploymentSecrets(ctx context.Context, req *connect.Request[v1.GetDeploymentSecretsRequest]) (*connect.Response[v1.GetDeploymentSecretsResponse], error) {
-	return c.getDeploymentSecrets.CallUnary(ctx, req)
+	decryptSecretsBlob *connect.Client[v1.DecryptSecretsBlobRequest, v1.DecryptSecretsBlobResponse]
 }
 
 // DecryptSecretsBlob calls krane.v1.SecretsService.DecryptSecretsBlob.
@@ -97,10 +78,6 @@ func (c *secretsServiceClient) DecryptSecretsBlob(ctx context.Context, req *conn
 
 // SecretsServiceHandler is an implementation of the krane.v1.SecretsService service.
 type SecretsServiceHandler interface {
-	// GetDeploymentSecrets returns decrypted environment variables for a deployment.
-	// Authentication is via a token generated at deployment creation time.
-	// DEPRECATED: Use DecryptSecretsBlob instead for better performance.
-	GetDeploymentSecrets(context.Context, *connect.Request[v1.GetDeploymentSecretsRequest]) (*connect.Response[v1.GetDeploymentSecretsResponse], error)
 	// DecryptSecretsBlob decrypts an encrypted secrets blob passed in the pod spec.
 	// This avoids DB lookups - the encrypted blob travels with the pod.
 	// Authentication is via K8s service account token or DB-stored token.
@@ -114,12 +91,6 @@ type SecretsServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewSecretsServiceHandler(svc SecretsServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	secretsServiceMethods := v1.File_krane_v1_secrets_proto.Services().ByName("SecretsService").Methods()
-	secretsServiceGetDeploymentSecretsHandler := connect.NewUnaryHandler(
-		SecretsServiceGetDeploymentSecretsProcedure,
-		svc.GetDeploymentSecrets,
-		connect.WithSchema(secretsServiceMethods.ByName("GetDeploymentSecrets")),
-		connect.WithHandlerOptions(opts...),
-	)
 	secretsServiceDecryptSecretsBlobHandler := connect.NewUnaryHandler(
 		SecretsServiceDecryptSecretsBlobProcedure,
 		svc.DecryptSecretsBlob,
@@ -128,8 +99,6 @@ func NewSecretsServiceHandler(svc SecretsServiceHandler, opts ...connect.Handler
 	)
 	return "/krane.v1.SecretsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case SecretsServiceGetDeploymentSecretsProcedure:
-			secretsServiceGetDeploymentSecretsHandler.ServeHTTP(w, r)
 		case SecretsServiceDecryptSecretsBlobProcedure:
 			secretsServiceDecryptSecretsBlobHandler.ServeHTTP(w, r)
 		default:
@@ -140,10 +109,6 @@ func NewSecretsServiceHandler(svc SecretsServiceHandler, opts ...connect.Handler
 
 // UnimplementedSecretsServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedSecretsServiceHandler struct{}
-
-func (UnimplementedSecretsServiceHandler) GetDeploymentSecrets(context.Context, *connect.Request[v1.GetDeploymentSecretsRequest]) (*connect.Response[v1.GetDeploymentSecretsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("krane.v1.SecretsService.GetDeploymentSecrets is not implemented"))
-}
 
 func (UnimplementedSecretsServiceHandler) DecryptSecretsBlob(context.Context, *connect.Request[v1.DecryptSecretsBlobRequest]) (*connect.Response[v1.DecryptSecretsBlobResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("krane.v1.SecretsService.DecryptSecretsBlob is not implemented"))

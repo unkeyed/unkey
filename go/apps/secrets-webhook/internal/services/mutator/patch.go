@@ -8,10 +8,15 @@ import (
 )
 
 func (m *Mutator) buildInitContainer() corev1.Container {
+	pullPolicy := corev1.PullIfNotPresent
+	if m.cfg.UnkeyEnvImagePullPolicy != "" {
+		pullPolicy = corev1.PullPolicy(m.cfg.UnkeyEnvImagePullPolicy)
+	}
+
 	return corev1.Container{
 		Name:            "copy-unkey-env",
 		Image:           m.cfg.UnkeyEnvImage,
-		ImagePullPolicy: corev1.PullNever,
+		ImagePullPolicy: pullPolicy,
 		Command:         []string{"cp", "/unkey-env", unkeyEnvBinary},
 		VolumeMounts: []corev1.VolumeMount{
 			{
@@ -65,14 +70,14 @@ func (m *Mutator) buildContainerPatches(
 	}
 
 	envVars := m.buildEnvVars(podCfg)
-	for _, env := range envVars {
-		if len(container.Env) == 0 {
-			patches = append(patches, map[string]interface{}{
-				"op":    "add",
-				"path":  fmt.Sprintf("%s/env", basePath),
-				"value": []corev1.EnvVar{env},
-			})
-		} else {
+	if len(container.Env) == 0 {
+		patches = append(patches, map[string]interface{}{
+			"op":    "add",
+			"path":  fmt.Sprintf("%s/env", basePath),
+			"value": envVars,
+		})
+	} else {
+		for _, env := range envVars {
 			patches = append(patches, map[string]interface{}{
 				"op":    "add",
 				"path":  fmt.Sprintf("%s/env/-", basePath),

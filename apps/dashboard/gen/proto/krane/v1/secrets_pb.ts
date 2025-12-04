@@ -10,52 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file krane/v1/secrets.proto.
  */
 export const file_krane_v1_secrets: GenFile = /*@__PURE__*/
-  fileDesc("ChZrcmFuZS92MS9zZWNyZXRzLnByb3RvEghrcmFuZS52MSJDChtHZXREZXBsb3ltZW50U2VjcmV0c1JlcXVlc3QSFQoNZGVwbG95bWVudF9pZBgBIAEoCRINCgV0b2tlbhgCIAEoCSKVAQocR2V0RGVwbG95bWVudFNlY3JldHNSZXNwb25zZRJFCghlbnZfdmFycxgBIAMoCzIzLmtyYW5lLnYxLkdldERlcGxveW1lbnRTZWNyZXRzUmVzcG9uc2UuRW52VmFyc0VudHJ5Gi4KDEVudlZhcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBInEKGURlY3J5cHRTZWNyZXRzQmxvYlJlcXVlc3QSFgoOZW5jcnlwdGVkX2Jsb2IYASABKAwSFgoOZW52aXJvbm1lbnRfaWQYAiABKAkSDQoFdG9rZW4YAyABKAkSFQoNZGVwbG95bWVudF9pZBgEIAEoCSKRAQoaRGVjcnlwdFNlY3JldHNCbG9iUmVzcG9uc2USQwoIZW52X3ZhcnMYASADKAsyMS5rcmFuZS52MS5EZWNyeXB0U2VjcmV0c0Jsb2JSZXNwb25zZS5FbnZWYXJzRW50cnkaLgoMRW52VmFyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEy2AEKDlNlY3JldHNTZXJ2aWNlEmUKFEdldERlcGxveW1lbnRTZWNyZXRzEiUua3JhbmUudjEuR2V0RGVwbG95bWVudFNlY3JldHNSZXF1ZXN0GiYua3JhbmUudjEuR2V0RGVwbG95bWVudFNlY3JldHNSZXNwb25zZRJfChJEZWNyeXB0U2VjcmV0c0Jsb2ISIy5rcmFuZS52MS5EZWNyeXB0U2VjcmV0c0Jsb2JSZXF1ZXN0GiQua3JhbmUudjEuRGVjcnlwdFNlY3JldHNCbG9iUmVzcG9uc2VClQEKDGNvbS5rcmFuZS52MUIMU2VjcmV0c1Byb3RvUAFaNmdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8va3JhbmUvdjE7a3JhbmV2MaICA0tYWKoCCEtyYW5lLlYxygIIS3JhbmVcVjHiAhRLcmFuZVxWMVxHUEJNZXRhZGF0YeoCCUtyYW5lOjpWMWIGcHJvdG8z");
-
-/**
- * @generated from message krane.v1.GetDeploymentSecretsRequest
- */
-export type GetDeploymentSecretsRequest = Message<"krane.v1.GetDeploymentSecretsRequest"> & {
-  /**
-   * The deployment ID to fetch secrets for
-   *
-   * @generated from field: string deployment_id = 1;
-   */
-  deploymentId: string;
-
-  /**
-   * Token for authentication (generated at pod creation, validated per backend)
-   *
-   * @generated from field: string token = 2;
-   */
-  token: string;
-};
-
-/**
- * Describes the message krane.v1.GetDeploymentSecretsRequest.
- * Use `create(GetDeploymentSecretsRequestSchema)` to create a new message.
- */
-export const GetDeploymentSecretsRequestSchema: GenMessage<GetDeploymentSecretsRequest> = /*@__PURE__*/
-  messageDesc(file_krane_v1_secrets, 0);
-
-/**
- * @generated from message krane.v1.GetDeploymentSecretsResponse
- */
-export type GetDeploymentSecretsResponse = Message<"krane.v1.GetDeploymentSecretsResponse"> & {
-  /**
-   * Decrypted environment variables (key -> plaintext value)
-   *
-   * @generated from field: map<string, string> env_vars = 1;
-   */
-  envVars: { [key: string]: string };
-};
-
-/**
- * Describes the message krane.v1.GetDeploymentSecretsResponse.
- * Use `create(GetDeploymentSecretsResponseSchema)` to create a new message.
- */
-export const GetDeploymentSecretsResponseSchema: GenMessage<GetDeploymentSecretsResponse> = /*@__PURE__*/
-  messageDesc(file_krane_v1_secrets, 1);
+  fileDesc("ChZrcmFuZS92MS9zZWNyZXRzLnByb3RvEghrcmFuZS52MSJxChlEZWNyeXB0U2VjcmV0c0Jsb2JSZXF1ZXN0EhYKDmVuY3J5cHRlZF9ibG9iGAEgASgMEhYKDmVudmlyb25tZW50X2lkGAIgASgJEg0KBXRva2VuGAMgASgJEhUKDWRlcGxveW1lbnRfaWQYBCABKAkikQEKGkRlY3J5cHRTZWNyZXRzQmxvYlJlc3BvbnNlEkMKCGVudl92YXJzGAEgAygLMjEua3JhbmUudjEuRGVjcnlwdFNlY3JldHNCbG9iUmVzcG9uc2UuRW52VmFyc0VudHJ5Gi4KDEVudlZhcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBMnEKDlNlY3JldHNTZXJ2aWNlEl8KEkRlY3J5cHRTZWNyZXRzQmxvYhIjLmtyYW5lLnYxLkRlY3J5cHRTZWNyZXRzQmxvYlJlcXVlc3QaJC5rcmFuZS52MS5EZWNyeXB0U2VjcmV0c0Jsb2JSZXNwb25zZUKVAQoMY29tLmtyYW5lLnYxQgxTZWNyZXRzUHJvdG9QAVo2Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9rcmFuZS92MTtrcmFuZXYxogIDS1hYqgIIS3JhbmUuVjHKAghLcmFuZVxWMeICFEtyYW5lXFYxXEdQQk1ldGFkYXRh6gIJS3JhbmU6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message krane.v1.DecryptSecretsBlobRequest
@@ -96,7 +51,7 @@ export type DecryptSecretsBlobRequest = Message<"krane.v1.DecryptSecretsBlobRequ
  * Use `create(DecryptSecretsBlobRequestSchema)` to create a new message.
  */
 export const DecryptSecretsBlobRequestSchema: GenMessage<DecryptSecretsBlobRequest> = /*@__PURE__*/
-  messageDesc(file_krane_v1_secrets, 2);
+  messageDesc(file_krane_v1_secrets, 0);
 
 /**
  * @generated from message krane.v1.DecryptSecretsBlobResponse
@@ -115,7 +70,7 @@ export type DecryptSecretsBlobResponse = Message<"krane.v1.DecryptSecretsBlobRes
  * Use `create(DecryptSecretsBlobResponseSchema)` to create a new message.
  */
 export const DecryptSecretsBlobResponseSchema: GenMessage<DecryptSecretsBlobResponse> = /*@__PURE__*/
-  messageDesc(file_krane_v1_secrets, 3);
+  messageDesc(file_krane_v1_secrets, 1);
 
 /**
  * SecretsService provides decrypted secrets to running workloads.
@@ -124,18 +79,6 @@ export const DecryptSecretsBlobResponseSchema: GenMessage<DecryptSecretsBlobResp
  * @generated from service krane.v1.SecretsService
  */
 export const SecretsService: GenService<{
-  /**
-   * GetDeploymentSecrets returns decrypted environment variables for a deployment.
-   * Authentication is via a token generated at deployment creation time.
-   * DEPRECATED: Use DecryptSecretsBlob instead for better performance.
-   *
-   * @generated from rpc krane.v1.SecretsService.GetDeploymentSecrets
-   */
-  getDeploymentSecrets: {
-    methodKind: "unary";
-    input: typeof GetDeploymentSecretsRequestSchema;
-    output: typeof GetDeploymentSecretsResponseSchema;
-  },
   /**
    * DecryptSecretsBlob decrypts an encrypted secrets blob passed in the pod spec.
    * This avoids DB lookups - the encrypted blob travels with the pod.

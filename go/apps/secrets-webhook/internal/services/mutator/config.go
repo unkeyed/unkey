@@ -16,6 +16,7 @@ const (
 
 type Config struct {
 	UnkeyEnvImage           string
+	UnkeyEnvImagePullPolicy string
 	AnnotationPrefix        string
 	DefaultProviderEndpoint string
 }

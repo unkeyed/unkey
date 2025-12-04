@@ -21,105 +21,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type GetDeploymentSecretsRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The deployment ID to fetch secrets for
-	DeploymentId string `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	// Token for authentication (generated at pod creation, validated per backend)
-	Token         string `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetDeploymentSecretsRequest) Reset() {
-	*x = GetDeploymentSecretsRequest{}
-	mi := &file_krane_v1_secrets_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetDeploymentSecretsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetDeploymentSecretsRequest) ProtoMessage() {}
-
-func (x *GetDeploymentSecretsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_krane_v1_secrets_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetDeploymentSecretsRequest.ProtoReflect.Descriptor instead.
-func (*GetDeploymentSecretsRequest) Descriptor() ([]byte, []int) {
-	return file_krane_v1_secrets_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *GetDeploymentSecretsRequest) GetDeploymentId() string {
-	if x != nil {
-		return x.DeploymentId
-	}
-	return ""
-}
-
-func (x *GetDeploymentSecretsRequest) GetToken() string {
-	if x != nil {
-		return x.Token
-	}
-	return ""
-}
-
-type GetDeploymentSecretsResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Decrypted environment variables (key -> plaintext value)
-	EnvVars       map[string]string `protobuf:"bytes,1,rep,name=env_vars,json=envVars,proto3" json:"env_vars,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetDeploymentSecretsResponse) Reset() {
-	*x = GetDeploymentSecretsResponse{}
-	mi := &file_krane_v1_secrets_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetDeploymentSecretsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetDeploymentSecretsResponse) ProtoMessage() {}
-
-func (x *GetDeploymentSecretsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_krane_v1_secrets_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetDeploymentSecretsResponse.ProtoReflect.Descriptor instead.
-func (*GetDeploymentSecretsResponse) Descriptor() ([]byte, []int) {
-	return file_krane_v1_secrets_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *GetDeploymentSecretsResponse) GetEnvVars() map[string]string {
-	if x != nil {
-		return x.EnvVars
-	}
-	return nil
-}
-
 type DecryptSecretsBlobRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The encrypted secrets blob from the pod spec (UNKEY_SECRETS_BLOB env var).
@@ -137,7 +38,7 @@ type DecryptSecretsBlobRequest struct {
 
 func (x *DecryptSecretsBlobRequest) Reset() {
 	*x = DecryptSecretsBlobRequest{}
-	mi := &file_krane_v1_secrets_proto_msgTypes[2]
+	mi := &file_krane_v1_secrets_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -149,7 +50,7 @@ func (x *DecryptSecretsBlobRequest) String() string {
 func (*DecryptSecretsBlobRequest) ProtoMessage() {}
 
 func (x *DecryptSecretsBlobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_krane_v1_secrets_proto_msgTypes[2]
+	mi := &file_krane_v1_secrets_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -162,7 +63,7 @@ func (x *DecryptSecretsBlobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DecryptSecretsBlobRequest.ProtoReflect.Descriptor instead.
 func (*DecryptSecretsBlobRequest) Descriptor() ([]byte, []int) {
-	return file_krane_v1_secrets_proto_rawDescGZIP(), []int{2}
+	return file_krane_v1_secrets_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *DecryptSecretsBlobRequest) GetEncryptedBlob() []byte {
@@ -203,7 +104,7 @@ type DecryptSecretsBlobResponse struct {
 
 func (x *DecryptSecretsBlobResponse) Reset() {
 	*x = DecryptSecretsBlobResponse{}
-	mi := &file_krane_v1_secrets_proto_msgTypes[3]
+	mi := &file_krane_v1_secrets_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -215,7 +116,7 @@ func (x *DecryptSecretsBlobResponse) String() string {
 func (*DecryptSecretsBlobResponse) ProtoMessage() {}
 
 func (x *DecryptSecretsBlobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_krane_v1_secrets_proto_msgTypes[3]
+	mi := &file_krane_v1_secrets_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -228,7 +129,7 @@ func (x *DecryptSecretsBlobResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DecryptSecretsBlobResponse.ProtoReflect.Descriptor instead.
 func (*DecryptSecretsBlobResponse) Descriptor() ([]byte, []int) {
-	return file_krane_v1_secrets_proto_rawDescGZIP(), []int{3}
+	return file_krane_v1_secrets_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *DecryptSecretsBlobResponse) GetEnvVars() map[string]string {
@@ -242,15 +143,7 @@ var File_krane_v1_secrets_proto protoreflect.FileDescriptor
 
 const file_krane_v1_secrets_proto_rawDesc = "" +
 	"\n" +
-	"\x16krane/v1/secrets.proto\x12\bkrane.v1\"X\n" +
-	"\x1bGetDeploymentSecretsRequest\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12\x14\n" +
-	"\x05token\x18\x02 \x01(\tR\x05token\"\xaa\x01\n" +
-	"\x1cGetDeploymentSecretsResponse\x12N\n" +
-	"\benv_vars\x18\x01 \x03(\v23.krane.v1.GetDeploymentSecretsResponse.EnvVarsEntryR\aenvVars\x1a:\n" +
-	"\fEnvVarsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa4\x01\n" +
+	"\x16krane/v1/secrets.proto\x12\bkrane.v1\"\xa4\x01\n" +
 	"\x19DecryptSecretsBlobRequest\x12%\n" +
 	"\x0eencrypted_blob\x18\x01 \x01(\fR\rencryptedBlob\x12%\n" +
 	"\x0eenvironment_id\x18\x02 \x01(\tR\renvironmentId\x12\x14\n" +
@@ -260,9 +153,8 @@ const file_krane_v1_secrets_proto_rawDesc = "" +
 	"\benv_vars\x18\x01 \x03(\v21.krane.v1.DecryptSecretsBlobResponse.EnvVarsEntryR\aenvVars\x1a:\n" +
 	"\fEnvVarsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x012\xd8\x01\n" +
-	"\x0eSecretsService\x12e\n" +
-	"\x14GetDeploymentSecrets\x12%.krane.v1.GetDeploymentSecretsRequest\x1a&.krane.v1.GetDeploymentSecretsResponse\x12_\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x012q\n" +
+	"\x0eSecretsService\x12_\n" +
 	"\x12DecryptSecretsBlob\x12#.krane.v1.DecryptSecretsBlobRequest\x1a$.krane.v1.DecryptSecretsBlobResponseB\x95\x01\n" +
 	"\fcom.krane.v1B\fSecretsProtoP\x01Z6github.com/unkeyed/unkey/go/gen/proto/krane/v1;kranev1\xa2\x02\x03KXX\xaa\x02\bKrane.V1\xca\x02\bKrane\\V1\xe2\x02\x14Krane\\V1\\GPBMetadata\xea\x02\tKrane::V1b\x06proto3"
 
@@ -278,27 +170,21 @@ func file_krane_v1_secrets_proto_rawDescGZIP() []byte {
 	return file_krane_v1_secrets_proto_rawDescData
 }
 
-var file_krane_v1_secrets_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_krane_v1_secrets_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_krane_v1_secrets_proto_goTypes = []any{
-	(*GetDeploymentSecretsRequest)(nil),  // 0: krane.v1.GetDeploymentSecretsRequest
-	(*GetDeploymentSecretsResponse)(nil), // 1: krane.v1.GetDeploymentSecretsResponse
-	(*DecryptSecretsBlobRequest)(nil),    // 2: krane.v1.DecryptSecretsBlobRequest
-	(*DecryptSecretsBlobResponse)(nil),   // 3: krane.v1.DecryptSecretsBlobResponse
-	nil,                                  // 4: krane.v1.GetDeploymentSecretsResponse.EnvVarsEntry
-	nil,                                  // 5: krane.v1.DecryptSecretsBlobResponse.EnvVarsEntry
+	(*DecryptSecretsBlobRequest)(nil),  // 0: krane.v1.DecryptSecretsBlobRequest
+	(*DecryptSecretsBlobResponse)(nil), // 1: krane.v1.DecryptSecretsBlobResponse
+	nil,                                // 2: krane.v1.DecryptSecretsBlobResponse.EnvVarsEntry
 }
 var file_krane_v1_secrets_proto_depIdxs = []int32{
-	4, // 0: krane.v1.GetDeploymentSecretsResponse.env_vars:type_name -> krane.v1.GetDeploymentSecretsResponse.EnvVarsEntry
-	5, // 1: krane.v1.DecryptSecretsBlobResponse.env_vars:type_name -> krane.v1.DecryptSecretsBlobResponse.EnvVarsEntry
-	0, // 2: krane.v1.SecretsService.GetDeploymentSecrets:input_type -> krane.v1.GetDeploymentSecretsRequest
-	2, // 3: krane.v1.SecretsService.DecryptSecretsBlob:input_type -> krane.v1.DecryptSecretsBlobRequest
-	1, // 4: krane.v1.SecretsService.GetDeploymentSecrets:output_type -> krane.v1.GetDeploymentSecretsResponse
-	3, // 5: krane.v1.SecretsService.DecryptSecretsBlob:output_type -> krane.v1.DecryptSecretsBlobResponse
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	2, // 0: krane.v1.DecryptSecretsBlobResponse.env_vars:type_name -> krane.v1.DecryptSecretsBlobResponse.EnvVarsEntry
+	0, // 1: krane.v1.SecretsService.DecryptSecretsBlob:input_type -> krane.v1.DecryptSecretsBlobRequest
+	1, // 2: krane.v1.SecretsService.DecryptSecretsBlob:output_type -> krane.v1.DecryptSecretsBlobResponse
+	2, // [2:3] is the sub-list for method output_type
+	1, // [1:2] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_krane_v1_secrets_proto_init() }
@@ -312,7 +198,7 @@ func file_krane_v1_secrets_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_krane_v1_secrets_proto_rawDesc), len(file_krane_v1_secrets_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

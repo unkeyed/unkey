@@ -30,6 +30,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return s.JSON(http.StatusBadRequest, map[string]string{"error": "failed to parse admission review"})
 	}
 
+	if admissionReview.Request == nil {
+		h.Logger.Error("missing admission request")
+		return h.sendResponse(s, "", false, "missing admission request")
+	}
+
 	var pod corev1.Pod
 	if err := json.Unmarshal(admissionReview.Request.Object.Raw, &pod); err != nil {
 		h.Logger.Error("failed to parse pod", "error", err)

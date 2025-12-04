@@ -3,12 +3,13 @@ package webhook
 import "github.com/unkeyed/unkey/go/pkg/assert"
 
 type Config struct {
-	HttpPort         int
-	TLSCertFile      string
-	TLSKeyFile       string
-	UnkeyEnvImage    string
-	KraneEndpoint    string
-	AnnotationPrefix string
+	HttpPort                int
+	TLSCertFile             string
+	TLSKeyFile              string
+	UnkeyEnvImage           string
+	UnkeyEnvImagePullPolicy string
+	KraneEndpoint           string
+	AnnotationPrefix        string
 }
 
 func (c *Config) Validate() error {
