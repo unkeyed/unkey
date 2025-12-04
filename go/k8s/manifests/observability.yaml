@@ -90,71 +90,11 @@ spec:
     spec:
       containers:
         - name: otel-collector
-          image: otel/opentelemetry-collector-contrib:0.92.0
+          image: grafana/otel-lgtm:0.11.7
           ports:
+            - containerPort: 3000 # Grafana
             - containerPort: 4317 # OTLP gRPC
             - containerPort: 4318 # OTLP HTTP
-            - containerPort: 8889 # Prometheus metrics
-          command:
-            - /otelcol-contrib
-            - --config=/etc/otelcol-contrib/otel-collector.yml
-          env:
-            - name: GOMEMLIMIT
-              value: "160MiB"
-          volumeMounts:
-            - name: otel-collector-config
-              mountPath: /etc/otelcol-contrib/
-      volumes:
-        - name: otel-collector-config
-          configMap:
-            name: otel-collector-config
-
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: otel-collector-config
-  namespace: unkey
-data:
-  otel-collector.yml: |
-    receivers:
-      otlp:
-        protocols:
-          grpc:
-            endpoint: 0.0.0.0:4317
-          http:
-            endpoint: 0.0.0.0:4318
-      prometheus:
-        config:
-          scrape_configs:
-            - job_name: 'otel-collector'
-              scrape_interval: 10s
-              static_configs:
-                - targets: ['0.0.0.0:8889']
-
-    processors:
-      batch:
-
-    exporters:
-      prometheus:
-        endpoint: "0.0.0.0:8889"
-      logging:
-        loglevel: info
-
-    service:
-      pipelines:
-        traces:
-          receivers: [otlp]
-          processors: [batch]
-          exporters: [logging]
-        metrics:
-          receivers: [otlp, prometheus]
-          processors: [batch]
-          exporters: [prometheus, logging]
-        logs:
-          receivers: [otlp]
-          processors: [batch]
-          exporters: [logging]
 
 ---
 apiVersion: v1
@@ -168,6 +108,10 @@ spec:
   selector:
     app: otel-collector
   ports:
+    - name: grafana
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
     - name: otlp-grpc
       port: 4317
       targetPort: 4317
@@ -175,9 +119,5 @@ spec:
     - name: otlp-http
       port: 4318
       targetPort: 4318
-      protocol: TCP
-    - name: prometheus
-      port: 8889
-      targetPort: 8889
       protocol: TCP
   type: NodePort
