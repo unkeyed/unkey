@@ -53,11 +53,11 @@ export const STATUS_DEFINITIONS: Record<StatusType, StatusInfo> = {
   },
   "validation-issues": {
     type: "validation-issues",
-    label: "High Error Rate",
+    label: "Elevated Rejections",
     color: "bg-warningA-3 text-warningA-11",
     icon: <ShieldKey iconSize="sm-regular" className="text-warning-11" />,
     tooltip:
-      "This key is receiving many invalid requests (rate limited, unauthorized, etc.). Check logs to understand usage patterns.",
+      "This key is receiving many rejected requests (rate limited, missing permissions, etc.). Please check your logs for usage details.",
     priority: 3,
   },
   //TODO: Add a way to enable this through tooltip
