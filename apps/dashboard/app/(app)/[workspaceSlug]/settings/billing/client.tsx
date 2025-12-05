@@ -70,9 +70,15 @@ export const Client: React.FC = () => {
 
   const allowUpdate = subscription && ["active", "trialing"].includes(subscription.status);
 
-  const isFreeTier = !subscription || !["active", "trialing"].includes(subscription.status);
+  const hasPaidSubscription = Boolean(
+    subscription && currentProductId && subscription.status === "past_due",
+  );
+
+  const isFreeTier = !hasPaidSubscription;
   const allowCancel = subscription && subscription.status === "active" && !subscription.cancelAt;
-  const currentProduct = allowUpdate ? products.find((p) => p.id === currentProductId) : undefined;
+  const currentProduct = allowUpdate
+    ? products.find((p) => p.id === currentProductId)
+    : undefined;
 
   return (
     <div>
