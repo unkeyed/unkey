@@ -1,9 +1,9 @@
 "use client";
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { XMark } from "@unkey/icons";
 import * as React from "react";
 
-import { XMark } from "@unkey/icons";
 import { cn } from "../../lib/utils";
 
 const Dialog = DialogPrimitive.Root;
@@ -38,23 +38,10 @@ const DialogContent = React.forwardRef<
     showCloseWarning?: boolean;
     onAttemptClose?: () => void;
     xButtonRef?: React.RefObject<HTMLButtonElement>;
-    modal?: boolean;
-    preventOutsideClose?: boolean;
-    showOverlay?: boolean;
   }
 >(
   (
-    {
-      className,
-      children,
-      showCloseWarning = false,
-      onAttemptClose,
-      xButtonRef,
-      modal = true,
-      preventOutsideClose = false,
-      showOverlay = true,
-      ...props
-    },
+    { className, children, showCloseWarning = false, onAttemptClose, xButtonRef, ...props },
     ref,
   ) => {
     const handleCloseAttempt = React.useCallback(() => {
@@ -70,22 +57,19 @@ const DialogContent = React.forwardRef<
 
     return (
       <DialogPortal>
-        {/* Conditionally render overlay */}
-        {showOverlay &&
-          (modal ? (
-            <DialogOverlay
-              showCloseWarning={showCloseWarning}
-              onAttemptClose={handleCloseAttempt}
-            />
-          ) : (
-            <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
-          ))}
+        <DialogOverlay showCloseWarning={showCloseWarning} onAttemptClose={handleCloseAttempt} />
         <DialogPrimitive.Content
           ref={ref}
           className={cn(
             "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
             className,
           )}
+          onKeyDown={(e) => {
+            // Prevent Tab key from closing the dialog
+            if (e.key === "Tab") {
+              e.stopPropagation();
+            }
+          }}
           onEscapeKeyDown={(e) => {
             if (showCloseWarning) {
               e.preventDefault();
@@ -93,9 +77,10 @@ const DialogContent = React.forwardRef<
             }
           }}
           onPointerDownOutside={(e) => {
-            if (preventOutsideClose) {
-              e.preventDefault();
-            } else if (showCloseWarning) {
+            // Prevent closing only if warning is active and click is outside content
+            if (showCloseWarning) {
+              // Basic check: If the target is the overlay, it's handled there.
+              // More robust checks might be needed depending on content complexity.
               const contentElement = (e.target as HTMLElement)?.closest('[role="dialog"]');
               if (!contentElement || contentElement !== e.currentTarget) {
                 e.preventDefault();
