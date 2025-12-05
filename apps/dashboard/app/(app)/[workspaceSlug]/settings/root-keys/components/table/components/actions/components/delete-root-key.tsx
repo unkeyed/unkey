@@ -1,9 +1,8 @@
-import { ConfirmPopover } from "@/components/confirmation-popover";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TriangleWarning2 } from "@unkey/icons";
-import { Button, DialogContainer, FormCheckbox } from "@unkey/ui";
+import { Button, ConfirmPopover, DialogContainer, FormCheckbox } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";

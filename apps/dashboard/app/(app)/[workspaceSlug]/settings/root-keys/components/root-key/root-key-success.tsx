@@ -1,9 +1,8 @@
 "use client";
 
 import { SecretKey } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/secret-key";
-import { ConfirmPopover } from "@/components/confirmation-popover";
 import { Check, CircleInfo, Key2 } from "@unkey/icons";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@unkey/ui";
+import { ConfirmPopover, Dialog, DialogContent, DialogDescription, DialogTitle } from "@unkey/ui";
 import { ROOT_KEY_MESSAGES } from "./constants";
 import { useRootKeySuccess } from "./hooks/use-root-key-success";
 

@@ -30,20 +30,24 @@ type service struct {
 
 func New(cfg Config) (*service, error) {
 	deploymentCache, err := cache.New[string, db.Deployment](cache.Config[string, db.Deployment]{
-		Clock:   cfg.Clock,
-		MaxSize: 1000,
-		Fresh:   10 * time.Second,
-		Stale:   60 * time.Second,
+		Logger:   cfg.Logger,
+		Resource: "deployment",
+		Clock:    cfg.Clock,
+		MaxSize:  1000,
+		Fresh:    10 * time.Second,
+		Stale:    60 * time.Second,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	instancesCache, err := cache.New[string, []db.Instance](cache.Config[string, []db.Instance]{
-		Clock:   cfg.Clock,
-		MaxSize: 1000,
-		Fresh:   5 * time.Second,
-		Stale:   30 * time.Second,
+		Clock:    cfg.Clock,
+		Logger:   cfg.Logger,
+		Resource: "instance",
+		MaxSize:  1000,
+		Fresh:    5 * time.Second,
+		Stale:    30 * time.Second,
 	})
 	if err != nil {
 		return nil, err

@@ -31,7 +31,7 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				logger.Error("failed to parse error code", "error", parseErr.Error())
 				code = codes.App.Internal.UnexpectedError
 			}
-
+			//nolint:exhaustive
 			switch urn {
 			// Not Found errors
 			case codes.UnkeyDataErrorsKeyNotFound,
@@ -81,7 +81,8 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 			case codes.UserErrorsBadRequestInvalidAnalyticsQuery,
 				codes.UserErrorsBadRequestInvalidAnalyticsTable,
 				codes.UserErrorsBadRequestInvalidAnalyticsFunction,
-				codes.UserErrorsBadRequestInvalidAnalyticsQueryType:
+				codes.UserErrorsBadRequestInvalidAnalyticsQueryType,
+				codes.UserErrorsBadRequestQueryRangeExceedsRetention:
 				return s.JSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

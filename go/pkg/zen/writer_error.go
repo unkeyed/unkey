@@ -20,6 +20,8 @@ type ErrorCapturingWriter struct {
 func NewErrorCapturingWriter(w http.ResponseWriter) *ErrorCapturingWriter {
 	return &ErrorCapturingWriter{
 		ResponseWriter: w,
+		capturedError:  nil,
+		headerWritten:  false,
 	}
 }
 

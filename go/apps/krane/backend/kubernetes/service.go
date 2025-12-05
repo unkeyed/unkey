@@ -50,6 +50,7 @@ func New(cfg Config) (*k8s, error) {
 	}
 	k := &k8s{
 		UnimplementedDeploymentServiceHandler: kranev1connect.UnimplementedDeploymentServiceHandler{},
+		UnimplementedGatewayServiceHandler:    kranev1connect.UnimplementedGatewayServiceHandler{},
 		logger:                                cfg.Logger,
 		clientset:                             clientset,
 	}

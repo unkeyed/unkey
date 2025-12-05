@@ -90,7 +90,9 @@ func NewHarness(t *testing.T) *Harness {
 		Flags: &zen.Flags{
 			TestMode: true,
 		},
-		TLS: nil,
+		TLS:          nil,
+		ReadTimeout:  0,
+		WriteTimeout: 0,
 	})
 	require.NoError(t, err)
 
@@ -261,6 +263,7 @@ type setupAnalyticsConfig struct {
 	MaxExecutionTimePerWindow int32
 	QuotaDurationSeconds      int32
 	MaxQueryExecutionTime     int32
+	RetentionDays             int32
 }
 
 func WithMaxQueryResultRows(rows int32) SetupAnalyticsOption {
@@ -287,6 +290,12 @@ func WithMaxExecutionTimePerWindow(seconds int32) SetupAnalyticsOption {
 	}
 }
 
+func WithRetentionDays(days int32) SetupAnalyticsOption {
+	return func(c *setupAnalyticsConfig) {
+		c.RetentionDays = days
+	}
+}
+
 func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOption) {
 	ctx := context.Background()
 
@@ -298,6 +307,7 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 		MaxExecutionTimePerWindow: 1_800,
 		QuotaDurationSeconds:      3_600,
 		MaxQueryExecutionTime:     30,
+		RetentionDays:             30, // Default 30-day retention
 	}
 
 	// Apply options
@@ -315,6 +325,16 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 	})
 	require.NoError(h.t, err)
 
+	// Ensure quota exists with retention days
+	err = db.Query.UpsertQuota(ctx, h.DB.RW(), db.UpsertQuotaParams{
+		WorkspaceID:            workspaceID,
+		LogsRetentionDays:      config.RetentionDays,
+		AuditLogsRetentionDays: config.RetentionDays,
+		RequestsPerMonth:       1_000_000,
+		Team:                   false,
+	})
+	require.NoError(h.t, err)
+
 	// Configure ClickHouse user with permissions, quotas, and settings
 	err = h.ClickHouse.ConfigureUser(ctx, clickhouse.UserConfig{
 		WorkspaceID:               workspaceID,
@@ -327,6 +347,7 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 		MaxQueryExecutionTime:     config.MaxQueryExecutionTime,
 		MaxQueryMemoryBytes:       config.MaxQueryMemoryBytes,
 		MaxQueryResultRows:        config.MaxQueryResultRows,
+		RetentionDays:             config.RetentionDays,
 	})
 	require.NoError(h.t, err)
 
@@ -335,7 +356,7 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 	err = db.Query.InsertClickhouseWorkspaceSettings(ctx, h.DB.RW(), db.InsertClickhouseWorkspaceSettingsParams{
 		WorkspaceID:               workspaceID,
 		Username:                  username,
-		PasswordEncrypted:         encryptRes.Encrypted,
+		PasswordEncrypted:         encryptRes.GetEncrypted(),
 		QuotaDurationSeconds:      config.QuotaDurationSeconds,
 		MaxQueriesPerWindow:       config.MaxQueriesPerWindow,
 		MaxExecutionTimePerWindow: config.MaxExecutionTimePerWindow,
