@@ -70,9 +70,16 @@ export const Client: React.FC = () => {
 
   const allowUpdate = subscription && ["active", "trialing"].includes(subscription.status);
 
-  const isFreeTier = !subscription || !["active", "trialing"].includes(subscription.status);
+  // Treat 'incomplete' as a paid-like status for UI so we don't show Free while action is required.
+  const paidStatuses = new Set(["active", "trialing", "past_due", "unpaid", "incomplete"]);
+  const hasPaidSubscription = Boolean(
+    subscription && currentProductId && paidStatuses.has(subscription.status),
+  );
+
+  const isFreeTier = !hasPaidSubscription;
   const allowCancel = subscription && subscription.status === "active" && !subscription.cancelAt;
-  const currentProduct = allowUpdate ? products.find((p) => p.id === currentProductId) : undefined;
+  // Show current product for all paid statuses (including declined payments) so users see their billing tier
+  const currentProduct = hasPaidSubscription ? products.find((p) => p.id === currentProductId) : undefined;
 
   return (
     <div>
