@@ -1,6 +1,5 @@
 "use client";
 
-import { PageHeader } from "@/components/dashboard/page-header";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import {
@@ -63,26 +62,6 @@ export function TeamPageClient({ team }: { team: boolean }) {
     return null;
   }
 
-  const actions: React.ReactNode[] = [];
-
-  if (isAdmin) {
-    actions.push(
-      <Select key="tab-select" value={tab} onValueChange={(value: Tab) => setTab(value)}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectItem value="members">Members</SelectItem>
-            <SelectItem value="invitations">Invitations</SelectItem>
-          </SelectGroup>
-        </SelectContent>
-      </Select>,
-    );
-
-    actions.push(<InviteButton key="invite-button" user={user} organization={organization} />);
-  }
-
   if (!team) {
     return (
       <div className="relative items-center justify-center h-screen w-full">
@@ -103,7 +82,24 @@ export function TeamPageClient({ team }: { team: boolean }) {
 
   return (
     <>
-      <PageHeader title="Members" description="Manage your team members" actions={actions} />
+      {isAdmin ? (
+        <div className="flex flex-row justify-end w-full gap-4">
+          <div>
+            <Select key="tab-select" value={tab} onValueChange={(value: Tab) => setTab(value)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="members">Members</SelectItem>
+                  <SelectItem value="invitations">Invitations</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          <InviteButton key="invite-button" user={user} organization={organization} />
+        </div>
+      ) : null}
       {isLoading || !user || !organization || !userMemberships || !currentOrgMembership ? (
         <Loading />
       ) : tab === "members" ? (
