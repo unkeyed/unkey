@@ -2,19 +2,24 @@ package acme
 
 import (
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 type Service struct {
 	ctrlv1connect.UnimplementedAcmeServiceHandler
-	db     db.Database
-	logger logging.Logger
+	db             db.Database
+	logger         logging.Logger
+	domainCache    cache.Cache[string, db.CustomDomain]
+	challengeCache cache.Cache[string, db.AcmeChallenge]
 }
 
 type Config struct {
-	DB     db.Database
-	Logger logging.Logger
+	DB             db.Database
+	Logger         logging.Logger
+	DomainCache    cache.Cache[string, db.CustomDomain]
+	ChallengeCache cache.Cache[string, db.AcmeChallenge]
 }
 
 func New(cfg Config) *Service {
@@ -22,5 +27,7 @@ func New(cfg Config) *Service {
 		UnimplementedAcmeServiceHandler: ctrlv1connect.UnimplementedAcmeServiceHandler{},
 		db:                              cfg.DB,
 		logger:                          cfg.Logger,
+		domainCache:                     cfg.DomainCache,
+		challengeCache:                  cfg.ChallengeCache,
 	}
 }
