@@ -1577,14 +1577,36 @@ type Querier interface {
 	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error)
 	//ListIdentities
 	//
-	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
-	//  FROM identities
-	//  WHERE workspace_id = ?
-	//  AND deleted = ?
-	//  AND id >= ?
-	//  ORDER BY id ASC
+	//  SELECT
+	//      i.id,
+	//      i.external_id,
+	//      i.workspace_id,
+	//      i.environment,
+	//      i.meta,
+	//      i.deleted,
+	//      i.created_at,
+	//      i.updated_at,
+	//      COALESCE(
+	//          (SELECT JSON_ARRAYAGG(
+	//              JSON_OBJECT(
+	//                  'id', r.id,
+	//                  'name', r.name,
+	//                  'limit', r.`limit`,
+	//                  'duration', r.duration,
+	//                  'auto_apply', r.auto_apply = 1
+	//              )
+	//          )
+	//          FROM ratelimits r
+	//          WHERE r.identity_id = i.id),
+	//          JSON_ARRAY()
+	//      ) as ratelimits
+	//  FROM identities i
+	//  WHERE i.workspace_id = ?
+	//  AND i.deleted = ?
+	//  AND i.id >= ?
+	//  ORDER BY i.id ASC
 	//  LIMIT ?
-	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]Identity, error)
+	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]ListIdentitiesRow, error)
 	//ListIdentityRatelimits
 	//
 	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply
