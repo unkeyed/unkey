@@ -73,19 +73,18 @@ bun install @unkey/nextjs
 Create a new route and add the following code
 
 ```ts /app/protected/route.ts
-import { NextRequestWithUnkeyContext, withUnkey } from '@unkey/nextjs';
-import { NextResponse } from 'next/server';
+import { NextRequestWithUnkeyContext, withUnkey } from "@unkey/nextjs";
 
-export const POST = withUnkey(async (req) => {
-  if (!req.unkey.valid) {
-    return new NextResponse('unauthorized', { status: 403 });
-  }
+export const POST = withUnkey(
+  async (req: NextRequestWithUnkeyContext) => {
+    // Process the request here
+    // You have access to the verification response using `req.unkey`
+    console.log(req.unkey);
 
-  // Process the request here
-  // You have access to the verification response using `req.unkey`
-  console.log(req.unkey);
-  return new NextResponse('Your API key is valid!');
-});
+    return new Response("Your API key is valid!");
+  },
+  { rootKey: process.env.UNKEY_ROOT_KEY! }
+);
 ```
 
 </Step>
@@ -123,7 +122,21 @@ curl -XPOST 'http://localhost:3000/protected' \
   -H "Authorization: Bearer <KEY>"
 ```
 
-It should return `"Your API key is valid!"` and log out `{"keyId":"key_id","valid":true,"meta":{},"enabled":true,"permissions":[],"code":"VALID"}` and potentially more information about the key, depending on what you set up in the dashboard.
+It should return `"Your API key is valid!"` and log out the following. 
+
+```bash
+{
+    meta: { requestId: 'req_id' }, 
+    data: {
+        valid: true,
+        code: 'VALID',
+        keyId: 'key_id',
+        enabled: true
+    }
+}
+``` 
+  
+Log may potentially have more information about the key, depending on what you set up in the dashboard.
 
 </Step>
 

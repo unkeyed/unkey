@@ -29,10 +29,8 @@ func (c *GatewayController) GetRunningGatewayIds(ctx context.Context) <-chan str
 				c.logger.Error("unable to list deployments", "error", err.Error())
 				return
 			}
+
 			cursor = deployments.GetContinue()
-			if cursor == "" {
-				return
-			}
 
 			for _, sfs := range deployments.Items {
 
@@ -44,6 +42,10 @@ func (c *GatewayController) GetRunningGatewayIds(ctx context.Context) <-chan str
 				}
 				gatewayIDs <- gatewayID
 			}
+			if cursor == "" {
+				return
+			}
+
 		}
 	}()
 

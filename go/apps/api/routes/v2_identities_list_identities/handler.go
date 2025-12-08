@@ -2,8 +2,6 @@ package handler
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"net/http"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -100,18 +98,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	// Process the results and get ratelimits for each identity
+	// Process the results
 	data := make([]openapi.Identity, 0, len(identities))
 	for _, identity := range identities {
-		// Fetch ratelimits for this identity
-		ratelimits, err := db.Query.ListIdentityRatelimits(ctx, h.DB.RO(), sql.NullString{Valid: true, String: identity.ID})
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return fault.Wrap(err,
-				fault.Internal("unable to fetch ratelimits"), fault.Public("We're unable to retrieve ratelimits for the identities."),
+		// Unmarshal ratelimits from JSON
+		ratelimits, err := db.UnmarshalNullableJSONTo[[]db.RatelimitInfo](identity.Ratelimits)
+		if err != nil {
+			h.Logger.Error("failed to unmarshal identity ratelimits",
+				"identityId", identity.ID,
+				"error", err,
 			)
 		}
 
-		// Format ratelimits
+		// Convert to openapi response format
 		formattedRatelimits := make([]openapi.RatelimitResponse, 0, len(ratelimits))
 		for _, r := range ratelimits {
 			formattedRatelimits = append(formattedRatelimits, openapi.RatelimitResponse{
@@ -123,30 +122,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			})
 		}
 
-		// Create a new identity with its ratelimits
-		newIdentity := openapi.Identity{
-			Id:         identity.ID,
-			ExternalId: identity.ExternalID,
-			Ratelimits: nil,
-			Meta:       nil,
-		}
-
-		newIdentity.Ratelimits = formattedRatelimits
-
-		// Add metadata if available
+		// Unmarshal metadata
 		metaMap, err := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta)
-		newIdentity.Meta = metaMap
-
 		if err != nil {
 			h.Logger.Error("failed to unmarshal identity meta",
 				"identityId", identity.ID,
 				"error", err,
 			)
-			// Continue with empty meta
 		}
 
-		// Append the identity to the results
-		data = append(data, newIdentity)
+		data = append(data, openapi.Identity{
+			Id:         identity.ID,
+			ExternalId: identity.ExternalID,
+			Ratelimits: formattedRatelimits,
+			Meta:       metaMap,
+		})
 	}
 
 	response := Response{

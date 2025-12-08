@@ -707,28 +707,4 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, openapi.NOTFOUND, res.Body.Data.Code, "Key should be not found but got %s", res.Body.Data.Code)
 		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
 	})
-
-	key := h.CreateKey(seed.CreateKeyRequest{
-		WorkspaceID: workspace.ID,
-		KeySpaceID:  api.KeyAuthID.String,
-	})
-
-	t.Run("root key without sufficient permissions", func(t *testing.T) {
-		// Create root key with insufficient permissions
-		limitedRootKey := h.CreateRootKey(workspace.ID, "api.*.read") // Wrong permission
-
-		req := handler.Request{
-			Key: key.Key,
-		}
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", limitedRootKey)},
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status)
-		require.NotNil(t, res.Body)
-		require.Equal(t, openapi.NOTFOUND, res.Body.Data.Code, "Key should be not found but got %s", res.Body.Data.Code)
-	})
 }

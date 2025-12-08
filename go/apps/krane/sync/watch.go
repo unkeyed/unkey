@@ -20,9 +20,10 @@ func (s *SyncEngine) watch() {
 		if stream == nil {
 			stream, err = s.newStream()
 			if err != nil {
-				s.logger.Error("Failed to connect to control plane, retrying in 10s", "error", err.Error())
-
 				consecutiveFailures++
+				if consecutiveFailures > 5 {
+					s.logger.Error("unable to connect to control plane", "consecutive_failures", consecutiveFailures)
+				}
 				time.Sleep(time.Duration(min(60, consecutiveFailures)) * time.Second)
 				continue
 			} else {
@@ -32,7 +33,7 @@ func (s *SyncEngine) watch() {
 
 		hasMsg := stream.Receive()
 		if !hasMsg {
-			s.logger.Warn("Stream error, reconnecting...",
+			s.logger.Debug("Stream ended, reconnecting...",
 				"error", stream.Err(),
 			)
 			stream = nil

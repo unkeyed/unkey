@@ -18,6 +18,13 @@ const schema = z.object({
   hasOpenApiSpec: z.boolean(),
   // Deployment status
   status: z.enum(["pending", "building", "deploying", "network", "ready", "failed"]),
+  instances: z.array(
+    z.object({
+      id: z.string(),
+    }),
+  ),
+  cpuMillicores: z.number().int(),
+  memoryMib: z.number().int(),
   createdAt: z.number(),
 });
 

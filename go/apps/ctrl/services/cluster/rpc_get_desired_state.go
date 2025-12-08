@@ -11,7 +11,6 @@ import (
 
 func (s *Service) GetDesiredState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredStateRequest], stream *connect.ServerStream[ctrlv1.InfraEvent]) error {
 
-	s.logger.Info("get desired state", "headers", req.Header())
 	if err := s.authenticate(req); err != nil {
 		return err
 	}
@@ -19,7 +18,7 @@ func (s *Service) GetDesiredState(ctx context.Context, req *connect.Request[ctrl
 	clientID := req.Msg.GetClientId()
 	selectors := req.Msg.GetSelectors()
 
-	s.logger.Info("sync request received",
+	s.logger.Debug("sync request received",
 		"client_id", clientID,
 		"selectors", selectors,
 	)

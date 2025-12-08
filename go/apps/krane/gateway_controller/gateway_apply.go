@@ -16,9 +16,6 @@ import (
 
 func (c *GatewayController) ApplyGateway(ctx context.Context, req *ctrlv1.ApplyGateway) error {
 
-	c.logger.Info("creating gateway",
-		"gateway_id", req.GetGatewayId(),
-	)
 	// Define labels for resource selection
 	usedLabels := k8s.NewLabels().
 		WorkspaceID(req.GetWorkspaceId()).
@@ -118,14 +115,9 @@ func (c *GatewayController) ApplyGateway(ctx context.Context, req *ctrlv1.ApplyG
 		if err != nil {
 			return fmt.Errorf("failed to update service owner references: %w", err)
 		}
-		c.logger.Info("service owner references updated")
 	}
 
-	c.logger.Info("Gateway resources ready",
-		"deployment", deployment.Name,
-		"service", service.Name,
-		"gateway_id", req.GetGatewayId(),
-	)
+	c.logger.Debug("applied gateway", "gateway_id", req.GetGatewayId())
 
 	return nil
 }

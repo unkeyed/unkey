@@ -8,10 +8,9 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Check, ChevronExpandY } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import { cva } from "class-variance-authority";
 import * as React from "react";
 

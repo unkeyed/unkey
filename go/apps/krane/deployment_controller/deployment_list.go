@@ -30,9 +30,6 @@ func (c *DeploymentController) GetRunningDeploymentIds(ctx context.Context) <-ch
 				return
 			}
 			cursor = statefulsets.GetContinue()
-			if cursor == "" {
-				return
-			}
 
 			for _, sfs := range statefulsets.Items {
 				deploymentID, ok := k8s.GetDeploymentID(sfs.GetLabels())
@@ -43,6 +40,10 @@ func (c *DeploymentController) GetRunningDeploymentIds(ctx context.Context) <-ch
 				}
 				deploymentIDs <- deploymentID
 			}
+			if cursor == "" {
+				return
+			}
+
 		}
 
 	}()

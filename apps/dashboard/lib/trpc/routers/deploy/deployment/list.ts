@@ -24,7 +24,16 @@ export const listDeployments = t.procedure
           gitCommitTimestamp: true,
           status: true,
           openapiSpec: true,
+          cpuMillicores: true,
+          memoryMib: true,
           createdAt: true,
+        },
+        with: {
+          instances: {
+            columns: {
+              id: true,
+            },
+          },
         },
         orderBy: (table, { desc }) => desc(table.createdAt),
         limit: 500,

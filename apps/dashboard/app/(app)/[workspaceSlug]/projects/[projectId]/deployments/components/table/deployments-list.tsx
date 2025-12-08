@@ -129,12 +129,14 @@ export const DeploymentsList = () => {
               key: "instances" as const,
               header: "Instances",
               width: "10%",
-              render: () => {
+              render: ({ deployment }: { deployment: Deployment }) => {
                 return (
                   <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
                     <Cube className="text-gray-12" iconSize="sm-regular" />
                     <div className="flex gap-0.5">
-                      <span className="font-semibold text-grayA-12 tabular-nums">TODO</span>
+                      <span className="font-semibold text-grayA-12 tabular-nums">
+                        {deployment.instances.length}
+                      </span>
                       <span>VMs</span>
                     </div>
                   </div>
@@ -145,19 +147,23 @@ export const DeploymentsList = () => {
               key: "size" as const,
               header: "Size",
               width: "10%",
-              render: () => {
+              render: ({ deployment }: { deployment: Deployment }) => {
                 return (
                   <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
                     <Cube className="text-gray-12" iconSize="sm-regular" />
                     <div className="flex gap-1">
                       <div className="flex gap-0.5">
-                        <span className="font-semibold text-grayA-12 tabular-nums">TODO</span>
-                        <span>CPU</span>
+                        <span className="font-semibold text-grayA-12 tabular-nums">
+                          {deployment.cpuMillicores / 1024}
+                        </span>
+                        <span>vCPU</span>
                       </div>
                       <span> / </span>
                       <div className="flex gap-0.5">
-                        <span className="font-semibold text-grayA-12 tabular-nums">TODO</span>
-                        <span>MB</span>
+                        <span className="font-semibold text-grayA-12 tabular-nums">
+                          {deployment.memoryMib}
+                        </span>
+                        <span>MiB</span>
                       </div>
                     </div>
                   </div>

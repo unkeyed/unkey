@@ -8,7 +8,6 @@ import (
 
 func (s *Service) EmitEvent(ctx context.Context, labels map[string]string, event *ctrlv1.InfraEvent) error {
 
-	s.logger.Info("Emitting event", "event", event)
 	s.clientsMu.RLock()
 	defer s.clientsMu.RUnlock()
 
