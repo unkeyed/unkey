@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
@@ -74,6 +75,22 @@ func (k *KeyVerifier) withIPWhitelist() error {
 	}
 
 	return nil
+}
+
+// HasAnyPermission checks if the key has any permission matching the given action.
+// It returns true if the key has at least one permission that ends with the specified action
+// for the given resource type (e.g., checking for any "api.*.verify_key" or "api.{apiId}.verify_key").
+func (k *KeyVerifier) HasAnyPermission(resourceType rbac.ResourceType, action rbac.ActionType) bool {
+	prefix := string(resourceType) + "."
+	suffix := "." + string(action)
+
+	for _, perm := range k.Permissions {
+		if strings.HasPrefix(perm, prefix) && strings.HasSuffix(perm, suffix) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // withPermissions validates that the key has the required RBAC permissions.
