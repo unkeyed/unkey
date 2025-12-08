@@ -168,26 +168,25 @@ describe.each([
         if (!shouldCountVerification(v)) {
           return acc;
         }
-        if (!acc[v.outcome]) {
-          acc[v.outcome] = 0;
-        }
         acc[v.outcome]++;
         expectedTotal++;
         return acc;
       },
-      {} as { [K in (typeof POSSIBLE_OUTCOMES)[number]]: number },
+      { VALID: 0, RATE_LIMITED: 0, DISABLED: 0 } as {
+        [K in (typeof POSSIBLE_OUTCOMES)[number]]: number;
+      },
     );
 
     expect(res.body.reduce((sum, d) => sum + d.total, 0)).toEqual(expectedTotal);
-    expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(outcomes.VALID);
+    expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(outcomes.VALID ?? 0);
     expect(res.body.reduce((sum, d) => sum + (d.notFound ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.forbidden ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.usageExceeded ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.rateLimited ?? 0), 0)).toEqual(
-      outcomes.RATE_LIMITED,
+      outcomes.RATE_LIMITED ?? 0,
     );
     expect(res.body.reduce((sum, d) => sum + (d.unauthorized ?? 0), 0)).toEqual(0);
-    expect(res.body.reduce((sum, d) => sum + (d.disabled ?? 0), 0)).toEqual(outcomes.DISABLED);
+    expect(res.body.reduce((sum, d) => sum + (d.disabled ?? 0), 0)).toEqual(outcomes.DISABLED ?? 0);
     expect(res.body.reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.expired ?? 0), 0)).toEqual(0);
   });

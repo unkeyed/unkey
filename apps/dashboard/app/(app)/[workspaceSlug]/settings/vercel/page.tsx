@@ -3,7 +3,6 @@
  * Hiding for now until we decide if we want to fix it up or toss it
  */
 
-import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navigation } from "@/components/navigation/navigation";
 import { PageContent } from "@/components/page-content";
 import { getAuth } from "@/lib/auth";
@@ -14,7 +13,6 @@ import { Button, Code, Empty } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { navigation } from "../constants";
 import { Client } from "./client";
 
 export const dynamic = "force-dynamic";
@@ -58,7 +56,6 @@ export default async function Page(props: Props) {
       <div>
         <Navigation href={`/${workspace.slug}/settings/vercel`} name="Settings" icon={<Gear />} />
         <PageContent>
-          <SubMenu navigation={navigation} segment="vercel" />
           <div className="mt-8" />
           <Empty>
             <Empty.Title>Vercel is not connected to this workspace</Empty.Title>
@@ -184,7 +181,6 @@ export default async function Page(props: Props) {
     <div>
       <Navigation href={`/${workspace.slug}/settings/vercel`} icon={<Gear />} name="Settings" />
       <PageContent>
-        <SubMenu navigation={navigation} segment="vercel" />
         <div className="mt-8" />
         <Client projects={projects} apis={apis} rootKeys={rootKeys} integration={integration} />
       </PageContent>
