@@ -82,18 +82,18 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("TLS is enabled, server will use HTTPS")
 	}
 
+	// Create vault service for general secrets (env vars, API keys, etc.)
 	var vaultSvc *vault.Service
-	if len(cfg.VaultMasterKeys) > 0 {
-		var vaultStorage storage.Storage
-		vaultStorage, err = storage.NewS3(storage.S3Config{
+	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3.URL != "" {
+		vaultStorage, vaultStorageErr := storage.NewS3(storage.S3Config{
 			Logger:            logger,
 			S3URL:             cfg.VaultS3.URL,
 			S3Bucket:          cfg.VaultS3.Bucket,
 			S3AccessKeyID:     cfg.VaultS3.AccessKeyID,
 			S3AccessKeySecret: cfg.VaultS3.AccessKeySecret,
 		})
-		if err != nil {
-			return fmt.Errorf("unable to create vault storage: %w", err)
+		if vaultStorageErr != nil {
+			return fmt.Errorf("unable to create vault storage: %w", vaultStorageErr)
 		}
 
 		vaultSvc, err = vault.New(vault.Config{
@@ -104,9 +104,33 @@ func Run(ctx context.Context, cfg Config) error {
 		if err != nil {
 			return fmt.Errorf("unable to create vault service: %w", err)
 		}
+		logger.Info("Vault service initialized", "bucket", cfg.VaultS3.Bucket)
 	}
-	// make go happy
-	_ = vaultSvc
+
+	// Create separate vault service for ACME certificates
+	var acmeVaultSvc *vault.Service
+	if len(cfg.AcmeVaultMasterKeys) > 0 && cfg.AcmeVaultS3.URL != "" {
+		acmeVaultStorage, acmeStorageErr := storage.NewS3(storage.S3Config{
+			Logger:            logger,
+			S3URL:             cfg.AcmeVaultS3.URL,
+			S3Bucket:          cfg.AcmeVaultS3.Bucket,
+			S3AccessKeyID:     cfg.AcmeVaultS3.AccessKeyID,
+			S3AccessKeySecret: cfg.AcmeVaultS3.AccessKeySecret,
+		})
+		if acmeStorageErr != nil {
+			return fmt.Errorf("unable to create ACME vault storage: %w", acmeStorageErr)
+		}
+
+		acmeVaultSvc, err = vault.New(vault.Config{
+			Logger:     logger,
+			Storage:    acmeVaultStorage,
+			MasterKeys: cfg.AcmeVaultMasterKeys,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create ACME vault service: %w", err)
+		}
+		logger.Info("ACME vault service initialized", "bucket", cfg.AcmeVaultS3.Bucket)
+	}
 
 	// Initialize database
 	database, err := db.New(db.Config{
@@ -237,6 +261,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Krane:         kraneDeploymentClient,
 		BuildClient:   buildService,
 		DefaultDomain: cfg.DefaultDomain,
+		Vault:         vaultSvc,
 	})))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
@@ -248,7 +273,7 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
 		Logger: logger,
 		DB:     database,
-		Vault:  vaultSvc,
+		Vault:  acmeVaultSvc,
 	})))
 	restateSrv.Bind(hydrav1.NewProjectServiceServer(projectWorkflow.New(projectWorkflow.Config{
 		Logger: logger,
