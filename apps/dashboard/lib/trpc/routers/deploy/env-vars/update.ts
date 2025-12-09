@@ -21,14 +21,14 @@ export const updateEnvVar = t.procedure
       // Value is always re-encrypted
       value: z.string().min(1),
       type: z.enum(["recoverable", "writeonly"]),
-    }),
+    })
   )
   .mutation(async ({ ctx, input }) => {
     try {
       const envVar = await db.query.environmentVariables.findFirst({
         where: and(
           eq(schema.environmentVariables.id, input.envVarId),
-          eq(schema.environmentVariables.workspaceId, ctx.workspace.id),
+          eq(schema.environmentVariables.workspaceId, ctx.workspace.id)
         ),
         columns: {
           id: true,
@@ -45,7 +45,11 @@ export const updateEnvVar = t.procedure
         });
       }
 
-      if (envVar.type === "writeonly" && input.key && input.key !== envVar.key) {
+      if (
+        envVar.type === "writeonly" &&
+        input.key &&
+        input.key !== envVar.key
+      ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Cannot rename writeonly environment variables",

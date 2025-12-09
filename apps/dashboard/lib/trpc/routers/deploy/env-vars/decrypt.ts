@@ -17,19 +17,19 @@ export const decryptEnvVar = t.procedure
   .input(
     z.object({
       envVarId: z.string(),
-    }),
+    })
   )
   .output(
     z.object({
       value: z.string(),
-    }),
+    })
   )
   .mutation(async ({ ctx, input }) => {
     try {
       const envVar = await db.query.environmentVariables.findFirst({
         where: and(
           eq(environmentVariables.id, input.envVarId),
-          eq(environmentVariables.workspaceId, ctx.workspace.id),
+          eq(environmentVariables.workspaceId, ctx.workspace.id)
         ),
         columns: {
           id: true,
