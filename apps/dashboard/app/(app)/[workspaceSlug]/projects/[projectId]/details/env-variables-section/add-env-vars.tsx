@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Plus, Trash } from "@unkey/icons";
 import { Button, Input, toast } from "@unkey/ui";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EnvVarSecretSwitch } from "./components/env-var-secret-switch";
 import { ENV_VAR_KEY_REGEX, type EnvVar, type EnvVarType } from "./types";
 
@@ -154,22 +154,25 @@ export function AddEnvVars({
     }
   };
 
-  const getErrors = (entry: EnvVarEntry): { key?: string; value?: string } => {
-    const errors: { key?: string; value?: string } = {};
+  const getErrors = useCallback(
+    (entry: EnvVarEntry): { key?: string; value?: string } => {
+      const errors: { key?: string; value?: string } = {};
 
-    if (entry.key && !ENV_VAR_KEY_REGEX.test(entry.key)) {
-      errors.key = "Must be UPPERCASE";
-    } else if (entry.key && getExistingEnvVar(entry.key)) {
-      errors.key = "Already exists";
-    } else if (entry.key) {
-      const duplicates = entries.filter((e) => e.key === entry.key);
-      if (duplicates.length > 1) {
-        errors.key = "Duplicate";
+      if (entry.key && !ENV_VAR_KEY_REGEX.test(entry.key)) {
+        errors.key = "Must be UPPERCASE";
+      } else if (entry.key && getExistingEnvVar(entry.key)) {
+        errors.key = "Already exists";
+      } else if (entry.key) {
+        const duplicates = entries.filter((e) => e.key === entry.key);
+        if (duplicates.length > 1) {
+          errors.key = "Duplicate";
+        }
       }
-    }
 
-    return errors;
-  };
+      return errors;
+    },
+    [entries, getExistingEnvVar],
+  );
 
   const validEntries = useMemo(
     () =>
@@ -177,7 +180,7 @@ export function AddEnvVars({
         const errors = getErrors(e);
         return e.key && e.value && !errors.key && !errors.value;
       }),
-    [entries, getExistingEnvVar],
+    [entries, getErrors],
   );
 
   const handleSave = async () => {

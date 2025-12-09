@@ -177,6 +177,14 @@ type Querier interface {
 	//  FROM custom_domains
 	//  WHERE domain = ?
 	FindCustomDomainByDomain(ctx context.Context, db DBTX, domain string) (CustomDomain, error)
+	//FindCustomDomainByDomainOrWildcard
+	//
+	//  SELECT id, workspace_id, domain, challenge_type, created_at, updated_at FROM custom_domains
+	//  WHERE domain IN (?, ?)
+	//  ORDER BY
+	//      CASE WHEN domain = ? THEN 0 ELSE 1 END
+	//  LIMIT 1
+	FindCustomDomainByDomainOrWildcard(ctx context.Context, db DBTX, arg FindCustomDomainByDomainOrWildcardParams) (CustomDomain, error)
 	//FindCustomDomainById
 	//
 	//  SELECT
@@ -2131,6 +2139,15 @@ type Querier interface {
 	//  SET plan = ?
 	//  WHERE id = ?
 	UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) (sql.Result, error)
+	//UpsertCustomDomain
+	//
+	//  INSERT INTO custom_domains (id, workspace_id, domain, challenge_type, created_at)
+	//  VALUES (?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      workspace_id = VALUES(workspace_id),
+	//      challenge_type = VALUES(challenge_type),
+	//      updated_at = ?
+	UpsertCustomDomain(ctx context.Context, db DBTX, arg UpsertCustomDomainParams) error
 	//UpsertEnvironment
 	//
 	//  INSERT INTO environments (

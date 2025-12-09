@@ -31,7 +31,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, err
 	}
 
-	// If anything goes wrong, we need to update the deployment status to failed
 	defer func() {
 		if finishedSuccessfully {
 			return
@@ -65,7 +64,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	var dockerImage string
 
 	if req.GetBuildContextPath() != "" {
-		// Build Docker image from uploaded context
 		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusBuilding); err != nil {
 			return nil, err
 		}
@@ -109,46 +107,40 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, fmt.Errorf("either build_context_path or docker_image must be specified")
 	}
 
-	// Update version status to deploying
 	if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusDeploying); err != nil {
 		return nil, err
 	}
 
-	// Unmarshal secrets config to get environment variables
-	var secretsConfig ctrlv1.SecretsConfig
-	if len(deployment.SecretsConfig) > 0 {
-		if err = protojson.Unmarshal(deployment.SecretsConfig, &secretsConfig); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal secrets config: %w", err)
-		}
-	}
+	var encryptedSecretsBlob []byte
 
-	// Decrypt environment variables using the workspace's keyring
-	decryptedEnvVars := make(map[string]string, len(secretsConfig.GetSecrets()))
-	if w.vault != nil {
-		for key, encryptedValue := range secretsConfig.GetSecrets() {
-			decrypted, decryptErr := w.vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-				Keyring:   deployment.WorkspaceID,
-				Encrypted: encryptedValue,
-			})
-			if decryptErr != nil {
-				return nil, fmt.Errorf("failed to decrypt env var %s: %w", key, decryptErr)
-			}
-			decryptedEnvVars[key] = decrypted.GetPlaintext()
+	if len(deployment.SecretsConfig) > 0 && w.vault != nil {
+		var secretsConfig ctrlv1.SecretsConfig
+		if err = protojson.Unmarshal(deployment.SecretsConfig, &secretsConfig); err != nil {
+			return nil, fmt.Errorf("invalid secrets config: %w", err)
 		}
+
+		encrypted, encryptErr := w.vault.Encrypt(ctx, &vaultv1.EncryptRequest{
+			Keyring: deployment.EnvironmentID,
+			Data:    string(deployment.SecretsConfig),
+		})
+		if encryptErr != nil {
+			return nil, fmt.Errorf("failed to encrypt secrets blob: %w", encryptErr)
+		}
+		encryptedSecretsBlob = []byte(encrypted.GetEncrypted())
 	}
 
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		// Create deployment request
-
 		_, err = w.krane.CreateDeployment(stepCtx, connect.NewRequest(&kranev1.CreateDeploymentRequest{
 			Deployment: &kranev1.DeploymentRequest{
-				Namespace:     hardcodedNamespace,
-				DeploymentId:  deployment.ID,
-				Image:         dockerImage,
-				Replicas:      1,
-				CpuMillicores: 512,
-				MemorySizeMib: 512,
-				EnvVars:       decryptedEnvVars,
+				Namespace:            hardcodedNamespace,
+				DeploymentId:         deployment.ID,
+				Image:                dockerImage,
+				Replicas:             1,
+				CpuMillicores:        512,
+				MemorySizeMib:        512,
+				EnvironmentSlug:      environment.Slug,
+				EncryptedSecretsBlob: encryptedSecretsBlob,
+				EnvironmentId:        deployment.EnvironmentID,
 			},
 		}))
 		if err != nil {
@@ -164,14 +156,11 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	w.logger.Info("deployment created", "deployment_id", deployment.ID)
 
 	createdInstances, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]*kranev1.Instance, error) {
-		// prevent updating the db unnecessarily
-
-		// instanceID -> status to track if an instance is already in the db and if we need to update it
 		storedInstances := map[string]db.InstancesStatus{}
 
 		for i := range 300 {
 			time.Sleep(time.Second)
-			if i%10 == 0 { // Log every 10 seconds instead of every second
+			if i%10 == 0 {
 				w.logger.Info("polling deployment status", "deployment_id", deployment.ID, "iteration", i)
 			}
 
@@ -238,8 +227,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 					return resp.Msg.GetInstances(), nil
 				}
 			}
-			// next loop
-
 		}
 
 		return nil, fmt.Errorf("deployment never became ready")
@@ -266,7 +253,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				continue
 			}
 
-			// Read the OpenAPI spec
 			var specBytes []byte
 			specBytes, err = io.ReadAll(resp.Body)
 			if err != nil {
@@ -277,7 +263,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			w.logger.Info("openapi spec scraped successfully", "host_addr", instance.GetAddress(), "deployment_id", deployment.ID, "spec_size", len(specBytes))
 			return base64.StdEncoding.EncodeToString(specBytes), nil
 		}
-		// not an error really, just no OpenAPI spec found
 		return "", nil
 	}, restate.WithName("scrape openapi spec"))
 	if err != nil {
@@ -301,10 +286,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		deployment.GitCommitSha.String,
 		deployment.GitBranch.String,
 		w.defaultDomain,
-		ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD, // hardcoded for now cause I really need to move on
+		ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
 	)
-
-	// Build domain assignment requests
 
 	existingRouteIDs := make([]string, 0)
 
@@ -324,7 +307,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 							CreatedAt:     time.Now().UnixMilli(),
 							UpdatedAt:     sql.NullInt64{Valid: false, Int64: 0},
 						})
-						// return empty string cause this ingress is already updated since we just created it
 						return "", err
 
 					}
@@ -342,7 +324,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		}
 	}
 
-	// Call RoutingService to assign domains atomically
 	_, err = hydrav1.NewRoutingServiceClient(ctx, project.ID).
 		AssignIngressRoutes().Request(&hydrav1.AssignIngressRoutesRequest{
 		DeploymentId:    deployment.ID,
@@ -352,13 +333,11 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, fmt.Errorf("failed to assign domains: %w", err)
 	}
 
-	// Update deployment status to ready
 	if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusReady); err != nil {
 		return nil, err
 	}
 
 	if !project.IsRolledBack && environment.Slug == "production" {
-		// only update this if the deployment is not rolled back
 		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 			return restate.Void{}, db.Query.UpdateProjectDeployments(stepCtx, w.db.RW(), db.UpdateProjectDeploymentsParams{
 				IsRolledBack:     false,
@@ -372,7 +351,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		}
 	}
 
-	// Log deployment completed
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		return restate.Void{}, db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			ProjectID:    deployment.ProjectID,

@@ -34,6 +34,7 @@ export const updateEnvVar = t.procedure
           id: true,
           type: true,
           key: true,
+          environmentId: true,
         },
       });
 
@@ -59,7 +60,7 @@ export const updateEnvVar = t.procedure
       }
 
       const { encrypted } = await vault.encrypt({
-        keyring: ctx.workspace.id,
+        keyring: envVar.environmentId,
         data: input.value,
       });
 
