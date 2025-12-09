@@ -1,6 +1,5 @@
 "use client";
 
-import { Alert } from "@/components/ui/alert";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,7 +9,9 @@ import {
 import { trpc } from "@/lib/trpc/client";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowOppositeDirectionY, Dots, Minus, Trash } from "@unkey/icons";
+
 import {
+  Alert,
   Badge,
   Button,
   Checkbox,
