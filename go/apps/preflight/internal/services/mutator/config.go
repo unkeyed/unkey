@@ -1,6 +1,14 @@
 package mutator
 
-import "fmt"
+import (
+	"fmt"
+
+	"k8s.io/client-go/kubernetes"
+
+	"github.com/unkeyed/unkey/go/apps/preflight/internal/services/registry"
+	"github.com/unkeyed/unkey/go/apps/preflight/internal/services/registry/credentials"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+)
 
 const (
 	unkeyEnvVolumeName = "unkey-env-bin"
@@ -16,6 +24,10 @@ const (
 )
 
 type Config struct {
+	Logger                  logging.Logger
+	Registry                *registry.Registry
+	Clientset               kubernetes.Interface
+	Credentials             *credentials.Manager
 	UnkeyEnvImage           string
 	UnkeyEnvImagePullPolicy string
 	AnnotationPrefix        string

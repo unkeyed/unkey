@@ -45,6 +45,7 @@ func (m *Mutator) buildContainerPatches(
 	podSpec *corev1.PodSpec,
 	namespace string,
 	podCfg *podConfig,
+	buildID string,
 ) ([]map[string]interface{}, error) {
 	var patches []map[string]interface{}
 	basePath := fmt.Sprintf("/spec/containers/%d", containerIndex)
@@ -91,12 +92,12 @@ func (m *Mutator) buildContainerPatches(
 	// fetch the image's ENTRYPOINT/CMD from the registry so we know what to exec into.
 	var args []string
 	if len(container.Command) == 0 {
-		m.logger.Info("container has no command, fetching from registry",
+		m.cfg.Logger.Info("container has no command, fetching from registry",
 			"container", container.Name,
 			"image", container.Image,
 		)
 
-		imageConfig, err := m.registry.GetImageConfig(ctx, namespace, container, podSpec)
+		imageConfig, err := m.cfg.Registry.GetImageConfig(ctx, namespace, container, podSpec, buildID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get image config for %s: %w", container.Image, err)
 		}
