@@ -15,6 +15,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { parseAsBoolean, useQueryState } from "nuqs";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -35,6 +36,21 @@ type FormValues = z.infer<typeof feedbackSchema>;
 
 export const Feedback: React.FC = () => {
   const [open, setOpen] = useFeedback();
+  const [internalOpen, setInternalOpen] = useState(false);
+  const justOpenedRef = useRef(false);
+
+  useEffect(() => {
+    if (open) {
+      setInternalOpen(true);
+      justOpenedRef.current = true;
+      const timer = setTimeout(() => {
+        justOpenedRef.current = false;
+      }, 500);
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+  }, [open]);
 
   const {
     handleSubmit,
@@ -68,10 +84,23 @@ export const Feedback: React.FC = () => {
     }
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen && justOpenedRef.current) {
+      return; // Prevent closing if just opened
+    }
+    setOpen(newOpen);
+    setInternalOpen(newOpen);
+  };
+
   return (
     <DialogContainer
-      isOpen={Boolean(open)}
-      onOpenChange={setOpen}
+      isOpen={internalOpen}
+      onOpenChange={handleOpenChange}
+      showCloseWarning={false}
+      onAttemptClose={() => {
+        setInternalOpen(false);
+        setOpen(false);
+      }}
       title="Report an issue"
       subTitle="What went wrong or how can we improve?"
       footer={
