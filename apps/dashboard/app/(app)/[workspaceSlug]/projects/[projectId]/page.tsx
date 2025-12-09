@@ -25,6 +25,8 @@ export default function ProjectDetails() {
     [project?.liveDeploymentId],
   );
 
+  const { data: environments } = useLiveQuery((q) => q.from({ env: collections.environments }));
+
   return (
     <ProjectContentWrapper centered>
       <Section>
@@ -58,18 +60,20 @@ export default function ProjectDetails() {
           title="Environment Variables"
         />
         <div>
-          <EnvironmentVariablesSection
-            icon={<Page2 iconSize="sm-medium" className="text-gray-9" />}
-            title="Production"
-            projectId={projectId}
-            environment="production"
-          />
-          <EnvironmentVariablesSection
-            icon={<Page2 iconSize="sm-medium" className="text-gray-9" />}
-            title="Preview"
-            projectId={projectId}
-            environment="preview"
-          />
+          {environments?.map((env) => (
+            <EnvironmentVariablesSection
+              key={env.id}
+              icon={<Page2 iconSize="sm-medium" className="text-gray-9" />}
+              title={env.slug}
+              projectId={projectId}
+              environment={env.slug}
+            />
+          ))}
+          {environments?.length === 0 && (
+            <div className="px-4 py-8 text-center text-gray-9 text-sm">
+              No environments configured
+            </div>
+          )}
         </div>
       </Section>
     </ProjectContentWrapper>
