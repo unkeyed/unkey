@@ -138,11 +138,10 @@ func (r *Registry) findPlatformManifest(manifests []v1.Descriptor) (v1.Hash, boo
 	return v1.Hash{}, false //nolint:exhaustruct // zero value for not-found case
 }
 
+// targetOS returns the OS to look for in multi-arch image manifests.
+// Containers always run linux, even when the webhook is built/tested on darwin.
 func targetOS() string {
-	if runtime.GOOS == "darwin" {
-		return defaultOS
-	}
-	return runtime.GOOS
+	return defaultOS
 }
 
 // targetArch returns the architecture to look for in multi-arch image manifests.
