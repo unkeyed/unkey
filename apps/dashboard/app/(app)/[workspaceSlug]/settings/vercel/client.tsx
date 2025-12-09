@@ -4,7 +4,6 @@
  */
 
 "use client";
-import { PageHeader } from "@/components/dashboard/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -91,19 +90,6 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
 
   return (
     <>
-      <PageHeader
-        title="Connected Projects"
-        description="Connect a Vercel project to an API to automatically add the necessary environment variables to your project."
-        actions={[
-          <Link
-            key="vercelIntegration"
-            href={`https://vercel.com/dashboard/integrations/${integration.id}`}
-            target="_blank"
-          >
-            <Button>Configure Vercel</Button>
-          </Link>,
-        ]}
-      />
       <div className="flex items-center justify-center w-full ">
         <ul className="w-full space-y-8">
           {projects.map((project) => {
