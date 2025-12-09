@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -15,57 +16,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// CreateDeployment creates a new deployment using Kubernetes StatefulSets and Services.
-//
-// This method implements deployment creation using a two-resource approach:
-// a headless Service for DNS-based service discovery and a StatefulSet for
-// managing pod replicas with stable network identities. This design choice
-// supports the existing microVM abstraction where each instance requires
-// predictable DNS names for database connections and gateway routing.
-//
-// Resource Creation Sequence:
-//  1. Create headless Service (ClusterIP: None) for stable DNS resolution
-//  2. Create StatefulSet with pod template and resource specifications
-//  3. Set Service ownership to StatefulSet for automatic cleanup
-//
-// StatefulSet vs Deployment Choice:
-//
-//	The implementation uses StatefulSets instead of standard Deployments
-//	because krane requires stable network identities for each replica.
-//	This represents a departure from typical stateless application patterns
-//	but aligns with the existing system architecture expectations.
-//
-//	Note: This design decision may be reconsidered in future versions as
-//	it may not align with cloud-native best practices for stateless services.
-//
-// Resource Configuration:
-//   - Containers: Single container per pod with specified image and resources
-//   - CPU/Memory: Both requests and limits set to same values for predictable scheduling
-//   - Networking: Container port 8080 exposed, Service provides cluster-wide access
-//   - Labels: Applied for krane management tracking and resource grouping
-//   - Restart Policy: Always restart containers on failure
-//
-// Service Discovery:
-//
-//	Each pod receives a stable DNS name following the pattern:
-//	{pod-name}-{index}.{service-name}.{namespace}.svc.cluster.local
-//	Example: myapp-0.myapp.unkey.svc.cluster.local
-//
-// Resource Ownership:
-//
-//	The Service is configured as owned by the StatefulSet through Kubernetes
-//	owner references, ensuring automatic cleanup when the StatefulSet is deleted.
-//	This prevents orphaned Services from accumulating in the cluster.
-//
-// Error Handling:
-//
-//	Service or StatefulSet creation failures return CodeInternal errors.
-//	The method ensures transactional behavior - if StatefulSet creation fails
-//	after Service creation, the Service remains (and will be cleaned up by
-//	Kubernetes garbage collection if properly configured).
-//
-// Returns DEPLOYMENT_STATUS_PENDING as pods may not be immediately scheduled
-// and ready for traffic after creation.
+// CreateDeployment creates a StatefulSet with a headless Service for stable DNS-based discovery.
+// Uses StatefulSets (not Deployments) because each replica needs a predictable DNS name
+// (e.g., myapp-0.myapp.unkey.svc.cluster.local) for gateway routing.
 func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1.CreateDeploymentRequest]) (*connect.Response[kranev1.CreateDeploymentResponse], error) {
 	k8sDeploymentID := safeIDForK8s(req.Msg.GetDeployment().GetDeploymentId())
 	namespace := safeIDForK8s(req.Msg.GetDeployment().GetNamespace())
@@ -78,13 +31,6 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 	service, err := k.clientset.CoreV1().
 		Services(namespace).
 		Create(ctx,
-			// This implementation of using stateful sets is very likely not what we want to
-			// use in v1.
-			//
-			// It's simply what fits our existing abstraction of microVMs best, because it gives us
-			// stable dns addresses for each pod and that's what our database and gatway expect.
-			//
-			// I believe going forward we need to re-evaluate that cause it's the wrong abstraction.
 			//nolint:exhaustruct
 			&corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
@@ -102,7 +48,7 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 
 				//nolint:exhaustruct
 				Spec: corev1.ServiceSpec{
-					Type: corev1.ServiceTypeClusterIP, // Use ClusterIP for internal communication
+					Type: corev1.ServiceTypeClusterIP,
 					Selector: map[string]string{
 						"unkey.deployment.id": k8sDeploymentID,
 					},
@@ -152,16 +98,16 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 						Labels: map[string]string{
 							"unkey.deployment.id": k8sDeploymentID,
 							"unkey.managed.by":    "krane",
+							"unkey.com/inject":    "true",
 						},
-						Annotations: map[string]string{},
+						Annotations: map[string]string{
+							"unkey.com/deployment-id": req.Msg.GetDeployment().GetDeploymentId(),
+						},
 					},
 					Spec: corev1.PodSpec{
-						// Use a restricted service account with no API access
 						ServiceAccountName:           "customer-workload",
-						AutomountServiceAccountToken: ptr.P(false),
-
+						AutomountServiceAccountToken: ptr.P(true),
 						ImagePullSecrets: func() []corev1.LocalObjectReference {
-							// Only add imagePullSecrets if using Depot registry
 							if strings.HasPrefix(req.Msg.GetDeployment().GetImage(), "registry.depot.dev/") {
 								return []corev1.LocalObjectReference{
 									{
@@ -183,17 +129,43 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 									},
 								},
 								Env: func() []corev1.EnvVar {
-									envVars := req.Msg.GetDeployment().GetEnvVars()
-									if len(envVars) == 0 {
-										return nil
+									deployment := req.Msg.GetDeployment()
+									env := []corev1.EnvVar{
+										{
+											Name:  "UNKEY_DEPLOYMENT_ID",
+											Value: deployment.GetDeploymentId(),
+										},
+										{
+											Name:  "UNKEY_ENVIRONMENT_ID",
+											Value: deployment.GetEnvironmentId(),
+										},
+										{
+											Name:  "UNKEY_REGION",
+											Value: k.region,
+										},
+										{
+											Name:  "UNKEY_ENVIRONMENT_SLUG",
+											Value: deployment.GetEnvironmentSlug(),
+										},
+										{
+											Name: "UNKEY_INSTANCE_ID",
+											//nolint:exhaustruct
+											ValueFrom: &corev1.EnvVarSource{
+												//nolint:exhaustruct
+												FieldRef: &corev1.ObjectFieldSelector{
+													FieldPath: "metadata.name",
+												},
+											},
+										},
 									}
-									env := make([]corev1.EnvVar, 0, len(envVars))
-									for k, v := range envVars {
+
+									if len(deployment.GetEncryptedSecretsBlob()) > 0 {
 										env = append(env, corev1.EnvVar{
-											Name:  k,
-											Value: v,
+											Name:  "UNKEY_SECRETS_BLOB",
+											Value: base64.StdEncoding.EncodeToString(deployment.GetEncryptedSecretsBlob()),
 										})
 									}
+
 									return env
 								}(),
 								Resources: corev1.ResourceRequirements{
@@ -220,8 +192,6 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 			},
 		}, metav1.CreateOptions{})
 	if err != nil {
-		k.logger.Info("Deleting service, because deployment creation failed")
-		// Delete service
 		// nolint: exhaustruct
 		if rollbackErr := k.clientset.CoreV1().Services(namespace).Delete(ctx, service.Name, metav1.DeleteOptions{}); rollbackErr != nil {
 			k.logger.Error("Failed to delete service", "error", rollbackErr.Error())
@@ -231,7 +201,6 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 	}
 
 	service.OwnerReferences = []metav1.OwnerReference{
-		// Automatically clean up the service, when the deployment gets deleted
 		//nolint:exhaustruct
 		{
 			APIVersion: "apps/v1",

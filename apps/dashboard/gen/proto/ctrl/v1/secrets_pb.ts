@@ -2,18 +2,15 @@
 // @generated from file ctrl/v1/secrets.proto (package ctrl.v1, syntax proto3)
 /* eslint-disable */
 
-import type { Message } from "@bufbuild/protobuf";
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/secrets.proto.
  */
-export const file_ctrl_v1_secrets: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChVjdHJsL3YxL3NlY3JldHMucHJvdG8SB2N0cmwudjEidQoNU2VjcmV0c0NvbmZpZxI0CgdzZWNyZXRzGAEgAygLMiMuY3RybC52MS5TZWNyZXRzQ29uZmlnLlNlY3JldHNFbnRyeRouCgxTZWNyZXRzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AUKOAQoLY29tLmN0cmwudjFCDFNlY3JldHNQcm90b1ABWjRnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw",
-  );
+export const file_ctrl_v1_secrets: GenFile = /*@__PURE__*/
+  fileDesc("ChVjdHJsL3YxL3NlY3JldHMucHJvdG8SB2N0cmwudjEidQoNU2VjcmV0c0NvbmZpZxI0CgdzZWNyZXRzGAEgAygLMiMuY3RybC52MS5TZWNyZXRzQ29uZmlnLlNlY3JldHNFbnRyeRouCgxTZWNyZXRzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AUKOAQoLY29tLmN0cmwudjFCDFNlY3JldHNQcm90b1ABWjRnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw");
 
 /**
  * SecretsConfig is stored in the deployments table
@@ -34,6 +31,6 @@ export type SecretsConfig = Message<"ctrl.v1.SecretsConfig"> & {
  * Describes the message ctrl.v1.SecretsConfig.
  * Use `create(SecretsConfigSchema)` to create a new message.
  */
-export const SecretsConfigSchema: GenMessage<SecretsConfig> =
-  /*@__PURE__*/
+export const SecretsConfigSchema: GenMessage<SecretsConfig> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_secrets, 0);
+

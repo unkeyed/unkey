@@ -10,7 +10,8 @@ metadata:
 
 ---
 # Restricted service account for customer workloads
-# This account has NO permissions - customers cannot query the K8s API
+# This account has NO K8s API permissions - customers cannot query the K8s API.
+# Token is mounted for unkey-env to authenticate with the secrets provider.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -19,7 +20,6 @@ metadata:
   labels:
     app: unkey
     component: customer
-# automountServiceAccountToken is also disabled at pod level for defense in depth
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -54,6 +54,11 @@ rules:
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["get", "list", "watch"]
+
+  # TokenReview for validating service account tokens (secrets injection)
+  - apiGroups: ["authentication.k8s.io"]
+    resources: ["tokenreviews"]
+    verbs: ["create"]
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
