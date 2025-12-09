@@ -156,6 +156,9 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 						Annotations: map[string]string{},
 					},
 					Spec: corev1.PodSpec{
+						// Use a restricted service account with no API access
+						ServiceAccountName:           "customer-workload",
+						AutomountServiceAccountToken: ptr.P(false),
 
 						ImagePullSecrets: func() []corev1.LocalObjectReference {
 							// Only add imagePullSecrets if using Depot registry
@@ -179,6 +182,20 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 										Protocol:      corev1.ProtocolTCP,
 									},
 								},
+								Env: func() []corev1.EnvVar {
+									envVars := req.Msg.GetDeployment().GetEnvVars()
+									if len(envVars) == 0 {
+										return nil
+									}
+									env := make([]corev1.EnvVar, 0, len(envVars))
+									for k, v := range envVars {
+										env = append(env, corev1.EnvVar{
+											Name:  k,
+											Value: v,
+										})
+									}
+									return env
+								}(),
 								Resources: corev1.ResourceRequirements{
 									// nolint: exhaustive
 									Requests: corev1.ResourceList{

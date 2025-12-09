@@ -2,30 +2,27 @@
 // @generated from file vault/v1/service.proto (package vault.v1, syntax proto3)
 /* eslint-disable */
 
-import type { Message } from "@bufbuild/protobuf";
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file vault/v1/service.proto.
  */
-export const file_vault_v1_service: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChZ2YXVsdC92MS9zZXJ2aWNlLnByb3RvEgh2YXVsdC52MSIRCg9MaXZlbmVzc1JlcXVlc3QiIgoQTGl2ZW5lc3NSZXNwb25zZRIOCgZzdGF0dXMYASABKAkiLwoORW5jcnlwdFJlcXVlc3QSDwoHa2V5cmluZxgBIAEoCRIMCgRkYXRhGAIgASgJIjQKD0VuY3J5cHRSZXNwb25zZRIRCgllbmNyeXB0ZWQYASABKAkSDgoGa2V5X2lkGAIgASgJIjMKEkVuY3J5cHRCdWxrUmVxdWVzdBIPCgdrZXlyaW5nGAEgASgJEgwKBGRhdGEYAiADKAkiQwoTRW5jcnlwdEJ1bGtSZXNwb25zZRIsCgllbmNyeXB0ZWQYASADKAsyGS52YXVsdC52MS5FbmNyeXB0UmVzcG9uc2UiNAoORGVjcnlwdFJlcXVlc3QSDwoHa2V5cmluZxgBIAEoCRIRCgllbmNyeXB0ZWQYAiABKAkiJAoPRGVjcnlwdFJlc3BvbnNlEhEKCXBsYWludGV4dBgBIAEoCSIjChBDcmVhdGVERUtSZXF1ZXN0Eg8KB2tleXJpbmcYASABKAkiIwoRQ3JlYXRlREVLUmVzcG9uc2USDgoGa2V5X2lkGAEgASgJIlYKEFJlRW5jcnlwdFJlcXVlc3QSDwoHa2V5cmluZxgBIAEoCRIRCgllbmNyeXB0ZWQYAiABKAkSEwoGa2V5X2lkGAMgASgJSACIAQFCCQoHX2tleV9pZCI2ChFSZUVuY3J5cHRSZXNwb25zZRIRCgllbmNyeXB0ZWQYASABKAkSDgoGa2V5X2lkGAIgASgJIhYKFFJlRW5jcnlwdERFS3NSZXF1ZXN0IhcKFVJlRW5jcnlwdERFS3NSZXNwb25zZTKJBAoMVmF1bHRTZXJ2aWNlEkMKCExpdmVuZXNzEhkudmF1bHQudjEuTGl2ZW5lc3NSZXF1ZXN0GhoudmF1bHQudjEuTGl2ZW5lc3NSZXNwb25zZSIAEkYKCUNyZWF0ZURFSxIaLnZhdWx0LnYxLkNyZWF0ZURFS1JlcXVlc3QaGy52YXVsdC52MS5DcmVhdGVERUtSZXNwb25zZSIAEkAKB0VuY3J5cHQSGC52YXVsdC52MS5FbmNyeXB0UmVxdWVzdBoZLnZhdWx0LnYxLkVuY3J5cHRSZXNwb25zZSIAEkwKC0VuY3J5cHRCdWxrEhwudmF1bHQudjEuRW5jcnlwdEJ1bGtSZXF1ZXN0Gh0udmF1bHQudjEuRW5jcnlwdEJ1bGtSZXNwb25zZSIAEkAKB0RlY3J5cHQSGC52YXVsdC52MS5EZWNyeXB0UmVxdWVzdBoZLnZhdWx0LnYxLkRlY3J5cHRSZXNwb25zZSIAEkYKCVJlRW5jcnlwdBIaLnZhdWx0LnYxLlJlRW5jcnlwdFJlcXVlc3QaGy52YXVsdC52MS5SZUVuY3J5cHRSZXNwb25zZSIAElIKDVJlRW5jcnlwdERFS3MSHi52YXVsdC52MS5SZUVuY3J5cHRERUtzUmVxdWVzdBofLnZhdWx0LnYxLlJlRW5jcnlwdERFS3NSZXNwb25zZSIAQpUBCgxjb20udmF1bHQudjFCDFNlcnZpY2VQcm90b1ABWjZnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL3ZhdWx0L3YxO3ZhdWx0djGiAgNWWFiqAghWYXVsdC5WMcoCCFZhdWx0XFYx4gIUVmF1bHRcVjFcR1BCTWV0YWRhdGHqAglWYXVsdDo6VjFiBnByb3RvMw",
-  );
+export const file_vault_v1_service: GenFile = /*@__PURE__*/
+  fileDesc("ChZ2YXVsdC92MS9zZXJ2aWNlLnByb3RvEgh2YXVsdC52MSIRCg9MaXZlbmVzc1JlcXVlc3QiIgoQTGl2ZW5lc3NSZXNwb25zZRIOCgZzdGF0dXMYASABKAkiLwoORW5jcnlwdFJlcXVlc3QSDwoHa2V5cmluZxgBIAEoCRIMCgRkYXRhGAIgASgJIjQKD0VuY3J5cHRSZXNwb25zZRIRCgllbmNyeXB0ZWQYASABKAkSDgoGa2V5X2lkGAIgASgJIjMKEkVuY3J5cHRCdWxrUmVxdWVzdBIPCgdrZXlyaW5nGAEgASgJEgwKBGRhdGEYAiADKAkiQwoTRW5jcnlwdEJ1bGtSZXNwb25zZRIsCgllbmNyeXB0ZWQYASADKAsyGS52YXVsdC52MS5FbmNyeXB0UmVzcG9uc2UiNAoORGVjcnlwdFJlcXVlc3QSDwoHa2V5cmluZxgBIAEoCRIRCgllbmNyeXB0ZWQYAiABKAkiJAoPRGVjcnlwdFJlc3BvbnNlEhEKCXBsYWludGV4dBgBIAEoCSIjChBDcmVhdGVERUtSZXF1ZXN0Eg8KB2tleXJpbmcYASABKAkiIwoRQ3JlYXRlREVLUmVzcG9uc2USDgoGa2V5X2lkGAEgASgJIlYKEFJlRW5jcnlwdFJlcXVlc3QSDwoHa2V5cmluZxgBIAEoCRIRCgllbmNyeXB0ZWQYAiABKAkSEwoGa2V5X2lkGAMgASgJSACIAQFCCQoHX2tleV9pZCI2ChFSZUVuY3J5cHRSZXNwb25zZRIRCgllbmNyeXB0ZWQYASABKAkSDgoGa2V5X2lkGAIgASgJIhYKFFJlRW5jcnlwdERFS3NSZXF1ZXN0IhcKFVJlRW5jcnlwdERFS3NSZXNwb25zZTKJBAoMVmF1bHRTZXJ2aWNlEkMKCExpdmVuZXNzEhkudmF1bHQudjEuTGl2ZW5lc3NSZXF1ZXN0GhoudmF1bHQudjEuTGl2ZW5lc3NSZXNwb25zZSIAEkYKCUNyZWF0ZURFSxIaLnZhdWx0LnYxLkNyZWF0ZURFS1JlcXVlc3QaGy52YXVsdC52MS5DcmVhdGVERUtSZXNwb25zZSIAEkAKB0VuY3J5cHQSGC52YXVsdC52MS5FbmNyeXB0UmVxdWVzdBoZLnZhdWx0LnYxLkVuY3J5cHRSZXNwb25zZSIAEkwKC0VuY3J5cHRCdWxrEhwudmF1bHQudjEuRW5jcnlwdEJ1bGtSZXF1ZXN0Gh0udmF1bHQudjEuRW5jcnlwdEJ1bGtSZXNwb25zZSIAEkAKB0RlY3J5cHQSGC52YXVsdC52MS5EZWNyeXB0UmVxdWVzdBoZLnZhdWx0LnYxLkRlY3J5cHRSZXNwb25zZSIAEkYKCVJlRW5jcnlwdBIaLnZhdWx0LnYxLlJlRW5jcnlwdFJlcXVlc3QaGy52YXVsdC52MS5SZUVuY3J5cHRSZXNwb25zZSIAElIKDVJlRW5jcnlwdERFS3MSHi52YXVsdC52MS5SZUVuY3J5cHRERUtzUmVxdWVzdBofLnZhdWx0LnYxLlJlRW5jcnlwdERFS3NSZXNwb25zZSIAQpUBCgxjb20udmF1bHQudjFCDFNlcnZpY2VQcm90b1ABWjZnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL3ZhdWx0L3YxO3ZhdWx0djGiAgNWWFiqAghWYXVsdC5WMcoCCFZhdWx0XFYx4gIUVmF1bHRcVjFcR1BCTWV0YWRhdGHqAglWYXVsdDo6VjFiBnByb3RvMw");
 
 /**
  * @generated from message vault.v1.LivenessRequest
  */
-export type LivenessRequest = Message<"vault.v1.LivenessRequest"> & {};
+export type LivenessRequest = Message<"vault.v1.LivenessRequest"> & {
+};
 
 /**
  * Describes the message vault.v1.LivenessRequest.
  * Use `create(LivenessRequestSchema)` to create a new message.
  */
-export const LivenessRequestSchema: GenMessage<LivenessRequest> =
-  /*@__PURE__*/
+export const LivenessRequestSchema: GenMessage<LivenessRequest> = /*@__PURE__*/
   messageDesc(file_vault_v1_service, 0);
 
 /**
@@ -42,8 +39,7 @@ export type LivenessResponse = Message<"vault.v1.LivenessResponse"> & {
  * Describes the message vault.v1.LivenessResponse.
  * Use `create(LivenessResponseSchema)` to create a new message.
  */
-export const LivenessResponseSchema: GenMessage<LivenessResponse> =
-  /*@__PURE__*/
+export const LivenessResponseSchema: GenMessage<LivenessResponse> = /*@__PURE__*/
   messageDesc(file_vault_v1_service, 1);
 
 /**
@@ -65,8 +61,7 @@ export type EncryptRequest = Message<"vault.v1.EncryptRequest"> & {
  * Describes the message vault.v1.EncryptRequest.
  * Use `create(EncryptRequestSchema)` to create a new message.
  */
-export const EncryptRequestSchema: GenMessage<EncryptRequest> =
-  /*@__PURE__*/
+export const EncryptRequestSchema: GenMessage<EncryptRequest> = /*@__PURE__*/
   messageDesc(file_vault_v1_service, 2);
 
 /**
@@ -88,8 +83,7 @@ export type EncryptResponse = Message<"vault.v1.EncryptResponse"> & {
  * Describes the message vault.v1.EncryptResponse.
  * Use `create(EncryptResponseSchema)` to create a new message.
  */
-export const EncryptResponseSchema: GenMessage<EncryptResponse> =
-  /*@__PURE__*/
+export const EncryptResponseSchema: GenMessage<EncryptResponse> = /*@__PURE__*/
   messageDesc(file_vault_v1_service, 3);
 
 /**
@@ -111,8 +105,7 @@ export type EncryptBulkRequest = Message<"vault.v1.EncryptBulkRequest"> & {
  * Describes the message vault.v1.EncryptBulkRequest.
  * Use `create(EncryptBulkRequestSchema)` to create a new message.
  */
-export const EncryptBulkRequestSchema: GenMessage<EncryptBulkRequest> =
-  /*@__PURE__*/
+export const EncryptBulkRequestSchema: GenMessage<EncryptBulkRequest> = /*@__PURE__*/
   messageDesc(file_vault_v1_service, 4);
 
 /**
@@ -129,8 +122,7 @@ export type EncryptBulkResponse = Message<"vault.v1.EncryptBulkResponse"> & {
  * Describes the message vault.v1.EncryptBulkResponse.
  * Use `create(EncryptBulkResponseSchema)` to create a new message.
  */
-export const EncryptBulkResponseSchema: GenMessage<EncryptBulkResponse> =
-  /*@__PURE__*/
+export const EncryptBulkResponseSchema: GenMessage<EncryptBulkResponse> = /*@__PURE__*/
   messageDesc(file_vault_v1_service, 5);
 
 /**
@@ -152,8 +144,7 @@ export type DecryptRequest = Message<"vault.v1.DecryptRequest"> & {
  * Describes the message vault.v1.DecryptRequest.
  * Use `create(DecryptRequestSchema)` to create a new message.
  */
-export const DecryptRequestSchema: GenMessage<DecryptRequest> =
-  /*@__PURE__*/
+export const DecryptRequestSchema: GenMessage<DecryptRequest> = /*@__PURE__*/
   messageDesc(file_vault_v1_service, 6);
 
 /**
@@ -170,8 +161,7 @@ export type DecryptResponse = Message<"vault.v1.DecryptResponse"> & {
  * Describes the message vault.v1.DecryptResponse.
  * Use `create(DecryptResponseSchema)` to create a new message.
  */
-export const DecryptResponseSchema: GenMessage<DecryptResponse> =
-  /*@__PURE__*/
+export const DecryptResponseSchema: GenMessage<DecryptResponse> = /*@__PURE__*/
   messageDesc(file_vault_v1_service, 7);
 
 /**
@@ -188,8 +178,7 @@ export type CreateDEKRequest = Message<"vault.v1.CreateDEKRequest"> & {
  * Describes the message vault.v1.CreateDEKRequest.
  * Use `create(CreateDEKRequestSchema)` to create a new message.
  */
-export const CreateDEKRequestSchema: GenMessage<CreateDEKRequest> =
-  /*@__PURE__*/
+export const CreateDEKRequestSchema: GenMessage<CreateDEKRequest> = /*@__PURE__*/
   messageDesc(file_vault_v1_service, 8);
 
 /**
@@ -206,8 +195,7 @@ export type CreateDEKResponse = Message<"vault.v1.CreateDEKResponse"> & {
  * Describes the message vault.v1.CreateDEKResponse.
  * Use `create(CreateDEKResponseSchema)` to create a new message.
  */
-export const CreateDEKResponseSchema: GenMessage<CreateDEKResponse> =
-  /*@__PURE__*/
+export const CreateDEKResponseSchema: GenMessage<CreateDEKResponse> = /*@__PURE__*/
   messageDesc(file_vault_v1_service, 9);
 
 /**
@@ -236,8 +224,7 @@ export type ReEncryptRequest = Message<"vault.v1.ReEncryptRequest"> & {
  * Describes the message vault.v1.ReEncryptRequest.
  * Use `create(ReEncryptRequestSchema)` to create a new message.
  */
-export const ReEncryptRequestSchema: GenMessage<ReEncryptRequest> =
-  /*@__PURE__*/
+export const ReEncryptRequestSchema: GenMessage<ReEncryptRequest> = /*@__PURE__*/
   messageDesc(file_vault_v1_service, 10);
 
 /**
@@ -259,34 +246,33 @@ export type ReEncryptResponse = Message<"vault.v1.ReEncryptResponse"> & {
  * Describes the message vault.v1.ReEncryptResponse.
  * Use `create(ReEncryptResponseSchema)` to create a new message.
  */
-export const ReEncryptResponseSchema: GenMessage<ReEncryptResponse> =
-  /*@__PURE__*/
+export const ReEncryptResponseSchema: GenMessage<ReEncryptResponse> = /*@__PURE__*/
   messageDesc(file_vault_v1_service, 11);
 
 /**
  * @generated from message vault.v1.ReEncryptDEKsRequest
  */
-export type ReEncryptDEKsRequest = Message<"vault.v1.ReEncryptDEKsRequest"> & {};
+export type ReEncryptDEKsRequest = Message<"vault.v1.ReEncryptDEKsRequest"> & {
+};
 
 /**
  * Describes the message vault.v1.ReEncryptDEKsRequest.
  * Use `create(ReEncryptDEKsRequestSchema)` to create a new message.
  */
-export const ReEncryptDEKsRequestSchema: GenMessage<ReEncryptDEKsRequest> =
-  /*@__PURE__*/
+export const ReEncryptDEKsRequestSchema: GenMessage<ReEncryptDEKsRequest> = /*@__PURE__*/
   messageDesc(file_vault_v1_service, 12);
 
 /**
  * @generated from message vault.v1.ReEncryptDEKsResponse
  */
-export type ReEncryptDEKsResponse = Message<"vault.v1.ReEncryptDEKsResponse"> & {};
+export type ReEncryptDEKsResponse = Message<"vault.v1.ReEncryptDEKsResponse"> & {
+};
 
 /**
  * Describes the message vault.v1.ReEncryptDEKsResponse.
  * Use `create(ReEncryptDEKsResponseSchema)` to create a new message.
  */
-export const ReEncryptDEKsResponseSchema: GenMessage<ReEncryptDEKsResponse> =
-  /*@__PURE__*/
+export const ReEncryptDEKsResponseSchema: GenMessage<ReEncryptDEKsResponse> = /*@__PURE__*/
   messageDesc(file_vault_v1_service, 13);
 
 /**
@@ -300,7 +286,7 @@ export const VaultService: GenService<{
     methodKind: "unary";
     input: typeof LivenessRequestSchema;
     output: typeof LivenessResponseSchema;
-  };
+  },
   /**
    * @generated from rpc vault.v1.VaultService.CreateDEK
    */
@@ -308,7 +294,7 @@ export const VaultService: GenService<{
     methodKind: "unary";
     input: typeof CreateDEKRequestSchema;
     output: typeof CreateDEKResponseSchema;
-  };
+  },
   /**
    * @generated from rpc vault.v1.VaultService.Encrypt
    */
@@ -316,7 +302,7 @@ export const VaultService: GenService<{
     methodKind: "unary";
     input: typeof EncryptRequestSchema;
     output: typeof EncryptResponseSchema;
-  };
+  },
   /**
    * @generated from rpc vault.v1.VaultService.EncryptBulk
    */
@@ -324,7 +310,7 @@ export const VaultService: GenService<{
     methodKind: "unary";
     input: typeof EncryptBulkRequestSchema;
     output: typeof EncryptBulkResponseSchema;
-  };
+  },
   /**
    * @generated from rpc vault.v1.VaultService.Decrypt
    */
@@ -332,7 +318,7 @@ export const VaultService: GenService<{
     methodKind: "unary";
     input: typeof DecryptRequestSchema;
     output: typeof DecryptResponseSchema;
-  };
+  },
   /**
    * ReEncrypt rec
    *
@@ -342,7 +328,7 @@ export const VaultService: GenService<{
     methodKind: "unary";
     input: typeof ReEncryptRequestSchema;
     output: typeof ReEncryptResponseSchema;
-  };
+  },
   /**
    * @generated from rpc vault.v1.VaultService.ReEncryptDEKs
    */
@@ -350,5 +336,7 @@ export const VaultService: GenService<{
     methodKind: "unary";
     input: typeof ReEncryptDEKsRequestSchema;
     output: typeof ReEncryptDEKsResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_vault_v1_service, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_vault_v1_service, 0);
+

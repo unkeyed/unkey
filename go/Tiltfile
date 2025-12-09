@@ -26,10 +26,10 @@ start_observability = 'all' in services or 'observability' in services
 start_planetscale = 'all' in services or 'planetscale' in services
 start_restate = 'all' in services or 'restate' in services
 start_api = 'all' in services or 'api' in services
-start_gw = 'all' in services or 'gateway' in services or 'gw' in services
 start_ctrl = 'all' in services or 'ctrl' in services
 start_krane = 'all' in services or 'krane' in services
 start_dashboard = 'all' in services or 'dashboard' in services
+start_agent = 'all' in services or 'agent' in services
 
 # Apply RBAC
 k8s_yaml('k8s/manifests/rbac.yaml')
@@ -95,7 +95,7 @@ if start_s3:
     k8s_yaml('k8s/manifests/s3.yaml')
     k8s_resource(
         's3',
-        port_forwards=['9000:9000', '9001:9001'],
+        port_forwards=['3902:3902', '3903:3903'],
         resource_deps=[],
         labels=['storage']
     )
@@ -141,7 +141,7 @@ if start_observability:
     )
 
 # Build Unkey binary locally (independent of infrastructure)
-if start_api or start_gw or start_ctrl or start_krane:
+if start_api or start_ctrl or start_krane:
     print("Building Unkey binary...")
     # Build locally first for faster updates
     local_resource(
@@ -182,39 +182,6 @@ if start_api:
         'api',
         port_forwards='7070:7070',
         resource_deps=api_deps,
-        labels=['unkey'],
-        auto_init=True,
-        trigger_mode=TRIGGER_MODE_MANUAL if debug_mode else TRIGGER_MODE_AUTO
-    )
-
-# Gateway service (1 replica)
-if start_gw:
-    print("Setting up Gateway service...")
-
-    docker_build_with_restart(
-        'unkey-gw:latest',
-        '.',
-        dockerfile='Dockerfile.tilt',
-        entrypoint=['/unkey', 'run', 'gw'],
-        only=['./bin'],
-        live_update=[
-            sync('./bin/unkey', '/unkey'),
-        ],
-        ignore=['./cmd/api', './cmd/ctrl', './apps/api', './apps/ctrl']
-    )
-
-    k8s_yaml('k8s/manifests/gw.yaml')
-
-    # Build dependency list
-    gw_deps = []
-    if start_mysql: gw_deps.append('mysql')
-    # Add compilation dependency for Unkey services
-    gw_deps.append('unkey-compile')
-
-    k8s_resource(
-        'gw',
-        port_forwards=['8080:8080', '8443:8443'],
-        resource_deps=gw_deps,
         labels=['unkey'],
         auto_init=True,
         trigger_mode=TRIGGER_MODE_MANUAL if debug_mode else TRIGGER_MODE_AUTO
@@ -287,6 +254,30 @@ if start_krane:
         trigger_mode=TRIGGER_MODE_AUTO
     )
 
+# Agent service
+if start_agent:
+    print("Setting up Agent service...")
+    docker_build(
+        'unkey-agent:latest',
+        '../apps/agent',
+        dockerfile='../apps/agent/Dockerfile',
+    )
+    k8s_yaml('k8s/manifests/agent.yaml')
+
+    # Build dependency list
+    agent_deps = []
+    if start_s3: agent_deps.append('s3')
+    if start_clickhouse: agent_deps.append('clickhouse')
+
+    k8s_resource(
+        'agent',
+        port_forwards='8082:8080',
+        resource_deps=agent_deps,
+        labels=['unkey'],
+        auto_init=True,
+        trigger_mode=TRIGGER_MODE_AUTO
+    )
+
 # Dashboard service
 if start_dashboard:
     print("Setting up Dashboard service...")
@@ -306,6 +297,7 @@ if start_dashboard:
     dashboard_deps = []
     if start_planetscale: dashboard_deps.append('planetscale')
     if start_clickhouse: dashboard_deps.append('clickhouse')
+    if start_agent: dashboard_deps.append('agent')
 
     k8s_resource(
         'dashboard',
@@ -326,9 +318,9 @@ if start_planetscale: active_services.append('planetscale')
 if start_observability: active_services.extend(['prometheus', 'otel-collector'])
 if start_restate: active_services.append('restate')
 if start_api: active_services.append('api')
-if start_gw: active_services.append('gw')
 if start_ctrl: active_services.append('ctrl')
 if start_dashboard: active_services.append('dashboard')
+if start_agent: active_services.append('agent')
 
 print("""
 Tilt is ready!
@@ -340,13 +332,14 @@ Web UI: http://localhost:10350
 Services available via Tilt port forwards:
 Dashboard: http://localhost:3000
 API: http://localhost:7070
-Gateway: http://localhost:8080
 Ctrl: http://localhost:7091
 Krane: http://localhost:8090
+Agent: http://localhost:8082
 Restate Ingress: http://localhost:8081
 Restate Admin: http://localhost:9070
 Prometheus: http://localhost:9090
-S3 Console: http://localhost:9000
+S3 API: http://localhost:3902
+S3 Console: http://localhost:3903
 ClickHouse: http://localhost:8123
 
 Tips:
