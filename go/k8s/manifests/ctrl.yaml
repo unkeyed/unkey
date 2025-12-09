@@ -58,16 +58,27 @@ spec:
               value: "http://krane:8080"
             - name: UNKEY_SPIFFE_SOCKET_PATH
               value: "/var/lib/spire/agent/agent.sock"
-            # Vault Configuration (required)
+            # Vault Configuration - General secrets (env vars, API keys)
             - name: UNKEY_VAULT_MASTER_KEYS
               value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
             - name: UNKEY_VAULT_S3_URL
               value: "http://s3:3902"
             - name: UNKEY_VAULT_S3_BUCKET
-              value: "acme-vault"
+              value: "vault"
             - name: UNKEY_VAULT_S3_ACCESS_KEY_ID
               value: "minio_root_user"
             - name: UNKEY_VAULT_S3_ACCESS_KEY_SECRET
+              value: "minio_root_password"
+            # ACME Vault Configuration - Let's Encrypt certificates
+            - name: UNKEY_ACME_VAULT_MASTER_KEYS
+              value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
+            - name: UNKEY_ACME_VAULT_S3_URL
+              value: "http://s3:3902"
+            - name: UNKEY_ACME_VAULT_S3_BUCKET
+              value: "acme-vault"
+            - name: UNKEY_ACME_VAULT_S3_ACCESS_KEY_ID
+              value: "minio_root_user"
+            - name: UNKEY_ACME_VAULT_S3_ACCESS_KEY_SECRET
               value: "minio_root_password"
             # Build Configuration
             - name: UNKEY_BUILD_BACKEND
