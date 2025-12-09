@@ -15,6 +15,9 @@ debug_mode = cfg.get('debug', False)
 
 print("Tilt starting with services: %s" % services)
 
+# Suppress warnings for images used indirectly (injected into pods by webhook)
+update_settings(suppress_unused_image_warnings=["unkey-env:latest"])
+
 # Create namespace using the extension with allow_duplicates
 namespace_create('unkey', allow_duplicates=True)
 
@@ -30,6 +33,7 @@ start_ctrl = 'all' in services or 'ctrl' in services
 start_krane = 'all' in services or 'krane' in services
 start_dashboard = 'all' in services or 'dashboard' in services
 start_agent = 'all' in services or 'agent' in services
+start_secrets_webhook = 'all' in services or 'secrets-webhook' in services
 
 # Apply RBAC
 k8s_yaml('k8s/manifests/rbac.yaml')
@@ -141,7 +145,7 @@ if start_observability:
     )
 
 # Build Unkey binary locally (independent of infrastructure)
-if start_api or start_ctrl or start_krane:
+if start_api or start_ctrl or start_krane or start_secrets_webhook:
     print("Building Unkey binary...")
     # Build locally first for faster updates
     local_resource(
@@ -254,6 +258,57 @@ if start_krane:
         trigger_mode=TRIGGER_MODE_AUTO
     )
 
+# Secrets Webhook (mutating admission controller for secrets injection)
+if start_secrets_webhook:
+    print("Setting up Secrets Webhook...")
+
+    # Generate TLS certs for the webhook (mkcert must be installed)
+    local_resource(
+        'secrets-webhook-tls',
+        '''
+        mkcert -cert-file /tmp/secrets-webhook-tls.crt -key-file /tmp/secrets-webhook-tls.key \
+            secrets-webhook.unkey.svc secrets-webhook.unkey.svc.cluster.local && \
+        kubectl delete secret secrets-webhook-tls -n unkey --ignore-not-found && \
+        kubectl create secret tls secrets-webhook-tls -n unkey \
+            --cert=/tmp/secrets-webhook-tls.crt --key=/tmp/secrets-webhook-tls.key && \
+        rm /tmp/secrets-webhook-tls.crt /tmp/secrets-webhook-tls.key
+        ''',
+        labels=['unkey'],
+    )
+
+    # Build unkey-env image for injection into customer pods
+    # Uses local_resource so it shows up in Tilt UI and can be triggered
+    local_resource(
+        'unkey-env',
+        'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/unkey-env ./cmd/unkey-env && docker build -t unkey-env:latest -f Dockerfile.unkey-env .',
+        deps=['./cmd/unkey-env', './pkg/secrets', './pkg/cli', './Dockerfile.unkey-env'],
+        labels=['unkey'],
+    )
+
+    docker_build_with_restart(
+        'unkey-secrets-webhook:latest',
+        '.',
+        dockerfile='Dockerfile.tilt',
+        entrypoint=['/unkey', 'run', 'secrets-webhook'],
+        only=['./bin'],
+        live_update=[
+            sync('./bin/unkey', '/unkey'),
+        ],
+    )
+
+    k8s_yaml('k8s/manifests/secrets-webhook.yaml')
+
+    secrets_webhook_deps = ['unkey-compile', 'secrets-webhook-tls', 'unkey-env']
+    if start_krane: secrets_webhook_deps.append('krane')
+
+    k8s_resource(
+        'secrets-webhook',
+        resource_deps=secrets_webhook_deps,
+        labels=['unkey'],
+        auto_init=True,
+        trigger_mode=TRIGGER_MODE_AUTO
+    )
+
 # Agent service
 if start_agent:
     print("Setting up Agent service...")
@@ -319,6 +374,8 @@ if start_observability: active_services.extend(['prometheus', 'otel-collector'])
 if start_restate: active_services.append('restate')
 if start_api: active_services.append('api')
 if start_ctrl: active_services.append('ctrl')
+if start_krane: active_services.append('krane')
+if start_secrets_webhook: active_services.append('secrets-webhook')
 if start_dashboard: active_services.append('dashboard')
 if start_agent: active_services.append('agent')
 
