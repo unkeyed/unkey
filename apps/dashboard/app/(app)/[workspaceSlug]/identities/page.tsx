@@ -3,7 +3,6 @@ import { OptIn } from "@/components/opt-in";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { IdentitiesClient } from "./_components/identities-client";
 import { Navigation } from "./navigation";
-export const dynamic = "force-dynamic";
 
 export default function Page() {
   const workspace = useWorkspaceNavigation();
