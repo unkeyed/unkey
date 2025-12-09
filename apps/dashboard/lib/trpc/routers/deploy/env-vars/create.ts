@@ -26,14 +26,14 @@ export const createEnvVars = t.procedure
     z.object({
       environmentId: z.string(),
       variables: z.array(envVarInputSchema).min(1),
-    })
+    }),
   )
   .mutation(async ({ ctx, input }) => {
     try {
       const environment = await db.query.environments.findFirst({
         where: and(
           eq(environments.id, input.environmentId),
-          eq(environments.workspaceId, ctx.workspace.id)
+          eq(environments.workspaceId, ctx.workspace.id),
         ),
         columns: {
           id: true,
@@ -63,7 +63,7 @@ export const createEnvVars = t.procedure
             type: v.type,
             description: v.description ?? null,
           };
-        })
+        }),
       );
 
       await db.insert(schema.environmentVariables).values(encryptedVars);
