@@ -20,6 +20,10 @@ type CertificateServiceClient interface {
 	// ProcessChallenge handles the complete ACME certificate challenge flow
 	// Key: domain name (ensures only one challenge per domain at a time)
 	ProcessChallenge(opts ...sdk_go.ClientOption) sdk_go.Client[*ProcessChallengeRequest, *ProcessChallengeResponse]
+	// RenewExpiringCertificates checks for certificates expiring soon and renews them.
+	// This should be called periodically (e.g., daily via cron).
+	// Key: "global" (single instance ensures no duplicate renewal runs)
+	RenewExpiringCertificates(opts ...sdk_go.ClientOption) sdk_go.Client[*RenewExpiringCertificatesRequest, *RenewExpiringCertificatesResponse]
 }
 
 type certificateServiceClient struct {
@@ -44,6 +48,14 @@ func (c *certificateServiceClient) ProcessChallenge(opts ...sdk_go.ClientOption)
 	return sdk_go.WithRequestType[*ProcessChallengeRequest](sdk_go.Object[*ProcessChallengeResponse](c.ctx, "hydra.v1.CertificateService", c.key, "ProcessChallenge", cOpts...))
 }
 
+func (c *certificateServiceClient) RenewExpiringCertificates(opts ...sdk_go.ClientOption) sdk_go.Client[*RenewExpiringCertificatesRequest, *RenewExpiringCertificatesResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RenewExpiringCertificatesRequest](sdk_go.Object[*RenewExpiringCertificatesResponse](c.ctx, "hydra.v1.CertificateService", c.key, "RenewExpiringCertificates", cOpts...))
+}
+
 // CertificateServiceIngressClient is the ingress client API for hydra.v1.CertificateService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -51,6 +63,10 @@ type CertificateServiceIngressClient interface {
 	// ProcessChallenge handles the complete ACME certificate challenge flow
 	// Key: domain name (ensures only one challenge per domain at a time)
 	ProcessChallenge() ingress.Requester[*ProcessChallengeRequest, *ProcessChallengeResponse]
+	// RenewExpiringCertificates checks for certificates expiring soon and renews them.
+	// This should be called periodically (e.g., daily via cron).
+	// Key: "global" (single instance ensures no duplicate renewal runs)
+	RenewExpiringCertificates() ingress.Requester[*RenewExpiringCertificatesRequest, *RenewExpiringCertificatesResponse]
 }
 
 type certificateServiceIngressClient struct {
@@ -72,6 +88,11 @@ func (c *certificateServiceIngressClient) ProcessChallenge() ingress.Requester[*
 	return ingress.NewRequester[*ProcessChallengeRequest, *ProcessChallengeResponse](c.client, c.serviceName, "ProcessChallenge", &c.key, &codec)
 }
 
+func (c *certificateServiceIngressClient) RenewExpiringCertificates() ingress.Requester[*RenewExpiringCertificatesRequest, *RenewExpiringCertificatesResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RenewExpiringCertificatesRequest, *RenewExpiringCertificatesResponse](c.client, c.serviceName, "RenewExpiringCertificates", &c.key, &codec)
+}
+
 // CertificateServiceServer is the server API for hydra.v1.CertificateService service.
 // All implementations should embed UnimplementedCertificateServiceServer
 // for forward compatibility.
@@ -81,6 +102,10 @@ type CertificateServiceServer interface {
 	// ProcessChallenge handles the complete ACME certificate challenge flow
 	// Key: domain name (ensures only one challenge per domain at a time)
 	ProcessChallenge(ctx sdk_go.ObjectContext, req *ProcessChallengeRequest) (*ProcessChallengeResponse, error)
+	// RenewExpiringCertificates checks for certificates expiring soon and renews them.
+	// This should be called periodically (e.g., daily via cron).
+	// Key: "global" (single instance ensures no duplicate renewal runs)
+	RenewExpiringCertificates(ctx sdk_go.ObjectContext, req *RenewExpiringCertificatesRequest) (*RenewExpiringCertificatesResponse, error)
 }
 
 // UnimplementedCertificateServiceServer should be embedded to have
@@ -92,6 +117,9 @@ type UnimplementedCertificateServiceServer struct{}
 
 func (UnimplementedCertificateServiceServer) ProcessChallenge(ctx sdk_go.ObjectContext, req *ProcessChallengeRequest) (*ProcessChallengeResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method ProcessChallenge not implemented"), 501)
+}
+func (UnimplementedCertificateServiceServer) RenewExpiringCertificates(ctx sdk_go.ObjectContext, req *RenewExpiringCertificatesRequest) (*RenewExpiringCertificatesResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method RenewExpiringCertificates not implemented"), 501)
 }
 func (UnimplementedCertificateServiceServer) testEmbeddedByValue() {}
 
@@ -113,5 +141,6 @@ func NewCertificateServiceServer(srv CertificateServiceServer, opts ...sdk_go.Se
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewObject("hydra.v1.CertificateService", sOpts...)
 	router = router.Handler("ProcessChallenge", sdk_go.NewObjectHandler(srv.ProcessChallenge))
+	router = router.Handler("RenewExpiringCertificates", sdk_go.NewObjectHandler(srv.RenewExpiringCertificates))
 	return router
 }
