@@ -25,6 +25,7 @@ const IdentitiesResponse = z.object({
   identities: z.array(IdentityResponseSchema),
   hasMore: z.boolean(),
   nextCursor: z.string().nullish(),
+  totalCount: z.number(),
 });
 
 export const queryIdentities = t.procedure
@@ -37,25 +38,46 @@ export const queryIdentities = t.procedure
       const { limit = 50, cursor, search } = input;
       const workspaceId = ctx.workspace.id;
 
+      // Helper function to build filter conditions
+      // biome-ignore lint/suspicious/noExplicitAny: Leave it as is for now
+      const buildFilterConditions = (identity: any, { and, eq, or, like, lt }: any) => {
+        const conditions = [eq(identity.workspaceId, workspaceId), eq(identity.deleted, false)];
+
+        if (search) {
+          const searchCondition = or(
+            like(identity.externalId, `%${search}%`),
+            like(identity.id, `%${search}%`),
+          );
+          if (searchCondition) {
+            conditions.push(searchCondition);
+          }
+        }
+
+        return and(...conditions);
+      };
+
+      // Get total count of identities matching the filters (without pagination)
+      const countQuery = await db.query.identities.findMany({
+        where: buildFilterConditions,
+        columns: {
+          id: true,
+        },
+      });
+
+      const totalCount = countQuery.length;
+
       const identitiesQuery = await db.query.identities.findMany({
-        where: (identity, { and, eq, lt, or, like }) => {
-          const conditions = [eq(identity.workspaceId, workspaceId), eq(identity.deleted, false)];
+        where: (identity, helpers) => {
+          const { and, lt } = helpers;
+          // Get base filter conditions
+          const filterConditions = buildFilterConditions(identity, helpers);
 
+          // Add cursor condition for pagination only
           if (cursor) {
-            conditions.push(lt(identity.id, cursor));
+            return and(filterConditions, lt(identity.id, cursor));
           }
 
-          if (search) {
-            const searchCondition = or(
-              like(identity.externalId, `%${search}%`),
-              like(identity.id, `%${search}%`),
-            );
-            if (searchCondition) {
-              conditions.push(searchCondition);
-            }
-          }
-
-          return and(...conditions);
+          return filterConditions;
         },
         with: {
           keys: {
@@ -97,6 +119,7 @@ export const queryIdentities = t.procedure
         identities: transformedIdentities,
         hasMore,
         nextCursor: hasMore && lastId ? lastId : undefined,
+        totalCount,
       };
     } catch (error) {
       console.error("Error retrieving identities:", error);

@@ -58,6 +58,7 @@ export const IdentitiesList = () => {
   const [identitiesMap, setIdentitiesMap] = useState(() => new Map<string, Identity>());
   const [selectedIdentity, setSelectedIdentity] = useState<Identity | null>(null);
   const [navigatingIdentityId, setNavigatingIdentityId] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
 
   const identitiesList = useMemo(() => Array.from(identitiesMap.values()), [identitiesMap]);
 
@@ -88,6 +89,9 @@ export const IdentitiesList = () => {
           newMap.set(identity.id, identity);
         });
       });
+      if (identitiesData.pages.length > 0) {
+        setTotalCount(identitiesData.pages[0].totalCount);
+      }
       setIdentitiesMap(newMap);
     }
   }, [identitiesData]);
@@ -256,7 +260,9 @@ export const IdentitiesList = () => {
               {new Intl.NumberFormat().format(identitiesList.length)}
             </span>
             <span>of</span>
-            {new Intl.NumberFormat().format(identitiesList.length)}
+            <span className="text-accent-12">
+              {new Intl.NumberFormat().format(totalCount)}
+            </span>
             <span>identities</span>
           </div>
         ),
