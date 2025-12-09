@@ -39,6 +39,7 @@ export const Feedback: React.FC = () => {
   const [internalOpen, setInternalOpen] = useState(false);
   const justOpenedRef = useRef(false);
 
+  // Sync internal state with URL query state
   useEffect(() => {
     if (open) {
       setInternalOpen(true);
@@ -46,10 +47,9 @@ export const Feedback: React.FC = () => {
       const timer = setTimeout(() => {
         justOpenedRef.current = false;
       }, 500);
-      return () => {
-        clearTimeout(timer);
-      };
+      return () => clearTimeout(timer);
     }
+    setInternalOpen(false);
   }, [open]);
 
   const {
@@ -84,23 +84,23 @@ export const Feedback: React.FC = () => {
     }
   };
 
-  const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen && justOpenedRef.current) {
+  const handleClose = () => {
+    if (justOpenedRef.current) {
       return; // Prevent closing if just opened
     }
-    setOpen(newOpen);
-    setInternalOpen(newOpen);
+    setOpen(false);
   };
 
   return (
     <DialogContainer
       isOpen={internalOpen}
-      onOpenChange={handleOpenChange}
-      showCloseWarning={false}
-      onAttemptClose={() => {
-        setInternalOpen(false);
-        setOpen(false);
+      onOpenChange={(newOpen) => {
+        if (!newOpen) {
+          handleClose();
+        }
       }}
+      showCloseWarning={false}
+      onAttemptClose={handleClose}
       title="Report an issue"
       subTitle="What went wrong or how can we improve?"
       footer={
