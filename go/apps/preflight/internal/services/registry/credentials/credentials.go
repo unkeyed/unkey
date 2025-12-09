@@ -33,6 +33,16 @@ func (d *DockerConfigJSON) ToJSON() ([]byte, error) {
 	return json.Marshal(d)
 }
 
+// Merge adds all auths from another DockerConfigJSON into this one.
+func (d *DockerConfigJSON) Merge(other *DockerConfigJSON) {
+	if other == nil {
+		return
+	}
+	for registry, auth := range other.Auths {
+		d.Auths[registry] = auth
+	}
+}
+
 // NewDockerConfig creates a DockerConfigJSON for the given registry and credentials.
 func NewDockerConfig(registry, username, password string) *DockerConfigJSON {
 	auth := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
@@ -78,4 +88,11 @@ func (m *Manager) Matches(image string) bool {
 	}
 
 	return false
+}
+
+// NewDockerConfig creates an empty DockerConfigJSON for merging credentials.
+func (m *Manager) NewDockerConfig() *DockerConfigJSON {
+	return &DockerConfigJSON{
+		Auths: make(map[string]DockerAuth),
+	}
 }
