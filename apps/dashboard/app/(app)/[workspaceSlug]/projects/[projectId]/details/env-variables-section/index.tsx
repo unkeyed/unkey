@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { ChevronDown, Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { type ReactNode, useState } from "react";
-import { AddEnvVarRow } from "./add-env-var-row";
+import { AddEnvVars } from "./add-env-vars";
 import { EnvVarRow } from "./env-var-row";
 import { useEnvVarsManager } from "./hooks/use-env-var-manager";
 import type { Environment } from "./types";
@@ -30,7 +30,7 @@ export function EnvironmentVariablesSection({
   environment,
   title,
 }: EnvironmentVariablesSectionProps) {
-  const { envVars, getExistingEnvVar } = useEnvVarsManager({
+  const { environmentId, envVars, getExistingEnvVar, invalidate } = useEnvVarsManager({
     projectId,
     environment,
   });
@@ -90,8 +90,10 @@ export function EnvironmentVariablesSection({
       {/* Expandable Content */}
       <div
         className={cn(
-          "bg-gray-1 relative overflow-hidden transition-all duration-300 ease-in",
-          isExpanded ? `${LAYOUT_CONFIG.maxContentHeight} opacity-100` : "h-0 opacity-0 py-0",
+          "bg-gray-1 relative transition-all duration-300 ease-in",
+          isExpanded
+            ? `${LAYOUT_CONFIG.maxContentHeight} overflow-y-auto opacity-100`
+            : "h-0 overflow-hidden opacity-0 py-0",
         )}
       >
         <div
@@ -110,18 +112,22 @@ export function EnvironmentVariablesSection({
                   envVar={envVar}
                   projectId={projectId}
                   getExistingEnvVar={getExistingEnvVar}
+                  onDelete={invalidate}
+                  onUpdate={invalidate}
                 />
               </div>
             ))}
 
-            {isAddingNew && (
-              <div {...getItemAnimationProps(envVars.length, isExpanded)}>
-                <AddEnvVarRow
-                  projectId={projectId}
-                  getExistingEnvVar={getExistingEnvVar}
-                  onCancel={cancelAdding}
-                />
-              </div>
+            {isAddingNew && environmentId && (
+              <AddEnvVars
+                environmentId={environmentId}
+                getExistingEnvVar={getExistingEnvVar}
+                onCancel={cancelAdding}
+                onSuccess={() => {
+                  invalidate();
+                  cancelAdding();
+                }}
+              />
             )}
 
             {envVars.length === 0 && !isAddingNew && <EmptyState />}
