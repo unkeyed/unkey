@@ -40,6 +40,7 @@ func (r *Registry) GetImageConfig(
 	container *corev1.Container,
 	podSpec *corev1.PodSpec,
 ) (*ImageConfig, error) {
+	//nolint:exhaustruct // k8schain has many optional fields
 	chainOpts := k8schain.Options{
 		Namespace:          namespace,
 		ServiceAccountName: podSpec.ServiceAccountName,
@@ -134,7 +135,7 @@ func (r *Registry) findPlatformManifest(manifests []v1.Descriptor) (v1.Hash, boo
 			return m.Digest, true
 		}
 	}
-	return v1.Hash{}, false
+	return v1.Hash{}, false //nolint:exhaustruct // zero value for not-found case
 }
 
 func targetOS() string {

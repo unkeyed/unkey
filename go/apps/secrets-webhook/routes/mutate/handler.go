@@ -65,6 +65,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 }
 
 func (h *Handler) sendResponse(s *zen.Session, uid types.UID, allowed bool, message string) error {
+	//nolint:exhaustruct // k8s admission API types have many optional fields
 	response := admissionv1.AdmissionReview{
 		TypeMeta: metav1.TypeMeta{APIVersion: "admission.k8s.io/v1", Kind: "AdmissionReview"},
 		Response: &admissionv1.AdmissionResponse{UID: uid, Allowed: allowed},
@@ -80,6 +81,7 @@ func (h *Handler) sendResponse(s *zen.Session, uid types.UID, allowed bool, mess
 func (h *Handler) sendResponseWithPatch(s *zen.Session, uid types.UID, patch []byte) error {
 	patchType := admissionv1.PatchTypeJSONPatch
 
+	//nolint:exhaustruct // k8s admission API types have many optional fields
 	response := admissionv1.AdmissionReview{
 		TypeMeta: metav1.TypeMeta{APIVersion: "admission.k8s.io/v1", Kind: "AdmissionReview"},
 		Response: &admissionv1.AdmissionResponse{
