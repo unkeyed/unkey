@@ -76,9 +76,7 @@ export const Client: React.FC = () => {
 
   const isFreeTier = !hasPaidSubscription;
   const allowCancel = subscription && subscription.status === "active" && !subscription.cancelAt;
-  const currentProduct = allowUpdate
-    ? products.find((p) => p.id === currentProductId)
-    : undefined;
+  const currentProduct = allowUpdate ? products.find((p) => p.id === currentProductId) : undefined;
 
   return (
     <div>
