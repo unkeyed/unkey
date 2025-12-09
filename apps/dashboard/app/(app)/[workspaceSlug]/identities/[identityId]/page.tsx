@@ -1,5 +1,4 @@
 import { PageContent } from "@/components/page-content";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Table,
   TableBody,
@@ -13,6 +12,7 @@ import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { ChevronRight, Minus } from "@unkey/icons";
+import { Alert, AlertDescription, AlertTitle } from "@unkey/ui";
 import { Badge, Button, Code, CopyButton } from "@unkey/ui";
 import ms from "ms";
 import Link from "next/link";

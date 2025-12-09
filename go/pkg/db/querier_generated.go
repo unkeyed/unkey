@@ -177,6 +177,14 @@ type Querier interface {
 	//  FROM custom_domains
 	//  WHERE domain = ?
 	FindCustomDomainByDomain(ctx context.Context, db DBTX, domain string) (CustomDomain, error)
+	//FindCustomDomainByDomainOrWildcard
+	//
+	//  SELECT id, workspace_id, domain, challenge_type, created_at, updated_at FROM custom_domains
+	//  WHERE domain IN (?, ?)
+	//  ORDER BY
+	//      CASE WHEN domain = ? THEN 0 ELSE 1 END
+	//  LIMIT 1
+	FindCustomDomainByDomainOrWildcard(ctx context.Context, db DBTX, arg FindCustomDomainByDomainOrWildcardParams) (CustomDomain, error)
 	//FindCustomDomainById
 	//
 	//  SELECT
@@ -190,7 +198,7 @@ type Querier interface {
 	FindCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT id, workspace_id, project_id, environment_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, runtime_config, gateway_config, openapi_spec, status, created_at, updated_at FROM `deployments` WHERE id = ?
+	//  SELECT id, workspace_id, project_id, environment_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, runtime_config, gateway_config, openapi_spec, secrets_config, status, created_at, updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentStepsByDeploymentId
 	//
@@ -217,6 +225,12 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
+	//FindEnvironmentVariablesByEnvironmentId
+	//
+	//  SELECT `key`, value
+	//  FROM environment_variables
+	//  WHERE environment_id = ?
+	FindEnvironmentVariablesByEnvironmentId(ctx context.Context, db DBTX, environmentID string) ([]FindEnvironmentVariablesByEnvironmentIdRow, error)
 	//FindGatewaysByEnvironmentID
 	//
 	//  SELECT id, workspace_id, environment_id, k8s_service_name, region, image, health, replicas FROM gateways WHERE environment_id = ?
@@ -1108,10 +1122,10 @@ type Querier interface {
 	//      git_commit_message,
 	//      git_commit_author_handle,
 	//      git_commit_author_avatar_url,
-	//      git_commit_timestamp, -- Unix epoch milliseconds
+	//      git_commit_timestamp,
 	//      openapi_spec,
+	//      secrets_config,
 	//      status,
-	//      gateway_config,
 	//      created_at,
 	//      updated_at
 	//  )
@@ -2125,6 +2139,15 @@ type Querier interface {
 	//  SET plan = ?
 	//  WHERE id = ?
 	UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) (sql.Result, error)
+	//UpsertCustomDomain
+	//
+	//  INSERT INTO custom_domains (id, workspace_id, domain, challenge_type, created_at)
+	//  VALUES (?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      workspace_id = VALUES(workspace_id),
+	//      challenge_type = VALUES(challenge_type),
+	//      updated_at = ?
+	UpsertCustomDomain(ctx context.Context, db DBTX, arg UpsertCustomDomainParams) error
 	//UpsertEnvironment
 	//
 	//  INSERT INTO environments (

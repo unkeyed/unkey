@@ -46,6 +46,10 @@ export const deployments = mysqlTable(
     // OpenAPI specification
     openapiSpec: longblob("openapi_spec"),
 
+    // Environment variables snapshot (protobuf: ctrl.v1.SecretsBlob)
+    // Encrypted values from environment_variables at deploy time
+    secretsConfig: longblob("secrets_config").notNull(),
+
     // Deployment status
     status: mysqlEnum("status", ["pending", "building", "deploying", "network", "ready", "failed"])
       .notNull()
