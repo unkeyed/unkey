@@ -260,9 +260,7 @@ export const IdentitiesList = () => {
               {new Intl.NumberFormat().format(identitiesList.length)}
             </span>
             <span>of</span>
-            <span className="text-accent-12">
-              {new Intl.NumberFormat().format(totalCount)}
-            </span>
+            <span className="text-accent-12">{new Intl.NumberFormat().format(totalCount)}</span>
             <span>identities</span>
           </div>
         ),

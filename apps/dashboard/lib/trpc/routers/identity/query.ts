@@ -1,4 +1,4 @@
-import { and, count, db, eq, like, lt, or, schema } from "@/lib/db";
+import { and, count, db, eq, like, or, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { ratelimit, requireWorkspace, t, withRatelimit } from "../../trpc";
