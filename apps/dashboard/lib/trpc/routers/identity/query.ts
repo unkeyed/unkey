@@ -47,12 +47,13 @@ export const queryIdentities = t.procedure
 
       if (search) {
         const escapedSearch = escapeLike(search);
-        baseConditions.push(
-          or(
-            like(schema.identities.externalId, `%${escapedSearch}%`),
-            like(schema.identities.id, `%${escapedSearch}%`),
-          )!,
+        const searchCondition = or(
+          like(schema.identities.externalId, `%${escapedSearch}%`),
+          like(schema.identities.id, `%${escapedSearch}%`),
         );
+        if (searchCondition) {
+          baseConditions.push(searchCondition);
+        }
       }
 
       // Get total count of identities matching the filters (without pagination)
@@ -65,7 +66,7 @@ export const queryIdentities = t.procedure
 
       // Helper function to build filter conditions for query API
       // biome-ignore lint/suspicious/noExplicitAny: Leave it as is for now
-      const buildFilterConditions = (identity: any, { and, eq, or, like, lt }: any) => {
+      const buildFilterConditions = (identity: any, { and, eq, or, like }: any) => {
         const conditions = [eq(identity.workspaceId, workspaceId), eq(identity.deleted, false)];
 
         if (search) {
