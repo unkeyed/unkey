@@ -15,7 +15,7 @@ export const identityLastVerificationTime = t.procedure
     try {
       const query = clickhouse.querier.query({
         query: `
-          SELECT MAX(time) as last_used
+          SELECT maxOrNull(time) as last_used
           FROM default.key_verifications_raw_v2
           WHERE workspace_id = {workspaceId: String}
             AND identity_id = {identityId: String}
@@ -25,7 +25,7 @@ export const identityLastVerificationTime = t.procedure
           identityId: z.string(),
         }),
         schema: z.object({
-          last_used: z.number(),
+          last_used: z.number().nullable(),
         }),
       });
 
@@ -42,7 +42,7 @@ export const identityLastVerificationTime = t.procedure
       }
 
       return {
-        lastVerificationTime: result.val.length > 0 ? result.val[0].last_used : null,
+        lastVerificationTime: result.val[0]?.last_used ?? null,
       };
     } catch (error) {
       console.error("Error querying last verification for identity:", error);

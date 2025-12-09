@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { and, count, db, eq, like, lt, or, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { ratelimit, requireWorkspace, t, withRatelimit } from "../../trpc";
@@ -39,7 +39,31 @@ export const queryIdentities = t.procedure
       const { limit = 50, cursor, search } = input;
       const workspaceId = ctx.workspace.id;
 
-      // Helper function to build filter conditions
+      // Build base filter conditions for SQL queries
+      const baseConditions = [
+        eq(schema.identities.workspaceId, workspaceId),
+        eq(schema.identities.deleted, false),
+      ];
+
+      if (search) {
+        const escapedSearch = escapeLike(search);
+        baseConditions.push(
+          or(
+            like(schema.identities.externalId, `%${escapedSearch}%`),
+            like(schema.identities.id, `%${escapedSearch}%`),
+          )!,
+        );
+      }
+
+      // Get total count of identities matching the filters (without pagination)
+      const [countResult] = await db
+        .select({ count: count() })
+        .from(schema.identities)
+        .where(and(...baseConditions));
+
+      const totalCount = countResult.count;
+
+      // Helper function to build filter conditions for query API
       // biome-ignore lint/suspicious/noExplicitAny: Leave it as is for now
       const buildFilterConditions = (identity: any, { and, eq, or, like, lt }: any) => {
         const conditions = [eq(identity.workspaceId, workspaceId), eq(identity.deleted, false)];
@@ -57,16 +81,6 @@ export const queryIdentities = t.procedure
 
         return and(...conditions);
       };
-
-      // Get total count of identities matching the filters (without pagination)
-      const countQuery = await db.query.identities.findMany({
-        where: buildFilterConditions,
-        columns: {
-          id: true,
-        },
-      });
-
-      const totalCount = countQuery.length;
 
       const identitiesQuery = await db.query.identities.findMany({
         where: (identity, helpers) => {
