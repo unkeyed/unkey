@@ -2,18 +2,15 @@
 // @generated from file ctrl/v1/environment.proto (package ctrl.v1, syntax proto3)
 /* eslint-disable */
 
-import type { Message } from "@bufbuild/protobuf";
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/environment.proto.
  */
-export const file_ctrl_v1_environment: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChljdHJsL3YxL2Vudmlyb25tZW50LnByb3RvEgdjdHJsLnYxInkKGENyZWF0ZUVudmlyb25tZW50UmVxdWVzdBISCgpwcm9qZWN0X2lkGAEgASgJEgwKBHNsdWcYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSJgoEdHlwZRgEIAEoDjIYLmN0cmwudjEuRW52aXJvbm1lbnRUeXBlIicKGUNyZWF0ZUVudmlyb25tZW50UmVzcG9uc2USCgoCaWQYASABKAkqlAEKD0Vudmlyb25tZW50VHlwZRIgChxFTlZJUk9OTUVOVF9UWVBFX1VOU1BFQ0lGSUVEEAASIAocRU5WSVJPTk1FTlRfVFlQRV9ERVZFTE9QTUVOVBABEhwKGEVOVklST05NRU5UX1RZUEVfUFJFVklFVxACEh8KG0VOVklST05NRU5UX1RZUEVfUFJPRFVDVElPThADMnIKEkVudmlyb25tZW50U2VydmljZRJcChFDcmVhdGVFbnZpcm9ubWVudBIhLmN0cmwudjEuQ3JlYXRlRW52aXJvbm1lbnRSZXF1ZXN0GiIuY3RybC52MS5DcmVhdGVFbnZpcm9ubWVudFJlc3BvbnNlIgBCkgEKC2NvbS5jdHJsLnYxQhBFbnZpcm9ubWVudFByb3RvUAFaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z",
-  );
+export const file_ctrl_v1_environment: GenFile = /*@__PURE__*/
+  fileDesc("ChljdHJsL3YxL2Vudmlyb25tZW50LnByb3RvEgdjdHJsLnYxInkKGENyZWF0ZUVudmlyb25tZW50UmVxdWVzdBISCgpwcm9qZWN0X2lkGAEgASgJEgwKBHNsdWcYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSJgoEdHlwZRgEIAEoDjIYLmN0cmwudjEuRW52aXJvbm1lbnRUeXBlIicKGUNyZWF0ZUVudmlyb25tZW50UmVzcG9uc2USCgoCaWQYASABKAkqlAEKD0Vudmlyb25tZW50VHlwZRIgChxFTlZJUk9OTUVOVF9UWVBFX1VOU1BFQ0lGSUVEEAASIAocRU5WSVJPTk1FTlRfVFlQRV9ERVZFTE9QTUVOVBABEhwKGEVOVklST05NRU5UX1RZUEVfUFJFVklFVxACEh8KG0VOVklST05NRU5UX1RZUEVfUFJPRFVDVElPThADMnIKEkVudmlyb25tZW50U2VydmljZRJcChFDcmVhdGVFbnZpcm9ubWVudBIhLmN0cmwudjEuQ3JlYXRlRW52aXJvbm1lbnRSZXF1ZXN0GiIuY3RybC52MS5DcmVhdGVFbnZpcm9ubWVudFJlc3BvbnNlIgBCkgEKC2NvbS5jdHJsLnYxQhBFbnZpcm9ubWVudFByb3RvUAFaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z");
 
 /**
  * @generated from message ctrl.v1.CreateEnvironmentRequest
@@ -44,8 +41,7 @@ export type CreateEnvironmentRequest = Message<"ctrl.v1.CreateEnvironmentRequest
  * Describes the message ctrl.v1.CreateEnvironmentRequest.
  * Use `create(CreateEnvironmentRequestSchema)` to create a new message.
  */
-export const CreateEnvironmentRequestSchema: GenMessage<CreateEnvironmentRequest> =
-  /*@__PURE__*/
+export const CreateEnvironmentRequestSchema: GenMessage<CreateEnvironmentRequest> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_environment, 0);
 
 /**
@@ -62,8 +58,7 @@ export type CreateEnvironmentResponse = Message<"ctrl.v1.CreateEnvironmentRespon
  * Describes the message ctrl.v1.CreateEnvironmentResponse.
  * Use `create(CreateEnvironmentResponseSchema)` to create a new message.
  */
-export const CreateEnvironmentResponseSchema: GenMessage<CreateEnvironmentResponse> =
-  /*@__PURE__*/
+export const CreateEnvironmentResponseSchema: GenMessage<CreateEnvironmentResponse> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_environment, 1);
 
 /**
@@ -94,8 +89,7 @@ export enum EnvironmentType {
 /**
  * Describes the enum ctrl.v1.EnvironmentType.
  */
-export const EnvironmentTypeSchema: GenEnum<EnvironmentType> =
-  /*@__PURE__*/
+export const EnvironmentTypeSchema: GenEnum<EnvironmentType> = /*@__PURE__*/
   enumDesc(file_ctrl_v1_environment, 0);
 
 /**
@@ -109,5 +103,7 @@ export const EnvironmentService: GenService<{
     methodKind: "unary";
     input: typeof CreateEnvironmentRequestSchema;
     output: typeof CreateEnvironmentResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_ctrl_v1_environment, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_ctrl_v1_environment, 0);
+

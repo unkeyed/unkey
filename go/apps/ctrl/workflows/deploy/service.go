@@ -6,6 +6,7 @@ import (
 	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/vault"
 )
 
 const hardcodedNamespace = "unkey"
@@ -27,6 +28,7 @@ type Workflow struct {
 	krane         kranev1connect.DeploymentServiceClient
 	buildClient   ctrlv1connect.BuildServiceClient
 	defaultDomain string
+	vault         *vault.Service
 }
 
 var _ hydrav1.DeploymentServiceServer = (*Workflow)(nil)
@@ -47,6 +49,9 @@ type Config struct {
 
 	// DefaultDomain is the apex domain for generated deployment URLs (e.g., "unkey.app").
 	DefaultDomain string
+
+	// Vault provides encryption/decryption services for secrets.
+	Vault *vault.Service
 }
 
 // New creates a new deployment workflow instance.
@@ -58,5 +63,6 @@ func New(cfg Config) *Workflow {
 		krane:                                cfg.Krane,
 		buildClient:                          cfg.BuildClient,
 		defaultDomain:                        cfg.DefaultDomain,
+		vault:                                cfg.Vault,
 	}
 }

@@ -198,7 +198,7 @@ type Querier interface {
 	FindCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT id, workspace_id, project_id, environment_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, runtime_config, gateway_config, openapi_spec, status, created_at, updated_at FROM `deployments` WHERE id = ?
+	//  SELECT id, workspace_id, project_id, environment_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, runtime_config, gateway_config, openapi_spec, secrets_config, status, created_at, updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentStepsByDeploymentId
 	//
@@ -225,6 +225,12 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
+	//FindEnvironmentVariablesByEnvironmentId
+	//
+	//  SELECT `key`, value
+	//  FROM environment_variables
+	//  WHERE environment_id = ?
+	FindEnvironmentVariablesByEnvironmentId(ctx context.Context, db DBTX, environmentID string) ([]FindEnvironmentVariablesByEnvironmentIdRow, error)
 	//FindGatewaysByEnvironmentID
 	//
 	//  SELECT id, workspace_id, environment_id, k8s_service_name, region, image, health, replicas FROM gateways WHERE environment_id = ?
@@ -1116,10 +1122,10 @@ type Querier interface {
 	//      git_commit_message,
 	//      git_commit_author_handle,
 	//      git_commit_author_avatar_url,
-	//      git_commit_timestamp, -- Unix epoch milliseconds
+	//      git_commit_timestamp,
 	//      openapi_spec,
+	//      secrets_config,
 	//      status,
-	//      gateway_config,
 	//      created_at,
 	//      updated_at
 	//  )
@@ -1585,14 +1591,36 @@ type Querier interface {
 	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error)
 	//ListIdentities
 	//
-	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
-	//  FROM identities
-	//  WHERE workspace_id = ?
-	//  AND deleted = ?
-	//  AND id >= ?
-	//  ORDER BY id ASC
+	//  SELECT
+	//      i.id,
+	//      i.external_id,
+	//      i.workspace_id,
+	//      i.environment,
+	//      i.meta,
+	//      i.deleted,
+	//      i.created_at,
+	//      i.updated_at,
+	//      COALESCE(
+	//          (SELECT JSON_ARRAYAGG(
+	//              JSON_OBJECT(
+	//                  'id', r.id,
+	//                  'name', r.name,
+	//                  'limit', r.`limit`,
+	//                  'duration', r.duration,
+	//                  'auto_apply', r.auto_apply = 1
+	//              )
+	//          )
+	//          FROM ratelimits r
+	//          WHERE r.identity_id = i.id),
+	//          JSON_ARRAY()
+	//      ) as ratelimits
+	//  FROM identities i
+	//  WHERE i.workspace_id = ?
+	//  AND i.deleted = ?
+	//  AND i.id >= ?
+	//  ORDER BY i.id ASC
 	//  LIMIT ?
-	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]Identity, error)
+	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]ListIdentitiesRow, error)
 	//ListIdentityRatelimits
 	//
 	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply

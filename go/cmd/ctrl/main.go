@@ -60,17 +60,29 @@ var Cmd = &cli.Command{
 		cli.String("spiffe-socket-path", "Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/agent/agent.sock",
 			cli.Default("/var/lib/spire/agent/agent.sock"), cli.EnvVar("UNKEY_SPIFFE_SOCKET_PATH")),
 
-		// Vault Configuration
-		cli.StringSlice("vault-master-keys", "Vault master keys for encryption",
+		// Vault Configuration - General secrets (env vars, API keys)
+		cli.StringSlice("vault-master-keys", "Vault master keys for encryption (general vault)",
 			cli.Required(), cli.EnvVar("UNKEY_VAULT_MASTER_KEYS")),
-		cli.String("vault-s3-url", "S3 Compatible Endpoint URL",
-			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_URL")),
-		cli.String("vault-s3-bucket", "S3 bucket name",
-			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_BUCKET")),
-		cli.String("vault-s3-access-key-id", "S3 access key ID",
-			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
-		cli.String("vault-s3-access-key-secret", "S3 secret access key",
-			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
+		cli.String("vault-s3-url", "S3 endpoint URL for general vault",
+			cli.EnvVar("UNKEY_VAULT_S3_URL")),
+		cli.String("vault-s3-bucket", "S3 bucket for general vault (env vars, API keys)",
+			cli.EnvVar("UNKEY_VAULT_S3_BUCKET")),
+		cli.String("vault-s3-access-key-id", "S3 access key ID for general vault",
+			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
+		cli.String("vault-s3-access-key-secret", "S3 secret access key for general vault",
+			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
+
+		// ACME Vault Configuration - Let's Encrypt certificates
+		cli.StringSlice("acme-vault-master-keys", "Vault master keys for encryption (ACME vault)",
+			cli.EnvVar("UNKEY_ACME_VAULT_MASTER_KEYS")),
+		cli.String("acme-vault-s3-url", "S3 endpoint URL for ACME vault",
+			cli.EnvVar("UNKEY_ACME_VAULT_S3_URL")),
+		cli.String("acme-vault-s3-bucket", "S3 bucket for ACME vault (Let's Encrypt certs)",
+			cli.EnvVar("UNKEY_ACME_VAULT_S3_BUCKET")),
+		cli.String("acme-vault-s3-access-key-id", "S3 access key ID for ACME vault",
+			cli.EnvVar("UNKEY_ACME_VAULT_S3_ACCESS_KEY_ID")),
+		cli.String("acme-vault-s3-access-key-secret", "S3 secret access key for ACME vault",
+			cli.EnvVar("UNKEY_ACME_VAULT_S3_ACCESS_KEY_SECRET")),
 
 		// Build Configuration
 		cli.String("build-backend", "Build backend to use: 'docker' for local, 'depot' for production. Default: depot",
@@ -177,14 +189,23 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		APIKey:           cmd.String("api-key"),
 		SPIFFESocketPath: cmd.String("spiffe-socket-path"),
 
-		// Vault configuration
+		// Vault configuration - General secrets
 		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
 		VaultS3: ctrl.S3Config{
-			ExternalURL:     cmd.String(""),
 			URL:             cmd.String("vault-s3-url"),
 			Bucket:          cmd.String("vault-s3-bucket"),
-			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
 			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
+			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
+			ExternalURL:     "",
+		},
+		// ACME Vault configuration - Let's Encrypt certificates
+		AcmeVaultMasterKeys: cmd.StringSlice("acme-vault-master-keys"),
+		AcmeVaultS3: ctrl.S3Config{
+			URL:             cmd.String("acme-vault-s3-url"),
+			Bucket:          cmd.String("acme-vault-s3-bucket"),
+			AccessKeyID:     cmd.String("acme-vault-s3-access-key-id"),
+			AccessKeySecret: cmd.String("acme-vault-s3-access-key-secret"),
+			ExternalURL:     "",
 		},
 
 		// Build configuration

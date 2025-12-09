@@ -12,6 +12,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/vault"
 )
 
 // docker implements kranev1connect.DeploymentServiceHandler using Docker Engine API.
@@ -22,7 +23,9 @@ import (
 type docker struct {
 	logger       logging.Logger
 	client       *client.Client
+	vault        *vault.Service
 	registryAuth string // base64 encoded auth for pulls
+	region       string
 
 	kranev1connect.UnimplementedDeploymentServiceHandler
 	kranev1connect.UnimplementedGatewayServiceHandler
@@ -37,6 +40,8 @@ type Config struct {
 	RegistryURL      string
 	RegistryUsername string
 	RegistryPassword string
+	Region           string
+	Vault            *vault.Service
 }
 
 // New creates a Docker backend instance and validates daemon connectivity.
@@ -71,6 +76,8 @@ func New(logger logging.Logger, cfg Config) (*docker, error) {
 
 	d := &docker{
 		registryAuth:                          "",
+		region:                                cfg.Region,
+		vault:                                 cfg.Vault,
 		UnimplementedDeploymentServiceHandler: kranev1connect.UnimplementedDeploymentServiceHandler{},
 		UnimplementedGatewayServiceHandler:    kranev1connect.UnimplementedGatewayServiceHandler{},
 		logger:                                logger,
