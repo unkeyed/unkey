@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { ratelimit, requireWorkspace, t, withRatelimit } from "../../trpc";
+import { escapeLike } from "../utils/sql";
 
 const identitiesQueryPayload = z.object({
   cursor: z.string().optional(),
@@ -44,9 +45,10 @@ export const queryIdentities = t.procedure
         const conditions = [eq(identity.workspaceId, workspaceId), eq(identity.deleted, false)];
 
         if (search) {
+          const escapedSearch = escapeLike(search);
           const searchCondition = or(
-            like(identity.externalId, `%${search}%`),
-            like(identity.id, `%${search}%`),
+            like(identity.externalId, `%${escapedSearch}%`),
+            like(identity.id, `%${escapedSearch}%`),
           );
           if (searchCondition) {
             conditions.push(searchCondition);
