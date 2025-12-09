@@ -12,10 +12,10 @@ import { z } from "zod";
 const formSchema = z.object({
   externalId: z
     .string()
-    .min(3, "External ID must be at least 3 characters")
-    .max(255, "External ID must be less than 255 characters")
-    .trim()
-    .refine((id) => !/^\s+$/.test(id), "External ID cannot be only whitespace"),
+    .transform((s) => s.trim())
+    .refine((trimmed) => trimmed.length >= 3, "External ID must be at least 3 characters")
+    .refine((trimmed) => trimmed.length <= 255, "External ID must be 255 characters or fewer")
+    .refine((trimmed) => trimmed !== "", "External ID cannot be only whitespace"),
   meta: z
     .string()
     .optional()

@@ -1,9 +1,9 @@
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
+import { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import { Clone } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import { useMemo } from "react";
-import type { z } from "zod";
+import { z } from "zod";
 
 type Identity = z.infer<typeof IdentityResponseSchema>;
 
