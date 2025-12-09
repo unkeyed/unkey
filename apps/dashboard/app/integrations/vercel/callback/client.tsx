@@ -4,7 +4,6 @@
  */
 
 "use client";
-import { PageHeader } from "@/components/dashboard/page-header";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { trpc } from "@/lib/trpc/client";
@@ -21,7 +20,7 @@ import {
 } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { WorkspaceSwitcher } from "./workspace";
+// import { WorkspaceSwitcher } from "./workspace";
 type Props = {
   projects: { id: string; name: string }[];
   apis: Api[];
@@ -70,12 +69,6 @@ export const Client: React.FC<Props> = ({
 
   return (
     <div className="container min-h-screen mx-auto mt-8">
-      <PageHeader
-        title="Connect Vercel Project"
-        description="You can add more projects later"
-        actions={[<WorkspaceSwitcher key="workspace-switcher" />]}
-      />
-
       <div className="flex flex-col flex-1 flex-grow gap-16">
         <div className="flex flex-col gap-2">
           <Label>Vercel Project</Label>
