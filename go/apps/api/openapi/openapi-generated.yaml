@@ -3776,7 +3776,6 @@ paths:
             summary: Query key verification data
             tags:
                 - analytics
-            x-hidden: true
             x-speakeasy-name-override: getVerifications
     /v2/apis.createApi:
         post:
