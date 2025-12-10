@@ -95,8 +95,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		if err != nil {
 			return nil, fmt.Errorf("failed to build docker image: %w", err)
 		}
-		dockerImage = result.ImageName
-		buildID = result.BuildId
+		dockerImage = result.GetImageName()
+		buildID = result.GetBuildId()
 
 	} else if req.GetDockerImage() != "" {
 		dockerImage = req.GetDockerImage()

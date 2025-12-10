@@ -75,13 +75,8 @@ func (m *Mutator) Mutate(ctx context.Context, pod *corev1.Pod, namespace string)
 	// Check if any container uses a private registry image and inject imagePullSecret if needed
 	privateImages := m.collectPrivateRegistryImages(pod)
 	if len(privateImages) > 0 {
-		secretPatches, secretErr := m.ensurePullSecrets(ctx, pod, namespace, privateImages, buildID)
-		if secretErr != nil {
-			m.logger.Error("failed to ensure pull secrets", "error", secretErr)
-			// Continue without registry auth - don't fail the entire mutation
-		} else {
-			patches = append(patches, secretPatches...)
-		}
+		secretPatches := m.ensurePullSecrets(ctx, pod, namespace, privateImages, buildID)
+		patches = append(patches, secretPatches...)
 	}
 
 	initContainer := m.buildInitContainer()
@@ -165,7 +160,7 @@ const (
 
 // ensurePullSecrets creates or reuses pull secrets for each private image and returns
 // patches to add them to the pod's imagePullSecrets.
-func (m *Mutator) ensurePullSecrets(ctx context.Context, pod *corev1.Pod, namespace string, images []string, buildID string) ([]map[string]interface{}, error) {
+func (m *Mutator) ensurePullSecrets(ctx context.Context, pod *corev1.Pod, namespace string, images []string, buildID string) []map[string]interface{} {
 	var secretNames []string
 
 	for _, image := range images {
@@ -181,7 +176,7 @@ func (m *Mutator) ensurePullSecrets(ctx context.Context, pod *corev1.Pod, namesp
 	}
 
 	if len(secretNames) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	// Build patches to add imagePullSecrets
@@ -199,7 +194,7 @@ func (m *Mutator) ensurePullSecrets(ctx context.Context, pod *corev1.Pod, namesp
 	}
 
 	if len(newSecrets) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	if len(pod.Spec.ImagePullSecrets) == 0 {
@@ -218,7 +213,7 @@ func (m *Mutator) ensurePullSecrets(ctx context.Context, pod *corev1.Pod, namesp
 		}
 	}
 
-	return patches, nil
+	return patches
 }
 
 // ensurePullSecretForImage creates or reuses a pull secret for a specific image.
