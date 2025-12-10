@@ -284,13 +284,6 @@ func (m *Mutator) ensurePullSecretForImage(ctx context.Context, namespace, image
 		},
 	}
 
-	m.logger.Info("creating pull secret",
-		"namespace", namespace,
-		"secret", dockerConfigJSON,
-		"image", image,
-		"expires_at", expiresAt,
-	)
-
 	_, err = m.clientset.CoreV1().Secrets(namespace).Create(ctx, secret, metav1.CreateOptions{})
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {

@@ -76,8 +76,6 @@ func (d *Depot) getPullToken(ctx context.Context, projectID, buildID string) (st
 		return "", fmt.Errorf("GetPullToken failed: %w", err)
 	}
 
-	d.logger.Info("Got pull token for project %s", projectID, "token", res.Msg.GetToken())
-
 	return res.Msg.GetToken(), nil
 }
 
