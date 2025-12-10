@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import { ResponsiveContainer } from "recharts";
 import type { ChartErrorProps } from "./types";
 
 /**
@@ -61,13 +60,13 @@ export const ChartError = ({
               </div>
             ))}
         </div>
-        <ResponsiveContainer height={height} className="border-b border-gray-4" width="100%">
+        <div style={{ height }} className="border-b border-gray-4">
           <div className="flex-1 flex items-center justify-center h-full">
             <div className="flex flex-col items-center gap-2">
               <span className="text-sm text-accent-9">{message}</span>
             </div>
           </div>
-        </ResponsiveContainer>
+        </div>
       </div>
     );
   }

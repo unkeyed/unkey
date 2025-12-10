@@ -35,7 +35,7 @@ export function StatsTimeseriesBarChart<T extends BaseTimeseriesData>({
   tooltipExtraContent,
 }: TimeseriesChartProps<T>) {
   if (isError) {
-    return <ChartError variant="simple" message="Could not retrieve logs" />;
+    return <ChartError variant="simple" message="Could not retrieve data" />;
   }
   if (isLoading) {
     return <ChartLoading variant="simple" animate={false} dataPoints={100} />;
