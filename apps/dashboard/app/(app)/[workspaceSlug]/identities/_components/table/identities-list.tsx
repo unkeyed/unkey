@@ -155,7 +155,7 @@ export const IdentitiesList = () => {
                     position={{ side: "bottom", align: "start" }}
                   >
                     <Link
-                      className={`font-mono group-hover:underline decoration-dotted text-accent-9 ${
+                      className={`font-mono group-hover:underline decoration-dotted text-accent-9 w-full inline-block text-left ${
                         isNavigating ? "pointer-events-none opacity-50" : ""
                       }`}
                       href={`/${workspace.slug}/identities/${identity.id}`}
