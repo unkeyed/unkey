@@ -99,15 +99,10 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 							"unkey.managed.by":    "krane",
 							"unkey.com/inject":    "true",
 						},
-						Annotations: func() map[string]string {
-							annotations := map[string]string{
-								"unkey.com/deployment-id": req.Msg.GetDeployment().GetDeploymentId(),
-							}
-							if buildID := req.Msg.GetDeployment().GetBuildId(); buildID != "" {
-								annotations["unkey.com/build-id"] = buildID
-							}
-							return annotations
-						}(),
+						Annotations: map[string]string{
+							"unkey.com/deployment-id": req.Msg.GetDeployment().GetDeploymentId(),
+							"unkey.com/build-id":      req.Msg.GetDeployment().GetBuildId(),
+						},
 					},
 					Spec: corev1.PodSpec{
 						ServiceAccountName:           "customer-workload",

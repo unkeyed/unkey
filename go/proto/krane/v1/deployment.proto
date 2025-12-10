@@ -37,7 +37,7 @@ message DeploymentRequest {
   string environment_id = 9;
 
   // Build ID for scoped registry pull tokens.
-  optional string build_id = 10;
+  string build_id = 10;
 }
 
 message CreateDeploymentRequest {

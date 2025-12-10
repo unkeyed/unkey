@@ -68,9 +68,7 @@ func (d *Depot) GetCredentials(ctx context.Context, image, buildID string) (*Doc
 func (d *Depot) getPullToken(ctx context.Context, projectID, buildID string) (string, error) {
 	reqMsg := &cliv1.GetPullTokenRequest{
 		ProjectId: &projectID,
-	}
-	if buildID != "" {
-		reqMsg.BuildId = &buildID
+		BuildId:   &buildID,
 	}
 
 	res, err := d.buildClient.GetPullToken(ctx, connect.NewRequest(reqMsg))

@@ -140,9 +140,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			EnvironmentSlug:      environment.Slug,
 			EncryptedSecretsBlob: encryptedSecretsBlob,
 			EnvironmentId:        deployment.EnvironmentID,
-		}
-		if buildID != "" {
-			req.BuildId = &buildID
+			BuildId:              buildID,
 		}
 		_, err = w.krane.CreateDeployment(stepCtx, connect.NewRequest(&kranev1.CreateDeploymentRequest{
 			Deployment: req,

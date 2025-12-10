@@ -90,7 +90,7 @@ type DeploymentRequest struct {
 	// Environment ID for secrets decryption (keyring identifier).
 	EnvironmentId string `protobuf:"bytes,9,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
 	// Build ID for scoped registry pull tokens.
-	BuildId       *string `protobuf:"bytes,10,opt,name=build_id,json=buildId,proto3,oneof" json:"build_id,omitempty"`
+	BuildId       string `protobuf:"bytes,10,opt,name=build_id,json=buildId,proto3" json:"build_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -189,8 +189,8 @@ func (x *DeploymentRequest) GetEnvironmentId() string {
 }
 
 func (x *DeploymentRequest) GetBuildId() string {
-	if x != nil && x.BuildId != nil {
-		return *x.BuildId
+	if x != nil {
+		return x.BuildId
 	}
 	return ""
 }
@@ -619,7 +619,7 @@ var File_krane_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_krane_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x19krane/v1/deployment.proto\x12\bkrane.v1\"\x8c\x03\n" +
+	"\x19krane/v1/deployment.proto\x12\bkrane.v1\"\xfa\x02\n" +
 	"\x11DeploymentRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12#\n" +
 	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\x12\x14\n" +
@@ -629,10 +629,9 @@ const file_krane_v1_deployment_proto_rawDesc = "" +
 	"\x0fmemory_size_mib\x18\x06 \x01(\x04R\rmemorySizeMib\x12)\n" +
 	"\x10environment_slug\x18\a \x01(\tR\x0fenvironmentSlug\x124\n" +
 	"\x16encrypted_secrets_blob\x18\b \x01(\fR\x14encryptedSecretsBlob\x12%\n" +
-	"\x0eenvironment_id\x18\t \x01(\tR\renvironmentId\x12\x1e\n" +
+	"\x0eenvironment_id\x18\t \x01(\tR\renvironmentId\x12\x19\n" +
 	"\bbuild_id\x18\n" +
-	" \x01(\tH\x00R\abuildId\x88\x01\x01B\v\n" +
-	"\t_build_id\"V\n" +
+	" \x01(\tR\abuildId\"V\n" +
 	"\x17CreateDeploymentRequest\x12;\n" +
 	"\n" +
 	"deployment\x18\x01 \x01(\v2\x1b.krane.v1.DeploymentRequestR\n" +
@@ -720,7 +719,6 @@ func file_krane_v1_deployment_proto_init() {
 	if File_krane_v1_deployment_proto != nil {
 		return
 	}
-	file_krane_v1_deployment_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

@@ -12,7 +12,7 @@ type Registry interface {
 	Matches(image string) bool
 
 	// GetCredentials returns Docker config credentials for the image.
-	// buildID is optional and used for build-scoped tokens when available.
+	// buildID is used for build-scoped tokens.
 	GetCredentials(ctx context.Context, image, buildID string) (*DockerConfigJSON, error)
 }
 
