@@ -8,15 +8,10 @@ import (
 )
 
 func (m *Mutator) buildInitContainer() corev1.Container {
-	pullPolicy := corev1.PullIfNotPresent
-	if m.cfg.UnkeyEnvImagePullPolicy != "" {
-		pullPolicy = corev1.PullPolicy(m.cfg.UnkeyEnvImagePullPolicy)
-	}
-
 	return corev1.Container{
 		Name:            "copy-unkey-env",
-		Image:           m.cfg.UnkeyEnvImage,
-		ImagePullPolicy: pullPolicy,
+		Image:           m.unkeyEnvImage,
+		ImagePullPolicy: corev1.PullPolicy(m.unkeyEnvImagePullPolicy),
 		Command:         []string{"cp", "/unkey-env", unkeyEnvBinary},
 		VolumeMounts: []corev1.VolumeMount{
 			{
@@ -92,12 +87,12 @@ func (m *Mutator) buildContainerPatches(
 	// fetch the image's ENTRYPOINT/CMD from the registry so we know what to exec into.
 	var args []string
 	if len(container.Command) == 0 {
-		m.cfg.Logger.Info("container has no command, fetching from registry",
+		m.logger.Info("container has no command, fetching from registry",
 			"container", container.Name,
 			"image", container.Image,
 		)
 
-		imageConfig, err := m.cfg.Registry.GetImageConfig(ctx, namespace, container, podSpec, buildID)
+		imageConfig, err := m.registry.GetImageConfig(ctx, namespace, container, podSpec, buildID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get image config for %s: %w", container.Image, err)
 		}

@@ -68,7 +68,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create server: %w", err)
 	}
 
-	m := mutator.New(&mutator.Config{
+	m := mutator.New(mutator.Config{
 		Logger:                  logger,
 		Registry:                reg,
 		Clientset:               clientset,

@@ -11,14 +11,35 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+
+	"github.com/unkeyed/unkey/go/apps/preflight/internal/services/registry"
+	"github.com/unkeyed/unkey/go/apps/preflight/internal/services/registry/credentials"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 type Mutator struct {
-	cfg *Config
+	logger                  logging.Logger
+	registry                *registry.Registry
+	clientset               kubernetes.Interface
+	credentials             *credentials.Manager
+	unkeyEnvImage           string
+	unkeyEnvImagePullPolicy string
+	annotationPrefix        string
+	defaultProviderEndpoint string
 }
 
-func New(cfg *Config) *Mutator {
-	return &Mutator{cfg: cfg}
+func New(cfg Config) *Mutator {
+	return &Mutator{
+		logger:                  cfg.Logger,
+		registry:                cfg.Registry,
+		clientset:               cfg.Clientset,
+		credentials:             cfg.Credentials,
+		unkeyEnvImage:           cfg.UnkeyEnvImage,
+		unkeyEnvImagePullPolicy: cfg.UnkeyEnvImagePullPolicy,
+		annotationPrefix:        cfg.AnnotationPrefix,
+		defaultProviderEndpoint: cfg.DefaultProviderEndpoint,
+	}
 }
 
 type Result struct {
@@ -32,7 +53,8 @@ func (m *Mutator) ShouldMutate(pod *corev1.Pod) bool {
 	if annotations == nil {
 		return false
 	}
-	return annotations[m.cfg.GetAnnotation(AnnotationDeploymentID)] != ""
+
+	return annotations[m.getAnnotation(AnnotationDeploymentID)] != ""
 }
 
 func (m *Mutator) Mutate(ctx context.Context, pod *corev1.Pod, namespace string) (*Result, error) {
@@ -47,20 +69,15 @@ func (m *Mutator) Mutate(ctx context.Context, pod *corev1.Pod, namespace string)
 		return nil, err
 	}
 
-	m.cfg.Logger.Info("loaded pod config from annotations",
-		"deployment_id", podCfg.DeploymentID,
-		"provider_endpoint", podCfg.ProviderEndpoint,
-	)
-
 	var patches []map[string]interface{}
-	buildID := annotations[m.cfg.GetAnnotation("build-id")]
+	buildID := annotations[m.getAnnotation("build-id")]
 
 	// Check if any container uses a private registry image and inject imagePullSecret if needed
 	privateImages := m.collectPrivateRegistryImages(pod)
 	if len(privateImages) > 0 {
 		secretPatches, secretErr := m.ensurePullSecrets(ctx, pod, namespace, privateImages, buildID)
 		if secretErr != nil {
-			m.cfg.Logger.Error("failed to ensure pull secrets", "error", secretErr)
+			m.logger.Error("failed to ensure pull secrets", "error", secretErr)
 			// Continue without registry auth - don't fail the entire mutation
 		} else {
 			patches = append(patches, secretPatches...)
@@ -123,13 +140,14 @@ func (m *Mutator) collectPrivateRegistryImages(pod *corev1.Pod) []string {
 	var images []string
 
 	for _, container := range pod.Spec.Containers {
-		if m.cfg.Credentials.Matches(container.Image) && !seen[container.Image] {
+		if m.credentials.Matches(container.Image) && !seen[container.Image] {
 			seen[container.Image] = true
 			images = append(images, container.Image)
 		}
 	}
+
 	for _, container := range pod.Spec.InitContainers {
-		if m.cfg.Credentials.Matches(container.Image) && !seen[container.Image] {
+		if m.credentials.Matches(container.Image) && !seen[container.Image] {
 			seen[container.Image] = true
 			images = append(images, container.Image)
 		}
@@ -153,7 +171,7 @@ func (m *Mutator) ensurePullSecrets(ctx context.Context, pod *corev1.Pod, namesp
 	for _, image := range images {
 		secretName, err := m.ensurePullSecretForImage(ctx, namespace, image, buildID)
 		if err != nil {
-			m.cfg.Logger.Error("failed to ensure pull secret for image",
+			m.logger.Error("failed to ensure pull secret for image",
 				"image", image,
 				"error", err,
 			)
@@ -209,30 +227,30 @@ func (m *Mutator) ensurePullSecretForImage(ctx context.Context, namespace, image
 	secretName := m.generateSecretName(image)
 
 	// Check if a valid secret already exists
-	existing, err := m.cfg.Clientset.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
+	existing, err := m.clientset.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
 	if err == nil {
 		// Secret exists - check if it's still valid
 		if m.isSecretValid(existing) {
-			m.cfg.Logger.Debug("reusing existing pull secret",
+			m.logger.Debug("reusing existing pull secret",
 				"secret", secretName,
 				"image", image,
 			)
 			return secretName, nil
 		}
 		// Secret expired - delete and recreate
-		m.cfg.Logger.Info("pull secret expired, refreshing",
+		m.logger.Info("pull secret expired, refreshing",
 			"secret", secretName,
 			"image", image,
 		)
-		if delErr := m.cfg.Clientset.CoreV1().Secrets(namespace).Delete(ctx, secretName, metav1.DeleteOptions{}); delErr != nil {
-			m.cfg.Logger.Warn("failed to delete expired secret", "error", delErr)
+		if delErr := m.clientset.CoreV1().Secrets(namespace).Delete(ctx, secretName, metav1.DeleteOptions{}); delErr != nil {
+			m.logger.Warn("failed to delete expired secret", "error", delErr)
 		}
 	} else if !apierrors.IsNotFound(err) {
 		return "", fmt.Errorf("failed to check for existing secret: %w", err)
 	}
 
 	// Fetch fresh credentials
-	dockerConfig, err := m.cfg.Credentials.GetCredentials(ctx, image, buildID)
+	dockerConfig, err := m.credentials.GetCredentials(ctx, image, buildID)
 	if err != nil {
 		return "", fmt.Errorf("failed to get registry credentials: %w", err)
 	}
@@ -266,7 +284,14 @@ func (m *Mutator) ensurePullSecretForImage(ctx context.Context, namespace, image
 		},
 	}
 
-	_, err = m.cfg.Clientset.CoreV1().Secrets(namespace).Create(ctx, secret, metav1.CreateOptions{})
+	m.logger.Info("creating pull secret",
+		"namespace", namespace,
+		"secret", dockerConfigJSON,
+		"image", image,
+		"expires_at", expiresAt,
+	)
+
+	_, err = m.clientset.CoreV1().Secrets(namespace).Create(ctx, secret, metav1.CreateOptions{})
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			// Race condition - another pod created it, that's fine
@@ -275,7 +300,7 @@ func (m *Mutator) ensurePullSecretForImage(ctx context.Context, namespace, image
 		return "", fmt.Errorf("failed to create secret: %w", err)
 	}
 
-	m.cfg.Logger.Info("created pull secret",
+	m.logger.Info("created pull secret",
 		"namespace", namespace,
 		"secret", secretName,
 		"image", image,
@@ -298,7 +323,7 @@ func (m *Mutator) isSecretValid(secret *corev1.Secret) bool {
 
 	expiresAt, err := time.Parse(time.RFC3339, expiresAtStr)
 	if err != nil {
-		m.cfg.Logger.Warn("invalid expires-at annotation", "value", expiresAtStr, "error", err)
+		m.logger.Warn("invalid expires-at annotation", "value", expiresAtStr, "error", err)
 		return false
 	}
 
