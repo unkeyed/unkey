@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Plus, Trash } from "@unkey/icons";
 import { Button, Input, toast } from "@unkey/ui";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EnvVarSecretSwitch } from "./components/env-var-secret-switch";
 import { ENV_VAR_KEY_REGEX, type EnvVar, type EnvVarType } from "./types";
 
@@ -91,20 +91,32 @@ export function AddEnvVars({
   ]);
 
   useEffect(() => {
-    containerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    containerRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+    });
   }, []);
 
   const isSubmitting = createMutation.isLoading;
 
   const addEntry = () => {
-    const newEntry = { id: crypto.randomUUID(), key: "", value: "", type: "recoverable" as const };
+    const newEntry = {
+      id: crypto.randomUUID(),
+      key: "",
+      value: "",
+      type: "recoverable" as const,
+    };
     setEntries([...entries, newEntry]);
     setTimeout(() => {
       keyInputRefs.current.get(newEntry.id)?.focus();
     }, 0);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent, entryId: string, field: "key" | "value") => {
+  const handleKeyDown = (
+    e: React.KeyboardEvent,
+    entryId: string,
+    field: "key" | "value"
+  ) => {
     if (e.key === "Enter") {
       e.preventDefault();
       const entryIndex = entries.findIndex((entry) => entry.id === entryId);
@@ -133,13 +145,26 @@ export function AddEnvVars({
     }
   };
 
-  const updateEntry = (id: string, field: keyof EnvVarEntry, value: string | EnvVarType) => {
+  const updateEntry = (
+    id: string,
+    field: keyof EnvVarEntry,
+    value: string | EnvVarType
+  ) => {
     const transformedValue =
-      field === "key" && typeof value === "string" ? value.toUpperCase().replace(/ /g, "_") : value;
-    setEntries(entries.map((e) => (e.id === id ? { ...e, [field]: transformedValue } : e)));
+      field === "key" && typeof value === "string"
+        ? value.toUpperCase().replace(/ /g, "_")
+        : value;
+    setEntries(
+      entries.map((e) =>
+        e.id === id ? { ...e, [field]: transformedValue } : e
+      )
+    );
   };
 
-  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>, entryId: string) => {
+  const handlePaste = (
+    e: React.ClipboardEvent<HTMLInputElement>,
+    entryId: string
+  ) => {
     const pastedText = e.clipboardData.getData("text");
 
     if (pastedText.includes("\n") && pastedText.includes("=")) {
@@ -154,22 +179,25 @@ export function AddEnvVars({
     }
   };
 
-  const getErrors = (entry: EnvVarEntry): { key?: string; value?: string } => {
-    const errors: { key?: string; value?: string } = {};
+  const getErrors = useCallback(
+    (entry: EnvVarEntry): { key?: string; value?: string } => {
+      const errors: { key?: string; value?: string } = {};
 
-    if (entry.key && !ENV_VAR_KEY_REGEX.test(entry.key)) {
-      errors.key = "Must be UPPERCASE";
-    } else if (entry.key && getExistingEnvVar(entry.key)) {
-      errors.key = "Already exists";
-    } else if (entry.key) {
-      const duplicates = entries.filter((e) => e.key === entry.key);
-      if (duplicates.length > 1) {
-        errors.key = "Duplicate";
+      if (entry.key && !ENV_VAR_KEY_REGEX.test(entry.key)) {
+        errors.key = "Must be UPPERCASE";
+      } else if (entry.key && getExistingEnvVar(entry.key)) {
+        errors.key = "Already exists";
+      } else if (entry.key) {
+        const duplicates = entries.filter((e) => e.key === entry.key);
+        if (duplicates.length > 1) {
+          errors.key = "Duplicate";
+        }
       }
-    }
 
-    return errors;
-  };
+      return errors;
+    },
+    [entries, getExistingEnvVar]
+  );
 
   const validEntries = useMemo(
     () =>
@@ -177,7 +205,7 @@ export function AddEnvVars({
         const errors = getErrors(e);
         return e.key && e.value && !errors.key && !errors.value;
       }),
-    [entries, getExistingEnvVar],
+    [entries, getErrors]
   );
 
   const handleSave = async () => {
@@ -196,7 +224,9 @@ export function AddEnvVars({
 
     toast.promise(mutation, {
       loading: "Adding environment variables...",
-      success: `Added ${validEntries.length} environment variable${validEntries.length > 1 ? "s" : ""}`,
+      success: `Added ${validEntries.length} environment variable${
+        validEntries.length > 1 ? "s" : ""
+      }`,
       error: (err) => ({
         message: "Failed to add environment variables",
         description: err.message || "Please try again",
@@ -240,7 +270,7 @@ export function AddEnvVars({
                   onPaste={(e) => handlePaste(e, entry.id)}
                   className={cn(
                     "min-h-[32px] text-xs w-[108px] font-mono uppercase",
-                    errors.key && "border-red-6 focus:border-red-7",
+                    errors.key && "border-red-6 focus:border-red-7"
                   )}
                   autoComplete="off"
                   spellCheck={false}
@@ -260,13 +290,19 @@ export function AddEnvVars({
                 onKeyDown={(e) => handleKeyDown(e, entry.id, "value")}
                 onPaste={(e) => handlePaste(e, entry.id)}
                 className="min-h-[32px] text-xs flex-1 font-mono"
-                autoComplete={entry.type === "writeonly" ? "new-password" : "off"}
+                autoComplete={
+                  entry.type === "writeonly" ? "new-password" : "off"
+                }
                 spellCheck={false}
               />
               <EnvVarSecretSwitch
                 isSecret={entry.type === "writeonly"}
                 onCheckedChange={(checked) =>
-                  updateEntry(entry.id, "type", checked ? "writeonly" : "recoverable")
+                  updateEntry(
+                    entry.id,
+                    "type",
+                    checked ? "writeonly" : "recoverable"
+                  )
                 }
                 disabled={isSubmitting}
               />
@@ -285,12 +321,22 @@ export function AddEnvVars({
       </div>
 
       <div className="px-4 py-2 flex items-center justify-between border-t border-gray-4 sticky bottom-0 bg-gray-2">
-        <Button size="sm" variant="ghost" onClick={addEntry} className="text-xs text-gray-11 gap-1">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={addEntry}
+          className="text-xs text-gray-11 gap-1"
+        >
           <Plus className="!size-3" />
           Add more
         </Button>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="ghost" onClick={onCancel} disabled={isSubmitting}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
           <Button

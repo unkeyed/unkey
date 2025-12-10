@@ -177,6 +177,14 @@ type Querier interface {
 	//  FROM custom_domains
 	//  WHERE domain = ?
 	FindCustomDomainByDomain(ctx context.Context, db DBTX, domain string) (CustomDomain, error)
+	//FindCustomDomainByDomainOrWildcard
+	//
+	//  SELECT id, workspace_id, domain, challenge_type, created_at, updated_at FROM custom_domains
+	//  WHERE domain IN (?, ?)
+	//  ORDER BY
+	//      CASE WHEN domain = ? THEN 0 ELSE 1 END
+	//  LIMIT 1
+	FindCustomDomainByDomainOrWildcard(ctx context.Context, db DBTX, arg FindCustomDomainByDomainOrWildcardParams) (CustomDomain, error)
 	//FindCustomDomainById
 	//
 	//  SELECT
@@ -1583,14 +1591,36 @@ type Querier interface {
 	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error)
 	//ListIdentities
 	//
-	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
-	//  FROM identities
-	//  WHERE workspace_id = ?
-	//  AND deleted = ?
-	//  AND id >= ?
-	//  ORDER BY id ASC
+	//  SELECT
+	//      i.id,
+	//      i.external_id,
+	//      i.workspace_id,
+	//      i.environment,
+	//      i.meta,
+	//      i.deleted,
+	//      i.created_at,
+	//      i.updated_at,
+	//      COALESCE(
+	//          (SELECT JSON_ARRAYAGG(
+	//              JSON_OBJECT(
+	//                  'id', r.id,
+	//                  'name', r.name,
+	//                  'limit', r.`limit`,
+	//                  'duration', r.duration,
+	//                  'auto_apply', r.auto_apply = 1
+	//              )
+	//          )
+	//          FROM ratelimits r
+	//          WHERE r.identity_id = i.id),
+	//          JSON_ARRAY()
+	//      ) as ratelimits
+	//  FROM identities i
+	//  WHERE i.workspace_id = ?
+	//  AND i.deleted = ?
+	//  AND i.id >= ?
+	//  ORDER BY i.id ASC
 	//  LIMIT ?
-	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]Identity, error)
+	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]ListIdentitiesRow, error)
 	//ListIdentityRatelimits
 	//
 	//  SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply
@@ -2109,6 +2139,15 @@ type Querier interface {
 	//  SET plan = ?
 	//  WHERE id = ?
 	UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) (sql.Result, error)
+	//UpsertCustomDomain
+	//
+	//  INSERT INTO custom_domains (id, workspace_id, domain, challenge_type, created_at)
+	//  VALUES (?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      workspace_id = VALUES(workspace_id),
+	//      challenge_type = VALUES(challenge_type),
+	//      updated_at = ?
+	UpsertCustomDomain(ctx context.Context, db DBTX, arg UpsertCustomDomainParams) error
 	//UpsertEnvironment
 	//
 	//  INSERT INTO environments (
