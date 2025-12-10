@@ -112,6 +112,7 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 			GitCommitAuthorAvatarUrl: sql.NullString{},
 			GitCommitTimestamp:       sql.NullInt64{Int64: now, Valid: true},
 			OpenapiSpec:              sql.NullString{},
+			SecretsConfig:            nil,
 			Status:                   db.DeploymentsStatusReady,
 			CreatedAt:                now,
 			UpdatedAt:                sql.NullInt64{},

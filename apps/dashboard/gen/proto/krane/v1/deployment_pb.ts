@@ -2,18 +2,15 @@
 // @generated from file krane/v1/deployment.proto (package krane.v1, syntax proto3)
 /* eslint-disable */
 
-import type { Message } from "@bufbuild/protobuf";
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file krane/v1/deployment.proto.
  */
-export const file_krane_v1_deployment: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChlrcmFuZS92MS9kZXBsb3ltZW50LnByb3RvEghrcmFuZS52MSKPAQoRRGVwbG95bWVudFJlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEhUKDWRlcGxveW1lbnRfaWQYAiABKAkSDQoFaW1hZ2UYAyABKAkSEAoIcmVwbGljYXMYBCABKA0SFgoOY3B1X21pbGxpY29yZXMYBSABKA0SFwoPbWVtb3J5X3NpemVfbWliGAYgASgEIkoKF0NyZWF0ZURlcGxveW1lbnRSZXF1ZXN0Ei8KCmRlcGxveW1lbnQYASABKAsyGy5rcmFuZS52MS5EZXBsb3ltZW50UmVxdWVzdCJGChhDcmVhdGVEZXBsb3ltZW50UmVzcG9uc2USKgoGc3RhdHVzGAEgASgOMhoua3JhbmUudjEuRGVwbG95bWVudFN0YXR1cyJKChdVcGRhdGVEZXBsb3ltZW50UmVxdWVzdBIvCgpkZXBsb3ltZW50GAEgASgLMhsua3JhbmUudjEuRGVwbG95bWVudFJlcXVlc3QiKwoYVXBkYXRlRGVwbG95bWVudFJlc3BvbnNlEg8KB3BvZF9pZHMYASADKAkiQwoXRGVsZXRlRGVwbG95bWVudFJlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEhUKDWRlcGxveW1lbnRfaWQYAiABKAkiGgoYRGVsZXRlRGVwbG95bWVudFJlc3BvbnNlIkAKFEdldERlcGxveW1lbnRSZXF1ZXN0EhEKCW5hbWVzcGFjZRgBIAEoCRIVCg1kZXBsb3ltZW50X2lkGAIgASgJIj4KFUdldERlcGxveW1lbnRSZXNwb25zZRIlCglpbnN0YW5jZXMYAiADKAsyEi5rcmFuZS52MS5JbnN0YW5jZSJTCghJbnN0YW5jZRIKCgJpZBgBIAEoCRIPCgdhZGRyZXNzGAIgASgJEioKBnN0YXR1cxgDIAEoDjIaLmtyYW5lLnYxLkRlcGxveW1lbnRTdGF0dXMqlgEKEERlcGxveW1lbnRTdGF0dXMSIQodREVQTE9ZTUVOVF9TVEFUVVNfVU5TUEVDSUZJRUQQABIdChlERVBMT1lNRU5UX1NUQVRVU19QRU5ESU5HEAESHQoZREVQTE9ZTUVOVF9TVEFUVVNfUlVOTklORxACEiEKHURFUExPWU1FTlRfU1RBVFVTX1RFUk1JTkFUSU5HEAMymwIKEURlcGxveW1lbnRTZXJ2aWNlElkKEENyZWF0ZURlcGxveW1lbnQSIS5rcmFuZS52MS5DcmVhdGVEZXBsb3ltZW50UmVxdWVzdBoiLmtyYW5lLnYxLkNyZWF0ZURlcGxveW1lbnRSZXNwb25zZRJQCg1HZXREZXBsb3ltZW50Eh4ua3JhbmUudjEuR2V0RGVwbG95bWVudFJlcXVlc3QaHy5rcmFuZS52MS5HZXREZXBsb3ltZW50UmVzcG9uc2USWQoQRGVsZXRlRGVwbG95bWVudBIhLmtyYW5lLnYxLkRlbGV0ZURlcGxveW1lbnRSZXF1ZXN0GiIua3JhbmUudjEuRGVsZXRlRGVwbG95bWVudFJlc3BvbnNlQpgBCgxjb20ua3JhbmUudjFCD0RlcGxveW1lbnRQcm90b1ABWjZnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2tyYW5lL3YxO2tyYW5ldjGiAgNLWFiqAghLcmFuZS5WMcoCCEtyYW5lXFYx4gIUS3JhbmVcVjFcR1BCTWV0YWRhdGHqAglLcmFuZTo6VjFiBnByb3RvMw",
-  );
+export const file_krane_v1_deployment: GenFile = /*@__PURE__*/
+  fileDesc("ChlrcmFuZS92MS9kZXBsb3ltZW50LnByb3RvEghrcmFuZS52MSLhAQoRRGVwbG95bWVudFJlcXVlc3QSEQoJbmFtZXNwYWNlGAEgASgJEhUKDWRlcGxveW1lbnRfaWQYAiABKAkSDQoFaW1hZ2UYAyABKAkSEAoIcmVwbGljYXMYBCABKA0SFgoOY3B1X21pbGxpY29yZXMYBSABKA0SFwoPbWVtb3J5X3NpemVfbWliGAYgASgEEhgKEGVudmlyb25tZW50X3NsdWcYByABKAkSHgoWZW5jcnlwdGVkX3NlY3JldHNfYmxvYhgIIAEoDBIWCg5lbnZpcm9ubWVudF9pZBgJIAEoCSJKChdDcmVhdGVEZXBsb3ltZW50UmVxdWVzdBIvCgpkZXBsb3ltZW50GAEgASgLMhsua3JhbmUudjEuRGVwbG95bWVudFJlcXVlc3QiRgoYQ3JlYXRlRGVwbG95bWVudFJlc3BvbnNlEioKBnN0YXR1cxgBIAEoDjIaLmtyYW5lLnYxLkRlcGxveW1lbnRTdGF0dXMiSgoXVXBkYXRlRGVwbG95bWVudFJlcXVlc3QSLwoKZGVwbG95bWVudBgBIAEoCzIbLmtyYW5lLnYxLkRlcGxveW1lbnRSZXF1ZXN0IisKGFVwZGF0ZURlcGxveW1lbnRSZXNwb25zZRIPCgdwb2RfaWRzGAEgAygJIkMKF0RlbGV0ZURlcGxveW1lbnRSZXF1ZXN0EhEKCW5hbWVzcGFjZRgBIAEoCRIVCg1kZXBsb3ltZW50X2lkGAIgASgJIhoKGERlbGV0ZURlcGxveW1lbnRSZXNwb25zZSJAChRHZXREZXBsb3ltZW50UmVxdWVzdBIRCgluYW1lc3BhY2UYASABKAkSFQoNZGVwbG95bWVudF9pZBgCIAEoCSI+ChVHZXREZXBsb3ltZW50UmVzcG9uc2USJQoJaW5zdGFuY2VzGAIgAygLMhIua3JhbmUudjEuSW5zdGFuY2UiUwoISW5zdGFuY2USCgoCaWQYASABKAkSDwoHYWRkcmVzcxgCIAEoCRIqCgZzdGF0dXMYAyABKA4yGi5rcmFuZS52MS5EZXBsb3ltZW50U3RhdHVzKpYBChBEZXBsb3ltZW50U3RhdHVzEiEKHURFUExPWU1FTlRfU1RBVFVTX1VOU1BFQ0lGSUVEEAASHQoZREVQTE9ZTUVOVF9TVEFUVVNfUEVORElORxABEh0KGURFUExPWU1FTlRfU1RBVFVTX1JVTk5JTkcQAhIhCh1ERVBMT1lNRU5UX1NUQVRVU19URVJNSU5BVElORxADMpsCChFEZXBsb3ltZW50U2VydmljZRJZChBDcmVhdGVEZXBsb3ltZW50EiEua3JhbmUudjEuQ3JlYXRlRGVwbG95bWVudFJlcXVlc3QaIi5rcmFuZS52MS5DcmVhdGVEZXBsb3ltZW50UmVzcG9uc2USUAoNR2V0RGVwbG95bWVudBIeLmtyYW5lLnYxLkdldERlcGxveW1lbnRSZXF1ZXN0Gh8ua3JhbmUudjEuR2V0RGVwbG95bWVudFJlc3BvbnNlElkKEERlbGV0ZURlcGxveW1lbnQSIS5rcmFuZS52MS5EZWxldGVEZXBsb3ltZW50UmVxdWVzdBoiLmtyYW5lLnYxLkRlbGV0ZURlcGxveW1lbnRSZXNwb25zZUKYAQoMY29tLmtyYW5lLnYxQg9EZXBsb3ltZW50UHJvdG9QAVo2Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9rcmFuZS92MTtrcmFuZXYxogIDS1hYqgIIS3JhbmUuVjHKAghLcmFuZVxWMeICFEtyYW5lXFYxXEdQQk1ldGFkYXRh6gIJS3JhbmU6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message krane.v1.DeploymentRequest
@@ -48,14 +45,36 @@ export type DeploymentRequest = Message<"krane.v1.DeploymentRequest"> & {
    * @generated from field: uint64 memory_size_mib = 6;
    */
   memorySizeMib: bigint;
+
+  /**
+   * Environment slug (e.g., production, staging).
+   *
+   * @generated from field: string environment_slug = 7;
+   */
+  environmentSlug: string;
+
+  /**
+   * Encrypted secrets blob to be decrypted at runtime by unkey-env.
+   * This is set as UNKEY_SECRETS_BLOB env var in the container.
+   * unkey-env calls krane's DecryptSecretsBlob RPC to decrypt.
+   *
+   * @generated from field: bytes encrypted_secrets_blob = 8;
+   */
+  encryptedSecretsBlob: Uint8Array;
+
+  /**
+   * Environment ID for secrets decryption (keyring identifier).
+   *
+   * @generated from field: string environment_id = 9;
+   */
+  environmentId: string;
 };
 
 /**
  * Describes the message krane.v1.DeploymentRequest.
  * Use `create(DeploymentRequestSchema)` to create a new message.
  */
-export const DeploymentRequestSchema: GenMessage<DeploymentRequest> =
-  /*@__PURE__*/
+export const DeploymentRequestSchema: GenMessage<DeploymentRequest> = /*@__PURE__*/
   messageDesc(file_krane_v1_deployment, 0);
 
 /**
@@ -72,8 +91,7 @@ export type CreateDeploymentRequest = Message<"krane.v1.CreateDeploymentRequest"
  * Describes the message krane.v1.CreateDeploymentRequest.
  * Use `create(CreateDeploymentRequestSchema)` to create a new message.
  */
-export const CreateDeploymentRequestSchema: GenMessage<CreateDeploymentRequest> =
-  /*@__PURE__*/
+export const CreateDeploymentRequestSchema: GenMessage<CreateDeploymentRequest> = /*@__PURE__*/
   messageDesc(file_krane_v1_deployment, 1);
 
 /**
@@ -90,8 +108,7 @@ export type CreateDeploymentResponse = Message<"krane.v1.CreateDeploymentRespons
  * Describes the message krane.v1.CreateDeploymentResponse.
  * Use `create(CreateDeploymentResponseSchema)` to create a new message.
  */
-export const CreateDeploymentResponseSchema: GenMessage<CreateDeploymentResponse> =
-  /*@__PURE__*/
+export const CreateDeploymentResponseSchema: GenMessage<CreateDeploymentResponse> = /*@__PURE__*/
   messageDesc(file_krane_v1_deployment, 2);
 
 /**
@@ -108,8 +125,7 @@ export type UpdateDeploymentRequest = Message<"krane.v1.UpdateDeploymentRequest"
  * Describes the message krane.v1.UpdateDeploymentRequest.
  * Use `create(UpdateDeploymentRequestSchema)` to create a new message.
  */
-export const UpdateDeploymentRequestSchema: GenMessage<UpdateDeploymentRequest> =
-  /*@__PURE__*/
+export const UpdateDeploymentRequestSchema: GenMessage<UpdateDeploymentRequest> = /*@__PURE__*/
   messageDesc(file_krane_v1_deployment, 3);
 
 /**
@@ -126,8 +142,7 @@ export type UpdateDeploymentResponse = Message<"krane.v1.UpdateDeploymentRespons
  * Describes the message krane.v1.UpdateDeploymentResponse.
  * Use `create(UpdateDeploymentResponseSchema)` to create a new message.
  */
-export const UpdateDeploymentResponseSchema: GenMessage<UpdateDeploymentResponse> =
-  /*@__PURE__*/
+export const UpdateDeploymentResponseSchema: GenMessage<UpdateDeploymentResponse> = /*@__PURE__*/
   messageDesc(file_krane_v1_deployment, 4);
 
 /**
@@ -149,21 +164,20 @@ export type DeleteDeploymentRequest = Message<"krane.v1.DeleteDeploymentRequest"
  * Describes the message krane.v1.DeleteDeploymentRequest.
  * Use `create(DeleteDeploymentRequestSchema)` to create a new message.
  */
-export const DeleteDeploymentRequestSchema: GenMessage<DeleteDeploymentRequest> =
-  /*@__PURE__*/
+export const DeleteDeploymentRequestSchema: GenMessage<DeleteDeploymentRequest> = /*@__PURE__*/
   messageDesc(file_krane_v1_deployment, 5);
 
 /**
  * @generated from message krane.v1.DeleteDeploymentResponse
  */
-export type DeleteDeploymentResponse = Message<"krane.v1.DeleteDeploymentResponse"> & {};
+export type DeleteDeploymentResponse = Message<"krane.v1.DeleteDeploymentResponse"> & {
+};
 
 /**
  * Describes the message krane.v1.DeleteDeploymentResponse.
  * Use `create(DeleteDeploymentResponseSchema)` to create a new message.
  */
-export const DeleteDeploymentResponseSchema: GenMessage<DeleteDeploymentResponse> =
-  /*@__PURE__*/
+export const DeleteDeploymentResponseSchema: GenMessage<DeleteDeploymentResponse> = /*@__PURE__*/
   messageDesc(file_krane_v1_deployment, 6);
 
 /**
@@ -185,8 +199,7 @@ export type GetDeploymentRequest = Message<"krane.v1.GetDeploymentRequest"> & {
  * Describes the message krane.v1.GetDeploymentRequest.
  * Use `create(GetDeploymentRequestSchema)` to create a new message.
  */
-export const GetDeploymentRequestSchema: GenMessage<GetDeploymentRequest> =
-  /*@__PURE__*/
+export const GetDeploymentRequestSchema: GenMessage<GetDeploymentRequest> = /*@__PURE__*/
   messageDesc(file_krane_v1_deployment, 7);
 
 /**
@@ -203,8 +216,7 @@ export type GetDeploymentResponse = Message<"krane.v1.GetDeploymentResponse"> & 
  * Describes the message krane.v1.GetDeploymentResponse.
  * Use `create(GetDeploymentResponseSchema)` to create a new message.
  */
-export const GetDeploymentResponseSchema: GenMessage<GetDeploymentResponse> =
-  /*@__PURE__*/
+export const GetDeploymentResponseSchema: GenMessage<GetDeploymentResponse> = /*@__PURE__*/
   messageDesc(file_krane_v1_deployment, 8);
 
 /**
@@ -231,8 +243,7 @@ export type Instance = Message<"krane.v1.Instance"> & {
  * Describes the message krane.v1.Instance.
  * Use `create(InstanceSchema)` to create a new message.
  */
-export const InstanceSchema: GenMessage<Instance> =
-  /*@__PURE__*/
+export const InstanceSchema: GenMessage<Instance> = /*@__PURE__*/
   messageDesc(file_krane_v1_deployment, 9);
 
 /**
@@ -269,8 +280,7 @@ export enum DeploymentStatus {
 /**
  * Describes the enum krane.v1.DeploymentStatus.
  */
-export const DeploymentStatusSchema: GenEnum<DeploymentStatus> =
-  /*@__PURE__*/
+export const DeploymentStatusSchema: GenEnum<DeploymentStatus> = /*@__PURE__*/
   enumDesc(file_krane_v1_deployment, 0);
 
 /**
@@ -286,7 +296,7 @@ export const DeploymentService: GenService<{
     methodKind: "unary";
     input: typeof CreateDeploymentRequestSchema;
     output: typeof CreateDeploymentResponseSchema;
-  };
+  },
   /**
    * GetDeployment
    *
@@ -296,7 +306,7 @@ export const DeploymentService: GenService<{
     methodKind: "unary";
     input: typeof GetDeploymentRequestSchema;
     output: typeof GetDeploymentResponseSchema;
-  };
+  },
   /**
    * DeleteDeployment
    *
@@ -306,5 +316,7 @@ export const DeploymentService: GenService<{
     methodKind: "unary";
     input: typeof DeleteDeploymentRequestSchema;
     output: typeof DeleteDeploymentResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_krane_v1_deployment, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_krane_v1_deployment, 0);
+
