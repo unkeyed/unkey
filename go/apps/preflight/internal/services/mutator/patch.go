@@ -111,7 +111,6 @@ func (m *Mutator) buildContainerPatches(
 	}
 
 	args = append(args, container.Args...)
-
 	patches = append(patches, map[string]interface{}{
 		"op":    "add",
 		"path":  fmt.Sprintf("%s/command", basePath),

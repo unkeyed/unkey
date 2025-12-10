@@ -170,6 +170,7 @@ func (r *Registry) findPlatformManifest(manifests []v1.Descriptor) (v1.Hash, boo
 			return m.Digest, true
 		}
 	}
+
 	return v1.Hash{}, false //nolint:exhaustruct // zero value for not-found case
 }
 
@@ -177,6 +178,7 @@ func targetOS() string {
 	if runtime.GOOS == "darwin" {
 		return defaultOS
 	}
+
 	return runtime.GOOS
 }
 

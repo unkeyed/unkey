@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"github.com/unkeyed/unkey/go/apps/preflight/internal/services/cleanup"
 	"github.com/unkeyed/unkey/go/apps/preflight/internal/services/mutator"
 	"github.com/unkeyed/unkey/go/apps/preflight/internal/services/registry"
 	"github.com/unkeyed/unkey/go/apps/preflight/internal/services/registry/credentials"
@@ -88,6 +89,13 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:  logger,
 		Mutator: m,
 	})
+
+	// Start background cleanup of expired pull secrets
+	cleanupService := cleanup.New(&cleanup.Config{
+		Logger:    logger,
+		Clientset: clientset,
+	})
+	go cleanupService.Start(ctx)
 
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)
 	ln, err := net.Listen("tcp", addr)

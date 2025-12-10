@@ -2,8 +2,11 @@ package mutator
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -135,72 +138,114 @@ func (m *Mutator) collectPrivateRegistryImages(pod *corev1.Pod) []string {
 	return images
 }
 
-// ensurePullSecrets creates a pull secret for the pod and returns patches to add it
-// to imagePullSecrets. The secret is tied to the pod's lifecycle via OwnerReference
-// so it gets garbage collected when the pod is deleted.
+const (
+	// tokenTTL is the lifetime of Depot pull tokens. We use a slightly shorter
+	// duration for the expiry check to account for clock skew and processing time.
+	tokenTTL            = 55 * time.Minute
+	expiresAtAnnotation = "preflight.unkey.com/expires-at"
+)
+
+// ensurePullSecrets creates or reuses pull secrets for each private image and returns
+// patches to add them to the pod's imagePullSecrets.
 func (m *Mutator) ensurePullSecrets(ctx context.Context, pod *corev1.Pod, namespace string, images []string, buildID string) ([]map[string]interface{}, error) {
-	secretName, err := m.createPodPullSecret(ctx, pod, namespace, images, buildID)
-	if err != nil {
-		return nil, err
-	}
+	var secretNames []string
 
-	// Check if this secret is already referenced
-	for _, secret := range pod.Spec.ImagePullSecrets {
-		if secret.Name == secretName {
-			return nil, nil
-		}
-	}
-
-	var patches []map[string]interface{}
-	newSecret := corev1.LocalObjectReference{Name: secretName}
-
-	if len(pod.Spec.ImagePullSecrets) == 0 {
-		patches = append(patches, map[string]interface{}{
-			"op":    "add",
-			"path":  "/spec/imagePullSecrets",
-			"value": []corev1.LocalObjectReference{newSecret},
-		})
-	} else {
-		patches = append(patches, map[string]interface{}{
-			"op":    "add",
-			"path":  "/spec/imagePullSecrets/-",
-			"value": newSecret,
-		})
-	}
-
-	return patches, nil
-}
-
-// createPodPullSecret creates an ephemeral pull secret for the pod with credentials
-// for all private images. The secret has an OwnerReference to the pod so it gets
-// garbage collected when the pod is deleted.
-func (m *Mutator) createPodPullSecret(ctx context.Context, pod *corev1.Pod, namespace string, images []string, buildID string) (string, error) {
-	secretName := m.generateSecretName(pod)
-
-	// Merge credentials for all images into one docker config
-	mergedConfig := m.cfg.Credentials.NewDockerConfig()
 	for _, image := range images {
-		dockerConfig, err := m.cfg.Credentials.GetCredentials(ctx, image, buildID)
+		secretName, err := m.ensurePullSecretForImage(ctx, namespace, image, buildID)
 		if err != nil {
-			m.cfg.Logger.Error("failed to get credentials for image",
+			m.cfg.Logger.Error("failed to ensure pull secret for image",
 				"image", image,
 				"error", err,
 			)
 			continue
 		}
-		if dockerConfig != nil {
-			mergedConfig.Merge(dockerConfig)
+		secretNames = append(secretNames, secretName)
+	}
+
+	if len(secretNames) == 0 {
+		return nil, nil
+	}
+
+	// Build patches to add imagePullSecrets
+	var patches []map[string]interface{}
+	existingSecrets := make(map[string]bool)
+	for _, secret := range pod.Spec.ImagePullSecrets {
+		existingSecrets[secret.Name] = true
+	}
+
+	var newSecrets []corev1.LocalObjectReference
+	for _, name := range secretNames {
+		if !existingSecrets[name] {
+			newSecrets = append(newSecrets, corev1.LocalObjectReference{Name: name})
 		}
 	}
 
-	if len(mergedConfig.Auths) == 0 {
-		return "", fmt.Errorf("no credentials found for any image")
+	if len(newSecrets) == 0 {
+		return nil, nil
 	}
 
-	dockerConfigJSON, err := mergedConfig.ToJSON()
+	if len(pod.Spec.ImagePullSecrets) == 0 {
+		patches = append(patches, map[string]interface{}{
+			"op":    "add",
+			"path":  "/spec/imagePullSecrets",
+			"value": newSecrets,
+		})
+	} else {
+		for _, secret := range newSecrets {
+			patches = append(patches, map[string]interface{}{
+				"op":    "add",
+				"path":  "/spec/imagePullSecrets/-",
+				"value": secret,
+			})
+		}
+	}
+
+	return patches, nil
+}
+
+// ensurePullSecretForImage creates or reuses a pull secret for a specific image.
+// If a valid (non-expired) secret exists, it's reused without calling the registry API.
+func (m *Mutator) ensurePullSecretForImage(ctx context.Context, namespace, image, buildID string) (string, error) {
+	secretName := m.generateSecretName(image)
+
+	// Check if a valid secret already exists
+	existing, err := m.cfg.Clientset.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
+	if err == nil {
+		// Secret exists - check if it's still valid
+		if m.isSecretValid(existing) {
+			m.cfg.Logger.Debug("reusing existing pull secret",
+				"secret", secretName,
+				"image", image,
+			)
+			return secretName, nil
+		}
+		// Secret expired - delete and recreate
+		m.cfg.Logger.Info("pull secret expired, refreshing",
+			"secret", secretName,
+			"image", image,
+		)
+		if delErr := m.cfg.Clientset.CoreV1().Secrets(namespace).Delete(ctx, secretName, metav1.DeleteOptions{}); delErr != nil {
+			m.cfg.Logger.Warn("failed to delete expired secret", "error", delErr)
+		}
+	} else if !apierrors.IsNotFound(err) {
+		return "", fmt.Errorf("failed to check for existing secret: %w", err)
+	}
+
+	// Fetch fresh credentials
+	dockerConfig, err := m.cfg.Credentials.GetCredentials(ctx, image, buildID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get registry credentials: %w", err)
+	}
+	if dockerConfig == nil {
+		return "", fmt.Errorf("no credentials found for image: %s", image)
+	}
+
+	dockerConfigJSON, err := dockerConfig.ToJSON()
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal docker config: %w", err)
 	}
+
+	expiresAt := time.Now().Add(tokenTTL).Format(time.RFC3339)
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -210,13 +255,9 @@ func (m *Mutator) createPodPullSecret(ctx context.Context, pod *corev1.Pod, name
 				"app.kubernetes.io/managed-by": "preflight",
 				"app.kubernetes.io/component":  "registry-credentials",
 			},
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: "v1",
-					Kind:       "Pod",
-					Name:       pod.Name,
-					UID:        pod.UID,
-				},
+			Annotations: map[string]string{
+				"preflight.unkey.com/image": image,
+				expiresAtAnnotation:         expiresAt,
 			},
 		},
 		Type: corev1.SecretTypeDockerConfigJson,
@@ -228,28 +269,45 @@ func (m *Mutator) createPodPullSecret(ctx context.Context, pod *corev1.Pod, name
 	_, err = m.cfg.Clientset.CoreV1().Secrets(namespace).Create(ctx, secret, metav1.CreateOptions{})
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
-			// Secret already exists (maybe from a previous attempt), that's fine
+			// Race condition - another pod created it, that's fine
 			return secretName, nil
 		}
 		return "", fmt.Errorf("failed to create secret: %w", err)
 	}
 
-	m.cfg.Logger.Info("created ephemeral pull secret",
+	m.cfg.Logger.Info("created pull secret",
 		"namespace", namespace,
 		"secret", secretName,
-		"pod", pod.Name,
-		"images", images,
+		"image", image,
+		"expires_at", expiresAt,
 	)
 
 	return secretName, nil
 }
 
-// generateSecretName creates a unique secret name for the pod.
-func (m *Mutator) generateSecretName(pod *corev1.Pod) string {
-	// Use pod UID to ensure uniqueness per pod
-	shortUID := string(pod.UID)
-	if len(shortUID) > 8 {
-		shortUID = shortUID[:8]
+// isSecretValid checks if the secret's token hasn't expired.
+func (m *Mutator) isSecretValid(secret *corev1.Secret) bool {
+	if secret.Annotations == nil {
+		return false
 	}
-	return fmt.Sprintf("preflight-pull-%s", shortUID)
+
+	expiresAtStr, ok := secret.Annotations[expiresAtAnnotation]
+	if !ok {
+		return false
+	}
+
+	expiresAt, err := time.Parse(time.RFC3339, expiresAtStr)
+	if err != nil {
+		m.cfg.Logger.Warn("invalid expires-at annotation", "value", expiresAtStr, "error", err)
+		return false
+	}
+
+	return time.Now().Before(expiresAt)
+}
+
+// generateSecretName creates a deterministic secret name for an image.
+func (m *Mutator) generateSecretName(image string) string {
+	hash := sha256.Sum256([]byte(image))
+	shortHash := hex.EncodeToString(hash[:])[:8]
+	return fmt.Sprintf("preflight-pull-%s", shortHash)
 }

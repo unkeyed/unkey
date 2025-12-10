@@ -112,11 +112,7 @@ export function AddEnvVars({
     }, 0);
   };
 
-  const handleKeyDown = (
-    e: React.KeyboardEvent,
-    entryId: string,
-    field: "key" | "value"
-  ) => {
+  const handleKeyDown = (e: React.KeyboardEvent, entryId: string, field: "key" | "value") => {
     if (e.key === "Enter") {
       e.preventDefault();
       const entryIndex = entries.findIndex((entry) => entry.id === entryId);
@@ -145,26 +141,13 @@ export function AddEnvVars({
     }
   };
 
-  const updateEntry = (
-    id: string,
-    field: keyof EnvVarEntry,
-    value: string | EnvVarType
-  ) => {
+  const updateEntry = (id: string, field: keyof EnvVarEntry, value: string | EnvVarType) => {
     const transformedValue =
-      field === "key" && typeof value === "string"
-        ? value.toUpperCase().replace(/ /g, "_")
-        : value;
-    setEntries(
-      entries.map((e) =>
-        e.id === id ? { ...e, [field]: transformedValue } : e
-      )
-    );
+      field === "key" && typeof value === "string" ? value.toUpperCase().replace(/ /g, "_") : value;
+    setEntries(entries.map((e) => (e.id === id ? { ...e, [field]: transformedValue } : e)));
   };
 
-  const handlePaste = (
-    e: React.ClipboardEvent<HTMLInputElement>,
-    entryId: string
-  ) => {
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>, entryId: string) => {
     const pastedText = e.clipboardData.getData("text");
 
     if (pastedText.includes("\n") && pastedText.includes("=")) {
@@ -196,7 +179,7 @@ export function AddEnvVars({
 
       return errors;
     },
-    [entries, getExistingEnvVar]
+    [entries, getExistingEnvVar],
   );
 
   const validEntries = useMemo(
@@ -205,7 +188,7 @@ export function AddEnvVars({
         const errors = getErrors(e);
         return e.key && e.value && !errors.key && !errors.value;
       }),
-    [entries, getErrors]
+    [entries, getErrors],
   );
 
   const handleSave = async () => {
@@ -270,7 +253,7 @@ export function AddEnvVars({
                   onPaste={(e) => handlePaste(e, entry.id)}
                   className={cn(
                     "min-h-[32px] text-xs w-[108px] font-mono uppercase",
-                    errors.key && "border-red-6 focus:border-red-7"
+                    errors.key && "border-red-6 focus:border-red-7",
                   )}
                   autoComplete="off"
                   spellCheck={false}
@@ -290,19 +273,13 @@ export function AddEnvVars({
                 onKeyDown={(e) => handleKeyDown(e, entry.id, "value")}
                 onPaste={(e) => handlePaste(e, entry.id)}
                 className="min-h-[32px] text-xs flex-1 font-mono"
-                autoComplete={
-                  entry.type === "writeonly" ? "new-password" : "off"
-                }
+                autoComplete={entry.type === "writeonly" ? "new-password" : "off"}
                 spellCheck={false}
               />
               <EnvVarSecretSwitch
                 isSecret={entry.type === "writeonly"}
                 onCheckedChange={(checked) =>
-                  updateEntry(
-                    entry.id,
-                    "type",
-                    checked ? "writeonly" : "recoverable"
-                  )
+                  updateEntry(entry.id, "type", checked ? "writeonly" : "recoverable")
                 }
                 disabled={isSubmitting}
               />
@@ -321,22 +298,12 @@ export function AddEnvVars({
       </div>
 
       <div className="px-4 py-2 flex items-center justify-between border-t border-gray-4 sticky bottom-0 bg-gray-2">
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={addEntry}
-          className="text-xs text-gray-11 gap-1"
-        >
+        <Button size="sm" variant="ghost" onClick={addEntry} className="text-xs text-gray-11 gap-1">
           <Plus className="!size-3" />
           Add more
         </Button>
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onCancel}
-            disabled={isSubmitting}
-          >
+          <Button size="sm" variant="ghost" onClick={onCancel} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button
