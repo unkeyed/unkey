@@ -175,11 +175,7 @@ func (r *Registry) findPlatformManifest(manifests []v1.Descriptor) (v1.Hash, boo
 }
 
 func targetOS() string {
-	if runtime.GOOS == "darwin" {
-		return defaultOS
-	}
-
-	return runtime.GOOS
+	return defaultOS
 }
 
 // targetArch returns the architecture to look for in multi-arch image manifests.
