@@ -71,7 +71,9 @@ export const Client: React.FC = () => {
   const allowUpdate = subscription && ["active", "trialing"].includes(subscription.status);
 
   const hasPaidSubscription = Boolean(
-    subscription && currentProductId && subscription.status === "past_due",
+    subscription &&
+      currentProductId &&
+      ["active", "trialing", "past_due"].includes(subscription.status),
   );
 
   const isFreeTier = !hasPaidSubscription;
