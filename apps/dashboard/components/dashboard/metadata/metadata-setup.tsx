@@ -1,8 +1,8 @@
 "use client";
+import type { MetadataFormValues } from "@/lib/schemas/metadata";
 import { Code } from "@unkey/icons";
 import { Button, FormTextarea, toast } from "@unkey/ui";
 import { useFormContext, useWatch } from "react-hook-form";
-import type { MetadataFormValues } from "../create-key.schema";
 import { ProtectionSwitch } from "./protection-switch";
 
 export const EXAMPLE_JSON = {
@@ -13,11 +13,33 @@ export const EXAMPLE_JSON = {
   },
 };
 
-export const MetadataSetup = ({
-  overrideEnabled = false,
-}: {
+type EntityType = "key" | "identity";
+
+interface MetadataSetupProps {
   overrideEnabled?: boolean;
-}) => {
+  entityType: EntityType;
+}
+
+const ENTITY_DESCRIPTIONS: Record<
+  EntityType,
+  {
+    switch: string;
+    textarea: string;
+  }
+> = {
+  key: {
+    switch:
+      "Add custom metadata to your API key as a JSON object. This metadata will be available when verifying the key.",
+    textarea: "Add structured JSON data to this key. Must be valid JSON format.",
+  },
+  identity: {
+    switch:
+      "Add custom metadata to this identity as a JSON object. This metadata will be available when verifying keys associated with this identity.",
+    textarea: "Add structured JSON data to this identity. Must be valid JSON format.",
+  },
+};
+
+export const MetadataSetup = ({ overrideEnabled = false, entityType }: MetadataSetupProps) => {
   const {
     register,
     formState: { errors },
@@ -34,7 +56,7 @@ export const MetadataSetup = ({
   const currentMetadata = useWatch({
     control,
     name: "metadata.data",
-  });
+  }) as string | undefined;
 
   const handleSwitchChange = (checked: boolean) => {
     setValue("metadata.enabled", checked);
@@ -68,11 +90,13 @@ export const MetadataSetup = ({
     }
   };
 
+  const descriptions = ENTITY_DESCRIPTIONS[entityType];
+
   return (
     <div className="space-y-5 px-2 py-1">
       {!overrideEnabled && (
         <ProtectionSwitch
-          description="Add custom metadata to your API key as a JSON object. This metadata will be available when verifying the key."
+          description={descriptions.switch}
           title="Metadata"
           icon={<Code className="text-gray-12" iconSize="sm-regular" />}
           checked={metadataEnabled}
@@ -96,14 +120,14 @@ export const MetadataSetup = ({
               <div className="text-[13px]">Format</div>
             </Button>
           }
-          description="Add structured JSON data to this key. Must be valid JSON format."
+          description={descriptions.textarea}
           error={errors.metadata?.data?.message}
           disabled={!metadataEnabled}
           readOnly={!metadataEnabled}
           rows={15}
           {...register("metadata.data", {
             validate: (value) => {
-              if (metadataEnabled && (!value || !validateJSON(value))) {
+              if (metadataEnabled && (!value || !validateJSON(value as string))) {
                 return "Must be valid JSON";
               }
               return true;
