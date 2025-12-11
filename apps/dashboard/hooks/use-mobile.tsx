@@ -5,20 +5,20 @@ type UseIsMobileOptions = {
   defaultValue?: boolean;
 };
 
-export function useIsMobile(options: UseIsMobileOptions = {}): boolean | undefined {
-  const { breakpoint = 768, defaultValue } = options;
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(defaultValue);
+export function useIsMobile(options: UseIsMobileOptions = {}): boolean {
+  const { breakpoint = 768, defaultValue = false } = options;
+  const [isMobile, setIsMobile] = React.useState<boolean>(defaultValue);
 
   React.useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
     const mql = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
-    const onChange = () => {
-      setIsMobile(window.innerWidth < breakpoint);
+    const onChange = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
     };
     mql.addEventListener("change", onChange);
-    setIsMobile(window.innerWidth < breakpoint);
+    setIsMobile(mql.matches);
     return () => mql.removeEventListener("change", onChange);
   }, [breakpoint]);
 

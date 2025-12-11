@@ -101,7 +101,7 @@ const NavbarContent = ({
   keyId,
   activePage,
   workspace,
-  isMobile,
+  isMobile = false,
   layoutData,
 }: NavbarContentProps) => {
   const shouldFetchKey = Boolean(keyspaceId && keyId);

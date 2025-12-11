@@ -20,7 +20,7 @@ type PrimitiveButtonProps = React.ComponentPropsWithoutRef<"button">;
 type DroverContextValue = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  isMobile: boolean | undefined;
+  isMobile: boolean;
 };
 export interface DroverProps extends PrimitiveDivProps {
   children?: React.ReactNode;
