@@ -51,7 +51,8 @@ export const DatetimePopover = ({
   minDate,
   maxDate,
 }: DatetimePopoverProps) => {
-  const isMobile = useIsMobile();
+  // Default to false (desktop) to prevent hydration mismatches
+  const isMobile = useIsMobile({ defaultValue: false });
   const [timeRangeOpen, setTimeRangeOpen] = useState(false);
   const [open, setOpen] = useState(false);
   useKeyboardShortcut("t", () => setOpen((prev) => !prev));

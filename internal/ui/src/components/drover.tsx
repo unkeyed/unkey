@@ -20,7 +20,7 @@ type PrimitiveButtonProps = React.ComponentPropsWithoutRef<"button">;
 type DroverContextValue = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  isMobile: boolean;
+  isMobile: boolean | undefined;
 };
 export interface DroverProps extends PrimitiveDivProps {
   children?: React.ReactNode;
@@ -35,7 +35,8 @@ const [DroverProvider, useDroverContext] = createContext<DroverContextValue>(ROO
 
 const Root: React.FC<DroverProps> = (props) => {
   const { open: openProp, defaultOpen, onOpenChange, children } = props;
-  const isMobile = useIsMobile();
+  // Default to false (desktop) to prevent hydration mismatches and layout shifts
+  const isMobile = useIsMobile({ defaultValue: false });
   const [open, setOpen] = useControllableState({
     prop: openProp,
     defaultProp: defaultOpen ?? false,

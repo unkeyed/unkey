@@ -7,19 +7,24 @@ export function createContext<ContextValueType extends object | null>(
   const Context = React.createContext<ContextValueType | undefined>(defaultContext);
 
   const Provider = (props: ContextValueType & { children: React.ReactNode }) => {
-    const { children, ...context } = props;
-    // Only re-memoize when prop values change
+    const { children } = props;
+    // Only re-memoize when actual prop values change, not the object reference
+    // biome-ignore lint/correctness/useExhaustiveDependencies: props object reference changes every render; we track individual prop values instead
     const value = React.useMemo(
-      () => context,
-      // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-      [context],
-    ) as ContextValueType;
+      () => {
+        const { children: _, ...contextValue } = props;
+        return contextValue as ContextValueType;
+      },
+      Object.keys(props)
+        .filter((k) => k !== "children")
+        .map((k) => (props as Record<string, unknown>)[k]),
+    );
     return <Context.Provider value={value}>{children}</Context.Provider>;
   };
 
   function useContext(consumerName: string) {
     const context = React.useContext(Context);
-    if (context) {
+    if (context !== undefined) {
       return context;
     }
     if (defaultContext !== undefined) {

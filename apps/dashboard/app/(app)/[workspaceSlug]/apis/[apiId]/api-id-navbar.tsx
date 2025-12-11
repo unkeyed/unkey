@@ -226,7 +226,8 @@ const NavbarContent = ({
 export const ApisNavbar = ({ apiId, keyspaceId, keyId, activePage }: ApisNavbarProps) => {
   const workspace = useWorkspaceNavigation();
 
-  const isMobile = useIsMobile();
+  // Default to false (desktop) to prevent hydration mismatches
+  const isMobile = useIsMobile({ defaultValue: false });
 
   // Only make the query if we have a valid apiId
   const {

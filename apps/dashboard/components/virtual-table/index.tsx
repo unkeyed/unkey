@@ -65,7 +65,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     const isGridLayout = config.layoutMode === "grid";
     const parentRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const isMobile = useIsMobile();
+    // Default to false (desktop) to prevent hydration mismatches
+    const isMobile = useIsMobile({ defaultValue: false });
 
     const hasPadding = config.containerPadding !== "px-0";
 

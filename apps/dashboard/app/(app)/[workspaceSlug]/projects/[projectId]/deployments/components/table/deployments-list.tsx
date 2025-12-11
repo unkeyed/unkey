@@ -46,7 +46,8 @@ export const DeploymentsList = () => {
     deployment: Deployment;
     environment?: Environment;
   } | null>(null);
-  const isCompactView = useIsMobile({ breakpoint: COMPACT_BREAKPOINT });
+  // Default to false (wide view) to prevent hydration mismatches
+  const isCompactView = useIsMobile({ breakpoint: COMPACT_BREAKPOINT, defaultValue: false });
 
   const { liveDeployment, deployments, project } = useDeployments();
 

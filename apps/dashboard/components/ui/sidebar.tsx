@@ -64,7 +64,8 @@ const SidebarProvider = React.forwardRef<
     },
     ref,
   ) => {
-    const isMobile = useIsMobile();
+    // Default to false (desktop) to prevent hydration mismatches
+    const isMobile = useIsMobile({ defaultValue: false });
     const [openMobile, setOpenMobile] = React.useState(false);
 
     // This is the internal state of the sidebar.
