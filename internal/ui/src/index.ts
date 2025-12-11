@@ -15,6 +15,8 @@ export * from "./components/dialog/dialog";
 export * from "./components/dialog/dialog-container";
 export * from "./components/dialog/confirmation-popover";
 export * from "./components/dialog/navigable-dialog";
+export * from "./components/drawer";
+export * from "./components/drover";
 export * from "./components/empty";
 export * from "./components/form";
 export * from "./components/id";
