@@ -230,7 +230,15 @@ export const IdentitiesList = () => {
         header: "",
         width: "15%",
         render: (identity) => (
-          <div className="flex items-center justify-end px-3 py-1">
+          <div
+            className="flex items-center justify-end px-3 py-1"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.stopPropagation();
+              }
+            }}
+          >
             <IdentityTableActionPopover identity={identity} />
           </div>
         ),

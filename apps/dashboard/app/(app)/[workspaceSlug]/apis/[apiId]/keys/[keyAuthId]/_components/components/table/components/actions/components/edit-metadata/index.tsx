@@ -1,11 +1,8 @@
 "use client";
-import { MetadataSetup } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/metadata-setup";
-import {
-  type MetadataFormValues,
-  metadataSchema,
-} from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
+import { MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
+import { type MetadataFormValues, metadataSchema } from "@/lib/schemas/metadata";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer } from "@unkey/ui";
@@ -113,7 +110,7 @@ export const EditMetadata = ({ keyDetails, isOpen, onClose }: EditMetadataProps)
             <div className="h-[1px] bg-grayA-3 w-full" />
           </div>
           <div className="[&>*:first-child]:p-0">
-            <MetadataSetup />
+            <MetadataSetup entityType="key" />
           </div>
         </DialogContainer>
       </form>
