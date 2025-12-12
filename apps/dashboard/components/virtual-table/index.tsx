@@ -1,6 +1,6 @@
-import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { CaretDown, CaretExpandY, CaretUp, CircleCaretRight } from "@unkey/icons";
+import { useIsMobile } from "@unkey/ui";
 import { Fragment, type Ref, forwardRef, useImperativeHandle, useMemo, useRef } from "react";
 import { EmptyState } from "./components/empty-state";
 import { LoadMoreFooter } from "./components/loading-indicator";

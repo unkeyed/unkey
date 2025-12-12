@@ -1,9 +1,9 @@
 "use client";
 
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { cn, processTimeFilters } from "@/lib/utils";
 import { ChevronDown } from "@unkey/icons";
+import { useIsMobile } from "@unkey/ui";
 import {
   Button,
   DateTime,

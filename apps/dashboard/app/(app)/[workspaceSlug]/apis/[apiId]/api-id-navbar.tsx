@@ -4,11 +4,11 @@ import { QuickNavPopover } from "@/components/navbar-popover";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import type { Workspace } from "@unkey/db";
 import { ChevronExpandY, Gear, Nodes, Plus, TaskUnchecked } from "@unkey/icons";
+import { useIsMobile } from "@unkey/ui";
 import { CreateKeyDialog } from "./_components/create-key";
 import { KeySettingsDialog } from "./_components/key-settings-dialog";
 
