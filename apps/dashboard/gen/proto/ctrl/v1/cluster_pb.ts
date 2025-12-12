@@ -12,18 +12,15 @@
 // a streaming connection to receive incremental updates, enabling real-time deployment
 // orchestration across distributed clusters.
 
-import type { Message } from "@bufbuild/protobuf";
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/cluster.proto.
  */
-export const file_ctrl_v1_cluster: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiMwodR2V0RGVzaXJlZEdhdGV3YXlTdGF0ZVJlcXVlc3QSEgoKZ2F0ZXdheV9pZBgBIAEoCSI5CiBHZXREZXNpcmVkRGVwbG95bWVudFN0YXRlUmVxdWVzdBIVCg1kZXBsb3ltZW50X2lkGAEgASgJIhgKFkRlbGV0ZUluc3RhbmNlUmVzcG9uc2Ui7gQKFVVwZGF0ZUluc3RhbmNlUmVxdWVzdBI3CgZjcmVhdGUYASABKAsyJS5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVxdWVzdC5DcmVhdGVIABI3CgZ1cGRhdGUYAiABKAsyJS5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVxdWVzdC5VcGRhdGVIABI3CgZkZWxldGUYAyABKAsyJS5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVxdWVzdC5EZWxldGVIABqlAQoGQ3JlYXRlEhUKDWRlcGxveW1lbnRfaWQYASABKAkSEAoIcG9kX25hbWUYAiABKAkSDwoHYWRkcmVzcxgDIAEoCRIWCg5jcHVfbWlsbGljb3JlcxgEIAEoBRISCgptZW1vcnlfbWliGAUgASgFEjUKBnN0YXR1cxgGIAEoDjIlLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VSZXF1ZXN0LlN0YXR1cxpoCgZVcGRhdGUSFQoNZGVwbG95bWVudF9pZBgBIAEoCRIQCghwb2RfbmFtZRgCIAEoCRI1CgZzdGF0dXMYAyABKA4yJS5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVxdWVzdC5TdGF0dXMaMQoGRGVsZXRlEhUKDWRlcGxveW1lbnRfaWQYASABKAkSEAoIcG9kX25hbWUYAiABKAkiWwoGU3RhdHVzEhYKElNUQVRVU19VTlNQRUNJRklFRBAAEhIKDlNUQVRVU19QRU5ESU5HEAESEgoOU1RBVFVTX1JVTk5JTkcQAhIRCg1TVEFUVVNfRkFJTEVEEANCCAoGY2hhbmdlIhgKFlVwZGF0ZUluc3RhbmNlUmVzcG9uc2Ui1gIKFFVwZGF0ZUdhdGV3YXlSZXF1ZXN0EjYKBmNyZWF0ZRgBIAEoCzIkLmN0cmwudjEuVXBkYXRlR2F0ZXdheVJlcXVlc3QuQ3JlYXRlSAASNgoGdXBkYXRlGAIgASgLMiQuY3RybC52MS5VcGRhdGVHYXRld2F5UmVxdWVzdC5VcGRhdGVIABI2CgZkZWxldGUYAyABKAsyJC5jdHJsLnYxLlVwZGF0ZUdhdGV3YXlSZXF1ZXN0LkRlbGV0ZUgAGjYKBkNyZWF0ZRISCgpnYXRld2F5X2lkGAEgASgJEhgKEHJ1bm5pbmdfcmVwbGljYXMYAiABKAUaNgoGVXBkYXRlEhIKCmdhdGV3YXlfaWQYASABKAkSGAoQcnVubmluZ19yZXBsaWNhcxgCIAEoBRocCgZEZWxldGUSEgoKZ2F0ZXdheV9pZBgBIAEoCUIICgZjaGFuZ2UiFwoVVXBkYXRlR2F0ZXdheVJlc3BvbnNlIowBCgxXYXRjaFJlcXVlc3QSEQoJY2xpZW50X2lkGAEgASgJEjcKCXNlbGVjdG9ycxgCIAMoCzIkLmN0cmwudjEuV2F0Y2hSZXF1ZXN0LlNlbGVjdG9yc0VudHJ5GjAKDlNlbGVjdG9yc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEioAEKFkdldERlc2lyZWRTdGF0ZVJlcXVlc3QSEQoJY2xpZW50X2lkGAEgASgJEkEKCXNlbGVjdG9ycxgCIAMoCzIuLmN0cmwudjEuR2V0RGVzaXJlZFN0YXRlUmVxdWVzdC5TZWxlY3RvcnNFbnRyeRowCg5TZWxlY3RvcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBImkKDEdhdGV3YXlFdmVudBImCgVhcHBseRgBIAEoCzIVLmN0cmwudjEuQXBwbHlHYXRld2F5SAASKAoGZGVsZXRlGAIgASgLMhYuY3RybC52MS5EZWxldGVHYXRld2F5SABCBwoFZXZlbnQicgoPRGVwbG95bWVudEV2ZW50EikKBWFwcGx5GAEgASgLMhguY3RybC52MS5BcHBseURlcGxveW1lbnRIABIrCgZkZWxldGUYAiABKAsyGS5jdHJsLnYxLkRlbGV0ZURlcGxveW1lbnRIAEIHCgVldmVudCK2AQoMQXBwbHlHYXRld2F5EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEhYKDmVudmlyb25tZW50X2lkGAMgASgJEhIKCmdhdGV3YXlfaWQYBCABKAkSDQoFaW1hZ2UYBSABKAkSEAoIcmVwbGljYXMYBiABKA0SFgoOY3B1X21pbGxpY29yZXMYByABKA0SFwoPbWVtb3J5X3NpemVfbWliGAggASgNIiMKDURlbGV0ZUdhdGV3YXkSEgoKZ2F0ZXdheV9pZBgBIAEoCSK8AQoPQXBwbHlEZXBsb3ltZW50EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEhYKDmVudmlyb25tZW50X2lkGAMgASgJEhUKDWRlcGxveW1lbnRfaWQYBCABKAkSDQoFaW1hZ2UYBSABKAkSEAoIcmVwbGljYXMYBiABKA0SFgoOY3B1X21pbGxpY29yZXMYByABKA0SFwoPbWVtb3J5X3NpemVfbWliGAggASgNIikKEERlbGV0ZURlcGxveW1lbnQSFQoNZGVwbG95bWVudF9pZBgBIAEoCSJ7CgpJbmZyYUV2ZW50Ei4KDWdhdGV3YXlfZXZlbnQYAiABKAsyFS5jdHJsLnYxLkdhdGV3YXlFdmVudEgAEjQKEGRlcGxveW1lbnRfZXZlbnQYAyABKAsyGC5jdHJsLnYxLkRlcGxveW1lbnRFdmVudEgAQgcKBWV2ZW50MvADCg5DbHVzdGVyU2VydmljZRI1CgVXYXRjaBIVLmN0cmwudjEuV2F0Y2hSZXF1ZXN0GhMuY3RybC52MS5JbmZyYUV2ZW50MAESSQoPR2V0RGVzaXJlZFN0YXRlEh8uY3RybC52MS5HZXREZXNpcmVkU3RhdGVSZXF1ZXN0GhMuY3RybC52MS5JbmZyYUV2ZW50MAESYAoZR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZRIpLmN0cmwudjEuR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZVJlcXVlc3QaGC5jdHJsLnYxLkRlcGxveW1lbnRFdmVudBJXChZHZXREZXNpcmVkR2F0ZXdheVN0YXRlEiYuY3RybC52MS5HZXREZXNpcmVkR2F0ZXdheVN0YXRlUmVxdWVzdBoVLmN0cmwudjEuR2F0ZXdheUV2ZW50ElEKDlVwZGF0ZUluc3RhbmNlEh4uY3RybC52MS5VcGRhdGVJbnN0YW5jZVJlcXVlc3QaHy5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVzcG9uc2USTgoNVXBkYXRlR2F0ZXdheRIdLmN0cmwudjEuVXBkYXRlR2F0ZXdheVJlcXVlc3QaHi5jdHJsLnYxLlVwZGF0ZUdhdGV3YXlSZXNwb25zZUKOAQoLY29tLmN0cmwudjFCDENsdXN0ZXJQcm90b1ABWjRnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw",
-  );
+export const file_ctrl_v1_cluster: GenFile = /*@__PURE__*/
+  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiMwodR2V0RGVzaXJlZEdhdGV3YXlTdGF0ZVJlcXVlc3QSEgoKZ2F0ZXdheV9pZBgBIAEoCSI5CiBHZXREZXNpcmVkRGVwbG95bWVudFN0YXRlUmVxdWVzdBIVCg1kZXBsb3ltZW50X2lkGAEgASgJIhgKFkRlbGV0ZUluc3RhbmNlUmVzcG9uc2Ui7gQKFVVwZGF0ZUluc3RhbmNlUmVxdWVzdBI3CgZjcmVhdGUYASABKAsyJS5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVxdWVzdC5DcmVhdGVIABI3CgZ1cGRhdGUYAiABKAsyJS5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVxdWVzdC5VcGRhdGVIABI3CgZkZWxldGUYAyABKAsyJS5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVxdWVzdC5EZWxldGVIABqlAQoGQ3JlYXRlEhUKDWRlcGxveW1lbnRfaWQYASABKAkSEAoIcG9kX25hbWUYAiABKAkSDwoHYWRkcmVzcxgDIAEoCRIWCg5jcHVfbWlsbGljb3JlcxgEIAEoBRISCgptZW1vcnlfbWliGAUgASgFEjUKBnN0YXR1cxgGIAEoDjIlLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VSZXF1ZXN0LlN0YXR1cxpoCgZVcGRhdGUSFQoNZGVwbG95bWVudF9pZBgBIAEoCRIQCghwb2RfbmFtZRgCIAEoCRI1CgZzdGF0dXMYAyABKA4yJS5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVxdWVzdC5TdGF0dXMaMQoGRGVsZXRlEhUKDWRlcGxveW1lbnRfaWQYASABKAkSEAoIcG9kX25hbWUYAiABKAkiWwoGU3RhdHVzEhYKElNUQVRVU19VTlNQRUNJRklFRBAAEhIKDlNUQVRVU19QRU5ESU5HEAESEgoOU1RBVFVTX1JVTk5JTkcQAhIRCg1TVEFUVVNfRkFJTEVEEANCCAoGY2hhbmdlIhgKFlVwZGF0ZUluc3RhbmNlUmVzcG9uc2Ui1gIKFFVwZGF0ZUdhdGV3YXlSZXF1ZXN0EjYKBmNyZWF0ZRgBIAEoCzIkLmN0cmwudjEuVXBkYXRlR2F0ZXdheVJlcXVlc3QuQ3JlYXRlSAASNgoGdXBkYXRlGAIgASgLMiQuY3RybC52MS5VcGRhdGVHYXRld2F5UmVxdWVzdC5VcGRhdGVIABI2CgZkZWxldGUYAyABKAsyJC5jdHJsLnYxLlVwZGF0ZUdhdGV3YXlSZXF1ZXN0LkRlbGV0ZUgAGjYKBkNyZWF0ZRISCgpnYXRld2F5X2lkGAEgASgJEhgKEHJ1bm5pbmdfcmVwbGljYXMYAiABKAUaNgoGVXBkYXRlEhIKCmdhdGV3YXlfaWQYASABKAkSGAoQcnVubmluZ19yZXBsaWNhcxgCIAEoBRocCgZEZWxldGUSEgoKZ2F0ZXdheV9pZBgBIAEoCUIICgZjaGFuZ2UiFwoVVXBkYXRlR2F0ZXdheVJlc3BvbnNlIowBCgxXYXRjaFJlcXVlc3QSEQoJY2xpZW50X2lkGAEgASgJEjcKCXNlbGVjdG9ycxgCIAMoCzIkLmN0cmwudjEuV2F0Y2hSZXF1ZXN0LlNlbGVjdG9yc0VudHJ5GjAKDlNlbGVjdG9yc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEioAEKFkdldERlc2lyZWRTdGF0ZVJlcXVlc3QSEQoJY2xpZW50X2lkGAEgASgJEkEKCXNlbGVjdG9ycxgCIAMoCzIuLmN0cmwudjEuR2V0RGVzaXJlZFN0YXRlUmVxdWVzdC5TZWxlY3RvcnNFbnRyeRowCg5TZWxlY3RvcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBImkKDEdhdGV3YXlFdmVudBImCgVhcHBseRgBIAEoCzIVLmN0cmwudjEuQXBwbHlHYXRld2F5SAASKAoGZGVsZXRlGAIgASgLMhYuY3RybC52MS5EZWxldGVHYXRld2F5SABCBwoFZXZlbnQicgoPRGVwbG95bWVudEV2ZW50EikKBWFwcGx5GAEgASgLMhguY3RybC52MS5BcHBseURlcGxveW1lbnRIABIrCgZkZWxldGUYAiABKAsyGS5jdHJsLnYxLkRlbGV0ZURlcGxveW1lbnRIAEIHCgVldmVudCLfAQoMQXBwbHlHYXRld2F5EhEKCW5hbWVzcGFjZRgBIAEoCRIUCgxrOHNfY3JkX25hbWUYAiABKAkSFAoMd29ya3NwYWNlX2lkGAMgASgJEhIKCnByb2plY3RfaWQYBCABKAkSFgoOZW52aXJvbm1lbnRfaWQYBSABKAkSEgoKZ2F0ZXdheV9pZBgGIAEoCRINCgVpbWFnZRgHIAEoCRIQCghyZXBsaWNhcxgIIAEoDRIWCg5jcHVfbWlsbGljb3JlcxgJIAEoDRIXCg9tZW1vcnlfc2l6ZV9taWIYCiABKA0iIwoNRGVsZXRlR2F0ZXdheRISCgpnYXRld2F5X2lkGAEgASgJIs8BCg9BcHBseURlcGxveW1lbnQSEQoJbmFtZXNwYWNlGAEgASgJEhQKDHdvcmtzcGFjZV9pZBgCIAEoCRISCgpwcm9qZWN0X2lkGAMgASgJEhYKDmVudmlyb25tZW50X2lkGAQgASgJEhUKDWRlcGxveW1lbnRfaWQYBSABKAkSDQoFaW1hZ2UYBiABKAkSEAoIcmVwbGljYXMYByABKA0SFgoOY3B1X21pbGxpY29yZXMYCCABKA0SFwoPbWVtb3J5X3NpemVfbWliGAkgASgNIikKEERlbGV0ZURlcGxveW1lbnQSFQoNZGVwbG95bWVudF9pZBgBIAEoCSJ7CgpJbmZyYUV2ZW50Ei4KDWdhdGV3YXlfZXZlbnQYAiABKAsyFS5jdHJsLnYxLkdhdGV3YXlFdmVudEgAEjQKEGRlcGxveW1lbnRfZXZlbnQYAyABKAsyGC5jdHJsLnYxLkRlcGxveW1lbnRFdmVudEgAQgcKBWV2ZW50MvADCg5DbHVzdGVyU2VydmljZRI1CgVXYXRjaBIVLmN0cmwudjEuV2F0Y2hSZXF1ZXN0GhMuY3RybC52MS5JbmZyYUV2ZW50MAESSQoPR2V0RGVzaXJlZFN0YXRlEh8uY3RybC52MS5HZXREZXNpcmVkU3RhdGVSZXF1ZXN0GhMuY3RybC52MS5JbmZyYUV2ZW50MAESYAoZR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZRIpLmN0cmwudjEuR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZVJlcXVlc3QaGC5jdHJsLnYxLkRlcGxveW1lbnRFdmVudBJXChZHZXREZXNpcmVkR2F0ZXdheVN0YXRlEiYuY3RybC52MS5HZXREZXNpcmVkR2F0ZXdheVN0YXRlUmVxdWVzdBoVLmN0cmwudjEuR2F0ZXdheUV2ZW50ElEKDlVwZGF0ZUluc3RhbmNlEh4uY3RybC52MS5VcGRhdGVJbnN0YW5jZVJlcXVlc3QaHy5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVzcG9uc2USTgoNVXBkYXRlR2F0ZXdheRIdLmN0cmwudjEuVXBkYXRlR2F0ZXdheVJlcXVlc3QaHi5jdHJsLnYxLlVwZGF0ZUdhdGV3YXlSZXNwb25zZUKOAQoLY29tLmN0cmwudjFCDENsdXN0ZXJQcm90b1ABWjRnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw");
 
 /**
  * @generated from message ctrl.v1.GetDesiredGatewayStateRequest
@@ -39,40 +36,37 @@ export type GetDesiredGatewayStateRequest = Message<"ctrl.v1.GetDesiredGatewaySt
  * Describes the message ctrl.v1.GetDesiredGatewayStateRequest.
  * Use `create(GetDesiredGatewayStateRequestSchema)` to create a new message.
  */
-export const GetDesiredGatewayStateRequestSchema: GenMessage<GetDesiredGatewayStateRequest> =
-  /*@__PURE__*/
+export const GetDesiredGatewayStateRequestSchema: GenMessage<GetDesiredGatewayStateRequest> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 0);
 
 /**
  * @generated from message ctrl.v1.GetDesiredDeploymentStateRequest
  */
-export type GetDesiredDeploymentStateRequest =
-  Message<"ctrl.v1.GetDesiredDeploymentStateRequest"> & {
-    /**
-     * @generated from field: string deployment_id = 1;
-     */
-    deploymentId: string;
-  };
+export type GetDesiredDeploymentStateRequest = Message<"ctrl.v1.GetDesiredDeploymentStateRequest"> & {
+  /**
+   * @generated from field: string deployment_id = 1;
+   */
+  deploymentId: string;
+};
 
 /**
  * Describes the message ctrl.v1.GetDesiredDeploymentStateRequest.
  * Use `create(GetDesiredDeploymentStateRequestSchema)` to create a new message.
  */
-export const GetDesiredDeploymentStateRequestSchema: GenMessage<GetDesiredDeploymentStateRequest> =
-  /*@__PURE__*/
+export const GetDesiredDeploymentStateRequestSchema: GenMessage<GetDesiredDeploymentStateRequest> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 1);
 
 /**
  * @generated from message ctrl.v1.DeleteInstanceResponse
  */
-export type DeleteInstanceResponse = Message<"ctrl.v1.DeleteInstanceResponse"> & {};
+export type DeleteInstanceResponse = Message<"ctrl.v1.DeleteInstanceResponse"> & {
+};
 
 /**
  * Describes the message ctrl.v1.DeleteInstanceResponse.
  * Use `create(DeleteInstanceResponseSchema)` to create a new message.
  */
-export const DeleteInstanceResponseSchema: GenMessage<DeleteInstanceResponse> =
-  /*@__PURE__*/
+export const DeleteInstanceResponseSchema: GenMessage<DeleteInstanceResponse> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 2);
 
 /**
@@ -82,37 +76,32 @@ export type UpdateInstanceRequest = Message<"ctrl.v1.UpdateInstanceRequest"> & {
   /**
    * @generated from oneof ctrl.v1.UpdateInstanceRequest.change
    */
-  change:
-    | {
-        /**
-         * @generated from field: ctrl.v1.UpdateInstanceRequest.Create create = 1;
-         */
-        value: UpdateInstanceRequest_Create;
-        case: "create";
-      }
-    | {
-        /**
-         * @generated from field: ctrl.v1.UpdateInstanceRequest.Update update = 2;
-         */
-        value: UpdateInstanceRequest_Update;
-        case: "update";
-      }
-    | {
-        /**
-         * @generated from field: ctrl.v1.UpdateInstanceRequest.Delete delete = 3;
-         */
-        value: UpdateInstanceRequest_Delete;
-        case: "delete";
-      }
-    | { case: undefined; value?: undefined };
+  change: {
+    /**
+     * @generated from field: ctrl.v1.UpdateInstanceRequest.Create create = 1;
+     */
+    value: UpdateInstanceRequest_Create;
+    case: "create";
+  } | {
+    /**
+     * @generated from field: ctrl.v1.UpdateInstanceRequest.Update update = 2;
+     */
+    value: UpdateInstanceRequest_Update;
+    case: "update";
+  } | {
+    /**
+     * @generated from field: ctrl.v1.UpdateInstanceRequest.Delete delete = 3;
+     */
+    value: UpdateInstanceRequest_Delete;
+    case: "delete";
+  } | { case: undefined; value?: undefined };
 };
 
 /**
  * Describes the message ctrl.v1.UpdateInstanceRequest.
  * Use `create(UpdateInstanceRequestSchema)` to create a new message.
  */
-export const UpdateInstanceRequestSchema: GenMessage<UpdateInstanceRequest> =
-  /*@__PURE__*/
+export const UpdateInstanceRequestSchema: GenMessage<UpdateInstanceRequest> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 3);
 
 /**
@@ -154,8 +143,7 @@ export type UpdateInstanceRequest_Create = Message<"ctrl.v1.UpdateInstanceReques
  * Describes the message ctrl.v1.UpdateInstanceRequest.Create.
  * Use `create(UpdateInstanceRequest_CreateSchema)` to create a new message.
  */
-export const UpdateInstanceRequest_CreateSchema: GenMessage<UpdateInstanceRequest_Create> =
-  /*@__PURE__*/
+export const UpdateInstanceRequest_CreateSchema: GenMessage<UpdateInstanceRequest_Create> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 3, 0);
 
 /**
@@ -182,8 +170,7 @@ export type UpdateInstanceRequest_Update = Message<"ctrl.v1.UpdateInstanceReques
  * Describes the message ctrl.v1.UpdateInstanceRequest.Update.
  * Use `create(UpdateInstanceRequest_UpdateSchema)` to create a new message.
  */
-export const UpdateInstanceRequest_UpdateSchema: GenMessage<UpdateInstanceRequest_Update> =
-  /*@__PURE__*/
+export const UpdateInstanceRequest_UpdateSchema: GenMessage<UpdateInstanceRequest_Update> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 3, 1);
 
 /**
@@ -205,8 +192,7 @@ export type UpdateInstanceRequest_Delete = Message<"ctrl.v1.UpdateInstanceReques
  * Describes the message ctrl.v1.UpdateInstanceRequest.Delete.
  * Use `create(UpdateInstanceRequest_DeleteSchema)` to create a new message.
  */
-export const UpdateInstanceRequest_DeleteSchema: GenMessage<UpdateInstanceRequest_Delete> =
-  /*@__PURE__*/
+export const UpdateInstanceRequest_DeleteSchema: GenMessage<UpdateInstanceRequest_Delete> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 3, 2);
 
 /**
@@ -243,21 +229,20 @@ export enum UpdateInstanceRequest_Status {
 /**
  * Describes the enum ctrl.v1.UpdateInstanceRequest.Status.
  */
-export const UpdateInstanceRequest_StatusSchema: GenEnum<UpdateInstanceRequest_Status> =
-  /*@__PURE__*/
+export const UpdateInstanceRequest_StatusSchema: GenEnum<UpdateInstanceRequest_Status> = /*@__PURE__*/
   enumDesc(file_ctrl_v1_cluster, 3, 0);
 
 /**
  * @generated from message ctrl.v1.UpdateInstanceResponse
  */
-export type UpdateInstanceResponse = Message<"ctrl.v1.UpdateInstanceResponse"> & {};
+export type UpdateInstanceResponse = Message<"ctrl.v1.UpdateInstanceResponse"> & {
+};
 
 /**
  * Describes the message ctrl.v1.UpdateInstanceResponse.
  * Use `create(UpdateInstanceResponseSchema)` to create a new message.
  */
-export const UpdateInstanceResponseSchema: GenMessage<UpdateInstanceResponse> =
-  /*@__PURE__*/
+export const UpdateInstanceResponseSchema: GenMessage<UpdateInstanceResponse> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 4);
 
 /**
@@ -267,37 +252,32 @@ export type UpdateGatewayRequest = Message<"ctrl.v1.UpdateGatewayRequest"> & {
   /**
    * @generated from oneof ctrl.v1.UpdateGatewayRequest.change
    */
-  change:
-    | {
-        /**
-         * @generated from field: ctrl.v1.UpdateGatewayRequest.Create create = 1;
-         */
-        value: UpdateGatewayRequest_Create;
-        case: "create";
-      }
-    | {
-        /**
-         * @generated from field: ctrl.v1.UpdateGatewayRequest.Update update = 2;
-         */
-        value: UpdateGatewayRequest_Update;
-        case: "update";
-      }
-    | {
-        /**
-         * @generated from field: ctrl.v1.UpdateGatewayRequest.Delete delete = 3;
-         */
-        value: UpdateGatewayRequest_Delete;
-        case: "delete";
-      }
-    | { case: undefined; value?: undefined };
+  change: {
+    /**
+     * @generated from field: ctrl.v1.UpdateGatewayRequest.Create create = 1;
+     */
+    value: UpdateGatewayRequest_Create;
+    case: "create";
+  } | {
+    /**
+     * @generated from field: ctrl.v1.UpdateGatewayRequest.Update update = 2;
+     */
+    value: UpdateGatewayRequest_Update;
+    case: "update";
+  } | {
+    /**
+     * @generated from field: ctrl.v1.UpdateGatewayRequest.Delete delete = 3;
+     */
+    value: UpdateGatewayRequest_Delete;
+    case: "delete";
+  } | { case: undefined; value?: undefined };
 };
 
 /**
  * Describes the message ctrl.v1.UpdateGatewayRequest.
  * Use `create(UpdateGatewayRequestSchema)` to create a new message.
  */
-export const UpdateGatewayRequestSchema: GenMessage<UpdateGatewayRequest> =
-  /*@__PURE__*/
+export const UpdateGatewayRequestSchema: GenMessage<UpdateGatewayRequest> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 5);
 
 /**
@@ -319,8 +299,7 @@ export type UpdateGatewayRequest_Create = Message<"ctrl.v1.UpdateGatewayRequest.
  * Describes the message ctrl.v1.UpdateGatewayRequest.Create.
  * Use `create(UpdateGatewayRequest_CreateSchema)` to create a new message.
  */
-export const UpdateGatewayRequest_CreateSchema: GenMessage<UpdateGatewayRequest_Create> =
-  /*@__PURE__*/
+export const UpdateGatewayRequest_CreateSchema: GenMessage<UpdateGatewayRequest_Create> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 5, 0);
 
 /**
@@ -342,8 +321,7 @@ export type UpdateGatewayRequest_Update = Message<"ctrl.v1.UpdateGatewayRequest.
  * Describes the message ctrl.v1.UpdateGatewayRequest.Update.
  * Use `create(UpdateGatewayRequest_UpdateSchema)` to create a new message.
  */
-export const UpdateGatewayRequest_UpdateSchema: GenMessage<UpdateGatewayRequest_Update> =
-  /*@__PURE__*/
+export const UpdateGatewayRequest_UpdateSchema: GenMessage<UpdateGatewayRequest_Update> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 5, 1);
 
 /**
@@ -360,21 +338,20 @@ export type UpdateGatewayRequest_Delete = Message<"ctrl.v1.UpdateGatewayRequest.
  * Describes the message ctrl.v1.UpdateGatewayRequest.Delete.
  * Use `create(UpdateGatewayRequest_DeleteSchema)` to create a new message.
  */
-export const UpdateGatewayRequest_DeleteSchema: GenMessage<UpdateGatewayRequest_Delete> =
-  /*@__PURE__*/
+export const UpdateGatewayRequest_DeleteSchema: GenMessage<UpdateGatewayRequest_Delete> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 5, 2);
 
 /**
  * @generated from message ctrl.v1.UpdateGatewayResponse
  */
-export type UpdateGatewayResponse = Message<"ctrl.v1.UpdateGatewayResponse"> & {};
+export type UpdateGatewayResponse = Message<"ctrl.v1.UpdateGatewayResponse"> & {
+};
 
 /**
  * Describes the message ctrl.v1.UpdateGatewayResponse.
  * Use `create(UpdateGatewayResponseSchema)` to create a new message.
  */
-export const UpdateGatewayResponseSchema: GenMessage<UpdateGatewayResponse> =
-  /*@__PURE__*/
+export const UpdateGatewayResponseSchema: GenMessage<UpdateGatewayResponse> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 6);
 
 /**
@@ -406,8 +383,7 @@ export type WatchRequest = Message<"ctrl.v1.WatchRequest"> & {
  * Describes the message ctrl.v1.WatchRequest.
  * Use `create(WatchRequestSchema)` to create a new message.
  */
-export const WatchRequestSchema: GenMessage<WatchRequest> =
-  /*@__PURE__*/
+export const WatchRequestSchema: GenMessage<WatchRequest> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 7);
 
 /**
@@ -439,8 +415,7 @@ export type GetDesiredStateRequest = Message<"ctrl.v1.GetDesiredStateRequest"> &
  * Describes the message ctrl.v1.GetDesiredStateRequest.
  * Use `create(GetDesiredStateRequestSchema)` to create a new message.
  */
-export const GetDesiredStateRequestSchema: GenMessage<GetDesiredStateRequest> =
-  /*@__PURE__*/
+export const GetDesiredStateRequestSchema: GenMessage<GetDesiredStateRequest> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 8);
 
 /**
@@ -459,37 +434,33 @@ export type GatewayEvent = Message<"ctrl.v1.GatewayEvent"> & {
    *
    * @generated from oneof ctrl.v1.GatewayEvent.event
    */
-  event:
-    | {
-        /**
-         * apply indicates the gateway should exist with this configuration.
-         * The agent will create the gateway if it doesn't exist or update it if it does.
-         * This follows the same semantics as "kubectl apply" - declare desired state
-         * and let the agent determine the appropriate action.
-         *
-         * @generated from field: ctrl.v1.ApplyGateway apply = 1;
-         */
-        value: ApplyGateway;
-        case: "apply";
-      }
-    | {
-        /**
-         * delete indicates the gateway should be removed from the cluster.
-         *
-         * @generated from field: ctrl.v1.DeleteGateway delete = 2;
-         */
-        value: DeleteGateway;
-        case: "delete";
-      }
-    | { case: undefined; value?: undefined };
+  event: {
+    /**
+     * apply indicates the gateway should exist with this configuration.
+     * The agent will create the gateway if it doesn't exist or update it if it does.
+     * This follows the same semantics as "kubectl apply" - declare desired state
+     * and let the agent determine the appropriate action.
+     *
+     * @generated from field: ctrl.v1.ApplyGateway apply = 1;
+     */
+    value: ApplyGateway;
+    case: "apply";
+  } | {
+    /**
+     * delete indicates the gateway should be removed from the cluster.
+     *
+     * @generated from field: ctrl.v1.DeleteGateway delete = 2;
+     */
+    value: DeleteGateway;
+    case: "delete";
+  } | { case: undefined; value?: undefined };
 };
 
 /**
  * Describes the message ctrl.v1.GatewayEvent.
  * Use `create(GatewayEventSchema)` to create a new message.
  */
-export const GatewayEventSchema: GenMessage<GatewayEvent> =
-  /*@__PURE__*/
+export const GatewayEventSchema: GenMessage<GatewayEvent> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 9);
 
 /**
@@ -508,37 +479,33 @@ export type DeploymentEvent = Message<"ctrl.v1.DeploymentEvent"> & {
    *
    * @generated from oneof ctrl.v1.DeploymentEvent.event
    */
-  event:
-    | {
-        /**
-         * apply indicates the deployment should exist with this configuration.
-         * The agent will create the deployment if it doesn't exist or update it if it does.
-         * This follows the same semantics as "kubectl apply" - declare desired state
-         * and let the agent determine the appropriate action.
-         *
-         * @generated from field: ctrl.v1.ApplyDeployment apply = 1;
-         */
-        value: ApplyDeployment;
-        case: "apply";
-      }
-    | {
-        /**
-         * delete indicates the deployment should be removed from the cluster.
-         *
-         * @generated from field: ctrl.v1.DeleteDeployment delete = 2;
-         */
-        value: DeleteDeployment;
-        case: "delete";
-      }
-    | { case: undefined; value?: undefined };
+  event: {
+    /**
+     * apply indicates the deployment should exist with this configuration.
+     * The agent will create the deployment if it doesn't exist or update it if it does.
+     * This follows the same semantics as "kubectl apply" - declare desired state
+     * and let the agent determine the appropriate action.
+     *
+     * @generated from field: ctrl.v1.ApplyDeployment apply = 1;
+     */
+    value: ApplyDeployment;
+    case: "apply";
+  } | {
+    /**
+     * delete indicates the deployment should be removed from the cluster.
+     *
+     * @generated from field: ctrl.v1.DeleteDeployment delete = 2;
+     */
+    value: DeleteDeployment;
+    case: "delete";
+  } | { case: undefined; value?: undefined };
 };
 
 /**
  * Describes the message ctrl.v1.DeploymentEvent.
  * Use `create(DeploymentEventSchema)` to create a new message.
  */
-export const DeploymentEventSchema: GenMessage<DeploymentEvent> =
-  /*@__PURE__*/
+export const DeploymentEventSchema: GenMessage<DeploymentEvent> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 10);
 
 /**
@@ -552,30 +519,42 @@ export const DeploymentEventSchema: GenMessage<DeploymentEvent> =
  */
 export type ApplyGateway = Message<"ctrl.v1.ApplyGateway"> & {
   /**
+   * namespace is the Kubernetes namespace in which the gateway should exist.
+   *
+   * @generated from field: string namespace = 1;
+   */
+  namespace: string;
+
+  /**
+   * @generated from field: string k8s_crd_name = 2;
+   */
+  k8sCrdName: string;
+
+  /**
    * workspace_id identifies the workspace that owns this gateway.
    *
-   * @generated from field: string workspace_id = 1;
+   * @generated from field: string workspace_id = 3;
    */
   workspaceId: string;
 
   /**
    * project_id identifies the project within the workspace.
    *
-   * @generated from field: string project_id = 2;
+   * @generated from field: string project_id = 4;
    */
   projectId: string;
 
   /**
    * environment_id in which the gateway should exist.
    *
-   * @generated from field: string environment_id = 3;
+   * @generated from field: string environment_id = 5;
    */
   environmentId: string;
 
   /**
    * gateway_id is the unique identifier for this gateway within the namespace.
    *
-   * @generated from field: string gateway_id = 4;
+   * @generated from field: string gateway_id = 6;
    */
   gatewayId: string;
 
@@ -584,7 +563,7 @@ export type ApplyGateway = Message<"ctrl.v1.ApplyGateway"> & {
    * Must be a valid container registry URL accessible by the cluster.
    * Example: "ghcr.io/unkeyed/gateway:v1.2.3"
    *
-   * @generated from field: string image = 5;
+   * @generated from field: string image = 7;
    */
   image: string;
 
@@ -592,7 +571,7 @@ export type ApplyGateway = Message<"ctrl.v1.ApplyGateway"> & {
    * replicas is the desired number of gateway instances.
    * Must be at least 1. For high availability, use 3 or more.
    *
-   * @generated from field: uint32 replicas = 6;
+   * @generated from field: uint32 replicas = 8;
    */
   replicas: number;
 
@@ -601,7 +580,7 @@ export type ApplyGateway = Message<"ctrl.v1.ApplyGateway"> & {
    * This ensures the gateway has sufficient CPU resources.
    * Example: 500 = 0.5 CPU cores
    *
-   * @generated from field: uint32 cpu_millicores = 7;
+   * @generated from field: uint32 cpu_millicores = 9;
    */
   cpuMillicores: number;
 
@@ -610,7 +589,7 @@ export type ApplyGateway = Message<"ctrl.v1.ApplyGateway"> & {
    * This ensures the gateway has sufficient memory.
    * Example: 512 = 512 MiB
    *
-   * @generated from field: uint32 memory_size_mib = 8;
+   * @generated from field: uint32 memory_size_mib = 10;
    */
   memorySizeMib: number;
 };
@@ -619,8 +598,7 @@ export type ApplyGateway = Message<"ctrl.v1.ApplyGateway"> & {
  * Describes the message ctrl.v1.ApplyGateway.
  * Use `create(ApplyGatewaySchema)` to create a new message.
  */
-export const ApplyGatewaySchema: GenMessage<ApplyGateway> =
-  /*@__PURE__*/
+export const ApplyGatewaySchema: GenMessage<ApplyGateway> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 11);
 
 /**
@@ -645,8 +623,7 @@ export type DeleteGateway = Message<"ctrl.v1.DeleteGateway"> & {
  * Describes the message ctrl.v1.DeleteGateway.
  * Use `create(DeleteGatewaySchema)` to create a new message.
  */
-export const DeleteGatewaySchema: GenMessage<DeleteGateway> =
-  /*@__PURE__*/
+export const DeleteGatewaySchema: GenMessage<DeleteGateway> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 12);
 
 /**
@@ -660,10 +637,17 @@ export const DeleteGatewaySchema: GenMessage<DeleteGateway> =
  */
 export type ApplyDeployment = Message<"ctrl.v1.ApplyDeployment"> & {
   /**
+   * namespace is the Kubernetes namespace in which the deployment should exist.
+   *
+   * @generated from field: string namespace = 1;
+   */
+  namespace: string;
+
+  /**
    * workspace_id identifies the workspace that owns this deployment.
    * Used for multi-tenancy and access control.
    *
-   * @generated from field: string workspace_id = 1;
+   * @generated from field: string workspace_id = 2;
    */
   workspaceId: string;
 
@@ -671,22 +655,22 @@ export type ApplyDeployment = Message<"ctrl.v1.ApplyDeployment"> & {
    * project_id identifies the project within the workspace.
    * Deployments are scoped to projects for organizational purposes.
    *
-   * @generated from field: string project_id = 2;
+   * @generated from field: string project_id = 3;
    */
   projectId: string;
 
   /**
-   * environment_id specifies the environment (e.g., "production", "staging", "development").
+   * environment_id specifies the environment .
    * Used for environment-specific configuration and isolation.
    *
-   * @generated from field: string environment_id = 3;
+   * @generated from field: string environment_id = 4;
    */
   environmentId: string;
 
   /**
    * deployment_id is the unique identifier for this deployment within the namespace.
    *
-   * @generated from field: string deployment_id = 4;
+   * @generated from field: string deployment_id = 5;
    */
   deploymentId: string;
 
@@ -695,7 +679,7 @@ export type ApplyDeployment = Message<"ctrl.v1.ApplyDeployment"> & {
    * Must be a valid container registry URL accessible by the cluster.
    * Example: "gcr.io/myproject/app:v2.1.0"
    *
-   * @generated from field: string image = 5;
+   * @generated from field: string image = 6;
    */
   image: string;
 
@@ -703,7 +687,7 @@ export type ApplyDeployment = Message<"ctrl.v1.ApplyDeployment"> & {
    * replicas is the desired number of pod instances.
    * Must be at least 1. Set higher for increased availability and load distribution.
    *
-   * @generated from field: uint32 replicas = 6;
+   * @generated from field: uint32 replicas = 7;
    */
   replicas: number;
 
@@ -712,7 +696,7 @@ export type ApplyDeployment = Message<"ctrl.v1.ApplyDeployment"> & {
    * This ensures each pod has sufficient CPU resources.
    * Example: 250 = 0.25 CPU cores
    *
-   * @generated from field: uint32 cpu_millicores = 7;
+   * @generated from field: uint32 cpu_millicores = 8;
    */
   cpuMillicores: number;
 
@@ -721,7 +705,7 @@ export type ApplyDeployment = Message<"ctrl.v1.ApplyDeployment"> & {
    * This ensures each pod has sufficient memory.
    * Example: 256 = 256 MiB
    *
-   * @generated from field: uint32 memory_size_mib = 8;
+   * @generated from field: uint32 memory_size_mib = 9;
    */
   memorySizeMib: number;
 };
@@ -730,8 +714,7 @@ export type ApplyDeployment = Message<"ctrl.v1.ApplyDeployment"> & {
  * Describes the message ctrl.v1.ApplyDeployment.
  * Use `create(ApplyDeploymentSchema)` to create a new message.
  */
-export const ApplyDeploymentSchema: GenMessage<ApplyDeployment> =
-  /*@__PURE__*/
+export const ApplyDeploymentSchema: GenMessage<ApplyDeployment> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 13);
 
 /**
@@ -757,8 +740,7 @@ export type DeleteDeployment = Message<"ctrl.v1.DeleteDeployment"> & {
  * Describes the message ctrl.v1.DeleteDeployment.
  * Use `create(DeleteDeploymentSchema)` to create a new message.
  */
-export const DeleteDeploymentSchema: GenMessage<DeleteDeployment> =
-  /*@__PURE__*/
+export const DeleteDeploymentSchema: GenMessage<DeleteDeployment> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 14);
 
 /**
@@ -782,36 +764,32 @@ export type InfraEvent = Message<"ctrl.v1.InfraEvent"> & {
    *
    * @generated from oneof ctrl.v1.InfraEvent.event
    */
-  event:
-    | {
-        /**
-         * gateway_event contains a gateway lifecycle event (apply or delete).
-         * The client should apply this to gateway resources in the cluster.
-         *
-         * @generated from field: ctrl.v1.GatewayEvent gateway_event = 2;
-         */
-        value: GatewayEvent;
-        case: "gatewayEvent";
-      }
-    | {
-        /**
-         * deployment_event contains a deployment lifecycle event (apply or delete).
-         * The client should apply this to deployment resources in the cluster.
-         *
-         * @generated from field: ctrl.v1.DeploymentEvent deployment_event = 3;
-         */
-        value: DeploymentEvent;
-        case: "deploymentEvent";
-      }
-    | { case: undefined; value?: undefined };
+  event: {
+    /**
+     * gateway_event contains a gateway lifecycle event (apply or delete).
+     * The client should apply this to gateway resources in the cluster.
+     *
+     * @generated from field: ctrl.v1.GatewayEvent gateway_event = 2;
+     */
+    value: GatewayEvent;
+    case: "gatewayEvent";
+  } | {
+    /**
+     * deployment_event contains a deployment lifecycle event (apply or delete).
+     * The client should apply this to deployment resources in the cluster.
+     *
+     * @generated from field: ctrl.v1.DeploymentEvent deployment_event = 3;
+     */
+    value: DeploymentEvent;
+    case: "deploymentEvent";
+  } | { case: undefined; value?: undefined };
 };
 
 /**
  * Describes the message ctrl.v1.InfraEvent.
  * Use `create(InfraEventSchema)` to create a new message.
  */
-export const InfraEventSchema: GenMessage<InfraEvent> =
-  /*@__PURE__*/
+export const InfraEventSchema: GenMessage<InfraEvent> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 15);
 
 /**
@@ -843,7 +821,7 @@ export const ClusterService: GenService<{
     methodKind: "server_streaming";
     input: typeof WatchRequestSchema;
     output: typeof InfraEventSchema;
-  };
+  },
   /**
    * returns a watch events for compatibility but will never return a delete event
    * only apply events from currently desired infrastructure are included
@@ -854,7 +832,7 @@ export const ClusterService: GenService<{
     methodKind: "server_streaming";
     input: typeof GetDesiredStateRequestSchema;
     output: typeof InfraEventSchema;
-  };
+  },
   /**
    * request a single deployment and return its desired state
    *
@@ -864,7 +842,7 @@ export const ClusterService: GenService<{
     methodKind: "unary";
     input: typeof GetDesiredDeploymentStateRequestSchema;
     output: typeof DeploymentEventSchema;
-  };
+  },
   /**
    * request a single gateway and return its desired state
    *
@@ -874,7 +852,7 @@ export const ClusterService: GenService<{
     methodKind: "unary";
     input: typeof GetDesiredGatewayStateRequestSchema;
     output: typeof GatewayEventSchema;
-  };
+  },
   /**
    * @generated from rpc ctrl.v1.ClusterService.UpdateInstance
    */
@@ -882,7 +860,7 @@ export const ClusterService: GenService<{
     methodKind: "unary";
     input: typeof UpdateInstanceRequestSchema;
     output: typeof UpdateInstanceResponseSchema;
-  };
+  },
   /**
    * @generated from rpc ctrl.v1.ClusterService.UpdateGateway
    */
@@ -890,5 +868,7 @@ export const ClusterService: GenService<{
     methodKind: "unary";
     input: typeof UpdateGatewayRequestSchema;
     output: typeof UpdateGatewayResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_ctrl_v1_cluster, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_ctrl_v1_cluster, 0);
+

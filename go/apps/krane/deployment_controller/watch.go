@@ -20,7 +20,6 @@ func (c *DeploymentController) watch() error {
 	w, err := c.clientset.CoreV1().Pods(k8s.UntrustedNamespace).Watch(ctx, metav1.ListOptions{
 		LabelSelector: labels.FormatLabels(k8s.NewLabels().
 			ManagedByKrane().
-			ComponentDeployment().
 			ToMap()),
 		Watch:           true,
 		ResourceVersion: "", // send synthetic events of existing cluster state, then watch
@@ -62,6 +61,7 @@ func (c *DeploymentController) watch() error {
 				c.updates.Buffer(&ctrlv1.UpdateInstanceRequest{
 					Change: &ctrlv1.UpdateInstanceRequest_Create_{
 						Create: &ctrlv1.UpdateInstanceRequest_Create{
+
 							DeploymentId:  deploymentID,
 							PodName:       pod.Name,
 							Address:       fmt.Sprintf("%s.untrusted.svc.cluster.local", pod.Name),

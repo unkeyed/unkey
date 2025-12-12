@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertGateway is the base query for bulk insert
-const bulkInsertGateway = `INSERT INTO gateways ( id, workspace_id, environment_id, project_id, k8s_service_name, region, image, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at ) VALUES %s`
+const bulkInsertGateway = `INSERT INTO gateways ( id, workspace_id, environment_id, project_id, k8s_service_name, k8s_crd_name, region, image, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at ) VALUES %s`
 
 // InsertGateways performs bulk insert in a single query
 func (q *BulkQueries) InsertGateways(ctx context.Context, db DBTX, args []InsertGatewayParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertGateways(ctx context.Context, db DBTX, args []Insert
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertGateway, strings.Join(valueClauses, ", "))
@@ -34,6 +34,7 @@ func (q *BulkQueries) InsertGateways(ctx context.Context, db DBTX, args []Insert
 		allArgs = append(allArgs, arg.EnvironmentID)
 		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.K8sServiceName)
+		allArgs = append(allArgs, arg.K8sCrdName)
 		allArgs = append(allArgs, arg.Region)
 		allArgs = append(allArgs, arg.Image)
 		allArgs = append(allArgs, arg.Health)

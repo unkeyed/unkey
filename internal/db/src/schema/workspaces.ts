@@ -1,6 +1,12 @@
 import type { Subscriptions } from "@unkey/billing";
 import { relations } from "drizzle-orm";
-import { boolean, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import {
+  boolean,
+  json,
+  mysqlEnum,
+  mysqlTable,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { certificates } from "./certificates";
 import { clickhouseWorkspaceSettings } from "./clickhouse_workspace_settings";
@@ -24,6 +30,8 @@ export const workspaces = mysqlTable("workspaces", {
 
   // slug is used for the workspace URL
   slug: varchar("slug", { length: 64 }).notNull().unique(),
+
+  k8sNamespace: varchar("k8s_namespace", { length: 256 }).unique(),
 
   // Deployment platform - which partition this workspace deploys to
   partitionId: varchar("partition_id", { length: 256 }),

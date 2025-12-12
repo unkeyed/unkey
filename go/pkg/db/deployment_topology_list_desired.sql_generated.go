@@ -20,9 +20,11 @@ SELECT
     dt.region,
     d.cpu_millicores,
     d.memory_mib,
-    dt.replicas
+    dt.replicas,
+    w.k8s_namespace as k8s_namespace
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `deployments` + "`" + ` d ON dt.deployment_id = d.id
+INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
 WHERE (? = '' OR dt.region = ?)
     AND d.desired_state = ?
     AND dt.deployment_id > ?
@@ -47,6 +49,7 @@ type ListDesiredDeploymentTopologyRow struct {
 	CpuMillicores int32          `db:"cpu_millicores"`
 	MemoryMib     int32          `db:"memory_mib"`
 	Replicas      int32          `db:"replicas"`
+	K8sNamespace  sql.NullString `db:"k8s_namespace"`
 }
 
 // ListDesiredDeploymentTopology
@@ -60,9 +63,11 @@ type ListDesiredDeploymentTopologyRow struct {
 //	    dt.region,
 //	    d.cpu_millicores,
 //	    d.memory_mib,
-//	    dt.replicas
+//	    dt.replicas,
+//	    w.k8s_namespace as k8s_namespace
 //	FROM `deployment_topology` dt
 //	INNER JOIN `deployments` d ON dt.deployment_id = d.id
+//	INNER JOIN `workspaces` w ON d.workspace_id = w.id
 //	WHERE (? = '' OR dt.region = ?)
 //	    AND d.desired_state = ?
 //	    AND dt.deployment_id > ?
@@ -93,6 +98,7 @@ func (q *Queries) ListDesiredDeploymentTopology(ctx context.Context, db DBTX, ar
 			&i.CpuMillicores,
 			&i.MemoryMib,
 			&i.Replicas,
+			&i.K8sNamespace,
 		); err != nil {
 			return nil, err
 		}

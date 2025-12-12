@@ -1,8 +1,10 @@
 package project
 
 import (
+	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -24,14 +26,32 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 	}
 
 	workspace, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
-		found, err := db.Query.FindWorkspaceByID(ctx, s.db.RW(), req.GetWorkspaceId())
-		if err != nil {
-			if db.IsNotFound(err) {
-				return db.Workspace{}, restate.TerminalError(errors.New("workspace not found"))
+
+		var ws db.Workspace
+		err := db.Tx(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+
+			found, err := db.Query.FindWorkspaceByID(txCtx, tx, req.GetWorkspaceId())
+			if err != nil {
+				if db.IsNotFound(err) {
+					return restate.TerminalError(errors.New("workspace not found"))
+				}
+				return err
 			}
-			return db.Workspace{}, err
-		}
-		return found, nil
+			ws = found
+
+			if !found.K8sNamespace.Valid {
+				ws.K8sNamespace.Valid = true
+				ws.K8sNamespace.String = uid.Nano(8)
+				return db.Query.SetWorkspaceK8sNamespace(txCtx, tx, db.SetWorkspaceK8sNamespaceParams{
+					ID:           ws.ID,
+					K8sNamespace: ws.K8sNamespace,
+				})
+			}
+			ws = found
+
+			return nil
+		})
+		return ws, err
 	}, restate.WithName("find workspace"))
 
 	if err != nil {
@@ -109,6 +129,8 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 			replicas = int32(3)
 		}
 
+		k8sCrdName := fmt.Sprintf("gw-%s", uid.NanoLower(8))
+
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return db.Query.InsertGateway(runCtx, s.db.RW(), db.InsertGatewayParams{
 				ID:              gatewayID,
@@ -116,6 +138,7 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 				ProjectID:       projectID,
 				EnvironmentID:   environmentID,
 				K8sServiceName:  "TODO",
+				K8sCrdName:      k8sCrdName,
 				Region:          "aws:us-east-1",
 				Image:           s.gatewayImage,
 				Health:          db.GatewaysHealthUnknown,
@@ -136,6 +159,9 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 					GatewayEvent: &ctrlv1.GatewayEvent{
 						Event: &ctrlv1.GatewayEvent_Apply{
 							Apply: &ctrlv1.ApplyGateway{
+								// already ensured to exist above
+								Namespace:     workspace.K8sNamespace.String,
+								K8SCrdName:    k8sCrdName,
 								WorkspaceId:   workspace.ID,
 								ProjectId:     projectID,
 								EnvironmentId: environmentID,
@@ -149,7 +175,7 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 					},
 				},
 			})
-		}, restate.WithName("apply gateway"))
+		}, restate.WithName(fmt.Sprintf("apply gateway %s", gatewayID)))
 		if err != nil {
 			return nil, err
 		}

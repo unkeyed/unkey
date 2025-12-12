@@ -16,6 +16,7 @@ INSERT INTO gateways (
     environment_id,
     project_id,
     k8s_service_name,
+    k8s_crd_name,
     region,
     image,
     health,
@@ -25,6 +26,7 @@ INSERT INTO gateways (
     memory_mib,
     created_at
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -47,6 +49,7 @@ type InsertGatewayParams struct {
 	EnvironmentID   string         `db:"environment_id"`
 	ProjectID       string         `db:"project_id"`
 	K8sServiceName  string         `db:"k8s_service_name"`
+	K8sCrdName      string         `db:"k8s_crd_name"`
 	Region          string         `db:"region"`
 	Image           string         `db:"image"`
 	Health          GatewaysHealth `db:"health"`
@@ -65,6 +68,7 @@ type InsertGatewayParams struct {
 //	    environment_id,
 //	    project_id,
 //	    k8s_service_name,
+//	    k8s_crd_name,
 //	    region,
 //	    image,
 //	    health,
@@ -86,6 +90,7 @@ type InsertGatewayParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertGateway(ctx context.Context, db DBTX, arg InsertGatewayParams) error {
@@ -95,6 +100,7 @@ func (q *Queries) InsertGateway(ctx context.Context, db DBTX, arg InsertGatewayP
 		arg.EnvironmentID,
 		arg.ProjectID,
 		arg.K8sServiceName,
+		arg.K8sCrdName,
 		arg.Region,
 		arg.Image,
 		arg.Health,

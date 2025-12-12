@@ -13,11 +13,11 @@ func (c *GatewayController) apply() {
 		switch x := e.GetEvent().(type) {
 		case *ctrlv1.GatewayEvent_Apply:
 			if err := c.ApplyGateway(ctx, x.Apply); err != nil {
-				c.logger.Error("unable to apply gateway", "gateway_id", x.Apply.GetGatewayId())
+				c.logger.Error("unable to apply gateway", "gateway_id", x.Apply.GetGatewayId(), "error", err.Error())
 			}
 		case *ctrlv1.GatewayEvent_Delete:
 			if err := c.DeleteGateway(ctx, x.Delete); err != nil {
-				c.logger.Error("unable to delete gateway", "gateway_id", x.Delete.GetGatewayId())
+				c.logger.Error("unable to delete gateway", "gateway_id", x.Delete.GetGatewayId(), "error", err.Error())
 			}
 		}
 

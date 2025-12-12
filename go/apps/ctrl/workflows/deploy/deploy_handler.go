@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -38,14 +39,38 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			w.logger.Error("deployment failed but we can not set the status", "error", err.Error())
 		}
 	}()
+	workspace, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
 
-	workspace, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Workspace, error) {
-		return db.Query.FindWorkspaceByID(stepCtx, w.db.RW(), deployment.WorkspaceID)
-	}, restate.WithName("finding workspace"))
+		var ws db.Workspace
+		err := db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+
+			found, err := db.Query.FindWorkspaceByID(txCtx, tx, deployment.WorkspaceID)
+			if err != nil {
+				if db.IsNotFound(err) {
+					return restate.TerminalError(errors.New("workspace not found"))
+				}
+				return err
+			}
+			ws = found
+
+			if !found.K8sNamespace.Valid {
+				ws.K8sNamespace.Valid = true
+				ws.K8sNamespace.String = uid.Nano(8)
+				return db.Query.SetWorkspaceK8sNamespace(txCtx, tx, db.SetWorkspaceK8sNamespaceParams{
+					ID:           ws.ID,
+					K8sNamespace: ws.K8sNamespace,
+				})
+			}
+			ws = found
+
+			return nil
+		})
+		return ws, err
+	}, restate.WithName("find workspace"))
+
 	if err != nil {
 		return nil, err
 	}
-
 	project, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindProjectByIdRow, error) {
 		return db.Query.FindProjectById(stepCtx, w.db.RW(), deployment.ProjectID)
 	}, restate.WithName("finding project"))
@@ -150,6 +175,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 					DeploymentEvent: &ctrlv1.DeploymentEvent{
 						Event: &ctrlv1.DeploymentEvent_Apply{
 							Apply: &ctrlv1.ApplyDeployment{
+								Namespace:     workspace.K8sNamespace.String,
 								WorkspaceId:   workspace.ID,
 								ProjectId:     project.ID,
 								EnvironmentId: environment.ID,

@@ -20,7 +20,6 @@ func (c *DeploymentController) GetRunningDeploymentIds(ctx context.Context) <-ch
 			statefulsets, err := c.clientset.AppsV1().StatefulSets(k8s.UntrustedNamespace).List(ctx, metav1.ListOptions{
 				LabelSelector: labels.FormatLabels(k8s.NewLabels().
 					ManagedByKrane().
-					ComponentDeployment().
 					ToMap()),
 				Continue: cursor,
 				Limit:    100,

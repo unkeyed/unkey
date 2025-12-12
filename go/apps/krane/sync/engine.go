@@ -84,7 +84,7 @@ func New(cfg Config) (*SyncEngine, error) {
 	// Do a full pull sync from the control plane regularly
 	// This ensures we're not missing any resources that should be running.
 	// It does not sync resources that are running, but should not be running.
-	repeat.Every(15*time.Minute, func() {
+	repeat.Every(time.Minute, func() {
 		err := retry.New(
 			retry.Attempts(10),
 			retry.Backoff(func(n int) time.Duration { return time.Second * time.Duration(n) }),

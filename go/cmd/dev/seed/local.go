@@ -5,9 +5,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
+	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 	"github.com/unkeyed/unkey/go/pkg/cli"
 	"github.com/unkeyed/unkey/go/pkg/db"
@@ -23,6 +27,8 @@ var localCmd = &cli.Command{
 		cli.String("database-primary", "MySQL database DSN", cli.Default("unkey:password@tcp(127.0.0.1:3306)/unkey?parseTime=true&interpolateParams=true"), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
 		cli.String("slug", "Slug used to generate all IDs and names (e.g., 'flo' creates ws_flo, proj_flo, etc.)", cli.Default("local")),
 		cli.String("org-id", "Organization ID for auth matching (defaults to org_localdefault for local auth)", cli.Default("org_localdefault")),
+		cli.String("ctrl-url", "Control plane API URL", cli.Default("http://localhost:7091"), cli.EnvVar("UNKEY_CTRL_URL")),
+		cli.String("api-key", "API key for control plane authentication", cli.Default("your-local-dev-key"), cli.EnvVar("UNKEY_API_KEY")),
 	},
 	Action: seedLocal,
 }
@@ -55,12 +61,15 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 
 	slug := cmd.String("slug")
 	orgID := cmd.String("org-id")
+	ctrlURL := cmd.String("ctrl-url")
+	apiKey := cmd.String("api-key")
 	now := time.Now().UnixMilli()
 
 	titleCase := strings.ToUpper(slug[:1]) + slug[1:]
 	workspaceID := fmt.Sprintf("ws_%s", slug)
 	workspaceName := fmt.Sprintf("Org %s", titleCase)
-	projectID := fmt.Sprintf("proj_%s", slug)
+	projectSlug := fmt.Sprintf("%s-api", slug)
+	projectName := fmt.Sprintf("%s API", titleCase)
 	envID := fmt.Sprintf("env_%s", slug)
 	rootWorkspaceID := fmt.Sprintf("ws_%s_root", slug)
 	rootKeySpaceID := fmt.Sprintf("ks_%s_root_keys", slug)
@@ -76,6 +85,27 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return fmt.Errorf("failed to generate root key: %w", err)
 	}
+
+	// Create HTTP client with API key authentication
+	httpClient := &http.Client{
+		Transport: &apiKeyTransport{
+			apiKey: apiKey,
+			base:   http.DefaultTransport,
+		},
+	}
+
+	// Create control plane client
+	projectClient := ctrlv1connect.NewProjectServiceClient(
+		httpClient,
+		ctrlURL,
+	)
+
+	// Create project via control plane API
+	logger.Info("creating project via control plane API",
+		"workspace", workspaceID,
+		"name", projectName,
+		"slug", projectSlug,
+	)
 
 	err = db.Tx(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.BulkQuery.UpsertWorkspace(ctx, tx, []db.UpsertWorkspaceParams{
@@ -120,33 +150,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create quotas: %w", err)
-		}
-
-		err = db.Query.InsertProject(ctx, tx, db.InsertProjectParams{
-			ID:               projectID,
-			WorkspaceID:      workspaceID,
-			Name:             fmt.Sprintf("%s API", titleCase),
-			Slug:             fmt.Sprintf("%s-api", slug),
-			GitRepositoryUrl: sql.NullString{},
-			DefaultBranch:    sql.NullString{},
-			DeleteProtection: sql.NullBool{},
-			CreatedAt:        now,
-			UpdatedAt:        sql.NullInt64{},
-		})
-		if err != nil && !db.IsDuplicateKeyError(err) {
-			return fmt.Errorf("failed to create project: %w", err)
-		}
-
-		err = db.Query.UpsertEnvironment(ctx, tx, db.UpsertEnvironmentParams{
-			ID:            envID,
-			WorkspaceID:   workspaceID,
-			ProjectID:     projectID,
-			Slug:          "preview",
-			GatewayConfig: []byte("{}"),
-			CreatedAt:     now,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create environment: %w", err)
 		}
 
 		err = db.BulkQuery.UpsertKeySpace(ctx, tx, []db.UpsertKeySpaceParams{
@@ -291,6 +294,21 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
+
+	createProjReq := connect.NewRequest(&ctrlv1.CreateProjectRequest{
+		WorkspaceId:   workspaceID,
+		Name:          projectName,
+		Slug:          projectSlug,
+		GitRepository: "", // No git repository for local seed
+	})
+
+	projResp, err := projectClient.CreateProject(ctx, createProjReq)
+	if err != nil {
+		return fmt.Errorf("failed to create project via control plane API: %w", err)
+	}
+
+	projectID := projResp.Msg.GetId()
+	logger.Info("project created successfully via control plane", "id", projectID)
 
 	logger.Info("seed completed",
 		"workspace", workspaceID,

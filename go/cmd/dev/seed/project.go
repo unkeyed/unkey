@@ -22,7 +22,7 @@ var projectCmd = &cli.Command{
 		cli.String("workspace-id", "Workspace ID (defaults to ws_local from local seed)", cli.Default("ws_local")),
 		cli.String("project-name", "Name for the project", cli.Default("Test Project")),
 		cli.String("project-slug", "Slug for the project (auto-generated if empty)", cli.Default("")),
-		cli.String("environment-slug", "Slug for the environment to deploy to", cli.Default("development")),
+		cli.String("environment-slug", "Slug for the environment to deploy to", cli.Default("preview")),
 		cli.String("git-repo", "Git repository URL", cli.Default("")),
 		cli.String("git-branch", "Default git branch", cli.Default("main")),
 		cli.String("docker-image", "Docker image to deploy", cli.Default("nginx:latest")),

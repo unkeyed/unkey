@@ -8,9 +8,12 @@ import (
 
 func (s *Service) EmitEvent(ctx context.Context, labels map[string]string, event *ctrlv1.InfraEvent) error {
 
+	s.logger.Info("emitting event", "event", event, "labels", labels)
+
 	s.clientsMu.RLock()
 	defer s.clientsMu.RUnlock()
 
+	s.logger.Info("Emitting event", "event", event, "labels", labels)
 	for _, krane := range s.clients {
 		shouldSend := true
 		for wantLabel, wantValue := range krane.selectors {

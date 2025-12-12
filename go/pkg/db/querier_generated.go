@@ -242,11 +242,11 @@ type Querier interface {
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
 	//FindGatewayByID
 	//
-	//  SELECT id, workspace_id, project_id, environment_id, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE id = ? LIMIT 1
+	//  SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE id = ? LIMIT 1
 	FindGatewayByID(ctx context.Context, db DBTX, id string) (Gateway, error)
 	//FindGatewaysByEnvironmentID
 	//
-	//  SELECT id, workspace_id, project_id, environment_id, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE environment_id = ?
+	//  SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE environment_id = ?
 	FindGatewaysByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Gateway, error)
 	//FindIdentities
 	//
@@ -528,7 +528,7 @@ type Querier interface {
 	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
 	//      a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.id, ws.org_id, ws.name, ws.slug, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+	//      ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
@@ -619,7 +619,7 @@ type Querier interface {
 	//      k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
 	//      a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.id, ws.org_id, ws.name, ws.slug, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+	//      ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
@@ -939,7 +939,7 @@ type Querier interface {
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT id, org_id, name, slug, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT id, org_id, name, slug, k8s_namespace, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
 	//GetKeyAuthByID
@@ -1213,6 +1213,7 @@ type Querier interface {
 	//      environment_id,
 	//      project_id,
 	//      k8s_service_name,
+	//      k8s_crd_name,
 	//      region,
 	//      image,
 	//      health,
@@ -1222,6 +1223,7 @@ type Querier interface {
 	//      memory_mib,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1641,9 +1643,11 @@ type Querier interface {
 	//      dt.region,
 	//      d.cpu_millicores,
 	//      d.memory_mib,
-	//      dt.replicas
+	//      dt.replicas,
+	//      w.k8s_namespace as k8s_namespace
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
+	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
 	//  WHERE (? = '' OR dt.region = ?)
 	//      AND d.desired_state = ?
 	//      AND dt.deployment_id > ?
@@ -1653,14 +1657,16 @@ type Querier interface {
 	//ListDesiredGateways
 	//
 	//  SELECT
-	//      id, workspace_id, project_id, environment_id, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at
+	//      gateways.id, gateways.workspace_id, gateways.project_id, gateways.environment_id, gateways.k8s_crd_name, gateways.k8s_service_name, gateways.region, gateways.image, gateways.desired_state, gateways.health, gateways.desired_replicas, gateways.replicas, gateways.cpu_millicores, gateways.memory_mib, gateways.created_at, gateways.updated_at,
+	//      workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.partition_id, workspaces.plan, workspaces.tier, workspaces.stripe_customer_id, workspaces.stripe_subscription_id, workspaces.beta_features, workspaces.features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m
 	//  FROM `gateways`
+	//  INNER JOIN `workspaces` ON gateways.workspace_id = workspaces.id
 	//  WHERE (? = '' OR region = ?)
 	//      AND desired_state = ?
-	//      AND id > ?
-	//  ORDER BY id ASC
+	//      AND gateways.id > ?
+	//  ORDER BY gateways.id ASC
 	//  LIMIT ?
-	ListDesiredGateways(ctx context.Context, db DBTX, arg ListDesiredGatewaysParams) ([]Gateway, error)
+	ListDesiredGateways(ctx context.Context, db DBTX, arg ListDesiredGatewaysParams) ([]ListDesiredGatewaysRow, error)
 	//ListDirectPermissionsByKeyID
 	//
 	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -1958,7 +1964,7 @@ type Querier interface {
 	//ListWorkspaces
 	//
 	//  SELECT
-	//     w.id, w.org_id, w.name, w.slug, w.partition_id, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+	//     w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.partition_id, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
 	//     q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
@@ -1974,6 +1980,12 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	ReassignIngressRoute(ctx context.Context, db DBTX, arg ReassignIngressRouteParams) error
+	//SetWorkspaceK8sNamespace
+	//
+	//  UPDATE `workspaces`
+	//  SET k8s_namespace = ?
+	//  WHERE id = ? AND k8s_namespace IS NULL
+	SetWorkspaceK8sNamespace(ctx context.Context, db DBTX, arg SetWorkspaceK8sNamespaceParams) error
 	//SoftDeleteApi
 	//
 	//  UPDATE apis
@@ -2240,7 +2252,7 @@ type Querier interface {
 	//  UPDATE `workspaces`
 	//  SET plan = ?
 	//  WHERE id = ?
-	UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) (sql.Result, error)
+	UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) error
 	//UpsertEnvironment
 	//
 	//  INSERT INTO environments (

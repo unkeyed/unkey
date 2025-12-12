@@ -124,6 +124,7 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 			WorkspaceID:     workspaceID,
 			EnvironmentID:   envID,
 			K8sServiceName:  fmt.Sprintf("gateway-%s", slug),
+			K8sCrdName:      fmt.Sprintf("gw-%s", uid.NanoLower(8)),
 			Region:          region,
 			Image:           "unkey/gateway:local",
 			Health:          db.GatewaysHealthHealthy,

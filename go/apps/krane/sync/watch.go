@@ -21,9 +21,7 @@ func (s *SyncEngine) watch() {
 			stream, err = s.newStream()
 			if err != nil {
 				consecutiveFailures++
-				if consecutiveFailures > 5 {
-					s.logger.Error("unable to connect to control plane", "consecutive_failures", consecutiveFailures)
-				}
+				s.logger.Error("unable to connect to control plane", "consecutive_failures", consecutiveFailures)
 				time.Sleep(time.Duration(min(60, consecutiveFailures)) * time.Second)
 				continue
 			} else {
@@ -33,7 +31,7 @@ func (s *SyncEngine) watch() {
 
 		hasMsg := stream.Receive()
 		if !hasMsg {
-			s.logger.Debug("Stream ended, reconnecting...",
+			s.logger.Info("Stream ended, reconnecting...",
 				"error", stream.Err(),
 			)
 			stream = nil
@@ -48,11 +46,15 @@ func (s *SyncEngine) watch() {
 func (s *SyncEngine) newStream() (*connect.ServerStreamForClient[ctrlv1.InfraEvent], error) {
 	s.logger.Info("connecting to control plane to start stream")
 
-	return s.ctrl.Watch(context.Background(), connect.NewRequest(&ctrlv1.WatchRequest{
+	stream, err := s.ctrl.Watch(context.Background(), connect.NewRequest(&ctrlv1.WatchRequest{
 		ClientId: s.instanceID,
 		Selectors: map[string]string{
 			"region": s.region,
+			"shard":  s.shard,
 		},
 	}))
+	s.logger.Info("stream", "stream", stream, "err", err)
+
+	return stream, err
 
 }

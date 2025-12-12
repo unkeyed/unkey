@@ -191,6 +191,7 @@ CREATE TABLE `workspaces` (
 	`org_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(64) NOT NULL,
+	`k8s_namespace` varchar(256),
 	`partition_id` varchar(256),
 	`plan` enum('free','pro','enterprise') DEFAULT 'free',
 	`tier` varchar(256) DEFAULT 'Free',
@@ -206,7 +207,8 @@ CREATE TABLE `workspaces` (
 	`deleted_at_m` bigint,
 	CONSTRAINT `workspaces_id` PRIMARY KEY(`id`),
 	CONSTRAINT `workspaces_org_id_unique` UNIQUE(`org_id`),
-	CONSTRAINT `workspaces_slug_unique` UNIQUE(`slug`)
+	CONSTRAINT `workspaces_slug_unique` UNIQUE(`slug`),
+	CONSTRAINT `workspaces_k8s_namespace_unique` UNIQUE(`k8s_namespace`)
 );
 
 CREATE TABLE `key_migration_errors` (
@@ -433,6 +435,7 @@ CREATE TABLE `gateways` (
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
 	`environment_id` varchar(255) NOT NULL,
+	`k8s_crd_name` varchar(255) NOT NULL,
 	`k8s_service_name` varchar(255) NOT NULL,
 	`region` varchar(255) NOT NULL,
 	`image` varchar(255) NOT NULL,

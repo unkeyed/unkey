@@ -15,9 +15,10 @@ export const createWorkspace = t.procedure
     z.object({
       name: z.string().min(3).max(50),
       slug: z.string().regex(/^(?!-)[a-z0-9]+(?:-[a-z0-9]+)*(?<!-)$/, {
-        message: "Use lowercase letters, numbers, and hyphens (no leading/trailing hyphens).",
+        message:
+          "Use lowercase letters, numbers, and hyphens (no leading/trailing hyphens).",
       }),
-    }),
+    })
   )
   .mutation(async ({ ctx, input }) => {
     const userId = ctx.user?.id;
@@ -81,6 +82,7 @@ export const createWorkspace = t.procedure
           updatedAtM: null,
           deletedAtM: null,
           partitionId: null,
+          k8sNamespace: null,
         };
 
         await tx.insert(schema.workspaces).values(workspace);

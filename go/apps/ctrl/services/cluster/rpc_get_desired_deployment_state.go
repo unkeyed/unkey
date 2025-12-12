@@ -54,9 +54,15 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("deployment has no image"))
 		}
 
+		workspace, err := db.Query.FindWorkspaceByID(ctx, s.db.RO(), deployment.WorkspaceID)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+
 		return connect.NewResponse(&ctrlv1.DeploymentEvent{
 			Event: &ctrlv1.DeploymentEvent_Apply{
 				Apply: &ctrlv1.ApplyDeployment{
+					Namespace:     workspace.K8sNamespace.String,
 					DeploymentId:  deployment.ID,
 					WorkspaceId:   deployment.WorkspaceID,
 					ProjectId:     deployment.ProjectID,

@@ -133,16 +133,6 @@ func (b *LabelBuilder) ManagedByKrane() *LabelBuilder {
 	return b
 }
 
-func (b *LabelBuilder) ComponentGateway() *LabelBuilder {
-	b.labels[LabelKeyComponent] = "gateway"
-	return b
-}
-
-func (b *LabelBuilder) ComponentDeployment() *LabelBuilder {
-	b.labels[LabelKeyComponent] = "deployment"
-	return b
-}
-
 // Custom adds a custom label with any key-value pair.
 //
 // Use this for labels that don't have dedicated builder methods.

@@ -47,9 +47,17 @@ func (s *Service) GetDesiredGatewayState(ctx context.Context, req *connect.Reque
 			},
 		}), nil
 	case db.GatewaysDesiredStateRunning:
+
+		workspace, err := db.Query.FindWorkspaceByID(ctx, s.db.RO(), gateway.WorkspaceID)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+
 		return connect.NewResponse(&ctrlv1.GatewayEvent{
 			Event: &ctrlv1.GatewayEvent_Apply{
 				Apply: &ctrlv1.ApplyGateway{
+					Namespace:     workspace.K8sNamespace.String,
+					K8SCrdName:    gateway.K8sCrdName,
 					GatewayId:     gateway.ID,
 					WorkspaceId:   gateway.WorkspaceID,
 					ProjectId:     gateway.ProjectID,

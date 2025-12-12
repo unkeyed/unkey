@@ -55,11 +55,14 @@ func (s *Service) GetDesiredState(ctx context.Context, req *connect.Request[ctrl
 				continue
 			}
 
+			s.logger.Info("sending deployment event", "t", t)
+
 			err = stream.Send(&ctrlv1.InfraEvent{
 				Event: &ctrlv1.InfraEvent_DeploymentEvent{
 					DeploymentEvent: &ctrlv1.DeploymentEvent{
 						Event: &ctrlv1.DeploymentEvent_Apply{
 							Apply: &ctrlv1.ApplyDeployment{
+								Namespace:     t.K8sNamespace.String,
 								WorkspaceId:   t.WorkspaceID,
 								ProjectId:     t.ProjectID,
 								EnvironmentId: t.EnvironmentID,
@@ -98,7 +101,7 @@ func (s *Service) GetDesiredState(ctx context.Context, req *connect.Request[ctrl
 		if len(topologies) == 0 {
 			break
 		}
-		cursor = topologies[len(topologies)-1].ID
+		cursor = topologies[len(topologies)-1].Gateway.ID
 
 		for _, t := range topologies {
 
@@ -107,14 +110,16 @@ func (s *Service) GetDesiredState(ctx context.Context, req *connect.Request[ctrl
 					GatewayEvent: &ctrlv1.GatewayEvent{
 						Event: &ctrlv1.GatewayEvent_Apply{
 							Apply: &ctrlv1.ApplyGateway{
-								WorkspaceId:   t.WorkspaceID,
-								EnvironmentId: t.EnvironmentID,
-								ProjectId:     t.ProjectID,
-								GatewayId:     t.ID,
-								Image:         t.Image,
-								Replicas:      uint32(t.DesiredReplicas),
-								CpuMillicores: uint32(t.CpuMillicores),
-								MemorySizeMib: uint32(t.MemoryMib),
+								Namespace:     t.Workspace.K8sNamespace.String,
+								K8SCrdName:    t.Gateway.K8sCrdName,
+								WorkspaceId:   t.Workspace.ID,
+								EnvironmentId: t.Gateway.EnvironmentID,
+								ProjectId:     t.Gateway.ProjectID,
+								GatewayId:     t.Gateway.ID,
+								Image:         t.Gateway.Image,
+								Replicas:      uint32(t.Gateway.DesiredReplicas),
+								CpuMillicores: uint32(t.Gateway.CpuMillicores),
+								MemorySizeMib: uint32(t.Gateway.MemoryMib),
 							},
 						},
 					},

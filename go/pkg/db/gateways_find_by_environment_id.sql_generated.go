@@ -10,12 +10,12 @@ import (
 )
 
 const findGatewaysByEnvironmentID = `-- name: FindGatewaysByEnvironmentID :many
-SELECT id, workspace_id, project_id, environment_id, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE environment_id = ?
+SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE environment_id = ?
 `
 
 // FindGatewaysByEnvironmentID
 //
-//	SELECT id, workspace_id, project_id, environment_id, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE environment_id = ?
+//	SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE environment_id = ?
 func (q *Queries) FindGatewaysByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Gateway, error) {
 	rows, err := db.QueryContext(ctx, findGatewaysByEnvironmentID, environmentID)
 	if err != nil {
@@ -30,6 +30,7 @@ func (q *Queries) FindGatewaysByEnvironmentID(ctx context.Context, db DBTX, envi
 			&i.WorkspaceID,
 			&i.ProjectID,
 			&i.EnvironmentID,
+			&i.K8sCrdName,
 			&i.K8sServiceName,
 			&i.Region,
 			&i.Image,

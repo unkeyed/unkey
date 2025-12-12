@@ -220,37 +220,40 @@ message DeploymentEvent {
 // it doesn't exist or updating it if it does. All fields except namespace are required.
 // The control plane ensures that gateway_id is unique within the namespace.
 message ApplyGateway {
+  // namespace is the Kubernetes namespace in which the gateway should exist.
+  string namespace = 1;
 
+  string k8s_crd_name = 2;
   // workspace_id identifies the workspace that owns this gateway.
-  string workspace_id = 1;
+  string workspace_id = 3;
 
   // project_id identifies the project within the workspace.
-  string project_id = 2;
+  string project_id = 4;
 
   // environment_id in which the gateway should exist.
-  string environment_id = 3;
+  string environment_id = 5;
 
   // gateway_id is the unique identifier for this gateway within the namespace.
-  string gateway_id = 4;
+  string gateway_id = 6;
 
   // image is the container image to deploy for the gateway.
   // Must be a valid container registry URL accessible by the cluster.
   // Example: "ghcr.io/unkeyed/gateway:v1.2.3"
-  string image = 5;
+  string image = 7;
 
   // replicas is the desired number of gateway instances.
   // Must be at least 1. For high availability, use 3 or more.
-  uint32 replicas = 6;
+  uint32 replicas = 8;
 
   // cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
   // This ensures the gateway has sufficient CPU resources.
   // Example: 500 = 0.5 CPU cores
-  uint32 cpu_millicores = 7;
+  uint32 cpu_millicores = 9;
 
   // memory_size_mib is the memory request/limit in mebibytes.
   // This ensures the gateway has sufficient memory.
   // Example: 512 = 512 MiB
-  uint32 memory_size_mib = 8;
+  uint32 memory_size_mib = 10;
 }
 
 // DeleteGateway identifies a gateway to remove from the cluster.
@@ -270,40 +273,42 @@ message DeleteGateway {
 // it doesn't exist or updating it if it does. All fields except namespace are required.
 // The control plane ensures that deployment_id is unique within the namespace.
 message ApplyDeployment {
+  // namespace is the Kubernetes namespace in which the deployment should exist.
+  string namespace = 1;
 
   // workspace_id identifies the workspace that owns this deployment.
   // Used for multi-tenancy and access control.
-  string workspace_id = 1;
+  string workspace_id = 2;
 
   // project_id identifies the project within the workspace.
   // Deployments are scoped to projects for organizational purposes.
-  string project_id = 2;
+  string project_id = 3;
 
-  // environment_id specifies the environment (e.g., "production", "staging", "development").
+  // environment_id specifies the environment .
   // Used for environment-specific configuration and isolation.
-  string environment_id = 3;
+  string environment_id = 4;
 
   // deployment_id is the unique identifier for this deployment within the namespace.
-  string deployment_id = 4;
+  string deployment_id = 5;
 
   // image is the container image to deploy.
   // Must be a valid container registry URL accessible by the cluster.
   // Example: "gcr.io/myproject/app:v2.1.0"
-  string image = 5;
+  string image = 6;
 
   // replicas is the desired number of pod instances.
   // Must be at least 1. Set higher for increased availability and load distribution.
-  uint32 replicas = 6;
+  uint32 replicas = 7;
 
   // cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
   // This ensures each pod has sufficient CPU resources.
   // Example: 250 = 0.25 CPU cores
-  uint32 cpu_millicores = 7;
+  uint32 cpu_millicores = 8;
 
   // memory_size_mib is the memory request/limit in mebibytes.
   // This ensures each pod has sufficient memory.
   // Example: 256 = 256 MiB
-  uint32 memory_size_mib = 8;
+  uint32 memory_size_mib = 9;
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.

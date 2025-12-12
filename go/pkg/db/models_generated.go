@@ -927,6 +927,7 @@ type Gateway struct {
 	WorkspaceID     string               `db:"workspace_id"`
 	ProjectID       string               `db:"project_id"`
 	EnvironmentID   string               `db:"environment_id"`
+	K8sCrdName      string               `db:"k8s_crd_name"`
 	K8sServiceName  string               `db:"k8s_service_name"`
 	Region          string               `db:"region"`
 	Image           string               `db:"image"`
@@ -1163,6 +1164,7 @@ type Workspace struct {
 	OrgID                string             `db:"org_id"`
 	Name                 string             `db:"name"`
 	Slug                 string             `db:"slug"`
+	K8sNamespace         sql.NullString     `db:"k8s_namespace"`
 	PartitionID          sql.NullString     `db:"partition_id"`
 	Plan                 NullWorkspacesPlan `db:"plan"`
 	Tier                 sql.NullString     `db:"tier"`

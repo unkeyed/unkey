@@ -65,3 +65,7 @@ func Nano(length ...int) string {
 
 	return b.String()
 }
+
+func NanoLower(length ...int) string {
+	return strings.ToLower(Nano(length...))
+}

@@ -11,12 +11,14 @@ import (
 
 const listDesiredGateways = `-- name: ListDesiredGateways :many
 SELECT
-    id, workspace_id, project_id, environment_id, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at
+    gateways.id, gateways.workspace_id, gateways.project_id, gateways.environment_id, gateways.k8s_crd_name, gateways.k8s_service_name, gateways.region, gateways.image, gateways.desired_state, gateways.health, gateways.desired_replicas, gateways.replicas, gateways.cpu_millicores, gateways.memory_mib, gateways.created_at, gateways.updated_at,
+    workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.partition_id, workspaces.plan, workspaces.tier, workspaces.stripe_customer_id, workspaces.stripe_subscription_id, workspaces.beta_features, workspaces.features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m
 FROM ` + "`" + `gateways` + "`" + `
+INNER JOIN ` + "`" + `workspaces` + "`" + ` ON gateways.workspace_id = workspaces.id
 WHERE (? = '' OR region = ?)
     AND desired_state = ?
-    AND id > ?
-ORDER BY id ASC
+    AND gateways.id > ?
+ORDER BY gateways.id ASC
 LIMIT ?
 `
 
@@ -27,17 +29,24 @@ type ListDesiredGatewaysParams struct {
 	Limit            int32                `db:"limit"`
 }
 
+type ListDesiredGatewaysRow struct {
+	Gateway   Gateway   `db:"gateway"`
+	Workspace Workspace `db:"workspace"`
+}
+
 // ListDesiredGateways
 //
 //	SELECT
-//	    id, workspace_id, project_id, environment_id, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at
+//	    gateways.id, gateways.workspace_id, gateways.project_id, gateways.environment_id, gateways.k8s_crd_name, gateways.k8s_service_name, gateways.region, gateways.image, gateways.desired_state, gateways.health, gateways.desired_replicas, gateways.replicas, gateways.cpu_millicores, gateways.memory_mib, gateways.created_at, gateways.updated_at,
+//	    workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.partition_id, workspaces.plan, workspaces.tier, workspaces.stripe_customer_id, workspaces.stripe_subscription_id, workspaces.beta_features, workspaces.features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m
 //	FROM `gateways`
+//	INNER JOIN `workspaces` ON gateways.workspace_id = workspaces.id
 //	WHERE (? = '' OR region = ?)
 //	    AND desired_state = ?
-//	    AND id > ?
-//	ORDER BY id ASC
+//	    AND gateways.id > ?
+//	ORDER BY gateways.id ASC
 //	LIMIT ?
-func (q *Queries) ListDesiredGateways(ctx context.Context, db DBTX, arg ListDesiredGatewaysParams) ([]Gateway, error) {
+func (q *Queries) ListDesiredGateways(ctx context.Context, db DBTX, arg ListDesiredGatewaysParams) ([]ListDesiredGatewaysRow, error) {
 	rows, err := db.QueryContext(ctx, listDesiredGateways,
 		arg.Region,
 		arg.Region,
@@ -49,25 +58,44 @@ func (q *Queries) ListDesiredGateways(ctx context.Context, db DBTX, arg ListDesi
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Gateway
+	var items []ListDesiredGatewaysRow
 	for rows.Next() {
-		var i Gateway
+		var i ListDesiredGatewaysRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.WorkspaceID,
-			&i.ProjectID,
-			&i.EnvironmentID,
-			&i.K8sServiceName,
-			&i.Region,
-			&i.Image,
-			&i.DesiredState,
-			&i.Health,
-			&i.DesiredReplicas,
-			&i.Replicas,
-			&i.CpuMillicores,
-			&i.MemoryMib,
-			&i.CreatedAt,
-			&i.UpdatedAt,
+			&i.Gateway.ID,
+			&i.Gateway.WorkspaceID,
+			&i.Gateway.ProjectID,
+			&i.Gateway.EnvironmentID,
+			&i.Gateway.K8sCrdName,
+			&i.Gateway.K8sServiceName,
+			&i.Gateway.Region,
+			&i.Gateway.Image,
+			&i.Gateway.DesiredState,
+			&i.Gateway.Health,
+			&i.Gateway.DesiredReplicas,
+			&i.Gateway.Replicas,
+			&i.Gateway.CpuMillicores,
+			&i.Gateway.MemoryMib,
+			&i.Gateway.CreatedAt,
+			&i.Gateway.UpdatedAt,
+			&i.Workspace.ID,
+			&i.Workspace.OrgID,
+			&i.Workspace.Name,
+			&i.Workspace.Slug,
+			&i.Workspace.K8sNamespace,
+			&i.Workspace.PartitionID,
+			&i.Workspace.Plan,
+			&i.Workspace.Tier,
+			&i.Workspace.StripeCustomerID,
+			&i.Workspace.StripeSubscriptionID,
+			&i.Workspace.BetaFeatures,
+			&i.Workspace.Features,
+			&i.Workspace.Subscriptions,
+			&i.Workspace.Enabled,
+			&i.Workspace.DeleteProtection,
+			&i.Workspace.CreatedAtM,
+			&i.Workspace.UpdatedAtM,
+			&i.Workspace.DeletedAtM,
 		); err != nil {
 			return nil, err
 		}

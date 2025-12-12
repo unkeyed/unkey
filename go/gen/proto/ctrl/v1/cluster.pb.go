@@ -790,29 +790,32 @@ func (*DeploymentEvent_Delete) isDeploymentEvent_Event() {}
 // The control plane ensures that gateway_id is unique within the namespace.
 type ApplyGateway struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
+	// namespace is the Kubernetes namespace in which the gateway should exist.
+	Namespace  string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	K8SCrdName string `protobuf:"bytes,2,opt,name=k8s_crd_name,json=k8sCrdName,proto3" json:"k8s_crd_name,omitempty"`
 	// workspace_id identifies the workspace that owns this gateway.
-	WorkspaceId string `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	WorkspaceId string `protobuf:"bytes,3,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	// project_id identifies the project within the workspace.
-	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,4,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// environment_id in which the gateway should exist.
-	EnvironmentId string `protobuf:"bytes,3,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
+	EnvironmentId string `protobuf:"bytes,5,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
 	// gateway_id is the unique identifier for this gateway within the namespace.
-	GatewayId string `protobuf:"bytes,4,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
+	GatewayId string `protobuf:"bytes,6,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
 	// image is the container image to deploy for the gateway.
 	// Must be a valid container registry URL accessible by the cluster.
 	// Example: "ghcr.io/unkeyed/gateway:v1.2.3"
-	Image string `protobuf:"bytes,5,opt,name=image,proto3" json:"image,omitempty"`
+	Image string `protobuf:"bytes,7,opt,name=image,proto3" json:"image,omitempty"`
 	// replicas is the desired number of gateway instances.
 	// Must be at least 1. For high availability, use 3 or more.
-	Replicas uint32 `protobuf:"varint,6,opt,name=replicas,proto3" json:"replicas,omitempty"`
+	Replicas uint32 `protobuf:"varint,8,opt,name=replicas,proto3" json:"replicas,omitempty"`
 	// cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
 	// This ensures the gateway has sufficient CPU resources.
 	// Example: 500 = 0.5 CPU cores
-	CpuMillicores uint32 `protobuf:"varint,7,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`
+	CpuMillicores uint32 `protobuf:"varint,9,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`
 	// memory_size_mib is the memory request/limit in mebibytes.
 	// This ensures the gateway has sufficient memory.
 	// Example: 512 = 512 MiB
-	MemorySizeMib uint32 `protobuf:"varint,8,opt,name=memory_size_mib,json=memorySizeMib,proto3" json:"memory_size_mib,omitempty"`
+	MemorySizeMib uint32 `protobuf:"varint,10,opt,name=memory_size_mib,json=memorySizeMib,proto3" json:"memory_size_mib,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -845,6 +848,20 @@ func (x *ApplyGateway) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ApplyGateway.ProtoReflect.Descriptor instead.
 func (*ApplyGateway) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ApplyGateway) GetNamespace() string {
+	if x != nil {
+		return x.Namespace
+	}
+	return ""
+}
+
+func (x *ApplyGateway) GetK8SCrdName() string {
+	if x != nil {
+		return x.K8SCrdName
+	}
+	return ""
 }
 
 func (x *ApplyGateway) GetWorkspaceId() string {
@@ -960,32 +977,34 @@ func (x *DeleteGateway) GetGatewayId() string {
 // The control plane ensures that deployment_id is unique within the namespace.
 type ApplyDeployment struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
+	// namespace is the Kubernetes namespace in which the deployment should exist.
+	Namespace string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	// workspace_id identifies the workspace that owns this deployment.
 	// Used for multi-tenancy and access control.
-	WorkspaceId string `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	WorkspaceId string `protobuf:"bytes,2,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	// project_id identifies the project within the workspace.
 	// Deployments are scoped to projects for organizational purposes.
-	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	// environment_id specifies the environment (e.g., "production", "staging", "development").
+	ProjectId string `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	// environment_id specifies the environment .
 	// Used for environment-specific configuration and isolation.
-	EnvironmentId string `protobuf:"bytes,3,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
+	EnvironmentId string `protobuf:"bytes,4,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
 	// deployment_id is the unique identifier for this deployment within the namespace.
-	DeploymentId string `protobuf:"bytes,4,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	DeploymentId string `protobuf:"bytes,5,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	// image is the container image to deploy.
 	// Must be a valid container registry URL accessible by the cluster.
 	// Example: "gcr.io/myproject/app:v2.1.0"
-	Image string `protobuf:"bytes,5,opt,name=image,proto3" json:"image,omitempty"`
+	Image string `protobuf:"bytes,6,opt,name=image,proto3" json:"image,omitempty"`
 	// replicas is the desired number of pod instances.
 	// Must be at least 1. Set higher for increased availability and load distribution.
-	Replicas uint32 `protobuf:"varint,6,opt,name=replicas,proto3" json:"replicas,omitempty"`
+	Replicas uint32 `protobuf:"varint,7,opt,name=replicas,proto3" json:"replicas,omitempty"`
 	// cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
 	// This ensures each pod has sufficient CPU resources.
 	// Example: 250 = 0.25 CPU cores
-	CpuMillicores uint32 `protobuf:"varint,7,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`
+	CpuMillicores uint32 `protobuf:"varint,8,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`
 	// memory_size_mib is the memory request/limit in mebibytes.
 	// This ensures each pod has sufficient memory.
 	// Example: 256 = 256 MiB
-	MemorySizeMib uint32 `protobuf:"varint,8,opt,name=memory_size_mib,json=memorySizeMib,proto3" json:"memory_size_mib,omitempty"`
+	MemorySizeMib uint32 `protobuf:"varint,9,opt,name=memory_size_mib,json=memorySizeMib,proto3" json:"memory_size_mib,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1018,6 +1037,13 @@ func (x *ApplyDeployment) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ApplyDeployment.ProtoReflect.Descriptor instead.
 func (*ApplyDeployment) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ApplyDeployment) GetNamespace() string {
+	if x != nil {
+		return x.Namespace
+	}
+	return ""
 }
 
 func (x *ApplyDeployment) GetWorkspaceId() string {
@@ -1643,31 +1669,36 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x0fDeploymentEvent\x120\n" +
 	"\x05apply\x18\x01 \x01(\v2\x18.ctrl.v1.ApplyDeploymentH\x00R\x05apply\x123\n" +
 	"\x06delete\x18\x02 \x01(\v2\x19.ctrl.v1.DeleteDeploymentH\x00R\x06deleteB\a\n" +
-	"\x05event\"\x97\x02\n" +
-	"\fApplyGateway\x12!\n" +
-	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
+	"\x05event\"\xd7\x02\n" +
+	"\fApplyGateway\x12\x1c\n" +
+	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12 \n" +
+	"\fk8s_crd_name\x18\x02 \x01(\tR\n" +
+	"k8sCrdName\x12!\n" +
+	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\x02 \x01(\tR\tprojectId\x12%\n" +
-	"\x0eenvironment_id\x18\x03 \x01(\tR\renvironmentId\x12\x1d\n" +
+	"project_id\x18\x04 \x01(\tR\tprojectId\x12%\n" +
+	"\x0eenvironment_id\x18\x05 \x01(\tR\renvironmentId\x12\x1d\n" +
 	"\n" +
-	"gateway_id\x18\x04 \x01(\tR\tgatewayId\x12\x14\n" +
-	"\x05image\x18\x05 \x01(\tR\x05image\x12\x1a\n" +
-	"\breplicas\x18\x06 \x01(\rR\breplicas\x12%\n" +
-	"\x0ecpu_millicores\x18\a \x01(\rR\rcpuMillicores\x12&\n" +
-	"\x0fmemory_size_mib\x18\b \x01(\rR\rmemorySizeMib\".\n" +
+	"gateway_id\x18\x06 \x01(\tR\tgatewayId\x12\x14\n" +
+	"\x05image\x18\a \x01(\tR\x05image\x12\x1a\n" +
+	"\breplicas\x18\b \x01(\rR\breplicas\x12%\n" +
+	"\x0ecpu_millicores\x18\t \x01(\rR\rcpuMillicores\x12&\n" +
+	"\x0fmemory_size_mib\x18\n" +
+	" \x01(\rR\rmemorySizeMib\".\n" +
 	"\rDeleteGateway\x12\x1d\n" +
 	"\n" +
-	"gateway_id\x18\x01 \x01(\tR\tgatewayId\"\xa0\x02\n" +
-	"\x0fApplyDeployment\x12!\n" +
-	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
+	"gateway_id\x18\x01 \x01(\tR\tgatewayId\"\xbe\x02\n" +
+	"\x0fApplyDeployment\x12\x1c\n" +
+	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12!\n" +
+	"\fworkspace_id\x18\x02 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\x02 \x01(\tR\tprojectId\x12%\n" +
-	"\x0eenvironment_id\x18\x03 \x01(\tR\renvironmentId\x12#\n" +
-	"\rdeployment_id\x18\x04 \x01(\tR\fdeploymentId\x12\x14\n" +
-	"\x05image\x18\x05 \x01(\tR\x05image\x12\x1a\n" +
-	"\breplicas\x18\x06 \x01(\rR\breplicas\x12%\n" +
-	"\x0ecpu_millicores\x18\a \x01(\rR\rcpuMillicores\x12&\n" +
-	"\x0fmemory_size_mib\x18\b \x01(\rR\rmemorySizeMib\"7\n" +
+	"project_id\x18\x03 \x01(\tR\tprojectId\x12%\n" +
+	"\x0eenvironment_id\x18\x04 \x01(\tR\renvironmentId\x12#\n" +
+	"\rdeployment_id\x18\x05 \x01(\tR\fdeploymentId\x12\x14\n" +
+	"\x05image\x18\x06 \x01(\tR\x05image\x12\x1a\n" +
+	"\breplicas\x18\a \x01(\rR\breplicas\x12%\n" +
+	"\x0ecpu_millicores\x18\b \x01(\rR\rcpuMillicores\x12&\n" +
+	"\x0fmemory_size_mib\x18\t \x01(\rR\rmemorySizeMib\"7\n" +
 	"\x10DeleteDeployment\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x9a\x01\n" +
 	"\n" +

@@ -9,7 +9,6 @@ import (
 )
 
 func (s *SyncEngine) pull() error {
-
 	s.logger.Info("starting pull from control plane")
 
 	stream, err := s.ctrl.GetDesiredState(context.Background(), connect.NewRequest(&ctrlv1.GetDesiredStateRequest{

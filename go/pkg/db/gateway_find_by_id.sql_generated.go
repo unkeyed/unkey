@@ -10,12 +10,12 @@ import (
 )
 
 const findGatewayByID = `-- name: FindGatewayByID :one
-SELECT id, workspace_id, project_id, environment_id, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE id = ? LIMIT 1
+SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE id = ? LIMIT 1
 `
 
 // FindGatewayByID
 //
-//	SELECT id, workspace_id, project_id, environment_id, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE id = ? LIMIT 1
+//	SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE id = ? LIMIT 1
 func (q *Queries) FindGatewayByID(ctx context.Context, db DBTX, id string) (Gateway, error) {
 	row := db.QueryRowContext(ctx, findGatewayByID, id)
 	var i Gateway
@@ -24,6 +24,7 @@ func (q *Queries) FindGatewayByID(ctx context.Context, db DBTX, id string) (Gate
 		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.EnvironmentID,
+		&i.K8sCrdName,
 		&i.K8sServiceName,
 		&i.Region,
 		&i.Image,

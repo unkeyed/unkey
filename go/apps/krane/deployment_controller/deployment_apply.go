@@ -82,7 +82,6 @@ func (c *DeploymentController) ApplyDeployment(ctx context.Context, req *ctrlv1.
 	usedLabels := k8s.NewLabels().
 		DeploymentID(deploymentID).
 		ManagedByKrane().
-		ComponentDeployment().
 		ToMap()
 
 	labelSelector := metav1.FormatLabelSelector(&metav1.LabelSelector{

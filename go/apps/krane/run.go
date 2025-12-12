@@ -77,9 +77,8 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	gc, err := gatewaycontroller.New(gatewaycontroller.Config{
-		Logger:  logger,
-		Events:  gatewayEvents,
-		Updates: gatewayUpdates,
+		Logger: logger,
+		Events: gatewayEvents,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create gateway controller: %w", err)
