@@ -5,6 +5,8 @@
 
 
 
+
+
 -- Insert test workspace
 INSERT INTO workspaces (
   id,
@@ -23,32 +25,3 @@ INSERT INTO workspaces (
   '{"deployments":true}',
   '{}'
 ) ON DUPLICATE KEY UPDATE created_at_m = UNIX_TIMESTAMP() * 1000;
-
--- Insert project
-INSERT INTO projects (
-  id,
-  workspace_id,
-  name,
-  slug,
-  created_at
-) VALUES (
-  'proj_chronark',
-  'ws_chronark',
-  'API',
-  'api',
-  UNIX_TIMESTAMP() * 1000
-) ON DUPLICATE KEY UPDATE created_at = UNIX_TIMESTAMP() * 1000;
-
-INSERT INTO environments (
-  id,
-  workspace_id,
-  project_id,
-  slug,
-  created_at
-) VALUES (
-  'env_chronark',
-  'ws_chronark',
-  'proj_chronark',
-  'production',
-  UNIX_TIMESTAMP() * 1000
-) ON DUPLICATE KEY UPDATE created_at = UNIX_TIMESTAMP() * 1000;

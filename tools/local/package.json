@@ -4,22 +4,22 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "local": "tsx ./src/prepare.ts && tsx ./src/main.ts",
+    "local": "tsx ./src/main.ts",
     "seed": "tsx ./src/seed.ts"
   },
   "keywords": [],
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
   "devDependencies": {
-    "@clack/prompts": "^0.7.0",
+    "@clack/prompts": "0.7.0",
     "@unkey/db": "workspace:^",
     "@unkey/clickhouse": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/tsconfig": "workspace:^",
-    "mysql2": "^3.10.3",
-    "tsx": "^4.19.1"
+    "mysql2": "3.10.3",
+    "tsx": "4.19.1"
   },
   "dependencies": {
-    "execa": "^9.3.0"
+    "execa": "9.3.0"
   }
 }

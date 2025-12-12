@@ -19,7 +19,7 @@ export const getProducts = t.procedure
   .use(requireWorkspace)
   .use(withRatelimit(ratelimit.read))
   .output(z.array(productSchema))
-  .query(async () => {
+  .query(async ({ ctx }) => {
     const stripe = getStripeClient();
     const e = stripeEnv();
     if (!e) {
@@ -29,10 +29,31 @@ export const getProducts = t.procedure
       });
     }
 
+    // Check if user has an active enterprise subscription
+    let enterpriseProductId: string | undefined;
+    if (ctx.workspace.stripeSubscriptionId) {
+      try {
+        const subscription = await stripe.subscriptions.retrieve(
+          ctx.workspace.stripeSubscriptionId,
+        );
+        const currentProductId = subscription.items.data.at(0)?.plan.product?.toString();
+        if (currentProductId && e.STRIPE_PRODUCT_IDS_ENTERPRISE.includes(currentProductId)) {
+          enterpriseProductId = currentProductId;
+        }
+      } catch (error) {
+        // If subscription retrieval fails, default to showing only Pro products
+        console.error("Failed to retrieve subscription:", error);
+      }
+    }
+
+    const productIds = enterpriseProductId
+      ? [...e.STRIPE_PRODUCT_IDS_PRO, enterpriseProductId]
+      : e.STRIPE_PRODUCT_IDS_PRO;
+
     const products = await stripe.products
       .list({
         active: true,
-        ids: e.STRIPE_PRODUCT_IDS_PRO,
+        ids: productIds,
         limit: 100,
         expand: ["data.default_price"],
       })

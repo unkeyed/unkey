@@ -19,7 +19,9 @@ export const gateways = mysqlTable(
      */
     region: varchar("region", { length: 255 }).notNull(),
     image: varchar("image", { length: 255 }).notNull(),
-    health: mysqlEnum("health", ["paused", "healthy", "unhealthy"]), // needs better status types
+    health: mysqlEnum("health", ["unknown", "paused", "healthy", "unhealthy"])
+      .notNull()
+      .default("unknown"), // needs better status types
     replicas: int("replicas").notNull(),
   },
   (table) => [index("idx_environment_id").on(table.environmentId)],

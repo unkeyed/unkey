@@ -1,7 +1,6 @@
 import { AnimatedCounter } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/selection-controls";
-import { ConfirmPopover } from "@/components/confirmation-popover";
 import { Trash, XMark } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, ConfirmPopover } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRef, useState } from "react";
 import { useDeleteRole } from "../actions/components/hooks/use-delete-role";

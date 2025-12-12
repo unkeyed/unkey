@@ -2,16 +2,23 @@ import { getCookie } from "@/lib/auth/cookies";
 import {
   AuthErrorCode,
   type AuthErrorResponse,
+  type EmailAuthResult,
   type Organization,
   PENDING_SESSION_COOKIE,
   type PendingOrgSelectionResponse,
+  type PendingTurnstileResponse,
   SIGN_IN_URL,
   type VerificationResult,
   errorMessages,
 } from "@/lib/auth/types";
 import { useSearchParams } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
-import { resendAuthCode, signInViaEmail, verifyAuthCode } from "../actions";
+import {
+  resendAuthCode,
+  signInViaEmail,
+  verifyAuthCode,
+  verifyTurnstileAndRetry,
+} from "../actions";
 import { SignInContext } from "../context/signin-context";
 
 function isAuthErrorResponse(result: VerificationResult): result is AuthErrorResponse {
@@ -24,6 +31,15 @@ function isPendingOrgSelection(result: VerificationResult): result is PendingOrg
     result.code === AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED &&
     "organizations" in result &&
     Array.isArray(result.organizations)
+  );
+}
+
+function isPendingTurnstileChallenge(result: EmailAuthResult): result is PendingTurnstileResponse {
+  return (
+    !result.success &&
+    result.code === AuthErrorCode.RADAR_CHALLENGE_REQUIRED &&
+    "email" in result &&
+    "challengeParams" in result
   );
 }
 
@@ -51,8 +67,7 @@ export function useSignIn() {
           try {
             parsedOrgs = JSON.parse(decodeURIComponent(orgsParam));
             setOrgs(parsedOrgs);
-          } catch (err) {
-            console.error(err);
+          } catch (_err) {
             setError("Failed to load organizations");
           }
         }
@@ -60,8 +75,8 @@ export function useSignIn() {
         // Check for pending session cookie
         const hasTempSession = await getCookie(PENDING_SESSION_COOKIE);
         setHasPendingAuth(Boolean(parsedOrgs.length && hasTempSession));
-      } catch (err) {
-        console.error("Error checking auth status:", err);
+      } catch (_err) {
+        // Ignore auth status check errors
       } finally {
         setLoading(false);
       }
@@ -76,10 +91,15 @@ export function useSignIn() {
       setError(null);
       const result = await signInViaEmail(email);
 
+      // Return result for Turnstile challenge handling
+      if (isPendingTurnstileChallenge(result)) {
+        return result;
+      }
+
       // Check if the operation was successful
       if (result.success) {
         setIsVerifying(true);
-        return;
+        return result;
       }
 
       // Handle error case - only set error message if we have an error response
@@ -93,9 +113,10 @@ export function useSignIn() {
       } else {
         setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
       }
+
+      return result;
     } catch (error) {
       // This catches any unexpected errors that weren't handled by the API
-      console.error("Unexpected error during sign in:", error);
       setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
       throw error;
     }
@@ -161,11 +182,48 @@ export function useSignIn() {
     }
   };
 
+  const handleTurnstileVerification = async (
+    turnstileToken: string,
+    challengeData: PendingTurnstileResponse,
+    userData?: { firstName: string; lastName: string },
+  ): Promise<void> => {
+    try {
+      setError(null);
+      const result = await verifyTurnstileAndRetry({
+        turnstileToken,
+        email: challengeData.email,
+        challengeParams: challengeData.challengeParams,
+        userData,
+      });
+
+      if (result.success) {
+        setIsVerifying(true);
+        return;
+      }
+
+      if (isAuthErrorResponse(result)) {
+        if (result.code === AuthErrorCode.ACCOUNT_NOT_FOUND) {
+          setAccountNotFound(true);
+          setEmail(challengeData.email);
+        } else {
+          setError(result.message);
+        }
+      } else {
+        setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
+      }
+    } catch (error) {
+      setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
+      throw error;
+    }
+  };
+
   return {
     ...context,
     handleSignInViaEmail,
     handleVerification,
     handleResendCode,
+    handleTurnstileVerification,
+    isPendingTurnstileChallenge,
     orgs,
     loading,
     hasPendingAuth,

@@ -1,9 +1,9 @@
 "use client";
+import type { GetOpenApiDiffResponse } from "@/gen/proto/ctrl/v1/openapi_pb";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { useLiveQuery } from "@tanstack/react-db";
 import { ArrowRight } from "@unkey/icons";
-import type { GetOpenApiDiffResponse } from "@unkey/proto";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useProject } from "../../../layout-provider";

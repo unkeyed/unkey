@@ -9,6 +9,19 @@ metadata:
     component: krane
 
 ---
+# Restricted service account for customer workloads
+# This account has NO K8s API permissions - customers cannot query the K8s API.
+# Token is mounted for unkey-env to authenticate with the secrets provider.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: customer-workload
+  namespace: unkey
+  labels:
+    app: unkey
+    component: customer
+
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -17,6 +30,11 @@ metadata:
     app: unkey
     component: krane
 rules:
+  # Namespace management
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+
   # Pod management for VMs
   - apiGroups: [""]
     resources: ["pods"]
@@ -27,15 +45,20 @@ rules:
     resources: ["services"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
-  # Job management for VM workloads
+  # Job management for user workloads
   - apiGroups: ["apps"]
-    resources: ["statefulsets"]
+    resources: ["statefulsets", "deployments"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
   # Events access for debugging
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["get", "list", "watch"]
+
+  # TokenReview for validating service account tokens (secrets injection)
+  - apiGroups: ["authentication.k8s.io"]
+    resources: ["tokenreviews"]
+    verbs: ["create"]
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1

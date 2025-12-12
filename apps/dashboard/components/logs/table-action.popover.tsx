@@ -1,6 +1,5 @@
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dots } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { type FC, type PropsWithChildren, forwardRef, useEffect, useRef, useState } from "react";
 
@@ -83,75 +82,89 @@ export const TableActionPopover = ({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        {children ?? <TableActionPopoverDefaultTrigger onClick={(e) => e.stopPropagation()} />}
-      </PopoverTrigger>
-      <PopoverContent
-        className="min-w-60 max-w-full bg-gray-1 dark:bg-black drop-shadow-2xl transform-gpu border-gray-6 rounded-lg p-0"
-        align={align}
-        onOpenAutoFocus={(e) => {
-          e.preventDefault();
-          const firstEnabledIndex = items.findIndex((item) => !item.disabled);
-          if (firstEnabledIndex >= 0) {
-            menuItems.current[firstEnabledIndex]?.focus();
-          }
-        }}
-        onCloseAutoFocus={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => {
-          e.preventDefault();
-          setOpen(false);
-        }}
-        onInteractOutside={(e) => {
-          e.preventDefault();
-          setOpen(false);
-        }}
-      >
-        {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
-        <div role="menu" onClick={(e) => e.stopPropagation()} className="py-2">
-          {items.map((item, index) => (
-            <div key={item.id}>
-              <div className="px-2">
-                <button
-                  type="button"
-                  role="menuitem"
-                  aria-disabled={item.disabled}
-                  tabIndex={!item.disabled && focusIndex === index ? 0 : -1}
-                  className={cn(
-                    "flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group",
-                    !item.disabled &&
-                      "cursor-pointer hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none focus:bg-gray-3",
-                    item.disabled && "cursor-not-allowed opacity-50",
-                    item.className,
-                  )}
-                  onMouseEnter={() => handleItemHover(item)}
-                  onClick={(e) => {
-                    if (!item.disabled) {
-                      item.onClick?.(e);
-
-                      if (!item.ActionComponent) {
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          {children ?? <TableActionPopoverDefaultTrigger onClick={(e) => e.stopPropagation()} />}
+        </PopoverTrigger>
+        <PopoverContent
+          className="min-w-60 max-w-full bg-gray-1 dark:bg-black drop-shadow-2xl transform-gpu border-gray-6 rounded-lg p-0"
+          align={align}
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            const firstEnabledIndex = items.findIndex((item) => !item.disabled);
+            if (firstEnabledIndex >= 0) {
+              menuItems.current[firstEnabledIndex]?.focus();
+            }
+          }}
+          onCloseAutoFocus={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => {
+            e.preventDefault();
+            setOpen(false);
+          }}
+          onInteractOutside={(e) => {
+            e.preventDefault();
+            setOpen(false);
+          }}
+        >
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+          <div role="menu" onClick={(e) => e.stopPropagation()} className="py-2">
+            {items.map((item, index) => (
+              <div key={item.id}>
+                <div className="px-2">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    aria-disabled={item.disabled}
+                    tabIndex={!item.disabled && focusIndex === index ? 0 : -1}
+                    className={cn(
+                      "flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group",
+                      !item.disabled &&
+                        "cursor-pointer hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none focus:bg-gray-3",
+                      item.disabled && "cursor-not-allowed opacity-50",
+                      item.className,
+                    )}
+                    onMouseEnter={() => handleItemHover(item)}
+                    onClick={(e) => {
+                      if (!item.disabled) {
+                        item.onClick?.(e);
+                        setEnabledItem(item.id);
                         setOpen(false);
                       }
-
-                      setEnabledItem(item.id);
-                    }
-                  }}
-                >
-                  <div className="text-gray-9 group-hover:text-gray-12 group-focus:text-gray-12">
-                    {item.icon}
-                  </div>
-                  <span className="text-[13px] font-medium">{item.label}</span>
-                </button>
+                    }}
+                  >
+                    <div className="text-gray-9 group-hover:text-gray-12 group-focus:text-gray-12">
+                      {item.icon}
+                    </div>
+                    <span className="text-[13px] font-medium">{item.label}</span>
+                  </button>
+                </div>
+                {item.divider && <div className="h-[1px] bg-grayA-3 w-full my-2" />}
               </div>
-              {item.divider && <div className="h-[1px] bg-grayA-3 w-full my-2" />}
-              {item.ActionComponent && enabledItem === item.id && (
-                <item.ActionComponent isOpen onClose={() => handleActionSelection("none")} />
-              )}
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+      {/* Render ActionComponents outside the Popover so they persist when popover closes */}
+      {items.map(
+        (item) =>
+          item.ActionComponent &&
+          enabledItem === item.id && (
+            <div
+              key={item.id}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              <item.ActionComponent
+                isOpen
+                onClose={() => {
+                  handleActionSelection("none");
+                }}
+              />
             </div>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
+          ),
+      )}
+    </>
   );
 };
 

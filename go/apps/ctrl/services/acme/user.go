@@ -21,12 +21,13 @@ import (
 
 type AcmeUser struct {
 	WorkspaceID  string
+	EmailDomain  string
 	Registration *registration.Resource
 	key          crypto.PrivateKey
 }
 
 func (u *AcmeUser) GetEmail() string {
-	return fmt.Sprintf("%s@%s", u.WorkspaceID, "unkey.fun")
+	return fmt.Sprintf("%s@%s", u.WorkspaceID, u.EmailDomain)
 }
 
 func (u AcmeUser) GetRegistration() *registration.Resource {
@@ -42,6 +43,7 @@ type UserConfig struct {
 	Logger      logging.Logger
 	Vault       *vault.Service
 	WorkspaceID string
+	EmailDomain string // Domain for ACME registration emails (e.g., "unkey.com")
 }
 
 func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
@@ -50,6 +52,7 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 		if db.IsNotFound(err) {
 			return register(ctx, cfg)
 		}
+		return nil, fmt.Errorf("failed to find acme user: %w", err)
 	}
 
 	resp, err := cfg.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
@@ -65,17 +68,46 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 		return nil, fmt.Errorf("failed to convert private key: %w", err)
 	}
 
-	config := lego.NewConfig(&AcmeUser{
-		//nolint: exhaustruct
-		Registration: &registration.Resource{
+	user := &AcmeUser{
+		key:          key,
+		WorkspaceID:  cfg.WorkspaceID,
+		EmailDomain:  cfg.EmailDomain,
+		Registration: nil,
+	}
+
+	// If we have a valid registration URI, use it
+	if foundUser.RegistrationUri.Valid && foundUser.RegistrationUri.String != "" {
+		//nolint:exhaustruct // external library type
+		user.Registration = &registration.Resource{
 			URI: foundUser.RegistrationUri.String,
-		},
-		key:         key,
-		WorkspaceID: cfg.WorkspaceID,
-	})
+		}
+	}
+
+	config := lego.NewConfig(user)
 	client, err := lego.NewClient(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ACME client: %w", err)
+	}
+
+	// If user exists but doesn't have a registration URI, complete the registration
+	if !foundUser.RegistrationUri.Valid || foundUser.RegistrationUri.String == "" {
+		cfg.Logger.Info("acme user missing registration, completing registration",
+			"workspace_id", cfg.WorkspaceID,
+		)
+
+		reg, regErr := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
+		if regErr != nil {
+			return nil, fmt.Errorf("failed to complete acme registration: %w", regErr)
+		}
+
+		user.Registration = reg
+
+		if updateErr := db.Query.UpdateAcmeUserRegistrationURI(ctx, cfg.DB.RW(), db.UpdateAcmeUserRegistrationURIParams{
+			ID:              foundUser.ID,
+			RegistrationUri: sql.NullString{Valid: true, String: reg.URI},
+		}); updateErr != nil {
+			cfg.Logger.Warn("failed to persist registration URI", "error", updateErr)
+		}
 	}
 
 	return client, nil
@@ -91,6 +123,7 @@ func register(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
 		Registration: nil,
 		key:          privateKey,
 		WorkspaceID:  cfg.WorkspaceID,
+		EmailDomain:  cfg.EmailDomain,
 	}
 
 	privKeyString, err := privateKeyToString(privateKey)

@@ -1,8 +1,7 @@
 import { ExternalIdField } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/external-id-field";
-import { ConfirmPopover } from "@/components/confirmation-popover";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { Button, DialogContainer } from "@unkey/ui";
+import { Button, ConfirmPopover, DialogContainer } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { useEditExternalId } from "../hooks/use-edit-external-id";
 import { KeyInfo } from "../key-info";

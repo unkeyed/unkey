@@ -307,13 +307,28 @@ CREATE TABLE `environments` (
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
-	`description` varchar(255),
+	`description` varchar(255) NOT NULL DEFAULT '',
 	`gateway_config` longblob NOT NULL,
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `environments_id` PRIMARY KEY(`id`),
 	CONSTRAINT `environments_project_id_slug_idx` UNIQUE(`project_id`,`slug`)
+);
+
+CREATE TABLE `environment_variables` (
+	`id` varchar(128) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`key` varchar(256) NOT NULL,
+	`value` varchar(4096) NOT NULL,
+	`type` enum('recoverable','writeonly') NOT NULL,
+	`description` varchar(255),
+	`delete_protection` boolean DEFAULT false,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `environment_variables_id` PRIMARY KEY(`id`),
+	CONSTRAINT `environment_id_key` UNIQUE(`environment_id`,`key`)
 );
 
 CREATE TABLE `clickhouse_workspace_settings` (
@@ -363,6 +378,7 @@ CREATE TABLE `deployments` (
 	`runtime_config` json NOT NULL,
 	`gateway_config` longblob NOT NULL,
 	`openapi_spec` longblob,
+	`secrets_config` longblob NOT NULL,
 	`status` enum('pending','building','deploying','network','ready','failed') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -393,7 +409,7 @@ CREATE TABLE `custom_domains` (
 	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`domain` varchar(256) NOT NULL,
-	`challenge_type` enum('dns01','http01') NOT NULL DEFAULT 'http01',
+	`challenge_type` enum('HTTP-01','DNS-01') NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `custom_domains_id` PRIMARY KEY(`id`),
@@ -404,7 +420,7 @@ CREATE TABLE `acme_challenges` (
 	`domain_id` varchar(255) NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
 	`token` varchar(255) NOT NULL,
-	`type` enum('HTTP-01','DNS-01') NOT NULL,
+	`challenge_type` enum('HTTP-01','DNS-01') NOT NULL,
 	`authorization` varchar(255) NOT NULL,
 	`status` enum('waiting','pending','verified','failed') NOT NULL,
 	`expires_at` bigint NOT NULL,
@@ -420,7 +436,7 @@ CREATE TABLE `gateways` (
 	`k8s_service_name` varchar(255) NOT NULL,
 	`region` varchar(255) NOT NULL,
 	`image` varchar(255) NOT NULL,
-	`health` enum('paused','healthy','unhealthy'),
+	`health` enum('unknown','paused','healthy','unhealthy') NOT NULL DEFAULT 'unknown',
 	`replicas` int NOT NULL,
 	CONSTRAINT `gateways_id` PRIMARY KEY(`id`)
 );
@@ -472,7 +488,6 @@ CREATE INDEX `pending_migration_id_idx` ON `keys` (`pending_migration_id`);
 CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
-CREATE INDEX `deleted_at_idx` ON `keys` (`deleted_at_m`);
 CREATE INDEX `name_idx` ON `ratelimits` (`name`);
 CREATE INDEX `workspace_id_idx` ON `audit_log` (`workspace_id`);
 CREATE INDEX `bucket_id_idx` ON `audit_log` (`bucket_id`);

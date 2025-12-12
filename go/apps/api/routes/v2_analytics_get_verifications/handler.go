@@ -30,18 +30,18 @@ type ResponseData = openapi.V2AnalyticsGetVerificationsResponseData
 var (
 	tableAliases = map[string]string{
 		"key_verifications_v1":            "default.key_verifications_raw_v2",
-		"key_verifications_per_minute_v1": "default.key_verifications_per_minute_v2",
-		"key_verifications_per_hour_v1":   "default.key_verifications_per_hour_v2",
-		"key_verifications_per_day_v1":    "default.key_verifications_per_day_v2",
-		"key_verifications_per_month_v1":  "default.key_verifications_per_month_v2",
+		"key_verifications_per_minute_v1": "default.key_verifications_per_minute_v3",
+		"key_verifications_per_hour_v1":   "default.key_verifications_per_hour_v3",
+		"key_verifications_per_day_v1":    "default.key_verifications_per_day_v3",
+		"key_verifications_per_month_v1":  "default.key_verifications_per_month_v3",
 	}
 
 	allowedTables = []string{
 		"default.key_verifications_raw_v2",
-		"default.key_verifications_per_minute_v2",
-		"default.key_verifications_per_hour_v2",
-		"default.key_verifications_per_day_v2",
-		"default.key_verifications_per_month_v2",
+		"default.key_verifications_per_minute_v3",
+		"default.key_verifications_per_hour_v3",
+		"default.key_verifications_per_day_v3",
+		"default.key_verifications_per_month_v3",
 	}
 )
 
@@ -67,8 +67,6 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/analytics.getVerifications")
-
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
 	if err != nil {
@@ -93,19 +91,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	parser := chquery.NewParser(chquery.Config{
-		WorkspaceID:     auth.AuthorizedWorkspaceID,
-		Limit:           int(settings.MaxQueryResultRows),
-		SecurityFilters: securityFilters,
-		TableAliases:    tableAliases,
-		AllowedTables:   allowedTables,
+		WorkspaceID:       auth.AuthorizedWorkspaceID,
+		Limit:             int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows),
+		SecurityFilters:   securityFilters,
+		TableAliases:      tableAliases,
+		AllowedTables:     allowedTables,
+		MaxQueryRangeDays: settings.Quotas.LogsRetentionDays,
+		Logger:            h.Logger,
 	})
 
 	parsedQuery, err := parser.Parse(ctx, req.Query)
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Public("Invalid SQL query"),
-		)
+		return err
 	}
 
 	// Now we build permission checks based on the key_space_id(s) one specified in the query itself
@@ -121,9 +118,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	keySpaceIds := parser.ExtractColumn("key_space_id")
 	if len(keySpaceIds) > 0 {
-		apiPermissions, err := h.buildAPIPermissionsFromKeySpaces(ctx, auth, keySpaceIds)
-		if err != nil {
-			return err
+		apiPermissions, permErr := h.buildAPIPermissionsFromKeySpaces(ctx, auth, keySpaceIds)
+		if permErr != nil {
+			return permErr
 		}
 		permissionChecks = append(permissionChecks, rbac.And(apiPermissions...))
 	}

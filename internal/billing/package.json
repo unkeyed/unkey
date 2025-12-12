@@ -11,15 +11,15 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@types/node": "^20.14.9",
+    "@types/node": "20.14.9",
     "@unkey/tsconfig": "workspace:*",
-    "typescript": "^5.5.3",
-    "vitest": "^1.6.1"
+    "typescript": "5.5.3",
+    "vitest": "1.6.1"
   },
   "dependencies": {
-    "@mendable/firecrawl-js": "^1.5.2",
+    "@mendable/firecrawl-js": "1.5.2",
     "@unkey/error": "workspace:^",
-    "ai": "^3.0.23",
-    "zod": "^3.23.5"
+    "ai": "3.0.23",
+    "zod": "3.23.5"
   }
 }

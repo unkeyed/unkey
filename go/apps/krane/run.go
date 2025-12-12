@@ -7,12 +7,18 @@ import (
 	"net/http"
 	"time"
 
+	k8s "k8s.io/client-go/kubernetes"
+
 	"github.com/unkeyed/unkey/go/apps/krane/backend/docker"
 	"github.com/unkeyed/unkey/go/apps/krane/backend/kubernetes"
+	"github.com/unkeyed/unkey/go/apps/krane/secrets"
+	"github.com/unkeyed/unkey/go/apps/krane/secrets/token"
 	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
+	"github.com/unkeyed/unkey/go/pkg/vault"
+	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 	pkgversion "github.com/unkeyed/unkey/go/pkg/version"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -63,34 +69,71 @@ func Run(ctx context.Context, cfg Config) error {
 		logger = logger.With(slog.String("version", pkgversion.Version))
 	}
 
+	// Create vault service for secrets decryption
+	var vaultSvc *vault.Service
+	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3.URL != "" {
+		vaultStorage, vaultStorageErr := storage.NewS3(storage.S3Config{
+			Logger:            logger,
+			S3URL:             cfg.VaultS3.URL,
+			S3Bucket:          cfg.VaultS3.Bucket,
+			S3AccessKeyID:     cfg.VaultS3.AccessKeyID,
+			S3AccessKeySecret: cfg.VaultS3.AccessKeySecret,
+		})
+		if vaultStorageErr != nil {
+			return fmt.Errorf("unable to create vault storage: %w", vaultStorageErr)
+		}
+
+		vaultSvc, err = vault.New(vault.Config{
+			Logger:     logger,
+			Storage:    vaultStorage,
+			MasterKeys: cfg.VaultMasterKeys,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create vault service: %w", err)
+		}
+		logger.Info("Vault service initialized", "bucket", cfg.VaultS3.Bucket)
+	}
+
 	// Create the connect handler
 	mux := http.NewServeMux()
 
-	var svc kranev1connect.DeploymentServiceHandler
+	var svc Svc
+	var tokenValidator token.Validator
+	var k8sClientset k8s.Interface
 	switch cfg.Backend {
 	case Kubernetes:
 		{
-
-			svc, err = kubernetes.New(kubernetes.Config{
+			k8sBackend, k8sErr := kubernetes.New(kubernetes.Config{
 				Logger:                logger,
+				Region:                cfg.Region,
 				DeploymentEvictionTTL: cfg.DeploymentEvictionTTL,
 			})
-			if err != nil {
-				return fmt.Errorf("unable to init kubernetes backend: %w", err)
+			if k8sErr != nil {
+				return fmt.Errorf("unable to init kubernetes backend: %w", k8sErr)
 			}
-			break
+			svc = k8sBackend
+			k8sClientset = k8sBackend.GetClientset()
+
+			// For K8s backend, use K8s service account token validator
+			tokenValidator = token.NewK8sValidator(token.K8sValidatorConfig{
+				Clientset: k8sClientset,
+			})
+			logger.Info("Using K8s service account token validator")
 		}
 	case Docker:
 		{
-			svc, err = docker.New(logger, docker.Config{
+			dockerBackend, dockerErr := docker.New(logger, docker.Config{
 				SocketPath:       cfg.DockerSocketPath,
 				RegistryURL:      cfg.RegistryURL,
 				RegistryUsername: cfg.RegistryUsername,
 				RegistryPassword: cfg.RegistryPassword,
+				Region:           cfg.Region,
+				Vault:            vaultSvc,
 			})
-			if err != nil {
-				return fmt.Errorf("unable to init docker backend: %w", err)
+			if dockerErr != nil {
+				return fmt.Errorf("unable to init docker backend: %w", dockerErr)
 			}
+			svc = dockerBackend
 		}
 	default:
 		return fmt.Errorf("unsupported backend: %s", cfg.Backend)
@@ -98,6 +141,20 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create the service handlers with interceptors
 	mux.Handle(kranev1connect.NewDeploymentServiceHandler(svc))
+	mux.Handle(kranev1connect.NewGatewayServiceHandler(svc))
+
+	// Register secrets service if vault is configured
+	if vaultSvc != nil && tokenValidator != nil {
+		secretsSvc := secrets.New(secrets.Config{
+			Logger:         logger,
+			Vault:          vaultSvc,
+			TokenValidator: tokenValidator,
+		})
+		mux.Handle(kranev1connect.NewSecretsServiceHandler(secretsSvc))
+		logger.Info("Secrets service registered")
+	} else {
+		logger.Info("Secrets service not enabled (missing vault or token validator configuration)")
+	}
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)
@@ -151,4 +208,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	logger.Info("krane server shut down successfully")
 	return nil
+}
+
+type Svc interface {
+	kranev1connect.DeploymentServiceHandler
+	kranev1connect.GatewayServiceHandler
 }

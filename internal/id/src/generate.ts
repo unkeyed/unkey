@@ -29,6 +29,7 @@ const prefixes = {
   auditLog: "log",
   fake: "fake",
   environment: "env",
+  environmentVariable: "evr",
   project: "proj",
 } as const;
 

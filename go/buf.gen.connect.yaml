@@ -9,6 +9,6 @@ plugins:
     out: gen/proto
     opt: paths=source_relative
   - remote: buf.build/bufbuild/es:v2.8.0
-    out: ../internal/proto/generated
+    out: ../apps/dashboard/gen/proto
     opt: target=ts
     include_imports: true

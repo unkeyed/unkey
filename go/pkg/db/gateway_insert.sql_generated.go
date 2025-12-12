@@ -11,63 +11,67 @@ import (
 
 const insertGateway = `-- name: InsertGateway :exec
 INSERT INTO gateways (
-id,
-workspace_id,
-k8s_service_name,
-region,
-image,
-health,
-replicas
-
-)
-VALUES (
-?,
-?,
-?,
-?,
-?,
-?,
-?
-
-)
+    id,
+    workspace_id,
+    environment_id,
+    k8s_service_name,
+    region,
+    image,
+    health,
+    replicas
+) VALUES (
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?
+) ON DUPLICATE KEY UPDATE
+    health = VALUES(health),
+    replicas = VALUES(replicas)
 `
 
 type InsertGatewayParams struct {
-	ID             string             `db:"id"`
-	WorkspaceID    string             `db:"workspace_id"`
-	K8sServiceName string             `db:"k8s_service_name"`
-	Region         string             `db:"region"`
-	Image          string             `db:"image"`
-	Health         NullGatewaysHealth `db:"health"`
-	Replicas       int32              `db:"replicas"`
+	ID             string         `db:"id"`
+	WorkspaceID    string         `db:"workspace_id"`
+	EnvironmentID  string         `db:"environment_id"`
+	K8sServiceName string         `db:"k8s_service_name"`
+	Region         string         `db:"region"`
+	Image          string         `db:"image"`
+	Health         GatewaysHealth `db:"health"`
+	Replicas       int32          `db:"replicas"`
 }
 
 // InsertGateway
 //
 //	INSERT INTO gateways (
-//	id,
-//	workspace_id,
-//	k8s_service_name,
-//	region,
-//	image,
-//	health,
-//	replicas
-//
-//	)
-//	VALUES (
-//	?,
-//	?,
-//	?,
-//	?,
-//	?,
-//	?,
-//	?
-//
-//	)
+//	    id,
+//	    workspace_id,
+//	    environment_id,
+//	    k8s_service_name,
+//	    region,
+//	    image,
+//	    health,
+//	    replicas
+//	) VALUES (
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?
+//	) ON DUPLICATE KEY UPDATE
+//	    health = VALUES(health),
+//	    replicas = VALUES(replicas)
 func (q *Queries) InsertGateway(ctx context.Context, db DBTX, arg InsertGatewayParams) error {
 	_, err := db.ExecContext(ctx, insertGateway,
 		arg.ID,
 		arg.WorkspaceID,
+		arg.EnvironmentID,
 		arg.K8sServiceName,
 		arg.Region,
 		arg.Image,

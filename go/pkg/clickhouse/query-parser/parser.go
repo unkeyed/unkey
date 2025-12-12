@@ -7,13 +7,18 @@ import (
 	clickhouse "github.com/AfterShip/clickhouse-sql-parser/parser"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 // NewParser creates a new parser
 func NewParser(config Config) *Parser {
+	if config.Logger == nil {
+		config.Logger = logging.NewNoop()
+	}
 	return &Parser{
 		stmt:     nil,
 		config:   config,
+		logger:   config.Logger,
 		cteNames: make(map[string]bool),
 	}
 }
@@ -52,23 +57,20 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 	p.buildCTERegistry()
 
 	// Inject security filters
-	if err := p.injectSecurityFilters(); err != nil {
-		return "", err
-	}
-
+	p.injectSecurityFilters()
 	if err := p.rewriteTables(); err != nil {
 		return "", err
 	}
 
-	if err := p.injectWorkspaceFilter(); err != nil {
-		return "", err
-	}
+	p.injectWorkspaceFilter()
 
-	if err := p.enforceLimit(); err != nil {
-		return "", err
-	}
+	p.enforceLimit()
 
 	if err := p.validateFunctions(); err != nil {
+		return "", err
+	}
+
+	if err := p.validateTimeRange(); err != nil {
 		return "", err
 	}
 

@@ -78,7 +78,6 @@ export async function updateCookie(
   }
 
   if (reason) {
-    console.error("Session refresh failed:", reason);
     await deleteCookie(cookieName);
   }
 }
@@ -122,7 +121,9 @@ export async function setSessionCookie(params: {
  * This cookie is used for auto-selection on next login
  * @param params
  */
-export async function setLastUsedOrgCookie(params: { orgId: string }): Promise<void> {
+export async function setLastUsedOrgCookie(params: {
+  orgId: string;
+}): Promise<void> {
   const { orgId } = params;
 
   await setCookie({

@@ -13,6 +13,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/uid"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -50,6 +51,26 @@ func (s *Service) CreateDeployment(
 		}
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to lookup environment: %w", err))
+	}
+
+	// Fetch environment variables and build secrets blob
+	envVars, err := db.Query.FindEnvironmentVariablesByEnvironmentId(ctx, s.db.RO(), env.ID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to fetch environment variables: %w", err))
+	}
+
+	secretsConfig := &ctrlv1.SecretsConfig{
+		Secrets: make(map[string]string, len(envVars)),
+	}
+	for _, ev := range envVars {
+		secretsConfig.Secrets[ev.Key] = ev.Value
+	}
+
+	secretsBlob, err := protojson.Marshal(secretsConfig)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to marshal secrets config: %w", err))
 	}
 
 	// Get git branch name for the deployment
@@ -142,6 +163,8 @@ func (s *Service) CreateDeployment(
 		"memory": 2048
 		}`),
 		OpenapiSpec:              sql.NullString{String: "", Valid: false},
+		GatewayConfig:            env.GatewayConfig,
+		SecretsConfig:            secretsBlob,
 		Status:                   db.DeploymentsStatusPending,
 		CreatedAt:                now,
 		UpdatedAt:                sql.NullInt64{Int64: now, Valid: true},

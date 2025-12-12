@@ -24,6 +24,17 @@ message DeploymentRequest {
   uint32 replicas = 4;
   uint32 cpu_millicores = 5;
   uint64 memory_size_mib = 6;
+
+  // Environment slug (e.g., production, staging).
+  string environment_slug = 7;
+
+  // Encrypted secrets blob to be decrypted at runtime by unkey-env.
+  // This is set as UNKEY_SECRETS_BLOB env var in the container.
+  // unkey-env calls krane's DecryptSecretsBlob RPC to decrypt.
+  bytes encrypted_secrets_blob = 8;
+
+  // Environment ID for secrets decryption (keyring identifier).
+  string environment_id = 9;
 }
 
 message CreateDeploymentRequest {

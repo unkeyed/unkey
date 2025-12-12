@@ -12,6 +12,7 @@ export const useCreateKey = (
   const key = trpc.key.create.useMutation({
     onSuccess(data) {
       trpcUtils.api.keys.list.invalidate();
+      trpcUtils.api.overview.keyCount.invalidate();
       onSuccess(data);
     },
     onError(err) {

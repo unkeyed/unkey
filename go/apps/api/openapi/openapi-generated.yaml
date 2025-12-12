@@ -345,7 +345,7 @@ components:
                     example: key_1234abcd
                 externalId:
                     type: string
-                    minLength: 3
+                    minLength: 1
                     description: |
                         Filter keys by external ID to find keys for a specific user or entity.
                         Must exactly match the externalId set during key creation.
@@ -393,7 +393,7 @@ components:
             properties:
                 externalId:
                     type: string
-                    minLength: 3
+                    minLength: 1
                     maxLength: 255
                     pattern: "^[a-zA-Z0-9_.-]+$"
                     description: |
@@ -466,7 +466,7 @@ components:
             properties:
                 identity:
                     type: string
-                    minLength: 3
+                    minLength: 1
                     description: The ID of the identity to delete. This can be either the externalId (from your own system that was used during identity creation) or the identityId (the internal ID returned by the identity service).
                     example: user_123
             additionalProperties: false
@@ -485,7 +485,7 @@ components:
             properties:
                 identity:
                     type: string
-                    minLength: 3
+                    minLength: 1
                     description: The ID of the identity to retrieve. This can be either the externalId (from your own system that was used during identity creation) or the identityId (the internal ID returned by the identity service).
                     example: user_abc123
             additionalProperties: false
@@ -535,7 +535,7 @@ components:
             properties:
                 identity:
                     type: string
-                    minLength: 3
+                    minLength: 1
                     description: The ID of the identity to update. Accepts either the externalId (your system-generated identifier) or the identityId (internal identifier returned by the identity service).
                     example: user_123
                 meta:
@@ -3776,7 +3776,6 @@ paths:
             summary: Query key verification data
             tags:
                 - analytics
-            x-hidden: true
             x-speakeasy-name-override: getVerifications
     /v2/apis.createApi:
         post:
@@ -5446,7 +5445,7 @@ paths:
                 - `api.*.verify_key` (verify keys in any API)
                 - `api.<api_id>.verify_key` (verify keys in specific API)
 
-                If you are getting a NOT_FOUND error, ensure your root key has the required verify key permissions.
+                **Note**: If your root key has no verify permissions at all, you will receive a `403 Forbidden` error. If your root key has verify permissions for a different API than the key you're verifying, you will receive a `200` response with `code: NOT_FOUND` to avoid leaking key existence.
             operationId: verifyKey
             requestBody:
                 content:
@@ -5500,7 +5499,8 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden
+                    description: |
+                        Forbidden. Returned when the root key has no verify permissions at all (neither `api.*.verify_key` nor `api.<api_id>.verify_key` for any API).
                 "404":
                     content:
                         application/json:

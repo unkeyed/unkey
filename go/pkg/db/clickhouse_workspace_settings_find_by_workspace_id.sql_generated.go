@@ -10,29 +10,47 @@ import (
 )
 
 const findClickhouseWorkspaceSettingsByWorkspaceID = `-- name: FindClickhouseWorkspaceSettingsByWorkspaceID :one
-SELECT workspace_id, username, password_encrypted, quota_duration_seconds, max_queries_per_window, max_execution_time_per_window, max_query_execution_time, max_query_memory_bytes, max_query_result_rows, created_at, updated_at FROM ` + "`" + `clickhouse_workspace_settings` + "`" + `
-WHERE workspace_id = ?
+SELECT
+    c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
+    q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
+FROM ` + "`" + `clickhouse_workspace_settings` + "`" + ` c
+JOIN ` + "`" + `quota` + "`" + ` q ON c.workspace_id = q.workspace_id
+WHERE c.workspace_id = ?
 `
+
+type FindClickhouseWorkspaceSettingsByWorkspaceIDRow struct {
+	ClickhouseWorkspaceSetting ClickhouseWorkspaceSetting `db:"clickhouse_workspace_setting"`
+	Quotas                     Quotum                     `db:"quotum"`
+}
 
 // FindClickhouseWorkspaceSettingsByWorkspaceID
 //
-//	SELECT workspace_id, username, password_encrypted, quota_duration_seconds, max_queries_per_window, max_execution_time_per_window, max_query_execution_time, max_query_memory_bytes, max_query_result_rows, created_at, updated_at FROM `clickhouse_workspace_settings`
-//	WHERE workspace_id = ?
-func (q *Queries) FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (ClickhouseWorkspaceSetting, error) {
+//	SELECT
+//	    c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
+//	    q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
+//	FROM `clickhouse_workspace_settings` c
+//	JOIN `quota` q ON c.workspace_id = q.workspace_id
+//	WHERE c.workspace_id = ?
+func (q *Queries) FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
 	row := db.QueryRowContext(ctx, findClickhouseWorkspaceSettingsByWorkspaceID, workspaceID)
-	var i ClickhouseWorkspaceSetting
+	var i FindClickhouseWorkspaceSettingsByWorkspaceIDRow
 	err := row.Scan(
-		&i.WorkspaceID,
-		&i.Username,
-		&i.PasswordEncrypted,
-		&i.QuotaDurationSeconds,
-		&i.MaxQueriesPerWindow,
-		&i.MaxExecutionTimePerWindow,
-		&i.MaxQueryExecutionTime,
-		&i.MaxQueryMemoryBytes,
-		&i.MaxQueryResultRows,
-		&i.CreatedAt,
-		&i.UpdatedAt,
+		&i.ClickhouseWorkspaceSetting.WorkspaceID,
+		&i.ClickhouseWorkspaceSetting.Username,
+		&i.ClickhouseWorkspaceSetting.PasswordEncrypted,
+		&i.ClickhouseWorkspaceSetting.QuotaDurationSeconds,
+		&i.ClickhouseWorkspaceSetting.MaxQueriesPerWindow,
+		&i.ClickhouseWorkspaceSetting.MaxExecutionTimePerWindow,
+		&i.ClickhouseWorkspaceSetting.MaxQueryExecutionTime,
+		&i.ClickhouseWorkspaceSetting.MaxQueryMemoryBytes,
+		&i.ClickhouseWorkspaceSetting.MaxQueryResultRows,
+		&i.ClickhouseWorkspaceSetting.CreatedAt,
+		&i.ClickhouseWorkspaceSetting.UpdatedAt,
+		&i.Quotas.WorkspaceID,
+		&i.Quotas.RequestsPerMonth,
+		&i.Quotas.LogsRetentionDays,
+		&i.Quotas.AuditLogsRetentionDays,
+		&i.Quotas.Team,
 	)
 	return i, err
 }

@@ -116,6 +116,7 @@ export const refillSchema = z.discriminatedUnion("interval", [
     refillDay: z.undefined().optional(),
   }),
 ]);
+
 export const ratelimitItemSchema = z.object({
   id: z.string().nullish(), // Will be used only for updating case
   name: z
@@ -128,7 +129,7 @@ export const ratelimitItemSchema = z.object({
         message: issue.code === "invalid_type" ? "Duration must be greater than 0" : defaultError,
       }),
     })
-    .positive({ message: "Refill interval must be greater than 0" }),
+    .min(1000, { message: "Refill interval must be at least 1 second (1000ms)" }),
   limit: z.coerce
     .number({
       errorMap: (issue, { defaultError }) => ({

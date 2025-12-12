@@ -28,10 +28,10 @@ type GenerateAPIKeyOptions struct {
 
 // APIKey represents the generated API key components
 type APIKey struct {
-	ShortToken    string
-	LongToken     string
-	LongTokenHash string
-	Token         string
+	ShortToken    string `json:"shortToken"`
+	LongToken     string `json:"longToken"`
+	LongTokenHash string `json:"longTokenHash"`
+	Token         string `json:"token"`
 }
 
 // hashLongTokenToBytes hashes a long token using SHA256 and returns the bytes
@@ -58,6 +58,7 @@ func padStart(str string, length int, padChar string) string {
 func GenerateAPIKey(opts *GenerateAPIKeyOptions) (*APIKey, error) {
 	// Set default values if not provided
 	if opts == nil {
+		// nolint:exhaustruct
 		opts = &GenerateAPIKeyOptions{}
 	}
 	if opts.KeyPrefix == "" {
