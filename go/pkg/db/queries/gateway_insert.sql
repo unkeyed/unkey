@@ -1,5 +1,5 @@
--- name: InsertGateway :exec
-INSERT INTO gateways (
+-- name: InsertSentinel :exec
+INSERT INTO sentinels (
     id,
     workspace_id,
     environment_id,

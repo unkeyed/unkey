@@ -8,9 +8,9 @@ import { SIGN_IN_URL } from "./lib/auth/types";
 export default async function middleware(req: NextRequest, _evt: NextFetchEvent) {
   const url = new URL(req.url);
 
-  // Special redirect for gateway.new
-  if (url.host === "gateway.new") {
-    return NextResponse.redirect("https://app.unkey.com/gateway-new");
+  // Special redirect for sentinel.new
+  if (url.host === "sentinel.new") {
+    return NextResponse.redirect("https://app.unkey.com/sentinel-new");
   }
 
   // Redirect /auth/join to /join to bypass auth layout
@@ -95,8 +95,8 @@ export const config = {
     "/authorization/(.*)",
     "/debug",
     "/debug/(.*)",
-    "/gateways",
-    "/gateways/(.*)",
+    "/sentinels",
+    "/sentinels/(.*)",
     "/new",
     "/new(.*)",
     "/overview",
@@ -112,7 +112,7 @@ export const config = {
     "/success",
     "/success/(.*)",
     "/auth/(.*)",
-    "/gateway-new",
+    "/sentinel-new",
     "/(api|trpc)(.*)",
     "/((?!.+\\.[\\w]+$|_next).*)",
     "/((?!_next/static|_next/image|images|favicon.ico|$).*)",

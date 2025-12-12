@@ -31,7 +31,7 @@ func Register(srv *zen.Server, svc *Services) {
 		},
 	)
 
-	// Catches all requests and routes them to the gateway or some other region.
+	// Catches all requests and routes them to the sentinel or some other region.
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&proxy.Handler{

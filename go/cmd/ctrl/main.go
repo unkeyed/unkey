@@ -114,8 +114,8 @@ var Cmd = &cli.Command{
 		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
 			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
 
-		// The image new gateways get deployed with
-		cli.String("gateway-image", "The image new gateways get deployed with", cli.Default("ghcr.io/unkeyed/unkey:latest"), cli.EnvVar("UNKEY_GATEWAY_IMAGE")),
+		// The image new sentinels get deployed with
+		cli.String("sentinel-image", "The image new sentinels get deployed with", cli.Default("ghcr.io/unkeyed/unkey:latest"), cli.EnvVar("UNKEY_GATEWAY_IMAGE")),
 	},
 	Action: action,
 }
@@ -215,8 +215,8 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Common
 		Clock: clock.New(),
 
-		// Gateway configuration
-		GatewayImage: cmd.String("gateway-image"),
+		// Sentinel configuration
+		SentinelImage: cmd.String("sentinel-image"),
 	}
 
 	err := config.Validate()

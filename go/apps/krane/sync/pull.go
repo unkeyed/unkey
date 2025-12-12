@@ -29,8 +29,8 @@ func (s *SyncEngine) pull() error {
 		case *ctrlv1.InfraEvent_DeploymentEvent:
 			s.deploymentcontroller.BufferEvent(x.DeploymentEvent)
 
-		case *ctrlv1.InfraEvent_GatewayEvent:
-			s.gatewaycontroller.BufferEvent(x.GatewayEvent)
+		case *ctrlv1.InfraEvent_SentinelEvent:
+			s.sentinelcontroller.BufferEvent(x.SentinelEvent)
 
 		default:
 			logger.Warn("Unknown event type", "event", x)

@@ -15,7 +15,7 @@ var _ challenge.Provider = (*HTTPProvider)(nil)
 var _ challenge.ProviderTimeout = (*HTTPProvider)(nil)
 
 // HTTPProvider implements the lego challenge.Provider interface for HTTP-01 challenges
-// It stores challenges in the database where the gateway can retrieve them
+// It stores challenges in the database where the sentinel can retrieve them
 type HTTPProvider struct {
 	db     db.Database
 	logger logging.Logger
@@ -34,8 +34,8 @@ func NewHTTPProvider(cfg HTTPProviderConfig) *HTTPProvider {
 	}
 }
 
-// Present stores the challenge token in the database for the gateway to serve
-// The gateway will intercept requests to /.well-known/acme-challenge/{token}
+// Present stores the challenge token in the database for the sentinel to serve
+// The sentinel will intercept requests to /.well-known/acme-challenge/{token}
 // and respond with the keyAuth value
 func (p *HTTPProvider) Present(domain, token, keyAuth string) error {
 	ctx := context.Background()
@@ -69,7 +69,7 @@ func (p *HTTPProvider) CleanUp(domain, token, keyAuth string) error {
 		return fmt.Errorf("failed to find domain %s during cleanup: %w", domain, err)
 	}
 
-	// Clear the token and authorization so the gateway stops serving the challenge
+	// Clear the token and authorization so the sentinel stops serving the challenge
 	// Don't change the status - it should remain as set by the certificate workflow
 	err = db.Query.ClearAcmeChallengeTokens(ctx, p.db.RW(), db.ClearAcmeChallengeTokensParams{
 		Token:         "", // Clear token

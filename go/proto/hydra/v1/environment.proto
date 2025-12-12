@@ -18,7 +18,7 @@ service EnvironmentService {
 message CreateEnvironmentRequest {
     string workspace_id = 1;
   string environment_id = 2;
-  message Gateway {
+  message Sentinel {
     string id = 1;
 
     string image = 2;
@@ -28,7 +28,7 @@ message CreateEnvironmentRequest {
     uint64 memory_size_mib = 5;
 
   }
-  Gateway gateway = 3;
+  Sentinel gateway = 3;
 
 }
 

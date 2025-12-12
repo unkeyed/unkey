@@ -19,21 +19,21 @@ INSERT INTO environments (
     description,
     created_at,
     updated_at,
-    gateway_config
+    sentinel_config
 ) VALUES (
     ?, ?, ?, ?, ?, ?, ?, ?
 )
 `
 
 type InsertEnvironmentParams struct {
-	ID            string        `db:"id"`
-	WorkspaceID   string        `db:"workspace_id"`
-	ProjectID     string        `db:"project_id"`
-	Slug          string        `db:"slug"`
-	Description   string        `db:"description"`
-	CreatedAt     int64         `db:"created_at"`
-	UpdatedAt     sql.NullInt64 `db:"updated_at"`
-	GatewayConfig []byte        `db:"gateway_config"`
+	ID             string        `db:"id"`
+	WorkspaceID    string        `db:"workspace_id"`
+	ProjectID      string        `db:"project_id"`
+	Slug           string        `db:"slug"`
+	Description    string        `db:"description"`
+	CreatedAt      int64         `db:"created_at"`
+	UpdatedAt      sql.NullInt64 `db:"updated_at"`
+	SentinelConfig []byte        `db:"sentinel_config"`
 }
 
 // InsertEnvironment
@@ -46,7 +46,7 @@ type InsertEnvironmentParams struct {
 //	    description,
 //	    created_at,
 //	    updated_at,
-//	    gateway_config
+//	    sentinel_config
 //	) VALUES (
 //	    ?, ?, ?, ?, ?, ?, ?, ?
 //	)
@@ -59,7 +59,7 @@ func (q *Queries) InsertEnvironment(ctx context.Context, db DBTX, arg InsertEnvi
 		arg.Description,
 		arg.CreatedAt,
 		arg.UpdatedAt,
-		arg.GatewayConfig,
+		arg.SentinelConfig,
 	)
 	return err
 }

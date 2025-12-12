@@ -10,8 +10,8 @@ func (s *SyncEngine) route(infraEvent *ctrlv1.InfraEvent) {
 	case *ctrlv1.InfraEvent_DeploymentEvent:
 		s.deploymentcontroller.BufferEvent(e.DeploymentEvent)
 
-	case *ctrlv1.InfraEvent_GatewayEvent:
-		s.gatewaycontroller.BufferEvent(e.GatewayEvent)
+	case *ctrlv1.InfraEvent_SentinelEvent:
+		s.sentinelcontroller.BufferEvent(e.SentinelEvent)
 
 	default:
 		s.logger.Warn("Unknown event type", "event", e)

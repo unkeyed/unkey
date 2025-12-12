@@ -2,14 +2,14 @@ import { Layers3 } from "@unkey/icons";
 import { CardFooter } from "./components/card-footer";
 import { CardHeader } from "./components/card-header";
 import { NodeWrapper } from "./node-wrapper/node-wrapper";
-import type { GatewayNode as GatewayNodeType, RegionNode as RegionNodeType } from "./types";
+import type { RegionNode as RegionNodeType, SentinelNode as SentinelNodeType } from "./types";
 
-type GatewayNodeProps = {
-  node: GatewayNodeType;
+type SentinelNodeProps = {
+  node: SentinelNodeType;
   flagCode: RegionNodeType["metadata"]["flagCode"];
 };
 
-export function GatewayNode({ node, flagCode }: GatewayNodeProps) {
+export function SentinelNode({ node, flagCode }: SentinelNodeProps) {
   const { rps, cpu, memory, health } = node.metadata;
 
   return (

@@ -11,12 +11,12 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-// Service defines the interface for proxying requests to gateways or remote NLBs.
+// Service defines the interface for proxying requests to sentinels or remote NLBs.
 type Service interface {
-	// ForwardToGateway forwards a request to a local gateway service (HTTP)
-	// Adds X-Unkey-Deployment-Id header for the gateway to route to the correct deployment
+	// ForwardToSentinel forwards a request to a local sentinel service (HTTP)
+	// Adds X-Unkey-Deployment-Id header for the sentinel to route to the correct deployment
 	// Request start time is retrieved from context
-	ForwardToGateway(ctx context.Context, sess *zen.Session, gateway *db.Gateway, deploymentID string) error
+	ForwardToSentinel(ctx context.Context, sess *zen.Session, sentinel *db.Sentinel, deploymentID string) error
 
 	// ForwardToRegion forwards a request to a remote region (HTTPS)
 	// Keeps the original hostname so the remote ingress can do TLS termination and routing

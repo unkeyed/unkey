@@ -53,9 +53,9 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 			}
 			resp.Header.Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
 
-			if resp.StatusCode >= 500 && resp.Header.Get("X-Unkey-Error-Source") == "gateway" {
-				if gatewayTime := resp.Header.Get("X-Unkey-Gateway-Time"); gatewayTime != "" {
-					sess.ResponseWriter().Header().Set("X-Unkey-Gateway-Time", gatewayTime)
+			if resp.StatusCode >= 500 && resp.Header.Get("X-Unkey-Error-Source") == "sentinel" {
+				if sentinelTime := resp.Header.Get("X-Unkey-Sentinel-Time"); sentinelTime != "" {
+					sess.ResponseWriter().Header().Set("X-Unkey-Sentinel-Time", sentinelTime)
 				}
 				if instanceTime := resp.Header.Get("X-Unkey-Instance-Time"); instanceTime != "" {
 					sess.ResponseWriter().Header().Set("X-Unkey-Instance-Time", instanceTime)
@@ -72,7 +72,7 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 				}
 
 				return fault.New(
-					fmt.Sprintf("gateway returned %d", resp.StatusCode),
+					fmt.Sprintf("sentinel returned %d", resp.StatusCode),
 					fault.Code(urn),
 					fault.Public(http.StatusText(resp.StatusCode)),
 				)

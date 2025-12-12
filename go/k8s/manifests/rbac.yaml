@@ -42,7 +42,7 @@ rules:
     resources: ["statefulsets"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
-  # Gateway CRD management
+  # Sentinel CRD management
   - apiGroups: ["kubernetes.unkey.com"]
     resources: ["gateways"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

@@ -50,7 +50,7 @@ sequenceDiagram
 Krane agents act as autonomous controllers that reconcile desired state with actual Kubernetes resources in their respective regions.
 Each kubernetes runs a single Krane agent.
 
-This diagram shows the control loop for deployments only. Gateways are handled in the same way, but have their own buffers and controllers.
+This diagram shows the control loop for deployments only. Sentinels are handled in the same way, but have their own buffers and controllers.
 
 <Mermaid
   chart="
@@ -86,7 +86,7 @@ graph TB
 
 **Sync Engine**: Maintains persistent streaming connection using HTTP/2 with gRPC for efficient multiplexing and automatic reconnection.
 
-**Dual Controllers**: Separate deployment and gateway controllers for each infra type.
+**Dual Controllers**: Separate deployment and sentinel controllers for each infra type.
 
 **Buffered Updates**: Status updates are buffered in memory to smooth over spikes in traffic and reduce the load on the control plane.
 
@@ -166,4 +166,4 @@ The `deployment_topology` table enables multi-region deployments with independen
 
 The `instances` table is a representation of the current state. We only write to it in response to events from kubernetes. For example, if kubernetes deletes a pod, we reflect that in this table.
 
-The `gateways` table is a mix of desired and actual state. Because we do not care about individual pods, we only need to configure the desired cpu, memory and replicas. We update the actual state columns from kubernetes events.
+The `sentinels` table is a mix of desired and actual state. Because we do not care about individual pods, we only need to configure the desired cpu, memory and replicas. We update the actual state columns from kubernetes events.

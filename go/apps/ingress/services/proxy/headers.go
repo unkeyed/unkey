@@ -9,11 +9,11 @@ const (
 	HeaderRequestID   = "X-Unkey-Request-Id"      // Request ID for tracing
 	HeaderIngressTime = "X-Unkey-Ingress-Time-Ms" // Time spent in this ingress (ms)
 
-	// Headers set ONLY on requests to downstream services (gateway/remote ingress)
+	// Headers set ONLY on requests to downstream services (sentinel/remote ingress)
 	// These provide additional context about the forwarding chain
 	HeaderParentIngressID = "X-Unkey-Parent-Ingress-Id" // Ingress that forwarded this request
 	HeaderParentRequestID = "X-Unkey-Parent-Request-Id" // Original request ID from parent ingress
 	HeaderIngressHops     = "X-Unkey-Ingress-Hops"      // Number of ingress hops (loop prevention)
-	HeaderDeploymentID    = "X-Deployment-Id"           // Deployment ID for local gateway
+	HeaderDeploymentID    = "X-Deployment-Id"           // Deployment ID for local sentinel
 	HeaderForwardedProto  = "X-Forwarded-Proto"         // Original protocol (https)
 )

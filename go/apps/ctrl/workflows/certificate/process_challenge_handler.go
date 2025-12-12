@@ -34,7 +34,7 @@ type EncryptedCertificate struct {
 // 2. Claim challenge - Acquire exclusive lock on the domain challenge
 // 3. Setup ACME client - Get or create ACME account (TODO: not yet implemented)
 // 4. Obtain certificate - Request certificate from CA (TODO: not yet implemented)
-// 5. Persist certificate - Store in DB for gateway access
+// 5. Persist certificate - Store in DB for sentinel access
 // 6. Mark verified - Update challenge status with expiry time
 //
 // Returns status "success" if certificate was issued, "failed" if the ACME challenge

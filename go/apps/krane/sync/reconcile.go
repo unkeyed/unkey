@@ -2,7 +2,6 @@ package sync
 
 import (
 	"context"
-	"encoding/json"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
@@ -10,25 +9,23 @@ import (
 
 func (s *SyncEngine) Reconcile(ctx context.Context) error {
 
-	s.logger.Info("starting reconciliation for gateways")
-	gateways := 0
-	for gatewayID := range s.gatewaycontroller.GetRunningGatewayIDs(ctx) {
-		gateways++
-		e, err := s.reconcileGatewayCircuitBreaker.Do(ctx, func(ctx context.Context) (*connect.Response[ctrlv1.GatewayEvent], error) {
-			return s.ctrl.GetDesiredGatewayState(ctx, connect.NewRequest(&ctrlv1.GetDesiredGatewayStateRequest{
-				GatewayId: gatewayID,
+	s.logger.Info("starting reconciliation for sentinels")
+	sentinels := 0
+	for sentinelID := range s.sentinelcontroller.GetRunningSentinelIDs(ctx) {
+		sentinels++
+		e, err := s.reconcileSentinelCircuitBreaker.Do(ctx, func(ctx context.Context) (*connect.Response[ctrlv1.SentinelEvent], error) {
+			return s.ctrl.GetDesiredSentinelState(ctx, connect.NewRequest(&ctrlv1.GetDesiredSentinelStateRequest{
+				SentinelId: sentinelID,
 			}))
 		})
 		if err != nil {
 			s.logger.Error(err.Error())
 			continue
 		}
-		b, _ := json.Marshal(e.Msg)
 
-		s.logger.Info("reconciled gateway", "gateway_id", gatewayID, "event", string(b))
-		s.gatewaycontroller.BufferEvent(e.Msg)
+		s.sentinelcontroller.BufferEvent(e.Msg)
 	}
-	s.logger.Info("reconciled gateways", "count", gateways)
+	s.logger.Info("reconciled sentinels", "count", sentinels)
 
 	s.logger.Info("starting reconciliation for deployments")
 	deployments := 0

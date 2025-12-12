@@ -1,8 +1,8 @@
 import type {
   DeploymentNode,
-  GatewayNode,
   HealthStatus,
   RegionNode,
+  SentinelNode,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/[deploymentId]/components/unkey-flow/components/nodes/types";
 import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
@@ -114,14 +114,14 @@ export const generateDeploymentTree = t.procedure
               latency: `${(Math.random() * 5 + 1).toFixed(1)}ms`,
               health: regionHealth,
             },
-            children: Array.from({ length: instanceCount }, (_, i): GatewayNode => {
+            children: Array.from({ length: instanceCount }, (_, i): SentinelNode => {
               const instanceId = Math.random().toString(36).substring(2, 6);
 
               return {
                 id: `${regionId}-gw-${instanceId}-${i + 1}`,
                 label: `gw-${instanceId}`,
                 metadata: {
-                  type: "gateway",
+                  type: "sentinel",
                   description: "Instance replica",
                   instances: 1,
                   replicas: 2,

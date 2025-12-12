@@ -6,9 +6,9 @@
 
 // Package ctrl.v1 provides the Cluster service for multi-cluster deployment orchestration.
 //
-// The Cluster service enables a central control plane to coordinate deployments and gateways
+// The Cluster service enables a central control plane to coordinate deployments and sentinels
 // across multiple Kubernetes clusters. Each cluster runs an agent (such as krane) that establishes
-// a long-lived watch connection to receive deployment and gateway configuration events.
+// a long-lived watch connection to receive deployment and sentinel configuration events.
 //
 // This design follows the Kubernetes watch pattern where agents (like kubelet) maintain
 // a streaming connection to receive incremental updates, enabling real-time deployment
@@ -83,27 +83,27 @@ func (UpdateInstanceRequest_Status) EnumDescriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{3, 0}
 }
 
-type GetDesiredGatewayStateRequest struct {
+type GetDesiredSentinelStateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	GatewayId     string                 `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
+	SentinelId    string                 `protobuf:"bytes,1,opt,name=sentinel_id,json=sentinelId,proto3" json:"sentinel_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetDesiredGatewayStateRequest) Reset() {
-	*x = GetDesiredGatewayStateRequest{}
+func (x *GetDesiredSentinelStateRequest) Reset() {
+	*x = GetDesiredSentinelStateRequest{}
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetDesiredGatewayStateRequest) String() string {
+func (x *GetDesiredSentinelStateRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetDesiredGatewayStateRequest) ProtoMessage() {}
+func (*GetDesiredSentinelStateRequest) ProtoMessage() {}
 
-func (x *GetDesiredGatewayStateRequest) ProtoReflect() protoreflect.Message {
+func (x *GetDesiredSentinelStateRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -115,14 +115,14 @@ func (x *GetDesiredGatewayStateRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetDesiredGatewayStateRequest.ProtoReflect.Descriptor instead.
-func (*GetDesiredGatewayStateRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetDesiredSentinelStateRequest.ProtoReflect.Descriptor instead.
+func (*GetDesiredSentinelStateRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *GetDesiredGatewayStateRequest) GetGatewayId() string {
+func (x *GetDesiredSentinelStateRequest) GetSentinelId() string {
 	if x != nil {
-		return x.GatewayId
+		return x.SentinelId
 	}
 	return ""
 }
@@ -341,32 +341,32 @@ func (*UpdateInstanceResponse) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{4}
 }
 
-type UpdateGatewayRequest struct {
+type UpdateSentinelRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Change:
 	//
-	//	*UpdateGatewayRequest_Create_
-	//	*UpdateGatewayRequest_Update_
-	//	*UpdateGatewayRequest_Delete_
-	Change        isUpdateGatewayRequest_Change `protobuf_oneof:"change"`
+	//	*UpdateSentinelRequest_Create_
+	//	*UpdateSentinelRequest_Update_
+	//	*UpdateSentinelRequest_Delete_
+	Change        isUpdateSentinelRequest_Change `protobuf_oneof:"change"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *UpdateGatewayRequest) Reset() {
-	*x = UpdateGatewayRequest{}
+func (x *UpdateSentinelRequest) Reset() {
+	*x = UpdateSentinelRequest{}
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UpdateGatewayRequest) String() string {
+func (x *UpdateSentinelRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UpdateGatewayRequest) ProtoMessage() {}
+func (*UpdateSentinelRequest) ProtoMessage() {}
 
-func (x *UpdateGatewayRequest) ProtoReflect() protoreflect.Message {
+func (x *UpdateSentinelRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -378,87 +378,87 @@ func (x *UpdateGatewayRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateGatewayRequest.ProtoReflect.Descriptor instead.
-func (*UpdateGatewayRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpdateSentinelRequest.ProtoReflect.Descriptor instead.
+func (*UpdateSentinelRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *UpdateGatewayRequest) GetChange() isUpdateGatewayRequest_Change {
+func (x *UpdateSentinelRequest) GetChange() isUpdateSentinelRequest_Change {
 	if x != nil {
 		return x.Change
 	}
 	return nil
 }
 
-func (x *UpdateGatewayRequest) GetCreate() *UpdateGatewayRequest_Create {
+func (x *UpdateSentinelRequest) GetCreate() *UpdateSentinelRequest_Create {
 	if x != nil {
-		if x, ok := x.Change.(*UpdateGatewayRequest_Create_); ok {
+		if x, ok := x.Change.(*UpdateSentinelRequest_Create_); ok {
 			return x.Create
 		}
 	}
 	return nil
 }
 
-func (x *UpdateGatewayRequest) GetUpdate() *UpdateGatewayRequest_Update {
+func (x *UpdateSentinelRequest) GetUpdate() *UpdateSentinelRequest_Update {
 	if x != nil {
-		if x, ok := x.Change.(*UpdateGatewayRequest_Update_); ok {
+		if x, ok := x.Change.(*UpdateSentinelRequest_Update_); ok {
 			return x.Update
 		}
 	}
 	return nil
 }
 
-func (x *UpdateGatewayRequest) GetDelete() *UpdateGatewayRequest_Delete {
+func (x *UpdateSentinelRequest) GetDelete() *UpdateSentinelRequest_Delete {
 	if x != nil {
-		if x, ok := x.Change.(*UpdateGatewayRequest_Delete_); ok {
+		if x, ok := x.Change.(*UpdateSentinelRequest_Delete_); ok {
 			return x.Delete
 		}
 	}
 	return nil
 }
 
-type isUpdateGatewayRequest_Change interface {
-	isUpdateGatewayRequest_Change()
+type isUpdateSentinelRequest_Change interface {
+	isUpdateSentinelRequest_Change()
 }
 
-type UpdateGatewayRequest_Create_ struct {
-	Create *UpdateGatewayRequest_Create `protobuf:"bytes,1,opt,name=create,proto3,oneof"`
+type UpdateSentinelRequest_Create_ struct {
+	Create *UpdateSentinelRequest_Create `protobuf:"bytes,1,opt,name=create,proto3,oneof"`
 }
 
-type UpdateGatewayRequest_Update_ struct {
-	Update *UpdateGatewayRequest_Update `protobuf:"bytes,2,opt,name=update,proto3,oneof"`
+type UpdateSentinelRequest_Update_ struct {
+	Update *UpdateSentinelRequest_Update `protobuf:"bytes,2,opt,name=update,proto3,oneof"`
 }
 
-type UpdateGatewayRequest_Delete_ struct {
-	Delete *UpdateGatewayRequest_Delete `protobuf:"bytes,3,opt,name=delete,proto3,oneof"`
+type UpdateSentinelRequest_Delete_ struct {
+	Delete *UpdateSentinelRequest_Delete `protobuf:"bytes,3,opt,name=delete,proto3,oneof"`
 }
 
-func (*UpdateGatewayRequest_Create_) isUpdateGatewayRequest_Change() {}
+func (*UpdateSentinelRequest_Create_) isUpdateSentinelRequest_Change() {}
 
-func (*UpdateGatewayRequest_Update_) isUpdateGatewayRequest_Change() {}
+func (*UpdateSentinelRequest_Update_) isUpdateSentinelRequest_Change() {}
 
-func (*UpdateGatewayRequest_Delete_) isUpdateGatewayRequest_Change() {}
+func (*UpdateSentinelRequest_Delete_) isUpdateSentinelRequest_Change() {}
 
-type UpdateGatewayResponse struct {
+type UpdateSentinelResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *UpdateGatewayResponse) Reset() {
-	*x = UpdateGatewayResponse{}
+func (x *UpdateSentinelResponse) Reset() {
+	*x = UpdateSentinelResponse{}
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UpdateGatewayResponse) String() string {
+func (x *UpdateSentinelResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UpdateGatewayResponse) ProtoMessage() {}
+func (*UpdateSentinelResponse) ProtoMessage() {}
 
-func (x *UpdateGatewayResponse) ProtoReflect() protoreflect.Message {
+func (x *UpdateSentinelResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -470,8 +470,8 @@ func (x *UpdateGatewayResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateGatewayResponse.ProtoReflect.Descriptor instead.
-func (*UpdateGatewayResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpdateSentinelResponse.ProtoReflect.Descriptor instead.
+func (*UpdateSentinelResponse) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{6}
 }
 
@@ -593,39 +593,39 @@ func (x *GetDesiredStateRequest) GetSelectors() map[string]string {
 	return nil
 }
 
-// GatewayEvent represents a lifecycle event for an API gateway configuration.
+// SentinelEvent represents a lifecycle event for an API sentinel configuration.
 //
-// Gateways are ingress points for services, typically handling routing, load balancing,
+// Sentinels are ingress points for services, typically handling routing, load balancing,
 // and API management. The event follows a declarative model where the cluster agent ensures
 // the cluster state matches the desired configuration.
-type GatewayEvent struct {
+type SentinelEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// event contains the specific gateway operation to perform.
+	// event contains the specific sentinel operation to perform.
 	// Only one event type is set per message, determining the action the agent should take.
 	//
 	// Types that are valid to be assigned to Event:
 	//
-	//	*GatewayEvent_Apply
-	//	*GatewayEvent_Delete
-	Event         isGatewayEvent_Event `protobuf_oneof:"event"`
+	//	*SentinelEvent_Apply
+	//	*SentinelEvent_Delete
+	Event         isSentinelEvent_Event `protobuf_oneof:"event"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GatewayEvent) Reset() {
-	*x = GatewayEvent{}
+func (x *SentinelEvent) Reset() {
+	*x = SentinelEvent{}
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GatewayEvent) String() string {
+func (x *SentinelEvent) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GatewayEvent) ProtoMessage() {}
+func (*SentinelEvent) ProtoMessage() {}
 
-func (x *GatewayEvent) ProtoReflect() protoreflect.Message {
+func (x *SentinelEvent) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -637,56 +637,56 @@ func (x *GatewayEvent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GatewayEvent.ProtoReflect.Descriptor instead.
-func (*GatewayEvent) Descriptor() ([]byte, []int) {
+// Deprecated: Use SentinelEvent.ProtoReflect.Descriptor instead.
+func (*SentinelEvent) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *GatewayEvent) GetEvent() isGatewayEvent_Event {
+func (x *SentinelEvent) GetEvent() isSentinelEvent_Event {
 	if x != nil {
 		return x.Event
 	}
 	return nil
 }
 
-func (x *GatewayEvent) GetApply() *ApplyGateway {
+func (x *SentinelEvent) GetApply() *ApplySentinel {
 	if x != nil {
-		if x, ok := x.Event.(*GatewayEvent_Apply); ok {
+		if x, ok := x.Event.(*SentinelEvent_Apply); ok {
 			return x.Apply
 		}
 	}
 	return nil
 }
 
-func (x *GatewayEvent) GetDelete() *DeleteGateway {
+func (x *SentinelEvent) GetDelete() *DeleteSentinel {
 	if x != nil {
-		if x, ok := x.Event.(*GatewayEvent_Delete); ok {
+		if x, ok := x.Event.(*SentinelEvent_Delete); ok {
 			return x.Delete
 		}
 	}
 	return nil
 }
 
-type isGatewayEvent_Event interface {
-	isGatewayEvent_Event()
+type isSentinelEvent_Event interface {
+	isSentinelEvent_Event()
 }
 
-type GatewayEvent_Apply struct {
-	// apply indicates the gateway should exist with this configuration.
-	// The agent will create the gateway if it doesn't exist or update it if it does.
+type SentinelEvent_Apply struct {
+	// apply indicates the sentinel should exist with this configuration.
+	// The agent will create the sentinel if it doesn't exist or update it if it does.
 	// This follows the same semantics as "kubectl apply" - declare desired state
 	// and let the agent determine the appropriate action.
-	Apply *ApplyGateway `protobuf:"bytes,1,opt,name=apply,proto3,oneof"`
+	Apply *ApplySentinel `protobuf:"bytes,1,opt,name=apply,proto3,oneof"`
 }
 
-type GatewayEvent_Delete struct {
-	// delete indicates the gateway should be removed from the cluster.
-	Delete *DeleteGateway `protobuf:"bytes,2,opt,name=delete,proto3,oneof"`
+type SentinelEvent_Delete struct {
+	// delete indicates the sentinel should be removed from the cluster.
+	Delete *DeleteSentinel `protobuf:"bytes,2,opt,name=delete,proto3,oneof"`
 }
 
-func (*GatewayEvent_Apply) isGatewayEvent_Event() {}
+func (*SentinelEvent_Apply) isSentinelEvent_Event() {}
 
-func (*GatewayEvent_Delete) isGatewayEvent_Event() {}
+func (*SentinelEvent_Delete) isSentinelEvent_Event() {}
 
 // DeploymentEvent represents a lifecycle event for an application deployment.
 //
@@ -783,57 +783,57 @@ func (*DeploymentEvent_Apply) isDeploymentEvent_Event() {}
 
 func (*DeploymentEvent_Delete) isDeploymentEvent_Event() {}
 
-// ApplyGateway contains the desired configuration for a gateway.
+// ApplySentinel contains the desired configuration for a sentinel.
 //
-// The cluster agent will ensure a gateway exists with this exact configuration, creating it if
+// The cluster agent will ensure a sentinel exists with this exact configuration, creating it if
 // it doesn't exist or updating it if it does. All fields except namespace are required.
-// The control plane ensures that gateway_id is unique within the namespace.
-type ApplyGateway struct {
+// The control plane ensures that sentinel_id is unique within the namespace.
+type ApplySentinel struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// namespace is the Kubernetes namespace in which the gateway should exist.
+	// namespace is the Kubernetes namespace in which the sentinel should exist.
 	Namespace  string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	K8SCrdName string `protobuf:"bytes,2,opt,name=k8s_crd_name,json=k8sCrdName,proto3" json:"k8s_crd_name,omitempty"`
-	// workspace_id identifies the workspace that owns this gateway.
+	// workspace_id identifies the workspace that owns this sentinel.
 	WorkspaceId string `protobuf:"bytes,3,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	// project_id identifies the project within the workspace.
 	ProjectId string `protobuf:"bytes,4,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	// environment_id in which the gateway should exist.
+	// environment_id in which the sentinel should exist.
 	EnvironmentId string `protobuf:"bytes,5,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
-	// gateway_id is the unique identifier for this gateway within the namespace.
-	GatewayId string `protobuf:"bytes,6,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
-	// image is the container image to deploy for the gateway.
+	// sentinel_id is the unique identifier for this sentinel within the namespace.
+	SentinelId string `protobuf:"bytes,6,opt,name=sentinel_id,json=sentinelId,proto3" json:"sentinel_id,omitempty"`
+	// image is the container image to deploy for the sentinel.
 	// Must be a valid container registry URL accessible by the cluster.
-	// Example: "ghcr.io/unkeyed/gateway:v1.2.3"
+	// Example: "ghcr.io/unkeyed/sentinel:v1.2.3"
 	Image string `protobuf:"bytes,7,opt,name=image,proto3" json:"image,omitempty"`
-	// replicas is the desired number of gateway instances.
+	// replicas is the desired number of sentinel instances.
 	// Must be at least 1. For high availability, use 3 or more.
 	Replicas uint32 `protobuf:"varint,8,opt,name=replicas,proto3" json:"replicas,omitempty"`
 	// cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
-	// This ensures the gateway has sufficient CPU resources.
+	// This ensures the sentinel has sufficient CPU resources.
 	// Example: 500 = 0.5 CPU cores
 	CpuMillicores uint32 `protobuf:"varint,9,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`
 	// memory_size_mib is the memory request/limit in mebibytes.
-	// This ensures the gateway has sufficient memory.
+	// This ensures the sentinel has sufficient memory.
 	// Example: 512 = 512 MiB
 	MemorySizeMib uint32 `protobuf:"varint,10,opt,name=memory_size_mib,json=memorySizeMib,proto3" json:"memory_size_mib,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ApplyGateway) Reset() {
-	*x = ApplyGateway{}
+func (x *ApplySentinel) Reset() {
+	*x = ApplySentinel{}
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ApplyGateway) String() string {
+func (x *ApplySentinel) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ApplyGateway) ProtoMessage() {}
+func (*ApplySentinel) ProtoMessage() {}
 
-func (x *ApplyGateway) ProtoReflect() protoreflect.Message {
+func (x *ApplySentinel) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -845,108 +845,108 @@ func (x *ApplyGateway) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApplyGateway.ProtoReflect.Descriptor instead.
-func (*ApplyGateway) Descriptor() ([]byte, []int) {
+// Deprecated: Use ApplySentinel.ProtoReflect.Descriptor instead.
+func (*ApplySentinel) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{11}
 }
 
-func (x *ApplyGateway) GetNamespace() string {
+func (x *ApplySentinel) GetNamespace() string {
 	if x != nil {
 		return x.Namespace
 	}
 	return ""
 }
 
-func (x *ApplyGateway) GetK8SCrdName() string {
+func (x *ApplySentinel) GetK8SCrdName() string {
 	if x != nil {
 		return x.K8SCrdName
 	}
 	return ""
 }
 
-func (x *ApplyGateway) GetWorkspaceId() string {
+func (x *ApplySentinel) GetWorkspaceId() string {
 	if x != nil {
 		return x.WorkspaceId
 	}
 	return ""
 }
 
-func (x *ApplyGateway) GetProjectId() string {
+func (x *ApplySentinel) GetProjectId() string {
 	if x != nil {
 		return x.ProjectId
 	}
 	return ""
 }
 
-func (x *ApplyGateway) GetEnvironmentId() string {
+func (x *ApplySentinel) GetEnvironmentId() string {
 	if x != nil {
 		return x.EnvironmentId
 	}
 	return ""
 }
 
-func (x *ApplyGateway) GetGatewayId() string {
+func (x *ApplySentinel) GetSentinelId() string {
 	if x != nil {
-		return x.GatewayId
+		return x.SentinelId
 	}
 	return ""
 }
 
-func (x *ApplyGateway) GetImage() string {
+func (x *ApplySentinel) GetImage() string {
 	if x != nil {
 		return x.Image
 	}
 	return ""
 }
 
-func (x *ApplyGateway) GetReplicas() uint32 {
+func (x *ApplySentinel) GetReplicas() uint32 {
 	if x != nil {
 		return x.Replicas
 	}
 	return 0
 }
 
-func (x *ApplyGateway) GetCpuMillicores() uint32 {
+func (x *ApplySentinel) GetCpuMillicores() uint32 {
 	if x != nil {
 		return x.CpuMillicores
 	}
 	return 0
 }
 
-func (x *ApplyGateway) GetMemorySizeMib() uint32 {
+func (x *ApplySentinel) GetMemorySizeMib() uint32 {
 	if x != nil {
 		return x.MemorySizeMib
 	}
 	return 0
 }
 
-// DeleteGateway identifies a gateway to remove from the cluster.
+// DeleteSentinel identifies a sentinel to remove from the cluster.
 //
-// The gateway and all its resources (pods, services, ingress) will be deleted.
+// The sentinel and all its resources (pods, services, ingress) will be deleted.
 // In-flight requests may be disrupted unless proper connection draining is configured.
-type DeleteGateway struct {
+type DeleteSentinel struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// gateway_id identifies the gateway to delete.
-	// All resources with this gateway_id in the namespace will be removed.
-	GatewayId     string `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
+	// sentinel_id identifies the sentinel to delete.
+	// All resources with this sentinel_id in the namespace will be removed.
+	SentinelId    string `protobuf:"bytes,1,opt,name=sentinel_id,json=sentinelId,proto3" json:"sentinel_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DeleteGateway) Reset() {
-	*x = DeleteGateway{}
+func (x *DeleteSentinel) Reset() {
+	*x = DeleteSentinel{}
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DeleteGateway) String() string {
+func (x *DeleteSentinel) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DeleteGateway) ProtoMessage() {}
+func (*DeleteSentinel) ProtoMessage() {}
 
-func (x *DeleteGateway) ProtoReflect() protoreflect.Message {
+func (x *DeleteSentinel) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -958,14 +958,14 @@ func (x *DeleteGateway) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteGateway.ProtoReflect.Descriptor instead.
-func (*DeleteGateway) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteSentinel.ProtoReflect.Descriptor instead.
+func (*DeleteSentinel) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *DeleteGateway) GetGatewayId() string {
+func (x *DeleteSentinel) GetSentinelId() string {
 	if x != nil {
-		return x.GatewayId
+		return x.SentinelId
 	}
 	return ""
 }
@@ -1155,7 +1155,7 @@ func (x *DeleteDeployment) GetDeploymentId() string {
 
 // InfraEvent is streamed from the control plane to cluster agents.
 //
-// Each event contains either a gateway or deployment configuration change that
+// Each event contains either a sentinel or deployment configuration change that
 // the agent should apply to its cluster. Events are sent in real-time as
 // changes occur in the control plane, enabling immediate propagation of updates
 // across the fleet of clusters.
@@ -1170,7 +1170,7 @@ type InfraEvent struct {
 	//
 	// Types that are valid to be assigned to Event:
 	//
-	//	*InfraEvent_GatewayEvent
+	//	*InfraEvent_SentinelEvent
 	//	*InfraEvent_DeploymentEvent
 	Event         isInfraEvent_Event `protobuf_oneof:"event"`
 	unknownFields protoimpl.UnknownFields
@@ -1214,10 +1214,10 @@ func (x *InfraEvent) GetEvent() isInfraEvent_Event {
 	return nil
 }
 
-func (x *InfraEvent) GetGatewayEvent() *GatewayEvent {
+func (x *InfraEvent) GetSentinelEvent() *SentinelEvent {
 	if x != nil {
-		if x, ok := x.Event.(*InfraEvent_GatewayEvent); ok {
-			return x.GatewayEvent
+		if x, ok := x.Event.(*InfraEvent_SentinelEvent); ok {
+			return x.SentinelEvent
 		}
 	}
 	return nil
@@ -1236,10 +1236,10 @@ type isInfraEvent_Event interface {
 	isInfraEvent_Event()
 }
 
-type InfraEvent_GatewayEvent struct {
-	// gateway_event contains a gateway lifecycle event (apply or delete).
-	// The client should apply this to gateway resources in the cluster.
-	GatewayEvent *GatewayEvent `protobuf:"bytes,2,opt,name=gateway_event,json=gatewayEvent,proto3,oneof"`
+type InfraEvent_SentinelEvent struct {
+	// sentinel_event contains a sentinel lifecycle event (apply or delete).
+	// The client should apply this to sentinel resources in the cluster.
+	SentinelEvent *SentinelEvent `protobuf:"bytes,2,opt,name=sentinel_event,json=sentinelEvent,proto3,oneof"`
 }
 
 type InfraEvent_DeploymentEvent struct {
@@ -1248,7 +1248,7 @@ type InfraEvent_DeploymentEvent struct {
 	DeploymentEvent *DeploymentEvent `protobuf:"bytes,3,opt,name=deployment_event,json=deploymentEvent,proto3,oneof"`
 }
 
-func (*InfraEvent_GatewayEvent) isInfraEvent_Event() {}
+func (*InfraEvent_SentinelEvent) isInfraEvent_Event() {}
 
 func (*InfraEvent_DeploymentEvent) isInfraEvent_Event() {}
 
@@ -1448,28 +1448,28 @@ func (x *UpdateInstanceRequest_Delete) GetPodName() string {
 	return ""
 }
 
-type UpdateGatewayRequest_Create struct {
+type UpdateSentinelRequest_Create struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
-	GatewayId       string                 `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
+	SentinelId      string                 `protobuf:"bytes,1,opt,name=sentinel_id,json=sentinelId,proto3" json:"sentinel_id,omitempty"`
 	RunningReplicas int32                  `protobuf:"varint,2,opt,name=running_replicas,json=runningReplicas,proto3" json:"running_replicas,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
-func (x *UpdateGatewayRequest_Create) Reset() {
-	*x = UpdateGatewayRequest_Create{}
+func (x *UpdateSentinelRequest_Create) Reset() {
+	*x = UpdateSentinelRequest_Create{}
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UpdateGatewayRequest_Create) String() string {
+func (x *UpdateSentinelRequest_Create) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UpdateGatewayRequest_Create) ProtoMessage() {}
+func (*UpdateSentinelRequest_Create) ProtoMessage() {}
 
-func (x *UpdateGatewayRequest_Create) ProtoReflect() protoreflect.Message {
+func (x *UpdateSentinelRequest_Create) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1481,47 +1481,47 @@ func (x *UpdateGatewayRequest_Create) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateGatewayRequest_Create.ProtoReflect.Descriptor instead.
-func (*UpdateGatewayRequest_Create) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpdateSentinelRequest_Create.ProtoReflect.Descriptor instead.
+func (*UpdateSentinelRequest_Create) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5, 0}
 }
 
-func (x *UpdateGatewayRequest_Create) GetGatewayId() string {
+func (x *UpdateSentinelRequest_Create) GetSentinelId() string {
 	if x != nil {
-		return x.GatewayId
+		return x.SentinelId
 	}
 	return ""
 }
 
-func (x *UpdateGatewayRequest_Create) GetRunningReplicas() int32 {
+func (x *UpdateSentinelRequest_Create) GetRunningReplicas() int32 {
 	if x != nil {
 		return x.RunningReplicas
 	}
 	return 0
 }
 
-type UpdateGatewayRequest_Update struct {
+type UpdateSentinelRequest_Update struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
-	GatewayId       string                 `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
+	SentinelId      string                 `protobuf:"bytes,1,opt,name=sentinel_id,json=sentinelId,proto3" json:"sentinel_id,omitempty"`
 	RunningReplicas int32                  `protobuf:"varint,2,opt,name=running_replicas,json=runningReplicas,proto3" json:"running_replicas,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
-func (x *UpdateGatewayRequest_Update) Reset() {
-	*x = UpdateGatewayRequest_Update{}
+func (x *UpdateSentinelRequest_Update) Reset() {
+	*x = UpdateSentinelRequest_Update{}
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UpdateGatewayRequest_Update) String() string {
+func (x *UpdateSentinelRequest_Update) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UpdateGatewayRequest_Update) ProtoMessage() {}
+func (*UpdateSentinelRequest_Update) ProtoMessage() {}
 
-func (x *UpdateGatewayRequest_Update) ProtoReflect() protoreflect.Message {
+func (x *UpdateSentinelRequest_Update) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1533,46 +1533,46 @@ func (x *UpdateGatewayRequest_Update) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateGatewayRequest_Update.ProtoReflect.Descriptor instead.
-func (*UpdateGatewayRequest_Update) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpdateSentinelRequest_Update.ProtoReflect.Descriptor instead.
+func (*UpdateSentinelRequest_Update) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5, 1}
 }
 
-func (x *UpdateGatewayRequest_Update) GetGatewayId() string {
+func (x *UpdateSentinelRequest_Update) GetSentinelId() string {
 	if x != nil {
-		return x.GatewayId
+		return x.SentinelId
 	}
 	return ""
 }
 
-func (x *UpdateGatewayRequest_Update) GetRunningReplicas() int32 {
+func (x *UpdateSentinelRequest_Update) GetRunningReplicas() int32 {
 	if x != nil {
 		return x.RunningReplicas
 	}
 	return 0
 }
 
-type UpdateGatewayRequest_Delete struct {
+type UpdateSentinelRequest_Delete struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	GatewayId     string                 `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
+	SentinelId    string                 `protobuf:"bytes,1,opt,name=sentinel_id,json=sentinelId,proto3" json:"sentinel_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *UpdateGatewayRequest_Delete) Reset() {
-	*x = UpdateGatewayRequest_Delete{}
+func (x *UpdateSentinelRequest_Delete) Reset() {
+	*x = UpdateSentinelRequest_Delete{}
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UpdateGatewayRequest_Delete) String() string {
+func (x *UpdateSentinelRequest_Delete) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UpdateGatewayRequest_Delete) ProtoMessage() {}
+func (*UpdateSentinelRequest_Delete) ProtoMessage() {}
 
-func (x *UpdateGatewayRequest_Delete) ProtoReflect() protoreflect.Message {
+func (x *UpdateSentinelRequest_Delete) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1584,14 +1584,14 @@ func (x *UpdateGatewayRequest_Delete) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateGatewayRequest_Delete.ProtoReflect.Descriptor instead.
-func (*UpdateGatewayRequest_Delete) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpdateSentinelRequest_Delete.ProtoReflect.Descriptor instead.
+func (*UpdateSentinelRequest_Delete) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5, 2}
 }
 
-func (x *UpdateGatewayRequest_Delete) GetGatewayId() string {
+func (x *UpdateSentinelRequest_Delete) GetSentinelId() string {
 	if x != nil {
-		return x.GatewayId
+		return x.SentinelId
 	}
 	return ""
 }
@@ -1600,10 +1600,10 @@ var File_ctrl_v1_cluster_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\n" +
-	"\x15ctrl/v1/cluster.proto\x12\actrl.v1\">\n" +
-	"\x1dGetDesiredGatewayStateRequest\x12\x1d\n" +
-	"\n" +
-	"gateway_id\x18\x01 \x01(\tR\tgatewayId\"G\n" +
+	"\x15ctrl/v1/cluster.proto\x12\actrl.v1\"A\n" +
+	"\x1eGetDesiredSentinelStateRequest\x12\x1f\n" +
+	"\vsentinel_id\x18\x01 \x01(\tR\n" +
+	"sentinelId\"G\n" +
 	" GetDesiredDeploymentStateRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x18\n" +
 	"\x16DeleteInstanceResponse\"\xff\x05\n" +
@@ -1632,24 +1632,24 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x0eSTATUS_RUNNING\x10\x02\x12\x11\n" +
 	"\rSTATUS_FAILED\x10\x03B\b\n" +
 	"\x06change\"\x18\n" +
-	"\x16UpdateInstanceResponse\"\xb1\x03\n" +
-	"\x14UpdateGatewayRequest\x12>\n" +
-	"\x06create\x18\x01 \x01(\v2$.ctrl.v1.UpdateGatewayRequest.CreateH\x00R\x06create\x12>\n" +
-	"\x06update\x18\x02 \x01(\v2$.ctrl.v1.UpdateGatewayRequest.UpdateH\x00R\x06update\x12>\n" +
-	"\x06delete\x18\x03 \x01(\v2$.ctrl.v1.UpdateGatewayRequest.DeleteH\x00R\x06delete\x1aR\n" +
-	"\x06Create\x12\x1d\n" +
-	"\n" +
-	"gateway_id\x18\x01 \x01(\tR\tgatewayId\x12)\n" +
-	"\x10running_replicas\x18\x02 \x01(\x05R\x0frunningReplicas\x1aR\n" +
-	"\x06Update\x12\x1d\n" +
-	"\n" +
-	"gateway_id\x18\x01 \x01(\tR\tgatewayId\x12)\n" +
-	"\x10running_replicas\x18\x02 \x01(\x05R\x0frunningReplicas\x1a'\n" +
-	"\x06Delete\x12\x1d\n" +
-	"\n" +
-	"gateway_id\x18\x01 \x01(\tR\tgatewayIdB\b\n" +
-	"\x06change\"\x17\n" +
-	"\x15UpdateGatewayResponse\"\xad\x01\n" +
+	"\x16UpdateInstanceResponse\"\xbb\x03\n" +
+	"\x15UpdateSentinelRequest\x12?\n" +
+	"\x06create\x18\x01 \x01(\v2%.ctrl.v1.UpdateSentinelRequest.CreateH\x00R\x06create\x12?\n" +
+	"\x06update\x18\x02 \x01(\v2%.ctrl.v1.UpdateSentinelRequest.UpdateH\x00R\x06update\x12?\n" +
+	"\x06delete\x18\x03 \x01(\v2%.ctrl.v1.UpdateSentinelRequest.DeleteH\x00R\x06delete\x1aT\n" +
+	"\x06Create\x12\x1f\n" +
+	"\vsentinel_id\x18\x01 \x01(\tR\n" +
+	"sentinelId\x12)\n" +
+	"\x10running_replicas\x18\x02 \x01(\x05R\x0frunningReplicas\x1aT\n" +
+	"\x06Update\x12\x1f\n" +
+	"\vsentinel_id\x18\x01 \x01(\tR\n" +
+	"sentinelId\x12)\n" +
+	"\x10running_replicas\x18\x02 \x01(\x05R\x0frunningReplicas\x1a)\n" +
+	"\x06Delete\x12\x1f\n" +
+	"\vsentinel_id\x18\x01 \x01(\tR\n" +
+	"sentinelIdB\b\n" +
+	"\x06change\"\x18\n" +
+	"\x16UpdateSentinelResponse\"\xad\x01\n" +
 	"\fWatchRequest\x12\x1b\n" +
 	"\tclient_id\x18\x01 \x01(\tR\bclientId\x12B\n" +
 	"\tselectors\x18\x02 \x03(\v2$.ctrl.v1.WatchRequest.SelectorsEntryR\tselectors\x1a<\n" +
@@ -1661,33 +1661,33 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\tselectors\x18\x02 \x03(\v2..ctrl.v1.GetDesiredStateRequest.SelectorsEntryR\tselectors\x1a<\n" +
 	"\x0eSelectorsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"x\n" +
-	"\fGatewayEvent\x12-\n" +
-	"\x05apply\x18\x01 \x01(\v2\x15.ctrl.v1.ApplyGatewayH\x00R\x05apply\x120\n" +
-	"\x06delete\x18\x02 \x01(\v2\x16.ctrl.v1.DeleteGatewayH\x00R\x06deleteB\a\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"{\n" +
+	"\rSentinelEvent\x12.\n" +
+	"\x05apply\x18\x01 \x01(\v2\x16.ctrl.v1.ApplySentinelH\x00R\x05apply\x121\n" +
+	"\x06delete\x18\x02 \x01(\v2\x17.ctrl.v1.DeleteSentinelH\x00R\x06deleteB\a\n" +
 	"\x05event\"\x81\x01\n" +
 	"\x0fDeploymentEvent\x120\n" +
 	"\x05apply\x18\x01 \x01(\v2\x18.ctrl.v1.ApplyDeploymentH\x00R\x05apply\x123\n" +
 	"\x06delete\x18\x02 \x01(\v2\x19.ctrl.v1.DeleteDeploymentH\x00R\x06deleteB\a\n" +
-	"\x05event\"\xd7\x02\n" +
-	"\fApplyGateway\x12\x1c\n" +
+	"\x05event\"\xda\x02\n" +
+	"\rApplySentinel\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12 \n" +
 	"\fk8s_crd_name\x18\x02 \x01(\tR\n" +
 	"k8sCrdName\x12!\n" +
 	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x04 \x01(\tR\tprojectId\x12%\n" +
-	"\x0eenvironment_id\x18\x05 \x01(\tR\renvironmentId\x12\x1d\n" +
-	"\n" +
-	"gateway_id\x18\x06 \x01(\tR\tgatewayId\x12\x14\n" +
+	"\x0eenvironment_id\x18\x05 \x01(\tR\renvironmentId\x12\x1f\n" +
+	"\vsentinel_id\x18\x06 \x01(\tR\n" +
+	"sentinelId\x12\x14\n" +
 	"\x05image\x18\a \x01(\tR\x05image\x12\x1a\n" +
 	"\breplicas\x18\b \x01(\rR\breplicas\x12%\n" +
 	"\x0ecpu_millicores\x18\t \x01(\rR\rcpuMillicores\x12&\n" +
 	"\x0fmemory_size_mib\x18\n" +
-	" \x01(\rR\rmemorySizeMib\".\n" +
-	"\rDeleteGateway\x12\x1d\n" +
-	"\n" +
-	"gateway_id\x18\x01 \x01(\tR\tgatewayId\"\xbe\x02\n" +
+	" \x01(\rR\rmemorySizeMib\"1\n" +
+	"\x0eDeleteSentinel\x12\x1f\n" +
+	"\vsentinel_id\x18\x01 \x01(\tR\n" +
+	"sentinelId\"\xbe\x02\n" +
 	"\x0fApplyDeployment\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12!\n" +
 	"\fworkspace_id\x18\x02 \x01(\tR\vworkspaceId\x12\x1d\n" +
@@ -1700,19 +1700,19 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x0ecpu_millicores\x18\b \x01(\rR\rcpuMillicores\x12&\n" +
 	"\x0fmemory_size_mib\x18\t \x01(\rR\rmemorySizeMib\"7\n" +
 	"\x10DeleteDeployment\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x9a\x01\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x9d\x01\n" +
 	"\n" +
-	"InfraEvent\x12<\n" +
-	"\rgateway_event\x18\x02 \x01(\v2\x15.ctrl.v1.GatewayEventH\x00R\fgatewayEvent\x12E\n" +
+	"InfraEvent\x12?\n" +
+	"\x0esentinel_event\x18\x02 \x01(\v2\x16.ctrl.v1.SentinelEventH\x00R\rsentinelEvent\x12E\n" +
 	"\x10deployment_event\x18\x03 \x01(\v2\x18.ctrl.v1.DeploymentEventH\x00R\x0fdeploymentEventB\a\n" +
-	"\x05event2\xf0\x03\n" +
+	"\x05event2\xf6\x03\n" +
 	"\x0eClusterService\x125\n" +
 	"\x05Watch\x12\x15.ctrl.v1.WatchRequest\x1a\x13.ctrl.v1.InfraEvent0\x01\x12I\n" +
 	"\x0fGetDesiredState\x12\x1f.ctrl.v1.GetDesiredStateRequest\x1a\x13.ctrl.v1.InfraEvent0\x01\x12`\n" +
-	"\x19GetDesiredDeploymentState\x12).ctrl.v1.GetDesiredDeploymentStateRequest\x1a\x18.ctrl.v1.DeploymentEvent\x12W\n" +
-	"\x16GetDesiredGatewayState\x12&.ctrl.v1.GetDesiredGatewayStateRequest\x1a\x15.ctrl.v1.GatewayEvent\x12Q\n" +
-	"\x0eUpdateInstance\x12\x1e.ctrl.v1.UpdateInstanceRequest\x1a\x1f.ctrl.v1.UpdateInstanceResponse\x12N\n" +
-	"\rUpdateGateway\x12\x1d.ctrl.v1.UpdateGatewayRequest\x1a\x1e.ctrl.v1.UpdateGatewayResponseB\x8e\x01\n" +
+	"\x19GetDesiredDeploymentState\x12).ctrl.v1.GetDesiredDeploymentStateRequest\x1a\x18.ctrl.v1.DeploymentEvent\x12Z\n" +
+	"\x17GetDesiredSentinelState\x12'.ctrl.v1.GetDesiredSentinelStateRequest\x1a\x16.ctrl.v1.SentinelEvent\x12Q\n" +
+	"\x0eUpdateInstance\x12\x1e.ctrl.v1.UpdateInstanceRequest\x1a\x1f.ctrl.v1.UpdateInstanceResponse\x12Q\n" +
+	"\x0eUpdateSentinel\x12\x1e.ctrl.v1.UpdateSentinelRequest\x1a\x1f.ctrl.v1.UpdateSentinelResponseB\x8e\x01\n" +
 	"\vcom.ctrl.v1B\fClusterProtoP\x01Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 
 var (
@@ -1731,28 +1731,28 @@ var file_ctrl_v1_cluster_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_ctrl_v1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_ctrl_v1_cluster_proto_goTypes = []any{
 	(UpdateInstanceRequest_Status)(0),        // 0: ctrl.v1.UpdateInstanceRequest.Status
-	(*GetDesiredGatewayStateRequest)(nil),    // 1: ctrl.v1.GetDesiredGatewayStateRequest
+	(*GetDesiredSentinelStateRequest)(nil),   // 1: ctrl.v1.GetDesiredSentinelStateRequest
 	(*GetDesiredDeploymentStateRequest)(nil), // 2: ctrl.v1.GetDesiredDeploymentStateRequest
 	(*DeleteInstanceResponse)(nil),           // 3: ctrl.v1.DeleteInstanceResponse
 	(*UpdateInstanceRequest)(nil),            // 4: ctrl.v1.UpdateInstanceRequest
 	(*UpdateInstanceResponse)(nil),           // 5: ctrl.v1.UpdateInstanceResponse
-	(*UpdateGatewayRequest)(nil),             // 6: ctrl.v1.UpdateGatewayRequest
-	(*UpdateGatewayResponse)(nil),            // 7: ctrl.v1.UpdateGatewayResponse
+	(*UpdateSentinelRequest)(nil),            // 6: ctrl.v1.UpdateSentinelRequest
+	(*UpdateSentinelResponse)(nil),           // 7: ctrl.v1.UpdateSentinelResponse
 	(*WatchRequest)(nil),                     // 8: ctrl.v1.WatchRequest
 	(*GetDesiredStateRequest)(nil),           // 9: ctrl.v1.GetDesiredStateRequest
-	(*GatewayEvent)(nil),                     // 10: ctrl.v1.GatewayEvent
+	(*SentinelEvent)(nil),                    // 10: ctrl.v1.SentinelEvent
 	(*DeploymentEvent)(nil),                  // 11: ctrl.v1.DeploymentEvent
-	(*ApplyGateway)(nil),                     // 12: ctrl.v1.ApplyGateway
-	(*DeleteGateway)(nil),                    // 13: ctrl.v1.DeleteGateway
+	(*ApplySentinel)(nil),                    // 12: ctrl.v1.ApplySentinel
+	(*DeleteSentinel)(nil),                   // 13: ctrl.v1.DeleteSentinel
 	(*ApplyDeployment)(nil),                  // 14: ctrl.v1.ApplyDeployment
 	(*DeleteDeployment)(nil),                 // 15: ctrl.v1.DeleteDeployment
 	(*InfraEvent)(nil),                       // 16: ctrl.v1.InfraEvent
 	(*UpdateInstanceRequest_Create)(nil),     // 17: ctrl.v1.UpdateInstanceRequest.Create
 	(*UpdateInstanceRequest_Update)(nil),     // 18: ctrl.v1.UpdateInstanceRequest.Update
 	(*UpdateInstanceRequest_Delete)(nil),     // 19: ctrl.v1.UpdateInstanceRequest.Delete
-	(*UpdateGatewayRequest_Create)(nil),      // 20: ctrl.v1.UpdateGatewayRequest.Create
-	(*UpdateGatewayRequest_Update)(nil),      // 21: ctrl.v1.UpdateGatewayRequest.Update
-	(*UpdateGatewayRequest_Delete)(nil),      // 22: ctrl.v1.UpdateGatewayRequest.Delete
+	(*UpdateSentinelRequest_Create)(nil),     // 20: ctrl.v1.UpdateSentinelRequest.Create
+	(*UpdateSentinelRequest_Update)(nil),     // 21: ctrl.v1.UpdateSentinelRequest.Update
+	(*UpdateSentinelRequest_Delete)(nil),     // 22: ctrl.v1.UpdateSentinelRequest.Delete
 	nil,                                      // 23: ctrl.v1.WatchRequest.SelectorsEntry
 	nil,                                      // 24: ctrl.v1.GetDesiredStateRequest.SelectorsEntry
 }
@@ -1760,31 +1760,31 @@ var file_ctrl_v1_cluster_proto_depIdxs = []int32{
 	17, // 0: ctrl.v1.UpdateInstanceRequest.create:type_name -> ctrl.v1.UpdateInstanceRequest.Create
 	18, // 1: ctrl.v1.UpdateInstanceRequest.update:type_name -> ctrl.v1.UpdateInstanceRequest.Update
 	19, // 2: ctrl.v1.UpdateInstanceRequest.delete:type_name -> ctrl.v1.UpdateInstanceRequest.Delete
-	20, // 3: ctrl.v1.UpdateGatewayRequest.create:type_name -> ctrl.v1.UpdateGatewayRequest.Create
-	21, // 4: ctrl.v1.UpdateGatewayRequest.update:type_name -> ctrl.v1.UpdateGatewayRequest.Update
-	22, // 5: ctrl.v1.UpdateGatewayRequest.delete:type_name -> ctrl.v1.UpdateGatewayRequest.Delete
+	20, // 3: ctrl.v1.UpdateSentinelRequest.create:type_name -> ctrl.v1.UpdateSentinelRequest.Create
+	21, // 4: ctrl.v1.UpdateSentinelRequest.update:type_name -> ctrl.v1.UpdateSentinelRequest.Update
+	22, // 5: ctrl.v1.UpdateSentinelRequest.delete:type_name -> ctrl.v1.UpdateSentinelRequest.Delete
 	23, // 6: ctrl.v1.WatchRequest.selectors:type_name -> ctrl.v1.WatchRequest.SelectorsEntry
 	24, // 7: ctrl.v1.GetDesiredStateRequest.selectors:type_name -> ctrl.v1.GetDesiredStateRequest.SelectorsEntry
-	12, // 8: ctrl.v1.GatewayEvent.apply:type_name -> ctrl.v1.ApplyGateway
-	13, // 9: ctrl.v1.GatewayEvent.delete:type_name -> ctrl.v1.DeleteGateway
+	12, // 8: ctrl.v1.SentinelEvent.apply:type_name -> ctrl.v1.ApplySentinel
+	13, // 9: ctrl.v1.SentinelEvent.delete:type_name -> ctrl.v1.DeleteSentinel
 	14, // 10: ctrl.v1.DeploymentEvent.apply:type_name -> ctrl.v1.ApplyDeployment
 	15, // 11: ctrl.v1.DeploymentEvent.delete:type_name -> ctrl.v1.DeleteDeployment
-	10, // 12: ctrl.v1.InfraEvent.gateway_event:type_name -> ctrl.v1.GatewayEvent
+	10, // 12: ctrl.v1.InfraEvent.sentinel_event:type_name -> ctrl.v1.SentinelEvent
 	11, // 13: ctrl.v1.InfraEvent.deployment_event:type_name -> ctrl.v1.DeploymentEvent
 	0,  // 14: ctrl.v1.UpdateInstanceRequest.Create.status:type_name -> ctrl.v1.UpdateInstanceRequest.Status
 	0,  // 15: ctrl.v1.UpdateInstanceRequest.Update.status:type_name -> ctrl.v1.UpdateInstanceRequest.Status
 	8,  // 16: ctrl.v1.ClusterService.Watch:input_type -> ctrl.v1.WatchRequest
 	9,  // 17: ctrl.v1.ClusterService.GetDesiredState:input_type -> ctrl.v1.GetDesiredStateRequest
 	2,  // 18: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
-	1,  // 19: ctrl.v1.ClusterService.GetDesiredGatewayState:input_type -> ctrl.v1.GetDesiredGatewayStateRequest
+	1,  // 19: ctrl.v1.ClusterService.GetDesiredSentinelState:input_type -> ctrl.v1.GetDesiredSentinelStateRequest
 	4,  // 20: ctrl.v1.ClusterService.UpdateInstance:input_type -> ctrl.v1.UpdateInstanceRequest
-	6,  // 21: ctrl.v1.ClusterService.UpdateGateway:input_type -> ctrl.v1.UpdateGatewayRequest
+	6,  // 21: ctrl.v1.ClusterService.UpdateSentinel:input_type -> ctrl.v1.UpdateSentinelRequest
 	16, // 22: ctrl.v1.ClusterService.Watch:output_type -> ctrl.v1.InfraEvent
 	16, // 23: ctrl.v1.ClusterService.GetDesiredState:output_type -> ctrl.v1.InfraEvent
 	11, // 24: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentEvent
-	10, // 25: ctrl.v1.ClusterService.GetDesiredGatewayState:output_type -> ctrl.v1.GatewayEvent
+	10, // 25: ctrl.v1.ClusterService.GetDesiredSentinelState:output_type -> ctrl.v1.SentinelEvent
 	5,  // 26: ctrl.v1.ClusterService.UpdateInstance:output_type -> ctrl.v1.UpdateInstanceResponse
-	7,  // 27: ctrl.v1.ClusterService.UpdateGateway:output_type -> ctrl.v1.UpdateGatewayResponse
+	7,  // 27: ctrl.v1.ClusterService.UpdateSentinel:output_type -> ctrl.v1.UpdateSentinelResponse
 	22, // [22:28] is the sub-list for method output_type
 	16, // [16:22] is the sub-list for method input_type
 	16, // [16:16] is the sub-list for extension type_name
@@ -1803,20 +1803,20 @@ func file_ctrl_v1_cluster_proto_init() {
 		(*UpdateInstanceRequest_Delete_)(nil),
 	}
 	file_ctrl_v1_cluster_proto_msgTypes[5].OneofWrappers = []any{
-		(*UpdateGatewayRequest_Create_)(nil),
-		(*UpdateGatewayRequest_Update_)(nil),
-		(*UpdateGatewayRequest_Delete_)(nil),
+		(*UpdateSentinelRequest_Create_)(nil),
+		(*UpdateSentinelRequest_Update_)(nil),
+		(*UpdateSentinelRequest_Delete_)(nil),
 	}
 	file_ctrl_v1_cluster_proto_msgTypes[9].OneofWrappers = []any{
-		(*GatewayEvent_Apply)(nil),
-		(*GatewayEvent_Delete)(nil),
+		(*SentinelEvent_Apply)(nil),
+		(*SentinelEvent_Delete)(nil),
 	}
 	file_ctrl_v1_cluster_proto_msgTypes[10].OneofWrappers = []any{
 		(*DeploymentEvent_Apply)(nil),
 		(*DeploymentEvent_Delete)(nil),
 	}
 	file_ctrl_v1_cluster_proto_msgTypes[15].OneofWrappers = []any{
-		(*InfraEvent_GatewayEvent)(nil),
+		(*InfraEvent_SentinelEvent)(nil),
 		(*InfraEvent_DeploymentEvent)(nil),
 	}
 	type x struct{}

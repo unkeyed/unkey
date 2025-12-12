@@ -1,4 +1,4 @@
-export * from "./gateway-node";
+export * from "./sentinel-node";
 export * from "./instance-node";
 
 export * from "./skeleton-node/skeleton-layout";
@@ -9,7 +9,7 @@ export * from "./origin-node";
 export {
   isOriginNode,
   isRegionNode,
-  isGatewayNode,
+  isSentinelNode,
   isSkeletonNode,
   type DeploymentNode,
 } from "./types";

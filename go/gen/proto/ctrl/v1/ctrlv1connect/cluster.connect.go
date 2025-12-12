@@ -4,9 +4,9 @@
 
 // Package ctrl.v1 provides the Cluster service for multi-cluster deployment orchestration.
 //
-// The Cluster service enables a central control plane to coordinate deployments and gateways
+// The Cluster service enables a central control plane to coordinate deployments and sentinels
 // across multiple Kubernetes clusters. Each cluster runs an agent (such as krane) that establishes
-// a long-lived watch connection to receive deployment and gateway configuration events.
+// a long-lived watch connection to receive deployment and sentinel configuration events.
 //
 // This design follows the Kubernetes watch pattern where agents (like kubelet) maintain
 // a streaming connection to receive incremental updates, enabling real-time deployment
@@ -50,20 +50,20 @@ const (
 	// ClusterServiceGetDesiredDeploymentStateProcedure is the fully-qualified name of the
 	// ClusterService's GetDesiredDeploymentState RPC.
 	ClusterServiceGetDesiredDeploymentStateProcedure = "/ctrl.v1.ClusterService/GetDesiredDeploymentState"
-	// ClusterServiceGetDesiredGatewayStateProcedure is the fully-qualified name of the ClusterService's
-	// GetDesiredGatewayState RPC.
-	ClusterServiceGetDesiredGatewayStateProcedure = "/ctrl.v1.ClusterService/GetDesiredGatewayState"
+	// ClusterServiceGetDesiredSentinelStateProcedure is the fully-qualified name of the
+	// ClusterService's GetDesiredSentinelState RPC.
+	ClusterServiceGetDesiredSentinelStateProcedure = "/ctrl.v1.ClusterService/GetDesiredSentinelState"
 	// ClusterServiceUpdateInstanceProcedure is the fully-qualified name of the ClusterService's
 	// UpdateInstance RPC.
 	ClusterServiceUpdateInstanceProcedure = "/ctrl.v1.ClusterService/UpdateInstance"
-	// ClusterServiceUpdateGatewayProcedure is the fully-qualified name of the ClusterService's
-	// UpdateGateway RPC.
-	ClusterServiceUpdateGatewayProcedure = "/ctrl.v1.ClusterService/UpdateGateway"
+	// ClusterServiceUpdateSentinelProcedure is the fully-qualified name of the ClusterService's
+	// UpdateSentinel RPC.
+	ClusterServiceUpdateSentinelProcedure = "/ctrl.v1.ClusterService/UpdateSentinel"
 )
 
 // ClusterServiceClient is a client for the ctrl.v1.ClusterService service.
 type ClusterServiceClient interface {
-	// Watch establishes a stream for receiving deployment and gateway events for a specific cluster.
+	// Watch establishes a stream for receiving deployment and sentinel events for a specific cluster.
 	//
 	// The cluster agent initiates this connection and keeps it open to receive real-time updates.
 	// Events are filtered server-side based on the cluster_id and region provided in the request.
@@ -77,10 +77,10 @@ type ClusterServiceClient interface {
 	GetDesiredState(context.Context, *connect.Request[v1.GetDesiredStateRequest]) (*connect.ServerStreamForClient[v1.InfraEvent], error)
 	// request a single deployment and return its desired state
 	GetDesiredDeploymentState(context.Context, *connect.Request[v1.GetDesiredDeploymentStateRequest]) (*connect.Response[v1.DeploymentEvent], error)
-	// request a single gateway and return its desired state
-	GetDesiredGatewayState(context.Context, *connect.Request[v1.GetDesiredGatewayStateRequest]) (*connect.Response[v1.GatewayEvent], error)
+	// request a single sentinel and return its desired state
+	GetDesiredSentinelState(context.Context, *connect.Request[v1.GetDesiredSentinelStateRequest]) (*connect.Response[v1.SentinelEvent], error)
 	UpdateInstance(context.Context, *connect.Request[v1.UpdateInstanceRequest]) (*connect.Response[v1.UpdateInstanceResponse], error)
-	UpdateGateway(context.Context, *connect.Request[v1.UpdateGatewayRequest]) (*connect.Response[v1.UpdateGatewayResponse], error)
+	UpdateSentinel(context.Context, *connect.Request[v1.UpdateSentinelRequest]) (*connect.Response[v1.UpdateSentinelResponse], error)
 }
 
 // NewClusterServiceClient constructs a client for the ctrl.v1.ClusterService service. By default,
@@ -112,10 +112,10 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(clusterServiceMethods.ByName("GetDesiredDeploymentState")),
 			connect.WithClientOptions(opts...),
 		),
-		getDesiredGatewayState: connect.NewClient[v1.GetDesiredGatewayStateRequest, v1.GatewayEvent](
+		getDesiredSentinelState: connect.NewClient[v1.GetDesiredSentinelStateRequest, v1.SentinelEvent](
 			httpClient,
-			baseURL+ClusterServiceGetDesiredGatewayStateProcedure,
-			connect.WithSchema(clusterServiceMethods.ByName("GetDesiredGatewayState")),
+			baseURL+ClusterServiceGetDesiredSentinelStateProcedure,
+			connect.WithSchema(clusterServiceMethods.ByName("GetDesiredSentinelState")),
 			connect.WithClientOptions(opts...),
 		),
 		updateInstance: connect.NewClient[v1.UpdateInstanceRequest, v1.UpdateInstanceResponse](
@@ -124,10 +124,10 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(clusterServiceMethods.ByName("UpdateInstance")),
 			connect.WithClientOptions(opts...),
 		),
-		updateGateway: connect.NewClient[v1.UpdateGatewayRequest, v1.UpdateGatewayResponse](
+		updateSentinel: connect.NewClient[v1.UpdateSentinelRequest, v1.UpdateSentinelResponse](
 			httpClient,
-			baseURL+ClusterServiceUpdateGatewayProcedure,
-			connect.WithSchema(clusterServiceMethods.ByName("UpdateGateway")),
+			baseURL+ClusterServiceUpdateSentinelProcedure,
+			connect.WithSchema(clusterServiceMethods.ByName("UpdateSentinel")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -138,9 +138,9 @@ type clusterServiceClient struct {
 	watch                     *connect.Client[v1.WatchRequest, v1.InfraEvent]
 	getDesiredState           *connect.Client[v1.GetDesiredStateRequest, v1.InfraEvent]
 	getDesiredDeploymentState *connect.Client[v1.GetDesiredDeploymentStateRequest, v1.DeploymentEvent]
-	getDesiredGatewayState    *connect.Client[v1.GetDesiredGatewayStateRequest, v1.GatewayEvent]
+	getDesiredSentinelState   *connect.Client[v1.GetDesiredSentinelStateRequest, v1.SentinelEvent]
 	updateInstance            *connect.Client[v1.UpdateInstanceRequest, v1.UpdateInstanceResponse]
-	updateGateway             *connect.Client[v1.UpdateGatewayRequest, v1.UpdateGatewayResponse]
+	updateSentinel            *connect.Client[v1.UpdateSentinelRequest, v1.UpdateSentinelResponse]
 }
 
 // Watch calls ctrl.v1.ClusterService.Watch.
@@ -158,9 +158,9 @@ func (c *clusterServiceClient) GetDesiredDeploymentState(ctx context.Context, re
 	return c.getDesiredDeploymentState.CallUnary(ctx, req)
 }
 
-// GetDesiredGatewayState calls ctrl.v1.ClusterService.GetDesiredGatewayState.
-func (c *clusterServiceClient) GetDesiredGatewayState(ctx context.Context, req *connect.Request[v1.GetDesiredGatewayStateRequest]) (*connect.Response[v1.GatewayEvent], error) {
-	return c.getDesiredGatewayState.CallUnary(ctx, req)
+// GetDesiredSentinelState calls ctrl.v1.ClusterService.GetDesiredSentinelState.
+func (c *clusterServiceClient) GetDesiredSentinelState(ctx context.Context, req *connect.Request[v1.GetDesiredSentinelStateRequest]) (*connect.Response[v1.SentinelEvent], error) {
+	return c.getDesiredSentinelState.CallUnary(ctx, req)
 }
 
 // UpdateInstance calls ctrl.v1.ClusterService.UpdateInstance.
@@ -168,14 +168,14 @@ func (c *clusterServiceClient) UpdateInstance(ctx context.Context, req *connect.
 	return c.updateInstance.CallUnary(ctx, req)
 }
 
-// UpdateGateway calls ctrl.v1.ClusterService.UpdateGateway.
-func (c *clusterServiceClient) UpdateGateway(ctx context.Context, req *connect.Request[v1.UpdateGatewayRequest]) (*connect.Response[v1.UpdateGatewayResponse], error) {
-	return c.updateGateway.CallUnary(ctx, req)
+// UpdateSentinel calls ctrl.v1.ClusterService.UpdateSentinel.
+func (c *clusterServiceClient) UpdateSentinel(ctx context.Context, req *connect.Request[v1.UpdateSentinelRequest]) (*connect.Response[v1.UpdateSentinelResponse], error) {
+	return c.updateSentinel.CallUnary(ctx, req)
 }
 
 // ClusterServiceHandler is an implementation of the ctrl.v1.ClusterService service.
 type ClusterServiceHandler interface {
-	// Watch establishes a stream for receiving deployment and gateway events for a specific cluster.
+	// Watch establishes a stream for receiving deployment and sentinel events for a specific cluster.
 	//
 	// The cluster agent initiates this connection and keeps it open to receive real-time updates.
 	// Events are filtered server-side based on the cluster_id and region provided in the request.
@@ -189,10 +189,10 @@ type ClusterServiceHandler interface {
 	GetDesiredState(context.Context, *connect.Request[v1.GetDesiredStateRequest], *connect.ServerStream[v1.InfraEvent]) error
 	// request a single deployment and return its desired state
 	GetDesiredDeploymentState(context.Context, *connect.Request[v1.GetDesiredDeploymentStateRequest]) (*connect.Response[v1.DeploymentEvent], error)
-	// request a single gateway and return its desired state
-	GetDesiredGatewayState(context.Context, *connect.Request[v1.GetDesiredGatewayStateRequest]) (*connect.Response[v1.GatewayEvent], error)
+	// request a single sentinel and return its desired state
+	GetDesiredSentinelState(context.Context, *connect.Request[v1.GetDesiredSentinelStateRequest]) (*connect.Response[v1.SentinelEvent], error)
 	UpdateInstance(context.Context, *connect.Request[v1.UpdateInstanceRequest]) (*connect.Response[v1.UpdateInstanceResponse], error)
-	UpdateGateway(context.Context, *connect.Request[v1.UpdateGatewayRequest]) (*connect.Response[v1.UpdateGatewayResponse], error)
+	UpdateSentinel(context.Context, *connect.Request[v1.UpdateSentinelRequest]) (*connect.Response[v1.UpdateSentinelResponse], error)
 }
 
 // NewClusterServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -220,10 +220,10 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 		connect.WithSchema(clusterServiceMethods.ByName("GetDesiredDeploymentState")),
 		connect.WithHandlerOptions(opts...),
 	)
-	clusterServiceGetDesiredGatewayStateHandler := connect.NewUnaryHandler(
-		ClusterServiceGetDesiredGatewayStateProcedure,
-		svc.GetDesiredGatewayState,
-		connect.WithSchema(clusterServiceMethods.ByName("GetDesiredGatewayState")),
+	clusterServiceGetDesiredSentinelStateHandler := connect.NewUnaryHandler(
+		ClusterServiceGetDesiredSentinelStateProcedure,
+		svc.GetDesiredSentinelState,
+		connect.WithSchema(clusterServiceMethods.ByName("GetDesiredSentinelState")),
 		connect.WithHandlerOptions(opts...),
 	)
 	clusterServiceUpdateInstanceHandler := connect.NewUnaryHandler(
@@ -232,10 +232,10 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 		connect.WithSchema(clusterServiceMethods.ByName("UpdateInstance")),
 		connect.WithHandlerOptions(opts...),
 	)
-	clusterServiceUpdateGatewayHandler := connect.NewUnaryHandler(
-		ClusterServiceUpdateGatewayProcedure,
-		svc.UpdateGateway,
-		connect.WithSchema(clusterServiceMethods.ByName("UpdateGateway")),
+	clusterServiceUpdateSentinelHandler := connect.NewUnaryHandler(
+		ClusterServiceUpdateSentinelProcedure,
+		svc.UpdateSentinel,
+		connect.WithSchema(clusterServiceMethods.ByName("UpdateSentinel")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/ctrl.v1.ClusterService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -246,12 +246,12 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 			clusterServiceGetDesiredStateHandler.ServeHTTP(w, r)
 		case ClusterServiceGetDesiredDeploymentStateProcedure:
 			clusterServiceGetDesiredDeploymentStateHandler.ServeHTTP(w, r)
-		case ClusterServiceGetDesiredGatewayStateProcedure:
-			clusterServiceGetDesiredGatewayStateHandler.ServeHTTP(w, r)
+		case ClusterServiceGetDesiredSentinelStateProcedure:
+			clusterServiceGetDesiredSentinelStateHandler.ServeHTTP(w, r)
 		case ClusterServiceUpdateInstanceProcedure:
 			clusterServiceUpdateInstanceHandler.ServeHTTP(w, r)
-		case ClusterServiceUpdateGatewayProcedure:
-			clusterServiceUpdateGatewayHandler.ServeHTTP(w, r)
+		case ClusterServiceUpdateSentinelProcedure:
+			clusterServiceUpdateSentinelHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -273,14 +273,14 @@ func (UnimplementedClusterServiceHandler) GetDesiredDeploymentState(context.Cont
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.GetDesiredDeploymentState is not implemented"))
 }
 
-func (UnimplementedClusterServiceHandler) GetDesiredGatewayState(context.Context, *connect.Request[v1.GetDesiredGatewayStateRequest]) (*connect.Response[v1.GatewayEvent], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.GetDesiredGatewayState is not implemented"))
+func (UnimplementedClusterServiceHandler) GetDesiredSentinelState(context.Context, *connect.Request[v1.GetDesiredSentinelStateRequest]) (*connect.Response[v1.SentinelEvent], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.GetDesiredSentinelState is not implemented"))
 }
 
 func (UnimplementedClusterServiceHandler) UpdateInstance(context.Context, *connect.Request[v1.UpdateInstanceRequest]) (*connect.Response[v1.UpdateInstanceResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.UpdateInstance is not implemented"))
 }
 
-func (UnimplementedClusterServiceHandler) UpdateGateway(context.Context, *connect.Request[v1.UpdateGatewayRequest]) (*connect.Response[v1.UpdateGatewayResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.UpdateGateway is not implemented"))
+func (UnimplementedClusterServiceHandler) UpdateSentinel(context.Context, *connect.Request[v1.UpdateSentinelRequest]) (*connect.Response[v1.UpdateSentinelResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.UpdateSentinel is not implemented"))
 }

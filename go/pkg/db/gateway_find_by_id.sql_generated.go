@@ -9,16 +9,16 @@ import (
 	"context"
 )
 
-const findGatewayByID = `-- name: FindGatewayByID :one
-SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE id = ? LIMIT 1
+const findSentinelByID = `-- name: FindSentinelByID :one
+SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels WHERE id = ? LIMIT 1
 `
 
-// FindGatewayByID
+// FindSentinelByID
 //
-//	SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE id = ? LIMIT 1
-func (q *Queries) FindGatewayByID(ctx context.Context, db DBTX, id string) (Gateway, error) {
-	row := db.QueryRowContext(ctx, findGatewayByID, id)
-	var i Gateway
+//	SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels WHERE id = ? LIMIT 1
+func (q *Queries) FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error) {
+	row := db.QueryRowContext(ctx, findSentinelByID, id)
+	var i Sentinel
 	err := row.Scan(
 		&i.ID,
 		&i.WorkspaceID,

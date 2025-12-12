@@ -2,9 +2,9 @@ import { relations } from "drizzle-orm";
 import { bigint, index, int, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
 import { deploymentSteps } from "./deployment_steps";
 import { environments } from "./environments";
-import { gateways } from "./gateways";
 import { instances } from "./instances";
 import { projects } from "./projects";
+import { sentinels } from "./sentinels";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
 import { workspaces } from "./workspaces";
@@ -35,7 +35,7 @@ export const deployments = mysqlTable(
     }),
     gitCommitTimestamp: bigint("git_commit_timestamp", { mode: "number" }), // Unix epoch milliseconds
 
-    gatewayConfig: longblob("gateway_config").notNull(),
+    sentinelConfig: longblob("sentinel_config").notNull(),
 
     // OpenAPI specification
     openapiSpec: longblob("openapi_spec"),
@@ -73,6 +73,6 @@ export const deploymentsRelations = relations(deployments, ({ one, many }) => ({
   }),
 
   steps: many(deploymentSteps),
-  gateways: many(gateways),
+  sentinels: many(sentinels),
   instances: many(instances),
 }));

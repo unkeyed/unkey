@@ -7,7 +7,7 @@ import (
 
 	"connectrpc.com/connect"
 	deploymentcontroller "github.com/unkeyed/unkey/go/apps/krane/deployment_controller"
-	gatewaycontroller "github.com/unkeyed/unkey/go/apps/krane/gateway_controller"
+	sentinelcontroller "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/pkg/buffer"
@@ -28,14 +28,14 @@ type SyncEngine struct {
 
 	ctrl ctrlv1connect.ClusterServiceClient
 
-	reconcileGatewayCircuitBreaker    circuitbreaker.CircuitBreaker[*connect.Response[ctrlv1.GatewayEvent]]
+	reconcileSentinelCircuitBreaker   circuitbreaker.CircuitBreaker[*connect.Response[ctrlv1.SentinelEvent]]
 	reconcileDeploymentCircuitBreaker circuitbreaker.CircuitBreaker[*connect.Response[ctrlv1.DeploymentEvent]]
 
-	gatewaycontroller    *gatewaycontroller.GatewayController
+	sentinelcontroller   *sentinelcontroller.SentinelController
 	deploymentcontroller *deploymentcontroller.DeploymentController
 
 	instanceUpdates *buffer.Buffer[*ctrlv1.UpdateInstanceRequest]
-	gatewayUpdates  *buffer.Buffer[*ctrlv1.UpdateGatewayRequest]
+	sentinelUpdates *buffer.Buffer[*ctrlv1.UpdateSentinelRequest]
 }
 
 type Config struct {
@@ -45,10 +45,10 @@ type Config struct {
 	ControlPlaneURL      string
 	ControlPlaneBearer   string
 	InstanceID           string
-	GatewayController    *gatewaycontroller.GatewayController
+	SentinelController   *sentinelcontroller.SentinelController
 	DeploymentController *deploymentcontroller.DeploymentController
 	InstanceUpdates      *buffer.Buffer[*ctrlv1.UpdateInstanceRequest]
-	GatewayUpdates       *buffer.Buffer[*ctrlv1.UpdateGatewayRequest]
+	SentinelUpdates      *buffer.Buffer[*ctrlv1.UpdateSentinelRequest]
 }
 
 func New(cfg Config) (*SyncEngine, error) {
@@ -72,13 +72,13 @@ func New(cfg Config) (*SyncEngine, error) {
 			connect.WithInterceptors(connectInterceptor(cfg.Region, cfg.Shard, cfg.ControlPlaneBearer)),
 		),
 
-		reconcileGatewayCircuitBreaker:    circuitbreaker.New[*connect.Response[ctrlv1.GatewayEvent]]("reconcile_gateway"),
+		reconcileSentinelCircuitBreaker:   circuitbreaker.New[*connect.Response[ctrlv1.SentinelEvent]]("reconcile_sentinel"),
 		reconcileDeploymentCircuitBreaker: circuitbreaker.New[*connect.Response[ctrlv1.DeploymentEvent]]("reconcile_deployment"),
-		gatewaycontroller:                 cfg.GatewayController,
+		sentinelcontroller:                cfg.SentinelController,
 		deploymentcontroller:              cfg.DeploymentController,
 
 		instanceUpdates: cfg.InstanceUpdates,
-		gatewayUpdates:  cfg.GatewayUpdates,
+		sentinelUpdates: cfg.SentinelUpdates,
 	}
 
 	// Do a full pull sync from the control plane regularly

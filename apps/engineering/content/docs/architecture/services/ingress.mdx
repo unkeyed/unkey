@@ -12,19 +12,19 @@ import { Mermaid } from "@/app/components/mermaid";
 ## What It Does
 
 Ingress is the multi-tenant HTTP ingress service that serves as the entry point for all customer traffic.
-It handles TLS termination, hostname-based routing, and proxying requests to environment-scoped gateways.
+It handles TLS termination, hostname-based routing, and proxying requests to environment-scoped sentinels.
 
 Ingress handles four main responsibilities:
 1. **TLS Termination**: Terminates TLS for custom domains using ACME (Let's Encrypt) or local certificates
 2. **Hostname Routing**: Looks up ingress routes by hostname to find the target deployment and environment
-3. **Gateway Selection**: Routes requests to the appropriate environment-scoped gateway
-4. **Smart Proxying**: Forwards to local gateways or cross-region NLBs with hop count protection
+3. **Sentinel Selection**: Routes requests to the appropriate environment-scoped sentinel
+4. **Smart Proxying**: Forwards to local sentinels or cross-region NLBs with hop count protection
 
 ## Architecture
 
 ### Multi-Tenant Design
 
-Ingress is a multi-tenant service running as a Kubernetes Deployment behind a Network Load Balancer. A single Ingress instance handles traffic for all customer deployments, performing hostname lookups and routing decisions to forward requests to the appropriate environment gateway.
+Ingress is a multi-tenant service running as a Kubernetes Deployment behind a Network Load Balancer. A single Ingress instance handles traffic for all customer deployments, performing hostname lookups and routing decisions to forward requests to the appropriate environment sentinel.
 
 ### Request Flow
 
@@ -33,19 +33,19 @@ Ingress is a multi-tenant service running as a Kubernetes Deployment behind a Ne
     participant Client
     participant Ingress
     participant DB as MySQL
-    participant Gateway as Environment Gateway
+    participant Sentinel as Environment Sentinel
 
     Client->>Ingress: HTTPS Request (custom.domain.com)
     Ingress->>Ingress: Terminate TLS (ACME cert)
     Ingress->>DB: SELECT * FROM ingress_routes WHERE hostname=?
     DB->>Ingress: deployment_id, environment_id, project_id
 
-    alt Local gateway exists
-        Ingress->>Ingress: Lookup gateway for environment_id
-        Ingress->>Gateway: HTTP proxy + X-Deployment-ID header
-        Gateway->>Ingress: Response
+    alt Local sentinel exists
+        Ingress->>Ingress: Lookup sentinel for environment_id
+        Ingress->>Sentinel: HTTP proxy + X-Deployment-ID header
+        Sentinel->>Ingress: Response
         Ingress->>Client: Response
-    else No local gateway (cross-region)
+    else No local sentinel (cross-region)
         Ingress->>Ingress: Check X-Unkey-Hop-Count < maxHops
         Ingress->>NLB: Forward to region NLB (with hop++)
         Note over Ingress: Remote region handles request
@@ -62,7 +62,7 @@ CREATE TABLE ingress_routes (
     id VARCHAR(128) PRIMARY KEY,
     project_id VARCHAR(255) NOT NULL,
     deployment_id VARCHAR(255) NOT NULL,
-    environment_id VARCHAR(255) NOT NULL,  -- Used to route to environment gateway
+    environment_id VARCHAR(255) NOT NULL,  -- Used to route to environment sentinel
     hostname VARCHAR(256) NOT NULL UNIQUE,
     sticky ENUM('none','branch','environment','live') NOT NULL DEFAULT 'none',
     created_at BIGINT NOT NULL,
@@ -105,25 +105,25 @@ cert, key := generateSelfSignedCert("unkey.local")
 1. Client connects with SNI hostname (e.g., `api.customer.com`)
 2. Ingress looks up certificate in database by hostname
 3. TLS handshake completes with customer's certificate
-4. Request is decrypted and forwarded to environment gateway as plain HTTP
+4. Request is decrypted and forwarded to environment sentinel as plain HTTP
 
-## Gateway Routing
+## Sentinel Routing
 
-Ingress routes requests to environment-scoped gateways based on the `environment_id` from the ingress route lookup.
+Ingress routes requests to environment-scoped sentinels based on the `environment_id` from the ingress route lookup.
 
-### Gateway Discovery
+### Sentinel Discovery
 
 ```go
 // After looking up the ingress route, we have:
 type IngressRoute struct {
     DeploymentID   string
-    EnvironmentID  string  // Key field for gateway routing
+    EnvironmentID  string  // Key field for sentinel routing
     ProjectID      string
 }
 
-// Gateway address is determined by environment_id
-// e.g., "gateway-{environment_id}.{namespace}.svc.cluster.local:8080"
-gatewayAddress := fmt.Sprintf("gateway-%s.%s.svc.cluster.local:8080",
+// Sentinel address is determined by environment_id
+// e.g., "sentinel-{environment_id}.{namespace}.svc.cluster.local:8080"
+sentinelAddress := fmt.Sprintf("sentinel-%s.%s.svc.cluster.local:8080",
     route.EnvironmentID, namespace)
 ```
 
@@ -131,21 +131,21 @@ gatewayAddress := fmt.Sprintf("gateway-%s.%s.svc.cluster.local:8080",
 
 Ingress routes based on:
 - `environment_id` from the ingress route lookup
-- Gateway service discovery via Kubernetes DNS
+- Sentinel service discovery via Kubernetes DNS
 - Current region (for local vs cross-region routing)
 
-If no local gateway is found, Ingress forwards to the region's NLB, triggering cross-region forwarding.
+If no local sentinel is found, Ingress forwards to the region's NLB, triggering cross-region forwarding.
 
 ### Request Headers
 
-Ingress passes metadata to the Gateway via HTTP headers:
+Ingress passes metadata to the Sentinel via HTTP headers:
 - `X-Deployment-ID`: The target deployment ID
 - `X-Environment-ID`: The environment ID (for validation)
 - `X-Unkey-Hop-Count`: Hop count for cross-region loop prevention
 
 ## Cross-Region Forwarding
 
-When no local gateway is available, Ingress forwards requests to the region's Network Load Balancer.
+When no local sentinel is available, Ingress forwards requests to the region's Network Load Balancer.
 
 ### Hop Count Protection
 
@@ -186,12 +186,12 @@ func (p *ProxyService) ForwardToNLB(ctx context.Context, region string, r *http.
 }
 ```
 
-### Why NLB Instead of Direct Gateway?
+### Why NLB Instead of Direct Sentinel?
 
-Forwarding to the region's NLB (instead of directly to a remote gateway) provides:
+Forwarding to the region's NLB (instead of directly to a remote sentinel) provides:
 - **Load balancing**: NLB distributes across available Ingress instances in the target region
 - **Health checking**: NLB only routes to healthy Ingress replicas
-- **Simplicity**: No need for cross-region gateway discovery
+- **Simplicity**: No need for cross-region sentinel discovery
 - **Consistency**: Same ingress lookup and routing logic applies in the target region
 
 ## Error Handling
@@ -205,8 +205,8 @@ type ErrorCode int
 
 const (
     ErrorHostnameNotFound          ErrorCode = 40401  // No ingress route for hostname
-    ErrorGatewayUnavailable        ErrorCode = 50301  // Environment gateway not available
-    ErrorProxyServiceUnavailable   ErrorCode = 50302  // Failed to proxy to gateway
+    ErrorSentinelUnavailable        ErrorCode = 50301  // Environment sentinel not available
+    ErrorProxyServiceUnavailable   ErrorCode = 50302  // Failed to proxy to sentinel
     ErrorRoutingMaxHopsExceeded    ErrorCode = 50801  // Too many cross-region hops
 )
 ```
@@ -214,14 +214,14 @@ const (
 ### Status Code Mapping
 
 - **404 Not Found**: No ingress route configured for hostname
-- **503 Service Unavailable**: Environment gateway not available
+- **503 Service Unavailable**: Environment sentinel not available
 - **508 Loop Detected**: Maximum hop count exceeded (prevents infinite loops)
 
 ## Observability
 
 Ingress uses structured logging for:
 - Hostname lookups and routing decisions
-- Gateway discovery and selection
+- Sentinel discovery and selection
 - Proxy operations (success/failure)
 - Cross-region forwarding
 - TLS certificate operations
@@ -231,7 +231,7 @@ Ingress uses structured logging for:
 
 ### Planned Features
 
-1. **Gateway Health Checks**: Active health probing for environment gateways
+1. **Sentinel Health Checks**: Active health probing for environment sentinels
 2. **Sticky Sessions**: Support sticky routing based on client session
 
 ### Scalability

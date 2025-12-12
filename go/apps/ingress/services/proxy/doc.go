@@ -1,7 +1,7 @@
 // Package proxy provides HTTP/HTTPS proxying services for the ingress.
 //
 // The proxy service is responsible for:
-//   - Forwarding requests to local gateways (HTTP)
+//   - Forwarding requests to local sentinels (HTTP)
 //   - Forwarding requests to remote ingresses (HTTPS)
 //   - Managing a shared HTTP transport for connection pooling
 //   - Setting debug headers for tracing and troubleshooting

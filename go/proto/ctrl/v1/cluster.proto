@@ -2,9 +2,9 @@ syntax = "proto3";
 
 // Package ctrl.v1 provides the Cluster service for multi-cluster deployment orchestration.
 //
-// The Cluster service enables a central control plane to coordinate deployments and gateways
+// The Cluster service enables a central control plane to coordinate deployments and sentinels
 // across multiple Kubernetes clusters. Each cluster runs an agent (such as krane) that establishes
-// a long-lived watch connection to receive deployment and gateway configuration events.
+// a long-lived watch connection to receive deployment and sentinel configuration events.
 //
 // This design follows the Kubernetes watch pattern where agents (like kubelet) maintain
 // a streaming connection to receive incremental updates, enabling real-time deployment
@@ -13,17 +13,17 @@ package ctrl.v1;
 
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
 
-// ClusterService coordinates deployment and gateway configurations across multiple clusters.
+// ClusterService coordinates deployment and sentinel configurations across multiple clusters.
 //
 // Agents in each cluster establish a watch stream to receive configuration events
-// from the control plane. The service streams deployment and gateway lifecycle events
+// from the control plane. The service streams deployment and sentinel lifecycle events
 // (apply, delete) to the appropriate clusters based on their cluster_id and region.
 //
 // The watch connection is designed to be long-lived with automatic reconnection on failure.
 // When an agent reconnects, it should initiate reconciliation to ensure consistency.
 service ClusterService {
 
-  // Watch establishes a stream for receiving deployment and gateway events for a specific cluster.
+  // Watch establishes a stream for receiving deployment and sentinel events for a specific cluster.
   //
   // The cluster agent initiates this connection and keeps it open to receive real-time updates.
   // Events are filtered server-side based on the cluster_id and region provided in the request.
@@ -39,18 +39,18 @@ service ClusterService {
 
   // request a single deployment and return its desired state
   rpc GetDesiredDeploymentState(GetDesiredDeploymentStateRequest) returns (DeploymentEvent);
-  // request a single gateway and return its desired state
-  rpc GetDesiredGatewayState(GetDesiredGatewayStateRequest) returns (GatewayEvent);
+  // request a single sentinel and return its desired state
+  rpc GetDesiredSentinelState(GetDesiredSentinelStateRequest) returns (SentinelEvent);
 
 
   rpc UpdateInstance(UpdateInstanceRequest) returns (UpdateInstanceResponse);
-  rpc UpdateGateway(UpdateGatewayRequest) returns (UpdateGatewayResponse);
+  rpc UpdateSentinel(UpdateSentinelRequest) returns (UpdateSentinelResponse);
 
 }
 
 
-message GetDesiredGatewayStateRequest {
-  string gateway_id = 1;
+message GetDesiredSentinelStateRequest {
+  string sentinel_id = 1;
 }
 
 message GetDesiredDeploymentStateRequest {
@@ -113,21 +113,21 @@ message UpdateInstanceResponse {
 }
 
 
-message UpdateGatewayRequest {
+message UpdateSentinelRequest {
 
 
 
     message Create {
-      string gateway_id = 1;
+      string sentinel_id = 1;
         int32 running_replicas = 2;
     }
     message Update {
-      string gateway_id = 1;
+      string sentinel_id = 1;
         int32 running_replicas = 2;
 
     }
     message Delete {
-      string gateway_id = 1;
+      string sentinel_id = 1;
     }
 
     oneof change {
@@ -139,7 +139,7 @@ message UpdateGatewayRequest {
 
 }
 
-message UpdateGatewayResponse {
+message UpdateSentinelResponse {
 
 }
 
@@ -174,23 +174,23 @@ message GetDesiredStateRequest {
   map<string, string> selectors= 2;
 }
 
-// GatewayEvent represents a lifecycle event for an API gateway configuration.
+// SentinelEvent represents a lifecycle event for an API sentinel configuration.
 //
-// Gateways are ingress points for services, typically handling routing, load balancing,
+// Sentinels are ingress points for services, typically handling routing, load balancing,
 // and API management. The event follows a declarative model where the cluster agent ensures
 // the cluster state matches the desired configuration.
-message GatewayEvent {
-  // event contains the specific gateway operation to perform.
+message SentinelEvent {
+  // event contains the specific sentinel operation to perform.
   // Only one event type is set per message, determining the action the agent should take.
   oneof event {
-    // apply indicates the gateway should exist with this configuration.
-    // The agent will create the gateway if it doesn't exist or update it if it does.
+    // apply indicates the sentinel should exist with this configuration.
+    // The agent will create the sentinel if it doesn't exist or update it if it does.
     // This follows the same semantics as "kubectl apply" - declare desired state
     // and let the agent determine the appropriate action.
-    ApplyGateway apply = 1;
+    ApplySentinel apply = 1;
 
-    // delete indicates the gateway should be removed from the cluster.
-    DeleteGateway delete = 2;
+    // delete indicates the sentinel should be removed from the cluster.
+    DeleteSentinel delete = 2;
   }
 }
 
@@ -214,57 +214,57 @@ message DeploymentEvent {
   }
 }
 
-// ApplyGateway contains the desired configuration for a gateway.
+// ApplySentinel contains the desired configuration for a sentinel.
 //
-// The cluster agent will ensure a gateway exists with this exact configuration, creating it if
+// The cluster agent will ensure a sentinel exists with this exact configuration, creating it if
 // it doesn't exist or updating it if it does. All fields except namespace are required.
-// The control plane ensures that gateway_id is unique within the namespace.
-message ApplyGateway {
-  // namespace is the Kubernetes namespace in which the gateway should exist.
+// The control plane ensures that sentinel_id is unique within the namespace.
+message ApplySentinel {
+  // namespace is the Kubernetes namespace in which the sentinel should exist.
   string namespace = 1;
 
   string k8s_crd_name = 2;
-  // workspace_id identifies the workspace that owns this gateway.
+  // workspace_id identifies the workspace that owns this sentinel.
   string workspace_id = 3;
 
   // project_id identifies the project within the workspace.
   string project_id = 4;
 
-  // environment_id in which the gateway should exist.
+  // environment_id in which the sentinel should exist.
   string environment_id = 5;
 
-  // gateway_id is the unique identifier for this gateway within the namespace.
-  string gateway_id = 6;
+  // sentinel_id is the unique identifier for this sentinel within the namespace.
+  string sentinel_id = 6;
 
-  // image is the container image to deploy for the gateway.
+  // image is the container image to deploy for the sentinel.
   // Must be a valid container registry URL accessible by the cluster.
-  // Example: "ghcr.io/unkeyed/gateway:v1.2.3"
+  // Example: "ghcr.io/unkeyed/sentinel:v1.2.3"
   string image = 7;
 
-  // replicas is the desired number of gateway instances.
+  // replicas is the desired number of sentinel instances.
   // Must be at least 1. For high availability, use 3 or more.
   uint32 replicas = 8;
 
   // cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
-  // This ensures the gateway has sufficient CPU resources.
+  // This ensures the sentinel has sufficient CPU resources.
   // Example: 500 = 0.5 CPU cores
   uint32 cpu_millicores = 9;
 
   // memory_size_mib is the memory request/limit in mebibytes.
-  // This ensures the gateway has sufficient memory.
+  // This ensures the sentinel has sufficient memory.
   // Example: 512 = 512 MiB
   uint32 memory_size_mib = 10;
 }
 
-// DeleteGateway identifies a gateway to remove from the cluster.
+// DeleteSentinel identifies a sentinel to remove from the cluster.
 //
-// The gateway and all its resources (pods, services, ingress) will be deleted.
+// The sentinel and all its resources (pods, services, ingress) will be deleted.
 // In-flight requests may be disrupted unless proper connection draining is configured.
-message DeleteGateway {
+message DeleteSentinel {
 
-  // gateway_id identifies the gateway to delete.
-  // All resources with this gateway_id in the namespace will be removed.
-  string gateway_id = 1;
+  // sentinel_id identifies the sentinel to delete.
+  // All resources with this sentinel_id in the namespace will be removed.
+  string sentinel_id = 1;
 }
 
 // ApplyDeployment contains the desired configuration for a deployment.
@@ -325,7 +325,7 @@ message DeleteDeployment {
 
 // InfraEvent is streamed from the control plane to cluster agents.
 //
-// Each event contains either a gateway or deployment configuration change that
+// Each event contains either a sentinel or deployment configuration change that
 // the agent should apply to its cluster. Events are sent in real-time as
 // changes occur in the control plane, enabling immediate propagation of updates
 // across the fleet of clusters.
@@ -337,9 +337,9 @@ message InfraEvent {
   // Only one event type is set per InfraEvent, allowing the client to
   // handle different resource types with appropriate logic.
   oneof event {
-    // gateway_event contains a gateway lifecycle event (apply or delete).
-    // The client should apply this to gateway resources in the cluster.
-    GatewayEvent gateway_event = 2;
+    // sentinel_event contains a sentinel lifecycle event (apply or delete).
+    // The client should apply this to sentinel resources in the cluster.
+    SentinelEvent sentinel_event = 2;
 
     // deployment_event contains a deployment lifecycle event (apply or delete).
     // The client should apply this to deployment resources in the cluster.

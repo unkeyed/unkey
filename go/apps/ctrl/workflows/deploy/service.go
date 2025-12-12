@@ -12,7 +12,7 @@ import (
 //
 // This workflow manages the complete deployment lifecycle including deploying new versions,
 // rolling back to previous versions, and promoting deployments to live. It coordinates
-// between container orchestration (Krane), database updates, domain routing, and gateway
+// between container orchestration (Krane), database updates, domain routing, and sentinel
 // configuration to ensure consistent deployment state.
 //
 // The workflow uses Restate virtual objects keyed by project ID to ensure that only one

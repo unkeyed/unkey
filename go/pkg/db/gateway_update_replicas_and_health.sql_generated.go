@@ -10,30 +10,30 @@ import (
 	"database/sql"
 )
 
-const updateGatewayReplicasAndHealth = `-- name: UpdateGatewayReplicasAndHealth :exec
-UPDATE gateways SET
+const updateSentinelReplicasAndHealth = `-- name: UpdateSentinelReplicasAndHealth :exec
+UPDATE sentinels SET
 replicas = ?,
 health = ?,
 updated_at = ?
 WHERE id = ?
 `
 
-type UpdateGatewayReplicasAndHealthParams struct {
-	Replicas  int32          `db:"replicas"`
-	Health    GatewaysHealth `db:"health"`
-	UpdatedAt sql.NullInt64  `db:"updated_at"`
-	ID        string         `db:"id"`
+type UpdateSentinelReplicasAndHealthParams struct {
+	Replicas  int32           `db:"replicas"`
+	Health    SentinelsHealth `db:"health"`
+	UpdatedAt sql.NullInt64   `db:"updated_at"`
+	ID        string          `db:"id"`
 }
 
-// UpdateGatewayReplicasAndHealth
+// UpdateSentinelReplicasAndHealth
 //
-//	UPDATE gateways SET
+//	UPDATE sentinels SET
 //	replicas = ?,
 //	health = ?,
 //	updated_at = ?
 //	WHERE id = ?
-func (q *Queries) UpdateGatewayReplicasAndHealth(ctx context.Context, db DBTX, arg UpdateGatewayReplicasAndHealthParams) error {
-	_, err := db.ExecContext(ctx, updateGatewayReplicasAndHealth,
+func (q *Queries) UpdateSentinelReplicasAndHealth(ctx context.Context, db DBTX, arg UpdateSentinelReplicasAndHealthParams) error {
+	_, err := db.ExecContext(ctx, updateSentinelReplicasAndHealth,
 		arg.Replicas,
 		arg.Health,
 		arg.UpdatedAt,

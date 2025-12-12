@@ -17,8 +17,8 @@ type Caches struct {
 	// HostName -> IngressRoute
 	IngressRoutes cache.Cache[string, db.IngressRoute]
 
-	// EnvironmentID -> List of Gateways
-	GatewaysByEnvironment cache.Cache[string, []db.Gateway]
+	// EnvironmentID -> List of Sentinels
+	SentinelsByEnvironment cache.Cache[string, []db.Sentinel]
 
 	// HostName -> Certificate
 	TLSCertificates cache.Cache[string, tls.Certificate]
@@ -40,15 +40,15 @@ func New(config Config) (Caches, error) {
 		Clock:    config.Clock,
 	})
 	if err != nil {
-		return Caches{}, fmt.Errorf("failed to create gateway config cache: %w", err)
+		return Caches{}, fmt.Errorf("failed to create sentinel config cache: %w", err)
 	}
 
-	gatewaysByEnvironment, err := cache.New(cache.Config[string, []db.Gateway]{
+	sentinelsByEnvironment, err := cache.New(cache.Config[string, []db.Sentinel]{
 		Fresh:    time.Second * 10,
 		Stale:    time.Minute,
 		Logger:   config.Logger,
 		MaxSize:  10_000,
-		Resource: "gateways_by_environment",
+		Resource: "sentinels_by_environment",
 		Clock:    config.Clock,
 	})
 	if err != nil {
@@ -68,8 +68,8 @@ func New(config Config) (Caches, error) {
 	}
 
 	return Caches{
-		IngressRoutes:         middleware.WithTracing(ingressRoute),
-		GatewaysByEnvironment: middleware.WithTracing(gatewaysByEnvironment),
-		TLSCertificates:       middleware.WithTracing(tlsCertificate),
+		IngressRoutes:          middleware.WithTracing(ingressRoute),
+		SentinelsByEnvironment: middleware.WithTracing(sentinelsByEnvironment),
+		TLSCertificates:        middleware.WithTracing(tlsCertificate),
 	}, nil
 }

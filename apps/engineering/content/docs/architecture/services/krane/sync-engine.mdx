@@ -16,10 +16,10 @@ graph TB
     subgraph 'Krane Agent'
         SE[Sync Engine]
         DC[Deployment Controller]
-        GC[Gateway Controller]
+        GC[Sentinel Controller]
         EB[Event Buffer]
         IUB[Instance Update Buffer]
-        GUB[Gateway Update Buffer]
+        GUB[Sentinel Update Buffer]
         
         SE --> EB
         EB --> DC
@@ -43,7 +43,7 @@ graph TB
     SE -.->|Watch Stream| CS
     SE -->|GetDesiredState| CS
     SE -->|UpdateInstance| CS
-    SE -->|UpdateGateway| CS
+    SE -->|UpdateSentinel| CS
     
     DC -->|Apply/Delete| API
     GC -->|Apply/Delete| API

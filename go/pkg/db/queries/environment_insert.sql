@@ -7,7 +7,7 @@ INSERT INTO environments (
     description,
     created_at,
     updated_at,
-    gateway_config
+    sentinel_config
 ) VALUES (
     ?, ?, ?, ?, ?, ?, ?, ?
 );

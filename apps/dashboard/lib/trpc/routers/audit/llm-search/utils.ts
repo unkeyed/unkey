@@ -213,7 +213,7 @@ ${validEventTypes.map((event) => `   - ${event}`).join("\n")}
    - "delete key" → "key.delete"
    - "set override" → "ratelimit.set_override"
    - workspace.create, workspace.update, workspace.delete, workspace.opt_in
-   - gateway.create, llmGateway.create, llmGateway.delete
+   - sentinel.create, llmSentinel.create, llmSentinel.delete
    - api.create, api.update, api.delete
    - key.create, key.update, key.delete, key.reroll
    - ratelimitNamespace.create, ratelimitNamespace.update, ratelimitNamespace.delete

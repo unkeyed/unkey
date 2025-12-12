@@ -365,93 +365,6 @@ func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
 	return string(ns.DeploymentsStatus), nil
 }
 
-type GatewaysDesiredState string
-
-const (
-	GatewaysDesiredStateRunning  GatewaysDesiredState = "running"
-	GatewaysDesiredStateStandby  GatewaysDesiredState = "standby"
-	GatewaysDesiredStateArchived GatewaysDesiredState = "archived"
-)
-
-func (e *GatewaysDesiredState) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = GatewaysDesiredState(s)
-	case string:
-		*e = GatewaysDesiredState(s)
-	default:
-		return fmt.Errorf("unsupported scan type for GatewaysDesiredState: %T", src)
-	}
-	return nil
-}
-
-type NullGatewaysDesiredState struct {
-	GatewaysDesiredState GatewaysDesiredState
-	Valid                bool // Valid is true if GatewaysDesiredState is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullGatewaysDesiredState) Scan(value interface{}) error {
-	if value == nil {
-		ns.GatewaysDesiredState, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.GatewaysDesiredState.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullGatewaysDesiredState) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.GatewaysDesiredState), nil
-}
-
-type GatewaysHealth string
-
-const (
-	GatewaysHealthUnknown   GatewaysHealth = "unknown"
-	GatewaysHealthPaused    GatewaysHealth = "paused"
-	GatewaysHealthHealthy   GatewaysHealth = "healthy"
-	GatewaysHealthUnhealthy GatewaysHealth = "unhealthy"
-)
-
-func (e *GatewaysHealth) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = GatewaysHealth(s)
-	case string:
-		*e = GatewaysHealth(s)
-	default:
-		return fmt.Errorf("unsupported scan type for GatewaysHealth: %T", src)
-	}
-	return nil
-}
-
-type NullGatewaysHealth struct {
-	GatewaysHealth GatewaysHealth
-	Valid          bool // Valid is true if GatewaysHealth is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullGatewaysHealth) Scan(value interface{}) error {
-	if value == nil {
-		ns.GatewaysHealth, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.GatewaysHealth.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullGatewaysHealth) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.GatewaysHealth), nil
-}
-
 type IngressRoutesSticky string
 
 const (
@@ -621,6 +534,93 @@ func (ns NullRatelimitOverridesSharding) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.RatelimitOverridesSharding), nil
+}
+
+type SentinelsDesiredState string
+
+const (
+	SentinelsDesiredStateRunning  SentinelsDesiredState = "running"
+	SentinelsDesiredStateStandby  SentinelsDesiredState = "standby"
+	SentinelsDesiredStateArchived SentinelsDesiredState = "archived"
+)
+
+func (e *SentinelsDesiredState) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SentinelsDesiredState(s)
+	case string:
+		*e = SentinelsDesiredState(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SentinelsDesiredState: %T", src)
+	}
+	return nil
+}
+
+type NullSentinelsDesiredState struct {
+	SentinelsDesiredState SentinelsDesiredState
+	Valid                 bool // Valid is true if SentinelsDesiredState is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSentinelsDesiredState) Scan(value interface{}) error {
+	if value == nil {
+		ns.SentinelsDesiredState, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SentinelsDesiredState.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSentinelsDesiredState) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SentinelsDesiredState), nil
+}
+
+type SentinelsHealth string
+
+const (
+	SentinelsHealthUnknown   SentinelsHealth = "unknown"
+	SentinelsHealthPaused    SentinelsHealth = "paused"
+	SentinelsHealthHealthy   SentinelsHealth = "healthy"
+	SentinelsHealthUnhealthy SentinelsHealth = "unhealthy"
+)
+
+func (e *SentinelsHealth) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SentinelsHealth(s)
+	case string:
+		*e = SentinelsHealth(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SentinelsHealth: %T", src)
+	}
+	return nil
+}
+
+type NullSentinelsHealth struct {
+	SentinelsHealth SentinelsHealth
+	Valid           bool // Valid is true if SentinelsHealth is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSentinelsHealth) Scan(value interface{}) error {
+	if value == nil {
+		ns.SentinelsHealth, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SentinelsHealth.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSentinelsHealth) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SentinelsHealth), nil
 }
 
 type VercelBindingsEnvironment string
@@ -872,7 +872,7 @@ type Deployment struct {
 	GitCommitAuthorHandle    sql.NullString          `db:"git_commit_author_handle"`
 	GitCommitAuthorAvatarUrl sql.NullString          `db:"git_commit_author_avatar_url"`
 	GitCommitTimestamp       sql.NullInt64           `db:"git_commit_timestamp"`
-	GatewayConfig            []byte                  `db:"gateway_config"`
+	SentinelConfig           []byte                  `db:"sentinel_config"`
 	OpenapiSpec              sql.NullString          `db:"openapi_spec"`
 	CpuMillicores            int32                   `db:"cpu_millicores"`
 	MemoryMib                int32                   `db:"memory_mib"`
@@ -916,29 +916,10 @@ type Environment struct {
 	ProjectID        string        `db:"project_id"`
 	Slug             string        `db:"slug"`
 	Description      string        `db:"description"`
-	GatewayConfig    []byte        `db:"gateway_config"`
+	SentinelConfig   []byte        `db:"sentinel_config"`
 	DeleteProtection sql.NullBool  `db:"delete_protection"`
 	CreatedAt        int64         `db:"created_at"`
 	UpdatedAt        sql.NullInt64 `db:"updated_at"`
-}
-
-type Gateway struct {
-	ID              string               `db:"id"`
-	WorkspaceID     string               `db:"workspace_id"`
-	ProjectID       string               `db:"project_id"`
-	EnvironmentID   string               `db:"environment_id"`
-	K8sCrdName      string               `db:"k8s_crd_name"`
-	K8sServiceName  string               `db:"k8s_service_name"`
-	Region          string               `db:"region"`
-	Image           string               `db:"image"`
-	DesiredState    GatewaysDesiredState `db:"desired_state"`
-	Health          GatewaysHealth       `db:"health"`
-	DesiredReplicas int32                `db:"desired_replicas"`
-	Replicas        int32                `db:"replicas"`
-	CpuMillicores   int32                `db:"cpu_millicores"`
-	MemoryMib       int32                `db:"memory_mib"`
-	CreatedAt       int64                `db:"created_at"`
-	UpdatedAt       sql.NullInt64        `db:"updated_at"`
 }
 
 type Identity struct {
@@ -1132,6 +1113,25 @@ type RolesPermission struct {
 	WorkspaceID  string        `db:"workspace_id"`
 	CreatedAtM   int64         `db:"created_at_m"`
 	UpdatedAtM   sql.NullInt64 `db:"updated_at_m"`
+}
+
+type Sentinel struct {
+	ID              string                `db:"id"`
+	WorkspaceID     string                `db:"workspace_id"`
+	ProjectID       string                `db:"project_id"`
+	EnvironmentID   string                `db:"environment_id"`
+	K8sCrdName      string                `db:"k8s_crd_name"`
+	K8sServiceName  string                `db:"k8s_service_name"`
+	Region          string                `db:"region"`
+	Image           string                `db:"image"`
+	DesiredState    SentinelsDesiredState `db:"desired_state"`
+	Health          SentinelsHealth       `db:"health"`
+	DesiredReplicas int32                 `db:"desired_replicas"`
+	Replicas        int32                 `db:"replicas"`
+	CpuMillicores   int32                 `db:"cpu_millicores"`
+	MemoryMib       int32                 `db:"memory_mib"`
+	CreatedAt       int64                 `db:"created_at"`
+	UpdatedAt       sql.NullInt64         `db:"updated_at"`
 }
 
 type VercelBinding struct {

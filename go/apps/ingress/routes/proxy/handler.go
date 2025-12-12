@@ -27,26 +27,26 @@ func (h *Handler) Path() string {
 }
 
 // Handle routes incoming requests to either:
-// 1. Local gateway (if healthy gateway in current region) - forwards with X-Unkey-Deployment-Id
-// 2. Remote region (if no local gateway) - forwards to nearest region
+// 1. Local sentinel (if healthy sentinel in current region) - forwards with X-Unkey-Deployment-Id
+// 2. Remote region (if no local sentinel) - forwards to nearest region
 func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	ctx = proxy.WithRequestStartTime(ctx, h.Clock.Now())
 	hostname := proxy.ExtractHostname(sess.Request().Host)
 
-	route, gateways, err := h.RouterService.LookupByHostname(ctx, hostname)
+	route, sentinels, err := h.RouterService.LookupByHostname(ctx, hostname)
 	if err != nil {
 		return err
 	}
 
-	// Find Local gateway or nearest NLB
-	decision, err := h.RouterService.SelectGateway(route, gateways)
+	// Find Local sentinel or nearest NLB
+	decision, err := h.RouterService.SelectSentinel(route, sentinels)
 	if err != nil {
 		return err
 	}
 
-	// We obviously prefer a local gateway if available
-	if decision.LocalGateway != nil {
-		return h.ProxyService.ForwardToGateway(ctx, sess, decision.LocalGateway, decision.DeploymentID)
+	// We obviously prefer a local sentinel if available
+	if decision.LocalSentinel != nil {
+		return h.ProxyService.ForwardToSentinel(ctx, sess, decision.LocalSentinel, decision.DeploymentID)
 	}
 
 	return h.ProxyService.ForwardToRegion(ctx, sess, decision.NearestNLBRegion)

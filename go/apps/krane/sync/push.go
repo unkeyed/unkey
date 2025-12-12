@@ -35,16 +35,16 @@ func (s *SyncEngine) push() {
 				s.logger.Error("failed to push deployment update", "error", err.Error())
 			}
 
-		case g := <-s.gatewayUpdates.Consume():
+		case g := <-s.sentinelUpdates.Consume():
 			err := r.Do(func() error {
 				_, err := cb.Do(context.Background(), func(ctx context.Context) (any, error) {
-					_, err := s.ctrl.UpdateGateway(ctx, connect.NewRequest(g))
+					_, err := s.ctrl.UpdateSentinel(ctx, connect.NewRequest(g))
 					return nil, err
 				})
 				return err
 			})
 			if err != nil {
-				s.logger.Error("failed to push gateway update", "error", err.Error())
+				s.logger.Error("failed to push sentinel update", "error", err.Error())
 			}
 
 		}

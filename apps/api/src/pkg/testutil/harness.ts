@@ -33,12 +33,8 @@ export abstract class Harness {
   public resources: Resources;
 
   constructor(t: TaskContext) {
-    const {
-      DATABASE_HOST,
-      DATABASE_PASSWORD,
-      DATABASE_USERNAME,
-      CLICKHOUSE_URL,
-    } = databaseEnv.parse(process.env);
+    const { DATABASE_HOST, DATABASE_PASSWORD, DATABASE_USERNAME, CLICKHOUSE_URL } =
+      databaseEnv.parse(process.env);
 
     const db = drizzle(
       new Client({
@@ -55,7 +51,7 @@ export abstract class Harness {
       }),
       {
         schema,
-      }
+      },
     );
 
     this.db = { primary: db, readonly: db };
@@ -126,7 +122,7 @@ export abstract class Harness {
           keyId,
           permissionId: p.id,
           workspaceId: this.resources.unkeyWorkspace.id,
-        }))
+        })),
       );
     }
     return {
@@ -165,7 +161,7 @@ export abstract class Harness {
     for (const role of opts?.roles ?? []) {
       const { id: roleId } = await this.optimisticUpsertRole(
         this.resources.userWorkspace.id,
-        role.name
+        role.name,
       );
       await this.db.primary.insert(schema.keysRoles).values({
         keyId,
@@ -176,7 +172,7 @@ export abstract class Harness {
       for (const permissionName of role.permissions ?? []) {
         const permission = await this.optimisticUpsertPermission(
           this.resources.userWorkspace.id,
-          permissionName
+          permissionName,
         );
         await this.db.primary
           .insert(schema.rolesPermissions)
@@ -204,10 +200,7 @@ export abstract class Harness {
     };
   }
 
-  private async optimisticUpsertPermission(
-    workspaceId: string,
-    name: string
-  ): Promise<Permission> {
+  private async optimisticUpsertPermission(workspaceId: string, name: string): Promise<Permission> {
     const permission: Permission = {
       id: newId("test"),
       name,
@@ -233,10 +226,7 @@ export abstract class Harness {
     });
   }
 
-  private async optimisticUpsertRole(
-    workspaceId: string,
-    name: string
-  ): Promise<Role> {
+  private async optimisticUpsertRole(workspaceId: string, name: string): Promise<Role> {
     const role: Role = {
       id: newId("test"),
       name,
@@ -279,7 +269,7 @@ export abstract class Harness {
       updatedAtM: null,
       deletedAtM: null,
       partitionId: null,
-      k8sWorkspace: null,
+      k8sNamespace: null,
     };
     const userWorkspace: Workspace = {
       id: newId("test"),
@@ -363,9 +353,7 @@ export abstract class Harness {
   }
 
   protected async seed(): Promise<void> {
-    await this.db.primary
-      .insert(schema.workspaces)
-      .values(this.resources.unkeyWorkspace);
+    await this.db.primary.insert(schema.workspaces).values(this.resources.unkeyWorkspace);
     await this.db.primary.insert(schema.quotas).values({
       workspaceId: this.resources.unkeyWorkspace.id,
       requestsPerMonth: 150_000,
@@ -373,14 +361,10 @@ export abstract class Harness {
       logsRetentionDays: 7,
       team: false,
     });
-    await this.db.primary
-      .insert(schema.keyAuth)
-      .values(this.resources.unkeyKeyAuth);
+    await this.db.primary.insert(schema.keyAuth).values(this.resources.unkeyKeyAuth);
     await this.db.primary.insert(schema.apis).values(this.resources.unkeyApi);
 
-    await this.db.primary
-      .insert(schema.workspaces)
-      .values(this.resources.userWorkspace);
+    await this.db.primary.insert(schema.workspaces).values(this.resources.userWorkspace);
     await this.db.primary.insert(schema.quotas).values({
       workspaceId: this.resources.userWorkspace.id,
       requestsPerMonth: 150_000,
@@ -388,9 +372,7 @@ export abstract class Harness {
       logsRetentionDays: 7,
       team: false,
     });
-    await this.db.primary
-      .insert(schema.keyAuth)
-      .values(this.resources.userKeyAuth);
+    await this.db.primary.insert(schema.keyAuth).values(this.resources.userKeyAuth);
     await this.db.primary.insert(schema.apis).values(this.resources.userApi);
   }
 }

@@ -9,8 +9,8 @@ import (
 )
 
 type RouteDecision struct {
-	// LocalGateway is set if there's a healthy gateway in the local region
-	LocalGateway *db.Gateway
+	// LocalSentinel is set if there's a healthy sentinel in the local region
+	LocalSentinel *db.Sentinel
 
 	// NearestNLBRegion is set if we need to forward to another region's NLB
 	NearestNLBRegion string
@@ -20,14 +20,14 @@ type RouteDecision struct {
 }
 
 type Service interface {
-	LookupByHostname(ctx context.Context, hostname string) (*db.IngressRoute, []db.Gateway, error)
-	SelectGateway(route *db.IngressRoute, gateways []db.Gateway) (*RouteDecision, error)
+	LookupByHostname(ctx context.Context, hostname string) (*db.IngressRoute, []db.Sentinel, error)
+	SelectSentinel(route *db.IngressRoute, sentinels []db.Sentinel) (*RouteDecision, error)
 }
 
 type Config struct {
-	Logger                logging.Logger
-	Region                string
-	DB                    db.Database
-	IngressRouteCache     cache.Cache[string, db.IngressRoute]
-	GatewaysByEnvironment cache.Cache[string, []db.Gateway]
+	Logger                 logging.Logger
+	Region                 string
+	DB                     db.Database
+	IngressRouteCache      cache.Cache[string, db.IngressRoute]
+	SentinelsByEnvironment cache.Cache[string, []db.Sentinel]
 }

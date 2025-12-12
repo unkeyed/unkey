@@ -46,7 +46,7 @@
 //
 // For label selectors, use the provided constants:
 //
-//	selector := fmt.Sprintf("%s=%s", k8s.LabelKeyGatewayID, gatewayID)
+//	selector := fmt.Sprintf("%s=%s", k8s.LabelKeySentinelID, sentinelID)
 //
 // Reading labels from existing resources:
 //

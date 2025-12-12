@@ -1,6 +1,6 @@
 ---
 title: Routing Service
-description: Atomic ingress route and gateway configuration management
+description: Atomic ingress route and sentinel configuration management
 ---
 
 # Routing Service
@@ -13,7 +13,7 @@ The `RoutingService` manages atomic ingress route assignments.
 
 ## Why Separate Service?
 
-Ingress route and gateway operations are the **critical section** of deployments:
+Ingress route and sentinel operations are the **critical section** of deployments:
 - Must be atomic - both succeed or both fail
 - Must be serialized per project to prevent race conditions
 - Should not block non-routing operations (like building containers)
@@ -42,7 +42,7 @@ Creates or reassigns ingress routes to a deployment:
 1. For each ingress route ID: update the deployment ID
 2. Routes are pre-created with hostnames and sticky behavior
 3. This operation simply points them to the new deployment
-4. Per-tenant gateways handle the actual traffic routing
+4. Per-tenant sentinels handle the actual traffic routing
 
 Implementation: `go/apps/ctrl/workflows/routing/assign_ingress_routes_handler.go`
 
@@ -51,12 +51,12 @@ Implementation: `go/apps/ctrl/workflows/routing/assign_ingress_routes_handler.go
 - `ENVIRONMENT`: Environment-level (e.g., `staging.domain.com`)
 - `LIVE`: Production domain (e.g., `domain.com`)
 
-## Per-Tenant Gateway Architecture
+## Per-Tenant Sentinel Architecture
 
-With the new per-tenant gateway model:
-1. Each environment has its own gateway instances
+With the new per-tenant sentinel model:
+1. Each environment has its own sentinel instances
 2. Ingress routes point to deployments within an environment
-3. Gateway configuration is managed at the environment level
+3. Sentinel configuration is managed at the environment level
 4. This provides better isolation and scaling characteristics
 
 ## Local Domain Filtering

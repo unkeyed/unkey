@@ -199,10 +199,10 @@ func Run(ctx context.Context, cfg Config) error {
 		Vault:  vaultSvc,
 	})))
 	restateSrv.Bind(hydrav1.NewProjectServiceServer(projectWorkflow.New(projectWorkflow.Config{
-		Logger:       logger,
-		DB:           database,
-		GatewayImage: cfg.GatewayImage,
-		Cluster:      clusterSvc,
+		Logger:        logger,
+		DB:            database,
+		SentinelImage: cfg.SentinelImage,
+		Cluster:       clusterSvc,
 	})))
 
 	go func() {

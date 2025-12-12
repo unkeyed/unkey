@@ -6,8 +6,8 @@ const (
 	LabelKeyWorkspaceID = "unkey.com/workspace.id"
 	// LabelKeyDeploymentID is the label key for deployment ID
 	LabelKeyDeploymentID = "unkey.com/deployment.id"
-	// LabelKeyGatewayID is the label key for gateway ID
-	LabelKeyGatewayID = "unkey.com/gateway.id"
+	// LabelKeySentinelID is the label key for sentinel ID
+	LabelKeySentinelID = "unkey.com/sentinel.id"
 	// LabelKeyProjectID is the label key for project ID
 	LabelKeyProjectID = "unkey.com/project.id"
 	// LabelKeyEnvironmentID is the label key for environment ID
@@ -83,13 +83,13 @@ func (b *LabelBuilder) DeploymentID(id string) *LabelBuilder {
 	return b
 }
 
-// GatewayID sets the gateway ID label.
+// SentinelID sets the sentinel ID label.
 //
-// The gateway ID label (unkey.com/gateway.id) identifies resources associated
-// with a specific API gateway instance. This is used for gateway-specific
+// The sentinel ID label (unkey.com/sentinel.id) identifies resources associated
+// with a specific API sentinel instance. This is used for sentinel-specific
 // resource management and filtering.
-func (b *LabelBuilder) GatewayID(id string) *LabelBuilder {
-	b.labels[LabelKeyGatewayID] = id
+func (b *LabelBuilder) SentinelID(id string) *LabelBuilder {
+	b.labels[LabelKeySentinelID] = id
 	return b
 }
 
@@ -192,10 +192,10 @@ func GetDeploymentID(labels map[string]string) (string, bool) {
 	return value, ok
 }
 
-// GetGatewayID extracts the gateway ID from a label map.
+// GetSentinelID extracts the sentinel ID from a label map.
 // Returns the value and true if present, or empty string and false if not.
-func GetGatewayID(labels map[string]string) (string, bool) {
-	value, ok := labels[LabelKeyGatewayID]
+func GetSentinelID(labels map[string]string) (string, bool) {
+	value, ok := labels[LabelKeySentinelID]
 	return value, ok
 }
 

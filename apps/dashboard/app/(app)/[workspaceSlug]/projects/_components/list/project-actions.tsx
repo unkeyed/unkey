@@ -55,10 +55,10 @@ const getProjectActionItems = (
     },
     {
       id: "view-log",
-      label: "View gateway logs",
+      label: "View sentinel logs",
       icon: <Layers3 iconSize="md-regular" />,
       onClick: () => {
-        router.push(`/${workspaceSlug}/projects/${projectId}/gateway-logs`);
+        router.push(`/${workspaceSlug}/projects/${projectId}/sentinel-logs`);
       },
     },
     {

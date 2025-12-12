@@ -16,7 +16,7 @@ With the built image ready, the control plane instructs Krane to create a deploy
 
 The control plane polls Krane every second (for up to 5 minutes) to check instance status. As instances become ready, their details are registered in the database. Once all instances are running, the control plane attempts to scrape an OpenAPI specification from the deployed service.
 
-Finally, the control plane calls the RoutingService to atomically assign domains and create gateway configurations, and marks the deployment as ready in the database. Meanwhile, the CLI continuously polls the control plane every 2 seconds to check the deployment status until it becomes ready.
+Finally, the control plane calls the RoutingService to atomically assign domains and create sentinel configurations, and marks the deployment as ready in the database. Meanwhile, the CLI continuously polls the control plane every 2 seconds to check the deployment status until it becomes ready.
 
 <Mermaid chart={`sequenceDiagram
     autonumber

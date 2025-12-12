@@ -1,6 +1,6 @@
-// Package routing implements domain assignment and gateway configuration workflows.
+// Package routing implements domain assignment and sentinel configuration workflows.
 //
-// This package manages the relationship between domains, deployments, and gateway
+// This package manages the relationship between domains, deployments, and sentinel
 // configurations. It handles creating new domain assignments during deployments and
 // switching existing domains between deployments during rollback/promote operations.
 //
@@ -46,7 +46,7 @@
 //	    Domains: []*hydrav1.DomainToAssign{
 //	        {Name: "api.example.com", Sticky: hydrav1.DomainSticky_DOMAIN_STICKY_ENVIRONMENT},
 //	    },
-//	    GatewayConfig: gatewayConfig,
+//	    SentinelConfig: sentinelConfig,
 //	    IsRolledBack:  false,
 //	})
 //
@@ -65,7 +65,7 @@
 // 2. If new, create domain record with specified sticky behavior
 // 3. If existing and not rolled back, reassign to new deployment
 // 4. If existing and rolled back, skip reassignment
-// 5. Create gateway configs for all changed domains (except local hostnames)
+// 5. Create sentinel configs for all changed domains (except local hostnames)
 // 6. Return list of domains that were actually modified
 //
 // Each domain upsert is wrapped in a restate.Run call with a unique name, allowing
@@ -76,13 +76,13 @@
 //
 // The SwitchDomains operation performs these steps:
 //
-// 1. Fetch gateway config for the target deployment
+// 1. Fetch sentinel config for the target deployment
 // 2. Fetch domain information (hostnames, workspace IDs) for given domain IDs
-// 3. Upsert gateway configs first (atomic update of routing)
+// 3. Upsert sentinel configs first (atomic update of routing)
 // 4. Reassign domains to the target deployment
 //
-// The gateway configs are updated before domain reassignment to ensure that when a domain
-// points to a new deployment, the gateway config is already in place. This prevents a
+// The sentinel configs are updated before domain reassignment to ensure that when a domain
+// points to a new deployment, the sentinel config is already in place. This prevents a
 // window where a domain might route to a deployment without proper configuration.
 //
 // # Sticky Domain Behavior
@@ -100,22 +100,22 @@
 //
 // # Local Hostname Handling
 //
-// Gateway configs are NOT created for local development hostnames (localhost, 127.0.0.1,
+// Sentinel configs are NOT created for local development hostnames (localhost, 127.0.0.1,
 // *.local, *.test). This prevents unnecessary config creation during local development.
 // Hostnames using the default domain (e.g., *.unkey.app) ARE configured, as they represent
 // production/staging environments.
 //
-// # Gateway Configuration Format
+// # Sentinel Configuration Format
 //
-// Gateway configs are stored as JSON (using protojson.Marshal) in the database.
+// Sentinel configs are stored as JSON (using protojson.Marshal) in the database.
 // This format was chosen for easier debugging and direct database inspection during
 // development. Each config includes deployment ID, VM list, optional auth config, and
 // optional validation config.
 //
 // # Atomicity and Consistency
 //
-// - On assignment: Domains first, then gateway configs
-// - On switching: Gateway configs first, then domain reassignment
+// - On assignment: Domains first, then sentinel configs
+// - On switching: Sentinel configs first, then domain reassignment
 //
 // Restate's durable execution ensures that if either step fails, the operation will be
 // retried until both complete, maintaining eventual consistency between the databases.

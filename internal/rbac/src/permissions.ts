@@ -1,10 +1,10 @@
 /**
  * The database takes care of isolating roles between workspaces.
- * That's why we can assume the highest scope of a role is an `api` or later `gateway`
+ * That's why we can assume the highest scope of a role is an `api` or later `sentinel`
  *
  * role identifiers can look like this:
  * - `api_id.xxx`
- * - `gateway_id.xxx`
+ * - `sentinel_id.xxx`
  *
  */
 import { z } from "zod";

@@ -7,7 +7,7 @@ import (
 	"net"
 
 	deploymentcontroller "github.com/unkeyed/unkey/go/apps/krane/deployment_controller"
-	gatewaycontroller "github.com/unkeyed/unkey/go/apps/krane/gateway_controller"
+	sentinelcontroller "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller"
 	"github.com/unkeyed/unkey/go/apps/krane/sync"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/buffer"
@@ -44,15 +44,15 @@ func Run(ctx context.Context, cfg Config) error {
 		logger = logger.With(slog.String("version", pkgversion.Version))
 	}
 
-	gatewayUpdates := buffer.New[*ctrlv1.UpdateGatewayRequest](buffer.Config{
+	sentinelUpdates := buffer.New[*ctrlv1.UpdateSentinelRequest](buffer.Config{
 		Capacity: 1000,
 		Drop:     false,
-		Name:     "krane_gateway_updates",
+		Name:     "krane_sentinel_updates",
 	})
-	gatewayEvents := buffer.New[*ctrlv1.GatewayEvent](buffer.Config{
+	sentinelEvents := buffer.New[*ctrlv1.SentinelEvent](buffer.Config{
 		Capacity: 1000,
 		Drop:     false,
-		Name:     "krane_gateway_events",
+		Name:     "krane_sentinel_events",
 	})
 
 	deploymentEvents := buffer.New[*ctrlv1.DeploymentEvent](buffer.Config{
@@ -76,12 +76,12 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create deployment controller: %w", err)
 	}
 
-	gc, err := gatewaycontroller.New(gatewaycontroller.Config{
+	gc, err := sentinelcontroller.New(sentinelcontroller.Config{
 		Logger: logger,
-		Events: gatewayEvents,
+		Events: sentinelEvents,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create gateway controller: %w", err)
+		return fmt.Errorf("failed to create sentinel controller: %w", err)
 	}
 	s, err := sync.New(sync.Config{
 		Logger:               logger,
@@ -91,9 +91,9 @@ func Run(ctx context.Context, cfg Config) error {
 		ControlPlaneURL:      cfg.ControlPlaneURL,
 		ControlPlaneBearer:   cfg.ControlPlaneBearer,
 		InstanceUpdates:      instanceUpdates,
-		GatewayUpdates:       gatewayUpdates,
+		SentinelUpdates:      sentinelUpdates,
 		DeploymentController: dc,
-		GatewayController:    gc,
+		SentinelController:   gc,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create sync engine: %w", err)

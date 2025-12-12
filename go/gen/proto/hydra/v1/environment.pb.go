@@ -23,10 +23,10 @@ const (
 )
 
 type CreateEnvironmentRequest struct {
-	state         protoimpl.MessageState            `protogen:"open.v1"`
-	WorkspaceId   string                            `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
-	EnvironmentId string                            `protobuf:"bytes,2,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
-	Gateway       *CreateEnvironmentRequest_Gateway `protobuf:"bytes,3,opt,name=gateway,proto3" json:"gateway,omitempty"`
+	state         protoimpl.MessageState             `protogen:"open.v1"`
+	WorkspaceId   string                             `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	EnvironmentId string                             `protobuf:"bytes,2,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
+	Gateway       *CreateEnvironmentRequest_Sentinel `protobuf:"bytes,3,opt,name=gateway,proto3" json:"gateway,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -75,7 +75,7 @@ func (x *CreateEnvironmentRequest) GetEnvironmentId() string {
 	return ""
 }
 
-func (x *CreateEnvironmentRequest) GetGateway() *CreateEnvironmentRequest_Gateway {
+func (x *CreateEnvironmentRequest) GetGateway() *CreateEnvironmentRequest_Sentinel {
 	if x != nil {
 		return x.Gateway
 	}
@@ -118,7 +118,7 @@ func (*CreateEnvironmentResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_environment_proto_rawDescGZIP(), []int{1}
 }
 
-type CreateEnvironmentRequest_Gateway struct {
+type CreateEnvironmentRequest_Sentinel struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Image         string                 `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
@@ -129,20 +129,20 @@ type CreateEnvironmentRequest_Gateway struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CreateEnvironmentRequest_Gateway) Reset() {
-	*x = CreateEnvironmentRequest_Gateway{}
+func (x *CreateEnvironmentRequest_Sentinel) Reset() {
+	*x = CreateEnvironmentRequest_Sentinel{}
 	mi := &file_hydra_v1_environment_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CreateEnvironmentRequest_Gateway) String() string {
+func (x *CreateEnvironmentRequest_Sentinel) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreateEnvironmentRequest_Gateway) ProtoMessage() {}
+func (*CreateEnvironmentRequest_Sentinel) ProtoMessage() {}
 
-func (x *CreateEnvironmentRequest_Gateway) ProtoReflect() protoreflect.Message {
+func (x *CreateEnvironmentRequest_Sentinel) ProtoReflect() protoreflect.Message {
 	mi := &file_hydra_v1_environment_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -154,40 +154,40 @@ func (x *CreateEnvironmentRequest_Gateway) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateEnvironmentRequest_Gateway.ProtoReflect.Descriptor instead.
-func (*CreateEnvironmentRequest_Gateway) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateEnvironmentRequest_Sentinel.ProtoReflect.Descriptor instead.
+func (*CreateEnvironmentRequest_Sentinel) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_environment_proto_rawDescGZIP(), []int{0, 0}
 }
 
-func (x *CreateEnvironmentRequest_Gateway) GetId() string {
+func (x *CreateEnvironmentRequest_Sentinel) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *CreateEnvironmentRequest_Gateway) GetImage() string {
+func (x *CreateEnvironmentRequest_Sentinel) GetImage() string {
 	if x != nil {
 		return x.Image
 	}
 	return ""
 }
 
-func (x *CreateEnvironmentRequest_Gateway) GetReplicas() uint32 {
+func (x *CreateEnvironmentRequest_Sentinel) GetReplicas() uint32 {
 	if x != nil {
 		return x.Replicas
 	}
 	return 0
 }
 
-func (x *CreateEnvironmentRequest_Gateway) GetCpuMillicores() uint32 {
+func (x *CreateEnvironmentRequest_Sentinel) GetCpuMillicores() uint32 {
 	if x != nil {
 		return x.CpuMillicores
 	}
 	return 0
 }
 
-func (x *CreateEnvironmentRequest_Gateway) GetMemorySizeMib() uint64 {
+func (x *CreateEnvironmentRequest_Sentinel) GetMemorySizeMib() uint64 {
 	if x != nil {
 		return x.MemorySizeMib
 	}
@@ -198,12 +198,12 @@ var File_hydra_v1_environment_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_environment_proto_rawDesc = "" +
 	"\n" +
-	"\x1ahydra/v1/environment.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xc7\x02\n" +
+	"\x1ahydra/v1/environment.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xc9\x02\n" +
 	"\x18CreateEnvironmentRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12%\n" +
-	"\x0eenvironment_id\x18\x02 \x01(\tR\renvironmentId\x12D\n" +
-	"\agateway\x18\x03 \x01(\v2*.hydra.v1.CreateEnvironmentRequest.GatewayR\agateway\x1a\x9a\x01\n" +
-	"\aGateway\x12\x0e\n" +
+	"\x0eenvironment_id\x18\x02 \x01(\tR\renvironmentId\x12E\n" +
+	"\agateway\x18\x03 \x01(\v2+.hydra.v1.CreateEnvironmentRequest.SentinelR\agateway\x1a\x9b\x01\n" +
+	"\bSentinel\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05image\x18\x02 \x01(\tR\x05image\x12\x1a\n" +
 	"\breplicas\x18\x03 \x01(\rR\breplicas\x12%\n" +
@@ -228,12 +228,12 @@ func file_hydra_v1_environment_proto_rawDescGZIP() []byte {
 
 var file_hydra_v1_environment_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_hydra_v1_environment_proto_goTypes = []any{
-	(*CreateEnvironmentRequest)(nil),         // 0: hydra.v1.CreateEnvironmentRequest
-	(*CreateEnvironmentResponse)(nil),        // 1: hydra.v1.CreateEnvironmentResponse
-	(*CreateEnvironmentRequest_Gateway)(nil), // 2: hydra.v1.CreateEnvironmentRequest.Gateway
+	(*CreateEnvironmentRequest)(nil),          // 0: hydra.v1.CreateEnvironmentRequest
+	(*CreateEnvironmentResponse)(nil),         // 1: hydra.v1.CreateEnvironmentResponse
+	(*CreateEnvironmentRequest_Sentinel)(nil), // 2: hydra.v1.CreateEnvironmentRequest.Sentinel
 }
 var file_hydra_v1_environment_proto_depIdxs = []int32{
-	2, // 0: hydra.v1.CreateEnvironmentRequest.gateway:type_name -> hydra.v1.CreateEnvironmentRequest.Gateway
+	2, // 0: hydra.v1.CreateEnvironmentRequest.gateway:type_name -> hydra.v1.CreateEnvironmentRequest.Sentinel
 	0, // 1: hydra.v1.EnvironmentService.CreateEnvironment:input_type -> hydra.v1.CreateEnvironmentRequest
 	1, // 2: hydra.v1.EnvironmentService.CreateEnvironment:output_type -> hydra.v1.CreateEnvironmentResponse
 	2, // [2:3] is the sub-list for method output_type

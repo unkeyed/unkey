@@ -4,9 +4,9 @@
 
 // Package ctrl.v1 provides the Cluster service for multi-cluster deployment orchestration.
 //
-// The Cluster service enables a central control plane to coordinate deployments and gateways
+// The Cluster service enables a central control plane to coordinate deployments and sentinels
 // across multiple Kubernetes clusters. Each cluster runs an agent (such as krane) that establishes
-// a long-lived watch connection to receive deployment and gateway configuration events.
+// a long-lived watch connection to receive deployment and sentinel configuration events.
 //
 // This design follows the Kubernetes watch pattern where agents (like kubelet) maintain
 // a streaming connection to receive incremental updates, enabling real-time deployment
@@ -20,23 +20,23 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/cluster.proto.
  */
 export const file_ctrl_v1_cluster: GenFile = /*@__PURE__*/
-  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiMwodR2V0RGVzaXJlZEdhdGV3YXlTdGF0ZVJlcXVlc3QSEgoKZ2F0ZXdheV9pZBgBIAEoCSI5CiBHZXREZXNpcmVkRGVwbG95bWVudFN0YXRlUmVxdWVzdBIVCg1kZXBsb3ltZW50X2lkGAEgASgJIhgKFkRlbGV0ZUluc3RhbmNlUmVzcG9uc2Ui7gQKFVVwZGF0ZUluc3RhbmNlUmVxdWVzdBI3CgZjcmVhdGUYASABKAsyJS5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVxdWVzdC5DcmVhdGVIABI3CgZ1cGRhdGUYAiABKAsyJS5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVxdWVzdC5VcGRhdGVIABI3CgZkZWxldGUYAyABKAsyJS5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVxdWVzdC5EZWxldGVIABqlAQoGQ3JlYXRlEhUKDWRlcGxveW1lbnRfaWQYASABKAkSEAoIcG9kX25hbWUYAiABKAkSDwoHYWRkcmVzcxgDIAEoCRIWCg5jcHVfbWlsbGljb3JlcxgEIAEoBRISCgptZW1vcnlfbWliGAUgASgFEjUKBnN0YXR1cxgGIAEoDjIlLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VSZXF1ZXN0LlN0YXR1cxpoCgZVcGRhdGUSFQoNZGVwbG95bWVudF9pZBgBIAEoCRIQCghwb2RfbmFtZRgCIAEoCRI1CgZzdGF0dXMYAyABKA4yJS5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVxdWVzdC5TdGF0dXMaMQoGRGVsZXRlEhUKDWRlcGxveW1lbnRfaWQYASABKAkSEAoIcG9kX25hbWUYAiABKAkiWwoGU3RhdHVzEhYKElNUQVRVU19VTlNQRUNJRklFRBAAEhIKDlNUQVRVU19QRU5ESU5HEAESEgoOU1RBVFVTX1JVTk5JTkcQAhIRCg1TVEFUVVNfRkFJTEVEEANCCAoGY2hhbmdlIhgKFlVwZGF0ZUluc3RhbmNlUmVzcG9uc2Ui1gIKFFVwZGF0ZUdhdGV3YXlSZXF1ZXN0EjYKBmNyZWF0ZRgBIAEoCzIkLmN0cmwudjEuVXBkYXRlR2F0ZXdheVJlcXVlc3QuQ3JlYXRlSAASNgoGdXBkYXRlGAIgASgLMiQuY3RybC52MS5VcGRhdGVHYXRld2F5UmVxdWVzdC5VcGRhdGVIABI2CgZkZWxldGUYAyABKAsyJC5jdHJsLnYxLlVwZGF0ZUdhdGV3YXlSZXF1ZXN0LkRlbGV0ZUgAGjYKBkNyZWF0ZRISCgpnYXRld2F5X2lkGAEgASgJEhgKEHJ1bm5pbmdfcmVwbGljYXMYAiABKAUaNgoGVXBkYXRlEhIKCmdhdGV3YXlfaWQYASABKAkSGAoQcnVubmluZ19yZXBsaWNhcxgCIAEoBRocCgZEZWxldGUSEgoKZ2F0ZXdheV9pZBgBIAEoCUIICgZjaGFuZ2UiFwoVVXBkYXRlR2F0ZXdheVJlc3BvbnNlIowBCgxXYXRjaFJlcXVlc3QSEQoJY2xpZW50X2lkGAEgASgJEjcKCXNlbGVjdG9ycxgCIAMoCzIkLmN0cmwudjEuV2F0Y2hSZXF1ZXN0LlNlbGVjdG9yc0VudHJ5GjAKDlNlbGVjdG9yc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEioAEKFkdldERlc2lyZWRTdGF0ZVJlcXVlc3QSEQoJY2xpZW50X2lkGAEgASgJEkEKCXNlbGVjdG9ycxgCIAMoCzIuLmN0cmwudjEuR2V0RGVzaXJlZFN0YXRlUmVxdWVzdC5TZWxlY3RvcnNFbnRyeRowCg5TZWxlY3RvcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBImkKDEdhdGV3YXlFdmVudBImCgVhcHBseRgBIAEoCzIVLmN0cmwudjEuQXBwbHlHYXRld2F5SAASKAoGZGVsZXRlGAIgASgLMhYuY3RybC52MS5EZWxldGVHYXRld2F5SABCBwoFZXZlbnQicgoPRGVwbG95bWVudEV2ZW50EikKBWFwcGx5GAEgASgLMhguY3RybC52MS5BcHBseURlcGxveW1lbnRIABIrCgZkZWxldGUYAiABKAsyGS5jdHJsLnYxLkRlbGV0ZURlcGxveW1lbnRIAEIHCgVldmVudCLfAQoMQXBwbHlHYXRld2F5EhEKCW5hbWVzcGFjZRgBIAEoCRIUCgxrOHNfY3JkX25hbWUYAiABKAkSFAoMd29ya3NwYWNlX2lkGAMgASgJEhIKCnByb2plY3RfaWQYBCABKAkSFgoOZW52aXJvbm1lbnRfaWQYBSABKAkSEgoKZ2F0ZXdheV9pZBgGIAEoCRINCgVpbWFnZRgHIAEoCRIQCghyZXBsaWNhcxgIIAEoDRIWCg5jcHVfbWlsbGljb3JlcxgJIAEoDRIXCg9tZW1vcnlfc2l6ZV9taWIYCiABKA0iIwoNRGVsZXRlR2F0ZXdheRISCgpnYXRld2F5X2lkGAEgASgJIs8BCg9BcHBseURlcGxveW1lbnQSEQoJbmFtZXNwYWNlGAEgASgJEhQKDHdvcmtzcGFjZV9pZBgCIAEoCRISCgpwcm9qZWN0X2lkGAMgASgJEhYKDmVudmlyb25tZW50X2lkGAQgASgJEhUKDWRlcGxveW1lbnRfaWQYBSABKAkSDQoFaW1hZ2UYBiABKAkSEAoIcmVwbGljYXMYByABKA0SFgoOY3B1X21pbGxpY29yZXMYCCABKA0SFwoPbWVtb3J5X3NpemVfbWliGAkgASgNIikKEERlbGV0ZURlcGxveW1lbnQSFQoNZGVwbG95bWVudF9pZBgBIAEoCSJ7CgpJbmZyYUV2ZW50Ei4KDWdhdGV3YXlfZXZlbnQYAiABKAsyFS5jdHJsLnYxLkdhdGV3YXlFdmVudEgAEjQKEGRlcGxveW1lbnRfZXZlbnQYAyABKAsyGC5jdHJsLnYxLkRlcGxveW1lbnRFdmVudEgAQgcKBWV2ZW50MvADCg5DbHVzdGVyU2VydmljZRI1CgVXYXRjaBIVLmN0cmwudjEuV2F0Y2hSZXF1ZXN0GhMuY3RybC52MS5JbmZyYUV2ZW50MAESSQoPR2V0RGVzaXJlZFN0YXRlEh8uY3RybC52MS5HZXREZXNpcmVkU3RhdGVSZXF1ZXN0GhMuY3RybC52MS5JbmZyYUV2ZW50MAESYAoZR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZRIpLmN0cmwudjEuR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZVJlcXVlc3QaGC5jdHJsLnYxLkRlcGxveW1lbnRFdmVudBJXChZHZXREZXNpcmVkR2F0ZXdheVN0YXRlEiYuY3RybC52MS5HZXREZXNpcmVkR2F0ZXdheVN0YXRlUmVxdWVzdBoVLmN0cmwudjEuR2F0ZXdheUV2ZW50ElEKDlVwZGF0ZUluc3RhbmNlEh4uY3RybC52MS5VcGRhdGVJbnN0YW5jZVJlcXVlc3QaHy5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlUmVzcG9uc2USTgoNVXBkYXRlR2F0ZXdheRIdLmN0cmwudjEuVXBkYXRlR2F0ZXdheVJlcXVlc3QaHi5jdHJsLnYxLlVwZGF0ZUdhdGV3YXlSZXNwb25zZUKOAQoLY29tLmN0cmwudjFCDENsdXN0ZXJQcm90b1ABWjRnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw");
+  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiNQoeR2V0RGVzaXJlZFNlbnRpbmVsU3RhdGVSZXF1ZXN0EhMKC3NlbnRpbmVsX2lkGAEgASgJIjkKIEdldERlc2lyZWREZXBsb3ltZW50U3RhdGVSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkiGAoWRGVsZXRlSW5zdGFuY2VSZXNwb25zZSLuBAoVVXBkYXRlSW5zdGFuY2VSZXF1ZXN0EjcKBmNyZWF0ZRgBIAEoCzIlLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VSZXF1ZXN0LkNyZWF0ZUgAEjcKBnVwZGF0ZRgCIAEoCzIlLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VSZXF1ZXN0LlVwZGF0ZUgAEjcKBmRlbGV0ZRgDIAEoCzIlLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VSZXF1ZXN0LkRlbGV0ZUgAGqUBCgZDcmVhdGUSFQoNZGVwbG95bWVudF9pZBgBIAEoCRIQCghwb2RfbmFtZRgCIAEoCRIPCgdhZGRyZXNzGAMgASgJEhYKDmNwdV9taWxsaWNvcmVzGAQgASgFEhIKCm1lbW9yeV9taWIYBSABKAUSNQoGc3RhdHVzGAYgASgOMiUuY3RybC52MS5VcGRhdGVJbnN0YW5jZVJlcXVlc3QuU3RhdHVzGmgKBlVwZGF0ZRIVCg1kZXBsb3ltZW50X2lkGAEgASgJEhAKCHBvZF9uYW1lGAIgASgJEjUKBnN0YXR1cxgDIAEoDjIlLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VSZXF1ZXN0LlN0YXR1cxoxCgZEZWxldGUSFQoNZGVwbG95bWVudF9pZBgBIAEoCRIQCghwb2RfbmFtZRgCIAEoCSJbCgZTdGF0dXMSFgoSU1RBVFVTX1VOU1BFQ0lGSUVEEAASEgoOU1RBVFVTX1BFTkRJTkcQARISCg5TVEFUVVNfUlVOTklORxACEhEKDVNUQVRVU19GQUlMRUQQA0IICgZjaGFuZ2UiGAoWVXBkYXRlSW5zdGFuY2VSZXNwb25zZSLdAgoVVXBkYXRlU2VudGluZWxSZXF1ZXN0EjcKBmNyZWF0ZRgBIAEoCzIlLmN0cmwudjEuVXBkYXRlU2VudGluZWxSZXF1ZXN0LkNyZWF0ZUgAEjcKBnVwZGF0ZRgCIAEoCzIlLmN0cmwudjEuVXBkYXRlU2VudGluZWxSZXF1ZXN0LlVwZGF0ZUgAEjcKBmRlbGV0ZRgDIAEoCzIlLmN0cmwudjEuVXBkYXRlU2VudGluZWxSZXF1ZXN0LkRlbGV0ZUgAGjcKBkNyZWF0ZRITCgtzZW50aW5lbF9pZBgBIAEoCRIYChBydW5uaW5nX3JlcGxpY2FzGAIgASgFGjcKBlVwZGF0ZRITCgtzZW50aW5lbF9pZBgBIAEoCRIYChBydW5uaW5nX3JlcGxpY2FzGAIgASgFGh0KBkRlbGV0ZRITCgtzZW50aW5lbF9pZBgBIAEoCUIICgZjaGFuZ2UiGAoWVXBkYXRlU2VudGluZWxSZXNwb25zZSKMAQoMV2F0Y2hSZXF1ZXN0EhEKCWNsaWVudF9pZBgBIAEoCRI3CglzZWxlY3RvcnMYAiADKAsyJC5jdHJsLnYxLldhdGNoUmVxdWVzdC5TZWxlY3RvcnNFbnRyeRowCg5TZWxlY3RvcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIqABChZHZXREZXNpcmVkU3RhdGVSZXF1ZXN0EhEKCWNsaWVudF9pZBgBIAEoCRJBCglzZWxlY3RvcnMYAiADKAsyLi5jdHJsLnYxLkdldERlc2lyZWRTdGF0ZVJlcXVlc3QuU2VsZWN0b3JzRW50cnkaMAoOU2VsZWN0b3JzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJsCg1TZW50aW5lbEV2ZW50EicKBWFwcGx5GAEgASgLMhYuY3RybC52MS5BcHBseVNlbnRpbmVsSAASKQoGZGVsZXRlGAIgASgLMhcuY3RybC52MS5EZWxldGVTZW50aW5lbEgAQgcKBWV2ZW50InIKD0RlcGxveW1lbnRFdmVudBIpCgVhcHBseRgBIAEoCzIYLmN0cmwudjEuQXBwbHlEZXBsb3ltZW50SAASKwoGZGVsZXRlGAIgASgLMhkuY3RybC52MS5EZWxldGVEZXBsb3ltZW50SABCBwoFZXZlbnQi4QEKDUFwcGx5U2VudGluZWwSEQoJbmFtZXNwYWNlGAEgASgJEhQKDGs4c19jcmRfbmFtZRgCIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAyABKAkSEgoKcHJvamVjdF9pZBgEIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgFIAEoCRITCgtzZW50aW5lbF9pZBgGIAEoCRINCgVpbWFnZRgHIAEoCRIQCghyZXBsaWNhcxgIIAEoDRIWCg5jcHVfbWlsbGljb3JlcxgJIAEoDRIXCg9tZW1vcnlfc2l6ZV9taWIYCiABKA0iJQoORGVsZXRlU2VudGluZWwSEwoLc2VudGluZWxfaWQYASABKAkizwEKD0FwcGx5RGVwbG95bWVudBIRCgluYW1lc3BhY2UYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSFgoOZW52aXJvbm1lbnRfaWQYBCABKAkSFQoNZGVwbG95bWVudF9pZBgFIAEoCRINCgVpbWFnZRgGIAEoCRIQCghyZXBsaWNhcxgHIAEoDRIWCg5jcHVfbWlsbGljb3JlcxgIIAEoDRIXCg9tZW1vcnlfc2l6ZV9taWIYCSABKA0iKQoQRGVsZXRlRGVwbG95bWVudBIVCg1kZXBsb3ltZW50X2lkGAEgASgJIn0KCkluZnJhRXZlbnQSMAoOc2VudGluZWxfZXZlbnQYAiABKAsyFi5jdHJsLnYxLlNlbnRpbmVsRXZlbnRIABI0ChBkZXBsb3ltZW50X2V2ZW50GAMgASgLMhguY3RybC52MS5EZXBsb3ltZW50RXZlbnRIAEIHCgVldmVudDL2AwoOQ2x1c3RlclNlcnZpY2USNQoFV2F0Y2gSFS5jdHJsLnYxLldhdGNoUmVxdWVzdBoTLmN0cmwudjEuSW5mcmFFdmVudDABEkkKD0dldERlc2lyZWRTdGF0ZRIfLmN0cmwudjEuR2V0RGVzaXJlZFN0YXRlUmVxdWVzdBoTLmN0cmwudjEuSW5mcmFFdmVudDABEmAKGUdldERlc2lyZWREZXBsb3ltZW50U3RhdGUSKS5jdHJsLnYxLkdldERlc2lyZWREZXBsb3ltZW50U3RhdGVSZXF1ZXN0GhguY3RybC52MS5EZXBsb3ltZW50RXZlbnQSWgoXR2V0RGVzaXJlZFNlbnRpbmVsU3RhdGUSJy5jdHJsLnYxLkdldERlc2lyZWRTZW50aW5lbFN0YXRlUmVxdWVzdBoWLmN0cmwudjEuU2VudGluZWxFdmVudBJRCg5VcGRhdGVJbnN0YW5jZRIeLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VSZXF1ZXN0Gh8uY3RybC52MS5VcGRhdGVJbnN0YW5jZVJlc3BvbnNlElEKDlVwZGF0ZVNlbnRpbmVsEh4uY3RybC52MS5VcGRhdGVTZW50aW5lbFJlcXVlc3QaHy5jdHJsLnYxLlVwZGF0ZVNlbnRpbmVsUmVzcG9uc2VCjgEKC2NvbS5jdHJsLnYxQgxDbHVzdGVyUHJvdG9QAVo0Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM");
 
 /**
- * @generated from message ctrl.v1.GetDesiredGatewayStateRequest
+ * @generated from message ctrl.v1.GetDesiredSentinelStateRequest
  */
-export type GetDesiredGatewayStateRequest = Message<"ctrl.v1.GetDesiredGatewayStateRequest"> & {
+export type GetDesiredSentinelStateRequest = Message<"ctrl.v1.GetDesiredSentinelStateRequest"> & {
   /**
-   * @generated from field: string gateway_id = 1;
+   * @generated from field: string sentinel_id = 1;
    */
-  gatewayId: string;
+  sentinelId: string;
 };
 
 /**
- * Describes the message ctrl.v1.GetDesiredGatewayStateRequest.
- * Use `create(GetDesiredGatewayStateRequestSchema)` to create a new message.
+ * Describes the message ctrl.v1.GetDesiredSentinelStateRequest.
+ * Use `create(GetDesiredSentinelStateRequestSchema)` to create a new message.
  */
-export const GetDesiredGatewayStateRequestSchema: GenMessage<GetDesiredGatewayStateRequest> = /*@__PURE__*/
+export const GetDesiredSentinelStateRequestSchema: GenMessage<GetDesiredSentinelStateRequest> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 0);
 
 /**
@@ -246,48 +246,48 @@ export const UpdateInstanceResponseSchema: GenMessage<UpdateInstanceResponse> = 
   messageDesc(file_ctrl_v1_cluster, 4);
 
 /**
- * @generated from message ctrl.v1.UpdateGatewayRequest
+ * @generated from message ctrl.v1.UpdateSentinelRequest
  */
-export type UpdateGatewayRequest = Message<"ctrl.v1.UpdateGatewayRequest"> & {
+export type UpdateSentinelRequest = Message<"ctrl.v1.UpdateSentinelRequest"> & {
   /**
-   * @generated from oneof ctrl.v1.UpdateGatewayRequest.change
+   * @generated from oneof ctrl.v1.UpdateSentinelRequest.change
    */
   change: {
     /**
-     * @generated from field: ctrl.v1.UpdateGatewayRequest.Create create = 1;
+     * @generated from field: ctrl.v1.UpdateSentinelRequest.Create create = 1;
      */
-    value: UpdateGatewayRequest_Create;
+    value: UpdateSentinelRequest_Create;
     case: "create";
   } | {
     /**
-     * @generated from field: ctrl.v1.UpdateGatewayRequest.Update update = 2;
+     * @generated from field: ctrl.v1.UpdateSentinelRequest.Update update = 2;
      */
-    value: UpdateGatewayRequest_Update;
+    value: UpdateSentinelRequest_Update;
     case: "update";
   } | {
     /**
-     * @generated from field: ctrl.v1.UpdateGatewayRequest.Delete delete = 3;
+     * @generated from field: ctrl.v1.UpdateSentinelRequest.Delete delete = 3;
      */
-    value: UpdateGatewayRequest_Delete;
+    value: UpdateSentinelRequest_Delete;
     case: "delete";
   } | { case: undefined; value?: undefined };
 };
 
 /**
- * Describes the message ctrl.v1.UpdateGatewayRequest.
- * Use `create(UpdateGatewayRequestSchema)` to create a new message.
+ * Describes the message ctrl.v1.UpdateSentinelRequest.
+ * Use `create(UpdateSentinelRequestSchema)` to create a new message.
  */
-export const UpdateGatewayRequestSchema: GenMessage<UpdateGatewayRequest> = /*@__PURE__*/
+export const UpdateSentinelRequestSchema: GenMessage<UpdateSentinelRequest> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 5);
 
 /**
- * @generated from message ctrl.v1.UpdateGatewayRequest.Create
+ * @generated from message ctrl.v1.UpdateSentinelRequest.Create
  */
-export type UpdateGatewayRequest_Create = Message<"ctrl.v1.UpdateGatewayRequest.Create"> & {
+export type UpdateSentinelRequest_Create = Message<"ctrl.v1.UpdateSentinelRequest.Create"> & {
   /**
-   * @generated from field: string gateway_id = 1;
+   * @generated from field: string sentinel_id = 1;
    */
-  gatewayId: string;
+  sentinelId: string;
 
   /**
    * @generated from field: int32 running_replicas = 2;
@@ -296,20 +296,20 @@ export type UpdateGatewayRequest_Create = Message<"ctrl.v1.UpdateGatewayRequest.
 };
 
 /**
- * Describes the message ctrl.v1.UpdateGatewayRequest.Create.
- * Use `create(UpdateGatewayRequest_CreateSchema)` to create a new message.
+ * Describes the message ctrl.v1.UpdateSentinelRequest.Create.
+ * Use `create(UpdateSentinelRequest_CreateSchema)` to create a new message.
  */
-export const UpdateGatewayRequest_CreateSchema: GenMessage<UpdateGatewayRequest_Create> = /*@__PURE__*/
+export const UpdateSentinelRequest_CreateSchema: GenMessage<UpdateSentinelRequest_Create> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 5, 0);
 
 /**
- * @generated from message ctrl.v1.UpdateGatewayRequest.Update
+ * @generated from message ctrl.v1.UpdateSentinelRequest.Update
  */
-export type UpdateGatewayRequest_Update = Message<"ctrl.v1.UpdateGatewayRequest.Update"> & {
+export type UpdateSentinelRequest_Update = Message<"ctrl.v1.UpdateSentinelRequest.Update"> & {
   /**
-   * @generated from field: string gateway_id = 1;
+   * @generated from field: string sentinel_id = 1;
    */
-  gatewayId: string;
+  sentinelId: string;
 
   /**
    * @generated from field: int32 running_replicas = 2;
@@ -318,40 +318,40 @@ export type UpdateGatewayRequest_Update = Message<"ctrl.v1.UpdateGatewayRequest.
 };
 
 /**
- * Describes the message ctrl.v1.UpdateGatewayRequest.Update.
- * Use `create(UpdateGatewayRequest_UpdateSchema)` to create a new message.
+ * Describes the message ctrl.v1.UpdateSentinelRequest.Update.
+ * Use `create(UpdateSentinelRequest_UpdateSchema)` to create a new message.
  */
-export const UpdateGatewayRequest_UpdateSchema: GenMessage<UpdateGatewayRequest_Update> = /*@__PURE__*/
+export const UpdateSentinelRequest_UpdateSchema: GenMessage<UpdateSentinelRequest_Update> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 5, 1);
 
 /**
- * @generated from message ctrl.v1.UpdateGatewayRequest.Delete
+ * @generated from message ctrl.v1.UpdateSentinelRequest.Delete
  */
-export type UpdateGatewayRequest_Delete = Message<"ctrl.v1.UpdateGatewayRequest.Delete"> & {
+export type UpdateSentinelRequest_Delete = Message<"ctrl.v1.UpdateSentinelRequest.Delete"> & {
   /**
-   * @generated from field: string gateway_id = 1;
+   * @generated from field: string sentinel_id = 1;
    */
-  gatewayId: string;
+  sentinelId: string;
 };
 
 /**
- * Describes the message ctrl.v1.UpdateGatewayRequest.Delete.
- * Use `create(UpdateGatewayRequest_DeleteSchema)` to create a new message.
+ * Describes the message ctrl.v1.UpdateSentinelRequest.Delete.
+ * Use `create(UpdateSentinelRequest_DeleteSchema)` to create a new message.
  */
-export const UpdateGatewayRequest_DeleteSchema: GenMessage<UpdateGatewayRequest_Delete> = /*@__PURE__*/
+export const UpdateSentinelRequest_DeleteSchema: GenMessage<UpdateSentinelRequest_Delete> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 5, 2);
 
 /**
- * @generated from message ctrl.v1.UpdateGatewayResponse
+ * @generated from message ctrl.v1.UpdateSentinelResponse
  */
-export type UpdateGatewayResponse = Message<"ctrl.v1.UpdateGatewayResponse"> & {
+export type UpdateSentinelResponse = Message<"ctrl.v1.UpdateSentinelResponse"> & {
 };
 
 /**
- * Describes the message ctrl.v1.UpdateGatewayResponse.
- * Use `create(UpdateGatewayResponseSchema)` to create a new message.
+ * Describes the message ctrl.v1.UpdateSentinelResponse.
+ * Use `create(UpdateSentinelResponseSchema)` to create a new message.
  */
-export const UpdateGatewayResponseSchema: GenMessage<UpdateGatewayResponse> = /*@__PURE__*/
+export const UpdateSentinelResponseSchema: GenMessage<UpdateSentinelResponse> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 6);
 
 /**
@@ -419,48 +419,48 @@ export const GetDesiredStateRequestSchema: GenMessage<GetDesiredStateRequest> = 
   messageDesc(file_ctrl_v1_cluster, 8);
 
 /**
- * GatewayEvent represents a lifecycle event for an API gateway configuration.
+ * SentinelEvent represents a lifecycle event for an API sentinel configuration.
  *
- * Gateways are ingress points for services, typically handling routing, load balancing,
+ * Sentinels are ingress points for services, typically handling routing, load balancing,
  * and API management. The event follows a declarative model where the cluster agent ensures
  * the cluster state matches the desired configuration.
  *
- * @generated from message ctrl.v1.GatewayEvent
+ * @generated from message ctrl.v1.SentinelEvent
  */
-export type GatewayEvent = Message<"ctrl.v1.GatewayEvent"> & {
+export type SentinelEvent = Message<"ctrl.v1.SentinelEvent"> & {
   /**
-   * event contains the specific gateway operation to perform.
+   * event contains the specific sentinel operation to perform.
    * Only one event type is set per message, determining the action the agent should take.
    *
-   * @generated from oneof ctrl.v1.GatewayEvent.event
+   * @generated from oneof ctrl.v1.SentinelEvent.event
    */
   event: {
     /**
-     * apply indicates the gateway should exist with this configuration.
-     * The agent will create the gateway if it doesn't exist or update it if it does.
+     * apply indicates the sentinel should exist with this configuration.
+     * The agent will create the sentinel if it doesn't exist or update it if it does.
      * This follows the same semantics as "kubectl apply" - declare desired state
      * and let the agent determine the appropriate action.
      *
-     * @generated from field: ctrl.v1.ApplyGateway apply = 1;
+     * @generated from field: ctrl.v1.ApplySentinel apply = 1;
      */
-    value: ApplyGateway;
+    value: ApplySentinel;
     case: "apply";
   } | {
     /**
-     * delete indicates the gateway should be removed from the cluster.
+     * delete indicates the sentinel should be removed from the cluster.
      *
-     * @generated from field: ctrl.v1.DeleteGateway delete = 2;
+     * @generated from field: ctrl.v1.DeleteSentinel delete = 2;
      */
-    value: DeleteGateway;
+    value: DeleteSentinel;
     case: "delete";
   } | { case: undefined; value?: undefined };
 };
 
 /**
- * Describes the message ctrl.v1.GatewayEvent.
- * Use `create(GatewayEventSchema)` to create a new message.
+ * Describes the message ctrl.v1.SentinelEvent.
+ * Use `create(SentinelEventSchema)` to create a new message.
  */
-export const GatewayEventSchema: GenMessage<GatewayEvent> = /*@__PURE__*/
+export const SentinelEventSchema: GenMessage<SentinelEvent> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 9);
 
 /**
@@ -509,17 +509,17 @@ export const DeploymentEventSchema: GenMessage<DeploymentEvent> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 10);
 
 /**
- * ApplyGateway contains the desired configuration for a gateway.
+ * ApplySentinel contains the desired configuration for a sentinel.
  *
- * The cluster agent will ensure a gateway exists with this exact configuration, creating it if
+ * The cluster agent will ensure a sentinel exists with this exact configuration, creating it if
  * it doesn't exist or updating it if it does. All fields except namespace are required.
- * The control plane ensures that gateway_id is unique within the namespace.
+ * The control plane ensures that sentinel_id is unique within the namespace.
  *
- * @generated from message ctrl.v1.ApplyGateway
+ * @generated from message ctrl.v1.ApplySentinel
  */
-export type ApplyGateway = Message<"ctrl.v1.ApplyGateway"> & {
+export type ApplySentinel = Message<"ctrl.v1.ApplySentinel"> & {
   /**
-   * namespace is the Kubernetes namespace in which the gateway should exist.
+   * namespace is the Kubernetes namespace in which the sentinel should exist.
    *
    * @generated from field: string namespace = 1;
    */
@@ -531,7 +531,7 @@ export type ApplyGateway = Message<"ctrl.v1.ApplyGateway"> & {
   k8sCrdName: string;
 
   /**
-   * workspace_id identifies the workspace that owns this gateway.
+   * workspace_id identifies the workspace that owns this sentinel.
    *
    * @generated from field: string workspace_id = 3;
    */
@@ -545,30 +545,30 @@ export type ApplyGateway = Message<"ctrl.v1.ApplyGateway"> & {
   projectId: string;
 
   /**
-   * environment_id in which the gateway should exist.
+   * environment_id in which the sentinel should exist.
    *
    * @generated from field: string environment_id = 5;
    */
   environmentId: string;
 
   /**
-   * gateway_id is the unique identifier for this gateway within the namespace.
+   * sentinel_id is the unique identifier for this sentinel within the namespace.
    *
-   * @generated from field: string gateway_id = 6;
+   * @generated from field: string sentinel_id = 6;
    */
-  gatewayId: string;
+  sentinelId: string;
 
   /**
-   * image is the container image to deploy for the gateway.
+   * image is the container image to deploy for the sentinel.
    * Must be a valid container registry URL accessible by the cluster.
-   * Example: "ghcr.io/unkeyed/gateway:v1.2.3"
+   * Example: "ghcr.io/unkeyed/sentinel:v1.2.3"
    *
    * @generated from field: string image = 7;
    */
   image: string;
 
   /**
-   * replicas is the desired number of gateway instances.
+   * replicas is the desired number of sentinel instances.
    * Must be at least 1. For high availability, use 3 or more.
    *
    * @generated from field: uint32 replicas = 8;
@@ -577,7 +577,7 @@ export type ApplyGateway = Message<"ctrl.v1.ApplyGateway"> & {
 
   /**
    * cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
-   * This ensures the gateway has sufficient CPU resources.
+   * This ensures the sentinel has sufficient CPU resources.
    * Example: 500 = 0.5 CPU cores
    *
    * @generated from field: uint32 cpu_millicores = 9;
@@ -586,7 +586,7 @@ export type ApplyGateway = Message<"ctrl.v1.ApplyGateway"> & {
 
   /**
    * memory_size_mib is the memory request/limit in mebibytes.
-   * This ensures the gateway has sufficient memory.
+   * This ensures the sentinel has sufficient memory.
    * Example: 512 = 512 MiB
    *
    * @generated from field: uint32 memory_size_mib = 10;
@@ -595,35 +595,35 @@ export type ApplyGateway = Message<"ctrl.v1.ApplyGateway"> & {
 };
 
 /**
- * Describes the message ctrl.v1.ApplyGateway.
- * Use `create(ApplyGatewaySchema)` to create a new message.
+ * Describes the message ctrl.v1.ApplySentinel.
+ * Use `create(ApplySentinelSchema)` to create a new message.
  */
-export const ApplyGatewaySchema: GenMessage<ApplyGateway> = /*@__PURE__*/
+export const ApplySentinelSchema: GenMessage<ApplySentinel> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 11);
 
 /**
- * DeleteGateway identifies a gateway to remove from the cluster.
+ * DeleteSentinel identifies a sentinel to remove from the cluster.
  *
- * The gateway and all its resources (pods, services, ingress) will be deleted.
+ * The sentinel and all its resources (pods, services, ingress) will be deleted.
  * In-flight requests may be disrupted unless proper connection draining is configured.
  *
- * @generated from message ctrl.v1.DeleteGateway
+ * @generated from message ctrl.v1.DeleteSentinel
  */
-export type DeleteGateway = Message<"ctrl.v1.DeleteGateway"> & {
+export type DeleteSentinel = Message<"ctrl.v1.DeleteSentinel"> & {
   /**
-   * gateway_id identifies the gateway to delete.
-   * All resources with this gateway_id in the namespace will be removed.
+   * sentinel_id identifies the sentinel to delete.
+   * All resources with this sentinel_id in the namespace will be removed.
    *
-   * @generated from field: string gateway_id = 1;
+   * @generated from field: string sentinel_id = 1;
    */
-  gatewayId: string;
+  sentinelId: string;
 };
 
 /**
- * Describes the message ctrl.v1.DeleteGateway.
- * Use `create(DeleteGatewaySchema)` to create a new message.
+ * Describes the message ctrl.v1.DeleteSentinel.
+ * Use `create(DeleteSentinelSchema)` to create a new message.
  */
-export const DeleteGatewaySchema: GenMessage<DeleteGateway> = /*@__PURE__*/
+export const DeleteSentinelSchema: GenMessage<DeleteSentinel> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 12);
 
 /**
@@ -746,7 +746,7 @@ export const DeleteDeploymentSchema: GenMessage<DeleteDeployment> = /*@__PURE__*
 /**
  * InfraEvent is streamed from the control plane to cluster agents.
  *
- * Each event contains either a gateway or deployment configuration change that
+ * Each event contains either a sentinel or deployment configuration change that
  * the agent should apply to its cluster. Events are sent in real-time as
  * changes occur in the control plane, enabling immediate propagation of updates
  * across the fleet of clusters.
@@ -766,13 +766,13 @@ export type InfraEvent = Message<"ctrl.v1.InfraEvent"> & {
    */
   event: {
     /**
-     * gateway_event contains a gateway lifecycle event (apply or delete).
-     * The client should apply this to gateway resources in the cluster.
+     * sentinel_event contains a sentinel lifecycle event (apply or delete).
+     * The client should apply this to sentinel resources in the cluster.
      *
-     * @generated from field: ctrl.v1.GatewayEvent gateway_event = 2;
+     * @generated from field: ctrl.v1.SentinelEvent sentinel_event = 2;
      */
-    value: GatewayEvent;
-    case: "gatewayEvent";
+    value: SentinelEvent;
+    case: "sentinelEvent";
   } | {
     /**
      * deployment_event contains a deployment lifecycle event (apply or delete).
@@ -793,10 +793,10 @@ export const InfraEventSchema: GenMessage<InfraEvent> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 15);
 
 /**
- * ClusterService coordinates deployment and gateway configurations across multiple clusters.
+ * ClusterService coordinates deployment and sentinel configurations across multiple clusters.
  *
  * Agents in each cluster establish a watch stream to receive configuration events
- * from the control plane. The service streams deployment and gateway lifecycle events
+ * from the control plane. The service streams deployment and sentinel lifecycle events
  * (apply, delete) to the appropriate clusters based on their cluster_id and region.
  *
  * The watch connection is designed to be long-lived with automatic reconnection on failure.
@@ -806,7 +806,7 @@ export const InfraEventSchema: GenMessage<InfraEvent> = /*@__PURE__*/
  */
 export const ClusterService: GenService<{
   /**
-   * Watch establishes a stream for receiving deployment and gateway events for a specific cluster.
+   * Watch establishes a stream for receiving deployment and sentinel events for a specific cluster.
    *
    * The cluster agent initiates this connection and keeps it open to receive real-time updates.
    * Events are filtered server-side based on the cluster_id and region provided in the request.
@@ -844,14 +844,14 @@ export const ClusterService: GenService<{
     output: typeof DeploymentEventSchema;
   },
   /**
-   * request a single gateway and return its desired state
+   * request a single sentinel and return its desired state
    *
-   * @generated from rpc ctrl.v1.ClusterService.GetDesiredGatewayState
+   * @generated from rpc ctrl.v1.ClusterService.GetDesiredSentinelState
    */
-  getDesiredGatewayState: {
+  getDesiredSentinelState: {
     methodKind: "unary";
-    input: typeof GetDesiredGatewayStateRequestSchema;
-    output: typeof GatewayEventSchema;
+    input: typeof GetDesiredSentinelStateRequestSchema;
+    output: typeof SentinelEventSchema;
   },
   /**
    * @generated from rpc ctrl.v1.ClusterService.UpdateInstance
@@ -862,12 +862,12 @@ export const ClusterService: GenService<{
     output: typeof UpdateInstanceResponseSchema;
   },
   /**
-   * @generated from rpc ctrl.v1.ClusterService.UpdateGateway
+   * @generated from rpc ctrl.v1.ClusterService.UpdateSentinel
    */
-  updateGateway: {
+  updateSentinel: {
     methodKind: "unary";
-    input: typeof UpdateGatewayRequestSchema;
-    output: typeof UpdateGatewayResponseSchema;
+    input: typeof UpdateSentinelRequestSchema;
+    output: typeof UpdateSentinelResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ctrl_v1_cluster, 0);

@@ -12,7 +12,7 @@ The ctrl service provides a deployment platform similar to Vercel, Railway, or F
 1. **Builds** container images from source code using Depot.dev
 2. **Orchestrates** deployment across regions through event streaming to Krane agents
 3. **Deploys** containers to Kubernetes via the pull-based infrastructure model
-4. **Assigns** domains to route traffic and configure gateways
+4. **Assigns** domains to route traffic and configure sentinels
 5. **Secures** applications with automatic TLS certificate provisioning
 
 All multi-step operations are durable, using Restate workflows to ensure consistency even during failures, network partitions, or process crashes. The pull-based architecture ensures deployments remain resilient even when individual regions experience connectivity issues.
@@ -23,19 +23,19 @@ All multi-step operations are durable, using Restate workflows to ensure consist
 
 The ctrl service is composed of several specialized services and workflows. The RPC services handle synchronous operations like pull-based infrastructure coordination through `ClusterService`, container image building through `BuildService`, deployment creation and management through `DeploymentService`, ACME challenge coordination through `AcmeService`, OpenAPI spec management through `OpenApiService`, and health checks through `CtrlService`.
 
-Running alongside these are the Restate workflows that provide durable orchestration. The `DeploymentService` workflow orchestrates the full deployment lifecycle, the `RoutingService` workflow manages domain and gateway configuration, and the `CertificateService` workflow handles TLS certificate provisioning through the ACME protocol.
+Running alongside these are the Restate workflows that provide durable orchestration. The `DeploymentService` workflow orchestrates the full deployment lifecycle, the `RoutingService` workflow manages domain and sentinel configuration, and the `CertificateService` workflow handles TLS certificate provisioning through the ACME protocol.
 
 ### Technology Stack
 
-The ctrl service is built on Connect RPC for service-to-service communication using HTTP/2, with gRPC streaming for the ClusterService. Restate provides durable workflow orchestration with exactly-once semantics, ensuring operations complete reliably even during failures. A single MySQL database stores all persistent state: projects, deployments, deployment topology, instances, domains, gateway configurations, and certificates. S3 stores build contexts and encrypted vault data. The ClusterService coordinates with Krane agents using event streaming for pull-based deployments to Kubernetes. Depot.dev handles remote container image building with persistent layer caching.
+The ctrl service is built on Connect RPC for service-to-service communication using HTTP/2, with gRPC streaming for the ClusterService. Restate provides durable workflow orchestration with exactly-once semantics, ensuring operations complete reliably even during failures. A single MySQL database stores all persistent state: projects, deployments, deployment topology, instances, domains, sentinel configurations, and certificates. S3 stores build contexts and encrypted vault data. The ClusterService coordinates with Krane agents using event streaming for pull-based deployments to Kubernetes. Depot.dev handles remote container image building with persistent layer caching.
 
 ## Services
 
 ### Cluster Service
 
-The cluster service implements the pull-based infrastructure orchestration model, enabling the control plane to coordinate deployments across multiple regions through event streaming. It maintains persistent connections with Krane agents deployed in each region, distributing deployment and gateway events while collecting status updates.
+The cluster service implements the pull-based infrastructure orchestration model, enabling the control plane to coordinate deployments across multiple regions through event streaming. It maintains persistent connections with Krane agents deployed in each region, distributing deployment and sentinel events while collecting status updates.
 
-The service provides four key RPCs. `Watch` establishes long-lived streaming connections with agents for real-time event delivery. `GetDesiredState` streams the complete desired infrastructure state for reconciliation. `UpdateInstance` receives pod status updates from agents. `UpdateGateway` receives gateway health and status updates.
+The service provides four key RPCs. `Watch` establishes long-lived streaming connections with agents for real-time event delivery. `GetDesiredState` streams the complete desired infrastructure state for reconciliation. `UpdateInstance` receives pod status updates from agents. `UpdateSentinel` receives sentinel health and status updates.
 
 This pull-based architecture ensures resilience during network partitions, as agents continue operating autonomously and reconcile when connectivity returns. The service uses label-based routing to distribute events to appropriate regions and shards without requiring direct addressing.
 
@@ -53,7 +53,7 @@ The service provides two key operations. `GenerateUploadURL` returns a presigned
 
 The deployment service orchestrates the complete deployment lifecycle through durable workflows. It provides four key operations: `CreateDeployment` initiates a new deployment, `GetDeployment` queries the current status, `Promote` promotes a deployment to live, and `Rollback` rolls back to a previous deployment.
 
-The deployment workflow progresses through several phases. It first builds the container image if building from source, then creates the deployment in Krane, our Kubernetes abstraction layer. Next it polls for instance readiness for up to 5 minutes, checking every second whether all pods are running. Once instances are ready, it registers them in the database so gateways can route traffic to them. It attempts to scrape an OpenAPI spec from the running service, though this is optional. Finally, it assigns domains and creates gateway configurations via the routing service, then marks the deployment as ready.
+The deployment workflow progresses through several phases. It first builds the container image if building from source, then creates the deployment in Krane, our Kubernetes abstraction layer. Next it polls for instance readiness for up to 5 minutes, checking every second whether all pods are running. Once instances are ready, it registers them in the database so sentinels can route traffic to them. It attempts to scrape an OpenAPI spec from the running service, though this is optional. Finally, it assigns domains and creates sentinel configurations via the routing service, then marks the deployment as ready.
 
 Restate implements [durable executions](https://www.restate.dev/what-is-durable-execution) by recording progress in a distributed persistent log. The log is managed by the Restate server. If ctrl crashes during deployment, Restate resumes from the last completed phase rather than restarting from the beginning. This ensures deployments complete reliably even during system failures.
 
@@ -67,7 +67,7 @@ The ACME service handles ACME protocol coordination for TLS certificate provisio
 
 The service coordinates with the Certificate workflow for actual certificate issuance. It supports both HTTP-01 challenges for custom domains and DNS-01 challenges via the Cloudflare provider for wildcard certificates on the default domain.
 
-Private keys are encrypted using the vault service before storage. Certificates are stored in the main database for fast gateway access without encryption overhead. Challenge records track certificate expiry with 90-day validity periods.
+Private keys are encrypted using the vault service before storage. Certificates are stored in the main database for fast sentinel access without encryption overhead. Challenge records track certificate expiry with 90-day validity periods.
 
 [Read detailed Certificate docs →](./certificates)
 
@@ -75,15 +75,15 @@ Private keys are encrypted using the vault service before storage. Certificates 
 
 The OpenAPI service manages OpenAPI specifications scraped from deployed applications. It provides two key operations: `GetDiff` compares OpenAPI specs between deployments to detect breaking changes, and `GetSpec` retrieves the spec for a specific deployment.
 
-Specs are scraped from `GET /openapi.yaml` on running instances during the deployment workflow. They're stored in the database and used for API documentation generation, request validation in gateways, and breaking change detection between deployments.
+Specs are scraped from `GET /openapi.yaml` on running instances during the deployment workflow. They're stored in the database and used for API documentation generation, request validation in sentinels, and breaking change detection between deployments.
 
 ## Workflows
 
-Workflows are implemented as Restate services for durable execution. The Deployment Workflow handles deploy, rollback, and promote operations. The Routing Workflow manages domain assignment and gateway configuration. The Certificate Workflow processes ACME challenges for TLS certificate provisioning. See the individual workflow documentation pages for detailed implementation specifics.
+Workflows are implemented as Restate services for durable execution. The Deployment Workflow handles deploy, rollback, and promote operations. The Routing Workflow manages domain assignment and sentinel configuration. The Certificate Workflow processes ACME challenges for TLS certificate provisioning. See the individual workflow documentation pages for detailed implementation specifics.
 
 ## Database Schema
 
-The ctrl service uses a single MySQL database (`unkey`) that stores all data: projects, environments, and workspaces, along with deployments and deployment history, deployment topology for regional distribution, instances tracking individual pods, domains and SSL certificates, ACME users and challenges, gateway configurations as JSON blobs, and certificate storage in PEM format. The new pull-based architecture adds the `deployment_topology` table for multi-region deployments and enhanced `instances` table for pod-level tracking.
+The ctrl service uses a single MySQL database (`unkey`) that stores all data: projects, environments, and workspaces, along with deployments and deployment history, deployment topology for regional distribution, instances tracking individual pods, domains and SSL certificates, ACME users and challenges, sentinel configurations as JSON blobs, and certificate storage in PEM format. The new pull-based architecture adds the `deployment_topology` table for multi-region deployments and enhanced `instances` table for pod-level tracking.
 
 ## Monitoring
 

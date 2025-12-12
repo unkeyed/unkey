@@ -18,7 +18,7 @@ type BulkQuerier interface {
 	InsertDeploymentTopologies(ctx context.Context, db DBTX, args []InsertDeploymentTopologyParams) error
 	InsertEnvironments(ctx context.Context, db DBTX, args []InsertEnvironmentParams) error
 	UpsertEnvironment(ctx context.Context, db DBTX, args []UpsertEnvironmentParams) error
-	InsertGateways(ctx context.Context, db DBTX, args []InsertGatewayParams) error
+	InsertSentinels(ctx context.Context, db DBTX, args []InsertSentinelParams) error
 	InsertIdentities(ctx context.Context, db DBTX, args []InsertIdentityParams) error
 	InsertIdentityRatelimits(ctx context.Context, db DBTX, args []InsertIdentityRatelimitParams) error
 	InsertIngressRoutes(ctx context.Context, db DBTX, args []InsertIngressRouteParams) error

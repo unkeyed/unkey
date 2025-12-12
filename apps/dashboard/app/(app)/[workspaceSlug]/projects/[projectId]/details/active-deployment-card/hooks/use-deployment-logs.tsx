@@ -1,7 +1,7 @@
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { EXCLUDED_HOSTS } from "../../../gateway-logs/constants";
+import { EXCLUDED_HOSTS } from "../../../sentinel-logs/constants";
 
 const BUILD_STEPS_REFETCH_INTERVAL = 500;
 const GATEWAY_LOGS_REFETCH_INTERVAL = 2000;
@@ -13,7 +13,7 @@ const ERROR_STATUS_THRESHOLD = 500;
 const WARNING_STATUS_THRESHOLD = 400;
 
 type LogEntry = {
-  type: "build" | "gateway";
+  type: "build" | "sentinel";
   id: string;
   timestamp: number;
   message: string;
@@ -71,7 +71,7 @@ export function useDeploymentLogs({
     },
   );
 
-  const { data: gatewayData, isLoading: gatewayLoading } = trpc.logs.queryLogs.useQuery(
+  const { data: sentinelData, isLoading: sentinelLoading } = trpc.logs.queryLogs.useQuery(
     {
       limit: GATEWAY_LOGS_LIMIT,
       endTime: timestamp,
@@ -106,13 +106,13 @@ export function useDeploymentLogs({
     }
   }, [showBuildSteps, buildData]);
 
-  // Update stored logs when gateway data changes
+  // Update stored logs when sentinel data changes
   useEffect(() => {
-    if (!showBuildSteps && gatewayData?.logs) {
+    if (!showBuildSteps && sentinelData?.logs) {
       setStoredLogs((prev) => {
         const newMap = new Map(prev);
 
-        gatewayData.logs.forEach((log) => {
+        sentinelData.logs.forEach((log) => {
           let level: "warning" | "error" | undefined;
           if (log.response_status >= ERROR_STATUS_THRESHOLD) {
             level = "error";
@@ -121,7 +121,7 @@ export function useDeploymentLogs({
           }
 
           newMap.set(log.request_id, {
-            type: "gateway",
+            type: "sentinel",
             id: log.request_id,
             timestamp: log.time,
             message: `${log.response_status} ${log.method} ${log.path} (${log.service_latency}ms)`,
@@ -136,7 +136,7 @@ export function useDeploymentLogs({
         return new Map(sortedEntries);
       });
     }
-  }, [showBuildSteps, gatewayData]);
+  }, [showBuildSteps, sentinelData]);
 
   const logs = useMemo(() => {
     return Array.from(storedLogs.values()).sort((a, b) => b.timestamp - a.timestamp);
@@ -215,7 +215,7 @@ export function useDeploymentLogs({
     showFade,
     filteredLogs,
     logCounts,
-    isLoading: showBuildSteps ? buildLoading : gatewayLoading,
+    isLoading: showBuildSteps ? buildLoading : sentinelLoading,
     setLogFilter,
     setSearchTerm,
     setExpanded,

@@ -43,12 +43,12 @@ export function CardHeader({ icon, title, subtitle, health, variant = "card" }: 
         <StatusIndicator
           icon={<CircleCheck className="text-gray-9" iconSize="sm-regular" />}
           healthStatus="normal"
-          tooltip="Gateway is online and serving traffic"
+          tooltip="Sentinel is online and serving traffic"
         />
         <StatusIndicator
           icon={<Heart className={colors.dotTextColor} iconSize="sm-regular" />}
           healthStatus={health}
-          tooltip="Gateway health status"
+          tooltip="Sentinel health status"
           showGlow={health !== "normal"}
         />
       </div>

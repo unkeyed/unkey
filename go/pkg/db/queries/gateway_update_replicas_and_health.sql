@@ -1,5 +1,5 @@
--- name: UpdateGatewayReplicasAndHealth :exec
-UPDATE gateways SET
+-- name: UpdateSentinelReplicasAndHealth :exec
+UPDATE sentinels SET
 replicas = sqlc.arg(replicas),
 health = sqlc.arg(health),
 updated_at = sqlc.arg(updated_at)

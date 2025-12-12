@@ -66,13 +66,13 @@ The database design maintains strict separation between control plane operations
 - `ingress_routes` - Maps hostnames to deployments with sticky behavior
 - `certificate_requests` - Tracks ACME workflow state and metadata for certificate provisioning and renewal
 - `challenges` - Stores ACME challenge responses and metadata
-- `certificates` - Production certificates and encrypted private keys for gateway TLS termination
+- `certificates` - Production certificates and encrypted private keys for sentinel TLS termination
 
-The ctrl service uses the database for certificate request lifecycle management and ACME protocol state tracking, including storing challenge responses. Gateways query the same database for certificates during TLS handshakes and cache them in memory.
+The ctrl service uses the database for certificate request lifecycle management and ACME protocol state tracking, including storing challenge responses. Sentinels query the same database for certificates during TLS handshakes and cache them in memory.
 
 ## Certificate Provisioning
 
-Certificate provisioning involves coordination between multiple services and databases to complete the Let's Encrypt ACME workflow. The process begins with user requests and results in certificates available for gateway TLS termination.
+Certificate provisioning involves coordination between multiple services and databases to complete the Let's Encrypt ACME workflow. The process begins with user requests and results in certificates available for sentinel TLS termination.
 
 ### Certificate Request Process
 
@@ -93,7 +93,7 @@ When we need to get a certificate for a domain, here's what happens step by step
 
 #### 4. Domain Validation
 - Let's Encrypt makes a request to `http://yourdomain.com/.well-known/acme-challenge/token`
-- Our gateway redirects this request to our ctrl service
+- Our sentinel redirects this request to our ctrl service
 - Our ctrl service looks up the challenge response from our control database
 - Our ctrl service responds with the correct challenge response
 - Let's Encrypt verifies the response matches what they expect
@@ -106,7 +106,7 @@ When we need to get a certificate for a domain, here's what happens step by step
 #### 6. Secure Storage
 - We encrypt the private key using Vault
 - We store both the certificate and encrypted private key in our dataplane database
-- Gateways can now use this certificate for HTTPS traffic
+- Sentinels can now use this certificate for HTTPS traffic
 
 ![sequence.svg](./0013-sequence.svg)
 
@@ -270,19 +270,19 @@ Certificates expire after 90 days, so we automatically renew them before they ex
 - Check which certificates are expiring in the next 30 days
 - Run the same certificate request process described above
 - Replace the old certificate with the new one in our database
-- Gateways automatically pick up the new certificate for future requests
+- Sentinels automatically pick up the new certificate for future requests
 
 This happens completely automatically - no manual intervention required.
 
-## How Gateways Handle Traffic
+## How Sentinels Handle Traffic
 
-Our gateway servers have two main responsibilities: serve customer HTTPS traffic and help with certificate validation.
+Our sentinel servers have two main responsibilities: serve customer HTTPS traffic and help with certificate validation.
 
 ### Serving HTTPS Traffic
 
 When a customer visits your site over HTTPS, here's what happens:
 
-1. **TLS Handshake**: The gateway looks up the certificate for the domain in our dataplane database
+1. **TLS Handshake**: The sentinel looks up the certificate for the domain in our dataplane database
 2. **Key Decryption**: The private key is decrypted using Vault and cached in memory
 3. **Secure Connection**: The HTTPS connection is established using the certificate
 4. **Traffic Forwarding**: Your traffic is forwarded to your application
@@ -291,13 +291,13 @@ This process is completely independent of our certificate management system - ev
 
 ### Challenge Validation Support
 
-Gateways also help with certificate validation by listening on port 80 for Let's Encrypt's challenge requests:
+Sentinels also help with certificate validation by listening on port 80 for Let's Encrypt's challenge requests:
 
 - **Challenge Requests**: When Let's Encrypt validates a domain, it makes requests to `http://yourdomain.com/.well-known/acme-challenge/token`
-- **Redirect to Control Plane**: Our gateways redirect these requests to our ctrl service, which looks up the challenge response from the control database
+- **Redirect to Control Plane**: Our sentinels redirect these requests to our ctrl service, which looks up the challenge response from the control database
 - **Normal Traffic**: All other port 80 traffic gets redirected to HTTPS
 
-This is the only coupling between our gateways and certificate management system - and it only affects new certificate requests, not your production traffic.
+This is the only coupling between our sentinels and certificate management system - and it only affects new certificate requests, not your production traffic.
 
 ## Security & Privacy
 
@@ -325,7 +325,7 @@ Security is critical when handling SSL certificates and private keys. Here's how
 
 **High Availability**: Customer HTTPS traffic continues working even if our certificate management system has issues.
 
-**Scalable**: We can add more gateway servers without making certificate management more complex.
+**Scalable**: We can add more sentinel servers without making certificate management more complex.
 
 **Secure**: Private keys are never stored unencrypted and challenge data is isolated from production systems.
 
@@ -401,7 +401,7 @@ sequenceDiagram
     participant CS as Ctrl Service
     participant CD as Control DB
     participant LE as Let's Encrypt
-    participant GW as Gateway
+    participant GW as Sentinel
     participant DD as Database
     participant V as Vault
 

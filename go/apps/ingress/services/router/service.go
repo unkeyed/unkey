@@ -38,26 +38,26 @@ var regionProximity = map[string][]string{
 }
 
 type service struct {
-	logger                     logging.Logger
-	region                     string
-	db                         db.Database
-	ingressRouteCache          cache.Cache[string, db.IngressRoute]
-	gatewaysByEnvironmentCache cache.Cache[string, []db.Gateway]
+	logger                      logging.Logger
+	region                      string
+	db                          db.Database
+	ingressRouteCache           cache.Cache[string, db.IngressRoute]
+	sentinelsByEnvironmentCache cache.Cache[string, []db.Sentinel]
 }
 
 var _ Service = (*service)(nil)
 
 func New(cfg Config) (*service, error) {
 	return &service{
-		logger:                     cfg.Logger,
-		region:                     cfg.Region,
-		db:                         cfg.DB,
-		ingressRouteCache:          cfg.IngressRouteCache,
-		gatewaysByEnvironmentCache: cfg.GatewaysByEnvironment,
+		logger:                      cfg.Logger,
+		region:                      cfg.Region,
+		db:                          cfg.DB,
+		ingressRouteCache:           cfg.IngressRouteCache,
+		sentinelsByEnvironmentCache: cfg.SentinelsByEnvironment,
 	}, nil
 }
 
-func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.IngressRoute, []db.Gateway, error) {
+func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.IngressRoute, []db.Sentinel, error) {
 	route, hit, err := s.ingressRouteCache.SWR(ctx, hostname, func(ctx context.Context) (db.IngressRoute, error) {
 		return db.Query.FindIngressRouteByHostname(ctx, s.db.RO(), hostname)
 	}, internalCaches.DefaultFindFirstOp)
@@ -76,31 +76,31 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.In
 		)
 	}
 
-	gateways, _, err := s.gatewaysByEnvironmentCache.SWR(ctx, route.EnvironmentID, func(ctx context.Context) ([]db.Gateway, error) {
-		return db.Query.FindGatewaysByEnvironmentID(ctx, s.db.RO(), route.EnvironmentID)
+	sentinels, _, err := s.sentinelsByEnvironmentCache.SWR(ctx, route.EnvironmentID, func(ctx context.Context) ([]db.Sentinel, error) {
+		return db.Query.FindSentinelsByEnvironmentID(ctx, s.db.RO(), route.EnvironmentID)
 	}, internalCaches.DefaultFindFirstOp)
 	if err != nil && !db.IsNotFound(err) {
 		return nil, nil, fault.Wrap(err,
 			fault.Code(codes.Ingress.Internal.ConfigLoadFailed.URN()),
-			fault.Internal("error loading gateways"),
-			fault.Public("Failed to load gateway configuration"),
+			fault.Internal("error loading sentinels"),
+			fault.Public("Failed to load sentinel configuration"),
 		)
 	}
 
-	return &route, gateways, nil
+	return &route, sentinels, nil
 }
 
-func (s *service) SelectGateway(route *db.IngressRoute, gateways []db.Gateway) (*RouteDecision, error) {
+func (s *service) SelectSentinel(route *db.IngressRoute, sentinels []db.Sentinel) (*RouteDecision, error) {
 	decision := &RouteDecision{
 		DeploymentID:     route.DeploymentID,
-		LocalGateway:     nil,
+		LocalSentinel:    nil,
 		NearestNLBRegion: "",
 	}
 
-	healthyByRegion := make(map[string]*db.Gateway)
-	for i := range gateways {
-		gw := &gateways[i]
-		if gw.Health != db.GatewaysHealthHealthy {
+	healthyByRegion := make(map[string]*db.Sentinel)
+	for i := range sentinels {
+		gw := &sentinels[i]
+		if gw.Health != db.SentinelsHealthHealthy {
 			continue
 		}
 
@@ -108,15 +108,15 @@ func (s *service) SelectGateway(route *db.IngressRoute, gateways []db.Gateway) (
 	}
 
 	if len(healthyByRegion) == 0 {
-		return nil, fault.New("no healthy gateways",
+		return nil, fault.New("no healthy sentinels",
 			fault.Code(codes.Ingress.Routing.NoRunningInstances.URN()),
-			fault.Internal("no healthy gateways for environment"),
+			fault.Internal("no healthy sentinels for environment"),
 			fault.Public("Service temporarily unavailable"),
 		)
 	}
 
 	if localGw, ok := healthyByRegion[s.region]; ok {
-		decision.LocalGateway = localGw
+		decision.LocalSentinel = localGw
 		return decision, nil
 	}
 
@@ -128,7 +128,7 @@ func (s *service) SelectGateway(route *db.IngressRoute, gateways []db.Gateway) (
 	return decision, nil
 }
 
-func (s *service) findNearestRegion(healthyByRegion map[string]*db.Gateway) string {
+func (s *service) findNearestRegion(healthyByRegion map[string]*db.Sentinel) string {
 	proximityList, exists := regionProximity[s.region]
 	if exists {
 		for _, region := range proximityList {

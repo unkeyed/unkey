@@ -34,7 +34,7 @@ import (
 // Ingress is our multi-tenant ingress service that:
 // - Accepts requests from NLBs (<region>.aws.unkey.app)
 // - Terminates TLS if the deployment exists in its region
-// - Forwards requests to the per-tenant/environment gateway service
+// - Forwards requests to the per-tenant/environment sentinel service
 // - OR forwards to another region if no local deployment exists
 func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
@@ -165,11 +165,11 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize router service
 	routerSvc, err := router.New(router.Config{
-		Logger:                logger,
-		Region:                cfg.Region,
-		DB:                    db,
-		IngressRouteCache:     cache.IngressRoutes,
-		GatewaysByEnvironment: cache.GatewaysByEnvironment,
+		Logger:                 logger,
+		Region:                 cfg.Region,
+		DB:                     db,
+		IngressRouteCache:      cache.IngressRoutes,
+		SentinelsByEnvironment: cache.SentinelsByEnvironment,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create router service: %w", err)

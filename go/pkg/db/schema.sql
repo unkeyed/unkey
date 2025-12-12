@@ -310,7 +310,7 @@ CREATE TABLE `environments` (
 	`project_id` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
 	`description` varchar(255) NOT NULL DEFAULT '',
-	`gateway_config` longblob NOT NULL,
+	`sentinel_config` longblob NOT NULL,
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -363,7 +363,7 @@ CREATE TABLE `deployments` (
 	`git_commit_author_handle` varchar(256),
 	`git_commit_author_avatar_url` varchar(512),
 	`git_commit_timestamp` bigint,
-	`gateway_config` longblob NOT NULL,
+	`sentinel_config` longblob NOT NULL,
 	`openapi_spec` longblob,
 	`cpu_millicores` int NOT NULL,
 	`memory_mib` int NOT NULL,
@@ -430,7 +430,7 @@ CREATE TABLE `acme_challenges` (
 	CONSTRAINT `acme_challenges_domain_id_pk` PRIMARY KEY(`domain_id`)
 );
 
-CREATE TABLE `gateways` (
+CREATE TABLE `sentinels` (
 	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
@@ -447,7 +447,7 @@ CREATE TABLE `gateways` (
 	`memory_mib` int NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `gateways_id` PRIMARY KEY(`id`)
+	CONSTRAINT `sentinels_id` PRIMARY KEY(`id`)
 );
 
 CREATE TABLE `instances` (
@@ -522,7 +522,7 @@ CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `custom_domains` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
 CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
-CREATE INDEX `idx_environment_id` ON `gateways` (`environment_id`);
+CREATE INDEX `idx_environment_id` ON `sentinels` (`environment_id`);
 CREATE INDEX `idx_deployment_id` ON `instances` (`deployment_id`);
 CREATE INDEX `idx_region` ON `instances` (`region`);
 CREATE INDEX `environment_id_idx` ON `ingress_routes` (`environment_id`);

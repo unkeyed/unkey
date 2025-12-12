@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-// bulkInsertGateway is the base query for bulk insert
-const bulkInsertGateway = `INSERT INTO gateways ( id, workspace_id, environment_id, project_id, k8s_service_name, k8s_crd_name, region, image, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at ) VALUES %s`
+// bulkInsertSentinel is the base query for bulk insert
+const bulkInsertSentinel = `INSERT INTO sentinels ( id, workspace_id, environment_id, project_id, k8s_service_name, k8s_crd_name, region, image, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at ) VALUES %s`
 
-// InsertGateways performs bulk insert in a single query
-func (q *BulkQueries) InsertGateways(ctx context.Context, db DBTX, args []InsertGatewayParams) error {
+// InsertSentinels performs bulk insert in a single query
+func (q *BulkQueries) InsertSentinels(ctx context.Context, db DBTX, args []InsertSentinelParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -24,7 +24,7 @@ func (q *BulkQueries) InsertGateways(ctx context.Context, db DBTX, args []Insert
 		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
-	bulkQuery := fmt.Sprintf(bulkInsertGateway, strings.Join(valueClauses, ", "))
+	bulkQuery := fmt.Sprintf(bulkInsertSentinel, strings.Join(valueClauses, ", "))
 
 	// Collect all arguments
 	var allArgs []any

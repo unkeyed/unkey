@@ -8,9 +8,9 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
 
-// makeGatewayDirector creates a Director function for forwarding to a local gateway
+// makeSentinelDirector creates a Director function for forwarding to a local sentinel
 // The proxyStartTime pointer will be set by the caller when Director is invoked
-func (s *service) makeGatewayDirector(sess *zen.Session, deploymentID string, startTime time.Time) func(*http.Request) {
+func (s *service) makeSentinelDirector(sess *zen.Session, deploymentID string, startTime time.Time) func(*http.Request) {
 	return func(req *http.Request) {
 		req.Header.Set(HeaderIngressID, s.ingressID)
 		req.Header.Set(HeaderRegion, s.region)

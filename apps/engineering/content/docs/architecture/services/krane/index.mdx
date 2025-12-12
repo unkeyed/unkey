@@ -7,9 +7,9 @@ import { Mermaid } from "@/app/components/mermaid";
 
 
 
-Krane is a Kubernetes cluster agent that follows a pull-based model similar to the Kubernetes kubelet. It connects to the control plane (ctrl) and maintains a long-lived streaming connection to receive deployment and gateway configuration events. This architecture enables multi-cluster orchestration without the control plane needing direct access to individual clusters.
+Krane is a Kubernetes cluster agent that follows a pull-based model similar to the Kubernetes kubelet. It connects to the control plane (ctrl) and maintains a long-lived streaming connection to receive deployment and sentinel configuration events. This architecture enables multi-cluster orchestration without the control plane needing direct access to individual clusters.
 
-Krane pulls desired state from ctrl and ensures the actual cluster state matches. It handles deployment and gateway lifecycle operations (create, update, delete) by translating high-level events into Kubernetes resources.
+Krane pulls desired state from ctrl and ensures the actual cluster state matches. It handles deployment and sentinel lifecycle operations (create, update, delete) by translating high-level events into Kubernetes resources.
 
 ## Architecture
 
@@ -19,7 +19,7 @@ Krane implements a pull-based architecture where agents in each cluster:
 
 1. **Establish a Watch Stream**: Connect to ctrl's ClusterService and maintain a long-lived streaming connection
 2. **Pull Desired State**: Periodically sync the full desired state to ensure consistency
-3. **Receive Real-Time Events**: Get deployment and gateway events pushed through the watch stream
+3. **Receive Real-Time Events**: Get deployment and sentinel events pushed through the watch stream
 4. **Apply Changes Locally**: Translate events into Kubernetes resources
 
 This model eliminates the need for the control plane to know about individual clusters, improving security and scalability.

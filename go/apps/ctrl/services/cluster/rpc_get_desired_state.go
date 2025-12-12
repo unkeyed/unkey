@@ -84,12 +84,12 @@ func (s *Service) GetDesiredState(ctx context.Context, req *connect.Request[ctrl
 		}
 	}
 
-	// gateways
+	// sentinels
 	cursor = ""
 	for {
-		topologies, err := db.Query.ListDesiredGateways(ctx, s.db.RO(), db.ListDesiredGatewaysParams{
+		topologies, err := db.Query.ListDesiredSentinels(ctx, s.db.RO(), db.ListDesiredSentinelsParams{
 			Region:           region,
-			DesiredState:     db.GatewaysDesiredStateRunning,
+			DesiredState:     db.SentinelsDesiredStateRunning,
 			PaginationCursor: cursor,
 			Limit:            1000,
 		})
@@ -101,25 +101,25 @@ func (s *Service) GetDesiredState(ctx context.Context, req *connect.Request[ctrl
 		if len(topologies) == 0 {
 			break
 		}
-		cursor = topologies[len(topologies)-1].Gateway.ID
+		cursor = topologies[len(topologies)-1].Sentinel.ID
 
 		for _, t := range topologies {
 
 			err = stream.Send(&ctrlv1.InfraEvent{
-				Event: &ctrlv1.InfraEvent_GatewayEvent{
-					GatewayEvent: &ctrlv1.GatewayEvent{
-						Event: &ctrlv1.GatewayEvent_Apply{
-							Apply: &ctrlv1.ApplyGateway{
+				Event: &ctrlv1.InfraEvent_SentinelEvent{
+					SentinelEvent: &ctrlv1.SentinelEvent{
+						Event: &ctrlv1.SentinelEvent_Apply{
+							Apply: &ctrlv1.ApplySentinel{
 								Namespace:     t.Workspace.K8sNamespace.String,
-								K8SCrdName:    t.Gateway.K8sCrdName,
+								K8SCrdName:    t.Sentinel.K8sCrdName,
 								WorkspaceId:   t.Workspace.ID,
-								EnvironmentId: t.Gateway.EnvironmentID,
-								ProjectId:     t.Gateway.ProjectID,
-								GatewayId:     t.Gateway.ID,
-								Image:         t.Gateway.Image,
-								Replicas:      uint32(t.Gateway.DesiredReplicas),
-								CpuMillicores: uint32(t.Gateway.CpuMillicores),
-								MemorySizeMib: uint32(t.Gateway.MemoryMib),
+								EnvironmentId: t.Sentinel.EnvironmentID,
+								ProjectId:     t.Sentinel.ProjectID,
+								SentinelId:    t.Sentinel.ID,
+								Image:         t.Sentinel.Image,
+								Replicas:      uint32(t.Sentinel.DesiredReplicas),
+								CpuMillicores: uint32(t.Sentinel.CpuMillicores),
+								MemorySizeMib: uint32(t.Sentinel.MemoryMib),
 							},
 						},
 					},

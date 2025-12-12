@@ -9,8 +9,8 @@ import (
 	"context"
 )
 
-const insertGateway = `-- name: InsertGateway :exec
-INSERT INTO gateways (
+const insertSentinel = `-- name: InsertSentinel :exec
+INSERT INTO sentinels (
     id,
     workspace_id,
     environment_id,
@@ -43,26 +43,26 @@ INSERT INTO gateways (
 )
 `
 
-type InsertGatewayParams struct {
-	ID              string         `db:"id"`
-	WorkspaceID     string         `db:"workspace_id"`
-	EnvironmentID   string         `db:"environment_id"`
-	ProjectID       string         `db:"project_id"`
-	K8sServiceName  string         `db:"k8s_service_name"`
-	K8sCrdName      string         `db:"k8s_crd_name"`
-	Region          string         `db:"region"`
-	Image           string         `db:"image"`
-	Health          GatewaysHealth `db:"health"`
-	DesiredReplicas int32          `db:"desired_replicas"`
-	Replicas        int32          `db:"replicas"`
-	CpuMillicores   int32          `db:"cpu_millicores"`
-	MemoryMib       int32          `db:"memory_mib"`
-	CreatedAt       int64          `db:"created_at"`
+type InsertSentinelParams struct {
+	ID              string          `db:"id"`
+	WorkspaceID     string          `db:"workspace_id"`
+	EnvironmentID   string          `db:"environment_id"`
+	ProjectID       string          `db:"project_id"`
+	K8sServiceName  string          `db:"k8s_service_name"`
+	K8sCrdName      string          `db:"k8s_crd_name"`
+	Region          string          `db:"region"`
+	Image           string          `db:"image"`
+	Health          SentinelsHealth `db:"health"`
+	DesiredReplicas int32           `db:"desired_replicas"`
+	Replicas        int32           `db:"replicas"`
+	CpuMillicores   int32           `db:"cpu_millicores"`
+	MemoryMib       int32           `db:"memory_mib"`
+	CreatedAt       int64           `db:"created_at"`
 }
 
-// InsertGateway
+// InsertSentinel
 //
-//	INSERT INTO gateways (
+//	INSERT INTO sentinels (
 //	    id,
 //	    workspace_id,
 //	    environment_id,
@@ -93,8 +93,8 @@ type InsertGatewayParams struct {
 //	    ?,
 //	    ?
 //	)
-func (q *Queries) InsertGateway(ctx context.Context, db DBTX, arg InsertGatewayParams) error {
-	_, err := db.ExecContext(ctx, insertGateway,
+func (q *Queries) InsertSentinel(ctx context.Context, db DBTX, arg InsertSentinelParams) error {
+	_, err := db.ExecContext(ctx, insertSentinel,
 		arg.ID,
 		arg.WorkspaceID,
 		arg.EnvironmentID,

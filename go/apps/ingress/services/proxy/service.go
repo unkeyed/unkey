@@ -45,7 +45,7 @@ func New(cfg Config) (*service, error) {
 			IdleConnTimeout:       90 * time.Second,
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
-			ResponseHeaderTimeout: 40 * time.Second, // Longer than gateway timeout (30s) to receive its error response
+			ResponseHeaderTimeout: 40 * time.Second, // Longer than sentinel timeout (30s) to receive its error response
 		}
 
 		if cfg.MaxIdleConns > 0 {
@@ -76,22 +76,22 @@ func New(cfg Config) (*service, error) {
 	}, nil
 }
 
-func (s *service) ForwardToGateway(ctx context.Context, sess *zen.Session, gateway *db.Gateway, deploymentID string) error {
+func (s *service) ForwardToSentinel(ctx context.Context, sess *zen.Session, sentinel *db.Sentinel, deploymentID string) error {
 	startTime, _ := RequestStartTimeFromContext(ctx)
 
-	targetURL, err := url.Parse(fmt.Sprintf("http://%s", gateway.K8sServiceName))
+	targetURL, err := url.Parse(fmt.Sprintf("http://%s", sentinel.K8sServiceName))
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Ingress.Internal.InternalServerError.URN()),
-			fault.Internal("failed to parse gateway URL"),
+			fault.Internal("failed to parse sentinel URL"),
 		)
 	}
 
 	return s.forward(sess, forwardConfig{
 		targetURL:    targetURL,
 		startTime:    startTime,
-		directorFunc: s.makeGatewayDirector(sess, deploymentID, startTime),
-		logTarget:    "gateway",
+		directorFunc: s.makeSentinelDirector(sess, deploymentID, startTime),
+		logTarget:    "sentinel",
 	})
 }
 

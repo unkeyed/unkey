@@ -139,8 +139,8 @@ type Config struct {
 	// ClickhouseURL is the ClickHouse database connection string
 	ClickhouseURL string
 
-	// The image new gateways get deployed with
-	GatewayImage string
+	// The image new sentinels get deployed with
+	SentinelImage string
 }
 
 type BuildPlatform struct {

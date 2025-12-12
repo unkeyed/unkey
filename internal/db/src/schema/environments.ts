@@ -17,7 +17,7 @@ export const environments = mysqlTable(
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
     description: varchar("description", { length: 255 }).notNull().default(""),
 
-    gatewayConfig: longblob("gateway_config").notNull(),
+    sentinelConfig: longblob("sentinel_config").notNull(),
 
     ...deleteProtection,
     ...lifecycleDates,

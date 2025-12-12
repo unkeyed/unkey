@@ -1,8 +1,8 @@
 /**
  * This route creates a shortcut for onboarding
  *
- * We need this for compliance of our gateway.new domain.
- * 1. A user will enter "gateway.new" in the browser
+ * We need this for compliance of our sentinel.new domain.
+ * 1. A user will enter "sentinel.new" in the browser
  * 2. Vercel will detect the host and rewrite the request to this page
  * 3. A workspace is upserted
  * 4. The user is redirected to create their API

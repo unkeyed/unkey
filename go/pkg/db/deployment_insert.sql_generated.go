@@ -18,7 +18,7 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     environment_id,
     git_commit_sha,
     git_branch,
-    gateway_config,
+    sentinel_config,
     git_commit_message,
     git_commit_author_handle,
     git_commit_author_avatar_url,
@@ -56,7 +56,7 @@ type InsertDeploymentParams struct {
 	EnvironmentID            string            `db:"environment_id"`
 	GitCommitSha             sql.NullString    `db:"git_commit_sha"`
 	GitBranch                sql.NullString    `db:"git_branch"`
-	GatewayConfig            []byte            `db:"gateway_config"`
+	SentinelConfig           []byte            `db:"sentinel_config"`
 	GitCommitMessage         sql.NullString    `db:"git_commit_message"`
 	GitCommitAuthorHandle    sql.NullString    `db:"git_commit_author_handle"`
 	GitCommitAuthorAvatarUrl sql.NullString    `db:"git_commit_author_avatar_url"`
@@ -77,7 +77,7 @@ type InsertDeploymentParams struct {
 //	    environment_id,
 //	    git_commit_sha,
 //	    git_branch,
-//	    gateway_config,
+//	    sentinel_config,
 //	    git_commit_message,
 //	    git_commit_author_handle,
 //	    git_commit_author_avatar_url,
@@ -114,7 +114,7 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.EnvironmentID,
 		arg.GitCommitSha,
 		arg.GitBranch,
-		arg.GatewayConfig,
+		arg.SentinelConfig,
 		arg.GitCommitMessage,
 		arg.GitCommitAuthorHandle,
 		arg.GitCommitAuthorAvatarUrl,

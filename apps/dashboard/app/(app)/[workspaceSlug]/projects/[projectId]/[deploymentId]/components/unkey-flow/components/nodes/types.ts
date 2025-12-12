@@ -38,12 +38,12 @@ type RegionNode = BaseNode & {
     instances: number;
     replicas: number;
   } & BaseMetrics;
-  children?: GatewayNode[];
+  children?: SentinelNode[];
 };
 
-type GatewayNode = BaseNode & {
+type SentinelNode = BaseNode & {
   metadata: {
-    type: "gateway";
+    type: "sentinel";
     description: string;
     instances?: number;
     replicas: number;
@@ -57,7 +57,7 @@ type SkeletonNode = BaseNode & {
   children?: SkeletonNode[];
 };
 
-type DeploymentNode = OriginNode | RegionNode | GatewayNode | SkeletonNode;
+type DeploymentNode = OriginNode | RegionNode | SentinelNode | SkeletonNode;
 
 function isOriginNode(node: DeploymentNode): node is OriginNode {
   return node.metadata.type === "origin";
@@ -67,8 +67,8 @@ function isRegionNode(node: DeploymentNode): node is RegionNode {
   return node.metadata.type === "region";
 }
 
-function isGatewayNode(node: DeploymentNode): node is GatewayNode {
-  return node.metadata.type === "gateway";
+function isSentinelNode(node: DeploymentNode): node is SentinelNode {
+  return node.metadata.type === "sentinel";
 }
 
 function isSkeletonNode(node: DeploymentNode): node is SkeletonNode {
@@ -98,7 +98,7 @@ type NodeSize = { width: number; height: number };
 const NODE_SIZES: Record<DeploymentNode["metadata"]["type"], NodeSize> = {
   origin: { width: 70, height: 20 },
   region: { width: DEFAULT_NODE_WIDTH, height: 100 },
-  gateway: { width: DEFAULT_NODE_WIDTH, height: 100 },
+  sentinel: { width: DEFAULT_NODE_WIDTH, height: 100 },
   skeleton: { width: DEFAULT_NODE_WIDTH, height: 100 },
 } as const;
 
@@ -106,7 +106,7 @@ export type {
   DeploymentNode,
   OriginNode,
   RegionNode,
-  GatewayNode,
+  SentinelNode,
   SkeletonNode,
   HealthStatus,
   RegionInfo,
@@ -116,7 +116,7 @@ export type {
 export {
   isOriginNode,
   isRegionNode,
-  isGatewayNode,
+  isSentinelNode,
   isSkeletonNode,
   DEFAULT_NODE_WIDTH,
   REGION_INFO,

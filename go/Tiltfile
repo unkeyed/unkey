@@ -34,8 +34,8 @@ start_dashboard = 'all' in services or 'dashboard' in services
 # Apply RBAC
 k8s_yaml('k8s/manifests/rbac.yaml')
 
-# Apply Gateway CRD for krane controller
-print("Setting up Gateway CRD...")
+# Apply Sentinel CRD for krane controller
+print("Setting up Sentinel CRD...")
 k8s_yaml('apps/krane/gateway_controller/yaml/crd.yaml')
 
 # Registry Proxy service (always needed for pulling images from depot)
@@ -320,7 +320,7 @@ Web UI: http://localhost:10350
 Services available via Tilt port forwards:
 Dashboard: http://localhost:3000
 API: http://localhost:7070
-Gateway: http://localhost:8080
+Sentinel: http://localhost:8080
 Ctrl: http://localhost:7091
 Krane: http://localhost:8090
 Restate Ingress: http://localhost:8081

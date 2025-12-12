@@ -6,9 +6,9 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
-// Service handles routing operations - domain assignment and gateway configuration.
+// Service handles routing operations - domain assignment and sentinel configuration.
 //
-// This service manages the relationship between domains, deployments, and gateway
+// This service manages the relationship between domains, deployments, and sentinel
 // configurations. It handles creating new domain assignments during deployments and
 // switching existing domains between deployments during rollback/promote operations.
 //

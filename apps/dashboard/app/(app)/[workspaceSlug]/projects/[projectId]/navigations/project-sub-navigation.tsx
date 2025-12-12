@@ -47,7 +47,7 @@ export const ProjectSubNavigation = ({
     const tabIndex = segments.findIndex((segment) => segment === projectId) + 1;
     const currentTab = segments[tabIndex];
 
-    const validTabs = ["overview", "deployments", "gateway-logs", "settings", "openapi-diff"];
+    const validTabs = ["overview", "deployments", "sentinel-logs", "settings", "openapi-diff"];
     return validTabs.includes(currentTab) ? currentTab : "overview";
   };
 
@@ -68,10 +68,10 @@ export const ProjectSubNavigation = ({
       path: `${basePath}/${projectId}/deployments`,
     },
     {
-      id: "gateway-logs",
-      label: "Gateway Logs",
+      id: "sentinel-logs",
+      label: "Sentinel Logs",
       icon: Layers3,
-      path: `${basePath}/${projectId}/gateway-logs`,
+      path: `${basePath}/${projectId}/sentinel-logs`,
     },
     {
       id: "openapi-diff",

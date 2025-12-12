@@ -34,7 +34,7 @@ That's the easy part, but how are we going to ensure nodes don't overlap? To ens
 
 Subtree width calculation example (bottom-up):
 - gw-1, gw-2: width = 282 (base case, no children, using node.width)
-- us-east-1 subtree: width = 282 + 25 + 282 = 589 (three gateways + two spacings between them)
+- us-east-1 subtree: width = 282 + 25 + 282 = 589 (three sentinels + two spacings between them)
 - gw-4: width = 282 (base case, no children)
 - eu-central-1 subtree: width = 282 (only one child, no spacing needed)
 - INTERNET subtree: width = 589 + 25 + 282 = 896 (us-east-1 subtree + spacing + eu-central-1 subtree)
@@ -87,7 +87,7 @@ childY = 0 + 10 + 75 + 50 = 135
          └─────────────── parent's center
 ```
 
-**Level 2 (us-east-1 → gateways):**
+**Level 2 (us-east-1 → sentinels):**
 ```
 childY = 135 + 50 + 75 + 50 = 310
 ```

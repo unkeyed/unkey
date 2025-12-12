@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertDeployment is the base query for bulk insert
-const bulkInsertDeployment = `INSERT INTO ` + "`" + `deployments` + "`" + ` ( id, workspace_id, project_id, environment_id, git_commit_sha, git_branch, gateway_config, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, openapi_spec, status, cpu_millicores, memory_mib, created_at ) VALUES %s`
+const bulkInsertDeployment = `INSERT INTO ` + "`" + `deployments` + "`" + ` ( id, workspace_id, project_id, environment_id, git_commit_sha, git_branch, sentinel_config, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, openapi_spec, status, cpu_millicores, memory_mib, created_at ) VALUES %s`
 
 // InsertDeployments performs bulk insert in a single query
 func (q *BulkQueries) InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error {
@@ -35,7 +35,7 @@ func (q *BulkQueries) InsertDeployments(ctx context.Context, db DBTX, args []Ins
 		allArgs = append(allArgs, arg.EnvironmentID)
 		allArgs = append(allArgs, arg.GitCommitSha)
 		allArgs = append(allArgs, arg.GitBranch)
-		allArgs = append(allArgs, arg.GatewayConfig)
+		allArgs = append(allArgs, arg.SentinelConfig)
 		allArgs = append(allArgs, arg.GitCommitMessage)
 		allArgs = append(allArgs, arg.GitCommitAuthorHandle)
 		allArgs = append(allArgs, arg.GitCommitAuthorAvatarUrl)

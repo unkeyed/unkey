@@ -194,7 +194,7 @@ type Querier interface {
 	FindCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT id, workspace_id, project_id, environment_id, image, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, gateway_config, openapi_spec, cpu_millicores, memory_mib, desired_state, status, created_at, updated_at FROM `deployments` WHERE id = ?
+	//  SELECT id, workspace_id, project_id, environment_id, image, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, status, created_at, updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentStepsByDeploymentId
 	//
@@ -234,20 +234,12 @@ type Querier interface {
 	FindEnvironmentById(ctx context.Context, db DBTX, id string) (FindEnvironmentByIdRow, error)
 	//FindEnvironmentByProjectIdAndSlug
 	//
-	//  SELECT id, workspace_id, project_id, slug, description, gateway_config, delete_protection, created_at, updated_at
+	//  SELECT id, workspace_id, project_id, slug, description, sentinel_config, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE workspace_id = ?
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
-	//FindGatewayByID
-	//
-	//  SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE id = ? LIMIT 1
-	FindGatewayByID(ctx context.Context, db DBTX, id string) (Gateway, error)
-	//FindGatewaysByEnvironmentID
-	//
-	//  SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM gateways WHERE environment_id = ?
-	FindGatewaysByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Gateway, error)
 	//FindIdentities
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -937,6 +929,14 @@ type Querier interface {
 	//
 	//  SELECT id, name FROM roles WHERE workspace_id = ? AND name IN (/*SLICE:names*/?)
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
+	//FindSentinelByID
+	//
+	//  SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels WHERE id = ? LIMIT 1
+	FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error)
+	//FindSentinelsByEnvironmentID
+	//
+	//  SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels WHERE environment_id = ?
+	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Sentinel, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT id, org_id, name, slug, k8s_namespace, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -1121,7 +1121,7 @@ type Querier interface {
 	//      environment_id,
 	//      git_commit_sha,
 	//      git_branch,
-	//      gateway_config,
+	//      sentinel_config,
 	//      git_commit_message,
 	//      git_commit_author_handle,
 	//      git_commit_author_avatar_url,
@@ -1200,45 +1200,11 @@ type Querier interface {
 	//      description,
 	//      created_at,
 	//      updated_at,
-	//      gateway_config
+	//      sentinel_config
 	//  ) VALUES (
 	//      ?, ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertEnvironment(ctx context.Context, db DBTX, arg InsertEnvironmentParams) error
-	//InsertGateway
-	//
-	//  INSERT INTO gateways (
-	//      id,
-	//      workspace_id,
-	//      environment_id,
-	//      project_id,
-	//      k8s_service_name,
-	//      k8s_crd_name,
-	//      region,
-	//      image,
-	//      health,
-	//      desired_replicas,
-	//      replicas,
-	//      cpu_millicores,
-	//      memory_mib,
-	//      created_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertGateway(ctx context.Context, db DBTX, arg InsertGatewayParams) error
 	//InsertIdentity
 	//
 	//  INSERT INTO `identities` (
@@ -1605,6 +1571,40 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertRolePermission(ctx context.Context, db DBTX, arg InsertRolePermissionParams) error
+	//InsertSentinel
+	//
+	//  INSERT INTO sentinels (
+	//      id,
+	//      workspace_id,
+	//      environment_id,
+	//      project_id,
+	//      k8s_service_name,
+	//      k8s_crd_name,
+	//      region,
+	//      image,
+	//      health,
+	//      desired_replicas,
+	//      replicas,
+	//      cpu_millicores,
+	//      memory_mib,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertSentinel(ctx context.Context, db DBTX, arg InsertSentinelParams) error
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (
@@ -1654,19 +1654,19 @@ type Querier interface {
 	//  ORDER BY dt.deployment_id ASC
 	//  LIMIT ?
 	ListDesiredDeploymentTopology(ctx context.Context, db DBTX, arg ListDesiredDeploymentTopologyParams) ([]ListDesiredDeploymentTopologyRow, error)
-	//ListDesiredGateways
+	//ListDesiredSentinels
 	//
 	//  SELECT
-	//      gateways.id, gateways.workspace_id, gateways.project_id, gateways.environment_id, gateways.k8s_crd_name, gateways.k8s_service_name, gateways.region, gateways.image, gateways.desired_state, gateways.health, gateways.desired_replicas, gateways.replicas, gateways.cpu_millicores, gateways.memory_mib, gateways.created_at, gateways.updated_at,
+	//      sentinels.id, sentinels.workspace_id, sentinels.project_id, sentinels.environment_id, sentinels.k8s_crd_name, sentinels.k8s_service_name, sentinels.region, sentinels.image, sentinels.desired_state, sentinels.health, sentinels.desired_replicas, sentinels.replicas, sentinels.cpu_millicores, sentinels.memory_mib, sentinels.created_at, sentinels.updated_at,
 	//      workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.partition_id, workspaces.plan, workspaces.tier, workspaces.stripe_customer_id, workspaces.stripe_subscription_id, workspaces.beta_features, workspaces.features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m
-	//  FROM `gateways`
-	//  INNER JOIN `workspaces` ON gateways.workspace_id = workspaces.id
+	//  FROM `sentinels`
+	//  INNER JOIN `workspaces` ON sentinels.workspace_id = workspaces.id
 	//  WHERE (? = '' OR region = ?)
 	//      AND desired_state = ?
-	//      AND gateways.id > ?
-	//  ORDER BY gateways.id ASC
+	//      AND sentinels.id > ?
+	//  ORDER BY sentinels.id ASC
 	//  LIMIT ?
-	ListDesiredGateways(ctx context.Context, db DBTX, arg ListDesiredGatewaysParams) ([]ListDesiredGatewaysRow, error)
+	ListDesiredSentinels(ctx context.Context, db DBTX, arg ListDesiredSentinelsParams) ([]ListDesiredSentinelsRow, error)
 	//ListDirectPermissionsByKeyID
 	//
 	//  SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -2096,14 +2096,6 @@ type Querier interface {
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, db DBTX, arg UpdateDeploymentStatusParams) error
-	//UpdateGatewayReplicasAndHealth
-	//
-	//  UPDATE gateways SET
-	//  replicas = ?,
-	//  health = ?,
-	//  updated_at = ?
-	//  WHERE id = ?
-	UpdateGatewayReplicasAndHealth(ctx context.Context, db DBTX, arg UpdateGatewayReplicasAndHealthParams) error
 	//UpdateIdentity
 	//
 	//  UPDATE `identities`
@@ -2241,6 +2233,14 @@ type Querier interface {
 	//      updated_at_m= ?
 	//  WHERE id = ?
 	UpdateRatelimitOverride(ctx context.Context, db DBTX, arg UpdateRatelimitOverrideParams) (sql.Result, error)
+	//UpdateSentinelReplicasAndHealth
+	//
+	//  UPDATE sentinels SET
+	//  replicas = ?,
+	//  health = ?,
+	//  updated_at = ?
+	//  WHERE id = ?
+	UpdateSentinelReplicasAndHealth(ctx context.Context, db DBTX, arg UpdateSentinelReplicasAndHealthParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`
@@ -2260,7 +2260,7 @@ type Querier interface {
 	//      workspace_id,
 	//      project_id,
 	//      slug,
-	//      gateway_config,
+	//      sentinel_config,
 	//      created_at
 	//  ) VALUES (?, ?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE slug = VALUES(slug)

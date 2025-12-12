@@ -11,7 +11,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
-func (s *Service) UpdateGateway(ctx context.Context, req *connect.Request[ctrlv1.UpdateGatewayRequest]) (*connect.Response[ctrlv1.UpdateGatewayResponse], error) {
+func (s *Service) UpdateSentinel(ctx context.Context, req *connect.Request[ctrlv1.UpdateSentinelRequest]) (*connect.Response[ctrlv1.UpdateSentinelResponse], error) {
 
 	if err := s.authenticate(req); err != nil {
 		return nil, err
@@ -29,37 +29,37 @@ func (s *Service) UpdateGateway(ctx context.Context, req *connect.Request[ctrlv1
 	}
 
 	switch msg := req.Msg.GetChange().(type) {
-	case *ctrlv1.UpdateGatewayRequest_Create_:
+	case *ctrlv1.UpdateSentinelRequest_Create_:
 		{
 
-			health := db.GatewaysHealthUnknown
+			health := db.SentinelsHealthUnknown
 			if msg.Create.GetRunningReplicas() > 0 {
-				health = db.GatewaysHealthHealthy
+				health = db.SentinelsHealthHealthy
 			}
-			err = db.Query.UpdateGatewayReplicasAndHealth(ctx, s.db.RW(), db.UpdateGatewayReplicasAndHealthParams{
-				ID:        msg.Create.GetGatewayId(),
+			err = db.Query.UpdateSentinelReplicasAndHealth(ctx, s.db.RW(), db.UpdateSentinelReplicasAndHealthParams{
+				ID:        msg.Create.GetSentinelId(),
 				Replicas:  msg.Create.GetRunningReplicas(),
 				Health:    health,
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 			if err != nil {
 				if db.IsDuplicateKeyError(err) {
-					// This is expected, cause kubernetes frequently replays existing gateways
-					return connect.NewResponse(&ctrlv1.UpdateGatewayResponse{}), nil
+					// This is expected, cause kubernetes frequently replays existing sentinels
+					return connect.NewResponse(&ctrlv1.UpdateSentinelResponse{}), nil
 				}
 				return nil, err
 			}
 
 		}
-	case *ctrlv1.UpdateGatewayRequest_Update_:
+	case *ctrlv1.UpdateSentinelRequest_Update_:
 		{
 
-			health := db.GatewaysHealthUnknown
+			health := db.SentinelsHealthUnknown
 			if msg.Update.GetRunningReplicas() > 0 {
-				health = db.GatewaysHealthHealthy
+				health = db.SentinelsHealthHealthy
 			}
-			err = db.Query.UpdateGatewayReplicasAndHealth(ctx, s.db.RW(), db.UpdateGatewayReplicasAndHealthParams{
-				ID:        msg.Update.GetGatewayId(),
+			err = db.Query.UpdateSentinelReplicasAndHealth(ctx, s.db.RW(), db.UpdateSentinelReplicasAndHealthParams{
+				ID:        msg.Update.GetSentinelId(),
 				Replicas:  msg.Update.GetRunningReplicas(),
 				Health:    health,
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -69,13 +69,13 @@ func (s *Service) UpdateGateway(ctx context.Context, req *connect.Request[ctrlv1
 			}
 
 		}
-	case *ctrlv1.UpdateGatewayRequest_Delete_:
+	case *ctrlv1.UpdateSentinelRequest_Delete_:
 		{
 
-			err = db.Query.UpdateGatewayReplicasAndHealth(ctx, s.db.RW(), db.UpdateGatewayReplicasAndHealthParams{
-				ID:        msg.Delete.GetGatewayId(),
+			err = db.Query.UpdateSentinelReplicasAndHealth(ctx, s.db.RW(), db.UpdateSentinelReplicasAndHealthParams{
+				ID:        msg.Delete.GetSentinelId(),
 				Replicas:  0,
-				Health:    db.GatewaysHealthPaused,
+				Health:    db.SentinelsHealthPaused,
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 			if err != nil {
@@ -85,6 +85,6 @@ func (s *Service) UpdateGateway(ctx context.Context, req *connect.Request[ctrlv1
 
 	}
 
-	return connect.NewResponse(&ctrlv1.UpdateGatewayResponse{}), nil
+	return connect.NewResponse(&ctrlv1.UpdateSentinelResponse{}), nil
 
 }

@@ -103,22 +103,22 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return db.Query.InsertEnvironment(runCtx, s.db.RW(), db.InsertEnvironmentParams{
-				ID:            environmentID,
-				WorkspaceID:   workspace.ID,
-				ProjectID:     projectID,
-				Slug:          env.Slug,
-				Description:   env.Description,
-				CreatedAt:     time.Now().UnixMilli(),
-				UpdatedAt:     sql.NullInt64{Valid: false, Int64: 0},
-				GatewayConfig: []byte(""),
+				ID:             environmentID,
+				WorkspaceID:    workspace.ID,
+				ProjectID:      projectID,
+				Slug:           env.Slug,
+				Description:    env.Description,
+				CreatedAt:      time.Now().UnixMilli(),
+				UpdatedAt:      sql.NullInt64{Valid: false, Int64: 0},
+				SentinelConfig: []byte(""),
 			})
 		}, restate.WithName("insert environment"))
 
 		if err != nil {
 			return nil, err
 		}
-		gatewayID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-			return uid.New(uid.GatewayPrefix), nil
+		sentinelID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+			return uid.New(uid.SentinelPrefix), nil
 		})
 		if err != nil {
 			return nil, err
@@ -132,41 +132,41 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 		k8sCrdName := fmt.Sprintf("gw-%s", uid.NanoLower(8))
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return db.Query.InsertGateway(runCtx, s.db.RW(), db.InsertGatewayParams{
-				ID:              gatewayID,
+			return db.Query.InsertSentinel(runCtx, s.db.RW(), db.InsertSentinelParams{
+				ID:              sentinelID,
 				WorkspaceID:     workspace.ID,
 				ProjectID:       projectID,
 				EnvironmentID:   environmentID,
 				K8sServiceName:  "TODO",
 				K8sCrdName:      k8sCrdName,
 				Region:          "aws:us-east-1",
-				Image:           s.gatewayImage,
-				Health:          db.GatewaysHealthUnknown,
+				Image:           s.sentinelImage,
+				Health:          db.SentinelsHealthUnknown,
 				DesiredReplicas: replicas,
 				Replicas:        0,
 				CpuMillicores:   256,
 				MemoryMib:       256,
 				CreatedAt:       time.Now().UnixMilli(),
 			})
-		}, restate.WithName("insert gateway"))
+		}, restate.WithName("insert sentinel"))
 		if err != nil {
 			return nil, err
 		}
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return s.cluster.EmitEvent(runCtx, map[string]string{"region": "aws:us-east-1", "shard": "default"}, &ctrlv1.InfraEvent{
-				Event: &ctrlv1.InfraEvent_GatewayEvent{
-					GatewayEvent: &ctrlv1.GatewayEvent{
-						Event: &ctrlv1.GatewayEvent_Apply{
-							Apply: &ctrlv1.ApplyGateway{
+				Event: &ctrlv1.InfraEvent_SentinelEvent{
+					SentinelEvent: &ctrlv1.SentinelEvent{
+						Event: &ctrlv1.SentinelEvent_Apply{
+							Apply: &ctrlv1.ApplySentinel{
 								// already ensured to exist above
 								Namespace:     workspace.K8sNamespace.String,
 								K8SCrdName:    k8sCrdName,
 								WorkspaceId:   workspace.ID,
 								ProjectId:     projectID,
 								EnvironmentId: environmentID,
-								GatewayId:     gatewayID,
-								Image:         s.gatewayImage,
+								SentinelId:    sentinelID,
+								Image:         s.sentinelImage,
 								Replicas:      uint32(replicas),
 								CpuMillicores: 256,
 								MemorySizeMib: 256,
@@ -175,7 +175,7 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 					},
 				},
 			})
-		}, restate.WithName(fmt.Sprintf("apply gateway %s", gatewayID)))
+		}, restate.WithName(fmt.Sprintf("apply sentinel %s", sentinelID)))
 		if err != nil {
 			return nil, err
 		}

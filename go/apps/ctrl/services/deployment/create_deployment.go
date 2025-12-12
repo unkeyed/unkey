@@ -136,7 +136,7 @@ func (s *Service) CreateDeployment(
 		ProjectID:                req.Msg.GetProjectId(),
 		EnvironmentID:            env.ID,
 		OpenapiSpec:              sql.NullString{String: "", Valid: false},
-		GatewayConfig:            env.GatewayConfig,
+		SentinelConfig:           env.SentinelConfig,
 		Status:                   db.DeploymentsStatusPending,
 		CreatedAt:                now,
 		GitCommitSha:             sql.NullString{String: gitCommitSha, Valid: gitCommitSha != ""},

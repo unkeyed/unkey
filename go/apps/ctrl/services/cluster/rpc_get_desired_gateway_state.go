@@ -10,9 +10,9 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
-func (s *Service) GetDesiredGatewayState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredGatewayStateRequest]) (*connect.Response[ctrlv1.GatewayEvent], error) {
+func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredSentinelStateRequest]) (*connect.Response[ctrlv1.SentinelEvent], error) {
 
-	s.logger.Info("get desired gatewaystate", "headers", req.Header())
+	s.logger.Info("get desired sentinelstate", "headers", req.Header())
 	if err := s.authenticate(req); err != nil {
 		return nil, err
 	}
@@ -22,13 +22,13 @@ func (s *Service) GetDesiredGatewayState(ctx context.Context, req *connect.Reque
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	gateway, err := db.Query.FindGatewayByID(ctx, s.db.RO(), req.Msg.GetGatewayId())
+	sentinel, err := db.Query.FindSentinelByID(ctx, s.db.RO(), req.Msg.GetSentinelId())
 	if err != nil {
 		if db.IsNotFound(err) {
-			return connect.NewResponse(&ctrlv1.GatewayEvent{
-				Event: &ctrlv1.GatewayEvent_Delete{
-					Delete: &ctrlv1.DeleteGateway{
-						GatewayId: gateway.ID,
+			return connect.NewResponse(&ctrlv1.SentinelEvent{
+				Event: &ctrlv1.SentinelEvent_Delete{
+					Delete: &ctrlv1.DeleteSentinel{
+						SentinelId: sentinel.ID,
 					},
 				},
 			}), nil
@@ -37,41 +37,41 @@ func (s *Service) GetDesiredGatewayState(ctx context.Context, req *connect.Reque
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
 
-	switch gateway.DesiredState {
-	case db.GatewaysDesiredStateArchived, db.GatewaysDesiredStateStandby:
-		return connect.NewResponse(&ctrlv1.GatewayEvent{
-			Event: &ctrlv1.GatewayEvent_Delete{
-				Delete: &ctrlv1.DeleteGateway{
-					GatewayId: gateway.ID,
+	switch sentinel.DesiredState {
+	case db.SentinelsDesiredStateArchived, db.SentinelsDesiredStateStandby:
+		return connect.NewResponse(&ctrlv1.SentinelEvent{
+			Event: &ctrlv1.SentinelEvent_Delete{
+				Delete: &ctrlv1.DeleteSentinel{
+					SentinelId: sentinel.ID,
 				},
 			},
 		}), nil
-	case db.GatewaysDesiredStateRunning:
+	case db.SentinelsDesiredStateRunning:
 
-		workspace, err := db.Query.FindWorkspaceByID(ctx, s.db.RO(), gateway.WorkspaceID)
+		workspace, err := db.Query.FindWorkspaceByID(ctx, s.db.RO(), sentinel.WorkspaceID)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeNotFound, err)
 		}
 
-		return connect.NewResponse(&ctrlv1.GatewayEvent{
-			Event: &ctrlv1.GatewayEvent_Apply{
-				Apply: &ctrlv1.ApplyGateway{
+		return connect.NewResponse(&ctrlv1.SentinelEvent{
+			Event: &ctrlv1.SentinelEvent_Apply{
+				Apply: &ctrlv1.ApplySentinel{
 					Namespace:     workspace.K8sNamespace.String,
-					K8SCrdName:    gateway.K8sCrdName,
-					GatewayId:     gateway.ID,
-					WorkspaceId:   gateway.WorkspaceID,
-					ProjectId:     gateway.ProjectID,
-					EnvironmentId: gateway.EnvironmentID,
-					Image:         gateway.Image,
-					Replicas:      uint32(gateway.DesiredReplicas),
-					CpuMillicores: uint32(gateway.CpuMillicores),
-					MemorySizeMib: uint32(gateway.MemoryMib),
+					K8SCrdName:    sentinel.K8sCrdName,
+					SentinelId:    sentinel.ID,
+					WorkspaceId:   sentinel.WorkspaceID,
+					ProjectId:     sentinel.ProjectID,
+					EnvironmentId: sentinel.EnvironmentID,
+					Image:         sentinel.Image,
+					Replicas:      uint32(sentinel.DesiredReplicas),
+					CpuMillicores: uint32(sentinel.CpuMillicores),
+					MemorySizeMib: uint32(sentinel.MemoryMib),
 				},
 			},
 		}), nil
 	default:
-		s.logger.Error("unhandled gateway desired state", "desiredState", gateway.DesiredState)
+		s.logger.Error("unhandled sentinel desired state", "desiredState", sentinel.DesiredState)
 	}
 
-	return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unhandled gateway desired state: %s", gateway.DesiredState))
+	return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unhandled sentinel desired state: %s", sentinel.DesiredState))
 }
