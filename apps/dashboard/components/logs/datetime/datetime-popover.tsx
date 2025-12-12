@@ -1,13 +1,13 @@
 "use client";
 
-import { Drawer } from "@/components/ui/drawer";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { cn, processTimeFilters } from "@/lib/utils";
 import { ChevronDown } from "@unkey/icons";
+import { useIsMobile } from "@unkey/ui";
 import {
   Button,
   DateTime,
+  Drawer,
   KeyboardButton,
   Popover,
   PopoverContent,
@@ -51,7 +51,8 @@ export const DatetimePopover = ({
   minDate,
   maxDate,
 }: DatetimePopoverProps) => {
-  const isMobile = useIsMobile();
+  // Default to false (desktop) to prevent hydration mismatches
+  const isMobile = useIsMobile({ defaultValue: false });
   const [timeRangeOpen, setTimeRangeOpen] = useState(false);
   const [open, setOpen] = useState(false);
   useKeyboardShortcut("t", () => setOpen((prev) => !prev));
