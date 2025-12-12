@@ -1,6 +1,6 @@
-import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { CaretDown, CaretExpandY, CaretUp, CircleCaretRight } from "@unkey/icons";
+import { useIsMobile } from "@unkey/ui";
 import { Fragment, type Ref, forwardRef, useImperativeHandle, useMemo, useRef } from "react";
 import { EmptyState } from "./components/empty-state";
 import { LoadMoreFooter } from "./components/loading-indicator";
@@ -65,7 +65,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     const isGridLayout = config.layoutMode === "grid";
     const parentRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const isMobile = useIsMobile();
+    // Default to false (desktop) to prevent hydration mismatches
+    const isMobile = useIsMobile({ defaultValue: false });
 
     const hasPadding = config.containerPadding !== "px-0";
 
