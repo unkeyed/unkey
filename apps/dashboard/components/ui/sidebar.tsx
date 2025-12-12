@@ -11,8 +11,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@unkey/ui";
 import { Separator } from "@unkey/ui";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 
@@ -64,7 +64,8 @@ const SidebarProvider = React.forwardRef<
     },
     ref,
   ) => {
-    const isMobile = useIsMobile();
+    // Default to false (desktop) to prevent hydration mismatches
+    const isMobile = useIsMobile({ defaultValue: false });
     const [openMobile, setOpenMobile] = React.useState(false);
 
     // This is the internal state of the sidebar.

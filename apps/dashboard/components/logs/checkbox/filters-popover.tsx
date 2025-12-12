@@ -1,6 +1,5 @@
-import { Drover } from "@/components/ui/drover";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import { KeyboardButton } from "@unkey/ui";
+import { Drover, KeyboardButton } from "@unkey/ui";
 import React, {
   type KeyboardEvent,
   type PropsWithChildren,

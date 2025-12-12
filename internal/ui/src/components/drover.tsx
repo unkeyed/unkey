@@ -1,12 +1,12 @@
 "use client";
 
-import { useIsMobile } from "@/hooks/use-mobile";
-import { createContext } from "@/lib/create-context";
-import { cn } from "@/lib/utils";
 import { Slot } from "@radix-ui/react-slot";
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
-import { Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import React from "react";
+import { useIsMobile } from "../hooks/use-mobile";
+import { createContext } from "../lib/create-context";
+import { cn } from "../lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "./dialog/popover";
 import { Drawer } from "./drawer";
 
 type PrimitiveDivProps = React.ComponentPropsWithoutRef<"div">;
@@ -35,7 +35,8 @@ const [DroverProvider, useDroverContext] = createContext<DroverContextValue>(ROO
 
 const Root: React.FC<DroverProps> = (props) => {
   const { open: openProp, defaultOpen, onOpenChange, children } = props;
-  const isMobile = useIsMobile();
+  // Default to false (desktop) to prevent hydration mismatches and layout shifts
+  const isMobile = useIsMobile({ defaultValue: false });
   const [open, setOpen] = useControllableState({
     prop: openProp,
     defaultProp: defaultOpen ?? false,

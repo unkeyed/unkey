@@ -4,9 +4,9 @@
  * Imports
  * ----------------------------------------------------------------------------*/
 
-import { cn } from "@/lib/utils";
 import * as React from "react";
 import { Drawer as Vaul } from "vaul";
+import { cn } from "../lib/utils";
 
 /* -----------------------------------------------------------------------------
  *  Extend Drawer
@@ -55,14 +55,11 @@ DrawerContent.displayName = CONTENT_NAME;
  * Exports
  * ---------------------------------------------------------------------------*/
 
-export const Drawer = Object.assign(
-  {},
-  {
-    Root: DrawerRoot,
-    Trigger: DrawerTrigger,
-    Content: DrawerContent,
-    Title: DrawerTitle,
-    Description: DrawerDescription,
-    Nested: DrawerNested,
-  },
-);
+export const Drawer = Object.assign({
+  Root: DrawerRoot,
+  Trigger: DrawerTrigger,
+  Content: DrawerContent,
+  Title: DrawerTitle,
+  Description: DrawerDescription,
+  Nested: DrawerNested,
+});
