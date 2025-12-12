@@ -24,8 +24,8 @@ type Service struct {
 	logger        logging.Logger
 	emailDomain   string
 	defaultDomain string
-	dnsProvider   challenge.Provider  // For DNS-01 challenges (wildcard certs)
-	httpProvider  challenge.Provider  // For HTTP-01 challenges (regular certs)
+	dnsProvider   challenge.Provider // For DNS-01 challenges (wildcard certs)
+	httpProvider  challenge.Provider // For HTTP-01 challenges (regular certs)
 }
 
 var _ hydrav1.CertificateServiceServer = (*Service)(nil)
