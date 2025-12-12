@@ -5,16 +5,16 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
 
-export const updateKeyMetadata = t.procedure
+export const updateIdentityMetadata = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .input(
     metadataSchema.extend({
-      keyId: z.string(),
+      identityId: z.string(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    let meta: unknown | null = null;
+    let meta: Record<string, unknown> | null = null;
 
     if (input.metadata?.enabled && input.metadata.data) {
       try {
@@ -25,31 +25,38 @@ export const updateKeyMetadata = t.procedure
           code: "BAD_REQUEST",
         });
       }
+
+      // Check 1MB size limit (1048576 bytes)
+      const metadataString = JSON.stringify(meta);
+      const sizeInBytes = new TextEncoder().encode(metadataString).length;
+      if (sizeInBytes > 1048576) {
+        throw new TRPCError({
+          message: `Metadata size (${Math.round(sizeInBytes / 1024)}KB) exceeds the 1MB limit.`,
+          code: "BAD_REQUEST",
+        });
+      }
     } else {
       meta = null;
     }
 
-    const key = await db.query.keys
+    const identity = await db.query.identities
       .findFirst({
-        where: (table, { eq, isNull, and }) =>
-          and(
-            eq(table.workspaceId, ctx.workspace.id),
-            eq(table.id, input.keyId),
-            isNull(table.deletedAtM),
-          ),
+        where: (table, { eq, and }) =>
+          and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.identityId)),
       })
-      .catch((_err) => {
+      .catch((err) => {
+        console.error("Failed to fetch identity:", err);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update metadata on this key. Please try again or contact support@unkey.dev",
+            "We were unable to load this identity. Please try again or contact support@unkey.dev",
         });
       });
 
-    if (!key) {
+    if (!identity) {
       throw new TRPCError({
         message:
-          "We are unable to find the correct key. Please try again or contact support@unkey.dev.",
+          "We are unable to find the correct identity. Please try again or contact support@unkey.dev.",
         code: "NOT_FOUND",
       });
     }
@@ -57,16 +64,16 @@ export const updateKeyMetadata = t.procedure
     await db
       .transaction(async (tx) => {
         await tx
-          .update(schema.keys)
+          .update(schema.identities)
           .set({
-            meta: meta ? JSON.stringify(meta) : null,
+            meta,
           })
-          .where(eq(schema.keys.id, key.id))
+          .where(eq(schema.identities.id, identity.id))
           .catch((_err) => {
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We are unable to update metadata on this key. Please try again or contact support@unkey.dev",
+                "We are unable to update metadata on this identity. Please try again or contact support@unkey.dev",
             });
           });
 
@@ -76,16 +83,15 @@ export const updateKeyMetadata = t.procedure
             type: "user",
             id: ctx.user.id,
           },
-          event: "key.update",
+          event: "identity.update",
           description:
             input.metadata?.enabled && input.metadata.data
-              ? `Updated metadata of ${key.id}`
-              : `Removed metadata from ${key.id}`,
+              ? `Updated metadata of ${identity.id}`
+              : `Removed metadata from ${identity.id}`,
           resources: [
             {
-              type: "key",
-              id: key.id,
-              name: key.name || undefined,
+              type: "identity",
+              id: identity.id,
             },
           ],
           context: {
@@ -98,12 +104,12 @@ export const updateKeyMetadata = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update metadata on this key. Please try again or contact support@unkey.dev",
+            "We are unable to update metadata on this identity. Please try again or contact support@unkey.dev",
         });
       });
 
     return {
-      keyId: key.id,
+      identityId: identity.id,
       success: true,
     };
   });

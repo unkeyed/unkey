@@ -1,4 +1,5 @@
 "use client";
+import { ProtectionSwitch } from "@/components/dashboard/metadata/protection-switch";
 import { ChartPie } from "@unkey/icons";
 import {
   FormInput,
@@ -11,7 +12,6 @@ import {
 import { FormDescription } from "@unkey/ui/src/components/form/form-helpers";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import type { CreditsFormValues } from "../create-key.schema";
-import { ProtectionSwitch } from "./protection-switch";
 
 export const UsageSetup = ({
   overrideEnabled = false,
