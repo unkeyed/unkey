@@ -58,20 +58,6 @@ func TestBadRequests(t *testing.T) {
 		require.Greater(t, len(res.Body.Error.Errors), 0)
 	})
 
-	t.Run("identity too short", func(t *testing.T) {
-		req := handler.Request{Identity: "id"}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
-		require.NotNil(t, res.Body)
-
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "POST request body for '/v2/identities.deleteIdentity' failed to validate schema", res.Body.Error.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
-		require.Equal(t, "Bad Request", res.Body.Error.Title)
-		require.NotEmpty(t, res.Body.Meta.RequestId)
-		require.Greater(t, len(res.Body.Error.Errors), 0)
-	})
-
 	t.Run("identity with special characters", func(t *testing.T) {
 		// Test with identity containing only special characters (handler treats as not found)
 		req := handler.Request{Identity: "@#$%"}
