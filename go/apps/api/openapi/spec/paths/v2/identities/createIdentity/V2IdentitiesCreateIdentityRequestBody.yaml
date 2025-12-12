@@ -4,7 +4,7 @@ required:
 properties:
   externalId:
     type: string
-    minLength: 3
+    minLength: 1
     maxLength: 255 # Match database varchar limits for external identifiers
     pattern: "^[a-zA-Z0-9_.-]+$"
     description: |
