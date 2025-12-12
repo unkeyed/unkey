@@ -77,6 +77,7 @@ export const ChartError = ({
       ...labels,
       showRightSide: labels.showRightSide !== undefined ? labels.showRightSide : true,
       reverse: labels.reverse !== undefined ? labels.reverse : false,
+      metrics: Array.isArray(labels.metrics) ? labels.metrics : [],
     };
 
     return (

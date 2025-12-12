@@ -44,20 +44,34 @@ export const ChartLoading = ({
   animate = true,
   dataPoints,
 }: ChartLoadingProps) => {
+  // Determine if we'll use FullChartLoader (hook output will be discarded)
+  const willUseFullChartLoader = variant === "full" && labels;
+
+  // Determine hook arguments based on variant
+  // Hook must be called unconditionally to follow Rules of Hooks
+  // Use minimal arguments when output will be discarded to avoid unnecessary work
+  const shouldAnimate = willUseFullChartLoader ? false : variant === "compact" ? animate : false;
+  const pointsCount = willUseFullChartLoader
+    ? 0
+    : (dataPoints ?? (variant === "compact" ? 300 : 100));
+
+  const hookLabels = {
+    primaryKey: "success",
+    title: "Loading",
+    primaryLabel: "Success",
+    secondaryLabel: willUseFullChartLoader ? "" : variant === "simple" ? "Error" : "",
+    secondaryKey: willUseFullChartLoader ? "" : variant === "simple" ? "error" : "",
+  };
+
+  // Always call the hook unconditionally at the top level
+  const { mockData, currentTime } = useWaveAnimation({
+    animate: shouldAnimate,
+    dataPoints: pointsCount,
+    labels: hookLabels,
+  });
+
   // Simple variant: minimal loading with static or animated bar chart
   if (variant === "simple") {
-    const { mockData } = useWaveAnimation({
-      animate: false,
-      dataPoints: dataPoints ?? 100,
-      labels: {
-        primaryKey: "success",
-        title: "Loading",
-        primaryLabel: "Success",
-        secondaryLabel: "Error",
-        secondaryKey: "error",
-      },
-    });
-
     return (
       <div className={cn("flex flex-col h-full animate-pulse", className)}>
         <div className="flex-1 min-h-0">
@@ -85,18 +99,6 @@ export const ChartLoading = ({
 
   // Compact variant: with animated waves and time labels
   if (variant === "compact") {
-    const { mockData, currentTime } = useWaveAnimation({
-      dataPoints: dataPoints ?? 300,
-      animate: animate,
-      labels: {
-        primaryKey: "success",
-        title: "Loading",
-        primaryLabel: "Success",
-        secondaryLabel: "",
-        secondaryKey: "",
-      },
-    });
-
     return (
       <div className={cn("w-full relative", className)}>
         <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between">
@@ -127,18 +129,6 @@ export const ChartLoading = ({
   }
 
   // Fallback to simple if variant is "full" but no labels provided
-  const { mockData } = useWaveAnimation({
-    animate: false,
-    dataPoints: dataPoints ?? 100,
-    labels: {
-      primaryKey: "success",
-      title: "Loading",
-      primaryLabel: "Success",
-      secondaryLabel: "",
-      secondaryKey: "",
-    },
-  });
-
   return (
     <div className={cn("flex flex-col h-full animate-pulse", className)}>
       <div className="flex-1 min-h-0">
@@ -168,6 +158,7 @@ function FullChartLoader({
     ...labels,
     showRightSide: labels.showRightSide !== undefined ? labels.showRightSide : true,
     reverse: labels.reverse !== undefined ? labels.reverse : false,
+    metrics: Array.isArray(labels.metrics) ? labels.metrics : [],
   };
 
   const [mockData, setMockData] = useState(() => generateInitialData());
