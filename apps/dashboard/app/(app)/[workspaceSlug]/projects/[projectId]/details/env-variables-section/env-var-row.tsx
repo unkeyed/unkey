@@ -1,6 +1,7 @@
+import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Eye, EyeSlash, PenWriting3, Trash } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, toast } from "@unkey/ui";
 import { useState } from "react";
 import { EnvVarForm } from "./components/env-var-form";
 import type { EnvVar } from "./types";
@@ -9,121 +10,161 @@ type EnvVarRowProps = {
   envVar: EnvVar;
   projectId: string;
   getExistingEnvVar: (key: string, excludeId?: string) => EnvVar | undefined;
+  onDelete?: () => void;
+  onUpdate?: () => void;
 };
 
-export function EnvVarRow({ envVar, projectId, getExistingEnvVar }: EnvVarRowProps) {
+export function EnvVarRow({
+  envVar,
+  projectId,
+  getExistingEnvVar,
+  onDelete,
+  onUpdate,
+}: EnvVarRowProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [isDecrypted, setIsDecrypted] = useState(false);
-  // INFO: Won't be necessary once we add tRPC then we can use isSubmitting
-  const [isSecretLoading, setIsSecretLoading] = useState(false);
+  const [isRevealed, setIsRevealed] = useState(false);
   const [decryptedValue, setDecryptedValue] = useState<string>();
+  const [isLoadingForEdit, setIsLoadingForEdit] = useState(false);
 
-  // TODO: Add mutations when available
-  // const deleteMutation = trpc.deploy.project.envs.delete.useMutation();
-  // const decryptMutation = trpc.deploy.project.envs.decrypt.useMutation();
+  const decryptMutation = trpc.deploy.envVar.decrypt.useMutation();
+  const deleteMutation = trpc.deploy.envVar.delete.useMutation();
 
   const handleDelete = async () => {
+    const mutation = deleteMutation.mutateAsync({ envVarId: envVar.id });
+
+    toast.promise(mutation, {
+      loading: `Deleting environment variable ${envVar.key}...`,
+      success: `Deleted environment variable ${envVar.key}`,
+      error: (err) => ({
+        message: "Failed to delete environment variable",
+        description: err.message || "Please try again",
+      }),
+    });
+
     try {
-      // TODO: Call tRPC delete when available
-      // await deleteMutation.mutateAsync({
-      //   projectId,
-      //   id: envVar.id
-      // });
-
-      // Mock successful delete for now
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      // Invalidate to refresh data
-      // TODO await trpcUtils.deploy.project.envs.getEnvs.invalidate({ projectId });
-    } catch (error) {
-      console.error("Failed to delete env var:", error);
-    }
+      await mutation;
+      onDelete?.();
+    } catch {}
   };
 
-  const handleToggleSecret = async () => {
-    if (envVar.type !== "secret") {
+  const isDeleting = deleteMutation.isLoading;
+
+  // Only recoverable vars can be revealed/decrypted
+  const isRecoverable = envVar.type === "recoverable";
+
+  const handleEdit = async () => {
+    // For recoverable vars, decrypt first if not already decrypted
+    if (isRecoverable && !decryptedValue) {
+      setIsLoadingForEdit(true);
+      try {
+        const result = await decryptMutation.mutateAsync({
+          envVarId: envVar.id,
+        });
+        setDecryptedValue(result.value);
+        setIsRevealed(true);
+      } catch (error) {
+        console.error("Failed to decrypt:", error);
+        setIsLoadingForEdit(false);
+        return;
+      }
+      setIsLoadingForEdit(false);
+    }
+    setIsEditing(true);
+  };
+
+  const handleToggleReveal = async () => {
+    if (!isRecoverable) {
       return;
     }
 
-    // This stupid nested branching won't be necessary once we have the actual tRPC. So disregard this when reviewing
-    if (isDecrypted) {
-      setIsDecrypted(false);
+    if (isRevealed) {
+      setIsRevealed(false);
     } else {
       if (decryptedValue) {
-        setIsDecrypted(true);
+        setIsRevealed(true);
       } else {
-        setIsSecretLoading(true);
         try {
-          // TODO: Call tRPC decrypt when available
-          // const result = await decryptMutation.mutateAsync({
-          //   projectId,
-          //   envVarId: envVar.id
-          // });
-
-          // Mock decrypted value for now
-          await new Promise((resolve) => setTimeout(resolve, 800));
-          const mockDecrypted = `decrypted-${envVar.key}`;
-
-          setDecryptedValue(mockDecrypted);
-          setIsDecrypted(true);
+          const result = await decryptMutation.mutateAsync({
+            envVarId: envVar.id,
+          });
+          setDecryptedValue(result.value);
+          setIsRevealed(true);
         } catch (error) {
-          console.error("Failed to decrypt secret:", error);
-        } finally {
-          setIsSecretLoading(false);
+          console.error("Failed to decrypt:", error);
         }
       }
     }
   };
 
+  const isLoading = decryptMutation.isLoading && !isLoadingForEdit;
+
   if (isEditing) {
     return (
       <EnvVarForm
+        envVarId={envVar.id}
         initialData={{
           key: envVar.key,
-          value: envVar.type === "secret" && !isDecrypted ? "" : (decryptedValue ?? envVar.value),
+          value: decryptedValue ?? "",
           type: envVar.type,
         }}
         projectId={projectId}
-        decrypted={isDecrypted}
         getExistingEnvVar={getExistingEnvVar}
         excludeId={envVar.id}
-        onSuccess={() => setIsEditing(false)}
-        onCancel={() => setIsEditing(false)}
+        onSuccess={() => {
+          setIsEditing(false);
+          setIsRevealed(false);
+          setDecryptedValue(undefined);
+          onUpdate?.();
+        }}
+        onCancel={() => {
+          setIsEditing(false);
+          setIsRevealed(false);
+        }}
         className="w-full flex px-4 py-3 bg-gray-2 h-12"
       />
     );
   }
 
+  // Determine what value to display
+  const displayValue = (() => {
+    if (isLoading) {
+      return "Loading...";
+    }
+    if (isRevealed && decryptedValue) {
+      return decryptedValue;
+    }
+    return "••••••••••••••••";
+  })();
+
   return (
     <div className="w-full px-4 py-3 flex items-center hover:bg-gray-2 transition-colors border-b border-gray-4 last:border-b-0 h-12">
       <div className="flex items-center flex-1 min-w-0">
-        <div className="text-gray-12 font-medium text-xs font-mono w-28 truncate">{envVar.key}</div>
+        <div
+          className="text-gray-12 font-medium text-xs font-mono w-48 truncate"
+          title={envVar.key}
+        >
+          {envVar.key}
+        </div>
         <span className="text-gray-9 text-xs px-2">=</span>
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div
             className={cn(
               "text-gray-11 text-xs font-mono truncate flex-1",
-              isSecretLoading && "text-gray-7",
+              isLoading && "text-gray-7",
             )}
           >
-            {envVar.type === "secret" && !isDecrypted
-              ? "••••••••••••••••"
-              : envVar.type === "secret" && isSecretLoading
-                ? "Loading..."
-                : envVar.type === "secret" && isDecrypted && decryptedValue
-                  ? decryptedValue
-                  : envVar.value}
+            {displayValue}
           </div>
-          {envVar.type === "secret" && (
+          {isRecoverable && (
             <Button
               size="icon"
               variant="outline"
-              onClick={handleToggleSecret}
-              disabled={isSecretLoading}
+              onClick={handleToggleReveal}
+              disabled={isLoading}
               className="size-7 text-gray-9 hover:text-gray-11 shrink-0"
-              loading={isSecretLoading}
+              loading={isLoading}
             >
-              {isDecrypted ? (
+              {isRevealed ? (
                 <EyeSlash className="!size-[14px]" iconSize="sm-medium" />
               ) : (
                 <Eye className="!size-[14px]" iconSize="sm-medium" />
@@ -136,14 +177,21 @@ export function EnvVarRow({ envVar, projectId, getExistingEnvVar }: EnvVarRowPro
         <Button
           size="icon"
           variant="outline"
-          onClick={() => {
-            handleToggleSecret().then(() => setIsEditing(true));
-          }}
+          onClick={handleEdit}
+          disabled={isLoadingForEdit}
+          loading={isLoadingForEdit}
           className="size-7 text-gray-9"
         >
           <PenWriting3 className="!size-[14px]" iconSize="sm-medium" />
         </Button>
-        <Button size="icon" variant="outline" onClick={handleDelete} className="size-7 text-gray-9">
+        <Button
+          size="icon"
+          variant="outline"
+          onClick={handleDelete}
+          disabled={isDeleting}
+          loading={isDeleting}
+          className="size-7 text-gray-9"
+        >
           <Trash className="!size-[14px]" iconSize="sm-medium" />
         </Button>
       </div>

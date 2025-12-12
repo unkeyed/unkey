@@ -32,12 +32,36 @@ type CloudflareConfig struct {
 	ApiToken string
 }
 
+type Route53Config struct {
+	// Enables DNS-01 challenges using AWS Route53
+	Enabled bool
+
+	// AccessKeyID is the AWS access key ID
+	AccessKeyID string
+
+	// SecretAccessKey is the AWS secret access key
+	SecretAccessKey string
+
+	// Region is the AWS region (e.g., "us-east-1")
+	Region string
+
+	// HostedZoneID bypasses zone auto-discovery. Required when domains have CNAMEs
+	// that confuse the zone lookup (e.g., wildcard CNAMEs to load balancers).
+	HostedZoneID string
+}
+
 type AcmeConfig struct {
 	// Enables ACME challenges for TLS certificates
 	Enabled bool
 
-	// Enables DNS-01 challenges using Cloudflare
+	// EmailDomain is the domain used for ACME account emails (e.g., "unkey.com")
+	EmailDomain string
+
+	// Cloudflare enables DNS-01 challenges using Cloudflare
 	Cloudflare CloudflareConfig
+
+	// Route53 enables DNS-01 challenges using AWS Route53
+	Route53 Route53Config
 }
 
 type RestateConfig struct {
@@ -125,8 +149,14 @@ type Config struct {
 	Clock clock.Clock
 
 	// --- Vault Configuration ---
+	// VaultMasterKeys are the master encryption keys for the general vault
 	VaultMasterKeys []string
-	VaultS3         S3Config
+	// VaultS3 is used for general secrets (env vars, API keys, etc.)
+	VaultS3 S3Config
+	// AcmeVaultMasterKeys are the master encryption keys for the ACME vault
+	AcmeVaultMasterKeys []string
+	// AcmeVaultS3 is used specifically for ACME/Let's Encrypt certificate storage
+	AcmeVaultS3 S3Config
 
 	// --- ACME/Cloudflare Configuration ---
 	Acme AcmeConfig
@@ -196,6 +226,17 @@ func (c Config) Validate() error {
 	// Validate Cloudflare configuration if enabled
 	if c.Acme.Enabled && c.Acme.Cloudflare.Enabled {
 		if err := assert.NotEmpty(c.Acme.Cloudflare.ApiToken, "cloudflare API token is required when cloudflare is enabled"); err != nil {
+			return err
+		}
+	}
+
+	// Validate Route53 configuration if enabled
+	if c.Acme.Enabled && c.Acme.Route53.Enabled {
+		if err := assert.All(
+			assert.NotEmpty(c.Acme.Route53.AccessKeyID, "route53 access key ID is required when route53 is enabled"),
+			assert.NotEmpty(c.Acme.Route53.SecretAccessKey, "route53 secret access key is required when route53 is enabled"),
+			assert.NotEmpty(c.Acme.Route53.Region, "route53 region is required when route53 is enabled"),
+		); err != nil {
 			return err
 		}
 	}

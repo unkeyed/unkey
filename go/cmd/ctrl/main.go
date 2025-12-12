@@ -60,17 +60,29 @@ var Cmd = &cli.Command{
 		cli.String("spiffe-socket-path", "Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/agent/agent.sock",
 			cli.Default("/var/lib/spire/agent/agent.sock"), cli.EnvVar("UNKEY_SPIFFE_SOCKET_PATH")),
 
-		// Vault Configuration
-		cli.StringSlice("vault-master-keys", "Vault master keys for encryption",
+		// Vault Configuration - General secrets (env vars, API keys)
+		cli.StringSlice("vault-master-keys", "Vault master keys for encryption (general vault)",
 			cli.Required(), cli.EnvVar("UNKEY_VAULT_MASTER_KEYS")),
-		cli.String("vault-s3-url", "S3 Compatible Endpoint URL",
-			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_URL")),
-		cli.String("vault-s3-bucket", "S3 bucket name",
-			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_BUCKET")),
-		cli.String("vault-s3-access-key-id", "S3 access key ID",
-			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
-		cli.String("vault-s3-access-key-secret", "S3 secret access key",
-			cli.Required(), cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
+		cli.String("vault-s3-url", "S3 endpoint URL for general vault",
+			cli.EnvVar("UNKEY_VAULT_S3_URL")),
+		cli.String("vault-s3-bucket", "S3 bucket for general vault (env vars, API keys)",
+			cli.EnvVar("UNKEY_VAULT_S3_BUCKET")),
+		cli.String("vault-s3-access-key-id", "S3 access key ID for general vault",
+			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
+		cli.String("vault-s3-access-key-secret", "S3 secret access key for general vault",
+			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
+
+		// ACME Vault Configuration - Let's Encrypt certificates
+		cli.StringSlice("acme-vault-master-keys", "Vault master keys for encryption (ACME vault)",
+			cli.EnvVar("UNKEY_ACME_VAULT_MASTER_KEYS")),
+		cli.String("acme-vault-s3-url", "S3 endpoint URL for ACME vault",
+			cli.EnvVar("UNKEY_ACME_VAULT_S3_URL")),
+		cli.String("acme-vault-s3-bucket", "S3 bucket for ACME vault (Let's Encrypt certs)",
+			cli.EnvVar("UNKEY_ACME_VAULT_S3_BUCKET")),
+		cli.String("acme-vault-s3-access-key-id", "S3 access key ID for ACME vault",
+			cli.EnvVar("UNKEY_ACME_VAULT_S3_ACCESS_KEY_ID")),
+		cli.String("acme-vault-s3-access-key-secret", "S3 secret access key for ACME vault",
+			cli.EnvVar("UNKEY_ACME_VAULT_S3_ACCESS_KEY_SECRET")),
 
 		// Build Configuration
 		cli.String("build-backend", "Build backend to use: 'docker' for local, 'depot' for production. Default: depot",
@@ -101,8 +113,18 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_DEPOT_PROJECT_REGION"), cli.Default("us-east-1")),
 
 		cli.Bool("acme-enabled", "Enable Let's Encrypt for acme challenges", cli.EnvVar("UNKEY_ACME_ENABLED")),
+		cli.String("acme-email-domain", "Domain for ACME registration emails (workspace_id@domain)", cli.Default("unkey.com"), cli.EnvVar("UNKEY_ACME_EMAIL_DOMAIN")),
+
+		// Cloudflare DNS provider
 		cli.Bool("acme-cloudflare-enabled", "Enable Cloudflare for wildcard certificates", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_ENABLED")),
 		cli.String("acme-cloudflare-api-token", "Cloudflare API token for Let's Encrypt", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_API_TOKEN")),
+
+		// Route53 DNS provider
+		cli.Bool("acme-route53-enabled", "Enable Route53 for DNS-01 challenges", cli.EnvVar("UNKEY_ACME_ROUTE53_ENABLED")),
+		cli.String("acme-route53-access-key-id", "AWS access key ID for Route53", cli.EnvVar("UNKEY_ACME_ROUTE53_ACCESS_KEY_ID")),
+		cli.String("acme-route53-secret-access-key", "AWS secret access key for Route53", cli.EnvVar("UNKEY_ACME_ROUTE53_SECRET_ACCESS_KEY")),
+		cli.String("acme-route53-region", "AWS region for Route53", cli.Default("us-east-1"), cli.EnvVar("UNKEY_ACME_ROUTE53_REGION")),
+		cli.String("acme-route53-hosted-zone-id", "Route53 hosted zone ID (bypasses auto-discovery, required when wildcard CNAMEs exist)", cli.EnvVar("UNKEY_ACME_ROUTE53_HOSTED_ZONE_ID")),
 
 		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
 
@@ -167,14 +189,23 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		APIKey:           cmd.String("api-key"),
 		SPIFFESocketPath: cmd.String("spiffe-socket-path"),
 
-		// Vault configuration
+		// Vault configuration - General secrets
 		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
 		VaultS3: ctrl.S3Config{
-			ExternalURL:     cmd.String(""),
 			URL:             cmd.String("vault-s3-url"),
 			Bucket:          cmd.String("vault-s3-bucket"),
-			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
 			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
+			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
+			ExternalURL:     "",
+		},
+		// ACME Vault configuration - Let's Encrypt certificates
+		AcmeVaultMasterKeys: cmd.StringSlice("acme-vault-master-keys"),
+		AcmeVaultS3: ctrl.S3Config{
+			URL:             cmd.String("acme-vault-s3-url"),
+			Bucket:          cmd.String("acme-vault-s3-bucket"),
+			AccessKeyID:     cmd.String("acme-vault-s3-access-key-id"),
+			AccessKeySecret: cmd.String("acme-vault-s3-access-key-secret"),
+			ExternalURL:     "",
 		},
 
 		// Build configuration
@@ -195,10 +226,18 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Acme configuration
 		Acme: ctrl.AcmeConfig{
-			Enabled: cmd.Bool("acme-enabled"),
+			Enabled:     cmd.Bool("acme-enabled"),
+			EmailDomain: cmd.String("acme-email-domain"),
 			Cloudflare: ctrl.CloudflareConfig{
 				Enabled:  cmd.Bool("acme-cloudflare-enabled"),
 				ApiToken: cmd.String("acme-cloudflare-api-token"),
+			},
+			Route53: ctrl.Route53Config{
+				Enabled:         cmd.Bool("acme-route53-enabled"),
+				AccessKeyID:     cmd.String("acme-route53-access-key-id"),
+				SecretAccessKey: cmd.String("acme-route53-secret-access-key"),
+				Region:          cmd.String("acme-route53-region"),
+				HostedZoneID:    cmd.String("acme-route53-hosted-zone-id"),
 			},
 		},
 

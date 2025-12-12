@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/go/cmd/gateway"
 	"github.com/unkeyed/unkey/go/cmd/ingress"
 	"github.com/unkeyed/unkey/go/cmd/krane"
+	secretswebhook "github.com/unkeyed/unkey/go/cmd/secrets-webhook"
 	"github.com/unkeyed/unkey/go/pkg/cli"
 )
 
@@ -28,6 +29,7 @@ AVAILABLE SERVICES:
 - krane: The VM management service for infrastructure
 - ingress: Multi-tenant ingress service for TLS termination and routing
 - gateway: Environment tenant gateway service for routing requests to the actual instances
+- secrets-webhook: Kubernetes mutating webhook for secrets injection
 
 EXAMPLES:
 unkey run api                                    # Run the API server
@@ -42,17 +44,19 @@ unkey run api --port 8080 --env production      # Run API server with custom con
 		krane.Cmd,
 		ingress.Cmd,
 		gateway.Cmd,
+		secretswebhook.Cmd,
 	},
 	Action: runAction,
 }
 
 func runAction(ctx context.Context, cmd *cli.Command) error {
 	fmt.Println("Available services:")
-	fmt.Println("  api    - The main API server for validating and managing API keys")
-	fmt.Println("  ctrl   - The control plane service for managing infrastructure")
-	fmt.Println("  krane  - Manage containers and deployments in docker or kubernetes")
-	fmt.Println("  ingress - Multi-tenant ingress service for TLS termination and routing")
-	fmt.Println("  gateway - Environment tenant gateway service for routing requests to the actual instances")
+	fmt.Println("  api             - The main API server for validating and managing API keys")
+	fmt.Println("  ctrl            - The control plane service for managing infrastructure")
+	fmt.Println("  krane           - Manage containers and deployments in docker or kubernetes")
+	fmt.Println("  ingress         - Multi-tenant ingress service for TLS termination and routing")
+	fmt.Println("  gateway         - Environment tenant gateway service for routing requests to the actual instances")
+	fmt.Println("  secrets-webhook - Kubernetes mutating webhook for secrets injection")
 	fmt.Println()
 	fmt.Println("Use 'unkey run <service>' to start a specific service")
 	fmt.Println("Use 'unkey run <service> --help' for service-specific options")

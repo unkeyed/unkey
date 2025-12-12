@@ -1,8 +1,8 @@
 "use client";
 
 import { SecretKey } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/secret-key";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CircleInfo } from "@unkey/icons";
+import { Alert, AlertDescription, AlertTitle } from "@unkey/ui";
 import { Code, CopyButton, VisibleButton } from "@unkey/ui";
 import { useState } from "react";
 
