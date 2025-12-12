@@ -595,7 +595,7 @@ func (x *GetDesiredStateRequest) GetSelectors() map[string]string {
 
 // SentinelEvent represents a lifecycle event for an API sentinel configuration.
 //
-// Sentinels are ingress points for services, typically handling routing, load balancing,
+// Sentinels are frontline points for services, typically handling routing, load balancing,
 // and API management. The event follows a declarative model where the cluster agent ensures
 // the cluster state matches the desired configuration.
 type SentinelEvent struct {
@@ -922,7 +922,7 @@ func (x *ApplySentinel) GetMemorySizeMib() uint32 {
 
 // DeleteSentinel identifies a sentinel to remove from the cluster.
 //
-// The sentinel and all its resources (pods, services, ingress) will be deleted.
+// The sentinel and all its resources (pods, services, frontline) will be deleted.
 // In-flight requests may be disrupted unless proper connection draining is configured.
 type DeleteSentinel struct {
 	state protoimpl.MessageState `protogen:"open.v1"`

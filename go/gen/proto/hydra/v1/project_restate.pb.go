@@ -15,7 +15,7 @@ import (
 
 // ProjectServiceClient is the client API for hydra.v1.ProjectService service.
 type ProjectServiceClient interface {
-	// AssignIngressRoutes creates or reassigns ingress routes to a deployment
+	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment
 	CreateProject(opts ...sdk_go.ClientOption) sdk_go.Client[*CreateProjectRequest, *CreateProjectResponse]
 }
 
@@ -45,7 +45,7 @@ func (c *projectServiceClient) CreateProject(opts ...sdk_go.ClientOption) sdk_go
 //
 // This client is used to call the service from outside of a Restate context.
 type ProjectServiceIngressClient interface {
-	// AssignIngressRoutes creates or reassigns ingress routes to a deployment
+	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment
 	CreateProject() ingress.Requester[*CreateProjectRequest, *CreateProjectResponse]
 }
 
@@ -72,7 +72,7 @@ func (c *projectServiceIngressClient) CreateProject() ingress.Requester[*CreateP
 // All implementations should embed UnimplementedProjectServiceServer
 // for forward compatibility.
 type ProjectServiceServer interface {
-	// AssignIngressRoutes creates or reassigns ingress routes to a deployment
+	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment
 	CreateProject(ctx sdk_go.ObjectContext, req *CreateProjectRequest) (*CreateProjectResponse, error)
 }
 

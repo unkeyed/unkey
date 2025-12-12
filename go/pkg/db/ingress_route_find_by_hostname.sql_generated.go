@@ -9,16 +9,16 @@ import (
 	"context"
 )
 
-const findIngressRouteByHostname = `-- name: FindIngressRouteByHostname :one
-SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM ingress_routes WHERE hostname = ?
+const findFrontlineRouteByHostname = `-- name: FindFrontlineRouteByHostname :one
+SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM frontline_routes WHERE hostname = ?
 `
 
-// FindIngressRouteByHostname
+// FindFrontlineRouteByHostname
 //
-//	SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM ingress_routes WHERE hostname = ?
-func (q *Queries) FindIngressRouteByHostname(ctx context.Context, db DBTX, hostname string) (IngressRoute, error) {
-	row := db.QueryRowContext(ctx, findIngressRouteByHostname, hostname)
-	var i IngressRoute
+//	SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM frontline_routes WHERE hostname = ?
+func (q *Queries) FindFrontlineRouteByHostname(ctx context.Context, db DBTX, hostname string) (FrontlineRoute, error) {
+	row := db.QueryRowContext(ctx, findFrontlineRouteByHostname, hostname)
+	var i FrontlineRoute
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,

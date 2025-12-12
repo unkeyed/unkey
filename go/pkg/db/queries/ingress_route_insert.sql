@@ -1,5 +1,5 @@
--- name: InsertIngressRoute :exec
-INSERT INTO ingress_routes (
+-- name: InsertFrontlineRoute :exec
+INSERT INTO frontline_routes (
     id,
     project_id,
     deployment_id,

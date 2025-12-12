@@ -64,37 +64,37 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		return nil, restate.TerminalError(fmt.Errorf("target deployment is already the live deployment"), 400)
 	}
 
-	// Get all ingressRoutes for promotion
-	ingressRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindIngressRouteForPromotionRow, error) {
-		return db.Query.FindIngressRouteForPromotion(stepCtx, w.db.RO(), db.FindIngressRouteForPromotionParams{
+	// Get all frontlineRoutes for promotion
+	frontlineRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRouteForPromotionRow, error) {
+		return db.Query.FindFrontlineRouteForPromotion(stepCtx, w.db.RO(), db.FindFrontlineRouteForPromotionParams{
 			EnvironmentID: targetDeployment.EnvironmentID,
-			Sticky: []db.IngressRoutesSticky{
-				db.IngressRoutesStickyLive,
-				db.IngressRoutesStickyEnvironment,
+			Sticky: []db.FrontlineRoutesSticky{
+				db.FrontlineRoutesStickyLive,
+				db.FrontlineRoutesStickyEnvironment,
 			},
 		})
-	}, restate.WithName("finding ingressRoutes for promotion"))
+	}, restate.WithName("finding frontlineRoutes for promotion"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get ingressRoutes: %w", err)
+		return nil, fmt.Errorf("failed to get frontlineRoutes: %w", err)
 	}
 
-	if len(ingressRoutes) == 0 {
-		return nil, restate.TerminalError(fmt.Errorf("no ingressRoutes found for promotion"), 400)
+	if len(frontlineRoutes) == 0 {
+		return nil, restate.TerminalError(fmt.Errorf("no frontlineRoutes found for promotion"), 400)
 	}
 
-	w.logger.Info("found ingressRoutes for promotion", "count", len(ingressRoutes), "deployment_id", targetDeployment.ID)
+	w.logger.Info("found frontlineRoutes for promotion", "count", len(frontlineRoutes), "deployment_id", targetDeployment.ID)
 
 	// Collect domain IDs
 	var routeIDs []string
-	for _, route := range ingressRoutes {
+	for _, route := range frontlineRoutes {
 		routeIDs = append(routeIDs, route.ID)
 	}
 
 	// Call RoutingService to switch routes atomically
 	routingClient := hydrav1.NewRoutingServiceClient(ctx, project.ID)
-	_, err = routingClient.AssignIngressRoutes().Request(&hydrav1.AssignIngressRoutesRequest{
-		DeploymentId:    targetDeployment.ID,
-		IngressRouteIds: routeIDs,
+	_, err = routingClient.AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
+		DeploymentId:      targetDeployment.ID,
+		FrontlineRouteIds: routeIDs,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to switch domains: %w", err)

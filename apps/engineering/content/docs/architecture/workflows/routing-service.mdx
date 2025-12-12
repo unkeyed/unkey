@@ -1,11 +1,11 @@
 ---
 title: Routing Service
-description: Atomic ingress route and sentinel configuration management
+description: Atomic frontline route and sentinel configuration management
 ---
 
 # Routing Service
 
-The `RoutingService` manages atomic ingress route assignments.
+The `RoutingService` manages atomic frontline route assignments.
 
 **Location:** `go/apps/ctrl/workflows/routing/`
 **Proto:** `go/proto/hydra/v1/routing.proto`
@@ -13,7 +13,7 @@ The `RoutingService` manages atomic ingress route assignments.
 
 ## Why Separate Service?
 
-Ingress route and sentinel operations are the **critical section** of deployments:
+Frontline route and sentinel operations are the **critical section** of deployments:
 - Must be atomic - both succeed or both fail
 - Must be serialized per project to prevent race conditions
 - Should not block non-routing operations (like building containers)
@@ -25,11 +25,11 @@ By separating routing, we:
 
 ## Operations
 
-### AssignIngressRoutes
+### AssignFrontlineRoutes
 
 <Mermaid chart={`flowchart TD
-    Start([AssignIngressRoutes]) --> LoopRoutes{For Each Route}
-    LoopRoutes --> FindRoute[Find or Create Ingress Route]
+    Start([AssignFrontlineRoutes]) --> LoopRoutes{For Each Route}
+    LoopRoutes --> FindRoute[Find or Create Frontline Route]
     FindRoute --> NextRoute
     NextRoute --> LoopRoutes
     LoopRoutes --> UpdateDeployment[Update Deployment ID]
@@ -38,15 +38,15 @@ By separating routing, we:
     style UpdateDeployment fill:#e1f5fe
 `} />
 
-Creates or reassigns ingress routes to a deployment:
-1. For each ingress route ID: update the deployment ID
+Creates or reassigns frontline routes to a deployment:
+1. For each frontline route ID: update the deployment ID
 2. Routes are pre-created with hostnames and sticky behavior
 3. This operation simply points them to the new deployment
 4. Per-tenant sentinels handle the actual traffic routing
 
-Implementation: `go/apps/ctrl/workflows/routing/assign_ingress_routes_handler.go`
+Implementation: `go/apps/ctrl/workflows/routing/assign_frontline_routes_handler.go`
 
-**Ingress Route Sticky Levels:**
+**Frontline Route Sticky Levels:**
 - `BRANCH`: Branch-level (e.g., `main.domain.com`)
 - `ENVIRONMENT`: Environment-level (e.g., `staging.domain.com`)
 - `LIVE`: Production domain (e.g., `domain.com`)
@@ -55,7 +55,7 @@ Implementation: `go/apps/ctrl/workflows/routing/assign_ingress_routes_handler.go
 
 With the new per-tenant sentinel model:
 1. Each environment has its own sentinel instances
-2. Ingress routes point to deployments within an environment
+2. Frontline routes point to deployments within an environment
 3. Sentinel configuration is managed at the environment level
 4. This provides better isolation and scaling characteristics
 

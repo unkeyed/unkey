@@ -182,37 +182,37 @@ const (
 	UnkeyAppErrorsPreconditionPreconditionFailed URN = "err:unkey:application:precondition_failed"
 
 	// ----------------
-	// UnkeyIngressErrors
+	// UnkeyFrontlineErrors
 	// ----------------
 
 	// Proxy
 
 	// BadGateway represents a 502 error - invalid response from upstream server
-	UnkeyIngressErrorsProxyBadGateway URN = "err:unkey:bad_gateway:bad_gateway"
+	UnkeyFrontlineErrorsProxyBadGateway URN = "err:unkey:bad_gateway:bad_gateway"
 	// ServiceUnavailable represents a 503 error - backend service is unavailable
-	UnkeyIngressErrorsProxyServiceUnavailable URN = "err:unkey:service_unavailable:service_unavailable"
+	UnkeyFrontlineErrorsProxyServiceUnavailable URN = "err:unkey:service_unavailable:service_unavailable"
 	// GatewayTimeout represents a 504 error - upstream server timeout
-	UnkeyIngressErrorsProxyGatewayTimeout URN = "err:unkey:gateway_timeout:gateway_timeout"
+	UnkeyFrontlineErrorsProxyGatewayTimeout URN = "err:unkey:gateway_timeout:gateway_timeout"
 	// ProxyForwardFailed represents a 502 error - failed to forward request to backend
-	UnkeyIngressErrorsProxyProxyForwardFailed URN = "err:unkey:bad_gateway:proxy_forward_failed"
+	UnkeyFrontlineErrorsProxyProxyForwardFailed URN = "err:unkey:bad_gateway:proxy_forward_failed"
 
 	// Routing
 
 	// ConfigNotFound represents a 404 error - no configuration found for the requested hostname
-	UnkeyIngressErrorsRoutingConfigNotFound URN = "err:unkey:not_found:config_not_found"
+	UnkeyFrontlineErrorsRoutingConfigNotFound URN = "err:unkey:not_found:config_not_found"
 	// DeploymentSelectionFailed represents a 500 error - failed to select an available deployment
-	UnkeyIngressErrorsRoutingDeploymentSelectionFailed URN = "err:unkey:internal_server_error:deployment_selection_failed"
+	UnkeyFrontlineErrorsRoutingDeploymentSelectionFailed URN = "err:unkey:internal_server_error:deployment_selection_failed"
 	// DeploymentDisabled represents a 503 error - all deployments are currently disabled
-	UnkeyIngressErrorsRoutingDeploymentDisabled URN = "err:unkey:service_unavailable:deployment_disabled"
+	UnkeyFrontlineErrorsRoutingDeploymentDisabled URN = "err:unkey:service_unavailable:deployment_disabled"
 	// NoRunningInstances represents a 503 error - no deployments have running instances
-	UnkeyIngressErrorsRoutingNoRunningInstances URN = "err:unkey:service_unavailable:no_running_instances"
+	UnkeyFrontlineErrorsRoutingNoRunningInstances URN = "err:unkey:service_unavailable:no_running_instances"
 
 	// Internal
 
 	// InternalServerError represents a 500 error - internal server error
-	UnkeyIngressErrorsInternalInternalServerError URN = "err:unkey:internal_server_error:internal_server_error"
+	UnkeyFrontlineErrorsInternalInternalServerError URN = "err:unkey:internal_server_error:internal_server_error"
 	// ConfigLoadFailed represents a 500 error - failed to load configuration
-	UnkeyIngressErrorsInternalConfigLoadFailed URN = "err:unkey:internal_server_error:config_load_failed"
+	UnkeyFrontlineErrorsInternalConfigLoadFailed URN = "err:unkey:internal_server_error:config_load_failed"
 	// InstanceLoadFailed represents a 500 error - failed to load instance information
-	UnkeyIngressErrorsInternalInstanceLoadFailed URN = "err:unkey:internal_server_error:instance_load_failed"
+	UnkeyFrontlineErrorsInternalInstanceLoadFailed URN = "err:unkey:internal_server_error:instance_load_failed"
 )

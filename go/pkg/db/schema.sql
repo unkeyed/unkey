@@ -479,7 +479,7 @@ CREATE TABLE `certificates` (
 	CONSTRAINT `unique_hostname` UNIQUE(`hostname`)
 );
 
-CREATE TABLE `ingress_routes` (
+CREATE TABLE `frontline_routes` (
 	`id` varchar(128) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
 	`deployment_id` varchar(255) NOT NULL,
@@ -488,7 +488,7 @@ CREATE TABLE `ingress_routes` (
 	`sticky` enum('none','branch','environment','live') NOT NULL DEFAULT 'none',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `ingress_routes_id` PRIMARY KEY(`id`),
+	CONSTRAINT `frontline_routes_id` PRIMARY KEY(`id`),
 	CONSTRAINT `unique_hostname_idx` UNIQUE(`hostname`)
 );
 
@@ -525,6 +525,6 @@ CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
 CREATE INDEX `idx_environment_id` ON `sentinels` (`environment_id`);
 CREATE INDEX `idx_deployment_id` ON `instances` (`deployment_id`);
 CREATE INDEX `idx_region` ON `instances` (`region`);
-CREATE INDEX `environment_id_idx` ON `ingress_routes` (`environment_id`);
-CREATE INDEX `deployment_id_idx` ON `ingress_routes` (`deployment_id`);
+CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);
+CREATE INDEX `deployment_id_idx` ON `frontline_routes` (`deployment_id`);
 

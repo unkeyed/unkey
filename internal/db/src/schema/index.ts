@@ -25,4 +25,4 @@ export * from "./acme_challenges";
 export * from "./sentinels";
 export * from "./instances";
 export * from "./certificates";
-export * from "./ingress_routes";
+export * from "./frontline_routes";

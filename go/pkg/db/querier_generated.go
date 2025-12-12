@@ -240,6 +240,48 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
+	//FindFrontlineRouteByHostname
+	//
+	//  SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM frontline_routes WHERE hostname = ?
+	FindFrontlineRouteByHostname(ctx context.Context, db DBTX, hostname string) (FrontlineRoute, error)
+	//FindFrontlineRouteForPromotion
+	//
+	//  SELECT
+	//      id,
+	//      project_id,
+	//      environment_id,
+	//      hostname,
+	//      deployment_id,
+	//      sticky,
+	//      created_at,
+	//      updated_at
+	//  FROM frontline_routes
+	//  WHERE
+	//    environment_id = ?
+	//    AND sticky IN (/*SLICE:sticky*/?)
+	//  ORDER BY created_at ASC
+	FindFrontlineRouteForPromotion(ctx context.Context, db DBTX, arg FindFrontlineRouteForPromotionParams) ([]FindFrontlineRouteForPromotionRow, error)
+	//FindFrontlineRoutesByDeploymentID
+	//
+	//  SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
+	FindFrontlineRoutesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]FrontlineRoute, error)
+	//FindFrontlineRoutesForRollback
+	//
+	//  SELECT
+	//      id,
+	//      project_id,
+	//      environment_id,
+	//      hostname,
+	//      deployment_id,
+	//      sticky,
+	//      created_at,
+	//      updated_at
+	//  FROM frontline_routes
+	//  WHERE
+	//    environment_id = ?
+	//    AND sticky IN (/*SLICE:sticky*/?)
+	//  ORDER BY created_at ASC
+	FindFrontlineRoutesForRollback(ctx context.Context, db DBTX, arg FindFrontlineRoutesForRollbackParams) ([]FindFrontlineRoutesForRollbackRow, error)
 	//FindIdentities
 	//
 	//  SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -303,48 +345,6 @@ type Querier interface {
 	//    AND id = ?
 	//    AND deleted = ?
 	FindIdentityByID(ctx context.Context, db DBTX, arg FindIdentityByIDParams) (Identity, error)
-	//FindIngressRouteByHostname
-	//
-	//  SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM ingress_routes WHERE hostname = ?
-	FindIngressRouteByHostname(ctx context.Context, db DBTX, hostname string) (IngressRoute, error)
-	//FindIngressRouteForPromotion
-	//
-	//  SELECT
-	//      id,
-	//      project_id,
-	//      environment_id,
-	//      hostname,
-	//      deployment_id,
-	//      sticky,
-	//      created_at,
-	//      updated_at
-	//  FROM ingress_routes
-	//  WHERE
-	//    environment_id = ?
-	//    AND sticky IN (/*SLICE:sticky*/?)
-	//  ORDER BY created_at ASC
-	FindIngressRouteForPromotion(ctx context.Context, db DBTX, arg FindIngressRouteForPromotionParams) ([]FindIngressRouteForPromotionRow, error)
-	//FindIngressRoutesByDeploymentID
-	//
-	//  SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM ingress_routes WHERE deployment_id = ?
-	FindIngressRoutesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]IngressRoute, error)
-	//FindIngressRoutesForRollback
-	//
-	//  SELECT
-	//      id,
-	//      project_id,
-	//      environment_id,
-	//      hostname,
-	//      deployment_id,
-	//      sticky,
-	//      created_at,
-	//      updated_at
-	//  FROM ingress_routes
-	//  WHERE
-	//    environment_id = ?
-	//    AND sticky IN (/*SLICE:sticky*/?)
-	//  ORDER BY created_at ASC
-	FindIngressRoutesForRollback(ctx context.Context, db DBTX, arg FindIngressRoutesForRollbackParams) ([]FindIngressRoutesForRollbackRow, error)
 	//FindInstanceByPodName
 	//
 	//  SELECT
@@ -1205,6 +1205,29 @@ type Querier interface {
 	//      ?, ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertEnvironment(ctx context.Context, db DBTX, arg InsertEnvironmentParams) error
+	//InsertFrontlineRoute
+	//
+	//  INSERT INTO frontline_routes (
+	//      id,
+	//      project_id,
+	//      deployment_id,
+	//      environment_id,
+	//      hostname,
+	//      sticky,
+	//      created_at,
+	//      updated_at
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertFrontlineRoute(ctx context.Context, db DBTX, arg InsertFrontlineRouteParams) error
 	//InsertIdentity
 	//
 	//  INSERT INTO `identities` (
@@ -1250,29 +1273,6 @@ type Querier interface {
 	//      auto_apply = VALUES(auto_apply),
 	//      updated_at = VALUES(created_at)
 	InsertIdentityRatelimit(ctx context.Context, db DBTX, arg InsertIdentityRatelimitParams) error
-	//InsertIngressRoute
-	//
-	//  INSERT INTO ingress_routes (
-	//      id,
-	//      project_id,
-	//      deployment_id,
-	//      environment_id,
-	//      hostname,
-	//      sticky,
-	//      created_at,
-	//      updated_at
-	//  )
-	//  VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertIngressRoute(ctx context.Context, db DBTX, arg InsertIngressRouteParams) error
 	//InsertInstance
 	//
 	//  INSERT INTO instances (
@@ -1972,14 +1972,14 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesRow, error)
-	//ReassignIngressRoute
+	//ReassignFrontlineRoute
 	//
-	//  UPDATE ingress_routes
+	//  UPDATE frontline_routes
 	//  SET
 	//    deployment_id = ?,
 	//    updated_at = ?
 	//  WHERE id = ?
-	ReassignIngressRoute(ctx context.Context, db DBTX, arg ReassignIngressRouteParams) error
+	ReassignFrontlineRoute(ctx context.Context, db DBTX, arg ReassignFrontlineRouteParams) error
 	//SetWorkspaceK8sNamespace
 	//
 	//  UPDATE `workspaces`
@@ -2096,6 +2096,12 @@ type Querier interface {
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, db DBTX, arg UpdateDeploymentStatusParams) error
+	//UpdateFrontlineRouteDeploymentId
+	//
+	//  UPDATE frontline_routes
+	//  SET deployment_id = ?
+	//  WHERE id = ?
+	UpdateFrontlineRouteDeploymentId(ctx context.Context, db DBTX, arg UpdateFrontlineRouteDeploymentIdParams) error
 	//UpdateIdentity
 	//
 	//  UPDATE `identities`
@@ -2105,12 +2111,6 @@ type Querier interface {
 	//  WHERE
 	//      id = ?
 	UpdateIdentity(ctx context.Context, db DBTX, arg UpdateIdentityParams) error
-	//UpdateIngressRouteDeploymentId
-	//
-	//  UPDATE ingress_routes
-	//  SET deployment_id = ?
-	//  WHERE id = ?
-	UpdateIngressRouteDeploymentId(ctx context.Context, db DBTX, arg UpdateIngressRouteDeploymentIdParams) error
 	//UpdateInstanceStatus
 	//
 	//  UPDATE instances SET

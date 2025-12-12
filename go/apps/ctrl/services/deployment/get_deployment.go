@@ -87,9 +87,9 @@ func (s *Service) GetDeployment(
 	}
 
 	// Fetch routes (hostnames) for this deployment
-	routes, err := db.Query.FindIngressRoutesByDeploymentID(ctx, s.db.RO(), req.Msg.GetDeploymentId())
+	routes, err := db.Query.FindFrontlineRoutesByDeploymentID(ctx, s.db.RO(), req.Msg.GetDeploymentId())
 	if err != nil {
-		s.logger.Warn("failed to fetch ingress routes for deployment", "error", err, "deployment_id", deployment.ID)
+		s.logger.Warn("failed to fetch frontline routes for deployment", "error", err, "deployment_id", deployment.ID)
 		// Continue without hostnames rather than failing the entire request
 	} else {
 		hostnames := make([]string, len(routes))

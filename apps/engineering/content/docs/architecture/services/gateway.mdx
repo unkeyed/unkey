@@ -11,7 +11,7 @@ import { Mermaid } from "@/app/components/mermaid";
 
 ## What It Does
 
-Sentinel is an environment-scoped HTTP proxy service that receives requests from Ingress and routes them to the appropriate deployment instance.
+Sentinel is an environment-scoped HTTP proxy service that receives requests from Frontline and routes them to the appropriate deployment instance.
 
 Each environment has its own Sentinel instance(s), and a single Sentinel handles all deployments within that environment.
 
@@ -29,12 +29,12 @@ Sentinel is an environment-scoped service, meaning:
 
 - Each environment (e.g., production, staging, dev) has its own Sentinel instance(s)
 - A single Sentinel handles **all deployments** within its environment
-- Ingress passes the `X-Deployment-ID` header to specify which deployment to route to
+- Frontline passes the `X-Deployment-ID` header to specify which deployment to route to
 - Sentinel validates that the deployment belongs to its configured environment
 
 <Mermaid chart={`graph LR
-    Internet[Internet] --> Ingress[Ingress<br/><i>multi-tenant</i>]
-    Ingress --> Sentinel[Sentinel<br/><i>per-environment</i>]
+    Internet[Internet] --> Frontline[Frontline<br/><i>multi-tenant</i>]
+    Frontline --> Sentinel[Sentinel<br/><i>per-environment</i>]
     Sentinel --> Instance[Instance<br/><i>per-deployment</i>]
 `} />
 
@@ -42,13 +42,13 @@ Sentinel is an environment-scoped service, meaning:
 
 <Mermaid chart={`sequenceDiagram
     autonumber
-    participant Ingress
+    participant Frontline
     participant Sentinel
     participant Router as Router Service
     participant DB as MySQL
     participant Instance as Deployment Instance
 
-    Ingress->>Sentinel: HTTP Request + X-Deployment-ID header
+    Frontline->>Sentinel: HTTP Request + X-Deployment-ID header
     Sentinel->>Router: GetDeployment(deploymentID)
     Router->>DB: SELECT * FROM deployments WHERE id=?
     DB->>Router: deployment (with environment_id)
@@ -56,7 +56,7 @@ Sentinel is an environment-scoped service, meaning:
 
     alt Deployment belongs to wrong environment
         Router->>Sentinel: DeploymentNotFound error (masked)
-        Sentinel->>Ingress: 404 Not Found
+        Sentinel->>Frontline: 404 Not Found
     else Deployment valid
         Router->>Sentinel: Deployment
         Sentinel->>Router: SelectInstance(deploymentID)
@@ -67,7 +67,7 @@ Sentinel is an environment-scoped service, meaning:
         Router->>Sentinel: Selected instance
         Sentinel->>Instance: HTTP proxy to instance.address
         Instance->>Sentinel: Response
-        Sentinel->>Ingress: Response
+        Sentinel->>Frontline: Response
     end
 
 `} />
@@ -139,7 +139,7 @@ codes.Sentinel.Internal.InvalidConfiguration // 500 - Invalid configuration
 
 ### Error Middleware
 
-Sentinel is not user-facing (only Ingress calls it), so it always returns JSON errors:
+Sentinel is not user-facing (only Frontline calls it), so it always returns JSON errors:
 
 ```go
 // Error response format
@@ -151,7 +151,7 @@ Sentinel is not user-facing (only Ingress calls it), so it always returns JSON e
 }
 ```
 
-Ingress receives these errors and can decide how to present them to end users.
+Frontline receives these errors and can decide how to present them to end users.
 
 ## Configuration
 

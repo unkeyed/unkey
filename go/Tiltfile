@@ -323,7 +323,7 @@ API: http://localhost:7070
 Sentinel: http://localhost:8080
 Ctrl: http://localhost:7091
 Krane: http://localhost:8090
-Restate Ingress: http://localhost:8081
+Restate Frontline: http://localhost:8081
 Restate Admin: http://localhost:9070
 Prometheus: http://localhost:9090
 S3 Console: http://localhost:9000
@@ -338,6 +338,6 @@ Tips:
 Development workflow:
 - Edit Go files -> automatic rebuild & restart
 - View logs in unified Tilt UI
-- Use ingress for service access
+- Use frontline for service access
 
 """ % ', '.join(active_services))

@@ -176,7 +176,7 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	// Restate Client and Server
-	restateClient := restateIngress.NewClient(cfg.Restate.IngressURL)
+	restateClient := restateIngress.NewClient(cfg.Restate.FrontlineURL)
 	restateSrv := restateServer.NewRestate()
 
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploy.New(deploy.Config{

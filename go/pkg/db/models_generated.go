@@ -365,48 +365,48 @@ func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
 	return string(ns.DeploymentsStatus), nil
 }
 
-type IngressRoutesSticky string
+type FrontlineRoutesSticky string
 
 const (
-	IngressRoutesStickyNone        IngressRoutesSticky = "none"
-	IngressRoutesStickyBranch      IngressRoutesSticky = "branch"
-	IngressRoutesStickyEnvironment IngressRoutesSticky = "environment"
-	IngressRoutesStickyLive        IngressRoutesSticky = "live"
+	FrontlineRoutesStickyNone        FrontlineRoutesSticky = "none"
+	FrontlineRoutesStickyBranch      FrontlineRoutesSticky = "branch"
+	FrontlineRoutesStickyEnvironment FrontlineRoutesSticky = "environment"
+	FrontlineRoutesStickyLive        FrontlineRoutesSticky = "live"
 )
 
-func (e *IngressRoutesSticky) Scan(src interface{}) error {
+func (e *FrontlineRoutesSticky) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = IngressRoutesSticky(s)
+		*e = FrontlineRoutesSticky(s)
 	case string:
-		*e = IngressRoutesSticky(s)
+		*e = FrontlineRoutesSticky(s)
 	default:
-		return fmt.Errorf("unsupported scan type for IngressRoutesSticky: %T", src)
+		return fmt.Errorf("unsupported scan type for FrontlineRoutesSticky: %T", src)
 	}
 	return nil
 }
 
-type NullIngressRoutesSticky struct {
-	IngressRoutesSticky IngressRoutesSticky
-	Valid               bool // Valid is true if IngressRoutesSticky is not NULL
+type NullFrontlineRoutesSticky struct {
+	FrontlineRoutesSticky FrontlineRoutesSticky
+	Valid                 bool // Valid is true if FrontlineRoutesSticky is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullIngressRoutesSticky) Scan(value interface{}) error {
+func (ns *NullFrontlineRoutesSticky) Scan(value interface{}) error {
 	if value == nil {
-		ns.IngressRoutesSticky, ns.Valid = "", false
+		ns.FrontlineRoutesSticky, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.IngressRoutesSticky.Scan(value)
+	return ns.FrontlineRoutesSticky.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullIngressRoutesSticky) Value() (driver.Value, error) {
+func (ns NullFrontlineRoutesSticky) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.IngressRoutesSticky), nil
+	return string(ns.FrontlineRoutesSticky), nil
 }
 
 type InstancesStatus string
@@ -922,6 +922,17 @@ type Environment struct {
 	UpdatedAt        sql.NullInt64 `db:"updated_at"`
 }
 
+type FrontlineRoute struct {
+	ID            string                `db:"id"`
+	ProjectID     string                `db:"project_id"`
+	DeploymentID  string                `db:"deployment_id"`
+	EnvironmentID string                `db:"environment_id"`
+	Hostname      string                `db:"hostname"`
+	Sticky        FrontlineRoutesSticky `db:"sticky"`
+	CreatedAt     int64                 `db:"created_at"`
+	UpdatedAt     sql.NullInt64         `db:"updated_at"`
+}
+
 type Identity struct {
 	ID          string        `db:"id"`
 	ExternalID  string        `db:"external_id"`
@@ -931,17 +942,6 @@ type Identity struct {
 	Deleted     bool          `db:"deleted"`
 	CreatedAt   int64         `db:"created_at"`
 	UpdatedAt   sql.NullInt64 `db:"updated_at"`
-}
-
-type IngressRoute struct {
-	ID            string              `db:"id"`
-	ProjectID     string              `db:"project_id"`
-	DeploymentID  string              `db:"deployment_id"`
-	EnvironmentID string              `db:"environment_id"`
-	Hostname      string              `db:"hostname"`
-	Sticky        IngressRoutesSticky `db:"sticky"`
-	CreatedAt     int64               `db:"created_at"`
-	UpdatedAt     sql.NullInt64       `db:"updated_at"`
 }
 
 type Instance struct {

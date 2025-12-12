@@ -22,28 +22,28 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type AssignIngressRoutesRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	DeploymentId    string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	IngressRouteIds []string               `protobuf:"bytes,2,rep,name=ingress_route_ids,json=ingressRouteIds,proto3" json:"ingress_route_ids,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+type AssignFrontlineRoutesRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	DeploymentId      string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	FrontlineRouteIds []string               `protobuf:"bytes,2,rep,name=frontline_route_ids,json=frontlineRouteIds,proto3" json:"frontline_route_ids,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
-func (x *AssignIngressRoutesRequest) Reset() {
-	*x = AssignIngressRoutesRequest{}
+func (x *AssignFrontlineRoutesRequest) Reset() {
+	*x = AssignFrontlineRoutesRequest{}
 	mi := &file_hydra_v1_routing_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AssignIngressRoutesRequest) String() string {
+func (x *AssignFrontlineRoutesRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AssignIngressRoutesRequest) ProtoMessage() {}
+func (*AssignFrontlineRoutesRequest) ProtoMessage() {}
 
-func (x *AssignIngressRoutesRequest) ProtoReflect() protoreflect.Message {
+func (x *AssignFrontlineRoutesRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_hydra_v1_routing_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -55,45 +55,45 @@ func (x *AssignIngressRoutesRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AssignIngressRoutesRequest.ProtoReflect.Descriptor instead.
-func (*AssignIngressRoutesRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use AssignFrontlineRoutesRequest.ProtoReflect.Descriptor instead.
+func (*AssignFrontlineRoutesRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_routing_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *AssignIngressRoutesRequest) GetDeploymentId() string {
+func (x *AssignFrontlineRoutesRequest) GetDeploymentId() string {
 	if x != nil {
 		return x.DeploymentId
 	}
 	return ""
 }
 
-func (x *AssignIngressRoutesRequest) GetIngressRouteIds() []string {
+func (x *AssignFrontlineRoutesRequest) GetFrontlineRouteIds() []string {
 	if x != nil {
-		return x.IngressRouteIds
+		return x.FrontlineRouteIds
 	}
 	return nil
 }
 
-type AssignIngressRoutesResponse struct {
+type AssignFrontlineRoutesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AssignIngressRoutesResponse) Reset() {
-	*x = AssignIngressRoutesResponse{}
+func (x *AssignFrontlineRoutesResponse) Reset() {
+	*x = AssignFrontlineRoutesResponse{}
 	mi := &file_hydra_v1_routing_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AssignIngressRoutesResponse) String() string {
+func (x *AssignFrontlineRoutesResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AssignIngressRoutesResponse) ProtoMessage() {}
+func (*AssignFrontlineRoutesResponse) ProtoMessage() {}
 
-func (x *AssignIngressRoutesResponse) ProtoReflect() protoreflect.Message {
+func (x *AssignFrontlineRoutesResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_hydra_v1_routing_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -105,8 +105,8 @@ func (x *AssignIngressRoutesResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AssignIngressRoutesResponse.ProtoReflect.Descriptor instead.
-func (*AssignIngressRoutesResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use AssignFrontlineRoutesResponse.ProtoReflect.Descriptor instead.
+func (*AssignFrontlineRoutesResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_routing_proto_rawDescGZIP(), []int{1}
 }
 
@@ -114,13 +114,13 @@ var File_hydra_v1_routing_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_routing_proto_rawDesc = "" +
 	"\n" +
-	"\x16hydra/v1/routing.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"m\n" +
-	"\x1aAssignIngressRoutesRequest\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12*\n" +
-	"\x11ingress_route_ids\x18\x02 \x03(\tR\x0fingressRouteIds\"\x1d\n" +
-	"\x1bAssignIngressRoutesResponse2|\n" +
-	"\x0eRoutingService\x12d\n" +
-	"\x13AssignIngressRoutes\x12$.hydra.v1.AssignIngressRoutesRequest\x1a%.hydra.v1.AssignIngressRoutesResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x95\x01\n" +
+	"\x16hydra/v1/routing.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"s\n" +
+	"\x1cAssignFrontlineRoutesRequest\x12#\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12.\n" +
+	"\x13frontline_route_ids\x18\x02 \x03(\tR\x11frontlineRouteIds\"\x1f\n" +
+	"\x1dAssignFrontlineRoutesResponse2\x82\x01\n" +
+	"\x0eRoutingService\x12j\n" +
+	"\x15AssignFrontlineRoutes\x12&.hydra.v1.AssignFrontlineRoutesRequest\x1a'.hydra.v1.AssignFrontlineRoutesResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x95\x01\n" +
 	"\fcom.hydra.v1B\fRoutingProtoP\x01Z6github.com/unkeyed/unkey/go/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -137,12 +137,12 @@ func file_hydra_v1_routing_proto_rawDescGZIP() []byte {
 
 var file_hydra_v1_routing_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_hydra_v1_routing_proto_goTypes = []any{
-	(*AssignIngressRoutesRequest)(nil),  // 0: hydra.v1.AssignIngressRoutesRequest
-	(*AssignIngressRoutesResponse)(nil), // 1: hydra.v1.AssignIngressRoutesResponse
+	(*AssignFrontlineRoutesRequest)(nil),  // 0: hydra.v1.AssignFrontlineRoutesRequest
+	(*AssignFrontlineRoutesResponse)(nil), // 1: hydra.v1.AssignFrontlineRoutesResponse
 }
 var file_hydra_v1_routing_proto_depIdxs = []int32{
-	0, // 0: hydra.v1.RoutingService.AssignIngressRoutes:input_type -> hydra.v1.AssignIngressRoutesRequest
-	1, // 1: hydra.v1.RoutingService.AssignIngressRoutes:output_type -> hydra.v1.AssignIngressRoutesResponse
+	0, // 0: hydra.v1.RoutingService.AssignFrontlineRoutes:input_type -> hydra.v1.AssignFrontlineRoutesRequest
+	1, // 1: hydra.v1.RoutingService.AssignFrontlineRoutes:output_type -> hydra.v1.AssignFrontlineRoutesResponse
 	1, // [1:2] is the sub-list for method output_type
 	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

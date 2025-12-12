@@ -15,7 +15,7 @@ import (
 
 // EnvironmentServiceClient is the client API for hydra.v1.EnvironmentService service.
 type EnvironmentServiceClient interface {
-	// AssignIngressRoutes creates or reassigns ingress routes to a deployment
+	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment
 	CreateEnvironment(opts ...sdk_go.ClientOption) sdk_go.Client[*CreateEnvironmentRequest, *CreateEnvironmentResponse]
 }
 
@@ -45,7 +45,7 @@ func (c *environmentServiceClient) CreateEnvironment(opts ...sdk_go.ClientOption
 //
 // This client is used to call the service from outside of a Restate context.
 type EnvironmentServiceIngressClient interface {
-	// AssignIngressRoutes creates or reassigns ingress routes to a deployment
+	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment
 	CreateEnvironment() ingress.Requester[*CreateEnvironmentRequest, *CreateEnvironmentResponse]
 }
 
@@ -72,7 +72,7 @@ func (c *environmentServiceIngressClient) CreateEnvironment() ingress.Requester[
 // All implementations should embed UnimplementedEnvironmentServiceServer
 // for forward compatibility.
 type EnvironmentServiceServer interface {
-	// AssignIngressRoutes creates or reassigns ingress routes to a deployment
+	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment
 	CreateEnvironment(ctx sdk_go.ObjectContext, req *CreateEnvironmentRequest) (*CreateEnvironmentResponse, error)
 }
 

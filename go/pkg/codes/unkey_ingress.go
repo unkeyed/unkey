@@ -1,7 +1,7 @@
 package codes
 
-// ingressProxy defines errors related to ingress proxy functionality.
-type ingressProxy struct {
+// frontlineProxy defines errors related to frontline proxy functionality.
+type frontlineProxy struct {
 	// BadGateway represents a 502 error - invalid response from upstream server
 	BadGateway Code
 
@@ -15,8 +15,8 @@ type ingressProxy struct {
 	ProxyForwardFailed Code
 }
 
-// ingressRouting defines errors related to ingress routing functionality.
-type ingressRouting struct {
+// frontlineRouting defines errors related to frontline routing functionality.
+type frontlineRouting struct {
 	// ConfigNotFound represents a 404 error - no configuration found for the requested hostname
 	ConfigNotFound Code
 
@@ -30,8 +30,8 @@ type ingressRouting struct {
 	NoRunningInstances Code
 }
 
-// ingressInternal defines errors related to internal ingress functionality.
-type ingressInternal struct {
+// frontlineInternal defines errors related to internal frontline functionality.
+type frontlineInternal struct {
 	// InternalServerError represents a 500 error - internal server error
 	InternalServerError Code
 
@@ -42,36 +42,36 @@ type ingressInternal struct {
 	InstanceLoadFailed Code
 }
 
-// UnkeyIngressErrors defines all ingress-related errors in the Unkey system.
-// These errors occur when the ingress service has issues routing requests to deployments.
-type UnkeyIngressErrors struct {
-	// Proxy contains errors related to ingress proxy functionality.
-	Proxy ingressProxy
+// UnkeyFrontlineErrors defines all frontline-related errors in the Unkey system.
+// These errors occur when the frontline service has issues routing requests to deployments.
+type UnkeyFrontlineErrors struct {
+	// Proxy contains errors related to frontline proxy functionality.
+	Proxy frontlineProxy
 
-	// Routing contains errors related to ingress routing functionality.
-	Routing ingressRouting
+	// Routing contains errors related to frontline routing functionality.
+	Routing frontlineRouting
 
-	// Internal contains errors related to internal ingress functionality.
-	Internal ingressInternal
+	// Internal contains errors related to internal frontline functionality.
+	Internal frontlineInternal
 }
 
-// Ingress contains all predefined ingress error codes.
-// These errors can be referenced directly (e.g., codes.Ingress.Routing.ConfigNotFound)
+// Frontline contains all predefined frontline error codes.
+// These errors can be referenced directly (e.g., codes.Frontline.Routing.ConfigNotFound)
 // for consistent error handling throughout the application.
-var Ingress = UnkeyIngressErrors{
-	Proxy: ingressProxy{
+var Frontline = UnkeyFrontlineErrors{
+	Proxy: frontlineProxy{
 		BadGateway:         Code{SystemUnkey, CategoryBadGateway, "bad_gateway"},
 		ServiceUnavailable: Code{SystemUnkey, CategoryServiceUnavailable, "service_unavailable"},
 		GatewayTimeout:     Code{SystemUnkey, CategoryGatewayTimeout, "gateway_timeout"},
 		ProxyForwardFailed: Code{SystemUnkey, CategoryBadGateway, "proxy_forward_failed"},
 	},
-	Routing: ingressRouting{
+	Routing: frontlineRouting{
 		ConfigNotFound:            Code{SystemUnkey, CategoryNotFound, "config_not_found"},
 		DeploymentSelectionFailed: Code{SystemUnkey, CategoryInternalServerError, "deployment_selection_failed"},
 		DeploymentDisabled:        Code{SystemUnkey, CategoryServiceUnavailable, "deployment_disabled"},
 		NoRunningInstances:        Code{SystemUnkey, CategoryServiceUnavailable, "no_running_instances"},
 	},
-	Internal: ingressInternal{
+	Internal: frontlineInternal{
 		InternalServerError: Code{SystemUnkey, CategoryInternalServerError, "internal_server_error"},
 		ConfigLoadFailed:    Code{SystemUnkey, CategoryInternalServerError, "config_load_failed"},
 		InstanceLoadFailed:  Code{SystemUnkey, CategoryInternalServerError, "instance_load_failed"},

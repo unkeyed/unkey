@@ -10,7 +10,7 @@
     "cluster-service",
     "ctrl",
     "deploy",
-    "ingress",
+    "frontline",
     "gateway",
     "healthcheck",
     "krane",

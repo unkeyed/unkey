@@ -21,7 +21,7 @@ type BulkQuerier interface {
 	InsertSentinels(ctx context.Context, db DBTX, args []InsertSentinelParams) error
 	InsertIdentities(ctx context.Context, db DBTX, args []InsertIdentityParams) error
 	InsertIdentityRatelimits(ctx context.Context, db DBTX, args []InsertIdentityRatelimitParams) error
-	InsertIngressRoutes(ctx context.Context, db DBTX, args []InsertIngressRouteParams) error
+	InsertFrontlineRoutes(ctx context.Context, db DBTX, args []InsertFrontlineRouteParams) error
 	InsertInstances(ctx context.Context, db DBTX, args []InsertInstanceParams) error
 	InsertKeyAuths(ctx context.Context, db DBTX, args []InsertKeyAuthParams) error
 	InsertKeyEncryptions(ctx context.Context, db DBTX, args []InsertKeyEncryptionParams) error

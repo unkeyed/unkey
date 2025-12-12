@@ -1,2 +1,2 @@
--- name: FindIngressRouteByHostname :one
-SELECT * FROM ingress_routes WHERE hostname = ?;
+-- name: FindFrontlineRouteByHostname :one
+SELECT * FROM frontline_routes WHERE hostname = ?;

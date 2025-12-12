@@ -12,7 +12,7 @@ import (
 
 // Rollback performs a rollback to a previous deployment.
 //
-// This durable workflow switches sticky ingressRoutes (environment and live ingressRoutes) from the
+// This durable workflow switches sticky frontlineRoutes (environment and live frontlineRoutes) from the
 // current live deployment back to a previous deployment. The operation is performed
 // atomically through the routing service to prevent partial updates that could leave
 // the system in an inconsistent state.
@@ -21,10 +21,10 @@ import (
 // - Source deployment is the current live deployment
 // - Target deployment has running VMs
 // - Both deployments are in the same project and environment
-// - There are sticky ingressRoutes to rollback
+// - There are sticky frontlineRoutes to rollback
 //
-// After switching ingressRoutes, the project is marked as rolled back to prevent new
-// deployments from automatically taking over the live ingressRoutes.
+// After switching frontlineRoutes, the project is marked as rolled back to prevent new
+// deployments from automatically taking over the live frontlineRoutes.
 //
 // Returns terminal errors (400/404) for validation failures and retryable errors
 // for system failures.
@@ -85,43 +85,43 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 		return nil, restate.TerminalError(fmt.Errorf("source deployment is not the current live deployment"), 400)
 	}
 
-	// Get all ingressRoutes on the live deployment that are sticky
-	ingressRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindIngressRoutesForRollbackRow, error) {
-		return db.Query.FindIngressRoutesForRollback(stepCtx, w.db.RO(), db.FindIngressRoutesForRollbackParams{
+	// Get all frontlineRoutes on the live deployment that are sticky
+	frontlineRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRoutesForRollbackRow, error) {
+		return db.Query.FindFrontlineRoutesForRollback(stepCtx, w.db.RO(), db.FindFrontlineRoutesForRollbackParams{
 			EnvironmentID: sourceDeployment.EnvironmentID,
-			Sticky: []db.IngressRoutesSticky{
-				db.IngressRoutesStickyLive,
-				db.IngressRoutesStickyEnvironment,
+			Sticky: []db.FrontlineRoutesSticky{
+				db.FrontlineRoutesStickyLive,
+				db.FrontlineRoutesStickyEnvironment,
 			},
 		})
-	}, restate.WithName("finding ingressRoutes for rollback"))
+	}, restate.WithName("finding frontlineRoutes for rollback"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get ingressRoutes: %w", err)
+		return nil, fmt.Errorf("failed to get frontlineRoutes: %w", err)
 	}
 
-	if len(ingressRoutes) == 0 {
-		return nil, restate.TerminalError(fmt.Errorf("no ingressRoutes to rollback"), 400)
+	if len(frontlineRoutes) == 0 {
+		return nil, restate.TerminalError(fmt.Errorf("no frontlineRoutes to rollback"), 400)
 	}
 
-	w.logger.Info("found ingressRoutes for rollback", "count", len(ingressRoutes), "deployment_id", sourceDeployment.ID)
+	w.logger.Info("found frontlineRoutes for rollback", "count", len(frontlineRoutes), "deployment_id", sourceDeployment.ID)
 
-	// Collect ingressRoute IDs
+	// Collect frontlineRoute IDs
 	var routeIDs []string
-	for _, ingressRoute := range ingressRoutes {
-		if ingressRoute.Sticky == db.IngressRoutesStickyLive ||
-			ingressRoute.Sticky == db.IngressRoutesStickyEnvironment {
-			routeIDs = append(routeIDs, ingressRoute.ID)
+	for _, frontlineRoute := range frontlineRoutes {
+		if frontlineRoute.Sticky == db.FrontlineRoutesStickyLive ||
+			frontlineRoute.Sticky == db.FrontlineRoutesStickyEnvironment {
+			routeIDs = append(routeIDs, frontlineRoute.ID)
 		}
 	}
 
-	// Call RoutingService to switch ingressRoutes atomically
+	// Call RoutingService to switch frontlineRoutes atomically
 	routingClient := hydrav1.NewRoutingServiceClient(ctx, project.ID)
-	_, err = routingClient.AssignIngressRoutes().Request(&hydrav1.AssignIngressRoutesRequest{
-		DeploymentId:    targetDeployment.ID,
-		IngressRouteIds: routeIDs,
+	_, err = routingClient.AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
+		DeploymentId:      targetDeployment.ID,
+		FrontlineRouteIds: routeIDs,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to switch ingressRoutes: %w", err)
+		return nil, fmt.Errorf("failed to switch frontlineRoutes: %w", err)
 	}
 
 	// Update project's live deployment
@@ -145,7 +145,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	w.logger.Info("rollback completed successfully",
 		"source", req.GetSourceDeploymentId(),
 		"target", req.GetTargetDeploymentId(),
-		"ingressRoutes_rolled_back", len(routeIDs))
+		"frontlineRoutes_rolled_back", len(routeIDs))
 
 	return &hydrav1.RollbackResponse{}, nil
 }

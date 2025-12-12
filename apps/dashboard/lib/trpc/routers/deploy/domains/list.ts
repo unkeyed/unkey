@@ -17,7 +17,7 @@ export const listDomains = t.procedure
           id: true,
         },
         with: {
-          ingressRoutes: {
+          frontlineRoutes: {
             limit: 500,
             orderBy: (table, { desc }) => desc(table.updatedAt),
           },
@@ -32,5 +32,5 @@ export const listDomains = t.procedure
         });
       });
 
-    return project?.ingressRoutes ?? [];
+    return project?.frontlineRoutes ?? [];
   });

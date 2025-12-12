@@ -15,8 +15,8 @@ import (
 
 // RoutingServiceClient is the client API for hydra.v1.RoutingService service.
 type RoutingServiceClient interface {
-	// AssignIngressRoutes creates or reassigns ingress routes to a deployment
-	AssignIngressRoutes(opts ...sdk_go.ClientOption) sdk_go.Client[*AssignIngressRoutesRequest, *AssignIngressRoutesResponse]
+	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment
+	AssignFrontlineRoutes(opts ...sdk_go.ClientOption) sdk_go.Client[*AssignFrontlineRoutesRequest, *AssignFrontlineRoutesResponse]
 }
 
 type routingServiceClient struct {
@@ -33,20 +33,20 @@ func NewRoutingServiceClient(ctx sdk_go.Context, key string, opts ...sdk_go.Clie
 		cOpts,
 	}
 }
-func (c *routingServiceClient) AssignIngressRoutes(opts ...sdk_go.ClientOption) sdk_go.Client[*AssignIngressRoutesRequest, *AssignIngressRoutesResponse] {
+func (c *routingServiceClient) AssignFrontlineRoutes(opts ...sdk_go.ClientOption) sdk_go.Client[*AssignFrontlineRoutesRequest, *AssignFrontlineRoutesResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
-	return sdk_go.WithRequestType[*AssignIngressRoutesRequest](sdk_go.Object[*AssignIngressRoutesResponse](c.ctx, "hydra.v1.RoutingService", c.key, "AssignIngressRoutes", cOpts...))
+	return sdk_go.WithRequestType[*AssignFrontlineRoutesRequest](sdk_go.Object[*AssignFrontlineRoutesResponse](c.ctx, "hydra.v1.RoutingService", c.key, "AssignFrontlineRoutes", cOpts...))
 }
 
 // RoutingServiceIngressClient is the ingress client API for hydra.v1.RoutingService service.
 //
 // This client is used to call the service from outside of a Restate context.
 type RoutingServiceIngressClient interface {
-	// AssignIngressRoutes creates or reassigns ingress routes to a deployment
-	AssignIngressRoutes() ingress.Requester[*AssignIngressRoutesRequest, *AssignIngressRoutesResponse]
+	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment
+	AssignFrontlineRoutes() ingress.Requester[*AssignFrontlineRoutesRequest, *AssignFrontlineRoutesResponse]
 }
 
 type routingServiceIngressClient struct {
@@ -63,17 +63,17 @@ func NewRoutingServiceIngressClient(client *ingress.Client, key string) RoutingS
 	}
 }
 
-func (c *routingServiceIngressClient) AssignIngressRoutes() ingress.Requester[*AssignIngressRoutesRequest, *AssignIngressRoutesResponse] {
+func (c *routingServiceIngressClient) AssignFrontlineRoutes() ingress.Requester[*AssignFrontlineRoutesRequest, *AssignFrontlineRoutesResponse] {
 	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*AssignIngressRoutesRequest, *AssignIngressRoutesResponse](c.client, c.serviceName, "AssignIngressRoutes", &c.key, &codec)
+	return ingress.NewRequester[*AssignFrontlineRoutesRequest, *AssignFrontlineRoutesResponse](c.client, c.serviceName, "AssignFrontlineRoutes", &c.key, &codec)
 }
 
 // RoutingServiceServer is the server API for hydra.v1.RoutingService service.
 // All implementations should embed UnimplementedRoutingServiceServer
 // for forward compatibility.
 type RoutingServiceServer interface {
-	// AssignIngressRoutes creates or reassigns ingress routes to a deployment
-	AssignIngressRoutes(ctx sdk_go.ObjectContext, req *AssignIngressRoutesRequest) (*AssignIngressRoutesResponse, error)
+	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment
+	AssignFrontlineRoutes(ctx sdk_go.ObjectContext, req *AssignFrontlineRoutesRequest) (*AssignFrontlineRoutesResponse, error)
 }
 
 // UnimplementedRoutingServiceServer should be embedded to have
@@ -83,8 +83,8 @@ type RoutingServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedRoutingServiceServer struct{}
 
-func (UnimplementedRoutingServiceServer) AssignIngressRoutes(ctx sdk_go.ObjectContext, req *AssignIngressRoutesRequest) (*AssignIngressRoutesResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method AssignIngressRoutes not implemented"), 501)
+func (UnimplementedRoutingServiceServer) AssignFrontlineRoutes(ctx sdk_go.ObjectContext, req *AssignFrontlineRoutesRequest) (*AssignFrontlineRoutesResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method AssignFrontlineRoutes not implemented"), 501)
 }
 func (UnimplementedRoutingServiceServer) testEmbeddedByValue() {}
 
@@ -105,6 +105,6 @@ func NewRoutingServiceServer(srv RoutingServiceServer, opts ...sdk_go.ServiceDef
 	}
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewObject("hydra.v1.RoutingService", sOpts...)
-	router = router.Handler("AssignIngressRoutes", sdk_go.NewObjectHandler(srv.AssignIngressRoutes))
+	router = router.Handler("AssignFrontlineRoutes", sdk_go.NewObjectHandler(srv.AssignFrontlineRoutes))
 	return router
 }

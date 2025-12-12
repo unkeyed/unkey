@@ -1,7 +1,7 @@
 import type { Project } from "@/lib/collections/deploy/projects";
 import { db, sql } from "@/lib/db";
 import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
-import { deployments, ingressRoutes, projects } from "@unkey/db/src/schema";
+import { deployments, frontlineRoutes, projects } from "@unkey/db/src/schema";
 
 type ProjectRow = {
   id: string;
@@ -38,7 +38,7 @@ export const listProjects = t.procedure
         ${deployments.gitCommitAuthorHandle},
         ${deployments.gitCommitAuthorAvatarUrl},
         ${deployments.gitCommitTimestamp},
-        ${ingressRoutes.hostname},
+        ${frontlineRoutes.hostname},
         (
           SELECT id
           FROM ${deployments} d
@@ -51,8 +51,8 @@ export const listProjects = t.procedure
       LEFT JOIN ${deployments}
         ON ${projects.liveDeploymentId} = ${deployments.id}
         AND ${deployments.workspaceId} = ${ctx.workspace.id}
-      LEFT JOIN ${ingressRoutes}
-      ON ${projects.id} = ${ingressRoutes.projectId}
+      LEFT JOIN ${frontlineRoutes}
+      ON ${projects.id} = ${frontlineRoutes.projectId}
       WHERE ${projects.workspaceId} = ${ctx.workspace.id}
       ORDER BY ${projects.updatedAt} DESC
     `);

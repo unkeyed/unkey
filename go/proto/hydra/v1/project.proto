@@ -9,7 +9,7 @@ option go_package = "github.com/unkeyed/unkey/go/gen/proto/hydra/v1;hydrav1";
 service ProjectService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
-  // AssignIngressRoutes creates or reassigns ingress routes to a deployment
+  // AssignFrontlineRoutes creates or reassigns frontline routes to a deployment
   rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse) {}
 
 }

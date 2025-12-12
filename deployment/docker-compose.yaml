@@ -313,7 +313,7 @@ services:
     container_name: restate
     image: docker.io/restatedev/restate:1.5.3
     ports:
-      - "8081:8080" # Ingress endpoint (host:container)
+      - "8081:8080" # Frontline endpoint (host:container)
       - "9070:9070" # Admin endpoint and UI
     environment:
       RESTATE_TRACING_ENDPOINT: "http://otel:4317"

@@ -1,4 +1,4 @@
--- name: FindIngressRoutesForRollback :many
+-- name: FindFrontlineRoutesForRollback :many
 SELECT
     id,
     project_id,
@@ -8,7 +8,7 @@ SELECT
     sticky,
     created_at,
     updated_at
-FROM ingress_routes
+FROM frontline_routes
 WHERE
   environment_id = sqlc.arg(environment_id)
   AND sticky IN (sqlc.slice(sticky))

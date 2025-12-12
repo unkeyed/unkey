@@ -58,7 +58,7 @@ func main() {
 	allErrorCodes = append(allErrorCodes, processErrorDomain(f, "Unkey", "Auth", reflect.ValueOf(codes.Auth))...)
 	allErrorCodes = append(allErrorCodes, processErrorDomain(f, "Unkey", "Data", reflect.ValueOf(codes.Data))...)
 	allErrorCodes = append(allErrorCodes, processErrorDomain(f, "Unkey", "App", reflect.ValueOf(codes.App))...)
-	allErrorCodes = append(allErrorCodes, processErrorDomain(f, "Unkey", "Ingress", reflect.ValueOf(codes.Ingress))...)
+	allErrorCodes = append(allErrorCodes, processErrorDomain(f, "Unkey", "Frontline", reflect.ValueOf(codes.Frontline))...)
 
 	f.WriteString(")\n")
 
@@ -244,8 +244,8 @@ func generateMissingMDXFiles(errorCodes []ErrorCodeInfo) error {
 	skipped := 0
 
 	for _, errCode := range errorCodes {
-		// Skip sentinel and ingress errors (these are internal, not API errors)
-		if errCode.Domain == "Sentinel" || errCode.Domain == "Ingress" {
+		// Skip sentinel and frontline errors (these are internal, not API errors)
+		if errCode.Domain == "Sentinel" || errCode.Domain == "Frontline" {
 			skipped++
 			continue
 		}
@@ -309,8 +309,8 @@ func removeObsoleteMDXFiles(errorCodes []ErrorCodeInfo) error {
 	// Build a set of valid file paths from error codes
 	validPaths := make(map[string]bool)
 	for _, errCode := range errorCodes {
-		// Skip sentinel and ingress errors
-		if errCode.Domain == "Sentinel" || errCode.Domain == "Ingress" {
+		// Skip sentinel and frontline errors
+		if errCode.Domain == "Sentinel" || errCode.Domain == "Frontline" {
 			continue
 		}
 
@@ -438,8 +438,8 @@ func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
 	userCategories := make(map[string]*ErrorCategory)
 
 	for _, errCode := range errorCodes {
-		// Skip sentinel and ingress errors (these are internal, not API errors)
-		if errCode.Domain == "Sentinel" || errCode.Domain == "Ingress" {
+		// Skip sentinel and frontline errors (these are internal, not API errors)
+		if errCode.Domain == "Sentinel" || errCode.Domain == "Frontline" {
 			continue
 		}
 

@@ -9,22 +9,22 @@ import (
 	"context"
 )
 
-const findIngressRoutesByDeploymentID = `-- name: FindIngressRoutesByDeploymentID :many
-SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM ingress_routes WHERE deployment_id = ?
+const findFrontlineRoutesByDeploymentID = `-- name: FindFrontlineRoutesByDeploymentID :many
+SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
 `
 
-// FindIngressRoutesByDeploymentID
+// FindFrontlineRoutesByDeploymentID
 //
-//	SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM ingress_routes WHERE deployment_id = ?
-func (q *Queries) FindIngressRoutesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]IngressRoute, error) {
-	rows, err := db.QueryContext(ctx, findIngressRoutesByDeploymentID, deploymentID)
+//	SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
+func (q *Queries) FindFrontlineRoutesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]FrontlineRoute, error) {
+	rows, err := db.QueryContext(ctx, findFrontlineRoutesByDeploymentID, deploymentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []IngressRoute
+	var items []FrontlineRoute
 	for rows.Next() {
-		var i IngressRoute
+		var i FrontlineRoute
 		if err := rows.Scan(
 			&i.ID,
 			&i.ProjectID,

@@ -1,12 +1,12 @@
 ---
-title: "Ingress"
-description: "Run the Unkey Ingress server (multi-tenant ingress)"
+title: "Frontline"
+description: "Run the Unkey Frontline server (multi-tenant frontline)"
 ---
 
 ## Command Syntax
 
 ```bash
-unkey run ingress [flags]
+unkey run frontline [flags]
 ```
 
 <Banner type="warn">
@@ -16,7 +16,7 @@ Some flags are required for this command to work properly.
 ## Flags
 
 <Callout type="info" title="--http-port">
-HTTP port for the Ingress server to listen on. Default: 7070
+HTTP port for the Frontline server to listen on. Default: 7070
 
 - **Type:** integer
 - **Default:** `7070`
@@ -24,7 +24,7 @@ HTTP port for the Ingress server to listen on. Default: 7070
 </Callout>
 
 <Callout type="info" title="--https-port">
-HTTPS port for the Ingress server to listen on. Default: 7443
+HTTPS port for the Frontline server to listen on. Default: 7443
 
 - **Type:** integer
 - **Default:** `7443`
@@ -32,7 +32,7 @@ HTTPS port for the Ingress server to listen on. Default: 7443
 </Callout>
 
 <Callout type="info" title="--tls-enabled">
-Enable TLS termination for the ingress. Default: true
+Enable TLS termination for the frontline server. Default: true
 
 - **Type:** boolean
 - **Default:** `true`
@@ -61,12 +61,12 @@ Geographic region identifier. Used for logging and routing. Default: unknown
 - **Environment:** `UNKEY_REGION`, `AWS_REGION`
 </Callout>
 
-<Callout type="info" title="--ingress-id">
+<Callout type="info" title="--frontline-id">
 Unique identifier for this instance. Auto-generated if not provided.
 
 - **Type:** string
-- **Default:** `"ingress_AbC1"`
-- **Environment:** `UNKEY_GATE_ID`
+- **Default:** `"fl_AbC1"`
+- **Environment:** `UNKEY_FRONTLINE_ID`
 </Callout>
 
 <Callout type="info" title="--default-cert-domain">
@@ -85,14 +85,14 @@ Base domain for region routing. Cross-region requests forwarded to region.base-d
 </Callout>
 
 <Callout type="info" title="--database-primary (required)">
-MySQL connection string for partitioned primary database (ingress operations). Required. Example: user:pass@host:3306/partition_001?parseTime=true
+MySQL connection string for partitioned primary database (frontline operations). Required. Example: user:pass@host:3306/partition_001?parseTime=true
 
 - **Type:** string
 - **Environment:** `UNKEY_DATABASE_PRIMARY`
 </Callout>
 
 <Callout type="info" title="--database-replica">
-MySQL connection string for partitioned read-replica (ingress operations). Format same as database-primary.
+MySQL connection string for partitioned read-replica (frontline operations). Format same as database-primary.
 
 - **Type:** string
 - **Environment:** `UNKEY_DATABASE_REPLICA`
@@ -186,7 +186,7 @@ Generate and use self-signed certificate for *.unkey.local if it doesn't exist
 ### Production Deployment
 
 ```bash
-unkey run ingress \
+unkey run frontline \
   --region=us-east-1 \
   --base-domain=unkey.cloud \
   --database-primary="user:pass@db.us-east-1:3306/partition_001?parseTime=true" \
@@ -198,7 +198,7 @@ unkey run ingress \
 ### Local Development
 
 ```bash
-unkey run ingress \
+unkey run frontline \
   --region=local \
   --database-primary="root@localhost:3306/partition_001?parseTime=true" \
   --require-local-cert=true \

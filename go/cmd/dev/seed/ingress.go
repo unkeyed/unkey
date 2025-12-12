@@ -17,13 +17,13 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 )
 
-var ingressCmd = &cli.Command{
-	Name:  "ingress",
-	Usage: "Seed database with deployment, sentinel, instance, ingress route, and TLS certificate for testing ingress/sentinel",
+var frontlineCmd = &cli.Command{
+	Name:  "frontline",
+	Usage: "Seed database with deployment, sentinel, instance, frontline route, and TLS certificate for testing frontline/sentinel",
 	Flags: []cli.Flag{
 		cli.String("database-primary", "MySQL database DSN", cli.Default("unkey:password@tcp(127.0.0.1:3306)/unkey?parseTime=true&interpolateParams=true"), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
 		cli.String("slug", "Slug to match local seed (e.g., 'local' uses ws_local, proj_local, etc.)", cli.Default("local")),
-		cli.String("hostname", "Hostname for ingress route", cli.Default("unkey.local")),
+		cli.String("hostname", "Hostname for frontline route", cli.Default("unkey.local")),
 		cli.String("region", "Region for sentinel and instance", cli.Default("local")),
 		cli.String("address", "Address for instance (IP or hostname)", cli.Default("127.0.0.1:8787")),
 		cli.String("vault-s3-url", "Vault S3 URL", cli.Default("http://127.0.0.1:3902"), cli.EnvVar("UNKEY_VAULT_S3_URL")),
@@ -32,10 +32,10 @@ var ingressCmd = &cli.Command{
 		cli.String("vault-s3-access-key-secret", "Vault S3 access key secret", cli.Default("minio_root_password"), cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 		cli.String("vault-master-keys", "Vault master keys (comma-separated)", cli.Default("Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="), cli.EnvVar("UNKEY_VAULT_MASTER_KEYS")),
 	},
-	Action: seedIngress,
+	Action: seedFrontline,
 }
 
-func seedIngress(ctx context.Context, cmd *cli.Command) error {
+func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 	logger := logging.New()
 
 	database, err := db.New(db.Config{
@@ -80,7 +80,7 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	sentinelID := uid.New(uid.SentinelPrefix)
 	instanceID := uid.New(uid.InstancePrefix)
-	ingressRouteID := uid.New(uid.IngressRoutePrefix)
+	frontlineRouteID := uid.New(uid.FrontlineRoutePrefix)
 	certificateID := uid.New(uid.CertificatePrefix)
 
 	certPEM, keyPEM, err := generateMkcertCertificate(hostname)
@@ -156,18 +156,18 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create instance: %w", err)
 		}
 
-		err = db.Query.InsertIngressRoute(ctx, tx, db.InsertIngressRouteParams{
-			ID:            ingressRouteID,
+		err = db.Query.InsertFrontlineRoute(ctx, tx, db.InsertFrontlineRouteParams{
+			ID:            frontlineRouteID,
 			ProjectID:     projectID,
 			DeploymentID:  deploymentID,
 			EnvironmentID: envID,
 			Hostname:      hostname,
-			Sticky:        db.IngressRoutesStickyLive,
+			Sticky:        db.FrontlineRoutesStickyLive,
 			CreatedAt:     now,
 			UpdatedAt:     sql.NullInt64{},
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {
-			return fmt.Errorf("failed to create ingress route: %w", err)
+			return fmt.Errorf("failed to create frontline route: %w", err)
 		}
 
 		err = db.Query.InsertCertificate(ctx, tx, db.InsertCertificateParams{
@@ -193,7 +193,7 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 		"deployment", deploymentID,
 		"sentinel", sentinelID,
 		"instance", instanceID,
-		"ingressRoute", ingressRouteID,
+		"frontlineRoute", frontlineRouteID,
 		"certificate", certificateID,
 		"hostname", hostname,
 		"address", address,

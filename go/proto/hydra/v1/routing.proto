@@ -9,18 +9,18 @@ option go_package = "github.com/unkeyed/unkey/go/gen/proto/hydra/v1;hydrav1";
 service RoutingService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
-  // AssignIngressRoutes creates or reassigns ingress routes to a deployment
-  rpc AssignIngressRoutes(AssignIngressRoutesRequest) returns (AssignIngressRoutesResponse) {}
+  // AssignFrontlineRoutes creates or reassigns frontline routes to a deployment
+  rpc AssignFrontlineRoutes(AssignFrontlineRoutesRequest) returns (AssignFrontlineRoutesResponse) {}
 
 }
 
-message AssignIngressRoutesRequest {
+message AssignFrontlineRoutesRequest {
   string deployment_id = 1;
 
-  repeated string ingress_route_ids = 2;
+  repeated string frontline_route_ids = 2;
 
 }
 
-message AssignIngressRoutesResponse {
+message AssignFrontlineRoutesResponse {
 
 }

@@ -41,8 +41,8 @@ type AcmeConfig struct {
 }
 
 type RestateConfig struct {
-	// RestateIngressURL is the URL of the Restate ingress endpoint for invoking workflows (e.g., "http://restate:8080")
-	IngressURL string
+	// RestateFrontlineURL is the URL of the Restate frontline endpoint for invoking workflows (e.g., "http://restate:8080")
+	FrontlineURL string
 
 	// AdminURL is the URL of the Restate admin endpoint for service registration (e.g., "http://restate:9070")
 	AdminURL string

@@ -294,12 +294,12 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	existingRouteIDs := make([]string, 0)
 
 	for _, hostname := range allHostnames {
-		ingressRouteID, getIngressRouteErr := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
+		frontlineRouteID, getFrontlineRouteErr := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
 			return db.TxWithResult(stepCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
-				found, err := db.Query.FindIngressRouteByHostname(txCtx, tx, hostname.domain)
+				found, err := db.Query.FindFrontlineRouteByHostname(txCtx, tx, hostname.domain)
 				if err != nil {
 					if db.IsNotFound(err) {
-						err = db.Query.InsertIngressRoute(stepCtx, tx, db.InsertIngressRouteParams{
+						err = db.Query.InsertFrontlineRoute(stepCtx, tx, db.InsertFrontlineRouteParams{
 							ID:            uid.New("todo"),
 							ProjectID:     project.ID,
 							DeploymentID:  deployment.ID,
@@ -309,7 +309,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 							CreatedAt:     time.Now().UnixMilli(),
 							UpdatedAt:     sql.NullInt64{Valid: false, Int64: 0},
 						})
-						// return empty string cause this ingress is already updated since we just created it
+						// return empty string cause this frontline is already updated since we just created it
 						return "", err
 
 					}
@@ -319,19 +319,19 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 			})
 		})
-		if getIngressRouteErr != nil {
-			return nil, getIngressRouteErr
+		if getFrontlineRouteErr != nil {
+			return nil, getFrontlineRouteErr
 		}
-		if ingressRouteID != "" {
-			existingRouteIDs = append(existingRouteIDs, ingressRouteID)
+		if frontlineRouteID != "" {
+			existingRouteIDs = append(existingRouteIDs, frontlineRouteID)
 		}
 	}
 
 	// Call RoutingService to assign domains atomically
 	_, err = hydrav1.NewRoutingServiceClient(ctx, project.ID).
-		AssignIngressRoutes().Request(&hydrav1.AssignIngressRoutesRequest{
-		DeploymentId:    deployment.ID,
-		IngressRouteIds: existingRouteIDs,
+		AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
+		DeploymentId:      deployment.ID,
+		FrontlineRouteIds: existingRouteIDs,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to assign domains: %w", err)

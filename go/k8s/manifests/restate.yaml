@@ -35,7 +35,7 @@ spec:
           image: docker.io/restatedev/restate:1.5.3
           ports:
             - containerPort: 8080
-              name: ingress
+              name: frontline
             - containerPort: 9070
               name: admin
           volumeMounts:
@@ -73,7 +73,7 @@ spec:
   selector:
     app: restate
   ports:
-    - name: ingress
+    - name: frontline
       port: 8080
       targetPort: 8080
       protocol: TCP
