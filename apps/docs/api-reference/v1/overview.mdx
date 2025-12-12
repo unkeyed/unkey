@@ -8,9 +8,9 @@ description: General information about the API.
 <Danger>
 **Root Key Permissions Required for v2 Key Verification**
 
-If you are migrating to the v2 API, you **must** update your root key to include the `api.*.verify_key` permission (or a specific `api.<API_ID>.verify_key` permission) to verify keys. Without this permission, your key verification requests will fail.
+You **must** update your root key to include the `api.<API_ID>.verify_key` permission to verify keys in v2.
 
-[Learn more about setting up root key permissions for key verification →](/api-reference/v1/migration/keys#understanding-v2-root-key-permissions-for-key-verification)
+[Learn more](/api-reference/v1/migration/keys#understanding-v2-root-key-permissions-for-key-verification)
 </Danger>
 
 The Unkey API uses HTTP RPC-style methods and generally follow the schema:

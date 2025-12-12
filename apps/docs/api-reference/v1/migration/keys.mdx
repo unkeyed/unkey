@@ -173,28 +173,12 @@ Key management endpoints are the core of the Unkey API, handling creation, verif
 - Response format: Direct response → `{meta, data}` envelope
 
 <Danger>
-  **Action Required: Update Your Root Key Permissions**
+**Action Required: Update Your Root Key Permissions**
 
-  The v2 API requires root key authentication with the `api.*.verify_key` permission for key verification. **Your verification requests will fail if your root key does not have this permission.**
+Your root key must have the `api.<API_ID>.verify_key` permission for v2 key verification.
 
-  Before migrating, ensure your root key has one of these permissions:
-  - `api.*.verify_key` - Verify keys from any API in your workspace
-  - `api.<API_ID>.verify_key` - Verify keys only from a specific API
-
-  You can update your root key permissions in the [Unkey Dashboard](https://app.unkey.com).
+[Learn more](#understanding-v2-root-key-permissions-for-key-verification)
 </Danger>
-
-<Note>
-  **Understanding the Authentication Change**
-
-  In v1, key verification was unauthenticated. In v2, all verification requests must include a root key with appropriate permissions. This enables fine-grained access control:
-
-  - **Wildcard permission**: `api.*.verify_key` allows verifying keys from any API in your workspace
-  - **Specific API permission**: `api.api_123.verify_key` allows verifying only keys from API `api_123`
-  - **No apiId parameter**: Unlike v1, you cannot specify which API's keys to verify - this is controlled by the root key's permissions
-
-  This change improves security by ensuring only authorized services can verify keys, and provides workspace owners control over which services can verify keys from which APIs.
-</Note>
 
 **Simple Key Verification**
 
@@ -393,25 +377,10 @@ The v2 `keys.verifyKey` endpoint introduces a powerful permission system that gi
 
 ### Setting Up Root Key Permissions
 
-When creating a root key for key verification, you need to grant it the appropriate `api.*.verify_key` permission:
+When creating a root key for key verification, you need to grant it the appropriate `verify_key` permission for your API:
 
 <Tabs>
-  <Tab title="Wildcard Permission (All APIs)">
-    ```json Root Key with Permission to Verify Any API Key icon=key
-    {
-      "name": "Service Authentication Key",
-      "permissions": [
-        {
-          "name": "api.*.verify_key",
-          "description": "Allow verification of keys from any API in the workspace"
-        }
-      ]
-    }
-    ```
-
-    This root key can verify keys from any API in your workspace. Use this for services that need to authenticate users across multiple APIs.
-  </Tab>
-  <Tab title="Specific API Permission">
+  <Tab title="Specific API Permission (Recommended)">
     ```json Root Key with Permission for Specific API icon=shield
     {
       "name": "Production API Verification Key",
@@ -436,7 +405,7 @@ When creating a root key for key verification, you need to grant it the appropri
           "description": "Verify keys from Production API"
         },
         {
-          "name": "api.api_staging456.verify_key", 
+          "name": "api.api_staging456.verify_key",
           "description": "Verify keys from Staging API"
         }
       ]
@@ -444,6 +413,21 @@ When creating a root key for key verification, you need to grant it the appropri
     ```
 
     This root key can verify keys from multiple specific APIs. Use this when you need to authenticate users from several APIs but not all APIs in the workspace.
+  </Tab>
+  <Tab title="Wildcard Permission (All APIs)">
+    ```json Root Key with Permission to Verify Any API Key icon=key
+    {
+      "name": "Service Authentication Key",
+      "permissions": [
+        {
+          "name": "api.*.verify_key",
+          "description": "Allow verification of keys from any API in the workspace"
+        }
+      ]
+    }
+    ```
+
+    This root key can verify keys from any API in your workspace. Only use this if you specifically need to authenticate users across all APIs.
   </Tab>
 </Tabs>
 
