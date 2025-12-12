@@ -25,7 +25,7 @@ properties:
     example: key_1234abcd
   externalId:
     type: string
-    minLength: 3
+    minLength: 1
     description: |
       Filter keys by external ID to find keys for a specific user or entity.
       Must exactly match the externalId set during key creation.
