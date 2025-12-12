@@ -1,16 +1,14 @@
-import { RatelimitSetup } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/ratelimit-setup";
-import {
-  type RatelimitFormValues,
-  ratelimitSchema,
-} from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
+import { RatelimitSetup } from "@/components/dashboard/ratelimits/ratelimit-setup";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
+import { useEditRatelimits } from "@/hooks/use-edit-ratelimits";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
+import type { RatelimitFormValues } from "@/lib/schemas/ratelimit";
+import { ratelimitSchema } from "@/lib/schemas/ratelimit";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer } from "@unkey/ui";
 import { useEffect } from "react";
 import { FormProvider } from "react-hook-form";
-import { useEditRatelimits } from "../hooks/use-edit-ratelimits";
 import { KeyInfo } from "../key-info";
 import { getKeyRatelimitsDefaults } from "./utils";
 
@@ -49,7 +47,7 @@ export const EditRatelimits = ({ keyDetails, isOpen, onClose }: EditRatelimitsPr
     }
   }, [isOpen, loadSavedValues]);
 
-  const key = useEditRatelimits(() => {
+  const key = useEditRatelimits("key", () => {
     reset(getKeyRatelimitsDefaults(keyDetails));
     clearPersistedData();
     onClose();
@@ -59,10 +57,7 @@ export const EditRatelimits = ({ keyDetails, isOpen, onClose }: EditRatelimitsPr
     try {
       await key.mutateAsync({
         keyId: keyDetails.id,
-        ratelimit: {
-          enabled: data.ratelimit.enabled,
-          data: data.ratelimit.data,
-        },
+        ratelimit: data.ratelimit,
       });
     } catch {
       // `useEditRatelimits` already shows a toast, but we still need to
