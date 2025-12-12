@@ -172,10 +172,22 @@ Key management endpoints are the core of the Unkey API, handling creation, verif
 - Add support for multiple named rate limits
 - Response format: Direct response → `{meta, data}` envelope
 
-<Note>
-  **Major Authentication Change in v2**
+<Danger>
+  **Action Required: Update Your Root Key Permissions**
 
-  The biggest change in v2 is that key verification now requires authentication with a root key that has the `api.*.verify_key` permission. This enables fine-grained access control:
+  The v2 API requires root key authentication with the `api.*.verify_key` permission for key verification. **Your verification requests will fail if your root key does not have this permission.**
+
+  Before migrating, ensure your root key has one of these permissions:
+  - `api.*.verify_key` - Verify keys from any API in your workspace
+  - `api.<API_ID>.verify_key` - Verify keys only from a specific API
+
+  You can update your root key permissions in the [Unkey Dashboard](https://app.unkey.com).
+</Danger>
+
+<Note>
+  **Understanding the Authentication Change**
+
+  In v1, key verification was unauthenticated. In v2, all verification requests must include a root key with appropriate permissions. This enables fine-grained access control:
 
   - **Wildcard permission**: `api.*.verify_key` allows verifying keys from any API in your workspace
   - **Specific API permission**: `api.api_123.verify_key` allows verifying only keys from API `api_123`
