@@ -20,6 +20,10 @@ func WithErrorHandling(logger logging.Logger) Middleware {
 				return nil
 			}
 
+			// Store the internal error message for metrics logging before we
+			// convert it to an HTTP response and lose the details.
+			s.SetInternalError(fault.InternalMessage(err))
+
 			// Get the error URN from the error
 			urn, ok := fault.GetCode(err)
 			if !ok {
