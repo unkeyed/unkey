@@ -21,11 +21,12 @@ func TestKeyDeleteNotFound(t *testing.T) {
 	ctx := t.Context()
 
 	route := &handler.Handler{
-		DB:        h.DB,
-		Keys:      h.Keys,
-		Logger:    h.Logger,
-		Auditlogs: h.Auditlogs,
-		KeyCache:  h.Caches.VerificationKeyByHash,
+		DB:           h.DB,
+		Keys:         h.Keys,
+		Logger:       h.Logger,
+		Auditlogs:    h.Auditlogs,
+		KeyCache:     h.Caches.VerificationKeyByHash,
+		LiveKeyCache: h.Caches.LiveKeyByID,
 	}
 
 	h.Register(route)

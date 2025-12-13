@@ -11,9 +11,11 @@ import (
 	"github.com/unkeyed/unkey/go/apps/api/openapi"
 	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/go/internal/services/caches"
 	"github.com/unkeyed/unkey/go/internal/services/keys"
 
 	"github.com/unkeyed/unkey/go/pkg/auditlog"
+	"github.com/unkeyed/unkey/go/pkg/cache"
 	"github.com/unkeyed/unkey/go/pkg/codes"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/fault"
@@ -30,11 +32,13 @@ type (
 )
 
 type Handler struct {
-	Logger    logging.Logger
-	DB        db.Database
-	Keys      keys.KeyService
-	Auditlogs auditlogs.AuditLogService
-	Vault     *vault.Service
+	Logger       logging.Logger
+	DB           db.Database
+	Keys         keys.KeyService
+	Auditlogs    auditlogs.AuditLogService
+	Vault        *vault.Service
+	KeyCache     cache.Cache[string, db.CachedKeyData]
+	LiveKeyCache cache.Cache[string, db.FindLiveKeyByIDRow]
 }
 
 // Method returns the HTTP method this route responds to
@@ -63,7 +67,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
+	key, _, err := h.LiveKeyCache.SWR(ctx, req.KeyId, func(ctx context.Context) (db.FindLiveKeyByIDRow, error) {
+		return db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
+	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("key not found",
@@ -361,6 +367,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+
+	h.KeyCache.Remove(ctx, key.Hash)
+	h.LiveKeyCache.Remove(ctx, key.ID)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

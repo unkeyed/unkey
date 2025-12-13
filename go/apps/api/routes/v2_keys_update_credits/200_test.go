@@ -29,6 +29,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		Keys:         h.Keys,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
+		LiveKeyCache: h.Caches.LiveKeyByID,
 		UsageLimiter: h.UsageLimiter,
 	}
 
