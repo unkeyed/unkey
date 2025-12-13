@@ -11,7 +11,7 @@
     "ctrl",
     "deploy",
     "frontline",
-    "gateway",
+    "sentinel",
     "healthcheck",
     "krane",
     "krane-sync-engine",
