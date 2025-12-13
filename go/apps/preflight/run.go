@@ -1,4 +1,4 @@
-package webhook
+package preflight
 
 import (
 	"context"
@@ -9,10 +9,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/unkeyed/unkey/go/apps/secrets-webhook/internal/services/mutator"
-	"github.com/unkeyed/unkey/go/apps/secrets-webhook/internal/services/registry"
-	"github.com/unkeyed/unkey/go/apps/secrets-webhook/routes/healthz"
-	"github.com/unkeyed/unkey/go/apps/secrets-webhook/routes/mutate"
+	"github.com/unkeyed/unkey/go/apps/preflight/internal/services/cleanup"
+	"github.com/unkeyed/unkey/go/apps/preflight/internal/services/mutator"
+	"github.com/unkeyed/unkey/go/apps/preflight/internal/services/registry"
+	"github.com/unkeyed/unkey/go/apps/preflight/internal/services/registry/credentials"
+	"github.com/unkeyed/unkey/go/apps/preflight/routes/healthz"
+	"github.com/unkeyed/unkey/go/apps/preflight/routes/mutate"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/tls"
 	"github.com/unkeyed/unkey/go/pkg/zen"
@@ -23,7 +25,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
-	logger := logging.New().With(slog.String("service", "secrets-webhook"))
+	logger := logging.New().With(slog.String("service", "preflight"))
 
 	inClusterConfig, err := rest.InClusterConfig()
 	if err != nil {
@@ -35,7 +37,22 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create Kubernetes clientset: %w", err)
 	}
 
-	reg := registry.New(logger, clientset)
+	// Set up registry credentials manager
+	var registries []credentials.Registry
+	if cfg.DepotToken != "" {
+		registries = append(registries, credentials.NewDepot(&credentials.DepotConfig{
+			Logger: logger,
+			Token:  cfg.DepotToken,
+		}))
+		logger.Info("depot registry configured for on-demand pull tokens")
+	}
+	credentialsManager := credentials.NewManager(registries...)
+
+	reg := registry.New(registry.Config{
+		Logger:      logger,
+		Clientset:   clientset,
+		Credentials: credentialsManager,
+	})
 
 	tlsConfig, err := tls.NewFromFiles(cfg.TLSCertFile, cfg.TLSKeyFile)
 	if err != nil {
@@ -51,12 +68,16 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create server: %w", err)
 	}
 
-	m := mutator.New(&mutator.Config{
+	m := mutator.New(mutator.Config{
+		Logger:                  logger,
+		Registry:                reg,
+		Clientset:               clientset,
+		Credentials:             credentialsManager,
 		UnkeyEnvImage:           cfg.UnkeyEnvImage,
 		UnkeyEnvImagePullPolicy: cfg.UnkeyEnvImagePullPolicy,
 		AnnotationPrefix:        cfg.AnnotationPrefix,
 		DefaultProviderEndpoint: cfg.KraneEndpoint,
-	}, logger, reg)
+	})
 
 	middlewares := []zen.Middleware{
 		zen.WithPanicRecovery(logger),
@@ -69,12 +90,19 @@ func Run(ctx context.Context, cfg Config) error {
 		Mutator: m,
 	})
 
+	// Start background cleanup of expired pull secrets
+	cleanupService := cleanup.New(&cleanup.Config{
+		Logger:    logger,
+		Clientset: clientset,
+	})
+	go cleanupService.Start(ctx)
+
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("failed to listen on %s: %w", addr, err)
 	}
 
-	logger.Info("starting secrets webhook server", "addr", addr)
+	logger.Info("starting preflight server", "addr", addr)
 	return server.Serve(ctx, ln)
 }

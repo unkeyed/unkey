@@ -15,6 +15,7 @@ Ingress is the multi-tenant HTTP ingress service that serves as the entry point 
 It handles TLS termination, hostname-based routing, and proxying requests to environment-scoped gateways.
 
 Ingress handles four main responsibilities:
+
 1. **TLS Termination**: Terminates TLS for custom domains using ACME (Let's Encrypt) or local certificates
 2. **Hostname Routing**: Looks up ingress routes by hostname to find the target deployment and environment
 3. **Gateway Selection**: Routes requests to the appropriate environment-scoped gateway
@@ -50,6 +51,7 @@ Ingress is a multi-tenant service running as a Kubernetes Deployment behind a Ne
         Ingress->>NLB: Forward to region NLB (with hop++)
         Note over Ingress: Remote region handles request
     end
+
 `} />
 
 ## Database Schema
@@ -130,6 +132,7 @@ gatewayAddress := fmt.Sprintf("gateway-%s.%s.svc.cluster.local:8080",
 ### Routing Strategy
 
 Ingress routes based on:
+
 - `environment_id` from the ingress route lookup
 - Gateway service discovery via Kubernetes DNS
 - Current region (for local vs cross-region routing)
@@ -139,6 +142,7 @@ If no local gateway is found, Ingress forwards to the region's NLB, triggering c
 ### Request Headers
 
 Ingress passes metadata to the Gateway via HTTP headers:
+
 - `X-Deployment-ID`: The target deployment ID
 - `X-Environment-ID`: The environment ID (for validation)
 - `X-Unkey-Hop-Count`: Hop count for cross-region loop prevention
@@ -177,7 +181,7 @@ func (p *ProxyService) ForwardToNLB(ctx context.Context, region string, r *http.
     // Build target URL
     targetURL := fmt.Sprintf("https://%s.%s%s",
         region,           // e.g., "us-west-2"
-        p.cfg.BaseDomain, // e.g., "unkey.cloud"
+        p.BaseDomain, // e.g., "unkey.cloud"
         r.URL.Path,
     )
 
@@ -189,6 +193,7 @@ func (p *ProxyService) ForwardToNLB(ctx context.Context, region string, r *http.
 ### Why NLB Instead of Direct Gateway?
 
 Forwarding to the region's NLB (instead of directly to a remote gateway) provides:
+
 - **Load balancing**: NLB distributes across available Ingress instances in the target region
 - **Health checking**: NLB only routes to healthy Ingress replicas
 - **Simplicity**: No need for cross-region gateway discovery
@@ -220,6 +225,7 @@ const (
 ## Observability
 
 Ingress uses structured logging for:
+
 - Hostname lookups and routing decisions
 - Gateway discovery and selection
 - Proxy operations (success/failure)
@@ -237,6 +243,7 @@ Ingress uses structured logging for:
 ### Scalability
 
 Ingress is designed to scale horizontally:
+
 - **Stateless**: No persistent state, all routing from database
 - **Database-driven**: Routing decisions from MySQL lookups (indexed on hostname)
 - **Minimal processing**: Pure proxy layer, no business logic execution

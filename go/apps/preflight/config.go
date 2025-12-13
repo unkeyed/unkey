@@ -1,4 +1,4 @@
-package webhook
+package preflight
 
 import "github.com/unkeyed/unkey/go/pkg/assert"
 
@@ -10,6 +10,7 @@ type Config struct {
 	UnkeyEnvImagePullPolicy string
 	KraneEndpoint           string
 	AnnotationPrefix        string
+	DepotToken              string
 }
 
 func (c *Config) Validate() error {

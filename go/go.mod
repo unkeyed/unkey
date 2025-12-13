@@ -15,7 +15,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.21
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.84.1
 	github.com/bytedance/sonic v1.14.2
-	github.com/depot/depot-go v0.5.1
+	github.com/depot/depot-go v0.5.2
 	github.com/docker/cli v29.0.3+incompatible
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/go-connections v0.6.0

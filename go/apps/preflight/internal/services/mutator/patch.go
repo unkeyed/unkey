@@ -8,15 +8,10 @@ import (
 )
 
 func (m *Mutator) buildInitContainer() corev1.Container {
-	pullPolicy := corev1.PullIfNotPresent
-	if m.cfg.UnkeyEnvImagePullPolicy != "" {
-		pullPolicy = corev1.PullPolicy(m.cfg.UnkeyEnvImagePullPolicy)
-	}
-
 	return corev1.Container{
 		Name:            "copy-unkey-env",
-		Image:           m.cfg.UnkeyEnvImage,
-		ImagePullPolicy: pullPolicy,
+		Image:           m.unkeyEnvImage,
+		ImagePullPolicy: corev1.PullPolicy(m.unkeyEnvImagePullPolicy),
 		Command:         []string{"cp", "/unkey-env", unkeyEnvBinary},
 		VolumeMounts: []corev1.VolumeMount{
 			{
@@ -45,6 +40,7 @@ func (m *Mutator) buildContainerPatches(
 	podSpec *corev1.PodSpec,
 	namespace string,
 	podCfg *podConfig,
+	buildID string,
 ) ([]map[string]interface{}, error) {
 	var patches []map[string]interface{}
 	basePath := fmt.Sprintf("/spec/containers/%d", containerIndex)
@@ -96,7 +92,7 @@ func (m *Mutator) buildContainerPatches(
 			"image", container.Image,
 		)
 
-		imageConfig, err := m.registry.GetImageConfig(ctx, namespace, container, podSpec)
+		imageConfig, err := m.registry.GetImageConfig(ctx, namespace, container, podSpec, buildID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get image config for %s: %w", container.Image, err)
 		}
@@ -110,7 +106,6 @@ func (m *Mutator) buildContainerPatches(
 	}
 
 	args = append(args, container.Args...)
-
 	patches = append(patches, map[string]interface{}{
 		"op":    "add",
 		"path":  fmt.Sprintf("%s/command", basePath),

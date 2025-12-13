@@ -1,23 +1,23 @@
 ---
-# ServiceAccount for the secrets-webhook
+# ServiceAccount for the preflight
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: secrets-webhook
+  name: preflight
   namespace: unkey
 ---
 # ClusterRole for the webhook to read pods and registry auth
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: secrets-webhook
+  name: preflight
 rules:
   - apiGroups: [""]
     resources: ["pods"]
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources: ["secrets"]
-    verbs: ["get", "list"]
+    verbs: ["get", "list", "create", "delete"]
   - apiGroups: [""]
     resources: ["serviceaccounts"]
     verbs: ["get"]
@@ -26,44 +26,44 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: secrets-webhook
+  name: preflight
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: secrets-webhook
+  name: preflight
 subjects:
   - kind: ServiceAccount
-    name: secrets-webhook
+    name: preflight
     namespace: unkey
 ---
 # TLS Secret for webhook is created by Tiltfile (local dev) or cert-manager (production)
-# For manual setup: mkcert -cert-file tls.crt -key-file tls.key secrets-webhook.unkey.svc secrets-webhook.unkey.svc.cluster.local
-#                   kubectl create secret tls secrets-webhook-tls -n unkey --cert=tls.crt --key=tls.key
+# For manual setup: mkcert -cert-file tls.crt -key-file tls.key preflight.unkey.svc preflight.unkey.svc.cluster.local
+#                   kubectl create secret tls preflight-tls -n unkey --cert=tls.crt --key=tls.key
 ---
-# Deployment for the secrets-webhook
+# Deployment for the preflight
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: secrets-webhook
+  name: preflight
   namespace: unkey
   labels:
-    app: secrets-webhook
+    app: preflight
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: secrets-webhook
+      app: preflight
   template:
     metadata:
       labels:
-        app: secrets-webhook
+        app: preflight
     spec:
-      serviceAccountName: secrets-webhook
+      serviceAccountName: preflight
       containers:
         - name: webhook
-          image: unkey-secrets-webhook:latest
+          image: unkey-preflight:latest
           imagePullPolicy: IfNotPresent
-          command: ["/unkey", "run", "secrets-webhook"]
+          command: ["/unkey", "run", "preflight"]
           env:
             - name: WEBHOOK_PORT
               value: "8443"
@@ -74,9 +74,14 @@ spec:
             - name: UNKEY_ENV_IMAGE
               value: "unkey-env:latest"
             - name: UNKEY_ENV_IMAGE_PULL_POLICY
-              value: "Never"  # Local dev uses pre-loaded images; use IfNotPresent in prod
+              value: "Never" # Local dev uses pre-loaded images; use IfNotPresent in prod
             - name: KRANE_ENDPOINT
               value: "http://krane.unkey.svc.cluster.local:8080"
+            - name: UNKEY_DEPOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: depot-credentials
+                  key: token
           ports:
             - containerPort: 8443
               name: https
@@ -108,17 +113,17 @@ spec:
       volumes:
         - name: tls-certs
           secret:
-            secretName: secrets-webhook-tls
+            secretName: preflight-tls
 ---
 # Service for the webhook
 apiVersion: v1
 kind: Service
 metadata:
-  name: secrets-webhook
+  name: preflight
   namespace: unkey
 spec:
   selector:
-    app: secrets-webhook
+    app: preflight
   ports:
     - port: 443
       targetPort: 8443
@@ -130,12 +135,12 @@ spec:
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: secrets-webhook
+  name: preflight
 webhooks:
-  - name: secrets.unkey.com
+  - name: preflight.unkey.com
     clientConfig:
       service:
-        name: secrets-webhook
+        name: preflight
         namespace: unkey
         path: /mutate
         port: 443
@@ -158,6 +163,6 @@ webhooks:
           values: ["true"]
     failurePolicy: Ignore
     reinvocationPolicy: Never
-    sideEffects: None
+    sideEffects: NoneOnDryRun
     admissionReviewVersions: ["v1"]
     timeoutSeconds: 10

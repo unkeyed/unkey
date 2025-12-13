@@ -91,13 +91,21 @@ export function AddEnvVars({
   ]);
 
   useEffect(() => {
-    containerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    containerRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+    });
   }, []);
 
   const isSubmitting = createMutation.isLoading;
 
   const addEntry = () => {
-    const newEntry = { id: crypto.randomUUID(), key: "", value: "", type: "recoverable" as const };
+    const newEntry = {
+      id: crypto.randomUUID(),
+      key: "",
+      value: "",
+      type: "recoverable" as const,
+    };
     setEntries([...entries, newEntry]);
     setTimeout(() => {
       keyInputRefs.current.get(newEntry.id)?.focus();
@@ -199,7 +207,9 @@ export function AddEnvVars({
 
     toast.promise(mutation, {
       loading: "Adding environment variables...",
-      success: `Added ${validEntries.length} environment variable${validEntries.length > 1 ? "s" : ""}`,
+      success: `Added ${validEntries.length} environment variable${
+        validEntries.length > 1 ? "s" : ""
+      }`,
       error: (err) => ({
         message: "Failed to add environment variables",
         description: err.message || "Please try again",

@@ -33,7 +33,7 @@ start_ctrl = 'all' in services or 'ctrl' in services
 start_krane = 'all' in services or 'krane' in services
 start_dashboard = 'all' in services or 'dashboard' in services
 start_agent = 'all' in services or 'agent' in services
-start_secrets_webhook = 'all' in services or 'secrets-webhook' in services
+start_preflight = 'all' in services or 'preflight' in services
 
 # Apply RBAC
 k8s_yaml('k8s/manifests/rbac.yaml')
@@ -145,7 +145,7 @@ if start_observability:
     )
 
 # Build Unkey binary locally (independent of infrastructure)
-if start_api or start_ctrl or start_krane or start_secrets_webhook:
+if start_api or start_ctrl or start_krane or start_preflight:
     print("Building Unkey binary...")
     # Build locally first for faster updates
     local_resource(
@@ -258,20 +258,20 @@ if start_krane:
         trigger_mode=TRIGGER_MODE_AUTO
     )
 
-# Secrets Webhook (mutating admission controller for secrets injection)
-if start_secrets_webhook:
-    print("Setting up Secrets Webhook...")
+# Preflight (mutating admission controller for secrets and credentials injection)
+if start_preflight:
+    print("Setting up Preflight webhook...")
 
     # Generate TLS certs for the webhook (mkcert must be installed)
     local_resource(
-        'secrets-webhook-tls',
+        'preflight-tls',
         '''
-        mkcert -cert-file /tmp/secrets-webhook-tls.crt -key-file /tmp/secrets-webhook-tls.key \
-            secrets-webhook.unkey.svc secrets-webhook.unkey.svc.cluster.local && \
-        kubectl delete secret secrets-webhook-tls -n unkey --ignore-not-found && \
-        kubectl create secret tls secrets-webhook-tls -n unkey \
-            --cert=/tmp/secrets-webhook-tls.crt --key=/tmp/secrets-webhook-tls.key && \
-        rm /tmp/secrets-webhook-tls.crt /tmp/secrets-webhook-tls.key
+        mkcert -cert-file /tmp/preflight-tls.crt -key-file /tmp/preflight-tls.key \
+            preflight.unkey.svc preflight.unkey.svc.cluster.local && \
+        kubectl delete secret preflight-tls -n unkey --ignore-not-found && \
+        kubectl create secret tls preflight-tls -n unkey \
+            --cert=/tmp/preflight-tls.crt --key=/tmp/preflight-tls.key && \
+        rm /tmp/preflight-tls.crt /tmp/preflight-tls.key
         ''',
         labels=['unkey'],
     )
@@ -286,24 +286,24 @@ if start_secrets_webhook:
     )
 
     docker_build_with_restart(
-        'unkey-secrets-webhook:latest',
+        'unkey-preflight:latest',
         '.',
         dockerfile='Dockerfile.tilt',
-        entrypoint=['/unkey', 'run', 'secrets-webhook'],
+        entrypoint=['/unkey', 'run', 'preflight'],
         only=['./bin'],
         live_update=[
             sync('./bin/unkey', '/unkey'),
         ],
     )
 
-    k8s_yaml('k8s/manifests/secrets-webhook.yaml')
+    k8s_yaml('k8s/manifests/preflight.yaml')
 
-    secrets_webhook_deps = ['unkey-compile', 'secrets-webhook-tls', 'unkey-env']
-    if start_krane: secrets_webhook_deps.append('krane')
+    preflight_deps = ['unkey-compile', 'preflight-tls', 'unkey-env']
+    if start_krane: preflight_deps.append('krane')
 
     k8s_resource(
-        'secrets-webhook',
-        resource_deps=secrets_webhook_deps,
+        'preflight',
+        resource_deps=preflight_deps,
         labels=['unkey'],
         auto_init=True,
         trigger_mode=TRIGGER_MODE_AUTO
@@ -375,7 +375,7 @@ if start_restate: active_services.append('restate')
 if start_api: active_services.append('api')
 if start_ctrl: active_services.append('ctrl')
 if start_krane: active_services.append('krane')
-if start_secrets_webhook: active_services.append('secrets-webhook')
+if start_preflight: active_services.append('preflight')
 if start_dashboard: active_services.append('dashboard')
 if start_agent: active_services.append('agent')
 

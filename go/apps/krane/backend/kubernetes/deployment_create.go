@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"strings"
 
 	"connectrpc.com/connect"
 	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
@@ -102,22 +101,13 @@ func (k *k8s) CreateDeployment(ctx context.Context, req *connect.Request[kranev1
 						},
 						Annotations: map[string]string{
 							"unkey.com/deployment-id": req.Msg.GetDeployment().GetDeploymentId(),
+							"unkey.com/build-id":      req.Msg.GetDeployment().GetBuildId(),
 						},
 					},
 					Spec: corev1.PodSpec{
 						ServiceAccountName:           "customer-workload",
 						AutomountServiceAccountToken: ptr.P(true),
-						ImagePullSecrets: func() []corev1.LocalObjectReference {
-							if strings.HasPrefix(req.Msg.GetDeployment().GetImage(), "registry.depot.dev/") {
-								return []corev1.LocalObjectReference{
-									{
-										Name: "depot-registry",
-									},
-								}
-							}
-							return nil
-						}(),
-						RestartPolicy: corev1.RestartPolicyAlways,
+						RestartPolicy:                corev1.RestartPolicyAlways,
 						Containers: []corev1.Container{
 							{
 								Name:  "todo",

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"runtime"
 
+	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -12,6 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/unkeyed/unkey/go/apps/preflight/internal/services/registry/credentials"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
@@ -22,15 +24,23 @@ type ImageConfig struct {
 	Cmd        []string
 }
 
-type Registry struct {
-	logger    logging.Logger
-	clientset kubernetes.Interface
+type Config struct {
+	Logger      logging.Logger
+	Clientset   kubernetes.Interface
+	Credentials *credentials.Manager
 }
 
-func New(logger logging.Logger, clientset kubernetes.Interface) *Registry {
+type Registry struct {
+	logger      logging.Logger
+	clientset   kubernetes.Interface
+	credentials *credentials.Manager
+}
+
+func New(cfg Config) *Registry {
 	return &Registry{
-		logger:    logger,
-		clientset: clientset,
+		logger:      cfg.Logger,
+		clientset:   cfg.Clientset,
+		credentials: cfg.Credentials,
 	}
 }
 
@@ -39,30 +49,55 @@ func (r *Registry) GetImageConfig(
 	namespace string,
 	container *corev1.Container,
 	podSpec *corev1.PodSpec,
+	buildID string,
 ) (*ImageConfig, error) {
-	//nolint:exhaustruct // k8schain has many optional fields
-	chainOpts := k8schain.Options{
-		Namespace:          namespace,
-		ServiceAccountName: podSpec.ServiceAccountName,
-	}
-	for _, secret := range podSpec.ImagePullSecrets {
-		chainOpts.ImagePullSecrets = append(chainOpts.ImagePullSecrets, secret.Name)
-	}
-
-	authChain, err := k8schain.New(ctx, r.clientset, chainOpts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create k8s auth chain: %w", err)
-	}
-
 	ref, err := name.ParseReference(container.Image)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse image reference %q: %w", container.Image, err)
 	}
 
-	options := []remote.Option{
-		remote.WithAuthFromKeychain(authChain),
-		remote.WithContext(ctx),
+	// Try to get credentials from our credentials manager first (for private registries like Depot)
+	var options []remote.Option
+	if r.credentials != nil && r.credentials.Matches(container.Image) {
+		dockerConfig, credErr := r.credentials.GetCredentials(ctx, container.Image, buildID)
+		if credErr != nil {
+			return nil, fmt.Errorf("failed to get credentials for %q: %w", container.Image, credErr)
+		}
+		if dockerConfig != nil {
+			// Use credentials from our manager
+			for registry, auth := range dockerConfig.Auths {
+				r.logger.Debug("using credentials from manager",
+					"image", container.Image,
+					"registry", registry,
+				)
+				options = append(options, remote.WithAuth(&authn.Basic{
+					Username: auth.Username,
+					Password: auth.Password,
+				}))
+				break // Only need one auth
+			}
+		}
 	}
+
+	// Fall back to k8schain for other registries
+	if len(options) == 0 {
+		//nolint:exhaustruct // k8schain has many optional fields
+		chainOpts := k8schain.Options{
+			Namespace:          namespace,
+			ServiceAccountName: podSpec.ServiceAccountName,
+		}
+		for _, secret := range podSpec.ImagePullSecrets {
+			chainOpts.ImagePullSecrets = append(chainOpts.ImagePullSecrets, secret.Name)
+		}
+
+		authChain, chainErr := k8schain.New(ctx, r.clientset, chainOpts)
+		if chainErr != nil {
+			return nil, fmt.Errorf("failed to create k8s auth chain: %w", chainErr)
+		}
+		options = append(options, remote.WithAuthFromKeychain(authChain))
+	}
+
+	options = append(options, remote.WithContext(ctx))
 
 	descriptor, err := remote.Get(ref, options...)
 	if err != nil {
@@ -135,11 +170,10 @@ func (r *Registry) findPlatformManifest(manifests []v1.Descriptor) (v1.Hash, boo
 			return m.Digest, true
 		}
 	}
+
 	return v1.Hash{}, false //nolint:exhaustruct // zero value for not-found case
 }
 
-// targetOS returns the OS to look for in multi-arch image manifests.
-// Containers always run linux, even when the webhook is built/tested on darwin.
 func targetOS() string {
 	return defaultOS
 }
