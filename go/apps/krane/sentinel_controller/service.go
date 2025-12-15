@@ -1,18 +1,13 @@
 package sentinelcontroller
 
 import (
-	"context"
-	"fmt"
-	"time"
-
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
-	sentinelv1 "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller/api/v1"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/buffer"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	controllerruntime "sigs.k8s.io/controller-runtime"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	ctrlruntime "sigs.k8s.io/controller-runtime"
 )
 
@@ -22,7 +17,8 @@ type SentinelController struct {
 	events  *buffer.Buffer[*ctrlv1.SentinelEvent]
 	updates *buffer.Buffer[*ctrlv1.UpdateSentinelRequest]
 	manager ctrlruntime.Manager
-	client  *kubernetes.Clientset
+	client  client.Client
+	scheme  *runtime.Scheme
 }
 
 var _ k8s.Reconciler = (*SentinelController)(nil)
@@ -33,46 +29,20 @@ type Config struct {
 	Logger  logging.Logger
 	Events  *buffer.Buffer[*ctrlv1.SentinelEvent]
 	Updates *buffer.Buffer[*ctrlv1.UpdateSentinelRequest]
-	Manager controllerruntime.Manager
-	Config  *rest.Config
+	Scheme  *runtime.Scheme
+	Client  client.Client
 }
 
 func New(cfg Config) (*SentinelController, error) {
 
 	ctrlruntime.SetLogger(k8s.CompatibleLogger(cfg.Logger))
 
-	client, err := k8s.NewClientWithConfig(cfg.Config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create client: %w", err)
-	}
-
 	c := &SentinelController{
 		logger:  cfg.Logger,
 		events:  cfg.Events,
 		updates: cfg.Updates,
-		manager: cfg.Manager,
-		client:  client,
-	}
-
-	hasSynced := false
-	for range 5 {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		hasSynced = c.manager.GetCache().WaitForCacheSync(ctx)
-		cancel()
-		if hasSynced {
-			break
-		}
-
-	}
-	if !hasSynced {
-		return nil, fmt.Errorf("failed to wait for cache sync: %w", err)
-	}
-
-	err = ctrlruntime.NewControllerManagedBy(c.manager).
-		For(&sentinelv1.Sentinel{}). // nolint:exhaustruct
-		Complete(c)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create controller: %w", err)
+		client:  cfg.Client,
+		scheme:  cfg.Scheme,
 	}
 
 	go c.route()

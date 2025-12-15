@@ -5,250 +5,360 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
-	sentinelv1 "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller/api/v1"
-	"github.com/unkeyed/unkey/go/pkg/ptr"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
+
+	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
+	apiv1 "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller/api/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-// we requeue every non-deleted object to periodically reconcile against the desired state in planetscale
-var (
-	requeueLater = ctrl.Result{RequeueAfter: 10 * time.Minute} // nolint:exhaustruct
-	requeueNow   = ctrl.Result{RequeueAfter: time.Second}      // nolint:exhaustruct
-	requeueNever = ctrl.Result{RequeueAfter: 0}                // nolint:exhaustruct
+// Definitions to manage status conditions
+const (
+	// typeAvailableSentinel represents the status of the Deployment reconciliation
+	typeAvailableSentinel = "Available"
 )
 
-func (c *SentinelController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *SentinelController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
-	logger := c.logger.With(
-		"namespace", req.Namespace,
-		"object_name", req.Name,
-	)
-
-	logger.Info("reconciling sentinel")
-
-	// Try to get the config to see what API server it's connecting to
-	logger.Info("DEBUG: Attempting to get deployment to see connection details")
-
-	current := &sentinelv1.Sentinel{}
-	err := c.manager.GetClient().Get(ctx, req.NamespacedName, current)
+	// Fetch the Sentinel instance
+	// The purpose is check if the Custom Resource for the Kind Sentinel
+	// is applied on the cluster if not we return nil to stop the reconciliation
+	sentinel := &apiv1.Sentinel{}
+	err := r.client.Get(ctx, req.NamespacedName, sentinel)
 	if err != nil {
-		if k8serrors.IsNotFound(err) { // not found, we can delete the resources
-			logger.Info("sentinel crd not found, deleting...")
-
-			err = c.manager.GetClient().Delete(ctx, &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: req.Namespace,
-					Name:      serviceName(req.Name),
-				},
-			})
-			if err != nil {
-				if k8serrors.IsNotFound(err) {
-					c.logger.Debug("service was already deleted")
-					return requeueNever, nil
-				}
-				return ctrl.Result{}, fmt.Errorf("couldn't delete service: %s", err)
-			}
-
-			logger.Info("deleting sentinel deployment")
-			err = c.client.AppsV1().Deployments(req.Namespace).Delete(ctx, deploymentName(req.Name), metav1.DeleteOptions{})
-			if err != nil {
-				if k8serrors.IsNotFound(err) {
-					c.logger.Debug("deployment was already deleted")
-					return requeueNever, nil
-				}
-				return ctrl.Result{}, fmt.Errorf("couldn't delete deployment: %s", err)
-			}
-
-			return requeueNever, nil
+		if apierrors.IsNotFound(err) {
+			// If the custom resource is not found then it usually means that it was deleted or not created
+			// In this way, we will stop the reconciliation
+			r.logger.Info("sentinel resource not found. Ignoring since object must be deleted")
+			return ctrl.Result{}, nil
 		}
-		logger.Error("sentinel.get error", "error", err.Error())
+		// Error reading the object - requeue the request.
+		r.logger.Error("failed to get sentinel", "error", err)
 		return ctrl.Result{}, err
 	}
 
-	logger.Info("sentinel existed")
-
-	desiredDeployment, desiredService := buildDeploymentObject(current)
-
-	deployment, err := c.client.AppsV1().Deployments(req.Namespace).Get(ctx, deploymentName(req.Name), metav1.GetOptions{})
-	logger.Info("get deployment", "deployment", deployment, "error", err.Error())
-
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			if _, err = c.client.AppsV1().Deployments(req.Namespace).Create(ctx, desiredDeployment, metav1.CreateOptions{}); err != nil {
-				return ctrl.Result{}, err
-			}
-			c.logger.Info("new sentinel deployment created")
-			return requeueNow, nil
-		}
-		return ctrl.Result{}, err
-	}
-
-	service, err := c.client.CoreV1().Services(req.Namespace).Get(ctx, desiredService.Name, metav1.GetOptions{})
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			// Define and create a new deployment.
-			c.logger.Warn("service not found", "getName", desiredService.GetName())
-
-			if _, err = c.client.CoreV1().Services(req.Namespace).Create(ctx, desiredService, metav1.CreateOptions{}); err != nil {
-				return ctrl.Result{}, err
-			}
-			c.logger.Info("new sentinel service created")
-			return requeueNow, nil
-		}
-		return ctrl.Result{}, err
-	}
-
-	if service.OwnerReferences == nil {
-		service.OwnerReferences = []metav1.OwnerReference{}
-	}
-
-	hasCorrectOwnerReference := false
-	for _, ref := range service.OwnerReferences {
-		if ref.UID == deployment.UID {
-			hasCorrectOwnerReference = true
-			break
-		}
-	}
-	if !hasCorrectOwnerReference {
-
-		service.OwnerReferences = append(service.OwnerReferences, metav1.OwnerReference{
-			APIVersion: "apps/v1",
-			Kind:       "Deployment",
-			Name:       deployment.Name,
-			UID:        deployment.UID,
+	// Let's just set the status as Unknown when no status is available
+	if len(sentinel.Status.Conditions) == 0 {
+		meta.SetStatusCondition(&sentinel.Status.Conditions, metav1.Condition{
+			Type:    typeAvailableSentinel,
+			Status:  metav1.ConditionUnknown,
+			Reason:  "Reconciling",
+			Message: "Starting reconciliation",
 		})
-
-		return c.updateService(ctx, service)
+		if err = r.client.Status().Update(ctx, sentinel); err != nil {
+			r.logger.Error("Failed to update Sentinel status", "error", err)
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
 
-	// Updates
+	deployment, err := r.ensureDeploymentExists(ctx, sentinel)
+	if err != nil {
 
-	for i := range deployment.Spec.Template.Spec.Containers {
-		if deployment.Spec.Template.Spec.Containers[i].Image != current.Spec.Image {
-			deployment.Spec.Template.Spec.Containers[i].Image = current.Spec.Image
-			return c.updateDeployment(ctx, deployment)
+		return ctrl.Result{}, err
+	}
+
+	svc, err := r.ensureServiceExists(ctx, sentinel)
+	if err != nil {
+
+		return ctrl.Result{}, err
+	}
+
+	for _, fn := range []stateReconciler{
+		r.reconcileImage,
+		r.reconcileReplicas,
+		r.reconcileCPU,
+		r.reconcileMemory,
+	} {
+
+		requeue, err := fn(ctx, sentinel, deployment, svc)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if requeue {
+			r.logger.Info("Requeueing due to state change")
+			return ctrl.Result{RequeueAfter: time.Millisecond}, nil
 		}
 	}
 
-	if *deployment.Spec.Replicas != current.Spec.Replicas {
-		deployment.Spec.Replicas = ptr.P(current.Spec.Replicas)
-		return c.updateDeployment(ctx, deployment)
+	return ctrl.Result{}, nil
+
+}
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *SentinelController) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&apiv1.Sentinel{}).
+		Owns(&appsv1.Deployment{}).
+		Owns(&corev1.Service{}).
+		Named("sentinel").
+		Complete(r)
+}
+
+func (r *SentinelController) ensureDeploymentExists(ctx context.Context, sentinel *apiv1.Sentinel) (*appsv1.Deployment, error) {
+
+	name := fmt.Sprintf("%s-dpl", sentinel.Name)
+
+	// Check if the deployment already exists, if not create a new one
+	found := &appsv1.Deployment{}
+	err := r.client.Get(ctx, types.NamespacedName{Namespace: sentinel.Namespace, Name: name}, found)
+
+	if err == nil {
+		return found, nil
+	}
+	if !apierrors.IsNotFound(err) {
+		return nil, err
 	}
 
-	c.logger.Info("sentinel is fully synced")
-	return requeueNever, nil
-}
-
-func deploymentName(crdName string) string {
-	return fmt.Sprintf("%s-d", crdName)
-}
-
-func serviceName(crdName string) string {
-	return fmt.Sprintf("%s-s", crdName)
-}
-
-func buildDeploymentObject(desired *sentinelv1.Sentinel) (*appsv1.Deployment, *corev1.Service) {
-
-	labels := k8s.NewLabels().WorkspaceID(desired.Spec.WorkspaceID).ProjectID(desired.Spec.ProjectID).EnvironmentID(desired.Spec.EnvironmentID).SentinelID(desired.Spec.SentinelID).ManagedByKrane().ToMap()
-
-	return &appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: desired.Namespace,
-				Name:      deploymentName(desired.Name),
-				Labels:    labels,
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: sentinel.Namespace,
+			Labels: k8s.NewLabels().
+				WorkspaceID(sentinel.Spec.WorkspaceID).
+				ProjectID(sentinel.Spec.ProjectID).
+				EnvironmentID(sentinel.Spec.EnvironmentID).
+				SentinelID(sentinel.Spec.SentinelID).
+				ManagedByKrane().
+				ToMap(),
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &sentinel.Spec.Replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: k8s.NewLabels().SentinelID(sentinel.Spec.SentinelID).ToMap(),
 			},
-			Spec: appsv1.DeploymentSpec{
-				Replicas: ptr.P[int32](desired.Spec.Replicas),
-				Selector: &metav1.LabelSelector{
-					MatchLabels: labels,
-				},
-				Template: corev1.PodTemplateSpec{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: labels,
-					},
-					Spec: corev1.PodSpec{
-						Containers: []corev1.Container{
-							{
-								Name:    "sentinel",
-								Image:   desired.Spec.Image,
-								Command: []string{"run", "sentinel"},
-								Ports: []corev1.ContainerPort{
-									{
-										Name:          "http",
-										Protocol:      corev1.ProtocolTCP,
-										ContainerPort: 80,
-									},
-								},
-								Env: []corev1.EnvVar{
-									{Name: "UNKEY_WORKSPACE_ID", Value: desired.Spec.WorkspaceID},
-									{Name: "UNKEY_PROJECT_ID", Value: desired.Spec.ProjectID},
-									{Name: "UNKEY_SENTINEL_ID", Value: desired.Spec.SentinelID},
-									{Name: "UNKEY_ENVIRONMENT_ID", Value: desired.Spec.EnvironmentID},
-									{Name: "UNKEY_IMAGE", Value: desired.Spec.Image},
-								},
-								Resources: corev1.ResourceRequirements{
-									// nolint: exhaustive
-									Requests: corev1.ResourceList{
-										corev1.ResourceCPU:    *resource.NewScaledQuantity(desired.Spec.CpuMillicores, resource.Milli),
-										corev1.ResourceMemory: *resource.NewScaledQuantity(desired.Spec.MemoryMib, resource.Mega), //nolint: gosec
+			Template: corev1.PodTemplateSpec{
 
-									},
-									// nolint: exhaustive
-									Limits: corev1.ResourceList{
-										corev1.ResourceCPU:    *resource.NewScaledQuantity(desired.Spec.CpuMillicores, resource.Milli),
-										corev1.ResourceMemory: *resource.NewScaledQuantity(desired.Spec.MemoryMib, resource.Mega), //nolint: gosec
-									},
-								},
-							},
+				ObjectMeta: metav1.ObjectMeta{
+
+					Labels: k8s.NewLabels().SentinelID(sentinel.Spec.SentinelID).ToMap(),
+				},
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyAlways,
+					SecurityContext: &corev1.PodSecurityContext{
+						RunAsNonRoot: ptr.To(true),
+						SeccompProfile: &corev1.SeccompProfile{
+							Type: corev1.SeccompProfileTypeRuntimeDefault,
 						},
 					},
+					Containers: []corev1.Container{{
+						Image:           sentinel.Spec.Image,
+						Name:            "sentinel",
+						ImagePullPolicy: corev1.PullIfNotPresent,
+
+						Ports: []corev1.ContainerPort{{
+							ContainerPort: 8040,
+							Name:          "sentinel",
+						}},
+
+						Resources: corev1.ResourceRequirements{
+							Limits: corev1.ResourceList{
+								corev1.ResourceCPU:    *resource.NewMilliQuantity(sentinel.Spec.CpuMillicores, resource.BinarySI),
+								corev1.ResourceMemory: *resource.NewQuantity(sentinel.Spec.MemoryMib, resource.BinarySI),
+							},
+							Requests: corev1.ResourceList{
+								corev1.ResourceCPU:    *resource.NewMilliQuantity(sentinel.Spec.CpuMillicores, resource.BinarySI),
+								corev1.ResourceMemory: *resource.NewQuantity(sentinel.Spec.MemoryMib, resource.BinarySI),
+							},
+						},
+					}},
 				},
 			},
 		},
-		&corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      serviceName(desired.Name),
-				Namespace: desired.Namespace,
-				Labels:    labels,
-			},
+	}
+
+	// Set the ownerRef for the Deployment
+	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/owners-dependents/
+	if err := ctrl.SetControllerReference(sentinel, deployment, r.scheme); err != nil {
+		return nil, err
+	}
+
+	if err = r.client.Create(ctx, deployment); err != nil {
+
+		return nil, err
+	}
+
+	return deployment, nil
+
+}
+
+func (r *SentinelController) ensureServiceExists(ctx context.Context, sentinel *apiv1.Sentinel) (*corev1.Service, error) {
+
+	name := fmt.Sprintf("%s-svc", sentinel.Name)
+
+	found := &corev1.Service{}
+	err := r.client.Get(ctx, types.NamespacedName{Namespace: sentinel.Namespace, Name: name}, found)
+
+	if err == nil {
+		return found, nil
+	}
+	if !apierrors.IsNotFound(err) {
+		return nil, err
+	}
+
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-svc", sentinel.Name),
+			Namespace: sentinel.Namespace,
+			Labels: k8s.NewLabels().
+				WorkspaceID(sentinel.Spec.WorkspaceID).
+				ProjectID(sentinel.Spec.ProjectID).
+				EnvironmentID(sentinel.Spec.EnvironmentID).
+				SentinelID(sentinel.Spec.SentinelID).
+				ManagedByKrane().
+				ToMap(),
+		},
+		Spec: corev1.ServiceSpec{
+			Type:     corev1.ServiceTypeClusterIP, // Use ClusterIP for internal communication
+			Selector: k8s.NewLabels().SentinelID(sentinel.Spec.SentinelID).ToMap(),
 			//nolint:exhaustruct
-			Spec: corev1.ServiceSpec{
-				Type:     corev1.ServiceTypeClusterIP, // Use ClusterIP for internal communication
-				Selector: labels,
-				//nolint:exhaustruct
-				Ports: []corev1.ServicePort{
-					{
-						Port:       8040,
-						TargetPort: intstr.FromInt(8040),
-						Protocol:   corev1.ProtocolTCP,
-					},
+			Ports: []corev1.ServicePort{
+				{
+					Port:       8040,
+					TargetPort: intstr.FromInt(8040),
+					Protocol:   corev1.ProtocolTCP,
 				},
 			},
+		},
+	}
+
+	// Set the ownerRef for the Deployment
+	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/owners-dependents/
+	if err := ctrl.SetControllerReference(sentinel, svc, r.scheme); err != nil {
+		return nil, err
+	}
+
+	if err = r.client.Create(ctx, svc); err != nil {
+
+		return nil, err
+
+	}
+
+	return svc, nil
+
+}
+
+// for every spec field in the CRD we write a state reconciler
+// returns true if the resource was changed and therefore should be requeued
+type stateReconciler func(ctx context.Context, sentinel *apiv1.Sentinel, deployment *appsv1.Deployment, service *corev1.Service) (bool, error)
+
+func (r *SentinelController) reconcileImage(ctx context.Context, sentinel *apiv1.Sentinel, deployment *appsv1.Deployment, _ *corev1.Service) (bool, error) {
+	r.logger.Info("Reconciling image")
+	for i, container := range deployment.Spec.Template.Spec.Containers {
+		if container.Image != sentinel.Spec.Image {
+			deployment.Spec.Template.Spec.Containers[i].Image = sentinel.Spec.Image
+
+			err := r.client.Update(ctx, deployment)
+			if err != nil {
+				return false, err
+			}
+			return true, nil
+
 		}
+
+	}
+
+	return false, nil
+
 }
 
-func (c *SentinelController) updateDeployment(ctx context.Context, deployment *appsv1.Deployment) (ctrl.Result, error) {
+func (r *SentinelController) reconcileReplicas(ctx context.Context, sentinel *apiv1.Sentinel, deployment *appsv1.Deployment, _ *corev1.Service) (bool, error) {
 
-	_, err := c.client.AppsV1().Deployments(deployment.Namespace).Update(ctx, deployment, metav1.UpdateOptions{})
-	if err != nil {
-		return ctrl.Result{}, err
+	r.logger.Info("Reconciling replicas")
+	if *deployment.Spec.Replicas != sentinel.Spec.Replicas {
+		deployment.Spec.Replicas = &sentinel.Spec.Replicas
+
+		err := r.client.Update(ctx, deployment)
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+
 	}
-	return requeueNow, nil
+
+	return false, nil
+
 }
 
-func (c *SentinelController) updateService(ctx context.Context, service *corev1.Service) (ctrl.Result, error) {
+func (r *SentinelController) reconcileCPU(ctx context.Context, sentinel *apiv1.Sentinel, deployment *appsv1.Deployment, _ *corev1.Service) (bool, error) {
 
-	_, err := c.client.CoreV1().Services(service.Namespace).Update(ctx, service, metav1.UpdateOptions{})
-	if err != nil {
-		return ctrl.Result{}, err
+	r.logger.Info("Reconciling CPU")
+	for i := range deployment.Spec.Template.Spec.Containers {
+		changes := false
+
+		limit := deployment.Spec.Template.Spec.Containers[i].Resources.Limits.Cpu()
+		if limit.ScaledValue(resource.Milli) != sentinel.Spec.CpuMillicores {
+			r.logger.Info("Updating CPU limit", "container", deployment.Spec.Template.Spec.Containers[i].Name, "limit", limit.Value(), "desired", sentinel.Spec.CpuMillicores)
+			deployment.Spec.Template.Spec.Containers[i].Resources.Limits.Cpu().SetScaled(sentinel.Spec.CpuMillicores, resource.Milli)
+			changes = true
+
+		}
+		request := deployment.Spec.Template.Spec.Containers[i].Resources.Requests.Cpu()
+		if request.ScaledValue(resource.Milli) != sentinel.Spec.CpuMillicores {
+			r.logger.Info("Updating CPU request", "container", deployment.Spec.Template.Spec.Containers[i].Name, "request", request.Value(), "desired", sentinel.Spec.CpuMillicores)
+
+			deployment.Spec.Template.Spec.Containers[i].Resources.Requests.Cpu().SetScaled(sentinel.Spec.CpuMillicores, resource.Milli)
+			changes = true
+
+		}
+		if changes {
+			r.logger.Info("Updating container", "container", deployment.Spec.Template.Spec.Containers[i].Name, "index", i)
+
+			err := r.client.Update(ctx, deployment)
+			if err != nil {
+				return false, err
+			}
+			return true, nil
+
+		}
+
 	}
-	return requeueNow, nil
+	return false, nil
+
+}
+
+func (r *SentinelController) reconcileMemory(ctx context.Context, sentinel *apiv1.Sentinel, deployment *appsv1.Deployment, _ *corev1.Service) (bool, error) {
+
+	r.logger.Info("Reconciling Memory")
+	for i := range deployment.Spec.Template.Spec.Containers {
+		changes := false
+
+		limit := deployment.Spec.Template.Spec.Containers[i].Resources.Limits.Memory()
+		if limit.Value() != sentinel.Spec.MemoryMib {
+			r.logger.Info("Updating Memory limit", "container", deployment.Spec.Template.Spec.Containers[i].Name, "limit", limit.Value(), "desired", sentinel.Spec.MemoryMib)
+			deployment.Spec.Template.Spec.Containers[i].Resources.Limits.Memory().Set(sentinel.Spec.MemoryMib)
+			changes = true
+
+		}
+		request := deployment.Spec.Template.Spec.Containers[i].Resources.Requests.Memory()
+		if request.Value() != sentinel.Spec.MemoryMib {
+			r.logger.Info("Updating Memory request", "container", deployment.Spec.Template.Spec.Containers[i].Name, "request", request.Value(), "desired", sentinel.Spec.MemoryMib)
+
+			deployment.Spec.Template.Spec.Containers[i].Resources.Requests.Memory().Set(sentinel.Spec.MemoryMib)
+			changes = true
+
+		}
+		if changes {
+			r.logger.Info("Updating container", "container", deployment.Spec.Template.Spec.Containers[i].Name, "index", i)
+
+			err := r.client.Update(ctx, deployment)
+			if err != nil {
+				return false, err
+			}
+			return true, nil
+
+		}
+
+	}
+
+	return false, nil
+
 }

@@ -1,23 +1,6 @@
-/*
-Copyright 2025.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-package controller
+package sentinelcontroller
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -30,28 +13,23 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	apiv1 "github.com/unkeyed/unkey/go/apps/krane/controller/api/v1"
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
+	apiv1 "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller/api/v1"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func TestShouldReconcileSentinel(t *testing.T) {
+func TestShouldCreateNewSentinel(t *testing.T) {
 	h := NewTestHarness(t)
 
-	ctx := context.Background()
-
-	r := &SentinelReconciler{
-		Client: h.k8sClient,
-		Scheme: h.k8sClient.Scheme(),
-	}
+	c := h.NewController()
 
 	name := uid.DNS1035()
 
 	// Before reconciling the sentinel, ensure it does not exist
 	found := &apiv1.Sentinel{}
-	err := h.k8sClient.Get(ctx, types.NamespacedName{Namespace: h.namespace, Name: name}, found)
+	err := h.k8sClient.Get(h.ctx, types.NamespacedName{Namespace: h.namespace, Name: name}, found)
 	require.Error(t, err)
-	require.True(t, errors.IsNotFound(err))
+	require.True(t, errors.IsNotFound(err), "sentinel should not exist, but it does: %w", err)
 
 	sentinel := &apiv1.Sentinel{
 		ObjectMeta: metav1.ObjectMeta{
@@ -70,22 +48,22 @@ func TestShouldReconcileSentinel(t *testing.T) {
 		},
 	}
 
-	err = h.k8sClient.Create(ctx, sentinel)
+	err = h.k8sClient.Create(h.ctx, sentinel)
 	require.NoError(t, err)
 
-	h.FullReconcileOrFail(r, h.namespace, name)
+	h.FullReconcileOrFail(c, h.namespace, name)
 
 	// Now it should exist
-	err = h.k8sClient.Get(ctx, types.NamespacedName{Namespace: h.namespace, Name: name}, found)
+	err = h.k8sClient.Get(h.ctx, types.NamespacedName{Namespace: h.namespace, Name: name}, found)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		require.NoError(t, h.k8sClient.Delete(ctx, found))
+		require.NoError(t, h.k8sClient.Delete(h.ctx, found))
 
 	})
 
 	deployments := &appsv1.DeploymentList{}
-	err = h.k8sClient.List(ctx, deployments, client.MatchingLabelsSelector{
+	err = h.k8sClient.List(h.ctx, deployments, client.MatchingLabelsSelector{
 		Selector: k8s.NewLabels().ManagedByKrane().SentinelID(sentinel.Spec.SentinelID).ToSelector(),
 	})
 	require.NoError(t, err)
@@ -94,7 +72,7 @@ func TestShouldReconcileSentinel(t *testing.T) {
 	require.True(t, strings.HasPrefix(deployment.Name, sentinel.Name))
 
 	services := &corev1.ServiceList{}
-	err = h.k8sClient.List(ctx, services, client.MatchingLabelsSelector{
+	err = h.k8sClient.List(h.ctx, services, client.MatchingLabelsSelector{
 		Selector: k8s.NewLabels().ManagedByKrane().SentinelID(sentinel.Spec.SentinelID).ToSelector(),
 	})
 	require.NoError(t, err)
@@ -107,12 +85,7 @@ func TestShouldReconcileSentinel(t *testing.T) {
 func TestShouldReconcileImageChanges(t *testing.T) {
 	h := NewTestHarness(t)
 
-	ctx := context.Background()
-
-	r := &SentinelReconciler{
-		Client: h.k8sClient,
-		Scheme: h.k8sClient.Scheme(),
-	}
+	c := h.NewController()
 
 	name := uid.DNS1035()
 
@@ -133,13 +106,13 @@ func TestShouldReconcileImageChanges(t *testing.T) {
 		},
 	}
 
-	err := h.k8sClient.Create(ctx, sentinel)
+	err := h.k8sClient.Create(h.ctx, sentinel)
 	require.NoError(t, err)
 
-	h.FullReconcileOrFail(r, h.namespace, name)
+	h.FullReconcileOrFail(c, h.namespace, name)
 
 	deployments := &appsv1.DeploymentList{}
-	err = h.k8sClient.List(ctx, deployments, client.MatchingLabelsSelector{
+	err = h.k8sClient.List(h.ctx, deployments, client.MatchingLabelsSelector{
 		Selector: k8s.NewLabels().ManagedByKrane().SentinelID(sentinel.Spec.SentinelID).ToSelector(),
 	})
 	require.NoError(t, err)
@@ -149,15 +122,15 @@ func TestShouldReconcileImageChanges(t *testing.T) {
 		require.Equal(t, sentinel.Spec.Image, container.Image)
 	}
 
-	err = h.k8sClient.Get(ctx, types.NamespacedName{Namespace: h.namespace, Name: name}, sentinel)
+	err = h.k8sClient.Get(h.ctx, types.NamespacedName{Namespace: h.namespace, Name: name}, sentinel)
 	require.NoError(t, err)
 	sentinel.Spec.Image = "nginx:alpine"
-	err = h.k8sClient.Update(ctx, sentinel)
+	err = h.k8sClient.Update(h.ctx, sentinel)
 	require.NoError(t, err)
 
-	h.FullReconcileOrFail(r, h.namespace, name)
+	h.FullReconcileOrFail(c, h.namespace, name)
 
-	err = h.k8sClient.List(ctx, deployments, client.MatchingLabelsSelector{
+	err = h.k8sClient.List(h.ctx, deployments, client.MatchingLabelsSelector{
 		Selector: k8s.NewLabels().ManagedByKrane().SentinelID(sentinel.Spec.SentinelID).ToSelector(),
 	})
 	require.NoError(t, err)
@@ -172,13 +145,7 @@ func TestShouldReconcileImageChanges(t *testing.T) {
 func TestShouldReconcileReplicaChanges(t *testing.T) {
 	h := NewTestHarness(t)
 
-	ctx := context.Background()
-
-	r := &SentinelReconciler{
-		Client: h.k8sClient,
-		Scheme: h.k8sClient.Scheme(),
-	}
-
+	c := h.NewController()
 	name := uid.DNS1035()
 
 	sentinel := &apiv1.Sentinel{
@@ -198,13 +165,13 @@ func TestShouldReconcileReplicaChanges(t *testing.T) {
 		},
 	}
 
-	err := h.k8sClient.Create(ctx, sentinel)
+	err := h.k8sClient.Create(h.ctx, sentinel)
 	require.NoError(t, err)
 
-	h.FullReconcileOrFail(r, h.namespace, name)
+	h.FullReconcileOrFail(c, h.namespace, name)
 
 	deployments := &appsv1.DeploymentList{}
-	err = h.k8sClient.List(ctx, deployments, client.MatchingLabelsSelector{
+	err = h.k8sClient.List(h.ctx, deployments, client.MatchingLabelsSelector{
 		Selector: k8s.NewLabels().ManagedByKrane().SentinelID(sentinel.Spec.SentinelID).ToSelector(),
 	})
 	require.NoError(t, err)
@@ -212,15 +179,15 @@ func TestShouldReconcileReplicaChanges(t *testing.T) {
 	deployment := deployments.Items[0]
 	require.Equal(t, sentinel.Spec.Replicas, *deployment.Spec.Replicas)
 
-	err = h.k8sClient.Get(ctx, types.NamespacedName{Namespace: h.namespace, Name: name}, sentinel)
+	err = h.k8sClient.Get(h.ctx, types.NamespacedName{Namespace: h.namespace, Name: name}, sentinel)
 	require.NoError(t, err)
 	sentinel.Spec.Replicas = 5
-	err = h.k8sClient.Update(ctx, sentinel)
+	err = h.k8sClient.Update(h.ctx, sentinel)
 	require.NoError(t, err)
 
-	h.FullReconcileOrFail(r, h.namespace, name)
+	h.FullReconcileOrFail(c, h.namespace, name)
 
-	err = h.k8sClient.List(ctx, deployments, client.MatchingLabelsSelector{
+	err = h.k8sClient.List(h.ctx, deployments, client.MatchingLabelsSelector{
 		Selector: k8s.NewLabels().ManagedByKrane().SentinelID(sentinel.Spec.SentinelID).ToSelector(),
 	})
 	require.NoError(t, err)

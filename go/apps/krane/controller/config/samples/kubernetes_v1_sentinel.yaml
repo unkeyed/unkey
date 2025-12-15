@@ -1,9 +1,0 @@
-apiVersion: kubernetes.unkey.com/v1
-kind: Sentinel
-metadata:
-  labels:
-    app.kubernetes.io/name: sentinelcontroller
-    app.kubernetes.io/managed-by: kustomize
-  name: sentinel-sample
-spec:
-  # TODO(user): Add fields here

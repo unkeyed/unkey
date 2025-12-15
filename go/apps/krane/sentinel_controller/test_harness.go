@@ -1,8 +1,7 @@
-package controller
+package sentinelcontroller
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -13,13 +12,16 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	apiv1 "github.com/unkeyed/unkey/go/apps/krane/controller/api/v1"
+	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
+	apiv1 "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller/api/v1"
+	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/go/pkg/buffer"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	// +kubebuilder:scaffold:imports
 )
@@ -32,11 +34,13 @@ type TestHarness struct {
 	cfg       *rest.Config
 	k8sClient client.Client
 	namespace string
+	Logger    logging.Logger
 }
 
 func NewTestHarness(t *testing.T) *TestHarness {
 
-	logf.SetLogger(zap.New(zap.UseDevMode(true)))
+	logger := logging.New()
+	controllerruntime.SetLogger(k8s.CompatibleLogger(logger))
 
 	ctx, cancel := context.WithCancel(context.TODO())
 
@@ -44,24 +48,18 @@ func NewTestHarness(t *testing.T) *TestHarness {
 		cancel()
 	})
 
-	err := apiv1.AddToScheme(scheme.Scheme)
-	require.NoError(t, err)
-
-	// +kubebuilder:scaffold:scheme
+	require.NoError(t, apiv1.AddToScheme(scheme.Scheme))
 
 	testEnv := &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		CRDDirectoryPaths:     []string{filepath.Join(".", "yaml")},
 		ErrorIfCRDPathMissing: true,
+		DownloadBinaryAssets:  true,
+		Scheme:                scheme.Scheme,
 	}
 
 	t.Cleanup(func() {
 		require.NoError(t, testEnv.Stop())
 	})
-
-	// Retrieve the first found binary directory to allow running tests from IDEs
-	if getFirstFoundEnvTestBinaryDir() != "" {
-		testEnv.BinaryAssetsDirectory = getFirstFoundEnvTestBinaryDir()
-	}
 
 	// cfg is defined in this file globally.
 	cfg, err := testEnv.Start()
@@ -95,34 +93,34 @@ func NewTestHarness(t *testing.T) *TestHarness {
 		cfg:       cfg,
 		k8sClient: k8sClient,
 		namespace: namespace,
+		Logger:    logger,
 	}
 
 	return h
 }
 
-// getFirstFoundEnvTestBinaryDir locates the first binary in the specified path.
-// ENVTEST-based tests depend on specific binaries, usually located in paths set by
-// controller-runtime. When running tests directly (e.g., via an IDE) without using
-// Makefile targets, the 'BinaryAssetsDirectory' must be explicitly configured.
-//
-// This function streamlines the process by finding the required binaries, similar to
-// setting the 'KUBEBUILDER_ASSETS' environment variable. To ensure the binaries are
-// properly set up, run 'make setup-envtest' beforehand.
-func getFirstFoundEnvTestBinaryDir() string {
-	basePath := filepath.Join("..", "..", "bin", "k8s")
-	entries, err := os.ReadDir(basePath)
-	if err != nil {
-		logf.Log.Error(err, "Failed to read directory", "path", basePath)
-		return ""
-	}
-	for _, entry := range entries {
-		if entry.IsDir() {
-			return filepath.Join(basePath, entry.Name())
-		}
-	}
-	return ""
-}
+func (h *TestHarness) NewController() *SentinelController {
 
+	c, err := New(Config{
+		Logger: h.Logger,
+		Events: buffer.New[*ctrlv1.SentinelEvent](buffer.Config{
+			Capacity: 1000,
+			Drop:     false,
+			Name:     "krane_sentinel_events",
+		}),
+		Updates: buffer.New[*ctrlv1.UpdateSentinelRequest](buffer.Config{
+			Capacity: 1000,
+			Drop:     false,
+			Name:     "krane_sentinel_updates",
+		}),
+		Scheme: h.k8sClient.Scheme(),
+		Client: h.k8sClient,
+	})
+	require.NoError(h.t, err)
+
+	return c
+
+}
 func (h *TestHarness) FullReconcileOrFail(r reconcile.Reconciler, namespace, name string) {
 
 	var result reconcile.Result

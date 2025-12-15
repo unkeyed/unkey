@@ -1,6 +1,0 @@
-## Append samples of your project ##
-resources:
-- kubernetes_v1_sentinel.yaml
-- kubernetes_v1_deployment.yaml
-- kubernetes_v1_unkeydeployment.yaml
-# +kubebuilder:scaffold:manifestskustomizesamples
