@@ -36,32 +36,21 @@ func SetHandler(h slog.Handler) {
 }
 
 // logSkip logs with correct source location by skipping wrapper frames
-func logSkip(l *slog.Logger, ctx context.Context, level slog.Level, msg string, args ...any) {
-	if !l.Enabled(ctx, level) {
+func (l *logger) logSkip(ctx context.Context, level slog.Level, msg string, args ...any) {
+	if !l.logger.Enabled(ctx, level) {
 		return
 	}
 	var pcs [1]uintptr
-	runtime.Callers(3, pcs[:]) // skip [runtime.Callers, logSkip, wrapper]
+	runtime.Callers(l.callDepth, pcs[:]) // skip [runtime.Callers, logSkip, wrapper]
 	r := slog.NewRecord(time.Now(), level, msg, pcs[0])
 	r.Add(args...)
-	_ = l.Handler().Handle(ctx, r)
-}
-
-// logAttrs logs with attributes and correct source location
-func logAttrs(l *slog.Logger, ctx context.Context, level slog.Level, msg string, attrs ...slog.Attr) {
-	if !l.Enabled(ctx, level) {
-		return
-	}
-	var pcs [1]uintptr
-	runtime.Callers(3, pcs[:]) // skip [runtime.Callers, logAttrs, wrapper]
-	r := slog.NewRecord(time.Now(), level, msg, pcs[0])
-	r.AddAttrs(attrs...)
-	_ = l.Handler().Handle(ctx, r)
+	_ = l.logger.Handler().Handle(ctx, r)
 }
 
 // logger implements the Logger interface using Go's standard slog package.
 type logger struct {
-	logger *slog.Logger
+	logger    *slog.Logger
+	callDepth int
 }
 
 // New creates a new logger with the specified configuration.
@@ -84,14 +73,16 @@ type logger struct {
 func New() Logger {
 	l := slog.New(handler)
 	return &logger{
-		logger: l,
+		logger:    l,
+		callDepth: 3,
 	}
 }
 
 // With creates a new logger with the given key-value pairs always attached.
 func (l *logger) With(args ...any) Logger {
 	return &logger{
-		logger: l.logger.With(args...),
+		logger:    l.logger.With(args...),
+		callDepth: l.callDepth,
 	}
 }
 
@@ -103,7 +94,17 @@ func (l *logger) WithAttrs(attrs ...slog.Attr) Logger {
 	}
 
 	return &logger{
-		logger: l.logger.With(anys...),
+		logger:    l.logger.With(anys...),
+		callDepth: l.callDepth,
+	}
+}
+
+// WithCallDepth creates a new logger with the given call depth always attached.
+func (l *logger) WithCallDepth(depth int) Logger {
+
+	return &logger{
+		logger:    l.logger,
+		callDepth: depth,
 	}
 }
 
@@ -111,42 +112,20 @@ func (l *logger) WithAttrs(attrs ...slog.Attr) Logger {
 
 // Debug logs a message at debug level with key-value pairs.
 func (l *logger) Debug(msg string, args ...any) {
-	logSkip(l.logger, context.Background(), slog.LevelDebug, msg, args...)
+	l.logSkip(context.Background(), slog.LevelDebug, msg, args...)
 }
 
 // Info logs a message at info level with key-value pairs.
 func (l *logger) Info(msg string, args ...any) {
-	logSkip(l.logger, context.Background(), slog.LevelInfo, msg, args...)
+	l.logSkip(context.Background(), slog.LevelInfo, msg, args...)
 }
 
 // Warn logs a message at warn level with key-value pairs.
 func (l *logger) Warn(msg string, args ...any) {
-	logSkip(l.logger, context.Background(), slog.LevelWarn, msg, args...)
+	l.logSkip(context.Background(), slog.LevelWarn, msg, args...)
 }
 
 // Error logs a message at error level with key-value pairs.
 func (l *logger) Error(msg string, args ...any) {
-	logSkip(l.logger, context.Background(), slog.LevelError, msg, args...)
-}
-
-// ---- Context-aware logging methods ----
-
-// DebugContext logs a message at debug level with context and structured attributes.
-func (l *logger) DebugContext(ctx context.Context, msg string, attrs ...slog.Attr) {
-	logAttrs(l.logger, ctx, slog.LevelDebug, msg, attrs...)
-}
-
-// InfoContext logs a message at info level with context and structured attributes.
-func (l *logger) InfoContext(ctx context.Context, msg string, attrs ...slog.Attr) {
-	logAttrs(l.logger, ctx, slog.LevelInfo, msg, attrs...)
-}
-
-// WarnContext logs a message at warn level with context and structured attributes.
-func (l *logger) WarnContext(ctx context.Context, msg string, attrs ...slog.Attr) {
-	logAttrs(l.logger, ctx, slog.LevelWarn, msg, attrs...)
-}
-
-// ErrorContext logs a message at error level with context and structured attributes.
-func (l *logger) ErrorContext(ctx context.Context, msg string, attrs ...slog.Attr) {
-	logAttrs(l.logger, ctx, slog.LevelError, msg, attrs...)
+	l.logSkip(context.Background(), slog.LevelError, msg, args...)
 }

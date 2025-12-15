@@ -33,7 +33,7 @@ const (
 	AuditLogBucketPrefix     Prefix = "buk"
 	AuditLogPrefix           Prefix = "log"
 	InstancePrefix           Prefix = "ins"
-	SentinelPrefix           Prefix = "gw"
+	SentinelPrefix           Prefix = "se"
 	WorkerPrefix             Prefix = "wkr"
 	CronJobPrefix            Prefix = "cron"
 	KeyEncryptionKeyPrefix   Prefix = "kek"

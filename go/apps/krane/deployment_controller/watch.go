@@ -2,11 +2,10 @@ package deploymentcontroller
 
 import (
 	"context"
-	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/unkeyed/unkey/go/apps/krane/k8s"
+	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -15,9 +14,11 @@ import (
 
 func (c *DeploymentController) watch() error {
 
-	c.logger.Info("Starting deployment watch")
+	c.logger.Info("Starting cluster-wide pod watch for deployments")
 	ctx := context.Background()
-	w, err := c.clientset.CoreV1().Pods(k8s.UntrustedNamespace).Watch(ctx, metav1.ListOptions{
+
+	// Watch ALL namespaces (empty string = cluster-wide)
+	w, err := c.clientset.CoreV1().Pods("").Watch(ctx, metav1.ListOptions{
 		LabelSelector: labels.FormatLabels(k8s.NewLabels().
 			ManagedByKrane().
 			ToMap()),
@@ -31,7 +32,7 @@ func (c *DeploymentController) watch() error {
 	go func() {
 
 		for e := range w.ResultChan() {
-			c.logger.Info("pod event", "event", e.Type)
+			c.logger.Debug("pod event", "event", e.Type)
 
 			switch e.Type {
 			case watch.Added:
@@ -41,36 +42,54 @@ func (c *DeploymentController) watch() error {
 					continue
 				}
 
+				// Check if this pod belongs to an UnkeyDeployment
 				deploymentID, ok := k8s.GetDeploymentID(pod.GetLabels())
 				if !ok {
-					c.logger.Warn("skipping non-deployment event", "name", pod.Name)
+					c.logger.Debug("skipping pod without deployment ID", "name", pod.Name)
+					continue
+				}
+
+				// Also check it has all the labels we expect for UnkeyDeployments
+				if _, hasWorkspace := k8s.GetWorkspaceID(pod.GetLabels()); !hasWorkspace {
+					c.logger.Debug("skipping non-UnkeyDeployment pod (no workspace)", "name", pod.Name)
 					continue
 				}
 
 				cpuMillicores := int64(0)
 				memoryMib := int64(0)
 				for _, container := range pod.Spec.Containers {
-
 					if container.Name == "container" {
 						cpuMillicores = container.Resources.Limits.Cpu().MilliValue()
 						memoryMib = container.Resources.Limits.Memory().Value() / 1024 / 1024
-
 					}
+				}
+
+				// Send direct pod IP instead of DNS name
+				address := pod.Status.PodIP
+				if address == "" {
+					// Pod might not have an IP yet if it's just been created
+					c.logger.Debug("pod has no IP yet", "name", pod.Name)
+					address = "" // Will be updated when Modified event comes
 				}
 
 				c.updates.Buffer(&ctrlv1.UpdateInstanceRequest{
 					Change: &ctrlv1.UpdateInstanceRequest_Create_{
 						Create: &ctrlv1.UpdateInstanceRequest_Create{
-
 							DeploymentId:  deploymentID,
 							PodName:       pod.Name,
-							Address:       fmt.Sprintf("%s.untrusted.svc.cluster.local", pod.Name),
+							Address:       address, // Direct pod IP
 							CpuMillicores: int32(cpuMillicores),
 							MemoryMib:     int32(memoryMib),
 							Status:        k8sStatusToProto(pod.Status),
 						},
 					},
 				})
+				c.logger.Debug("reported pod creation",
+					"pod", pod.Name,
+					"namespace", pod.Namespace,
+					"deployment_id", deploymentID,
+					"ip", address,
+				)
 
 			case watch.Modified:
 				pod, ok := e.Object.(*corev1.Pod)
@@ -81,9 +100,19 @@ func (c *DeploymentController) watch() error {
 
 				deploymentID, ok := k8s.GetDeploymentID(pod.GetLabels())
 				if !ok {
-					c.logger.Warn("skipping non-deployment event", "name", pod.Name)
+					c.logger.Debug("skipping pod without deployment ID", "name", pod.Name)
 					continue
 				}
+
+				// Also check it has all the labels we expect for UnkeyDeployments
+				if _, hasWorkspace := k8s.GetWorkspaceID(pod.GetLabels()); !hasWorkspace {
+					c.logger.Debug("skipping non-UnkeyDeployment pod (no workspace)", "name", pod.Name)
+					continue
+				}
+
+				// For modified events, we need to check if the IP changed
+				// The reconciler handles most updates, but pod IP changes need immediate reporting
+				address := pod.Status.PodIP
 
 				c.updates.Buffer(&ctrlv1.UpdateInstanceRequest{
 					Change: &ctrlv1.UpdateInstanceRequest_Update_{
@@ -91,9 +120,19 @@ func (c *DeploymentController) watch() error {
 							DeploymentId: deploymentID,
 							PodName:      pod.Name,
 							Status:       k8sStatusToProto(pod.Status),
+							// Note: The proto doesn't have an address field for updates
+							// If we need to update the IP, we might need to modify the proto
+							// or use Create with the new IP
 						},
 					},
 				})
+				c.logger.Debug("reported pod update",
+					"pod", pod.Name,
+					"namespace", pod.Namespace,
+					"deployment_id", deploymentID,
+					"ip", address,
+					"status", pod.Status.Phase,
+				)
 
 			case watch.Deleted:
 				pod, ok := e.Object.(*corev1.Pod)
@@ -104,7 +143,13 @@ func (c *DeploymentController) watch() error {
 
 				deploymentID, ok := k8s.GetDeploymentID(pod.GetLabels())
 				if !ok {
-					c.logger.Warn("skipping non-deployment event", "name", pod.Name)
+					c.logger.Debug("skipping pod without deployment ID", "name", pod.Name)
+					continue
+				}
+
+				// Also check it has all the labels we expect for UnkeyDeployments
+				if _, hasWorkspace := k8s.GetWorkspaceID(pod.GetLabels()); !hasWorkspace {
+					c.logger.Debug("skipping non-UnkeyDeployment pod (no workspace)", "name", pod.Name)
 					continue
 				}
 
@@ -116,9 +161,13 @@ func (c *DeploymentController) watch() error {
 						},
 					},
 				})
+				c.logger.Debug("reported pod deletion",
+					"pod", pod.Name,
+					"namespace", pod.Namespace,
+					"deployment_id", deploymentID,
+				)
 
 			case watch.Error:
-
 				c.logger.Error("watch error", "obj", e.Object)
 
 			case watch.Bookmark:

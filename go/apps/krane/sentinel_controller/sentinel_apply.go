@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/unkeyed/unkey/go/apps/krane/k8s"
+	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
 	sentinelv1 "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller/api/v1"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/assert"
@@ -44,6 +44,8 @@ func (c *SentinelController) ApplySentinel(ctx context.Context, req *ctrlv1.Appl
 		ManagedByKrane().
 		ToMap()
 
+	c.logger.Info("creating sentinel", "req", req)
+
 	obj := &sentinelv1.Sentinel{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Sentinel",
@@ -55,30 +57,24 @@ func (c *SentinelController) ApplySentinel(ctx context.Context, req *ctrlv1.Appl
 			Labels:    usedLabels,
 		},
 		Spec: sentinelv1.SentinelSpec{
-			WorkspaceId:   req.GetWorkspaceId(),
-			ProjectId:     req.GetProjectId(),
-			EnvironmentId: req.GetEnvironmentId(),
-			SentinelId:    req.GetSentinelId(),
+			WorkspaceID:   req.GetWorkspaceId(),
+			ProjectID:     req.GetProjectId(),
+			EnvironmentID: req.GetEnvironmentId(),
+			SentinelID:    req.GetSentinelId(),
 			Image:         req.GetImage(),
 			Replicas:      int32(req.GetReplicas()),
 			CpuMillicores: int64(req.GetCpuMillicores()),
 			MemoryMib:     int64(req.GetMemorySizeMib()),
 		},
 	}
-	c.logger.Info("ctrlruntime.CreateOrUpdate", obj, obj)
+	c.logger.Info("ctrlruntime.CreateOrUpdate", "obj", obj)
 
 	existing := sentinelv1.Sentinel{} // nolint:exhaustruct
-	err = c.mgr.GetClient().Get(ctx, types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()}, &existing)
+	err = c.manager.GetClient().Get(ctx, types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()}, &existing)
 	if err != nil {
-
 		if apierrors.IsNotFound(err) {
-			err = c.mgr.GetClient().Create(ctx, obj)
-			if err != nil {
-				c.logger.Error("failed to apply sentinel", "sentinel_id", req.GetSentinelId(), "error", err)
-				return err
-			}
+			return c.manager.GetClient().Create(ctx, obj)
 		}
-		c.logger.Error("failed to get existing sentinel", "sentinel_id", req.GetSentinelId(), "error", err)
 		return err
 	}
 
@@ -86,7 +82,8 @@ func (c *SentinelController) ApplySentinel(ctx context.Context, req *ctrlv1.Appl
 	existing.ObjectMeta.Labels = usedLabels
 	existing.Spec = obj.Spec
 
-	err = c.mgr.GetClient().Update(ctx, &existing)
+	c.logger.Info("updating sentinel", "existing", existing)
+	err = c.manager.GetClient().Update(ctx, &existing)
 	if err != nil {
 		c.logger.Error("failed to apply sentinel", "sentinel_id", req.GetSentinelId(), "error", err)
 		return err

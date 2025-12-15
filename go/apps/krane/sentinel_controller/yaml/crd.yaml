@@ -1,7 +1,7 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: gateways.kubernetes.unkey.com
+  name: sentinels.kubernetes.unkey.com
 spec:
   group: kubernetes.unkey.com
   versions:
@@ -24,9 +24,9 @@ spec:
                 environmentId:
                   type: string
                   description: The ID of the environment to which this instance belongs.
-                gatewayId:
+                sentinelId:
                   type: string
-                  description: The ID of the gateway to which this instance belongs.
+                  description: The ID of the sentinel to which this instance belongs.
                 image:
                   type: string
                   description: The Docker image to use for the instance. This must be accessaible for kubernetes to pull.
@@ -42,8 +42,8 @@ spec:
 
   scope: Namespaced
   names:
-    plural: gateways
-    singular: gateway
+    plural: sentinels
+    singular: sentinel
     kind: Sentinel
     shortNames:
-      - gw
+      - se

@@ -1,0 +1,9 @@
+apiVersion: kubernetes.unkey.com/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: sentinelcontroller
+    app.kubernetes.io/managed-by: kustomize
+  name: deployment-sample
+spec:
+  # TODO(user): Add fields here

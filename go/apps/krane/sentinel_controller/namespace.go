@@ -10,16 +10,14 @@ import (
 
 func (c *SentinelController) ensureNamespaceExists(ctx context.Context, namespace string) error {
 
-	_, err := c.clientset.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
+	err := c.manager.GetClient().Create(ctx, &corev1.Namespace{
+
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
 		},
-	}, metav1.CreateOptions{})
-	if err != nil {
-		if errors.IsAlreadyExists(err) {
-			return nil
-		}
-		return err
+	})
+	if errors.IsAlreadyExists(err) {
+		return nil
 	}
-	return nil
+	return err
 }

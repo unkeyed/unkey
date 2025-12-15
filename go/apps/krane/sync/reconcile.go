@@ -11,7 +11,7 @@ func (s *SyncEngine) Reconcile(ctx context.Context) error {
 
 	s.logger.Info("starting reconciliation for sentinels")
 	sentinels := 0
-	for sentinelID := range s.sentinelcontroller.GetRunningSentinelIDs(ctx) {
+	for sentinelID := range s.sentinelcontroller.GetScheduledSentinelIDs(ctx) {
 		sentinels++
 		e, err := s.reconcileSentinelCircuitBreaker.Do(ctx, func(ctx context.Context) (*connect.Response[ctrlv1.SentinelEvent], error) {
 			return s.ctrl.GetDesiredSentinelState(ctx, connect.NewRequest(&ctrlv1.GetDesiredSentinelStateRequest{
@@ -29,7 +29,7 @@ func (s *SyncEngine) Reconcile(ctx context.Context) error {
 
 	s.logger.Info("starting reconciliation for deployments")
 	deployments := 0
-	for deploymentID := range s.deploymentcontroller.GetRunningDeploymentIds(ctx) {
+	for deploymentID := range s.deploymentcontroller.GetScheduledDeploymentIDs(ctx) {
 		deployments++
 		e, err := s.reconcileDeploymentCircuitBreaker.Do(ctx, func(ctx context.Context) (*connect.Response[ctrlv1.DeploymentEvent], error) {
 			return s.ctrl.GetDesiredDeploymentState(ctx, connect.NewRequest(&ctrlv1.GetDesiredDeploymentStateRequest{

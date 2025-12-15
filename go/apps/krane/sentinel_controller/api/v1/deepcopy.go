@@ -6,10 +6,10 @@ func (in *Sentinel) DeepCopyInto(out *Sentinel) {
 	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.Spec = SentinelSpec{
-		WorkspaceId:   in.Spec.WorkspaceId,
-		ProjectId:     in.Spec.ProjectId,
-		EnvironmentId: in.Spec.EnvironmentId,
-		SentinelId:    in.Spec.SentinelId,
+		WorkspaceID:   in.Spec.WorkspaceID,
+		ProjectID:     in.Spec.ProjectID,
+		EnvironmentID: in.Spec.EnvironmentID,
+		SentinelID:    in.Spec.SentinelID,
 		Image:         in.Spec.Image,
 		Replicas:      in.Spec.Replicas,
 		CpuMillicores: in.Spec.CpuMillicores,

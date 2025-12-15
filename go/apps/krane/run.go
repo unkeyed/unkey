@@ -6,7 +6,13 @@ import (
 	"log/slog"
 	"net"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/rest"
+
 	deploymentcontroller "github.com/unkeyed/unkey/go/apps/krane/deployment_controller"
+	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
 	sentinelcontroller "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller"
 	"github.com/unkeyed/unkey/go/apps/krane/sync"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
@@ -67,10 +73,38 @@ func Run(ctx context.Context, cfg Config) error {
 		Name:     "krane_instance_updates",
 	})
 
+	client, err := k8s.NewClient()
+	if err != nil {
+		return fmt.Errorf("failed to create k8s client: %w", err)
+	}
+
+	// Create a manager for the deployment controller
+	scheme := runtime.NewScheme()
+	err = appsv1.AddToScheme(scheme)
+	if err != nil {
+		return fmt.Errorf("failed to add apps/v1 to scheme: %w", err)
+	}
+	err = corev1.AddToScheme(scheme)
+	if err != nil {
+		return fmt.Errorf("failed to add core/v1 to scheme: %w", err)
+	}
+
+	k8sConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return fmt.Errorf("failed to create k8s config: %w", err)
+	}
+
+	manager, err := k8s.NewManagerWithConfig(k8sConfig, scheme)
+	if err != nil {
+		return fmt.Errorf("failed to create k8s manager: %w", err)
+	}
+
 	dc, err := deploymentcontroller.New(deploymentcontroller.Config{
 		Logger:  logger,
 		Events:  deploymentEvents,
 		Updates: instanceUpdates,
+		Client:  client,
+		Manager: manager,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create deployment controller: %w", err)

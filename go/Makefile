@@ -51,6 +51,13 @@ generate: setup
 	go fmt ./...
 
 
+talos:
+	talosctl cluster create --name=testing
+	
+
+test-k8s: talos
+	go test ./apps/krane/pkg/k8s/test_cluster/... -v
+
 test: test-unit
 
 test-unit: up

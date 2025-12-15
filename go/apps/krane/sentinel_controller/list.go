@@ -3,13 +3,13 @@ package sentinelcontroller
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/go/apps/krane/k8s"
+	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
 	sentinelv1 "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller/api/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (c *SentinelController) GetRunningSentinelIDs(ctx context.Context) <-chan string {
+func (c *SentinelController) GetScheduledSentinelIDs(ctx context.Context) <-chan string {
 	sentinelIDs := make(chan string)
 
 	go func() {
@@ -17,7 +17,7 @@ func (c *SentinelController) GetRunningSentinelIDs(ctx context.Context) <-chan s
 		defer close(sentinelIDs)
 
 		gws := sentinelv1.SentinelList{} // nolint:exhaustruct
-		err := c.mgr.GetClient().List(ctx, &gws, &client.ListOptions{
+		err := c.manager.GetClient().List(ctx, &gws, &client.ListOptions{
 			LabelSelector: labels.SelectorFromValidatedSet(
 				k8s.NewLabels().
 					ManagedByKrane().

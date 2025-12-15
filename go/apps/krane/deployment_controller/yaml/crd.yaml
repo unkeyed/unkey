@@ -1,0 +1,48 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: unkeydeployments.kubernetes.unkey.com
+spec:
+  group: kubernetes.unkey.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                workspaceId:
+                  type: string
+                  description: The ID of the workspace to which this deployment belongs.
+                projectId:
+                  type: string
+                  description: The ID of the project to which this deployment belongs.
+                environmentId:
+                  type: string
+                  description: The ID of the environment to which this deployment belongs.
+                deploymentId:
+                  type: string
+                  description: The unique ID of the deployment.
+                image:
+                  type: string
+                  description: The Docker image to use for the deployment. This must be accessible for kubernetes to pull.
+                replicas:
+                  type: integer
+                  description: The number of pod instances to run.
+                cpuMillicores:
+                  type: integer
+                  description: The amount of CPU in millicores allocated to each pod.
+                memoryMib:
+                  type: integer
+                  description: The amount of memory in MiB allocated to each pod.
+  scope: Namespaced
+  names:
+    plural: unkeydeployments
+    singular: unkeydeployment
+    kind: UnkeyDeployment
+    shortNames:
+      - udep

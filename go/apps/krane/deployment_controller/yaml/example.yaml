@@ -1,0 +1,14 @@
+ apiVersion: kubernetes.unkey.com/v1
+kind: UnkeyDeployment
+metadata:
+  name: dep-example-abc123de
+  namespace: customer-namespace
+spec:
+  workspaceId: ws_123abc
+  projectId: proj_456def
+  environmentId: env_789ghi
+  deploymentId: DPL_ExampleApp123
+  image: ghcr.io/example/app:latest
+  replicas: 3
+  cpuMillicores: 500
+  memoryMib: 512

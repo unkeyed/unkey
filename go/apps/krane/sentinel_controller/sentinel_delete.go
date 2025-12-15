@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/unkeyed/unkey/go/apps/krane/k8s"
+	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
 	sentinelv1 "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller/api/v1"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -19,7 +19,7 @@ func (c *SentinelController) DeleteSentinel(ctx context.Context, req *ctrlv1.Del
 	)
 
 	sentinelList := sentinelv1.SentinelList{} //nolint:exhaustruct
-	if err := c.mgr.GetClient().List(ctx, &sentinelList,
+	if err := c.manager.GetClient().List(ctx, &sentinelList,
 		&client.ListOptions{
 			LabelSelector: labels.SelectorFromValidatedSet(
 				k8s.NewLabels().
@@ -40,7 +40,7 @@ func (c *SentinelController) DeleteSentinel(ctx context.Context, req *ctrlv1.Del
 	}
 
 	for _, sentinel := range sentinelList.Items {
-		err := c.mgr.GetClient().Delete(ctx, &sentinel)
+		err := c.manager.GetClient().Delete(ctx, &sentinel)
 		if err != nil && !apierrors.IsNotFound(err) {
 			return fmt.Errorf("failed to delete sentinel resource %s: %w", sentinel.Name, err)
 		}
