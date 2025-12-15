@@ -45,6 +45,11 @@ type Session struct {
 
 	// ClickHouse request logging control - defaults to true (log by default)
 	logRequestToClickHouse bool
+
+	// internalError stores the internal error message for logging to ClickHouse.
+	// This is set by the error handling middleware before it converts the error
+	// to an HTTP response, allowing the metrics middleware to log the full error.
+	internalError string
 }
 
 func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64) error {
@@ -127,6 +132,18 @@ func (s *Session) DisableClickHouseLogging() {
 // Returns true by default, false only if explicitly disabled.
 func (s *Session) ShouldLogRequestToClickHouse() bool {
 	return s.logRequestToClickHouse
+}
+
+// SetInternalError stores the internal error message for logging purposes.
+// This should be called by error handling middleware before converting
+// errors to HTTP responses.
+func (s *Session) SetInternalError(err string) {
+	s.internalError = err
+}
+
+// InternalError returns the stored internal error message for logging.
+func (s *Session) InternalError() string {
+	return s.internalError
 }
 
 func (s *Session) UserAgent() string {
@@ -461,4 +478,5 @@ func (s *Session) reset() {
 	s.responseStatus = 0
 	s.responseBody = nil
 	s.logRequestToClickHouse = true // Reset ClickHouse logging control to default (enabled)
+	s.internalError = ""
 }

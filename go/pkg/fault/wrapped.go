@@ -193,3 +193,47 @@ func UserFacingMessage(err error) string {
 	return strings.Join(errs, " ")
 
 }
+
+// InternalMessage extracts all internal messages from an error chain and combines them
+// into a single message for logging purposes. It traverses the error chain from newest
+// to oldest, collecting only the internal descriptions.
+//
+// This is useful for logging detailed error information without including the full
+// error chain or underlying error messages.
+//
+// Returns an empty string if:
+//   - The input error is nil
+//   - The error is not a wrapped error
+//   - No internal messages were set in the error chain
+func InternalMessage(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	current, ok := err.(*wrapped)
+	if !ok {
+		return ""
+	}
+
+	errs := []string{}
+
+	for current != nil {
+		if current.internal != "" {
+			errs = append(errs, current.internal)
+		}
+
+		// Check if there's a next error in the chain
+		if current.err == nil {
+			break
+		}
+
+		// Try to get the next wrapped error
+		next, ok := current.err.(*wrapped)
+		if !ok {
+			break
+		}
+		current = next
+	}
+
+	return strings.Join(errs, ": ")
+}
