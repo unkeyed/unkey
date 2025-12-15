@@ -18,9 +18,9 @@ package controller
 
 import (
 	"context"
+	"testing"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -31,65 +31,60 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-var _ = Describe("Sentinel Controller", func() {
-	Context("When reconciling a resource", func() {
-		const resourceName = "test-resource"
+func TestShouldReconcileSentinel(t *testing.T) {
+	h := NewTestHarness(t)
 
-		ctx := context.Background()
+	ctx := context.Background()
 
-		typeNamespacedName := types.NamespacedName{
-			Name:      resourceName,
-			Namespace: "default", // TODO(user):Modify as needed
-		}
-		sentinel := &apiv1.Sentinel{}
+	r := &SentinelReconciler{
+		Client: h.k8sClient,
+		Scheme: h.k8sClient.Scheme(),
+	}
 
-		BeforeEach(func() {
-			By("creating the custom resource for the Kind Sentinel")
-			err := k8sClient.Get(ctx, typeNamespacedName, sentinel)
-			if err != nil && errors.IsNotFound(err) {
-				resource := &apiv1.Sentinel{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      resourceName,
-						Namespace: "default",
-					},
-					Spec: apiv1.SentinelSpec{
-						WorkspaceID:   uid.New(uid.TestPrefix),
-						ProjectID:     uid.New(uid.TestPrefix),
-						EnvironmentID: uid.New(uid.TestPrefix),
-						SentinelID:    uid.New(uid.TestPrefix),
-						Image:         "nginx:latest",
-						Replicas:      3,
-						CpuMillicores: 1024,
-						MemoryMib:     1024,
-					},
-					// TODO(user): Specify other spec details if needed.
-				}
-				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
-			}
-		})
+	namespace := "default"
+	name := uid.NanoLower(8)
 
-		AfterEach(func() {
-			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &apiv1.Sentinel{}
-			err := k8sClient.Get(ctx, typeNamespacedName, resource)
-			Expect(err).NotTo(HaveOccurred())
+	// Before reconciling the sentinel, ensure it does not exist
+	found := &apiv1.Sentinel{}
+	err := h.k8sClient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, found)
+	require.Error(t, err)
+	require.True(t, errors.IsNotFound(err))
 
-			By("Cleanup the specific resource instance Sentinel")
-			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
-		})
-		It("should successfully reconcile the resource", func() {
-			By("Reconciling the created resource")
-			controllerReconciler := &SentinelReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
-			}
+	sentinel := &apiv1.Sentinel{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: apiv1.SentinelSpec{
+			WorkspaceID:   uid.New(uid.TestPrefix),
+			ProjectID:     uid.New(uid.TestPrefix),
+			EnvironmentID: uid.New(uid.TestPrefix),
+			SentinelID:    uid.New(uid.TestPrefix),
+			Image:         "nginx:latest",
+			Replicas:      3,
+			CpuMillicores: 1024,
+			MemoryMib:     1024,
+		},
+	}
 
-			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName,
-			})
-			Expect(err).NotTo(HaveOccurred())
-			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
-			// Example: If you expect a certain status condition after reconciliation, verify it here.
-		})
+	err = h.k8sClient.Create(ctx, sentinel)
+	require.NoError(t, err)
+
+	_, err = r.Reconcile(ctx, reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: namespace,
+			Name:      name,
+		},
 	})
-})
+	require.NoError(t, err)
+
+	// Now it should exist
+	err = h.k8sClient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, found)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		require.NoError(t, h.k8sClient.Delete(ctx, found))
+
+	})
+
+}
