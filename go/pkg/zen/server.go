@@ -133,6 +133,7 @@ func New(config Config) (*Server, error) {
 					logRequestToClickHouse: true,
 					WorkspaceID:            "",
 					requestID:              "",
+					internalError:          "",
 					w:                      nil,
 					r:                      nil,
 					requestBody:            []byte{},

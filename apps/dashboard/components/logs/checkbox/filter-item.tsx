@@ -1,6 +1,5 @@
-import { Drover } from "@/components/ui/drover";
 import { CaretRight } from "@unkey/icons";
-import { Button, KeyboardButton } from "@unkey/ui";
+import { Button, Drover, KeyboardButton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type React from "react";
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
