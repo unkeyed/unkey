@@ -1,11 +1,11 @@
 "use client";
+import { ProtectionSwitch } from "@/components/dashboard/metadata/protection-switch";
 import { Gauge, Trash } from "@unkey/icons";
 import { Button, FormCheckbox, FormInput, InlineLink } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect } from "react";
 import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import type { RatelimitFormValues, RatelimitItem } from "../create-key.schema";
-import { ProtectionSwitch } from "./protection-switch";
 
 export const RatelimitSetup = ({
   overrideEnabled = false,

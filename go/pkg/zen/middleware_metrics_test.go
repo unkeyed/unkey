@@ -1,9 +1,17 @@
 package zen
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/go/pkg/codes"
+	"github.com/unkeyed/unkey/go/pkg/fault"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 )
 
 func TestRedact(t *testing.T) {
@@ -335,4 +343,161 @@ func TestRedactEdgeCases(t *testing.T) {
 			require.Equal(t, tt.expected, string(result))
 		})
 	}
+}
+
+// mockEventBuffer captures API requests for testing
+type mockEventBuffer struct {
+	mu       sync.Mutex
+	requests []schema.ApiRequest
+}
+
+func (m *mockEventBuffer) BufferApiRequest(req schema.ApiRequest) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.requests = append(m.requests, req)
+}
+
+func (m *mockEventBuffer) getRequests() []schema.ApiRequest {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return append([]schema.ApiRequest{}, m.requests...)
+}
+
+func TestWithMetrics_InternalErrorLogging(t *testing.T) {
+	logger := logging.New()
+
+	t.Run("logs internal error message when handler returns error", func(t *testing.T) {
+		eventBuffer := &mockEventBuffer{}
+
+		server, err := New(Config{Logger: logger})
+		require.NoError(t, err)
+
+		// Register a route with metrics and error handling middleware
+		// Order matters: metrics wraps error handling, so metrics runs first/last
+		server.RegisterRoute(
+			[]Middleware{
+				WithMetrics(eventBuffer, InstanceInfo{Region: "test-region"}),
+				WithErrorHandling(logger),
+			},
+			NewRoute(http.MethodGet, "/error-test", func(ctx context.Context, s *Session) error {
+				return fault.New("something went wrong internally",
+					fault.Code(codes.App.Internal.UnexpectedError.URN()),
+					fault.Public("An unexpected error occurred"),
+				)
+			}),
+		)
+
+		req := httptest.NewRequest(http.MethodGet, "/error-test", nil)
+		recorder := httptest.NewRecorder()
+
+		server.Mux().ServeHTTP(recorder, req)
+
+		require.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+		requests := eventBuffer.getRequests()
+		require.Len(t, requests, 1)
+
+		// The internal error message should be logged, not the public one
+		require.Contains(t, requests[0].Error, "something went wrong internally")
+		require.NotContains(t, requests[0].Error, "An unexpected error occurred")
+	})
+
+	t.Run("logs chained internal error messages", func(t *testing.T) {
+		eventBuffer := &mockEventBuffer{}
+
+		server, err := New(Config{Logger: logger})
+		require.NoError(t, err)
+
+		server.RegisterRoute(
+			[]Middleware{
+				WithMetrics(eventBuffer, InstanceInfo{Region: "test-region"}),
+				WithErrorHandling(logger),
+			},
+			NewRoute(http.MethodGet, "/chained-error", func(ctx context.Context, s *Session) error {
+				baseErr := fault.New("database connection failed")
+				return fault.Wrap(baseErr,
+					fault.Code(codes.App.Internal.UnexpectedError.URN()),
+					fault.Internal("failed to fetch user"),
+					fault.Public("Unable to process request"),
+				)
+			}),
+		)
+
+		req := httptest.NewRequest(http.MethodGet, "/chained-error", nil)
+		recorder := httptest.NewRecorder()
+
+		server.Mux().ServeHTTP(recorder, req)
+
+		require.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+		requests := eventBuffer.getRequests()
+		require.Len(t, requests, 1)
+
+		// Both internal messages should be in the error chain
+		require.Contains(t, requests[0].Error, "failed to fetch user")
+		require.Contains(t, requests[0].Error, "database connection failed")
+		// Public message should NOT be in the error
+		require.NotContains(t, requests[0].Error, "Unable to process request")
+	})
+
+	t.Run("no error logged when handler succeeds", func(t *testing.T) {
+		eventBuffer := &mockEventBuffer{}
+
+		server, err := New(Config{Logger: logger})
+		require.NoError(t, err)
+
+		server.RegisterRoute(
+			[]Middleware{
+				WithMetrics(eventBuffer, InstanceInfo{Region: "test-region"}),
+				WithErrorHandling(logger),
+			},
+			NewRoute(http.MethodGet, "/success", func(ctx context.Context, s *Session) error {
+				return s.JSON(http.StatusOK, map[string]string{"status": "ok"})
+			}),
+		)
+
+		req := httptest.NewRequest(http.MethodGet, "/success", nil)
+		recorder := httptest.NewRecorder()
+
+		server.Mux().ServeHTTP(recorder, req)
+
+		require.Equal(t, http.StatusOK, recorder.Code)
+
+		requests := eventBuffer.getRequests()
+		require.Len(t, requests, 1)
+		require.Empty(t, requests[0].Error)
+	})
+
+	t.Run("logs error for not found responses", func(t *testing.T) {
+		eventBuffer := &mockEventBuffer{}
+
+		server, err := New(Config{Logger: logger})
+		require.NoError(t, err)
+
+		server.RegisterRoute(
+			[]Middleware{
+				WithMetrics(eventBuffer, InstanceInfo{Region: "test-region"}),
+				WithErrorHandling(logger),
+			},
+			NewRoute(http.MethodGet, "/not-found-test", func(ctx context.Context, s *Session) error {
+				return fault.New("key not found in database",
+					fault.Code(codes.UnkeyDataErrorsKeyNotFound),
+					fault.Public("The requested key does not exist"),
+				)
+			}),
+		)
+
+		req := httptest.NewRequest(http.MethodGet, "/not-found-test", nil)
+		recorder := httptest.NewRecorder()
+
+		server.Mux().ServeHTTP(recorder, req)
+
+		require.Equal(t, http.StatusNotFound, recorder.Code)
+
+		requests := eventBuffer.getRequests()
+		require.Len(t, requests, 1)
+
+		require.Contains(t, requests[0].Error, "key not found in database")
+		require.NotContains(t, requests[0].Error, "The requested key does not exist")
+	})
 }
