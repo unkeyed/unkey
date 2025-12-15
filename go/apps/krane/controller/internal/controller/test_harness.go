@@ -8,23 +8,30 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	apiv1 "github.com/unkeyed/unkey/go/apps/krane/controller/api/v1"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 	// +kubebuilder:scaffold:imports
 )
 
 type TestHarness struct {
+	t         *testing.T
 	ctx       context.Context
 	cancel    context.CancelFunc
 	testEnv   *envtest.Environment
 	cfg       *rest.Config
 	k8sClient client.Client
+	namespace string
 }
 
 func NewTestHarness(t *testing.T) *TestHarness {
@@ -32,6 +39,10 @@ func NewTestHarness(t *testing.T) *TestHarness {
 	logf.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	ctx, cancel := context.WithCancel(context.TODO())
+
+	t.Cleanup(func() {
+		cancel()
+	})
 
 	err := apiv1.AddToScheme(scheme.Scheme)
 	require.NoError(t, err)
@@ -42,6 +53,10 @@ func NewTestHarness(t *testing.T) *TestHarness {
 		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
 	}
+
+	t.Cleanup(func() {
+		require.NoError(t, testEnv.Stop())
+	})
 
 	// Retrieve the first found binary directory to allow running tests from IDEs
 	if getFirstFoundEnvTestBinaryDir() != "" {
@@ -55,18 +70,32 @@ func NewTestHarness(t *testing.T) *TestHarness {
 	k8sClient, err := client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	require.NoError(t, err)
 
+	namespace := uid.DNS1035()
+
+	err = k8sClient.Create(ctx, &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+		},
+	})
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		require.NoError(t, k8sClient.Delete(ctx, &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: namespace,
+			},
+		}))
+	})
+
 	h := &TestHarness{
+		t:         t,
 		ctx:       ctx,
 		cancel:    cancel,
 		testEnv:   testEnv,
 		cfg:       cfg,
 		k8sClient: k8sClient,
+		namespace: namespace,
 	}
-
-	t.Cleanup(func() {
-		cancel()
-		require.NoError(t, testEnv.Stop())
-	})
 
 	return h
 }
@@ -92,4 +121,27 @@ func getFirstFoundEnvTestBinaryDir() string {
 		}
 	}
 	return ""
+}
+
+func (h *TestHarness) FullReconcileOrFail(r reconcile.Reconciler, namespace, name string) {
+
+	var result reconcile.Result
+	var err error
+
+	for range 100 {
+		result, err = r.Reconcile(context.Background(), reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: namespace,
+				Name:      name,
+			},
+		})
+		if err == nil && result.IsZero() {
+			break
+		}
+
+	}
+
+	require.NoError(h.t, err)
+	require.True(h.t, result.IsZero())
+
 }

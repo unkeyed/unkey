@@ -1,5 +1,7 @@
 package k8s
 
+import "k8s.io/apimachinery/pkg/labels"
+
 // Label key constants for direct access when needed (e.g., in label selectors)
 const (
 	// LabelKeyWorkspaceID is the label key for workspace ID
@@ -176,6 +178,10 @@ func (b *LabelBuilder) ToMap() map[string]string {
 		result[k] = v
 	}
 	return result
+}
+
+func (b *LabelBuilder) ToSelector() labels.Selector {
+	return labels.SelectorFromSet(b.labels)
 }
 
 // GetWorkspaceID extracts the workspace ID from a label map.
