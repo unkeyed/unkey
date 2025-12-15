@@ -68,7 +68,7 @@ export const Client: React.FC = () => {
   const subscription = billingInfo.subscription;
   const currentProductId = billingInfo.currentProductId;
 
-  const allowUpdate = subscription && ["active", "trialing"].includes(subscription.status);
+  // const allowUpdate = subscription && ["active", "trialing"].includes(subscription.status);
 
   const hasPaidSubscription = Boolean(
     subscription &&
@@ -77,7 +77,9 @@ export const Client: React.FC = () => {
   );
   const isFreeTier = !hasPaidSubscription;
   const allowCancel = subscription && subscription.status === "active" && !subscription.cancelAt;
-  const currentProduct = hasPaidSubscription ? products.find((p) => p.id === currentProductId) : undefined;
+  const currentProduct = hasPaidSubscription
+    ? products.find((p) => p.id === currentProductId)
+    : undefined;
 
   return (
     <div>
