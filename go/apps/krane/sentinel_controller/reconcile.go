@@ -10,14 +10,17 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
 	apiv1 "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller/api/v1"
+	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"k8s.io/apimachinery/pkg/api/meta"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Definitions to manage status conditions
@@ -26,18 +29,36 @@ const (
 	typeAvailableSentinel = "Available"
 )
 
-func (r *SentinelController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+type reconciler struct {
+	logger logging.Logger
+	client client.Client
+	scheme *runtime.Scheme
+}
 
-	// Fetch the Sentinel instance
-	// The purpose is check if the Custom Resource for the Kind Sentinel
-	// is applied on the cluster if not we return nil to stop the reconciliation
+// Reconcile handles reconciliation of Sentinel custom resources.
+//
+// This method implements the controller-runtime reconcile loop for Sentinel resources.
+// It fetches the Sentinel resource, creates or updates the underlying
+// Kubernetes StatefulSet, and manages resource status and conditions.
+//
+// The reconciliation process:
+//  1. Fetch the Sentinel CRD
+//  2. Create or update corresponding StatefulSet
+//  3. Update status conditions based on operation results
+//  4. Return appropriate requeue timing
+//
+// Parameters:
+//   - ctx: Context for reconciliation operation
+//   - req: Reconciliation request with namespace and name
+//
+// Returns ctrl.Result indicating when to requeue and any error encountered.
+func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+
 	sentinel := &apiv1.Sentinel{}
 	err := r.client.Get(ctx, req.NamespacedName, sentinel)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			// If the custom resource is not found then it usually means that it was deleted or not created
-			// In this way, we will stop the reconciliation
-			r.logger.Info("sentinel resource not found. Ignoring since object must be deleted")
+			// The sentinel resource is not found, it must be deleted
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
@@ -93,17 +114,7 @@ func (r *SentinelController) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 }
 
-// SetupWithManager sets up the controller with the Manager.
-func (r *SentinelController) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&apiv1.Sentinel{}).
-		Owns(&appsv1.Deployment{}).
-		Owns(&corev1.Service{}).
-		Named("sentinel").
-		Complete(r)
-}
-
-func (r *SentinelController) ensureDeploymentExists(ctx context.Context, sentinel *apiv1.Sentinel) (*appsv1.Deployment, error) {
+func (r *reconciler) ensureDeploymentExists(ctx context.Context, sentinel *apiv1.Sentinel) (*appsv1.Deployment, error) {
 
 	name := fmt.Sprintf("%s-dpl", sentinel.Name)
 
@@ -127,6 +138,7 @@ func (r *SentinelController) ensureDeploymentExists(ctx context.Context, sentine
 				ProjectID(sentinel.Spec.ProjectID).
 				EnvironmentID(sentinel.Spec.EnvironmentID).
 				SentinelID(sentinel.Spec.SentinelID).
+				ComponentSentinel().
 				ManagedByKrane().
 				ToMap(),
 		},
@@ -190,7 +202,7 @@ func (r *SentinelController) ensureDeploymentExists(ctx context.Context, sentine
 
 }
 
-func (r *SentinelController) ensureServiceExists(ctx context.Context, sentinel *apiv1.Sentinel) (*corev1.Service, error) {
+func (r *reconciler) ensureServiceExists(ctx context.Context, sentinel *apiv1.Sentinel) (*corev1.Service, error) {
 
 	name := fmt.Sprintf("%s-svc", sentinel.Name)
 
@@ -198,6 +210,7 @@ func (r *SentinelController) ensureServiceExists(ctx context.Context, sentinel *
 	err := r.client.Get(ctx, types.NamespacedName{Namespace: sentinel.Namespace, Name: name}, found)
 
 	if err == nil {
+
 		return found, nil
 	}
 	if !apierrors.IsNotFound(err) {
@@ -250,7 +263,7 @@ func (r *SentinelController) ensureServiceExists(ctx context.Context, sentinel *
 // returns true if the resource was changed and therefore should be requeued
 type stateReconciler func(ctx context.Context, sentinel *apiv1.Sentinel, deployment *appsv1.Deployment, service *corev1.Service) (bool, error)
 
-func (r *SentinelController) reconcileImage(ctx context.Context, sentinel *apiv1.Sentinel, deployment *appsv1.Deployment, _ *corev1.Service) (bool, error) {
+func (r *reconciler) reconcileImage(ctx context.Context, sentinel *apiv1.Sentinel, deployment *appsv1.Deployment, _ *corev1.Service) (bool, error) {
 	r.logger.Info("Reconciling image")
 	for i, container := range deployment.Spec.Template.Spec.Containers {
 		if container.Image != sentinel.Spec.Image {
@@ -270,7 +283,7 @@ func (r *SentinelController) reconcileImage(ctx context.Context, sentinel *apiv1
 
 }
 
-func (r *SentinelController) reconcileReplicas(ctx context.Context, sentinel *apiv1.Sentinel, deployment *appsv1.Deployment, _ *corev1.Service) (bool, error) {
+func (r *reconciler) reconcileReplicas(ctx context.Context, sentinel *apiv1.Sentinel, deployment *appsv1.Deployment, _ *corev1.Service) (bool, error) {
 
 	r.logger.Info("Reconciling replicas")
 	if *deployment.Spec.Replicas != sentinel.Spec.Replicas {
@@ -288,7 +301,7 @@ func (r *SentinelController) reconcileReplicas(ctx context.Context, sentinel *ap
 
 }
 
-func (r *SentinelController) reconcileCPU(ctx context.Context, sentinel *apiv1.Sentinel, deployment *appsv1.Deployment, _ *corev1.Service) (bool, error) {
+func (r *reconciler) reconcileCPU(ctx context.Context, sentinel *apiv1.Sentinel, deployment *appsv1.Deployment, _ *corev1.Service) (bool, error) {
 
 	r.logger.Info("Reconciling CPU")
 	for i := range deployment.Spec.Template.Spec.Containers {
@@ -325,7 +338,7 @@ func (r *SentinelController) reconcileCPU(ctx context.Context, sentinel *apiv1.S
 
 }
 
-func (r *SentinelController) reconcileMemory(ctx context.Context, sentinel *apiv1.Sentinel, deployment *appsv1.Deployment, _ *corev1.Service) (bool, error) {
+func (r *reconciler) reconcileMemory(ctx context.Context, sentinel *apiv1.Sentinel, deployment *appsv1.Deployment, _ *corev1.Service) (bool, error) {
 
 	r.logger.Info("Reconciling Memory")
 	for i := range deployment.Spec.Template.Spec.Containers {

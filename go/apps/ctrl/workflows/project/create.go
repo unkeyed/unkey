@@ -137,7 +137,7 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 				WorkspaceID:     workspace.ID,
 				ProjectID:       projectID,
 				EnvironmentID:   environmentID,
-				K8sServiceName:  "TODO",
+				K8sServiceName:  fmt.Sprintf("%s.%s.svc.cluster.local", k8sCrdName, workspace.K8sNamespace.String),
 				K8sCrdName:      k8sCrdName,
 				Region:          "aws:us-east-1",
 				Image:           s.sentinelImage,
@@ -154,24 +154,20 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 		}
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return s.cluster.EmitEvent(runCtx, map[string]string{"region": "aws:us-east-1", "shard": "default"}, &ctrlv1.InfraEvent{
-				Event: &ctrlv1.InfraEvent_SentinelEvent{
-					SentinelEvent: &ctrlv1.SentinelEvent{
-						Event: &ctrlv1.SentinelEvent_Apply{
-							Apply: &ctrlv1.ApplySentinel{
-								// already ensured to exist above
-								Namespace:     workspace.K8sNamespace.String,
-								K8SCrdName:    k8sCrdName,
-								WorkspaceId:   workspace.ID,
-								ProjectId:     projectID,
-								EnvironmentId: environmentID,
-								SentinelId:    sentinelID,
-								Image:         s.sentinelImage,
-								Replicas:      uint32(replicas),
-								CpuMillicores: 256,
-								MemorySizeMib: 256,
-							},
-						},
+			return s.cluster.EmitSentinelEvent(runCtx, map[string]string{"region": "aws:us-east-1", "shard": "default"}, &ctrlv1.SentinelEvent{
+				Event: &ctrlv1.SentinelEvent_Apply{
+					Apply: &ctrlv1.ApplySentinel{
+						// already ensured to exist above
+						Namespace:     workspace.K8sNamespace.String,
+						K8SCrdName:    k8sCrdName,
+						WorkspaceId:   workspace.ID,
+						ProjectId:     projectID,
+						EnvironmentId: environmentID,
+						SentinelId:    sentinelID,
+						Image:         s.sentinelImage,
+						Replicas:      uint32(replicas),
+						CpuMillicores: 256,
+						MemorySizeMib: 256,
 					},
 				},
 			})

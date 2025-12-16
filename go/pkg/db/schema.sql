@@ -353,6 +353,7 @@ CREATE TABLE `projects` (
 
 CREATE TABLE `deployments` (
 	`id` varchar(128) NOT NULL,
+	`k8s_crd_name` varchar(255) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
 	`environment_id` varchar(128) NOT NULL,
@@ -371,7 +372,8 @@ CREATE TABLE `deployments` (
 	`status` enum('pending','building','deploying','network','ready','failed') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `deployments_id` PRIMARY KEY(`id`)
+	CONSTRAINT `deployments_id` PRIMARY KEY(`id`),
+	CONSTRAINT `deployments_k8s_crd_name_unique` UNIQUE(`k8s_crd_name`)
 );
 
 CREATE TABLE `deployment_topology` (
@@ -447,7 +449,9 @@ CREATE TABLE `sentinels` (
 	`memory_mib` int NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `sentinels_id` PRIMARY KEY(`id`)
+	CONSTRAINT `sentinels_id` PRIMARY KEY(`id`),
+	CONSTRAINT `sentinels_k8s_crd_name_unique` UNIQUE(`k8s_crd_name`),
+	CONSTRAINT `sentinels_k8s_service_name_unique` UNIQUE(`k8s_service_name`)
 );
 
 CREATE TABLE `instances` (

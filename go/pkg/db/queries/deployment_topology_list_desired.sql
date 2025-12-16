@@ -1,6 +1,7 @@
 -- name: ListDesiredDeploymentTopology :many
 SELECT
     d.id as deployment_id,
+    d.k8s_crd_name as k8s_crd_name,
     d.workspace_id,
     d.project_id,
     d.environment_id,

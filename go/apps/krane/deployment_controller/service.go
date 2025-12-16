@@ -4,88 +4,120 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes"
-	ctrlruntime "sigs.k8s.io/controller-runtime"
-
-	"github.com/bytedance/gopkg/util/logger"
-	v1 "github.com/unkeyed/unkey/go/apps/krane/deployment_controller/api/v1"
+	apiv1 "github.com/unkeyed/unkey/go/apps/krane/deployment_controller/api/v1"
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/buffer"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+
+	ctrlruntime "sigs.k8s.io/controller-runtime"
 )
 
+// DeploymentController manages Deployment resources in Kubernetes.
 type DeploymentController struct {
-	logger    logging.Logger
-	clientset *kubernetes.Clientset
-	// incoming events to be applied to deployments
+	logger logging.Logger
+	client client.Client
+	scheme *runtime.Scheme
+
 	events  *buffer.Buffer[*ctrlv1.DeploymentEvent]
-	updates *buffer.Buffer[*ctrlv1.UpdateInstanceRequest]
-
-	scheme  *runtime.Scheme
-	manager ctrlruntime.Manager
+	changes *buffer.Buffer[*ctrlv1.UpdateInstanceRequest]
 }
 
-// Config holds configuration for the Kubernetes backend.
+var _ k8s.Reconciler = (*DeploymentController)(nil)
+
+// Config holds configuration for creating a DeploymentController.
 type Config struct {
-	// Logger for Kubernetes operations.
-	Logger  logging.Logger
-	Events  *buffer.Buffer[*ctrlv1.DeploymentEvent]
-	Updates *buffer.Buffer[*ctrlv1.UpdateInstanceRequest]
-	Client  *kubernetes.Clientset
-	Manager ctrlruntime.Manager
+	// Logger for Kubernetes operations and debugging.
+	Logger logging.Logger
+	// Scheme is the Kubernetes runtime scheme for type registration.
+	Scheme *runtime.Scheme
+	// Client provides access to Kubernetes API.
+	Client client.Client
+
+	Manager manager.Manager
 }
 
+// New creates a new DeploymentController with the provided configuration.
+//
+// This function initializes the controller and starts the routing goroutine
+// for processing deployment events. The controller will begin handling
+// deployment events immediately.
+//
+// Returns an error if the controller cannot be created.
 func New(cfg Config) (*DeploymentController, error) {
 
-	ctx := context.Background()
+	if err := apiv1.AddToScheme(cfg.Scheme); err != nil {
+		return nil, fmt.Errorf("failed to add api v1 to scheme: %w", err)
+	}
 
 	ctrlruntime.SetLogger(k8s.CompatibleLogger(cfg.Logger))
 
-	// Get the scheme from the provided manager
-	scheme := cfg.Manager.GetScheme()
-
-	var clientset *kubernetes.Clientset
-
-	// If client is provided, use it, otherwise create from manager's config
-	if cfg.Client != nil {
-		clientset = cfg.Client
-	} else {
-		var err error
-		clientset, err = kubernetes.NewForConfig(cfg.Manager.GetConfig())
-		if err != nil {
-			return nil, fmt.Errorf("failed to create clientset from manager config: %w", err)
-		}
-	}
-
 	c := &DeploymentController{
-		logger:    cfg.Logger,
-		clientset: clientset,
-		events:    cfg.Events,
-		updates:   cfg.Updates,
-		scheme:    scheme,
-		manager:   cfg.Manager,
+		logger: cfg.Logger,
+		client: cfg.Client,
+		scheme: cfg.Scheme,
+		events: buffer.New[*ctrlv1.DeploymentEvent](buffer.Config{
+			Capacity: 1000,
+			Drop:     true,
+			Name:     "krane_deployment_events",
+		}),
+		changes: buffer.New[*ctrlv1.UpdateInstanceRequest](buffer.Config{
+			Capacity: 1000,
+			Drop:     true,
+			Name:     "krane_deployment_changes",
+		}),
 	}
 
-	err := ctrlruntime.NewControllerManagedBy(cfg.Manager).
-		For(&v1.UnkeyDeployment{}). // nolint:exhaustruct
-		Complete(c)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create controller: %w", err)
+	if err := ctrlruntime.NewControllerManagedBy(cfg.Manager).
+		For(&apiv1.Deployment{}).
+		Owns(&appsv1.Deployment{}).
+		Named("deployment").
+		Complete(c); err != nil {
+		return nil, err
+	}
+
+	if err := ctrl.NewControllerManagedBy(cfg.Manager).
+		For(
+			&corev1.Pod{},
+			builder.WithPredicates(
+				predicate.NewPredicateFuncs(func(obj client.Object) bool {
+					return k8s.IsComponentDeployment(obj.GetLabels())
+				}),
+			),
+		).
+		Named("deployment_pods2").
+		Complete(&podWatcher{
+			client:  cfg.Client,
+			changes: c.changes,
+		}); err != nil {
+		return nil, err
 	}
 
 	go func() {
-		if err := c.manager.Start(ctx); err != nil {
-			logger.Error("failed to start manager", "error", err.Error())
+		for event := range c.events.Consume() {
+			c.logger.Info("Received deployment event", "event", event)
+			switch e := event.Event.(type) {
+			case *ctrlv1.DeploymentEvent_Apply:
+				if err := c.ApplyDeployment(context.Background(), e.Apply); err != nil {
+					c.logger.Error("unable to apply deployment", "error", err.Error(), "event", e)
+				}
+			case *ctrlv1.DeploymentEvent_Delete:
+				if err := c.DeleteDeployment(context.Background(), e.Delete); err != nil {
+					c.logger.Error("unable to delete deployment", "error", err.Error(), "event", e)
+				}
+			default:
+				c.logger.Error("Unknown deployment event", "event", e)
+			}
 		}
 	}()
-
-	if err = c.watch(); err != nil {
-		return nil, fmt.Errorf("failed to start watch: %w", err)
-	}
-
-	go c.apply()
 
 	return c, nil
 }

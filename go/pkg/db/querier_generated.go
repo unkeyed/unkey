@@ -194,7 +194,7 @@ type Querier interface {
 	FindCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT id, workspace_id, project_id, environment_id, image, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, status, created_at, updated_at FROM `deployments` WHERE id = ?
+	//  SELECT id, k8s_crd_name, workspace_id, project_id, environment_id, image, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, status, created_at, updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentStepsByDeploymentId
 	//
@@ -1116,6 +1116,7 @@ type Querier interface {
 	//
 	//  INSERT INTO `deployments` (
 	//      id,
+	//      k8s_crd_name,
 	//      workspace_id,
 	//      project_id,
 	//      environment_id,
@@ -1133,6 +1134,7 @@ type Querier interface {
 	//      created_at
 	//  )
 	//  VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1273,35 +1275,6 @@ type Querier interface {
 	//      auto_apply = VALUES(auto_apply),
 	//      updated_at = VALUES(created_at)
 	InsertIdentityRatelimit(ctx context.Context, db DBTX, arg InsertIdentityRatelimitParams) error
-	//InsertInstance
-	//
-	//  INSERT INTO instances (
-	//  	id,
-	//  	deployment_id,
-	//  	workspace_id,
-	//  	project_id,
-	//  	region,
-	//  	shard,
-	//  	pod_name,
-	//  	address,
-	//  	cpu_millicores,
-	//  	memory_mib,
-	//  	status
-	//  )
-	//  VALUES (
-	//  	?,
-	//  	?,
-	//  	?,
-	//  	?,
-	//  	?,
-	//  	?,
-	//  	?,
-	//  	?,
-	//  	?,
-	//  	?,
-	//  	?
-	//  )
-	InsertInstance(ctx context.Context, db DBTX, arg InsertInstanceParams) error
 	//InsertKey
 	//
 	//  INSERT INTO `keys` (
@@ -1636,6 +1609,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      d.id as deployment_id,
+	//      d.k8s_crd_name as k8s_crd_name,
 	//      d.workspace_id,
 	//      d.project_id,
 	//      d.environment_id,
@@ -2111,12 +2085,6 @@ type Querier interface {
 	//  WHERE
 	//      id = ?
 	UpdateIdentity(ctx context.Context, db DBTX, arg UpdateIdentityParams) error
-	//UpdateInstanceStatus
-	//
-	//  UPDATE instances SET
-	//  	status = ?
-	//  WHERE pod_name = ? AND shard = ? AND region = ?
-	UpdateInstanceStatus(ctx context.Context, db DBTX, arg UpdateInstanceStatusParams) error
 	//UpdateKey
 	//
 	//  UPDATE `keys` k SET
@@ -2239,7 +2207,7 @@ type Querier interface {
 	//  replicas = ?,
 	//  health = ?,
 	//  updated_at = ?
-	//  WHERE id = ?
+	//  WHERE k8s_crd_name = ?
 	UpdateSentinelReplicasAndHealth(ctx context.Context, db DBTX, arg UpdateSentinelReplicasAndHealthParams) error
 	//UpdateWorkspaceEnabled
 	//
@@ -2265,6 +2233,40 @@ type Querier interface {
 	//  ) VALUES (?, ?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE slug = VALUES(slug)
 	UpsertEnvironment(ctx context.Context, db DBTX, arg UpsertEnvironmentParams) error
+	//UpsertInstance
+	//
+	//  INSERT INTO instances (
+	//  	id,
+	//  	deployment_id,
+	//  	workspace_id,
+	//  	project_id,
+	//  	region,
+	//  	shard,
+	//  	pod_name,
+	//  	address,
+	//  	cpu_millicores,
+	//  	memory_mib,
+	//  	status
+	//  )
+	//  VALUES (
+	//  	?,
+	//  	?,
+	//  	?,
+	//  	?,
+	//  	?,
+	//  	?,
+	//  	?,
+	//  	?,
+	//  	?,
+	//  	?,
+	//  	?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//  	address = ?,
+	//  	cpu_millicores = ?,
+	//  	memory_mib = ?,
+	//  	status = ?
+	UpsertInstance(ctx context.Context, db DBTX, arg UpsertInstanceParams) error
 	//UpsertKeySpace
 	//
 	//  INSERT INTO key_auth (

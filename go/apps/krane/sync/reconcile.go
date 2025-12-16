@@ -7,12 +7,27 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 )
 
+// Reconcile synchronizes current cluster state with desired state from control plane.
+//
+// This method performs bidirectional reconciliation by:
+//  1. Getting all scheduled deployment and sentinel IDs from controllers
+//  2. Fetching desired state for each resource from control plane
+//  3. Buffering events to controllers for application
+//  4. Using circuit breakers to prevent cascade failures
+//
+// This operation is called periodically to ensure cluster state matches
+// control plane expectations and to handle any drift or missed events.
+//
+// Parameters:
+//   - ctx: Context for reconciliation operations
+//
+// Returns an error if reconciliation encounters critical problems,
+// but individual resource failures are logged and don't stop the process.
 func (s *SyncEngine) Reconcile(ctx context.Context) error {
 
-	s.logger.Info("starting reconciliation for sentinels")
+	s.logger.Info("starting reconciliation of cluster state")
 	sentinels := 0
 	for sentinelID := range s.sentinelcontroller.GetScheduledSentinelIDs(ctx) {
-		sentinels++
 		e, err := s.reconcileSentinelCircuitBreaker.Do(ctx, func(ctx context.Context) (*connect.Response[ctrlv1.SentinelEvent], error) {
 			return s.ctrl.GetDesiredSentinelState(ctx, connect.NewRequest(&ctrlv1.GetDesiredSentinelStateRequest{
 				SentinelId: sentinelID,
@@ -23,14 +38,17 @@ func (s *SyncEngine) Reconcile(ctx context.Context) error {
 			continue
 		}
 
-		s.sentinelcontroller.BufferEvent(e.Msg)
-	}
-	s.logger.Info("reconciled sentinels", "count", sentinels)
+		err = s.routeSentinelEvent(ctx, e.Msg)
+		if err != nil {
+			s.logger.Error(err.Error())
+			continue
+		}
+		sentinels++
 
-	s.logger.Info("starting reconciliation for deployments")
+	}
+
 	deployments := 0
 	for deploymentID := range s.deploymentcontroller.GetScheduledDeploymentIDs(ctx) {
-		deployments++
 		e, err := s.reconcileDeploymentCircuitBreaker.Do(ctx, func(ctx context.Context) (*connect.Response[ctrlv1.DeploymentEvent], error) {
 			return s.ctrl.GetDesiredDeploymentState(ctx, connect.NewRequest(&ctrlv1.GetDesiredDeploymentStateRequest{
 				DeploymentId: deploymentID,
@@ -40,9 +58,18 @@ func (s *SyncEngine) Reconcile(ctx context.Context) error {
 			s.logger.Error(err.Error())
 			continue
 		}
-		s.deploymentcontroller.BufferEvent(e.Msg)
+		err = s.routeDeploymentEvent(ctx, e.Msg)
+		if err != nil {
+			s.logger.Error(err.Error())
+			continue
+		}
+		deployments++
+
 	}
-	s.logger.Info("reconciled deployments", "count", deployments)
+	s.logger.Info("reconciled cluster state done",
+		"deployments", deployments,
+		"sentinels", sentinels,
+	)
 
 	return nil
 

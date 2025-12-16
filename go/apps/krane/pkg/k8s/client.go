@@ -4,42 +4,39 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	ctrlruntime "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-func NewClient() (*kubernetes.Clientset, error) {
+// NewClient creates a Kubernetes clientset using in-cluster configuration.
+//
+// This function automatically detects and uses the service account configuration
+// available within a Kubernetes cluster. It's the standard way to create
+// a client when running inside a pod.
+//
+// Returns an error if in-cluster configuration cannot be detected or
+// if the clientset cannot be created.
+func NewClient(scheme *runtime.Scheme) (client.Client, error) {
 
 	inClusterConfig, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create in-cluster config: %w", err)
 	}
 
-	return NewClientWithConfig(inClusterConfig)
+	return client.New(inClusterConfig, client.Options{Scheme: scheme})
 }
 
-// NewClientWithConfig creates a new Kubernetes clientset with the given configuration.
-// This is useful for testing where we need to provide a custom configuration.
-func NewClientWithConfig(config *rest.Config) (*kubernetes.Clientset, error) {
-	return kubernetes.NewForConfig(config)
-}
+func NewManager(scheme *runtime.Scheme) (controllerruntime.Manager, error) {
 
-// NewManagerWithConfig creates a new controller-runtime manager with the given configuration.
-// This is useful for testing where we need to provide a custom configuration.
-func NewManagerWithConfig(config *rest.Config, scheme *runtime.Scheme) (ctrlruntime.Manager, error) {
-	// nolint:exhaustruct
-	mgr, err := ctrlruntime.NewManager(config, ctrlruntime.Options{
-		Scheme:                 scheme,
-		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
-		HealthProbeBindAddress: ":8081",
-	})
-
+	inClusterConfig, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create manager: %w", err)
+		return nil, fmt.Errorf("failed to create in-cluster config: %w", err)
 	}
 
-	return mgr, nil
+	return controllerruntime.NewManager(inClusterConfig, manager.Options{
+		Scheme: scheme,
+	})
 }

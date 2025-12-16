@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertDeployment is the base query for bulk insert
-const bulkInsertDeployment = `INSERT INTO ` + "`" + `deployments` + "`" + ` ( id, workspace_id, project_id, environment_id, git_commit_sha, git_branch, sentinel_config, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, openapi_spec, status, cpu_millicores, memory_mib, created_at ) VALUES %s`
+const bulkInsertDeployment = `INSERT INTO ` + "`" + `deployments` + "`" + ` ( id, k8s_crd_name, workspace_id, project_id, environment_id, git_commit_sha, git_branch, sentinel_config, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, openapi_spec, status, cpu_millicores, memory_mib, created_at ) VALUES %s`
 
 // InsertDeployments performs bulk insert in a single query
 func (q *BulkQueries) InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertDeployments(ctx context.Context, db DBTX, args []Ins
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertDeployment, strings.Join(valueClauses, ", "))
@@ -30,6 +30,7 @@ func (q *BulkQueries) InsertDeployments(ctx context.Context, db DBTX, args []Ins
 	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ID)
+		allArgs = append(allArgs, arg.K8sCrdName)
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.EnvironmentID)

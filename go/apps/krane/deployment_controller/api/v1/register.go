@@ -9,7 +9,7 @@ import (
 const (
 	GroupName    = "kubernetes.unkey.com"
 	GroupVersion = "v1"
-	Plural       = "unkeydeployments"
+	Plural       = "deployments"
 )
 
 var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: GroupVersion}
@@ -21,8 +21,8 @@ var (
 
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&UnkeyDeployment{},     // nolint:exhaustruct
-		&UnkeyDeploymentList{}, // nolint:exhaustruct
+		&Deployment{},     // nolint:exhaustruct
+		&DeploymentList{}, // nolint:exhaustruct
 	)
 
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)

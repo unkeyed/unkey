@@ -1,5 +1,11 @@
 import { relations } from "drizzle-orm";
-import { index, int, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import {
+  index,
+  int,
+  mysqlEnum,
+  mysqlTable,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { environments } from "./environments";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -15,8 +21,10 @@ export const sentinels = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
     environmentId: varchar("environment_id", { length: 255 }).notNull(),
-    k8sCrdName: varchar("k8s_crd_name", { length: 255 }).notNull(),
-    k8sServiceName: varchar("k8s_service_name", { length: 255 }).notNull(),
+    k8sCrdName: varchar("k8s_crd_name", { length: 255 }).notNull().unique(),
+    k8sServiceName: varchar("k8s_service_name", { length: 255 })
+      .notNull()
+      .unique(),
     /*
      * `us-east-1`, `us-west-2` etc
      */
@@ -35,7 +43,7 @@ export const sentinels = mysqlTable(
     memoryMib: int("memory_mib").notNull(),
     ...lifecycleDates,
   },
-  (table) => [index("idx_environment_id").on(table.environmentId)],
+  (table) => [index("idx_environment_id").on(table.environmentId)]
 );
 
 export const sentinelsRelations = relations(sentinels, ({ one }) => ({

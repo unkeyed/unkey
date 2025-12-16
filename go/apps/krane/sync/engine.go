@@ -10,13 +10,17 @@ import (
 	sentinelcontroller "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
-	"github.com/unkeyed/unkey/go/pkg/buffer"
 	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/repeat"
 	"github.com/unkeyed/unkey/go/pkg/retry"
 )
 
+// SyncEngine manages bidirectional synchronization with the control plane.
+//
+// This engine maintains real-time communication with the control plane via
+// streaming gRPC connections. It pulls desired state updates, pushes status
+// updates, and coordinates with controllers to maintain cluster state.
 type SyncEngine struct {
 	controlPlaneUrl    string
 	controlPlaneBearer string
@@ -26,31 +30,48 @@ type SyncEngine struct {
 	region             string
 	close              chan struct{}
 
+	// ctrl is the gRPC client for control plane communication.
 	ctrl ctrlv1connect.ClusterServiceClient
 
-	reconcileSentinelCircuitBreaker   circuitbreaker.CircuitBreaker[*connect.Response[ctrlv1.SentinelEvent]]
+	// reconcileSentinelCircuitBreaker prevents cascade failures during sentinel reconciliation.
+	reconcileSentinelCircuitBreaker circuitbreaker.CircuitBreaker[*connect.Response[ctrlv1.SentinelEvent]]
+	// reconcileDeploymentCircuitBreaker prevents cascade failures during deployment reconciliation.
 	reconcileDeploymentCircuitBreaker circuitbreaker.CircuitBreaker[*connect.Response[ctrlv1.DeploymentEvent]]
 
 	sentinelcontroller   *sentinelcontroller.SentinelController
 	deploymentcontroller *deploymentcontroller.DeploymentController
-
-	instanceUpdates *buffer.Buffer[*ctrlv1.UpdateInstanceRequest]
-	sentinelUpdates *buffer.Buffer[*ctrlv1.UpdateSentinelRequest]
 }
 
+// Config holds configuration for creating a SyncEngine.
 type Config struct {
-	Logger               logging.Logger
-	Region               string
-	Shard                string
-	ControlPlaneURL      string
-	ControlPlaneBearer   string
-	InstanceID           string
-	SentinelController   *sentinelcontroller.SentinelController
+	// Logger for synchronization operations and debugging.
+	Logger logging.Logger
+	// Region identifies the geographic region for this agent.
+	Region string
+	// Shard identifies the cluster within the region.
+	Shard string
+	// ControlPlaneURL is the address of the control plane service.
+	ControlPlaneURL string
+	// ControlPlaneBearer is the bearer token for authentication.
+	ControlPlaneBearer string
+	// InstanceID is the unique identifier for this krane agent.
+	InstanceID string
+	// SentinelController manages sentinel resources.
+	SentinelController *sentinelcontroller.SentinelController
+	// DeploymentController manages deployment resources.
 	DeploymentController *deploymentcontroller.DeploymentController
-	InstanceUpdates      *buffer.Buffer[*ctrlv1.UpdateInstanceRequest]
-	SentinelUpdates      *buffer.Buffer[*ctrlv1.UpdateSentinelRequest]
 }
 
+// New creates a new SyncEngine with the provided configuration.
+//
+// This function initializes the synchronization engine, creates gRPC client
+// with appropriate interceptors, sets up circuit breakers, and starts the
+// background goroutines for pull, push, watch, and periodic reconciliation.
+//
+// The engine starts immediately and runs until the application context
+// is cancelled. All background operations are handled automatically.
+//
+// Returns an error if the engine cannot be initialized.
 func New(cfg Config) (*SyncEngine, error) {
 
 	s := &SyncEngine{
@@ -76,11 +97,13 @@ func New(cfg Config) (*SyncEngine, error) {
 		reconcileDeploymentCircuitBreaker: circuitbreaker.New[*connect.Response[ctrlv1.DeploymentEvent]]("reconcile_deployment"),
 		sentinelcontroller:                cfg.SentinelController,
 		deploymentcontroller:              cfg.DeploymentController,
-
-		instanceUpdates: cfg.InstanceUpdates,
-		sentinelUpdates: cfg.SentinelUpdates,
 	}
 
+	return s, nil
+
+}
+
+func (s *SyncEngine) Start() {
 	// Do a full pull sync from the control plane regularly
 	// This ensures we're not missing any resources that should be running.
 	// It does not sync resources that are running, but should not be running.
@@ -103,6 +126,4 @@ func New(cfg Config) (*SyncEngine, error) {
 
 	go s.watch()
 	go s.push()
-	return s, nil
-
 }

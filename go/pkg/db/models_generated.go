@@ -862,6 +862,7 @@ type CustomDomain struct {
 
 type Deployment struct {
 	ID                       string                  `db:"id"`
+	K8sCrdName               string                  `db:"k8s_crd_name"`
 	WorkspaceID              string                  `db:"workspace_id"`
 	ProjectID                string                  `db:"project_id"`
 	EnvironmentID            string                  `db:"environment_id"`

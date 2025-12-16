@@ -34,9 +34,10 @@ start_dashboard = 'all' in services or 'dashboard' in services
 # Apply RBAC
 k8s_yaml('k8s/manifests/rbac.yaml')
 
-# Apply Sentinel CRD for krane controller
-print("Setting up Sentinel CRD...")
-k8s_yaml('apps/krane/gateway_controller/yaml/crd.yaml')
+# Apply CRDs for krane controller
+print("Setting up CRDs...")
+k8s_yaml('apps/krane/sentinel_controller/yaml/crd.yaml')
+k8s_yaml('apps/krane/deployment_controller/yaml/crd.yaml')
 
 # Registry Proxy service (always needed for pulling images from depot)
 print("Setting up Registry Proxy...")

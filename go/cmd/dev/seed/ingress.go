@@ -139,7 +139,7 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create sentinel: %w", err)
 		}
 
-		err = db.Query.InsertInstance(ctx, tx, db.InsertInstanceParams{
+		err = db.Query.UpsertInstance(ctx, tx, db.UpsertInstanceParams{
 			ID:            instanceID,
 			DeploymentID:  deploymentID,
 			WorkspaceID:   workspaceID,

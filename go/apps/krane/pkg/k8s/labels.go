@@ -135,6 +135,16 @@ func (b *LabelBuilder) ManagedByKrane() *LabelBuilder {
 	return b
 }
 
+func (b *LabelBuilder) ComponentSentinel() *LabelBuilder {
+	b.labels[LabelKeyComponent] = "sentinel"
+	return b
+}
+
+func (b *LabelBuilder) ComponentDeployment() *LabelBuilder {
+	b.labels[LabelKeyComponent] = "deployment"
+	return b
+}
+
 // Custom adds a custom label with any key-value pair.
 //
 // Use this for labels that don't have dedicated builder methods.
@@ -180,6 +190,14 @@ func (b *LabelBuilder) ToMap() map[string]string {
 	return result
 }
 
+// ToSelector creates a Kubernetes label selector from built labels.
+//
+// This method converts the label map into a selector that can be used
+// for filtering Kubernetes resources. The selector matches resources that
+// have all the specified labels with exact values.
+//
+// Returns a labels.Selector for use in List operations and
+// resource filtering.
 func (b *LabelBuilder) ToSelector() labels.Selector {
 	return labels.SelectorFromSet(b.labels)
 }
@@ -240,6 +258,16 @@ func GetComponent(labels map[string]string) (string, bool) {
 	return value, ok
 }
 
+func IsComponentSentinel(labels map[string]string) bool {
+	value, ok := labels[LabelKeyComponent]
+	return ok && value == "sentinel"
+}
+
+func IsComponentDeployment(labels map[string]string) bool {
+	value, ok := labels[LabelKeyComponent]
+	return ok && value == "deployment"
+}
+
 // IsManagedByKrane checks if the resource is managed by Krane.
 // Returns true only if the managed-by label exists and is set to "krane".
 func IsManagedByKrane(labels map[string]string) bool {
@@ -248,6 +276,15 @@ func IsManagedByKrane(labels map[string]string) bool {
 }
 
 // GetLabel is a generic function to get any label value by its key.
+//
+// This provides a convenient way to access label values without
+// using the specific getter functions. Use this for custom labels
+// or when the label key is dynamic.
+//
+// Parameters:
+//   - labels: Map of label key-value pairs
+//   - key: The label key to retrieve
+//
 // Returns the value and a boolean indicating if the label was found.
 func GetLabel(labels map[string]string, key string) (string, bool) {
 	value, exists := labels[key]

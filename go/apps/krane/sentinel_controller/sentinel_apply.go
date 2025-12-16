@@ -13,6 +13,18 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// ApplySentinel creates or updates a Sentinel CRD based on the provided request.
+//
+// This method validates the request, ensures the namespace exists, and creates
+// or updates the Sentinel custom resource. The controller-runtime reconciler
+// will handle the actual Kubernetes resource creation based on this CRD.
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - req: Sentinel application request with specifications
+//
+// Returns an error if validation fails, namespace creation fails,
+// or CRD creation/update encounters problems.
 func (c *SentinelController) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentinel) error {
 
 	err := assert.All(
@@ -70,10 +82,10 @@ func (c *SentinelController) ApplySentinel(ctx context.Context, req *ctrlv1.Appl
 	c.logger.Info("ctrlruntime.CreateOrUpdate", "obj", obj)
 
 	existing := sentinelv1.Sentinel{} // nolint:exhaustruct
-	err = c.manager.GetClient().Get(ctx, types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()}, &existing)
+	err = c.client.Get(ctx, types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()}, &existing)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			return c.manager.GetClient().Create(ctx, obj)
+			return c.client.Create(ctx, obj)
 		}
 		return err
 	}
@@ -83,7 +95,7 @@ func (c *SentinelController) ApplySentinel(ctx context.Context, req *ctrlv1.Appl
 	existing.Spec = obj.Spec
 
 	c.logger.Info("updating sentinel", "existing", existing)
-	err = c.manager.GetClient().Update(ctx, &existing)
+	err = c.client.Update(ctx, &existing)
 	if err != nil {
 		c.logger.Error("failed to apply sentinel", "sentinel_id", req.GetSentinelId(), "error", err)
 		return err

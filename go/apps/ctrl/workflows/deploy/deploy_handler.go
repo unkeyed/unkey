@@ -170,22 +170,18 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	for _, region := range regions {
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return w.cluster.EmitEvent(runCtx, map[string]string{"region": region, "shard": "default"}, &ctrlv1.InfraEvent{
-				Event: &ctrlv1.InfraEvent_DeploymentEvent{
-					DeploymentEvent: &ctrlv1.DeploymentEvent{
-						Event: &ctrlv1.DeploymentEvent_Apply{
-							Apply: &ctrlv1.ApplyDeployment{
-								Namespace:     workspace.K8sNamespace.String,
-								WorkspaceId:   workspace.ID,
-								ProjectId:     project.ID,
-								EnvironmentId: environment.ID,
-								DeploymentId:  deployment.ID,
-								Image:         dockerImage,
-								Replicas:      1,
-								CpuMillicores: 256,
-								MemorySizeMib: 256,
-							},
-						},
+			return w.cluster.EmitDeploymentEvent(runCtx, map[string]string{"region": region, "shard": "default"}, &ctrlv1.DeploymentEvent{
+				Event: &ctrlv1.DeploymentEvent_Apply{
+					Apply: &ctrlv1.ApplyDeployment{
+						Namespace:     workspace.K8sNamespace.String,
+						WorkspaceId:   workspace.ID,
+						ProjectId:     project.ID,
+						EnvironmentId: environment.ID,
+						DeploymentId:  deployment.ID,
+						Image:         dockerImage,
+						Replicas:      1,
+						CpuMillicores: 256,
+						MemorySizeMib: 256,
 					},
 				},
 			})

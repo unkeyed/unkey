@@ -14,14 +14,15 @@ import (
 	"k8s.io/client-go/rest"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
 	apiv1 "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller/api/v1"
-	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/go/pkg/buffer"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	// +kubebuilder:scaffold:imports
 )
@@ -33,6 +34,7 @@ type TestHarness struct {
 	testEnv   *envtest.Environment
 	cfg       *rest.Config
 	k8sClient client.Client
+	manager   controllerruntime.Manager
 	namespace string
 	Logger    logging.Logger
 }
@@ -68,6 +70,16 @@ func NewTestHarness(t *testing.T) *TestHarness {
 	k8sClient, err := client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	require.NoError(t, err)
 
+	manager, err := manager.New(cfg, manager.Options{
+		Scheme: scheme.Scheme,
+
+		Controller: config.Controller{
+			// I think parallel tests are messing with the controller name validation
+			SkipNameValidation: ptr.P(true),
+		},
+	})
+	require.NoError(t, err)
+
 	namespace := uid.DNS1035()
 
 	err = k8sClient.Create(ctx, &corev1.Namespace{
@@ -92,6 +104,7 @@ func NewTestHarness(t *testing.T) *TestHarness {
 		testEnv:   testEnv,
 		cfg:       cfg,
 		k8sClient: k8sClient,
+		manager:   manager,
 		namespace: namespace,
 		Logger:    logger,
 	}
@@ -102,19 +115,10 @@ func NewTestHarness(t *testing.T) *TestHarness {
 func (h *TestHarness) NewController() *SentinelController {
 
 	c, err := New(Config{
-		Logger: h.Logger,
-		Events: buffer.New[*ctrlv1.SentinelEvent](buffer.Config{
-			Capacity: 1000,
-			Drop:     false,
-			Name:     "krane_sentinel_events",
-		}),
-		Updates: buffer.New[*ctrlv1.UpdateSentinelRequest](buffer.Config{
-			Capacity: 1000,
-			Drop:     false,
-			Name:     "krane_sentinel_updates",
-		}),
-		Scheme: h.k8sClient.Scheme(),
-		Client: h.k8sClient,
+		Logger:  h.Logger,
+		Scheme:  h.k8sClient.Scheme(),
+		Client:  h.k8sClient,
+		Manager: h.manager,
 	})
 	require.NoError(h.t, err)
 

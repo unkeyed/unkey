@@ -10,7 +10,7 @@ import (
 
 func (c *SentinelController) ensureNamespaceExists(ctx context.Context, namespace string) error {
 
-	err := c.manager.GetClient().Create(ctx, &corev1.Namespace{
+	err := c.client.Create(ctx, &corev1.Namespace{
 
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,

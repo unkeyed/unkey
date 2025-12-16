@@ -44,7 +44,7 @@ build: setup
 	go build -o unkey .
 
 generate: setup
-	rm ./pkg/db/*_generated.go
+	rm ./pkg/db/*_generated.go || true
 	go tool buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/ctrl" --path "./proto/krane" --path "./proto/vault" --path "./proto/cache" --path "./proto/gateway"
 	go tool buf generate --template ./buf.gen.restate.yaml --path "./proto/hydra"
 	go generate ./...
@@ -53,7 +53,7 @@ generate: setup
 
 talos:
 	talosctl cluster create --name=testing
-	
+
 
 test-k8s: talos
 	go test ./apps/krane/pkg/k8s/test_cluster/... -v

@@ -1,6 +1,7 @@
 -- name: InsertDeployment :exec
 INSERT INTO `deployments` (
     id,
+    k8s_crd_name,
     workspace_id,
     project_id,
     environment_id,
@@ -19,6 +20,7 @@ INSERT INTO `deployments` (
 )
 VALUES (
     sqlc.arg(id),
+    sqlc.arg(k8s_crd_name),
     sqlc.arg(workspace_id),
     sqlc.arg(project_id),
     sqlc.arg(environment_id),

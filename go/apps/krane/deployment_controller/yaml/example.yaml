@@ -1,14 +1,10 @@
- apiVersion: kubernetes.unkey.com/v1
-kind: UnkeyDeployment
+apiVersion: kubernetes.unkey.com/v1
+kind: Deployment
 metadata:
-  name: dep-example-abc123de
-  namespace: customer-namespace
+  name: gw-123
+  namespace: xxxxx
 spec:
-  workspaceId: ws_123abc
-  projectId: proj_456def
-  environmentId: env_789ghi
-  deploymentId: DPL_ExampleApp123
-  image: ghcr.io/example/app:latest
+  image: nginx:latest
   replicas: 3
-  cpuMillicores: 500
-  memoryMib: 512
+  cpuMillicores: 256
+  memoryMib: 256

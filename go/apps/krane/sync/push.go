@@ -19,14 +19,17 @@ func (s *SyncEngine) push() {
 	)
 	cb := circuitbreaker.New[any]("krane_push")
 
+	deploymentChanges := s.deploymentcontroller.Changes()
+	sentinelChanges := s.sentinelcontroller.Changes()
+
 	for {
 		select {
 		case <-s.close:
 			return
-		case d := <-s.instanceUpdates.Consume():
+		case c := <-deploymentChanges:
 			err := r.Do(func() error {
 				_, err := cb.Do(context.Background(), func(ctx context.Context) (any, error) {
-					_, err := s.ctrl.UpdateInstance(ctx, connect.NewRequest(d))
+					_, err := s.ctrl.UpdateInstance(ctx, connect.NewRequest(c))
 					return nil, err
 				})
 				return err
@@ -35,10 +38,10 @@ func (s *SyncEngine) push() {
 				s.logger.Error("failed to push deployment update", "error", err.Error())
 			}
 
-		case g := <-s.sentinelUpdates.Consume():
+		case c := <-sentinelChanges:
 			err := r.Do(func() error {
 				_, err := cb.Do(context.Background(), func(ctx context.Context) (any, error) {
-					_, err := s.ctrl.UpdateSentinel(ctx, connect.NewRequest(g))
+					_, err := s.ctrl.UpdateSentinel(ctx, connect.NewRequest(c))
 					return nil, err
 				})
 				return err

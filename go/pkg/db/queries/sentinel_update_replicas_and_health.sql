@@ -3,4 +3,4 @@ UPDATE sentinels SET
 replicas = sqlc.arg(replicas),
 health = sqlc.arg(health),
 updated_at = sqlc.arg(updated_at)
-WHERE id = sqlc.arg(id);
+WHERE k8s_crd_name = sqlc.arg(k8s_crd_name);

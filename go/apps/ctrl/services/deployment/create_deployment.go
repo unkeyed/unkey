@@ -132,6 +132,7 @@ func (s *Service) CreateDeployment(
 	// Insert deployment into database
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
 		ID:                       deploymentID,
+		K8sCrdName:               uid.DNS1035(12),
 		WorkspaceID:              workspaceID,
 		ProjectID:                req.Msg.GetProjectId(),
 		EnvironmentID:            env.ID,

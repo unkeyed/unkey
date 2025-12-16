@@ -1,5 +1,13 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, int, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  index,
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { deploymentSteps } from "./deployment_steps";
 import { environments } from "./environments";
 import { instances } from "./instances";
@@ -13,6 +21,7 @@ export const deployments = mysqlTable(
   "deployments",
   {
     id: varchar("id", { length: 128 }).primaryKey(),
+    k8sCrdName: varchar("k8s_crd_name", { length: 255 }).notNull().unique(),
 
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     projectId: varchar("project_id", { length: 256 }).notNull(),
@@ -46,7 +55,14 @@ export const deployments = mysqlTable(
       .default("running"),
 
     // Deployment status
-    status: mysqlEnum("status", ["pending", "building", "deploying", "network", "ready", "failed"])
+    status: mysqlEnum("status", [
+      "pending",
+      "building",
+      "deploying",
+      "network",
+      "ready",
+      "failed",
+    ])
       .notNull()
       .default("pending"),
     ...lifecycleDates,
@@ -55,7 +71,7 @@ export const deployments = mysqlTable(
     index("workspace_idx").on(table.workspaceId),
     index("project_idx").on(table.projectId),
     index("status_idx").on(table.status),
-  ],
+  ]
 );
 
 export const deploymentsRelations = relations(deployments, ({ one, many }) => ({

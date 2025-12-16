@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"fmt"
 	"sync"
 
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
@@ -11,10 +12,29 @@ import (
 )
 
 type client struct {
-	clientID  string
-	selectors map[string]string
-	buffer    *buffer.Buffer[*ctrlv1.InfraEvent]
-	done      chan struct{}
+	clientID         string
+	selectors        map[string]string
+	sentinelEvents   *buffer.Buffer[*ctrlv1.SentinelEvent]
+	deploymentEvents *buffer.Buffer[*ctrlv1.DeploymentEvent]
+	done             chan struct{}
+}
+
+func newClient(clientID string, selectors map[string]string) *client {
+	return &client{
+		clientID:  clientID,
+		selectors: selectors,
+		deploymentEvents: buffer.New[*ctrlv1.DeploymentEvent](buffer.Config{
+			Capacity: 1000,
+			Drop:     true,
+			Name:     fmt.Sprintf("ctrl_watch_events_%s", clientID),
+		}),
+		sentinelEvents: buffer.New[*ctrlv1.SentinelEvent](buffer.Config{
+			Capacity: 1000,
+			Drop:     true,
+			Name:     fmt.Sprintf("ctrl_watch_events_%s", clientID),
+		}),
+		done: make(chan struct{}),
+	}
 }
 
 type Service struct {
