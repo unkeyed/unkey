@@ -17,8 +17,7 @@ export const ratelimitItemSchema = z.object({
   limit: z.coerce
     .number({
       errorMap: (issue, { defaultError }) => ({
-        message:
-          issue.code === "invalid_type" ? "Limit must be a valid number" : defaultError,
+        message: issue.code === "invalid_type" ? "Limit must be a valid number" : defaultError,
       }),
     })
     .positive({ message: "Limit must be greater than 0" }),
