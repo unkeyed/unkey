@@ -1,12 +1,9 @@
-package deploymentcontroller
+package sentinelcontroller
 
 import (
 	"strings"
-	"sync"
 	"testing"
-	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -18,7 +15,6 @@ import (
 
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
 	apiv1 "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller/api/v1"
-	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
@@ -55,7 +51,7 @@ func TestShouldCreateNewSentinel(t *testing.T) {
 	err = h.k8sClient.Create(h.ctx, sentinel)
 	require.NoError(t, err)
 
-	h.FullReconcileOrFail(c, h.namespace, name)
+	h.FullReconcileOrFail(c.reconciler, h.namespace, name)
 
 	// Now it should exist
 	err = h.k8sClient.Get(h.ctx, types.NamespacedName{Namespace: h.namespace, Name: name}, found)
@@ -113,7 +109,7 @@ func TestShouldReconcileImageChanges(t *testing.T) {
 	err := h.k8sClient.Create(h.ctx, sentinel)
 	require.NoError(t, err)
 
-	h.FullReconcileOrFail(c, h.namespace, name)
+	h.FullReconcileOrFail(c.reconciler, h.namespace, name)
 
 	deployments := &appsv1.DeploymentList{}
 	err = h.k8sClient.List(h.ctx, deployments, client.MatchingLabelsSelector{
@@ -132,7 +128,7 @@ func TestShouldReconcileImageChanges(t *testing.T) {
 	err = h.k8sClient.Update(h.ctx, sentinel)
 	require.NoError(t, err)
 
-	h.FullReconcileOrFail(c, h.namespace, name)
+	h.FullReconcileOrFail(c.reconciler, h.namespace, name)
 
 	err = h.k8sClient.List(h.ctx, deployments, client.MatchingLabelsSelector{
 		Selector: k8s.NewLabels().ManagedByKrane().SentinelID(sentinel.Spec.SentinelID).ToSelector(),
@@ -162,17 +158,13 @@ func TestShouldReconcileReplicaChanges(t *testing.T) {
 			ProjectID:     uid.New(uid.TestPrefix),
 			EnvironmentID: uid.New(uid.TestPrefix),
 			SentinelID:    uid.New(uid.TestPrefix),
-			Image:         "nginx:latest",
-			Replicas:      3,
-			CpuMillicores: 1024,
-			MemoryMib:     1024,
 		},
 	}
 
 	err := h.k8sClient.Create(h.ctx, sentinel)
 	require.NoError(t, err)
 
-	h.FullReconcileOrFail(c, h.namespace, name)
+	h.FullReconcileOrFail(c.reconciler, h.namespace, name)
 
 	deployments := &appsv1.DeploymentList{}
 	err = h.k8sClient.List(h.ctx, deployments, client.MatchingLabelsSelector{
@@ -189,7 +181,7 @@ func TestShouldReconcileReplicaChanges(t *testing.T) {
 	err = h.k8sClient.Update(h.ctx, sentinel)
 	require.NoError(t, err)
 
-	h.FullReconcileOrFail(c, h.namespace, name)
+	h.FullReconcileOrFail(c.reconciler, h.namespace, name)
 
 	err = h.k8sClient.List(h.ctx, deployments, client.MatchingLabelsSelector{
 		Selector: k8s.NewLabels().ManagedByKrane().SentinelID(sentinel.Spec.SentinelID).ToSelector(),
@@ -198,62 +190,5 @@ func TestShouldReconcileReplicaChanges(t *testing.T) {
 	require.Len(t, deployments.Items, 1)
 	deployment = deployments.Items[0]
 	require.Equal(t, sentinel.Spec.Replicas, *deployment.Spec.Replicas)
-
-}
-
-func TestShouldEmitUpdateWhenCreated(t *testing.T) {
-	h := NewTestHarness(t)
-
-	c := h.NewController()
-	name := uid.DNS1035()
-
-	sentinel := &apiv1.Sentinel{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: h.namespace,
-		},
-		Spec: apiv1.SentinelSpec{
-			WorkspaceID:   uid.New(uid.TestPrefix),
-			ProjectID:     uid.New(uid.TestPrefix),
-			EnvironmentID: uid.New(uid.TestPrefix),
-			SentinelID:    uid.New(uid.TestPrefix),
-			Image:         "nginx:latest",
-			Replicas:      3,
-			CpuMillicores: 1024,
-			MemoryMib:     1024,
-		},
-	}
-
-	err := h.k8sClient.Create(h.ctx, sentinel)
-	require.NoError(t, err)
-
-	h.FullReconcileOrFail(c, h.namespace, name)
-
-	// Collect all updates
-	eventsMu := sync.Mutex{}
-	events := []*ctrlv1.UpdateInstanceRequest{}
-	go func() {
-		for e := range c.Changes() {
-			eventsMu.Lock()
-			events = append(events, e)
-			eventsMu.Unlock()
-		}
-	}()
-
-	require.EventuallyWithT(t, func(ct *assert.CollectT) {
-
-		eventsMu.Lock()
-		defer eventsMu.Unlock()
-		foundUpsert := false
-
-		for _, e := range events {
-			switch e.Change.(type) {
-			case *ctrlv1.UpdateInstanceRequest_Upsert_:
-				foundUpsert = true
-			}
-		}
-		require.True(ct, foundUpsert)
-
-	}, 10*time.Second, time.Millisecond*100)
 
 }

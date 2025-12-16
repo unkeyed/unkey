@@ -118,8 +118,8 @@ export const generateDeploymentTree = t.procedure
               const instanceId = Math.random().toString(36).substring(2, 6);
 
               return {
-                id: `${regionId}-gw-${instanceId}-${i + 1}`,
-                label: `gw-${instanceId}`,
+                id: `${regionId}-s-${instanceId}-${i + 1}`,
+                label: `s-${instanceId}`,
                 metadata: {
                   type: "sentinel",
                   description: "Instance replica",

@@ -31,12 +31,14 @@ func (s *Service) WatchDeployments(ctx context.Context, req *connect.Request[ctr
 
 	wg := sync.WaitGroup{}
 
-	if req.Msg.Synthetic {
+	if req.Msg.GetSynthetic() {
 
 		synthetic := make(chan *ctrlv1.DeploymentEvent)
 
 		wg.Go(func() {
-			s.getSyntheticDeployments(ctx, req, synthetic)
+			if err := s.getSyntheticDeployments(ctx, req, synthetic); err != nil {
+				s.logger.Error("failed to get synthetic deployments", "error", err)
+			}
 			close(synthetic)
 		})
 		wg.Go(func() {
@@ -57,7 +59,7 @@ func (s *Service) WatchDeployments(ctx context.Context, req *connect.Request[ctr
 			}
 		})
 	}
-	if req.Msg.Live {
+	if req.Msg.GetLive() {
 		wg.Go(func() {
 			for {
 				select {

@@ -37,14 +37,10 @@ type SentinelSpec struct {
 	EnvironmentID string `json:"environmentId"`
 	// SentinelID is the unique identifier for this sentinel instance.
 	SentinelID string `json:"sentinelId"`
-	// Replicas specifies the number of sentinel replicas to run.
-	Replicas int32 `json:"replicas"`
-	// Image specifies the container image for the sentinel.
-	Image string `json:"image"`
-	// CpuMillicores specifies the CPU request in millicores.
-	CpuMillicores int64 `json:"cpuMillicores"`
-	// MemoryMib specifies the memory request in mebibytes.
-	MemoryMib int64 `json:"memoryMib"`
+
+	// Hash is a checksum of the sentinel configuration.
+	// This is used to detect changes in the configuration and trigger reconciliation.
+	Hash string `json:"hash"`
 }
 
 // SentinelStatus defines the observed state of Sentinel.

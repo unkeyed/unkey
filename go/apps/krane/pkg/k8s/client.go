@@ -36,6 +36,7 @@ func NewManager(scheme *runtime.Scheme) (controllerruntime.Manager, error) {
 		return nil, fmt.Errorf("failed to create in-cluster config: %w", err)
 	}
 
+	// nolint:exhaustruct
 	return controllerruntime.NewManager(inClusterConfig, manager.Options{
 		Scheme: scheme,
 	})

@@ -74,10 +74,5 @@ type Config struct {
 // This method should be called before starting the krane agent to ensure
 // proper configuration and provide early feedback on configuration errors.
 func (c Config) Validate() error {
-	// TODO: Implement validation logic
-	// - Check required fields: InstanceID, Region, Shard, ControlPlaneURL, ControlPlaneBearer
-	// - Validate URL formats for ControlPlaneURL and RegistryURL
-	// - Ensure registry credentials are provided together
-	// - Validate PrometheusPort is in valid range
 	return nil
 }

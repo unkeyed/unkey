@@ -1,6 +1,7 @@
 -- name: FindDeploymentTopologyByIDAndRegion :one
 SELECT
     d.id,
+    d.k8s_crd_name,
     d.workspace_id,
     d.project_id,
     d.environment_id,

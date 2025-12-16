@@ -27,6 +27,9 @@ import (
 // or CRD creation/update encounters problems.
 func (c *SentinelController) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentinel) error {
 
+	c.logger.Info("Applying Sentinel",
+		"req", req,
+	)
 	err := assert.All(
 		assert.NotEmpty(req.GetWorkspaceId(), "Workspace ID is required"),
 		assert.NotEmpty(req.GetProjectId(), "Project ID is required"),
@@ -34,10 +37,7 @@ func (c *SentinelController) ApplySentinel(ctx context.Context, req *ctrlv1.Appl
 		assert.NotEmpty(req.GetSentinelId(), "Sentinel ID is required"),
 		assert.NotEmpty(req.GetNamespace(), "Namespace is required"),
 		assert.NotEmpty(req.GetK8SCrdName(), "K8s CRD name is required"),
-		assert.NotEmpty(req.GetImage(), "Image is required"),
-		assert.Greater(req.GetCpuMillicores(), uint32(0), "CPU millicores must be greater than 0"),
-		assert.Greater(req.GetMemorySizeMib(), uint32(0), "Memory size in MiB must be greater than 0"),
-		assert.Greater(req.GetReplicas(), uint32(0), "Replicas must be greater than 0"),
+		assert.NotEmpty(req.GetHash(), "Hash is required"),
 	)
 	if err != nil {
 		return err
@@ -57,7 +57,6 @@ func (c *SentinelController) ApplySentinel(ctx context.Context, req *ctrlv1.Appl
 		ToMap()
 
 	c.logger.Info("creating sentinel", "req", req)
-
 	obj := &sentinelv1.Sentinel{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Sentinel",
@@ -73,13 +72,12 @@ func (c *SentinelController) ApplySentinel(ctx context.Context, req *ctrlv1.Appl
 			ProjectID:     req.GetProjectId(),
 			EnvironmentID: req.GetEnvironmentId(),
 			SentinelID:    req.GetSentinelId(),
-			Image:         req.GetImage(),
-			Replicas:      int32(req.GetReplicas()),
-			CpuMillicores: int64(req.GetCpuMillicores()),
-			MemoryMib:     int64(req.GetMemorySizeMib()),
+			Hash:          req.GetHash(),
+		},
+		Status: sentinelv1.SentinelStatus{
+			Conditions: []metav1.Condition{},
 		},
 	}
-	c.logger.Info("ctrlruntime.CreateOrUpdate", "obj", obj)
 
 	existing := sentinelv1.Sentinel{} // nolint:exhaustruct
 	err = c.client.Get(ctx, types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()}, &existing)
@@ -90,19 +88,13 @@ func (c *SentinelController) ApplySentinel(ctx context.Context, req *ctrlv1.Appl
 		return err
 	}
 
-	// nolint:staticcheck
-	existing.ObjectMeta.Labels = usedLabels
 	existing.Spec = obj.Spec
 
-	c.logger.Info("updating sentinel", "existing", existing)
 	err = c.client.Update(ctx, &existing)
 	if err != nil {
 		c.logger.Error("failed to apply sentinel", "sentinel_id", req.GetSentinelId(), "error", err)
 		return err
 	}
-	c.logger.Info("applied sentinel",
-		"sentinel_id", req.GetSentinelId(),
-	)
 
 	return nil
 }

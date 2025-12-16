@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
+	"github.com/unkeyed/unkey/go/apps/krane/pkg/controlplane"
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
-	"github.com/unkeyed/unkey/go/apps/krane/pkg/watcher"
 	apiv1 "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller/api/v1"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
@@ -31,10 +31,9 @@ import (
 type SentinelController struct {
 	logger logging.Logger
 	client client.Client
-	scheme *runtime.Scheme
-}
 
-var _ k8s.Reconciler = (*SentinelController)(nil)
+	reconciler k8s.Reconciler
+}
 
 // Config holds configuration for creating a SentinelController.
 type Config struct {
@@ -47,10 +46,9 @@ type Config struct {
 
 	Manager manager.Manager
 
-	Cluster    ctrlv1connect.ClusterServiceClient
-	InstanceID string
-	Region     string
-	Shard      string
+	Cluster ctrlv1connect.ClusterServiceClient
+
+	Watcher *controlplane.Watcher[ctrlv1.SentinelEvent]
 }
 
 // New creates a new SentinelController with the provided configuration.
@@ -68,15 +66,9 @@ func New(cfg Config) (*SentinelController, error) {
 
 	ctrlruntime.SetLogger(k8s.CompatibleLogger(cfg.Logger))
 
-	r := &reconciler{
-		logger: cfg.Logger,
-		client: cfg.Client,
-		scheme: cfg.Scheme,
-	}
-
-	push := &pusher{
+	p := &pusher{
 		client:  cfg.Client,
-		cb:      circuitbreaker.New[*connect.Response[ctrlv1.PushSentinelStateResponse]]("krane_sentinel_pusher"),
+		cb:      circuitbreaker.New[*connect.Response[ctrlv1.UpdateSentinelStateResponse]]("krane_update_sentinel_state"),
 		cluster: cfg.Cluster,
 	}
 
@@ -90,38 +82,33 @@ func New(cfg Config) (*SentinelController, error) {
 			),
 		).
 		Named("sentinel_deployments").
-		Complete(push); err != nil {
+		Complete(p); err != nil {
 		return nil, err
 	}
 
 	c := &SentinelController{
 		logger: cfg.Logger,
 		client: cfg.Client,
-		scheme: cfg.Scheme,
+		reconciler: &reconciler{
+			logger:  cfg.Logger,
+			client:  cfg.Client,
+			scheme:  cfg.Scheme,
+			cluster: cfg.Cluster,
+		},
 	}
 
 	if err := ctrlruntime.NewControllerManagedBy(cfg.Manager).
-		For(&apiv1.Sentinel{}).
-		Owns(&appsv1.Deployment{}).
+		For(&apiv1.Sentinel{}).     // nolint:exhaustruct
+		Owns(&appsv1.Deployment{}). // nolint:exhaustruct
 		Named("sentinel").
-		Complete(r); err != nil {
+		Complete(c.reconciler); err != nil {
 		return nil, err
 	}
 
-	w := watcher.New[ctrlv1.SentinelEvent](watcher.Config{
-		Logger:     cfg.Logger,
-		Cluster:    &cfg.Cluster,
-		InstanceID: cfg.InstanceID,
-		Region:     cfg.Region,
-		Shard:      cfg.Shard,
-	})
-
-	w.Sync(context.Background(), cfg.Cluster.PullSentinelState)
-
 	go func() {
-		for event := range w.Watch(context.Background(), cfg.Cluster.WatchSentinels) {
+		for event := range cfg.Watcher.Consume() {
 			c.logger.Info("Received sentinel event", "event", event)
-			switch e := event.Event.(type) {
+			switch e := event.GetEvent().(type) {
 			case *ctrlv1.SentinelEvent_Apply:
 				if err := c.ApplySentinel(context.Background(), e.Apply); err != nil {
 					c.logger.Error("unable to apply sentinel", "error", err.Error(), "event", e)

@@ -45,31 +45,31 @@ const (
 	// ClusterServiceWatchSentinelsProcedure is the fully-qualified name of the ClusterService's
 	// WatchSentinels RPC.
 	ClusterServiceWatchSentinelsProcedure = "/ctrl.v1.ClusterService/WatchSentinels"
-	// ClusterServicePullSentinelStateProcedure is the fully-qualified name of the ClusterService's
-	// PullSentinelState RPC.
-	ClusterServicePullSentinelStateProcedure = "/ctrl.v1.ClusterService/PullSentinelState"
-	// ClusterServicePushSentinelStateProcedure is the fully-qualified name of the ClusterService's
-	// PushSentinelState RPC.
-	ClusterServicePushSentinelStateProcedure = "/ctrl.v1.ClusterService/PushSentinelState"
+	// ClusterServiceGetDesiredSentinelStateProcedure is the fully-qualified name of the
+	// ClusterService's GetDesiredSentinelState RPC.
+	ClusterServiceGetDesiredSentinelStateProcedure = "/ctrl.v1.ClusterService/GetDesiredSentinelState"
+	// ClusterServiceUpdateSentinelStateProcedure is the fully-qualified name of the ClusterService's
+	// UpdateSentinelState RPC.
+	ClusterServiceUpdateSentinelStateProcedure = "/ctrl.v1.ClusterService/UpdateSentinelState"
 	// ClusterServiceWatchDeploymentsProcedure is the fully-qualified name of the ClusterService's
 	// WatchDeployments RPC.
 	ClusterServiceWatchDeploymentsProcedure = "/ctrl.v1.ClusterService/WatchDeployments"
-	// ClusterServicePullDeploymentStateProcedure is the fully-qualified name of the ClusterService's
-	// PullDeploymentState RPC.
-	ClusterServicePullDeploymentStateProcedure = "/ctrl.v1.ClusterService/PullDeploymentState"
-	// ClusterServicePushInstanceStateProcedure is the fully-qualified name of the ClusterService's
-	// PushInstanceState RPC.
-	ClusterServicePushInstanceStateProcedure = "/ctrl.v1.ClusterService/PushInstanceState"
+	// ClusterServiceGetDesiredDeploymentStateProcedure is the fully-qualified name of the
+	// ClusterService's GetDesiredDeploymentState RPC.
+	ClusterServiceGetDesiredDeploymentStateProcedure = "/ctrl.v1.ClusterService/GetDesiredDeploymentState"
+	// ClusterServiceUpdateInstanceStateProcedure is the fully-qualified name of the ClusterService's
+	// UpdateInstanceState RPC.
+	ClusterServiceUpdateInstanceStateProcedure = "/ctrl.v1.ClusterService/UpdateInstanceState"
 )
 
 // ClusterServiceClient is a client for the ctrl.v1.ClusterService service.
 type ClusterServiceClient interface {
 	WatchSentinels(context.Context, *connect.Request[v1.WatchRequest]) (*connect.ServerStreamForClient[v1.SentinelEvent], error)
-	PullSentinelState(context.Context, *connect.Request[v1.PullSentinelStateRequest]) (*connect.Response[v1.SentinelEvent], error)
-	PushSentinelState(context.Context, *connect.Request[v1.PushSentinelStateRequest]) (*connect.Response[v1.PushSentinelStateResponse], error)
+	GetDesiredSentinelState(context.Context, *connect.Request[v1.GetDesiredSentinelStateRequest]) (*connect.Response[v1.GetDesiredSentinelStateResponse], error)
+	UpdateSentinelState(context.Context, *connect.Request[v1.UpdateSentinelStateRequest]) (*connect.Response[v1.UpdateSentinelStateResponse], error)
 	WatchDeployments(context.Context, *connect.Request[v1.WatchRequest]) (*connect.ServerStreamForClient[v1.DeploymentEvent], error)
-	PullDeploymentState(context.Context, *connect.Request[v1.PullDeploymentStateRequest]) (*connect.Response[v1.DeploymentEvent], error)
-	PushInstanceState(context.Context, *connect.Request[v1.PushInstanceStateRequest]) (*connect.Response[v1.PushInstanceStateResponse], error)
+	GetDesiredDeploymentState(context.Context, *connect.Request[v1.GetDesiredDeploymentStateRequest]) (*connect.Response[v1.GetDesiredDeploymentStateResponse], error)
+	UpdateInstanceState(context.Context, *connect.Request[v1.UpdateInstanceStateRequest]) (*connect.Response[v1.UpdateInstanceStateResponse], error)
 }
 
 // NewClusterServiceClient constructs a client for the ctrl.v1.ClusterService service. By default,
@@ -89,16 +89,16 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(clusterServiceMethods.ByName("WatchSentinels")),
 			connect.WithClientOptions(opts...),
 		),
-		pullSentinelState: connect.NewClient[v1.PullSentinelStateRequest, v1.SentinelEvent](
+		getDesiredSentinelState: connect.NewClient[v1.GetDesiredSentinelStateRequest, v1.GetDesiredSentinelStateResponse](
 			httpClient,
-			baseURL+ClusterServicePullSentinelStateProcedure,
-			connect.WithSchema(clusterServiceMethods.ByName("PullSentinelState")),
+			baseURL+ClusterServiceGetDesiredSentinelStateProcedure,
+			connect.WithSchema(clusterServiceMethods.ByName("GetDesiredSentinelState")),
 			connect.WithClientOptions(opts...),
 		),
-		pushSentinelState: connect.NewClient[v1.PushSentinelStateRequest, v1.PushSentinelStateResponse](
+		updateSentinelState: connect.NewClient[v1.UpdateSentinelStateRequest, v1.UpdateSentinelStateResponse](
 			httpClient,
-			baseURL+ClusterServicePushSentinelStateProcedure,
-			connect.WithSchema(clusterServiceMethods.ByName("PushSentinelState")),
+			baseURL+ClusterServiceUpdateSentinelStateProcedure,
+			connect.WithSchema(clusterServiceMethods.ByName("UpdateSentinelState")),
 			connect.WithClientOptions(opts...),
 		),
 		watchDeployments: connect.NewClient[v1.WatchRequest, v1.DeploymentEvent](
@@ -107,16 +107,16 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(clusterServiceMethods.ByName("WatchDeployments")),
 			connect.WithClientOptions(opts...),
 		),
-		pullDeploymentState: connect.NewClient[v1.PullDeploymentStateRequest, v1.DeploymentEvent](
+		getDesiredDeploymentState: connect.NewClient[v1.GetDesiredDeploymentStateRequest, v1.GetDesiredDeploymentStateResponse](
 			httpClient,
-			baseURL+ClusterServicePullDeploymentStateProcedure,
-			connect.WithSchema(clusterServiceMethods.ByName("PullDeploymentState")),
+			baseURL+ClusterServiceGetDesiredDeploymentStateProcedure,
+			connect.WithSchema(clusterServiceMethods.ByName("GetDesiredDeploymentState")),
 			connect.WithClientOptions(opts...),
 		),
-		pushInstanceState: connect.NewClient[v1.PushInstanceStateRequest, v1.PushInstanceStateResponse](
+		updateInstanceState: connect.NewClient[v1.UpdateInstanceStateRequest, v1.UpdateInstanceStateResponse](
 			httpClient,
-			baseURL+ClusterServicePushInstanceStateProcedure,
-			connect.WithSchema(clusterServiceMethods.ByName("PushInstanceState")),
+			baseURL+ClusterServiceUpdateInstanceStateProcedure,
+			connect.WithSchema(clusterServiceMethods.ByName("UpdateInstanceState")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -124,12 +124,12 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // clusterServiceClient implements ClusterServiceClient.
 type clusterServiceClient struct {
-	watchSentinels      *connect.Client[v1.WatchRequest, v1.SentinelEvent]
-	pullSentinelState   *connect.Client[v1.PullSentinelStateRequest, v1.SentinelEvent]
-	pushSentinelState   *connect.Client[v1.PushSentinelStateRequest, v1.PushSentinelStateResponse]
-	watchDeployments    *connect.Client[v1.WatchRequest, v1.DeploymentEvent]
-	pullDeploymentState *connect.Client[v1.PullDeploymentStateRequest, v1.DeploymentEvent]
-	pushInstanceState   *connect.Client[v1.PushInstanceStateRequest, v1.PushInstanceStateResponse]
+	watchSentinels            *connect.Client[v1.WatchRequest, v1.SentinelEvent]
+	getDesiredSentinelState   *connect.Client[v1.GetDesiredSentinelStateRequest, v1.GetDesiredSentinelStateResponse]
+	updateSentinelState       *connect.Client[v1.UpdateSentinelStateRequest, v1.UpdateSentinelStateResponse]
+	watchDeployments          *connect.Client[v1.WatchRequest, v1.DeploymentEvent]
+	getDesiredDeploymentState *connect.Client[v1.GetDesiredDeploymentStateRequest, v1.GetDesiredDeploymentStateResponse]
+	updateInstanceState       *connect.Client[v1.UpdateInstanceStateRequest, v1.UpdateInstanceStateResponse]
 }
 
 // WatchSentinels calls ctrl.v1.ClusterService.WatchSentinels.
@@ -137,14 +137,14 @@ func (c *clusterServiceClient) WatchSentinels(ctx context.Context, req *connect.
 	return c.watchSentinels.CallServerStream(ctx, req)
 }
 
-// PullSentinelState calls ctrl.v1.ClusterService.PullSentinelState.
-func (c *clusterServiceClient) PullSentinelState(ctx context.Context, req *connect.Request[v1.PullSentinelStateRequest]) (*connect.Response[v1.SentinelEvent], error) {
-	return c.pullSentinelState.CallUnary(ctx, req)
+// GetDesiredSentinelState calls ctrl.v1.ClusterService.GetDesiredSentinelState.
+func (c *clusterServiceClient) GetDesiredSentinelState(ctx context.Context, req *connect.Request[v1.GetDesiredSentinelStateRequest]) (*connect.Response[v1.GetDesiredSentinelStateResponse], error) {
+	return c.getDesiredSentinelState.CallUnary(ctx, req)
 }
 
-// PushSentinelState calls ctrl.v1.ClusterService.PushSentinelState.
-func (c *clusterServiceClient) PushSentinelState(ctx context.Context, req *connect.Request[v1.PushSentinelStateRequest]) (*connect.Response[v1.PushSentinelStateResponse], error) {
-	return c.pushSentinelState.CallUnary(ctx, req)
+// UpdateSentinelState calls ctrl.v1.ClusterService.UpdateSentinelState.
+func (c *clusterServiceClient) UpdateSentinelState(ctx context.Context, req *connect.Request[v1.UpdateSentinelStateRequest]) (*connect.Response[v1.UpdateSentinelStateResponse], error) {
+	return c.updateSentinelState.CallUnary(ctx, req)
 }
 
 // WatchDeployments calls ctrl.v1.ClusterService.WatchDeployments.
@@ -152,24 +152,24 @@ func (c *clusterServiceClient) WatchDeployments(ctx context.Context, req *connec
 	return c.watchDeployments.CallServerStream(ctx, req)
 }
 
-// PullDeploymentState calls ctrl.v1.ClusterService.PullDeploymentState.
-func (c *clusterServiceClient) PullDeploymentState(ctx context.Context, req *connect.Request[v1.PullDeploymentStateRequest]) (*connect.Response[v1.DeploymentEvent], error) {
-	return c.pullDeploymentState.CallUnary(ctx, req)
+// GetDesiredDeploymentState calls ctrl.v1.ClusterService.GetDesiredDeploymentState.
+func (c *clusterServiceClient) GetDesiredDeploymentState(ctx context.Context, req *connect.Request[v1.GetDesiredDeploymentStateRequest]) (*connect.Response[v1.GetDesiredDeploymentStateResponse], error) {
+	return c.getDesiredDeploymentState.CallUnary(ctx, req)
 }
 
-// PushInstanceState calls ctrl.v1.ClusterService.PushInstanceState.
-func (c *clusterServiceClient) PushInstanceState(ctx context.Context, req *connect.Request[v1.PushInstanceStateRequest]) (*connect.Response[v1.PushInstanceStateResponse], error) {
-	return c.pushInstanceState.CallUnary(ctx, req)
+// UpdateInstanceState calls ctrl.v1.ClusterService.UpdateInstanceState.
+func (c *clusterServiceClient) UpdateInstanceState(ctx context.Context, req *connect.Request[v1.UpdateInstanceStateRequest]) (*connect.Response[v1.UpdateInstanceStateResponse], error) {
+	return c.updateInstanceState.CallUnary(ctx, req)
 }
 
 // ClusterServiceHandler is an implementation of the ctrl.v1.ClusterService service.
 type ClusterServiceHandler interface {
 	WatchSentinels(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.SentinelEvent]) error
-	PullSentinelState(context.Context, *connect.Request[v1.PullSentinelStateRequest]) (*connect.Response[v1.SentinelEvent], error)
-	PushSentinelState(context.Context, *connect.Request[v1.PushSentinelStateRequest]) (*connect.Response[v1.PushSentinelStateResponse], error)
+	GetDesiredSentinelState(context.Context, *connect.Request[v1.GetDesiredSentinelStateRequest]) (*connect.Response[v1.GetDesiredSentinelStateResponse], error)
+	UpdateSentinelState(context.Context, *connect.Request[v1.UpdateSentinelStateRequest]) (*connect.Response[v1.UpdateSentinelStateResponse], error)
 	WatchDeployments(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.DeploymentEvent]) error
-	PullDeploymentState(context.Context, *connect.Request[v1.PullDeploymentStateRequest]) (*connect.Response[v1.DeploymentEvent], error)
-	PushInstanceState(context.Context, *connect.Request[v1.PushInstanceStateRequest]) (*connect.Response[v1.PushInstanceStateResponse], error)
+	GetDesiredDeploymentState(context.Context, *connect.Request[v1.GetDesiredDeploymentStateRequest]) (*connect.Response[v1.GetDesiredDeploymentStateResponse], error)
+	UpdateInstanceState(context.Context, *connect.Request[v1.UpdateInstanceStateRequest]) (*connect.Response[v1.UpdateInstanceStateResponse], error)
 }
 
 // NewClusterServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -185,16 +185,16 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 		connect.WithSchema(clusterServiceMethods.ByName("WatchSentinels")),
 		connect.WithHandlerOptions(opts...),
 	)
-	clusterServicePullSentinelStateHandler := connect.NewUnaryHandler(
-		ClusterServicePullSentinelStateProcedure,
-		svc.PullSentinelState,
-		connect.WithSchema(clusterServiceMethods.ByName("PullSentinelState")),
+	clusterServiceGetDesiredSentinelStateHandler := connect.NewUnaryHandler(
+		ClusterServiceGetDesiredSentinelStateProcedure,
+		svc.GetDesiredSentinelState,
+		connect.WithSchema(clusterServiceMethods.ByName("GetDesiredSentinelState")),
 		connect.WithHandlerOptions(opts...),
 	)
-	clusterServicePushSentinelStateHandler := connect.NewUnaryHandler(
-		ClusterServicePushSentinelStateProcedure,
-		svc.PushSentinelState,
-		connect.WithSchema(clusterServiceMethods.ByName("PushSentinelState")),
+	clusterServiceUpdateSentinelStateHandler := connect.NewUnaryHandler(
+		ClusterServiceUpdateSentinelStateProcedure,
+		svc.UpdateSentinelState,
+		connect.WithSchema(clusterServiceMethods.ByName("UpdateSentinelState")),
 		connect.WithHandlerOptions(opts...),
 	)
 	clusterServiceWatchDeploymentsHandler := connect.NewServerStreamHandler(
@@ -203,32 +203,32 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 		connect.WithSchema(clusterServiceMethods.ByName("WatchDeployments")),
 		connect.WithHandlerOptions(opts...),
 	)
-	clusterServicePullDeploymentStateHandler := connect.NewUnaryHandler(
-		ClusterServicePullDeploymentStateProcedure,
-		svc.PullDeploymentState,
-		connect.WithSchema(clusterServiceMethods.ByName("PullDeploymentState")),
+	clusterServiceGetDesiredDeploymentStateHandler := connect.NewUnaryHandler(
+		ClusterServiceGetDesiredDeploymentStateProcedure,
+		svc.GetDesiredDeploymentState,
+		connect.WithSchema(clusterServiceMethods.ByName("GetDesiredDeploymentState")),
 		connect.WithHandlerOptions(opts...),
 	)
-	clusterServicePushInstanceStateHandler := connect.NewUnaryHandler(
-		ClusterServicePushInstanceStateProcedure,
-		svc.PushInstanceState,
-		connect.WithSchema(clusterServiceMethods.ByName("PushInstanceState")),
+	clusterServiceUpdateInstanceStateHandler := connect.NewUnaryHandler(
+		ClusterServiceUpdateInstanceStateProcedure,
+		svc.UpdateInstanceState,
+		connect.WithSchema(clusterServiceMethods.ByName("UpdateInstanceState")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/ctrl.v1.ClusterService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ClusterServiceWatchSentinelsProcedure:
 			clusterServiceWatchSentinelsHandler.ServeHTTP(w, r)
-		case ClusterServicePullSentinelStateProcedure:
-			clusterServicePullSentinelStateHandler.ServeHTTP(w, r)
-		case ClusterServicePushSentinelStateProcedure:
-			clusterServicePushSentinelStateHandler.ServeHTTP(w, r)
+		case ClusterServiceGetDesiredSentinelStateProcedure:
+			clusterServiceGetDesiredSentinelStateHandler.ServeHTTP(w, r)
+		case ClusterServiceUpdateSentinelStateProcedure:
+			clusterServiceUpdateSentinelStateHandler.ServeHTTP(w, r)
 		case ClusterServiceWatchDeploymentsProcedure:
 			clusterServiceWatchDeploymentsHandler.ServeHTTP(w, r)
-		case ClusterServicePullDeploymentStateProcedure:
-			clusterServicePullDeploymentStateHandler.ServeHTTP(w, r)
-		case ClusterServicePushInstanceStateProcedure:
-			clusterServicePushInstanceStateHandler.ServeHTTP(w, r)
+		case ClusterServiceGetDesiredDeploymentStateProcedure:
+			clusterServiceGetDesiredDeploymentStateHandler.ServeHTTP(w, r)
+		case ClusterServiceUpdateInstanceStateProcedure:
+			clusterServiceUpdateInstanceStateHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -242,22 +242,22 @@ func (UnimplementedClusterServiceHandler) WatchSentinels(context.Context, *conne
 	return connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.WatchSentinels is not implemented"))
 }
 
-func (UnimplementedClusterServiceHandler) PullSentinelState(context.Context, *connect.Request[v1.PullSentinelStateRequest]) (*connect.Response[v1.SentinelEvent], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.PullSentinelState is not implemented"))
+func (UnimplementedClusterServiceHandler) GetDesiredSentinelState(context.Context, *connect.Request[v1.GetDesiredSentinelStateRequest]) (*connect.Response[v1.GetDesiredSentinelStateResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.GetDesiredSentinelState is not implemented"))
 }
 
-func (UnimplementedClusterServiceHandler) PushSentinelState(context.Context, *connect.Request[v1.PushSentinelStateRequest]) (*connect.Response[v1.PushSentinelStateResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.PushSentinelState is not implemented"))
+func (UnimplementedClusterServiceHandler) UpdateSentinelState(context.Context, *connect.Request[v1.UpdateSentinelStateRequest]) (*connect.Response[v1.UpdateSentinelStateResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.UpdateSentinelState is not implemented"))
 }
 
 func (UnimplementedClusterServiceHandler) WatchDeployments(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.DeploymentEvent]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.WatchDeployments is not implemented"))
 }
 
-func (UnimplementedClusterServiceHandler) PullDeploymentState(context.Context, *connect.Request[v1.PullDeploymentStateRequest]) (*connect.Response[v1.DeploymentEvent], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.PullDeploymentState is not implemented"))
+func (UnimplementedClusterServiceHandler) GetDesiredDeploymentState(context.Context, *connect.Request[v1.GetDesiredDeploymentStateRequest]) (*connect.Response[v1.GetDesiredDeploymentStateResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.GetDesiredDeploymentState is not implemented"))
 }
 
-func (UnimplementedClusterServiceHandler) PushInstanceState(context.Context, *connect.Request[v1.PushInstanceStateRequest]) (*connect.Response[v1.PushInstanceStateResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.PushInstanceState is not implemented"))
+func (UnimplementedClusterServiceHandler) UpdateInstanceState(context.Context, *connect.Request[v1.UpdateInstanceStateRequest]) (*connect.Response[v1.UpdateInstanceStateResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.UpdateInstanceState is not implemented"))
 }

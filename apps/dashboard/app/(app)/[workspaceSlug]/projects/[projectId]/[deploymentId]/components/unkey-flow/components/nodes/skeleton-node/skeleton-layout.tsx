@@ -12,13 +12,13 @@ export const SKELETON_TREE: DeploymentNode = {
       metadata: { type: "skeleton" },
       children: [
         {
-          id: "us-east-1-gw-1-skeleton",
-          label: "gw-skeleton-1",
+          id: "us-east-1-s-1-skeleton",
+          label: "s-skeleton-1",
           metadata: { type: "skeleton" },
         },
         {
-          id: "us-east-1-gw-2-skeleton",
-          label: "gw-skeleton-2",
+          id: "us-east-1-s-2-skeleton",
+          label: "s-skeleton-2",
           metadata: { type: "skeleton" },
         },
       ],
@@ -30,18 +30,18 @@ export const SKELETON_TREE: DeploymentNode = {
       metadata: { type: "skeleton" },
       children: [
         {
-          id: "eu-central-1-gw-1-skeleton",
-          label: "gw-skeleton-1",
+          id: "eu-central-1-s-1-skeleton",
+          label: "s-skeleton-1",
           metadata: { type: "skeleton" },
         },
         {
-          id: "eu-central-1-gw-2-skeleton",
-          label: "gw-skeleton-2",
+          id: "eu-central-1-s-2-skeleton",
+          label: "s-skeleton-2",
           metadata: { type: "skeleton" },
         },
         {
-          id: "eu-central-1-gw-3-skeleton",
-          label: "gw-skeleton-3",
+          id: "eu-central-1-s-3-skeleton",
+          label: "s-skeleton-3",
           metadata: { type: "skeleton" },
         },
       ],
@@ -53,13 +53,13 @@ export const SKELETON_TREE: DeploymentNode = {
       metadata: { type: "skeleton" },
       children: [
         {
-          id: "ap-southeast-2-gw-1-skeleton",
-          label: "gw-skeleton-1",
+          id: "ap-southeast-2-s-1-skeleton",
+          label: "s-skeleton-1",
           metadata: { type: "skeleton" },
         },
         {
-          id: "ap-southeast-2-gw-2-skeleton",
-          label: "gw-skeleton-2",
+          id: "ap-southeast-2-s-2-skeleton",
+          label: "s-skeleton-2",
           metadata: { type: "skeleton" },
         },
       ],

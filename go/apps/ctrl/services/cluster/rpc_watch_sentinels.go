@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"connectrpc.com/connect"
+	"github.com/unkeyed/unkey/go/apps/ctrl/pkg/hash"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
@@ -31,13 +32,20 @@ func (s *Service) WatchSentinels(ctx context.Context, req *connect.Request[ctrlv
 
 	wg := sync.WaitGroup{}
 
-	if req.Msg.Synthetic {
+	if req.Msg.GetSynthetic() {
 
 		synthetic := make(chan *ctrlv1.SentinelEvent)
 
-		wg.Go(func() {
-			s.getSyntheticSentinels(ctx, req, synthetic)
+		closeChannel := sync.OnceFunc(func() {
 			close(synthetic)
+		})
+
+		wg.Go(func() {
+			if err := s.getSyntheticSentinels(ctx, req, synthetic); err != nil {
+				s.logger.Error("failed to get synthetic sentinels", "error", err)
+			}
+			closeChannel()
+
 		})
 		wg.Go(func() {
 			for {
@@ -48,7 +56,11 @@ func (s *Service) WatchSentinels(ctx context.Context, req *connect.Request[ctrlv
 					)
 					return
 
-				case event := <-synthetic:
+				case event, ok := <-synthetic:
+					if !ok {
+						return
+					}
+					s.logger.Info("Sending Synthetic Event", "event", event)
 					err := stream.Send(event)
 					if err != nil {
 						s.logger.Error("failed to send event", "error", err)
@@ -57,7 +69,7 @@ func (s *Service) WatchSentinels(ctx context.Context, req *connect.Request[ctrlv
 			}
 		})
 	}
-	if req.Msg.Live {
+	if req.Msg.GetLive() {
 		wg.Go(func() {
 			for {
 				select {
@@ -103,6 +115,7 @@ func (s *Service) getSyntheticSentinels(ctx context.Context, req *connect.Reques
 		if len(topologies) == 0 {
 			break
 		}
+		s.logger.Info("Found Sentinels", "topologies", topologies)
 		cursor = topologies[len(topologies)-1].Sentinel.ID
 
 		for _, t := range topologies {
@@ -115,10 +128,7 @@ func (s *Service) getSyntheticSentinels(ctx context.Context, req *connect.Reques
 						EnvironmentId: t.Sentinel.EnvironmentID,
 						ProjectId:     t.Sentinel.ProjectID,
 						SentinelId:    t.Sentinel.ID,
-						Image:         t.Sentinel.Image,
-						Replicas:      uint32(t.Sentinel.DesiredReplicas),
-						CpuMillicores: uint32(t.Sentinel.CpuMillicores),
-						MemorySizeMib: uint32(t.Sentinel.MemoryMib),
+						Hash:          hash.Sentinel(t.Sentinel),
 					},
 				},
 			}

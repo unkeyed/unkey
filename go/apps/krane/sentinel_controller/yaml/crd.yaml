@@ -39,40 +39,22 @@ spec:
             spec:
               description: spec defines the desired state of Sentinel
               properties:
-                cpuMillicores:
-                  format: int64
-                  maximum: 32768
-                  minimum: 128
-                  type: integer
                 environmentId:
                   type: string
-                image:
-                  type: string
-                memoryMib:
-                  format: int64
-                  maximum: 32768
-                  minimum: 128
-                  type: integer
                 projectId:
                   type: string
-                replicas:
-                  format: int32
-                  maximum: 10
-                  minimum: 1
-                  type: integer
                 sentinelId:
                   type: string
                 workspaceId:
                   type: string
+                hash:
+                  type: string
               required:
-                - cpuMillicores
                 - environmentId
-                - image
-                - memoryMib
                 - projectId
-                - replicas
                 - sentinelId
                 - workspaceId
+                - hash
               type: object
             status:
               description: status defines the observed state of Sentinel

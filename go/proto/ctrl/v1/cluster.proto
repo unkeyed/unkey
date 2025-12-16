@@ -25,24 +25,45 @@ service ClusterService {
 
 
   rpc WatchSentinels(WatchRequest) returns (stream SentinelEvent);
-  rpc PullSentinelState(PullSentinelStateRequest) returns (SentinelEvent);
-  rpc PushSentinelState(PushSentinelStateRequest) returns (PushSentinelStateResponse);
+  rpc GetDesiredSentinelState(GetDesiredSentinelStateRequest) returns (GetDesiredSentinelStateResponse);
+  rpc UpdateSentinelState(UpdateSentinelStateRequest) returns (UpdateSentinelStateResponse);
 
   rpc WatchDeployments(WatchRequest) returns (stream DeploymentEvent);
-  rpc PullDeploymentState(PullDeploymentStateRequest) returns (DeploymentEvent);
-  rpc PushInstanceState(PushInstanceStateRequest) returns (PushInstanceStateResponse);
+  rpc GetDesiredDeploymentState(GetDesiredDeploymentStateRequest) returns (GetDesiredDeploymentStateResponse);
+  rpc UpdateInstanceState(UpdateInstanceStateRequest) returns (UpdateInstanceStateResponse);
 }
 
 
-message PullSentinelStateRequest {
+message GetDesiredSentinelStateRequest {
   string sentinel_id = 1;
 }
 
-message PullDeploymentStateRequest {
+message GetDesiredSentinelStateResponse {
+  string workspace_id =1;
+  string project_id = 2;
+  string environment_id =3;
+  string sentinel_id = 4;
+  int32 replicas = 5 ;
+
+  string image = 6;
+  int64 cpu_millicores = 7;
+  int64 memory_mib = 8;
+}
+
+message GetDesiredDeploymentStateRequest {
   string deployment_id = 1;
 }
 
-message PushInstanceStateRequest {
+message GetDesiredDeploymentStateResponse {
+  string deployment_id = 1;
+  int32 replicas = 2;
+
+  string image = 3;
+  int64 cpu_millicores = 4;
+  int64 memory_mib = 5;
+}
+
+message UpdateInstanceStateRequest {
   enum Status {
     STATUS_UNSPECIFIED = 0;
     STATUS_PENDING = 1; // Deployment request accepted, container/pod creation in progress
@@ -75,32 +96,21 @@ message PushInstanceStateRequest {
 
 }
 
-message PushInstanceStateResponse {
+message UpdateInstanceStateResponse {
 
 }
 
 
-message PushSentinelStateRequest {
+message UpdateSentinelStateRequest {
 
 
 
-    message Upsert {
       string k8s_crd_name = 1;
         int32 running_replicas = 2;
-    }
-    message Delete {
-      string k8s_crd_name = 1;
-    }
-
-    oneof change {
-      Upsert upsert = 1;
-      Delete delete = 2;
-
-    }
 
 }
 
-message PushSentinelStateResponse {
+message UpdateSentinelStateResponse {
 
 }
 
@@ -189,24 +199,8 @@ message ApplySentinel {
   // sentinel_id is the unique identifier for this sentinel within the namespace.
   string sentinel_id = 6;
 
-  // image is the container image to deploy for the sentinel.
-  // Must be a valid container registry URL accessible by the cluster.
-  // Example: "ghcr.io/unkeyed/sentinel:v1.2.3"
-  string image = 7;
-
-  // replicas is the desired number of sentinel instances.
-  // Must be at least 1. For high availability, use 3 or more.
-  uint32 replicas = 8;
-
-  // cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
-  // This ensures the sentinel has sufficient CPU resources.
-  // Example: 500 = 0.5 CPU cores
-  uint32 cpu_millicores = 9;
-
-  // memory_size_mib is the memory request/limit in mebibytes.
-  // This ensures the sentinel has sufficient memory.
-  // Example: 512 = 512 MiB
-  uint32 memory_size_mib = 10;
+  // hash is a checksum of the sentinel configuration used to detect changes.
+  string hash = 7;
 }
 
 // DeleteSentinel identifies a sentinel to remove from the cluster.

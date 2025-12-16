@@ -1,7 +1,7 @@
 apiVersion: kubernetes.unkey.com/v1
 kind: Sentinel
 metadata:
-  name: gw-123
+  name: s-123
   namespace: xxxxx
 spec:
   image: nginx:latest

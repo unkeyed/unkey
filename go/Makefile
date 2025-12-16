@@ -180,7 +180,7 @@ start-all: start-dependencies start-unkey-services ## Deploy all services indivi
 
 
 image:
-	@docker build -t unkey:dev --platform linux/amd64 .
+	@docker build -t unkey:dev .
 
 dev: image## Start with Tilt (if available) or fallback to k8s-up
 	@if command -v tilt >/dev/null 2>&1; then \

@@ -99,6 +99,7 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 	err = db.Tx(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err := db.Query.InsertDeployment(ctx, tx, db.InsertDeploymentParams{
 			ID:                       deploymentID,
+			K8sCrdName:               uid.DNS1035(12),
 			WorkspaceID:              workspaceID,
 			ProjectID:                projectID,
 			EnvironmentID:            envID,
@@ -124,7 +125,7 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 			WorkspaceID:     workspaceID,
 			EnvironmentID:   envID,
 			K8sServiceName:  fmt.Sprintf("sentinel-%s", slug),
-			K8sCrdName:      fmt.Sprintf("gw-%s", uid.NanoLower(8)),
+			K8sCrdName:      fmt.Sprintf("s-%s", uid.NanoLower(8)),
 			Region:          region,
 			Image:           "unkey/sentinel:local",
 			Health:          db.SentinelsHealthHealthy,

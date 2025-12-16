@@ -1,0 +1,54 @@
+package cluster
+
+import (
+	"context"
+	"fmt"
+
+	"connectrpc.com/connect"
+	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/go/pkg/assert"
+	"github.com/unkeyed/unkey/go/pkg/db"
+)
+
+func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredSentinelStateRequest]) (*connect.Response[ctrlv1.GetDesiredSentinelStateResponse], error) {
+
+	if err := s.authenticate(req); err != nil {
+		return nil, err
+	}
+
+	region := req.Header().Get("X-Krane-Region")
+	if err := assert.NotEmpty(region, "region is required"); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	sentinel, err := db.Query.FindSentinelByID(ctx, s.db.RO(), req.Msg.GetSentinelId())
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+
+	}
+
+	switch sentinel.DesiredState {
+	case db.SentinelsDesiredStateArchived, db.SentinelsDesiredStateStandby:
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	case db.SentinelsDesiredStateRunning:
+
+		return connect.NewResponse(&ctrlv1.GetDesiredSentinelStateResponse{
+			SentinelId:    sentinel.ID,
+			WorkspaceId:   sentinel.WorkspaceID,
+			ProjectId:     sentinel.ProjectID,
+			EnvironmentId: sentinel.EnvironmentID,
+			Replicas:      sentinel.Replicas,
+			Image:         sentinel.Image,
+			CpuMillicores: int64(sentinel.CpuMillicores),
+			MemoryMib:     int64(sentinel.MemoryMib),
+		}), nil
+	default:
+		s.logger.Error("unhandled sentinel desired state", "desiredState", sentinel.DesiredState)
+	}
+
+	return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unhandled sentinel desired state: %s", sentinel.DesiredState))
+}

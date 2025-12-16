@@ -8,10 +8,10 @@ import (
 
 	"k8s.io/client-go/kubernetes/scheme"
 
-	deploymentcontroller "github.com/unkeyed/unkey/go/apps/krane/deployment_controller"
+	"github.com/unkeyed/unkey/go/apps/krane/pkg/controlplane"
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
 	sentinelcontroller "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller"
-	"github.com/unkeyed/unkey/go/apps/krane/sync"
+	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/prometheus"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
@@ -64,6 +64,13 @@ func Run(ctx context.Context, cfg Config) error {
 		logger = logger.With(slog.String("version", pkgversion.Version))
 	}
 
+	cluster := controlplane.NewClient(controlplane.ClientConfig{
+		URL:         cfg.ControlPlaneURL,
+		BearerToken: cfg.ControlPlaneBearer,
+		Region:      cfg.Region,
+		Shard:       cfg.Shard,
+	})
+
 	client, err := k8s.NewClient(scheme.Scheme)
 	if err != nil {
 		return fmt.Errorf("failed to create k8s client: %w", err)
@@ -74,25 +81,28 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create k8s manager: %w", err)
 	}
 
+	sentinelWatcher := controlplane.NewWatcher(controlplane.WatcherConfig[ctrlv1.SentinelEvent]{
+		Logger:       logger,
+		CreateStream: cluster.WatchSentinels,
+		InstanceID:   cfg.InstanceID,
+		Region:       cfg.Region,
+		Shard:        cfg.Shard,
+	})
+	sentinelWatcher.Sync(ctx)
+	sentinelWatcher.Watch(ctx)
+
 	sc, err := sentinelcontroller.New(sentinelcontroller.Config{
 		Logger:  logger,
 		Scheme:  scheme.Scheme,
 		Client:  client,
 		Manager: manager,
+		Cluster: cluster,
+		Watcher: sentinelWatcher,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create sentinel controller: %w", err)
 	}
-
-	dc, err := deploymentcontroller.New(deploymentcontroller.Config{
-		Logger:  logger,
-		Scheme:  scheme.Scheme,
-		Client:  client,
-		Manager: manager,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create sentinel controller: %w", err)
-	}
+	var _ = sc
 
 	go func() {
 
@@ -101,22 +111,6 @@ func Run(ctx context.Context, cfg Config) error {
 			logger.Error("failed to start k8s manager", "error", err)
 		}
 	}()
-
-	s, err := sync.New(sync.Config{
-		Logger:               logger,
-		Region:               cfg.Region,
-		Shard:                cfg.Shard,
-		InstanceID:           cfg.InstanceID,
-		ControlPlaneURL:      cfg.ControlPlaneURL,
-		ControlPlaneBearer:   cfg.ControlPlaneBearer,
-		DeploymentController: dc,
-		SentinelController:   sc,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create sync engine: %w", err)
-	}
-
-	s.Start()
 
 	if cfg.PrometheusPort > 0 {
 

@@ -129,7 +129,7 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 			replicas = int32(3)
 		}
 
-		k8sCrdName := fmt.Sprintf("gw-%s", uid.NanoLower(8))
+		k8sCrdName := fmt.Sprintf("s-%s", uid.NanoLower(8))
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return db.Query.InsertSentinel(runCtx, s.db.RW(), db.InsertSentinelParams{
@@ -164,10 +164,7 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 						ProjectId:     projectID,
 						EnvironmentId: environmentID,
 						SentinelId:    sentinelID,
-						Image:         s.sentinelImage,
-						Replicas:      uint32(replicas),
-						CpuMillicores: 256,
-						MemorySizeMib: 256,
+						Hash:          "init",
 					},
 				},
 			})

@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/uid"
 )
 
-func (s *Service) PushInstanceState(ctx context.Context, req *connect.Request[ctrlv1.PushInstanceStateRequest]) (*connect.Response[ctrlv1.PushInstanceStateResponse], error) {
+func (s *Service) UpdateInstanceState(ctx context.Context, req *connect.Request[ctrlv1.UpdateInstanceStateRequest]) (*connect.Response[ctrlv1.UpdateInstanceStateResponse], error) {
 
 	if err := s.authenticate(req); err != nil {
 		return nil, err
@@ -27,7 +27,7 @@ func (s *Service) PushInstanceState(ctx context.Context, req *connect.Request[ct
 	}
 
 	switch msg := req.Msg.GetChange().(type) {
-	case *ctrlv1.PushInstanceStateRequest_Upsert_:
+	case *ctrlv1.UpdateInstanceStateRequest_Upsert_:
 		{
 			deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), msg.Upsert.GetDeploymentId())
 			if err != nil {
@@ -53,7 +53,7 @@ func (s *Service) PushInstanceState(ctx context.Context, req *connect.Request[ct
 
 		}
 
-	case *ctrlv1.PushInstanceStateRequest_Delete_:
+	case *ctrlv1.UpdateInstanceStateRequest_Delete_:
 		{
 
 			err = db.Query.DeleteInstance(ctx, s.db.RW(), db.DeleteInstanceParams{
@@ -68,19 +68,19 @@ func (s *Service) PushInstanceState(ctx context.Context, req *connect.Request[ct
 
 	}
 
-	return connect.NewResponse(&ctrlv1.PushInstanceStateResponse{}), nil
+	return connect.NewResponse(&ctrlv1.UpdateInstanceStateResponse{}), nil
 
 }
 
-func ctrlStatusToDbStatus(status ctrlv1.PushInstanceStateRequest_Status) db.InstancesStatus {
+func ctrlStatusToDbStatus(status ctrlv1.UpdateInstanceStateRequest_Status) db.InstancesStatus {
 	switch status {
-	case ctrlv1.PushInstanceStateRequest_STATUS_UNSPECIFIED:
+	case ctrlv1.UpdateInstanceStateRequest_STATUS_UNSPECIFIED:
 		return db.InstancesStatusInactive
-	case ctrlv1.PushInstanceStateRequest_STATUS_PENDING:
+	case ctrlv1.UpdateInstanceStateRequest_STATUS_PENDING:
 		return db.InstancesStatusPending
-	case ctrlv1.PushInstanceStateRequest_STATUS_RUNNING:
+	case ctrlv1.UpdateInstanceStateRequest_STATUS_RUNNING:
 		return db.InstancesStatusRunning
-	case ctrlv1.PushInstanceStateRequest_STATUS_FAILED:
+	case ctrlv1.UpdateInstanceStateRequest_STATUS_FAILED:
 		return db.InstancesStatusFailed
 	default:
 		return db.InstancesStatusInactive

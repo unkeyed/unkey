@@ -174,6 +174,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				Event: &ctrlv1.DeploymentEvent_Apply{
 					Apply: &ctrlv1.ApplyDeployment{
 						Namespace:     workspace.K8sNamespace.String,
+						K8SCrdName:    deployment.K8sCrdName,
 						WorkspaceId:   workspace.ID,
 						ProjectId:     project.ID,
 						EnvironmentId: environment.ID,
