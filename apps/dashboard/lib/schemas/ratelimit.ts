@@ -10,7 +10,7 @@ export const ratelimitItemSchema = z.object({
   refillInterval: z.coerce
     .number({
       errorMap: (issue, { defaultError }) => ({
-        message: issue.code === "invalid_type" ? "Duration must be greater than 0" : defaultError,
+        message: issue.code === "invalid_type" ? "Duration must be a valid number" : defaultError,
       }),
     })
     .min(1000, { message: "Refill interval must be at least 1 second (1000ms)" }),
@@ -18,7 +18,7 @@ export const ratelimitItemSchema = z.object({
     .number({
       errorMap: (issue, { defaultError }) => ({
         message:
-          issue.code === "invalid_type" ? "Refill limit must be greater than 0" : defaultError,
+          issue.code === "invalid_type" ? "Limit must be a valid number" : defaultError,
       }),
     })
     .positive({ message: "Limit must be greater than 0" }),
@@ -27,7 +27,23 @@ export const ratelimitItemSchema = z.object({
 
 export const ratelimitValidationSchema = z.object({
   enabled: z.literal(true),
-  data: z.array(ratelimitItemSchema).min(1, { message: "At least one rate limit is required" }),
+  data: z
+    .array(ratelimitItemSchema)
+    .min(1, { message: "At least one rate limit is required" })
+    .superRefine((items, ctx) => {
+      const seenNames = new Set<string>();
+      for (let i = 0; i < items.length; i++) {
+        const name = items[i].name;
+        if (seenNames.has(name)) {
+          ctx.addIssue({
+            code: "custom",
+            message: "Ratelimit name must be unique",
+            path: ["data", i, "name"],
+          });
+        }
+        seenNames.add(name);
+      }
+    }),
 });
 
 export const ratelimitSchema = z.object({

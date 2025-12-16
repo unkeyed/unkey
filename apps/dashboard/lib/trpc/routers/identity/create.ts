@@ -79,6 +79,7 @@ export const createIdentity = t.procedure
             duration: ratelimit.refillInterval,
             limit: ratelimit.limit,
             name: ratelimit.name,
+            autoApply: ratelimit.autoApply,
             workspaceId: ctx.workspace.id,
             createdAt: Date.now(),
             updatedAt: null,
