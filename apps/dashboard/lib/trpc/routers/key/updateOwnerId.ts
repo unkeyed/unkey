@@ -2,7 +2,7 @@ import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
 import { type Key, and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 
 const baseOwnerInputSchema = z.object({
   keyIds: z
@@ -29,9 +29,7 @@ export const ownerInputSchema = z
 
 type OwnerInputSchema = z.infer<typeof ownerInputSchema>;
 
-export const updateKeyOwner = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const updateKeyOwner = workspaceProcedure
   .input(ownerInputSchema)
   .mutation(async ({ input, ctx }) => {
     // Ensure we have at least one keyId to update

@@ -1,10 +1,9 @@
 import { auth as authProvider } from "@/lib/auth/server";
 import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { z } from "zod";
-import { requireUser, t } from "../../trpc";
+import { protectedProcedure } from "../../trpc";
 
-export const switchOrg = t.procedure
-  .use(requireUser)
+export const switchOrg = protectedProcedure
   .input(z.string())
   .mutation(async ({ input: orgId, ctx }) => {
     try {

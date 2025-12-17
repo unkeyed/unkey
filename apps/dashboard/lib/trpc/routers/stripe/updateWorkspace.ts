@@ -3,12 +3,10 @@ import { db, eq, schema } from "@/lib/db";
 import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 import { clearWorkspaceCache } from "../workspace/getCurrent";
 
-export const updateWorkspaceStripeCustomer = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const updateWorkspaceStripeCustomer = workspaceProcedure
   .input(
     z.object({
       stripeCustomerId: z.string().min(1, "Stripe customer ID is required"),

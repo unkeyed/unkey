@@ -1,6 +1,6 @@
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
-import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { mapProduct } from "../utils/stripe";
@@ -15,8 +15,7 @@ const productSchema = z.object({
   }),
 });
 
-export const getProducts = t.procedure
-  .use(requireWorkspace)
+export const getProducts = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .output(z.array(productSchema))
   .query(async ({ ctx }) => {

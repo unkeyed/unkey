@@ -3,10 +3,10 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { requireUser, requireWorkspace, t } from "../../trpc";
-export const deleteApi = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
+
+export const deleteApi = workspaceProcedure
+  .use(withRatelimit(ratelimit.delete))
   .input(
     z.object({
       apiId: z.string(),

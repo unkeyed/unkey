@@ -1,10 +1,9 @@
 import { auth as authProvider } from "@/lib/auth/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireOrgAdmin, requireUser, t } from "../../trpc";
+import { requireOrgAdmin, workspaceProcedure } from "../../trpc";
 
-export const removeMembership = t.procedure
-  .use(requireUser)
+export const removeMembership = workspaceProcedure
   .use(requireOrgAdmin)
   .input(
     z.object({

@@ -1,6 +1,6 @@
 import { getStripeClient } from "@/lib/stripe";
 import { handleStripeError } from "@/lib/trpc/routers/utils/stripe";
-import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -13,8 +13,7 @@ const setupIntentSchema = z.object({
   usage: z.string(),
 });
 
-export const getSetupIntent = t.procedure
-  .use(requireWorkspace)
+export const getSetupIntent = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(
     z.object({

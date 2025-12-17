@@ -1,10 +1,9 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { queryUsageResponse } from "./schemas";
 
-export const queryUsage = t.procedure
-  .use(requireWorkspace)
+export const queryUsage = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .output(queryUsageResponse)
   .query(async ({ ctx }) => {

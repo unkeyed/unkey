@@ -1,12 +1,10 @@
 import { and, db, eq, isNull } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { keys } from "@unkey/db/src/schema";
 import { z } from "zod";
 
-export const enableKey = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const enableKey = workspaceProcedure
   .use(withRatelimit(ratelimit.update))
   .input(
     z.object({

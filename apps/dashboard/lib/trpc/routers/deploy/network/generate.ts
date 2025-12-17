@@ -4,7 +4,7 @@ import type {
   HealthStatus,
   RegionNode,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/[deploymentId]/components/unkey-flow/components/nodes/types";
-import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
+import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -30,9 +30,7 @@ const generatorConfigSchema = z.object({
   instanceDirection: z.enum(["vertical", "horizontal"]).optional(),
 });
 
-export const generateDeploymentTree = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const generateDeploymentTree = workspaceProcedure
   .input(generatorConfigSchema)
   .mutation(async ({ input }): Promise<DeploymentNode> => {
     try {

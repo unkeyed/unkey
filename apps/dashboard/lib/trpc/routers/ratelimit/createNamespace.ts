@@ -5,10 +5,8 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
 import { DatabaseError } from "@planetscale/database";
 import { newId } from "@unkey/id";
-import { requireUser, requireWorkspace, t } from "../../trpc";
-export const createNamespace = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+import { workspaceProcedure } from "../../trpc";
+export const createNamespace = workspaceProcedure
   .input(
     z.object({
       name: z.string().min(1).max(50),

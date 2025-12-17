@@ -3,16 +3,14 @@ import { env } from "@/lib/env";
 import { Vault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../../trpc";
+import { workspaceProcedure } from "../../../trpc";
 
 const vault = new Vault({
   baseUrl: env().AGENT_URL,
   token: env().AGENT_TOKEN,
 });
 
-export const updateEnvVar = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const updateEnvVar = workspaceProcedure
   .input(
     z.object({
       envVarId: z.string(),

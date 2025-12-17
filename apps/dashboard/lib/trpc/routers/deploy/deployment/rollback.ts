@@ -7,13 +7,11 @@ import { DeploymentService } from "@/gen/proto/ctrl/v1/deployment_pb";
 
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-export const rollback = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const rollback = workspaceProcedure
   .use(withRatelimit(ratelimit.update))
   .input(
     z.object({

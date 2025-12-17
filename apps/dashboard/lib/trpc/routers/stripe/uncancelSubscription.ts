@@ -1,26 +1,24 @@
 import { getStripeClient } from "@/lib/stripe";
 import { TRPCError } from "@trpc/server";
-import { requireUser, requireWorkspace, t } from "../../trpc";
-export const uncancelSubscription = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
-  .mutation(async ({ ctx }) => {
-    const stripe = getStripeClient();
+import { workspaceProcedure } from "../../trpc";
 
-    if (!ctx.workspace.stripeCustomerId) {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message: "Workspace doesn't have a stripe customer id.",
-      });
-    }
-    if (!ctx.workspace.stripeSubscriptionId) {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message: "Workspace doesn't have a stripe subscrption id.",
-      });
-    }
+export const uncancelSubscription = workspaceProcedure.mutation(async ({ ctx }) => {
+  const stripe = getStripeClient();
 
-    await stripe.subscriptions.update(ctx.workspace.stripeSubscriptionId, {
-      cancel_at_period_end: false,
+  if (!ctx.workspace.stripeCustomerId) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "Workspace doesn't have a stripe customer id.",
     });
+  }
+  if (!ctx.workspace.stripeSubscriptionId) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "Workspace doesn't have a stripe subscrption id.",
+    });
+  }
+
+  await stripe.subscriptions.update(ctx.workspace.stripeSubscriptionId, {
+    cancel_at_period_end: false,
   });
+});

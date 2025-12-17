@@ -1,12 +1,10 @@
 import { fetchApiOverview } from "@/app/(app)/[workspaceSlug]/apis/actions";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 
 import { TRPCError } from "@trpc/server";
 import { apisOverviewResponse, queryApisOverviewPayload } from "./schemas";
 
-export const queryApisOverview = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const queryApisOverview = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(queryApisOverviewPayload)
   .output(apisOverviewResponse)

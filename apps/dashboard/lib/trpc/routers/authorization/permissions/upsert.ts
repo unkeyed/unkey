@@ -1,13 +1,11 @@
 import { permissionSchema } from "@/app/(app)/[workspaceSlug]/authorization/permissions/components/upsert-permission/upsert-permission.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
-import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
+import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 
-export const upsertPermission = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const upsertPermission = workspaceProcedure
   .input(permissionSchema)
   .mutation(async ({ input, ctx }) => {
     const isUpdate = Boolean(input.permissionId);

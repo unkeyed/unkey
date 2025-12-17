@@ -3,10 +3,9 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { requireUser, requireWorkspace, t } from "../../trpc";
-export const deleteNamespace = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+import { workspaceProcedure } from "../../trpc";
+
+export const deleteNamespace = workspaceProcedure
   .input(
     z.object({
       namespaceId: z.string(),

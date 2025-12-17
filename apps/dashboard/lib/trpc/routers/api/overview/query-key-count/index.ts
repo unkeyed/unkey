@@ -1,5 +1,5 @@
 import { and, count, db, eq, isNull } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { apis, keys } from "@unkey/db/src/schema";
 import { z } from "zod";
@@ -15,9 +15,7 @@ const getKeyCountResponseSchema = z.object({
 export type GetKeyCountRequestSchema = z.TypeOf<typeof getKeyCountRequestSchema>;
 export type GetKeyCountResponseSchema = z.TypeOf<typeof getKeyCountResponseSchema>;
 
-export const getKeyCount = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const getKeyCount = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(getKeyCountRequestSchema)
   .output(getKeyCountResponseSchema)

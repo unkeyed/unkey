@@ -2,7 +2,7 @@ import { and, db, eq, inArray } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { environmentVariables, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../../trpc";
+import { workspaceProcedure } from "../../../trpc";
 
 const envVarOutputSchema = z.object({
   id: z.string(),
@@ -17,9 +17,7 @@ const environmentOutputSchema = z.object({
   variables: z.array(envVarOutputSchema),
 });
 
-export const listEnvVars = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const listEnvVars = workspaceProcedure
   .input(
     z.object({
       projectId: z.string(),

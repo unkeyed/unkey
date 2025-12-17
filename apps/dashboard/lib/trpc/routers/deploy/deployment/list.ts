@@ -1,11 +1,9 @@
 import { db } from "@/lib/db";
-import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
+import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-export const listDeployments = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const listDeployments = workspaceProcedure
   .input(z.object({ projectId: z.string() }))
   .query(async ({ ctx, input }) => {
     try {

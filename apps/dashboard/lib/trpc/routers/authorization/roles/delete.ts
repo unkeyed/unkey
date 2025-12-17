@@ -1,12 +1,10 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, inArray, schema } from "@/lib/db";
-import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
+import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-export const deleteRoleWithRelations = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const deleteRoleWithRelations = workspaceProcedure
   .input(
     z.object({
       roleIds: z

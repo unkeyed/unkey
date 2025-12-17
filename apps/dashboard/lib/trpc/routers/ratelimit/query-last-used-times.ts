@@ -1,7 +1,7 @@
 import { clickhouse } from "@/lib/clickhouse";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 const getLastUsedInput = z.object({
   namespaceId: z.string(),
@@ -13,9 +13,7 @@ const getLastUsedOutput = z.object({
   lastUsed: z.number().nullable(),
 });
 
-export const queryRatelimitLastUsed = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const queryRatelimitLastUsed = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(getLastUsedInput)
   .output(getLastUsedOutput)

@@ -3,11 +3,9 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 
-export const updateKeyExpiration = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const updateKeyExpiration = workspaceProcedure
   .input(
     expirationSchema.extend({
       keyId: z.string(),

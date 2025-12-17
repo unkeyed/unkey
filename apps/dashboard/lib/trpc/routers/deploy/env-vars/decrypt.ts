@@ -4,16 +4,14 @@ import { Vault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
 import { environmentVariables } from "@unkey/db/src/schema";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../../trpc";
+import { workspaceProcedure } from "../../../trpc";
 
 const vault = new Vault({
   baseUrl: env().AGENT_URL,
   token: env().AGENT_TOKEN,
 });
 
-export const decryptEnvVar = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const decryptEnvVar = workspaceProcedure
   .input(
     z.object({
       envVarId: z.string(),
