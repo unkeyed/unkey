@@ -56,6 +56,7 @@ import { createProject } from "./deploy/project/create";
 import { listProjects } from "./deploy/project/list";
 import { listEnvironments } from "./environment/list";
 import { createIdentity } from "./identity/create";
+import { deleteIdentity } from "./identity/delete";
 import { getIdentityById } from "./identity/getById";
 import { identityLastVerificationTime } from "./identity/latestVerification";
 import { queryIdentities } from "./identity/query";
@@ -342,6 +343,7 @@ export const router = t.router({
   identity: t.router({
     searchWithRelations: searchIdentitiesWithRelations,
     create: createIdentity,
+    delete: deleteIdentity,
     query: queryIdentities,
     search: searchIdentities,
     getById: getIdentityById,
