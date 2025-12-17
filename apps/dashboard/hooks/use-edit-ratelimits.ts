@@ -2,10 +2,20 @@ import { trpc } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
 import { formatDuration, intervalToDuration } from "date-fns";
 
-export const useEditRatelimits = (onSuccess?: () => void) => {
+type EntityType = "key" | "identity";
+
+export function useEditRatelimits(
+  entityType: "key",
+  onSuccess?: () => void,
+): ReturnType<typeof trpc.key.update.ratelimit.useMutation>;
+export function useEditRatelimits(
+  entityType: "identity",
+  onSuccess?: () => void,
+): ReturnType<typeof trpc.identity.update.ratelimit.useMutation>;
+export function useEditRatelimits(entityType: EntityType, onSuccess?: () => void) {
   const trpcUtils = trpc.useUtils();
 
-  const updateKeyRemaining = trpc.key.update.ratelimit.useMutation({
+  const updateKeyRatelimit = trpc.key.update.ratelimit.useMutation({
     onSuccess(data, variables) {
       let description = "";
 
@@ -13,13 +23,11 @@ export const useEditRatelimits = (onSuccess?: () => void) => {
         const rulesCount = variables.ratelimit.data.length;
 
         if (rulesCount === 1) {
-          // If there's just one rule, show its limit directly
           const rule = variables.ratelimit.data[0];
           description = `Your key ${data.keyId} has been updated with a limit of ${
             rule.limit
           } requests per ${formatInterval(rule.refillInterval)}`;
         } else {
-          // If there are multiple rules, show the count
           description = `Your key ${data.keyId} has been updated with ${rulesCount} rate limit rules`;
         }
       } else {
@@ -58,8 +66,59 @@ export const useEditRatelimits = (onSuccess?: () => void) => {
     },
   });
 
-  return updateKeyRemaining;
-};
+  const updateIdentityRatelimit = trpc.identity.update.ratelimit.useMutation({
+    onSuccess(data, variables) {
+      let description = "";
+
+      if (variables.ratelimit?.enabled) {
+        const rulesCount = variables.ratelimit.data.length;
+
+        if (rulesCount === 1) {
+          const rule = variables.ratelimit.data[0];
+          description = `Identity ${data.identityId} has been updated with a limit of ${
+            rule.limit
+          } requests per ${formatInterval(rule.refillInterval)}`;
+        } else {
+          description = `Identity ${data.identityId} has been updated with ${rulesCount} rate limit rules`;
+        }
+      } else {
+        description = `Identity ${data.identityId} has been updated with rate limits disabled`;
+      }
+
+      toast.success("Identity Ratelimits Updated", {
+        description,
+        duration: 5000,
+      });
+
+      trpcUtils.identity.query.invalidate();
+      if (onSuccess) {
+        onSuccess();
+      }
+    },
+    onError(err) {
+      if (err.data?.code === "NOT_FOUND") {
+        toast.error("Identity Update Failed", {
+          description: "Unable to find the identity. Please refresh and try again.",
+        });
+      } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
+        toast.error("Server Error", {
+          description:
+            "We encountered an issue while updating your identity. Please try again later or contact support at support.unkey.dev",
+        });
+      } else {
+        toast.error("Failed to Update Identity Limits", {
+          description: err.message || "An unexpected error occurred. Please try again later.",
+          action: {
+            label: "Contact Support",
+            onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+          },
+        });
+      }
+    },
+  });
+
+  return entityType === "key" ? updateKeyRatelimit : updateIdentityRatelimit;
+}
 
 const formatInterval = (milliseconds: number): string => {
   if (milliseconds < 1000) {

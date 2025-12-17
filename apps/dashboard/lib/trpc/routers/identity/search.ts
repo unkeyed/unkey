@@ -46,6 +46,10 @@ export const searchIdentities = workspaceProcedure
           ratelimits: {
             columns: {
               id: true,
+              name: true,
+              limit: true,
+              duration: true,
+              autoApply: true,
             },
           },
         },
