@@ -1,5 +1,5 @@
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
-import { type Key, db, eq, schema } from "@/lib/db";
+import { type Identity, db, eq, schema } from "@/lib/db";
 import { ratelimitSchema } from "@/lib/schemas/ratelimit";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -7,43 +7,39 @@ import { z } from "zod";
 import { requireUser, requireWorkspace, t } from "../../trpc";
 
 const baseRatelimitInputSchema = z.object({
-  keyId: z.string(),
+  identityId: z.string(),
 });
 
 export const ratelimitInputSchema = ratelimitSchema.and(baseRatelimitInputSchema);
 
 type RatelimitInputSchema = z.infer<typeof ratelimitInputSchema>;
 
-export const updateKeyRatelimit = t.procedure
+export const updateIdentityRatelimit = t.procedure
   .use(requireUser)
   .use(requireWorkspace)
   .input(ratelimitInputSchema)
   .mutation(async ({ input, ctx }) => {
-    const key = await db.query.keys
+    const identity = await db.query.identities
       .findFirst({
-        where: (table, { eq, and, isNull }) =>
-          and(
-            eq(table.workspaceId, ctx.workspace.id),
-            eq(table.id, input.keyId),
-            isNull(table.deletedAtM),
-          ),
+        where: (table, { eq, and }) =>
+          and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.identityId)),
       })
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update ratelimits on this key. Please try again or contact support@unkey.dev",
+            "We were unable to update ratelimits on this identity. Please try again or contact support@unkey.dev",
         });
       });
-    if (!key) {
+    if (!identity) {
       throw new TRPCError({
         message:
-          "We are unable to find the correct key. Please try again or contact support@unkey.dev.",
+          "We are unable to find the correct identity. Please try again or contact support@unkey.dev.",
         code: "NOT_FOUND",
       });
     }
 
-    return updateRatelimitV2(input, key, {
+    return updateRatelimitV2(input, identity, {
       audit: ctx.audit,
       userId: ctx.user.id,
       workspaceId: ctx.workspace.id,
@@ -52,7 +48,7 @@ export const updateKeyRatelimit = t.procedure
 
 const updateRatelimitV2 = async (
   input: RatelimitInputSchema,
-  key: Key,
+  identity: Identity,
   ctx: {
     workspaceId: string;
     userId: string;
@@ -65,11 +61,11 @@ const updateRatelimitV2 = async (
   try {
     await db.transaction(async (tx) => {
       if (input.ratelimit.enabled && input.ratelimit.data.length > 0) {
-        // First, fetch existing ratelimits for this key
+        // First, fetch existing ratelimits for this identity
         const existingRatelimits = await tx
           .select()
           .from(schema.ratelimits)
-          .where(eq(schema.ratelimits.keyId, input.keyId));
+          .where(eq(schema.ratelimits.identityId, input.identityId));
 
         const inputRatelimitIds = new Set(
           input.ratelimit.data.filter((r) => r.id).map((r) => r.id),
@@ -100,10 +96,11 @@ const updateRatelimitV2 = async (
             // Create new
             await tx.insert(schema.ratelimits).values({
               id: newId("ratelimit"),
-              keyId: input.keyId,
+              identityId: input.identityId,
               duration: ratelimit.refillInterval,
               limit: ratelimit.limit,
               name: ratelimit.name,
+              autoApply: ratelimit.autoApply,
               workspaceId: ctx.workspaceId,
               createdAt: Date.now(),
               updatedAt: null,
@@ -114,12 +111,14 @@ const updateRatelimitV2 = async (
         // Rate limiting is enabled but no rules provided (edge case). Should not happen in v2.
         throw new Error("Rate limiting is enabled but no rules were provided");
       } else {
-        // If rate limiting is disabled, remove all rate limit rules for this key
-        await tx.delete(schema.ratelimits).where(eq(schema.ratelimits.keyId, input.keyId));
+        // If rate limiting is disabled, remove all rate limit rules for this identity
+        await tx
+          .delete(schema.ratelimits)
+          .where(eq(schema.ratelimits.identityId, input.identityId));
       }
       const description = input.ratelimit.enabled
-        ? `Updated rate limits for key ${key.id} (${input.ratelimit.data.length} rules)`
-        : `Disabled rate limits for key ${key.id}`;
+        ? `Updated rate limits for identity ${identity.id} (${input.ratelimit.data.length} rules)`
+        : `Disabled rate limits for identity ${identity.id}`;
 
       const ratelimitMeta = input.ratelimit.enabled
         ? {
@@ -142,8 +141,7 @@ const updateRatelimitV2 = async (
       const resources: UnkeyAuditLog["resources"] = [
         {
           type: "ratelimit",
-          id: key.id,
-          name: key.name || undefined,
+          id: identity.id,
           meta: ratelimitMeta,
         },
       ];
@@ -168,9 +166,9 @@ const updateRatelimitV2 = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message:
-        "We were unable to update ratelimit on this key. Please try again or contact support@unkey.dev",
+        "We were unable to update ratelimit on this identity. Please try again or contact support@unkey.dev",
     });
   }
 
-  return { keyId: key.id };
+  return { identityId: identity.id };
 };

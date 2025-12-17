@@ -47,6 +47,10 @@ export const searchIdentities = t.procedure
           ratelimits: {
             columns: {
               id: true,
+              name: true,
+              limit: true,
+              duration: true,
+              autoApply: true,
             },
           },
         },
