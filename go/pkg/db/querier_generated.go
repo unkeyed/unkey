@@ -212,6 +212,7 @@ type Querier interface {
 	//  SELECT
 	//      d.id,
 	//      d.k8s_crd_name,
+	//      w.k8s_namespace,
 	//      d.workspace_id,
 	//      d.project_id,
 	//      d.environment_id,
@@ -223,6 +224,7 @@ type Querier interface {
 	//      d.desired_state
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
+	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
 	//  WHERE  dt.region = ?
 	//      AND dt.deployment_id = ?
 	//  LIMIT 1
@@ -932,8 +934,10 @@ type Querier interface {
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
 	//FindSentinelByID
 	//
-	//  SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels WHERE id = ? LIMIT 1
-	FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error)
+	//  SELECT s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_crd_name, s.k8s_service_name, s.region, s.image, s.desired_state, s.health, s.desired_replicas, s.replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, w.k8s_namespace FROM sentinels s
+	//  INNER JOIN `workspaces` w ON s.workspace_id = w.id
+	//  WHERE s.id = ? LIMIT 1
+	FindSentinelByID(ctx context.Context, db DBTX, id string) (FindSentinelByIDRow, error)
 	//FindSentinelsByEnvironmentID
 	//
 	//  SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels WHERE environment_id = ?

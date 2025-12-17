@@ -9,7 +9,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
-func (s *Service) WatchDeployments(ctx context.Context, req *connect.Request[ctrlv1.WatchRequest], stream *connect.ServerStream[ctrlv1.DeploymentEvent]) error {
+func (s *Service) WatchDeployments(ctx context.Context, req *connect.Request[ctrlv1.WatchRequest], stream *connect.ServerStream[ctrlv1.DeploymentState]) error {
 
 	clientID := req.Msg.GetClientId()
 	selectors := req.Msg.GetSelectors()
@@ -33,7 +33,7 @@ func (s *Service) WatchDeployments(ctx context.Context, req *connect.Request[ctr
 
 	if req.Msg.GetSynthetic() {
 
-		synthetic := make(chan *ctrlv1.DeploymentEvent)
+		synthetic := make(chan *ctrlv1.DeploymentState)
 
 		wg.Go(func() {
 			if err := s.getSyntheticDeployments(ctx, req, synthetic); err != nil {
@@ -69,7 +69,7 @@ func (s *Service) WatchDeployments(ctx context.Context, req *connect.Request[ctr
 					)
 					return
 
-				case event := <-c.deploymentEvents.Consume():
+				case event := <-c.deploymentStates.Consume():
 					err := stream.Send(event)
 					if err != nil {
 						s.logger.Error("failed to send event", "error", err)
@@ -84,7 +84,7 @@ func (s *Service) WatchDeployments(ctx context.Context, req *connect.Request[ctr
 
 }
 
-func (s *Service) getSyntheticDeployments(ctx context.Context, req *connect.Request[ctrlv1.WatchRequest], c chan *ctrlv1.DeploymentEvent) error {
+func (s *Service) getSyntheticDeployments(ctx context.Context, req *connect.Request[ctrlv1.WatchRequest], c chan *ctrlv1.DeploymentState) error {
 
 	clientID := req.Msg.GetClientId()
 	selectors := req.Msg.GetSelectors()
@@ -116,8 +116,8 @@ func (s *Service) getSyntheticDeployments(ctx context.Context, req *connect.Requ
 		cursor = topologies[len(topologies)-1].DeploymentID
 
 		for _, t := range topologies {
-			c <- &ctrlv1.DeploymentEvent{
-				Event: &ctrlv1.DeploymentEvent_Apply{
+			c <- &ctrlv1.DeploymentState{
+				State: &ctrlv1.DeploymentState_Apply{
 					Apply: &ctrlv1.ApplyDeployment{
 						Namespace:     t.K8sNamespace.String,
 						K8SCrdName:    t.K8sCrdName,
@@ -126,9 +126,9 @@ func (s *Service) getSyntheticDeployments(ctx context.Context, req *connect.Requ
 						ProjectId:     t.ProjectID,
 						DeploymentId:  t.DeploymentID,
 						Image:         t.Image.String,
-						Replicas:      uint32(t.Replicas),
-						CpuMillicores: uint32(t.CpuMillicores),
-						MemorySizeMib: uint32(t.MemoryMib),
+						Replicas:      t.Replicas,
+						CpuMillicores: int64(t.CpuMillicores),
+						MemoryMib:     int64(t.MemoryMib),
 					},
 				},
 			}

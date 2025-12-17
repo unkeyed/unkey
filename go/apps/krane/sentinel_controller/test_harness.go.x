@@ -40,7 +40,7 @@ type TestHarness struct {
 	namespace string
 	Logger    logging.Logger
 	cluster   ctrlv1connect.ClusterServiceClient
-	watcher   *controlplane.Watcher[ctrlv1.SentinelEvent]
+	watcher   *controlplane.Watcher[ctrlv1.SentinelState]
 }
 
 func NewTestHarness(t *testing.T) *TestHarness {
@@ -106,7 +106,7 @@ func NewTestHarness(t *testing.T) *TestHarness {
 		Shard:       "default",
 	})
 
-	w := controlplane.NewWatcher(controlplane.WatcherConfig[ctrlv1.SentinelEvent]{
+	w := controlplane.NewWatcher(controlplane.WatcherConfig[ctrlv1.SentinelState]{
 		Logger:       logger,
 		CreateStream: cluster.WatchSentinels,
 		InstanceID:   uid.New(uid.TestPrefix),

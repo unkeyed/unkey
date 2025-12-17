@@ -1,4 +1,4 @@
-package sentinelcontroller
+package inbound
 
 import (
 	"context"
@@ -8,9 +8,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (c *SentinelController) ensureNamespaceExists(ctx context.Context, namespace string) error {
+func (r *InboundReconciler) ensureNamespaceExists(ctx context.Context, namespace string) error {
 
-	err := c.client.Create(ctx, &corev1.Namespace{
+	err := r.client.Create(ctx, &corev1.Namespace{
 
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,

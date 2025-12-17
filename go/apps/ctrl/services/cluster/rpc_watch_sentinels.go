@@ -5,12 +5,11 @@ import (
 	"sync"
 
 	"connectrpc.com/connect"
-	"github.com/unkeyed/unkey/go/apps/ctrl/pkg/hash"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
-func (s *Service) WatchSentinels(ctx context.Context, req *connect.Request[ctrlv1.WatchRequest], stream *connect.ServerStream[ctrlv1.SentinelEvent]) error {
+func (s *Service) WatchSentinels(ctx context.Context, req *connect.Request[ctrlv1.WatchRequest], stream *connect.ServerStream[ctrlv1.SentinelState]) error {
 
 	clientID := req.Msg.GetClientId()
 	selectors := req.Msg.GetSelectors()
@@ -34,7 +33,7 @@ func (s *Service) WatchSentinels(ctx context.Context, req *connect.Request[ctrlv
 
 	if req.Msg.GetSynthetic() {
 
-		synthetic := make(chan *ctrlv1.SentinelEvent)
+		synthetic := make(chan *ctrlv1.SentinelState)
 
 		closeChannel := sync.OnceFunc(func() {
 			close(synthetic)
@@ -79,7 +78,7 @@ func (s *Service) WatchSentinels(ctx context.Context, req *connect.Request[ctrlv
 					)
 					return
 
-				case event := <-c.sentinelEvents.Consume():
+				case event := <-c.sentinelStates.Consume():
 					err := stream.Send(event)
 					if err != nil {
 						s.logger.Error("failed to send event", "error", err)
@@ -94,7 +93,7 @@ func (s *Service) WatchSentinels(ctx context.Context, req *connect.Request[ctrlv
 
 }
 
-func (s *Service) getSyntheticSentinels(ctx context.Context, req *connect.Request[ctrlv1.WatchRequest], c chan *ctrlv1.SentinelEvent) error {
+func (s *Service) getSyntheticSentinels(ctx context.Context, req *connect.Request[ctrlv1.WatchRequest], c chan *ctrlv1.SentinelState) error {
 
 	// missing labels means we accept all regions
 	region := req.Msg.GetSelectors()["region"]
@@ -119,8 +118,8 @@ func (s *Service) getSyntheticSentinels(ctx context.Context, req *connect.Reques
 		cursor = topologies[len(topologies)-1].Sentinel.ID
 
 		for _, t := range topologies {
-			c <- &ctrlv1.SentinelEvent{
-				Event: &ctrlv1.SentinelEvent_Apply{
+			c <- &ctrlv1.SentinelState{
+				State: &ctrlv1.SentinelState_Apply{
 					Apply: &ctrlv1.ApplySentinel{
 						Namespace:     t.Workspace.K8sNamespace.String,
 						K8SCrdName:    t.Sentinel.K8sCrdName,
@@ -128,7 +127,10 @@ func (s *Service) getSyntheticSentinels(ctx context.Context, req *connect.Reques
 						EnvironmentId: t.Sentinel.EnvironmentID,
 						ProjectId:     t.Sentinel.ProjectID,
 						SentinelId:    t.Sentinel.ID,
-						Hash:          hash.Sentinel(t.Sentinel),
+						Image:         t.Sentinel.Image,
+						Replicas:      t.Sentinel.Replicas,
+						CpuMillicores: int64(t.Sentinel.CpuMillicores),
+						MemoryMib:     int64(t.Sentinel.MemoryMib),
 					},
 				},
 			}

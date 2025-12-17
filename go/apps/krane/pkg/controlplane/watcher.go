@@ -21,7 +21,6 @@ import (
 // The type parameter T represents the specific event type being watched.
 type Watcher[T any] struct {
 	logger       logging.Logger
-	events       *buffer.Buffer[*T]
 	instanceID   string
 	region       string
 	shard        string
@@ -60,12 +59,7 @@ type WatcherConfig[T any] struct {
 // should typically be run in separate goroutines.
 func NewWatcher[T any](cfg WatcherConfig[T]) *Watcher[T] {
 	w := &Watcher[T]{
-		logger: cfg.Logger,
-		events: buffer.New[*T](buffer.Config{
-			Capacity: 1000,
-			Drop:     false,
-			Name:     "krane_watcher",
-		}),
+		logger:       cfg.Logger,
 		instanceID:   cfg.InstanceID,
 		region:       cfg.Region,
 		shard:        cfg.Shard,
@@ -73,17 +67,6 @@ func NewWatcher[T any](cfg WatcherConfig[T]) *Watcher[T] {
 	}
 
 	return w
-}
-
-// Consume returns a read-only channel for receiving buffered events.
-//
-// The channel will deliver events in the order they were received from
-// the control plane. The channel remains open as long as the watcher
-// is active and should be read continuously to prevent buffer overflow.
-//
-// Callers should read from this channel in a separate goroutine.
-func (w *Watcher[T]) Consume() <-chan *T {
-	return w.events.Consume()
 }
 
 // Sync performs periodic full synchronization by creating synthetic streams.
@@ -98,7 +81,7 @@ func (w *Watcher[T]) Consume() <-chan *T {
 // This should be run in a separate goroutine:
 //
 //	go watcher.Sync(ctx)
-func (w *Watcher[T]) Sync(ctx context.Context) {
+func (w *Watcher[T]) Sync(ctx context.Context, buf *buffer.Buffer[*T]) {
 	w.logger.Info("Starting Sync")
 
 	req := connect.NewRequest(&ctrlv1.WatchRequest{
@@ -117,7 +100,7 @@ func (w *Watcher[T]) Sync(ctx context.Context) {
 			return
 		}
 		for stream.Receive() {
-			w.events.Buffer(stream.Msg())
+			buf.Buffer(stream.Msg())
 		}
 		err = stream.Close()
 		if err != nil {
@@ -147,7 +130,7 @@ func (w *Watcher[T]) Sync(ctx context.Context) {
 // This should be run in a separate goroutine:
 //
 //	go watcher.Watch(ctx)
-func (w *Watcher[T]) Watch(ctx context.Context) {
+func (w *Watcher[T]) Watch(ctx context.Context, buf *buffer.Buffer[*T]) {
 	w.logger.Info("Starting Watch")
 
 	req := connect.NewRequest(&ctrlv1.WatchRequest{
@@ -186,7 +169,7 @@ func (w *Watcher[T]) Watch(ctx context.Context) {
 				time.Sleep(time.Second)
 				continue
 			}
-			w.events.Buffer(stream.Msg())
+			buf.Buffer(stream.Msg())
 		}
 	}()
 

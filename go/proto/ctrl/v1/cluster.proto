@@ -24,12 +24,12 @@ option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
 service ClusterService {
 
 
-  rpc WatchSentinels(WatchRequest) returns (stream SentinelEvent);
-  rpc GetDesiredSentinelState(GetDesiredSentinelStateRequest) returns (GetDesiredSentinelStateResponse);
+  rpc WatchSentinels(WatchRequest) returns (stream SentinelState);
+  rpc GetDesiredSentinelState(GetDesiredSentinelStateRequest) returns (SentinelState);
   rpc UpdateSentinelState(UpdateSentinelStateRequest) returns (UpdateSentinelStateResponse);
 
-  rpc WatchDeployments(WatchRequest) returns (stream DeploymentEvent);
-  rpc GetDesiredDeploymentState(GetDesiredDeploymentStateRequest) returns (GetDesiredDeploymentStateResponse);
+  rpc WatchDeployments(WatchRequest) returns (stream DeploymentState);
+  rpc GetDesiredDeploymentState(GetDesiredDeploymentStateRequest) returns (DeploymentState);
   rpc UpdateInstanceState(UpdateInstanceStateRequest) returns (UpdateInstanceStateResponse);
 }
 
@@ -38,30 +38,11 @@ message GetDesiredSentinelStateRequest {
   string sentinel_id = 1;
 }
 
-message GetDesiredSentinelStateResponse {
-  string workspace_id =1;
-  string project_id = 2;
-  string environment_id =3;
-  string sentinel_id = 4;
-  int32 replicas = 5 ;
-
-  string image = 6;
-  int64 cpu_millicores = 7;
-  int64 memory_mib = 8;
-}
 
 message GetDesiredDeploymentStateRequest {
   string deployment_id = 1;
 }
 
-message GetDesiredDeploymentStateResponse {
-  string deployment_id = 1;
-  int32 replicas = 2;
-
-  string image = 3;
-  int64 cpu_millicores = 4;
-  int64 memory_mib = 5;
-}
 
 message UpdateInstanceStateRequest {
   enum Status {
@@ -137,15 +118,15 @@ message WatchRequest {
   // if true, the server generates synthetic events to replay the full current desired state.
   bool synthetic = 4;
 }
-// SentinelEvent represents a lifecycle event for an API sentinel configuration.
+// SentinelState represents a lifecycle event for an API sentinel configuration.
 //
 // Sentinels are frontline points for services, typically handling routing, load balancing,
 // and API management. The event follows a declarative model where the cluster agent ensures
 // the cluster state matches the desired configuration.
-message SentinelEvent {
-  // event contains the specific sentinel operation to perform.
-  // Only one event type is set per message, determining the action the agent should take.
-  oneof event {
+message SentinelState {
+  // state contains the specific sentinel operation to perform.
+  // Only one state type is set per message, determining the action the agent should take.
+  oneof state {
     // apply indicates the sentinel should exist with this configuration.
     // The agent will create the sentinel if it doesn't exist or update it if it does.
     // This follows the same semantics as "kubectl apply" - declare desired state
@@ -157,15 +138,15 @@ message SentinelEvent {
   }
 }
 
-// DeploymentEvent represents a lifecycle event for an application deployment.
+// DeploymentState represents a lifecycle event for an application deployment.
 //
 // Deployments are the primary workload type, representing stateless applications
 // that can be scaled horizontally. The event follows a declarative model where
 // the cluster agent ensures the cluster state matches the desired configuration.
-message DeploymentEvent {
-  // event contains the specific deployment operation to perform.
-  // Only one event type is set per message, determining the action the agent should take.
-  oneof event {
+message DeploymentState {
+  // state contains the specific deployment operation to perform.
+  // Only one state type is set per message, determining the action the agent should take.
+  oneof state {
     // apply indicates the deployment should exist with this configuration.
     // The agent will create the deployment if it doesn't exist or update it if it does.
     // This follows the same semantics as "kubectl apply" - declare desired state
@@ -199,8 +180,10 @@ message ApplySentinel {
   // sentinel_id is the unique identifier for this sentinel within the namespace.
   string sentinel_id = 6;
 
-  // hash is a checksum of the sentinel configuration used to detect changes.
-  string hash = 7;
+  string image = 7;
+  int32 replicas = 8;
+  int64 cpu_millicores = 9;
+  int64 memory_mib = 10;
 }
 
 // DeleteSentinel identifies a sentinel to remove from the cluster.
@@ -247,17 +230,17 @@ string k8s_crd_name = 2;
 
   // replicas is the desired number of pod instances.
   // Must be at least 1. Set higher for increased availability and load distribution.
-  uint32 replicas = 8   ;
+  int32 replicas = 8   ;
 
   // cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
   // This ensures each pod has sufficient CPU resources.
   // Example: 250 = 0.25 CPU cores
-  uint32 cpu_millicores = 9;
+  int64 cpu_millicores = 9;
 
-  // memory_size_mib is the memory request/limit in mebibytes.
+  // memory_mib is the memory request/limit in mebibytes.
   // This ensures each pod has sufficient memory.
   // Example: 256 = 256 MiB
-  uint32 memory_size_mib = 10;
+  int64 memory_mib = 10;
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.

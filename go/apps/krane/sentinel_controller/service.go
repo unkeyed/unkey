@@ -4,20 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/controlplane"
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
 	apiv1 "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller/api/v1"
+	"github.com/unkeyed/unkey/go/apps/krane/sentinel_controller/inbound"
+	"github.com/unkeyed/unkey/go/apps/krane/sentinel_controller/reconciler"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
-	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	ctrlruntime "sigs.k8s.io/controller-runtime"
 )
@@ -30,9 +27,6 @@ import (
 // instead of the standard controller-runtime pattern.
 type SentinelController struct {
 	logger logging.Logger
-	client client.Client
-
-	reconciler k8s.Reconciler
 }
 
 // Config holds configuration for creating a SentinelController.
@@ -48,7 +42,9 @@ type Config struct {
 
 	Cluster ctrlv1connect.ClusterServiceClient
 
-	Watcher *controlplane.Watcher[ctrlv1.SentinelEvent]
+	InstanceID string
+	Region     string
+	Shard      string
 }
 
 // New creates a new SentinelController with the provided configuration.
@@ -66,62 +62,33 @@ func New(cfg Config) (*SentinelController, error) {
 
 	ctrlruntime.SetLogger(k8s.CompatibleLogger(cfg.Logger))
 
-	p := &pusher{
-		client:  cfg.Client,
-		cb:      circuitbreaker.New[*connect.Response[ctrlv1.UpdateSentinelStateResponse]]("krane_update_sentinel_state"),
-		cluster: cfg.Cluster,
-	}
-
-	if err := ctrlruntime.NewControllerManagedBy(cfg.Manager).
-		For(
-			&appsv1.Deployment{},
-			builder.WithPredicates(
-				predicate.NewPredicateFuncs(func(obj client.Object) bool {
-					return k8s.IsComponentSentinel(obj.GetLabels())
-				}),
-			),
-		).
-		Named("sentinel_deployments").
-		Complete(p); err != nil {
-		return nil, err
-	}
-
 	c := &SentinelController{
 		logger: cfg.Logger,
-		client: cfg.Client,
-		reconciler: &reconciler{
-			logger:  cfg.Logger,
-			client:  cfg.Client,
-			scheme:  cfg.Scheme,
-			cluster: cfg.Cluster,
-		},
 	}
 
-	if err := ctrlruntime.NewControllerManagedBy(cfg.Manager).
-		For(&apiv1.Sentinel{}).     // nolint:exhaustruct
-		Owns(&appsv1.Deployment{}). // nolint:exhaustruct
-		Named("sentinel").
-		Complete(c.reconciler); err != nil {
-		return nil, err
-	}
+	ir := inbound.New(inbound.Config{
+		Client:  cfg.Client,
+		Logger:  cfg.Logger,
+		Cluster: cfg.Cluster,
+		Watcher: controlplane.NewWatcher(controlplane.WatcherConfig[ctrlv1.SentinelState]{
+			Logger:       cfg.Logger,
+			InstanceID:   cfg.InstanceID,
+			Region:       cfg.Region,
+			Shard:        cfg.Shard,
+			CreateStream: cfg.Cluster.WatchSentinels,
+		}),
+	})
+	go ir.Start(context.Background())
 
-	go func() {
-		for event := range cfg.Watcher.Consume() {
-			c.logger.Info("Received sentinel event", "event", event)
-			switch e := event.GetEvent().(type) {
-			case *ctrlv1.SentinelEvent_Apply:
-				if err := c.ApplySentinel(context.Background(), e.Apply); err != nil {
-					c.logger.Error("unable to apply sentinel", "error", err.Error(), "event", e)
-				}
-			case *ctrlv1.SentinelEvent_Delete:
-				if err := c.DeleteSentinel(context.Background(), e.Delete); err != nil {
-					c.logger.Error("unable to delete sentinel", "error", err.Error(), "event", e)
-				}
-			default:
-				c.logger.Error("Unknown sentinel event", "event", e)
-			}
-		}
-	}()
+	_, err := reconciler.New(reconciler.Config{
+		Logger:  cfg.Logger,
+		Scheme:  cfg.Scheme,
+		Client:  cfg.Client,
+		Manager: cfg.Manager,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create reconciler: %w", err)
+	}
 
 	return c, nil
 }

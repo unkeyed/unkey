@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
-func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredDeploymentStateRequest]) (*connect.Response[ctrlv1.GetDesiredDeploymentStateResponse], error) {
+func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredDeploymentStateRequest]) (*connect.Response[ctrlv1.DeploymentState], error) {
 
 	if err := s.authenticate(req); err != nil {
 		return nil, err
@@ -35,18 +35,30 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 
 	switch deployment.DesiredState {
 	case db.DeploymentsDesiredStateArchived, db.DeploymentsDesiredStateStandby:
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return connect.NewResponse(&ctrlv1.DeploymentState{
+			State: &ctrlv1.DeploymentState_Delete{
+				Delete: &ctrlv1.DeleteDeployment{
+					DeploymentId: deployment.ID,
+				},
+			},
+		}), nil
 	case db.DeploymentsDesiredStateRunning:
-		if deployment.Image.String == "" {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("deployment has no image"))
-		}
 
-		return connect.NewResponse(&ctrlv1.GetDesiredDeploymentStateResponse{
-			DeploymentId:  deployment.ID,
-			Image:         deployment.Image.String,
-			Replicas:      deployment.Replicas,
-			CpuMillicores: int64(deployment.CpuMillicores),
-			MemoryMib:     int64(deployment.MemoryMib),
+		return connect.NewResponse(&ctrlv1.DeploymentState{
+			State: &ctrlv1.DeploymentState_Apply{
+				Apply: &ctrlv1.ApplyDeployment{
+					DeploymentId:  deployment.ID,
+					Namespace:     deployment.K8sNamespace.String,
+					K8SCrdName:    deployment.K8sCrdName,
+					WorkspaceId:   deployment.WorkspaceID,
+					ProjectId:     deployment.ProjectID,
+					EnvironmentId: deployment.EnvironmentID,
+					Replicas:      deployment.Replicas,
+					Image:         deployment.Image.String,
+					CpuMillicores: int64(deployment.CpuMillicores),
+					MemoryMib:     int64(deployment.MemoryMib),
+				},
+			},
 		}), nil
 	default:
 		s.logger.Error("unhandled Deployment desired state", "desiredState", deployment.DesiredState)

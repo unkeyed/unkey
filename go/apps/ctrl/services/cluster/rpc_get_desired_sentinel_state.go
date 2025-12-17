@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
-func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredSentinelStateRequest]) (*connect.Response[ctrlv1.GetDesiredSentinelStateResponse], error) {
+func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredSentinelStateRequest]) (*connect.Response[ctrlv1.SentinelState], error) {
 
 	if err := s.authenticate(req); err != nil {
 		return nil, err
@@ -33,18 +33,30 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 
 	switch sentinel.DesiredState {
 	case db.SentinelsDesiredStateArchived, db.SentinelsDesiredStateStandby:
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return connect.NewResponse(&ctrlv1.SentinelState{
+			State: &ctrlv1.SentinelState_Delete{
+				Delete: &ctrlv1.DeleteSentinel{
+					SentinelId: sentinel.ID,
+				},
+			},
+		}), nil
 	case db.SentinelsDesiredStateRunning:
 
-		return connect.NewResponse(&ctrlv1.GetDesiredSentinelStateResponse{
-			SentinelId:    sentinel.ID,
-			WorkspaceId:   sentinel.WorkspaceID,
-			ProjectId:     sentinel.ProjectID,
-			EnvironmentId: sentinel.EnvironmentID,
-			Replicas:      sentinel.Replicas,
-			Image:         sentinel.Image,
-			CpuMillicores: int64(sentinel.CpuMillicores),
-			MemoryMib:     int64(sentinel.MemoryMib),
+		return connect.NewResponse(&ctrlv1.SentinelState{
+			State: &ctrlv1.SentinelState_Apply{
+				Apply: &ctrlv1.ApplySentinel{
+					SentinelId:    sentinel.ID,
+					Namespace:     sentinel.K8sNamespace.String,
+					K8SCrdName:    sentinel.K8sCrdName,
+					WorkspaceId:   sentinel.WorkspaceID,
+					ProjectId:     sentinel.ProjectID,
+					EnvironmentId: sentinel.EnvironmentID,
+					Replicas:      sentinel.Replicas,
+					Image:         sentinel.Image,
+					CpuMillicores: int64(sentinel.CpuMillicores),
+					MemoryMib:     int64(sentinel.MemoryMib),
+				},
+			},
 		}), nil
 	default:
 		s.logger.Error("unhandled sentinel desired state", "desiredState", sentinel.DesiredState)

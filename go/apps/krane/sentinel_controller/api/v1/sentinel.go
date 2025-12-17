@@ -38,9 +38,10 @@ type SentinelSpec struct {
 	// SentinelID is the unique identifier for this sentinel instance.
 	SentinelID string `json:"sentinelId"`
 
-	// Hash is a checksum of the sentinel configuration.
-	// This is used to detect changes in the configuration and trigger reconciliation.
-	Hash string `json:"hash"`
+	Image         string `json:"image"`
+	Replicas      int32  `json:"replicas"`
+	CpuMillicores int64  `json:"cpuMillicores"`
+	MemoryMib     int64  `json:"memoryMib"`
 }
 
 // SentinelStatus defines the observed state of Sentinel.

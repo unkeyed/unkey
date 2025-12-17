@@ -154,8 +154,8 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 		}
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return s.cluster.EmitSentinelEvent(runCtx, map[string]string{"region": "aws:us-east-1", "shard": "default"}, &ctrlv1.SentinelEvent{
-				Event: &ctrlv1.SentinelEvent_Apply{
+			return s.cluster.EmitSentinelState(runCtx, map[string]string{"region": "aws:us-east-1", "shard": "default"}, &ctrlv1.SentinelState{
+				State: &ctrlv1.SentinelState_Apply{
 					Apply: &ctrlv1.ApplySentinel{
 						// already ensured to exist above
 						Namespace:     workspace.K8sNamespace.String,
@@ -164,7 +164,10 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 						ProjectId:     projectID,
 						EnvironmentId: environmentID,
 						SentinelId:    sentinelID,
-						Hash:          "init",
+						Image:         s.sentinelImage,
+						Replicas:      replicas,
+						CpuMillicores: int64(256),
+						MemoryMib:     int64(256),
 					},
 				},
 			})

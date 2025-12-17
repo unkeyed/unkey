@@ -14,6 +14,7 @@ const findDeploymentTopologyByIDAndRegion = `-- name: FindDeploymentTopologyByID
 SELECT
     d.id,
     d.k8s_crd_name,
+    w.k8s_namespace,
     d.workspace_id,
     d.project_id,
     d.environment_id,
@@ -25,6 +26,7 @@ SELECT
     d.desired_state
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `deployments` + "`" + ` d ON dt.deployment_id = d.id
+INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
 WHERE  dt.region = ?
     AND dt.deployment_id = ?
 LIMIT 1
@@ -38,6 +40,7 @@ type FindDeploymentTopologyByIDAndRegionParams struct {
 type FindDeploymentTopologyByIDAndRegionRow struct {
 	ID            string                  `db:"id"`
 	K8sCrdName    string                  `db:"k8s_crd_name"`
+	K8sNamespace  sql.NullString          `db:"k8s_namespace"`
 	WorkspaceID   string                  `db:"workspace_id"`
 	ProjectID     string                  `db:"project_id"`
 	EnvironmentID string                  `db:"environment_id"`
@@ -54,6 +57,7 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 //	SELECT
 //	    d.id,
 //	    d.k8s_crd_name,
+//	    w.k8s_namespace,
 //	    d.workspace_id,
 //	    d.project_id,
 //	    d.environment_id,
@@ -65,6 +69,7 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 //	    d.desired_state
 //	FROM `deployment_topology` dt
 //	INNER JOIN `deployments` d ON dt.deployment_id = d.id
+//	INNER JOIN `workspaces` w ON d.workspace_id = w.id
 //	WHERE  dt.region = ?
 //	    AND dt.deployment_id = ?
 //	LIMIT 1
@@ -74,6 +79,7 @@ func (q *Queries) FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DB
 	err := row.Scan(
 		&i.ID,
 		&i.K8sCrdName,
+		&i.K8sNamespace,
 		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.EnvironmentID,

@@ -10,7 +10,10 @@ func (in *Sentinel) DeepCopyInto(out *Sentinel) {
 		ProjectID:     in.Spec.ProjectID,
 		EnvironmentID: in.Spec.EnvironmentID,
 		SentinelID:    in.Spec.SentinelID,
-		Hash:          in.Spec.Hash,
+		Image:         in.Spec.Image,
+		Replicas:      in.Spec.Replicas,
+		CpuMillicores: in.Spec.CpuMillicores,
+		MemoryMib:     in.Spec.MemoryMib,
 	}
 }
 

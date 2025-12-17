@@ -6,7 +6,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 )
 
-func (s *Service) EmitSentinelEvent(ctx context.Context, labels map[string]string, event *ctrlv1.SentinelEvent) error {
+func (s *Service) EmitSentinelState(ctx context.Context, labels map[string]string, event *ctrlv1.SentinelState) error {
 
 	s.clientsMu.RLock()
 	defer s.clientsMu.RUnlock()
@@ -22,7 +22,7 @@ func (s *Service) EmitSentinelEvent(ctx context.Context, labels map[string]strin
 		}
 
 		if shouldSend {
-			krane.sentinelEvents.Buffer(event)
+			krane.sentinelStates.Buffer(event)
 			emitted++
 		}
 	}
@@ -30,7 +30,7 @@ func (s *Service) EmitSentinelEvent(ctx context.Context, labels map[string]strin
 	return nil
 }
 
-func (s *Service) EmitDeploymentEvent(ctx context.Context, labels map[string]string, event *ctrlv1.DeploymentEvent) error {
+func (s *Service) EmitDeploymentState(ctx context.Context, labels map[string]string, event *ctrlv1.DeploymentState) error {
 
 	s.clientsMu.RLock()
 	defer s.clientsMu.RUnlock()
@@ -46,7 +46,7 @@ func (s *Service) EmitDeploymentEvent(ctx context.Context, labels map[string]str
 		}
 
 		if shouldSend {
-			krane.deploymentEvents.Buffer(event)
+			krane.deploymentStates.Buffer(event)
 			emitted++
 		}
 	}

@@ -1,4 +1,4 @@
-package sentinelcontroller
+package inbound
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// DeleteSentinel removes Sentinel CRDs with the specified sentinel ID.
+// deleteSentinel removes Sentinel CRDs with the specified sentinel ID.
 //
 // This method finds and deletes all Sentinel custom resources matching the
 // given sentinel ID across all namespaces. The controller-runtime reconciler
@@ -24,18 +24,19 @@ import (
 //
 // Returns an error if the listing operation fails or if any
 // Sentinel CRD cannot be deleted.
-func (c *SentinelController) DeleteSentinel(ctx context.Context, req *ctrlv1.DeleteSentinel) error {
+func (r *InboundReconciler) deleteSentinel(ctx context.Context, req *ctrlv1.DeleteSentinel) error {
 
-	c.logger.Info("deleting sentinel",
+	r.logger.Info("deleting sentinel",
 		"sentinel_id", req.GetSentinelId(),
 	)
 
 	sentinelList := sentinelv1.SentinelList{} //nolint:exhaustruct
-	if err := c.client.List(ctx, &sentinelList,
+	if err := r.client.List(ctx, &sentinelList,
 		&client.ListOptions{
 			LabelSelector: labels.SelectorFromValidatedSet(
 				k8s.NewLabels().
 					ManagedByKrane().
+					SentinelID(req.GetSentinelId()).
 					ToMap(),
 			),
 
@@ -47,18 +48,18 @@ func (c *SentinelController) DeleteSentinel(ctx context.Context, req *ctrlv1.Del
 
 	if len(sentinelList.Items) == 0 {
 
-		c.logger.Debug("sentinel had no CRD configured", "sentinel_id", req.GetSentinelId())
+		r.logger.Debug("sentinel had no CRD configured", "sentinel_id", req.GetSentinelId())
 		return nil
 	}
 
 	for _, sentinel := range sentinelList.Items {
-		err := c.client.Delete(ctx, &sentinel)
+		err := r.client.Delete(ctx, &sentinel)
 		if err != nil && !apierrors.IsNotFound(err) {
 			return fmt.Errorf("failed to delete sentinel resource %s: %w", sentinel.Name, err)
 		}
 	}
 
-	c.logger.Info("sentinel deleted successfully",
+	r.logger.Info("sentinel deleted successfully",
 		"sentinel_id", req.GetSentinelId(),
 	)
 

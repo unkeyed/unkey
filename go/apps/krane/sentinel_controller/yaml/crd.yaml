@@ -47,14 +47,23 @@ spec:
                   type: string
                 workspaceId:
                   type: string
-                hash:
+                image:
                   type: string
+                replicas:
+                  type: integer
+                cpuMillicores:
+                  type: integer
+                memoryMib:
+                  type: integer
               required:
                 - environmentId
                 - projectId
                 - sentinelId
                 - workspaceId
-                - hash
+                - image
+                - replicas
+                - cpuMillicores
+                - memoryMib
               type: object
             status:
               description: status defines the observed state of Sentinel

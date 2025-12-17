@@ -14,8 +14,8 @@ import (
 type client struct {
 	clientID         string
 	selectors        map[string]string
-	sentinelEvents   *buffer.Buffer[*ctrlv1.SentinelEvent]
-	deploymentEvents *buffer.Buffer[*ctrlv1.DeploymentEvent]
+	sentinelStates   *buffer.Buffer[*ctrlv1.SentinelState]
+	deploymentStates *buffer.Buffer[*ctrlv1.DeploymentState]
 	done             chan struct{}
 }
 
@@ -23,12 +23,12 @@ func newClient(clientID string, selectors map[string]string) *client {
 	return &client{
 		clientID:  clientID,
 		selectors: selectors,
-		deploymentEvents: buffer.New[*ctrlv1.DeploymentEvent](buffer.Config{
+		deploymentStates: buffer.New[*ctrlv1.DeploymentState](buffer.Config{
 			Capacity: 1000,
 			Drop:     true,
 			Name:     fmt.Sprintf("ctrl_watch_events_%s", clientID),
 		}),
-		sentinelEvents: buffer.New[*ctrlv1.SentinelEvent](buffer.Config{
+		sentinelStates: buffer.New[*ctrlv1.SentinelState](buffer.Config{
 			Capacity: 1000,
 			Drop:     true,
 			Name:     fmt.Sprintf("ctrl_watch_events_%s", clientID),

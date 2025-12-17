@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/controlplane"
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
 	sentinelcontroller "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller"
-	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/prometheus"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
@@ -81,23 +80,15 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create k8s manager: %w", err)
 	}
 
-	sentinelWatcher := controlplane.NewWatcher(controlplane.WatcherConfig[ctrlv1.SentinelEvent]{
-		Logger:       logger,
-		CreateStream: cluster.WatchSentinels,
-		InstanceID:   cfg.InstanceID,
-		Region:       cfg.Region,
-		Shard:        cfg.Shard,
-	})
-	sentinelWatcher.Sync(ctx)
-	sentinelWatcher.Watch(ctx)
-
 	sc, err := sentinelcontroller.New(sentinelcontroller.Config{
-		Logger:  logger,
-		Scheme:  scheme.Scheme,
-		Client:  client,
-		Manager: manager,
-		Cluster: cluster,
-		Watcher: sentinelWatcher,
+		Logger:     logger,
+		Scheme:     scheme.Scheme,
+		Client:     client,
+		Manager:    manager,
+		Cluster:    cluster,
+		InstanceID: cfg.InstanceID,
+		Region:     cfg.Region,
+		Shard:      cfg.Shard,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create sentinel controller: %w", err)

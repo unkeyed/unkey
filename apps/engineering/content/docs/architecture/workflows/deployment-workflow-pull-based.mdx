@@ -58,7 +58,7 @@ sequenceDiagram
     Workflow->>DB: Create topology entries
     
     Note over Workflow: Emit events to regions
-    Workflow->>Ctrl: EmitDeploymentEvent(regions)
+    Workflow->>Ctrl: EmitDeploymentState(regions)
     
     par Agents pull and apply
         Ctrl-->>K1: Stream event
@@ -147,8 +147,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
     }
     
     // 4. Emit deployment events to regions
-    w.cluster.EmitDeploymentEvent(&ctrlv1.DeploymentEvent{
-        Action: ctrlv1.DeploymentEvent_ACTION_APPLY,
+    w.cluster.EmitDeploymentState(&ctrlv1.DeploymentState{
+        Action: ctrlv1.DeploymentState_ACTION_APPLY,
         Deployment: &ctrlv1.Deployment{
             Id:           deployment.ID,
             Image:        dockerImage,
@@ -235,7 +235,7 @@ func (w *Workflow) pollDeploymentStatus(ctx restate.ObjectContext, deploymentID 
 ### Deployment Event Structure
 
 ```proto
-message DeploymentEvent {
+message DeploymentState {
     enum Action {
         ACTION_UNSPECIFIED = 0;
         ACTION_APPLY = 1;
@@ -270,15 +270,15 @@ sequenceDiagram
     participant K2 as Krane-2 (us-west)
     participant K3 as Krane-3 (eu-west)
     
-    W->>CS: EmitDeploymentEvent(regions=[us-east, us-west])
+    W->>CS: EmitDeploymentState(regions=[us-east, us-west])
     
     CS->>AR: Find matching agents
     AR-->>CS: [Krane-1, Krane-2]
     
     par Send to matching agents
-        CS-->>K1: DeploymentEvent
+        CS-->>K1: DeploymentState
     and
-        CS-->>K2: DeploymentEvent
+        CS-->>K2: DeploymentState
     end
     
     Note over K3: No event (region not matched)
@@ -446,8 +446,8 @@ func (w *Workflow) cleanupFailedDeployment(ctx context.Context, deploymentID str
     }
     
     for _, entry := range topology {
-        w.cluster.EmitDeploymentEvent(&ctrlv1.DeploymentEvent{
-            Action: ctrlv1.DeploymentEvent_ACTION_DELETE,
+        w.cluster.EmitDeploymentState(&ctrlv1.DeploymentState{
+            Action: ctrlv1.DeploymentState_ACTION_DELETE,
             Deployment: &ctrlv1.Deployment{
                 Id: deploymentID,
             },
