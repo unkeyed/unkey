@@ -4,11 +4,9 @@ import { z } from "zod";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 
-export const updateApiName = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const updateApiName = workspaceProcedure
   .input(
     z.object({
       name: z.string().min(3, "API names must contain at least 3 characters"),

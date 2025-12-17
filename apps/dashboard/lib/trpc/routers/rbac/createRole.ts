@@ -3,7 +3,7 @@ import { db, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 const nameSchema = z
   .string()
   .min(3)
@@ -12,9 +12,7 @@ const nameSchema = z
       "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
   });
 
-export const createRole = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const createRole = workspaceProcedure
   .input(
     z.object({
       name: nameSchema,

@@ -1,13 +1,11 @@
 import { rbacRoleSchema } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/upsert-role.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
-import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
+import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 
-export const upsertRole = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const upsertRole = workspaceProcedure
   .input(rbacRoleSchema)
   .mutation(async ({ input, ctx }) => {
     const isUpdate = Boolean(input.roleId);

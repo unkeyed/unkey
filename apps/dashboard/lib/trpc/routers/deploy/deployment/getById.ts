@@ -1,11 +1,9 @@
 import { db } from "@/lib/db";
-import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
+import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-export const getById = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const getById = workspaceProcedure
   .input(
     z.object({
       deploymentId: z.string(),

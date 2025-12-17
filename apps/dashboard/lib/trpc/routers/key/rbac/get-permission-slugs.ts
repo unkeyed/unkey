@@ -1,5 +1,5 @@
 import { and, db, eq, inArray } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { permissions, roles, rolesPermissions } from "@unkey/db/src/schema";
 import { z } from "zod";
@@ -22,9 +22,7 @@ type PermissionSlug = {
   slug: string;
 };
 
-export const getPermissionSlugs = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const getPermissionSlugs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(resolvePermissionSlugsInput)
   .output(resolvePermissionSlugsResponse)

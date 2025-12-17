@@ -1,10 +1,9 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { type Identity, db, schema } from "@/lib/db";
-import { ratelimitItemSchema } from "@/lib/schemas/ratelimit";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 
 export const createIdentityInputSchema = z.object({
   externalId: z
@@ -14,12 +13,9 @@ export const createIdentityInputSchema = z.object({
     .trim()
     .refine((id) => !/^\s+$/.test(id), "External ID cannot be only whitespace"),
   meta: z.record(z.unknown()).nullable(),
-  ratelimits: z.array(ratelimitItemSchema).optional(),
 });
 
-export const createIdentity = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const createIdentity = workspaceProcedure
   .input(createIdentityInputSchema)
   .mutation(async ({ input, ctx }) => {
     const identityId = newId("identity");
@@ -70,24 +66,6 @@ export const createIdentity = t.procedure
         };
 
         await tx.insert(schema.identities).values(payload);
-
-        // Insert ratelimits if provided
-        if (input.ratelimits && input.ratelimits.length > 0) {
-          const ratelimitValues = input.ratelimits.map((ratelimit) => ({
-            id: newId("ratelimit"),
-            identityId: identityId,
-            duration: ratelimit.refillInterval,
-            limit: ratelimit.limit,
-            name: ratelimit.name,
-            autoApply: ratelimit.autoApply,
-            workspaceId: ctx.workspace.id,
-            createdAt: Date.now(),
-            updatedAt: null,
-          }));
-
-          await tx.insert(schema.ratelimits).values(ratelimitValues);
-        }
-
         await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },
@@ -100,8 +78,6 @@ export const createIdentity = t.procedure
               name: input.externalId,
               meta: {
                 hasMeta: Boolean(input.meta),
-                hasRatelimits: Boolean(input.ratelimits && input.ratelimits.length > 0),
-                ratelimitCount: input.ratelimits?.length || 0,
               },
             },
             {

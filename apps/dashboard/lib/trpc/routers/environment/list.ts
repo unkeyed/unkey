@@ -2,11 +2,9 @@ import { and, db, eq } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { environments } from "@unkey/db/src/schema";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 
-export const listEnvironments = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const listEnvironments = workspaceProcedure
   .input(
     z.object({
       projectId: z.string(),

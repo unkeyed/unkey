@@ -1,7 +1,7 @@
 import { ratelimitQueryLogsPayload } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/components/table/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { ratelimitLogs } from "@unkey/clickhouse/src/ratelimits";
 import { z } from "zod";
@@ -16,9 +16,7 @@ const RatelimitLogsResponse = z.object({
 
 type RatelimitLogsResponse = z.infer<typeof RatelimitLogsResponse>;
 
-export const queryRatelimitLogs = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const queryRatelimitLogs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(ratelimitQueryLogsPayload)
   .output(RatelimitLogsResponse)

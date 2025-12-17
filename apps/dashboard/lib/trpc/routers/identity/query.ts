@@ -1,7 +1,7 @@
 import { and, count, db, eq, like, or, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { ratelimit, requireWorkspace, t, withRatelimit } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 import { escapeLike } from "../utils/sql";
 
 const identitiesQueryPayload = z.object({
@@ -19,15 +19,7 @@ export const IdentityResponseSchema = z.object({
   createdAt: z.number(),
   updatedAt: z.number().nullable(),
   keys: z.array(z.object({ id: z.string() })),
-  ratelimits: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      limit: z.number(),
-      duration: z.number(),
-      autoApply: z.boolean(),
-    }),
-  ),
+  ratelimits: z.array(z.object({ id: z.string() })),
 });
 
 const IdentitiesResponse = z.object({
@@ -37,8 +29,7 @@ const IdentitiesResponse = z.object({
   totalCount: z.number(),
 });
 
-export const queryIdentities = t.procedure
-  .use(requireWorkspace)
+export const queryIdentities = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(identitiesQueryPayload)
   .output(IdentitiesResponse)
@@ -113,10 +104,6 @@ export const queryIdentities = t.procedure
           ratelimits: {
             columns: {
               id: true,
-              name: true,
-              limit: true,
-              duration: true,
-              autoApply: true,
             },
           },
         },

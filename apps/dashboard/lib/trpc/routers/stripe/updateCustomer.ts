@@ -1,6 +1,6 @@
 import { getStripeClient } from "@/lib/stripe";
 import { handleStripeError } from "@/lib/trpc/routers/utils/stripe";
-import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -14,8 +14,7 @@ const customerSchema = z.object({
   id: z.string(),
 });
 
-export const updateCustomer = t.procedure
-  .use(requireWorkspace)
+export const updateCustomer = workspaceProcedure
   .use(withRatelimit(ratelimit.update))
   .input(updateCustomerInputSchema)
   .output(customerSchema)

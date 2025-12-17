@@ -3,11 +3,9 @@ import { db, eq, schema } from "@/lib/db";
 import { metadataSchema } from "@/lib/schemas/metadata";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 
-export const updateIdentityMetadata = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const updateIdentityMetadata = workspaceProcedure
   .input(
     metadataSchema.extend({
       identityId: z.string(),

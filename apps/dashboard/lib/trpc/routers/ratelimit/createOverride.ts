@@ -4,10 +4,9 @@ import { z } from "zod";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema, sql } from "@/lib/db";
 import { newId } from "@unkey/id";
-import { requireUser, requireWorkspace, t } from "../../trpc";
-export const createOverride = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+import { workspaceProcedure } from "../../trpc";
+
+export const createOverride = workspaceProcedure
   .input(
     z.object({
       namespaceId: z.string(),

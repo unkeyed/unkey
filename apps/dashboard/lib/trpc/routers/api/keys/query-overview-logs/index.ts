@@ -1,6 +1,6 @@
 import { keysQueryOverviewLogsPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/components/table/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { keysOverviewLogs as keysLogs } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
@@ -21,9 +21,7 @@ type KeysOverviewLogsResponse = z.infer<typeof KeysOverviewLogsResponse>;
  * 2. Then filtering the results with SQL
  * 3. Finally merging with key details
  */
-export const queryKeysOverviewLogs = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const queryKeysOverviewLogs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(keysQueryOverviewLogsPayload)
   .output(KeysOverviewLogsResponse)

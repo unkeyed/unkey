@@ -2,29 +2,19 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
-import { Clone, Code, Gauge } from "@unkey/icons";
+import { Clone, Code } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import { useMemo, useState } from "react";
 import type { z } from "zod";
-import { EditRatelimitDialog } from "../dialogs/edit-ratelimit-dialog";
 import { EditMetadataDialog } from "./edit-metadata-dialog";
 
 type Identity = z.infer<typeof IdentityResponseSchema>;
 
 export const IdentityTableActions = ({ identity }: { identity: Identity }) => {
   const [isEditMetadataOpen, setIsEditMetadataOpen] = useState(false);
-  const [isEditRatelimitOpen, setIsEditRatelimitOpen] = useState(false);
 
   const menuItems: MenuItem[] = useMemo(
     () => [
-      {
-        id: "edit-ratelimit",
-        label: "Edit ratelimit...",
-        icon: <Gauge iconSize="md-medium" />,
-        onClick: () => {
-          setIsEditRatelimitOpen(true);
-        },
-      },
       {
         id: "edit-metadata",
         label: "Edit metadata...",
@@ -73,11 +63,6 @@ export const IdentityTableActions = ({ identity }: { identity: Identity }) => {
   return (
     <>
       <TableActionPopover items={menuItems} />
-      <EditRatelimitDialog
-        identity={identity}
-        open={isEditRatelimitOpen}
-        onOpenChange={setIsEditRatelimitOpen}
-      />
       <EditMetadataDialog
         identity={identity}
         open={isEditMetadataOpen}

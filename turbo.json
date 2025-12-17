@@ -39,7 +39,8 @@
         "WORKOS_API_KEY",
         "WORKOS_CLIENT_ID",
         "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
-        "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY"
+        "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
+        "SENTRY_AUTH_TOKEN"
       ],
       "outputs": ["dist/**", ".output/**", ".nuxt/**", ".next/**", "!.next/cache/**"]
     },

@@ -39,3 +39,6 @@ next-env.d.ts
 
 # contentlayer
 .contentlayer
+
+# Sentry Config File
+.env.sentry-build-plugin

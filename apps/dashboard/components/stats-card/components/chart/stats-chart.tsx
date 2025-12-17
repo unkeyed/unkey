@@ -1,6 +1,5 @@
 "use client";
 
-import { ChartError, ChartLoading } from "@/components/logs/chart/chart-states";
 import { createTimeIntervalFormatter } from "@/components/logs/overview-charts/utils";
 import {
   type ChartConfig,
@@ -11,6 +10,8 @@ import {
 import { formatNumber } from "@/lib/fmt";
 import { Grid } from "@unkey/icons";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, YAxis } from "recharts";
+import { LogsChartError } from "./components/logs-chart-error";
+import { LogsChartLoading } from "./components/logs-chart-loading";
 
 // Generic base type that all timeseries data must include
 export type BaseTimeseriesData = {
@@ -35,10 +36,10 @@ export function StatsTimeseriesBarChart<T extends BaseTimeseriesData>({
   tooltipExtraContent,
 }: TimeseriesChartProps<T>) {
   if (isError) {
-    return <ChartError variant="simple" message="Could not retrieve data" />;
+    return <LogsChartError />;
   }
   if (isLoading) {
-    return <ChartLoading variant="simple" animate={false} dataPoints={100} />;
+    return <LogsChartLoading />;
   }
 
   return (

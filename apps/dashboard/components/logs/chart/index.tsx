@@ -1,7 +1,6 @@
 // GenericTimeseriesChart.tsx
 "use client";
 
-import { ChartError, ChartLoading } from "@/components/logs/chart/chart-states";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
 import { formatTooltipInterval } from "@/components/logs/utils";
 import {
@@ -16,6 +15,8 @@ import { Grid } from "@unkey/icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";
+import { LogsChartError } from "./components/logs-chart-error";
+import { LogsChartLoading } from "./components/logs-chart-loading";
 import { calculateTimePoints } from "./utils/calculate-timepoints";
 
 type Selection = {
@@ -151,11 +152,11 @@ export function LogsTimeseriesBarChart({
   };
 
   if (isError) {
-    return <ChartError variant="compact" height={height} message="Could not retrieve logs" />;
+    return <LogsChartError />;
   }
 
   if (isLoading) {
-    return <ChartLoading variant="compact" height={height} dataPoints={300} />;
+    return <LogsChartLoading />;
   }
 
   return (

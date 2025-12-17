@@ -1,13 +1,11 @@
 import { keysOverviewQueryTimeseriesPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/components/charts/bar-chart/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { getApi, queryApiKeys } from "../api-query";
 import { transformVerificationFilters } from "../timeseries.utils";
 
-export const activeKeysTimeseries = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const activeKeysTimeseries = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(keysOverviewQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {

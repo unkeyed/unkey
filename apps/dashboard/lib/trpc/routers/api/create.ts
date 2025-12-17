@@ -3,11 +3,9 @@ import { db, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 
-export const createApi = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const createApi = workspaceProcedure
   .input(
     z.object({
       name: z

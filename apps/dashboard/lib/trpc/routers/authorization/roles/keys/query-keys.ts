@@ -1,10 +1,9 @@
 import { db } from "@/lib/db";
-import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { KeysResponse, keysQueryPayload, transformKey } from "./schema-with-helpers";
 
-export const queryKeys = t.procedure
-  .use(requireWorkspace)
+export const queryKeys = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(keysQueryPayload)
   .output(KeysResponse)

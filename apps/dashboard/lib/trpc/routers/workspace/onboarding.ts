@@ -2,7 +2,7 @@ import { createKeyInputSchema } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_
 import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 import { createApiCore } from "../api/create";
 import { createKeyCore } from "../key/create";
 
@@ -14,9 +14,7 @@ const createWorkspaceWithApiAndKeyInputSchema = z.object({
   ...createKeyInputSchema.omit({ keyAuthId: true }).shape,
 });
 
-export const onboardingKeyCreation = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const onboardingKeyCreation = workspaceProcedure
   .input(createWorkspaceWithApiAndKeyInputSchema)
   .mutation(async ({ input, ctx }) => {
     const { apiName, ...keyInput } = input;

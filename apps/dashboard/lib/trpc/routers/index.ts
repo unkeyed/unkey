@@ -62,7 +62,6 @@ import { queryIdentities } from "./identity/query";
 import { searchIdentities } from "./identity/search";
 import { searchIdentitiesWithRelations } from "./identity/searchWithRelations";
 import { updateIdentityMetadata } from "./identity/updateMetadata";
-import { updateIdentityRatelimit } from "./identity/updateRatelimit";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
@@ -348,7 +347,6 @@ export const router = t.router({
     latestVerification: identityLastVerificationTime,
     update: t.router({
       metadata: updateIdentityMetadata,
-      ratelimit: updateIdentityRatelimit,
     }),
   }),
   deploy: t.router({

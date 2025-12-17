@@ -1,5 +1,5 @@
 import { and, count, db, eq } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { rolesPermissions } from "@unkey/db/src/schema";
 import { z } from "zod";
 
@@ -7,9 +7,7 @@ const permissionsResponse = z.object({
   totalCount: z.number(),
 });
 
-export const queryRolePermissions = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const queryRolePermissions = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(
     z.object({

@@ -3,7 +3,7 @@
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { Fingerprint } from "@unkey/icons";
-import { CreateIdentityDialog } from "./_components/dialogs/create-identity-dialog";
+import { CreateIdentityDialog } from "./_components/create-identity-dialog";
 
 export function Navigation() {
   const workspace = useWorkspaceNavigation();

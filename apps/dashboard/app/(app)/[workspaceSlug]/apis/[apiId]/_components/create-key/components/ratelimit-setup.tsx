@@ -1,18 +1,16 @@
 "use client";
 import { ProtectionSwitch } from "@/components/dashboard/metadata/protection-switch";
-import type { RatelimitFormContextValues, RatelimitItem } from "@/lib/schemas/ratelimit";
 import { Gauge, Trash } from "@unkey/icons";
 import { Button, FormCheckbox, FormInput, InlineLink } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect } from "react";
 import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
+import type { RatelimitFormValues, RatelimitItem } from "../create-key.schema";
 
 export const RatelimitSetup = ({
   overrideEnabled = false,
-  entityType = "key",
 }: {
   overrideEnabled?: boolean;
-  entityType?: "key" | "identity";
 }) => {
   const {
     register,
@@ -20,28 +18,12 @@ export const RatelimitSetup = ({
     control,
     setValue,
     trigger,
-  } = useFormContext<RatelimitFormContextValues>();
+  } = useFormContext<RatelimitFormValues>();
 
-  // Helper to safely access error messages from conditional schema
-  const getFieldError = (index: number, field: keyof RatelimitItem): string | undefined => {
-    const data = errors.ratelimit?.data;
-    if (!data || !Array.isArray(data)) {
-      return undefined;
-    }
-    const fieldError = data[index];
-    if (!fieldError || typeof fieldError !== "object") {
-      return undefined;
-    }
-    const error = fieldError[field];
-    if (!error || typeof error !== "object") {
-      return undefined;
-    }
-    return "message" in error ? String(error.message) : undefined;
-  };
-
+  // Note: We're using the explicitly defined type from the schema file
   const { fields, append, remove } = useFieldArray({
     control,
-    name: "ratelimit.data",
+    name: "ratelimit.data" as const,
   });
 
   const ratelimitEnabled = useWatch({
@@ -67,24 +49,21 @@ export const RatelimitSetup = ({
   };
 
   const handleAddRatelimit = () => {
-    append({
+    const newItem: RatelimitItem = {
       name: "",
       limit: 10,
       refillInterval: 1000,
       autoApply: false,
-    });
+    };
+    append(newItem);
   };
-
-  const description =
-    entityType === "key"
-      ? "Turn on to restrict how frequently this key can be used. Requests beyond the limit will be blocked."
-      : "Turn on to restrict how frequently this identity can be used. Requests beyond the limit will be blocked.";
 
   return (
     <div className="space-y-5 px-2 py-1">
       {!overrideEnabled && (
         <ProtectionSwitch
-          description={description}
+          description="Turn on to restrict how frequently this key can be used. Requests
+            beyond the limit will be blocked."
           title="Ratelimit"
           icon={<Gauge className="text-gray-12" iconSize="sm-regular" />}
           checked={ratelimitEnabled}
@@ -124,7 +103,7 @@ export const RatelimitSetup = ({
                 type="text"
                 label="Name"
                 description="A name to identify this rate limit rule"
-                error={getFieldError(index, "name")}
+                error={errors.ratelimit?.data?.[index]?.name?.message}
                 disabled={!ratelimitEnabled}
                 readOnly={!ratelimitEnabled}
                 {...register(`ratelimit.data.${index}.name`)}
@@ -158,7 +137,7 @@ export const RatelimitSetup = ({
                 type="number"
                 label="Limit"
                 description="Maximum requests in the given time window"
-                error={getFieldError(index, "limit")}
+                error={errors.ratelimit?.data?.[index]?.limit?.message}
                 disabled={!ratelimitEnabled}
                 readOnly={!ratelimitEnabled}
                 {...register(`ratelimit.data.${index}.limit`)}
@@ -171,7 +150,7 @@ export const RatelimitSetup = ({
                 inputMode="numeric"
                 type="number"
                 description="Time window in milliseconds"
-                error={getFieldError(index, "refillInterval")}
+                error={errors.ratelimit?.data?.[index]?.refillInterval?.message}
                 disabled={!ratelimitEnabled}
                 readOnly={!ratelimitEnabled}
                 {...register(`ratelimit.data.${index}.refillInterval`)}
@@ -200,7 +179,7 @@ export const RatelimitSetup = ({
                       .
                     </p>
                   }
-                  error={getFieldError(index, "autoApply")}
+                  error={errors.ratelimit?.data?.[index]?.autoApply?.message}
                   disabled={!ratelimitEnabled}
                   checked={field.value}
                   onCheckedChange={field.onChange}

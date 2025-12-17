@@ -1,6 +1,7 @@
 import { UsageSetup } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/credits-setup";
 import { ExpirationSetup } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/expiration-setup";
 import { GeneralSetup } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/general-setup";
+import { RatelimitSetup } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/ratelimit-setup";
 import {
   type FormValues,
   formSchema,
@@ -10,7 +11,6 @@ import {
   getDefaultValues,
 } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.utils";
 import { EXAMPLE_JSON, MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";
-import { RatelimitSetup } from "@/components/dashboard/ratelimits/ratelimit-setup";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarClock, ChartPie, Code, Gauge, Key2, StackPerspective2 } from "@unkey/icons";

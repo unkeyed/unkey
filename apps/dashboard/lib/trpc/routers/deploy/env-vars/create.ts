@@ -5,7 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { environments } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../../trpc";
+import { workspaceProcedure } from "../../../trpc";
 
 const vault = new Vault({
   baseUrl: env().AGENT_URL,
@@ -19,9 +19,7 @@ const envVarInputSchema = z.object({
   description: z.string().nullable().optional(),
 });
 
-export const createEnvVars = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const createEnvVars = workspaceProcedure
   .input(
     z.object({
       environmentId: z.string(),

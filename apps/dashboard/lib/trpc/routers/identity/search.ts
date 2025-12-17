@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { ratelimit, requireWorkspace, t, withRatelimit } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 import { escapeLike } from "../utils/sql";
 import { IdentityResponseSchema } from "./query";
 
@@ -11,8 +11,7 @@ const SearchIdentitiesResponse = z.object({
   identities: z.array(IdentityResponseSchema),
 });
 
-export const searchIdentities = t.procedure
-  .use(requireWorkspace)
+export const searchIdentities = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(
     z.object({
@@ -47,10 +46,6 @@ export const searchIdentities = t.procedure
           ratelimits: {
             columns: {
               id: true,
-              name: true,
-              limit: true,
-              duration: true,
-              autoApply: true,
             },
           },
         },

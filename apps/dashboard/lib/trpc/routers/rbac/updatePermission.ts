@@ -2,7 +2,7 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 const nameSchema = z
   .string()
   .min(3)
@@ -11,9 +11,7 @@ const nameSchema = z
       "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
   });
 
-export const updatePermission = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const updatePermission = workspaceProcedure
   .input(
     z.object({
       id: z.string(),

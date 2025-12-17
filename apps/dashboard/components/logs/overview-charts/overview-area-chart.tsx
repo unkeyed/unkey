@@ -24,7 +24,8 @@ import {
 } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";
 
-import { ChartError, ChartLoading } from "@/components/logs/chart/chart-states";
+import { OverviewAreaChartError } from "./overview-area-chart-error";
+import { OverviewAreaChartLoader } from "./overview-area-chart-loader";
 import type { Selection, TimeseriesData } from "./types";
 
 export type ChartMetric = {
@@ -133,10 +134,10 @@ export const OverviewAreaChart = ({
   };
 
   if (isError) {
-    return <ChartError variant="full" labels={labelsWithDefaults} />;
+    return <OverviewAreaChartError labels={labelsWithDefaults} />;
   }
   if (isLoading) {
-    return <ChartLoading variant="full" labels={labelsWithDefaults} />;
+    return <OverviewAreaChartLoader labels={labelsWithDefaults} />;
   }
 
   // Calculate metrics

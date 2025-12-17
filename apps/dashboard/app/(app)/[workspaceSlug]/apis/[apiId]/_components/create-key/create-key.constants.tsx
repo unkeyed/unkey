@@ -3,10 +3,10 @@ import type { StepNamesFrom } from "@unkey/ui";
 import type { SectionState } from "./types";
 
 import { MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";
-import { RatelimitSetup } from "@/components/dashboard/ratelimits/ratelimit-setup";
 import { UsageSetup } from "./components/credits-setup";
 import { ExpirationSetup } from "./components/expiration-setup";
 import { GeneralSetup } from "./components/general-setup";
+import { RatelimitSetup } from "./components/ratelimit-setup";
 
 export const UNNAMED_KEY = "Unnamed Key" as const;
 export const SECTIONS = [

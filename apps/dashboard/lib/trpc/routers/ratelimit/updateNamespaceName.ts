@@ -3,11 +3,9 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 
-export const updateNamespaceName = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const updateNamespaceName = workspaceProcedure
   .input(
     z.object({
       name: z.string().min(3, "namespace names must contain at least 3 characters"),
