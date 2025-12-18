@@ -7,8 +7,8 @@ export const formSchema = z
     externalId: z
       .string()
       .transform((s) => s.trim())
-      .refine((trimmed) => trimmed.length >= 3, "External ID must be at least 3 characters")
-      .refine((trimmed) => trimmed.length <= 255, "External ID must be 255 characters or fewer")
+      .refine((trimmed) => trimmed.length >= 1, "External ID must be at least 1 character")
+      .refine((trimmed) => trimmed.length <= 255, "External ID cannot exceed 255 characters")
       .refine((trimmed) => trimmed !== "", "External ID cannot be only whitespace"),
   })
   .merge(metadataSchema)

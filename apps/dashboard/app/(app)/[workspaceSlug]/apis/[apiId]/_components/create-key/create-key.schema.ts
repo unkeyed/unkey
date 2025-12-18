@@ -35,8 +35,9 @@ export const generalSchema = z.object({
   prefix: keyPrefixSchema,
   externalId: z
     .string()
-    .trim()
-    .max(256, { message: "External ID cannot exceed 256 characters" })
+    .transform((s) => s.trim())
+    .refine((trimmed) => trimmed.length <= 255, "External ID cannot exceed 255 characters")
+    .refine((trimmed) => trimmed !== "", "External ID cannot be only whitespace")
     .optional()
     .nullish(),
   identityId: z
@@ -267,7 +268,12 @@ export const createKeyInputSchema = z.object({
   keyAuthId: z.string(),
   externalId: z
     .string()
-    .max(256, { message: "External ID cannot exceed 256 characters" })
+    .transform((s) => {
+      const trimmed = s.trim();
+      return trimmed === "" ? null : trimmed;
+    })
+    .pipe(z.string().max(255, { message: "External ID cannot exceed 255 characters" }).nullable())
+    .optional()
     .nullish(),
   identityId: z
     .string()
