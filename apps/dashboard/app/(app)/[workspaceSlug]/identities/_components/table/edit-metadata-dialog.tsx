@@ -5,11 +5,11 @@ import { metadataSchema } from "@/lib/schemas/metadata";
 import { trpc } from "@/lib/trpc/client";
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Fingerprint } from "@unkey/icons";
-import { Button, DialogContainer, InfoTooltip, toast } from "@unkey/ui";
+import { Button, DialogContainer, toast } from "@unkey/ui";
 import { type FC, useCallback, useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import type { z } from "zod";
+import { IdentityInfo } from "../dialogs/identity-info";
 
 type Identity = z.infer<typeof IdentityResponseSchema>;
 
@@ -104,25 +104,7 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
             </div>
           }
         >
-          <div className="flex gap-5 items-center bg-white dark:bg-black border border-grayA-5 rounded-xl py-5 pl-[18px] pr-[26px]">
-            <div className="bg-grayA-5 text-gray-12 size-5 flex items-center justify-center rounded">
-              <Fingerprint iconSize="sm-regular" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <div className="text-accent-12 text-xs font-mono">{identity.id}</div>
-              <InfoTooltip
-                variant="inverted"
-                content={identity.externalId}
-                position={{ side: "bottom", align: "center" }}
-                asChild
-              >
-                <div className="text-accent-9 text-xs max-w-[160px] truncate">
-                  {identity.externalId}
-                </div>
-              </InfoTooltip>
-            </div>
-          </div>
-
+          <IdentityInfo identity={identity} />
           <div className="py-1 my-2">
             <div className="h-[1px] bg-grayA-3 w-full" />
           </div>
