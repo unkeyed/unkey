@@ -11,7 +11,7 @@ export const createIdentityInputSchema = z.object({
     .string()
     .transform((s) => s.trim())
     .refine((trimmed) => trimmed.length >= 1, "External ID is required")
-    .refine((trimmed) => trimmed.length <= 255, "External ID cannot be more than 255 characters")
+    .refine((trimmed) => trimmed.length <= 255, "External ID cannot exceed 255 characters")
     .refine((trimmed) => trimmed !== "", "External ID cannot be only whitespace"),
   meta: z.record(z.unknown()).nullable(),
   ratelimits: z.array(ratelimitItemSchema).optional(),
