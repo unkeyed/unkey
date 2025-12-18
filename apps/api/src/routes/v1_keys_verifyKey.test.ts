@@ -993,3 +993,80 @@ describe("key exists but api is hard deleted", () => {
     expect(res.body.code).toBe("NOT_FOUND");
   });
 });
+
+describe("ownerId prioritization", () => {
+  test("returns identity.externalId over key.ownerId when both exist", async (t) => {
+    const h = await IntegrationHarness.init(t);
+
+    const keyOwnerId = "key-owner-123";
+    const identityExternalId = "identity-external-456";
+
+    const identity = {
+      id: newId("test"),
+      externalId: identityExternalId,
+      workspaceId: h.resources.userWorkspace.id,
+    };
+    await h.db.primary.insert(schema.identities).values(identity);
+
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await h.db.primary.insert(schema.keys).values({
+      id: newId("test"),
+      keyAuthId: h.resources.userKeyAuth.id,
+      identityId: identity.id,
+      ownerId: keyOwnerId,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAtM: Date.now(),
+      enabled: true,
+    });
+
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(true);
+    expect(res.body.ownerId).toBe(identityExternalId);
+  });
+
+  test("returns key.ownerId when no identity exists", async (t) => {
+    const h = await IntegrationHarness.init(t);
+
+    const keyOwnerId = "key-owner-123";
+
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await h.db.primary.insert(schema.keys).values({
+      id: newId("test"),
+      keyAuthId: h.resources.userKeyAuth.id,
+      ownerId: keyOwnerId,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAtM: Date.now(),
+      enabled: true,
+    });
+
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(true);
+    expect(res.body.ownerId).toBe(keyOwnerId);
+  });
+});

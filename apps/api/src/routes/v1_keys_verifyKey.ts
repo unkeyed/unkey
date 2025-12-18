@@ -377,7 +377,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
       keyId: val.key?.id,
       valid: val.valid,
       name: val.key?.name ?? undefined,
-      ownerId: val.key?.ownerId ?? undefined,
+      ownerId: val.identity?.externalId ?? val.key?.ownerId ?? undefined,
       meta: val.key?.meta ? JSON.parse(val.key?.meta) : undefined,
       expires: val.key?.expires?.getTime(),
       remaining: val.remaining ?? undefined,
