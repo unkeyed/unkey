@@ -2,10 +2,11 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
-import { Clone, Code, Gauge } from "@unkey/icons";
+import { Clone, Code, Gauge, Trash } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import { useMemo, useState } from "react";
 import type { z } from "zod";
+import { DeleteIdentityDialog } from "../dialogs/delete-identity-dialog";
 import { EditRatelimitDialog } from "../dialogs/edit-ratelimit-dialog";
 import { EditMetadataDialog } from "./edit-metadata-dialog";
 
@@ -14,6 +15,7 @@ type Identity = z.infer<typeof IdentityResponseSchema>;
 export const IdentityTableActions = ({ identity }: { identity: Identity }) => {
   const [isEditMetadataOpen, setIsEditMetadataOpen] = useState(false);
   const [isEditRatelimitOpen, setIsEditRatelimitOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const menuItems: MenuItem[] = useMemo(
     () => [
@@ -65,6 +67,16 @@ export const IdentityTableActions = ({ identity }: { identity: Identity }) => {
               toast.error("Failed to copy to clipboard");
             });
         },
+        divider: true,
+      },
+      {
+        id: "delete-identity",
+        label: "Delete identity",
+        icon: <Trash iconSize="md-medium" />,
+        onClick: () => {
+          setIsDeleteDialogOpen(true);
+        },
+        variant: "danger" as const,
       },
     ],
     [identity.id, identity.externalId],
@@ -82,6 +94,11 @@ export const IdentityTableActions = ({ identity }: { identity: Identity }) => {
         identity={identity}
         open={isEditMetadataOpen}
         onOpenChange={setIsEditMetadataOpen}
+      />
+      <DeleteIdentityDialog
+        identity={identity}
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
       />
     </>
   );
