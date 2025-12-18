@@ -272,12 +272,7 @@ export const createKeyInputSchema = z.object({
       const trimmed = s.trim();
       return trimmed === "" ? null : trimmed;
     })
-    .pipe(
-      z
-        .string()
-        .max(255, { message: "External ID cannot exceed 255 characters" })
-        .nullable(),
-    )
+    .pipe(z.string().max(255, { message: "External ID cannot exceed 255 characters" }).nullable())
     .optional()
     .nullish(),
   identityId: z
