@@ -20,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/cluster.proto.
  */
 export const file_ctrl_v1_cluster: GenFile = /*@__PURE__*/
-  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiNQoeR2V0RGVzaXJlZFNlbnRpbmVsU3RhdGVSZXF1ZXN0EhMKC3NlbnRpbmVsX2lkGAEgASgJIjkKIEdldERlc2lyZWREZXBsb3ltZW50U3RhdGVSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAki3gMKGlVwZGF0ZUluc3RhbmNlU3RhdGVSZXF1ZXN0EjwKBnVwc2VydBgBIAEoCzIqLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VTdGF0ZVJlcXVlc3QuVXBzZXJ0SAASPAoGZGVsZXRlGAIgASgLMiouY3RybC52MS5VcGRhdGVJbnN0YW5jZVN0YXRlUmVxdWVzdC5EZWxldGVIABqqAQoGVXBzZXJ0EhUKDWRlcGxveW1lbnRfaWQYASABKAkSEAoIcG9kX25hbWUYAiABKAkSDwoHYWRkcmVzcxgDIAEoCRIWCg5jcHVfbWlsbGljb3JlcxgEIAEoBRISCgptZW1vcnlfbWliGAUgASgFEjoKBnN0YXR1cxgGIAEoDjIqLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VTdGF0ZVJlcXVlc3QuU3RhdHVzGjAKBkRlbGV0ZRIUCgxrOHNfY3JkX25hbWUYASABKAkSEAoIcG9kX25hbWUYAiABKAkiWwoGU3RhdHVzEhYKElNUQVRVU19VTlNQRUNJRklFRBAAEhIKDlNUQVRVU19QRU5ESU5HEAESEgoOU1RBVFVTX1JVTk5JTkcQAhIRCg1TVEFUVVNfRkFJTEVEEANCCAoGY2hhbmdlIh0KG1VwZGF0ZUluc3RhbmNlU3RhdGVSZXNwb25zZSJMChpVcGRhdGVTZW50aW5lbFN0YXRlUmVxdWVzdBIUCgxrOHNfY3JkX25hbWUYASABKAkSGAoQcnVubmluZ19yZXBsaWNhcxgCIAEoBSIdChtVcGRhdGVTZW50aW5lbFN0YXRlUmVzcG9uc2UirQEKDFdhdGNoUmVxdWVzdBIRCgljbGllbnRfaWQYASABKAkSNwoJc2VsZWN0b3JzGAIgAygLMiQuY3RybC52MS5XYXRjaFJlcXVlc3QuU2VsZWN0b3JzRW50cnkSDAoEbGl2ZRgDIAEoCBIRCglzeW50aGV0aWMYBCABKAgaMAoOU2VsZWN0b3JzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJsCg1TZW50aW5lbFN0YXRlEicKBWFwcGx5GAEgASgLMhYuY3RybC52MS5BcHBseVNlbnRpbmVsSAASKQoGZGVsZXRlGAIgASgLMhcuY3RybC52MS5EZWxldGVTZW50aW5lbEgAQgcKBXN0YXRlInIKD0RlcGxveW1lbnRTdGF0ZRIpCgVhcHBseRgBIAEoCzIYLmN0cmwudjEuQXBwbHlEZXBsb3ltZW50SAASKwoGZGVsZXRlGAIgASgLMhkuY3RybC52MS5EZWxldGVEZXBsb3ltZW50SABCBwoFc3RhdGUi3AEKDUFwcGx5U2VudGluZWwSEQoJbmFtZXNwYWNlGAEgASgJEhQKDGs4c19jcmRfbmFtZRgCIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAyABKAkSEgoKcHJvamVjdF9pZBgEIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgFIAEoCRITCgtzZW50aW5lbF9pZBgGIAEoCRINCgVpbWFnZRgHIAEoCRIQCghyZXBsaWNhcxgIIAEoBRIWCg5jcHVfbWlsbGljb3JlcxgJIAEoAxISCgptZW1vcnlfbWliGAogASgDIiUKDkRlbGV0ZVNlbnRpbmVsEhMKC3NlbnRpbmVsX2lkGAEgASgJIuABCg9BcHBseURlcGxveW1lbnQSEQoJbmFtZXNwYWNlGAEgASgJEhQKDGs4c19jcmRfbmFtZRgCIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAyABKAkSEgoKcHJvamVjdF9pZBgEIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgFIAEoCRIVCg1kZXBsb3ltZW50X2lkGAYgASgJEg0KBWltYWdlGAcgASgJEhAKCHJlcGxpY2FzGAggASgFEhYKDmNwdV9taWxsaWNvcmVzGAkgASgDEhIKCm1lbW9yeV9taWIYCiABKAMiKQoQRGVsZXRlRGVwbG95bWVudBIVCg1kZXBsb3ltZW50X2lkGAEgASgJMpwECg5DbHVzdGVyU2VydmljZRJBCg5XYXRjaFNlbnRpbmVscxIVLmN0cmwudjEuV2F0Y2hSZXF1ZXN0GhYuY3RybC52MS5TZW50aW5lbFN0YXRlMAESWgoXR2V0RGVzaXJlZFNlbnRpbmVsU3RhdGUSJy5jdHJsLnYxLkdldERlc2lyZWRTZW50aW5lbFN0YXRlUmVxdWVzdBoWLmN0cmwudjEuU2VudGluZWxTdGF0ZRJgChNVcGRhdGVTZW50aW5lbFN0YXRlEiMuY3RybC52MS5VcGRhdGVTZW50aW5lbFN0YXRlUmVxdWVzdBokLmN0cmwudjEuVXBkYXRlU2VudGluZWxTdGF0ZVJlc3BvbnNlEkUKEFdhdGNoRGVwbG95bWVudHMSFS5jdHJsLnYxLldhdGNoUmVxdWVzdBoYLmN0cmwudjEuRGVwbG95bWVudFN0YXRlMAESYAoZR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZRIpLmN0cmwudjEuR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZVJlcXVlc3QaGC5jdHJsLnYxLkRlcGxveW1lbnRTdGF0ZRJgChNVcGRhdGVJbnN0YW5jZVN0YXRlEiMuY3RybC52MS5VcGRhdGVJbnN0YW5jZVN0YXRlUmVxdWVzdBokLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VTdGF0ZVJlc3BvbnNlQo4BCgtjb20uY3RybC52MUIMQ2x1c3RlclByb3RvUAFaNGdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nby9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z");
+  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiNQoeR2V0RGVzaXJlZFNlbnRpbmVsU3RhdGVSZXF1ZXN0EhMKC3NlbnRpbmVsX2lkGAEgASgJIjkKIEdldERlc2lyZWREZXBsb3ltZW50U3RhdGVSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAki2gMKGlVwZGF0ZUluc3RhbmNlU3RhdGVSZXF1ZXN0EjwKBnVwc2VydBgBIAEoCzIqLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VTdGF0ZVJlcXVlc3QuVXBzZXJ0SAASPAoGZGVsZXRlGAIgASgLMiouY3RybC52MS5VcGRhdGVJbnN0YW5jZVN0YXRlUmVxdWVzdC5EZWxldGVIABqqAQoGVXBzZXJ0EhUKDWRlcGxveW1lbnRfaWQYASABKAkSEAoIcG9kX25hbWUYAiABKAkSDwoHYWRkcmVzcxgDIAEoCRIWCg5jcHVfbWlsbGljb3JlcxgEIAEoBRISCgptZW1vcnlfbWliGAUgASgFEjoKBnN0YXR1cxgGIAEoDjIqLmN0cmwudjEuVXBkYXRlSW5zdGFuY2VTdGF0ZVJlcXVlc3QuU3RhdHVzGiwKBkRlbGV0ZRIQCghrOHNfbmFtZRgBIAEoCRIQCghwb2RfbmFtZRgCIAEoCSJbCgZTdGF0dXMSFgoSU1RBVFVTX1VOU1BFQ0lGSUVEEAASEgoOU1RBVFVTX1BFTkRJTkcQARISCg5TVEFUVVNfUlVOTklORxACEhEKDVNUQVRVU19GQUlMRUQQA0IICgZjaGFuZ2UiHQobVXBkYXRlSW5zdGFuY2VTdGF0ZVJlc3BvbnNlIkoKGlVwZGF0ZVNlbnRpbmVsU3RhdGVSZXF1ZXN0EhAKCGs4c19uYW1lGAEgASgJEhoKEmF2YWlsYWJsZV9yZXBsaWNhcxgCIAEoBSIdChtVcGRhdGVTZW50aW5lbFN0YXRlUmVzcG9uc2UirQEKDFdhdGNoUmVxdWVzdBIRCgljbGllbnRfaWQYASABKAkSNwoJc2VsZWN0b3JzGAIgAygLMiQuY3RybC52MS5XYXRjaFJlcXVlc3QuU2VsZWN0b3JzRW50cnkSDAoEbGl2ZRgDIAEoCBIRCglzeW50aGV0aWMYBCABKAgaMAoOU2VsZWN0b3JzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJsCg1TZW50aW5lbFN0YXRlEicKBWFwcGx5GAEgASgLMhYuY3RybC52MS5BcHBseVNlbnRpbmVsSAASKQoGZGVsZXRlGAIgASgLMhcuY3RybC52MS5EZWxldGVTZW50aW5lbEgAQgcKBXN0YXRlInIKD0RlcGxveW1lbnRTdGF0ZRIpCgVhcHBseRgBIAEoCzIYLmN0cmwudjEuQXBwbHlEZXBsb3ltZW50SAASKwoGZGVsZXRlGAIgASgLMhkuY3RybC52MS5EZWxldGVEZXBsb3ltZW50SABCBwoFc3RhdGUi3AEKDUFwcGx5U2VudGluZWwSFQoNazhzX25hbWVzcGFjZRgBIAEoCRIQCghrOHNfbmFtZRgCIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAyABKAkSEgoKcHJvamVjdF9pZBgEIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgFIAEoCRITCgtzZW50aW5lbF9pZBgGIAEoCRINCgVpbWFnZRgHIAEoCRIQCghyZXBsaWNhcxgIIAEoBRIWCg5jcHVfbWlsbGljb3JlcxgJIAEoAxISCgptZW1vcnlfbWliGAogASgDIjkKDkRlbGV0ZVNlbnRpbmVsEhUKDWs4c19uYW1lc3BhY2UYASABKAkSEAoIazhzX25hbWUYAiABKAki4AEKD0FwcGx5RGVwbG95bWVudBIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJEhQKDHdvcmtzcGFjZV9pZBgDIAEoCRISCgpwcm9qZWN0X2lkGAQgASgJEhYKDmVudmlyb25tZW50X2lkGAUgASgJEhUKDWRlcGxveW1lbnRfaWQYBiABKAkSDQoFaW1hZ2UYByABKAkSEAoIcmVwbGljYXMYCCABKAUSFgoOY3B1X21pbGxpY29yZXMYCSABKAMSEgoKbWVtb3J5X21pYhgKIAEoAyI7ChBEZWxldGVEZXBsb3ltZW50EhUKDWs4c19uYW1lc3BhY2UYASABKAkSEAoIazhzX25hbWUYAiABKAkynAQKDkNsdXN0ZXJTZXJ2aWNlEkEKDldhdGNoU2VudGluZWxzEhUuY3RybC52MS5XYXRjaFJlcXVlc3QaFi5jdHJsLnYxLlNlbnRpbmVsU3RhdGUwARJaChdHZXREZXNpcmVkU2VudGluZWxTdGF0ZRInLmN0cmwudjEuR2V0RGVzaXJlZFNlbnRpbmVsU3RhdGVSZXF1ZXN0GhYuY3RybC52MS5TZW50aW5lbFN0YXRlEmAKE1VwZGF0ZVNlbnRpbmVsU3RhdGUSIy5jdHJsLnYxLlVwZGF0ZVNlbnRpbmVsU3RhdGVSZXF1ZXN0GiQuY3RybC52MS5VcGRhdGVTZW50aW5lbFN0YXRlUmVzcG9uc2USRQoQV2F0Y2hEZXBsb3ltZW50cxIVLmN0cmwudjEuV2F0Y2hSZXF1ZXN0GhguY3RybC52MS5EZXBsb3ltZW50U3RhdGUwARJgChlHZXREZXNpcmVkRGVwbG95bWVudFN0YXRlEikuY3RybC52MS5HZXREZXNpcmVkRGVwbG95bWVudFN0YXRlUmVxdWVzdBoYLmN0cmwudjEuRGVwbG95bWVudFN0YXRlEmAKE1VwZGF0ZUluc3RhbmNlU3RhdGUSIy5jdHJsLnYxLlVwZGF0ZUluc3RhbmNlU3RhdGVSZXF1ZXN0GiQuY3RybC52MS5VcGRhdGVJbnN0YW5jZVN0YXRlUmVzcG9uc2VCjgEKC2NvbS5jdHJsLnYxQgxDbHVzdGVyUHJvdG9QAVo0Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dvL2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message ctrl.v1.GetDesiredSentinelStateRequest
@@ -132,9 +132,9 @@ export const UpdateInstanceStateRequest_UpsertSchema: GenMessage<UpdateInstanceS
  */
 export type UpdateInstanceStateRequest_Delete = Message<"ctrl.v1.UpdateInstanceStateRequest.Delete"> & {
   /**
-   * @generated from field: string k8s_crd_name = 1;
+   * @generated from field: string k8s_name = 1;
    */
-  k8sCrdName: string;
+  k8sName: string;
 
   /**
    * @generated from field: string pod_name = 2;
@@ -204,14 +204,14 @@ export const UpdateInstanceStateResponseSchema: GenMessage<UpdateInstanceStateRe
  */
 export type UpdateSentinelStateRequest = Message<"ctrl.v1.UpdateSentinelStateRequest"> & {
   /**
-   * @generated from field: string k8s_crd_name = 1;
+   * @generated from field: string k8s_name = 1;
    */
-  k8sCrdName: string;
+  k8sName: string;
 
   /**
-   * @generated from field: int32 running_replicas = 2;
+   * @generated from field: int32 available_replicas = 2;
    */
-  runningReplicas: number;
+  availableReplicas: number;
 };
 
 /**
@@ -385,14 +385,14 @@ export type ApplySentinel = Message<"ctrl.v1.ApplySentinel"> & {
   /**
    * namespace is the Kubernetes namespace in which the sentinel should exist.
    *
-   * @generated from field: string namespace = 1;
+   * @generated from field: string k8s_namespace = 1;
    */
-  namespace: string;
+  k8sNamespace: string;
 
   /**
-   * @generated from field: string k8s_crd_name = 2;
+   * @generated from field: string k8s_name = 2;
    */
-  k8sCrdName: string;
+  k8sName: string;
 
   /**
    * workspace_id identifies the workspace that owns this sentinel.
@@ -416,7 +416,7 @@ export type ApplySentinel = Message<"ctrl.v1.ApplySentinel"> & {
   environmentId: string;
 
   /**
-   * sentinel_id is the unique identifier for this sentinel within the namespace.
+   * sentinel_id is the unique identifier for this sentinel globally
    *
    * @generated from field: string sentinel_id = 6;
    */
@@ -460,12 +460,14 @@ export const ApplySentinelSchema: GenMessage<ApplySentinel> = /*@__PURE__*/
  */
 export type DeleteSentinel = Message<"ctrl.v1.DeleteSentinel"> & {
   /**
-   * sentinel_id identifies the sentinel to delete.
-   * All resources with this sentinel_id in the namespace will be removed.
-   *
-   * @generated from field: string sentinel_id = 1;
+   * @generated from field: string k8s_namespace = 1;
    */
-  sentinelId: string;
+  k8sNamespace: string;
+
+  /**
+   * @generated from field: string k8s_name = 2;
+   */
+  k8sName: string;
 };
 
 /**
@@ -488,14 +490,14 @@ export type ApplyDeployment = Message<"ctrl.v1.ApplyDeployment"> & {
   /**
    * namespace is the Kubernetes namespace in which the deployment should exist.
    *
-   * @generated from field: string namespace = 1;
+   * @generated from field: string k8s_namespace = 1;
    */
-  namespace: string;
+  k8sNamespace: string;
 
   /**
-   * @generated from field: string k8s_crd_name = 2;
+   * @generated from field: string k8s_name = 2;
    */
-  k8sCrdName: string;
+  k8sName: string;
 
   /**
    * workspace_id identifies the workspace that owns this deployment.
@@ -582,12 +584,14 @@ export const ApplyDeploymentSchema: GenMessage<ApplyDeployment> = /*@__PURE__*/
  */
 export type DeleteDeployment = Message<"ctrl.v1.DeleteDeployment"> & {
   /**
-   * deployment_id identifies the deployment to delete.
-   * All resources with this deployment_id in the namespace will be removed.
-   *
-   * @generated from field: string deployment_id = 1;
+   * @generated from field: string k8s_namespace = 1;
    */
-  deploymentId: string;
+  k8sNamespace: string;
+
+  /**
+   * @generated from field: string k8s_name = 2;
+   */
+  k8sName: string;
 };
 
 /**

@@ -99,7 +99,7 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 	err = db.Tx(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err := db.Query.InsertDeployment(ctx, tx, db.InsertDeploymentParams{
 			ID:                       deploymentID,
-			K8sCrdName:               uid.DNS1035(12),
+			K8sName:                  uid.DNS1035(12),
 			WorkspaceID:              workspaceID,
 			ProjectID:                projectID,
 			EnvironmentID:            envID,
@@ -120,12 +120,13 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create deployment: %w", err)
 		}
 
+		sentinelName := uid.DNS1035()
 		err = db.Query.InsertSentinel(ctx, tx, db.InsertSentinelParams{
 			ID:              sentinelID,
 			WorkspaceID:     workspaceID,
 			EnvironmentID:   envID,
-			K8sServiceName:  fmt.Sprintf("sentinel-%s", slug),
-			K8sCrdName:      fmt.Sprintf("s-%s", uid.NanoLower(8)),
+			K8sAddress:      fmt.Sprintf("%s.%s.svc.cluster.local", sentinelName, "todonamespace"),
+			K8sName:         sentinelName,
 			Region:          region,
 			Image:           "unkey/sentinel:local",
 			Health:          db.SentinelsHealthHealthy,
@@ -147,7 +148,7 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 			ProjectID:     projectID,
 			Region:        region,
 			Shard:         "default",
-			PodName:       uid.Nano(8),
+			PodName:       uid.DNS1035(),
 			Address:       address,
 			CpuMillicores: 1000,
 			MemoryMib:     512,

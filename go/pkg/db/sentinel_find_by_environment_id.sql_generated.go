@@ -10,12 +10,12 @@ import (
 )
 
 const findSentinelsByEnvironmentID = `-- name: FindSentinelsByEnvironmentID :many
-SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels WHERE environment_id = ?
+SELECT id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels WHERE environment_id = ?
 `
 
 // FindSentinelsByEnvironmentID
 //
-//	SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels WHERE environment_id = ?
+//	SELECT id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels WHERE environment_id = ?
 func (q *Queries) FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Sentinel, error) {
 	rows, err := db.QueryContext(ctx, findSentinelsByEnvironmentID, environmentID)
 	if err != nil {
@@ -30,8 +30,8 @@ func (q *Queries) FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, env
 			&i.WorkspaceID,
 			&i.ProjectID,
 			&i.EnvironmentID,
-			&i.K8sCrdName,
-			&i.K8sServiceName,
+			&i.K8sName,
+			&i.K8sAddress,
 			&i.Region,
 			&i.Image,
 			&i.DesiredState,

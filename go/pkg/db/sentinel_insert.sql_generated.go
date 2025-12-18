@@ -15,8 +15,8 @@ INSERT INTO sentinels (
     workspace_id,
     environment_id,
     project_id,
-    k8s_service_name,
-    k8s_crd_name,
+    k8s_address,
+    k8s_name,
     region,
     image,
     health,
@@ -48,8 +48,8 @@ type InsertSentinelParams struct {
 	WorkspaceID     string          `db:"workspace_id"`
 	EnvironmentID   string          `db:"environment_id"`
 	ProjectID       string          `db:"project_id"`
-	K8sServiceName  string          `db:"k8s_service_name"`
-	K8sCrdName      string          `db:"k8s_crd_name"`
+	K8sAddress      string          `db:"k8s_address"`
+	K8sName         string          `db:"k8s_name"`
 	Region          string          `db:"region"`
 	Image           string          `db:"image"`
 	Health          SentinelsHealth `db:"health"`
@@ -67,8 +67,8 @@ type InsertSentinelParams struct {
 //	    workspace_id,
 //	    environment_id,
 //	    project_id,
-//	    k8s_service_name,
-//	    k8s_crd_name,
+//	    k8s_address,
+//	    k8s_name,
 //	    region,
 //	    image,
 //	    health,
@@ -99,8 +99,8 @@ func (q *Queries) InsertSentinel(ctx context.Context, db DBTX, arg InsertSentine
 		arg.WorkspaceID,
 		arg.EnvironmentID,
 		arg.ProjectID,
-		arg.K8sServiceName,
-		arg.K8sCrdName,
+		arg.K8sAddress,
+		arg.K8sName,
 		arg.Region,
 		arg.Image,
 		arg.Health,

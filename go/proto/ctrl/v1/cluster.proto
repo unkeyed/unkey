@@ -63,7 +63,7 @@ message UpdateInstanceStateRequest {
       Status status = 6;
   }
   message Delete {
-    string k8s_crd_name = 1;
+    string k8s_name = 1;
     string pod_name = 2;
   }
 
@@ -86,8 +86,8 @@ message UpdateSentinelStateRequest {
 
 
 
-      string k8s_crd_name = 1;
-        int32 running_replicas = 2;
+      string k8s_name = 1;
+        int32 available_replicas = 2;
 
 }
 
@@ -165,9 +165,9 @@ message DeploymentState {
 // The control plane ensures that sentinel_id is unique within the namespace.
 message ApplySentinel {
   // namespace is the Kubernetes namespace in which the sentinel should exist.
-  string namespace = 1;
+  string k8s_namespace = 1;
 
-  string k8s_crd_name = 2;
+  string k8s_name = 2;
   // workspace_id identifies the workspace that owns this sentinel.
   string workspace_id = 3;
 
@@ -177,7 +177,7 @@ message ApplySentinel {
   // environment_id in which the sentinel should exist.
   string environment_id = 5;
 
-  // sentinel_id is the unique identifier for this sentinel within the namespace.
+  // sentinel_id is the unique identifier for this sentinel globally
   string sentinel_id = 6;
 
   string image = 7;
@@ -192,9 +192,9 @@ message ApplySentinel {
 // In-flight requests may be disrupted unless proper connection draining is configured.
 message DeleteSentinel {
 
-  // sentinel_id identifies the sentinel to delete.
-  // All resources with this sentinel_id in the namespace will be removed.
-  string sentinel_id = 1;
+  string k8s_namespace = 1;
+string k8s_name = 2;
+
 }
 
 // ApplyDeployment contains the desired configuration for a deployment.
@@ -204,10 +204,10 @@ message DeleteSentinel {
 // The control plane ensures that deployment_id is unique within the namespace.
 message ApplyDeployment {
   // namespace is the Kubernetes namespace in which the deployment should exist.
-  string namespace = 1;
+  string k8s_namespace = 1;
 
 
-string k8s_crd_name = 2;
+string k8s_name = 2;
   // workspace_id identifies the workspace that owns this deployment.
   // Used for multi-tenancy and access control.
   string workspace_id = 3;
@@ -249,8 +249,6 @@ string k8s_crd_name = 2;
 // the configured termination grace period. All associated resources (services,
 // configmaps specific to this deployment) will also be cleaned up.
 message DeleteDeployment {
-
-  // deployment_id identifies the deployment to delete.
-  // All resources with this deployment_id in the namespace will be removed.
-  string deployment_id = 1;
+  string k8s_namespace = 1;
+string k8s_name = 2;
 }

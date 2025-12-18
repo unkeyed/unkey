@@ -1,51 +1,75 @@
-// Package sentinelcontroller provides Kubernetes controller management for
-// Sentinel custom resources.
+// Package sentinelcontroller implements a Kubernetes controller for managing Sentinel
+// custom resources as part of the Unkey krane system.
 //
-// This package implements a Kubernetes controller that manages Sentinel resources,
-// which are edge components providing monitoring, routing, and security functions
-// for Unkey deployments. Sentinels operate alongside application deployments to
-// provide runtime observability and control.
+// This package provides the infrastructure to deploy and manage Sentinel components,
+// which are edge services that provide traffic routing, monitoring, and security
+// capabilities for Unkey deployments. Sentinels operate alongside application
+// workloads to provide runtime observability and control.
 //
-// # Controller Architecture
+// # Architecture Overview
 //
-// The sentinel controller follows the same pattern as the deployment controller:
-//  1. Watch: Monitors Sentinel resources for changes
-//  2. Reconcile: Processes events and applies desired state
-//  3. Buffer: Queues events to handle high throughput and backpressure
-//  4. Apply: Creates/updates Kubernetes resources based on specifications
+// The controller follows Kubernetes controller patterns with a custom event source:
+//   - Reflector: Watches sentinel events from the control plane via streaming gRPC
+//   - Reconciler: Implements controller-runtime reconcile loop for resource management
+//   - Event Buffer: Handles high-throughput events with backpressure management
+//   - Resource Management: Creates/updates Deployments and Services based on Sentinel specs
 //
-// # Sentinel Functionality
+// This hybrid architecture was chosen because sentinel state originates from the
+// control plane rather than Kubernetes API events, requiring bidirectional sync
+// between the database and Kubernetes cluster.
 //
-// Sentinels provide several key functions:
-//   - Traffic routing and load balancing
-//   - Request monitoring and analytics
-//   - Security policy enforcement
-//   - API gateway functionality
-//   - Health checking and circuit breaking
+// # Sentinel Resources
 //
-// # Resource Management
+// The controller manages the complete lifecycle of Sentinel resources:
+//   - Deployments: Manages sentinel pod replicas and rolling updates
+//   - Services: Exposes sentinel endpoints for traffic routing
+//   - Status Conditions: Tracks availability, progress, and degradation states
+//   - Resource Cleanup: Handles deletion and garbage collection
 //
-// The controller manages the complete lifecycle of sentinel resources including:
-//   - Creating StatefulSets for sentinel workloads
-//   - Managing Services for network exposure
-//   - Configuring routing rules and policies
-//   - Handling resource cleanup on deletion
-//   - Updating status and conditions
+// # Key Components
 //
-// # Integration
+//   - [SentinelController]: Main controller orchestrating all sentinel management
+//   - [Reconciler]: Handles Kubernetes-style reconciliation of sentinel resources
+//   - [Reflector]: Bridges control plane events to Kubernetes resources
+//   - [Sentinel]: Custom resource definition for sentinel specifications
 //
-// The controller integrates with the krane sync engine to receive sentinel
-// events from the control plane and report status updates back. It uses the
-// k8s package for standardized label management and resource operations.
+// # Integration Points
+//
+// The controller integrates with several external systems:
+//   - Control Plane: Receives sentinel state changes via gRPC streaming
+//   - Kubernetes API: Manages Deployments, Services, and CRDs
+//   - krane k8s Package: Uses standardized label and annotation management
+//   - OpenTelemetry: Provides structured logging and metrics
 //
 // # Usage
 //
-// The controller is typically created by the main krane agent and runs
-// as part of the controller-runtime manager:
+// The controller is instantiated by the main krane agent and integrated into the
+// controller-runtime manager:
 //
 //	cfg := sentinelcontroller.Config{
-//		Logger: logger,
-//		Events: eventBuffer,
+//		Logger:     logger,
+//		Scheme:     scheme,
+//		Client:     k8sClient,
+//		Manager:    manager,
+//		Cluster:    clusterClient,
+//		InstanceID: "instance-123",
+//		Region:     "us-west-2",
+//		Shard:      "shard-a",
 //	}
 //	controller, err := sentinelcontroller.New(cfg)
+//
+// # Error Handling
+//
+// The controller distinguishes between expected operational states (resource not found,
+// reconciliation conflicts) and system errors (API failures, network issues). Reconciliation
+// failures trigger immediate requeue with exponential backoff, while successful operations
+// are periodically rechecked to maintain eventual consistency.
+//
+// # Concurrency and Performance
+//
+// The controller is designed for high-concurrency environments:
+//   - Event buffering prevents system overload during control plane bursts
+//   - Parallel reconciliation allows multiple sentinel updates simultaneously
+//   - Periodic full sync ensures consistency despite missed events
+//   - Resource version tracking prevents unnecessary updates
 package sentinelcontroller

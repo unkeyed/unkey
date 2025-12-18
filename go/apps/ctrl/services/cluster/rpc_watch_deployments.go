@@ -119,8 +119,8 @@ func (s *Service) getSyntheticDeployments(ctx context.Context, req *connect.Requ
 			c <- &ctrlv1.DeploymentState{
 				State: &ctrlv1.DeploymentState_Apply{
 					Apply: &ctrlv1.ApplyDeployment{
-						Namespace:     t.K8sNamespace.String,
-						K8SCrdName:    t.K8sCrdName,
+						K8SNamespace:  t.K8sNamespace.String,
+						K8SName:       t.K8sName,
 						WorkspaceId:   t.WorkspaceID,
 						EnvironmentId: t.EnvironmentID,
 						ProjectId:     t.ProjectID,

@@ -41,7 +41,7 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 
 			if !found.K8sNamespace.Valid {
 				ws.K8sNamespace.Valid = true
-				ws.K8sNamespace.String = uid.Nano(8)
+				ws.K8sNamespace.String = uid.DNS1035()
 				return db.Query.SetWorkspaceK8sNamespace(txCtx, tx, db.SetWorkspaceK8sNamespaceParams{
 					ID:           ws.ID,
 					K8sNamespace: ws.K8sNamespace,
@@ -129,7 +129,7 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 			replicas = int32(3)
 		}
 
-		k8sCrdName := fmt.Sprintf("s-%s", uid.NanoLower(8))
+		k8sName := uid.DNS1035()
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return db.Query.InsertSentinel(runCtx, s.db.RW(), db.InsertSentinelParams{
@@ -137,8 +137,8 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 				WorkspaceID:     workspace.ID,
 				ProjectID:       projectID,
 				EnvironmentID:   environmentID,
-				K8sServiceName:  fmt.Sprintf("%s.%s.svc.cluster.local", k8sCrdName, workspace.K8sNamespace.String),
-				K8sCrdName:      k8sCrdName,
+				K8sAddress:      fmt.Sprintf("%s.%s.svc.cluster.local", k8sName, workspace.K8sNamespace.String),
+				K8sName:         k8sName,
 				Region:          "aws:us-east-1",
 				Image:           s.sentinelImage,
 				Health:          db.SentinelsHealthUnknown,
@@ -158,8 +158,8 @@ func (s *Service) CreateProject(ctx restate.ObjectContext, req *hydrav1.CreatePr
 				State: &ctrlv1.SentinelState_Apply{
 					Apply: &ctrlv1.ApplySentinel{
 						// already ensured to exist above
-						Namespace:     workspace.K8sNamespace.String,
-						K8SCrdName:    k8sCrdName,
+						K8SNamespace:  workspace.K8sNamespace.String,
+						K8SName:       k8sName,
 						WorkspaceId:   workspace.ID,
 						ProjectId:     projectID,
 						EnvironmentId: environmentID,

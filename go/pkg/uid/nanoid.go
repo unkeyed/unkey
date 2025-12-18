@@ -46,7 +46,7 @@ const nanoAlphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
 //
 // For production use cases requiring cryptographic security, use [New] which
 // provides cryptographically secure random generation via crypto/rand.
-func Nano(length ...int) string {
+func Nano(prefix Prefix, length ...int) string {
 	// Default to 8 characters if no length specified
 	n := 8
 	if len(length) > 0 {
@@ -56,16 +56,21 @@ func Nano(length ...int) string {
 	// Pre-allocate builder for efficiency
 	// We use strings.Builder to avoid repeated string concatenations
 	// which would create O(n) intermediate strings
+	l := n
+	if prefix != "" {
+		l = l + len(prefix) + 1
+	}
 	var b strings.Builder
-	b.Grow(n)
+	b.Grow(l)
+
+	if prefix != "" {
+		b.WriteString(string(prefix))
+		b.WriteString("_")
+	}
 
 	for i := 0; i < n; i++ {
 		b.WriteByte(nanoAlphabet[rand.IntN(len(nanoAlphabet))])
 	}
 
 	return b.String()
-}
-
-func NanoLower(length ...int) string {
-	return strings.ToLower(Nano(length...))
 }

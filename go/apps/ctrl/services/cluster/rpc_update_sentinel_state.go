@@ -29,14 +29,14 @@ func (s *Service) UpdateSentinelState(ctx context.Context, req *connect.Request[
 	}
 
 	health := db.SentinelsHealthUnknown
-	if req.Msg.GetRunningReplicas() > 0 {
+	if req.Msg.GetAvailableReplicas() > 0 {
 		health = db.SentinelsHealthHealthy
 	}
 	err = db.Query.UpdateSentinelReplicasAndHealth(ctx, s.db.RW(), db.UpdateSentinelReplicasAndHealthParams{
-		K8sCrdName: req.Msg.GetK8SCrdName(),
-		Replicas:   req.Msg.GetRunningReplicas(),
-		Health:     health,
-		UpdatedAt:  sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		K8sName:   req.Msg.GetK8SName(),
+		Replicas:  req.Msg.GetAvailableReplicas(),
+		Health:    health,
+		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)

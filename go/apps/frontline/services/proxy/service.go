@@ -79,7 +79,7 @@ func New(cfg Config) (*service, error) {
 func (s *service) ForwardToSentinel(ctx context.Context, sess *zen.Session, sentinel *db.Sentinel, deploymentID string) error {
 	startTime, _ := RequestStartTimeFromContext(ctx)
 
-	targetURL, err := url.Parse(fmt.Sprintf("http://%s", sentinel.K8sServiceName))
+	targetURL, err := url.Parse(fmt.Sprintf("http://%s", sentinel.K8sAddress))
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),

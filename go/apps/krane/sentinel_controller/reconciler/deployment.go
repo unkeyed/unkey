@@ -2,7 +2,6 @@ package reconciler
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
 	apiv1 "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller/api/v1"
@@ -15,12 +14,24 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+// ensureDeploymentExists ensures a Deployment exists for the given sentinel.
+//
+// This function creates or updates the Kubernetes Deployment that runs the
+// sentinel pods. The deployment is configured with the specified container
+// image, replica count, and standard sentinel configuration.
+//
+// The deployment includes:
+//   - Standard krane labels for resource identification and management
+//   - Environment variables for sentinel identification and configuration
+//   - Container port 8040 for sentinel service communication
+//   - Owner reference for automatic cleanup when sentinel is deleted
+//
+// Returns the existing or created deployment and any error encountered.
 func (r *Reconciler) ensureDeploymentExists(ctx context.Context, sentinel *apiv1.Sentinel) (*appsv1.Deployment, error) {
 
-	name := fmt.Sprintf("%s-dpl", sentinel.GetName())
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      sentinel.GetName(),
 			Namespace: sentinel.GetNamespace(),
 			Labels: k8s.NewLabels().
 				WorkspaceID(sentinel.Spec.WorkspaceID).
@@ -36,15 +47,14 @@ func (r *Reconciler) ensureDeploymentExists(ctx context.Context, sentinel *apiv1
 			Selector: &metav1.LabelSelector{
 				MatchLabels: k8s.NewLabels().SentinelID(sentinel.Spec.SentinelID).ToMap(),
 			},
+
+			MinReadySeconds: 30,
 			Template: corev1.PodTemplateSpec{
-
 				ObjectMeta: metav1.ObjectMeta{
-
 					Labels: k8s.NewLabels().SentinelID(sentinel.Spec.SentinelID).ToMap(),
 				},
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyAlways,
-
 					Containers: []corev1.Container{{
 						Image:           sentinel.Spec.Image,
 						Name:            "sentinel",
@@ -83,7 +93,7 @@ func (r *Reconciler) ensureDeploymentExists(ctx context.Context, sentinel *apiv1
 
 	// Check if the deployment already exists, if not create a new one
 	found := &appsv1.Deployment{}
-	err := r.client.Get(ctx, types.NamespacedName{Namespace: sentinel.GetNamespace(), Name: name}, found)
+	err := r.client.Get(ctx, types.NamespacedName{Namespace: sentinel.GetNamespace(), Name: sentinel.GetName()}, found)
 
 	if err == nil {
 

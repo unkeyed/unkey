@@ -1,10 +1,27 @@
+# Example Sentinel resource specification
+#
+# This file demonstrates how to create a Sentinel custom resource
+# for monitoring and routing capabilities. The sentinel runs alongside
+# application deployments to provide observability and traffic management.
+#
+# Key configuration elements:
+# - Container image and resource allocation
+# - Multi-tenant identification (workspace, project, environment)
+# - Replica count for high availability
+# - CPU and memory limits for performance control
 apiVersion: kubernetes.unkey.com/v1
 kind: Sentinel
 metadata:
+  # Unique identifier for this sentinel instance
   name: s-123
+  # Target namespace for deployment
   namespace: xxxxx
 spec:
+  # Container image to run (should include registry and tag)
   image: nginx:latest
+  # Number of replica pods for high availability
   replicas: 3
+  # CPU allocation per pod (256 millicores = 0.256 CPU cores)
   cpuMillicores: 256
+  # Memory allocation per pod (256 MiB = 256 * 1024 * 1024 bytes)
   memoryMib: 256

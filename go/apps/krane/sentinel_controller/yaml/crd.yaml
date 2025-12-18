@@ -1,4 +1,12 @@
 ---
+# CustomResourceDefinition for Sentinel custom resources
+#
+# This file defines the Kubernetes CRD for managing Sentinel resources through
+# the Kubernetes API. Sentinels are edge components that provide
+# monitoring, routing, and security functions for Unkey deployments.
+#
+# The CRD is installed in the cluster and enables the sentinel controller
+# to manage Sentinel resources alongside standard Kubernetes resources.
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -15,6 +23,8 @@ spec:
   scope: Namespaced
   versions:
     - name: v1
+      served: true
+      storage: true
       schema:
         openAPIV3Schema:
           description: Sentinel is the Schema for the sentinels API

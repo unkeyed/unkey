@@ -38,7 +38,8 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 		return connect.NewResponse(&ctrlv1.DeploymentState{
 			State: &ctrlv1.DeploymentState_Delete{
 				Delete: &ctrlv1.DeleteDeployment{
-					DeploymentId: deployment.ID,
+					K8SNamespace: deployment.K8sNamespace.String,
+					K8SName:      deployment.K8sName,
 				},
 			},
 		}), nil
@@ -48,8 +49,8 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 			State: &ctrlv1.DeploymentState_Apply{
 				Apply: &ctrlv1.ApplyDeployment{
 					DeploymentId:  deployment.ID,
-					Namespace:     deployment.K8sNamespace.String,
-					K8SCrdName:    deployment.K8sCrdName,
+					K8SNamespace:  deployment.K8sNamespace.String,
+					K8SName:       deployment.K8sName,
 					WorkspaceId:   deployment.WorkspaceID,
 					ProjectId:     deployment.ProjectID,
 					EnvironmentId: deployment.EnvironmentID,

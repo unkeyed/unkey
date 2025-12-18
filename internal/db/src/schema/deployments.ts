@@ -21,7 +21,7 @@ export const deployments = mysqlTable(
   "deployments",
   {
     id: varchar("id", { length: 128 }).primaryKey(),
-    k8sCrdName: varchar("k8s_crd_name", { length: 255 }).notNull().unique(),
+    k8sName: varchar("k8s_name", { length: 255 }).notNull().unique(),
 
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     projectId: varchar("project_id", { length: 256 }).notNull(),

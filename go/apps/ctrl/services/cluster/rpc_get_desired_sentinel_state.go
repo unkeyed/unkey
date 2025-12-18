@@ -36,7 +36,8 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 		return connect.NewResponse(&ctrlv1.SentinelState{
 			State: &ctrlv1.SentinelState_Delete{
 				Delete: &ctrlv1.DeleteSentinel{
-					SentinelId: sentinel.ID,
+					K8SNamespace: sentinel.K8sNamespace.String,
+					K8SName:      sentinel.K8sName,
 				},
 			},
 		}), nil
@@ -46,8 +47,8 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 			State: &ctrlv1.SentinelState_Apply{
 				Apply: &ctrlv1.ApplySentinel{
 					SentinelId:    sentinel.ID,
-					Namespace:     sentinel.K8sNamespace.String,
-					K8SCrdName:    sentinel.K8sCrdName,
+					K8SNamespace:  sentinel.K8sNamespace.String,
+					K8SName:       sentinel.K8sName,
 					WorkspaceId:   sentinel.WorkspaceID,
 					ProjectId:     sentinel.ProjectID,
 					EnvironmentId: sentinel.EnvironmentID,

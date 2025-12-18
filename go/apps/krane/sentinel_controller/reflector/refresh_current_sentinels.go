@@ -1,4 +1,4 @@
-package inbound
+package reflector
 
 import (
 	"context"
@@ -13,7 +13,22 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (r *InboundReconciler) refreshCurrentSentinels(ctx context.Context, queue *buffer.Buffer[*ctrlv1.SentinelState]) {
+// refreshCurrentSentinels performs periodic synchronization of all sentinel resources.
+//
+// This function runs every minute to ensure all sentinel resources in the
+// cluster are synchronized with their desired state from the control plane.
+// This periodic refresh provides consistency guarantees despite possible
+// missed events, network partitions, or controller restarts.
+//
+// The function:
+//  1. Lists all sentinel resources managed by krane across all namespaces
+//  2. Queries control plane for the desired state of each sentinel
+//  3. Buffers the desired state events for processing
+//
+// This approach ensures eventual consistency between the database state
+// and Kubernetes cluster state, acting as a safety net for the event-based
+// synchronization mechanism.
+func (r *Reflector) refreshCurrentSentinels(ctx context.Context, queue *buffer.Buffer[*ctrlv1.SentinelState]) {
 	repeat.Every(1*time.Minute, func() {
 
 		cursor := ""

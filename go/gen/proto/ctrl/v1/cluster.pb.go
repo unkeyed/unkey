@@ -290,11 +290,11 @@ func (*UpdateInstanceStateResponse) Descriptor() ([]byte, []int) {
 }
 
 type UpdateSentinelStateRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	K8SCrdName      string                 `protobuf:"bytes,1,opt,name=k8s_crd_name,json=k8sCrdName,proto3" json:"k8s_crd_name,omitempty"`
-	RunningReplicas int32                  `protobuf:"varint,2,opt,name=running_replicas,json=runningReplicas,proto3" json:"running_replicas,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	K8SName           string                 `protobuf:"bytes,1,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
+	AvailableReplicas int32                  `protobuf:"varint,2,opt,name=available_replicas,json=availableReplicas,proto3" json:"available_replicas,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *UpdateSentinelStateRequest) Reset() {
@@ -327,16 +327,16 @@ func (*UpdateSentinelStateRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *UpdateSentinelStateRequest) GetK8SCrdName() string {
+func (x *UpdateSentinelStateRequest) GetK8SName() string {
 	if x != nil {
-		return x.K8SCrdName
+		return x.K8SName
 	}
 	return ""
 }
 
-func (x *UpdateSentinelStateRequest) GetRunningReplicas() int32 {
+func (x *UpdateSentinelStateRequest) GetAvailableReplicas() int32 {
 	if x != nil {
-		return x.RunningReplicas
+		return x.AvailableReplicas
 	}
 	return 0
 }
@@ -654,15 +654,15 @@ func (*DeploymentState_Delete) isDeploymentState_State() {}
 type ApplySentinel struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// namespace is the Kubernetes namespace in which the sentinel should exist.
-	Namespace  string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	K8SCrdName string `protobuf:"bytes,2,opt,name=k8s_crd_name,json=k8sCrdName,proto3" json:"k8s_crd_name,omitempty"`
+	K8SNamespace string `protobuf:"bytes,1,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
+	K8SName      string `protobuf:"bytes,2,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
 	// workspace_id identifies the workspace that owns this sentinel.
 	WorkspaceId string `protobuf:"bytes,3,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	// project_id identifies the project within the workspace.
 	ProjectId string `protobuf:"bytes,4,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// environment_id in which the sentinel should exist.
 	EnvironmentId string `protobuf:"bytes,5,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
-	// sentinel_id is the unique identifier for this sentinel within the namespace.
+	// sentinel_id is the unique identifier for this sentinel globally
 	SentinelId    string `protobuf:"bytes,6,opt,name=sentinel_id,json=sentinelId,proto3" json:"sentinel_id,omitempty"`
 	Image         string `protobuf:"bytes,7,opt,name=image,proto3" json:"image,omitempty"`
 	Replicas      int32  `protobuf:"varint,8,opt,name=replicas,proto3" json:"replicas,omitempty"`
@@ -702,16 +702,16 @@ func (*ApplySentinel) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *ApplySentinel) GetNamespace() string {
+func (x *ApplySentinel) GetK8SNamespace() string {
 	if x != nil {
-		return x.Namespace
+		return x.K8SNamespace
 	}
 	return ""
 }
 
-func (x *ApplySentinel) GetK8SCrdName() string {
+func (x *ApplySentinel) GetK8SName() string {
 	if x != nil {
-		return x.K8SCrdName
+		return x.K8SName
 	}
 	return ""
 }
@@ -777,10 +777,9 @@ func (x *ApplySentinel) GetMemoryMib() int64 {
 // The sentinel and all its resources (pods, services, frontline) will be deleted.
 // In-flight requests may be disrupted unless proper connection draining is configured.
 type DeleteSentinel struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// sentinel_id identifies the sentinel to delete.
-	// All resources with this sentinel_id in the namespace will be removed.
-	SentinelId    string `protobuf:"bytes,1,opt,name=sentinel_id,json=sentinelId,proto3" json:"sentinel_id,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	K8SNamespace  string                 `protobuf:"bytes,1,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
+	K8SName       string                 `protobuf:"bytes,2,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -815,9 +814,16 @@ func (*DeleteSentinel) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{10}
 }
 
-func (x *DeleteSentinel) GetSentinelId() string {
+func (x *DeleteSentinel) GetK8SNamespace() string {
 	if x != nil {
-		return x.SentinelId
+		return x.K8SNamespace
+	}
+	return ""
+}
+
+func (x *DeleteSentinel) GetK8SName() string {
+	if x != nil {
+		return x.K8SName
 	}
 	return ""
 }
@@ -830,8 +836,8 @@ func (x *DeleteSentinel) GetSentinelId() string {
 type ApplyDeployment struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// namespace is the Kubernetes namespace in which the deployment should exist.
-	Namespace  string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	K8SCrdName string `protobuf:"bytes,2,opt,name=k8s_crd_name,json=k8sCrdName,proto3" json:"k8s_crd_name,omitempty"`
+	K8SNamespace string `protobuf:"bytes,1,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
+	K8SName      string `protobuf:"bytes,2,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
 	// workspace_id identifies the workspace that owns this deployment.
 	// Used for multi-tenancy and access control.
 	WorkspaceId string `protobuf:"bytes,3,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
@@ -892,16 +898,16 @@ func (*ApplyDeployment) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{11}
 }
 
-func (x *ApplyDeployment) GetNamespace() string {
+func (x *ApplyDeployment) GetK8SNamespace() string {
 	if x != nil {
-		return x.Namespace
+		return x.K8SNamespace
 	}
 	return ""
 }
 
-func (x *ApplyDeployment) GetK8SCrdName() string {
+func (x *ApplyDeployment) GetK8SName() string {
 	if x != nil {
-		return x.K8SCrdName
+		return x.K8SName
 	}
 	return ""
 }
@@ -968,10 +974,9 @@ func (x *ApplyDeployment) GetMemoryMib() int64 {
 // the configured termination grace period. All associated resources (services,
 // configmaps specific to this deployment) will also be cleaned up.
 type DeleteDeployment struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// deployment_id identifies the deployment to delete.
-	// All resources with this deployment_id in the namespace will be removed.
-	DeploymentId  string `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	K8SNamespace  string                 `protobuf:"bytes,1,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
+	K8SName       string                 `protobuf:"bytes,2,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1006,9 +1011,16 @@ func (*DeleteDeployment) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *DeleteDeployment) GetDeploymentId() string {
+func (x *DeleteDeployment) GetK8SNamespace() string {
 	if x != nil {
-		return x.DeploymentId
+		return x.K8SNamespace
+	}
+	return ""
+}
+
+func (x *DeleteDeployment) GetK8SName() string {
+	if x != nil {
+		return x.K8SName
 	}
 	return ""
 }
@@ -1099,7 +1111,7 @@ func (x *UpdateInstanceStateRequest_Upsert) GetStatus() UpdateInstanceStateReque
 
 type UpdateInstanceStateRequest_Delete struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	K8SCrdName    string                 `protobuf:"bytes,1,opt,name=k8s_crd_name,json=k8sCrdName,proto3" json:"k8s_crd_name,omitempty"`
+	K8SName       string                 `protobuf:"bytes,1,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
 	PodName       string                 `protobuf:"bytes,2,opt,name=pod_name,json=podName,proto3" json:"pod_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1135,9 +1147,9 @@ func (*UpdateInstanceStateRequest_Delete) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2, 1}
 }
 
-func (x *UpdateInstanceStateRequest_Delete) GetK8SCrdName() string {
+func (x *UpdateInstanceStateRequest_Delete) GetK8SName() string {
 	if x != nil {
-		return x.K8SCrdName
+		return x.K8SName
 	}
 	return ""
 }
@@ -1158,7 +1170,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\vsentinel_id\x18\x01 \x01(\tR\n" +
 	"sentinelId\"G\n" +
 	" GetDesiredDeploymentStateRequest\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\xc5\x04\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\xbe\x04\n" +
 	"\x1aUpdateInstanceStateRequest\x12D\n" +
 	"\x06upsert\x18\x01 \x01(\v2*.ctrl.v1.UpdateInstanceStateRequest.UpsertH\x00R\x06upsert\x12D\n" +
 	"\x06delete\x18\x02 \x01(\v2*.ctrl.v1.UpdateInstanceStateRequest.DeleteH\x00R\x06delete\x1a\xec\x01\n" +
@@ -1169,10 +1181,9 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x0ecpu_millicores\x18\x04 \x01(\x05R\rcpuMillicores\x12\x1d\n" +
 	"\n" +
 	"memory_mib\x18\x05 \x01(\x05R\tmemoryMib\x12B\n" +
-	"\x06status\x18\x06 \x01(\x0e2*.ctrl.v1.UpdateInstanceStateRequest.StatusR\x06status\x1aE\n" +
-	"\x06Delete\x12 \n" +
-	"\fk8s_crd_name\x18\x01 \x01(\tR\n" +
-	"k8sCrdName\x12\x19\n" +
+	"\x06status\x18\x06 \x01(\x0e2*.ctrl.v1.UpdateInstanceStateRequest.StatusR\x06status\x1a>\n" +
+	"\x06Delete\x12\x19\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\x12\x19\n" +
 	"\bpod_name\x18\x02 \x01(\tR\apodName\"[\n" +
 	"\x06Status\x12\x16\n" +
 	"\x12STATUS_UNSPECIFIED\x10\x00\x12\x12\n" +
@@ -1180,11 +1191,10 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x0eSTATUS_RUNNING\x10\x02\x12\x11\n" +
 	"\rSTATUS_FAILED\x10\x03B\b\n" +
 	"\x06change\"\x1d\n" +
-	"\x1bUpdateInstanceStateResponse\"i\n" +
-	"\x1aUpdateSentinelStateRequest\x12 \n" +
-	"\fk8s_crd_name\x18\x01 \x01(\tR\n" +
-	"k8sCrdName\x12)\n" +
-	"\x10running_replicas\x18\x02 \x01(\x05R\x0frunningReplicas\"\x1d\n" +
+	"\x1bUpdateInstanceStateResponse\"f\n" +
+	"\x1aUpdateSentinelStateRequest\x12\x19\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\x12-\n" +
+	"\x12available_replicas\x18\x02 \x01(\x05R\x11availableReplicas\"\x1d\n" +
 	"\x1bUpdateSentinelStateResponse\"\xdf\x01\n" +
 	"\fWatchRequest\x12\x1b\n" +
 	"\tclient_id\x18\x01 \x01(\tR\bclientId\x12B\n" +
@@ -1202,10 +1212,9 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x05apply\x18\x01 \x01(\v2\x18.ctrl.v1.ApplyDeploymentH\x00R\x05apply\x123\n" +
 	"\x06delete\x18\x02 \x01(\v2\x19.ctrl.v1.DeleteDeploymentH\x00R\x06deleteB\a\n" +
 	"\x05state\"\xd1\x02\n" +
-	"\rApplySentinel\x12\x1c\n" +
-	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12 \n" +
-	"\fk8s_crd_name\x18\x02 \x01(\tR\n" +
-	"k8sCrdName\x12!\n" +
+	"\rApplySentinel\x12#\n" +
+	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
+	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
 	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x04 \x01(\tR\tprojectId\x12%\n" +
@@ -1217,14 +1226,13 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x0ecpu_millicores\x18\t \x01(\x03R\rcpuMillicores\x12\x1d\n" +
 	"\n" +
 	"memory_mib\x18\n" +
-	" \x01(\x03R\tmemoryMib\"1\n" +
-	"\x0eDeleteSentinel\x12\x1f\n" +
-	"\vsentinel_id\x18\x01 \x01(\tR\n" +
-	"sentinelId\"\xd7\x02\n" +
-	"\x0fApplyDeployment\x12\x1c\n" +
-	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12 \n" +
-	"\fk8s_crd_name\x18\x02 \x01(\tR\n" +
-	"k8sCrdName\x12!\n" +
+	" \x01(\x03R\tmemoryMib\"P\n" +
+	"\x0eDeleteSentinel\x12#\n" +
+	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
+	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\"\xd7\x02\n" +
+	"\x0fApplyDeployment\x12#\n" +
+	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
+	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
 	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x04 \x01(\tR\tprojectId\x12%\n" +
@@ -1235,9 +1243,10 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x0ecpu_millicores\x18\t \x01(\x03R\rcpuMillicores\x12\x1d\n" +
 	"\n" +
 	"memory_mib\x18\n" +
-	" \x01(\x03R\tmemoryMib\"7\n" +
+	" \x01(\x03R\tmemoryMib\"R\n" +
 	"\x10DeleteDeployment\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId2\x9c\x04\n" +
+	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
+	"\bk8s_name\x18\x02 \x01(\tR\ak8sName2\x9c\x04\n" +
 	"\x0eClusterService\x12A\n" +
 	"\x0eWatchSentinels\x12\x15.ctrl.v1.WatchRequest\x1a\x16.ctrl.v1.SentinelState0\x01\x12Z\n" +
 	"\x17GetDesiredSentinelState\x12'.ctrl.v1.GetDesiredSentinelStateRequest\x1a\x16.ctrl.v1.SentinelState\x12`\n" +

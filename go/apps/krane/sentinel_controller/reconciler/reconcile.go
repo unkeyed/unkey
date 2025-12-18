@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -16,15 +14,19 @@ import (
 
 // Definitions to manage status conditions
 const (
-	// typeAvailableSentinel represents the status of the Deployment reconciliation
+	// typeAvailableSentinel represents the status of the Deployment reconciliation.
+	// This condition indicates whether the sentinel deployment is fully operational
+	// and ready to serve traffic.
 	typeAvailableSentinel = "Available"
 )
 
 var (
-	requeueNow = ctrl.Result{Requeue: true, RequeueAfter: time.Millisecond}
-	// requeuePeriodically is used to keep the cluster resoruces in sync with the database in case any change events go missing
-	requeuePeriodically = ctrl.Result{Requeue: true, RequeueAfter: 15 * time.Minute}
-	requeueNever        = ctrl.Result{Requeue: false, RequeueAfter: 0}
+	// requeue requests immediate requeue with minimal delay.
+	// Used when state changes require immediate attention.
+	requeue = ctrl.Result{Requeue: true, RequeueAfter: time.Millisecond}
+	// forget indicates no further reconciliation is needed.
+	// Used for successful completions and when resources are deleted.
+	forget = ctrl.Result{Requeue: false, RequeueAfter: 0}
 )
 
 // Reconcile handles reconciliation of Sentinel custom resources.
@@ -51,7 +53,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// The sentinel resource is not found, it must be deleted
-			return requeueNever, nil
+			return forget, nil
 		}
 		// Error reading the object - requeue the request.
 		r.logger.Error("failed to get sentinel", "error", err)
@@ -60,47 +62,53 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	// Let's just set the status as Unknown when no status is available
 	if len(sentinel.Status.Conditions) == 0 {
-		meta.SetStatusCondition(&sentinel.Status.Conditions, metav1.Condition{
-			Type:    typeAvailableSentinel,
-			Status:  metav1.ConditionUnknown,
-			Reason:  "Reconciling",
-			Message: "Starting reconciliation",
-		})
-		if err = r.client.Status().Update(ctx, sentinel); err != nil {
-			r.logger.Error("Failed to update Sentinel status", "error", err)
-			return ctrl.Result{}, err
-		}
-		return requeueNow, nil
+		return r.setStatusAndReqeue(ctx, sentinel, metav1.ConditionUnknown, "Starting reconciliation")
 	}
 
 	deployment, err := r.ensureDeploymentExists(ctx, sentinel)
 	if err != nil {
-
-		return ctrl.Result{}, err
+		return r.setStatusAndReqeue(ctx, sentinel, metav1.ConditionFalse, "deployment could not be created")
 	}
 
 	svc, err := r.ensureServiceExists(ctx, sentinel)
 	if err != nil {
+		return r.setStatusAndReqeue(ctx, sentinel, metav1.ConditionFalse, "service could not be created")
+	}
+
+	var _ = svc
+
+	status := metav1.ConditionFalse
+	if deployment.Status.AvailableReplicas >= sentinel.Spec.Replicas {
+		status = metav1.ConditionTrue
+	}
+	return forget, r.setStatus(ctx, sentinel, status, "reconcile finished")
+
+}
+
+// setStatus updates the sentinel's status condition.
+//
+// This helper function sets the Available condition on the sentinel resource
+// with the provided status and message. It uses the standard Kubernetes
+// condition pattern with "Reconciling" as the reason.
+func (r *Reconciler) setStatus(ctx context.Context, sentinel *apiv1.Sentinel, status metav1.ConditionStatus, message string) error {
+	meta.SetStatusCondition(&sentinel.Status.Conditions, metav1.Condition{
+		Type:    typeAvailableSentinel,
+		Status:  status,
+		Reason:  "Reconciling",
+		Message: message,
+	})
+	return r.client.Status().Update(ctx, sentinel)
+}
+
+// setStatusAndReqeue updates status and requests immediate requeue.
+//
+// This helper function combines status updates with immediate requeuing,
+// which is commonly needed when transitioning between reconciliation states.
+// The requeue ensures the controller continues processing the updated state.
+func (r *Reconciler) setStatusAndReqeue(ctx context.Context, sentinel *apiv1.Sentinel, status metav1.ConditionStatus, message string) (ctrl.Result, error) {
+	err := r.setStatus(ctx, sentinel, status, message)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	for _, fn := range []func(ctx context.Context, sentinel *apiv1.Sentinel, deployment *appsv1.Deployment, service *corev1.Service) (bool, error){
-		r.reconcileImage,
-		r.reconcileReplicas,
-		//r.reconcileCPU,
-		//r.reconcileMemory,
-	} {
-
-		requeue, err := fn(ctx, sentinel, deployment, svc)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		if requeue {
-			r.logger.Info("Requeueing due to state change")
-			return requeueNow, nil
-		}
-	}
-
-	return requeuePeriodically, nil
-
+	return requeue, nil
 }

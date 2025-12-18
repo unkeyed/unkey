@@ -1,4 +1,4 @@
-package inbound
+package reflector
 
 import (
 	"context"
@@ -25,18 +25,20 @@ import (
 //
 // Returns an error if validation fails, namespace creation fails,
 // or CRD creation/update encounters problems.
-func (r *InboundReconciler) applySentinel(ctx context.Context, req *ctrlv1.ApplySentinel) error {
+func (r *Reflector) applySentinel(ctx context.Context, req *ctrlv1.ApplySentinel) error {
 
-	r.logger.Info("Applying Sentinel",
-		"req", req,
+	r.logger.Info("applying sentinel",
+		"namespace", req.GetK8SNamespace(),
+		"name", req.GetK8SName(),
+		"sentinel_id", req.GetSentinelId(),
 	)
 	err := assert.All(
 		assert.NotEmpty(req.GetWorkspaceId(), "Workspace ID is required"),
 		assert.NotEmpty(req.GetProjectId(), "Project ID is required"),
 		assert.NotEmpty(req.GetEnvironmentId(), "Environment ID is required"),
 		assert.NotEmpty(req.GetSentinelId(), "Sentinel ID is required"),
-		assert.NotEmpty(req.GetNamespace(), "Namespace is required"),
-		assert.NotEmpty(req.GetK8SCrdName(), "K8s CRD name is required"),
+		assert.NotEmpty(req.GetK8SNamespace(), "Namespace is required"),
+		assert.NotEmpty(req.GetK8SName(), "K8s CRD name is required"),
 		assert.NotEmpty(req.GetImage(), "Image is required"),
 		assert.Greater(req.GetCpuMillicores(), int64(0), "CPU millicores must be greater than 0"),
 		assert.Greater(req.GetMemoryMib(), int64(0), "MemoryMib must be greater than 0"),
@@ -45,7 +47,7 @@ func (r *InboundReconciler) applySentinel(ctx context.Context, req *ctrlv1.Apply
 		return err
 	}
 
-	if err := r.ensureNamespaceExists(ctx, req.GetNamespace()); err != nil {
+	if err := r.ensureNamespaceExists(ctx, req.GetK8SNamespace()); err != nil {
 		return err
 	}
 
@@ -58,15 +60,14 @@ func (r *InboundReconciler) applySentinel(ctx context.Context, req *ctrlv1.Apply
 		ManagedByKrane().
 		ToMap()
 
-	r.logger.Info("creating sentinel", "req", req)
 	obj := &sentinelv1.Sentinel{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Sentinel",
 			APIVersion: fmt.Sprintf("%s/%s", sentinelv1.GroupName, sentinelv1.GroupVersion),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: req.GetNamespace(),
-			Name:      req.GetK8SCrdName(),
+			Namespace: req.GetK8SNamespace(),
+			Name:      req.GetK8SName(),
 			Labels:    usedLabels,
 		},
 		Spec: sentinelv1.SentinelSpec{
@@ -91,6 +92,10 @@ func (r *InboundReconciler) applySentinel(ctx context.Context, req *ctrlv1.Apply
 			return r.client.Create(ctx, obj)
 		}
 		return err
+	}
+	if existing.Spec.Hash() == obj.Spec.Hash() {
+		// nothing to do, we're in sync
+		return nil
 	}
 
 	existing.Spec = obj.Spec

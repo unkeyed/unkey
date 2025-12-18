@@ -353,7 +353,7 @@ CREATE TABLE `projects` (
 
 CREATE TABLE `deployments` (
 	`id` varchar(128) NOT NULL,
-	`k8s_crd_name` varchar(255) NOT NULL,
+	`k8s_name` varchar(255) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
 	`environment_id` varchar(128) NOT NULL,
@@ -373,7 +373,7 @@ CREATE TABLE `deployments` (
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployments_id` PRIMARY KEY(`id`),
-	CONSTRAINT `deployments_k8s_crd_name_unique` UNIQUE(`k8s_crd_name`)
+	CONSTRAINT `deployments_k8s_name_unique` UNIQUE(`k8s_name`)
 );
 
 CREATE TABLE `deployment_topology` (
@@ -437,8 +437,8 @@ CREATE TABLE `sentinels` (
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
 	`environment_id` varchar(255) NOT NULL,
-	`k8s_crd_name` varchar(255) NOT NULL,
-	`k8s_service_name` varchar(255) NOT NULL,
+	`k8s_name` varchar(255) NOT NULL,
+	`k8s_address` varchar(255) NOT NULL,
 	`region` varchar(255) NOT NULL,
 	`image` varchar(255) NOT NULL,
 	`desired_state` enum('running','standby','archived') NOT NULL DEFAULT 'running',
@@ -450,8 +450,8 @@ CREATE TABLE `sentinels` (
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `sentinels_id` PRIMARY KEY(`id`),
-	CONSTRAINT `sentinels_k8s_crd_name_unique` UNIQUE(`k8s_crd_name`),
-	CONSTRAINT `sentinels_k8s_service_name_unique` UNIQUE(`k8s_service_name`)
+	CONSTRAINT `sentinels_k8s_name_unique` UNIQUE(`k8s_name`),
+	CONSTRAINT `sentinels_k8s_address_unique` UNIQUE(`k8s_address`)
 );
 
 CREATE TABLE `instances` (

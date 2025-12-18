@@ -10,18 +10,18 @@ import (
 )
 
 const findDeploymentById = `-- name: FindDeploymentById :one
-SELECT id, k8s_crd_name, workspace_id, project_id, environment_id, image, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, status, created_at, updated_at FROM ` + "`" + `deployments` + "`" + ` WHERE id = ?
+SELECT id, k8s_name, workspace_id, project_id, environment_id, image, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, status, created_at, updated_at FROM ` + "`" + `deployments` + "`" + ` WHERE id = ?
 `
 
 // FindDeploymentById
 //
-//	SELECT id, k8s_crd_name, workspace_id, project_id, environment_id, image, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, status, created_at, updated_at FROM `deployments` WHERE id = ?
+//	SELECT id, k8s_name, workspace_id, project_id, environment_id, image, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, status, created_at, updated_at FROM `deployments` WHERE id = ?
 func (q *Queries) FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error) {
 	row := db.QueryRowContext(ctx, findDeploymentById, id)
 	var i Deployment
 	err := row.Scan(
 		&i.ID,
-		&i.K8sCrdName,
+		&i.K8sName,
 		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.EnvironmentID,

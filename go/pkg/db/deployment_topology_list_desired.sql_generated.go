@@ -13,7 +13,7 @@ import (
 const listDesiredDeploymentTopology = `-- name: ListDesiredDeploymentTopology :many
 SELECT
     d.id as deployment_id,
-    d.k8s_crd_name as k8s_crd_name,
+    d.k8s_name as k8s_name,
     d.workspace_id,
     d.project_id,
     d.environment_id,
@@ -42,7 +42,7 @@ type ListDesiredDeploymentTopologyParams struct {
 
 type ListDesiredDeploymentTopologyRow struct {
 	DeploymentID  string         `db:"deployment_id"`
-	K8sCrdName    string         `db:"k8s_crd_name"`
+	K8sName       string         `db:"k8s_name"`
 	WorkspaceID   string         `db:"workspace_id"`
 	ProjectID     string         `db:"project_id"`
 	EnvironmentID string         `db:"environment_id"`
@@ -58,7 +58,7 @@ type ListDesiredDeploymentTopologyRow struct {
 //
 //	SELECT
 //	    d.id as deployment_id,
-//	    d.k8s_crd_name as k8s_crd_name,
+//	    d.k8s_name as k8s_name,
 //	    d.workspace_id,
 //	    d.project_id,
 //	    d.environment_id,
@@ -93,7 +93,7 @@ func (q *Queries) ListDesiredDeploymentTopology(ctx context.Context, db DBTX, ar
 		var i ListDesiredDeploymentTopologyRow
 		if err := rows.Scan(
 			&i.DeploymentID,
-			&i.K8sCrdName,
+			&i.K8sName,
 			&i.WorkspaceID,
 			&i.ProjectID,
 			&i.EnvironmentID,

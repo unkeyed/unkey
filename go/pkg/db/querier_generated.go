@@ -194,7 +194,7 @@ type Querier interface {
 	FindCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT id, k8s_crd_name, workspace_id, project_id, environment_id, image, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, status, created_at, updated_at FROM `deployments` WHERE id = ?
+	//  SELECT id, k8s_name, workspace_id, project_id, environment_id, image, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, status, created_at, updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentStepsByDeploymentId
 	//
@@ -211,7 +211,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      d.id,
-	//      d.k8s_crd_name,
+	//      d.k8s_name,
 	//      w.k8s_namespace,
 	//      d.workspace_id,
 	//      d.project_id,
@@ -934,13 +934,13 @@ type Querier interface {
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
 	//FindSentinelByID
 	//
-	//  SELECT s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_crd_name, s.k8s_service_name, s.region, s.image, s.desired_state, s.health, s.desired_replicas, s.replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, w.k8s_namespace FROM sentinels s
+	//  SELECT s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region, s.image, s.desired_state, s.health, s.desired_replicas, s.replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, w.k8s_namespace FROM sentinels s
 	//  INNER JOIN `workspaces` w ON s.workspace_id = w.id
 	//  WHERE s.id = ? LIMIT 1
 	FindSentinelByID(ctx context.Context, db DBTX, id string) (FindSentinelByIDRow, error)
 	//FindSentinelsByEnvironmentID
 	//
-	//  SELECT id, workspace_id, project_id, environment_id, k8s_crd_name, k8s_service_name, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels WHERE environment_id = ?
+	//  SELECT id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels WHERE environment_id = ?
 	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Sentinel, error)
 	//FindWorkspaceByID
 	//
@@ -1121,7 +1121,7 @@ type Querier interface {
 	//
 	//  INSERT INTO `deployments` (
 	//      id,
-	//      k8s_crd_name,
+	//      k8s_name,
 	//      workspace_id,
 	//      project_id,
 	//      environment_id,
@@ -1556,8 +1556,8 @@ type Querier interface {
 	//      workspace_id,
 	//      environment_id,
 	//      project_id,
-	//      k8s_service_name,
-	//      k8s_crd_name,
+	//      k8s_address,
+	//      k8s_name,
 	//      region,
 	//      image,
 	//      health,
@@ -1614,7 +1614,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      d.id as deployment_id,
-	//      d.k8s_crd_name as k8s_crd_name,
+	//      d.k8s_name as k8s_name,
 	//      d.workspace_id,
 	//      d.project_id,
 	//      d.environment_id,
@@ -1636,7 +1636,7 @@ type Querier interface {
 	//ListDesiredSentinels
 	//
 	//  SELECT
-	//      sentinels.id, sentinels.workspace_id, sentinels.project_id, sentinels.environment_id, sentinels.k8s_crd_name, sentinels.k8s_service_name, sentinels.region, sentinels.image, sentinels.desired_state, sentinels.health, sentinels.desired_replicas, sentinels.replicas, sentinels.cpu_millicores, sentinels.memory_mib, sentinels.created_at, sentinels.updated_at,
+	//      sentinels.id, sentinels.workspace_id, sentinels.project_id, sentinels.environment_id, sentinels.k8s_name, sentinels.k8s_address, sentinels.region, sentinels.image, sentinels.desired_state, sentinels.health, sentinels.desired_replicas, sentinels.replicas, sentinels.cpu_millicores, sentinels.memory_mib, sentinels.created_at, sentinels.updated_at,
 	//      workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.partition_id, workspaces.plan, workspaces.tier, workspaces.stripe_customer_id, workspaces.stripe_subscription_id, workspaces.beta_features, workspaces.features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m
 	//  FROM `sentinels`
 	//  INNER JOIN `workspaces` ON sentinels.workspace_id = workspaces.id
@@ -2212,7 +2212,7 @@ type Querier interface {
 	//  replicas = ?,
 	//  health = ?,
 	//  updated_at = ?
-	//  WHERE k8s_crd_name = ?
+	//  WHERE k8s_name = ?
 	UpdateSentinelReplicasAndHealth(ctx context.Context, db DBTX, arg UpdateSentinelReplicasAndHealthParams) error
 	//UpdateWorkspaceEnabled
 	//

@@ -13,7 +13,7 @@ import (
 const findDeploymentTopologyByIDAndRegion = `-- name: FindDeploymentTopologyByIDAndRegion :one
 SELECT
     d.id,
-    d.k8s_crd_name,
+    d.k8s_name,
     w.k8s_namespace,
     d.workspace_id,
     d.project_id,
@@ -39,7 +39,7 @@ type FindDeploymentTopologyByIDAndRegionParams struct {
 
 type FindDeploymentTopologyByIDAndRegionRow struct {
 	ID            string                  `db:"id"`
-	K8sCrdName    string                  `db:"k8s_crd_name"`
+	K8sName       string                  `db:"k8s_name"`
 	K8sNamespace  sql.NullString          `db:"k8s_namespace"`
 	WorkspaceID   string                  `db:"workspace_id"`
 	ProjectID     string                  `db:"project_id"`
@@ -56,7 +56,7 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 //
 //	SELECT
 //	    d.id,
-//	    d.k8s_crd_name,
+//	    d.k8s_name,
 //	    w.k8s_namespace,
 //	    d.workspace_id,
 //	    d.project_id,
@@ -78,7 +78,7 @@ func (q *Queries) FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DB
 	var i FindDeploymentTopologyByIDAndRegionRow
 	err := row.Scan(
 		&i.ID,
-		&i.K8sCrdName,
+		&i.K8sName,
 		&i.K8sNamespace,
 		&i.WorkspaceID,
 		&i.ProjectID,

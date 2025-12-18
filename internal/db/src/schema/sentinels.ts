@@ -21,13 +21,11 @@ export const sentinels = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
     environmentId: varchar("environment_id", { length: 255 }).notNull(),
-    k8sCrdName: varchar("k8s_crd_name", { length: 255 }).notNull().unique(),
-    k8sServiceName: varchar("k8s_service_name", { length: 255 })
-      .notNull()
-      .unique(),
+    k8sName: varchar("k8s_name", { length: 255 }).notNull().unique(),
+    k8sAddress: varchar("k8s_address", { length: 255 }).notNull().unique(),
     /*
      * `us-east-1`, `us-west-2` etc
-     */
+    */
     region: varchar("region", { length: 255 }).notNull(),
     image: varchar("image", { length: 255 }).notNull(),
     desiredState: mysqlEnum("desired_state", ["running", "standby", "archived"])

@@ -862,7 +862,7 @@ type CustomDomain struct {
 
 type Deployment struct {
 	ID                       string                  `db:"id"`
-	K8sCrdName               string                  `db:"k8s_crd_name"`
+	K8sName                  string                  `db:"k8s_name"`
 	WorkspaceID              string                  `db:"workspace_id"`
 	ProjectID                string                  `db:"project_id"`
 	EnvironmentID            string                  `db:"environment_id"`
@@ -1121,8 +1121,8 @@ type Sentinel struct {
 	WorkspaceID     string                `db:"workspace_id"`
 	ProjectID       string                `db:"project_id"`
 	EnvironmentID   string                `db:"environment_id"`
-	K8sCrdName      string                `db:"k8s_crd_name"`
-	K8sServiceName  string                `db:"k8s_service_name"`
+	K8sName         string                `db:"k8s_name"`
+	K8sAddress      string                `db:"k8s_address"`
 	Region          string                `db:"region"`
 	Image           string                `db:"image"`
 	DesiredState    SentinelsDesiredState `db:"desired_state"`

@@ -41,7 +41,7 @@ func TestNano(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			id := Nano(tt.length...)
+			id := Nano("", tt.length...)
 
 			// Check total length
 			if len(id) != tt.wantLen {
@@ -65,7 +65,7 @@ func TestNanoUniqueness(t *testing.T) {
 	seen := make(map[string]bool)
 
 	for range iterations {
-		id := Nano() // Using default length
+		id := Nano("") // Using default length
 		if seen[id] {
 			t.Errorf("Duplicate ID generated: %v", id)
 		}
@@ -76,15 +76,14 @@ func TestNanoUniqueness(t *testing.T) {
 // TestNanoWithPrefix demonstrates how to use Nano with manual prefixing.
 func TestNanoWithPrefix(t *testing.T) {
 	// Example of using Nano with a manual prefix
-	prefix := "usr_"
-	id := prefix + Nano()
+	id := Nano(KeyPrefix)
 
-	if !strings.HasPrefix(id, prefix) {
-		t.Errorf("Expected ID to start with prefix %v, got %v", prefix, id)
+	if !strings.HasPrefix(id, string(KeyPrefix)) {
+		t.Errorf("Expected ID to start with prefix %v, got %v", KeyPrefix, id)
 	}
 
 	// Total length should be prefix + 8 default chars
-	expectedLen := len(prefix) + 8
+	expectedLen := len(KeyPrefix) + 1 + 8
 	if len(id) != expectedLen {
 		t.Errorf("Expected total length %v, got %v", expectedLen, len(id))
 	}

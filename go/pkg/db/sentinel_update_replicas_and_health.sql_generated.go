@@ -15,14 +15,14 @@ UPDATE sentinels SET
 replicas = ?,
 health = ?,
 updated_at = ?
-WHERE k8s_crd_name = ?
+WHERE k8s_name = ?
 `
 
 type UpdateSentinelReplicasAndHealthParams struct {
-	Replicas   int32           `db:"replicas"`
-	Health     SentinelsHealth `db:"health"`
-	UpdatedAt  sql.NullInt64   `db:"updated_at"`
-	K8sCrdName string          `db:"k8s_crd_name"`
+	Replicas  int32           `db:"replicas"`
+	Health    SentinelsHealth `db:"health"`
+	UpdatedAt sql.NullInt64   `db:"updated_at"`
+	K8sName   string          `db:"k8s_name"`
 }
 
 // UpdateSentinelReplicasAndHealth
@@ -31,13 +31,13 @@ type UpdateSentinelReplicasAndHealthParams struct {
 //	replicas = ?,
 //	health = ?,
 //	updated_at = ?
-//	WHERE k8s_crd_name = ?
+//	WHERE k8s_name = ?
 func (q *Queries) UpdateSentinelReplicasAndHealth(ctx context.Context, db DBTX, arg UpdateSentinelReplicasAndHealthParams) error {
 	_, err := db.ExecContext(ctx, updateSentinelReplicasAndHealth,
 		arg.Replicas,
 		arg.Health,
 		arg.UpdatedAt,
-		arg.K8sCrdName,
+		arg.K8sName,
 	)
 	return err
 }

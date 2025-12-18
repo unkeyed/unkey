@@ -162,7 +162,7 @@ func (w *Watcher[T]) Watch(ctx context.Context, buf *buffer.Buffer[*T]) {
 
 			hasMsg := stream.Receive()
 			if !hasMsg {
-				w.logger.Info("Stream ended, reconnecting...",
+				w.logger.Debug("Stream ended, reconnecting...",
 					"error", stream.Err(),
 				)
 				stream = nil

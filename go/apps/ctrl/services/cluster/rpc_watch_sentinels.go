@@ -121,8 +121,8 @@ func (s *Service) getSyntheticSentinels(ctx context.Context, req *connect.Reques
 			c <- &ctrlv1.SentinelState{
 				State: &ctrlv1.SentinelState_Apply{
 					Apply: &ctrlv1.ApplySentinel{
-						Namespace:     t.Workspace.K8sNamespace.String,
-						K8SCrdName:    t.Sentinel.K8sCrdName,
+						K8SNamespace:  t.Workspace.K8sNamespace.String,
+						K8SName:       t.Sentinel.K8sName,
 						WorkspaceId:   t.Workspace.ID,
 						EnvironmentId: t.Sentinel.EnvironmentID,
 						ProjectId:     t.Sentinel.ProjectID,

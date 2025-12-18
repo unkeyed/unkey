@@ -11,7 +11,7 @@ import (
 )
 
 const findSentinelByID = `-- name: FindSentinelByID :one
-SELECT s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_crd_name, s.k8s_service_name, s.region, s.image, s.desired_state, s.health, s.desired_replicas, s.replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, w.k8s_namespace FROM sentinels s
+SELECT s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region, s.image, s.desired_state, s.health, s.desired_replicas, s.replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, w.k8s_namespace FROM sentinels s
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON s.workspace_id = w.id
 WHERE s.id = ? LIMIT 1
 `
@@ -21,8 +21,8 @@ type FindSentinelByIDRow struct {
 	WorkspaceID     string                `db:"workspace_id"`
 	ProjectID       string                `db:"project_id"`
 	EnvironmentID   string                `db:"environment_id"`
-	K8sCrdName      string                `db:"k8s_crd_name"`
-	K8sServiceName  string                `db:"k8s_service_name"`
+	K8sName         string                `db:"k8s_name"`
+	K8sAddress      string                `db:"k8s_address"`
 	Region          string                `db:"region"`
 	Image           string                `db:"image"`
 	DesiredState    SentinelsDesiredState `db:"desired_state"`
@@ -38,7 +38,7 @@ type FindSentinelByIDRow struct {
 
 // FindSentinelByID
 //
-//	SELECT s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_crd_name, s.k8s_service_name, s.region, s.image, s.desired_state, s.health, s.desired_replicas, s.replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, w.k8s_namespace FROM sentinels s
+//	SELECT s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region, s.image, s.desired_state, s.health, s.desired_replicas, s.replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, w.k8s_namespace FROM sentinels s
 //	INNER JOIN `workspaces` w ON s.workspace_id = w.id
 //	WHERE s.id = ? LIMIT 1
 func (q *Queries) FindSentinelByID(ctx context.Context, db DBTX, id string) (FindSentinelByIDRow, error) {
@@ -49,8 +49,8 @@ func (q *Queries) FindSentinelByID(ctx context.Context, db DBTX, id string) (Fin
 		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.EnvironmentID,
-		&i.K8sCrdName,
-		&i.K8sServiceName,
+		&i.K8sName,
+		&i.K8sAddress,
 		&i.Region,
 		&i.Image,
 		&i.DesiredState,
