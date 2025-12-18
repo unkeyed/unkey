@@ -9,10 +9,10 @@ import { workspaceProcedure } from "../../trpc";
 export const createIdentityInputSchema = z.object({
   externalId: z
     .string()
-    .min(1, "External ID is required")
-    .max(255, "External ID is too long")
-    .trim()
-    .refine((id) => !/^\s+$/.test(id), "External ID cannot be only whitespace"),
+    .transform((s) => s.trim())
+    .refine((trimmed) => trimmed.length >= 1, "External ID is required")
+    .refine((trimmed) => trimmed.length <= 255, "External ID cannot exceed 255 characters")
+    .refine((trimmed) => trimmed !== "", "External ID cannot be only whitespace"),
   meta: z.record(z.unknown()).nullable(),
   ratelimits: z.array(ratelimitItemSchema).optional(),
 });
