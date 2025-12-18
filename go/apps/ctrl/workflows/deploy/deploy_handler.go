@@ -293,18 +293,18 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	for _, hostname := range allHostnames {
 		frontlineRouteID, getFrontlineRouteErr := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
 			return db.TxWithResult(stepCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
-				found, err := db.Query.FindFrontlineRouteByHostname(txCtx, tx, hostname.domain)
+				found, err := db.Query.FindFrontlineRouteByFQDN(txCtx, tx, hostname.domain)
 				if err != nil {
 					if db.IsNotFound(err) {
 						err = db.Query.InsertFrontlineRoute(stepCtx, tx, db.InsertFrontlineRouteParams{
-							ID:            uid.New("todo"),
-							ProjectID:     project.ID,
-							DeploymentID:  deployment.ID,
-							EnvironmentID: deployment.EnvironmentID,
-							Hostname:      hostname.domain,
-							Sticky:        hostname.sticky,
-							CreatedAt:     time.Now().UnixMilli(),
-							UpdatedAt:     sql.NullInt64{Valid: false, Int64: 0},
+							ID:                       uid.New("todo"),
+							ProjectID:                project.ID,
+							DeploymentID:             deployment.ID,
+							EnvironmentID:            deployment.EnvironmentID,
+							FullyQualifiedDomainName: hostname.domain,
+							Sticky:                   hostname.sticky,
+							CreatedAt:                time.Now().UnixMilli(),
+							UpdatedAt:                sql.NullInt64{Valid: false, Int64: 0},
 						})
 						// return empty string cause this frontline is already updated since we just created it
 						return "", err

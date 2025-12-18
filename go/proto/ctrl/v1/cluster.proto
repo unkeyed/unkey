@@ -31,6 +31,7 @@ service ClusterService {
   rpc WatchDeployments(WatchRequest) returns (stream DeploymentState);
   rpc GetDesiredDeploymentState(GetDesiredDeploymentStateRequest) returns (DeploymentState);
   rpc UpdateInstanceState(UpdateInstanceStateRequest) returns (UpdateInstanceStateResponse);
+  rpc UpdateDeploymentState(UpdateDeploymentStateRequest) returns (UpdateDeploymentStateResponse);
 }
 
 
@@ -42,6 +43,50 @@ message GetDesiredSentinelStateRequest {
 message GetDesiredDeploymentStateRequest {
   string deployment_id = 1;
 }
+
+message UpdateDeploymentStateRequest{
+
+
+  message Update {
+
+    message Instance {
+      enum Status {
+        STATUS_UNSPECIFIED = 0;
+        STATUS_PENDING = 1; // Deployment request accepted, container/pod creation in progress
+        STATUS_RUNNING = 2; // Container/pod is running and healthy
+        STATUS_FAILED = 3; // Container/pod failed to start
+      }
+      string k8s_name = 1;
+      string address = 2;
+      int64 cpu_millicores = 3;
+      int64 memory_mib = 4;
+        Status status = 5;
+    }
+
+    string k8s_name = 1;
+    repeated Instance instances = 2;
+
+
+  }
+  message Delete {
+    string k8s_name = 1;
+  }
+
+
+
+  oneof change {
+    Update update = 1;
+    Delete delete = 2;
+
+  }
+
+
+}
+
+message UpdateDeploymentStateResponse {
+
+}
+
 
 
 message UpdateInstanceStateRequest {
@@ -56,15 +101,15 @@ message UpdateInstanceStateRequest {
 
   message Upsert {
     string deployment_id = 1;
-    string pod_name = 2;
+    string k8s_name = 2;
     string address = 3;
-    int32 cpu_millicores = 4;
-    int32 memory_mib = 5;
+    int64 cpu_millicores = 4;
+    int64 memory_mib = 5;
       Status status = 6;
   }
   message Delete {
-    string k8s_name = 1;
-    string pod_name = 2;
+    string k8s_namespace = 1;
+    string k8s_name = 2;
   }
 
 
@@ -135,6 +180,7 @@ message SentinelState {
 
     // delete indicates the sentinel should be removed from the cluster.
     DeleteSentinel delete = 2;
+
   }
 }
 
@@ -155,6 +201,8 @@ message DeploymentState {
 
     // delete indicates the deployment should be removed from the cluster.
     DeleteDeployment delete = 2;
+
+
   }
 }
 

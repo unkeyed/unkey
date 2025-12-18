@@ -11,7 +11,7 @@ import (
 
 const findInstancesByDeploymentId = `-- name: FindInstancesByDeploymentId :many
 SELECT
- id, deployment_id, workspace_id, project_id, region, shard, pod_name, address, cpu_millicores, memory_mib, status
+ id, deployment_id, workspace_id, project_id, region, shard, k8s_name, address, cpu_millicores, memory_mib, status
 FROM instances
 WHERE deployment_id = ?
 `
@@ -19,7 +19,7 @@ WHERE deployment_id = ?
 // FindInstancesByDeploymentId
 //
 //	SELECT
-//	 id, deployment_id, workspace_id, project_id, region, shard, pod_name, address, cpu_millicores, memory_mib, status
+//	 id, deployment_id, workspace_id, project_id, region, shard, k8s_name, address, cpu_millicores, memory_mib, status
 //	FROM instances
 //	WHERE deployment_id = ?
 func (q *Queries) FindInstancesByDeploymentId(ctx context.Context, db DBTX, deploymentid string) ([]Instance, error) {
@@ -38,7 +38,7 @@ func (q *Queries) FindInstancesByDeploymentId(ctx context.Context, db DBTX, depl
 			&i.ProjectID,
 			&i.Region,
 			&i.Shard,
-			&i.PodName,
+			&i.K8sName,
 			&i.Address,
 			&i.CpuMillicores,
 			&i.MemoryMib,

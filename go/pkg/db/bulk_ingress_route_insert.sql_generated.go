@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertFrontlineRoute is the base query for bulk insert
-const bulkInsertFrontlineRoute = `INSERT INTO frontline_routes ( id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at ) VALUES %s`
+const bulkInsertFrontlineRoute = `INSERT INTO frontline_routes ( id, project_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at ) VALUES %s`
 
 // InsertFrontlineRoutes performs bulk insert in a single query
 func (q *BulkQueries) InsertFrontlineRoutes(ctx context.Context, db DBTX, args []InsertFrontlineRouteParams) error {
@@ -33,7 +33,7 @@ func (q *BulkQueries) InsertFrontlineRoutes(ctx context.Context, db DBTX, args [
 		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.DeploymentID)
 		allArgs = append(allArgs, arg.EnvironmentID)
-		allArgs = append(allArgs, arg.Hostname)
+		allArgs = append(allArgs, arg.FullyQualifiedDomainName)
 		allArgs = append(allArgs, arg.Sticky)
 		allArgs = append(allArgs, arg.CreatedAt)
 		allArgs = append(allArgs, arg.UpdatedAt)

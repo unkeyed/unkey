@@ -31,6 +31,58 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type UpdateDeploymentStateRequest_Update_Instance_Status int32
+
+const (
+	UpdateDeploymentStateRequest_Update_Instance_STATUS_UNSPECIFIED UpdateDeploymentStateRequest_Update_Instance_Status = 0
+	UpdateDeploymentStateRequest_Update_Instance_STATUS_PENDING     UpdateDeploymentStateRequest_Update_Instance_Status = 1 // Deployment request accepted, container/pod creation in progress
+	UpdateDeploymentStateRequest_Update_Instance_STATUS_RUNNING     UpdateDeploymentStateRequest_Update_Instance_Status = 2 // Container/pod is running and healthy
+	UpdateDeploymentStateRequest_Update_Instance_STATUS_FAILED      UpdateDeploymentStateRequest_Update_Instance_Status = 3 // Container/pod failed to start
+)
+
+// Enum value maps for UpdateDeploymentStateRequest_Update_Instance_Status.
+var (
+	UpdateDeploymentStateRequest_Update_Instance_Status_name = map[int32]string{
+		0: "STATUS_UNSPECIFIED",
+		1: "STATUS_PENDING",
+		2: "STATUS_RUNNING",
+		3: "STATUS_FAILED",
+	}
+	UpdateDeploymentStateRequest_Update_Instance_Status_value = map[string]int32{
+		"STATUS_UNSPECIFIED": 0,
+		"STATUS_PENDING":     1,
+		"STATUS_RUNNING":     2,
+		"STATUS_FAILED":      3,
+	}
+)
+
+func (x UpdateDeploymentStateRequest_Update_Instance_Status) Enum() *UpdateDeploymentStateRequest_Update_Instance_Status {
+	p := new(UpdateDeploymentStateRequest_Update_Instance_Status)
+	*p = x
+	return p
+}
+
+func (x UpdateDeploymentStateRequest_Update_Instance_Status) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (UpdateDeploymentStateRequest_Update_Instance_Status) Descriptor() protoreflect.EnumDescriptor {
+	return file_ctrl_v1_cluster_proto_enumTypes[0].Descriptor()
+}
+
+func (UpdateDeploymentStateRequest_Update_Instance_Status) Type() protoreflect.EnumType {
+	return &file_ctrl_v1_cluster_proto_enumTypes[0]
+}
+
+func (x UpdateDeploymentStateRequest_Update_Instance_Status) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use UpdateDeploymentStateRequest_Update_Instance_Status.Descriptor instead.
+func (UpdateDeploymentStateRequest_Update_Instance_Status) EnumDescriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2, 0, 0, 0}
+}
+
 type UpdateInstanceStateRequest_Status int32
 
 const (
@@ -67,11 +119,11 @@ func (x UpdateInstanceStateRequest_Status) String() string {
 }
 
 func (UpdateInstanceStateRequest_Status) Descriptor() protoreflect.EnumDescriptor {
-	return file_ctrl_v1_cluster_proto_enumTypes[0].Descriptor()
+	return file_ctrl_v1_cluster_proto_enumTypes[1].Descriptor()
 }
 
 func (UpdateInstanceStateRequest_Status) Type() protoreflect.EnumType {
-	return &file_ctrl_v1_cluster_proto_enumTypes[0]
+	return &file_ctrl_v1_cluster_proto_enumTypes[1]
 }
 
 func (x UpdateInstanceStateRequest_Status) Number() protoreflect.EnumNumber {
@@ -80,7 +132,7 @@ func (x UpdateInstanceStateRequest_Status) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use UpdateInstanceStateRequest_Status.Descriptor instead.
 func (UpdateInstanceStateRequest_Status) EnumDescriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2, 0}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{4, 0}
 }
 
 type GetDesiredSentinelStateRequest struct {
@@ -171,6 +223,124 @@ func (x *GetDesiredDeploymentStateRequest) GetDeploymentId() string {
 	return ""
 }
 
+type UpdateDeploymentStateRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Change:
+	//
+	//	*UpdateDeploymentStateRequest_Update_
+	//	*UpdateDeploymentStateRequest_Delete_
+	Change        isUpdateDeploymentStateRequest_Change `protobuf_oneof:"change"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateDeploymentStateRequest) Reset() {
+	*x = UpdateDeploymentStateRequest{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateDeploymentStateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateDeploymentStateRequest) ProtoMessage() {}
+
+func (x *UpdateDeploymentStateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateDeploymentStateRequest.ProtoReflect.Descriptor instead.
+func (*UpdateDeploymentStateRequest) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *UpdateDeploymentStateRequest) GetChange() isUpdateDeploymentStateRequest_Change {
+	if x != nil {
+		return x.Change
+	}
+	return nil
+}
+
+func (x *UpdateDeploymentStateRequest) GetUpdate() *UpdateDeploymentStateRequest_Update {
+	if x != nil {
+		if x, ok := x.Change.(*UpdateDeploymentStateRequest_Update_); ok {
+			return x.Update
+		}
+	}
+	return nil
+}
+
+func (x *UpdateDeploymentStateRequest) GetDelete() *UpdateDeploymentStateRequest_Delete {
+	if x != nil {
+		if x, ok := x.Change.(*UpdateDeploymentStateRequest_Delete_); ok {
+			return x.Delete
+		}
+	}
+	return nil
+}
+
+type isUpdateDeploymentStateRequest_Change interface {
+	isUpdateDeploymentStateRequest_Change()
+}
+
+type UpdateDeploymentStateRequest_Update_ struct {
+	Update *UpdateDeploymentStateRequest_Update `protobuf:"bytes,1,opt,name=update,proto3,oneof"`
+}
+
+type UpdateDeploymentStateRequest_Delete_ struct {
+	Delete *UpdateDeploymentStateRequest_Delete `protobuf:"bytes,2,opt,name=delete,proto3,oneof"`
+}
+
+func (*UpdateDeploymentStateRequest_Update_) isUpdateDeploymentStateRequest_Change() {}
+
+func (*UpdateDeploymentStateRequest_Delete_) isUpdateDeploymentStateRequest_Change() {}
+
+type UpdateDeploymentStateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateDeploymentStateResponse) Reset() {
+	*x = UpdateDeploymentStateResponse{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateDeploymentStateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateDeploymentStateResponse) ProtoMessage() {}
+
+func (x *UpdateDeploymentStateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateDeploymentStateResponse.ProtoReflect.Descriptor instead.
+func (*UpdateDeploymentStateResponse) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{3}
+}
+
 type UpdateInstanceStateRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Change:
@@ -184,7 +354,7 @@ type UpdateInstanceStateRequest struct {
 
 func (x *UpdateInstanceStateRequest) Reset() {
 	*x = UpdateInstanceStateRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[2]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -196,7 +366,7 @@ func (x *UpdateInstanceStateRequest) String() string {
 func (*UpdateInstanceStateRequest) ProtoMessage() {}
 
 func (x *UpdateInstanceStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[2]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -209,7 +379,7 @@ func (x *UpdateInstanceStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateInstanceStateRequest.ProtoReflect.Descriptor instead.
 func (*UpdateInstanceStateRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *UpdateInstanceStateRequest) GetChange() isUpdateInstanceStateRequest_Change {
@@ -261,7 +431,7 @@ type UpdateInstanceStateResponse struct {
 
 func (x *UpdateInstanceStateResponse) Reset() {
 	*x = UpdateInstanceStateResponse{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[3]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -273,7 +443,7 @@ func (x *UpdateInstanceStateResponse) String() string {
 func (*UpdateInstanceStateResponse) ProtoMessage() {}
 
 func (x *UpdateInstanceStateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[3]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -286,7 +456,7 @@ func (x *UpdateInstanceStateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateInstanceStateResponse.ProtoReflect.Descriptor instead.
 func (*UpdateInstanceStateResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{3}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5}
 }
 
 type UpdateSentinelStateRequest struct {
@@ -299,7 +469,7 @@ type UpdateSentinelStateRequest struct {
 
 func (x *UpdateSentinelStateRequest) Reset() {
 	*x = UpdateSentinelStateRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[4]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -311,7 +481,7 @@ func (x *UpdateSentinelStateRequest) String() string {
 func (*UpdateSentinelStateRequest) ProtoMessage() {}
 
 func (x *UpdateSentinelStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[4]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -324,7 +494,7 @@ func (x *UpdateSentinelStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSentinelStateRequest.ProtoReflect.Descriptor instead.
 func (*UpdateSentinelStateRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{4}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *UpdateSentinelStateRequest) GetK8SName() string {
@@ -349,7 +519,7 @@ type UpdateSentinelStateResponse struct {
 
 func (x *UpdateSentinelStateResponse) Reset() {
 	*x = UpdateSentinelStateResponse{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -361,7 +531,7 @@ func (x *UpdateSentinelStateResponse) String() string {
 func (*UpdateSentinelStateResponse) ProtoMessage() {}
 
 func (x *UpdateSentinelStateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -374,7 +544,7 @@ func (x *UpdateSentinelStateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSentinelStateResponse.ProtoReflect.Descriptor instead.
 func (*UpdateSentinelStateResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{7}
 }
 
 // WatchRequest identifies the cluster requesting a watch stream.
@@ -400,7 +570,7 @@ type WatchRequest struct {
 
 func (x *WatchRequest) Reset() {
 	*x = WatchRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -412,7 +582,7 @@ func (x *WatchRequest) String() string {
 func (*WatchRequest) ProtoMessage() {}
 
 func (x *WatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -425,7 +595,7 @@ func (x *WatchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchRequest.ProtoReflect.Descriptor instead.
 func (*WatchRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{6}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *WatchRequest) GetClientId() string {
@@ -477,7 +647,7 @@ type SentinelState struct {
 
 func (x *SentinelState) Reset() {
 	*x = SentinelState{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -489,7 +659,7 @@ func (x *SentinelState) String() string {
 func (*SentinelState) ProtoMessage() {}
 
 func (x *SentinelState) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -502,7 +672,7 @@ func (x *SentinelState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SentinelState.ProtoReflect.Descriptor instead.
 func (*SentinelState) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{7}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *SentinelState) GetState() isSentinelState_State {
@@ -572,7 +742,7 @@ type DeploymentState struct {
 
 func (x *DeploymentState) Reset() {
 	*x = DeploymentState{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -584,7 +754,7 @@ func (x *DeploymentState) String() string {
 func (*DeploymentState) ProtoMessage() {}
 
 func (x *DeploymentState) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -597,7 +767,7 @@ func (x *DeploymentState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeploymentState.ProtoReflect.Descriptor instead.
 func (*DeploymentState) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{8}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DeploymentState) GetState() isDeploymentState_State {
@@ -674,7 +844,7 @@ type ApplySentinel struct {
 
 func (x *ApplySentinel) Reset() {
 	*x = ApplySentinel{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -686,7 +856,7 @@ func (x *ApplySentinel) String() string {
 func (*ApplySentinel) ProtoMessage() {}
 
 func (x *ApplySentinel) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -699,7 +869,7 @@ func (x *ApplySentinel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplySentinel.ProtoReflect.Descriptor instead.
 func (*ApplySentinel) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{9}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ApplySentinel) GetK8SNamespace() string {
@@ -786,7 +956,7 @@ type DeleteSentinel struct {
 
 func (x *DeleteSentinel) Reset() {
 	*x = DeleteSentinel{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -798,7 +968,7 @@ func (x *DeleteSentinel) String() string {
 func (*DeleteSentinel) ProtoMessage() {}
 
 func (x *DeleteSentinel) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -811,7 +981,7 @@ func (x *DeleteSentinel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSentinel.ProtoReflect.Descriptor instead.
 func (*DeleteSentinel) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{10}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *DeleteSentinel) GetK8SNamespace() string {
@@ -870,7 +1040,7 @@ type ApplyDeployment struct {
 
 func (x *ApplyDeployment) Reset() {
 	*x = ApplyDeployment{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -882,7 +1052,7 @@ func (x *ApplyDeployment) String() string {
 func (*ApplyDeployment) ProtoMessage() {}
 
 func (x *ApplyDeployment) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -895,7 +1065,7 @@ func (x *ApplyDeployment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplyDeployment.ProtoReflect.Descriptor instead.
 func (*ApplyDeployment) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{11}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ApplyDeployment) GetK8SNamespace() string {
@@ -983,7 +1153,7 @@ type DeleteDeployment struct {
 
 func (x *DeleteDeployment) Reset() {
 	*x = DeleteDeployment{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -995,7 +1165,7 @@ func (x *DeleteDeployment) String() string {
 func (*DeleteDeployment) ProtoMessage() {}
 
 func (x *DeleteDeployment) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1008,7 +1178,7 @@ func (x *DeleteDeployment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDeployment.ProtoReflect.Descriptor instead.
 func (*DeleteDeployment) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{12}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DeleteDeployment) GetK8SNamespace() string {
@@ -1025,13 +1195,185 @@ func (x *DeleteDeployment) GetK8SName() string {
 	return ""
 }
 
+type UpdateDeploymentStateRequest_Update struct {
+	state         protoimpl.MessageState                          `protogen:"open.v1"`
+	K8SName       string                                          `protobuf:"bytes,1,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
+	Instances     []*UpdateDeploymentStateRequest_Update_Instance `protobuf:"bytes,2,rep,name=instances,proto3" json:"instances,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateDeploymentStateRequest_Update) Reset() {
+	*x = UpdateDeploymentStateRequest_Update{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateDeploymentStateRequest_Update) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateDeploymentStateRequest_Update) ProtoMessage() {}
+
+func (x *UpdateDeploymentStateRequest_Update) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateDeploymentStateRequest_Update.ProtoReflect.Descriptor instead.
+func (*UpdateDeploymentStateRequest_Update) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2, 0}
+}
+
+func (x *UpdateDeploymentStateRequest_Update) GetK8SName() string {
+	if x != nil {
+		return x.K8SName
+	}
+	return ""
+}
+
+func (x *UpdateDeploymentStateRequest_Update) GetInstances() []*UpdateDeploymentStateRequest_Update_Instance {
+	if x != nil {
+		return x.Instances
+	}
+	return nil
+}
+
+type UpdateDeploymentStateRequest_Delete struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	K8SName       string                 `protobuf:"bytes,1,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateDeploymentStateRequest_Delete) Reset() {
+	*x = UpdateDeploymentStateRequest_Delete{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateDeploymentStateRequest_Delete) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateDeploymentStateRequest_Delete) ProtoMessage() {}
+
+func (x *UpdateDeploymentStateRequest_Delete) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateDeploymentStateRequest_Delete.ProtoReflect.Descriptor instead.
+func (*UpdateDeploymentStateRequest_Delete) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2, 1}
+}
+
+func (x *UpdateDeploymentStateRequest_Delete) GetK8SName() string {
+	if x != nil {
+		return x.K8SName
+	}
+	return ""
+}
+
+type UpdateDeploymentStateRequest_Update_Instance struct {
+	state         protoimpl.MessageState                              `protogen:"open.v1"`
+	K8SName       string                                              `protobuf:"bytes,1,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
+	Address       string                                              `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	CpuMillicores int64                                               `protobuf:"varint,3,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`
+	MemoryMib     int64                                               `protobuf:"varint,4,opt,name=memory_mib,json=memoryMib,proto3" json:"memory_mib,omitempty"`
+	Status        UpdateDeploymentStateRequest_Update_Instance_Status `protobuf:"varint,5,opt,name=status,proto3,enum=ctrl.v1.UpdateDeploymentStateRequest_Update_Instance_Status" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateDeploymentStateRequest_Update_Instance) Reset() {
+	*x = UpdateDeploymentStateRequest_Update_Instance{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateDeploymentStateRequest_Update_Instance) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateDeploymentStateRequest_Update_Instance) ProtoMessage() {}
+
+func (x *UpdateDeploymentStateRequest_Update_Instance) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateDeploymentStateRequest_Update_Instance.ProtoReflect.Descriptor instead.
+func (*UpdateDeploymentStateRequest_Update_Instance) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2, 0, 0}
+}
+
+func (x *UpdateDeploymentStateRequest_Update_Instance) GetK8SName() string {
+	if x != nil {
+		return x.K8SName
+	}
+	return ""
+}
+
+func (x *UpdateDeploymentStateRequest_Update_Instance) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *UpdateDeploymentStateRequest_Update_Instance) GetCpuMillicores() int64 {
+	if x != nil {
+		return x.CpuMillicores
+	}
+	return 0
+}
+
+func (x *UpdateDeploymentStateRequest_Update_Instance) GetMemoryMib() int64 {
+	if x != nil {
+		return x.MemoryMib
+	}
+	return 0
+}
+
+func (x *UpdateDeploymentStateRequest_Update_Instance) GetStatus() UpdateDeploymentStateRequest_Update_Instance_Status {
+	if x != nil {
+		return x.Status
+	}
+	return UpdateDeploymentStateRequest_Update_Instance_STATUS_UNSPECIFIED
+}
+
 type UpdateInstanceStateRequest_Upsert struct {
 	state         protoimpl.MessageState            `protogen:"open.v1"`
 	DeploymentId  string                            `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	PodName       string                            `protobuf:"bytes,2,opt,name=pod_name,json=podName,proto3" json:"pod_name,omitempty"`
+	K8SName       string                            `protobuf:"bytes,2,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
 	Address       string                            `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty"`
-	CpuMillicores int32                             `protobuf:"varint,4,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`
-	MemoryMib     int32                             `protobuf:"varint,5,opt,name=memory_mib,json=memoryMib,proto3" json:"memory_mib,omitempty"`
+	CpuMillicores int64                             `protobuf:"varint,4,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`
+	MemoryMib     int64                             `protobuf:"varint,5,opt,name=memory_mib,json=memoryMib,proto3" json:"memory_mib,omitempty"`
 	Status        UpdateInstanceStateRequest_Status `protobuf:"varint,6,opt,name=status,proto3,enum=ctrl.v1.UpdateInstanceStateRequest_Status" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1039,7 +1381,7 @@ type UpdateInstanceStateRequest_Upsert struct {
 
 func (x *UpdateInstanceStateRequest_Upsert) Reset() {
 	*x = UpdateInstanceStateRequest_Upsert{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1051,7 +1393,7 @@ func (x *UpdateInstanceStateRequest_Upsert) String() string {
 func (*UpdateInstanceStateRequest_Upsert) ProtoMessage() {}
 
 func (x *UpdateInstanceStateRequest_Upsert) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1064,7 +1406,7 @@ func (x *UpdateInstanceStateRequest_Upsert) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use UpdateInstanceStateRequest_Upsert.ProtoReflect.Descriptor instead.
 func (*UpdateInstanceStateRequest_Upsert) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2, 0}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{4, 0}
 }
 
 func (x *UpdateInstanceStateRequest_Upsert) GetDeploymentId() string {
@@ -1074,9 +1416,9 @@ func (x *UpdateInstanceStateRequest_Upsert) GetDeploymentId() string {
 	return ""
 }
 
-func (x *UpdateInstanceStateRequest_Upsert) GetPodName() string {
+func (x *UpdateInstanceStateRequest_Upsert) GetK8SName() string {
 	if x != nil {
-		return x.PodName
+		return x.K8SName
 	}
 	return ""
 }
@@ -1088,14 +1430,14 @@ func (x *UpdateInstanceStateRequest_Upsert) GetAddress() string {
 	return ""
 }
 
-func (x *UpdateInstanceStateRequest_Upsert) GetCpuMillicores() int32 {
+func (x *UpdateInstanceStateRequest_Upsert) GetCpuMillicores() int64 {
 	if x != nil {
 		return x.CpuMillicores
 	}
 	return 0
 }
 
-func (x *UpdateInstanceStateRequest_Upsert) GetMemoryMib() int32 {
+func (x *UpdateInstanceStateRequest_Upsert) GetMemoryMib() int64 {
 	if x != nil {
 		return x.MemoryMib
 	}
@@ -1111,15 +1453,15 @@ func (x *UpdateInstanceStateRequest_Upsert) GetStatus() UpdateInstanceStateReque
 
 type UpdateInstanceStateRequest_Delete struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	K8SName       string                 `protobuf:"bytes,1,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
-	PodName       string                 `protobuf:"bytes,2,opt,name=pod_name,json=podName,proto3" json:"pod_name,omitempty"`
+	K8SNamespace  string                 `protobuf:"bytes,1,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
+	K8SName       string                 `protobuf:"bytes,2,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UpdateInstanceStateRequest_Delete) Reset() {
 	*x = UpdateInstanceStateRequest_Delete{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1131,7 +1473,7 @@ func (x *UpdateInstanceStateRequest_Delete) String() string {
 func (*UpdateInstanceStateRequest_Delete) ProtoMessage() {}
 
 func (x *UpdateInstanceStateRequest_Delete) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1144,19 +1486,19 @@ func (x *UpdateInstanceStateRequest_Delete) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use UpdateInstanceStateRequest_Delete.ProtoReflect.Descriptor instead.
 func (*UpdateInstanceStateRequest_Delete) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2, 1}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{4, 1}
+}
+
+func (x *UpdateInstanceStateRequest_Delete) GetK8SNamespace() string {
+	if x != nil {
+		return x.K8SNamespace
+	}
+	return ""
 }
 
 func (x *UpdateInstanceStateRequest_Delete) GetK8SName() string {
 	if x != nil {
 		return x.K8SName
-	}
-	return ""
-}
-
-func (x *UpdateInstanceStateRequest_Delete) GetPodName() string {
-	if x != nil {
-		return x.PodName
 	}
 	return ""
 }
@@ -1170,21 +1512,43 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\vsentinel_id\x18\x01 \x01(\tR\n" +
 	"sentinelId\"G\n" +
 	" GetDesiredDeploymentStateRequest\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\xbe\x04\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x93\x05\n" +
+	"\x1cUpdateDeploymentStateRequest\x12F\n" +
+	"\x06update\x18\x01 \x01(\v2,.ctrl.v1.UpdateDeploymentStateRequest.UpdateH\x00R\x06update\x12F\n" +
+	"\x06delete\x18\x02 \x01(\v2,.ctrl.v1.UpdateDeploymentStateRequest.DeleteH\x00R\x06delete\x1a\xb3\x03\n" +
+	"\x06Update\x12\x19\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\x12S\n" +
+	"\tinstances\x18\x02 \x03(\v25.ctrl.v1.UpdateDeploymentStateRequest.Update.InstanceR\tinstances\x1a\xb8\x02\n" +
+	"\bInstance\x12\x19\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\x12\x18\n" +
+	"\aaddress\x18\x02 \x01(\tR\aaddress\x12%\n" +
+	"\x0ecpu_millicores\x18\x03 \x01(\x03R\rcpuMillicores\x12\x1d\n" +
+	"\n" +
+	"memory_mib\x18\x04 \x01(\x03R\tmemoryMib\x12T\n" +
+	"\x06status\x18\x05 \x01(\x0e2<.ctrl.v1.UpdateDeploymentStateRequest.Update.Instance.StatusR\x06status\"[\n" +
+	"\x06Status\x12\x16\n" +
+	"\x12STATUS_UNSPECIFIED\x10\x00\x12\x12\n" +
+	"\x0eSTATUS_PENDING\x10\x01\x12\x12\n" +
+	"\x0eSTATUS_RUNNING\x10\x02\x12\x11\n" +
+	"\rSTATUS_FAILED\x10\x03\x1a#\n" +
+	"\x06Delete\x12\x19\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sNameB\b\n" +
+	"\x06change\"\x1f\n" +
+	"\x1dUpdateDeploymentStateResponse\"\xc8\x04\n" +
 	"\x1aUpdateInstanceStateRequest\x12D\n" +
 	"\x06upsert\x18\x01 \x01(\v2*.ctrl.v1.UpdateInstanceStateRequest.UpsertH\x00R\x06upsert\x12D\n" +
 	"\x06delete\x18\x02 \x01(\v2*.ctrl.v1.UpdateInstanceStateRequest.DeleteH\x00R\x06delete\x1a\xec\x01\n" +
 	"\x06Upsert\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12\x19\n" +
-	"\bpod_name\x18\x02 \x01(\tR\apodName\x12\x18\n" +
+	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12\x18\n" +
 	"\aaddress\x18\x03 \x01(\tR\aaddress\x12%\n" +
-	"\x0ecpu_millicores\x18\x04 \x01(\x05R\rcpuMillicores\x12\x1d\n" +
+	"\x0ecpu_millicores\x18\x04 \x01(\x03R\rcpuMillicores\x12\x1d\n" +
 	"\n" +
-	"memory_mib\x18\x05 \x01(\x05R\tmemoryMib\x12B\n" +
-	"\x06status\x18\x06 \x01(\x0e2*.ctrl.v1.UpdateInstanceStateRequest.StatusR\x06status\x1a>\n" +
-	"\x06Delete\x12\x19\n" +
-	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\x12\x19\n" +
-	"\bpod_name\x18\x02 \x01(\tR\apodName\"[\n" +
+	"memory_mib\x18\x05 \x01(\x03R\tmemoryMib\x12B\n" +
+	"\x06status\x18\x06 \x01(\x0e2*.ctrl.v1.UpdateInstanceStateRequest.StatusR\x06status\x1aH\n" +
+	"\x06Delete\x12#\n" +
+	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
+	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\"[\n" +
 	"\x06Status\x12\x16\n" +
 	"\x12STATUS_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eSTATUS_PENDING\x10\x01\x12\x12\n" +
@@ -1246,14 +1610,15 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	" \x01(\x03R\tmemoryMib\"R\n" +
 	"\x10DeleteDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
-	"\bk8s_name\x18\x02 \x01(\tR\ak8sName2\x9c\x04\n" +
+	"\bk8s_name\x18\x02 \x01(\tR\ak8sName2\x84\x05\n" +
 	"\x0eClusterService\x12A\n" +
 	"\x0eWatchSentinels\x12\x15.ctrl.v1.WatchRequest\x1a\x16.ctrl.v1.SentinelState0\x01\x12Z\n" +
 	"\x17GetDesiredSentinelState\x12'.ctrl.v1.GetDesiredSentinelStateRequest\x1a\x16.ctrl.v1.SentinelState\x12`\n" +
 	"\x13UpdateSentinelState\x12#.ctrl.v1.UpdateSentinelStateRequest\x1a$.ctrl.v1.UpdateSentinelStateResponse\x12E\n" +
 	"\x10WatchDeployments\x12\x15.ctrl.v1.WatchRequest\x1a\x18.ctrl.v1.DeploymentState0\x01\x12`\n" +
 	"\x19GetDesiredDeploymentState\x12).ctrl.v1.GetDesiredDeploymentStateRequest\x1a\x18.ctrl.v1.DeploymentState\x12`\n" +
-	"\x13UpdateInstanceState\x12#.ctrl.v1.UpdateInstanceStateRequest\x1a$.ctrl.v1.UpdateInstanceStateResponseB\x8e\x01\n" +
+	"\x13UpdateInstanceState\x12#.ctrl.v1.UpdateInstanceStateRequest\x1a$.ctrl.v1.UpdateInstanceStateResponse\x12f\n" +
+	"\x15UpdateDeploymentState\x12%.ctrl.v1.UpdateDeploymentStateRequest\x1a&.ctrl.v1.UpdateDeploymentStateResponseB\x8e\x01\n" +
 	"\vcom.ctrl.v1B\fClusterProtoP\x01Z4github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 
 var (
@@ -1268,53 +1633,65 @@ func file_ctrl_v1_cluster_proto_rawDescGZIP() []byte {
 	return file_ctrl_v1_cluster_proto_rawDescData
 }
 
-var file_ctrl_v1_cluster_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ctrl_v1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_ctrl_v1_cluster_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_ctrl_v1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_ctrl_v1_cluster_proto_goTypes = []any{
-	(UpdateInstanceStateRequest_Status)(0),    // 0: ctrl.v1.UpdateInstanceStateRequest.Status
-	(*GetDesiredSentinelStateRequest)(nil),    // 1: ctrl.v1.GetDesiredSentinelStateRequest
-	(*GetDesiredDeploymentStateRequest)(nil),  // 2: ctrl.v1.GetDesiredDeploymentStateRequest
-	(*UpdateInstanceStateRequest)(nil),        // 3: ctrl.v1.UpdateInstanceStateRequest
-	(*UpdateInstanceStateResponse)(nil),       // 4: ctrl.v1.UpdateInstanceStateResponse
-	(*UpdateSentinelStateRequest)(nil),        // 5: ctrl.v1.UpdateSentinelStateRequest
-	(*UpdateSentinelStateResponse)(nil),       // 6: ctrl.v1.UpdateSentinelStateResponse
-	(*WatchRequest)(nil),                      // 7: ctrl.v1.WatchRequest
-	(*SentinelState)(nil),                     // 8: ctrl.v1.SentinelState
-	(*DeploymentState)(nil),                   // 9: ctrl.v1.DeploymentState
-	(*ApplySentinel)(nil),                     // 10: ctrl.v1.ApplySentinel
-	(*DeleteSentinel)(nil),                    // 11: ctrl.v1.DeleteSentinel
-	(*ApplyDeployment)(nil),                   // 12: ctrl.v1.ApplyDeployment
-	(*DeleteDeployment)(nil),                  // 13: ctrl.v1.DeleteDeployment
-	(*UpdateInstanceStateRequest_Upsert)(nil), // 14: ctrl.v1.UpdateInstanceStateRequest.Upsert
-	(*UpdateInstanceStateRequest_Delete)(nil), // 15: ctrl.v1.UpdateInstanceStateRequest.Delete
-	nil, // 16: ctrl.v1.WatchRequest.SelectorsEntry
+	(UpdateDeploymentStateRequest_Update_Instance_Status)(0), // 0: ctrl.v1.UpdateDeploymentStateRequest.Update.Instance.Status
+	(UpdateInstanceStateRequest_Status)(0),                   // 1: ctrl.v1.UpdateInstanceStateRequest.Status
+	(*GetDesiredSentinelStateRequest)(nil),                   // 2: ctrl.v1.GetDesiredSentinelStateRequest
+	(*GetDesiredDeploymentStateRequest)(nil),                 // 3: ctrl.v1.GetDesiredDeploymentStateRequest
+	(*UpdateDeploymentStateRequest)(nil),                     // 4: ctrl.v1.UpdateDeploymentStateRequest
+	(*UpdateDeploymentStateResponse)(nil),                    // 5: ctrl.v1.UpdateDeploymentStateResponse
+	(*UpdateInstanceStateRequest)(nil),                       // 6: ctrl.v1.UpdateInstanceStateRequest
+	(*UpdateInstanceStateResponse)(nil),                      // 7: ctrl.v1.UpdateInstanceStateResponse
+	(*UpdateSentinelStateRequest)(nil),                       // 8: ctrl.v1.UpdateSentinelStateRequest
+	(*UpdateSentinelStateResponse)(nil),                      // 9: ctrl.v1.UpdateSentinelStateResponse
+	(*WatchRequest)(nil),                                     // 10: ctrl.v1.WatchRequest
+	(*SentinelState)(nil),                                    // 11: ctrl.v1.SentinelState
+	(*DeploymentState)(nil),                                  // 12: ctrl.v1.DeploymentState
+	(*ApplySentinel)(nil),                                    // 13: ctrl.v1.ApplySentinel
+	(*DeleteSentinel)(nil),                                   // 14: ctrl.v1.DeleteSentinel
+	(*ApplyDeployment)(nil),                                  // 15: ctrl.v1.ApplyDeployment
+	(*DeleteDeployment)(nil),                                 // 16: ctrl.v1.DeleteDeployment
+	(*UpdateDeploymentStateRequest_Update)(nil),              // 17: ctrl.v1.UpdateDeploymentStateRequest.Update
+	(*UpdateDeploymentStateRequest_Delete)(nil),              // 18: ctrl.v1.UpdateDeploymentStateRequest.Delete
+	(*UpdateDeploymentStateRequest_Update_Instance)(nil),     // 19: ctrl.v1.UpdateDeploymentStateRequest.Update.Instance
+	(*UpdateInstanceStateRequest_Upsert)(nil),                // 20: ctrl.v1.UpdateInstanceStateRequest.Upsert
+	(*UpdateInstanceStateRequest_Delete)(nil),                // 21: ctrl.v1.UpdateInstanceStateRequest.Delete
+	nil, // 22: ctrl.v1.WatchRequest.SelectorsEntry
 }
 var file_ctrl_v1_cluster_proto_depIdxs = []int32{
-	14, // 0: ctrl.v1.UpdateInstanceStateRequest.upsert:type_name -> ctrl.v1.UpdateInstanceStateRequest.Upsert
-	15, // 1: ctrl.v1.UpdateInstanceStateRequest.delete:type_name -> ctrl.v1.UpdateInstanceStateRequest.Delete
-	16, // 2: ctrl.v1.WatchRequest.selectors:type_name -> ctrl.v1.WatchRequest.SelectorsEntry
-	10, // 3: ctrl.v1.SentinelState.apply:type_name -> ctrl.v1.ApplySentinel
-	11, // 4: ctrl.v1.SentinelState.delete:type_name -> ctrl.v1.DeleteSentinel
-	12, // 5: ctrl.v1.DeploymentState.apply:type_name -> ctrl.v1.ApplyDeployment
-	13, // 6: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
-	0,  // 7: ctrl.v1.UpdateInstanceStateRequest.Upsert.status:type_name -> ctrl.v1.UpdateInstanceStateRequest.Status
-	7,  // 8: ctrl.v1.ClusterService.WatchSentinels:input_type -> ctrl.v1.WatchRequest
-	1,  // 9: ctrl.v1.ClusterService.GetDesiredSentinelState:input_type -> ctrl.v1.GetDesiredSentinelStateRequest
-	5,  // 10: ctrl.v1.ClusterService.UpdateSentinelState:input_type -> ctrl.v1.UpdateSentinelStateRequest
-	7,  // 11: ctrl.v1.ClusterService.WatchDeployments:input_type -> ctrl.v1.WatchRequest
-	2,  // 12: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
-	3,  // 13: ctrl.v1.ClusterService.UpdateInstanceState:input_type -> ctrl.v1.UpdateInstanceStateRequest
-	8,  // 14: ctrl.v1.ClusterService.WatchSentinels:output_type -> ctrl.v1.SentinelState
-	8,  // 15: ctrl.v1.ClusterService.GetDesiredSentinelState:output_type -> ctrl.v1.SentinelState
-	6,  // 16: ctrl.v1.ClusterService.UpdateSentinelState:output_type -> ctrl.v1.UpdateSentinelStateResponse
-	9,  // 17: ctrl.v1.ClusterService.WatchDeployments:output_type -> ctrl.v1.DeploymentState
-	9,  // 18: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
-	4,  // 19: ctrl.v1.ClusterService.UpdateInstanceState:output_type -> ctrl.v1.UpdateInstanceStateResponse
-	14, // [14:20] is the sub-list for method output_type
-	8,  // [8:14] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	17, // 0: ctrl.v1.UpdateDeploymentStateRequest.update:type_name -> ctrl.v1.UpdateDeploymentStateRequest.Update
+	18, // 1: ctrl.v1.UpdateDeploymentStateRequest.delete:type_name -> ctrl.v1.UpdateDeploymentStateRequest.Delete
+	20, // 2: ctrl.v1.UpdateInstanceStateRequest.upsert:type_name -> ctrl.v1.UpdateInstanceStateRequest.Upsert
+	21, // 3: ctrl.v1.UpdateInstanceStateRequest.delete:type_name -> ctrl.v1.UpdateInstanceStateRequest.Delete
+	22, // 4: ctrl.v1.WatchRequest.selectors:type_name -> ctrl.v1.WatchRequest.SelectorsEntry
+	13, // 5: ctrl.v1.SentinelState.apply:type_name -> ctrl.v1.ApplySentinel
+	14, // 6: ctrl.v1.SentinelState.delete:type_name -> ctrl.v1.DeleteSentinel
+	15, // 7: ctrl.v1.DeploymentState.apply:type_name -> ctrl.v1.ApplyDeployment
+	16, // 8: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
+	19, // 9: ctrl.v1.UpdateDeploymentStateRequest.Update.instances:type_name -> ctrl.v1.UpdateDeploymentStateRequest.Update.Instance
+	0,  // 10: ctrl.v1.UpdateDeploymentStateRequest.Update.Instance.status:type_name -> ctrl.v1.UpdateDeploymentStateRequest.Update.Instance.Status
+	1,  // 11: ctrl.v1.UpdateInstanceStateRequest.Upsert.status:type_name -> ctrl.v1.UpdateInstanceStateRequest.Status
+	10, // 12: ctrl.v1.ClusterService.WatchSentinels:input_type -> ctrl.v1.WatchRequest
+	2,  // 13: ctrl.v1.ClusterService.GetDesiredSentinelState:input_type -> ctrl.v1.GetDesiredSentinelStateRequest
+	8,  // 14: ctrl.v1.ClusterService.UpdateSentinelState:input_type -> ctrl.v1.UpdateSentinelStateRequest
+	10, // 15: ctrl.v1.ClusterService.WatchDeployments:input_type -> ctrl.v1.WatchRequest
+	3,  // 16: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
+	6,  // 17: ctrl.v1.ClusterService.UpdateInstanceState:input_type -> ctrl.v1.UpdateInstanceStateRequest
+	4,  // 18: ctrl.v1.ClusterService.UpdateDeploymentState:input_type -> ctrl.v1.UpdateDeploymentStateRequest
+	11, // 19: ctrl.v1.ClusterService.WatchSentinels:output_type -> ctrl.v1.SentinelState
+	11, // 20: ctrl.v1.ClusterService.GetDesiredSentinelState:output_type -> ctrl.v1.SentinelState
+	9,  // 21: ctrl.v1.ClusterService.UpdateSentinelState:output_type -> ctrl.v1.UpdateSentinelStateResponse
+	12, // 22: ctrl.v1.ClusterService.WatchDeployments:output_type -> ctrl.v1.DeploymentState
+	12, // 23: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
+	7,  // 24: ctrl.v1.ClusterService.UpdateInstanceState:output_type -> ctrl.v1.UpdateInstanceStateResponse
+	5,  // 25: ctrl.v1.ClusterService.UpdateDeploymentState:output_type -> ctrl.v1.UpdateDeploymentStateResponse
+	19, // [19:26] is the sub-list for method output_type
+	12, // [12:19] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_cluster_proto_init() }
@@ -1323,14 +1700,18 @@ func file_ctrl_v1_cluster_proto_init() {
 		return
 	}
 	file_ctrl_v1_cluster_proto_msgTypes[2].OneofWrappers = []any{
+		(*UpdateDeploymentStateRequest_Update_)(nil),
+		(*UpdateDeploymentStateRequest_Delete_)(nil),
+	}
+	file_ctrl_v1_cluster_proto_msgTypes[4].OneofWrappers = []any{
 		(*UpdateInstanceStateRequest_Upsert_)(nil),
 		(*UpdateInstanceStateRequest_Delete_)(nil),
 	}
-	file_ctrl_v1_cluster_proto_msgTypes[7].OneofWrappers = []any{
+	file_ctrl_v1_cluster_proto_msgTypes[9].OneofWrappers = []any{
 		(*SentinelState_Apply)(nil),
 		(*SentinelState_Delete)(nil),
 	}
-	file_ctrl_v1_cluster_proto_msgTypes[8].OneofWrappers = []any{
+	file_ctrl_v1_cluster_proto_msgTypes[10].OneofWrappers = []any{
 		(*DeploymentState_Apply)(nil),
 		(*DeploymentState_Delete)(nil),
 	}
@@ -1339,8 +1720,8 @@ func file_ctrl_v1_cluster_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_cluster_proto_rawDesc), len(file_ctrl_v1_cluster_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   16,
+			NumEnums:      2,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

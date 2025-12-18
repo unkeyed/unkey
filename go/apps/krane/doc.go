@@ -21,7 +21,7 @@
 // [SyncEngine]: Core component that maintains bidirectional synchronization with
 // the control plane via streaming gRPC connections.
 //
-// [DeploymentController]: Manages Deployment custom resources using the
+// [deploymentreflector]: Manages Deployment custom resources using the
 // Kubernetes controller-runtime pattern. Handles lifecycle operations for
 // application workloads.
 //

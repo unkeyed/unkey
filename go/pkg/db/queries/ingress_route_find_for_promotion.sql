@@ -3,7 +3,7 @@ SELECT
     id,
     project_id,
     environment_id,
-    hostname,
+    fully_qualified_domain_name,
     deployment_id,
     sticky,
     created_at,

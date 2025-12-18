@@ -34,7 +34,7 @@ rules:
 
   # Deployments management for user workloads
   - apiGroups: ["apps"]
-    resources: ["deployments"]
+    resources: ["deployments", "replicasets"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
   # StatefulSets management for gateway workloads

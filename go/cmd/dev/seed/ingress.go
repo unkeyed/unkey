@@ -141,32 +141,15 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create sentinel: %w", err)
 		}
 
-		err = db.Query.UpsertInstance(ctx, tx, db.UpsertInstanceParams{
-			ID:            instanceID,
-			DeploymentID:  deploymentID,
-			WorkspaceID:   workspaceID,
-			ProjectID:     projectID,
-			Region:        region,
-			Shard:         "default",
-			PodName:       uid.DNS1035(),
-			Address:       address,
-			CpuMillicores: 1000,
-			MemoryMib:     512,
-			Status:        db.InstancesStatusRunning,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create instance: %w", err)
-		}
-
 		err = db.Query.InsertFrontlineRoute(ctx, tx, db.InsertFrontlineRouteParams{
-			ID:            frontlineRouteID,
-			ProjectID:     projectID,
-			DeploymentID:  deploymentID,
-			EnvironmentID: envID,
-			Hostname:      hostname,
-			Sticky:        db.FrontlineRoutesStickyLive,
-			CreatedAt:     now,
-			UpdatedAt:     sql.NullInt64{},
+			ID:                       frontlineRouteID,
+			ProjectID:                projectID,
+			DeploymentID:             deploymentID,
+			EnvironmentID:            envID,
+			FullyQualifiedDomainName: hostname,
+			Sticky:                   db.FrontlineRoutesStickyLive,
+			CreatedAt:                now,
+			UpdatedAt:                sql.NullInt64{},
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {
 			return fmt.Errorf("failed to create frontline route: %w", err)

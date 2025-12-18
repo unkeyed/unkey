@@ -6,44 +6,20 @@ import (
 	"log/slog"
 	"net"
 
-	"k8s.io/client-go/kubernetes/scheme"
-
+	deploymentreflector "github.com/unkeyed/unkey/go/apps/krane/deployment_reflector"
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/controlplane"
-	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
-	sentinelcontroller "github.com/unkeyed/unkey/go/apps/krane/sentinel_controller"
+	sentinelreflector "github.com/unkeyed/unkey/go/apps/krane/sentinel_reflector"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/prometheus"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
 	pkgversion "github.com/unkeyed/unkey/go/pkg/version"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
-// Run starts the krane agent with the provided configuration.
-//
-// This function initializes all necessary components for the krane agent including
-// Kubernetes controllers, synchronization engine, and observability infrastructure.
-// It establishes connections to the control plane and begins the reconciliation
-// loop to maintain desired state.
-//
-// The function performs the following initialization steps:
-//  1. Validates the configuration using [Config.Validate]
-//  2. Sets up structured logging with instance metadata
-//  3. Creates buffered channels for event streaming
-//  4. Initializes Kubernetes client and controller manager
-//  5. Creates deployment and sentinel controllers
-//  6. Sets up the synchronization engine with control plane connection
-//  7. Starts Prometheus metrics server if configured
-//  8. Blocks until context cancellation for graceful shutdown
-//
-// The function handles graceful shutdown by registering all components with the
-// shutdown manager and waiting for signal termination. All resources are properly
-// cleaned up before the function returns.
-//
-// Parameters:
-//   - ctx: Context for controlling the agent lifecycle and cancellation
-//   - cfg: Configuration containing connection details, credentials, and settings
-//
-// Returns an error if initialization fails or if shutdown encounters problems.
-// Returns nil on successful graceful shutdown.
 func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
@@ -70,20 +46,25 @@ func Run(ctx context.Context, cfg Config) error {
 		Shard:       cfg.Shard,
 	})
 
-	client, err := k8s.NewClient(scheme.Scheme)
+	inClusterConfig, err := rest.InClusterConfig()
 	if err != nil {
-		return fmt.Errorf("failed to create k8s client: %w", err)
+		return fmt.Errorf("failed to create in-cluster config: %w", err)
 	}
 
-	manager, err := k8s.NewManager(scheme.Scheme)
+	// nolint:exhaustruct
+	manager, err := controllerruntime.NewManager(inClusterConfig, manager.Options{})
 	if err != nil {
-		return fmt.Errorf("failed to create k8s manager: %w", err)
+		return fmt.Errorf("failed to create manager: %w", err)
 	}
 
-	sc, err := sentinelcontroller.New(sentinelcontroller.Config{
+	clientset, err := kubernetes.NewForConfig(inClusterConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create k8s clientset: %w", err)
+	}
+
+	sc, err := sentinelreflector.New(sentinelreflector.Config{
 		Logger:     logger,
-		Scheme:     scheme.Scheme,
-		Client:     client,
+		ClientSet:  clientset,
 		Manager:    manager,
 		Cluster:    cluster,
 		InstanceID: cfg.InstanceID,
@@ -93,7 +74,23 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create sentinel controller: %w", err)
 	}
-	var _ = sc
+	go sc.Start()
+	shutdowns.Register(sc.Stop)
+
+	dc, err := deploymentreflector.New(deploymentreflector.Config{
+		Logger:     logger,
+		ClientSet:  clientset,
+		Manager:    manager,
+		Cluster:    cluster,
+		InstanceID: cfg.InstanceID,
+		Region:     cfg.Region,
+		Shard:      cfg.Shard,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create sentinel controller: %w", err)
+	}
+	go dc.Start()
+	shutdowns.Register(dc.Stop)
 
 	go func() {
 

@@ -26,6 +26,11 @@ type Querier interface {
 	//  DELETE FROM keys_roles
 	//  WHERE key_id = ?
 	DeleteAllKeyRolesByKeyID(ctx context.Context, db DBTX, keyID string) error
+	//DeleteDeploymentInstances
+	//
+	//  DELETE FROM instances
+	//  WHERE deployment_id = ?  and region = ? and shard = ?
+	DeleteDeploymentInstances(ctx context.Context, db DBTX, arg DeleteDeploymentInstancesParams) error
 	//DeleteIdentity
 	//
 	//  DELETE FROM identities
@@ -34,7 +39,7 @@ type Querier interface {
 	DeleteIdentity(ctx context.Context, db DBTX, arg DeleteIdentityParams) error
 	//DeleteInstance
 	//
-	//  DELETE FROM instances WHERE pod_name = ? AND shard = ? AND region = ?
+	//  DELETE FROM instances WHERE k8s_name = ? AND shard = ? AND region = ?
 	DeleteInstance(ctx context.Context, db DBTX, arg DeleteInstanceParams) error
 	//DeleteKeyByID
 	//
@@ -196,6 +201,10 @@ type Querier interface {
 	//
 	//  SELECT id, k8s_name, workspace_id, project_id, environment_id, image, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, status, created_at, updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
+	//FindDeploymentByK8sName
+	//
+	//  SELECT id, k8s_name, workspace_id, project_id, environment_id, image, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, status, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
+	FindDeploymentByK8sName(ctx context.Context, db DBTX, k8sName string) (Deployment, error)
 	//FindDeploymentStepsByDeploymentId
 	//
 	//  SELECT
@@ -243,17 +252,17 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
-	//FindFrontlineRouteByHostname
+	//FindFrontlineRouteByFQDN
 	//
-	//  SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM frontline_routes WHERE hostname = ?
-	FindFrontlineRouteByHostname(ctx context.Context, db DBTX, hostname string) (FrontlineRoute, error)
+	//  SELECT id, project_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE fully_qualified_domain_name = ?
+	FindFrontlineRouteByFQDN(ctx context.Context, db DBTX, fullyQualifiedDomainName string) (FrontlineRoute, error)
 	//FindFrontlineRouteForPromotion
 	//
 	//  SELECT
 	//      id,
 	//      project_id,
 	//      environment_id,
-	//      hostname,
+	//      fully_qualified_domain_name,
 	//      deployment_id,
 	//      sticky,
 	//      created_at,
@@ -266,7 +275,7 @@ type Querier interface {
 	FindFrontlineRouteForPromotion(ctx context.Context, db DBTX, arg FindFrontlineRouteForPromotionParams) ([]FindFrontlineRouteForPromotionRow, error)
 	//FindFrontlineRoutesByDeploymentID
 	//
-	//  SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
+	//  SELECT id, project_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
 	FindFrontlineRoutesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]FrontlineRoute, error)
 	//FindFrontlineRoutesForRollback
 	//
@@ -274,7 +283,7 @@ type Querier interface {
 	//      id,
 	//      project_id,
 	//      environment_id,
-	//      hostname,
+	//      fully_qualified_domain_name,
 	//      deployment_id,
 	//      sticky,
 	//      created_at,
@@ -351,21 +360,21 @@ type Querier interface {
 	//FindInstanceByPodName
 	//
 	//  SELECT
-	//   id, deployment_id, workspace_id, project_id, region, shard, pod_name, address, cpu_millicores, memory_mib, status
+	//   id, deployment_id, workspace_id, project_id, region, shard, k8s_name, address, cpu_millicores, memory_mib, status
 	//  FROM instances
-	//  WHERE pod_name = ? AND shard = ? AND region = ?
+	//  WHERE k8s_name = ? AND shard = ? AND region = ?
 	FindInstanceByPodName(ctx context.Context, db DBTX, arg FindInstanceByPodNameParams) (Instance, error)
 	//FindInstancesByDeploymentId
 	//
 	//  SELECT
-	//   id, deployment_id, workspace_id, project_id, region, shard, pod_name, address, cpu_millicores, memory_mib, status
+	//   id, deployment_id, workspace_id, project_id, region, shard, k8s_name, address, cpu_millicores, memory_mib, status
 	//  FROM instances
 	//  WHERE deployment_id = ?
 	FindInstancesByDeploymentId(ctx context.Context, db DBTX, deploymentid string) ([]Instance, error)
 	//FindInstancesByDeploymentIdAndRegion
 	//
 	//  SELECT
-	//   id, deployment_id, workspace_id, project_id, region, shard, pod_name, address, cpu_millicores, memory_mib, status
+	//   id, deployment_id, workspace_id, project_id, region, shard, k8s_name, address, cpu_millicores, memory_mib, status
 	//  FROM instances
 	//  WHERE deployment_id = ? AND region = ?
 	FindInstancesByDeploymentIdAndRegion(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionParams) ([]Instance, error)
@@ -1219,7 +1228,7 @@ type Querier interface {
 	//      project_id,
 	//      deployment_id,
 	//      environment_id,
-	//      hostname,
+	//      fully_qualified_domain_name,
 	//      sticky,
 	//      created_at,
 	//      updated_at
@@ -2247,7 +2256,7 @@ type Querier interface {
 	//  	project_id,
 	//  	region,
 	//  	shard,
-	//  	pod_name,
+	//  	k8s_name,
 	//  	address,
 	//  	cpu_millicores,
 	//  	memory_mib,

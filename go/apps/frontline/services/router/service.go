@@ -59,7 +59,7 @@ func New(cfg Config) (*service, error) {
 
 func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.FrontlineRoute, []db.Sentinel, error) {
 	route, hit, err := s.frontlineRouteCache.SWR(ctx, hostname, func(ctx context.Context) (db.FrontlineRoute, error) {
-		return db.Query.FindFrontlineRouteByHostname(ctx, s.db.RO(), hostname)
+		return db.Query.FindFrontlineRouteByFQDN(ctx, s.db.RO(), hostname)
 	}, internalCaches.DefaultFindFirstOp)
 	if err != nil && !db.IsNotFound(err) {
 		return nil, nil, fault.Wrap(err,

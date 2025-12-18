@@ -86,17 +86,17 @@ func (s *Service) GetDeployment(
 		protoDeployment.Steps = protoSteps
 	}
 
-	// Fetch routes (hostnames) for this deployment
+	// Fetch routes (fqdns) for this deployment
 	routes, err := db.Query.FindFrontlineRoutesByDeploymentID(ctx, s.db.RO(), req.Msg.GetDeploymentId())
 	if err != nil {
 		s.logger.Warn("failed to fetch frontline routes for deployment", "error", err, "deployment_id", deployment.ID)
-		// Continue without hostnames rather than failing the entire request
+		// Continue without fqdns rather than failing the entire request
 	} else {
-		hostnames := make([]string, len(routes))
+		fqdns := make([]string, len(routes))
 		for i, route := range routes {
-			hostnames[i] = route.Hostname
+			fqdns[i] = route.FullyQualifiedDomainName
 		}
-		protoDeployment.Hostnames = hostnames
+		protoDeployment.Hostnames = fqdns
 	}
 
 	res := connect.NewResponse(&ctrlv1.GetDeploymentResponse{

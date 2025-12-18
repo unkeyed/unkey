@@ -17,7 +17,7 @@ INSERT INTO instances (
 	project_id,
 	region,
 	shard,
-	pod_name,
+	k8s_name,
 	address,
 	cpu_millicores,
 	memory_mib,
@@ -50,7 +50,7 @@ type UpsertInstanceParams struct {
 	ProjectID     string          `db:"project_id"`
 	Region        string          `db:"region"`
 	Shard         string          `db:"shard"`
-	PodName       string          `db:"pod_name"`
+	K8sName       string          `db:"k8s_name"`
 	Address       string          `db:"address"`
 	CpuMillicores int32           `db:"cpu_millicores"`
 	MemoryMib     int32           `db:"memory_mib"`
@@ -66,7 +66,7 @@ type UpsertInstanceParams struct {
 //		project_id,
 //		region,
 //		shard,
-//		pod_name,
+//		k8s_name,
 //		address,
 //		cpu_millicores,
 //		memory_mib,
@@ -98,7 +98,7 @@ func (q *Queries) UpsertInstance(ctx context.Context, db DBTX, arg UpsertInstanc
 		arg.ProjectID,
 		arg.Region,
 		arg.Shard,
-		arg.PodName,
+		arg.K8sName,
 		arg.Address,
 		arg.CpuMillicores,
 		arg.MemoryMib,

@@ -461,14 +461,14 @@ CREATE TABLE `instances` (
 	`project_id` varchar(255) NOT NULL,
 	`region` varchar(255) NOT NULL,
 	`shard` varchar(255) NOT NULL,
-	`pod_name` varchar(255) NOT NULL,
+	`k8s_name` varchar(255) NOT NULL,
 	`address` varchar(255) NOT NULL,
 	`cpu_millicores` int NOT NULL,
 	`memory_mib` int NOT NULL,
 	`status` enum('inactive','pending','running','failed') NOT NULL,
 	CONSTRAINT `instances_id` PRIMARY KEY(`id`),
 	CONSTRAINT `unique_address_per_shard` UNIQUE(`address`,`shard`),
-	CONSTRAINT `unique_pod_name_per_shard` UNIQUE(`pod_name`,`shard`)
+	CONSTRAINT `unique_pod_name_per_shard` UNIQUE(`k8s_name`,`shard`)
 );
 
 CREATE TABLE `certificates` (
@@ -488,12 +488,12 @@ CREATE TABLE `frontline_routes` (
 	`project_id` varchar(255) NOT NULL,
 	`deployment_id` varchar(255) NOT NULL,
 	`environment_id` varchar(255) NOT NULL,
-	`hostname` varchar(256) NOT NULL,
+	`fully_qualified_domain_name` varchar(256) NOT NULL,
 	`sticky` enum('none','branch','environment','live') NOT NULL DEFAULT 'none',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `frontline_routes_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_hostname_idx` UNIQUE(`hostname`)
+	CONSTRAINT `frontline_routes_fully_qualified_domain_name_unique` UNIQUE(`fully_qualified_domain_name`)
 );
 
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);

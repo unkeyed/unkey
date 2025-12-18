@@ -4,7 +4,7 @@ INSERT INTO frontline_routes (
     project_id,
     deployment_id,
     environment_id,
-    hostname,
+    fully_qualified_domain_name,
     sticky,
     created_at,
     updated_at
@@ -14,7 +14,7 @@ VALUES (
     sqlc.arg(project_id),
     sqlc.arg(deployment_id),
     sqlc.arg(environment_id),
-    sqlc.arg(hostname),
+    sqlc.arg(fully_qualified_domain_name),
     sqlc.arg(sticky),
     sqlc.arg(created_at),
     sqlc.arg(updated_at)

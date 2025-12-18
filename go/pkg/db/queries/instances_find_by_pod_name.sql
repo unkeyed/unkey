@@ -2,4 +2,4 @@
 SELECT
  *
 FROM instances
-WHERE pod_name = sqlc.arg(pod_name) AND shard = sqlc.arg(shard) AND region = sqlc.arg(region);
+WHERE k8s_name = sqlc.arg(k8s_name) AND shard = sqlc.arg(shard) AND region = sqlc.arg(region);

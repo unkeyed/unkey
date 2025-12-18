@@ -924,14 +924,14 @@ type Environment struct {
 }
 
 type FrontlineRoute struct {
-	ID            string                `db:"id"`
-	ProjectID     string                `db:"project_id"`
-	DeploymentID  string                `db:"deployment_id"`
-	EnvironmentID string                `db:"environment_id"`
-	Hostname      string                `db:"hostname"`
-	Sticky        FrontlineRoutesSticky `db:"sticky"`
-	CreatedAt     int64                 `db:"created_at"`
-	UpdatedAt     sql.NullInt64         `db:"updated_at"`
+	ID                       string                `db:"id"`
+	ProjectID                string                `db:"project_id"`
+	DeploymentID             string                `db:"deployment_id"`
+	EnvironmentID            string                `db:"environment_id"`
+	FullyQualifiedDomainName string                `db:"fully_qualified_domain_name"`
+	Sticky                   FrontlineRoutesSticky `db:"sticky"`
+	CreatedAt                int64                 `db:"created_at"`
+	UpdatedAt                sql.NullInt64         `db:"updated_at"`
 }
 
 type Identity struct {
@@ -952,7 +952,7 @@ type Instance struct {
 	ProjectID     string          `db:"project_id"`
 	Region        string          `db:"region"`
 	Shard         string          `db:"shard"`
-	PodName       string          `db:"pod_name"`
+	K8sName       string          `db:"k8s_name"`
 	Address       string          `db:"address"`
 	CpuMillicores int32           `db:"cpu_millicores"`
 	MemoryMib     int32           `db:"memory_mib"`

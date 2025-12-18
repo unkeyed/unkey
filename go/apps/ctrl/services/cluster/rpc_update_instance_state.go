@@ -41,10 +41,10 @@ func (s *Service) UpdateInstanceState(ctx context.Context, req *connect.Request[
 				ProjectID:     deployment.ProjectID,
 				Region:        region,
 				Shard:         shard,
-				PodName:       msg.Upsert.GetPodName(),
+				K8sName:       msg.Upsert.GetK8SName(),
 				Address:       msg.Upsert.GetAddress(),
-				CpuMillicores: msg.Upsert.GetCpuMillicores(),
-				MemoryMib:     msg.Upsert.GetMemoryMib(),
+				CpuMillicores: int32(msg.Upsert.GetCpuMillicores()),
+				MemoryMib:     int32(msg.Upsert.GetMemoryMib()),
 				Status:        ctrlStatusToDbStatus(msg.Upsert.GetStatus()),
 			})
 			if err != nil {
@@ -57,7 +57,7 @@ func (s *Service) UpdateInstanceState(ctx context.Context, req *connect.Request[
 		{
 
 			err = db.Query.DeleteInstance(ctx, s.db.RW(), db.DeleteInstanceParams{
-				PodName: msg.Delete.GetPodName(),
+				K8sName: msg.Delete.GetK8SName(),
 				Region:  region,
 				Shard:   shard,
 			})

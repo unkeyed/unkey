@@ -10,12 +10,12 @@ import (
 )
 
 const findFrontlineRoutesByDeploymentID = `-- name: FindFrontlineRoutesByDeploymentID :many
-SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
+SELECT id, project_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
 `
 
 // FindFrontlineRoutesByDeploymentID
 //
-//	SELECT id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
+//	SELECT id, project_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
 func (q *Queries) FindFrontlineRoutesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]FrontlineRoute, error) {
 	rows, err := db.QueryContext(ctx, findFrontlineRoutesByDeploymentID, deploymentID)
 	if err != nil {
@@ -30,7 +30,7 @@ func (q *Queries) FindFrontlineRoutesByDeploymentID(ctx context.Context, db DBTX
 			&i.ProjectID,
 			&i.DeploymentID,
 			&i.EnvironmentID,
-			&i.Hostname,
+			&i.FullyQualifiedDomainName,
 			&i.Sticky,
 			&i.CreatedAt,
 			&i.UpdatedAt,

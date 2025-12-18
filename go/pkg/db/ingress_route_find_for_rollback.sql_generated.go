@@ -16,7 +16,7 @@ SELECT
     id,
     project_id,
     environment_id,
-    hostname,
+    fully_qualified_domain_name,
     deployment_id,
     sticky,
     created_at,
@@ -34,14 +34,14 @@ type FindFrontlineRoutesForRollbackParams struct {
 }
 
 type FindFrontlineRoutesForRollbackRow struct {
-	ID            string                `db:"id"`
-	ProjectID     string                `db:"project_id"`
-	EnvironmentID string                `db:"environment_id"`
-	Hostname      string                `db:"hostname"`
-	DeploymentID  string                `db:"deployment_id"`
-	Sticky        FrontlineRoutesSticky `db:"sticky"`
-	CreatedAt     int64                 `db:"created_at"`
-	UpdatedAt     sql.NullInt64         `db:"updated_at"`
+	ID                       string                `db:"id"`
+	ProjectID                string                `db:"project_id"`
+	EnvironmentID            string                `db:"environment_id"`
+	FullyQualifiedDomainName string                `db:"fully_qualified_domain_name"`
+	DeploymentID             string                `db:"deployment_id"`
+	Sticky                   FrontlineRoutesSticky `db:"sticky"`
+	CreatedAt                int64                 `db:"created_at"`
+	UpdatedAt                sql.NullInt64         `db:"updated_at"`
 }
 
 // FindFrontlineRoutesForRollback
@@ -50,7 +50,7 @@ type FindFrontlineRoutesForRollbackRow struct {
 //	    id,
 //	    project_id,
 //	    environment_id,
-//	    hostname,
+//	    fully_qualified_domain_name,
 //	    deployment_id,
 //	    sticky,
 //	    created_at,
@@ -84,7 +84,7 @@ func (q *Queries) FindFrontlineRoutesForRollback(ctx context.Context, db DBTX, a
 			&i.ID,
 			&i.ProjectID,
 			&i.EnvironmentID,
-			&i.Hostname,
+			&i.FullyQualifiedDomainName,
 			&i.DeploymentID,
 			&i.Sticky,
 			&i.CreatedAt,
