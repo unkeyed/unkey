@@ -268,20 +268,20 @@ export const createKeyInputSchema = z.object({
   bytes: keyBytesSchema,
   keyAuthId: z.string(),
   externalId: z
-  .string()
-  .transform((s) => {
-    const trimmed = s.trim();
-    return trimmed === "" ? null : trimmed;
-  })
-  .pipe(
-    z
-      .string()
-      .min(1, { message: "External ID must be at least 1 character" })
-      .max(255, { message: "External ID cannot exceed 255 characters" })
-      .nullable()
-  )
-  .optional()
-  .nullish(),
+    .string()
+    .transform((s) => {
+      const trimmed = s.trim();
+      return trimmed === "" ? null : trimmed;
+    })
+    .pipe(
+      z
+        .string()
+        .min(1, { message: "External ID must be at least 1 character" })
+        .max(255, { message: "External ID cannot exceed 255 characters" })
+        .nullable(),
+    )
+    .optional()
+    .nullish(),
   identityId: z
     .string()
     .max(256, { message: "Identity ID cannot exceed 256 characters" })
