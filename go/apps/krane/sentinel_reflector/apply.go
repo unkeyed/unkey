@@ -177,9 +177,10 @@ func (r *Reflector) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.Ap
 				ToMap(),
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					Kind: "Deployment",
-					Name: deployment.GetName(),
-					UID:  deployment.UID,
+					APIVersion: deployment.APIVersion,
+					Kind:       deployment.Kind,
+					Name:       deployment.GetName(),
+					UID:        deployment.UID,
 				},
 			},
 		},
