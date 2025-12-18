@@ -16,7 +16,7 @@ export const deleteIdentity = t.procedure
     const identity = await db.query.identities
       .findFirst({
         where: (table, { eq, and }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.identityId)),
+          and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.identityId), eq(table.deleted, false)),
       })
       .catch((err) => {
         console.error("Failed to fetch identity:", err);
