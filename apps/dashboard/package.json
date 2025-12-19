@@ -48,7 +48,7 @@
     "@team-plain/typescript-sdk": "2.19.0",
     "@trpc/client": "10.45.2",
     "@trpc/react-query": "10.45.2",
-    "@trpc/server": "10.45.2",
+    "@trpc/server": "10.45.3",
     "@unkey/billing": "workspace:^",
     "@unkey/clickhouse": "workspace:^",
     "@unkey/db": "workspace:^",
