@@ -62,13 +62,14 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	}
 
 	var dockerImage string
+	var buildID string
 
 	if req.GetBuildContextPath() != "" {
 		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusBuilding); err != nil {
 			return nil, err
 		}
 
-		dockerImage, err = restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
+		result, err := restate.Run(ctx, func(stepCtx restate.RunContext) (*ctrlv1.CreateBuildResponse, error) {
 			w.logger.Info("starting docker build",
 				"deployment_id", deployment.ID,
 				"build_context_path", req.GetBuildContextPath())
@@ -84,19 +85,18 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			var buildResp *connect.Response[ctrlv1.CreateBuildResponse]
 			buildResp, err = w.buildClient.CreateBuild(stepCtx, buildReq)
 			if err != nil {
-				return "", fmt.Errorf("build failed: %w", err)
+				return &ctrlv1.CreateBuildResponse{}, fmt.Errorf("build failed: %w", err)
 			}
 
-			imageName := buildResp.Msg.GetImageName()
-			w.logger.Info("docker build completed",
-				"deployment_id", deployment.ID,
-				"image_name", imageName)
+			w.logger.Info("docker build completed", "deployment_id", deployment.ID, "image_name", buildResp.Msg.GetImageName())
 
-			return imageName, nil
+			return buildResp.Msg, nil
 		}, restate.WithName("building docker image"))
 		if err != nil {
 			return nil, fmt.Errorf("failed to build docker image: %w", err)
 		}
+		dockerImage = result.GetImageName()
+		buildID = result.GetBuildId()
 
 	} else if req.GetDockerImage() != "" {
 		dockerImage = req.GetDockerImage()
@@ -130,18 +130,20 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	}
 
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
+		req := &kranev1.DeploymentRequest{
+			Namespace:            hardcodedNamespace,
+			DeploymentId:         deployment.ID,
+			Image:                dockerImage,
+			Replicas:             1,
+			CpuMillicores:        512,
+			MemorySizeMib:        512,
+			EnvironmentSlug:      environment.Slug,
+			EncryptedSecretsBlob: encryptedSecretsBlob,
+			EnvironmentId:        deployment.EnvironmentID,
+			BuildId:              buildID,
+		}
 		_, err = w.krane.CreateDeployment(stepCtx, connect.NewRequest(&kranev1.CreateDeploymentRequest{
-			Deployment: &kranev1.DeploymentRequest{
-				Namespace:            hardcodedNamespace,
-				DeploymentId:         deployment.ID,
-				Image:                dockerImage,
-				Replicas:             1,
-				CpuMillicores:        512,
-				MemorySizeMib:        512,
-				EnvironmentSlug:      environment.Slug,
-				EncryptedSecretsBlob: encryptedSecretsBlob,
-				EnvironmentId:        deployment.EnvironmentID,
-			},
+			Deployment: req,
 		}))
 		if err != nil {
 			return restate.Void{}, fmt.Errorf("krane CreateDeployment failed for image %s: %w", dockerImage, err)

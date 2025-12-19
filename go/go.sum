@@ -166,8 +166,8 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/depot/depot-go v0.5.1 h1:Kdrsk8q7W2fQvoudWNjxsXG4ZbdlUAa6EV18udDnTFQ=
-github.com/depot/depot-go v0.5.1/go.mod h1:QQtSqwRn0flx4KxrUVSJGlh0hTFeZ19MLYvOcJbxtP0=
+github.com/depot/depot-go v0.5.2 h1:mQHyy1tGdmMKnlmsThjAc9mU3NHGUUUyzmnkhyotV+E=
+github.com/depot/depot-go v0.5.2/go.mod h1:QQtSqwRn0flx4KxrUVSJGlh0hTFeZ19MLYvOcJbxtP0=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f h1:lO4WD4F/rVNCu3HqELle0jiPLLBs70cWOduZpkS1E78=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cuUVRXasLTGF7a8hSLbxyZXjz+1KgoB3wDUb6vlszIc=
 github.com/dimchansky/utfbom v1.1.1 h1:vV6w1AhK4VMnhBno/TPVCoK9U/LP0PkLCS9tbxHdi/U=
