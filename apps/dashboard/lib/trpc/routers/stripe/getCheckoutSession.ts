@@ -1,5 +1,5 @@
 import { getStripeClient } from "@/lib/stripe";
-import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -13,8 +13,7 @@ const checkoutSessionSchema = z.object({
   status: z.string(),
 });
 
-export const getCheckoutSession = t.procedure
-  .use(requireWorkspace)
+export const getCheckoutSession = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(
     z.object({

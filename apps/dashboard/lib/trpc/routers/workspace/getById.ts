@@ -1,10 +1,9 @@
 import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireUser, t } from "../../trpc";
+import { protectedProcedure } from "../../trpc";
 
-export const getWorkspaceById = t.procedure
-  .use(requireUser)
+export const getWorkspaceById = protectedProcedure
   .input(
     z.object({
       workspaceId: z.string().min(1, "Workspace ID is required"),

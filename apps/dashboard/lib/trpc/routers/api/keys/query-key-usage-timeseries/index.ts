@@ -1,11 +1,9 @@
 import { keysListQueryTimeseriesPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/bar-chart/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 
-export const keyUsageTimeseries = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const keyUsageTimeseries = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(keysListQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {

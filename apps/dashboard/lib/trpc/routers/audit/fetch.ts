@@ -2,8 +2,8 @@ import { auditQueryLogsPayload } from "@/app/(app)/[workspaceSlug]/audit/compone
 import { auth } from "@/lib/auth/server";
 import type { User } from "@/lib/auth/types";
 import { type Workspace, db } from "@/lib/db";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { z } from "zod";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "../../trpc";
 import { type AuditLogWithTargets, type AuditQueryLogsParams, auditLog } from "./schema";
 import { transformFilters } from "./utils";
 
@@ -15,9 +15,7 @@ const AuditLogsResponse = z.object({
 
 type AuditLogsResponse = z.infer<typeof AuditLogsResponse>;
 
-export const fetchAuditLog = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const fetchAuditLog = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(auditQueryLogsPayload)
   .output(AuditLogsResponse)

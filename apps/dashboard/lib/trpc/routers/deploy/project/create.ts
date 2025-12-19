@@ -2,14 +2,12 @@ import { ProjectService } from "@/gen/proto/ctrl/v1/project_pb";
 import { createProjectRequestSchema } from "@/lib/collections/deploy/projects";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 import { TRPCError } from "@trpc/server";
 
-export const createProject = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const createProject = workspaceProcedure
   .input(createProjectRequestSchema)
   .use(withRatelimit(ratelimit.create))
   .mutation(async ({ ctx, input }) => {

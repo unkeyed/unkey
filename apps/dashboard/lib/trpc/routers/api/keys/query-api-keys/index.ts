@@ -1,5 +1,5 @@
 import { keysQueryListPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/components/table/query-logs.schema";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { z } from "zod";
 import { getAllKeys } from "./get-all-keys";
 import { keyDetailsResponseSchema } from "./schema";
@@ -13,9 +13,7 @@ const KeysListResponse = z.object({
 
 type KeysListResponse = z.infer<typeof KeysListResponse>;
 
-export const queryKeysList = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const queryKeysList = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(keysQueryListPayload)
   .output(KeysListResponse)

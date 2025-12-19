@@ -1,14 +1,12 @@
 import { ratelimitOverviewQueryTimeseriesPayload } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/components/charts/bar-chart/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { transformRatelimitFilters } from "./utils";
 
 //TODO: Refactor this endpoint once we move to AWS
-export const queryRatelimitLatencyTimeseries = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const queryRatelimitLatencyTimeseries = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(ratelimitOverviewQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {

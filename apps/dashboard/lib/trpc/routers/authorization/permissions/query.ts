@@ -1,7 +1,7 @@
 import { permissionsQueryPayload } from "@/app/(app)/[workspaceSlug]/authorization/permissions/components/table/query-logs.schema";
 import type { PermissionsFilterOperator } from "@/app/(app)/[workspaceSlug]/authorization/permissions/filters.schema";
 import { db, sql } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { z } from "zod";
 
 export const DEFAULT_LIMIT = 50;
@@ -25,9 +25,7 @@ const permissionsResponse = z.object({
   nextCursor: z.number().int().nullish(),
 });
 
-export const queryPermissions = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const queryPermissions = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(permissionsQueryPayload)
   .output(permissionsResponse)

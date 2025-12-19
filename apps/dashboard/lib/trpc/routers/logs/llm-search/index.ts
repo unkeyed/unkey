@@ -1,5 +1,5 @@
 import { env } from "@/lib/env";
-import { requireUser, requireWorkspace, t, withLlmAccess } from "@/lib/trpc/trpc";
+import { withLlmAccess, workspaceProcedure } from "@/lib/trpc/trpc";
 import OpenAI from "openai";
 import { z } from "zod";
 import { getStructuredSearchFromLLM } from "./utils";
@@ -10,9 +10,7 @@ const openai = env().OPENAI_API_KEY
     })
   : null;
 
-export const llmSearch = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const llmSearch = workspaceProcedure
   .use(withLlmAccess())
   .input(z.object({ query: z.string(), timestamp: z.number() }))
   .mutation(async ({ input, ctx }) => {

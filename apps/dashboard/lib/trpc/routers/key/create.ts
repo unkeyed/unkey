@@ -9,16 +9,15 @@ import { Vault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 const vault = new Vault({
   baseUrl: env().AGENT_URL,
   token: env().AGENT_TOKEN,
 });
 
-export const createKey = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const createKey = workspaceProcedure
+  .use(withRatelimit(ratelimit.create))
   .input(createKeyInputSchema)
   .mutation(async ({ input, ctx }) => {
     const keyAuth = await db.query.keyAuth

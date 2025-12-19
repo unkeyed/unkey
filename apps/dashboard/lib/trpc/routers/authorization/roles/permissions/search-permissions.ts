@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { ratelimit, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import {
   LIMIT,
@@ -8,8 +8,7 @@ import {
   transformPermission,
 } from "./schema-with-helpers";
 
-export const searchRolesPermissions = t.procedure
-  .use(requireWorkspace)
+export const searchRolesPermissions = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(permissionsSearchPayload)
   .output(PermissionsSearchResponse)

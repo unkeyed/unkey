@@ -1,11 +1,9 @@
 import { db } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 
 import { TRPCError } from "@trpc/server";
 
-export const listRatelimitNamespaces = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const listRatelimitNamespaces = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .query(async ({ ctx }) => {
     try {

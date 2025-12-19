@@ -1,6 +1,6 @@
 import { rootKeysQueryPayload } from "@/app/(app)/[workspaceSlug]/settings/root-keys/components/table/query-logs.schema";
 import { and, count, db, desc, eq, exists, isNull, like, lt, or, schema } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -36,9 +36,7 @@ export type RootKey = z.infer<typeof RootKeyResponse>;
 
 export const LIMIT = 50;
 
-export const queryRootKeys = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const queryRootKeys = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(rootKeysQueryPayload)
   .output(RootKeysResponse)

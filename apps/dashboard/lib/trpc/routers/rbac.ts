@@ -1,7 +1,7 @@
 import { type InsertPermission, type Permission, and, db, eq, schema } from "@/lib/db";
 
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, t, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { unkeyPermissionValidation } from "@unkey/rbac";
@@ -17,9 +17,7 @@ const nameSchema = z
   });
 
 export const rbacRouter = t.router({
-  addPermissionToRootKey: t.procedure
-    .use(requireUser)
-    .use(requireWorkspace)
+  addPermissionToRootKey: workspaceProcedure
     .use(withRatelimit(ratelimit.update))
     .input(
       z.object({
@@ -80,9 +78,7 @@ export const rbacRouter = t.router({
         await insertAuditLogs(tx, auditLogs);
       });
     }),
-  removePermissionFromRootKey: t.procedure
-    .use(requireUser)
-    .use(requireWorkspace)
+  removePermissionFromRootKey: workspaceProcedure
     .use(withRatelimit(ratelimit.update))
     .input(
       z.object({
@@ -164,9 +160,7 @@ export const rbacRouter = t.router({
         });
       });
     }),
-  connectPermissionToRole: t.procedure
-    .use(requireUser)
-    .use(requireWorkspace)
+  connectPermissionToRole: workspaceProcedure
     .use(withRatelimit(ratelimit.update))
     .input(
       z.object({
@@ -244,9 +238,7 @@ export const rbacRouter = t.router({
         });
       });
     }),
-  disconnectPermissionToRole: t.procedure
-    .use(requireUser)
-    .use(requireWorkspace)
+  disconnectPermissionToRole: workspaceProcedure
     .use(withRatelimit(ratelimit.update))
     .input(
       z.object({
@@ -297,9 +289,7 @@ export const rbacRouter = t.router({
         });
       });
     }),
-  connectRoleToKey: t.procedure
-    .use(requireUser)
-    .use(requireWorkspace)
+  connectRoleToKey: workspaceProcedure
     .use(withRatelimit(ratelimit.update))
     .input(
       z.object({
@@ -377,9 +367,7 @@ export const rbacRouter = t.router({
         });
       });
     }),
-  disconnectRoleFromKey: t.procedure
-    .use(requireUser)
-    .use(requireWorkspace)
+  disconnectRoleFromKey: workspaceProcedure
     .use(withRatelimit(ratelimit.update))
     .input(
       z.object({
@@ -408,9 +396,7 @@ export const rbacRouter = t.router({
           ),
         );
     }),
-  createRole: t.procedure
-    .use(requireUser)
-    .use(requireWorkspace)
+  createRole: workspaceProcedure
     .use(withRatelimit(ratelimit.create))
     .input(
       z.object({
@@ -498,9 +484,7 @@ export const rbacRouter = t.router({
       });
       return { roleId };
     }),
-  updateRole: t.procedure
-    .use(requireUser)
-    .use(requireWorkspace)
+  updateRole: workspaceProcedure
     .use(withRatelimit(ratelimit.update))
     .input(
       z.object({
@@ -551,9 +535,7 @@ export const rbacRouter = t.router({
         });
       });
     }),
-  deleteRole: t.procedure
-    .use(requireUser)
-    .use(requireWorkspace)
+  deleteRole: workspaceProcedure
     .use(withRatelimit(ratelimit.delete))
     .input(
       z.object({
@@ -606,9 +588,7 @@ export const rbacRouter = t.router({
         });
       });
     }),
-  createPermission: t.procedure
-    .use(requireUser)
-    .use(requireWorkspace)
+  createPermission: workspaceProcedure
     .use(withRatelimit(ratelimit.create))
     .input(
       z.object({
@@ -662,9 +642,7 @@ export const rbacRouter = t.router({
 
       return { permissionId };
     }),
-  updatePermission: t.procedure
-    .use(requireUser)
-    .use(requireWorkspace)
+  updatePermission: workspaceProcedure
     .use(withRatelimit(ratelimit.update))
     .input(
       z.object({
@@ -728,9 +706,7 @@ export const rbacRouter = t.router({
         });
       });
     }),
-  deletePermission: t.procedure
-    .use(requireUser)
-    .use(requireWorkspace)
+  deletePermission: workspaceProcedure
     .use(withRatelimit(ratelimit.delete))
     .input(
       z.object({

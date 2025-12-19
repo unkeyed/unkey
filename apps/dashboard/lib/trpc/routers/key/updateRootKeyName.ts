@@ -2,10 +2,9 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../trpc";
-export const updateRootKeyName = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+import { workspaceProcedure } from "../../trpc";
+
+export const updateRootKeyName = workspaceProcedure
   .input(
     z.object({
       keyId: z.string(),

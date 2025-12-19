@@ -3,11 +3,9 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 
-export const setDefaultApiBytes = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const setDefaultApiBytes = workspaceProcedure
   .input(
     z.object({
       defaultBytes: keyBytesSchema,

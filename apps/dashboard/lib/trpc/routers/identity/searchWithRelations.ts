@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 const SearchWithRelationsInput = z.object({
   search: z.string().optional().default(""),
@@ -30,9 +30,7 @@ const WorkspaceWithIdentitiesSchema = z.object({
   identities: z.array(IdentityWithRelationsSchema),
 });
 
-export const searchIdentitiesWithRelations = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const searchIdentitiesWithRelations = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(SearchWithRelationsInput)
   .output(WorkspaceWithIdentitiesSchema)

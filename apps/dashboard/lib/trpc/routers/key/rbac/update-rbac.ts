@@ -2,11 +2,9 @@ import { updateKeyRbacSchema } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/ke
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { requireUser, requireWorkspace, t } from "../../../trpc";
+import { workspaceProcedure } from "../../../trpc";
 
-export const updateKeyRbac = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const updateKeyRbac = workspaceProcedure
   .input(updateKeyRbacSchema)
   .mutation(async ({ input, ctx }) => {
     const { keyId, roleIds, directPermissionIds } = input;

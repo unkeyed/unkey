@@ -1,7 +1,7 @@
 import { rolesQueryPayload } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/table/query-logs.schema";
 import type { RolesFilterOperator } from "@/app/(app)/[workspaceSlug]/authorization/roles/filters.schema";
 import { db, sql } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { z } from "zod";
 
 export const DEFAULT_LIMIT = 50;
@@ -22,9 +22,7 @@ const rolesResponse = z.object({
   nextCursor: z.number().int().nullish(),
 });
 
-export const queryRoles = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const queryRoles = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(rolesQueryPayload)
   .output(rolesResponse)

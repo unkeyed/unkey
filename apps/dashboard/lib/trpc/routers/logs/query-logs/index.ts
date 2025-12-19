@@ -5,13 +5,11 @@ import {
   logsRequestSchema,
   logsResponseSchema,
 } from "@/lib/schemas/logs.schema";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { transformFilters } from "./utils";
 
-export const queryLogs = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const queryLogs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(logsRequestSchema)
   .output(logsResponseSchema)

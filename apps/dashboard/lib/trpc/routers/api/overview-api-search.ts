@@ -1,11 +1,9 @@
 import { apiItemsWithApproxKeyCounts } from "@/app/(app)/[workspaceSlug]/apis/actions";
 import { db, sql } from "@/lib/db";
 import { z } from "zod";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
-export const overviewApiSearch = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const overviewApiSearch = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(
     z.object({

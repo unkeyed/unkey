@@ -36,6 +36,7 @@
     "@radix-ui/react-switch": "1.0.3",
     "@radix-ui/react-tabs": "1.1.0",
     "@radix-ui/react-tooltip": "1.0.7",
+    "@sentry/nextjs": "^10",
     "@tailwindcss/container-queries": "0.1.1",
     "@tailwindcss/typography": "0.5.12",
     "@tanstack/query-core": "5.87.1",

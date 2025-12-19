@@ -1,5 +1,5 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
+import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -7,9 +7,7 @@ const lastVerificationTimePayload = z.object({
   identityId: z.string(),
 });
 
-export const identityLastVerificationTime = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const identityLastVerificationTime = workspaceProcedure
   .input(lastVerificationTimePayload)
   .query(async ({ ctx, input }) => {
     try {
