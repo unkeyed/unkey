@@ -35,6 +35,9 @@ message DeploymentRequest {
 
   // Environment ID for secrets decryption (keyring identifier).
   string environment_id = 9;
+
+  // Build ID for scoped registry pull tokens.
+  string build_id = 10;
 }
 
 message CreateDeploymentRequest {

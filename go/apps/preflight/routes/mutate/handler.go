@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/unkeyed/unkey/go/apps/secrets-webhook/internal/services/mutator"
+	"github.com/unkeyed/unkey/go/apps/preflight/internal/services/mutator"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/zen"
 )
