@@ -15,9 +15,6 @@ import (
 	pkgversion "github.com/unkeyed/unkey/go/pkg/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-
-	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
 func Run(ctx context.Context, cfg Config) error {
@@ -51,12 +48,6 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create in-cluster config: %w", err)
 	}
 
-	// nolint:exhaustruct
-	manager, err := controllerruntime.NewManager(inClusterConfig, manager.Options{})
-	if err != nil {
-		return fmt.Errorf("failed to create manager: %w", err)
-	}
-
 	clientset, err := kubernetes.NewForConfig(inClusterConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create k8s clientset: %w", err)
@@ -65,7 +56,6 @@ func Run(ctx context.Context, cfg Config) error {
 	sc, err := sentinelreflector.New(sentinelreflector.Config{
 		Logger:     logger,
 		ClientSet:  clientset,
-		Manager:    manager,
 		Cluster:    cluster,
 		InstanceID: cfg.InstanceID,
 		Region:     cfg.Region,
@@ -80,7 +70,6 @@ func Run(ctx context.Context, cfg Config) error {
 	dc, err := deploymentreflector.New(deploymentreflector.Config{
 		Logger:     logger,
 		ClientSet:  clientset,
-		Manager:    manager,
 		Cluster:    cluster,
 		InstanceID: cfg.InstanceID,
 		Region:     cfg.Region,
@@ -91,14 +80,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	go dc.Start()
 	shutdowns.Register(dc.Stop)
-
-	go func() {
-
-		err = manager.Start(ctx)
-		if err != nil {
-			logger.Error("failed to start k8s manager", "error", err)
-		}
-	}()
 
 	if cfg.PrometheusPort > 0 {
 

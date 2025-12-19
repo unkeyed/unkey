@@ -31,6 +31,7 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 
 	}
 
+	s.logger.Info("desired sentinel", "state", sentinel.DesiredState)
 	switch sentinel.DesiredState {
 	case db.SentinelsDesiredStateArchived, db.SentinelsDesiredStateStandby:
 		return connect.NewResponse(&ctrlv1.SentinelState{
@@ -52,7 +53,7 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 					WorkspaceId:   sentinel.WorkspaceID,
 					ProjectId:     sentinel.ProjectID,
 					EnvironmentId: sentinel.EnvironmentID,
-					Replicas:      sentinel.Replicas,
+					Replicas:      sentinel.DesiredReplicas,
 					Image:         sentinel.Image,
 					CpuMillicores: int64(sentinel.CpuMillicores),
 					MemoryMib:     int64(sentinel.MemoryMib),

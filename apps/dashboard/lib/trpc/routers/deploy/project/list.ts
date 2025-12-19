@@ -1,6 +1,12 @@
 import type { Project } from "@/lib/collections/deploy/projects";
 import { db, sql } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import {
+  ratelimit,
+  requireUser,
+  requireWorkspace,
+  t,
+  withRatelimit,
+} from "@/lib/trpc/trpc";
 import { deployments, frontlineRoutes, projects } from "@unkey/db/src/schema";
 
 type ProjectRow = {
@@ -38,7 +44,7 @@ export const listProjects = t.procedure
         ${deployments.gitCommitAuthorHandle},
         ${deployments.gitCommitAuthorAvatarUrl},
         ${deployments.gitCommitTimestamp},
-        ${frontlineRoutes.hostname},
+        ${frontlineRoutes.fullyQualifiedDomainName},
         (
           SELECT id
           FROM ${deployments} d
@@ -73,6 +79,6 @@ export const listProjects = t.procedure
         regions: ["aws:us-east-1"],
         domain: row.domain,
         latestDeploymentId: row.latest_deployment_id,
-      }),
+      })
     );
   });

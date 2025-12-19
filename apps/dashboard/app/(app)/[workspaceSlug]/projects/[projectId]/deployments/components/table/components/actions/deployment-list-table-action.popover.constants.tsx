@@ -27,7 +27,7 @@ export const DeploymentListTableActions = ({
     q
       .from({ domain: collections.domains })
       .where(({ domain }) => eq(domain.deploymentId, selectedDeployment.id))
-      .select(({ domain }) => ({ host: domain.hostname })),
+      .select(({ domain }) => ({ host: domain.fullyQualifiedDomainName })),
   );
 
   const router = useRouter();

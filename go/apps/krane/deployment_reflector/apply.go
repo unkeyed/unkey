@@ -11,8 +11,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // applyDeployment creates or updates a Deployment CRD based on the provided request.
@@ -103,18 +103,18 @@ func (r *Reflector) applyDeployment(ctx context.Context, req *ctrlv1.ApplyDeploy
 							Name:          "deployment",
 						}},
 
-						//Resources: corev1.ResourceRequirements{
-						//	// nolint:exhaustive
-						//	Limits: corev1.ResourceList{
-						//		corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.GetCpuMillicores()), resource.BinarySI),
-						//		corev1.ResourceMemory: *resource.NewQuantity(int64(req.GetMemoryMib()), resource.BinarySI),
-						//	},
-						//	// nolint:exhaustive
-						//	Requests: corev1.ResourceList{
-						//		corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(req.GetCpuMillicores()), resource.BinarySI),
-						//		corev1.ResourceMemory: *resource.NewQuantity(int64(req.GetMemoryMib()), resource.BinarySI),
-						//	},
-						//},
+						Resources: corev1.ResourceRequirements{
+							// nolint:exhaustive
+							Limits: corev1.ResourceList{
+								corev1.ResourceCPU:    *resource.NewMilliQuantity(req.GetCpuMillicores(), resource.BinarySI),
+								corev1.ResourceMemory: *resource.NewQuantity(req.GetMemoryMib(), resource.BinarySI),
+							},
+							// nolint:exhaustive
+							Requests: corev1.ResourceList{
+								corev1.ResourceCPU:    *resource.NewMilliQuantity(req.GetCpuMillicores(), resource.BinarySI),
+								corev1.ResourceMemory: *resource.NewQuantity(req.GetMemoryMib(), resource.BinarySI),
+							},
+						},
 					}},
 				},
 			},
@@ -140,7 +140,12 @@ func (r *Reflector) applyDeployment(ctx context.Context, req *ctrlv1.ApplyDeploy
 		}
 	}
 
-	err = r.updateState(ctx, types.NamespacedName{Namespace: existing.Namespace, Name: existing.Name})
+	state, err := r.getState(ctx, existing)
+	if err != nil {
+		return err
+	}
+
+	err = r.updateState(ctx, state)
 	if err != nil {
 		r.logger.Error("failed to reconcile replicaset", "deployment_id", req.GetDeploymentId(), "error", err)
 		return err

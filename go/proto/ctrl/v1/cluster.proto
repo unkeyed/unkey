@@ -30,7 +30,6 @@ service ClusterService {
 
   rpc WatchDeployments(WatchRequest) returns (stream DeploymentState);
   rpc GetDesiredDeploymentState(GetDesiredDeploymentStateRequest) returns (DeploymentState);
-  rpc UpdateInstanceState(UpdateInstanceStateRequest) returns (UpdateInstanceStateResponse);
   rpc UpdateDeploymentState(UpdateDeploymentStateRequest) returns (UpdateDeploymentStateResponse);
 }
 
@@ -89,38 +88,6 @@ message UpdateDeploymentStateResponse {
 
 
 
-message UpdateInstanceStateRequest {
-  enum Status {
-    STATUS_UNSPECIFIED = 0;
-    STATUS_PENDING = 1; // Deployment request accepted, container/pod creation in progress
-    STATUS_RUNNING = 2; // Container/pod is running and healthy
-    STATUS_FAILED = 3; // Container/pod failed to start
-  }
-
-
-
-  message Upsert {
-    string deployment_id = 1;
-    string k8s_name = 2;
-    string address = 3;
-    int64 cpu_millicores = 4;
-    int64 memory_mib = 5;
-      Status status = 6;
-  }
-  message Delete {
-    string k8s_namespace = 1;
-    string k8s_name = 2;
-  }
-
-
-
-  oneof change {
-    Upsert upsert = 1;
-    Delete delete = 2;
-
-  }
-
-}
 
 message UpdateInstanceStateResponse {
 

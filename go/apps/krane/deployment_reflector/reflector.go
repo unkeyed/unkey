@@ -5,19 +5,12 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/controlplane"
-	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/pkg/buffer"
 	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes"
-	controllerruntime "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // Reflector watches control plane changes and reflects them in the Kubernetes cluster.
@@ -52,8 +45,6 @@ type Config struct {
 	// Cluster provides access to control plane APIs for state queries.
 	Cluster ctrlv1connect.ClusterServiceClient
 
-	Manager manager.Manager
-
 	InstanceID string
 	Region     string
 	Shard      string
@@ -86,20 +77,6 @@ func New(cfg Config) (*Reflector, error) {
 		done: make(chan struct{}),
 	}
 
-	err := controllerruntime.NewControllerManagedBy(cfg.Manager).
-		For(
-			&appsv1.ReplicaSet{},
-			builder.WithPredicates(
-				predicate.NewPredicateFuncs(func(obj client.Object) bool {
-					return k8s.IsComponentDeployment(obj.GetLabels())
-				}),
-			),
-		).Complete(r)
-
-	if err != nil {
-		return nil, err
-	}
-
 	return r, nil
 }
 
@@ -122,6 +99,7 @@ func (r *Reflector) Start() {
 	r.watcher.Sync(ctx, r.inbound)
 	r.watcher.Watch(ctx, r.inbound)
 	r.refreshCurrentReplicaSets(ctx)
+	go r.watchCurrentDeployments(ctx)
 
 	for {
 		select {

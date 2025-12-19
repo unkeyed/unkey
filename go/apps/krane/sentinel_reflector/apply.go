@@ -10,8 +10,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -42,6 +42,7 @@ func (r *Reflector) applySentinel(ctx context.Context, req *ctrlv1.ApplySentinel
 		assert.NotEmpty(req.GetK8SNamespace(), "Namespace is required"),
 		assert.NotEmpty(req.GetK8SName(), "K8s CRD name is required"),
 		assert.NotEmpty(req.GetImage(), "Image is required"),
+
 		assert.Greater(req.GetCpuMillicores(), int64(0), "CPU millicores must be greater than 0"),
 		assert.Greater(req.GetMemoryMib(), int64(0), "MemoryMib must be greater than 0"),
 	)
@@ -63,7 +64,10 @@ func (r *Reflector) applySentinel(ctx context.Context, req *ctrlv1.ApplySentinel
 		return err
 	}
 
-	err = r.updateState(ctx, types.NamespacedName{Namespace: req.GetK8SNamespace(), Name: req.GetK8SName()})
+	err = r.updateState(ctx, &ctrlv1.UpdateSentinelStateRequest{
+		K8SName:           req.GetK8SName(),
+		AvailableReplicas: deployment.Status.AvailableReplicas,
+	})
 	if err != nil {
 		r.logger.Error("failed to reconcile replicaset", "sentinel_id", req.GetSentinelId(), "error", err)
 		return err
@@ -120,18 +124,18 @@ func (r *Reflector) ensureDeploymentExists(ctx context.Context, sentinel *ctrlv1
 							Name:          "sentinel",
 						}},
 
-						//Resources: corev1.ResourceRequirements{
-						//	// nolint:exhaustive
-						//	Limits: corev1.ResourceList{
-						//		corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(sentinel.GetCpuMillicores()), resource.BinarySI),
-						//		corev1.ResourceMemory: *resource.NewQuantity(int64(sentinel.GetMemoryMib()), resource.BinarySI),
-						//	},
-						//	// nolint:exhaustive
-						//	Requests: corev1.ResourceList{
-						//		corev1.ResourceCPU:    *resource.NewMilliQuantity(int64(sentinel.GetCpuMillicores()), resource.BinarySI),
-						//		corev1.ResourceMemory: *resource.NewQuantity(int64(sentinel.GetMemoryMib()), resource.BinarySI),
-						//	},
-						//},
+						Resources: corev1.ResourceRequirements{
+							// nolint:exhaustive
+							Limits: corev1.ResourceList{
+								corev1.ResourceCPU:    *resource.NewMilliQuantity(sentinel.GetCpuMillicores(), resource.BinarySI),
+								corev1.ResourceMemory: *resource.NewQuantity(sentinel.GetMemoryMib(), resource.BinarySI),
+							},
+							// nolint:exhaustive
+							Requests: corev1.ResourceList{
+								corev1.ResourceCPU:    *resource.NewMilliQuantity(sentinel.GetCpuMillicores(), resource.BinarySI),
+								corev1.ResourceMemory: *resource.NewQuantity(sentinel.GetMemoryMib(), resource.BinarySI),
+							},
+						},
 					}},
 				},
 			},
@@ -177,8 +181,8 @@ func (r *Reflector) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.Ap
 				ToMap(),
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: deployment.APIVersion,
-					Kind:       deployment.Kind,
+					APIVersion: "apps/v1",
+					Kind:       "Deployment",
 					Name:       deployment.GetName(),
 					UID:        deployment.UID,
 				},

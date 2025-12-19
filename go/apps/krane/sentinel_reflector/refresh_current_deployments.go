@@ -27,6 +27,7 @@ import (
 // and Kubernetes cluster state, acting as a safety net for the event-based
 // synchronization mechanism.
 func (r *Reflector) refreshCurrentDeployments(ctx context.Context) {
+
 	repeat.Every(1*time.Minute, func() {
 
 		cursor := ""

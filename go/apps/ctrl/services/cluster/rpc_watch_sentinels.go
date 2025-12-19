@@ -100,24 +100,24 @@ func (s *Service) getSyntheticSentinels(ctx context.Context, req *connect.Reques
 
 	cursor := ""
 	for {
-		topologies, err := db.Query.ListDesiredSentinels(ctx, s.db.RO(), db.ListDesiredSentinelsParams{
+		sentinels, err := db.Query.ListDesiredSentinels(ctx, s.db.RO(), db.ListDesiredSentinelsParams{
 			Region:           region,
 			DesiredState:     db.SentinelsDesiredStateRunning,
 			PaginationCursor: cursor,
 			Limit:            1000,
 		})
 		if err != nil {
-			s.logger.Error("failed to get topologies", "error", err.Error())
+			s.logger.Error("failed to get sentinels", "error", err.Error())
 			return err
 		}
 
-		if len(topologies) == 0 {
+		if len(sentinels) == 0 {
 			break
 		}
-		s.logger.Info("Found Sentinels", "topologies", topologies)
-		cursor = topologies[len(topologies)-1].Sentinel.ID
+		s.logger.Info("Found Sentinels", "sentinels", sentinels)
+		cursor = sentinels[len(sentinels)-1].Sentinel.ID
 
-		for _, t := range topologies {
+		for _, t := range sentinels {
 			c <- &ctrlv1.SentinelState{
 				State: &ctrlv1.SentinelState_Apply{
 					Apply: &ctrlv1.ApplySentinel{
@@ -128,7 +128,7 @@ func (s *Service) getSyntheticSentinels(ctx context.Context, req *connect.Reques
 						ProjectId:     t.Sentinel.ProjectID,
 						SentinelId:    t.Sentinel.ID,
 						Image:         t.Sentinel.Image,
-						Replicas:      t.Sentinel.Replicas,
+						Replicas:      t.Sentinel.DesiredReplicas,
 						CpuMillicores: int64(t.Sentinel.CpuMillicores),
 						MemoryMib:     int64(t.Sentinel.MemoryMib),
 					},

@@ -57,9 +57,6 @@ const (
 	// ClusterServiceGetDesiredDeploymentStateProcedure is the fully-qualified name of the
 	// ClusterService's GetDesiredDeploymentState RPC.
 	ClusterServiceGetDesiredDeploymentStateProcedure = "/ctrl.v1.ClusterService/GetDesiredDeploymentState"
-	// ClusterServiceUpdateInstanceStateProcedure is the fully-qualified name of the ClusterService's
-	// UpdateInstanceState RPC.
-	ClusterServiceUpdateInstanceStateProcedure = "/ctrl.v1.ClusterService/UpdateInstanceState"
 	// ClusterServiceUpdateDeploymentStateProcedure is the fully-qualified name of the ClusterService's
 	// UpdateDeploymentState RPC.
 	ClusterServiceUpdateDeploymentStateProcedure = "/ctrl.v1.ClusterService/UpdateDeploymentState"
@@ -72,7 +69,6 @@ type ClusterServiceClient interface {
 	UpdateSentinelState(context.Context, *connect.Request[v1.UpdateSentinelStateRequest]) (*connect.Response[v1.UpdateSentinelStateResponse], error)
 	WatchDeployments(context.Context, *connect.Request[v1.WatchRequest]) (*connect.ServerStreamForClient[v1.DeploymentState], error)
 	GetDesiredDeploymentState(context.Context, *connect.Request[v1.GetDesiredDeploymentStateRequest]) (*connect.Response[v1.DeploymentState], error)
-	UpdateInstanceState(context.Context, *connect.Request[v1.UpdateInstanceStateRequest]) (*connect.Response[v1.UpdateInstanceStateResponse], error)
 	UpdateDeploymentState(context.Context, *connect.Request[v1.UpdateDeploymentStateRequest]) (*connect.Response[v1.UpdateDeploymentStateResponse], error)
 }
 
@@ -117,12 +113,6 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(clusterServiceMethods.ByName("GetDesiredDeploymentState")),
 			connect.WithClientOptions(opts...),
 		),
-		updateInstanceState: connect.NewClient[v1.UpdateInstanceStateRequest, v1.UpdateInstanceStateResponse](
-			httpClient,
-			baseURL+ClusterServiceUpdateInstanceStateProcedure,
-			connect.WithSchema(clusterServiceMethods.ByName("UpdateInstanceState")),
-			connect.WithClientOptions(opts...),
-		),
 		updateDeploymentState: connect.NewClient[v1.UpdateDeploymentStateRequest, v1.UpdateDeploymentStateResponse](
 			httpClient,
 			baseURL+ClusterServiceUpdateDeploymentStateProcedure,
@@ -139,7 +129,6 @@ type clusterServiceClient struct {
 	updateSentinelState       *connect.Client[v1.UpdateSentinelStateRequest, v1.UpdateSentinelStateResponse]
 	watchDeployments          *connect.Client[v1.WatchRequest, v1.DeploymentState]
 	getDesiredDeploymentState *connect.Client[v1.GetDesiredDeploymentStateRequest, v1.DeploymentState]
-	updateInstanceState       *connect.Client[v1.UpdateInstanceStateRequest, v1.UpdateInstanceStateResponse]
 	updateDeploymentState     *connect.Client[v1.UpdateDeploymentStateRequest, v1.UpdateDeploymentStateResponse]
 }
 
@@ -168,11 +157,6 @@ func (c *clusterServiceClient) GetDesiredDeploymentState(ctx context.Context, re
 	return c.getDesiredDeploymentState.CallUnary(ctx, req)
 }
 
-// UpdateInstanceState calls ctrl.v1.ClusterService.UpdateInstanceState.
-func (c *clusterServiceClient) UpdateInstanceState(ctx context.Context, req *connect.Request[v1.UpdateInstanceStateRequest]) (*connect.Response[v1.UpdateInstanceStateResponse], error) {
-	return c.updateInstanceState.CallUnary(ctx, req)
-}
-
 // UpdateDeploymentState calls ctrl.v1.ClusterService.UpdateDeploymentState.
 func (c *clusterServiceClient) UpdateDeploymentState(ctx context.Context, req *connect.Request[v1.UpdateDeploymentStateRequest]) (*connect.Response[v1.UpdateDeploymentStateResponse], error) {
 	return c.updateDeploymentState.CallUnary(ctx, req)
@@ -185,7 +169,6 @@ type ClusterServiceHandler interface {
 	UpdateSentinelState(context.Context, *connect.Request[v1.UpdateSentinelStateRequest]) (*connect.Response[v1.UpdateSentinelStateResponse], error)
 	WatchDeployments(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.DeploymentState]) error
 	GetDesiredDeploymentState(context.Context, *connect.Request[v1.GetDesiredDeploymentStateRequest]) (*connect.Response[v1.DeploymentState], error)
-	UpdateInstanceState(context.Context, *connect.Request[v1.UpdateInstanceStateRequest]) (*connect.Response[v1.UpdateInstanceStateResponse], error)
 	UpdateDeploymentState(context.Context, *connect.Request[v1.UpdateDeploymentStateRequest]) (*connect.Response[v1.UpdateDeploymentStateResponse], error)
 }
 
@@ -226,12 +209,6 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 		connect.WithSchema(clusterServiceMethods.ByName("GetDesiredDeploymentState")),
 		connect.WithHandlerOptions(opts...),
 	)
-	clusterServiceUpdateInstanceStateHandler := connect.NewUnaryHandler(
-		ClusterServiceUpdateInstanceStateProcedure,
-		svc.UpdateInstanceState,
-		connect.WithSchema(clusterServiceMethods.ByName("UpdateInstanceState")),
-		connect.WithHandlerOptions(opts...),
-	)
 	clusterServiceUpdateDeploymentStateHandler := connect.NewUnaryHandler(
 		ClusterServiceUpdateDeploymentStateProcedure,
 		svc.UpdateDeploymentState,
@@ -250,8 +227,6 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 			clusterServiceWatchDeploymentsHandler.ServeHTTP(w, r)
 		case ClusterServiceGetDesiredDeploymentStateProcedure:
 			clusterServiceGetDesiredDeploymentStateHandler.ServeHTTP(w, r)
-		case ClusterServiceUpdateInstanceStateProcedure:
-			clusterServiceUpdateInstanceStateHandler.ServeHTTP(w, r)
 		case ClusterServiceUpdateDeploymentStateProcedure:
 			clusterServiceUpdateDeploymentStateHandler.ServeHTTP(w, r)
 		default:
@@ -281,10 +256,6 @@ func (UnimplementedClusterServiceHandler) WatchDeployments(context.Context, *con
 
 func (UnimplementedClusterServiceHandler) GetDesiredDeploymentState(context.Context, *connect.Request[v1.GetDesiredDeploymentStateRequest]) (*connect.Response[v1.DeploymentState], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.GetDesiredDeploymentState is not implemented"))
-}
-
-func (UnimplementedClusterServiceHandler) UpdateInstanceState(context.Context, *connect.Request[v1.UpdateInstanceStateRequest]) (*connect.Response[v1.UpdateInstanceStateResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.UpdateInstanceState is not implemented"))
 }
 
 func (UnimplementedClusterServiceHandler) UpdateDeploymentState(context.Context, *connect.Request[v1.UpdateDeploymentStateRequest]) (*connect.Response[v1.UpdateDeploymentStateResponse], error) {

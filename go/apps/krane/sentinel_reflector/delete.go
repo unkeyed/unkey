@@ -5,7 +5,6 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
@@ -38,7 +37,10 @@ func (r *Reflector) deleteSentinel(ctx context.Context, req *ctrlv1.DeleteSentin
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
-	err = r.updateState(ctx, types.NamespacedName{Namespace: req.GetK8SNamespace(), Name: req.GetK8SName()})
+	err = r.updateState(ctx, &ctrlv1.UpdateSentinelStateRequest{
+		K8SName:           req.GetK8SName(),
+		AvailableReplicas: 0,
+	})
 	if err != nil {
 		return err
 	}
