@@ -15,6 +15,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/uid"
 	"google.golang.org/protobuf/proto"
 )
@@ -29,7 +30,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, err
 	}
 
-	// If anything goes wrong, we need to update the deployment status to failed
 	defer func() {
 		if finishedSuccessfully {
 			return
@@ -85,14 +85,14 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	}
 
 	var dockerImage string
+	var buildID *string
 
 	if req.GetBuildContextPath() != "" {
-		// Build Docker image from uploaded context
 		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusBuilding); err != nil {
 			return nil, err
 		}
 
-		dockerImage, err = restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
+		result, err := restate.Run(ctx, func(stepCtx restate.RunContext) (*ctrlv1.CreateBuildResponse, error) {
 			w.logger.Info("starting docker build",
 				"deployment_id", deployment.ID,
 				"build_context_path", req.GetBuildContextPath())
@@ -108,18 +108,28 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			var buildResp *connect.Response[ctrlv1.CreateBuildResponse]
 			buildResp, err = w.buildClient.CreateBuild(stepCtx, buildReq)
 			if err != nil {
-				return "", fmt.Errorf("build failed: %w", err)
+				return &ctrlv1.CreateBuildResponse{}, fmt.Errorf("build failed: %w", err)
 			}
 
-			imageName := buildResp.Msg.GetImageName()
-			w.logger.Info("docker build completed",
-				"deployment_id", deployment.ID,
-				"image_name", imageName)
+			w.logger.Info("docker build completed", "deployment_id", deployment.ID, "image_name", buildResp.Msg.GetImageName())
 
-			return imageName, nil
+			return buildResp.Msg, nil
 		}, restate.WithName("building docker image"))
 		if err != nil {
 			return nil, fmt.Errorf("failed to build docker image: %w", err)
+		}
+		dockerImage = result.GetImageName()
+		buildID = ptr.P(result.GetBuildId())
+
+		err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
+			return db.Query.UpdateDeploymentBuildID(stepCtx, w.db.RW(), db.UpdateDeploymentBuildIDParams{
+				ID:        deployment.ID,
+				BuildID:   sql.NullString{Valid: true, String: result.GetBuildId()},
+				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			})
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to update deployment build ID: %w", err)
 		}
 
 	} else if req.GetDockerImage() != "" {
@@ -169,20 +179,23 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	}
 
 	for _, region := range regions {
+
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return w.cluster.EmitDeploymentState(runCtx, map[string]string{"region": region, "shard": "default"}, &ctrlv1.DeploymentState{
 				State: &ctrlv1.DeploymentState_Apply{
 					Apply: &ctrlv1.ApplyDeployment{
-						K8SNamespace:  workspace.K8sNamespace.String,
-						K8SName:       deployment.K8sName,
-						WorkspaceId:   workspace.ID,
-						ProjectId:     project.ID,
-						EnvironmentId: environment.ID,
-						DeploymentId:  deployment.ID,
-						Image:         dockerImage,
-						Replicas:      1,
-						CpuMillicores: 256,
-						MemoryMib:     256,
+						K8SNamespace:         workspace.K8sNamespace.String,
+						K8SName:              deployment.K8sName,
+						WorkspaceId:          workspace.ID,
+						ProjectId:            project.ID,
+						EnvironmentId:        environment.ID,
+						DeploymentId:         deployment.ID,
+						Image:                dockerImage,
+						Replicas:             1,
+						CpuMillicores:        256,
+						MemoryMib:            256,
+						BuildId:              buildID,
+						EncryptedSecretsBlob: deployment.SecretsConfig,
 					},
 				},
 			})
@@ -198,7 +211,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 		for i := range 300 {
 			time.Sleep(time.Second)
-			if i%10 == 0 { // Log every 10 seconds instead of every second
+			if i%10 == 0 {
 				w.logger.Info("polling deployment status", "deployment_id", deployment.ID, "iteration", i)
 			}
 
@@ -248,7 +261,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				continue
 			}
 
-			// Read the OpenAPI spec
 			var specBytes []byte
 			specBytes, err = io.ReadAll(resp.Body)
 			if err != nil {
@@ -259,7 +271,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			w.logger.Info("openapi spec scraped successfully", "host_addr", instance.Address, "deployment_id", deployment.ID, "spec_size", len(specBytes))
 			return base64.StdEncoding.EncodeToString(specBytes), nil
 		}
-		// not an error really, just no OpenAPI spec found
 		return "", nil
 	}, restate.WithName("scrape openapi spec"))
 	if err != nil {
@@ -283,10 +294,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		deployment.GitCommitSha.String,
 		deployment.GitBranch.String,
 		w.defaultDomain,
-		ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD, // hardcoded for now cause I really need to move on
+		ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
 	)
-
-	// Build domain assignment requests
 
 	existingRouteIDs := make([]string, 0)
 
@@ -306,7 +315,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 							CreatedAt:                time.Now().UnixMilli(),
 							UpdatedAt:                sql.NullInt64{Valid: false, Int64: 0},
 						})
-						// return empty string cause this frontline is already updated since we just created it
 						return "", err
 
 					}
@@ -324,7 +332,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		}
 	}
 
-	// Call RoutingService to assign domains atomically
 	_, err = hydrav1.NewRoutingServiceClient(ctx, project.ID).
 		AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
 		DeploymentId:      deployment.ID,
@@ -334,13 +341,11 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, fmt.Errorf("failed to assign domains: %w", err)
 	}
 
-	// Update deployment status to ready
 	if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusReady); err != nil {
 		return nil, err
 	}
 
 	if !project.IsRolledBack && environment.Slug == "production" {
-		// only update this if the deployment is not rolled back
 		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 			return restate.Void{}, db.Query.UpdateProjectDeployments(stepCtx, w.db.RW(), db.UpdateProjectDeploymentsParams{
 				IsRolledBack:     false,
@@ -354,7 +359,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		}
 	}
 
-	// Log deployment completed
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		return restate.Void{}, db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			ProjectID:    deployment.ProjectID,

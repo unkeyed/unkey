@@ -365,6 +365,48 @@ func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
 	return string(ns.DeploymentsStatus), nil
 }
 
+type EnvironmentVariablesType string
+
+const (
+	EnvironmentVariablesTypeRecoverable EnvironmentVariablesType = "recoverable"
+	EnvironmentVariablesTypeWriteonly   EnvironmentVariablesType = "writeonly"
+)
+
+func (e *EnvironmentVariablesType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = EnvironmentVariablesType(s)
+	case string:
+		*e = EnvironmentVariablesType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for EnvironmentVariablesType: %T", src)
+	}
+	return nil
+}
+
+type NullEnvironmentVariablesType struct {
+	EnvironmentVariablesType EnvironmentVariablesType
+	Valid                    bool // Valid is true if EnvironmentVariablesType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullEnvironmentVariablesType) Scan(value interface{}) error {
+	if value == nil {
+		ns.EnvironmentVariablesType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.EnvironmentVariablesType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullEnvironmentVariablesType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.EnvironmentVariablesType), nil
+}
+
 type FrontlineRoutesSticky string
 
 const (
@@ -861,26 +903,28 @@ type CustomDomain struct {
 }
 
 type Deployment struct {
-	ID                       string                  `db:"id"`
-	K8sName                  string                  `db:"k8s_name"`
-	WorkspaceID              string                  `db:"workspace_id"`
-	ProjectID                string                  `db:"project_id"`
-	EnvironmentID            string                  `db:"environment_id"`
-	Image                    sql.NullString          `db:"image"`
-	GitCommitSha             sql.NullString          `db:"git_commit_sha"`
-	GitBranch                sql.NullString          `db:"git_branch"`
-	GitCommitMessage         sql.NullString          `db:"git_commit_message"`
-	GitCommitAuthorHandle    sql.NullString          `db:"git_commit_author_handle"`
-	GitCommitAuthorAvatarUrl sql.NullString          `db:"git_commit_author_avatar_url"`
-	GitCommitTimestamp       sql.NullInt64           `db:"git_commit_timestamp"`
-	SentinelConfig           []byte                  `db:"sentinel_config"`
-	OpenapiSpec              sql.NullString          `db:"openapi_spec"`
-	CpuMillicores            int32                   `db:"cpu_millicores"`
-	MemoryMib                int32                   `db:"memory_mib"`
-	DesiredState             DeploymentsDesiredState `db:"desired_state"`
-	Status                   DeploymentsStatus       `db:"status"`
-	CreatedAt                int64                   `db:"created_at"`
-	UpdatedAt                sql.NullInt64           `db:"updated_at"`
+	ID                            string                  `db:"id"`
+	K8sName                       string                  `db:"k8s_name"`
+	WorkspaceID                   string                  `db:"workspace_id"`
+	ProjectID                     string                  `db:"project_id"`
+	EnvironmentID                 string                  `db:"environment_id"`
+	Image                         sql.NullString          `db:"image"`
+	BuildID                       sql.NullString          `db:"build_id"`
+	GitCommitSha                  sql.NullString          `db:"git_commit_sha"`
+	GitBranch                     sql.NullString          `db:"git_branch"`
+	GitCommitMessage              sql.NullString          `db:"git_commit_message"`
+	GitCommitAuthorHandle         sql.NullString          `db:"git_commit_author_handle"`
+	GitCommitAuthorAvatarUrl      sql.NullString          `db:"git_commit_author_avatar_url"`
+	GitCommitTimestamp            sql.NullInt64           `db:"git_commit_timestamp"`
+	SentinelConfig                []byte                  `db:"sentinel_config"`
+	OpenapiSpec                   sql.NullString          `db:"openapi_spec"`
+	CpuMillicores                 int32                   `db:"cpu_millicores"`
+	MemoryMib                     int32                   `db:"memory_mib"`
+	DesiredState                  DeploymentsDesiredState `db:"desired_state"`
+	EncryptedEnvironmentVariables []byte                  `db:"encrypted_environment_variables"`
+	Status                        DeploymentsStatus       `db:"status"`
+	CreatedAt                     int64                   `db:"created_at"`
+	UpdatedAt                     sql.NullInt64           `db:"updated_at"`
 }
 
 type DeploymentStep struct {
@@ -921,6 +965,19 @@ type Environment struct {
 	DeleteProtection sql.NullBool  `db:"delete_protection"`
 	CreatedAt        int64         `db:"created_at"`
 	UpdatedAt        sql.NullInt64 `db:"updated_at"`
+}
+
+type EnvironmentVariable struct {
+	ID               string                   `db:"id"`
+	WorkspaceID      string                   `db:"workspace_id"`
+	EnvironmentID    string                   `db:"environment_id"`
+	Key              string                   `db:"key"`
+	Value            string                   `db:"value"`
+	Type             EnvironmentVariablesType `db:"type"`
+	Description      sql.NullString           `db:"description"`
+	DeleteProtection sql.NullBool             `db:"delete_protection"`
+	CreatedAt        int64                    `db:"created_at"`
+	UpdatedAt        sql.NullInt64            `db:"updated_at"`
 }
 
 type FrontlineRoute struct {

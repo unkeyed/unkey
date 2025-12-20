@@ -11,12 +11,14 @@ INSERT INTO `deployments` (
     git_commit_message,
     git_commit_author_handle,
     git_commit_author_avatar_url,
-    git_commit_timestamp, -- Unix epoch milliseconds
+    git_commit_timestamp,
     openapi_spec,
+    encrypted_environment_variables,
     status,
     cpu_millicores,
 		memory_mib,
-    created_at
+    created_at,
+    updated_at
 )
 VALUES (
     sqlc.arg(id),
@@ -32,8 +34,10 @@ VALUES (
     sqlc.arg(git_commit_author_avatar_url),
     sqlc.arg(git_commit_timestamp),
     sqlc.arg(openapi_spec),
+    sqlc.arg(encrypted_environment_variables),
     sqlc.arg(status),
     sqlc.arg(cpu_millicores),
 		sqlc.arg(memory_mib),
-		sqlc.arg(created_at)
+    sqlc.arg(created_at),
+    sqlc.arg(updated_at)
 );

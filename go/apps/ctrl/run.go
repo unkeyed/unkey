@@ -3,14 +3,20 @@ package ctrl
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
+	"github.com/go-acme/lego/v4/challenge"
+	restate "github.com/restatedev/sdk-go"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	restateServer "github.com/restatedev/sdk-go/server"
+	ctrlCaches "github.com/unkeyed/unkey/go/apps/ctrl/internal/caches"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme"
+	"github.com/unkeyed/unkey/go/apps/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/build/backend/depot"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/build/backend/docker"
 	buildStorage "github.com/unkeyed/unkey/go/apps/ctrl/services/build/storage"
@@ -26,11 +32,13 @@ import (
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/pkg/clickhouse"
+	"github.com/unkeyed/unkey/go/pkg/clock"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/retry"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
+	"github.com/unkeyed/unkey/go/pkg/uid"
 	"github.com/unkeyed/unkey/go/pkg/vault"
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 	pkgversion "github.com/unkeyed/unkey/go/pkg/version"
@@ -43,6 +51,11 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
 	}
+
+	// Disable CNAME following in lego to prevent it from following wildcard CNAMEs
+	// (e.g., *.example.com -> loadbalancer.aws.com) and failing Route53 zone lookup.
+	// Must be set before creating any ACME DNS providers.
+	os.Setenv("LEGO_DISABLE_CNAME_SUPPORT", "true")
 
 	shutdowns := shutdown.New()
 
@@ -79,18 +92,18 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("TLS is enabled, server will use HTTPS")
 	}
 
+	// Create vault service for general secrets (env vars, API keys, etc.)
 	var vaultSvc *vault.Service
-	if len(cfg.VaultMasterKeys) > 0 {
-		var vaultStorage storage.Storage
-		vaultStorage, err = storage.NewS3(storage.S3Config{
+	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3.URL != "" {
+		vaultStorage, vaultStorageErr := storage.NewS3(storage.S3Config{
 			Logger:            logger,
 			S3URL:             cfg.VaultS3.URL,
 			S3Bucket:          cfg.VaultS3.Bucket,
 			S3AccessKeyID:     cfg.VaultS3.AccessKeyID,
 			S3AccessKeySecret: cfg.VaultS3.AccessKeySecret,
 		})
-		if err != nil {
-			return fmt.Errorf("unable to create vault storage: %w", err)
+		if vaultStorageErr != nil {
+			return fmt.Errorf("unable to create vault storage: %w", vaultStorageErr)
 		}
 
 		vaultSvc, err = vault.New(vault.Config{
@@ -101,9 +114,33 @@ func Run(ctx context.Context, cfg Config) error {
 		if err != nil {
 			return fmt.Errorf("unable to create vault service: %w", err)
 		}
+		logger.Info("Vault service initialized", "bucket", cfg.VaultS3.Bucket)
 	}
-	// make go happy
-	_ = vaultSvc
+
+	// Create separate vault service for ACME certificates
+	var acmeVaultSvc *vault.Service
+	if len(cfg.AcmeVaultMasterKeys) > 0 && cfg.AcmeVaultS3.URL != "" {
+		acmeVaultStorage, acmeStorageErr := storage.NewS3(storage.S3Config{
+			Logger:            logger,
+			S3URL:             cfg.AcmeVaultS3.URL,
+			S3Bucket:          cfg.AcmeVaultS3.Bucket,
+			S3AccessKeyID:     cfg.AcmeVaultS3.AccessKeyID,
+			S3AccessKeySecret: cfg.AcmeVaultS3.AccessKeySecret,
+		})
+		if acmeStorageErr != nil {
+			return fmt.Errorf("unable to create ACME vault storage: %w", acmeStorageErr)
+		}
+
+		acmeVaultSvc, err = vault.New(vault.Config{
+			Logger:     logger,
+			Storage:    acmeVaultStorage,
+			MasterKeys: cfg.AcmeVaultMasterKeys,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create ACME vault service: %w", err)
+		}
+		logger.Info("ACME vault service initialized", "bucket", cfg.AcmeVaultS3.Bucket)
+	}
 
 	// Initialize database
 	database, err := db.New(db.Config{
@@ -185,6 +222,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Cluster:       clusterSvc,
 		BuildClient:   buildService,
 		DefaultDomain: cfg.DefaultDomain,
+		Vault:         vaultSvc,
 	})))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
@@ -193,11 +231,73 @@ func Run(ctx context.Context, cfg Config) error {
 		DefaultDomain: cfg.DefaultDomain,
 	})))
 
-	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
+	// Initialize shared caches for ACME (needed for verification endpoint regardless of provider config)
+	caches, cacheErr := ctrlCaches.New(ctrlCaches.Config{
 		Logger: logger,
-		DB:     database,
-		Vault:  vaultSvc,
-	})))
+		Clock:  clock.New(),
+	})
+	if cacheErr != nil {
+		return fmt.Errorf("failed to create ACME caches: %w", cacheErr)
+	}
+
+	// Setup ACME challenge providers
+	var dnsProvider challenge.Provider
+	var httpProvider challenge.Provider
+	if cfg.Acme.Enabled {
+		// HTTP-01 provider for regular (non-wildcard) domains
+		httpProv, httpErr := providers.NewHTTPProvider(providers.HTTPConfig{
+			DB:          database,
+			Logger:      logger,
+			DomainCache: caches.Domains,
+		})
+		if httpErr != nil {
+			return fmt.Errorf("failed to create HTTP-01 provider: %w", httpErr)
+		}
+		httpProvider = httpProv
+		logger.Info("ACME HTTP-01 provider enabled")
+
+		// DNS-01 provider for wildcard domains (requires DNS provider config)
+		if cfg.Acme.Cloudflare.Enabled {
+			cfProvider, cfErr := providers.NewCloudflareProvider(providers.CloudflareConfig{
+				DB:          database,
+				Logger:      logger,
+				APIToken:    cfg.Acme.Cloudflare.ApiToken,
+				DomainCache: caches.Domains,
+			})
+			if cfErr != nil {
+				return fmt.Errorf("failed to create Cloudflare DNS provider: %w", cfErr)
+			}
+			dnsProvider = cfProvider
+			logger.Info("ACME Cloudflare DNS-01 provider enabled for wildcard certs")
+		} else if cfg.Acme.Route53.Enabled {
+			r53Provider, r53Err := providers.NewRoute53Provider(providers.Route53Config{
+				DB:              database,
+				Logger:          logger,
+				AccessKeyID:     cfg.Acme.Route53.AccessKeyID,
+				SecretAccessKey: cfg.Acme.Route53.SecretAccessKey,
+				Region:          cfg.Acme.Route53.Region,
+				HostedZoneID:    cfg.Acme.Route53.HostedZoneID,
+				DomainCache:     caches.Domains,
+			})
+			if r53Err != nil {
+				return fmt.Errorf("failed to create Route53 DNS provider: %w", r53Err)
+			}
+			dnsProvider = r53Provider
+			logger.Info("ACME Route53 DNS-01 provider enabled for wildcard certs")
+		}
+	}
+
+	// Certificate service needs a longer timeout for ACME DNS-01 challenges
+	// which can take 5-10 minutes for DNS propagation
+	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
+		Logger:        logger,
+		DB:            database,
+		Vault:         acmeVaultSvc,
+		EmailDomain:   cfg.Acme.EmailDomain,
+		DefaultDomain: cfg.DefaultDomain,
+		DNSProvider:   dnsProvider,
+		HTTPProvider:  httpProvider,
+	}), restate.WithInactivityTimeout(15*time.Minute)))
 	restateSrv.Bind(hydrav1.NewProjectServiceServer(projectWorkflow.New(projectWorkflow.Config{
 		Logger:        logger,
 		DB:            database,
@@ -256,6 +356,29 @@ func Run(ctx context.Context, cfg Config) error {
 				logger.Error("failed to register with Restate after retries", "error", err.Error())
 			} else {
 				logger.Info("Successfully registered with Restate")
+
+				// Bootstrap wildcard certificate for default domain if ACME is enabled
+				if cfg.Acme.Enabled && dnsProvider != nil && cfg.DefaultDomain != "" {
+					bootstrapWildcardDomain(ctx, database, logger, cfg.DefaultDomain)
+				}
+
+				// Start the certificate renewal cron job if ACME is enabled
+				// Use Send with idempotency key so multiple restarts don't create duplicate crons
+				if cfg.Acme.Enabled && dnsProvider != nil {
+					certClient := hydrav1.NewCertificateServiceIngressClient(restateClient, "global")
+					_, startErr := certClient.RenewExpiringCertificates().Send(
+						ctx,
+						&hydrav1.RenewExpiringCertificatesRequest{
+							DaysBeforeExpiry: 30,
+						},
+						restate.WithIdempotencyKey("cert-renewal-cron-startup"),
+					)
+					if startErr != nil {
+						logger.Warn("failed to start certificate renewal cron", "error", startErr)
+					} else {
+						logger.Info("Certificate renewal cron job started")
+					}
+				}
 			}
 		}()
 	}
@@ -278,10 +401,11 @@ func Run(ctx context.Context, cfg Config) error {
 	})))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger)))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
-		DB:     database,
-		Logger: logger,
+		DB:             database,
+		Logger:         logger,
+		DomainCache:    caches.Domains,
+		ChallengeCache: caches.Challenges,
 	})))
-	mux.Handle(ctrlv1connect.NewClusterServiceHandler(clusterSvc))
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)
@@ -342,4 +466,60 @@ func Run(ctx context.Context, cfg Config) error {
 
 	logger.Info("Ctrl server shut down successfully")
 	return nil
+}
+
+// bootstrapWildcardDomain ensures a wildcard domain and ACME challenge exist for the default domain.
+// This allows the renewal cron to automatically issue a wildcard certificate on startup.
+func bootstrapWildcardDomain(ctx context.Context, database db.Database, logger logging.Logger, defaultDomain string) {
+	wildcardDomain := "*." + defaultDomain
+
+	// Check if the wildcard domain already exists
+	_, err := db.Query.FindCustomDomainByDomain(ctx, database.RO(), wildcardDomain)
+	if err == nil {
+		logger.Info("Wildcard domain already exists", "domain", wildcardDomain)
+		return
+	}
+	if !db.IsNotFound(err) {
+		logger.Error("Failed to check for existing wildcard domain", "error", err, "domain", wildcardDomain)
+		return
+	}
+
+	// Create the custom domain record
+	domainID := uid.New(uid.DomainPrefix)
+	now := time.Now().UnixMilli()
+
+	// Use "unkey_internal" as the workspace for platform-managed resources
+	workspaceID := "unkey_internal"
+
+	err = db.Query.UpsertCustomDomain(ctx, database.RW(), db.UpsertCustomDomainParams{
+		ID:            domainID,
+		WorkspaceID:   workspaceID,
+		Domain:        wildcardDomain,
+		ChallengeType: db.CustomDomainsChallengeTypeDNS01,
+		CreatedAt:     now,
+		UpdatedAt:     sql.NullInt64{Int64: now, Valid: true},
+	})
+	if err != nil {
+		logger.Error("Failed to create wildcard domain", "error", err, "domain", wildcardDomain)
+		return
+	}
+
+	// Create the ACME challenge record with status 'waiting' so the renewal cron picks it up
+	err = db.Query.InsertAcmeChallenge(ctx, database.RW(), db.InsertAcmeChallengeParams{
+		WorkspaceID:   workspaceID,
+		DomainID:      domainID,
+		Token:         "",
+		Authorization: "",
+		Status:        db.AcmeChallengesStatusWaiting,
+		ChallengeType: db.AcmeChallengesChallengeTypeDNS01,
+		CreatedAt:     now,
+		UpdatedAt:     sql.NullInt64{Int64: now, Valid: true},
+		ExpiresAt:     0, // Will be set when certificate is issued
+	})
+	if err != nil {
+		logger.Error("Failed to create ACME challenge for wildcard domain", "error", err, "domain", wildcardDomain)
+		return
+	}
+
+	logger.Info("Bootstrapped wildcard domain for certificate issuance", "domain", wildcardDomain)
 }

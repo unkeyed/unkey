@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/go/cmd/ctrl"
 	"github.com/unkeyed/unkey/go/cmd/frontline"
 	"github.com/unkeyed/unkey/go/cmd/krane"
+	"github.com/unkeyed/unkey/go/cmd/preflight"
 	"github.com/unkeyed/unkey/go/cmd/sentinel"
 	"github.com/unkeyed/unkey/go/pkg/cli"
 )
@@ -42,17 +43,19 @@ unkey run api --port 8080 --env production      # Run API server with custom con
 		krane.Cmd,
 		frontline.Cmd,
 		sentinel.Cmd,
+		preflight.Cmd,
 	},
 	Action: runAction,
 }
 
 func runAction(ctx context.Context, cmd *cli.Command) error {
 	fmt.Println("Available services:")
-	fmt.Println("  api    - The main API server for validating and managing API keys")
-	fmt.Println("  ctrl   - The control plane service for managing infrastructure")
-	fmt.Println("  krane  - Manage containers and deployments in docker or kubernetes")
-	fmt.Println("  frontline - Multi-tenant frontline service for TLS termination and routing")
-	fmt.Println("  sentinel - Environment tenant sentinel service for routing requests to the actual instances")
+	fmt.Println("  api             - The main API server for validating and managing API keys")
+	fmt.Println("  ctrl            - The control plane service for managing infrastructure")
+	fmt.Println("  krane           - Manage containers and deployments in docker or kubernetes")
+	fmt.Println("  frontline       - Multi-tenant ingress service for TLS termination and routing")
+	fmt.Println("  sentinel        - Environment tenant gateway service for routing requests to the actual instances")
+	fmt.Println("  preflight       - Kubernetes mutating webhook for secrets and credentials injection")
 	fmt.Println()
 	fmt.Println("Use 'unkey run <service>' to start a specific service")
 	fmt.Println("Use 'unkey run <service> --help' for service-specific options")

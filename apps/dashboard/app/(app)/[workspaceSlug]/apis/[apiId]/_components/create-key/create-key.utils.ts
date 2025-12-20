@@ -1,3 +1,4 @@
+import { metadataSchema } from "@/lib/schemas/metadata";
 import { deepMerge } from "@/lib/utils";
 import {
   type CreateKeyInput,
@@ -6,7 +7,6 @@ import {
   creditsSchema,
   expirationSchema,
   generalSchema,
-  metadataSchema,
   ratelimitSchema,
 } from "./create-key.schema";
 import type { SectionName } from "./types";

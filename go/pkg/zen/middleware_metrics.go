@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/go/pkg/fault"
 )
 
 type EventBuffer interface {
@@ -98,7 +97,7 @@ func WithMetrics(eventBuffer EventBuffer, info InstanceInfo) Middleware {
 					ResponseStatus:  int32(s.responseStatus),
 					ResponseHeaders: responseHeaders,
 					ResponseBody:    string(redact(s.responseBody)),
-					Error:           fault.UserFacingMessage(nextErr),
+					Error:           s.InternalError(),
 					ServiceLatency:  serviceLatency.Milliseconds(),
 					UserAgent:       s.r.Header.Get("User-Agent"),
 					IpAddress:       ipAddress,

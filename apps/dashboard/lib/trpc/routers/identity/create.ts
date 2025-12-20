@@ -1,5 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { type Identity, db, schema } from "@/lib/db";
+import { ratelimitItemSchema } from "@/lib/schemas/ratelimit";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
@@ -8,11 +9,12 @@ import { requireUser, requireWorkspace, t } from "../../trpc";
 export const createIdentityInputSchema = z.object({
   externalId: z
     .string()
-    .min(1, "External ID is required")
-    .max(255, "External ID is too long")
-    .trim()
-    .refine((id) => !/^\s+$/.test(id), "External ID cannot be only whitespace"),
+    .transform((s) => s.trim())
+    .refine((trimmed) => trimmed.length >= 1, "External ID is required")
+    .refine((trimmed) => trimmed.length <= 255, "External ID cannot exceed 255 characters")
+    .refine((trimmed) => trimmed !== "", "External ID cannot be only whitespace"),
   meta: z.record(z.unknown()).nullable(),
+  ratelimits: z.array(ratelimitItemSchema).optional(),
 });
 
 export const createIdentity = t.procedure
@@ -68,6 +70,24 @@ export const createIdentity = t.procedure
         };
 
         await tx.insert(schema.identities).values(payload);
+
+        // Insert ratelimits if provided
+        if (input.ratelimits && input.ratelimits.length > 0) {
+          const ratelimitValues = input.ratelimits.map((ratelimit) => ({
+            id: newId("ratelimit"),
+            identityId: identityId,
+            duration: ratelimit.refillInterval,
+            limit: ratelimit.limit,
+            name: ratelimit.name,
+            autoApply: ratelimit.autoApply,
+            workspaceId: ctx.workspace.id,
+            createdAt: Date.now(),
+            updatedAt: null,
+          }));
+
+          await tx.insert(schema.ratelimits).values(ratelimitValues);
+        }
+
         await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },
@@ -80,6 +100,8 @@ export const createIdentity = t.procedure
               name: input.externalId,
               meta: {
                 hasMeta: Boolean(input.meta),
+                hasRatelimits: Boolean(input.ratelimits && input.ratelimits.length > 0),
+                ratelimitCount: input.ratelimits?.length || 0,
               },
             },
             {

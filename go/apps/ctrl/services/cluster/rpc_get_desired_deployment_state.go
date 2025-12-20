@@ -45,6 +45,11 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 		}), nil
 	case db.DeploymentsDesiredStateRunning:
 
+		var buildID *string
+		if deployment.BuildID.Valid {
+			buildID = &deployment.BuildID.String
+		}
+
 		return connect.NewResponse(&ctrlv1.DeploymentState{
 			State: &ctrlv1.DeploymentState_Apply{
 				Apply: &ctrlv1.ApplyDeployment{
@@ -54,6 +59,7 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 					WorkspaceId:   deployment.WorkspaceID,
 					ProjectId:     deployment.ProjectID,
 					EnvironmentId: deployment.EnvironmentID,
+					BuildId:       buildID,
 					Replicas:      deployment.Replicas,
 					Image:         deployment.Image.String,
 					CpuMillicores: int64(deployment.CpuMillicores),

@@ -186,6 +186,14 @@ type Querier interface {
 	//  FROM custom_domains
 	//  WHERE domain = ?
 	FindCustomDomainByDomain(ctx context.Context, db DBTX, domain string) (CustomDomain, error)
+	//FindCustomDomainByDomainOrWildcard
+	//
+	//  SELECT id, workspace_id, domain, challenge_type, created_at, updated_at FROM custom_domains
+	//  WHERE domain IN (?, ?)
+	//  ORDER BY
+	//      CASE WHEN domain = ? THEN 0 ELSE 1 END
+	//  LIMIT 1
+	FindCustomDomainByDomainOrWildcard(ctx context.Context, db DBTX, arg FindCustomDomainByDomainOrWildcardParams) (CustomDomain, error)
 	//FindCustomDomainById
 	//
 	//  SELECT
@@ -199,11 +207,11 @@ type Querier interface {
 	FindCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT id, k8s_name, workspace_id, project_id, environment_id, image, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, status, created_at, updated_at FROM `deployments` WHERE id = ?
+	//  SELECT id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, status, created_at, updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentByK8sName
 	//
-	//  SELECT id, k8s_name, workspace_id, project_id, environment_id, image, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, status, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
+	//  SELECT id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, status, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, db DBTX, k8sName string) (Deployment, error)
 	//FindDeploymentStepsByDeploymentId
 	//
@@ -225,12 +233,14 @@ type Querier interface {
 	//      d.workspace_id,
 	//      d.project_id,
 	//      d.environment_id,
+	//      d.build_id,
 	//      d.image,
 	//      dt.region,
 	//      d.cpu_millicores,
 	//      d.memory_mib,
 	//      dt.replicas,
-	//      d.desired_state
+	//      d.desired_state,
+	//      d.encrypted_environment_variables
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
 	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
@@ -252,6 +262,12 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
+	//FindEnvironmentVariablesByEnvironmentId
+	//
+	//  SELECT `key`, value
+	//  FROM environment_variables
+	//  WHERE environment_id = ?
+	FindEnvironmentVariablesByEnvironmentId(ctx context.Context, db DBTX, environmentID string) ([]FindEnvironmentVariablesByEnvironmentIdRow, error)
 	//FindFrontlineRouteByFQDN
 	//
 	//  SELECT id, project_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE fully_qualified_domain_name = ?
@@ -1140,12 +1156,14 @@ type Querier interface {
 	//      git_commit_message,
 	//      git_commit_author_handle,
 	//      git_commit_author_avatar_url,
-	//      git_commit_timestamp, -- Unix epoch milliseconds
+	//      git_commit_timestamp,
 	//      openapi_spec,
+	//      encrypted_environment_variables,
 	//      status,
 	//      cpu_millicores,
 	//  		memory_mib,
-	//      created_at
+	//      created_at,
+	//      updated_at
 	//  )
 	//  VALUES (
 	//      ?,
@@ -1163,8 +1181,10 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
+	//      ?,
 	//  		?,
-	//  		?
+	//      ?,
+	//      ?
 	//  )
 	InsertDeployment(ctx context.Context, db DBTX, arg InsertDeploymentParams) error
 	//InsertDeploymentStep
@@ -1632,7 +1652,9 @@ type Querier interface {
 	//      d.cpu_millicores,
 	//      d.memory_mib,
 	//      dt.replicas,
-	//      w.k8s_namespace as k8s_namespace
+	//      w.k8s_namespace as k8s_namespace,
+	//      d.build_id,
+	//      d.encrypted_environment_variables
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
 	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
@@ -2066,6 +2088,12 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE workspace_id = ?
 	UpdateClickhouseWorkspaceSettingsLimits(ctx context.Context, db DBTX, arg UpdateClickhouseWorkspaceSettingsLimitsParams) error
+	//UpdateDeploymentBuildID
+	//
+	//  UPDATE deployments
+	//  SET build_id = ?, updated_at = ?
+	//  WHERE id = ?
+	UpdateDeploymentBuildID(ctx context.Context, db DBTX, arg UpdateDeploymentBuildIDParams) error
 	//UpdateDeploymentImage
 	//
 	//  UPDATE deployments
@@ -2235,6 +2263,15 @@ type Querier interface {
 	//  SET plan = ?
 	//  WHERE id = ?
 	UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) error
+	//UpsertCustomDomain
+	//
+	//  INSERT INTO custom_domains (id, workspace_id, domain, challenge_type, created_at)
+	//  VALUES (?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      workspace_id = VALUES(workspace_id),
+	//      challenge_type = VALUES(challenge_type),
+	//      updated_at = ?
+	UpsertCustomDomain(ctx context.Context, db DBTX, arg UpsertCustomDomainParams) error
 	//UpsertEnvironment
 	//
 	//  INSERT INTO environments (

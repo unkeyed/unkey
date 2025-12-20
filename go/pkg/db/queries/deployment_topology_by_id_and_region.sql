@@ -6,12 +6,14 @@ SELECT
     d.workspace_id,
     d.project_id,
     d.environment_id,
+    d.build_id,
     d.image,
     dt.region,
     d.cpu_millicores,
     d.memory_mib,
     dt.replicas,
-    d.desired_state
+    d.desired_state,
+    d.encrypted_environment_variables
 FROM `deployment_topology` dt
 INNER JOIN `deployments` d ON dt.deployment_id = d.id
 INNER JOIN `workspaces` w ON d.workspace_id = w.id

@@ -5,6 +5,7 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { environments } from "./environments";
+
 export const environmentVariables = mysqlTable(
   "environment_variables",
   {
@@ -15,9 +16,14 @@ export const environmentVariables = mysqlTable(
     }).notNull(),
 
     key: varchar("key", { length: 256 }).notNull(),
-    // Either the plaintext value or a vault encrypted response
-    value: varchar("value", { length: 1024 }).notNull(),
-    type: mysqlEnum("type", ["plaintext", "secret"]).notNull(),
+
+    // Always encrypted via vault (contains keyId, nonce, ciphertext in the blob)
+    value: varchar("value", { length: 4096 }).notNull(),
+
+    // Both types are encrypted in the database
+    // - recoverable: can be decrypted and shown in the UI
+    // - writeonly: cannot be read back after creation
+    type: mysqlEnum("type", ["recoverable", "writeonly"]).notNull(),
 
     description: varchar("description", { length: 255 }),
 

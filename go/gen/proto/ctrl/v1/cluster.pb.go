@@ -899,9 +899,17 @@ type ApplyDeployment struct {
 	// memory_mib is the memory request/limit in mebibytes.
 	// This ensures each pod has sufficient memory.
 	// Example: 256 = 256 MiB
-	MemoryMib     int64 `protobuf:"varint,10,opt,name=memory_mib,json=memoryMib,proto3" json:"memory_mib,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	MemoryMib int64 `protobuf:"varint,10,opt,name=memory_mib,json=memoryMib,proto3" json:"memory_mib,omitempty"`
+	// build_id is the unique identifier for this build from depot
+	// if we did not build this image via depot, no buildID exists and we
+	// assume kubernetes will pull from a public registry
+	BuildId *string `protobuf:"bytes,11,opt,name=build_id,json=buildId,proto3,oneof" json:"build_id,omitempty"`
+	// Encrypted secrets blob to be decrypted at runtime by unkey-env.
+	// This is set as UNKEY_ENCRYPTED_ENV env var in the container.
+	// unkey-env calls krane's DecryptSecretsBlob RPC to decrypt.
+	EncryptedEnvironmentVariables []byte `protobuf:"bytes,12,opt,name=encrypted_environment_variables,json=encryptedEnvironmentVariables,proto3" json:"encrypted_environment_variables,omitempty"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *ApplyDeployment) Reset() {
@@ -1002,6 +1010,20 @@ func (x *ApplyDeployment) GetMemoryMib() int64 {
 		return x.MemoryMib
 	}
 	return 0
+}
+
+func (x *ApplyDeployment) GetBuildId() string {
+	if x != nil && x.BuildId != nil {
+		return *x.BuildId
+	}
+	return ""
+}
+
+func (x *ApplyDeployment) GetEncryptedEnvironmentVariables() []byte {
+	if x != nil {
+		return x.EncryptedEnvironmentVariables
+	}
+	return nil
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.
@@ -1303,7 +1325,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	" \x01(\x03R\tmemoryMib\"P\n" +
 	"\x0eDeleteSentinel\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
-	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\"\xd7\x02\n" +
+	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\"\xcc\x03\n" +
 	"\x0fApplyDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
@@ -1317,7 +1339,10 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x0ecpu_millicores\x18\t \x01(\x03R\rcpuMillicores\x12\x1d\n" +
 	"\n" +
 	"memory_mib\x18\n" +
-	" \x01(\x03R\tmemoryMib\"R\n" +
+	" \x01(\x03R\tmemoryMib\x12\x1e\n" +
+	"\bbuild_id\x18\v \x01(\tH\x00R\abuildId\x88\x01\x01\x12F\n" +
+	"\x1fencrypted_environment_variables\x18\f \x01(\fR\x1dencryptedEnvironmentVariablesB\v\n" +
+	"\t_build_id\"R\n" +
 	"\x10DeleteDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName2\xa2\x04\n" +
@@ -1411,6 +1436,7 @@ func file_ctrl_v1_cluster_proto_init() {
 		(*DeploymentState_Apply)(nil),
 		(*DeploymentState_Delete)(nil),
 	}
+	file_ctrl_v1_cluster_proto_msgTypes[12].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

@@ -22,7 +22,9 @@ SELECT
     d.cpu_millicores,
     d.memory_mib,
     dt.replicas,
-    w.k8s_namespace as k8s_namespace
+    w.k8s_namespace as k8s_namespace,
+    d.build_id,
+    d.encrypted_environment_variables
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `deployments` + "`" + ` d ON dt.deployment_id = d.id
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
@@ -41,17 +43,19 @@ type ListDesiredDeploymentTopologyParams struct {
 }
 
 type ListDesiredDeploymentTopologyRow struct {
-	DeploymentID  string         `db:"deployment_id"`
-	K8sName       string         `db:"k8s_name"`
-	WorkspaceID   string         `db:"workspace_id"`
-	ProjectID     string         `db:"project_id"`
-	EnvironmentID string         `db:"environment_id"`
-	Image         sql.NullString `db:"image"`
-	Region        string         `db:"region"`
-	CpuMillicores int32          `db:"cpu_millicores"`
-	MemoryMib     int32          `db:"memory_mib"`
-	Replicas      int32          `db:"replicas"`
-	K8sNamespace  sql.NullString `db:"k8s_namespace"`
+	DeploymentID                  string         `db:"deployment_id"`
+	K8sName                       string         `db:"k8s_name"`
+	WorkspaceID                   string         `db:"workspace_id"`
+	ProjectID                     string         `db:"project_id"`
+	EnvironmentID                 string         `db:"environment_id"`
+	Image                         sql.NullString `db:"image"`
+	Region                        string         `db:"region"`
+	CpuMillicores                 int32          `db:"cpu_millicores"`
+	MemoryMib                     int32          `db:"memory_mib"`
+	Replicas                      int32          `db:"replicas"`
+	K8sNamespace                  sql.NullString `db:"k8s_namespace"`
+	BuildID                       sql.NullString `db:"build_id"`
+	EncryptedEnvironmentVariables []byte         `db:"encrypted_environment_variables"`
 }
 
 // ListDesiredDeploymentTopology
@@ -67,7 +71,9 @@ type ListDesiredDeploymentTopologyRow struct {
 //	    d.cpu_millicores,
 //	    d.memory_mib,
 //	    dt.replicas,
-//	    w.k8s_namespace as k8s_namespace
+//	    w.k8s_namespace as k8s_namespace,
+//	    d.build_id,
+//	    d.encrypted_environment_variables
 //	FROM `deployment_topology` dt
 //	INNER JOIN `deployments` d ON dt.deployment_id = d.id
 //	INNER JOIN `workspaces` w ON d.workspace_id = w.id
@@ -103,6 +109,8 @@ func (q *Queries) ListDesiredDeploymentTopology(ctx context.Context, db DBTX, ar
 			&i.MemoryMib,
 			&i.Replicas,
 			&i.K8sNamespace,
+			&i.BuildID,
+			&i.EncryptedEnvironmentVariables,
 		); err != nil {
 			return nil, err
 		}

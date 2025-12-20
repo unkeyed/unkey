@@ -1,26 +1,5 @@
+import { createConditionalSchema, metadataSchema } from "@/lib/schemas/metadata";
 import { z } from "zod";
-
-// Helper function for creating conditional schemas based on the "enabled" flag
-export const createConditionalSchema = <
-  T extends z.ZodRawShape,
-  U extends z.UnknownKeysParam = z.UnknownKeysParam,
-  V extends z.ZodTypeAny = z.ZodTypeAny,
-  EnabledPath extends string = "enabled",
->(
-  enabledPath: EnabledPath,
-  schema: z.ZodObject<T, U, V>,
-) => {
-  return z.union([
-    // When enabled is false, don't validate other fields
-    z
-      .object({
-        [enabledPath]: z.literal(false),
-      } as { [K in EnabledPath]: z.ZodLiteral<false> })
-      .passthrough(),
-    // When enabled is true, apply all validations
-    schema,
-  ]);
-};
 
 // Basic schemas
 export const keyPrefixSchema = z
@@ -56,8 +35,9 @@ export const generalSchema = z.object({
   prefix: keyPrefixSchema,
   externalId: z
     .string()
-    .trim()
-    .max(256, { message: "External ID cannot exceed 256 characters" })
+    .transform((s) => s.trim())
+    .refine((trimmed) => trimmed.length <= 255, "External ID cannot exceed 255 characters")
+    .refine((trimmed) => trimmed !== "", "External ID cannot be only whitespace")
     .optional()
     .nullish(),
   identityId: z
@@ -116,6 +96,7 @@ export const refillSchema = z.discriminatedUnion("interval", [
     refillDay: z.undefined().optional(),
   }),
 ]);
+
 export const ratelimitItemSchema = z.object({
   id: z.string().nullish(), // Will be used only for updating case
   name: z
@@ -128,7 +109,7 @@ export const ratelimitItemSchema = z.object({
         message: issue.code === "invalid_type" ? "Duration must be greater than 0" : defaultError,
       }),
     })
-    .positive({ message: "Refill interval must be greater than 0" }),
+    .min(1000, { message: "Refill interval must be at least 1 second (1000ms)" }),
   limit: z.coerce
     .number({
       errorMap: (issue, { defaultError }) => ({
@@ -138,33 +119,6 @@ export const ratelimitItemSchema = z.object({
     })
     .positive({ message: "Limit must be greater than 0" }),
   autoApply: z.boolean(),
-});
-
-export const metadataValidationSchema = z.object({
-  enabled: z.literal(true),
-  data: z
-    .string({
-      required_error: "Metadata is required",
-      invalid_type_error: "Metadata must be a JSON",
-    })
-    .trim()
-    .min(2, { message: "Metadata must contain valid JSON" })
-    .max(65534, {
-      message: "Metadata cannot exceed 65535 characters (text field limit)",
-    })
-    .refine(
-      (s) => {
-        try {
-          JSON.parse(s);
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      {
-        message: "Must be valid a JSON",
-      },
-    ),
 });
 
 export const limitDataSchema = z.object({
@@ -231,12 +185,6 @@ export const expirationValidationSchema = z.object({
 });
 
 // Combined schemas for forms
-export const metadataSchema = z.object({
-  metadata: createConditionalSchema("enabled", metadataValidationSchema).default({
-    enabled: false,
-  }),
-});
-
 export const creditsSchema = z.object({
   limit: createConditionalSchema("enabled", limitValidationSchema)
     .optional()
@@ -320,7 +268,12 @@ export const createKeyInputSchema = z.object({
   keyAuthId: z.string(),
   externalId: z
     .string()
-    .max(256, { message: "External ID cannot exceed 256 characters" })
+    .transform((s) => {
+      const trimmed = s.trim();
+      return trimmed === "" ? null : trimmed;
+    })
+    .pipe(z.string().max(255, { message: "External ID cannot exceed 255 characters" }).nullable())
+    .optional()
     .nullish(),
   identityId: z
     .string()
@@ -377,5 +330,4 @@ export type FormValueTypes = {
 // Helper type exports
 export type RatelimitFormValues = Pick<FormValueTypes, "ratelimit">;
 export type CreditsFormValues = Pick<FormValueTypes, "limit">;
-export type MetadataFormValues = Pick<FormValueTypes, "metadata">;
 export type ExpirationFormValues = Pick<FormValueTypes, "expiration">;

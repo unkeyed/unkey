@@ -1,0 +1,249 @@
+---
+title: Ingress
+description: Multi-tenant ingress and routing service
+---
+
+import { Mermaid } from "@/app/components/mermaid";
+
+**Location:** `go/apps/ingress/`
+
+**CLI Command:** [`unkey run ingress`](/cli/run/ingress)
+
+## What It Does
+
+Ingress is the multi-tenant HTTP ingress service that serves as the entry point for all customer traffic.
+It handles TLS termination, hostname-based routing, and proxying requests to environment-scoped gateways.
+
+Ingress handles four main responsibilities:
+
+1. **TLS Termination**: Terminates TLS for custom domains using ACME (Let's Encrypt) or local certificates
+2. **Hostname Routing**: Looks up ingress routes by hostname to find the target deployment and environment
+3. **Gateway Selection**: Routes requests to the appropriate environment-scoped gateway
+4. **Smart Proxying**: Forwards to local gateways or cross-region NLBs with hop count protection
+
+## Architecture
+
+### Multi-Tenant Design
+
+Ingress is a multi-tenant service running as a Kubernetes Deployment behind a Network Load Balancer. A single Ingress instance handles traffic for all customer deployments, performing hostname lookups and routing decisions to forward requests to the appropriate environment gateway.
+
+### Request Flow
+
+<Mermaid chart={`sequenceDiagram
+    autonumber
+    participant Client
+    participant Ingress
+    participant DB as MySQL
+    participant Gateway as Environment Gateway
+
+    Client->>Ingress: HTTPS Request (custom.domain.com)
+    Ingress->>Ingress: Terminate TLS (ACME cert)
+    Ingress->>DB: SELECT * FROM ingress_routes WHERE hostname=?
+    DB->>Ingress: deployment_id, environment_id, project_id
+
+    alt Local gateway exists
+        Ingress->>Ingress: Lookup gateway for environment_id
+        Ingress->>Gateway: HTTP proxy + X-Deployment-ID header
+        Gateway->>Ingress: Response
+        Ingress->>Client: Response
+    else No local gateway (cross-region)
+        Ingress->>Ingress: Check X-Unkey-Hop-Count < maxHops
+        Ingress->>NLB: Forward to region NLB (with hop++)
+        Note over Ingress: Remote region handles request
+    end
+
+`} />
+
+## Database Schema
+
+Ingress uses the following tables for routing decisions:
+
+```sql
+-- Hostname to deployment mapping
+CREATE TABLE ingress_routes (
+    id VARCHAR(128) PRIMARY KEY,
+    project_id VARCHAR(255) NOT NULL,
+    deployment_id VARCHAR(255) NOT NULL,
+    environment_id VARCHAR(255) NOT NULL,  -- Used to route to environment gateway
+    hostname VARCHAR(256) NOT NULL UNIQUE,
+    sticky ENUM('none','branch','environment','live') NOT NULL DEFAULT 'none',
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT
+);
+
+-- ACME certificates (Let's Encrypt)
+CREATE TABLE certificates (
+    id VARCHAR(128) PRIMARY KEY,
+    hostname VARCHAR(256) NOT NULL UNIQUE,
+    certificate_pem TEXT NOT NULL,
+    private_key_pem TEXT NOT NULL,
+    expires_at BIGINT NOT NULL,
+    created_at BIGINT NOT NULL
+);
+```
+
+## TLS Strategy
+
+### ACME (Let's Encrypt)
+
+Ingress uses ACME (Automated Certificate Management Environment) to obtain and renew TLS certificates from Let's Encrypt:
+
+1. **Challenge Handler**: The `/acme` route responds to HTTP-01 challenges
+2. **Certificate Storage**: Certificates are stored in MySQL `certificates` table
+3. **Automatic Renewal**: Certificates are renewed before expiration
+4. **SNI Support**: Multiple hostnames supported via Server Name Indication
+
+### Local Development
+
+For local development, Ingress can generate self-signed certificates:
+
+```go
+// localcert.go generates certificates for *.local domains
+cert, key := generateSelfSignedCert("unkey.local")
+```
+
+### TLS Termination Flow
+
+1. Client connects with SNI hostname (e.g., `api.customer.com`)
+2. Ingress looks up certificate in database by hostname
+3. TLS handshake completes with customer's certificate
+4. Request is decrypted and forwarded to environment gateway as plain HTTP
+
+## Gateway Routing
+
+Ingress routes requests to environment-scoped gateways based on the `environment_id` from the ingress route lookup.
+
+### Gateway Discovery
+
+```go
+// After looking up the ingress route, we have:
+type IngressRoute struct {
+    DeploymentID   string
+    EnvironmentID  string  // Key field for gateway routing
+    ProjectID      string
+}
+
+// Gateway address is determined by environment_id
+// e.g., "gateway-{environment_id}.{namespace}.svc.cluster.local:8080"
+gatewayAddress := fmt.Sprintf("gateway-%s.%s.svc.cluster.local:8080",
+    route.EnvironmentID, namespace)
+```
+
+### Routing Strategy
+
+Ingress routes based on:
+
+- `environment_id` from the ingress route lookup
+- Gateway service discovery via Kubernetes DNS
+- Current region (for local vs cross-region routing)
+
+If no local gateway is found, Ingress forwards to the region's NLB, triggering cross-region forwarding.
+
+### Request Headers
+
+Ingress passes metadata to the Gateway via HTTP headers:
+
+- `X-Deployment-ID`: The target deployment ID
+- `X-Environment-ID`: The environment ID (for validation)
+- `X-Unkey-Hop-Count`: Hop count for cross-region loop prevention
+
+## Cross-Region Forwarding
+
+When no local gateway is available, Ingress forwards requests to the region's Network Load Balancer.
+
+### Hop Count Protection
+
+To prevent infinite loops, Ingress tracks hops via HTTP header:
+
+```go
+const maxHops = 3
+
+// Check current hop count
+hopCount, _ := strconv.Atoi(r.Header.Get("X-Unkey-Hop-Count"))
+if hopCount >= maxHops {
+    return fmt.Errorf("max hops exceeded")
+}
+
+// Increment and forward
+r.Header.Set("X-Unkey-Hop-Count", strconv.Itoa(hopCount+1))
+```
+
+### Forwarding Strategy
+
+```go
+// Forward to region NLB
+func (p *ProxyService) ForwardToNLB(ctx context.Context, region string, r *http.Request) error {
+    // Check hop count first
+    if hopCount >= maxHops {
+        return ErrMaxHopsExceeded
+    }
+
+    // Build target URL
+    targetURL := fmt.Sprintf("https://%s.%s%s",
+        region,           // e.g., "us-west-2"
+        p.BaseDomain, // e.g., "unkey.cloud"
+        r.URL.Path,
+    )
+
+    // Proxy entire request to remote NLB
+    return p.httpProxy(targetURL, r)
+}
+```
+
+### Why NLB Instead of Direct Gateway?
+
+Forwarding to the region's NLB (instead of directly to a remote gateway) provides:
+
+- **Load balancing**: NLB distributes across available Ingress instances in the target region
+- **Health checking**: NLB only routes to healthy Ingress replicas
+- **Simplicity**: No need for cross-region gateway discovery
+- **Consistency**: Same ingress lookup and routing logic applies in the target region
+
+## Error Handling
+
+Ingress provides user-friendly error pages for common scenarios:
+
+### Error Middleware
+
+```go
+type ErrorCode int
+
+const (
+    ErrorHostnameNotFound          ErrorCode = 40401  // No ingress route for hostname
+    ErrorGatewayUnavailable        ErrorCode = 50301  // Environment gateway not available
+    ErrorProxyServiceUnavailable   ErrorCode = 50302  // Failed to proxy to gateway
+    ErrorRoutingMaxHopsExceeded    ErrorCode = 50801  // Too many cross-region hops
+)
+```
+
+### Status Code Mapping
+
+- **404 Not Found**: No ingress route configured for hostname
+- **503 Service Unavailable**: Environment gateway not available
+- **508 Loop Detected**: Maximum hop count exceeded (prevents infinite loops)
+
+## Observability
+
+Ingress uses structured logging for:
+
+- Hostname lookups and routing decisions
+- Gateway discovery and selection
+- Proxy operations (success/failure)
+- Cross-region forwarding
+- TLS certificate operations
+- Error conditions with context
+
+## Future Improvements
+
+### Planned Features
+
+1. **Gateway Health Checks**: Active health probing for environment gateways
+2. **Sticky Sessions**: Support sticky routing based on client session
+
+### Scalability
+
+Ingress is designed to scale horizontally:
+
+- **Stateless**: No persistent state, all routing from database
+- **Database-driven**: Routing decisions from MySQL lookups (indexed on hostname)
+- **Minimal processing**: Pure proxy layer, no business logic execution

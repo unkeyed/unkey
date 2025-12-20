@@ -34,7 +34,7 @@ export const frontlineRoutes = mysqlTable(
   (table) => [
     index("environment_id_idx").on(table.environmentId),
     index("deployment_id_idx").on(table.deploymentId),
-  ]
+  ],
 );
 
 export const frontlineRelations = relations(frontlineRoutes, ({ one }) => ({

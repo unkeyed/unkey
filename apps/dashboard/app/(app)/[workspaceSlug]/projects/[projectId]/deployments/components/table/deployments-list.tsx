@@ -1,10 +1,10 @@
 "use client";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
-import { useIsMobile } from "@/hooks/use-mobile";
 import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { BookBookmark, CodeBranch, Cube } from "@unkey/icons";
+import { useIsMobile } from "@unkey/ui";
 import { Button, Empty, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
@@ -46,7 +46,8 @@ export const DeploymentsList = () => {
     deployment: Deployment;
     environment?: Environment;
   } | null>(null);
-  const isCompactView = useIsMobile({ breakpoint: COMPACT_BREAKPOINT });
+  // Default to false (wide view) to prevent hydration mismatches
+  const isCompactView = useIsMobile({ breakpoint: COMPACT_BREAKPOINT, defaultValue: false });
 
   const { liveDeployment, deployments, project } = useDeployments();
 

@@ -2,6 +2,7 @@ package deploymentreflector
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/k8s"
@@ -64,10 +65,15 @@ func (r *Reflector) applyDeployment(ctx context.Context, req *ctrlv1.ApplyDeploy
 		ToMap()
 
 	desired := &appsv1.ReplicaSet{
+
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      req.GetK8SName(),
 			Namespace: req.GetK8SNamespace(),
 			Labels:    usedLabels,
+			Annotations: map[string]string{
+				"unkey.com/deployment-id": req.GetDeploymentId(),
+				"unkey.com/build-id":      req.GetBuildId(),
+			},
 		},
 		Spec: appsv1.ReplicaSetSpec{
 			Replicas: ptr.P(req.GetReplicas()),
@@ -84,20 +90,32 @@ func (r *Reflector) applyDeployment(ctx context.Context, req *ctrlv1.ApplyDeploy
 					Labels:       usedLabels,
 				},
 				Spec: corev1.PodSpec{
+					ServiceAccountName: "customer-workload",
 
-					RestartPolicy: corev1.RestartPolicyAlways,
+					AutomountServiceAccountToken: ptr.P(true),
+					RestartPolicy:                corev1.RestartPolicyAlways,
 					Containers: []corev1.Container{{
 						Image:           req.GetImage(),
 						Name:            "deployment",
 						ImagePullPolicy: corev1.PullIfNotPresent,
 						Command:         []string{},
-						Env: []corev1.EnvVar{
-							{Name: "UNKEY_WORKSPACE_ID", Value: req.GetWorkspaceId()},
-							{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
-							{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
-							{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
-						},
+						Env: func() []corev1.EnvVar {
+							env := []corev1.EnvVar{
+								{Name: "UNKEY_WORKSPACE_ID", Value: req.GetWorkspaceId()},
+								{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
+								{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
+								{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
+							}
 
+							if len(req.GetEncryptedSecretsBlob()) > 0 {
+								env = append(env, corev1.EnvVar{
+									Name:  "UNKEY_ENCRYPTED_ENV",
+									Value: base64.StdEncoding.EncodeToString(req.GetEncryptedSecretsBlob()),
+								})
+							}
+
+							return env
+						}(),
 						Ports: []corev1.ContainerPort{{
 							ContainerPort: 8040,
 							Name:          "deployment",

@@ -33,3 +33,53 @@ spec:
               value: "http://ctrl:7091"
             - name: "UNKEY_CONTROL_PLANE_BEARER"
               value: "your-local-dev-key"
+            - name: UNKEY_HTTP_PORT
+              value: "8080"
+            - name: UNKEY_DEPLOYMENT_EVICTION_TTL
+              value: "10m"
+            # Vault Configuration
+            - name: UNKEY_VAULT_MASTER_KEYS
+              value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
+            - name: UNKEY_VAULT_S3_URL
+              value: "http://s3:3902"
+            - name: UNKEY_VAULT_S3_BUCKET
+              value: "vault"
+            - name: UNKEY_VAULT_S3_ACCESS_KEY_ID
+              value: "minio_root_user"
+            - name: UNKEY_VAULT_S3_ACCESS_KEY_SECRET
+              value: "minio_root_password"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: krane
+  namespace: unkey
+  labels:
+    app: krane
+    component: krane
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+      protocol: TCP
+  selector:
+    app: krane
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: krane-data-pvc
+  namespace: unkey
+  labels:
+    app: krane
+    component: krane
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

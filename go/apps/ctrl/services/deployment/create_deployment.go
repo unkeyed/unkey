@@ -12,6 +12,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/uid"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -51,6 +52,25 @@ func (s *Service) CreateDeployment(
 			fmt.Errorf("failed to lookup environment: %w", err))
 	}
 
+	// Fetch environment variables and build secrets blob
+	envVars, err := db.Query.FindEnvironmentVariablesByEnvironmentId(ctx, s.db.RO(), env.ID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to fetch environment variables: %w", err))
+	}
+
+	secretsConfig := &ctrlv1.SecretsConfig{
+		Secrets: make(map[string]string, len(envVars)),
+	}
+	for _, ev := range envVars {
+		secretsConfig.Secrets[ev.Key] = ev.Value
+	}
+
+	secretsBlob, err := protojson.Marshal(secretsConfig)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to marshal secrets config: %w", err))
+	}
 	// Get git branch name for the deployment
 	gitBranch := req.Msg.GetBranch()
 	if gitBranch == "" {
@@ -131,23 +151,24 @@ func (s *Service) CreateDeployment(
 
 	// Insert deployment into database
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
-		ID:                       deploymentID,
-		K8sName:                  uid.DNS1035(12),
-		WorkspaceID:              workspaceID,
-		ProjectID:                req.Msg.GetProjectId(),
-		EnvironmentID:            env.ID,
-		OpenapiSpec:              sql.NullString{String: "", Valid: false},
-		SentinelConfig:           env.SentinelConfig,
-		Status:                   db.DeploymentsStatusPending,
-		CreatedAt:                now,
-		GitCommitSha:             sql.NullString{String: gitCommitSha, Valid: gitCommitSha != ""},
-		GitBranch:                sql.NullString{String: gitBranch, Valid: true},
-		GitCommitMessage:         sql.NullString{String: gitCommitMessage, Valid: gitCommitMessage != ""},
-		GitCommitAuthorHandle:    sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
-		GitCommitAuthorAvatarUrl: sql.NullString{String: gitCommitAuthorAvatarURL, Valid: gitCommitAuthorAvatarURL != ""},
-		GitCommitTimestamp:       sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
-		CpuMillicores:            256,
-		MemoryMib:                256,
+		ID:                            deploymentID,
+		K8sName:                       uid.DNS1035(12),
+		WorkspaceID:                   workspaceID,
+		ProjectID:                     req.Msg.GetProjectId(),
+		EnvironmentID:                 env.ID,
+		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
+		SentinelConfig:                env.SentinelConfig,
+		EncryptedEnvironmentVariables: secretsBlob,
+		Status:                        db.DeploymentsStatusPending,
+		CreatedAt:                     now,
+		GitCommitSha:                  sql.NullString{String: gitCommitSha, Valid: gitCommitSha != ""},
+		GitBranch:                     sql.NullString{String: gitBranch, Valid: true},
+		GitCommitMessage:              sql.NullString{String: gitCommitMessage, Valid: gitCommitMessage != ""},
+		GitCommitAuthorHandle:         sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
+		GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommitAuthorAvatarURL, Valid: gitCommitAuthorAvatarURL != ""},
+		GitCommitTimestamp:            sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
+		CpuMillicores:                 256,
+		MemoryMib:                     256,
 	})
 	if err != nil {
 		s.logger.Error("failed to insert deployment", "error", err.Error())

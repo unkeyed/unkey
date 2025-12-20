@@ -1,12 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  index,
-  int,
-  mysqlEnum,
-  mysqlTable,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { index, int, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { projects } from "./projects";
 
@@ -29,19 +22,14 @@ export const instances = mysqlTable(
     address: varchar("address", { length: 255 }).notNull(),
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),
-    status: mysqlEnum("status", [
-      "inactive",
-      "pending",
-      "running",
-      "failed",
-    ]).notNull(),
+    status: mysqlEnum("status", ["inactive", "pending", "running", "failed"]).notNull(),
   },
   (table) => [
     uniqueIndex("unique_address_per_shard").on(table.address, table.shard),
     uniqueIndex("unique_pod_name_per_shard").on(table.k8sName, table.shard),
     index("idx_deployment_id").on(table.deploymentId),
     index("idx_region").on(table.region),
-  ]
+  ],
 );
 
 export const instancesRelations = relations(instances, ({ one }) => ({

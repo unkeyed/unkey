@@ -23,12 +23,14 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     git_commit_message,
     git_commit_author_handle,
     git_commit_author_avatar_url,
-    git_commit_timestamp, -- Unix epoch milliseconds
+    git_commit_timestamp,
     openapi_spec,
+    encrypted_environment_variables,
     status,
     cpu_millicores,
 		memory_mib,
-    created_at
+    created_at,
+    updated_at
 )
 VALUES (
     ?,
@@ -46,29 +48,33 @@ VALUES (
     ?,
     ?,
     ?,
+    ?,
 		?,
-		?
+    ?,
+    ?
 )
 `
 
 type InsertDeploymentParams struct {
-	ID                       string            `db:"id"`
-	K8sName                  string            `db:"k8s_name"`
-	WorkspaceID              string            `db:"workspace_id"`
-	ProjectID                string            `db:"project_id"`
-	EnvironmentID            string            `db:"environment_id"`
-	GitCommitSha             sql.NullString    `db:"git_commit_sha"`
-	GitBranch                sql.NullString    `db:"git_branch"`
-	SentinelConfig           []byte            `db:"sentinel_config"`
-	GitCommitMessage         sql.NullString    `db:"git_commit_message"`
-	GitCommitAuthorHandle    sql.NullString    `db:"git_commit_author_handle"`
-	GitCommitAuthorAvatarUrl sql.NullString    `db:"git_commit_author_avatar_url"`
-	GitCommitTimestamp       sql.NullInt64     `db:"git_commit_timestamp"`
-	OpenapiSpec              sql.NullString    `db:"openapi_spec"`
-	Status                   DeploymentsStatus `db:"status"`
-	CpuMillicores            int32             `db:"cpu_millicores"`
-	MemoryMib                int32             `db:"memory_mib"`
-	CreatedAt                int64             `db:"created_at"`
+	ID                            string            `db:"id"`
+	K8sName                       string            `db:"k8s_name"`
+	WorkspaceID                   string            `db:"workspace_id"`
+	ProjectID                     string            `db:"project_id"`
+	EnvironmentID                 string            `db:"environment_id"`
+	GitCommitSha                  sql.NullString    `db:"git_commit_sha"`
+	GitBranch                     sql.NullString    `db:"git_branch"`
+	SentinelConfig                []byte            `db:"sentinel_config"`
+	GitCommitMessage              sql.NullString    `db:"git_commit_message"`
+	GitCommitAuthorHandle         sql.NullString    `db:"git_commit_author_handle"`
+	GitCommitAuthorAvatarUrl      sql.NullString    `db:"git_commit_author_avatar_url"`
+	GitCommitTimestamp            sql.NullInt64     `db:"git_commit_timestamp"`
+	OpenapiSpec                   sql.NullString    `db:"openapi_spec"`
+	EncryptedEnvironmentVariables []byte            `db:"encrypted_environment_variables"`
+	Status                        DeploymentsStatus `db:"status"`
+	CpuMillicores                 int32             `db:"cpu_millicores"`
+	MemoryMib                     int32             `db:"memory_mib"`
+	CreatedAt                     int64             `db:"created_at"`
+	UpdatedAt                     sql.NullInt64     `db:"updated_at"`
 }
 
 // InsertDeployment
@@ -85,12 +91,14 @@ type InsertDeploymentParams struct {
 //	    git_commit_message,
 //	    git_commit_author_handle,
 //	    git_commit_author_avatar_url,
-//	    git_commit_timestamp, -- Unix epoch milliseconds
+//	    git_commit_timestamp,
 //	    openapi_spec,
+//	    encrypted_environment_variables,
 //	    status,
 //	    cpu_millicores,
 //			memory_mib,
-//	    created_at
+//	    created_at,
+//	    updated_at
 //	)
 //	VALUES (
 //	    ?,
@@ -108,8 +116,10 @@ type InsertDeploymentParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //			?,
-//			?
+//	    ?,
+//	    ?
 //	)
 func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeploymentParams) error {
 	_, err := db.ExecContext(ctx, insertDeployment,
@@ -126,10 +136,12 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.GitCommitAuthorAvatarUrl,
 		arg.GitCommitTimestamp,
 		arg.OpenapiSpec,
+		arg.EncryptedEnvironmentVariables,
 		arg.Status,
 		arg.CpuMillicores,
 		arg.MemoryMib,
 		arg.CreatedAt,
+		arg.UpdatedAt,
 	)
 	return err
 }

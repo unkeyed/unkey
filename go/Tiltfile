@@ -15,6 +15,9 @@ debug_mode = cfg.get('debug', False)
 
 print("Tilt starting with services: %s" % services)
 
+# Suppress warnings for images used indirectly (injected into pods by webhook)
+update_settings(suppress_unused_image_warnings=["unkey-env:latest"])
+
 # Create namespace using the extension with allow_duplicates
 namespace_create('unkey', allow_duplicates=True)
 namespace_create('untrusted', allow_duplicates=True)
@@ -30,6 +33,8 @@ start_api = 'all' in services or 'api' in services
 start_ctrl = 'all' in services or 'ctrl' in services
 start_krane = 'all' in services or 'krane' in services
 start_dashboard = 'all' in services or 'dashboard' in services
+start_agent = 'all' in services or 'agent' in services
+start_preflight = 'all' in services or 'preflight' in services
 
 # Apply RBAC
 k8s_yaml('k8s/manifests/rbac.yaml')
@@ -105,7 +110,7 @@ if start_s3:
     k8s_yaml('k8s/manifests/s3.yaml')
     k8s_resource(
         's3',
-        port_forwards=['9000:9000', '9001:9001'],
+        port_forwards=['3902:3902', '3903:3903'],
         resource_deps=[],
         labels=['storage']
     )
@@ -151,7 +156,11 @@ if start_observability:
     )
 
 # Build Unkey binary locally (independent of infrastructure)
+<<<<<<< HEAD
 if start_api or start_ctrl or start_krane:
+=======
+if start_api or start_ctrl or start_krane or start_preflight:
+>>>>>>> 39d470225bb5f8f34521d84bc2c02081b56843eb
     print("Building Unkey binary...")
     # Build locally first for faster updates
     local_resource(
@@ -197,7 +206,10 @@ if start_api:
         trigger_mode=TRIGGER_MODE_MANUAL if debug_mode else TRIGGER_MODE_AUTO
     )
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 39d470225bb5f8f34521d84bc2c02081b56843eb
 # Ctrl service (1 replica)
 if start_ctrl:
     print("Setting up Ctrl service...")
@@ -265,6 +277,81 @@ if start_krane:
         trigger_mode=TRIGGER_MODE_AUTO
     )
 
+# Preflight (mutating admission controller for secrets and credentials injection)
+if start_preflight:
+    print("Setting up Preflight webhook...")
+
+    # Generate TLS certs for the webhook (mkcert must be installed)
+    local_resource(
+        'preflight-tls',
+        '''
+        mkcert -cert-file /tmp/preflight-tls.crt -key-file /tmp/preflight-tls.key \
+            preflight.unkey.svc preflight.unkey.svc.cluster.local && \
+        kubectl delete secret preflight-tls -n unkey --ignore-not-found && \
+        kubectl create secret tls preflight-tls -n unkey \
+            --cert=/tmp/preflight-tls.crt --key=/tmp/preflight-tls.key && \
+        rm /tmp/preflight-tls.crt /tmp/preflight-tls.key
+        ''',
+        labels=['unkey'],
+    )
+
+    # Build unkey-env image for injection into customer pods
+    # Uses local_resource so it shows up in Tilt UI and can be triggered
+    local_resource(
+        'unkey-env',
+        'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/unkey-env ./cmd/unkey-env && docker build -t unkey-env:latest -f Dockerfile.unkey-env .',
+        deps=['./cmd/unkey-env', './pkg/secrets', './pkg/cli', './Dockerfile.unkey-env'],
+        labels=['unkey'],
+    )
+
+    docker_build_with_restart(
+        'unkey-preflight:latest',
+        '.',
+        dockerfile='Dockerfile.tilt',
+        entrypoint=['/unkey', 'run', 'preflight'],
+        only=['./bin'],
+        live_update=[
+            sync('./bin/unkey', '/unkey'),
+        ],
+    )
+
+    k8s_yaml('k8s/manifests/preflight.yaml')
+
+    preflight_deps = ['unkey-compile', 'preflight-tls', 'unkey-env']
+    if start_krane: preflight_deps.append('krane')
+
+    k8s_resource(
+        'preflight',
+        resource_deps=preflight_deps,
+        labels=['unkey'],
+        auto_init=True,
+        trigger_mode=TRIGGER_MODE_AUTO
+    )
+
+# Agent service
+if start_agent:
+    print("Setting up Agent service...")
+    docker_build(
+        'unkey-agent:latest',
+        '../apps/agent',
+        dockerfile='../apps/agent/Dockerfile',
+    )
+    k8s_yaml('k8s/manifests/agent.yaml')
+
+    # Build dependency list
+    agent_deps = []
+    if start_s3: agent_deps.append('s3')
+    if start_clickhouse: agent_deps.append('clickhouse')
+
+    k8s_resource(
+        'agent',
+        port_forwards='8082:8080',
+        resource_deps=agent_deps,
+        labels=['unkey'],
+        auto_init=True,
+        trigger_mode=TRIGGER_MODE_AUTO
+    )
+
 # Dashboard service
 if start_dashboard:
     print("Setting up Dashboard service...")
@@ -284,6 +371,7 @@ if start_dashboard:
     dashboard_deps = []
     if start_planetscale: dashboard_deps.append('planetscale')
     if start_clickhouse: dashboard_deps.append('clickhouse')
+    if start_agent: dashboard_deps.append('agent')
 
     k8s_resource(
         'dashboard',
@@ -305,7 +393,10 @@ if start_observability: active_services.extend(['prometheus', 'otel-collector'])
 if start_restate: active_services.append('restate')
 if start_api: active_services.append('api')
 if start_ctrl: active_services.append('ctrl')
+if start_krane: active_services.append('krane')
+if start_preflight: active_services.append('preflight')
 if start_dashboard: active_services.append('dashboard')
+if start_agent: active_services.append('agent')
 
 print("""
 Tilt is ready!
@@ -317,13 +408,21 @@ Web UI: http://localhost:10350
 Services available via Tilt port forwards:
 Dashboard: http://localhost:3000
 API: http://localhost:7070
+<<<<<<< HEAD
 Sentinel: http://localhost:8080
 Ctrl: http://localhost:7091
 Krane: http://localhost:8090
 Restate Frontline: http://localhost:8081
+=======
+Ctrl: http://localhost:7091
+Krane: http://localhost:8090
+Agent: http://localhost:8082
+Restate Ingress: http://localhost:8081
+>>>>>>> 39d470225bb5f8f34521d84bc2c02081b56843eb
 Restate Admin: http://localhost:9070
 Prometheus: http://localhost:9090
-S3 Console: http://localhost:9000
+S3 API: http://localhost:3902
+S3 Console: http://localhost:3903
 ClickHouse: http://localhost:8123
 
 Tips:

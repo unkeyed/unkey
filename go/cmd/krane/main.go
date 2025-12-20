@@ -54,18 +54,6 @@ unkey run krane                                   # Run with default configurati
 			cli.EnvVar("UNKEY_IMAGE"),
 		),
 
-		cli.String("backend",
-			"Backend type for the service. Either kubernetes or docker. Default: kubernetes",
-			cli.Default("kubernetes"),
-			cli.EnvVar("UNKEY_KRANE_BACKEND"),
-		),
-
-		cli.String("docker-socket",
-			"Path to the docker socket. Only used if backend is docker. Default: /var/run/docker.sock",
-			cli.Default("/var/run/docker.sock"),
-			cli.EnvVar("UNKEY_DOCKER_SOCKET"),
-		),
-
 		cli.String("registry-url",
 			"URL of the container registry for pulling images. Example: registry.depot.dev",
 			cli.EnvVar("UNKEY_REGISTRY_URL"),
@@ -85,6 +73,23 @@ unkey run krane                                   # Run with default configurati
 			"Port for Prometheus metrics, set to 0 to disable.",
 			cli.Default(9090),
 			cli.EnvVar("UNKEY_PROMETHEUS_PORT")),
+
+		cli.Int("rpc-port",
+			"Port for RPC server",
+			cli.Default(8080),
+			cli.EnvVar("UNKEY_RPC_PORT")),
+
+		// Vault Configuration
+		cli.StringSlice("vault-master-keys", "Master keys for vault encryption (base64 encoded)",
+			cli.EnvVar("UNKEY_VAULT_MASTER_KEYS")),
+		cli.String("vault-s3-url", "S3 URL for vault storage",
+			cli.EnvVar("UNKEY_VAULT_S3_URL")),
+		cli.String("vault-s3-bucket", "S3 bucket for vault storage",
+			cli.EnvVar("UNKEY_VAULT_S3_BUCKET")),
+		cli.String("vault-s3-access-key-id", "S3 access key ID for vault storage",
+			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
+		cli.String("vault-s3-access-key-secret", "S3 access key secret for vault storage",
+			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 	},
 	Action: action,
 }
@@ -92,17 +97,21 @@ unkey run krane                                   # Run with default configurati
 func action(ctx context.Context, cmd *cli.Command) error {
 
 	config := krane.Config{
-		Clock:              nil,
-		ControlPlaneURL:    cmd.String("control-plane-url"),
-		ControlPlaneBearer: cmd.String("control-plane-bearer"),
-		Image:              cmd.RequireString("image"),
-		Region:             cmd.String("region"),
-		Shard:              cmd.String("shard"),
-		InstanceID:         cmd.String("instance-id"),
-		RegistryURL:        cmd.String("registry-url"),
-		RegistryUsername:   cmd.String("registry-username"),
-		RegistryPassword:   cmd.String("registry-password"),
-		PrometheusPort:     cmd.Int("prometheus-port"),
+		Clock:            nil,
+		Image:            cmd.String("image"),
+		Region:           cmd.String("region"),
+		InstanceID:       cmd.String("instance-id"),
+		RegistryURL:      cmd.String("registry-url"),
+		RegistryUsername: cmd.String("registry-username"),
+		RegistryPassword: cmd.String("registry-password"),
+		RPCPort:          cmd.Int("rpc-port"),
+		VaultMasterKeys:  cmd.StringSlice("vault-master-keys"),
+		VaultS3: krane.S3Config{
+			URL:             cmd.String("vault-s3-url"),
+			Bucket:          cmd.String("vault-s3-bucket"),
+			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
+			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
+		},
 	}
 
 	// Validate configuration

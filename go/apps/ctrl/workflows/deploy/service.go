@@ -6,6 +6,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/vault"
 )
 
 // Workflow orchestrates deployment lifecycle operations.
@@ -25,6 +26,7 @@ type Workflow struct {
 	cluster       *cluster.Service
 	buildClient   ctrlv1connect.BuildServiceClient
 	defaultDomain string
+	vault         *vault.Service
 }
 
 var _ hydrav1.DeploymentServiceServer = (*Workflow)(nil)
@@ -45,6 +47,9 @@ type Config struct {
 
 	// DefaultDomain is the apex domain for generated deployment URLs (e.g., "unkey.app").
 	DefaultDomain string
+
+	// Vault provides encryption/decryption services for secrets.
+	Vault *vault.Service
 }
 
 // New creates a new deployment workflow instance.
@@ -56,5 +61,6 @@ func New(cfg Config) *Workflow {
 		cluster:                              cfg.Cluster,
 		buildClient:                          cfg.BuildClient,
 		defaultDomain:                        cfg.DefaultDomain,
+		vault:                                cfg.Vault,
 	}
 }

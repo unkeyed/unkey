@@ -18,12 +18,14 @@ SELECT
     d.workspace_id,
     d.project_id,
     d.environment_id,
+    d.build_id,
     d.image,
     dt.region,
     d.cpu_millicores,
     d.memory_mib,
     dt.replicas,
-    d.desired_state
+    d.desired_state,
+    d.encrypted_environment_variables
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `deployments` + "`" + ` d ON dt.deployment_id = d.id
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
@@ -38,18 +40,20 @@ type FindDeploymentTopologyByIDAndRegionParams struct {
 }
 
 type FindDeploymentTopologyByIDAndRegionRow struct {
-	ID            string                  `db:"id"`
-	K8sName       string                  `db:"k8s_name"`
-	K8sNamespace  sql.NullString          `db:"k8s_namespace"`
-	WorkspaceID   string                  `db:"workspace_id"`
-	ProjectID     string                  `db:"project_id"`
-	EnvironmentID string                  `db:"environment_id"`
-	Image         sql.NullString          `db:"image"`
-	Region        string                  `db:"region"`
-	CpuMillicores int32                   `db:"cpu_millicores"`
-	MemoryMib     int32                   `db:"memory_mib"`
-	Replicas      int32                   `db:"replicas"`
-	DesiredState  DeploymentsDesiredState `db:"desired_state"`
+	ID                            string                  `db:"id"`
+	K8sName                       string                  `db:"k8s_name"`
+	K8sNamespace                  sql.NullString          `db:"k8s_namespace"`
+	WorkspaceID                   string                  `db:"workspace_id"`
+	ProjectID                     string                  `db:"project_id"`
+	EnvironmentID                 string                  `db:"environment_id"`
+	BuildID                       sql.NullString          `db:"build_id"`
+	Image                         sql.NullString          `db:"image"`
+	Region                        string                  `db:"region"`
+	CpuMillicores                 int32                   `db:"cpu_millicores"`
+	MemoryMib                     int32                   `db:"memory_mib"`
+	Replicas                      int32                   `db:"replicas"`
+	DesiredState                  DeploymentsDesiredState `db:"desired_state"`
+	EncryptedEnvironmentVariables []byte                  `db:"encrypted_environment_variables"`
 }
 
 // FindDeploymentTopologyByIDAndRegion
@@ -61,12 +65,14 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 //	    d.workspace_id,
 //	    d.project_id,
 //	    d.environment_id,
+//	    d.build_id,
 //	    d.image,
 //	    dt.region,
 //	    d.cpu_millicores,
 //	    d.memory_mib,
 //	    dt.replicas,
-//	    d.desired_state
+//	    d.desired_state,
+//	    d.encrypted_environment_variables
 //	FROM `deployment_topology` dt
 //	INNER JOIN `deployments` d ON dt.deployment_id = d.id
 //	INNER JOIN `workspaces` w ON d.workspace_id = w.id
@@ -83,12 +89,14 @@ func (q *Queries) FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DB
 		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.EnvironmentID,
+		&i.BuildID,
 		&i.Image,
 		&i.Region,
 		&i.CpuMillicores,
 		&i.MemoryMib,
 		&i.Replicas,
 		&i.DesiredState,
+		&i.EncryptedEnvironmentVariables,
 	)
 	return i, err
 }

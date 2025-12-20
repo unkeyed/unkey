@@ -31,6 +31,7 @@ export const deployments = mysqlTable(
     // the docker image
     // null until the build is done
     image: varchar("image", { length: 256 }),
+    buildId: varchar("build_id", { length: 128 }).unique(),
 
     // Git information
     gitCommitSha: varchar("git_commit_sha", { length: 40 }),
@@ -53,6 +54,12 @@ export const deployments = mysqlTable(
     desiredState: mysqlEnum("desired_state", ["running", "standby", "archived"])
       .notNull()
       .default("running"),
+
+    // Environment variables snapshot (protobuf: ctrl.v1.SecretsBlob)
+    // Encrypted values from environment_variables at deploy time
+    encryptedEnvironmentVariables: longblob(
+      "encrypted_environment_variables"
+    ).notNull(),
 
     // Deployment status
     status: mysqlEnum("status", [

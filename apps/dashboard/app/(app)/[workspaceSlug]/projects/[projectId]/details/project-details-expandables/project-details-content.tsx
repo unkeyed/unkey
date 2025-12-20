@@ -10,20 +10,17 @@ type ProjectDetailsContentProps = {
   projectId: string;
 };
 
-export const ProjectDetailsContent = ({
-  projectId,
-}: ProjectDetailsContentProps) => {
+export const ProjectDetailsContent = ({ projectId }: ProjectDetailsContentProps) => {
   const { collections } = useProject();
   const query = useLiveQuery((q) =>
     q
       .from({ project: collection.projects })
       .where(({ project }) => eq(project.id, projectId))
-      .join(
-        { deployment: collections.deployments },
-        ({ deployment, project }) => eq(deployment.id, project.liveDeploymentId)
+      .join({ deployment: collections.deployments }, ({ deployment, project }) =>
+        eq(deployment.id, project.liveDeploymentId),
       )
       .orderBy(({ project }) => project.id, "asc")
-      .limit(1)
+      .limit(1),
   );
 
   const data = query.data.at(0);
@@ -31,15 +28,13 @@ export const ProjectDetailsContent = ({
     (q) =>
       q
         .from({ domain: collections.domains })
-        .where(({ domain }) =>
-          eq(domain.deploymentId, data?.project.liveDeploymentId)
-        )
+        .where(({ domain }) => eq(domain.deploymentId, data?.project.liveDeploymentId))
         .select(({ domain }) => ({
           domain: domain.fullyQualifiedDomainName,
           environment: domain.sticky,
         }))
         .orderBy(({ domain }) => domain.id, "asc"),
-    [data?.project.liveDeploymentId]
+    [data?.project.liveDeploymentId],
   );
 
   if (!data?.deployment) {
@@ -52,12 +47,8 @@ export const ProjectDetailsContent = ({
   });
 
   // This "environment" domain never changes even when you do a rollback this one stays stable.
-  const mainDomain = domainsData.find(
-    (d) => d.environment === "environment"
-  )?.domain;
-  const gitShaAndBranchNameDomains = domainsData.filter(
-    (d) => d.environment !== "environment"
-  );
+  const mainDomain = domainsData.find((d) => d.environment === "environment")?.domain;
+  const gitShaAndBranchNameDomains = domainsData.filter((d) => d.environment !== "environment");
 
   return (
     <>
@@ -71,9 +62,7 @@ export const ProjectDetailsContent = ({
             <Cube iconSize="2xl-medium" className="!size-[20px]" />
           </Button>
           <div className="flex flex-col gap-1">
-            <span className="text-accent-12 font-medium text-sm truncate">
-              {data.project.name}
-            </span>
+            <span className="text-accent-12 font-medium text-sm truncate">{data.project.name}</span>
             <div className="gap-2 items-center flex min-w-0 max-w-[250px]">
               {/* # is okay. This section is not accessible without deploy*/}
               <a
@@ -91,10 +80,7 @@ export const ProjectDetailsContent = ({
                 content={
                   <div className="space-y-2 max-w-[300px] py-2">
                     {gitShaAndBranchNameDomains.map((d) => (
-                      <div
-                        key={d.domain}
-                        className="text-xs font-medium flex items-center gap-1.5"
-                      >
+                      <div key={d.domain} className="text-xs font-medium flex items-center gap-1.5">
                         <div className="w-1 h-1 bg-gray-8 rounded-full shrink-0" />
                         <a
                           href={`https://${d.domain}`}

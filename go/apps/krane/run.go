@@ -5,13 +5,20 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/http"
 
 	deploymentreflector "github.com/unkeyed/unkey/go/apps/krane/deployment_reflector"
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/controlplane"
 	sentinelreflector "github.com/unkeyed/unkey/go/apps/krane/sentinel_reflector"
+
+	"github.com/unkeyed/unkey/go/apps/krane/secrets"
+	"github.com/unkeyed/unkey/go/apps/krane/secrets/token"
+	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/prometheus"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
+	"github.com/unkeyed/unkey/go/pkg/vault"
+	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 	pkgversion "github.com/unkeyed/unkey/go/pkg/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -42,6 +49,56 @@ func Run(ctx context.Context, cfg Config) error {
 		Region:      cfg.Region,
 		Shard:       cfg.Shard,
 	})
+
+	// Create vault service for secrets decryption
+
+	var vaultSvc *vault.Service
+	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3.URL != "" {
+		vaultStorage, vaultStorageErr := storage.NewS3(storage.S3Config{
+			Logger:            logger,
+			S3URL:             cfg.VaultS3.URL,
+			S3Bucket:          cfg.VaultS3.Bucket,
+			S3AccessKeyID:     cfg.VaultS3.AccessKeyID,
+			S3AccessKeySecret: cfg.VaultS3.AccessKeySecret,
+		})
+		if vaultStorageErr != nil {
+			return fmt.Errorf("unable to create vault storage: %w", vaultStorageErr)
+		}
+
+		vaultSvc, err = vault.New(vault.Config{
+			Logger:     logger,
+			Storage:    vaultStorage,
+			MasterKeys: cfg.VaultMasterKeys,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create vault service: %w", err)
+		}
+		logger.Info("Vault service initialized", "bucket", cfg.VaultS3.Bucket)
+	}
+
+	// Create the connect handler
+	mux := http.NewServeMux()
+
+	var tokenValidator token.Validator
+
+	// Register secrets service if vault is configured
+	if vaultSvc != nil && tokenValidator != nil {
+		secretsSvc := secrets.New(secrets.Config{
+			Logger:         logger,
+			Vault:          vaultSvc,
+			TokenValidator: tokenValidator,
+		})
+		mux.Handle(kranev1connect.NewSecretsServiceHandler(secretsSvc))
+		logger.Info("Secrets service registered")
+	} else {
+		logger.Info("Secrets service not enabled (missing vault or token validator configuration)")
+	}
+
+	go func() {
+		if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.RPCPort), mux); err != nil {
+			logger.Error("HTTP server failed", "error", err)
+		}
+	}()
 
 	inClusterConfig, err := rest.InClusterConfig()
 	if err != nil {

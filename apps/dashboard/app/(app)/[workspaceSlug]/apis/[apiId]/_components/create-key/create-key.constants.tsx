@@ -2,11 +2,11 @@ import { CalendarClock, ChartPie, Code, Gauge, Key2 } from "@unkey/icons";
 import type { StepNamesFrom } from "@unkey/ui";
 import type { SectionState } from "./types";
 
+import { MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";
+import { RatelimitSetup } from "@/components/dashboard/ratelimits/ratelimit-setup";
 import { UsageSetup } from "./components/credits-setup";
 import { ExpirationSetup } from "./components/expiration-setup";
 import { GeneralSetup } from "./components/general-setup";
-import { MetadataSetup } from "./components/metadata-setup";
-import { RatelimitSetup } from "./components/ratelimit-setup";
 
 export const UNNAMED_KEY = "Unnamed Key" as const;
 export const SECTIONS = [
@@ -38,7 +38,7 @@ export const SECTIONS = [
     id: "metadata",
     label: "Metadata",
     icon: Code,
-    content: () => <MetadataSetup />,
+    content: () => <MetadataSetup entityType="key" />,
   },
 ] as const;
 

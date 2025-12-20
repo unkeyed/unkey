@@ -5,6 +5,14 @@ description: General information about the API.
 
 <Warning>The v1 API is deprecated and will be removed in January 2026. Please [migrate to the v2 API](/api-reference/v1/migration).</Warning>
 
+<Danger>
+**Root Key Permissions Required for v2 Key Verification**
+
+You **must** update your root key to include the `api.<API_ID>.verify_key` permission to verify keys in v2.
+
+[Learn more](/api-reference/v1/migration/keys#understanding-v2-root-key-permissions-for-key-verification)
+</Danger>
+
 The Unkey API uses HTTP RPC-style methods and generally follow the schema:
 
 ```

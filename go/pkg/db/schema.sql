@@ -318,6 +318,21 @@ CREATE TABLE `environments` (
 	CONSTRAINT `environments_project_id_slug_idx` UNIQUE(`project_id`,`slug`)
 );
 
+CREATE TABLE `environment_variables` (
+	`id` varchar(128) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`key` varchar(256) NOT NULL,
+	`value` varchar(4096) NOT NULL,
+	`type` enum('recoverable','writeonly') NOT NULL,
+	`description` varchar(255),
+	`delete_protection` boolean DEFAULT false,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `environment_variables_id` PRIMARY KEY(`id`),
+	CONSTRAINT `environment_id_key` UNIQUE(`environment_id`,`key`)
+);
+
 CREATE TABLE `clickhouse_workspace_settings` (
 	`workspace_id` varchar(256) NOT NULL,
 	`username` varchar(256) NOT NULL,
@@ -358,6 +373,7 @@ CREATE TABLE `deployments` (
 	`project_id` varchar(256) NOT NULL,
 	`environment_id` varchar(128) NOT NULL,
 	`image` varchar(256),
+	`build_id` varchar(128),
 	`git_commit_sha` varchar(40),
 	`git_branch` varchar(256),
 	`git_commit_message` text,
@@ -369,11 +385,13 @@ CREATE TABLE `deployments` (
 	`cpu_millicores` int NOT NULL,
 	`memory_mib` int NOT NULL,
 	`desired_state` enum('running','standby','archived') NOT NULL DEFAULT 'running',
+	`encrypted_environment_variables` longblob NOT NULL,
 	`status` enum('pending','building','deploying','network','ready','failed') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployments_id` PRIMARY KEY(`id`),
-	CONSTRAINT `deployments_k8s_name_unique` UNIQUE(`k8s_name`)
+	CONSTRAINT `deployments_k8s_name_unique` UNIQUE(`k8s_name`),
+	CONSTRAINT `deployments_build_id_unique` UNIQUE(`build_id`)
 );
 
 CREATE TABLE `deployment_topology` (

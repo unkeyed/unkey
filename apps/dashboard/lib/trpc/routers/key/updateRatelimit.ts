@@ -1,6 +1,6 @@
-import { ratelimitSchema } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
 import { type Key, db, eq, schema } from "@/lib/db";
+import { ratelimitSchema } from "@/lib/schemas/ratelimit";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";

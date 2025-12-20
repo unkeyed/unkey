@@ -170,7 +170,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
             </Link>
           </DropdownMenuItem>
           {currentOrgMembership?.role === "admin" ? (
-            <Link href="/settings/team">
+            <Link href={`/${workspace.slug}/settings/team`}>
               <DropdownMenuItem>
                 <UserPlus iconSize="md-regular" className="w-4 h-4 mr-2 " />
                 <span className="cursor-pointer">Invite Member</span>

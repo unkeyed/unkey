@@ -4,11 +4,15 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/clock"
 )
 
-// Config holds configuration for a krane agent instance.
-//
-// This configuration defines how the agent connects to the control plane,
-// authenticates with container registries, and exposes observability endpoints.
-// All fields should be configured before calling [Run].
+// S3Config holds S3 configuration for vault storage
+type S3Config struct {
+	URL             string
+	Bucket          string
+	AccessKeyID     string
+	AccessKeySecret string
+}
+
+// Config holds krane server configuration for Docker or Kubernetes backends.
 type Config struct {
 	// InstanceID is the unique identifier for this krane agent instance.
 	// Used for distributed tracing, logging correlation, and cluster coordination.
@@ -66,6 +70,14 @@ type Config struct {
 	// Set to 0 to disable metrics exposure. When enabled, metrics are served
 	// on all interfaces (0.0.0.0) on the specified port.
 	PrometheusPort int
+	// VaultMasterKeys are the encryption keys for vault operations.
+	// Required for decrypting environment variable secrets.
+	VaultMasterKeys []string
+
+	// VaultS3 configures S3 storage for encrypted vault data.
+	VaultS3 S3Config
+
+	RPCPort int
 }
 
 // Validate checks the configuration for required fields and logical consistency.

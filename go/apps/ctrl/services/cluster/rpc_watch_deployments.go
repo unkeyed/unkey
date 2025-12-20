@@ -116,19 +116,25 @@ func (s *Service) getSyntheticDeployments(ctx context.Context, req *connect.Requ
 		cursor = topologies[len(topologies)-1].DeploymentID
 
 		for _, t := range topologies {
+			var buildID *string
+			if t.BuildID.Valid {
+				buildID = &t.BuildID.String
+			}
 			c <- &ctrlv1.DeploymentState{
 				State: &ctrlv1.DeploymentState_Apply{
 					Apply: &ctrlv1.ApplyDeployment{
-						K8SNamespace:  t.K8sNamespace.String,
-						K8SName:       t.K8sName,
-						WorkspaceId:   t.WorkspaceID,
-						EnvironmentId: t.EnvironmentID,
-						ProjectId:     t.ProjectID,
-						DeploymentId:  t.DeploymentID,
-						Image:         t.Image.String,
-						Replicas:      t.Replicas,
-						CpuMillicores: int64(t.CpuMillicores),
-						MemoryMib:     int64(t.MemoryMib),
+						K8SNamespace:                  t.K8sNamespace.String,
+						K8SName:                       t.K8sName,
+						WorkspaceId:                   t.WorkspaceID,
+						EnvironmentId:                 t.EnvironmentID,
+						ProjectId:                     t.ProjectID,
+						DeploymentId:                  t.DeploymentID,
+						Image:                         t.Image.String,
+						Replicas:                      t.Replicas,
+						CpuMillicores:                 int64(t.CpuMillicores),
+						MemoryMib:                     int64(t.MemoryMib),
+						BuildId:                       buildID,
+						EncryptedEnvironmentVariables: t.EncryptedEnvironmentVariables,
 					},
 				},
 			}

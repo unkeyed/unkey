@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { ratelimit, requireWorkspace, t, withRatelimit } from "../../trpc";
+import { escapeLike } from "../utils/sql";
 import { IdentityResponseSchema } from "./query";
 
 const LIMIT = 5;
@@ -28,25 +29,33 @@ export const searchIdentities = t.procedure
     const workspaceId = ctx.workspace.id;
 
     try {
+      const escapedQuery = escapeLike(query);
       const identitiesQuery = await db.query.identities.findMany({
         where: (identity, { and, eq, like }) => {
           return and(
             eq(identity.workspaceId, workspaceId),
             eq(identity.deleted, false),
-            like(identity.externalId, `%${query}%`),
+            like(identity.externalId, `%${escapedQuery}%`),
           );
+        },
+        with: {
+          keys: {
+            columns: {
+              id: true,
+            },
+          },
+          ratelimits: {
+            columns: {
+              id: true,
+              name: true,
+              limit: true,
+              duration: true,
+              autoApply: true,
+            },
+          },
         },
         limit: LIMIT,
         orderBy: (identities, { asc }) => [asc(identities.externalId)],
-        columns: {
-          id: true,
-          externalId: true,
-          workspaceId: true,
-          environment: true,
-          meta: true,
-          createdAt: true,
-          updatedAt: true,
-        },
       });
 
       const transformedIdentities = identitiesQuery.map((identity) => ({
@@ -57,6 +66,8 @@ export const searchIdentities = t.procedure
         meta: identity.meta,
         createdAt: identity.createdAt,
         updatedAt: identity.updatedAt ? identity.updatedAt : null,
+        keys: identity.keys,
+        ratelimits: identity.ratelimits,
       }));
 
       return {
