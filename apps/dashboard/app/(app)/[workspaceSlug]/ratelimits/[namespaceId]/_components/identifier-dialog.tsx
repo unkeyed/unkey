@@ -129,6 +129,7 @@ export const IdentifierDialog = ({
         className="flex flex-col gap-4"
       >
         <FormInput
+          className="secret"
           label="Identifier"
           description="The identifier you use when ratelimiting."
           error={errors.identifier?.message}

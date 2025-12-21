@@ -112,17 +112,17 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
                   <div className="flex w-full items-center gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
                     <Avatar>
                       <AvatarImage src={member.avatarUrl ?? undefined} />
-                      <AvatarFallback>
+                      <AvatarFallback className="email">
                         {member.fullName?.slice(0, 1) ?? member.email.slice(0, 1)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col items-start">
-                      <span className="text-content font-medium">
-                        {`${member.firstName ? member.firstName : member.email} ${
-                          member.lastName ? member.lastName : ""
-                        }`}
+                      <span className="text-content font-medium email">
+                        {`${
+                          member.firstName ? member.firstName : member.email
+                        } ${member.lastName ? member.lastName : ""}`}
                       </span>
-                      <span className="text-content-subtle text-xs">
+                      <span className="text-content-subtle text-xs email">
                         {member.firstName ? member.email : ""}
                       </span>
                     </div>
