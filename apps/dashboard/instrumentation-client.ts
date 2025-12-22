@@ -39,25 +39,6 @@ Sentry.init({
       block: ["[data-sensitive-media]", ".sensitive-media"],
       // Ignore sensitive input events
       ignore: ["[type='password']", "[data-sensitive-input]", ".sensitive-input"],
-      // Custom masking function for additional PII protection
-      beforeAddRecordingEvent: (event) => {
-        // Additional scrubbing for network requests containing sensitive data
-        if (event.data.tag === "performanceSpan" && event.data.payload.data) {
-          const payload = event.data.payload.data as Record<string, unknown>;
-          // Scrub URLs that might contain API keys or tokens
-          if (payload.url && typeof payload.url === "string") {
-            payload.url = payload.url.replace(/([a-zA-Z0-9_-]{20,})/g, "[REDACTED]");
-          }
-          // Scrub request/response bodies that might contain sensitive data
-          if (payload.requestBody) {
-            payload.requestBody = "[REDACTED]";
-          }
-          if (payload.responseBody) {
-            payload.responseBody = "[REDACTED]";
-          }
-        }
-        return event;
-      },
     }),
   ],
 
