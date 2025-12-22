@@ -25,7 +25,7 @@ export const SecretKey = ({
   return (
     <div
       className={cn(
-        "w-full px-4 py-2 bg-white dark:bg-black border rounded-xl border-grayA-5",
+        "w-full px-4 py-2 bg-white dark:bg-black border rounded-xl border-grayA-5 unkey-root-key",
         className,
       )}
     >

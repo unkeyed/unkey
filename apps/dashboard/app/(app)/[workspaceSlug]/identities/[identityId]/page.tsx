@@ -65,7 +65,7 @@ export default async function Page(props: Props) {
               <span className="text-sm text-content-subtle whitespace-nowrap">Identity ID:</span>
               <Badge
                 variant="secondary"
-                className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+                className="flex justify-between w-full gap-2 font-mono font-medium external-id"
               >
                 {identity.id}
                 <CopyButton value={identity.id} />
@@ -76,7 +76,7 @@ export default async function Page(props: Props) {
 
               <Badge
                 variant="secondary"
-                className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+                className="flex justify-between w-full gap-2 font-mono font-medium external-id"
               >
                 {identity.externalId}
                 <CopyButton value={identity.externalId} />

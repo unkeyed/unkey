@@ -8,7 +8,7 @@ export const LogSection = ({
   title: string;
 }) => {
   return (
-    <div className="flex flex-col gap-1 mt-[16px]">
+    <div className="flex flex-col gap-1 mt-[16px] secret">
       <div className="flex justify-between items-center">
         <span className="text-[13px] text-accent-11 font-sans">{title}</span>
       </div>

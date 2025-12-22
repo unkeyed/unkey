@@ -22,7 +22,7 @@ export const LogSection = ({
                   return (
                     <div className="group flex items-center w-full p-[3px]" key={key}>
                       <span className="w-28 text-left truncate text-accent-9">{key}:</span>
-                      <span className="ml-2 text-xs text-accent-12 ">{value}</span>
+                      <span className="ml-2 text-xs text-accent-12 secret">{value}</span>
                     </div>
                   );
                 })
@@ -33,7 +33,7 @@ export const LogSection = ({
             shape="square"
             variant="primary"
             size="2xlg"
-            className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4"
+            className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4 secret"
             aria-label="Copy content"
           />
         </CardContent>

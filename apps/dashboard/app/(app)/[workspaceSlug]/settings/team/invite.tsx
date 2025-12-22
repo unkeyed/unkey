@@ -127,6 +127,7 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
           <FormInput
             label="Email"
             placeholder="hey@unkey.dev"
+            className="email"
             error={errors.email?.message}
             {...register("email")}
           />

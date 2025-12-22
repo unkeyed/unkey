@@ -74,8 +74,8 @@ export const OverridesTable = ({ namespaceId }: Props) => {
           <InfoTooltip
             content={
               <div className="inline-flex justify-center gap-3 items-center font-mono text-xs text-gray-11">
-                <span className="">{override.id}</span>
-                <CopyButton value={override.id} />
+                <span className="secret">{override.id}</span>
+                <CopyButton className="secret" value={override.id} />
               </div>
             }
             position={{ side: "bottom", align: "start" }}
@@ -97,17 +97,17 @@ export const OverridesTable = ({ namespaceId }: Props) => {
           <InfoTooltip
             content={
               <div className="flex gap-3">
-                <div className="flex justify-start items-center break-all max-w-[400px]">
+                <div className="flex justify-start items-center break-all max-w-[400px] secret">
                   {override.identifier}
                 </div>
-                <div className="flex flex-col justify-center items-center w-4">
+                <div className="flex flex-col justify-center items-center w-4 secret">
                   <CopyButton value={override.identifier} />
                 </div>
               </div>
             }
             position={{ side: "bottom", align: "start" }}
           >
-            <pre className="text-[11px] text-gray-11 sm:max-w-[100px] md:max-w-[100px] lg:max-w-[320px] xl:max-w-[600px] truncate">
+            <pre className="text-[11px] text-gray-11 sm:max-w-[100px] md:max-w-[100px] lg:max-w-[320px] xl:max-w-[600px] truncate secret">
               {override.identifier}
             </pre>
           </InfoTooltip>
