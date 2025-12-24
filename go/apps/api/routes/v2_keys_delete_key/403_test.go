@@ -23,11 +23,12 @@ func TestKeyDeleteForbidden(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
-		DB:        h.DB,
-		Keys:      h.Keys,
-		Logger:    h.Logger,
-		Auditlogs: h.Auditlogs,
-		KeyCache:  h.Caches.VerificationKeyByHash,
+		DB:           h.DB,
+		Keys:         h.Keys,
+		Logger:       h.Logger,
+		Auditlogs:    h.Auditlogs,
+		KeyCache:     h.Caches.VerificationKeyByHash,
+		LiveKeyCache: h.Caches.LiveKeyByID,
 	}
 
 	h.Register(route)
