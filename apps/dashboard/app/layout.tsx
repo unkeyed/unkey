@@ -3,12 +3,11 @@ import { WorkspaceProvider } from "@/providers/workspace-provider";
 import { Toaster } from "@unkey/ui";
 import "@/styles/tailwind/tailwind.css";
 import "@unkey/ui/css";
-
-import { Feedback } from "@/components/dashboard/feedback-component";
 import * as Sentry from "@sentry/nextjs";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import type React from "react";
 import { Suspense } from "react";
 import { ReactQueryProvider } from "./react-query-provider";
@@ -49,6 +48,11 @@ export function generateMetadata(): Metadata {
     },
   };
 }
+
+const Feedback = dynamic(
+  () => import("@/components/dashboard/feedback-component").then((mod) => mod.Feedback),
+  { ssr: false },
+);
 
 export default function RootLayout({
   children,
