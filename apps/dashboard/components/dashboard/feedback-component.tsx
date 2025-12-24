@@ -85,9 +85,6 @@ export const Feedback: React.FC = () => {
   };
 
   const handleClose = () => {
-    if (justOpenedRef.current) {
-      return; // Prevent closing if just opened
-    }
     setOpen(false);
   };
 
@@ -96,10 +93,10 @@ export const Feedback: React.FC = () => {
       isOpen={internalOpen}
       onOpenChange={(newOpen) => {
         if (!newOpen) {
-          handleClose();
+          setInternalOpen(false);
         }
       }}
-      showCloseWarning={false}
+      showCloseWarning={true}
       onAttemptClose={handleClose}
       title="Report an issue"
       subTitle="What went wrong or how can we improve?"
