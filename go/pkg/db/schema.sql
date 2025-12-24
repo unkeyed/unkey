@@ -395,9 +395,9 @@ CREATE TABLE `deployments` (
 );
 
 CREATE TABLE `deployment_topology` (
-	`workspace_id` varchar(256) NOT NULL,
-	`deployment_id` varchar(256) NOT NULL,
-	`region` varchar(256) NOT NULL,
+	`workspace_id` varchar(64) NOT NULL,
+	`deployment_id` varchar(64) NOT NULL,
+	`region` varchar(64) NOT NULL,
 	`replicas` int NOT NULL,
 	`status` enum('starting','started','stopping','stopped') NOT NULL,
 	`created_at` bigint NOT NULL,
@@ -455,7 +455,8 @@ CREATE TABLE `sentinels` (
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
 	`environment_id` varchar(255) NOT NULL,
-	`k8s_name` varchar(255) NOT NULL,
+	`k8s_namespace` varchar(64) NOT NULL,
+	`k8s_name` varchar(64) NOT NULL,
 	`k8s_address` varchar(255) NOT NULL,
 	`region` varchar(255) NOT NULL,
 	`image` varchar(255) NOT NULL,
@@ -469,7 +470,8 @@ CREATE TABLE `sentinels` (
 	`updated_at` bigint,
 	CONSTRAINT `sentinels_id` PRIMARY KEY(`id`),
 	CONSTRAINT `sentinels_k8s_name_unique` UNIQUE(`k8s_name`),
-	CONSTRAINT `sentinels_k8s_address_unique` UNIQUE(`k8s_address`)
+	CONSTRAINT `sentinels_k8s_address_unique` UNIQUE(`k8s_address`),
+	CONSTRAINT `one_env_per_region` UNIQUE(`environment_id`,`region`)
 );
 
 CREATE TABLE `instances` (
@@ -477,16 +479,15 @@ CREATE TABLE `instances` (
 	`deployment_id` varchar(255) NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
-	`region` varchar(255) NOT NULL,
-	`shard` varchar(255) NOT NULL,
+	`region` varchar(64) NOT NULL,
+	`cluster_id` varchar(64) NOT NULL,
 	`k8s_name` varchar(255) NOT NULL,
 	`address` varchar(255) NOT NULL,
 	`cpu_millicores` int NOT NULL,
 	`memory_mib` int NOT NULL,
 	`status` enum('inactive','pending','running','failed') NOT NULL,
 	CONSTRAINT `instances_id` PRIMARY KEY(`id`),
-	CONSTRAINT `unique_address_per_shard` UNIQUE(`address`,`shard`),
-	CONSTRAINT `unique_pod_name_per_shard` UNIQUE(`k8s_name`,`shard`)
+	CONSTRAINT `unique_address_per_cluster` UNIQUE(`address`,`cluster_id`)
 );
 
 CREATE TABLE `certificates` (

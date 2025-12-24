@@ -29,7 +29,7 @@ type Querier interface {
 	//DeleteDeploymentInstances
 	//
 	//  DELETE FROM instances
-	//  WHERE deployment_id = ?  and region = ? and shard = ?
+	//  WHERE deployment_id = ?  and cluster_id = ?
 	DeleteDeploymentInstances(ctx context.Context, db DBTX, arg DeleteDeploymentInstancesParams) error
 	//DeleteIdentity
 	//
@@ -39,7 +39,7 @@ type Querier interface {
 	DeleteIdentity(ctx context.Context, db DBTX, arg DeleteIdentityParams) error
 	//DeleteInstance
 	//
-	//  DELETE FROM instances WHERE k8s_name = ? AND shard = ? AND region = ?
+	//  DELETE FROM instances WHERE k8s_name = ? AND cluster_id = ? AND region = ?
 	DeleteInstance(ctx context.Context, db DBTX, arg DeleteInstanceParams) error
 	//DeleteKeyByID
 	//
@@ -376,21 +376,21 @@ type Querier interface {
 	//FindInstanceByPodName
 	//
 	//  SELECT
-	//   id, deployment_id, workspace_id, project_id, region, shard, k8s_name, address, cpu_millicores, memory_mib, status
+	//   id, deployment_id, workspace_id, project_id, region, cluster_id, k8s_name, address, cpu_millicores, memory_mib, status
 	//  FROM instances
-	//  WHERE k8s_name = ? AND shard = ? AND region = ?
+	//    WHERE k8s_name = ? AND cluster_id = ? AND region = ?
 	FindInstanceByPodName(ctx context.Context, db DBTX, arg FindInstanceByPodNameParams) (Instance, error)
 	//FindInstancesByDeploymentId
 	//
 	//  SELECT
-	//   id, deployment_id, workspace_id, project_id, region, shard, k8s_name, address, cpu_millicores, memory_mib, status
+	//   id, deployment_id, workspace_id, project_id, region, cluster_id, k8s_name, address, cpu_millicores, memory_mib, status
 	//  FROM instances
 	//  WHERE deployment_id = ?
 	FindInstancesByDeploymentId(ctx context.Context, db DBTX, deploymentid string) ([]Instance, error)
 	//FindInstancesByDeploymentIdAndRegion
 	//
 	//  SELECT
-	//   id, deployment_id, workspace_id, project_id, region, shard, k8s_name, address, cpu_millicores, memory_mib, status
+	//   id, deployment_id, workspace_id, project_id, region, cluster_id, k8s_name, address, cpu_millicores, memory_mib, status
 	//  FROM instances
 	//  WHERE deployment_id = ? AND region = ?
 	FindInstancesByDeploymentIdAndRegion(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionParams) ([]Instance, error)
@@ -959,13 +959,12 @@ type Querier interface {
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
 	//FindSentinelByID
 	//
-	//  SELECT s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region, s.image, s.desired_state, s.health, s.desired_replicas, s.replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, w.k8s_namespace FROM sentinels s
-	//  INNER JOIN `workspaces` w ON s.workspace_id = w.id
-	//  WHERE s.id = ? LIMIT 1
-	FindSentinelByID(ctx context.Context, db DBTX, id string) (FindSentinelByIDRow, error)
+	//  SELECT id, workspace_id, project_id, environment_id, k8s_namespace, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels
+	//  WHERE id = ? LIMIT 1
+	FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error)
 	//FindSentinelsByEnvironmentID
 	//
-	//  SELECT id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels WHERE environment_id = ?
+	//  SELECT id, workspace_id, project_id, environment_id, k8s_namespace, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels WHERE environment_id = ?
 	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Sentinel, error)
 	//FindWorkspaceByID
 	//
@@ -1667,7 +1666,7 @@ type Querier interface {
 	//ListDesiredSentinels
 	//
 	//  SELECT
-	//      sentinels.id, sentinels.workspace_id, sentinels.project_id, sentinels.environment_id, sentinels.k8s_name, sentinels.k8s_address, sentinels.region, sentinels.image, sentinels.desired_state, sentinels.health, sentinels.desired_replicas, sentinels.replicas, sentinels.cpu_millicores, sentinels.memory_mib, sentinels.created_at, sentinels.updated_at,
+	//      sentinels.id, sentinels.workspace_id, sentinels.project_id, sentinels.environment_id, sentinels.k8s_namespace, sentinels.k8s_name, sentinels.k8s_address, sentinels.region, sentinels.image, sentinels.desired_state, sentinels.health, sentinels.desired_replicas, sentinels.replicas, sentinels.cpu_millicores, sentinels.memory_mib, sentinels.created_at, sentinels.updated_at,
 	//      workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.partition_id, workspaces.plan, workspaces.tier, workspaces.stripe_customer_id, workspaces.stripe_subscription_id, workspaces.beta_features, workspaces.features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m
 	//  FROM `sentinels`
 	//  INNER JOIN `workspaces` ON sentinels.workspace_id = workspaces.id
@@ -2292,7 +2291,7 @@ type Querier interface {
 	//  	workspace_id,
 	//  	project_id,
 	//  	region,
-	//  	shard,
+	//  	cluster_id,
 	//  	k8s_name,
 	//  	address,
 	//  	cpu_millicores,

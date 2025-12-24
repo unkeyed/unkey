@@ -1,0 +1,31 @@
+syntax = "proto3";
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/go/gen/proto/hydra/v1;hydrav1";
+
+service ClusterObject {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  rpc Init(InitRequest) returns (InitResponse) {
+    option (dev.restate.sdk.go.handler_type) = SHARED;
+  }
+  rpc Watch(WatchRequest) returns (WatchResponse) {}
+}
+
+message WatchRequest {
+  string cluster_id = 1;
+  string cluster_address = 2;
+  string region = 3;
+}
+
+message WatchResponse {}
+
+message InitRequest {
+  string cluster_id = 1;
+  string cluster_address = 2;
+  string region = 3;
+}
+
+message InitResponse {}

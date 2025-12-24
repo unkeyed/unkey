@@ -22,8 +22,6 @@ option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
 // The watch connection is designed to be long-lived with automatic reconnection on failure.
 // When an agent reconnects, it should initiate reconciliation to ensure consistency.
 service ClusterService {
-
-
   rpc WatchSentinels(WatchRequest) returns (stream SentinelState);
   rpc GetDesiredSentinelState(GetDesiredSentinelStateRequest) returns (SentinelState);
   rpc UpdateSentinelState(UpdateSentinelStateRequest) returns (UpdateSentinelStateResponse);
@@ -33,21 +31,16 @@ service ClusterService {
   rpc UpdateDeploymentState(UpdateDeploymentStateRequest) returns (UpdateDeploymentStateResponse);
 }
 
-
 message GetDesiredSentinelStateRequest {
   string sentinel_id = 1;
 }
-
 
 message GetDesiredDeploymentStateRequest {
   string deployment_id = 1;
 }
 
-message UpdateDeploymentStateRequest{
-
-
+message UpdateDeploymentStateRequest {
   message Update {
-
     message Instance {
       enum Status {
         STATUS_UNSPECIFIED = 0;
@@ -59,59 +52,35 @@ message UpdateDeploymentStateRequest{
       string address = 2;
       int64 cpu_millicores = 3;
       int64 memory_mib = 4;
-        Status status = 5;
+      Status status = 5;
     }
 
     string k8s_name = 1;
     repeated Instance instances = 2;
-
-
   }
   message Delete {
     string k8s_name = 1;
   }
 
-
-
   oneof change {
     Update update = 1;
     Delete delete = 2;
-
   }
-
-
 }
 
-message UpdateDeploymentStateResponse {
+message UpdateDeploymentStateResponse {}
 
-}
-
-
-
-
-message UpdateInstanceStateResponse {
-
-}
-
+message UpdateInstanceStateResponse {}
 
 message UpdateSentinelStateRequest {
-
-
-
-      string k8s_name = 1;
-        int32 available_replicas = 2;
-
+  string k8s_name = 1;
+  int32 available_replicas = 2;
 }
 
-message UpdateSentinelStateResponse {
-
-}
-
-
+message UpdateSentinelStateResponse {}
 
 // WatchRequest identifies the cluster requesting a watch stream.
 message WatchRequest {
-
   // client_id uniquely identifies the client requesting the watch stream.
   string client_id = 1;
 
@@ -120,16 +89,17 @@ message WatchRequest {
   // [region]: aws:us-east-1
   //
   // The server must only send events where all labels match the selector.
-  map<string, string> selectors= 2;
+  map<string, string> selectors = 2;
 
- // live indicates whether the client wants live updates of changes
- // if true, the stream never ends
+  // live indicates whether the client wants live updates of changes
+  // if true, the stream never ends
   bool live = 3;
 
   // synthetic indicates whether the client wants synthetic events
   // if true, the server generates synthetic events to replay the full current desired state.
   bool synthetic = 4;
 }
+
 // SentinelState represents a lifecycle event for an API sentinel configuration.
 //
 // Sentinels are frontline points for services, typically handling routing, load balancing,
@@ -147,7 +117,6 @@ message SentinelState {
 
     // delete indicates the sentinel should be removed from the cluster.
     DeleteSentinel delete = 2;
-
   }
 }
 
@@ -168,8 +137,6 @@ message DeploymentState {
 
     // delete indicates the deployment should be removed from the cluster.
     DeleteDeployment delete = 2;
-
-
   }
 }
 
@@ -206,10 +173,8 @@ message ApplySentinel {
 // The sentinel and all its resources (pods, services, frontline) will be deleted.
 // In-flight requests may be disrupted unless proper connection draining is configured.
 message DeleteSentinel {
-
   string k8s_namespace = 1;
-string k8s_name = 2;
-
+  string k8s_name = 2;
 }
 
 // ApplyDeployment contains the desired configuration for a deployment.
@@ -221,8 +186,7 @@ message ApplyDeployment {
   // namespace is the Kubernetes namespace in which the deployment should exist.
   string k8s_namespace = 1;
 
-
-string k8s_name = 2;
+  string k8s_name = 2;
   // workspace_id identifies the workspace that owns this deployment.
   // Used for multi-tenancy and access control.
   string workspace_id = 3;
@@ -245,7 +209,7 @@ string k8s_name = 2;
 
   // replicas is the desired number of pod instances.
   // Must be at least 1. Set higher for increased availability and load distribution.
-  int32 replicas = 8   ;
+  int32 replicas = 8;
 
   // cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
   // This ensures each pod has sufficient CPU resources.
@@ -257,16 +221,9 @@ string k8s_name = 2;
   // Example: 256 = 256 MiB
   int64 memory_mib = 10;
 
-  // build_id is the unique identifier for this build from depot
-  // if we did not build this image via depot, no buildID exists and we
-  // assume kubernetes will pull from a public registry
   optional string build_id = 11;
-
-
-  // Encrypted secrets blob to be decrypted at runtime by unkey-env.
-  // This is set as UNKEY_ENCRYPTED_ENV env var in the container.
-  // unkey-env calls krane's DecryptSecretsBlob RPC to decrypt.
   bytes encrypted_environment_variables = 12;
+  optional string readiness_id = 13;
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.
@@ -276,5 +233,5 @@ string k8s_name = 2;
 // configmaps specific to this deployment) will also be cleaned up.
 message DeleteDeployment {
   string k8s_namespace = 1;
-string k8s_name = 2;
+  string k8s_name = 2;
 }

@@ -1,6 +1,9 @@
 # Tiltfile for Unkey development
 # This provides an enhanced development experience with hot reloading and unified logs
 
+
+allow_k8s_contexts('admin@talos-default-7')
+
 # Load Tilt extensions
 load('ext://namespace', 'namespace_create')
 load('ext://restart_process', 'docker_build_with_restart')
@@ -66,10 +69,10 @@ if start_api:  # Redis is needed by API service
 if start_mysql:
     print("Setting up MySQL...")
     # Only build if image doesn't exist
-    if not local('docker images -q unkey/mysql:latest 2>/dev/null', quiet=True):
+    if not local('docker images -q unkey/mysql:local 2>/dev/null', quiet=True):
         print("Building MySQL image...")
         docker_build(
-            'unkey/mysql:latest',
+            'unkey/mysql:local',
             '../',  # Build context at repo root
             dockerfile='../deployment/Dockerfile.mysql'
         )
@@ -87,10 +90,10 @@ if start_mysql:
 if start_clickhouse:
     print("Setting up ClickHouse...")
     # Only build if image doesn't exist
-    if not local('docker images -q unkey/clickhouse:latest 2>/dev/null', quiet=True):
+    if not local('docker images -q unkey/clickhouse:local 2>/dev/null', quiet=True):
         print("Building ClickHouse image...")
         docker_build(
-            'unkey/clickhouse:latest',
+            'unkey/clickhouse:local',
             '../',  # Build context at repo root
             dockerfile='../deployment/Dockerfile.clickhouse'
         )
@@ -156,11 +159,7 @@ if start_observability:
     )
 
 # Build Unkey binary locally (independent of infrastructure)
-<<<<<<< HEAD
-if start_api or start_ctrl or start_krane:
-=======
 if start_api or start_ctrl or start_krane or start_preflight:
->>>>>>> 39d470225bb5f8f34521d84bc2c02081b56843eb
     print("Building Unkey binary...")
     # Build locally first for faster updates
     local_resource(
@@ -206,10 +205,6 @@ if start_api:
         trigger_mode=TRIGGER_MODE_MANUAL if debug_mode else TRIGGER_MODE_AUTO
     )
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 39d470225bb5f8f34521d84bc2c02081b56843eb
 # Ctrl service (1 replica)
 if start_ctrl:
     print("Setting up Ctrl service...")

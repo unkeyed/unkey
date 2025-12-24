@@ -14,13 +14,12 @@ import (
 // The interceptor automatically injects:
 // - Authorization header with Bearer token
 // - X-Krane-Region header for routing
-// - X-Krane-Shard header for routing
+// - X-Krane-Cluster-Id header for routing
 //
 // This is the recommended way to create interceptors for control plane clients.
-func connectInterceptor(region, shard, bearer string) connect.Interceptor {
+func connectInterceptor(region, bearer string) connect.Interceptor {
 	return &authInterceptor{
 		region: region,
-		shard:  shard,
 		bearer: bearer,
 	}
 }
@@ -31,7 +30,6 @@ func connectInterceptor(region, shard, bearer string) connect.Interceptor {
 // The interceptor is stateless and safe for concurrent use.
 type authInterceptor struct {
 	region string
-	shard  string
 	bearer string
 }
 
@@ -125,12 +123,10 @@ func (s *streamingClientInterceptor) RequestHeader() http.Header {
 //
 // This method injects:
 // - X-Krane-Region: The client's geographical region
-// - X-Krane-Shard: The client's logical shard identifier
 // - Authorization: Bearer token for authentication
 //
 // All headers use Set() to overwrite any existing values.
 func (i *authInterceptor) setHeaders(header http.Header) {
 	header.Set("X-Krane-Region", i.region)
-	header.Set("X-Krane-Shard", i.shard)
 	header.Set("Authorization", fmt.Sprintf("Bearer %s", i.bearer))
 }

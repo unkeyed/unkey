@@ -7,48 +7,26 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const findSentinelByID = `-- name: FindSentinelByID :one
-SELECT s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region, s.image, s.desired_state, s.health, s.desired_replicas, s.replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, w.k8s_namespace FROM sentinels s
-INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON s.workspace_id = w.id
-WHERE s.id = ? LIMIT 1
+SELECT id, workspace_id, project_id, environment_id, k8s_namespace, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels
+WHERE id = ? LIMIT 1
 `
-
-type FindSentinelByIDRow struct {
-	ID              string                `db:"id"`
-	WorkspaceID     string                `db:"workspace_id"`
-	ProjectID       string                `db:"project_id"`
-	EnvironmentID   string                `db:"environment_id"`
-	K8sName         string                `db:"k8s_name"`
-	K8sAddress      string                `db:"k8s_address"`
-	Region          string                `db:"region"`
-	Image           string                `db:"image"`
-	DesiredState    SentinelsDesiredState `db:"desired_state"`
-	Health          SentinelsHealth       `db:"health"`
-	DesiredReplicas int32                 `db:"desired_replicas"`
-	Replicas        int32                 `db:"replicas"`
-	CpuMillicores   int32                 `db:"cpu_millicores"`
-	MemoryMib       int32                 `db:"memory_mib"`
-	CreatedAt       int64                 `db:"created_at"`
-	UpdatedAt       sql.NullInt64         `db:"updated_at"`
-	K8sNamespace    sql.NullString        `db:"k8s_namespace"`
-}
 
 // FindSentinelByID
 //
-//	SELECT s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region, s.image, s.desired_state, s.health, s.desired_replicas, s.replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, w.k8s_namespace FROM sentinels s
-//	INNER JOIN `workspaces` w ON s.workspace_id = w.id
-//	WHERE s.id = ? LIMIT 1
-func (q *Queries) FindSentinelByID(ctx context.Context, db DBTX, id string) (FindSentinelByIDRow, error) {
+//	SELECT id, workspace_id, project_id, environment_id, k8s_namespace, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels
+//	WHERE id = ? LIMIT 1
+func (q *Queries) FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error) {
 	row := db.QueryRowContext(ctx, findSentinelByID, id)
-	var i FindSentinelByIDRow
+	var i Sentinel
 	err := row.Scan(
 		&i.ID,
 		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.EnvironmentID,
+		&i.K8sNamespace,
 		&i.K8sName,
 		&i.K8sAddress,
 		&i.Region,
@@ -61,7 +39,6 @@ func (q *Queries) FindSentinelByID(ctx context.Context, db DBTX, id string) (Fin
 		&i.MemoryMib,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.K8sNamespace,
 	)
 	return i, err
 }

@@ -18,11 +18,9 @@ func (s *Service) UpdateSentinelState(ctx context.Context, req *connect.Request[
 	}
 
 	region := req.Header().Get("X-Krane-Region")
-	shard := req.Header().Get("X-Krane-Shard")
 
 	err := assert.All(
 		assert.NotEmpty(region, "region is required"),
-		assert.NotEmpty(shard, "shard is required"),
 	)
 	if err != nil {
 		return nil, err

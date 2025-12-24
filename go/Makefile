@@ -29,6 +29,7 @@ tools: setup
 
 fmt: setup
 	go fmt ./...
+	go tool buf format -w
 	go tool golangci-lint run
 
 pull:
@@ -93,9 +94,9 @@ k8s-check: ## Check if kubectl is available and cluster is running
 
 k8s-up: k8s-check ## Deploy all services to current Kubernetes cluster
 	@echo "Building Docker images..."
-	@docker build -t unkey/mysql:latest -f ../deployment/Dockerfile.mysql ../
-	@docker build -t unkey/clickhouse:latest -f ../deployment/Dockerfile.clickhouse ../
-	@docker build -t unkey:latest .
+	@docker build -t unkey/mysql:local -f ../deployment/Dockerfile.mysql ../
+	@docker build -t unkey/clickhouse:local -f ../deployment/Dockerfile.clickhouse ../
+	@docker build -t unkey:local .
 	@echo "Creating namespace..."
 	@kubectl apply -f k8s/manifests/namespace.yaml
 	@echo "Applying Kubernetes manifests..."
@@ -141,10 +142,10 @@ define deploy-service
 endef
 
 start-mysql: k8s-check ## Deploy only MySQL
-	$(call deploy-service,mysql,MySQL,unkey/mysql:latest,-f ../deployment/Dockerfile.mysql ../)
+	$(call deploy-service,mysql,MySQL,unkey/mysql:local,-f ../deployment/Dockerfile.mysql ../)
 
 start-clickhouse: k8s-check ## Deploy only ClickHouse
-	@docker build -t unkey/clickhouse:latest -f ../deployment/Dockerfile.clickhouse ../
+	@docker build -t unkey/clickhouse:local -f ../deployment/Dockerfile.clickhouse ../
 	$(call deploy-service,clickhouse,ClickHouse)
 
 start-redis: k8s-check ## Deploy only Redis
@@ -163,11 +164,11 @@ start-restate: k8s-check ## Deploy only Restate
 	$(call deploy-service,restate,Restate)
 
 start-api: k8s-check ## Deploy only API service (3 replicas)
-	$(call deploy-service,api,API,unkey:latest,.)
+	$(call deploy-service,api,API,unkey:local,.)
 
 
 start-ctrl: k8s-check ## Deploy only ctrl service
-	$(call deploy-service,ctrl,Control Plane,unkey:latest,.)
+	$(call deploy-service,ctrl,Control Plane,unkey:local,.)
 
 start-dashboard: k8s-check ## Deploy only dashboard service
 	$(call deploy-service,dashboard,Dashboard,unkey/dashboard:latest,-f ../apps/dashboard/Dockerfile ../)
@@ -182,7 +183,10 @@ start-all: start-dependencies start-unkey-services ## Deploy all services indivi
 image:
 	@docker build -t unkey:dev .
 
-dev: image## Start with Tilt (if available) or fallback to k8s-up
+cluster:
+	minikube start --driver=docker --cpus=no-limit --memory=no-limit
+
+dev: image cluster ## Start with Tilt (if available) or fallback to k8s-up
 	@if command -v tilt >/dev/null 2>&1; then \
 		echo "Starting with Tilt..."; \
 		tilt up; \

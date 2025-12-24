@@ -1008,7 +1008,7 @@ type Instance struct {
 	WorkspaceID   string          `db:"workspace_id"`
 	ProjectID     string          `db:"project_id"`
 	Region        string          `db:"region"`
-	Shard         string          `db:"shard"`
+	ClusterID     string          `db:"cluster_id"`
 	K8sName       string          `db:"k8s_name"`
 	Address       string          `db:"address"`
 	CpuMillicores int32           `db:"cpu_millicores"`
@@ -1178,6 +1178,7 @@ type Sentinel struct {
 	WorkspaceID     string                `db:"workspace_id"`
 	ProjectID       string                `db:"project_id"`
 	EnvironmentID   string                `db:"environment_id"`
+	K8sNamespace    string                `db:"k8s_namespace"`
 	K8sName         string                `db:"k8s_name"`
 	K8sAddress      string                `db:"k8s_address"`
 	Region          string                `db:"region"`

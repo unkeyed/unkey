@@ -133,8 +133,9 @@ func (s *Service) getSyntheticDeployments(ctx context.Context, req *connect.Requ
 						Replicas:                      t.Replicas,
 						CpuMillicores:                 int64(t.CpuMillicores),
 						MemoryMib:                     int64(t.MemoryMib),
-						BuildId:                       buildID,
 						EncryptedEnvironmentVariables: t.EncryptedEnvironmentVariables,
+						ReadinessId:                   nil,
+						BuildId:                       buildID,
 					},
 				},
 			}

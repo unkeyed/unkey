@@ -11,7 +11,7 @@ import (
 
 const listDesiredSentinels = `-- name: ListDesiredSentinels :many
 SELECT
-    sentinels.id, sentinels.workspace_id, sentinels.project_id, sentinels.environment_id, sentinels.k8s_name, sentinels.k8s_address, sentinels.region, sentinels.image, sentinels.desired_state, sentinels.health, sentinels.desired_replicas, sentinels.replicas, sentinels.cpu_millicores, sentinels.memory_mib, sentinels.created_at, sentinels.updated_at,
+    sentinels.id, sentinels.workspace_id, sentinels.project_id, sentinels.environment_id, sentinels.k8s_namespace, sentinels.k8s_name, sentinels.k8s_address, sentinels.region, sentinels.image, sentinels.desired_state, sentinels.health, sentinels.desired_replicas, sentinels.replicas, sentinels.cpu_millicores, sentinels.memory_mib, sentinels.created_at, sentinels.updated_at,
     workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.partition_id, workspaces.plan, workspaces.tier, workspaces.stripe_customer_id, workspaces.stripe_subscription_id, workspaces.beta_features, workspaces.features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m
 FROM ` + "`" + `sentinels` + "`" + `
 INNER JOIN ` + "`" + `workspaces` + "`" + ` ON sentinels.workspace_id = workspaces.id
@@ -37,7 +37,7 @@ type ListDesiredSentinelsRow struct {
 // ListDesiredSentinels
 //
 //	SELECT
-//	    sentinels.id, sentinels.workspace_id, sentinels.project_id, sentinels.environment_id, sentinels.k8s_name, sentinels.k8s_address, sentinels.region, sentinels.image, sentinels.desired_state, sentinels.health, sentinels.desired_replicas, sentinels.replicas, sentinels.cpu_millicores, sentinels.memory_mib, sentinels.created_at, sentinels.updated_at,
+//	    sentinels.id, sentinels.workspace_id, sentinels.project_id, sentinels.environment_id, sentinels.k8s_namespace, sentinels.k8s_name, sentinels.k8s_address, sentinels.region, sentinels.image, sentinels.desired_state, sentinels.health, sentinels.desired_replicas, sentinels.replicas, sentinels.cpu_millicores, sentinels.memory_mib, sentinels.created_at, sentinels.updated_at,
 //	    workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.partition_id, workspaces.plan, workspaces.tier, workspaces.stripe_customer_id, workspaces.stripe_subscription_id, workspaces.beta_features, workspaces.features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m
 //	FROM `sentinels`
 //	INNER JOIN `workspaces` ON sentinels.workspace_id = workspaces.id
@@ -66,6 +66,7 @@ func (q *Queries) ListDesiredSentinels(ctx context.Context, db DBTX, arg ListDes
 			&i.Sentinel.WorkspaceID,
 			&i.Sentinel.ProjectID,
 			&i.Sentinel.EnvironmentID,
+			&i.Sentinel.K8sNamespace,
 			&i.Sentinel.K8sName,
 			&i.Sentinel.K8sAddress,
 			&i.Sentinel.Region,

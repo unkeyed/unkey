@@ -28,6 +28,7 @@ export const deployments = mysqlTable(
 
     // Environment configuration (production, preview, etc.)
     environmentId: varchar("environment_id", { length: 128 }).notNull(),
+
     // the docker image
     // null until the build is done
     image: varchar("image", { length: 256 }),

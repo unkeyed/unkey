@@ -21,12 +21,16 @@ import (
 // concurrent deploy/rollback/promote operations.
 type Workflow struct {
 	hydrav1.UnimplementedDeploymentServiceServer
-	db            db.Database
-	logger        logging.Logger
-	cluster       *cluster.Service
-	buildClient   ctrlv1connect.BuildServiceClient
-	defaultDomain string
-	vault         *vault.Service
+	db     db.Database
+	logger logging.Logger
+
+	cluster *cluster.Service
+
+	buildClient      ctrlv1connect.BuildServiceClient
+	defaultDomain    string
+	vault            *vault.Service
+	sentinelImage    string
+	availableRegions []string
 }
 
 var _ hydrav1.DeploymentServiceServer = (*Workflow)(nil)
@@ -39,9 +43,6 @@ type Config struct {
 	// DB is the main database connection for workspace, project, and deployment data.
 	DB db.Database
 
-	// Cluster is the client for container orchestration operations.
-	Cluster *cluster.Service
-
 	// BuildClient is the client for building Docker images from source.
 	BuildClient ctrlv1connect.BuildServiceClient
 
@@ -50,6 +51,15 @@ type Config struct {
 
 	// Vault provides encryption/decryption services for secrets.
 	Vault *vault.Service
+
+	// SentinelImage is the Docker image used for sentinel containers.
+	SentinelImage string
+
+	// AvailableRegions is the list of available regions for deployments.
+	AvailableRegions []string
+
+	// Bearer is the bearer token for authentication.
+	Bearer string
 }
 
 // New creates a new deployment workflow instance.
@@ -58,9 +68,15 @@ func New(cfg Config) *Workflow {
 		UnimplementedDeploymentServiceServer: hydrav1.UnimplementedDeploymentServiceServer{},
 		db:                                   cfg.DB,
 		logger:                               cfg.Logger,
-		cluster:                              cfg.Cluster,
-		buildClient:                          cfg.BuildClient,
-		defaultDomain:                        cfg.DefaultDomain,
-		vault:                                cfg.Vault,
+		cluster: cluster.New(cluster.Config{
+			Database: cfg.DB,
+			Logger:   cfg.Logger,
+			Bearer:   cfg.Bearer,
+		}),
+		buildClient:      cfg.BuildClient,
+		defaultDomain:    cfg.DefaultDomain,
+		vault:            cfg.Vault,
+		sentinelImage:    cfg.SentinelImage,
+		availableRegions: cfg.AvailableRegions,
 	}
 }

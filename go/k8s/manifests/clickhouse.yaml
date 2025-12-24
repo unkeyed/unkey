@@ -31,7 +31,7 @@ spec:
     spec:
       containers:
         - name: clickhouse
-          image: unkey/clickhouse:latest
+          image: unkey/clickhouse:local
           ports:
             - containerPort: 8123
               name: http

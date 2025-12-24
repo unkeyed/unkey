@@ -34,7 +34,7 @@ spec:
             - name: UNKEY_PLATFORM
               value: "kubernetes"
             - name: UNKEY_IMAGE
-              value: "unkey:latest"
+              value: "unkey:local"
             - name: UNKEY_REGION
               value: "local"
             - name: UNKEY_INSTANCE_ID

@@ -22,10 +22,6 @@ type ClientConfig struct {
 	// Region identifies the geographical region of this client instance.
 	// This value is added as the X-Krane-Region header for proper request routing.
 	Region string
-
-	// Shard identifies the logical shard this client belongs to.
-	// This value is added as the X-Krane-Shard header for proper request routing.
-	Shard string
 }
 
 // NewClient creates a new control plane client with the specified configuration.
@@ -36,7 +32,7 @@ type ClientConfig struct {
 // - Automatic authentication and metadata injection via interceptor
 //
 // All outgoing requests will automatically include the Authorization bearer token
-// and X-Krane-Region/X-Krane-Shard headers for proper routing and authentication.
+// and X-Krane-Region headers for proper routing and authentication.
 func NewClient(cfg ClientConfig) ctrlv1connect.ClusterServiceClient {
 	return ctrlv1connect.NewClusterServiceClient(
 		&http.Client{
@@ -46,6 +42,6 @@ func NewClient(cfg ClientConfig) ctrlv1connect.ClusterServiceClient {
 			},
 		},
 		cfg.URL,
-		connect.WithInterceptors(connectInterceptor(cfg.Region, cfg.Shard, cfg.BearerToken)),
+		connect.WithInterceptors(connectInterceptor(cfg.Region, cfg.BearerToken)),
 	)
 }

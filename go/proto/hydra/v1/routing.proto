@@ -11,16 +11,12 @@ service RoutingService {
 
   // AssignFrontlineRoutes creates or reassigns frontline routes to a deployment
   rpc AssignFrontlineRoutes(AssignFrontlineRoutesRequest) returns (AssignFrontlineRoutesResponse) {}
-
 }
 
 message AssignFrontlineRoutesRequest {
   string deployment_id = 1;
 
   repeated string frontline_route_ids = 2;
-
 }
 
-message AssignFrontlineRoutesResponse {
-
-}
+message AssignFrontlineRoutesResponse {}

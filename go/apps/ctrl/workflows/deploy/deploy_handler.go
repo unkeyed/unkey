@@ -3,11 +3,8 @@ package deploy
 import (
 	"context"
 	"database/sql"
-	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"time"
 
 	"connectrpc.com/connect"
@@ -20,7 +17,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
+func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
 	finishedSuccessfully := false
 
 	deployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
@@ -152,11 +149,12 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, err
 	}
 
-	// later we read this from project config
-	regions := []string{"aws:us-east-1"}
+	if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusDeploying); err != nil {
+		return nil, err
+	}
 
-	topologies := make([]db.InsertDeploymentTopologyParams, len(regions))
-	for i, region := range regions {
+	topologies := make([]db.InsertDeploymentTopologyParams, len(w.availableRegions))
+	for i, region := range w.availableRegions {
 		topologies[i] = db.InsertDeploymentTopologyParams{
 			WorkspaceID:  workspace.ID,
 			DeploymentID: deployment.ID,
@@ -167,127 +165,140 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		}
 	}
 
-	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.BulkQuery.InsertDeploymentTopologies(runCtx, w.db.RW(), topologies)
-	}, restate.WithName("insert-deployment-topologies"))
-	if err != nil {
-		return nil, err
+	// Ensure sentinels exist in each region for this deployment
+
+	existingSentinels, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Sentinel, error) {
+		return db.Query.FindSentinelsByEnvironmentID(runCtx, w.db.RO(), environment.ID)
+	}, restate.WithName("find existing sentinels"))
+
+	existingSentinelsByRegion := make(map[string]db.Sentinel)
+	for _, sentinel := range existingSentinels {
+		existingSentinelsByRegion[sentinel.Region] = sentinel
 	}
 
-	if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusDeploying); err != nil {
-		return nil, err
-	}
+	for _, topology := range topologies {
+		_, ok := existingSentinelsByRegion[topology.Region]
+		if !ok {
 
-	for _, region := range regions {
+			replicas := int32(1)
+			if environment.Slug == "production" {
+				replicas = 3
+			}
 
-		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return w.cluster.EmitDeploymentState(runCtx, map[string]string{"region": region, "shard": "default"}, &ctrlv1.DeploymentState{
-				State: &ctrlv1.DeploymentState_Apply{
-					Apply: &ctrlv1.ApplyDeployment{
-						K8SNamespace:         workspace.K8sNamespace.String,
-						K8SName:              deployment.K8sName,
-						WorkspaceId:          workspace.ID,
-						ProjectId:            project.ID,
-						EnvironmentId:        environment.ID,
-						DeploymentId:         deployment.ID,
-						Image:                dockerImage,
-						Replicas:             1,
-						CpuMillicores:        256,
-						MemoryMib:            256,
-						BuildId:              buildID,
-						EncryptedSecretsBlob: deployment.SecretsConfig,
-					},
-				},
-			})
-		}, restate.WithName(fmt.Sprintf("apply deployment in %s", region)))
+			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+
+				sentinelID := uid.New(uid.SentinelPrefix)
+				sentinelK8sName := uid.DNS1035()
+
+				err = db.Query.InsertSentinel(runCtx, w.db.RW(), db.InsertSentinelParams{
+					ID:              sentinelID,
+					WorkspaceID:     workspace.ID,
+					EnvironmentID:   environment.ID,
+					ProjectID:       project.ID,
+					K8sAddress:      fmt.Sprintf("%s.%s.svc.cluster.local", sentinelK8sName, workspace.K8sNamespace.String),
+					K8sName:         sentinelK8sName,
+					Region:          topology.Region,
+					Image:           w.sentinelImage,
+					Health:          db.SentinelsHealthUnknown,
+					DesiredReplicas: replicas,
+					Replicas:        0,
+					CpuMillicores:   256,
+					MemoryMib:       256,
+					CreatedAt:       time.Now().UnixMilli(),
+				})
+				if err != nil && !db.IsDuplicateKeyError(err) {
+					return err
+				}
+				return nil
+
+			}, restate.WithName("ensure sentinel exists in db"))
+
+			if err != nil {
+				return nil, err
+			}
+
+		}
+
+		sentinels, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Sentinel, error) {
+			return db.Query.FindSentinelsByEnvironmentID(runCtx, w.db.RO(), environment.ID)
+		}, restate.WithName("find all sentinels"))
 		if err != nil {
 			return nil, err
 		}
-	}
 
-	w.logger.Info("deployment created", "deployment_id", deployment.ID)
+		for _, sentinel := range sentinels {
+			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				return w.cluster.EmitSentinelState(runCtx, map[string]string{"region": sentinel.Region}, &ctrlv1.SentinelState{
+					State: &ctrlv1.SentinelState_Apply{
+						Apply: &ctrlv1.ApplySentinel{
+							K8SNamespace: workspace.K8sNamespace.String,
+							K8SName:      sentinel.K8sName,
 
-	createdInstances, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.Instance, error) {
+							WorkspaceId:   sentinel.WorkspaceID,
+							ProjectId:     sentinel.ProjectID,
+							EnvironmentId: sentinel.EnvironmentID,
+							SentinelId:    sentinel.ID,
+							Image:         w.sentinelImage,
+							Replicas:      sentinel.DesiredReplicas,
+							CpuMillicores: int64(sentinel.CpuMillicores),
+							MemoryMib:     int64(sentinel.MemoryMib),
+						},
+					},
+				})
 
-		for i := range 300 {
-			time.Sleep(time.Second)
-			if i%10 == 0 {
-				w.logger.Info("polling deployment status", "deployment_id", deployment.ID, "iteration", i)
-			}
-
-			instances, err := db.Query.FindInstancesByDeploymentId(stepCtx, w.db.RO(), deployment.ID)
+			}, restate.WithName(fmt.Sprintf("emit sentinel apply for %s in %s", sentinel.ID, sentinel.Region)))
 			if err != nil {
-				return nil, fmt.Errorf("failed to find instances for deployment %s: %w", deployment.ID, err)
+				return nil, err
 			}
-			if len(instances) == 0 {
-				continue
-			}
-
-			allReady := true
-			for _, instance := range instances {
-				if instance.Status != db.InstancesStatusRunning {
-					allReady = false
-					break
-				}
-			}
-
-			if allReady {
-				return instances, nil
-			}
-			// next loop
 		}
 
-		return nil, fmt.Errorf("deployment never became ready")
-	}, restate.WithName("polling deployment status"))
-	if err != nil {
-		return nil, err
 	}
 
-	openapiSpec, err := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
-		for _, instance := range createdInstances {
-			openapiURL := fmt.Sprintf("http://%s/openapi.yaml", instance.Address)
-			w.logger.Info("trying to scrape OpenAPI spec", "url", openapiURL, "host_port", instance.Address, "deployment_id", deployment.ID)
+	readinessGates := make([]restate.Future, len(topologies))
 
-			var resp *http.Response
-			resp, err = http.DefaultClient.Get(openapiURL)
-			if err != nil {
-				w.logger.Warn("openapi scraping failed for host address", "error", err, "host_addr", instance.Address, "deployment_id", deployment.ID)
-				continue
-			}
-			defer resp.Body.Close()
+	for i, region := range topologies {
 
-			if resp.StatusCode != http.StatusOK {
-				w.logger.Warn("openapi endpoint returned non-200 status", "status", resp.StatusCode, "host_addr", instance.Address, "deployment_id", deployment.ID)
-				continue
-			}
+		promise := restate.Awakeable[string](ctx)
+		readinessGates[i] = promise
 
-			var specBytes []byte
-			specBytes, err = io.ReadAll(resp.Body)
-			if err != nil {
-				w.logger.Warn("failed to read OpenAPI spec response", "error", err, "host_addr", instance.Address, "deployment_id", deployment.ID)
-				continue
-			}
-
-			w.logger.Info("openapi spec scraped successfully", "host_addr", instance.Address, "deployment_id", deployment.ID, "spec_size", len(specBytes))
-			return base64.StdEncoding.EncodeToString(specBytes), nil
-		}
-		return "", nil
-	}, restate.WithName("scrape openapi spec"))
-	if err != nil {
-		return nil, err
-	}
-
-	if openapiSpec != "" {
-		_, err = restate.Run(ctx, func(innerCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.UpdateDeploymentOpenapiSpec(innerCtx, w.db.RW(), db.UpdateDeploymentOpenapiSpecParams{
-				ID:          deployment.ID,
-				OpenapiSpec: sql.NullString{Valid: true, String: openapiSpec},
-				UpdatedAt:   sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+			return w.cluster.EmitDeploymentState(runCtx, map[string]string{"region": region.Region}, &ctrlv1.DeploymentState{
+				State: &ctrlv1.DeploymentState_Apply{
+					Apply: &ctrlv1.ApplyDeployment{
+						K8SNamespace:                  workspace.K8sNamespace.String,
+						K8SName:                       deployment.K8sName,
+						WorkspaceId:                   workspace.ID,
+						ProjectId:                     deployment.ProjectID,
+						EnvironmentId:                 deployment.EnvironmentID,
+						DeploymentId:                  deployment.ID,
+						Image:                         dockerImage,
+						Replicas:                      region.Replicas,
+						CpuMillicores:                 int64(deployment.CpuMillicores),
+						MemoryMib:                     int64(deployment.MemoryMib),
+						BuildId:                       buildID,
+						EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
+						ReadinessId:                   ptr.P(promise.Id()),
+					},
+				},
 			})
-		}, restate.WithName("update deployment openapi spec"))
+
+		}, restate.WithName(fmt.Sprintf("apply deployment %s in %s", deployment.ID, region.Region)))
+		if err != nil {
+			return nil, err
+		}
+
 	}
 
-	allHostnames := buildDomains(
+	w.logger.Info("waiting for deployments to be ready", "deployment_id", deployment.ID)
+	for _, err = range restate.Wait(ctx, readinessGates...) {
+		if err != nil {
+			return nil, fmt.Errorf("failed to apply deployment %s in one cluster: %w", deployment.ID, err)
+		}
+	}
+
+	w.logger.Info("deployments ready", "deployment_id", deployment.ID)
+
+	allDomains := buildDomains(
 		workspace.Slug,
 		project.Slug,
 		environment.Slug,
@@ -299,10 +310,10 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	existingRouteIDs := make([]string, 0)
 
-	for _, hostname := range allHostnames {
+	for _, domain := range allDomains {
 		frontlineRouteID, getFrontlineRouteErr := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
 			return db.TxWithResult(stepCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
-				found, err := db.Query.FindFrontlineRouteByFQDN(txCtx, tx, hostname.domain)
+				found, err := db.Query.FindFrontlineRouteByFQDN(txCtx, tx, domain.domain)
 				if err != nil {
 					if db.IsNotFound(err) {
 						err = db.Query.InsertFrontlineRoute(stepCtx, tx, db.InsertFrontlineRouteParams{
@@ -310,8 +321,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 							ProjectID:                project.ID,
 							DeploymentID:             deployment.ID,
 							EnvironmentID:            deployment.EnvironmentID,
-							FullyQualifiedDomainName: hostname.domain,
-							Sticky:                   hostname.sticky,
+							FullyQualifiedDomainName: domain.domain,
+							Sticky:                   domain.sticky,
 							CreatedAt:                time.Now().UnixMilli(),
 							UpdatedAt:                sql.NullInt64{Valid: false, Int64: 0},
 						})
@@ -376,7 +387,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	w.logger.Info("deployment workflow completed",
 		"deployment_id", deployment.ID,
 		"status", "succeeded",
-		"hostnames", len(allHostnames),
+		"domains", len(allDomains),
 	)
 
 	finishedSuccessfully = true

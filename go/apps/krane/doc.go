@@ -1,93 +1,90 @@
-// Package krane provides a distributed container orchestration system for managing
-// deployments and sentinels across Kubernetes clusters.
+// Package krane provides a distributed container orchestration agent for managing
+// deployments and sentinels across Kubernetes clusters via gRPC APIs.
 //
-// Krane acts as a node-level agent that synchronizes desired state from a central
-// control plane with the actual state in Kubernetes. It manages two primary resource
-// types: deployments (application workloads) and sentinels (monitoring/gateway
-// components).
+// Krane acts as a node-level agent that exposes gRPC endpoints for container
+// orchestration operations. It manages two primary resource types: deployments
+// (application workloads implemented as ReplicaSets) and sentinels (monitoring/gateway
+// components implemented as Deployments). The agent handles authentication,
+// secrets decryption, and resource lifecycle management through streaming APIs.
 //
 // # Architecture
 //
 // The system consists of three main components:
-//   - Control Plane: Central authority that maintains desired state
-//   - Krane Agents: Node-level agents that execute deployment operations
-//   - Kubernetes Cluster: Target infrastructure where containers run
+//   - Control Plane: External service that makes gRPC calls to krane agents
+//   - Krane Agents: Node-level agents that expose gRPC APIs for orchestration
+//   - Kubernetes Cluster: Target infrastructure where containers are deployed
 //
 // Each krane instance is identified by a unique InstanceID and operates within
-// a specific Region and Shard for distributed coordination.
+// a specific ClusterID for distributed coordination. The agent uses in-cluster
+// Kubernetes configuration for direct cluster access.
 //
-// # Key Components
+// # Key Services
 //
-// [SyncEngine]: Core component that maintains bidirectional synchronization with
-// the control plane via streaming gRPC connections.
+// [kubernetes.Service]: Implements the SchedulerService gRPC interface for
+// deployment and sentinel management operations. Handles ReplicaSet and Deployment
+// creation, updates, deletion, and real-time status streaming.
 //
-// [deploymentreflector]: Manages Deployment custom resources using the
-// Kubernetes controller-runtime pattern. Handles lifecycle operations for
-// application workloads.
-//
-// [SentinelController]: Manages Sentinel custom resources for monitoring and
-// gateway components. Provides observability and traffic routing capabilities.
+// [secrets.Service]: Implements the SecretsService gRPC interface for decrypting
+// environment variables and secrets. Integrates with vault service for secure
+// secrets management and validates requests using Kubernetes service account tokens.
 //
 // # Resource Types
 //
-// Deployment: Represents application deployments with specifications for
-// container images, resource requirements, and replica counts. Each deployment
-// is scoped to a workspace, project, and environment.
+// Deployment: Application workloads implemented as Kubernetes ReplicaSets with
+// specified container images, resource limits, and replica counts. Each deployment
+// receives standardized environment variables and optional encrypted secrets.
 //
-// Sentinel: Represents edge components that provide monitoring, routing, and
-// security functions. Sentinels are deployed alongside applications to provide
-// runtime observability and control.
+// Sentinel: Edge components implemented as Kubernetes Deployments for monitoring,
+// routing, and security functions. Sentinels are managed separately from deployments
+// and provide infrastructure services.
 //
 // # Usage
 //
 // Basic krane agent setup:
 //
 //	cfg := krane.Config{
-//		InstanceID:         "krane-node-001",
-//		Region:            "us-west-2",
-//		Shard:             "production",
-//		ControlPlaneURL:   "https://control-plane.example.com",
-//		ControlPlaneBearer: "bearer-token",
-//		RegistryURL:       "registry.example.com",
-//		RegistryUsername:  "krane",
-//		RegistryPassword:  "registry-token",
-//		PrometheusPort:    9090,
+//		InstanceID:    "krane-node-001",
+//		ClusterID:     "production-cluster",
+//		Region:        "us-west-2",
+//		RegistryURL:   "registry.depot.dev",
+//		RegistryUsername: "x-token",
+//		RegistryPassword: "depot-token",
+//		RPCPort:       8080,
+//		PrometheusPort: 9090,
+//		VaultMasterKeys: []string{"master-key-1"},
+//		VaultS3: krane.S3Config{
+//			URL:             "https://s3.amazonaws.com",
+//			Bucket:          "krane-vault",
+//			AccessKeyID:     "access-key",
+//			AccessKeySecret: "secret-key",
+//		},
 //	}
 //	err := krane.Run(context.Background(), cfg)
 //
 // The agent will:
-//  1. Connect to the control plane and establish streaming synchronization
-//  2. Create Kubernetes controllers for deployments and sentinels
-//  3. Start reconciling desired state with actual cluster state
-//  4. Expose metrics on the configured Prometheus port
+//  1. Initialize Kubernetes client using in-cluster configuration
+//  2. Start gRPC server on configured RPCPort with SchedulerService handler
+//  3. Register SecretsService handler if vault configuration is provided
+//  4. Start Prometheus metrics server on configured PrometheusPort
 //  5. Handle graceful shutdown on context cancellation
 //
-// # Synchronization Flow
+// # Authentication and Security
 //
-// 1. Pull: Krane continuously streams desired state updates from the control plane
-// 2. Buffer: Events are buffered to handle temporary network interruptions
-// 3. Reconcile: Controllers apply changes to Kubernetes resources
-// 4. Push: Status updates are sent back to the control plane
-// 5. Watch: Kubernetes resource changes are monitored and reported
-//
-// # Error Handling and Resilience
-//
-// The system uses circuit breakers to prevent cascade failures when the control
-// plane is unavailable. Local buffering ensures that operations can continue during
-// brief network interruptions. All controllers implement exponential backoff for
-// retry operations and follow Kubernetes best practices for error handling.
+// Krane uses Kubernetes service account tokens for authentication. The SecretsService
+// validates that requests originate from pods belonging to the expected deployment
+// by checking pod annotations and service account membership. All secrets are
+// encrypted at rest using the vault service with configurable master keys.
 //
 // # Label Management
 //
 // All managed resources are labeled with standardized metadata for identification
-// and selection. The k8s package provides utilities for label management following
+// and selection. The labels package provides utilities for label management following
 // Kubernetes conventions with the "unkey.com/" prefix for organization-specific
-// labels.
+// labels and "app.kubernetes.io/" for standard Kubernetes labels.
 //
 // # Observability
 //
-// Krane integrates with OpenTelemetry for distributed tracing and metrics.
-// Prometheus metrics are exposed for monitoring the health and performance of
-// the synchronization process. Structured logging provides detailed visibility
-// into operations and error conditions.
+// Krane exposes Prometheus metrics for monitoring gRPC API health, resource
+// operations, and system performance. Structured logging provides detailed visibility
+// into operations with correlation through InstanceID and Region fields.
 package krane

@@ -23,7 +23,6 @@ type Watcher[T any] struct {
 	logger       logging.Logger
 	instanceID   string
 	region       string
-	shard        string
 	createStream func(context.Context, *connect.Request[ctrlv1.WatchRequest]) (*connect.ServerStreamForClient[T], error)
 }
 
@@ -42,9 +41,6 @@ type WatcherConfig[T any] struct {
 	// Region identifies the geographical region for filtering events.
 	Region string
 
-	// Shard identifies the logical shard for filtering events.
-	Shard string
-
 	// CreateStream is a function that establishes a streaming connection to the control plane.
 	CreateStream func(context.Context, *connect.Request[ctrlv1.WatchRequest]) (*connect.ServerStreamForClient[T], error)
 }
@@ -62,7 +58,6 @@ func NewWatcher[T any](cfg WatcherConfig[T]) *Watcher[T] {
 		logger:       cfg.Logger,
 		instanceID:   cfg.InstanceID,
 		region:       cfg.Region,
-		shard:        cfg.Shard,
 		createStream: cfg.CreateStream,
 	}
 
@@ -88,7 +83,6 @@ func (w *Watcher[T]) Sync(ctx context.Context, buf *buffer.Buffer[*T]) {
 		ClientId: w.instanceID,
 		Selectors: map[string]string{
 			"region": w.region,
-			"shard":  w.shard,
 		},
 		Synthetic: true,
 		Live:      false,
@@ -137,7 +131,6 @@ func (w *Watcher[T]) Watch(ctx context.Context, buf *buffer.Buffer[*T]) {
 		ClientId: w.instanceID,
 		Selectors: map[string]string{
 			"region": w.region,
-			"shard":  w.shard,
 		},
 		Synthetic: false,
 		Live:      true,

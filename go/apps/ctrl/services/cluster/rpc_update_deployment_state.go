@@ -16,11 +16,11 @@ func (s *Service) UpdateDeploymentState(ctx context.Context, req *connect.Reques
 		return nil, err
 	}
 	region := req.Header().Get("X-Krane-Region")
-	shard := req.Header().Get("X-Krane-Shard")
+	clusterID := req.Header().Get("X-Krane-Cluster-Id")
 
 	err := assert.All(
 		assert.NotEmpty(region, "region is required"),
-		assert.NotEmpty(shard, "shard is required"),
+		assert.NotEmpty(clusterID, "clusterID is required"),
 	)
 	if err != nil {
 		return nil, err
@@ -50,9 +50,9 @@ func (s *Service) UpdateDeploymentState(ctx context.Context, req *connect.Reques
 			for _, staleInstance := range staleInstances {
 				if _, ok := wantInstanceNames[staleInstance.K8sName]; !ok {
 					err = db.Query.DeleteInstance(ctx, s.db.RW(), db.DeleteInstanceParams{
-						K8sName: staleInstance.K8sName,
-						Region:  region,
-						Shard:   shard,
+						K8sName:   staleInstance.K8sName,
+						Region:    region,
+						ClusterID: clusterID,
 					})
 					if err != nil {
 						return nil, err
@@ -67,7 +67,7 @@ func (s *Service) UpdateDeploymentState(ctx context.Context, req *connect.Reques
 					WorkspaceID:   deployment.WorkspaceID,
 					ProjectID:     deployment.ProjectID,
 					Region:        region,
-					Shard:         shard,
+					ClusterID:     clusterID,
 					K8sName:       instance.GetK8SName(),
 					Address:       instance.GetAddress(),
 					CpuMillicores: int32(instance.GetCpuMillicores()),
@@ -90,8 +90,7 @@ func (s *Service) UpdateDeploymentState(ctx context.Context, req *connect.Reques
 
 			err = db.Query.DeleteDeploymentInstances(ctx, s.db.RW(), db.DeleteDeploymentInstancesParams{
 				DeploymentID: deployment.ID,
-				Region:       region,
-				Shard:        shard,
+				ClusterID:    clusterID,
 			})
 			if err != nil {
 				return nil, err

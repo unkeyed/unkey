@@ -6,11 +6,11 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"time"
 
-	deploymentreflector "github.com/unkeyed/unkey/go/apps/krane/deployment_reflector"
+	"github.com/unkeyed/unkey/go/apps/krane/internal/reconciler/deployment"
+	"github.com/unkeyed/unkey/go/apps/krane/internal/reconciler/sentinel"
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/controlplane"
-	sentinelreflector "github.com/unkeyed/unkey/go/apps/krane/sentinel_reflector"
-
 	"github.com/unkeyed/unkey/go/apps/krane/secrets"
 	"github.com/unkeyed/unkey/go/apps/krane/secrets/token"
 	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
@@ -24,6 +24,27 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// Run starts the krane agent server with the provided configuration.
+//
+// This function initializes all required services including Kubernetes client,
+// vault service for secrets management, gRPC servers for API endpoints, and
+// Prometheus metrics server. It blocks until the context is cancelled or a
+// fatal error occurs.
+//
+// The function performs these steps in order:
+// 1. Validates the configuration
+// 2. Creates structured logger with instance metadata
+// 3. Initializes vault service if master keys and S3 config are provided
+// 4. Creates Kubernetes client using in-cluster configuration
+// 5. Sets up gRPC server with SchedulerService handler
+// 6. Registers SecretsService handler if vault is configured
+// 7. Starts Prometheus metrics server if port is configured
+// 8. Blocks until context cancellation or signal
+// 9. Performs graceful shutdown of all services
+//
+// Returns an error if configuration validation fails, service initialization
+// fails, or during shutdown. Context cancellation results in clean shutdown
+// with nil error.
 func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
@@ -47,8 +68,43 @@ func Run(ctx context.Context, cfg Config) error {
 		URL:         cfg.ControlPlaneURL,
 		BearerToken: cfg.ControlPlaneBearer,
 		Region:      cfg.Region,
-		Shard:       cfg.Shard,
 	})
+
+	inClusterConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return fmt.Errorf("failed to create in-cluster config: %w", err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(inClusterConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create k8s clientset: %w", err)
+	}
+
+	sc, err := sentinel.New(sentinel.Config{
+		Logger:     logger,
+		ClientSet:  clientset,
+		Cluster:    cluster,
+		InstanceID: cfg.InstanceID,
+		Region:     cfg.Region,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create sentinel controller: %w", err)
+	}
+	go sc.Start()
+	shutdowns.Register(sc.Stop)
+
+	dr, err := deployment.New(deployment.Config{
+		Logger:     logger,
+		ClientSet:  clientset,
+		Cluster:    cluster,
+		InstanceID: cfg.InstanceID,
+		Region:     cfg.Region,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create sentinel controller: %w", err)
+	}
+	go dr.Start()
+	shutdowns.Register(dr.Stop)
 
 	// Create vault service for secrets decryption
 
@@ -79,10 +135,12 @@ func Run(ctx context.Context, cfg Config) error {
 	// Create the connect handler
 	mux := http.NewServeMux()
 
-	var tokenValidator token.Validator
+	tokenValidator := token.NewK8sValidator(token.K8sValidatorConfig{
+		Clientset: clientset,
+	})
 
 	// Register secrets service if vault is configured
-	if vaultSvc != nil && tokenValidator != nil {
+	if vaultSvc != nil {
 		secretsSvc := secrets.New(secrets.Config{
 			Logger:         logger,
 			Vault:          vaultSvc,
@@ -94,49 +152,27 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("Secrets service not enabled (missing vault or token validator configuration)")
 	}
 
+	addr := fmt.Sprintf(":%d", cfg.RPCPort)
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 30 * time.Second,
+		// Do not set timeouts here, our streaming rpcs will get canceled too frequently
+	}
+
+	// Register server shutdown
+	shutdowns.RegisterCtx(server.Shutdown)
+
+	// Start server
 	go func() {
-		if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.RPCPort), mux); err != nil {
-			logger.Error("HTTP server failed", "error", err)
+		logger.Info("Starting ctrl server", "addr", addr, "tls")
+
+		err := server.ListenAndServe()
+
+		if err != nil && err != http.ErrServerClosed {
+			logger.Error("Server failed", "error", err)
 		}
 	}()
-
-	inClusterConfig, err := rest.InClusterConfig()
-	if err != nil {
-		return fmt.Errorf("failed to create in-cluster config: %w", err)
-	}
-
-	clientset, err := kubernetes.NewForConfig(inClusterConfig)
-	if err != nil {
-		return fmt.Errorf("failed to create k8s clientset: %w", err)
-	}
-
-	sc, err := sentinelreflector.New(sentinelreflector.Config{
-		Logger:     logger,
-		ClientSet:  clientset,
-		Cluster:    cluster,
-		InstanceID: cfg.InstanceID,
-		Region:     cfg.Region,
-		Shard:      cfg.Shard,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create sentinel controller: %w", err)
-	}
-	go sc.Start()
-	shutdowns.Register(sc.Stop)
-
-	dc, err := deploymentreflector.New(deploymentreflector.Config{
-		Logger:     logger,
-		ClientSet:  clientset,
-		Cluster:    cluster,
-		InstanceID: cfg.InstanceID,
-		Region:     cfg.Region,
-		Shard:      cfg.Shard,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create sentinel controller: %w", err)
-	}
-	go dc.Start()
-	shutdowns.Register(dc.Stop)
 
 	if cfg.PrometheusPort > 0 {
 

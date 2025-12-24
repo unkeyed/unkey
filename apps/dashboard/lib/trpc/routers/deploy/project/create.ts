@@ -1,11 +1,15 @@
-import { ProjectService } from "@/gen/proto/ctrl/v1/project_pb";
 import { createProjectRequestSchema } from "@/lib/collections/deploy/projects";
-import { db } from "@/lib/db";
+import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
-import { createClient } from "@connectrpc/connect";
-import { createConnectTransport } from "@connectrpc/connect-web";
+import {
+  ratelimit,
+  requireUser,
+  requireWorkspace,
+  t,
+  withRatelimit,
+} from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { newId } from "@unkey/id";
 
 export const createProject = t.procedure
   .use(requireUser)
@@ -23,20 +27,6 @@ export const createProject = t.procedure
         message: "ctrl service is not configured",
       });
     }
-    // Here we make the client itself, combining the service
-    // definition with the transport.
-    const ctrl = createClient(
-      ProjectService,
-      createConnectTransport({
-        baseUrl: CTRL_URL,
-        interceptors: [
-          (next) => (req) => {
-            req.header.set("Authorization", `Bearer ${CTRL_API_KEY}`);
-            return next(req);
-          },
-        ],
-      }),
-    );
 
     try {
       const workspace = await db.query.workspaces.findFirst({
@@ -56,7 +46,8 @@ export const createProject = t.procedure
         });
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Workspace not found. Please verify your workspace selection and try again.",
+          message:
+            "Workspace not found. Please verify your workspace selection and try again.",
         });
       }
 
@@ -84,15 +75,53 @@ export const createProject = t.procedure
         });
       }
 
-      const project = await ctrl.createProject({
-        workspaceId: ctx.workspace.id,
-        name: input.name,
-        slug: input.slug,
-        gitRepository: input.gitRepositoryUrl ?? "",
+      const projectId = newId("project");
+
+      await db.transaction(async (tx) => {
+        await tx.insert(schema.projects).values({
+          id: projectId,
+          workspaceId: ctx.workspace.id,
+          name: input.name,
+          slug: input.slug,
+          gitRepositoryUrl: input.gitRepositoryUrl ?? null,
+          liveDeploymentId: null,
+          isRolledBack: false,
+          defaultBranch: "main",
+          depotProjectId: null,
+          deleteProtection: false,
+          createdAt: Date.now(),
+          updatedAt: null,
+        });
+
+        await tx.insert(schema.environments).values([
+          {
+            id: newId("environment"),
+            workspaceId: ctx.workspace.id,
+            projectId,
+            slug: "production",
+            description: "Production",
+            sentinelConfig: "",
+            deleteProtection: false,
+            createdAt: Date.now(),
+            updatedAt: null,
+          },
+
+          {
+            id: newId("environment"),
+            workspaceId: ctx.workspace.id,
+            projectId,
+            slug: "preview",
+            description: "Preview",
+            sentinelConfig: "",
+            deleteProtection: false,
+            createdAt: Date.now(),
+            updatedAt: null,
+          },
+        ]);
       });
 
       return {
-        id: project.id,
+        id: projectId,
       };
     } catch (err) {
       if (err instanceof TRPCError) {
@@ -112,7 +141,8 @@ export const createProject = t.procedure
 
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to create project. Our team has been notified of this issue.",
+        message:
+          "Failed to create project. Our team has been notified of this issue.",
       });
     }
   });

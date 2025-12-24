@@ -24,10 +24,8 @@ import (
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/go/apps/ctrl/services/openapi"
-	"github.com/unkeyed/unkey/go/apps/ctrl/services/project"
 	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/certificate"
 	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/deploy"
-	projectWorkflow "github.com/unkeyed/unkey/go/apps/ctrl/workflows/project"
 	"github.com/unkeyed/unkey/go/apps/ctrl/workflows/routing"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
@@ -46,6 +44,26 @@ import (
 	"golang.org/x/net/http2/h2c"
 )
 
+// Run starts the control plane server with the provided configuration.
+//
+// This function initializes all required services and starts the HTTP/2 gRPC server.
+// It performs these major initialization steps:
+// 1. Validates configuration and initializes structured logging
+// 2. Sets up OpenTelemetry if enabled
+// 3. Creates vault services for secrets and ACME certificates
+// 4. Initializes database and build storage
+// 5. Starts Restate workflow engine with service bindings
+// 6. Configures ACME challenge providers (HTTP-01, DNS-01)
+// 7. Registers with Restate admin API for service discovery
+// 8. Starts HTTP/2 server with all gRPC handlers
+// 9. Boots up cluster management and starts certificate renewal
+//
+// The server handles graceful shutdown when context is cancelled, properly
+// closing all services and database connections.
+//
+// Returns an error if configuration validation fails, service initialization
+// fails, or during server startup. Context cancellation results in
+// clean shutdown with nil error.
 func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
@@ -206,30 +224,26 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unknown build backend: %s (must be 'docker' or 'depot')", cfg.BuildBackend)
 	}
 
-	clusterSvc := cluster.New(cluster.Config{
-		Database: database,
-		Logger:   logger,
-		Bearer:   cfg.AuthToken,
-	})
-
 	// Restate Client and Server
 	restateClient := restateIngress.NewClient(cfg.Restate.FrontlineURL)
 	restateSrv := restateServer.NewRestate()
 
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploy.New(deploy.Config{
-		Logger:        logger,
-		DB:            database,
-		Cluster:       clusterSvc,
-		BuildClient:   buildService,
-		DefaultDomain: cfg.DefaultDomain,
-		Vault:         vaultSvc,
+		Logger:           logger,
+		DB:               database,
+		BuildClient:      buildService,
+		DefaultDomain:    cfg.DefaultDomain,
+		Vault:            vaultSvc,
+		SentinelImage:    cfg.SentinelImage,
+		AvailableRegions: cfg.AvailableRegions,
+		Bearer:           cfg.AuthToken,
 	})))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
 		Logger:        logger,
 		DB:            database,
 		DefaultDomain: cfg.DefaultDomain,
-	})))
+	}), restate.WithIngressPrivate(true)))
 
 	// Initialize shared caches for ACME (needed for verification endpoint regardless of provider config)
 	caches, cacheErr := ctrlCaches.New(ctrlCaches.Config{
@@ -298,12 +312,6 @@ func Run(ctx context.Context, cfg Config) error {
 		DNSProvider:   dnsProvider,
 		HTTPProvider:  httpProvider,
 	}), restate.WithInactivityTimeout(15*time.Minute)))
-	restateSrv.Bind(hydrav1.NewProjectServiceServer(projectWorkflow.New(projectWorkflow.Config{
-		Logger:        logger,
-		DB:            database,
-		SentinelImage: cfg.SentinelImage,
-		Cluster:       clusterSvc,
-	})))
 
 	go func() {
 		addr := fmt.Sprintf(":%d", cfg.Restate.HttpPort)
@@ -389,15 +397,11 @@ func Run(ctx context.Context, cfg Config) error {
 	mux.Handle(ctrlv1connect.NewBuildServiceHandler(buildService))
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
 	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(deployment.Config{
-		Database:     database,
-		Restate:      restateClient,
-		BuildService: buildService,
-		Logger:       logger,
-	})))
-	mux.Handle(ctrlv1connect.NewProjectServiceHandler(project.New(project.Config{
-		Database: database,
-		Restate:  restateClient,
-		Logger:   logger,
+		Database:         database,
+		Restate:          restateClient,
+		BuildService:     buildService,
+		Logger:           logger,
+		AvailableRegions: cfg.AvailableRegions,
 	})))
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger)))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
@@ -405,6 +409,11 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:         logger,
 		DomainCache:    caches.Domains,
 		ChallengeCache: caches.Challenges,
+	})))
+	mux.Handle(ctrlv1connect.NewClusterServiceHandler(cluster.New(cluster.Config{
+		Database: database,
+		Logger:   logger,
+		Bearer:   cfg.AuthToken,
 	})))
 
 	// Configure server
@@ -469,7 +478,18 @@ func Run(ctx context.Context, cfg Config) error {
 }
 
 // bootstrapWildcardDomain ensures a wildcard domain and ACME challenge exist for the default domain.
-// This allows the renewal cron to automatically issue a wildcard certificate on startup.
+//
+// This helper function creates the necessary database records for automatic
+// wildcard certificate issuance during startup. It checks if the wildcard
+// domain already exists and creates both the custom domain record and
+// ACME challenge record if needed.
+//
+// The function uses "unkey_internal" as the workspace ID for
+// platform-managed resources, ensuring separation from user workspaces.
+//
+// This is called during control plane startup when ACME is enabled and
+// a default domain is configured, allowing the renewal cron job to
+// automatically issue wildcard certificates without manual intervention.
 func bootstrapWildcardDomain(ctx context.Context, database db.Database, logger logging.Logger, defaultDomain string) {
 	wildcardDomain := "*." + defaultDomain
 

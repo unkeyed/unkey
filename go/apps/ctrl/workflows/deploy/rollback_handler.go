@@ -28,7 +28,7 @@ import (
 //
 // Returns terminal errors (400/404) for validation failures and retryable errors
 // for system failures.
-func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequest) (*hydrav1.RollbackResponse, error) {
+func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.RollbackRequest) (*hydrav1.RollbackResponse, error) {
 	w.logger.Info("initiating rollback",
 		"source", req.GetSourceDeploymentId(),
 		"target", req.GetTargetDeploymentId(),

@@ -12,9 +12,10 @@ export const instances = mysqlTable(
     deploymentId: varchar("deployment_id", { length: 255 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
-    region: varchar("region", { length: 255 }).notNull(),
+
+    region: varchar("region", { length: 64 }).notNull(),
     // allows multiple clusters per region later
-    shard: varchar("shard", { length: 255 }).notNull(),
+    clusterId: varchar("cluster_id", { length: 64 }).notNull(),
 
     // used to apply updates from the kubernetes watch events
     k8sName: varchar("k8s_name", { length: 255 }).notNull(),
@@ -25,8 +26,7 @@ export const instances = mysqlTable(
     status: mysqlEnum("status", ["inactive", "pending", "running", "failed"]).notNull(),
   },
   (table) => [
-    uniqueIndex("unique_address_per_shard").on(table.address, table.shard),
-    uniqueIndex("unique_pod_name_per_shard").on(table.k8sName, table.shard),
+    uniqueIndex("unique_address_per_cluster").on(table.address, table.clusterId),
     index("idx_deployment_id").on(table.deploymentId),
     index("idx_region").on(table.region),
   ],

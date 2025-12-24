@@ -161,6 +161,7 @@ func (s *Service) CreateDeployment(
 		EncryptedEnvironmentVariables: secretsBlob,
 		Status:                        db.DeploymentsStatusPending,
 		CreatedAt:                     now,
+		UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
 		GitCommitSha:                  sql.NullString{String: gitCommitSha, Valid: gitCommitSha != ""},
 		GitBranch:                     sql.NullString{String: gitBranch, Valid: true},
 		GitCommitMessage:              sql.NullString{String: gitCommitMessage, Valid: gitCommitMessage != ""},

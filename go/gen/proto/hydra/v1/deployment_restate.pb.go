@@ -21,16 +21,16 @@ type DeploymentServiceClient interface {
 }
 
 type deploymentServiceClient struct {
-	ctx     sdk_go.Context
-	key     string
-	options []sdk_go.ClientOption
+	ctx        sdk_go.Context
+	workflowID string
+	options    []sdk_go.ClientOption
 }
 
-func NewDeploymentServiceClient(ctx sdk_go.Context, key string, opts ...sdk_go.ClientOption) DeploymentServiceClient {
+func NewDeploymentServiceClient(ctx sdk_go.Context, workflowID string, opts ...sdk_go.ClientOption) DeploymentServiceClient {
 	cOpts := append([]sdk_go.ClientOption{sdk_go.WithProtoJSON}, opts...)
 	return &deploymentServiceClient{
 		ctx,
-		key,
+		workflowID,
 		cOpts,
 	}
 }
@@ -39,7 +39,7 @@ func (c *deploymentServiceClient) Deploy(opts ...sdk_go.ClientOption) sdk_go.Cli
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
-	return sdk_go.WithRequestType[*DeployRequest](sdk_go.Object[*DeployResponse](c.ctx, "hydra.v1.DeploymentService", c.key, "Deploy", cOpts...))
+	return sdk_go.WithRequestType[*DeployRequest](sdk_go.Workflow[*DeployResponse](c.ctx, "hydra.v1.DeploymentService", c.workflowID, "Deploy", cOpts...))
 }
 
 func (c *deploymentServiceClient) Rollback(opts ...sdk_go.ClientOption) sdk_go.Client[*RollbackRequest, *RollbackResponse] {
@@ -47,7 +47,7 @@ func (c *deploymentServiceClient) Rollback(opts ...sdk_go.ClientOption) sdk_go.C
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
-	return sdk_go.WithRequestType[*RollbackRequest](sdk_go.Object[*RollbackResponse](c.ctx, "hydra.v1.DeploymentService", c.key, "Rollback", cOpts...))
+	return sdk_go.WithRequestType[*RollbackRequest](sdk_go.Workflow[*RollbackResponse](c.ctx, "hydra.v1.DeploymentService", c.workflowID, "Rollback", cOpts...))
 }
 
 func (c *deploymentServiceClient) Promote(opts ...sdk_go.ClientOption) sdk_go.Client[*PromoteRequest, *PromoteResponse] {
@@ -55,7 +55,7 @@ func (c *deploymentServiceClient) Promote(opts ...sdk_go.ClientOption) sdk_go.Cl
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
-	return sdk_go.WithRequestType[*PromoteRequest](sdk_go.Object[*PromoteResponse](c.ctx, "hydra.v1.DeploymentService", c.key, "Promote", cOpts...))
+	return sdk_go.WithRequestType[*PromoteRequest](sdk_go.Workflow[*PromoteResponse](c.ctx, "hydra.v1.DeploymentService", c.workflowID, "Promote", cOpts...))
 }
 
 // DeploymentServiceIngressClient is the ingress client API for hydra.v1.DeploymentService service.
@@ -70,39 +70,39 @@ type DeploymentServiceIngressClient interface {
 type deploymentServiceIngressClient struct {
 	client      *ingress.Client
 	serviceName string
-	key         string
+	workflowID  string
 }
 
-func NewDeploymentServiceIngressClient(client *ingress.Client, key string) DeploymentServiceIngressClient {
+func NewDeploymentServiceIngressClient(client *ingress.Client, workflowID string) DeploymentServiceIngressClient {
 	return &deploymentServiceIngressClient{
 		client,
 		"hydra.v1.DeploymentService",
-		key,
+		workflowID,
 	}
 }
 
 func (c *deploymentServiceIngressClient) Deploy() ingress.Requester[*DeployRequest, *DeployResponse] {
 	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*DeployRequest, *DeployResponse](c.client, c.serviceName, "Deploy", &c.key, &codec)
+	return ingress.NewRequester[*DeployRequest, *DeployResponse](c.client, c.serviceName, "Deploy", &c.workflowID, &codec)
 }
 
 func (c *deploymentServiceIngressClient) Rollback() ingress.Requester[*RollbackRequest, *RollbackResponse] {
 	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*RollbackRequest, *RollbackResponse](c.client, c.serviceName, "Rollback", &c.key, &codec)
+	return ingress.NewRequester[*RollbackRequest, *RollbackResponse](c.client, c.serviceName, "Rollback", &c.workflowID, &codec)
 }
 
 func (c *deploymentServiceIngressClient) Promote() ingress.Requester[*PromoteRequest, *PromoteResponse] {
 	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*PromoteRequest, *PromoteResponse](c.client, c.serviceName, "Promote", &c.key, &codec)
+	return ingress.NewRequester[*PromoteRequest, *PromoteResponse](c.client, c.serviceName, "Promote", &c.workflowID, &codec)
 }
 
 // DeploymentServiceServer is the server API for hydra.v1.DeploymentService service.
 // All implementations should embed UnimplementedDeploymentServiceServer
 // for forward compatibility.
 type DeploymentServiceServer interface {
-	Deploy(ctx sdk_go.ObjectContext, req *DeployRequest) (*DeployResponse, error)
-	Rollback(ctx sdk_go.ObjectContext, req *RollbackRequest) (*RollbackResponse, error)
-	Promote(ctx sdk_go.ObjectContext, req *PromoteRequest) (*PromoteResponse, error)
+	Deploy(ctx sdk_go.WorkflowSharedContext, req *DeployRequest) (*DeployResponse, error)
+	Rollback(ctx sdk_go.WorkflowSharedContext, req *RollbackRequest) (*RollbackResponse, error)
+	Promote(ctx sdk_go.WorkflowSharedContext, req *PromoteRequest) (*PromoteResponse, error)
 }
 
 // UnimplementedDeploymentServiceServer should be embedded to have
@@ -112,13 +112,13 @@ type DeploymentServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedDeploymentServiceServer struct{}
 
-func (UnimplementedDeploymentServiceServer) Deploy(ctx sdk_go.ObjectContext, req *DeployRequest) (*DeployResponse, error) {
+func (UnimplementedDeploymentServiceServer) Deploy(ctx sdk_go.WorkflowSharedContext, req *DeployRequest) (*DeployResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method Deploy not implemented"), 501)
 }
-func (UnimplementedDeploymentServiceServer) Rollback(ctx sdk_go.ObjectContext, req *RollbackRequest) (*RollbackResponse, error) {
+func (UnimplementedDeploymentServiceServer) Rollback(ctx sdk_go.WorkflowSharedContext, req *RollbackRequest) (*RollbackResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method Rollback not implemented"), 501)
 }
-func (UnimplementedDeploymentServiceServer) Promote(ctx sdk_go.ObjectContext, req *PromoteRequest) (*PromoteResponse, error) {
+func (UnimplementedDeploymentServiceServer) Promote(ctx sdk_go.WorkflowSharedContext, req *PromoteRequest) (*PromoteResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method Promote not implemented"), 501)
 }
 func (UnimplementedDeploymentServiceServer) testEmbeddedByValue() {}
@@ -139,9 +139,9 @@ func NewDeploymentServiceServer(srv DeploymentServiceServer, opts ...sdk_go.Serv
 		t.testEmbeddedByValue()
 	}
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
-	router := sdk_go.NewObject("hydra.v1.DeploymentService", sOpts...)
-	router = router.Handler("Deploy", sdk_go.NewObjectHandler(srv.Deploy))
-	router = router.Handler("Rollback", sdk_go.NewObjectHandler(srv.Rollback))
-	router = router.Handler("Promote", sdk_go.NewObjectHandler(srv.Promote))
+	router := sdk_go.NewWorkflow("hydra.v1.DeploymentService", sOpts...)
+	router = router.Handler("Deploy", sdk_go.NewWorkflowSharedHandler(srv.Deploy))
+	router = router.Handler("Rollback", sdk_go.NewWorkflowSharedHandler(srv.Rollback))
+	router = router.Handler("Promote", sdk_go.NewWorkflowSharedHandler(srv.Promote))
 	return router
 }

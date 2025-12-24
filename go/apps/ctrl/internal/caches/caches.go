@@ -10,16 +10,42 @@ import (
 )
 
 // Caches holds all shared cache instances for the ctrl application.
+// Caches holds all shared cache instances for ctrl application.
+//
+// This struct provides centralized access to performance-critical caches
+// used throughout the control plane for ACME operations and
+// domain validation.
 type Caches struct {
-	Domains    cache.Cache[string, db.CustomDomain]
+	// Domains cache stores custom domain data for ACME challenges.
+	// Reduces database queries during domain validation and ownership checks.
+	Domains cache.Cache[string, db.CustomDomain]
+
+	// Challenges cache stores ACME challenge tokens and authorizations.
+	// Has short TTL due to rapid state changes during certificate issuance.
 	Challenges cache.Cache[string, db.AcmeChallenge]
 }
 
+// Config holds configuration for cache initialization.
+//
+// Provides logger and clock dependencies for cache instances
+// with proper configuration for different data types.
 type Config struct {
+	// Logger for cache operations and error reporting.
 	Logger logging.Logger
-	Clock  clock.Clock
+
+	// Clock provides time operations for TTL calculations.
+	// Uses clock.New() if not provided for production use.
+	Clock clock.Clock
 }
 
+// New creates configured cache instances for control plane operations.
+//
+// This function initializes both domain and challenge caches with
+// optimized TTL values based on data access patterns. Domains
+// use longer TTL due to infrequent changes, while challenges
+// use short TTL due to rapid state changes during ACME flows.
+//
+// Returns configured Caches struct or error if cache creation fails.
 func New(cfg Config) (*Caches, error) {
 	clk := cfg.Clock
 	if clk == nil {
