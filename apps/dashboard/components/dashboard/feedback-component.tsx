@@ -91,13 +91,10 @@ export const Feedback: React.FC = () => {
   return (
     <DialogContainer
       isOpen={internalOpen}
-      onOpenChange={(newOpen) => {
-        if (!newOpen) {
-          setInternalOpen(false);
-        }
-      }}
+      onOpenChange={() => {}} // Prevent automatic closing
       showCloseWarning={true}
       onAttemptClose={handleClose}
+      modal={true}
       title="Report an issue"
       subTitle="What went wrong or how can we improve?"
       footer={
@@ -123,6 +120,10 @@ export const Feedback: React.FC = () => {
         id="feedback-form"
         onSubmit={handleSubmit(onSubmitForm)}
         className="flex flex-col gap-4"
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        onKeyUp={(e) => e.stopPropagation()}
       >
         <div className="grid grid-cols-2 gap-4">
           <Controller
