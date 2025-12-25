@@ -66,7 +66,7 @@ export const TableActionPopover = ({
     }
   }, [open, items, prefetchedItems]);
 
-  const handleActionSelection = (value: string) => {
+  const _handleActionSelection = (value: string) => {
     setEnabledItem(value);
   };
 
@@ -158,7 +158,7 @@ export const TableActionPopover = ({
               <item.ActionComponent
                 isOpen
                 onClose={() => {
-                  handleActionSelection("none");
+                  setEnabledItem(undefined);
                 }}
               />
             </div>
