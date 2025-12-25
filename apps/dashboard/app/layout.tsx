@@ -68,7 +68,7 @@ export default function RootLayout({
               <Toaster />
               {children}
               <CommandMenu />
-              <Suspense>
+              <Suspense fallback={null}>
                 <Feedback />
               </Suspense>
             </WorkspaceProvider>
