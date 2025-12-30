@@ -20,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/cluster.proto.
  */
 export const file_ctrl_v1_cluster: GenFile = /*@__PURE__*/
-  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiNQoeR2V0RGVzaXJlZFNlbnRpbmVsU3RhdGVSZXF1ZXN0EhMKC3NlbnRpbmVsX2lkGAEgASgJIjkKIEdldERlc2lyZWREZXBsb3ltZW50U3RhdGVSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkisgQKHFVwZGF0ZURlcGxveW1lbnRTdGF0ZVJlcXVlc3QSPgoGdXBkYXRlGAEgASgLMiwuY3RybC52MS5VcGRhdGVEZXBsb3ltZW50U3RhdGVSZXF1ZXN0LlVwZGF0ZUgAEj4KBmRlbGV0ZRgCIAEoCzIsLmN0cmwudjEuVXBkYXRlRGVwbG95bWVudFN0YXRlUmVxdWVzdC5EZWxldGVIABrrAgoGVXBkYXRlEhAKCGs4c19uYW1lGAEgASgJEkgKCWluc3RhbmNlcxgCIAMoCzI1LmN0cmwudjEuVXBkYXRlRGVwbG95bWVudFN0YXRlUmVxdWVzdC5VcGRhdGUuSW5zdGFuY2UahAIKCEluc3RhbmNlEhAKCGs4c19uYW1lGAEgASgJEg8KB2FkZHJlc3MYAiABKAkSFgoOY3B1X21pbGxpY29yZXMYAyABKAMSEgoKbWVtb3J5X21pYhgEIAEoAxJMCgZzdGF0dXMYBSABKA4yPC5jdHJsLnYxLlVwZGF0ZURlcGxveW1lbnRTdGF0ZVJlcXVlc3QuVXBkYXRlLkluc3RhbmNlLlN0YXR1cyJbCgZTdGF0dXMSFgoSU1RBVFVTX1VOU1BFQ0lGSUVEEAASEgoOU1RBVFVTX1BFTkRJTkcQARISCg5TVEFUVVNfUlVOTklORxACEhEKDVNUQVRVU19GQUlMRUQQAxoaCgZEZWxldGUSEAoIazhzX25hbWUYASABKAlCCAoGY2hhbmdlIh8KHVVwZGF0ZURlcGxveW1lbnRTdGF0ZVJlc3BvbnNlIh0KG1VwZGF0ZUluc3RhbmNlU3RhdGVSZXNwb25zZSJKChpVcGRhdGVTZW50aW5lbFN0YXRlUmVxdWVzdBIQCghrOHNfbmFtZRgBIAEoCRIaChJhdmFpbGFibGVfcmVwbGljYXMYAiABKAUiHQobVXBkYXRlU2VudGluZWxTdGF0ZVJlc3BvbnNlIq0BCgxXYXRjaFJlcXVlc3QSEQoJY2xpZW50X2lkGAEgASgJEjcKCXNlbGVjdG9ycxgCIAMoCzIkLmN0cmwudjEuV2F0Y2hSZXF1ZXN0LlNlbGVjdG9yc0VudHJ5EgwKBGxpdmUYAyABKAgSEQoJc3ludGhldGljGAQgASgIGjAKDlNlbGVjdG9yc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEibAoNU2VudGluZWxTdGF0ZRInCgVhcHBseRgBIAEoCzIWLmN0cmwudjEuQXBwbHlTZW50aW5lbEgAEikKBmRlbGV0ZRgCIAEoCzIXLmN0cmwudjEuRGVsZXRlU2VudGluZWxIAEIHCgVzdGF0ZSJyCg9EZXBsb3ltZW50U3RhdGUSKQoFYXBwbHkYASABKAsyGC5jdHJsLnYxLkFwcGx5RGVwbG95bWVudEgAEisKBmRlbGV0ZRgCIAEoCzIZLmN0cmwudjEuRGVsZXRlRGVwbG95bWVudEgAQgcKBXN0YXRlItwBCg1BcHBseVNlbnRpbmVsEhUKDWs4c19uYW1lc3BhY2UYASABKAkSEAoIazhzX25hbWUYAiABKAkSFAoMd29ya3NwYWNlX2lkGAMgASgJEhIKCnByb2plY3RfaWQYBCABKAkSFgoOZW52aXJvbm1lbnRfaWQYBSABKAkSEwoLc2VudGluZWxfaWQYBiABKAkSDQoFaW1hZ2UYByABKAkSEAoIcmVwbGljYXMYCCABKAUSFgoOY3B1X21pbGxpY29yZXMYCSABKAMSEgoKbWVtb3J5X21pYhgKIAEoAyI5Cg5EZWxldGVTZW50aW5lbBIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJItkCCg9BcHBseURlcGxveW1lbnQSFQoNazhzX25hbWVzcGFjZRgBIAEoCRIQCghrOHNfbmFtZRgCIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAyABKAkSEgoKcHJvamVjdF9pZBgEIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgFIAEoCRIVCg1kZXBsb3ltZW50X2lkGAYgASgJEg0KBWltYWdlGAcgASgJEhAKCHJlcGxpY2FzGAggASgFEhYKDmNwdV9taWxsaWNvcmVzGAkgASgDEhIKCm1lbW9yeV9taWIYCiABKAMSFQoIYnVpbGRfaWQYCyABKAlIAIgBARInCh9lbmNyeXB0ZWRfZW52aXJvbm1lbnRfdmFyaWFibGVzGAwgASgMEhkKDHJlYWRpbmVzc19pZBgNIAEoCUgBiAEBQgsKCV9idWlsZF9pZEIPCg1fcmVhZGluZXNzX2lkIjsKEERlbGV0ZURlcGxveW1lbnQSFQoNazhzX25hbWVzcGFjZRgBIAEoCRIQCghrOHNfbmFtZRgCIAEoCTKiBAoOQ2x1c3RlclNlcnZpY2USQQoOV2F0Y2hTZW50aW5lbHMSFS5jdHJsLnYxLldhdGNoUmVxdWVzdBoWLmN0cmwudjEuU2VudGluZWxTdGF0ZTABEloKF0dldERlc2lyZWRTZW50aW5lbFN0YXRlEicuY3RybC52MS5HZXREZXNpcmVkU2VudGluZWxTdGF0ZVJlcXVlc3QaFi5jdHJsLnYxLlNlbnRpbmVsU3RhdGUSYAoTVXBkYXRlU2VudGluZWxTdGF0ZRIjLmN0cmwudjEuVXBkYXRlU2VudGluZWxTdGF0ZVJlcXVlc3QaJC5jdHJsLnYxLlVwZGF0ZVNlbnRpbmVsU3RhdGVSZXNwb25zZRJFChBXYXRjaERlcGxveW1lbnRzEhUuY3RybC52MS5XYXRjaFJlcXVlc3QaGC5jdHJsLnYxLkRlcGxveW1lbnRTdGF0ZTABEmAKGUdldERlc2lyZWREZXBsb3ltZW50U3RhdGUSKS5jdHJsLnYxLkdldERlc2lyZWREZXBsb3ltZW50U3RhdGVSZXF1ZXN0GhguY3RybC52MS5EZXBsb3ltZW50U3RhdGUSZgoVVXBkYXRlRGVwbG95bWVudFN0YXRlEiUuY3RybC52MS5VcGRhdGVEZXBsb3ltZW50U3RhdGVSZXF1ZXN0GiYuY3RybC52MS5VcGRhdGVEZXBsb3ltZW50U3RhdGVSZXNwb25zZUKOAQoLY29tLmN0cmwudjFCDENsdXN0ZXJQcm90b1ABWjRnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw");
+  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiNQoeR2V0RGVzaXJlZFNlbnRpbmVsU3RhdGVSZXF1ZXN0EhMKC3NlbnRpbmVsX2lkGAEgASgJIjkKIEdldERlc2lyZWREZXBsb3ltZW50U3RhdGVSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkisgQKHFVwZGF0ZURlcGxveW1lbnRTdGF0ZVJlcXVlc3QSPgoGdXBkYXRlGAEgASgLMiwuY3RybC52MS5VcGRhdGVEZXBsb3ltZW50U3RhdGVSZXF1ZXN0LlVwZGF0ZUgAEj4KBmRlbGV0ZRgCIAEoCzIsLmN0cmwudjEuVXBkYXRlRGVwbG95bWVudFN0YXRlUmVxdWVzdC5EZWxldGVIABrrAgoGVXBkYXRlEhAKCGs4c19uYW1lGAEgASgJEkgKCWluc3RhbmNlcxgCIAMoCzI1LmN0cmwudjEuVXBkYXRlRGVwbG95bWVudFN0YXRlUmVxdWVzdC5VcGRhdGUuSW5zdGFuY2UahAIKCEluc3RhbmNlEhAKCGs4c19uYW1lGAEgASgJEg8KB2FkZHJlc3MYAiABKAkSFgoOY3B1X21pbGxpY29yZXMYAyABKAMSEgoKbWVtb3J5X21pYhgEIAEoAxJMCgZzdGF0dXMYBSABKA4yPC5jdHJsLnYxLlVwZGF0ZURlcGxveW1lbnRTdGF0ZVJlcXVlc3QuVXBkYXRlLkluc3RhbmNlLlN0YXR1cyJbCgZTdGF0dXMSFgoSU1RBVFVTX1VOU1BFQ0lGSUVEEAASEgoOU1RBVFVTX1BFTkRJTkcQARISCg5TVEFUVVNfUlVOTklORxACEhEKDVNUQVRVU19GQUlMRUQQAxoaCgZEZWxldGUSEAoIazhzX25hbWUYASABKAlCCAoGY2hhbmdlIh8KHVVwZGF0ZURlcGxveW1lbnRTdGF0ZVJlc3BvbnNlIh0KG1VwZGF0ZUluc3RhbmNlU3RhdGVSZXNwb25zZSJKChpVcGRhdGVTZW50aW5lbFN0YXRlUmVxdWVzdBIQCghrOHNfbmFtZRgBIAEoCRIaChJhdmFpbGFibGVfcmVwbGljYXMYAiABKAUiHQobVXBkYXRlU2VudGluZWxTdGF0ZVJlc3BvbnNlIlMKDFdhdGNoUmVxdWVzdBISCgpjbHVzdGVyX2lkGAEgASgJEg4KBnJlZ2lvbhgCIAEoCRIMCgRsaXZlGAMgASgIEhEKCXN5bnRoZXRpYxgEIAEoCCKbAQoFU3RhdGUSLgoKZGVwbG95bWVudBgBIAEoCzIYLmN0cmwudjEuRGVwbG95bWVudFN0YXRlSAASKgoIc2VudGluZWwYAiABKAsyFi5jdHJsLnYxLlNlbnRpbmVsU3RhdGVIABIbCg5hY2tub3dsZWRnZV9pZBgDIAEoCUgBiAEBQgYKBGtpbmRCEQoPX2Fja25vd2xlZGdlX2lkImwKDVNlbnRpbmVsU3RhdGUSJwoFYXBwbHkYASABKAsyFi5jdHJsLnYxLkFwcGx5U2VudGluZWxIABIpCgZkZWxldGUYAiABKAsyFy5jdHJsLnYxLkRlbGV0ZVNlbnRpbmVsSABCBwoFc3RhdGUicgoPRGVwbG95bWVudFN0YXRlEikKBWFwcGx5GAEgASgLMhguY3RybC52MS5BcHBseURlcGxveW1lbnRIABIrCgZkZWxldGUYAiABKAsyGS5jdHJsLnYxLkRlbGV0ZURlcGxveW1lbnRIAEIHCgVzdGF0ZSLcAQoNQXBwbHlTZW50aW5lbBIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJEhQKDHdvcmtzcGFjZV9pZBgDIAEoCRISCgpwcm9qZWN0X2lkGAQgASgJEhYKDmVudmlyb25tZW50X2lkGAUgASgJEhMKC3NlbnRpbmVsX2lkGAYgASgJEg0KBWltYWdlGAcgASgJEhAKCHJlcGxpY2FzGAggASgFEhYKDmNwdV9taWxsaWNvcmVzGAkgASgDEhIKCm1lbW9yeV9taWIYCiABKAMiOQoORGVsZXRlU2VudGluZWwSFQoNazhzX25hbWVzcGFjZRgBIAEoCRIQCghrOHNfbmFtZRgCIAEoCSLZAgoPQXBwbHlEZXBsb3ltZW50EhUKDWs4c19uYW1lc3BhY2UYASABKAkSEAoIazhzX25hbWUYAiABKAkSFAoMd29ya3NwYWNlX2lkGAMgASgJEhIKCnByb2plY3RfaWQYBCABKAkSFgoOZW52aXJvbm1lbnRfaWQYBSABKAkSFQoNZGVwbG95bWVudF9pZBgGIAEoCRINCgVpbWFnZRgHIAEoCRIQCghyZXBsaWNhcxgIIAEoBRIWCg5jcHVfbWlsbGljb3JlcxgJIAEoAxISCgptZW1vcnlfbWliGAogASgDEhUKCGJ1aWxkX2lkGAsgASgJSACIAQESJwofZW5jcnlwdGVkX2Vudmlyb25tZW50X3ZhcmlhYmxlcxgMIAEoDBIZCgxyZWFkaW5lc3NfaWQYDSABKAlIAYgBAUILCglfYnVpbGRfaWRCDwoNX3JlYWRpbmVzc19pZCI7ChBEZWxldGVEZXBsb3ltZW50EhUKDWs4c19uYW1lc3BhY2UYASABKAkSEAoIazhzX25hbWUYAiABKAkyygMKDkNsdXN0ZXJTZXJ2aWNlEjAKBVdhdGNoEhUuY3RybC52MS5XYXRjaFJlcXVlc3QaDi5jdHJsLnYxLlN0YXRlMAESWgoXR2V0RGVzaXJlZFNlbnRpbmVsU3RhdGUSJy5jdHJsLnYxLkdldERlc2lyZWRTZW50aW5lbFN0YXRlUmVxdWVzdBoWLmN0cmwudjEuU2VudGluZWxTdGF0ZRJgChNVcGRhdGVTZW50aW5lbFN0YXRlEiMuY3RybC52MS5VcGRhdGVTZW50aW5lbFN0YXRlUmVxdWVzdBokLmN0cmwudjEuVXBkYXRlU2VudGluZWxTdGF0ZVJlc3BvbnNlEmAKGUdldERlc2lyZWREZXBsb3ltZW50U3RhdGUSKS5jdHJsLnYxLkdldERlc2lyZWREZXBsb3ltZW50U3RhdGVSZXF1ZXN0GhguY3RybC52MS5EZXBsb3ltZW50U3RhdGUSZgoVVXBkYXRlRGVwbG95bWVudFN0YXRlEiUuY3RybC52MS5VcGRhdGVEZXBsb3ltZW50U3RhdGVSZXF1ZXN0GiYuY3RybC52MS5VcGRhdGVEZXBsb3ltZW50U3RhdGVSZXNwb25zZUKOAQoLY29tLmN0cmwudjFCDENsdXN0ZXJQcm90b1ABWjRnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ28vZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw");
 
 /**
  * @generated from message ctrl.v1.GetDesiredSentinelStateRequest
@@ -266,22 +266,16 @@ export const UpdateSentinelStateResponseSchema: GenMessage<UpdateSentinelStateRe
  */
 export type WatchRequest = Message<"ctrl.v1.WatchRequest"> & {
   /**
-   * client_id uniquely identifies the client requesting the watch stream.
+   * cluster_id uniquely identifies the client requesting the watch stream.
    *
-   * @generated from field: string client_id = 1;
+   * @generated from field: string cluster_id = 1;
    */
-  clientId: string;
+  clusterId: string;
 
   /**
-   * labels to match events for
-   * typically regions are used
-   * [region]: aws:us-east-1
-   *
-   * The server must only send events where all labels match the selector.
-   *
-   * @generated from field: map<string, string> selectors = 2;
+   * @generated from field: string region = 2;
    */
-  selectors: { [key: string]: string };
+  region: string;
 
   /**
    * live indicates whether the client wants live updates of changes
@@ -306,6 +300,40 @@ export type WatchRequest = Message<"ctrl.v1.WatchRequest"> & {
  */
 export const WatchRequestSchema: GenMessage<WatchRequest> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 7);
+
+/**
+ * @generated from message ctrl.v1.State
+ */
+export type State = Message<"ctrl.v1.State"> & {
+  /**
+   * @generated from oneof ctrl.v1.State.kind
+   */
+  kind: {
+    /**
+     * @generated from field: ctrl.v1.DeploymentState deployment = 1;
+     */
+    value: DeploymentState;
+    case: "deployment";
+  } | {
+    /**
+     * @generated from field: ctrl.v1.SentinelState sentinel = 2;
+     */
+    value: SentinelState;
+    case: "sentinel";
+  } | { case: undefined; value?: undefined };
+
+  /**
+   * @generated from field: optional string acknowledge_id = 3;
+   */
+  acknowledgeId?: string;
+};
+
+/**
+ * Describes the message ctrl.v1.State.
+ * Use `create(StateSchema)` to create a new message.
+ */
+export const StateSchema: GenMessage<State> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 8);
 
 /**
  * SentinelState represents a lifecycle event for an API sentinel configuration.
@@ -350,7 +378,7 @@ export type SentinelState = Message<"ctrl.v1.SentinelState"> & {
  * Use `create(SentinelStateSchema)` to create a new message.
  */
 export const SentinelStateSchema: GenMessage<SentinelState> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 8);
+  messageDesc(file_ctrl_v1_cluster, 9);
 
 /**
  * DeploymentState represents a lifecycle event for an application deployment.
@@ -395,7 +423,7 @@ export type DeploymentState = Message<"ctrl.v1.DeploymentState"> & {
  * Use `create(DeploymentStateSchema)` to create a new message.
  */
 export const DeploymentStateSchema: GenMessage<DeploymentState> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 9);
+  messageDesc(file_ctrl_v1_cluster, 10);
 
 /**
  * ApplySentinel contains the desired configuration for a sentinel.
@@ -473,7 +501,7 @@ export type ApplySentinel = Message<"ctrl.v1.ApplySentinel"> & {
  * Use `create(ApplySentinelSchema)` to create a new message.
  */
 export const ApplySentinelSchema: GenMessage<ApplySentinel> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 10);
+  messageDesc(file_ctrl_v1_cluster, 11);
 
 /**
  * DeleteSentinel identifies a sentinel to remove from the cluster.
@@ -500,7 +528,7 @@ export type DeleteSentinel = Message<"ctrl.v1.DeleteSentinel"> & {
  * Use `create(DeleteSentinelSchema)` to create a new message.
  */
 export const DeleteSentinelSchema: GenMessage<DeleteSentinel> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 11);
+  messageDesc(file_ctrl_v1_cluster, 12);
 
 /**
  * ApplyDeployment contains the desired configuration for a deployment.
@@ -611,7 +639,7 @@ export type ApplyDeployment = Message<"ctrl.v1.ApplyDeployment"> & {
  * Use `create(ApplyDeploymentSchema)` to create a new message.
  */
 export const ApplyDeploymentSchema: GenMessage<ApplyDeployment> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 12);
+  messageDesc(file_ctrl_v1_cluster, 13);
 
 /**
  * DeleteDeployment identifies a deployment to remove from the cluster.
@@ -639,7 +667,7 @@ export type DeleteDeployment = Message<"ctrl.v1.DeleteDeployment"> & {
  * Use `create(DeleteDeploymentSchema)` to create a new message.
  */
 export const DeleteDeploymentSchema: GenMessage<DeleteDeployment> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 13);
+  messageDesc(file_ctrl_v1_cluster, 14);
 
 /**
  * ClusterService coordinates deployment and sentinel configurations across multiple clusters.
@@ -655,12 +683,12 @@ export const DeleteDeploymentSchema: GenMessage<DeleteDeployment> = /*@__PURE__*
  */
 export const ClusterService: GenService<{
   /**
-   * @generated from rpc ctrl.v1.ClusterService.WatchSentinels
+   * @generated from rpc ctrl.v1.ClusterService.Watch
    */
-  watchSentinels: {
+  watch: {
     methodKind: "server_streaming";
     input: typeof WatchRequestSchema;
-    output: typeof SentinelStateSchema;
+    output: typeof StateSchema;
   },
   /**
    * @generated from rpc ctrl.v1.ClusterService.GetDesiredSentinelState
@@ -677,14 +705,6 @@ export const ClusterService: GenService<{
     methodKind: "unary";
     input: typeof UpdateSentinelStateRequestSchema;
     output: typeof UpdateSentinelStateResponseSchema;
-  },
-  /**
-   * @generated from rpc ctrl.v1.ClusterService.WatchDeployments
-   */
-  watchDeployments: {
-    methodKind: "server_streaming";
-    input: typeof WatchRequestSchema;
-    output: typeof DeploymentStateSchema;
   },
   /**
    * @generated from rpc ctrl.v1.ClusterService.GetDesiredDeploymentState

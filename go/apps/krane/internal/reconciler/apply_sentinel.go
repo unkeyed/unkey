@@ -1,7 +1,9 @@
-package sentinel
+package reconciler
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/labels"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
@@ -10,12 +12,11 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// applySentinel creates or updates a Sentinel CRD based on the provided request.
+// ApplySentinel creates or updates a Sentinel CRD based on the provided request.
 //
 // This method validates the request, ensures the namespace exists, and creates
 // or updates the Sentinel custom resource. The controller-runtime reconciler
@@ -27,7 +28,7 @@ import (
 //
 // Returns an error if validation fails, namespace creation fails,
 // or CRD creation/update encounters problems.
-func (r *Reconciler) applySentinel(ctx context.Context, req *ctrlv1.ApplySentinel) error {
+func (r *Reconciler) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentinel) error {
 
 	r.logger.Info("applying sentinel",
 		"namespace", req.GetK8SNamespace(),
@@ -54,19 +55,19 @@ func (r *Reconciler) applySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 		return err
 	}
 
-	deployment, err := r.ensureDeploymentExists(ctx, req)
+	sentinel, err := r.ensureSentinelExists(ctx, req)
 	if err != nil {
 		return err
 	}
 
-	_, err = r.ensureServiceExists(ctx, req, deployment)
+	_, err = r.ensureServiceExists(ctx, req, sentinel)
 	if err != nil {
 		return err
 	}
 
-	err = r.updateState(ctx, &ctrlv1.UpdateSentinelStateRequest{
+	err = r.updateSentinelState(ctx, &ctrlv1.UpdateSentinelStateRequest{
 		K8SName:           req.GetK8SName(),
-		AvailableReplicas: deployment.Status.AvailableReplicas,
+		AvailableReplicas: sentinel.Status.AvailableReplicas,
 	})
 	if err != nil {
 		r.logger.Error("failed to reconcile replicaset", "sentinel_id", req.GetSentinelId(), "error", err)
@@ -76,7 +77,7 @@ func (r *Reconciler) applySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 	return nil
 }
 
-func (r *Reconciler) ensureDeploymentExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel) (*appsv1.Deployment, error) {
+func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel) (*appsv1.Deployment, error) {
 
 	client := r.clientSet.AppsV1().Deployments(sentinel.GetK8SNamespace())
 
@@ -117,24 +118,26 @@ func (r *Reconciler) ensureDeploymentExists(ctx context.Context, sentinel *ctrlv
 							{Name: "UNKEY_ENVIRONMENT_ID", Value: sentinel.GetEnvironmentId()},
 							{Name: "UNKEY_SENTINEL_ID", Value: sentinel.GetSentinelId()},
 							{Name: "UNKEY_DATABASE_PRIMARY", Value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"},
+							{Name: "UNKEY_REGION", Value: r.region},
 						},
 
 						Ports: []corev1.ContainerPort{{
 							ContainerPort: 8040,
 							Name:          "sentinel",
 						}},
-
 						Resources: corev1.ResourceRequirements{
 							// nolint:exhaustive
-							Limits: corev1.ResourceList{
-								corev1.ResourceCPU:    *resource.NewMilliQuantity(sentinel.GetCpuMillicores(), resource.BinarySI),
-								corev1.ResourceMemory: *resource.NewQuantity(sentinel.GetMemoryMib(), resource.BinarySI),
-							},
+							//	Limits: corev1.ResourceList{
+							//		corev1.ResourceCPU:              *resource.NewMilliQuantity(sentinel.GetCpuMillicores(), resource.BinarySI),
+							//		corev1.ResourceMemory:           *resource.NewQuantity(sentinel.GetMemoryMib(), resource.BinarySI),
+							//		corev1.ResourceEphemeralStorage: *resource.NewQuantity(5*1024*1024*1024, resource.BinarySI),
+							//	},
 							// nolint:exhaustive
-							Requests: corev1.ResourceList{
-								corev1.ResourceCPU:    *resource.NewMilliQuantity(sentinel.GetCpuMillicores(), resource.BinarySI),
-								corev1.ResourceMemory: *resource.NewQuantity(sentinel.GetMemoryMib(), resource.BinarySI),
-							},
+							//	Requests: corev1.ResourceList{
+							//		corev1.ResourceCPU:              *resource.NewMilliQuantity(sentinel.GetCpuMillicores(), resource.BinarySI),
+							//		corev1.ResourceMemory:           *resource.NewQuantity(sentinel.GetMemoryMib(), resource.BinarySI),
+							//		corev1.ResourceEphemeralStorage: *resource.NewQuantity(5*1024*1024*1024, resource.BinarySI),
+							//	},
 						},
 					}},
 				},
@@ -146,8 +149,17 @@ func (r *Reconciler) ensureDeploymentExists(ctx context.Context, sentinel *ctrlv
 	found, err := client.Get(ctx, sentinel.GetK8SName(), metav1.GetOptions{})
 
 	if err == nil {
+		foundBytes, err := json.Marshal(found.Spec)
+		if err != nil {
+			return nil, err
+		}
+		wantBytes, err := json.Marshal(deployment.Spec)
+		if err != nil {
+			return nil, err
+		}
 
-		if found.Spec.String() != deployment.Spec.String() {
+		if sha256.Sum256(foundBytes) != sha256.Sum256(wantBytes) {
+			r.logger.Info("sentinel spec has changed, updating", "name", sentinel.GetK8SName())
 			found.Spec = deployment.Spec
 			return client.Update(ctx, found, metav1.UpdateOptions{})
 		}

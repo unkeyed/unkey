@@ -38,7 +38,7 @@ func Sentinel(sentinel db.Sentinel) string {
 func Deployment(deployment db.FindDeploymentTopologyByIDAndRegionRow) string {
 	hash := fmt.Sprintf("%x", sha256.Sum256(fmt.Appendf(nil, "%v", []any{
 		deployment.ID,
-		deployment.Replicas,
+		deployment.DesiredReplicas,
 		deployment.Image,
 		deployment.Region,
 		deployment.CpuMillicores,

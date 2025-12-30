@@ -1,4 +1,4 @@
-package deployment
+package reconciler
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// deleteDeployment removes a Deployment custom resource from the Kubernetes cluster.
+// DeleteDeployment removes a Deployment custom resource from the Kubernetes cluster.
 //
 // This function handles the deletion of deployment resources when the control
 // plane indicates they should be removed. The function gracefully handles
@@ -22,7 +22,7 @@ import (
 // Returns an error if the delete operation fails (excluding not found errors,
 // which are ignored gracefully). The deletion cascades to owned resources
 // (Deployments, Services) through Kubernetes garbage collection.
-func (r *Reconciler) deleteDeployment(ctx context.Context, req *ctrlv1.DeleteDeployment) error {
+func (r *Reconciler) DeleteDeployment(ctx context.Context, req *ctrlv1.DeleteDeployment) error {
 	r.logger.Info("deleting deployment",
 		"namespace", req.GetK8SNamespace(),
 		"name", req.GetK8SName(),
@@ -33,7 +33,7 @@ func (r *Reconciler) deleteDeployment(ctx context.Context, req *ctrlv1.DeleteDep
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
-	err = r.updateState(ctx, &ctrlv1.UpdateDeploymentStateRequest{
+	err = r.updateDeploymentState(ctx, &ctrlv1.UpdateDeploymentStateRequest{
 		Change: &ctrlv1.UpdateDeploymentStateRequest_Delete_{
 			Delete: &ctrlv1.UpdateDeploymentStateRequest_Delete{
 				K8SName: req.GetK8SName(),

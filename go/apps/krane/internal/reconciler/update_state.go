@@ -1,4 +1,4 @@
-package deployment
+package reconciler
 
 import (
 	"context"
@@ -13,18 +13,31 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func (r *Reconciler) updateState(ctx context.Context, state *ctrlv1.UpdateDeploymentStateRequest) error {
+func (r *Reconciler) updateDeploymentState(ctx context.Context, state *ctrlv1.UpdateDeploymentStateRequest) error {
 
-	_, err := r.cb.Do(ctx, func(innerCtx context.Context) (*connect.Response[ctrlv1.UpdateDeploymentStateResponse], error) {
+	_, err := r.cb.Do(ctx, func(innerCtx context.Context) (any, error) {
 		return r.cluster.UpdateDeploymentState(ctx, connect.NewRequest(state))
 	})
 	if err != nil {
 		return fmt.Errorf("failed to update deployment state: %w", err)
 	}
+
 	return nil
 }
 
-func (r *Reconciler) getState(ctx context.Context, replicaset *appsv1.ReplicaSet) (*ctrlv1.UpdateDeploymentStateRequest, error) {
+func (r *Reconciler) updateSentinelState(ctx context.Context, state *ctrlv1.UpdateSentinelStateRequest) error {
+
+	_, err := r.cb.Do(ctx, func(innerCtx context.Context) (any, error) {
+		return r.cluster.UpdateSentinelState(ctx, connect.NewRequest(state))
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update sentinel state: %w", err)
+	}
+
+	return nil
+}
+
+func (r *Reconciler) getDeploymentState(ctx context.Context, replicaset *appsv1.ReplicaSet) (*ctrlv1.UpdateDeploymentStateRequest, error) {
 
 	selector, err := metav1.LabelSelectorAsSelector(replicaset.Spec.Selector)
 	if err != nil {

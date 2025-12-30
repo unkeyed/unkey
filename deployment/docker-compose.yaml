@@ -301,8 +301,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       # Server configuration
-      UNKEY_REGION: "aws:us-east-1" # currently required to receive filteres events from ctrl
-      UNKEY_IMAGE: "unkey:dev"
+      UNKEY_REGION: "dev:local" # currently required to receive filteres events from ctrl
+      UNKEY_IMAGE: "unkey/dev:latest"
       UNKEY_CONTROL_PLANE_URL: "http://ctrl:7091"
       UNKEY_CONTROL_PLANE_BEARER: "your-local-dev-key"
 

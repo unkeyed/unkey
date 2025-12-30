@@ -31,7 +31,7 @@ var Cmd = &cli.Command{
 			cli.Required(), cli.EnvVar("UNKEY_ENVIRONMENT_ID")),
 
 		cli.String("region", "Geographic region identifier. Used for logging. Default: unknown",
-			cli.Default("unknown"), cli.EnvVar("UNKEY_REGION"), cli.EnvVar("AWS_REGION")),
+			cli.Default("unknown"), cli.EnvVar("UNKEY_REGION")),
 
 		// Database Configuration
 		cli.String("database-primary", "MySQL connection string for primary database. Required.",

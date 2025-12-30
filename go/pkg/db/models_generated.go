@@ -232,48 +232,48 @@ func (ns NullDeploymentStepsStatus) Value() (driver.Value, error) {
 	return string(ns.DeploymentStepsStatus), nil
 }
 
-type DeploymentTopologyStatus string
+type DeploymentTopologyDesiredStatus string
 
 const (
-	DeploymentTopologyStatusStarting DeploymentTopologyStatus = "starting"
-	DeploymentTopologyStatusStarted  DeploymentTopologyStatus = "started"
-	DeploymentTopologyStatusStopping DeploymentTopologyStatus = "stopping"
-	DeploymentTopologyStatusStopped  DeploymentTopologyStatus = "stopped"
+	DeploymentTopologyDesiredStatusStarting DeploymentTopologyDesiredStatus = "starting"
+	DeploymentTopologyDesiredStatusStarted  DeploymentTopologyDesiredStatus = "started"
+	DeploymentTopologyDesiredStatusStopping DeploymentTopologyDesiredStatus = "stopping"
+	DeploymentTopologyDesiredStatusStopped  DeploymentTopologyDesiredStatus = "stopped"
 )
 
-func (e *DeploymentTopologyStatus) Scan(src interface{}) error {
+func (e *DeploymentTopologyDesiredStatus) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = DeploymentTopologyStatus(s)
+		*e = DeploymentTopologyDesiredStatus(s)
 	case string:
-		*e = DeploymentTopologyStatus(s)
+		*e = DeploymentTopologyDesiredStatus(s)
 	default:
-		return fmt.Errorf("unsupported scan type for DeploymentTopologyStatus: %T", src)
+		return fmt.Errorf("unsupported scan type for DeploymentTopologyDesiredStatus: %T", src)
 	}
 	return nil
 }
 
-type NullDeploymentTopologyStatus struct {
-	DeploymentTopologyStatus DeploymentTopologyStatus
-	Valid                    bool // Valid is true if DeploymentTopologyStatus is not NULL
+type NullDeploymentTopologyDesiredStatus struct {
+	DeploymentTopologyDesiredStatus DeploymentTopologyDesiredStatus
+	Valid                           bool // Valid is true if DeploymentTopologyDesiredStatus is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullDeploymentTopologyStatus) Scan(value interface{}) error {
+func (ns *NullDeploymentTopologyDesiredStatus) Scan(value interface{}) error {
 	if value == nil {
-		ns.DeploymentTopologyStatus, ns.Valid = "", false
+		ns.DeploymentTopologyDesiredStatus, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.DeploymentTopologyStatus.Scan(value)
+	return ns.DeploymentTopologyDesiredStatus.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullDeploymentTopologyStatus) Value() (driver.Value, error) {
+func (ns NullDeploymentTopologyDesiredStatus) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.DeploymentTopologyStatus), nil
+	return string(ns.DeploymentTopologyDesiredStatus), nil
 }
 
 type DeploymentsDesiredState string
@@ -937,13 +937,13 @@ type DeploymentStep struct {
 }
 
 type DeploymentTopology struct {
-	WorkspaceID  string                   `db:"workspace_id"`
-	DeploymentID string                   `db:"deployment_id"`
-	Region       string                   `db:"region"`
-	Replicas     int32                    `db:"replicas"`
-	Status       DeploymentTopologyStatus `db:"status"`
-	CreatedAt    int64                    `db:"created_at"`
-	UpdatedAt    sql.NullInt64            `db:"updated_at"`
+	WorkspaceID     string                          `db:"workspace_id"`
+	DeploymentID    string                          `db:"deployment_id"`
+	Region          string                          `db:"region"`
+	DesiredReplicas int32                           `db:"desired_replicas"`
+	DesiredStatus   DeploymentTopologyDesiredStatus `db:"desired_status"`
+	CreatedAt       int64                           `db:"created_at"`
+	UpdatedAt       sql.NullInt64                   `db:"updated_at"`
 }
 
 type EncryptedKey struct {
@@ -1174,23 +1174,22 @@ type RolesPermission struct {
 }
 
 type Sentinel struct {
-	ID              string                `db:"id"`
-	WorkspaceID     string                `db:"workspace_id"`
-	ProjectID       string                `db:"project_id"`
-	EnvironmentID   string                `db:"environment_id"`
-	K8sNamespace    string                `db:"k8s_namespace"`
-	K8sName         string                `db:"k8s_name"`
-	K8sAddress      string                `db:"k8s_address"`
-	Region          string                `db:"region"`
-	Image           string                `db:"image"`
-	DesiredState    SentinelsDesiredState `db:"desired_state"`
-	Health          SentinelsHealth       `db:"health"`
-	DesiredReplicas int32                 `db:"desired_replicas"`
-	Replicas        int32                 `db:"replicas"`
-	CpuMillicores   int32                 `db:"cpu_millicores"`
-	MemoryMib       int32                 `db:"memory_mib"`
-	CreatedAt       int64                 `db:"created_at"`
-	UpdatedAt       sql.NullInt64         `db:"updated_at"`
+	ID                string                `db:"id"`
+	WorkspaceID       string                `db:"workspace_id"`
+	ProjectID         string                `db:"project_id"`
+	EnvironmentID     string                `db:"environment_id"`
+	K8sName           string                `db:"k8s_name"`
+	K8sAddress        string                `db:"k8s_address"`
+	Region            string                `db:"region"`
+	Image             string                `db:"image"`
+	DesiredState      SentinelsDesiredState `db:"desired_state"`
+	Health            SentinelsHealth       `db:"health"`
+	DesiredReplicas   int32                 `db:"desired_replicas"`
+	AvailableReplicas int32                 `db:"available_replicas"`
+	CpuMillicores     int32                 `db:"cpu_millicores"`
+	MemoryMib         int32                 `db:"memory_mib"`
+	CreatedAt         int64                 `db:"created_at"`
+	UpdatedAt         sql.NullInt64         `db:"updated_at"`
 }
 
 type VercelBinding struct {

@@ -181,12 +181,22 @@ start-all: start-dependencies start-unkey-services ## Deploy all services indivi
 
 
 image:
-	@docker build -t unkey:dev .
+	docker build -t unkey/dev:latest .
+	# minikube image load unkey/dev:latest
 
 cluster:
-	minikube start --driver=docker --cpus=no-limit --memory=no-limit
+	ctlptl apply -f cluster.yaml
 
-dev: image cluster ## Start with Tilt (if available) or fallback to k8s-up
+	#minikube start \
+	#  --driver=docker \
+	#	--container-runtime=containerd \
+	#	--docker-opt="containerd=/var/run/containerd/containerd.sock" \
+	#	--cpus=no-limit \
+	#	--memory=no-limit \
+	#	--disk-size=50gb \
+	#	--addons=metrics-server,dashboard,gvisor
+
+dev: image ## Start with Tilt (if available) or fallback to k8s-up
 	@if command -v tilt >/dev/null 2>&1; then \
 		echo "Starting with Tilt..."; \
 		tilt up; \

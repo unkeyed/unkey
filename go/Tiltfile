@@ -43,15 +43,6 @@ start_preflight = 'all' in services or 'preflight' in services
 k8s_yaml('k8s/manifests/rbac.yaml')
 
 
-# Registry Proxy service (always needed for pulling images from depot)
-print("Setting up Registry Proxy...")
-k8s_yaml('k8s/manifests/registry-proxy.yaml')
-k8s_resource(
-    'registry-proxy',
-    port_forwards='5000:5000',
-    resource_deps=[],
-    labels=['infrastructure']
-)
 # Redis service
 redis_started = False
 if start_api:  # Redis is needed by API service
@@ -174,7 +165,7 @@ if start_api:
     print("Setting up API service...")
 
     docker_build_with_restart(
-        'unkey-api:latest',
+        'unkey/dev:latest',
         '.',
         dockerfile='Dockerfile.tilt',
         entrypoint=['/unkey', 'run', 'api'],
@@ -210,7 +201,7 @@ if start_ctrl:
     print("Setting up Ctrl service...")
 
     docker_build_with_restart(
-        'unkey-ctrl:latest',
+        'unkey/dev-ctrl:latest',
         '.',
         dockerfile='Dockerfile.tilt',
         entrypoint=['/unkey', 'run', 'ctrl'],
@@ -245,7 +236,7 @@ if start_krane:
     print("Setting up krane service...")
 
     docker_build_with_restart(
-        'unkey-krane:latest',
+        'unkey/dev-krane:latest',
         '.',
         dockerfile='Dockerfile.tilt',
         entrypoint=['/unkey', 'run', 'krane'],
@@ -262,6 +253,7 @@ if start_krane:
     krane_deps = []
     # Add compilation dependency for Unkey services
     krane_deps.append('unkey-compile')
+    krane_deps.append('ctrl')
 
     k8s_resource(
         'krane',

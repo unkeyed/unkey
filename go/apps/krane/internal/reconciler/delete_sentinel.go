@@ -1,4 +1,4 @@
-package sentinel
+package reconciler
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 )
 
-// deleteDeployment removes a Deployment custom resource from the Kubernetes cluster.
+// DeleteSentinel removes a Deployment custom resource from the Kubernetes cluster.
 //
 // This function handles the deletion of deployment resources when the control
 // plane indicates they should be removed. The function gracefully handles
@@ -23,7 +23,7 @@ import (
 // Returns an error if the delete operation fails (excluding not found errors,
 // which are ignored gracefully). The deletion cascades to owned resources
 // (Deployments, Services) through Kubernetes garbage collection.
-func (r *Reconciler) deleteSentinel(ctx context.Context, req *ctrlv1.DeleteSentinel) error {
+func (r *Reconciler) DeleteSentinel(ctx context.Context, req *ctrlv1.DeleteSentinel) error {
 	r.logger.Info("deleting sentinel",
 		"namespace", req.GetK8SNamespace(),
 		"name", req.GetK8SName(),
@@ -37,7 +37,7 @@ func (r *Reconciler) deleteSentinel(ctx context.Context, req *ctrlv1.DeleteSenti
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
-	err = r.updateState(ctx, &ctrlv1.UpdateSentinelStateRequest{
+	err = r.updateSentinelState(ctx, &ctrlv1.UpdateSentinelStateRequest{
 		K8SName:           req.GetK8SName(),
 		AvailableReplicas: 0,
 	})

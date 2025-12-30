@@ -8,8 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/unkeyed/unkey/go/apps/krane/internal/reconciler/deployment"
-	"github.com/unkeyed/unkey/go/apps/krane/internal/reconciler/sentinel"
+	"github.com/unkeyed/unkey/go/apps/krane/internal/reconciler"
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/controlplane"
 	"github.com/unkeyed/unkey/go/apps/krane/secrets"
 	"github.com/unkeyed/unkey/go/apps/krane/secrets/token"
@@ -68,6 +67,14 @@ func Run(ctx context.Context, cfg Config) error {
 		URL:         cfg.ControlPlaneURL,
 		BearerToken: cfg.ControlPlaneBearer,
 		Region:      cfg.Region,
+		ClusterID:   cfg.ClusterID,
+	})
+
+	w := controlplane.NewWatcher(controlplane.WatcherConfig{
+		Logger:    logger,
+		ClusterID: cfg.ClusterID,
+		Region:    cfg.Region,
+		Cluster:   cluster,
 	})
 
 	inClusterConfig, err := rest.InClusterConfig()
@@ -80,31 +87,19 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create k8s clientset: %w", err)
 	}
 
-	sc, err := sentinel.New(sentinel.Config{
-		Logger:     logger,
-		ClientSet:  clientset,
-		Cluster:    cluster,
-		InstanceID: cfg.InstanceID,
-		Region:     cfg.Region,
+	r, err := reconciler.New(reconciler.Config{
+		Logger:    logger,
+		ClientSet: clientset,
+		Cluster:   cluster,
+		ClusterID: cfg.ClusterID,
+		Region:    cfg.Region,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create sentinel controller: %w", err)
+		return fmt.Errorf("failed to create reconciler: %w", err)
 	}
-	go sc.Start()
-	shutdowns.Register(sc.Stop)
 
-	dr, err := deployment.New(deployment.Config{
-		Logger:     logger,
-		ClientSet:  clientset,
-		Cluster:    cluster,
-		InstanceID: cfg.InstanceID,
-		Region:     cfg.Region,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create sentinel controller: %w", err)
-	}
-	go dr.Start()
-	shutdowns.Register(dr.Stop)
+	shutdowns.Register(r.Stop)
+	w.Start(ctx, r.HandleState)
 
 	// Create vault service for secrets decryption
 

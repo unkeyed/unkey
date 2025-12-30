@@ -52,6 +52,8 @@ type Config struct {
 	// Vault provides encryption/decryption services for secrets.
 	Vault *vault.Service
 
+	Cluster *cluster.Service
+
 	// SentinelImage is the Docker image used for sentinel containers.
 	SentinelImage string
 
@@ -68,15 +70,11 @@ func New(cfg Config) *Workflow {
 		UnimplementedDeploymentServiceServer: hydrav1.UnimplementedDeploymentServiceServer{},
 		db:                                   cfg.DB,
 		logger:                               cfg.Logger,
-		cluster: cluster.New(cluster.Config{
-			Database: cfg.DB,
-			Logger:   cfg.Logger,
-			Bearer:   cfg.Bearer,
-		}),
-		buildClient:      cfg.BuildClient,
-		defaultDomain:    cfg.DefaultDomain,
-		vault:            cfg.Vault,
-		sentinelImage:    cfg.SentinelImage,
-		availableRegions: cfg.AvailableRegions,
+		cluster:                              cfg.Cluster,
+		buildClient:                          cfg.BuildClient,
+		defaultDomain:                        cfg.DefaultDomain,
+		vault:                                cfg.Vault,
+		sentinelImage:                        cfg.SentinelImage,
+		availableRegions:                     cfg.AvailableRegions,
 	}
 }

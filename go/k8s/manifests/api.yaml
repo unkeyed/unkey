@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: unkey-api:latest
+          image: unkey/dev:latest
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 7070

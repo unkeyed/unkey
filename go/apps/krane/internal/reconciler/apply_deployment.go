@@ -1,7 +1,9 @@
-package deployment
+package reconciler
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 
 	"github.com/unkeyed/unkey/go/apps/krane/pkg/labels"
@@ -11,11 +13,10 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// applyDeployment creates or updates a Deployment CRD based on the provided request.
+// ApplyDeployment creates or updates a Deployment CRD based on the provided request.
 //
 // This method validates the request, ensures the namespace exists, and creates
 // or updates the Deployment custom resource. The controller-runtime reconciler
@@ -27,7 +28,7 @@ import (
 //
 // Returns an error if validation fails, namespace creation fails,
 // or CRD creation/update encounters problems.
-func (r *Reconciler) applyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) error {
+func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) error {
 
 	r.logger.Info("applying deployment",
 		"namespace", req.GetK8SNamespace(),
@@ -104,15 +105,17 @@ func (r *Reconciler) applyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 
 						Resources: corev1.ResourceRequirements{
 							// nolint:exhaustive
-							Limits: corev1.ResourceList{
-								corev1.ResourceCPU:    *resource.NewMilliQuantity(req.GetCpuMillicores(), resource.BinarySI),
-								corev1.ResourceMemory: *resource.NewQuantity(req.GetMemoryMib(), resource.BinarySI),
-							},
-							// nolint:exhaustive
-							Requests: corev1.ResourceList{
-								corev1.ResourceCPU:    *resource.NewMilliQuantity(req.GetCpuMillicores(), resource.BinarySI),
-								corev1.ResourceMemory: *resource.NewQuantity(req.GetMemoryMib(), resource.BinarySI),
-							},
+							//Limits: corev1.ResourceList{
+							//	corev1.ResourceCPU:              *resource.NewMilliQuantity(req.GetCpuMillicores(), resource.BinarySI),
+							//	corev1.ResourceMemory:           *resource.NewQuantity(req.GetMemoryMib(), resource.BinarySI),
+							//	corev1.ResourceEphemeralStorage: *resource.NewQuantity(5*1024*1024*1024, resource.BinarySI),
+							//},
+							//// nolint:exhaustive
+							//Requests: corev1.ResourceList{
+							//	corev1.ResourceCPU:              *resource.NewMilliQuantity(req.GetCpuMillicores(), resource.BinarySI),
+							//	corev1.ResourceMemory:           *resource.NewQuantity(req.GetMemoryMib(), resource.BinarySI),
+							//	corev1.ResourceEphemeralStorage: *resource.NewQuantity(5*1024*1024*1024, resource.BinarySI),
+							//},
 						},
 					}},
 				},
@@ -131,20 +134,28 @@ func (r *Reconciler) applyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return err
 	}
 
-	if existing.Spec.String() != desired.Spec.String() {
-		existing.Spec = desired.Spec
-		_, err := client.Update(ctx, existing, metav1.UpdateOptions{})
-		if err != nil {
-			return err
-		}
+	foundBytes, err := json.Marshal(existing.Spec)
+	if err != nil {
+		return err
 	}
-
-	state, err := r.getState(ctx, existing)
+	wantBytes, err := json.Marshal(desired.Spec)
 	if err != nil {
 		return err
 	}
 
-	err = r.updateState(ctx, state)
+	if sha256.Sum256(foundBytes) != sha256.Sum256(wantBytes) {
+		r.logger.Info("deployment spec has changed, updating", "name", req.GetK8SName())
+		existing.Spec = desired.Spec
+		_, err = client.Update(ctx, existing, metav1.UpdateOptions{})
+		return err
+	}
+
+	state, err := r.getDeploymentState(ctx, existing)
+	if err != nil {
+		return err
+	}
+
+	err = r.updateDeploymentState(ctx, state)
 	if err != nil {
 		r.logger.Error("failed to reconcile replicaset", "deployment_id", req.GetDeploymentId(), "error", err)
 		return err

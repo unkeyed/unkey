@@ -1,4 +1,4 @@
-package sentinel
+package reconciler
 
 import (
 	"context"
@@ -25,7 +25,7 @@ import (
 // This approach ensures eventual consistency between the database state
 // and Kubernetes cluster state, acting as a safety net for the event-based
 // synchronization mechanism.
-func (r *Reconciler) watchCurrentDeployments(ctx context.Context) {
+func (r *Reconciler) watchCurrentSentinels(ctx context.Context) error {
 
 	w, err := r.clientSet.AppsV1().Deployments("").Watch(ctx, metav1.ListOptions{
 		LabelSelector: labels.New().
@@ -33,39 +33,45 @@ func (r *Reconciler) watchCurrentDeployments(ctx context.Context) {
 			ComponentSentinel().
 			ToString(),
 	})
-
-	defer w.Stop()
-
-	for event := range w.ResultChan() {
-		deployment, ok := event.Object.(*appsv1.Deployment)
-		if !ok {
-			r.logger.Error("unable to cast object to deployment", "error", err.Error())
-			continue
-		}
-
-		switch event.Type {
-		case watch.Added, watch.Modified:
-			r.logger.Info("deployment added/modified/deleted", "name", deployment.Name)
-			err := r.updateState(ctx, &ctrlv1.UpdateSentinelStateRequest{
-				K8SName:           deployment.Name,
-				AvailableReplicas: deployment.Status.AvailableReplicas,
-			})
-			if err != nil {
-				r.logger.Error("error updating sentinel state", "error", err.Error())
-			}
-		case watch.Deleted:
-			r.logger.Info("deployment deleted", "name", deployment.Name)
-			err := r.updateState(ctx, &ctrlv1.UpdateSentinelStateRequest{
-				K8SName:           deployment.Name,
-				AvailableReplicas: 0,
-			})
-			if err != nil {
-				r.logger.Error("error updating sentinel state", "error", err.Error())
-			}
-		case watch.Bookmark:
-		case watch.Error:
-			r.logger.Error("error watching deployment", "error", err.Error())
-		}
+	if err != nil {
+		return err
 	}
+
+	go func() {
+
+		for event := range w.ResultChan() {
+			sentinel, ok := event.Object.(*appsv1.Deployment)
+			if !ok {
+				r.logger.Error("unable to cast object to deployment", "error", err.Error())
+				continue
+			}
+
+			switch event.Type {
+			case watch.Added, watch.Modified:
+				r.logger.Info("sentinel added/modified/deleted", "name", sentinel.Name)
+				err := r.updateSentinelState(ctx, &ctrlv1.UpdateSentinelStateRequest{
+					K8SName:           sentinel.Name,
+					AvailableReplicas: sentinel.Status.AvailableReplicas,
+				})
+				if err != nil {
+					r.logger.Error("error updating sentinel state", "error", err.Error())
+				}
+			case watch.Deleted:
+				r.logger.Info("sentinel deleted", "name", sentinel.Name)
+				err := r.updateSentinelState(ctx, &ctrlv1.UpdateSentinelStateRequest{
+					K8SName:           sentinel.Name,
+					AvailableReplicas: 0,
+				})
+				if err != nil {
+					r.logger.Error("error updating sentinel state", "error", err.Error())
+				}
+			case watch.Bookmark:
+			case watch.Error:
+				r.logger.Error("error watching sentinel", "error", err.Error())
+			}
+		}
+	}()
+
+	return nil
 
 }

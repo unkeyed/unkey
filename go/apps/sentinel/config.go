@@ -2,6 +2,7 @@ package sentinel
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/unkeyed/unkey/go/pkg/assert"
 )
@@ -38,16 +39,18 @@ func (c Config) Validate() error {
 		return err
 	}
 
-	validRegions := map[string]bool{
-		"aws:us-east-1":    true,
-		"aws:us-east-2":    true,
-		"aws:us-west-1":    true,
-		"aws:us-west-2":    true,
-		"aws:eu-central-1": true,
+	validRegions := []string{
+		"dev:local",
+		"aws:us-east-1",
+		"aws:us-east-2",
+		"aws:us-west-1",
+		"aws:us-west-2",
+		"aws:eu-central-1",
 	}
 
-	if valid := validRegions[c.Region]; !valid {
+	if !slices.Contains(validRegions, c.Region) {
 		return fmt.Errorf("invalid region: %s, must be one of %v", c.Region, validRegions)
+
 	}
 
 	return nil

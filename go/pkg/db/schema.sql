@@ -398,8 +398,8 @@ CREATE TABLE `deployment_topology` (
 	`workspace_id` varchar(64) NOT NULL,
 	`deployment_id` varchar(64) NOT NULL,
 	`region` varchar(64) NOT NULL,
-	`replicas` int NOT NULL,
-	`status` enum('starting','started','stopping','stopped') NOT NULL,
+	`desired_replicas` int NOT NULL,
+	`desired_status` enum('starting','started','stopping','stopped') NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployment_topology_deployment_id_region_pk` PRIMARY KEY(`deployment_id`,`region`),
@@ -455,7 +455,6 @@ CREATE TABLE `sentinels` (
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
 	`environment_id` varchar(255) NOT NULL,
-	`k8s_namespace` varchar(64) NOT NULL,
 	`k8s_name` varchar(64) NOT NULL,
 	`k8s_address` varchar(255) NOT NULL,
 	`region` varchar(255) NOT NULL,
@@ -463,7 +462,7 @@ CREATE TABLE `sentinels` (
 	`desired_state` enum('running','standby','archived') NOT NULL DEFAULT 'running',
 	`health` enum('unknown','paused','healthy','unhealthy') NOT NULL DEFAULT 'unknown',
 	`desired_replicas` int NOT NULL,
-	`replicas` int NOT NULL,
+	`available_replicas` int NOT NULL,
 	`cpu_millicores` int NOT NULL,
 	`memory_mib` int NOT NULL,
 	`created_at` bigint NOT NULL,
@@ -540,7 +539,7 @@ CREATE INDEX `status_idx` ON `deployments` (`status`);
 CREATE INDEX `workspace_idx` ON `deployment_topology` (`workspace_id`);
 CREATE INDEX `deployment_idx` ON `deployment_topology` (`deployment_id`);
 CREATE INDEX `region_idx` ON `deployment_topology` (`region`);
-CREATE INDEX `status_idx` ON `deployment_topology` (`status`);
+CREATE INDEX `status_idx` ON `deployment_topology` (`desired_status`);
 CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `custom_domains` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);

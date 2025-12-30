@@ -14,8 +14,8 @@ INSERT INTO ` + "`" + `deployment_topology` + "`" + ` (
     workspace_id,
     deployment_id,
     region,
-    replicas,
-    status,
+    desired_replicas,
+    desired_status,
     created_at
 ) VALUES (
     ?,
@@ -28,12 +28,12 @@ INSERT INTO ` + "`" + `deployment_topology` + "`" + ` (
 `
 
 type InsertDeploymentTopologyParams struct {
-	WorkspaceID  string                   `db:"workspace_id"`
-	DeploymentID string                   `db:"deployment_id"`
-	Region       string                   `db:"region"`
-	Replicas     int32                    `db:"replicas"`
-	Status       DeploymentTopologyStatus `db:"status"`
-	CreatedAt    int64                    `db:"created_at"`
+	WorkspaceID     string                          `db:"workspace_id"`
+	DeploymentID    string                          `db:"deployment_id"`
+	Region          string                          `db:"region"`
+	DesiredReplicas int32                           `db:"desired_replicas"`
+	DesiredStatus   DeploymentTopologyDesiredStatus `db:"desired_status"`
+	CreatedAt       int64                           `db:"created_at"`
 }
 
 // InsertDeploymentTopology
@@ -42,8 +42,8 @@ type InsertDeploymentTopologyParams struct {
 //	    workspace_id,
 //	    deployment_id,
 //	    region,
-//	    replicas,
-//	    status,
+//	    desired_replicas,
+//	    desired_status,
 //	    created_at
 //	) VALUES (
 //	    ?,
@@ -58,8 +58,8 @@ func (q *Queries) InsertDeploymentTopology(ctx context.Context, db DBTX, arg Ins
 		arg.WorkspaceID,
 		arg.DeploymentID,
 		arg.Region,
-		arg.Replicas,
-		arg.Status,
+		arg.DesiredReplicas,
+		arg.DesiredStatus,
 		arg.CreatedAt,
 	)
 	return err

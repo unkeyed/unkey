@@ -22,7 +22,6 @@ export const sentinels = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
     environmentId: varchar("environment_id", { length: 255 }).notNull(),
-    k8sNamespace: varchar("k8s_namespace", { length: 64 }).notNull(),
     k8sName: varchar("k8s_name", { length: 64 }).notNull().unique(),
     k8sAddress: varchar("k8s_address", { length: 255 }).notNull().unique(),
     /*
@@ -38,7 +37,7 @@ export const sentinels = mysqlTable(
       .notNull()
       .default("unknown"), // needs better status types
     desiredReplicas: int("desired_replicas").notNull(),
-    replicas: int("replicas").notNull(),
+    availableReplicas: int("available_replicas").notNull(),
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),
     ...lifecycleDates,

@@ -156,14 +156,18 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	topologies := make([]db.InsertDeploymentTopologyParams, len(w.availableRegions))
 	for i, region := range w.availableRegions {
 		topologies[i] = db.InsertDeploymentTopologyParams{
-			WorkspaceID:  workspace.ID,
-			DeploymentID: deployment.ID,
-			Region:       region,
-			Replicas:     1,
-			Status:       db.DeploymentTopologyStatusStarting,
-			CreatedAt:    time.Now().UnixMilli(),
+			WorkspaceID:     workspace.ID,
+			DeploymentID:    deployment.ID,
+			Region:          region,
+			DesiredReplicas: 1,
+			DesiredStatus:   db.DeploymentTopologyDesiredStatusStarting,
+			CreatedAt:       time.Now().UnixMilli(),
 		}
 	}
+
+	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return db.BulkQuery.InsertDeploymentTopologies(runCtx, w.db.RW(), topologies)
+	}, restate.WithName("insert deployment topologies"))
 
 	// Ensure sentinels exist in each region for this deployment
 
@@ -180,9 +184,9 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		_, ok := existingSentinelsByRegion[topology.Region]
 		if !ok {
 
-			replicas := int32(1)
+			desiredReplicas := int32(1)
 			if environment.Slug == "production" {
-				replicas = 3
+				desiredReplicas = 3
 			}
 
 			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
@@ -190,21 +194,22 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 				sentinelID := uid.New(uid.SentinelPrefix)
 				sentinelK8sName := uid.DNS1035()
 
+				// we rely on the unique indess of environmendID + region here to create or noop
 				err = db.Query.InsertSentinel(runCtx, w.db.RW(), db.InsertSentinelParams{
-					ID:              sentinelID,
-					WorkspaceID:     workspace.ID,
-					EnvironmentID:   environment.ID,
-					ProjectID:       project.ID,
-					K8sAddress:      fmt.Sprintf("%s.%s.svc.cluster.local", sentinelK8sName, workspace.K8sNamespace.String),
-					K8sName:         sentinelK8sName,
-					Region:          topology.Region,
-					Image:           w.sentinelImage,
-					Health:          db.SentinelsHealthUnknown,
-					DesiredReplicas: replicas,
-					Replicas:        0,
-					CpuMillicores:   256,
-					MemoryMib:       256,
-					CreatedAt:       time.Now().UnixMilli(),
+					ID:                sentinelID,
+					WorkspaceID:       workspace.ID,
+					EnvironmentID:     environment.ID,
+					ProjectID:         project.ID,
+					K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local", sentinelK8sName, workspace.K8sNamespace.String),
+					K8sName:           sentinelK8sName,
+					Region:            topology.Region,
+					Image:             w.sentinelImage,
+					Health:            db.SentinelsHealthUnknown,
+					DesiredReplicas:   desiredReplicas,
+					AvailableReplicas: 0,
+					CpuMillicores:     256,
+					MemoryMib:         256,
+					CreatedAt:         time.Now().UnixMilli(),
 				})
 				if err != nil && !db.IsDuplicateKeyError(err) {
 					return err
@@ -212,7 +217,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 				return nil
 
 			}, restate.WithName("ensure sentinel exists in db"))
-
 			if err != nil {
 				return nil, err
 			}
@@ -228,71 +232,110 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 
 		for _, sentinel := range sentinels {
 			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				return w.cluster.EmitSentinelState(runCtx, map[string]string{"region": sentinel.Region}, &ctrlv1.SentinelState{
-					State: &ctrlv1.SentinelState_Apply{
-						Apply: &ctrlv1.ApplySentinel{
-							K8SNamespace: workspace.K8sNamespace.String,
-							K8SName:      sentinel.K8sName,
-
-							WorkspaceId:   sentinel.WorkspaceID,
-							ProjectId:     sentinel.ProjectID,
-							EnvironmentId: sentinel.EnvironmentID,
-							SentinelId:    sentinel.ID,
-							Image:         w.sentinelImage,
-							Replicas:      sentinel.DesiredReplicas,
-							CpuMillicores: int64(sentinel.CpuMillicores),
-							MemoryMib:     int64(sentinel.MemoryMib),
+				return w.cluster.EmitState(runCtx, sentinel.Region,
+					&ctrlv1.State{
+						AcknowledgeId: nil,
+						Kind: &ctrlv1.State_Sentinel{
+							Sentinel: &ctrlv1.SentinelState{
+								State: &ctrlv1.SentinelState_Apply{
+									Apply: &ctrlv1.ApplySentinel{
+										K8SNamespace:  workspace.K8sNamespace.String,
+										K8SName:       sentinel.K8sName,
+										WorkspaceId:   sentinel.WorkspaceID,
+										ProjectId:     sentinel.ProjectID,
+										EnvironmentId: sentinel.EnvironmentID,
+										SentinelId:    sentinel.ID,
+										Image:         w.sentinelImage,
+										Replicas:      sentinel.DesiredReplicas,
+										CpuMillicores: int64(sentinel.CpuMillicores),
+										MemoryMib:     int64(sentinel.MemoryMib),
+									},
+								},
+							},
 						},
-					},
-				})
+					})
 
 			}, restate.WithName(fmt.Sprintf("emit sentinel apply for %s in %s", sentinel.ID, sentinel.Region)))
 			if err != nil {
 				return nil, err
 			}
 		}
-
 	}
 
-	readinessGates := make([]restate.Future, len(topologies))
-
-	for i, region := range topologies {
-
-		promise := restate.Awakeable[string](ctx)
-		readinessGates[i] = promise
-
+	for _, region := range topologies {
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return w.cluster.EmitDeploymentState(runCtx, map[string]string{"region": region.Region}, &ctrlv1.DeploymentState{
-				State: &ctrlv1.DeploymentState_Apply{
-					Apply: &ctrlv1.ApplyDeployment{
-						K8SNamespace:                  workspace.K8sNamespace.String,
-						K8SName:                       deployment.K8sName,
-						WorkspaceId:                   workspace.ID,
-						ProjectId:                     deployment.ProjectID,
-						EnvironmentId:                 deployment.EnvironmentID,
-						DeploymentId:                  deployment.ID,
-						Image:                         dockerImage,
-						Replicas:                      region.Replicas,
-						CpuMillicores:                 int64(deployment.CpuMillicores),
-						MemoryMib:                     int64(deployment.MemoryMib),
-						BuildId:                       buildID,
-						EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
-						ReadinessId:                   ptr.P(promise.Id()),
+			return w.cluster.EmitState(runCtx, region.Region,
+				&ctrlv1.State{
+					AcknowledgeId: nil,
+					Kind: &ctrlv1.State_Deployment{
+						Deployment: &ctrlv1.DeploymentState{
+							State: &ctrlv1.DeploymentState_Apply{
+								Apply: &ctrlv1.ApplyDeployment{
+									K8SNamespace:                  workspace.K8sNamespace.String,
+									K8SName:                       deployment.K8sName,
+									WorkspaceId:                   workspace.ID,
+									ProjectId:                     deployment.ProjectID,
+									EnvironmentId:                 deployment.EnvironmentID,
+									DeploymentId:                  deployment.ID,
+									Image:                         dockerImage,
+									Replicas:                      region.DesiredReplicas,
+									CpuMillicores:                 int64(deployment.CpuMillicores),
+									MemoryMib:                     int64(deployment.MemoryMib),
+									BuildId:                       buildID,
+									EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
+									ReadinessId:                   ptr.P(deployment.ID),
+								},
+							},
+						},
 					},
 				},
-			})
+			)
 
-		}, restate.WithName(fmt.Sprintf("apply deployment %s in %s", deployment.ID, region.Region)))
+		}, restate.WithName(fmt.Sprintf("emit deployment apply %s in %s", deployment.ID, region.Region)))
 		if err != nil {
 			return nil, err
 		}
 
 	}
-
 	w.logger.Info("waiting for deployments to be ready", "deployment_id", deployment.ID)
-	for _, err = range restate.Wait(ctx, readinessGates...) {
+
+	readygates := make([]restate.Future, len(topologies))
+	for i, region := range topologies {
+		promise := restate.RunAsync(ctx, func(runCtx restate.RunContext) (bool, error) {
+
+			for {
+				time.Sleep(time.Second)
+
+				instances, err := db.Query.FindInstancesByDeploymentIdAndRegion(runCtx, w.db.RO(), db.FindInstancesByDeploymentIdAndRegionParams{
+					Deploymentid: deployment.ID,
+					Region:       region.Region,
+				})
+				if err != nil {
+					return false, err
+				}
+				if len(instances) < int(region.DesiredReplicas) {
+					continue
+				}
+				allRunning := true
+				for _, instance := range instances {
+					if instance.Status != db.InstancesStatusRunning {
+						allRunning = false
+						break
+					}
+				}
+				if allRunning {
+					return true, nil
+				}
+
+			}
+
+		}, restate.WithName(fmt.Sprintf("wait for instances in %s", region.Region)))
+		readygates[i] = promise
+	}
+
+	for _, err := range restate.Wait(ctx, readygates...) {
 		if err != nil {
-			return nil, fmt.Errorf("failed to apply deployment %s in one cluster: %w", deployment.ID, err)
+			return nil, err
 		}
 	}
 
@@ -334,7 +377,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 				return found.ID, nil
 
 			})
-		})
+		}, restate.WithName(fmt.Sprintf("inserting frontline route %s", domain.domain)))
 		if getFrontlineRouteErr != nil {
 			return nil, getFrontlineRouteErr
 		}

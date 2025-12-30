@@ -1,4 +1,4 @@
-package deployment
+package reconciler
 
 import (
 	"context"
@@ -26,7 +26,7 @@ import (
 // This approach ensures eventual consistency between the database state
 // and Kubernetes cluster state, acting as a safety net for the event-based
 // synchronization mechanism.
-func (r *Reconciler) refreshCurrentReplicaSets(ctx context.Context) {
+func (r *Reconciler) refreshCurrentDeployments(ctx context.Context) {
 	repeat.Every(1*time.Minute, func() {
 
 		cursor := ""
@@ -61,7 +61,16 @@ func (r *Reconciler) refreshCurrentReplicaSets(ctx context.Context) {
 					continue
 				}
 
-				r.inbound.Buffer(res.Msg)
+				switch res.Msg.GetState().(type) {
+				case *ctrlv1.DeploymentState_Apply:
+					if err := r.ApplyDeployment(ctx, res.Msg.GetApply()); err != nil {
+						r.logger.Error("unable to apply deployment", "error", err.Error(), "deployment_id", deploymentID)
+					}
+				case *ctrlv1.DeploymentState_Delete:
+					if err := r.DeleteDeployment(ctx, res.Msg.GetDelete()); err != nil {
+						r.logger.Error("unable to delete deployment", "error", err.Error(), "deployment_id", deploymentID)
+					}
+				}
 			}
 			cursor = replicaSets.Continue
 			if cursor == "" {

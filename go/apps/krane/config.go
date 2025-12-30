@@ -89,6 +89,8 @@ type Config struct {
 
 	ControlPlaneURL    string
 	ControlPlaneBearer string
+
+	ClusterID string
 }
 
 // Validate checks the configuration for required fields and logical consistency.

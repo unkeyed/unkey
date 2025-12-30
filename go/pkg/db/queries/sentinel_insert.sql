@@ -10,7 +10,7 @@ INSERT INTO sentinels (
     image,
     health,
     desired_replicas,
-    replicas,
+    available_replicas,
     cpu_millicores,
     memory_mib,
     created_at
@@ -25,7 +25,7 @@ INSERT INTO sentinels (
     sqlc.arg(image),
     sqlc.arg(health),
     sqlc.arg(desired_replicas),
-    sqlc.arg(replicas),
+    sqlc.arg(available_replicas),
     sqlc.arg(cpu_millicores),
     sqlc.arg(memory_mib),
     sqlc.arg(created_at)

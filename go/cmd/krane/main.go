@@ -92,6 +92,9 @@ unkey run krane                                   # Run with default configurati
 		cli.String("control-plane-bearer", "Bearer token for the control plane",
 			cli.Default("your-local-dev-key"),
 			cli.EnvVar("UNKEY_CONTROL_PLANE_BEARER")),
+		cli.String("cluster-id", "ID of the cluster",
+			cli.Default(uid.Nano("")),
+			cli.EnvVar("UNKEY_CLUSTER_ID")),
 	},
 	Action: action,
 }
@@ -117,6 +120,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		PrometheusPort:     cmd.RequireInt("prometheus-port"),
 		ControlPlaneURL:    cmd.RequireString("control-plane-url"),
 		ControlPlaneBearer: cmd.RequireString("control-plane-bearer"),
+		ClusterID:          cmd.RequireString("cluster-id"),
 	}
 
 	// Validate configuration

@@ -21,7 +21,7 @@ INSERT INTO sentinels (
     image,
     health,
     desired_replicas,
-    replicas,
+    available_replicas,
     cpu_millicores,
     memory_mib,
     created_at
@@ -44,20 +44,20 @@ INSERT INTO sentinels (
 `
 
 type InsertSentinelParams struct {
-	ID              string          `db:"id"`
-	WorkspaceID     string          `db:"workspace_id"`
-	EnvironmentID   string          `db:"environment_id"`
-	ProjectID       string          `db:"project_id"`
-	K8sAddress      string          `db:"k8s_address"`
-	K8sName         string          `db:"k8s_name"`
-	Region          string          `db:"region"`
-	Image           string          `db:"image"`
-	Health          SentinelsHealth `db:"health"`
-	DesiredReplicas int32           `db:"desired_replicas"`
-	Replicas        int32           `db:"replicas"`
-	CpuMillicores   int32           `db:"cpu_millicores"`
-	MemoryMib       int32           `db:"memory_mib"`
-	CreatedAt       int64           `db:"created_at"`
+	ID                string          `db:"id"`
+	WorkspaceID       string          `db:"workspace_id"`
+	EnvironmentID     string          `db:"environment_id"`
+	ProjectID         string          `db:"project_id"`
+	K8sAddress        string          `db:"k8s_address"`
+	K8sName           string          `db:"k8s_name"`
+	Region            string          `db:"region"`
+	Image             string          `db:"image"`
+	Health            SentinelsHealth `db:"health"`
+	DesiredReplicas   int32           `db:"desired_replicas"`
+	AvailableReplicas int32           `db:"available_replicas"`
+	CpuMillicores     int32           `db:"cpu_millicores"`
+	MemoryMib         int32           `db:"memory_mib"`
+	CreatedAt         int64           `db:"created_at"`
 }
 
 // InsertSentinel
@@ -73,7 +73,7 @@ type InsertSentinelParams struct {
 //	    image,
 //	    health,
 //	    desired_replicas,
-//	    replicas,
+//	    available_replicas,
 //	    cpu_millicores,
 //	    memory_mib,
 //	    created_at
@@ -105,7 +105,7 @@ func (q *Queries) InsertSentinel(ctx context.Context, db DBTX, arg InsertSentine
 		arg.Image,
 		arg.Health,
 		arg.DesiredReplicas,
-		arg.Replicas,
+		arg.AvailableReplicas,
 		arg.CpuMillicores,
 		arg.MemoryMib,
 		arg.CreatedAt,

@@ -70,7 +70,7 @@ export const listProjects = t.procedure
         author: row.git_commit_author_handle,
         commitTimestamp: Number(row.git_commit_timestamp),
         authorAvatar: row.git_commit_author_avatar_url,
-        regions: ["aws:us-east-1"],
+        regions: ["dev:local"],
         domain: row.domain,
         latestDeploymentId: row.latest_deployment_id,
       }),

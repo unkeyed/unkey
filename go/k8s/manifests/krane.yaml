@@ -20,15 +20,15 @@ spec:
       serviceAccountName: unkey-serviceaccount
       containers:
         - name: krane
-          image: unkey-krane:latest
+          image: unkey/dev-krane:latest
           imagePullPolicy: Never # Use local images
           command: ["/unkey", "run", "krane"]
           env:
             # Server configuration
             - name: UNKEY_REGION
-              value: "aws:us-east-1"
+              value: "dev:local"
             - name: UNKEY_IMAGE
-              value: "unkey:dev"
+              value: "unkey/dev-krane:latest"
             - name: "UNKEY_CONTROL_PLANE_URL"
               value: "http://ctrl:7091"
             - name: "UNKEY_CONTROL_PLANE_BEARER"

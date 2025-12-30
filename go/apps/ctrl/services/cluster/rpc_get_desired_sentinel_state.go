@@ -21,7 +21,7 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	sentinel, err := db.Query.FindSentinelByID(ctx, s.db.RO(), req.Msg.GetSentinelId())
+	found, err := db.Query.FindSentinelByID(ctx, s.db.RO(), req.Msg.GetSentinelId())
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, err)
@@ -30,6 +30,7 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 		return nil, connect.NewError(connect.CodeInternal, err)
 
 	}
+	sentinel := found.Sentinel
 
 	s.logger.Info("desired sentinel", "state", sentinel.DesiredState)
 	switch sentinel.DesiredState {
@@ -37,7 +38,7 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 		return connect.NewResponse(&ctrlv1.SentinelState{
 			State: &ctrlv1.SentinelState_Delete{
 				Delete: &ctrlv1.DeleteSentinel{
-					K8SNamespace: sentinel.K8sNamespace,
+					K8SNamespace: found.K8sNamespace.String,
 					K8SName:      sentinel.K8sName,
 				},
 			},
@@ -48,7 +49,7 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 			State: &ctrlv1.SentinelState_Apply{
 				Apply: &ctrlv1.ApplySentinel{
 					SentinelId:    sentinel.ID,
-					K8SNamespace:  sentinel.K8sNamespace,
+					K8SNamespace:  found.K8sNamespace.String,
 					K8SName:       sentinel.K8sName,
 					WorkspaceId:   sentinel.WorkspaceID,
 					ProjectId:     sentinel.ProjectID,

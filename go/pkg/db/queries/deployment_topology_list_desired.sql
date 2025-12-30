@@ -9,7 +9,7 @@ SELECT
     dt.region,
     d.cpu_millicores,
     d.memory_mib,
-    dt.replicas,
+    dt.desired_replicas,
     w.k8s_namespace as k8s_namespace,
     d.build_id,
     d.encrypted_environment_variables

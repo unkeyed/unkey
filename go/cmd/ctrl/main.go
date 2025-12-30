@@ -137,7 +137,7 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
 
 		// The image new sentinels get deployed with
-		cli.String("sentinel-image", "The image new sentinels get deployed with", cli.Default("ghcr.io/unkeyed/unkey:local"), cli.EnvVar("UNKEY_GATEWAY_IMAGE")),
+		cli.String("sentinel-image", "The image new sentinels get deployed with", cli.Default("ghcr.io/unkeyed/unkey:local"), cli.EnvVar("UNKEY_SENTINEL_IMAGE")),
 		cli.StringSlice("available-regions", "Available regions for deployment", cli.EnvVar("UNKEY_AVAILABLE_REGIONS"), cli.Default([]string{"dev:local"})),
 	},
 	Action: action,

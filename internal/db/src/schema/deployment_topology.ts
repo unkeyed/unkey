@@ -20,10 +20,10 @@ export const deploymentTopology = mysqlTable(
 
     region: varchar("region", { length: 64 }).notNull(),
 
-    replicas: int("replicas").notNull(),
+    desiredReplicas: int("desired_replicas").notNull(),
 
     // Deployment status
-    status: mysqlEnum("status", [
+    desiredStatus: mysqlEnum("desired_status", [
       "starting",
       "started",
       "stopping",
@@ -40,7 +40,7 @@ export const deploymentTopology = mysqlTable(
     index("workspace_idx").on(table.workspaceId),
     index("deployment_idx").on(table.deploymentId),
     index("region_idx").on(table.region),
-    index("status_idx").on(table.status),
+    index("status_idx").on(table.desiredStatus),
   ]
 );
 

@@ -124,20 +124,20 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 
 		sentinelName := uid.DNS1035()
 		err = db.Query.InsertSentinel(ctx, tx, db.InsertSentinelParams{
-			ID:              sentinelID,
-			WorkspaceID:     workspaceID,
-			EnvironmentID:   envID,
-			K8sAddress:      fmt.Sprintf("%s.%s.svc.cluster.local", sentinelName, "todonamespace"),
-			K8sName:         sentinelName,
-			Region:          region,
-			Image:           "unkey/sentinel:local",
-			Health:          db.SentinelsHealthHealthy,
-			DesiredReplicas: 1,
-			Replicas:        0,
-			ProjectID:       projectID,
-			CpuMillicores:   512,
-			MemoryMib:       512,
-			CreatedAt:       now,
+			ID:                sentinelID,
+			WorkspaceID:       workspaceID,
+			EnvironmentID:     envID,
+			K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local", sentinelName, "todonamespace"),
+			K8sName:           sentinelName,
+			Region:            region,
+			Image:             "unkey/sentinel:local",
+			Health:            db.SentinelsHealthHealthy,
+			DesiredReplicas:   1,
+			AvailableReplicas: 0,
+			ProjectID:         projectID,
+			CpuMillicores:     512,
+			MemoryMib:         512,
+			CreatedAt:         now,
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {
 			return fmt.Errorf("failed to create sentinel: %w", err)

@@ -22,11 +22,10 @@ option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
 // The watch connection is designed to be long-lived with automatic reconnection on failure.
 // When an agent reconnects, it should initiate reconciliation to ensure consistency.
 service ClusterService {
-  rpc WatchSentinels(WatchRequest) returns (stream SentinelState);
+  rpc Watch(WatchRequest) returns (stream State);
   rpc GetDesiredSentinelState(GetDesiredSentinelStateRequest) returns (SentinelState);
   rpc UpdateSentinelState(UpdateSentinelStateRequest) returns (UpdateSentinelStateResponse);
 
-  rpc WatchDeployments(WatchRequest) returns (stream DeploymentState);
   rpc GetDesiredDeploymentState(GetDesiredDeploymentStateRequest) returns (DeploymentState);
   rpc UpdateDeploymentState(UpdateDeploymentStateRequest) returns (UpdateDeploymentStateResponse);
 }
@@ -81,15 +80,10 @@ message UpdateSentinelStateResponse {}
 
 // WatchRequest identifies the cluster requesting a watch stream.
 message WatchRequest {
-  // client_id uniquely identifies the client requesting the watch stream.
-  string client_id = 1;
+  // cluster_id uniquely identifies the client requesting the watch stream.
+  string cluster_id = 1;
 
-  // labels to match events for
-  // typically regions are used
-  // [region]: aws:us-east-1
-  //
-  // The server must only send events where all labels match the selector.
-  map<string, string> selectors = 2;
+  string region = 2;
 
   // live indicates whether the client wants live updates of changes
   // if true, the stream never ends
@@ -98,6 +92,14 @@ message WatchRequest {
   // synthetic indicates whether the client wants synthetic events
   // if true, the server generates synthetic events to replay the full current desired state.
   bool synthetic = 4;
+}
+
+message State {
+  oneof kind {
+    DeploymentState deployment = 1;
+    SentinelState sentinel = 2;
+  }
+  optional string acknowledge_id = 3;
 }
 
 // SentinelState represents a lifecycle event for an API sentinel configuration.

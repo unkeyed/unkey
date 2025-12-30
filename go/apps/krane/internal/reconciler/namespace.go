@@ -1,4 +1,4 @@
-package sentinel
+package reconciler
 
 import (
 	"context"

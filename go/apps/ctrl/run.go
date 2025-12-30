@@ -223,10 +223,15 @@ func Run(ctx context.Context, cfg Config) error {
 	default:
 		return fmt.Errorf("unknown build backend: %s (must be 'docker' or 'depot')", cfg.BuildBackend)
 	}
-
 	// Restate Client and Server
 	restateClient := restateIngress.NewClient(cfg.Restate.FrontlineURL)
 	restateSrv := restateServer.NewRestate()
+
+	c := cluster.New(cluster.Config{
+		Database: database,
+		Logger:   logger,
+		Bearer:   cfg.AuthToken,
+	})
 
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploy.New(deploy.Config{
 		Logger:           logger,
@@ -234,6 +239,7 @@ func Run(ctx context.Context, cfg Config) error {
 		BuildClient:      buildService,
 		DefaultDomain:    cfg.DefaultDomain,
 		Vault:            vaultSvc,
+		Cluster:          c,
 		SentinelImage:    cfg.SentinelImage,
 		AvailableRegions: cfg.AvailableRegions,
 		Bearer:           cfg.AuthToken,
@@ -410,11 +416,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DomainCache:    caches.Domains,
 		ChallengeCache: caches.Challenges,
 	})))
-	mux.Handle(ctrlv1connect.NewClusterServiceHandler(cluster.New(cluster.Config{
-		Database: database,
-		Logger:   logger,
-		Bearer:   cfg.AuthToken,
-	})))
+	mux.Handle(ctrlv1connect.NewClusterServiceHandler(c))
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)

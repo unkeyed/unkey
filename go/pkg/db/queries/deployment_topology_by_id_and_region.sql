@@ -11,7 +11,7 @@ SELECT
     dt.region,
     d.cpu_millicores,
     d.memory_mib,
-    dt.replicas,
+    dt.desired_replicas,
     d.desired_state,
     d.encrypted_environment_variables
 FROM `deployment_topology` dt

@@ -21,7 +21,7 @@ SELECT
     dt.region,
     d.cpu_millicores,
     d.memory_mib,
-    dt.replicas,
+    dt.desired_replicas,
     w.k8s_namespace as k8s_namespace,
     d.build_id,
     d.encrypted_environment_variables
@@ -52,7 +52,7 @@ type ListDesiredDeploymentTopologyRow struct {
 	Region                        string         `db:"region"`
 	CpuMillicores                 int32          `db:"cpu_millicores"`
 	MemoryMib                     int32          `db:"memory_mib"`
-	Replicas                      int32          `db:"replicas"`
+	DesiredReplicas               int32          `db:"desired_replicas"`
 	K8sNamespace                  sql.NullString `db:"k8s_namespace"`
 	BuildID                       sql.NullString `db:"build_id"`
 	EncryptedEnvironmentVariables []byte         `db:"encrypted_environment_variables"`
@@ -70,7 +70,7 @@ type ListDesiredDeploymentTopologyRow struct {
 //	    dt.region,
 //	    d.cpu_millicores,
 //	    d.memory_mib,
-//	    dt.replicas,
+//	    dt.desired_replicas,
 //	    w.k8s_namespace as k8s_namespace,
 //	    d.build_id,
 //	    d.encrypted_environment_variables
@@ -107,7 +107,7 @@ func (q *Queries) ListDesiredDeploymentTopology(ctx context.Context, db DBTX, ar
 			&i.Region,
 			&i.CpuMillicores,
 			&i.MemoryMib,
-			&i.Replicas,
+			&i.DesiredReplicas,
 			&i.K8sNamespace,
 			&i.BuildID,
 			&i.EncryptedEnvironmentVariables,

@@ -24,7 +24,7 @@ spec:
             type: Socket
       containers:
         - name: ctrl
-          image: unkey-ctrl:latest
+          image: unkey/dev-ctrl:latest
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 7091
@@ -39,7 +39,7 @@ spec:
             - name: UNKEY_PLATFORM
               value: "kubernetes"
             - name: UNKEY_IMAGE
-              value: "unkey:latest"
+              value: "unkey/dev-ctrl:latest"
             - name: UNKEY_REGION
               value: "local"
             - name: UNKEY_INSTANCE_ID
@@ -142,8 +142,8 @@ spec:
             - name: UNKEY_CLICKHOUSE_URL
               value: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
 
-            - name: UNKEY_GATEWAY_IMAGE
-              value: "unkey:dev"
+            - name: UNKEY_SENTINEL_IMAGE
+              value: "unkey/dev:latest"
 
           command: ["/unkey", "run", "ctrl"]
           volumeMounts:

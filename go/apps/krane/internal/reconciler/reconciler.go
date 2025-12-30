@@ -1,13 +1,11 @@
-package deployment
+package reconciler
 
 import (
 	"context"
+	"fmt"
 
-	"connectrpc.com/connect"
-	"github.com/unkeyed/unkey/go/apps/krane/pkg/controlplane"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
-	"github.com/unkeyed/unkey/go/pkg/buffer"
 	"github.com/unkeyed/unkey/go/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"k8s.io/client-go/kubernetes"
@@ -23,13 +21,11 @@ type Reconciler struct {
 	clientSet *kubernetes.Clientset
 	logger    logging.Logger
 
-	// watcher streams deployment state changes from the control plane
-	watcher *controlplane.Watcher[ctrlv1.DeploymentState]
 	// cluster provides access to control plane APIs for state queries
 	cluster ctrlv1connect.ClusterServiceClient
-	inbound *buffer.Buffer[*ctrlv1.DeploymentState]
-	cb      circuitbreaker.CircuitBreaker[*connect.Response[ctrlv1.UpdateDeploymentStateResponse]]
+	cb      circuitbreaker.CircuitBreaker[any]
 	done    chan struct{}
+	region  string
 }
 
 // Config holds the configuration required to create a new Reconciler.
@@ -45,8 +41,8 @@ type Config struct {
 	// Cluster provides access to control plane APIs for state queries.
 	Cluster ctrlv1connect.ClusterServiceClient
 
-	InstanceID string
-	Region     string
+	ClusterID string
+	Region    string
 }
 
 // New creates a new Reconciler with the provided configuration.
@@ -59,20 +55,19 @@ func New(cfg Config) (*Reconciler, error) {
 		clientSet: cfg.ClientSet,
 		logger:    cfg.Logger,
 		cluster:   cfg.Cluster,
-		watcher: controlplane.NewWatcher(controlplane.WatcherConfig[ctrlv1.DeploymentState]{
-			Logger:       cfg.Logger,
-			InstanceID:   cfg.InstanceID,
-			Region:       cfg.Region,
-			CreateStream: cfg.Cluster.WatchDeployments,
-		}),
+		cb:        circuitbreaker.New[any]("reconciler_state_update"),
+		done:      make(chan struct{}),
+		region:    cfg.Region,
+	}
 
-		inbound: buffer.New[*ctrlv1.DeploymentState](buffer.Config{
-			Capacity: 1000,
-			Drop:     false,
-			Name:     "deployment_controller_inbound",
-		}),
-		cb:   circuitbreaker.New[*connect.Response[ctrlv1.UpdateDeploymentStateResponse]]("deployment_controller_status"),
-		done: make(chan struct{}),
+	go r.refreshCurrentDeployments(context.Background())
+	go r.refreshCurrentSentinels(context.Background())
+
+	if err := r.watchCurrentSentinels(context.Background()); err != nil {
+		return nil, err
+	}
+	if err := r.watchCurrentDeployments(context.Background()); err != nil {
+		return nil, err
 	}
 
 	return r, nil
@@ -91,33 +86,40 @@ func New(cfg Config) (*Reconciler, error) {
 // as errors for debugging.
 //
 // This method blocks until the provided context is cancelled.
-func (r *Reconciler) Start() {
-
-	ctx := context.Background()
-	r.watcher.Sync(ctx, r.inbound)
-	r.watcher.Watch(ctx, r.inbound)
-	r.refreshCurrentReplicaSets(ctx)
-	go r.watchCurrentDeployments(ctx)
-
-	for {
-		select {
-		case <-r.done:
-			return
-		case e := <-r.inbound.Consume():
-			switch state := e.GetState().(type) {
+func (r *Reconciler) HandleState(ctx context.Context, state *ctrlv1.State) error {
+	switch kind := state.GetKind().(type) {
+	case *ctrlv1.State_Deployment:
+		{
+			switch op := kind.Deployment.GetState().(type) {
 			case *ctrlv1.DeploymentState_Apply:
-				if err := r.applyDeployment(ctx, state.Apply); err != nil {
-					r.logger.Error("unable to apply deployment", "error", err.Error(), "deployment_id", state.Apply.GetDeploymentId())
+				if err := r.ApplyDeployment(ctx, op.Apply); err != nil {
+					return err
 				}
 			case *ctrlv1.DeploymentState_Delete:
-				if err := r.deleteDeployment(ctx, state.Delete); err != nil {
-					r.logger.Error("unable to delete deployment", "error", err.Error(), "deployment_k8s_name", state.Delete.GetK8SName())
+				if err := r.DeleteDeployment(ctx, op.Delete); err != nil {
+					return err
 				}
-			default:
-				r.logger.Error("Unknown deployment event", "event", state)
 			}
 		}
+	case *ctrlv1.State_Sentinel:
+		{
+			switch op := kind.Sentinel.GetState().(type) {
+			case *ctrlv1.SentinelState_Apply:
+				if err := r.ApplySentinel(ctx, op.Apply); err != nil {
+					return err
+				}
+			case *ctrlv1.SentinelState_Delete:
+				if err := r.DeleteSentinel(ctx, op.Delete); err != nil {
+					return err
+				}
+			}
+		}
+
+	default:
+		return fmt.Errorf("unknown state type: %T", kind)
 	}
+
+	return nil
 }
 
 func (r *Reconciler) Stop() error {

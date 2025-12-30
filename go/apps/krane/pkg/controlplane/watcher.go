@@ -6,7 +6,7 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/go/pkg/buffer"
+	"github.com/unkeyed/unkey/go/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
 	"github.com/unkeyed/unkey/go/pkg/repeat"
 )
@@ -19,11 +19,11 @@ import (
 // for consuming events.
 //
 // The type parameter T represents the specific event type being watched.
-type Watcher[T any] struct {
-	logger       logging.Logger
-	instanceID   string
-	region       string
-	createStream func(context.Context, *connect.Request[ctrlv1.WatchRequest]) (*connect.ServerStreamForClient[T], error)
+type Watcher struct {
+	logger    logging.Logger
+	clusterID string
+	region    string
+	cluster   ctrlv1connect.ClusterServiceClient
 }
 
 // WatcherConfig holds the configuration for creating a new Watcher.
@@ -31,18 +31,18 @@ type Watcher[T any] struct {
 // All fields are required for proper watcher operation. The CreateStream
 // function should typically be a method on a control plane client that
 // establishes the streaming connection.
-type WatcherConfig[T any] struct {
+type WatcherConfig struct {
 	// Logger is used for logging watcher events and errors.
 	Logger logging.Logger
 
-	// InstanceID uniquely identifies this watcher instance to the control plane.
-	InstanceID string
+	// Cluster	ID uniquely identifies this watcher instance to the control plane.
+	ClusterID string
 
 	// Region identifies the geographical region for filtering events.
 	Region string
 
-	// CreateStream is a function that establishes a streaming connection to the control plane.
-	CreateStream func(context.Context, *connect.Request[ctrlv1.WatchRequest]) (*connect.ServerStreamForClient[T], error)
+	// Cluster is the control plane client used to establish the streaming connection.
+	Cluster ctrlv1connect.ClusterServiceClient
 }
 
 // NewWatcher creates a new event watcher with the specified configuration.
@@ -53,48 +53,35 @@ type WatcherConfig[T any] struct {
 //
 // The returned watcher is safe for concurrent use, but Watch() and Sync()
 // should typically be run in separate goroutines.
-func NewWatcher[T any](cfg WatcherConfig[T]) *Watcher[T] {
-	w := &Watcher[T]{
-		logger:       cfg.Logger,
-		instanceID:   cfg.InstanceID,
-		region:       cfg.Region,
-		createStream: cfg.CreateStream,
+func NewWatcher(cfg WatcherConfig) *Watcher {
+	w := &Watcher{
+		logger:    cfg.Logger,
+		clusterID: cfg.ClusterID,
+		region:    cfg.Region,
+		cluster:   cfg.Cluster,
 	}
 
 	return w
 }
 
-// Sync performs periodic full synchronization by creating synthetic streams.
-//
-// This method runs indefinitely in the background, creating a new stream every
-// minute to fetch the complete current state. Synthetic streams (Synthetic=true,
-// Live=false) return all current state rather than just live updates.
-//
-// The method handles connection errors gracefully by logging them and continuing
-// with the next sync cycle. Each stream is properly closed after processing.
-//
-// This should be run in a separate goroutine:
-//
-//	go watcher.Sync(ctx)
-func (w *Watcher[T]) Sync(ctx context.Context, buf *buffer.Buffer[*T]) {
-	w.logger.Info("Starting Sync")
+func (w *Watcher) Start(ctx context.Context, handle func(context.Context, *ctrlv1.State) error) {
 
-	req := connect.NewRequest(&ctrlv1.WatchRequest{
-		ClientId: w.instanceID,
-		Selectors: map[string]string{
-			"region": w.region,
-		},
-		Synthetic: true,
-		Live:      false,
-	})
 	repeat.Every(time.Minute, func() {
-		stream, err := w.createStream(ctx, req)
+		w.logger.Info("Pulling synthetic state from control plane")
+		stream, err := w.cluster.Watch(ctx, connect.NewRequest(&ctrlv1.WatchRequest{
+			ClusterId: w.clusterID,
+			Region:    w.region,
+			Synthetic: true,
+			Live:      false,
+		}))
 		if err != nil {
 			w.logger.Error("unable to connect to control plane", "error", err)
 			return
 		}
 		for stream.Receive() {
-			buf.Buffer(stream.Msg())
+			if err := handle(ctx, stream.Msg()); err != nil {
+				w.logger.Error("error handling state", "error", err)
+			}
 		}
 		err = stream.Close()
 		if err != nil {
@@ -103,46 +90,20 @@ func (w *Watcher[T]) Sync(ctx context.Context, buf *buffer.Buffer[*T]) {
 
 	})
 
-}
-
-// Watch establishes a live streaming connection to receive real-time events.
-//
-// This method runs indefinitely, maintaining a persistent connection to the
-// control plane for live event delivery. It implements exponential backoff
-// with jitter for reconnection attempts, with a maximum of 60 seconds between
-// retries.
-//
-// The watcher handles connection failures gracefully:
-// - Logs connection errors with failure count
-// - Implements progressive backoff (1s, 2s, 3s... up to 60s)
-// - Automatically reconnects when streams end
-// - Resets failure counter on successful connections
-//
-// Live streams (Synthetic=false, Live=true) deliver only new events as they occur,
-// not historical state. Use Sync() for full state reconciliation.
-//
-// This should be run in a separate goroutine:
-//
-//	go watcher.Watch(ctx)
-func (w *Watcher[T]) Watch(ctx context.Context, buf *buffer.Buffer[*T]) {
-	w.logger.Info("Starting Watch")
-
-	req := connect.NewRequest(&ctrlv1.WatchRequest{
-		ClientId: w.instanceID,
-		Selectors: map[string]string{
-			"region": w.region,
-		},
-		Synthetic: false,
-		Live:      true,
-	})
 	go func() {
+		w.logger.Info("Starting control plane watcher")
 
 		consecutiveFailures := 0
-		var stream *connect.ServerStreamForClient[T]
+		var stream *connect.ServerStreamForClient[ctrlv1.State]
 		var err error
 		for {
 			if stream == nil {
-				stream, err = w.createStream(ctx, req)
+				stream, err = w.cluster.Watch(ctx, connect.NewRequest(&ctrlv1.WatchRequest{
+					ClusterId: w.clusterID,
+					Region:    w.region,
+					Synthetic: false,
+					Live:      true,
+				}))
 				if err != nil {
 					consecutiveFailures++
 					w.logger.Error("unable to connect to control plane", "consecutive_failures", consecutiveFailures)
@@ -152,17 +113,22 @@ func (w *Watcher[T]) Watch(ctx context.Context, buf *buffer.Buffer[*T]) {
 					consecutiveFailures = 0
 				}
 			}
+			w.logger.Info("control plane watch stream started")
 
 			hasMsg := stream.Receive()
 			if !hasMsg {
-				w.logger.Debug("Stream ended, reconnecting...",
+				w.logger.Info("Stream ended, reconnecting...",
 					"error", stream.Err(),
 				)
 				stream = nil
 				time.Sleep(time.Second)
 				continue
 			}
-			buf.Buffer(stream.Msg())
+			msg := stream.Msg()
+			w.logger.Info("control plane watch stream received message", "message", msg)
+			if err := handle(ctx, msg); err != nil {
+				w.logger.Error("error handling state", "error", err)
+			}
 		}
 	}()
 

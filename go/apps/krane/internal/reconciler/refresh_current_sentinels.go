@@ -1,4 +1,4 @@
-package sentinel
+package reconciler
 
 import (
 	"context"
@@ -26,7 +26,7 @@ import (
 // This approach ensures eventual consistency between the database state
 // and Kubernetes cluster state, acting as a safety net for the event-based
 // synchronization mechanism.
-func (r *Reconciler) refreshCurrentDeployments(ctx context.Context) {
+func (r *Reconciler) refreshCurrentSentinels(ctx context.Context) {
 
 	repeat.Every(1*time.Minute, func() {
 
@@ -62,7 +62,16 @@ func (r *Reconciler) refreshCurrentDeployments(ctx context.Context) {
 					continue
 				}
 
-				r.inbound.Buffer(res.Msg)
+				switch res.Msg.GetState().(type) {
+				case *ctrlv1.SentinelState_Apply:
+					if err := r.ApplySentinel(ctx, res.Msg.GetApply()); err != nil {
+						r.logger.Error("unable to apply sentinel", "error", err.Error(), "sentinel_id", sentinelID)
+					}
+				case *ctrlv1.SentinelState_Delete:
+					if err := r.DeleteSentinel(ctx, res.Msg.GetDelete()); err != nil {
+						r.logger.Error("unable to delete sentinel", "error", err.Error(), "sentinel_id", sentinelID)
+					}
+				}
 			}
 			cursor = deployments.Continue
 			if cursor == "" {

@@ -23,7 +23,7 @@ SELECT
     dt.region,
     d.cpu_millicores,
     d.memory_mib,
-    dt.replicas,
+    dt.desired_replicas,
     d.desired_state,
     d.encrypted_environment_variables
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
@@ -51,7 +51,7 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 	Region                        string                  `db:"region"`
 	CpuMillicores                 int32                   `db:"cpu_millicores"`
 	MemoryMib                     int32                   `db:"memory_mib"`
-	Replicas                      int32                   `db:"replicas"`
+	DesiredReplicas               int32                   `db:"desired_replicas"`
 	DesiredState                  DeploymentsDesiredState `db:"desired_state"`
 	EncryptedEnvironmentVariables []byte                  `db:"encrypted_environment_variables"`
 }
@@ -70,7 +70,7 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 //	    dt.region,
 //	    d.cpu_millicores,
 //	    d.memory_mib,
-//	    dt.replicas,
+//	    dt.desired_replicas,
 //	    d.desired_state,
 //	    d.encrypted_environment_variables
 //	FROM `deployment_topology` dt
@@ -94,7 +94,7 @@ func (q *Queries) FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DB
 		&i.Region,
 		&i.CpuMillicores,
 		&i.MemoryMib,
-		&i.Replicas,
+		&i.DesiredReplicas,
 		&i.DesiredState,
 		&i.EncryptedEnvironmentVariables,
 	)

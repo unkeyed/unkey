@@ -59,7 +59,7 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 					WorkspaceId:                   deployment.WorkspaceID,
 					ProjectId:                     deployment.ProjectID,
 					EnvironmentId:                 deployment.EnvironmentID,
-					Replicas:                      deployment.Replicas,
+					Replicas:                      deployment.DesiredReplicas,
 					Image:                         deployment.Image.String,
 					CpuMillicores:                 int64(deployment.CpuMillicores),
 					MemoryMib:                     int64(deployment.MemoryMib),
