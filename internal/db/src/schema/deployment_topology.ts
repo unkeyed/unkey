@@ -33,27 +33,21 @@ export const deploymentTopology = mysqlTable(
   },
   (table) => [
     primaryKey({ columns: [table.deploymentId, table.region] }),
-    uniqueIndex("unique_region_per_deployment").on(
-      table.deploymentId,
-      table.region
-    ),
+    uniqueIndex("unique_region_per_deployment").on(table.deploymentId, table.region),
     index("workspace_idx").on(table.workspaceId),
     index("deployment_idx").on(table.deploymentId),
     index("region_idx").on(table.region),
     index("status_idx").on(table.desiredStatus),
-  ]
+  ],
 );
 
-export const deploymentTopologyRelations = relations(
-  deploymentTopology,
-  ({ one }) => ({
-    workspace: one(workspaces, {
-      fields: [deploymentTopology.workspaceId],
-      references: [workspaces.id],
-    }),
-    delpoyment: one(deployments, {
-      fields: [deploymentTopology.deploymentId],
-      references: [deployments.id],
-    }),
-  })
-);
+export const deploymentTopologyRelations = relations(deploymentTopology, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [deploymentTopology.workspaceId],
+    references: [workspaces.id],
+  }),
+  delpoyment: one(deployments, {
+    fields: [deploymentTopology.deploymentId],
+    references: [deployments.id],
+  }),
+}));

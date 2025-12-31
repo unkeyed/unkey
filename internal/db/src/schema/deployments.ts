@@ -1,13 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  bigint,
-  index,
-  int,
-  mysqlEnum,
-  mysqlTable,
-  text,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { bigint, index, int, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
 import { deploymentSteps } from "./deployment_steps";
 import { environments } from "./environments";
 import { instances } from "./instances";
@@ -58,19 +50,10 @@ export const deployments = mysqlTable(
 
     // Environment variables snapshot (protobuf: ctrl.v1.SecretsBlob)
     // Encrypted values from environment_variables at deploy time
-    encryptedEnvironmentVariables: longblob(
-      "encrypted_environment_variables"
-    ).notNull(),
+    encryptedEnvironmentVariables: longblob("encrypted_environment_variables").notNull(),
 
     // Deployment status
-    status: mysqlEnum("status", [
-      "pending",
-      "building",
-      "deploying",
-      "network",
-      "ready",
-      "failed",
-    ])
+    status: mysqlEnum("status", ["pending", "building", "deploying", "network", "ready", "failed"])
       .notNull()
       .default("pending"),
     ...lifecycleDates,
@@ -79,7 +62,7 @@ export const deployments = mysqlTable(
     index("workspace_idx").on(table.workspaceId),
     index("project_idx").on(table.projectId),
     index("status_idx").on(table.status),
-  ]
+  ],
 );
 
 export const deploymentsRelations = relations(deployments, ({ one, many }) => ({

@@ -1,7 +1,7 @@
 import type { Project } from "@/lib/collections/deploy/projects";
 import { db, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { deployments, ingressRoutes, projects } from "@unkey/db/src/schema";
+import { deployments, frontlineRoutes, projects } from "@unkey/db/src/schema";
 
 type ProjectRow = {
   id: string;

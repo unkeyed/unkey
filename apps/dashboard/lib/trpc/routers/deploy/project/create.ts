@@ -2,8 +2,6 @@ import { createProjectRequestSchema } from "@/lib/collections/deploy/projects";
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { createClient } from "@connectrpc/connect";
-import { createConnectTransport } from "@connectrpc/connect-web";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 
@@ -40,8 +38,7 @@ export const createProject = workspaceProcedure
         });
         throw new TRPCError({
           code: "NOT_FOUND",
-          message:
-            "Workspace not found. Please verify your workspace selection and try again.",
+          message: "Workspace not found. Please verify your workspace selection and try again.",
         });
       }
 
@@ -135,8 +132,7 @@ export const createProject = workspaceProcedure
 
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message:
-          "Failed to create project. Our team has been notified of this issue.",
+        message: "Failed to create project. Our team has been notified of this issue.",
       });
     }
   });
