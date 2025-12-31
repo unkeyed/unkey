@@ -1,7 +1,7 @@
 import { keyDetailsLogsPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/table/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db, isNull } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { z } from "zod";
@@ -15,9 +15,7 @@ const keyDetailsLogsResponse = z.object({
 });
 type KeyDetailsLogsResponse = z.infer<typeof keyDetailsLogsResponse>;
 
-export const queryKeyDetailsLogs = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const queryKeyDetailsLogs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(keyDetailsLogsPayload)
   .output(keyDetailsLogsResponse)

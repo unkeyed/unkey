@@ -6,14 +6,12 @@ import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { upsertPermissions } from "../rbac";
 
-export const createRootKey = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const createRootKey = workspaceProcedure
   .input(
     z.object({
       name: z.string().optional(),

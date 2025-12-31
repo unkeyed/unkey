@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { requireUser, t } from "../../trpc";
+import { protectedProcedure } from "../../trpc";
 
 // Type definition for workspace data with quotas (inferred from Drizzle query)
 type WorkspaceWithQuotas = NonNullable<
@@ -17,7 +17,7 @@ type WorkspaceWithQuotas = NonNullable<
 const workspaceCache = new Map<string, { data: WorkspaceWithQuotas; timestamp: number }>();
 const CACHE_TTL = 1000 * 60 * 10; // 10 minutes server-side cache
 
-export const getCurrentWorkspace = t.procedure.use(requireUser).query(async ({ ctx }) => {
+export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
   // Handle case where workspace is not in context (initial load scenarios)
   if (!ctx.workspace) {
     if (!ctx.tenant?.id) {

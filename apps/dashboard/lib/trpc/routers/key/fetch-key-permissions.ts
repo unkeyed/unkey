@@ -1,5 +1,5 @@
 import { and, db, eq, isNull, schema } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -22,9 +22,7 @@ const KeyPermissionsRequestSchema = z.object({
   keyspaceId: z.string(),
 });
 
-export const fetchKeyPermissions = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const fetchKeyPermissions = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(KeyPermissionsRequestSchema)
   .output(KeyPermissionsResponseSchema)

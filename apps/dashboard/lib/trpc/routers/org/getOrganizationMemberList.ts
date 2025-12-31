@@ -1,10 +1,9 @@
 import { auth as authProvider } from "@/lib/auth/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireUser, t } from "../../trpc";
+import { protectedProcedure } from "../../trpc";
 
-export const getOrganizationMemberList = t.procedure
-  .use(requireUser)
+export const getOrganizationMemberList = protectedProcedure
   .input(z.string())
   .query(async ({ ctx }) => {
     try {

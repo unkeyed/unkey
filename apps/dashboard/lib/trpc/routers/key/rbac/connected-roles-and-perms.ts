@@ -1,5 +1,5 @@
 import { and, db, eq } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import {
   keys,
@@ -41,9 +41,7 @@ const keyDetailsResponse = z.object({
 });
 export type KeyRbacDetails = z.infer<typeof keyDetailsResponse>;
 
-export const getConnectedRolesAndPerms = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const getConnectedRolesAndPerms = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(keyDetailsInput)
   .output(keyDetailsResponse)

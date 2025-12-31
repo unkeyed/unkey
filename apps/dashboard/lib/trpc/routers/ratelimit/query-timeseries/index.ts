@@ -1,13 +1,11 @@
 import { ratelimitQueryTimeseriesPayload } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/components/charts/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { transformRatelimitFilters } from "./utils";
 
-export const queryRatelimitTimeseries = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const queryRatelimitTimeseries = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(ratelimitQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {

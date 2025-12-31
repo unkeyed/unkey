@@ -1,15 +1,13 @@
 import { OpenApiService } from "@/gen/proto/ctrl/v1/openapi_pb";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { requireUser, requireWorkspace, t } from "@/lib/trpc/trpc";
+import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-export const getOpenApiDiff = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const getOpenApiDiff = workspaceProcedure
   .input(
     z.object({
       oldDeploymentId: z.string(),

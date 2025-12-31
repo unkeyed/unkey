@@ -1,11 +1,9 @@
 import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../../trpc";
+import { workspaceProcedure } from "../../../trpc";
 
-export const deleteEnvVar = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const deleteEnvVar = workspaceProcedure
   .input(
     z.object({
       envVarId: z.string(),

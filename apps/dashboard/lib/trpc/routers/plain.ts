@@ -1,15 +1,14 @@
 import { auth } from "@/lib/auth/server";
 import { env } from "@/lib/env";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { PlainClient, uiComponent } from "@team-plain/typescript-sdk";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 const issueType = z.enum(["bug", "feature", "security", "question", "payment"]);
 const severity = z.enum(["p0", "p1", "p2", "p3"]);
-export const createPlainIssue = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+
+export const createPlainIssue = workspaceProcedure
   .use(withRatelimit(ratelimit.create))
   .input(
     z.object({

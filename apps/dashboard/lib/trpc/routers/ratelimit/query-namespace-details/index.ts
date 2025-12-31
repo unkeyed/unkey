@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -32,9 +32,7 @@ const workspaceDetailsOutput = z.object({
 
 export type WorkspaceDetailsResponse = z.infer<typeof workspaceDetailsOutput>;
 
-export const queryRatelimitWorkspaceDetails = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const queryRatelimitWorkspaceDetails = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(workspaceDetailsInput)
   .output(workspaceDetailsOutput)

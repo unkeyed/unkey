@@ -1,5 +1,5 @@
 import { and, db, eq, isNull } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { apis } from "@unkey/db/src/schema";
 import { z } from "zod";
@@ -43,9 +43,7 @@ const apiLayoutResponse = z.object({
   }),
 });
 
-export const queryApiKeyDetails = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const queryApiKeyDetails = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(queryApiLayoutPayload)
   .output(apiLayoutResponse)

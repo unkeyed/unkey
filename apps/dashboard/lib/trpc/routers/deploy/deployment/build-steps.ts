@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -20,9 +20,7 @@ const deploymentLogsResponseSchema = z.object({
 export type DeploymentBuildStep = z.infer<typeof logEntry>;
 export type DeploymentRequestSchema = z.infer<typeof deploymentLogsRequestSchema>;
 
-export const getDeploymentBuildSteps = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const getDeploymentBuildSteps = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(deploymentLogsRequestSchema)
   .output(deploymentLogsResponseSchema)

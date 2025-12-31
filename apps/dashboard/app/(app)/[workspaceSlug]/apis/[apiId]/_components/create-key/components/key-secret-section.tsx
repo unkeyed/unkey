@@ -71,7 +71,10 @@ export const KeySecretSection = ({
             setIsVisible={setShowKeyInSnippet}
             className="absolute right-12 top-3 md:top-4"
           />
-          <CopyButton value={snippet} className="absolute right-3 md:right-4 top-3 md:top-4" />
+          <CopyButton
+            value={snippet}
+            className="absolute right-3 md:right-4 top-3 md:top-4 secret"
+          />
         </div>
         <Alert variant="warn">
           <div className="flex items-start mb-1 gap-2">

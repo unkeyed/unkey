@@ -1,7 +1,7 @@
 import type { Project } from "@/lib/collections/deploy/projects";
 import { db, sql } from "@/lib/db";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
-import { deployments, frontlineRoutes, projects } from "@unkey/db/src/schema";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
+import { deployments, ingressRoutes, projects } from "@unkey/db/src/schema";
 
 type ProjectRow = {
   id: string;
@@ -19,9 +19,7 @@ type ProjectRow = {
   latest_deployment_id: string | null;
 };
 
-export const listProjects = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const listProjects = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .query(async ({ ctx }) => {
     const result = await db.execute(sql`

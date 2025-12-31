@@ -46,7 +46,7 @@ export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
         variant={variant}
         title="Copy to clipboard"
         size="icon"
-        className={cn("focus:ring-0 focus:border-grayA-6", className)}
+        className={cn("focus:ring-0 focus:border-grayA-6 secret", className)}
         onClick={(e) => {
           if (!e.defaultPrevented) {
             e.stopPropagation(); // Prevent triggering parent button click

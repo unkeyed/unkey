@@ -81,19 +81,19 @@ export const columns = (selectedLog: AuditLog | null): Column<AuditLog>[] => [
       <div className="flex items-center gap-3 truncate">
         {log.auditLog.actor.type === "user" && log.user ? (
           <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
-            <span className="text-xs whitespace-nowrap">
+            <span className="text-xs whitespace-nowrap secret">
               {`${log.user.firstName ?? ""} ${log.user.lastName ?? ""}`}
             </span>
           </div>
         ) : log.auditLog.actor.type === "key" ? (
           <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
             <Key iconSize="sm-thin" />
-            <span className="font-mono text-xs truncate">{log.auditLog.actor.id}</span>
+            <span className="font-mono text-xs truncate secret">{log.auditLog.actor.id}</span>
           </div>
         ) : (
           <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
             <MathFunction iconSize="sm-thin" />
-            <span className="font-mono text-xs truncate">{log.auditLog.actor.id}</span>
+            <span className="font-mono text-xs truncate secret">{log.auditLog.actor.id}</span>
           </div>
         )}
       </div>

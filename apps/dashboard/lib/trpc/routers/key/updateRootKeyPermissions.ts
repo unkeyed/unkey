@@ -3,7 +3,7 @@ import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { env } from "@/lib/env";
@@ -13,9 +13,7 @@ import { upsertPermissions } from "../rbac";
  * Replaces the full permission set for the root key — clients must submit the complete,
  * authoritative permission list to avoid lost updates
  */
-export const updateRootKeyPermissions = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const updateRootKeyPermissions = workspaceProcedure
   .input(
     z.object({
       keyId: z.string(),

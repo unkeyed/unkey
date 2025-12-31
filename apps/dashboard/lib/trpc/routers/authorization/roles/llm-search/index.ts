@@ -1,5 +1,5 @@
 import { env } from "@/lib/env";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "@/lib/trpc/trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import OpenAI from "openai";
 import { z } from "zod";
 import { getStructuredSearchFromLLM } from "./utils";
@@ -10,9 +10,7 @@ const openai = env().OPENAI_API_KEY
     })
   : null;
 
-export const rolesLlmSearch = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const rolesLlmSearch = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(z.object({ query: z.string() }))
   .mutation(async ({ input }) => {

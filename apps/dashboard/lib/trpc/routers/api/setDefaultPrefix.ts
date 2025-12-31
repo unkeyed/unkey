@@ -4,11 +4,9 @@ import { z } from "zod";
 import { keyPrefixSchema } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 
-export const setDefaultApiPrefix = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const setDefaultApiPrefix = workspaceProcedure
   .input(
     z.object({
       defaultPrefix: keyPrefixSchema.pipe(z.string()),

@@ -4,11 +4,9 @@ import { z } from "zod";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 
-export const updateApiIpWhitelist = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const updateApiIpWhitelist = workspaceProcedure
   .input(
     z.object({
       ipWhitelist: z

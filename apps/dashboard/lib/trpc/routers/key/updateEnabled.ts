@@ -2,11 +2,9 @@ import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireUser, requireWorkspace, t } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 
-export const updateKeysEnabled = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const updateKeysEnabled = workspaceProcedure
   .input(
     z.object({
       keyIds: z

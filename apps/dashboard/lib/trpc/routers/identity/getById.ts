@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { ratelimit, requireUser, requireWorkspace, t, withRatelimit } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 const GetIdentityByIdInput = z.object({
   identityId: z.string(),
@@ -40,9 +40,7 @@ const IdentityDetailSchema = z.object({
   ratelimits: z.array(RatelimitSchema),
 });
 
-export const getIdentityById = t.procedure
-  .use(requireUser)
-  .use(requireWorkspace)
+export const getIdentityById = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(GetIdentityByIdInput)
   .output(IdentityDetailSchema)

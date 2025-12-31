@@ -66,7 +66,7 @@ export const Invitations = memo<InvitationsProps>(({ user, organization }) => {
         {invitations.map((invitation) => (
           <TableRow key={invitation.id}>
             <TableCell>
-              <span className="text-content font-medium">{invitation.email}</span>
+              <span className="text-content font-medium email">{invitation.email}</span>
             </TableCell>
             <TableCell>
               <StatusBadge status={invitation.state} />

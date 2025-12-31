@@ -7,10 +7,9 @@ import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { requireUser, t } from "../../trpc";
+import { protectedProcedure } from "../../trpc";
 
-export const createWorkspace = t.procedure
-  .use(requireUser)
+export const createWorkspace = protectedProcedure
   .input(
     z.object({
       name: z.string().min(3).max(50),
