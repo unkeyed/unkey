@@ -8,7 +8,7 @@ export async function upsertPermission(
   ctx: Context,
   workspaceId: string,
   name: string,
-): Promise<Permission> {
+): Promise<Omit<Permission, "pk">> {
   return await db.transaction(async (tx) => {
     const existingPermission = await tx.query.permissions
       .findFirst({
@@ -32,7 +32,7 @@ export async function upsertPermission(
       return existingPermission;
     }
 
-    const permission: Permission = {
+    const permission = {
       id: newId("permission"),
       workspaceId,
       name,

@@ -178,6 +178,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 
 		permissionsToSet = append(permissionsToSet, db.Permission{
+			Pk:          0, // only here to make the linter happy
 			ID:          permissionID,
 			Name:        perm,
 			WorkspaceID: auth.AuthorizedWorkspaceID,

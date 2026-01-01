@@ -10,16 +10,17 @@ import (
 )
 
 const findKeySpaceByID = `-- name: FindKeySpaceByID :one
-SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM ` + "`" + `key_auth` + "`" + ` WHERE id = ?
+SELECT pk, id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM ` + "`" + `key_auth` + "`" + ` WHERE id = ?
 `
 
 // FindKeySpaceByID
 //
-//	SELECT id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
+//	SELECT pk, id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
 func (q *Queries) FindKeySpaceByID(ctx context.Context, db DBTX, id string) (KeyAuth, error) {
 	row := db.QueryRowContext(ctx, findKeySpaceByID, id)
 	var i KeyAuth
 	err := row.Scan(
+		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
 		&i.CreatedAtM,

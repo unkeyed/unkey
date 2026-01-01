@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { projects } from "./projects";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -7,7 +7,8 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 export const frontlineRoutes = mysqlTable(
   "frontline_routes",
   {
-    id: varchar("id", { length: 128 }).primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: varchar("id", { length: 128 }).notNull().unique(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
     deploymentId: varchar("deployment_id", { length: 255 }).notNull(),
     environmentId: varchar("environment_id", { length: 255 }).notNull(),

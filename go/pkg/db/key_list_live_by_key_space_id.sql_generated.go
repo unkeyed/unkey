@@ -11,7 +11,7 @@ import (
 )
 
 const listLiveKeysByKeySpaceID = `-- name: ListLiveKeysByKeySpaceID :many
-SELECT k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
+SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
        i.id                 as identity_table_id,
        i.external_id        as identity_external_id,
        i.meta               as identity_meta,
@@ -110,6 +110,7 @@ type ListLiveKeysByKeySpaceIDParams struct {
 }
 
 type ListLiveKeysByKeySpaceIDRow struct {
+	Pk                 uint64         `db:"pk"`
 	ID                 string         `db:"id"`
 	KeyAuthID          string         `db:"key_auth_id"`
 	Hash               string         `db:"hash"`
@@ -147,7 +148,7 @@ type ListLiveKeysByKeySpaceIDRow struct {
 
 // ListLiveKeysByKeySpaceID
 //
-//	SELECT k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
+//	SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
 //	       i.id                 as identity_table_id,
 //	       i.external_id        as identity_external_id,
 //	       i.meta               as identity_meta,
@@ -252,6 +253,7 @@ func (q *Queries) ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg Lis
 	for rows.Next() {
 		var i ListLiveKeysByKeySpaceIDRow
 		if err := rows.Scan(
+			&i.Pk,
 			&i.ID,
 			&i.KeyAuthID,
 			&i.Hash,

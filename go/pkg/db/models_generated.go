@@ -183,55 +183,6 @@ func (ns NullCustomDomainsChallengeType) Value() (driver.Value, error) {
 	return string(ns.CustomDomainsChallengeType), nil
 }
 
-type DeploymentStepsStatus string
-
-const (
-	DeploymentStepsStatusPending                DeploymentStepsStatus = "pending"
-	DeploymentStepsStatusDownloadingDockerImage DeploymentStepsStatus = "downloading_docker_image"
-	DeploymentStepsStatusBuildingRootfs         DeploymentStepsStatus = "building_rootfs"
-	DeploymentStepsStatusUploadingRootfs        DeploymentStepsStatus = "uploading_rootfs"
-	DeploymentStepsStatusCreatingVm             DeploymentStepsStatus = "creating_vm"
-	DeploymentStepsStatusBootingVm              DeploymentStepsStatus = "booting_vm"
-	DeploymentStepsStatusAssigningDomains       DeploymentStepsStatus = "assigning_domains"
-	DeploymentStepsStatusCompleted              DeploymentStepsStatus = "completed"
-	DeploymentStepsStatusFailed                 DeploymentStepsStatus = "failed"
-)
-
-func (e *DeploymentStepsStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = DeploymentStepsStatus(s)
-	case string:
-		*e = DeploymentStepsStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for DeploymentStepsStatus: %T", src)
-	}
-	return nil
-}
-
-type NullDeploymentStepsStatus struct {
-	DeploymentStepsStatus DeploymentStepsStatus
-	Valid                 bool // Valid is true if DeploymentStepsStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullDeploymentStepsStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.DeploymentStepsStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.DeploymentStepsStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullDeploymentStepsStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.DeploymentStepsStatus), nil
-}
-
 type DeploymentTopologyDesiredStatus string
 
 const (
@@ -794,6 +745,7 @@ func (ns NullWorkspacesPlan) Value() (driver.Value, error) {
 }
 
 type AcmeChallenge struct {
+	Pk            uint64                      `db:"pk"`
 	DomainID      string                      `db:"domain_id"`
 	WorkspaceID   string                      `db:"workspace_id"`
 	Token         string                      `db:"token"`
@@ -806,6 +758,7 @@ type AcmeChallenge struct {
 }
 
 type AcmeUser struct {
+	Pk              uint64         `db:"pk"`
 	ID              string         `db:"id"`
 	WorkspaceID     string         `db:"workspace_id"`
 	EncryptedKey    string         `db:"encrypted_key"`
@@ -815,6 +768,7 @@ type AcmeUser struct {
 }
 
 type Api struct {
+	Pk               uint64           `db:"pk"`
 	ID               string           `db:"id"`
 	Name             string           `db:"name"`
 	WorkspaceID      string           `db:"workspace_id"`
@@ -828,6 +782,7 @@ type Api struct {
 }
 
 type AuditLog struct {
+	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
 	Bucket      string         `db:"bucket"`
@@ -846,6 +801,7 @@ type AuditLog struct {
 }
 
 type AuditLogBucket struct {
+	Pk               uint64        `db:"pk"`
 	ID               string        `db:"id"`
 	WorkspaceID      string        `db:"workspace_id"`
 	Name             string        `db:"name"`
@@ -856,6 +812,7 @@ type AuditLogBucket struct {
 }
 
 type AuditLogTarget struct {
+	Pk          uint64         `db:"pk"`
 	WorkspaceID string         `db:"workspace_id"`
 	BucketID    string         `db:"bucket_id"`
 	Bucket      string         `db:"bucket"`
@@ -870,6 +827,7 @@ type AuditLogTarget struct {
 }
 
 type Certificate struct {
+	Pk                  uint64        `db:"pk"`
 	ID                  string        `db:"id"`
 	WorkspaceID         string        `db:"workspace_id"`
 	Hostname            string        `db:"hostname"`
@@ -880,6 +838,7 @@ type Certificate struct {
 }
 
 type ClickhouseWorkspaceSetting struct {
+	Pk                        uint64        `db:"pk"`
 	WorkspaceID               string        `db:"workspace_id"`
 	Username                  string        `db:"username"`
 	PasswordEncrypted         string        `db:"password_encrypted"`
@@ -894,6 +853,7 @@ type ClickhouseWorkspaceSetting struct {
 }
 
 type CustomDomain struct {
+	Pk            uint64                     `db:"pk"`
 	ID            string                     `db:"id"`
 	WorkspaceID   string                     `db:"workspace_id"`
 	Domain        string                     `db:"domain"`
@@ -903,6 +863,7 @@ type CustomDomain struct {
 }
 
 type Deployment struct {
+	Pk                            uint64                  `db:"pk"`
 	ID                            string                  `db:"id"`
 	K8sName                       string                  `db:"k8s_name"`
 	WorkspaceID                   string                  `db:"workspace_id"`
@@ -927,16 +888,8 @@ type Deployment struct {
 	UpdatedAt                     sql.NullInt64           `db:"updated_at"`
 }
 
-type DeploymentStep struct {
-	DeploymentID string                `db:"deployment_id"`
-	WorkspaceID  string                `db:"workspace_id"`
-	ProjectID    string                `db:"project_id"`
-	Status       DeploymentStepsStatus `db:"status"`
-	Message      string                `db:"message"`
-	CreatedAt    int64                 `db:"created_at"`
-}
-
 type DeploymentTopology struct {
+	Pk              uint64                          `db:"pk"`
 	WorkspaceID     string                          `db:"workspace_id"`
 	DeploymentID    string                          `db:"deployment_id"`
 	Region          string                          `db:"region"`
@@ -947,6 +900,7 @@ type DeploymentTopology struct {
 }
 
 type EncryptedKey struct {
+	Pk              uint64        `db:"pk"`
 	WorkspaceID     string        `db:"workspace_id"`
 	KeyID           string        `db:"key_id"`
 	CreatedAt       int64         `db:"created_at"`
@@ -956,6 +910,7 @@ type EncryptedKey struct {
 }
 
 type Environment struct {
+	Pk               uint64        `db:"pk"`
 	ID               string        `db:"id"`
 	WorkspaceID      string        `db:"workspace_id"`
 	ProjectID        string        `db:"project_id"`
@@ -968,6 +923,7 @@ type Environment struct {
 }
 
 type EnvironmentVariable struct {
+	Pk               uint64                   `db:"pk"`
 	ID               string                   `db:"id"`
 	WorkspaceID      string                   `db:"workspace_id"`
 	EnvironmentID    string                   `db:"environment_id"`
@@ -981,6 +937,7 @@ type EnvironmentVariable struct {
 }
 
 type FrontlineRoute struct {
+	Pk                       uint64                `db:"pk"`
 	ID                       string                `db:"id"`
 	ProjectID                string                `db:"project_id"`
 	DeploymentID             string                `db:"deployment_id"`
@@ -992,6 +949,7 @@ type FrontlineRoute struct {
 }
 
 type Identity struct {
+	Pk          uint64        `db:"pk"`
 	ID          string        `db:"id"`
 	ExternalID  string        `db:"external_id"`
 	WorkspaceID string        `db:"workspace_id"`
@@ -1003,6 +961,7 @@ type Identity struct {
 }
 
 type Instance struct {
+	Pk            uint64          `db:"pk"`
 	ID            string          `db:"id"`
 	DeploymentID  string          `db:"deployment_id"`
 	WorkspaceID   string          `db:"workspace_id"`
@@ -1017,6 +976,7 @@ type Instance struct {
 }
 
 type Key struct {
+	Pk                 uint64         `db:"pk"`
 	ID                 string         `db:"id"`
 	KeyAuthID          string         `db:"key_auth_id"`
 	Hash               string         `db:"hash"`
@@ -1044,6 +1004,7 @@ type Key struct {
 }
 
 type KeyAuth struct {
+	Pk                 uint64         `db:"pk"`
 	ID                 string         `db:"id"`
 	WorkspaceID        string         `db:"workspace_id"`
 	CreatedAtM         int64          `db:"created_at_m"`
@@ -1057,6 +1018,7 @@ type KeyAuth struct {
 }
 
 type KeyMigration struct {
+	Pk          uint64                 `db:"pk"`
 	ID          string                 `db:"id"`
 	WorkspaceID string                 `db:"workspace_id"`
 	Algorithm   KeyMigrationsAlgorithm `db:"algorithm"`
@@ -1071,7 +1033,8 @@ type KeyMigrationError struct {
 }
 
 type KeysPermission struct {
-	TempID       int64         `db:"temp_id"`
+	Pk           uint64        `db:"pk"`
+	TempID       sql.NullInt64 `db:"temp_id"`
 	KeyID        string        `db:"key_id"`
 	PermissionID string        `db:"permission_id"`
 	WorkspaceID  string        `db:"workspace_id"`
@@ -1080,6 +1043,7 @@ type KeysPermission struct {
 }
 
 type KeysRole struct {
+	Pk          uint64        `db:"pk"`
 	KeyID       string        `db:"key_id"`
 	RoleID      string        `db:"role_id"`
 	WorkspaceID string        `db:"workspace_id"`
@@ -1088,6 +1052,7 @@ type KeysRole struct {
 }
 
 type Permission struct {
+	Pk          uint64            `db:"pk"`
 	ID          string            `db:"id"`
 	WorkspaceID string            `db:"workspace_id"`
 	Name        string            `db:"name"`
@@ -1098,6 +1063,7 @@ type Permission struct {
 }
 
 type Project struct {
+	Pk               uint64         `db:"pk"`
 	ID               string         `db:"id"`
 	WorkspaceID      string         `db:"workspace_id"`
 	Name             string         `db:"name"`
@@ -1113,6 +1079,7 @@ type Project struct {
 }
 
 type Quotum struct {
+	Pk                     uint64 `db:"pk"`
 	WorkspaceID            string `db:"workspace_id"`
 	RequestsPerMonth       int64  `db:"requests_per_month"`
 	LogsRetentionDays      int32  `db:"logs_retention_days"`
@@ -1121,6 +1088,7 @@ type Quotum struct {
 }
 
 type Ratelimit struct {
+	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	Name        string         `db:"name"`
 	WorkspaceID string         `db:"workspace_id"`
@@ -1134,6 +1102,7 @@ type Ratelimit struct {
 }
 
 type RatelimitNamespace struct {
+	Pk          uint64        `db:"pk"`
 	ID          string        `db:"id"`
 	WorkspaceID string        `db:"workspace_id"`
 	Name        string        `db:"name"`
@@ -1143,6 +1112,7 @@ type RatelimitNamespace struct {
 }
 
 type RatelimitOverride struct {
+	Pk          uint64                         `db:"pk"`
 	ID          string                         `db:"id"`
 	WorkspaceID string                         `db:"workspace_id"`
 	NamespaceID string                         `db:"namespace_id"`
@@ -1157,6 +1127,7 @@ type RatelimitOverride struct {
 }
 
 type Role struct {
+	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
 	Name        string         `db:"name"`
@@ -1166,6 +1137,7 @@ type Role struct {
 }
 
 type RolesPermission struct {
+	Pk           uint64        `db:"pk"`
 	RoleID       string        `db:"role_id"`
 	PermissionID string        `db:"permission_id"`
 	WorkspaceID  string        `db:"workspace_id"`
@@ -1174,6 +1146,7 @@ type RolesPermission struct {
 }
 
 type Sentinel struct {
+	Pk                uint64                `db:"pk"`
 	ID                string                `db:"id"`
 	WorkspaceID       string                `db:"workspace_id"`
 	ProjectID         string                `db:"project_id"`
@@ -1193,6 +1166,7 @@ type Sentinel struct {
 }
 
 type VercelBinding struct {
+	Pk            uint64                     `db:"pk"`
 	ID            string                     `db:"id"`
 	IntegrationID string                     `db:"integration_id"`
 	WorkspaceID   string                     `db:"workspace_id"`
@@ -1208,6 +1182,7 @@ type VercelBinding struct {
 }
 
 type VercelIntegration struct {
+	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
 	TeamID      sql.NullString `db:"team_id"`

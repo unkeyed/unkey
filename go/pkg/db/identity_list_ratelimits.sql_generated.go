@@ -11,7 +11,7 @@ import (
 )
 
 const listIdentityRatelimits = `-- name: ListIdentityRatelimits :many
-SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, ` + "`" + `limit` + "`" + `, duration, auto_apply
+SELECT pk, id, name, workspace_id, created_at, updated_at, key_id, identity_id, ` + "`" + `limit` + "`" + `, duration, auto_apply
 FROM ratelimits
 WHERE identity_id = ?
 ORDER BY id ASC
@@ -19,7 +19,7 @@ ORDER BY id ASC
 
 // ListIdentityRatelimits
 //
-//	SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply
+//	SELECT pk, id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply
 //	FROM ratelimits
 //	WHERE identity_id = ?
 //	ORDER BY id ASC
@@ -33,6 +33,7 @@ func (q *Queries) ListIdentityRatelimits(ctx context.Context, db DBTX, identityI
 	for rows.Next() {
 		var i Ratelimit
 		if err := rows.Scan(
+			&i.Pk,
 			&i.ID,
 			&i.Name,
 			&i.WorkspaceID,

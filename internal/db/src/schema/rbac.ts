@@ -1,20 +1,13 @@
 import { relations } from "drizzle-orm";
-import {
-  bigint,
-  index,
-  mysqlTable,
-  primaryKey,
-  unique,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlTable, unique, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
 import { workspaces } from "./workspaces";
 
 export const permissions = mysqlTable(
   "permissions",
   {
-    id: varchar("id", { length: 256 }).primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: varchar("id", { length: 256 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 512 }).notNull(),
     slug: varchar("slug", { length: 128 }).notNull(),
@@ -25,14 +18,7 @@ export const permissions = mysqlTable(
       .$defaultFn(() => Date.now()),
     updatedAtM: bigint("updated_at_m", { mode: "number" }).$onUpdateFn(() => Date.now()),
   },
-  (table) => {
-    return {
-      uniqueSlugPerWorkspaceIdx: unique("unique_slug_per_workspace_idx").on(
-        table.workspaceId,
-        table.slug,
-      ),
-    };
-  },
+  (table) => [unique("unique_slug_per_workspace_idx").on(table.workspaceId, table.slug)],
 );
 export const permissionsRelations = relations(permissions, ({ one, many }) => ({
   workspace: one(workspaces, {
@@ -50,7 +36,8 @@ export const permissionsRelations = relations(permissions, ({ one, many }) => ({
 export const keysPermissions = mysqlTable(
   "keys_permissions",
   {
-    tempId: bigint("temp_id", { mode: "number" }).autoincrement().notNull(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    tempId: bigint("temp_id", { mode: "number" }),
     keyId: varchar("key_id", { length: 256 }).notNull(),
     permissionId: varchar("permission_id", { length: 256 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
@@ -61,16 +48,15 @@ export const keysPermissions = mysqlTable(
       .$defaultFn(() => Date.now()),
     updatedAtM: bigint("updated_at_m", { mode: "number" }).$onUpdateFn(() => Date.now()),
   },
-  (table) => {
-    return {
-      keysPermissionsKeyIdPermissionIdWorkspaceId: primaryKey({
-        columns: [table.keyId, table.permissionId, table.workspaceId],
-        name: "keys_permissions_key_id_permission_id_workspace_id",
-      }),
-      keysPermissionsTempIdUnique: unique("keys_permissions_temp_id_unique").on(table.tempId),
-      keyIdPermissionIdIdx: unique("key_id_permission_id_idx").on(table.keyId, table.permissionId),
-    };
-  },
+  (table) => [
+    unique("keys_permissions_key_id_permission_id_workspace_id").on(
+      table.keyId,
+      table.permissionId,
+      table.workspaceId,
+    ),
+    unique("keys_permissions_temp_id_unique").on(table.tempId),
+    unique("key_id_permission_id_idx").on(table.keyId, table.permissionId),
+  ],
 );
 
 export const keysPermissionsRelations = relations(keysPermissions, ({ one }) => ({
@@ -88,7 +74,8 @@ export const keysPermissionsRelations = relations(keysPermissions, ({ one }) => 
 export const roles = mysqlTable(
   "roles",
   {
-    id: varchar("id", { length: 256 }).primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: varchar("id", { length: 256 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 512 }).notNull(),
     description: varchar("description", { length: 512 }),
@@ -98,15 +85,10 @@ export const roles = mysqlTable(
       .$defaultFn(() => Date.now()),
     updatedAtM: bigint("updated_at_m", { mode: "number" }).$onUpdateFn(() => Date.now()),
   },
-  (table) => {
-    return {
-      workspaceIdIdx: index("workspace_id_idx").on(table.workspaceId),
-      uniqueNamePerWorkspaceIdx: unique("unique_name_per_workspace_idx").on(
-        table.name,
-        table.workspaceId,
-      ),
-    };
-  },
+  (table) => [
+    index("workspace_id_idx").on(table.workspaceId),
+    unique("unique_name_per_workspace_idx").on(table.name, table.workspaceId),
+  ],
 );
 
 export const rolesRelations = relations(roles, ({ one, many }) => ({
@@ -125,6 +107,7 @@ export const rolesRelations = relations(roles, ({ one, many }) => ({
 export const rolesPermissions = mysqlTable(
   "roles_permissions",
   {
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     roleId: varchar("role_id", { length: 256 }).notNull(),
     permissionId: varchar("permission_id", { length: 256 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
@@ -135,18 +118,14 @@ export const rolesPermissions = mysqlTable(
       .$defaultFn(() => Date.now()),
     updatedAtM: bigint("updated_at_m", { mode: "number" }).$onUpdateFn(() => Date.now()),
   },
-  (table) => {
-    return {
-      rolesPermissionsRoleIdPermissionIdWorkspaceId: primaryKey({
-        columns: [table.roleId, table.permissionId, table.workspaceId],
-        name: "roles_permissions_role_id_permission_id_workspace_id",
-      }),
-      uniqueTuplePermissionIdRoleId: unique("unique_tuple_permission_id_role_id").on(
-        table.permissionId,
-        table.roleId,
-      ),
-    };
-  },
+  (table) => [
+    unique("roles_permissions_role_id_permission_id_workspace_id").on(
+      table.roleId,
+      table.permissionId,
+      table.workspaceId,
+    ),
+    unique("unique_tuple_permission_id_role_id").on(table.permissionId, table.roleId),
+  ],
 );
 
 export const rolesPermissionsRelations = relations(rolesPermissions, ({ one }) => ({
@@ -165,6 +144,7 @@ export const rolesPermissionsRelations = relations(rolesPermissions, ({ one }) =
 export const keysRoles = mysqlTable(
   "keys_roles",
   {
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     keyId: varchar("key_id", { length: 256 }).notNull(),
     roleId: varchar("role_id", { length: 256 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
@@ -175,15 +155,14 @@ export const keysRoles = mysqlTable(
       .$defaultFn(() => Date.now()),
     updatedAtM: bigint("updated_at_m", { mode: "number" }).$onUpdateFn(() => Date.now()),
   },
-  (table) => {
-    return {
-      keysRolesRoleIdKeyIdWorkspaceId: primaryKey({
-        columns: [table.roleId, table.keyId, table.workspaceId],
-        name: "keys_roles_role_id_key_id_workspace_id",
-      }),
-      uniqueKeyIdRoleId: uniqueIndex("unique_key_id_role_id").on(table.keyId, table.roleId),
-    };
-  },
+  (table) => [
+    unique("keys_roles_role_id_key_id_workspace_id").on(
+      table.roleId,
+      table.keyId,
+      table.workspaceId,
+    ),
+    uniqueIndex("unique_key_id_role_id").on(table.keyId, table.roleId),
+  ],
 );
 
 export const keysRolesRelations = relations(keysRoles, ({ one }) => ({

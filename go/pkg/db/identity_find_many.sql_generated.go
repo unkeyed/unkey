@@ -11,7 +11,7 @@ import (
 )
 
 const findIdentities = `-- name: FindIdentities :many
-SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
 FROM identities
 WHERE workspace_id = ?
  AND deleted = ?
@@ -26,7 +26,7 @@ type FindIdentitiesParams struct {
 
 // FindIdentities
 //
-//	SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+//	SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
 //	FROM identities
 //	WHERE workspace_id = ?
 //	 AND deleted = ?
@@ -61,6 +61,7 @@ func (q *Queries) FindIdentities(ctx context.Context, db DBTX, arg FindIdentitie
 	for rows.Next() {
 		var i Identity
 		if err := rows.Scan(
+			&i.Pk,
 			&i.ID,
 			&i.ExternalID,
 			&i.WorkspaceID,

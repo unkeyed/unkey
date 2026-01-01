@@ -213,9 +213,9 @@ func TestEvery_EdgeCases(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 		stop()
 
-		// Should not have been called yet
+		// Should have been called once
 		count := counter.Load()
-		assert.Equal(t, int32(0), count, "should not be called with very long interval")
+		assert.Equal(t, int32(1), count, "should have been called once")
 	})
 
 	t.Run("function that takes longer than interval", func(t *testing.T) {

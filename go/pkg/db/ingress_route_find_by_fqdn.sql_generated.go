@@ -10,16 +10,17 @@ import (
 )
 
 const findFrontlineRouteByFQDN = `-- name: FindFrontlineRouteByFQDN :one
-SELECT id, project_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE fully_qualified_domain_name = ?
+SELECT pk, id, project_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE fully_qualified_domain_name = ?
 `
 
 // FindFrontlineRouteByFQDN
 //
-//	SELECT id, project_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE fully_qualified_domain_name = ?
+//	SELECT pk, id, project_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE fully_qualified_domain_name = ?
 func (q *Queries) FindFrontlineRouteByFQDN(ctx context.Context, db DBTX, fullyQualifiedDomainName string) (FrontlineRoute, error) {
 	row := db.QueryRowContext(ctx, findFrontlineRouteByFQDN, fullyQualifiedDomainName)
 	var i FrontlineRoute
 	err := row.Scan(
+		&i.Pk,
 		&i.ID,
 		&i.ProjectID,
 		&i.DeploymentID,

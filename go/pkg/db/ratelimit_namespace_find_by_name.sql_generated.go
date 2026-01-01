@@ -10,7 +10,7 @@ import (
 )
 
 const findRatelimitNamespaceByName = `-- name: FindRatelimitNamespaceByName :one
-SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m FROM ` + "`" + `ratelimit_namespaces` + "`" + `
+SELECT pk, id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m FROM ` + "`" + `ratelimit_namespaces` + "`" + `
 WHERE name = ?
 AND workspace_id = ?
 `
@@ -22,13 +22,14 @@ type FindRatelimitNamespaceByNameParams struct {
 
 // FindRatelimitNamespaceByName
 //
-//	SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m FROM `ratelimit_namespaces`
+//	SELECT pk, id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m FROM `ratelimit_namespaces`
 //	WHERE name = ?
 //	AND workspace_id = ?
 func (q *Queries) FindRatelimitNamespaceByName(ctx context.Context, db DBTX, arg FindRatelimitNamespaceByNameParams) (RatelimitNamespace, error) {
 	row := db.QueryRowContext(ctx, findRatelimitNamespaceByName, arg.Name, arg.WorkspaceID)
 	var i RatelimitNamespace
 	err := row.Scan(
+		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
 		&i.Name,

@@ -1,5 +1,13 @@
 import { relations } from "drizzle-orm";
-import { index, int, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  index,
+  int,
+  mysqlEnum,
+  mysqlTable,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { environments } from "./environments";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -11,7 +19,8 @@ import { workspaces } from "./workspaces";
 export const sentinels = mysqlTable(
   "sentinels",
   {
-    id: varchar("id", { length: 128 }).primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: varchar("id", { length: 64 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
     environmentId: varchar("environment_id", { length: 255 }).notNull(),

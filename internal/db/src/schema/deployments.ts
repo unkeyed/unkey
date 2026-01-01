@@ -1,6 +1,5 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, int, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
-import { deploymentSteps } from "./deployment_steps";
 import { environments } from "./environments";
 import { instances } from "./instances";
 import { projects } from "./projects";
@@ -12,7 +11,8 @@ import { workspaces } from "./workspaces";
 export const deployments = mysqlTable(
   "deployments",
   {
-    id: varchar("id", { length: 128 }).primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: varchar("id", { length: 128 }).notNull().unique(),
     k8sName: varchar("k8s_name", { length: 255 }).notNull().unique(),
 
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
@@ -79,7 +79,6 @@ export const deploymentsRelations = relations(deployments, ({ one, many }) => ({
     references: [projects.id],
   }),
 
-  steps: many(deploymentSteps),
   sentinels: many(sentinels),
   instances: many(instances),
 }));

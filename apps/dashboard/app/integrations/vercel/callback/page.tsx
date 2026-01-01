@@ -4,7 +4,7 @@
  */
 
 import { getAuth } from "@/lib/auth";
-import { db, eq, schema } from "@/lib/db";
+import { type VercelIntegration, db, eq, schema } from "@/lib/db";
 import { vercelIntegrationEnv } from "@/lib/env";
 import { Code, Empty } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
@@ -45,9 +45,10 @@ export default async function Page(props: Props) {
     return <div>no workspace</div>;
   }
 
-  let integration = await db.query.vercelIntegrations.findFirst({
-    where: eq(schema.vercelIntegrations.id, props.searchParams.configurationId),
-  });
+  let integration: Omit<VercelIntegration, "pk"> | undefined =
+    await db.query.vercelIntegrations.findFirst({
+      where: eq(schema.vercelIntegrations.id, props.searchParams.configurationId),
+    });
 
   if (!integration) {
     const { val, err } = await exchangeCode(props.searchParams.code);

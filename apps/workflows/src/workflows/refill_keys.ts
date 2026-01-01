@@ -46,8 +46,10 @@ export class RefillRemaining extends WorkflowEntrypoint<Env, Params> {
 
             return baseConditions;
           },
-          with: {
-            workspace: true,
+          columns: {
+            id: true,
+            refillAmount: true,
+            workspaceId: true,
           },
         }),
     );

@@ -12,7 +12,7 @@ import (
 )
 
 const findManyRolesByNamesWithPerms = `-- name: FindManyRolesByNamesWithPerms :many
-SELECT id, workspace_id, name, description, created_at_m, updated_at_m, COALESCE(
+SELECT pk, id, workspace_id, name, description, created_at_m, updated_at_m, COALESCE(
         (SELECT JSON_ARRAYAGG(
             json_object(
                 'id', permission.id,
@@ -37,6 +37,7 @@ type FindManyRolesByNamesWithPermsParams struct {
 }
 
 type FindManyRolesByNamesWithPermsRow struct {
+	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
 	Name        string         `db:"name"`
@@ -48,7 +49,7 @@ type FindManyRolesByNamesWithPermsRow struct {
 
 // FindManyRolesByNamesWithPerms
 //
-//	SELECT id, workspace_id, name, description, created_at_m, updated_at_m, COALESCE(
+//	SELECT pk, id, workspace_id, name, description, created_at_m, updated_at_m, COALESCE(
 //	        (SELECT JSON_ARRAYAGG(
 //	            json_object(
 //	                'id', permission.id,
@@ -86,6 +87,7 @@ func (q *Queries) FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, ar
 	for rows.Next() {
 		var i FindManyRolesByNamesWithPermsRow
 		if err := rows.Scan(
+			&i.Pk,
 			&i.ID,
 			&i.WorkspaceID,
 			&i.Name,

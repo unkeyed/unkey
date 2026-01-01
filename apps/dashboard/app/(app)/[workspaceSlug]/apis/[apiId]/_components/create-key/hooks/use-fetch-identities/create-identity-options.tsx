@@ -1,4 +1,4 @@
-import type { Identity } from "@/lib/db";
+import type { InsertIdentity } from "@/lib/db";
 import { User } from "@unkey/icons";
 import {
   Button,
@@ -10,7 +10,7 @@ import {
 } from "@unkey/ui";
 
 type IdentitySelectorProps = {
-  identities: Omit<Identity, "deleted">[];
+  identities: Omit<InsertIdentity, "deleted">[];
   hasNextPage?: boolean;
   isFetchingNextPage: boolean;
   loadMore: () => void;

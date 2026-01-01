@@ -10,7 +10,7 @@ import (
 )
 
 const listRatelimitOverridesByNamespaceID = `-- name: ListRatelimitOverridesByNamespaceID :many
-SELECT id, workspace_id, namespace_id, identifier, ` + "`" + `limit` + "`" + `, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
+SELECT pk, id, workspace_id, namespace_id, identifier, ` + "`" + `limit` + "`" + `, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
 WHERE
 workspace_id = ?
 AND namespace_id = ?
@@ -29,7 +29,7 @@ type ListRatelimitOverridesByNamespaceIDParams struct {
 
 // ListRatelimitOverridesByNamespaceID
 //
-//	SELECT id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
+//	SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
 //	WHERE
 //	workspace_id = ?
 //	AND namespace_id = ?
@@ -52,6 +52,7 @@ func (q *Queries) ListRatelimitOverridesByNamespaceID(ctx context.Context, db DB
 	for rows.Next() {
 		var i RatelimitOverride
 		if err := rows.Scan(
+			&i.Pk,
 			&i.ID,
 			&i.WorkspaceID,
 			&i.NamespaceID,

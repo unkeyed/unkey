@@ -10,7 +10,7 @@ import (
 )
 
 const findKeyRoleByKeyAndRoleID = `-- name: FindKeyRoleByKeyAndRoleID :many
-SELECT key_id, role_id, workspace_id, created_at_m, updated_at_m
+SELECT pk, key_id, role_id, workspace_id, created_at_m, updated_at_m
 FROM keys_roles
 WHERE key_id = ?
   AND role_id = ?
@@ -23,7 +23,7 @@ type FindKeyRoleByKeyAndRoleIDParams struct {
 
 // FindKeyRoleByKeyAndRoleID
 //
-//	SELECT key_id, role_id, workspace_id, created_at_m, updated_at_m
+//	SELECT pk, key_id, role_id, workspace_id, created_at_m, updated_at_m
 //	FROM keys_roles
 //	WHERE key_id = ?
 //	  AND role_id = ?
@@ -37,6 +37,7 @@ func (q *Queries) FindKeyRoleByKeyAndRoleID(ctx context.Context, db DBTX, arg Fi
 	for rows.Next() {
 		var i KeysRole
 		if err := rows.Scan(
+			&i.Pk,
 			&i.KeyID,
 			&i.RoleID,
 			&i.WorkspaceID,

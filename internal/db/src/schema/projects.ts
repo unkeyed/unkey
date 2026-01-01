@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -9,7 +9,8 @@ import { frontlineRoutes } from "./frontline_routes";
 export const projects = mysqlTable(
   "projects",
   {
-    id: varchar("id", { length: 128 }).primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: varchar("id", { length: 64 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
 
     name: varchar("name", { length: 256 }).notNull(),

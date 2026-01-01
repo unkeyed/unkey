@@ -10,7 +10,7 @@ import (
 )
 
 const listPermissionsByRoleID = `-- name: ListPermissionsByRoleID :many
-SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
+SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 FROM permissions p
 JOIN roles_permissions rp ON p.id = rp.permission_id
 WHERE rp.role_id = ?
@@ -19,7 +19,7 @@ ORDER BY p.slug
 
 // ListPermissionsByRoleID
 //
-//	SELECT p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
+//	SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 //	FROM permissions p
 //	JOIN roles_permissions rp ON p.id = rp.permission_id
 //	WHERE rp.role_id = ?
@@ -34,6 +34,7 @@ func (q *Queries) ListPermissionsByRoleID(ctx context.Context, db DBTX, roleID s
 	for rows.Next() {
 		var i Permission
 		if err := rows.Scan(
+			&i.Pk,
 			&i.ID,
 			&i.WorkspaceID,
 			&i.Name,

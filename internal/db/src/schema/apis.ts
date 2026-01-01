@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { keyAuth } from "./keyAuth";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
@@ -8,7 +8,8 @@ import { workspaces } from "./workspaces";
 export const apis = mysqlTable(
   "apis",
   {
-    id: varchar("id", { length: 256 }).primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: varchar("id", { length: 256 }).notNull().unique(),
     name: varchar("name", { length: 256 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     /**

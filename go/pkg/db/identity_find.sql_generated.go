@@ -12,7 +12,7 @@ import (
 
 const findIdentity = `-- name: FindIdentity :one
 SELECT
-    i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+    i.pk, i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
     COALESCE(
         (SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
@@ -50,6 +50,7 @@ type FindIdentityParams struct {
 }
 
 type FindIdentityRow struct {
+	Pk          uint64        `db:"pk"`
 	ID          string        `db:"id"`
 	ExternalID  string        `db:"external_id"`
 	WorkspaceID string        `db:"workspace_id"`
@@ -64,7 +65,7 @@ type FindIdentityRow struct {
 // FindIdentity
 //
 //	SELECT
-//	    i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+//	    i.pk, i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
 //	    COALESCE(
 //	        (SELECT JSON_ARRAYAGG(
 //	            JSON_OBJECT(
@@ -104,6 +105,7 @@ func (q *Queries) FindIdentity(ctx context.Context, db DBTX, arg FindIdentityPar
 	)
 	var i FindIdentityRow
 	err := row.Scan(
+		&i.Pk,
 		&i.ID,
 		&i.ExternalID,
 		&i.WorkspaceID,

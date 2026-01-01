@@ -11,7 +11,7 @@ import (
 )
 
 const findSentinelByID = `-- name: FindSentinelByID :one
-SELECT s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, w.k8s_namespace FROM sentinels s
+SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, w.k8s_namespace FROM sentinels s
 LEFT JOIN workspaces w ON s.workspace_id = w.id
 WHERE s.id = ? LIMIT 1
 `
@@ -23,13 +23,14 @@ type FindSentinelByIDRow struct {
 
 // FindSentinelByID
 //
-//	SELECT s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, w.k8s_namespace FROM sentinels s
+//	SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, w.k8s_namespace FROM sentinels s
 //	LEFT JOIN workspaces w ON s.workspace_id = w.id
 //	WHERE s.id = ? LIMIT 1
 func (q *Queries) FindSentinelByID(ctx context.Context, db DBTX, id string) (FindSentinelByIDRow, error) {
 	row := db.QueryRowContext(ctx, findSentinelByID, id)
 	var i FindSentinelByIDRow
 	err := row.Scan(
+		&i.Sentinel.Pk,
 		&i.Sentinel.ID,
 		&i.Sentinel.WorkspaceID,
 		&i.Sentinel.ProjectID,

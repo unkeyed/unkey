@@ -8,7 +8,8 @@ import { workspaces } from "./workspaces";
  * Each workspace gets a dedicated user with resource quotas to prevent abuse.
  */
 export const clickhouseWorkspaceSettings = mysqlTable("clickhouse_workspace_settings", {
-  workspaceId: varchar("workspace_id", { length: 256 }).primaryKey(),
+  pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+  workspaceId: varchar("workspace_id", { length: 256 }).notNull().unique(),
 
   // Authentication
   username: varchar("username", { length: 256 }).notNull().unique(),

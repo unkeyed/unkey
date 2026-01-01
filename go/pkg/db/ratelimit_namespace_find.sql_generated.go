@@ -11,7 +11,7 @@ import (
 )
 
 const findRatelimitNamespace = `-- name: FindRatelimitNamespace :one
-SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
+SELECT pk, id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
        coalesce(
                (select json_arrayagg(
                                json_object(
@@ -35,6 +35,7 @@ type FindRatelimitNamespaceParams struct {
 }
 
 type FindRatelimitNamespaceRow struct {
+	Pk          uint64        `db:"pk"`
 	ID          string        `db:"id"`
 	WorkspaceID string        `db:"workspace_id"`
 	Name        string        `db:"name"`
@@ -46,7 +47,7 @@ type FindRatelimitNamespaceRow struct {
 
 // FindRatelimitNamespace
 //
-//	SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
+//	SELECT pk, id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
 //	       coalesce(
 //	               (select json_arrayagg(
 //	                               json_object(
@@ -66,6 +67,7 @@ func (q *Queries) FindRatelimitNamespace(ctx context.Context, db DBTX, arg FindR
 	row := db.QueryRowContext(ctx, findRatelimitNamespace, arg.WorkspaceID, arg.Namespace, arg.Namespace)
 	var i FindRatelimitNamespaceRow
 	err := row.Scan(
+		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
 		&i.Name,

@@ -11,7 +11,7 @@ import (
 )
 
 const findPermissionsBySlugs = `-- name: FindPermissionsBySlugs :many
-SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
+SELECT pk, id, workspace_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
 `
 
 type FindPermissionsBySlugsParams struct {
@@ -21,7 +21,7 @@ type FindPermissionsBySlugsParams struct {
 
 // FindPermissionsBySlugs
 //
-//	SELECT id, workspace_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
+//	SELECT pk, id, workspace_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
 func (q *Queries) FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error) {
 	query := findPermissionsBySlugs
 	var queryParams []interface{}
@@ -43,6 +43,7 @@ func (q *Queries) FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindP
 	for rows.Next() {
 		var i Permission
 		if err := rows.Scan(
+			&i.Pk,
 			&i.ID,
 			&i.WorkspaceID,
 			&i.Name,

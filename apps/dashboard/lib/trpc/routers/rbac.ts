@@ -774,7 +774,7 @@ export async function upsertPermissions(
   workspaceId: string,
   slugs: string[],
 ): Promise<{
-  permissions: Permission[];
+  permissions: Omit<Permission, "pk">[];
   auditLogs: UnkeyAuditLog[];
 }> {
   return await db.transaction(async (tx) => {
@@ -794,14 +794,14 @@ export async function upsertPermissions(
       });
     }
 
-    const permissions = slugs.map((slug) => {
+    const permissions: Omit<Permission, "pk">[] = slugs.map((slug) => {
       const existingPermission = existingPermissions.find((p) => p.slug === slug);
 
       if (existingPermission) {
         return existingPermission;
       }
 
-      const permission: Permission = {
+      const permission = {
         id: newId("permission"),
         workspaceId,
         name: slug,

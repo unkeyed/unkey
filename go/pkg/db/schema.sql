@@ -2,6 +2,7 @@
 --
 -- Source: internal/db/src/schema
 CREATE TABLE `apis` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -12,33 +13,39 @@ CREATE TABLE `apis` (
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,
 	`delete_protection` boolean DEFAULT false,
-	CONSTRAINT `apis_id` PRIMARY KEY(`id`),
+	CONSTRAINT `apis_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `apis_id_unique` UNIQUE(`id`),
 	CONSTRAINT `apis_key_auth_id_unique` UNIQUE(`key_auth_id`)
 );
 
 CREATE TABLE `keys_permissions` (
-	`temp_id` bigint AUTO_INCREMENT NOT NULL,
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`temp_id` bigint,
 	`key_id` varchar(256) NOT NULL,
 	`permission_id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
-	CONSTRAINT `keys_permissions_key_id_permission_id_workspace_id` PRIMARY KEY(`key_id`,`permission_id`,`workspace_id`),
+	CONSTRAINT `keys_permissions_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `keys_permissions_key_id_permission_id_workspace_id` UNIQUE(`key_id`,`permission_id`,`workspace_id`),
 	CONSTRAINT `keys_permissions_temp_id_unique` UNIQUE(`temp_id`),
 	CONSTRAINT `key_id_permission_id_idx` UNIQUE(`key_id`,`permission_id`)
 );
 
 CREATE TABLE `keys_roles` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`key_id` varchar(256) NOT NULL,
 	`role_id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
-	CONSTRAINT `keys_roles_role_id_key_id_workspace_id` PRIMARY KEY(`role_id`,`key_id`,`workspace_id`),
+	CONSTRAINT `keys_roles_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `keys_roles_role_id_key_id_workspace_id` UNIQUE(`role_id`,`key_id`,`workspace_id`),
 	CONSTRAINT `unique_key_id_role_id` UNIQUE(`key_id`,`role_id`)
 );
 
 CREATE TABLE `permissions` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(512) NOT NULL,
@@ -46,32 +53,38 @@ CREATE TABLE `permissions` (
 	`description` varchar(512),
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
-	CONSTRAINT `permissions_id` PRIMARY KEY(`id`),
+	CONSTRAINT `permissions_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `permissions_id_unique` UNIQUE(`id`),
 	CONSTRAINT `unique_slug_per_workspace_idx` UNIQUE(`workspace_id`,`slug`)
 );
 
 CREATE TABLE `roles` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(512) NOT NULL,
 	`description` varchar(512),
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
-	CONSTRAINT `roles_id` PRIMARY KEY(`id`),
+	CONSTRAINT `roles_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `roles_id_unique` UNIQUE(`id`),
 	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`name`,`workspace_id`)
 );
 
 CREATE TABLE `roles_permissions` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`role_id` varchar(256) NOT NULL,
 	`permission_id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
-	CONSTRAINT `roles_permissions_role_id_permission_id_workspace_id` PRIMARY KEY(`role_id`,`permission_id`,`workspace_id`),
+	CONSTRAINT `roles_permissions_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `roles_permissions_role_id_permission_id_workspace_id` UNIQUE(`role_id`,`permission_id`,`workspace_id`),
 	CONSTRAINT `unique_tuple_permission_id_role_id` UNIQUE(`permission_id`,`role_id`)
 );
 
 CREATE TABLE `key_auth` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`created_at_m` bigint NOT NULL DEFAULT 0,
@@ -82,27 +95,34 @@ CREATE TABLE `key_auth` (
 	`default_bytes` int DEFAULT 16,
 	`size_approx` int NOT NULL DEFAULT 0,
 	`size_last_updated_at` bigint NOT NULL DEFAULT 0,
-	CONSTRAINT `key_auth_id` PRIMARY KEY(`id`)
+	CONSTRAINT `key_auth_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `key_auth_id_unique` UNIQUE(`id`)
 );
 
 CREATE TABLE `encrypted_keys` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`key_id` varchar(256) NOT NULL,
 	`created_at` bigint NOT NULL DEFAULT 0,
 	`updated_at` bigint,
 	`encrypted` varchar(1024) NOT NULL,
 	`encryption_key_id` varchar(256) NOT NULL,
+	CONSTRAINT `encrypted_keys_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `key_id_idx` UNIQUE(`key_id`)
 );
 
 CREATE TABLE `key_migrations` (
-	`id` varchar(255) NOT NULL,
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`algorithm` enum('sha256','github.com/seamapi/prefixed-api-key') NOT NULL,
-	CONSTRAINT `key_migrations_id_workspace_id_pk` PRIMARY KEY(`id`,`workspace_id`)
+	CONSTRAINT `key_migrations_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `key_migrations_id_unique` UNIQUE(`id`),
+	CONSTRAINT `unique_id_per_workspace_id` UNIQUE(`id`,`workspace_id`)
 );
 
 CREATE TABLE `keys` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
 	`key_auth_id` varchar(256) NOT NULL,
 	`hash` varchar(256) NOT NULL,
@@ -127,11 +147,13 @@ CREATE TABLE `keys` (
 	`ratelimit_duration` bigint,
 	`environment` varchar(256),
 	`pending_migration_id` varchar(256),
-	CONSTRAINT `keys_id` PRIMARY KEY(`id`),
+	CONSTRAINT `keys_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `keys_id_unique` UNIQUE(`id`),
 	CONSTRAINT `hash_idx` UNIQUE(`hash`)
 );
 
 CREATE TABLE `vercel_bindings` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
 	`integration_id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -144,11 +166,13 @@ CREATE TABLE `vercel_bindings` (
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,
-	CONSTRAINT `vercel_bindings_id` PRIMARY KEY(`id`),
+	CONSTRAINT `vercel_bindings_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `vercel_bindings_id_unique` UNIQUE(`id`),
 	CONSTRAINT `project_environment_resource_type_idx` UNIQUE(`project_id`,`environment`,`resource_type`)
 );
 
 CREATE TABLE `vercel_integrations` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`team_id` varchar(256),
@@ -156,21 +180,25 @@ CREATE TABLE `vercel_integrations` (
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,
-	CONSTRAINT `vercel_integrations_id` PRIMARY KEY(`id`)
+	CONSTRAINT `vercel_integrations_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `vercel_integrations_id_unique` UNIQUE(`id`)
 );
 
 CREATE TABLE `ratelimit_namespaces` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(512) NOT NULL,
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,
-	CONSTRAINT `ratelimit_namespaces_id` PRIMARY KEY(`id`),
+	CONSTRAINT `ratelimit_namespaces_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `ratelimit_namespaces_id_unique` UNIQUE(`id`),
 	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`workspace_id`,`name`)
 );
 
 CREATE TABLE `ratelimit_overrides` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`namespace_id` varchar(256) NOT NULL,
@@ -182,7 +210,8 @@ CREATE TABLE `ratelimit_overrides` (
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,
-	CONSTRAINT `ratelimit_overrides_id` PRIMARY KEY(`id`),
+	CONSTRAINT `ratelimit_overrides_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `ratelimit_overrides_id_unique` UNIQUE(`id`),
 	CONSTRAINT `unique_identifier_per_namespace_idx` UNIQUE(`namespace_id`,`identifier`)
 );
 
@@ -221,6 +250,7 @@ CREATE TABLE `key_migration_errors` (
 );
 
 CREATE TABLE `identities` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
 	`external_id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -229,11 +259,13 @@ CREATE TABLE `identities` (
 	`deleted` boolean NOT NULL DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `identities_id` PRIMARY KEY(`id`),
+	CONSTRAINT `identities_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `identities_id_unique` UNIQUE(`id`),
 	CONSTRAINT `workspace_id_external_id_deleted_idx` UNIQUE(`workspace_id`,`external_id`,`deleted`)
 );
 
 CREATE TABLE `ratelimits` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -244,21 +276,25 @@ CREATE TABLE `ratelimits` (
 	`limit` int NOT NULL,
 	`duration` bigint NOT NULL,
 	`auto_apply` boolean NOT NULL DEFAULT false,
-	CONSTRAINT `ratelimits_id` PRIMARY KEY(`id`),
+	CONSTRAINT `ratelimits_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `ratelimits_id_unique` UNIQUE(`id`),
 	CONSTRAINT `unique_name_per_key_idx` UNIQUE(`key_id`,`name`),
 	CONSTRAINT `unique_name_per_identity_idx` UNIQUE(`identity_id`,`name`)
 );
 
 CREATE TABLE `quota` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`requests_per_month` bigint NOT NULL DEFAULT 0,
 	`logs_retention_days` int NOT NULL DEFAULT 0,
 	`audit_logs_retention_days` int NOT NULL DEFAULT 0,
 	`team` boolean NOT NULL DEFAULT false,
-	CONSTRAINT `quota_workspace_id` PRIMARY KEY(`workspace_id`)
+	CONSTRAINT `quota_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `quota_workspace_id_unique` UNIQUE(`workspace_id`)
 );
 
 CREATE TABLE `audit_log` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`bucket` varchar(256) NOT NULL DEFAULT 'unkey_mutations',
@@ -274,10 +310,12 @@ CREATE TABLE `audit_log` (
 	`actor_meta` json,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `audit_log_id` PRIMARY KEY(`id`)
+	CONSTRAINT `audit_log_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `audit_log_id_unique` UNIQUE(`id`)
 );
 
 CREATE TABLE `audit_log_bucket` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
@@ -285,11 +323,13 @@ CREATE TABLE `audit_log_bucket` (
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	`delete_protection` boolean DEFAULT false,
-	CONSTRAINT `audit_log_bucket_id` PRIMARY KEY(`id`),
+	CONSTRAINT `audit_log_bucket_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `audit_log_bucket_id_unique` UNIQUE(`id`),
 	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`workspace_id`,`name`)
 );
 
 CREATE TABLE `audit_log_target` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`bucket_id` varchar(256) NOT NULL,
 	`bucket` varchar(256) NOT NULL DEFAULT 'unkey_mutations',
@@ -301,10 +341,12 @@ CREATE TABLE `audit_log_target` (
 	`meta` json,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `audit_log_target_audit_log_id_id_pk` PRIMARY KEY(`audit_log_id`,`id`)
+	CONSTRAINT `audit_log_target_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `unique_id_per_log` UNIQUE(`audit_log_id`,`id`)
 );
 
 CREATE TABLE `environments` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
@@ -314,11 +356,13 @@ CREATE TABLE `environments` (
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `environments_id` PRIMARY KEY(`id`),
+	CONSTRAINT `environments_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `environments_id_unique` UNIQUE(`id`),
 	CONSTRAINT `environments_project_id_slug_idx` UNIQUE(`project_id`,`slug`)
 );
 
 CREATE TABLE `environment_variables` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`environment_id` varchar(128) NOT NULL,
@@ -329,11 +373,13 @@ CREATE TABLE `environment_variables` (
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `environment_variables_id` PRIMARY KEY(`id`),
+	CONSTRAINT `environment_variables_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `environment_variables_id_unique` UNIQUE(`id`),
 	CONSTRAINT `environment_id_key` UNIQUE(`environment_id`,`key`)
 );
 
 CREATE TABLE `clickhouse_workspace_settings` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`username` varchar(256) NOT NULL,
 	`password_encrypted` text NOT NULL,
@@ -345,12 +391,14 @@ CREATE TABLE `clickhouse_workspace_settings` (
 	`max_query_result_rows` int NOT NULL DEFAULT 10000,
 	`created_at` bigint NOT NULL DEFAULT 0,
 	`updated_at` bigint,
-	CONSTRAINT `clickhouse_workspace_settings_workspace_id` PRIMARY KEY(`workspace_id`),
+	CONSTRAINT `clickhouse_workspace_settings_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `clickhouse_workspace_settings_workspace_id_unique` UNIQUE(`workspace_id`),
 	CONSTRAINT `clickhouse_workspace_settings_username_unique` UNIQUE(`username`)
 );
 
 CREATE TABLE `projects` (
-	`id` varchar(128) NOT NULL,
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(64) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
@@ -362,11 +410,13 @@ CREATE TABLE `projects` (
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `projects_id` PRIMARY KEY(`id`),
+	CONSTRAINT `projects_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `projects_id_unique` UNIQUE(`id`),
 	CONSTRAINT `workspace_slug_idx` UNIQUE(`workspace_id`,`slug`)
 );
 
 CREATE TABLE `deployments` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(128) NOT NULL,
 	`k8s_name` varchar(255) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -389,12 +439,14 @@ CREATE TABLE `deployments` (
 	`status` enum('pending','building','deploying','network','ready','failed') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `deployments_id` PRIMARY KEY(`id`),
+	CONSTRAINT `deployments_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `deployments_id_unique` UNIQUE(`id`),
 	CONSTRAINT `deployments_k8s_name_unique` UNIQUE(`k8s_name`),
 	CONSTRAINT `deployments_build_id_unique` UNIQUE(`build_id`)
 );
 
 CREATE TABLE `deployment_topology` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(64) NOT NULL,
 	`deployment_id` varchar(64) NOT NULL,
 	`region` varchar(64) NOT NULL,
@@ -402,42 +454,37 @@ CREATE TABLE `deployment_topology` (
 	`desired_status` enum('starting','started','stopping','stopped') NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `deployment_topology_deployment_id_region_pk` PRIMARY KEY(`deployment_id`,`region`),
+	CONSTRAINT `deployment_topology_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `unique_region_per_deployment` UNIQUE(`deployment_id`,`region`)
 );
 
-CREATE TABLE `deployment_steps` (
-	`deployment_id` varchar(256) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(256) NOT NULL,
-	`status` enum('pending','downloading_docker_image','building_rootfs','uploading_rootfs','creating_vm','booting_vm','assigning_domains','completed','failed') NOT NULL,
-	`message` varchar(1024) NOT NULL,
-	`created_at` bigint NOT NULL,
-	CONSTRAINT `deployment_steps_deployment_id_status_pk` PRIMARY KEY(`deployment_id`,`status`)
-);
-
 CREATE TABLE `acme_users` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
 	`encrypted_key` text NOT NULL,
 	`registration_uri` text,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `acme_users_id` PRIMARY KEY(`id`)
+	CONSTRAINT `acme_users_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `acme_users_id_unique` UNIQUE(`id`)
 );
 
 CREATE TABLE `custom_domains` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`domain` varchar(256) NOT NULL,
 	`challenge_type` enum('HTTP-01','DNS-01') NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `custom_domains_id` PRIMARY KEY(`id`),
+	CONSTRAINT `custom_domains_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `custom_domains_id_unique` UNIQUE(`id`),
 	CONSTRAINT `unique_domain_idx` UNIQUE(`domain`)
 );
 
 CREATE TABLE `acme_challenges` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`domain_id` varchar(255) NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
 	`token` varchar(255) NOT NULL,
@@ -447,11 +494,13 @@ CREATE TABLE `acme_challenges` (
 	`expires_at` bigint NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `acme_challenges_domain_id_pk` PRIMARY KEY(`domain_id`)
+	CONSTRAINT `acme_challenges_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `acme_challenges_domain_id_unique` UNIQUE(`domain_id`)
 );
 
 CREATE TABLE `sentinels` (
-	`id` varchar(128) NOT NULL,
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(64) NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
 	`environment_id` varchar(255) NOT NULL,
@@ -467,14 +516,16 @@ CREATE TABLE `sentinels` (
 	`memory_mib` int NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `sentinels_id` PRIMARY KEY(`id`),
+	CONSTRAINT `sentinels_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `sentinels_id_unique` UNIQUE(`id`),
 	CONSTRAINT `sentinels_k8s_name_unique` UNIQUE(`k8s_name`),
 	CONSTRAINT `sentinels_k8s_address_unique` UNIQUE(`k8s_address`),
 	CONSTRAINT `one_env_per_region` UNIQUE(`environment_id`,`region`)
 );
 
 CREATE TABLE `instances` (
-	`id` varchar(128) NOT NULL,
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(64) NOT NULL,
 	`deployment_id` varchar(255) NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
@@ -485,23 +536,27 @@ CREATE TABLE `instances` (
 	`cpu_millicores` int NOT NULL,
 	`memory_mib` int NOT NULL,
 	`status` enum('inactive','pending','running','failed') NOT NULL,
-	CONSTRAINT `instances_id` PRIMARY KEY(`id`),
+	CONSTRAINT `instances_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `instances_id_unique` UNIQUE(`id`),
 	CONSTRAINT `unique_address_per_cluster` UNIQUE(`address`,`cluster_id`)
 );
 
 CREATE TABLE `certificates` (
-	`id` varchar(128) NOT NULL,
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(64) NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
 	`hostname` varchar(255) NOT NULL,
 	`certificate` text NOT NULL,
 	`encrypted_private_key` text NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `certificates_id` PRIMARY KEY(`id`),
+	CONSTRAINT `certificates_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `certificates_id_unique` UNIQUE(`id`),
 	CONSTRAINT `unique_hostname` UNIQUE(`hostname`)
 );
 
 CREATE TABLE `frontline_routes` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(128) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
 	`deployment_id` varchar(255) NOT NULL,
@@ -510,7 +565,8 @@ CREATE TABLE `frontline_routes` (
 	`sticky` enum('none','branch','environment','live') NOT NULL DEFAULT 'none',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `frontline_routes_id` PRIMARY KEY(`id`),
+	CONSTRAINT `frontline_routes_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `frontline_routes_id_unique` UNIQUE(`id`),
 	CONSTRAINT `frontline_routes_fully_qualified_domain_name_unique` UNIQUE(`fully_qualified_domain_name`)
 );
 

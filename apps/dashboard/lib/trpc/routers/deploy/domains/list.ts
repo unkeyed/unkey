@@ -16,6 +16,16 @@ export const listDomains = workspaceProcedure
         },
         with: {
           frontlineRoutes: {
+            columns: {
+              id: true,
+              projectId: true,
+              deploymentId: true,
+              environmentId: true,
+              fullyQualifiedDomainName: true,
+              sticky: true,
+              createdAt: true,
+              updatedAt: true,
+            },
             limit: 500,
             orderBy: (table, { desc }) => desc(table.updatedAt),
           },

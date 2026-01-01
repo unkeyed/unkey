@@ -10,7 +10,7 @@ import (
 )
 
 const findCustomDomainByDomainOrWildcard = `-- name: FindCustomDomainByDomainOrWildcard :one
-SELECT id, workspace_id, domain, challenge_type, created_at, updated_at FROM custom_domains
+SELECT pk, id, workspace_id, domain, challenge_type, created_at, updated_at FROM custom_domains
 WHERE domain IN (?, ?)
 ORDER BY
     CASE WHEN domain = ? THEN 0 ELSE 1 END
@@ -25,7 +25,7 @@ type FindCustomDomainByDomainOrWildcardParams struct {
 
 // FindCustomDomainByDomainOrWildcard
 //
-//	SELECT id, workspace_id, domain, challenge_type, created_at, updated_at FROM custom_domains
+//	SELECT pk, id, workspace_id, domain, challenge_type, created_at, updated_at FROM custom_domains
 //	WHERE domain IN (?, ?)
 //	ORDER BY
 //	    CASE WHEN domain = ? THEN 0 ELSE 1 END
@@ -34,6 +34,7 @@ func (q *Queries) FindCustomDomainByDomainOrWildcard(ctx context.Context, db DBT
 	row := db.QueryRowContext(ctx, findCustomDomainByDomainOrWildcard, arg.Domain, arg.Domain_2, arg.Domain_3)
 	var i CustomDomain
 	err := row.Scan(
+		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
 		&i.Domain,

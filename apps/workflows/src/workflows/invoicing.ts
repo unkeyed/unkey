@@ -7,7 +7,7 @@ import {
 
 import { ClickHouse } from "@unkey/clickhouse";
 import Stripe from "stripe";
-import { createConnection, eq, schema } from "../lib/db";
+import { createConnection } from "../lib/db";
 import type { Env } from "../lib/env";
 
 // User-defined params passed to your workflow
@@ -39,6 +39,15 @@ export class Invoicing extends WorkflowEntrypoint<Env, Params> {
             not(eq(table.plan, "free")),
             isNull(table.deletedAtM),
           ),
+        columns: {
+          id: true,
+          name: true,
+          stripeCustomerId: true,
+          stripeSubscriptionId: true,
+          subscriptions: true,
+          plan: true,
+          deletedAtM: true,
+        },
       }),
     );
 
@@ -102,31 +111,6 @@ export class Invoicing extends WorkflowEntrypoint<Env, Params> {
         return invoice.id;
       });
 
-      let prorate: number | undefined = undefined;
-      if (
-        workspace.planChanged &&
-        new Date(workspace.planChanged).getUTCFullYear() === year &&
-        new Date(workspace.planChanged).getUTCMonth() + 1 === month
-      ) {
-        const start = new Date(year, month - 1, 1);
-        const end = new Date(year, month, 1);
-        prorate =
-          (end.getTime() - new Date(workspace.planChanged).getTime()) /
-          (end.getTime() - start.getTime());
-        console.info("prorating", { start, end, prorate });
-      } else if (
-        workspace.createdAtM &&
-        new Date(workspace.createdAtM).getUTCFullYear() === year &&
-        new Date(workspace.createdAtM).getUTCMonth() + 1 === month
-      ) {
-        const start = new Date(year, month - 1, 1);
-        const end = new Date(year, month, 1);
-        prorate =
-          (end.getTime() - new Date(workspace.createdAtM).getTime()) /
-          (end.getTime() - start.getTime());
-        console.info("prorating", { start, end, prorate });
-      }
-
       const stripeSubscriptionPlan = workspace.subscriptions?.plan;
       if (stripeSubscriptionPlan) {
         await step.do(`add pro plan to invoice for ${workspace.id}`, () =>
@@ -136,7 +120,6 @@ export class Invoicing extends WorkflowEntrypoint<Env, Params> {
             stripeCustomerId: stripeCustomerId,
             name: "Pro plan",
             sub: stripeSubscriptionPlan,
-            prorate,
           }),
         );
       }
@@ -204,30 +187,9 @@ export class Invoicing extends WorkflowEntrypoint<Env, Params> {
             stripeCustomerId: stripeCustomerId,
             name: "Professional Support",
             sub: stripeSubscriptionSupport,
-            prorate,
           }),
         );
       }
-    }
-
-    const workspacesWithDowngradeRequest = await step.do("fetch downgrade requests", () =>
-      db.query.workspaces.findMany({
-        where: (table, { and, isNotNull }) => and(isNotNull(table.planDowngradeRequest)),
-      }),
-    );
-
-    for (const ws of workspacesWithDowngradeRequest) {
-      await step.do(`downgrade ${ws.id}`, () =>
-        db
-          .update(schema.workspaces)
-          .set({
-            plan: ws.planDowngradeRequest,
-            planChanged: null,
-            planDowngradeRequest: null,
-            subscriptions: ws.planDowngradeRequest === "free" ? null : undefined,
-          })
-          .where(eq(schema.workspaces.id, ws.id)),
-      );
     }
   }
 }
@@ -238,18 +200,12 @@ async function createFixedCostInvoiceItem({
   stripeCustomerId,
   name,
   sub,
-  prorate,
 }: {
   stripe: Stripe;
   invoiceId: string;
   stripeCustomerId: string;
   name: string;
   sub: FixedSubscription;
-  /**
-   * number between 0 and 1 to indicate how much to charge
-   * if they have had a fixed cost item for 15/30 days, this should be 0.5
-   */
-  prorate?: number;
 }): Promise<void> {
   await stripe.invoiceItems.create({
     customer: stripeCustomerId,
@@ -258,11 +214,10 @@ async function createFixedCostInvoiceItem({
     price_data: {
       currency: "usd",
       product: sub.productId,
-      unit_amount_decimal:
-        typeof prorate === "number" ? (Number.parseInt(sub.cents) * prorate).toFixed(2) : sub.cents,
+      unit_amount_decimal: sub.cents,
     },
     currency: "usd",
-    description: typeof prorate === "number" ? `${name} (Prorated)` : name,
+    description: name,
   });
 }
 

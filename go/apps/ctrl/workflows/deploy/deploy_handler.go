@@ -413,20 +413,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}
 	}
 
-	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			ProjectID:    deployment.ProjectID,
-			WorkspaceID:  deployment.WorkspaceID,
-			DeploymentID: deployment.ID,
-			Status:       "completed",
-			Message:      "Deployment completed successfully",
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-	}, restate.WithName("logging deployment completed"))
-	if err != nil {
-		return nil, err
-	}
-
 	w.logger.Info("deployment workflow completed",
 		"deployment_id", deployment.ID,
 		"status", "succeeded",

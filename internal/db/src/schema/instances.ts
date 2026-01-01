@@ -1,5 +1,13 @@
 import { relations } from "drizzle-orm";
-import { index, int, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  index,
+  int,
+  mysqlEnum,
+  mysqlTable,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { projects } from "./projects";
 
@@ -8,7 +16,8 @@ import { projects } from "./projects";
 export const instances = mysqlTable(
   "instances",
   {
-    id: varchar("id", { length: 128 }).primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: varchar("id", { length: 64 }).notNull().unique(),
     deploymentId: varchar("deployment_id", { length: 255 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     projectId: varchar("project_id", { length: 255 }).notNull(),

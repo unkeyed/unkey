@@ -68,24 +68,6 @@ func (s *Service) GetDeployment(
 		protoDeployment.GitCommitTimestamp = deployment.GitCommitTimestamp.Int64
 	}
 
-	// Fetch deployment steps
-	deploymentSteps, err := db.Query.FindDeploymentStepsByDeploymentId(ctx, s.db.RO(), deployment.ID)
-	if err != nil {
-		s.logger.Warn("failed to fetch deployment steps", "error", err, "deployment_id", deployment.ID)
-		// Continue without steps rather than failing the entire request
-	} else {
-		protoSteps := make([]*ctrlv1.DeploymentStep, len(deploymentSteps))
-		for i, step := range deploymentSteps {
-			protoSteps[i] = &ctrlv1.DeploymentStep{
-				ErrorMessage: "",
-				Status:       string(step.Status),
-				CreatedAt:    step.CreatedAt,
-				Message:      step.Message,
-			}
-		}
-		protoDeployment.Steps = protoSteps
-	}
-
 	// Fetch routes (fqdns) for this deployment
 	routes, err := db.Query.FindFrontlineRoutesByDeploymentID(ctx, s.db.RO(), req.Msg.GetDeploymentId())
 	if err != nil {

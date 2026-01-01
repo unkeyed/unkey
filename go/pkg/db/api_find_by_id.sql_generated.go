@@ -10,16 +10,17 @@ import (
 )
 
 const findApiByID = `-- name: FindApiByID :one
-SELECT id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
+SELECT pk, id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
 `
 
 // FindApiByID
 //
-//	SELECT id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
+//	SELECT pk, id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
 func (q *Queries) FindApiByID(ctx context.Context, db DBTX, id string) (Api, error) {
 	row := db.QueryRowContext(ctx, findApiByID, id)
 	var i Api
 	err := row.Scan(
+		&i.Pk,
 		&i.ID,
 		&i.Name,
 		&i.WorkspaceID,

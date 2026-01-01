@@ -1,4 +1,3 @@
-import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -24,37 +23,12 @@ export const getDeploymentBuildSteps = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(deploymentLogsRequestSchema)
   .output(deploymentLogsResponseSchema)
-  .query(async ({ input }) => {
+  .query(async () => {
     try {
-      const steps = await db.query.deploymentSteps.findMany({
-        where: (table, { eq, and }) => and(eq(table.deploymentId, input.deploymentId)),
-        columns: {
-          deploymentId: true,
-          workspaceId: true,
-          projectId: true,
-          status: true,
-          message: true,
-          createdAt: true,
-        },
-        orderBy: (table, { asc }) => [asc(table.createdAt)],
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "No deployment steps found for this deployment",
       });
-
-      if (steps.length === 0) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "No deployment steps found for this deployment",
-        });
-      }
-
-      const logs: DeploymentBuildStep[] = steps.map((step) => ({
-        id: `${step.deploymentId}_${step.status}`,
-        timestamp: step.createdAt,
-        message: step.message,
-      }));
-
-      return {
-        logs,
-      };
     } catch (error) {
       if (error instanceof TRPCError) {
         throw error;

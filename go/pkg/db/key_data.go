@@ -52,6 +52,7 @@ func buildKeyDataFromID(r *FindLiveKeyByIDRow) *KeyData {
 func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
 	kd := &KeyData{
 		Key: Key{
+			Pk:                 r.Pk,
 			ID:                 r.ID,
 			KeyAuthID:          r.KeyAuthID,
 			Hash:               r.Hash,
@@ -97,6 +98,7 @@ func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
 	if r.IdentityID.Valid {
 		//nolint:exhaustruct
 		kd.Identity = &Identity{
+			Pk:          r.Pk,
 			ID:          r.IdentityID.String,
 			ExternalID:  r.IdentityExternalID.String,
 			WorkspaceID: r.WorkspaceID,

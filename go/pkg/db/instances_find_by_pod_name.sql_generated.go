@@ -11,7 +11,7 @@ import (
 
 const findInstanceByPodName = `-- name: FindInstanceByPodName :one
 SELECT
- id, deployment_id, workspace_id, project_id, region, cluster_id, k8s_name, address, cpu_millicores, memory_mib, status
+ pk, id, deployment_id, workspace_id, project_id, region, cluster_id, k8s_name, address, cpu_millicores, memory_mib, status
 FROM instances
   WHERE k8s_name = ? AND cluster_id = ? AND region = ?
 `
@@ -25,13 +25,14 @@ type FindInstanceByPodNameParams struct {
 // FindInstanceByPodName
 //
 //	SELECT
-//	 id, deployment_id, workspace_id, project_id, region, cluster_id, k8s_name, address, cpu_millicores, memory_mib, status
+//	 pk, id, deployment_id, workspace_id, project_id, region, cluster_id, k8s_name, address, cpu_millicores, memory_mib, status
 //	FROM instances
 //	  WHERE k8s_name = ? AND cluster_id = ? AND region = ?
 func (q *Queries) FindInstanceByPodName(ctx context.Context, db DBTX, arg FindInstanceByPodNameParams) (Instance, error) {
 	row := db.QueryRowContext(ctx, findInstanceByPodName, arg.K8sName, arg.ClusterID, arg.Region)
 	var i Instance
 	err := row.Scan(
+		&i.Pk,
 		&i.ID,
 		&i.DeploymentID,
 		&i.WorkspaceID,

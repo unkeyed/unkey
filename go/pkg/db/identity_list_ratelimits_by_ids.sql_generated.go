@@ -12,12 +12,12 @@ import (
 )
 
 const listIdentityRatelimitsByIDs = `-- name: ListIdentityRatelimitsByIDs :many
-SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, ` + "`" + `limit` + "`" + `, duration, auto_apply FROM ratelimits WHERE identity_id IN (/*SLICE:ids*/?)
+SELECT pk, id, name, workspace_id, created_at, updated_at, key_id, identity_id, ` + "`" + `limit` + "`" + `, duration, auto_apply FROM ratelimits WHERE identity_id IN (/*SLICE:ids*/?)
 `
 
 // ListIdentityRatelimitsByIDs
 //
-//	SELECT id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id IN (/*SLICE:ids*/?)
+//	SELECT pk, id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id IN (/*SLICE:ids*/?)
 func (q *Queries) ListIdentityRatelimitsByIDs(ctx context.Context, db DBTX, ids []sql.NullString) ([]Ratelimit, error) {
 	query := listIdentityRatelimitsByIDs
 	var queryParams []interface{}
@@ -38,6 +38,7 @@ func (q *Queries) ListIdentityRatelimitsByIDs(ctx context.Context, db DBTX, ids 
 	for rows.Next() {
 		var i Ratelimit
 		if err := rows.Scan(
+			&i.Pk,
 			&i.ID,
 			&i.Name,
 			&i.WorkspaceID,
