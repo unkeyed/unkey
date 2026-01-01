@@ -18,6 +18,35 @@ const sentryMiddleware = t.middleware(
   }),
 );
 
+/**
+ * Error filtering middleware to ignore specific errors that we don't want Sentry to track.
+ *
+ * Currently ignores UNAUTHORIZED, FORBIDDEN, NOT_FOUND, and TOO_MANY_REQUESTS errors.
+ */
+const errorFilterMiddleware = t.middleware(({ next }) => {
+  try {
+    return next();
+  } catch (error) {
+    if (error instanceof TRPCError) {
+      // Log expected tRPC errors as breadcrumbs so we can track them but ignore them as errors.
+      if (
+        error.code === "UNAUTHORIZED" ||
+        error.code === "FORBIDDEN" ||
+        error.code === "NOT_FOUND" ||
+        error.code === "TOO_MANY_REQUESTS"
+      ) {
+        Sentry.addBreadcrumb({
+          category: "tRPC",
+          message: `Expected tRPC Error: ${error.message} (${error.code})`,
+          level: "info",
+        });
+        throw error; // Re-throw so the client still receives the proper tRPC error
+      }
+    }
+    throw error; // Re-throw all other errors for Sentry to capture
+  }
+});
+
 // =============================================================================
 // MIDDLEWARE DEFINITIONS
 // =============================================================================
@@ -265,7 +294,7 @@ export const withLlmAccess = () =>
  * Base procedure with Sentry middleware
  * All procedures should be built on top of this to ensure Sentry tracking
  */
-const baseProcedure = t.procedure.use(sentryMiddleware);
+const baseProcedure = t.procedure.use(errorFilterMiddleware).use(sentryMiddleware);
 
 /**
  * Public procedure - accessible without authentication
