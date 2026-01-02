@@ -24,6 +24,12 @@ type FindKeyMigrationByIDParams struct {
 	WorkspaceID string `db:"workspace_id"`
 }
 
+type FindKeyMigrationByIDRow struct {
+	ID          string                 `db:"id"`
+	WorkspaceID string                 `db:"workspace_id"`
+	Algorithm   KeyMigrationsAlgorithm `db:"algorithm"`
+}
+
 // FindKeyMigrationByID
 //
 //	SELECT
@@ -33,9 +39,9 @@ type FindKeyMigrationByIDParams struct {
 //	FROM key_migrations
 //	WHERE id = ?
 //	and workspace_id = ?
-func (q *Queries) FindKeyMigrationByID(ctx context.Context, db DBTX, arg FindKeyMigrationByIDParams) (KeyMigration, error) {
+func (q *Queries) FindKeyMigrationByID(ctx context.Context, db DBTX, arg FindKeyMigrationByIDParams) (FindKeyMigrationByIDRow, error) {
 	row := db.QueryRowContext(ctx, findKeyMigrationByID, arg.ID, arg.WorkspaceID)
-	var i KeyMigration
+	var i FindKeyMigrationByIDRow
 	err := row.Scan(&i.ID, &i.WorkspaceID, &i.Algorithm)
 	return i, err
 }

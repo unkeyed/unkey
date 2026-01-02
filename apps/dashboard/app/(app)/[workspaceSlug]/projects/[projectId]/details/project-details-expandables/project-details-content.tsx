@@ -30,7 +30,7 @@ export const ProjectDetailsContent = ({ projectId }: ProjectDetailsContentProps)
         .from({ domain: collections.domains })
         .where(({ domain }) => eq(domain.deploymentId, data?.project.liveDeploymentId))
         .select(({ domain }) => ({
-          domain: domain.hostname,
+          domain: domain.fullyQualifiedDomainName,
           environment: domain.sticky,
         }))
         .orderBy(({ domain }) => domain.id, "asc"),

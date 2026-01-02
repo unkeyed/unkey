@@ -23,7 +23,7 @@ const (
 
 type DecryptSecretsBlobRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The encrypted secrets blob from the pod spec (UNKEY_SECRETS_BLOB env var).
+	// The encrypted secrets blob from the pod spec (UNKEY_ENCRYPTED_ENV env var).
 	// This is the SecretsConfig proto, encrypted with the environment's vault keyring.
 	EncryptedBlob []byte `protobuf:"bytes,1,opt,name=encrypted_blob,json=encryptedBlob,proto3" json:"encrypted_blob,omitempty"`
 	// Environment ID (keyring) to use for decryption.

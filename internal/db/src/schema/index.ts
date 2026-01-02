@@ -16,13 +16,13 @@ export * from "./clickhouse_workspace_settings";
 // Deployment platform tables
 export * from "./projects";
 export * from "./deployments";
-export * from "./deployment_steps";
+export * from "./deployment_topology";
 export * from "./acme_users";
 
 export * from "./custom_domains";
 export * from "./acme_challenges";
 
-export * from "./gateways";
+export * from "./sentinels";
 export * from "./instances";
 export * from "./certificates";
-export * from "./ingress_routes";
+export * from "./frontline_routes";

@@ -10,27 +10,27 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/db"
 )
 
-func (s *Service) AssignIngressRoutes(ctx restate.ObjectContext, req *hydrav1.AssignIngressRoutesRequest) (*hydrav1.AssignIngressRoutesResponse, error) {
+func (s *Service) AssignFrontlineRoutes(ctx restate.ObjectContext, req *hydrav1.AssignFrontlineRoutesRequest) (*hydrav1.AssignFrontlineRoutesResponse, error) {
 	s.logger.Info("assigning domains",
 		"deployment_id", req.GetDeploymentId(),
-		"ingress_route_count", len(req.GetIngressRouteIds()),
+		"frontline_route_count", len(req.GetFrontlineRouteIds()),
 	)
 
 	// Upsert each domain in the database
-	for _, ingressRouteID := range req.GetIngressRouteIds() {
+	for _, frontlineRouteID := range req.GetFrontlineRouteIds() {
 		_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.ReassignIngressRoute(stepCtx, s.db.RW(), db.ReassignIngressRouteParams{
-				ID:           ingressRouteID,
+			return restate.Void{}, db.Query.ReassignFrontlineRoute(stepCtx, s.db.RW(), db.ReassignFrontlineRouteParams{
+				ID:           frontlineRouteID,
 				DeploymentID: req.GetDeploymentId(),
 				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 
-		}, restate.WithName(fmt.Sprintf("reassign-%s", ingressRouteID)))
+		}, restate.WithName(fmt.Sprintf("reassign-%s", frontlineRouteID)))
 		if err != nil {
 			return nil, err
 		}
 
 	}
 
-	return &hydrav1.AssignIngressRoutesResponse{}, nil
+	return &hydrav1.AssignFrontlineRoutesResponse{}, nil
 }

@@ -73,3 +73,8 @@ func (l *noop) WarnContext(ctx context.Context, msg string, attrs ...slog.Attr) 
 // ErrorContext is a no-op implementation that discards error level messages.
 func (l *noop) ErrorContext(ctx context.Context, msg string, attrs ...slog.Attr) {
 }
+
+// WithCallDepth is a no-op implementation that discards call depth.
+func (l *noop) WithCallDepth(depth int) Logger {
+	return l
+}

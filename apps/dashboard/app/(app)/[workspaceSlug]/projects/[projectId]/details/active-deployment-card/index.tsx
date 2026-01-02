@@ -84,7 +84,7 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
   const deployment = data.at(0);
 
   // If deployment status is not ready it means we gotta keep showing build steps.
-  // Then, user can switch between runtime(not implemented yet) and gateway logs
+  // Then, user can switch between runtime(not implemented yet) and sentinel logs
   const showBuildSteps = deployment?.status !== "ready";
 
   const {
@@ -173,7 +173,7 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
             type="button"
           >
             <div className="text-grayA-9 text-xs">
-              {showBuildSteps ? "Build logs" : "Gateway logs"}
+              {showBuildSteps ? "Build logs" : "Sentinel logs"}
             </div>
             <Button size="icon" variant="ghost" onClick={() => setExpanded(!isExpanded)}>
               <ChevronDown
@@ -251,7 +251,7 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
                   {searchTerm
                     ? `No logs match "${searchTerm}"`
                     : `No ${
-                        logFilter === "all" ? (showBuildSteps ? "build" : "gateway") : logFilter
+                        logFilter === "all" ? (showBuildSteps ? "build" : "sentinel") : logFilter
                       } logs available`}
                 </div>
               ) : (

@@ -16,7 +16,8 @@ import { workspaces } from "./workspaces";
 export const identities = mysqlTable(
   "identities",
   {
-    id: varchar("id", { length: 256 }).primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: varchar("id", { length: 256 }).notNull().unique(),
     /**
      * The external id is used to create a reference to the user's existing data.
      * They likely have an organization or user id at hand
@@ -52,7 +53,8 @@ export const identitiesRelations = relations(identities, ({ one, many }) => ({
 export const ratelimits = mysqlTable(
   "ratelimits",
   {
-    id: varchar("id", { length: 256 }).primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: varchar("id", { length: 256 }).notNull().unique(),
     /**
      * The name is used to reference this limit when verifying a key.
      */
@@ -76,14 +78,11 @@ export const ratelimits = mysqlTable(
     // specified the name in the request or not
     autoApply: boolean("auto_apply").notNull().default(false),
   },
-  (table) => ({
-    nameIdx: index("name_idx").on(table.name),
-    uniqueNamePerKey: uniqueIndex("unique_name_per_key_idx").on(table.keyId, table.name),
-    uniqueNamePerIdentity: uniqueIndex("unique_name_per_identity_idx").on(
-      table.identityId,
-      table.name,
-    ),
-  }),
+  (table) => [
+    index("name_idx").on(table.name),
+    uniqueIndex("unique_name_per_key_idx").on(table.keyId, table.name),
+    uniqueIndex("unique_name_per_identity_idx").on(table.identityId, table.name),
+  ],
 );
 
 export const ratelimitRelations = relations(ratelimits, ({ one }) => ({

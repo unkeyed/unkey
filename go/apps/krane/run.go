@@ -4,34 +4,46 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"time"
 
-	k8s "k8s.io/client-go/kubernetes"
-
-	"github.com/unkeyed/unkey/go/apps/krane/backend/docker"
-	"github.com/unkeyed/unkey/go/apps/krane/backend/kubernetes"
+	"github.com/unkeyed/unkey/go/apps/krane/internal/reconciler"
+	"github.com/unkeyed/unkey/go/apps/krane/pkg/controlplane"
 	"github.com/unkeyed/unkey/go/apps/krane/secrets"
 	"github.com/unkeyed/unkey/go/apps/krane/secrets/token"
 	"github.com/unkeyed/unkey/go/gen/proto/krane/v1/kranev1connect"
-	"github.com/unkeyed/unkey/go/pkg/otel"
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
+	"github.com/unkeyed/unkey/go/pkg/prometheus"
 	"github.com/unkeyed/unkey/go/pkg/shutdown"
 	"github.com/unkeyed/unkey/go/pkg/vault"
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 	pkgversion "github.com/unkeyed/unkey/go/pkg/version"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
-// Run starts the krane server with the provided configuration.
+// Run starts the krane agent server with the provided configuration.
 //
-// Initializes the selected backend (Docker or Kubernetes), sets up HTTP/2
-// server with Connect protocol, and handles graceful shutdown on context
-// cancellation.
+// This function initializes all required services including Kubernetes client,
+// vault service for secrets management, gRPC servers for API endpoints, and
+// Prometheus metrics server. It blocks until the context is cancelled or a
+// fatal error occurs.
 //
-// When cfg.OtelEnabled is true, initializes OpenTelemetry tracing, metrics,
-// and logging integration.
+// The function performs these steps in order:
+// 1. Validates the configuration
+// 2. Creates structured logger with instance metadata
+// 3. Initializes vault service if master keys and S3 config are provided
+// 4. Creates Kubernetes client using in-cluster configuration
+// 5. Sets up gRPC server with SchedulerService handler
+// 6. Registers SecretsService handler if vault is configured
+// 7. Starts Prometheus metrics server if port is configured
+// 8. Blocks until context cancellation or signal
+// 9. Performs graceful shutdown of all services
+//
+// Returns an error if configuration validation fails, service initialization
+// fails, or during shutdown. Context cancellation results in clean shutdown
+// with nil error.
 func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
@@ -40,27 +52,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	shutdowns := shutdown.New()
 
-	if cfg.OtelEnabled {
-		grafanaErr := otel.InitGrafana(ctx, otel.Config{
-			Application:     "krane",
-			Version:         pkgversion.Version,
-			InstanceID:      cfg.InstanceID,
-			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
-		},
-			shutdowns,
-		)
-		if grafanaErr != nil {
-			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
-		}
-	}
-
 	logger := logging.New()
 	if cfg.InstanceID != "" {
 		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
-	}
-	if cfg.Platform != "" {
-		logger = logger.With(slog.String("platform", cfg.Platform))
 	}
 	if cfg.Region != "" {
 		logger = logger.With(slog.String("region", cfg.Region))
@@ -69,7 +63,46 @@ func Run(ctx context.Context, cfg Config) error {
 		logger = logger.With(slog.String("version", pkgversion.Version))
 	}
 
+	cluster := controlplane.NewClient(controlplane.ClientConfig{
+		URL:         cfg.ControlPlaneURL,
+		BearerToken: cfg.ControlPlaneBearer,
+		Region:      cfg.Region,
+		ClusterID:   cfg.ClusterID,
+	})
+
+	w := controlplane.NewWatcher(controlplane.WatcherConfig{
+		Logger:    logger,
+		ClusterID: cfg.ClusterID,
+		Region:    cfg.Region,
+		Cluster:   cluster,
+	})
+
+	inClusterConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return fmt.Errorf("failed to create in-cluster config: %w", err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(inClusterConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create k8s clientset: %w", err)
+	}
+
+	r, err := reconciler.New(reconciler.Config{
+		Logger:    logger,
+		ClientSet: clientset,
+		Cluster:   cluster,
+		ClusterID: cfg.ClusterID,
+		Region:    cfg.Region,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create reconciler: %w", err)
+	}
+
+	shutdowns.Register(r.Stop)
+	w.Start(ctx, r.HandleState)
+
 	// Create vault service for secrets decryption
+
 	var vaultSvc *vault.Service
 	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3.URL != "" {
 		vaultStorage, vaultStorageErr := storage.NewS3(storage.S3Config{
@@ -97,54 +130,12 @@ func Run(ctx context.Context, cfg Config) error {
 	// Create the connect handler
 	mux := http.NewServeMux()
 
-	var svc Svc
-	var tokenValidator token.Validator
-	var k8sClientset k8s.Interface
-	switch cfg.Backend {
-	case Kubernetes:
-		{
-			k8sBackend, k8sErr := kubernetes.New(kubernetes.Config{
-				Logger:                logger,
-				Region:                cfg.Region,
-				DeploymentEvictionTTL: cfg.DeploymentEvictionTTL,
-			})
-			if k8sErr != nil {
-				return fmt.Errorf("unable to init kubernetes backend: %w", k8sErr)
-			}
-			svc = k8sBackend
-			k8sClientset = k8sBackend.GetClientset()
-
-			// For K8s backend, use K8s service account token validator
-			tokenValidator = token.NewK8sValidator(token.K8sValidatorConfig{
-				Clientset: k8sClientset,
-			})
-			logger.Info("Using K8s service account token validator")
-		}
-	case Docker:
-		{
-			dockerBackend, dockerErr := docker.New(logger, docker.Config{
-				SocketPath:       cfg.DockerSocketPath,
-				RegistryURL:      cfg.RegistryURL,
-				RegistryUsername: cfg.RegistryUsername,
-				RegistryPassword: cfg.RegistryPassword,
-				Region:           cfg.Region,
-				Vault:            vaultSvc,
-			})
-			if dockerErr != nil {
-				return fmt.Errorf("unable to init docker backend: %w", dockerErr)
-			}
-			svc = dockerBackend
-		}
-	default:
-		return fmt.Errorf("unsupported backend: %s", cfg.Backend)
-	}
-
-	// Create the service handlers with interceptors
-	mux.Handle(kranev1connect.NewDeploymentServiceHandler(svc))
-	mux.Handle(kranev1connect.NewGatewayServiceHandler(svc))
+	tokenValidator := token.NewK8sValidator(token.K8sValidatorConfig{
+		Clientset: clientset,
+	})
 
 	// Register secrets service if vault is configured
-	if vaultSvc != nil && tokenValidator != nil {
+	if vaultSvc != nil {
 		secretsSvc := secrets.New(secrets.Config{
 			Logger:         logger,
 			Vault:          vaultSvc,
@@ -156,33 +147,12 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("Secrets service not enabled (missing vault or token validator configuration)")
 	}
 
-	// Configure server
-	addr := fmt.Sprintf(":%d", cfg.HttpPort)
-
-	// Use h2c for HTTP/2 without TLS (for development)
-	h2cHandler := h2c.NewHandler(mux, &http2.Server{
-		MaxHandlers:                  0,
-		MaxConcurrentStreams:         0,
-		MaxDecoderHeaderTableSize:    0,
-		MaxEncoderHeaderTableSize:    0,
-		MaxReadFrameSize:             0,
-		PermitProhibitedCipherSuites: false,
-		IdleTimeout:                  0,
-		ReadIdleTimeout:              0,
-		PingTimeout:                  0,
-		WriteByteTimeout:             0,
-		MaxUploadBufferPerConnection: 0,
-		MaxUploadBufferPerStream:     0,
-		NewWriteScheduler:            nil,
-		CountError:                   nil,
-	})
-
+	addr := fmt.Sprintf(":%d", cfg.RPCPort)
 	server := &http.Server{
-		Addr:         addr,
-		Handler:      h2cHandler,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 30 * time.Second,
+		// Do not set timeouts here, our streaming rpcs will get canceled too frequently
 	}
 
 	// Register server shutdown
@@ -190,15 +160,37 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Start server
 	go func() {
-		logger.Info("Starting krane server", "addr", addr)
+		logger.Info("Starting ctrl server", "addr", addr, "tls")
 
-		listenErr := server.ListenAndServe()
+		err := server.ListenAndServe()
 
-		if listenErr != nil && listenErr != http.ErrServerClosed {
-			logger.Error("Server failed", "error", listenErr.Error())
+		if err != nil && err != http.ErrServerClosed {
+			logger.Error("Server failed", "error", err)
 		}
 	}()
 
+	if cfg.PrometheusPort > 0 {
+
+		prom, err := prometheus.New(prometheus.Config{
+			Logger: logger,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create prometheus server: %w", err)
+		}
+
+		shutdowns.RegisterCtx(prom.Shutdown)
+		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+		if err != nil {
+			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, err)
+		}
+		go func() {
+			logger.Info("prometheus started", "port", cfg.PrometheusPort)
+			if err := prom.Serve(ctx, ln); err != nil {
+				logger.Error("failed to start prometheus server", "error", err)
+			}
+		}()
+
+	}
 	// Wait for signal and handle shutdown
 	logger.Info("Krane server started successfully")
 	if err := shutdowns.WaitForSignal(ctx); err != nil {
@@ -208,9 +200,4 @@ func Run(ctx context.Context, cfg Config) error {
 
 	logger.Info("krane server shut down successfully")
 	return nil
-}
-
-type Svc interface {
-	kranev1connect.DeploymentServiceHandler
-	kranev1connect.GatewayServiceHandler
 }

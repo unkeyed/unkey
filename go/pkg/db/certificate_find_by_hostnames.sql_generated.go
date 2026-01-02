@@ -11,12 +11,12 @@ import (
 )
 
 const findCertificatesByHostnames = `-- name: FindCertificatesByHostnames :many
-SELECT id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname IN (/*SLICE:hostnames*/?)
+SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname IN (/*SLICE:hostnames*/?)
 `
 
 // FindCertificatesByHostnames
 //
-//	SELECT id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname IN (/*SLICE:hostnames*/?)
+//	SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname IN (/*SLICE:hostnames*/?)
 func (q *Queries) FindCertificatesByHostnames(ctx context.Context, db DBTX, hostnames []string) ([]Certificate, error) {
 	query := findCertificatesByHostnames
 	var queryParams []interface{}
@@ -37,6 +37,7 @@ func (q *Queries) FindCertificatesByHostnames(ctx context.Context, db DBTX, host
 	for rows.Next() {
 		var i Certificate
 		if err := rows.Scan(
+			&i.Pk,
 			&i.ID,
 			&i.WorkspaceID,
 			&i.Hostname,

@@ -12,7 +12,7 @@ import (
 
 const listKeysByKeySpaceID = `-- name: ListKeysByKeySpaceID :many
 SELECT
-  k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
+  k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
   i.id as identity_id,
   i.external_id as external_id,
   i.meta as identity_meta,
@@ -49,7 +49,7 @@ type ListKeysByKeySpaceIDRow struct {
 // ListKeysByKeySpaceID
 //
 //	SELECT
-//	  k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
+//	  k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
 //	  i.id as identity_id,
 //	  i.external_id as external_id,
 //	  i.meta as identity_meta,
@@ -81,6 +81,7 @@ func (q *Queries) ListKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListKey
 	for rows.Next() {
 		var i ListKeysByKeySpaceIDRow
 		if err := rows.Scan(
+			&i.Key.Pk,
 			&i.Key.ID,
 			&i.Key.KeyAuthID,
 			&i.Key.Hash,

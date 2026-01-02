@@ -31,10 +31,10 @@ export const getDeploymentTree = workspaceProcedure.query(async () => {
           },
           children: [
             {
-              id: "us-east-1-gw-a1b2-1",
-              label: "gw-a1b2",
+              id: "us-east-1-s-a1b2-1",
+              label: "s-a1b2",
               metadata: {
-                type: "gateway",
+                type: "sentinel",
                 description: "Instance replica",
                 replicas: 2,
                 rps: 320,
@@ -45,10 +45,10 @@ export const getDeploymentTree = workspaceProcedure.query(async () => {
               },
             },
             {
-              id: "us-east-1-gw-c3d4-2",
-              label: "gw-c3d4",
+              id: "us-east-1-s-c3d4-2",
+              label: "s-c3d4",
               metadata: {
-                type: "gateway",
+                type: "sentinel",
                 description: "Instance replica",
                 replicas: 2,
                 rps: 280,
@@ -79,10 +79,10 @@ export const getDeploymentTree = workspaceProcedure.query(async () => {
           },
           children: [
             {
-              id: "eu-central-1-gw-e5f6-1",
-              label: "gw-e5f6",
+              id: "eu-central-1-s-e5f6-1",
+              label: "s-e5f6",
               metadata: {
-                type: "gateway",
+                type: "sentinel",
                 description: "Instance replica",
                 replicas: 2,
                 rps: 240,
@@ -93,10 +93,10 @@ export const getDeploymentTree = workspaceProcedure.query(async () => {
               },
             },
             {
-              id: "eu-central-1-gw-g7h8-2",
-              label: "gw-g7h8",
+              id: "eu-central-1-s-g7h8-2",
+              label: "s-g7h8",
               metadata: {
-                type: "gateway",
+                type: "sentinel",
                 description: "Instance replica",
                 replicas: 2,
                 rps: 260,
@@ -107,10 +107,10 @@ export const getDeploymentTree = workspaceProcedure.query(async () => {
               },
             },
             {
-              id: "eu-central-1-gw-i9j0-3",
-              label: "gw-i9j0",
+              id: "eu-central-1-s-i9j0-3",
+              label: "s-i9j0",
               metadata: {
-                type: "gateway",
+                type: "sentinel",
                 description: "Instance replica",
                 replicas: 2,
                 rps: 220,
@@ -141,10 +141,10 @@ export const getDeploymentTree = workspaceProcedure.query(async () => {
           },
           children: [
             {
-              id: "ap-southeast-2-gw-k1l2-1",
-              label: "gw-k1l2",
+              id: "ap-southeast-2-s-k1l2-1",
+              label: "s-k1l2",
               metadata: {
-                type: "gateway",
+                type: "sentinel",
                 description: "Instance replica",
                 replicas: 2,
                 rps: 180,
@@ -155,10 +155,10 @@ export const getDeploymentTree = workspaceProcedure.query(async () => {
               },
             },
             {
-              id: "ap-southeast-2-gw-m3n4-2",
-              label: "gw-m3n4",
+              id: "ap-southeast-2-s-m3n4-2",
+              label: "s-m3n4",
               metadata: {
-                type: "gateway",
+                type: "sentinel",
                 description: "Instance replica",
                 replicas: 2,
                 rps: 200,

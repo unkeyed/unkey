@@ -20,10 +20,18 @@ export const listDeployments = workspaceProcedure
           gitCommitAuthorHandle: true,
           gitCommitAuthorAvatarUrl: true,
           gitCommitTimestamp: true,
-          runtimeConfig: true,
           status: true,
           openapiSpec: true,
+          cpuMillicores: true,
+          memoryMib: true,
           createdAt: true,
+        },
+        with: {
+          instances: {
+            columns: {
+              id: true,
+            },
+          },
         },
         orderBy: (table, { desc }) => desc(table.createdAt),
         limit: 500,

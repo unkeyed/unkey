@@ -11,8 +11,8 @@ import (
 
 const listWorkspaces = `-- name: ListWorkspaces :many
 SELECT
-   w.id, w.org_id, w.name, w.slug, w.partition_id, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
-   q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
+   w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.partition_id, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+   q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
 FROM ` + "`" + `workspaces` + "`" + ` w
 LEFT JOIN quota q ON w.id = q.workspace_id
 WHERE w.id > ?
@@ -28,8 +28,8 @@ type ListWorkspacesRow struct {
 // ListWorkspaces
 //
 //	SELECT
-//	   w.id, w.org_id, w.name, w.slug, w.partition_id, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
-//	   q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
+//	   w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.partition_id, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+//	   q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
 //	FROM `workspaces` w
 //	LEFT JOIN quota q ON w.id = q.workspace_id
 //	WHERE w.id > ?
@@ -49,6 +49,7 @@ func (q *Queries) ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([
 			&i.Workspace.OrgID,
 			&i.Workspace.Name,
 			&i.Workspace.Slug,
+			&i.Workspace.K8sNamespace,
 			&i.Workspace.PartitionID,
 			&i.Workspace.Plan,
 			&i.Workspace.Tier,
@@ -62,6 +63,7 @@ func (q *Queries) ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([
 			&i.Workspace.CreatedAtM,
 			&i.Workspace.UpdatedAtM,
 			&i.Workspace.DeletedAtM,
+			&i.Quotas.Pk,
 			&i.Quotas.WorkspaceID,
 			&i.Quotas.RequestsPerMonth,
 			&i.Quotas.LogsRetentionDays,

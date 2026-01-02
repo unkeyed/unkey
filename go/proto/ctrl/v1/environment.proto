@@ -4,10 +4,7 @@ package ctrl.v1;
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1;ctrlv1";
 
 service EnvironmentService {
-
   rpc CreateEnvironment(CreateEnvironmentRequest) returns (CreateEnvironmentResponse) {}
-
-
 }
 
 enum EnvironmentType {
@@ -22,7 +19,6 @@ message CreateEnvironmentRequest {
   string slug = 2;
   string description = 3;
   EnvironmentType type = 4;
-
 }
 
 message CreateEnvironmentResponse {

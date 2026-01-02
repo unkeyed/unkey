@@ -11,7 +11,7 @@ import (
 )
 
 const findIdentitiesByExternalId = `-- name: FindIdentitiesByExternalId :many
-SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
 FROM identities
 WHERE workspace_id = ? AND external_id IN (/*SLICE:externalIds*/?) AND deleted = ?
 `
@@ -24,7 +24,7 @@ type FindIdentitiesByExternalIdParams struct {
 
 // FindIdentitiesByExternalId
 //
-//	SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+//	SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
 //	FROM identities
 //	WHERE workspace_id = ? AND external_id IN (/*SLICE:externalIds*/?) AND deleted = ?
 func (q *Queries) FindIdentitiesByExternalId(ctx context.Context, db DBTX, arg FindIdentitiesByExternalIdParams) ([]Identity, error) {
@@ -49,6 +49,7 @@ func (q *Queries) FindIdentitiesByExternalId(ctx context.Context, db DBTX, arg F
 	for rows.Next() {
 		var i Identity
 		if err := rows.Scan(
+			&i.Pk,
 			&i.ID,
 			&i.ExternalID,
 			&i.WorkspaceID,

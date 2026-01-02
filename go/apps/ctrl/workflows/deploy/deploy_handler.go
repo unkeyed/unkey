@@ -3,25 +3,21 @@ package deploy
 import (
 	"context"
 	"database/sql"
-	"encoding/base64"
+	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"time"
 
 	"connectrpc.com/connect"
 	restate "github.com/restatedev/sdk-go"
 	ctrlv1 "github.com/unkeyed/unkey/go/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/go/gen/proto/hydra/v1"
-	kranev1 "github.com/unkeyed/unkey/go/gen/proto/krane/v1"
-	vaultv1 "github.com/unkeyed/unkey/go/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/go/pkg/db"
+	"github.com/unkeyed/unkey/go/pkg/ptr"
 	"github.com/unkeyed/unkey/go/pkg/uid"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
-func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
+func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
 	finishedSuccessfully := false
 
 	deployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
@@ -40,14 +36,38 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			w.logger.Error("deployment failed but we can not set the status", "error", err.Error())
 		}
 	}()
+	workspace, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
 
-	workspace, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Workspace, error) {
-		return db.Query.FindWorkspaceByID(stepCtx, w.db.RW(), deployment.WorkspaceID)
-	}, restate.WithName("finding workspace"))
+		var ws db.Workspace
+		err := db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+
+			found, err := db.Query.FindWorkspaceByID(txCtx, tx, deployment.WorkspaceID)
+			if err != nil {
+				if db.IsNotFound(err) {
+					return restate.TerminalError(errors.New("workspace not found"))
+				}
+				return err
+			}
+			ws = found
+
+			if !found.K8sNamespace.Valid {
+				ws.K8sNamespace.Valid = true
+				ws.K8sNamespace.String = uid.DNS1035()
+				return db.Query.SetWorkspaceK8sNamespace(txCtx, tx, db.SetWorkspaceK8sNamespaceParams{
+					ID:           ws.ID,
+					K8sNamespace: ws.K8sNamespace,
+				})
+			}
+			ws = found
+
+			return nil
+		})
+		return ws, err
+	}, restate.WithName("find workspace"))
+
 	if err != nil {
 		return nil, err
 	}
-
 	project, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindProjectByIdRow, error) {
 		return db.Query.FindProjectById(stepCtx, w.db.RW(), deployment.ProjectID)
 	}, restate.WithName("finding project"))
@@ -62,7 +82,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	}
 
 	var dockerImage string
-	var buildID string
+	var buildID *string
 
 	if req.GetBuildContextPath() != "" {
 		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusBuilding); err != nil {
@@ -96,7 +116,18 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			return nil, fmt.Errorf("failed to build docker image: %w", err)
 		}
 		dockerImage = result.GetImageName()
-		buildID = result.GetBuildId()
+		buildID = ptr.P(result.GetBuildId())
+
+		err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
+			return db.Query.UpdateDeploymentBuildID(stepCtx, w.db.RW(), db.UpdateDeploymentBuildIDParams{
+				ID:        deployment.ID,
+				BuildID:   sql.NullString{Valid: true, String: result.GetBuildId()},
+				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			})
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to update deployment build ID: %w", err)
+		}
 
 	} else if req.GetDockerImage() != "" {
 		dockerImage = req.GetDockerImage()
@@ -107,181 +138,210 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, fmt.Errorf("either build_context_path or docker_image must be specified")
 	}
 
+	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return db.Query.UpdateDeploymentImage(runCtx, w.db.RW(), db.UpdateDeploymentImageParams{
+			ID:        deployment.ID,
+			Image:     sql.NullString{Valid: true, String: dockerImage},
+			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+	}, restate.WithName("update deployment image"))
+	if err != nil {
+		return nil, err
+	}
+
 	if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusDeploying); err != nil {
 		return nil, err
 	}
 
-	var encryptedSecretsBlob []byte
-
-	if len(deployment.SecretsConfig) > 0 && w.vault != nil {
-		var secretsConfig ctrlv1.SecretsConfig
-		if err = protojson.Unmarshal(deployment.SecretsConfig, &secretsConfig); err != nil {
-			return nil, fmt.Errorf("invalid secrets config: %w", err)
+	topologies := make([]db.InsertDeploymentTopologyParams, len(w.availableRegions))
+	for i, region := range w.availableRegions {
+		topologies[i] = db.InsertDeploymentTopologyParams{
+			WorkspaceID:     workspace.ID,
+			DeploymentID:    deployment.ID,
+			Region:          region,
+			DesiredReplicas: 1,
+			DesiredStatus:   db.DeploymentTopologyDesiredStatusStarting,
+			CreatedAt:       time.Now().UnixMilli(),
 		}
-
-		encrypted, encryptErr := w.vault.Encrypt(ctx, &vaultv1.EncryptRequest{
-			Keyring: deployment.EnvironmentID,
-			Data:    string(deployment.SecretsConfig),
-		})
-		if encryptErr != nil {
-			return nil, fmt.Errorf("failed to encrypt secrets blob: %w", encryptErr)
-		}
-		encryptedSecretsBlob = []byte(encrypted.GetEncrypted())
 	}
 
-	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		req := &kranev1.DeploymentRequest{
-			Namespace:            hardcodedNamespace,
-			DeploymentId:         deployment.ID,
-			Image:                dockerImage,
-			Replicas:             1,
-			CpuMillicores:        512,
-			MemorySizeMib:        512,
-			EnvironmentSlug:      environment.Slug,
-			EncryptedSecretsBlob: encryptedSecretsBlob,
-			EnvironmentId:        deployment.EnvironmentID,
-			BuildId:              buildID,
-		}
-		_, err = w.krane.CreateDeployment(stepCtx, connect.NewRequest(&kranev1.CreateDeploymentRequest{
-			Deployment: req,
-		}))
-		if err != nil {
-			return restate.Void{}, fmt.Errorf("krane CreateDeployment failed for image %s: %w", dockerImage, err)
-		}
+	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return db.BulkQuery.InsertDeploymentTopologies(runCtx, w.db.RW(), topologies)
+	}, restate.WithName("insert deployment topologies"))
 
-		return restate.Void{}, nil
-	}, restate.WithName("creating deployment in krane"))
-	if err != nil {
-		return nil, err
+	// Ensure sentinels exist in each region for this deployment
+
+	existingSentinels, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Sentinel, error) {
+		return db.Query.FindSentinelsByEnvironmentID(runCtx, w.db.RO(), environment.ID)
+	}, restate.WithName("find existing sentinels"))
+
+	existingSentinelsByRegion := make(map[string]db.Sentinel)
+	for _, sentinel := range existingSentinels {
+		existingSentinelsByRegion[sentinel.Region] = sentinel
 	}
 
-	w.logger.Info("deployment created", "deployment_id", deployment.ID)
+	for _, topology := range topologies {
+		_, ok := existingSentinelsByRegion[topology.Region]
+		if !ok {
 
-	createdInstances, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]*kranev1.Instance, error) {
-		storedInstances := map[string]db.InstancesStatus{}
-
-		for i := range 300 {
-			time.Sleep(time.Second)
-			if i%10 == 0 {
-				w.logger.Info("polling deployment status", "deployment_id", deployment.ID, "iteration", i)
+			desiredReplicas := int32(1)
+			if environment.Slug == "production" {
+				desiredReplicas = 3
 			}
 
-			var resp *connect.Response[kranev1.GetDeploymentResponse]
-			resp, err = w.krane.GetDeployment(stepCtx, connect.NewRequest(&kranev1.GetDeploymentRequest{
-				Namespace:    hardcodedNamespace,
-				DeploymentId: deployment.ID,
-			}))
+			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+
+				sentinelID := uid.New(uid.SentinelPrefix)
+				sentinelK8sName := uid.DNS1035()
+
+				// we rely on the unique indess of environmendID + region here to create or noop
+				err = db.Query.InsertSentinel(runCtx, w.db.RW(), db.InsertSentinelParams{
+					ID:                sentinelID,
+					WorkspaceID:       workspace.ID,
+					EnvironmentID:     environment.ID,
+					ProjectID:         project.ID,
+					K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local", sentinelK8sName, workspace.K8sNamespace.String),
+					K8sName:           sentinelK8sName,
+					Region:            topology.Region,
+					Image:             w.sentinelImage,
+					Health:            db.SentinelsHealthUnknown,
+					DesiredReplicas:   desiredReplicas,
+					AvailableReplicas: 0,
+					CpuMillicores:     256,
+					MemoryMib:         256,
+					CreatedAt:         time.Now().UnixMilli(),
+				})
+				if err != nil && !db.IsDuplicateKeyError(err) {
+					return err
+				}
+				return nil
+
+			}, restate.WithName("ensure sentinel exists in db"))
 			if err != nil {
-				return nil, fmt.Errorf("krane GetDeployment failed for deployment %s: %w", deployment.ID, err)
+				return nil, err
 			}
 
-			w.logger.Info("deployment status",
-				"deployment_id", deployment.ID,
-				"status", resp.Msg,
+		}
+
+		sentinels, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Sentinel, error) {
+			return db.Query.FindSentinelsByEnvironmentID(runCtx, w.db.RO(), environment.ID)
+		}, restate.WithName("find all sentinels"))
+		if err != nil {
+			return nil, err
+		}
+
+		for _, sentinel := range sentinels {
+			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				return w.cluster.EmitState(runCtx, sentinel.Region,
+					&ctrlv1.State{
+						AcknowledgeId: nil,
+						Kind: &ctrlv1.State_Sentinel{
+							Sentinel: &ctrlv1.SentinelState{
+								State: &ctrlv1.SentinelState_Apply{
+									Apply: &ctrlv1.ApplySentinel{
+										K8SNamespace:  workspace.K8sNamespace.String,
+										K8SName:       sentinel.K8sName,
+										WorkspaceId:   sentinel.WorkspaceID,
+										ProjectId:     sentinel.ProjectID,
+										EnvironmentId: sentinel.EnvironmentID,
+										SentinelId:    sentinel.ID,
+										Image:         w.sentinelImage,
+										Replicas:      sentinel.DesiredReplicas,
+										CpuMillicores: int64(sentinel.CpuMillicores),
+										MemoryMib:     int64(sentinel.MemoryMib),
+									},
+								},
+							},
+						},
+					})
+
+			}, restate.WithName(fmt.Sprintf("emit sentinel apply for %s in %s", sentinel.ID, sentinel.Region)))
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	for _, region := range topologies {
+		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+			return w.cluster.EmitState(runCtx, region.Region,
+				&ctrlv1.State{
+					AcknowledgeId: nil,
+					Kind: &ctrlv1.State_Deployment{
+						Deployment: &ctrlv1.DeploymentState{
+							State: &ctrlv1.DeploymentState_Apply{
+								Apply: &ctrlv1.ApplyDeployment{
+									K8SNamespace:                  workspace.K8sNamespace.String,
+									K8SName:                       deployment.K8sName,
+									WorkspaceId:                   workspace.ID,
+									ProjectId:                     deployment.ProjectID,
+									EnvironmentId:                 deployment.EnvironmentID,
+									DeploymentId:                  deployment.ID,
+									Image:                         dockerImage,
+									Replicas:                      region.DesiredReplicas,
+									CpuMillicores:                 int64(deployment.CpuMillicores),
+									MemoryMib:                     int64(deployment.MemoryMib),
+									BuildId:                       buildID,
+									EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
+									ReadinessId:                   ptr.P(deployment.ID),
+								},
+							},
+						},
+					},
+				},
 			)
 
-			allReady := true
-			for _, instance := range resp.Msg.GetInstances() {
-				if instance.GetStatus() != kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING {
-					allReady = false
+		}, restate.WithName(fmt.Sprintf("emit deployment apply %s in %s", deployment.ID, region.Region)))
+		if err != nil {
+			return nil, err
+		}
+
+	}
+	w.logger.Info("waiting for deployments to be ready", "deployment_id", deployment.ID)
+
+	readygates := make([]restate.Future, len(topologies))
+	for i, region := range topologies {
+		promise := restate.RunAsync(ctx, func(runCtx restate.RunContext) (bool, error) {
+
+			for {
+				time.Sleep(time.Second)
+
+				instances, err := db.Query.FindInstancesByDeploymentIdAndRegion(runCtx, w.db.RO(), db.FindInstancesByDeploymentIdAndRegionParams{
+					Deploymentid: deployment.ID,
+					Region:       region.Region,
+				})
+				if err != nil {
+					return false, err
 				}
-
-				var status db.InstancesStatus
-				switch instance.GetStatus() {
-				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING:
-					status = db.InstancesStatusProvisioning
-				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_RUNNING:
-					status = db.InstancesStatusRunning
-
-				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_TERMINATING:
-					status = db.InstancesStatusStopping
-				case kranev1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED:
-					status = db.InstancesStatusAllocated
+				if len(instances) < int(region.DesiredReplicas) {
+					continue
 				}
-
-				w.logger.Info("upserting instance to database",
-					"instance_id", instance.GetId(),
-					"deployment_id", deployment.ID,
-					"address", instance.GetAddress(),
-					"status", status)
-
-				previousStatus, ok := storedInstances[instance.GetId()]
-				if !ok || previousStatus != status {
-					if err = db.Query.UpsertInstance(stepCtx, w.db.RW(), db.UpsertInstanceParams{
-						ID:            instance.GetId(),
-						DeploymentID:  deployment.ID,
-						WorkspaceID:   deployment.WorkspaceID,
-						ProjectID:     deployment.ProjectID,
-						Region:        "TODO",
-						Address:       instance.GetAddress(),
-						CpuMillicores: 1000,
-						MemoryMb:      1024,
-						Status:        status,
-					}); err != nil {
-						return nil, fmt.Errorf("failed to upsert instance %s: %w", instance.GetId(), err)
+				allRunning := true
+				for _, instance := range instances {
+					if instance.Status != db.InstancesStatusRunning {
+						allRunning = false
+						break
 					}
-					w.logger.Info("successfully upserted instance to database", "instance_id", instance.GetId())
-					storedInstances[instance.GetId()] = status
-
+				}
+				if allRunning {
+					return true, nil
 				}
 
-				if allReady {
-					return resp.Msg.GetInstances(), nil
-				}
 			}
+
+		}, restate.WithName(fmt.Sprintf("wait for instances in %s", region.Region)))
+		readygates[i] = promise
+	}
+
+	for _, err := range restate.Wait(ctx, readygates...) {
+		if err != nil {
+			return nil, err
 		}
-
-		return nil, fmt.Errorf("deployment never became ready")
-	}, restate.WithName("polling deployment status"))
-	if err != nil {
-		return nil, err
 	}
 
-	openapiSpec, err := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
-		for _, instance := range createdInstances {
-			openapiURL := fmt.Sprintf("http://%s/openapi.yaml", instance.GetAddress())
-			w.logger.Info("trying to scrape OpenAPI spec", "url", openapiURL, "host_port", instance.GetAddress(), "deployment_id", deployment.ID)
+	w.logger.Info("deployments ready", "deployment_id", deployment.ID)
 
-			var resp *http.Response
-			resp, err = http.DefaultClient.Get(openapiURL)
-			if err != nil {
-				w.logger.Warn("openapi scraping failed for host address", "error", err, "host_addr", instance.GetAddress(), "deployment_id", deployment.ID)
-				continue
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode != http.StatusOK {
-				w.logger.Warn("openapi endpoint returned non-200 status", "status", resp.StatusCode, "host_addr", instance.GetAddress(), "deployment_id", deployment.ID)
-				continue
-			}
-
-			var specBytes []byte
-			specBytes, err = io.ReadAll(resp.Body)
-			if err != nil {
-				w.logger.Warn("failed to read OpenAPI spec response", "error", err, "host_addr", instance.GetAddress(), "deployment_id", deployment.ID)
-				continue
-			}
-
-			w.logger.Info("openapi spec scraped successfully", "host_addr", instance.GetAddress(), "deployment_id", deployment.ID, "spec_size", len(specBytes))
-			return base64.StdEncoding.EncodeToString(specBytes), nil
-		}
-		return "", nil
-	}, restate.WithName("scrape openapi spec"))
-	if err != nil {
-		return nil, err
-	}
-
-	if openapiSpec != "" {
-		_, err = restate.Run(ctx, func(innerCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.UpdateDeploymentOpenapiSpec(innerCtx, w.db.RW(), db.UpdateDeploymentOpenapiSpecParams{
-				ID:          deployment.ID,
-				UpdatedAt:   sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-				OpenapiSpec: sql.NullString{Valid: true, String: openapiSpec},
-			})
-		}, restate.WithName("update deployment openapi spec"))
-	}
-
-	allHostnames := buildDomains(
+	allDomains := buildDomains(
 		workspace.Slug,
 		project.Slug,
 		environment.Slug,
@@ -293,21 +353,21 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	existingRouteIDs := make([]string, 0)
 
-	for _, hostname := range allHostnames {
-		ingressRouteID, getIngressRouteErr := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
+	for _, domain := range allDomains {
+		frontlineRouteID, getFrontlineRouteErr := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
 			return db.TxWithResult(stepCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
-				found, err := db.Query.FindIngressRouteByHostname(txCtx, tx, hostname.domain)
+				found, err := db.Query.FindFrontlineRouteByFQDN(txCtx, tx, domain.domain)
 				if err != nil {
 					if db.IsNotFound(err) {
-						err = db.Query.InsertIngressRoute(stepCtx, tx, db.InsertIngressRouteParams{
-							ID:            uid.New("todo"),
-							ProjectID:     project.ID,
-							DeploymentID:  deployment.ID,
-							EnvironmentID: deployment.EnvironmentID,
-							Hostname:      hostname.domain,
-							Sticky:        hostname.sticky,
-							CreatedAt:     time.Now().UnixMilli(),
-							UpdatedAt:     sql.NullInt64{Valid: false, Int64: 0},
+						err = db.Query.InsertFrontlineRoute(stepCtx, tx, db.InsertFrontlineRouteParams{
+							ID:                       uid.New("todo"),
+							ProjectID:                project.ID,
+							DeploymentID:             deployment.ID,
+							EnvironmentID:            deployment.EnvironmentID,
+							FullyQualifiedDomainName: domain.domain,
+							Sticky:                   domain.sticky,
+							CreatedAt:                time.Now().UnixMilli(),
+							UpdatedAt:                sql.NullInt64{Valid: false, Int64: 0},
 						})
 						return "", err
 
@@ -317,19 +377,19 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				return found.ID, nil
 
 			})
-		})
-		if getIngressRouteErr != nil {
-			return nil, getIngressRouteErr
+		}, restate.WithName(fmt.Sprintf("inserting frontline route %s", domain.domain)))
+		if getFrontlineRouteErr != nil {
+			return nil, getFrontlineRouteErr
 		}
-		if ingressRouteID != "" {
-			existingRouteIDs = append(existingRouteIDs, ingressRouteID)
+		if frontlineRouteID != "" {
+			existingRouteIDs = append(existingRouteIDs, frontlineRouteID)
 		}
 	}
 
 	_, err = hydrav1.NewRoutingServiceClient(ctx, project.ID).
-		AssignIngressRoutes().Request(&hydrav1.AssignIngressRoutesRequest{
-		DeploymentId:    deployment.ID,
-		IngressRouteIds: existingRouteIDs,
+		AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
+		DeploymentId:      deployment.ID,
+		FrontlineRouteIds: existingRouteIDs,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to assign domains: %w", err)
@@ -353,24 +413,10 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		}
 	}
 
-	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.InsertDeploymentStep(stepCtx, w.db.RW(), db.InsertDeploymentStepParams{
-			ProjectID:    deployment.ProjectID,
-			WorkspaceID:  deployment.WorkspaceID,
-			DeploymentID: deployment.ID,
-			Status:       "completed",
-			Message:      "Deployment completed successfully",
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-	}, restate.WithName("logging deployment completed"))
-	if err != nil {
-		return nil, err
-	}
-
 	w.logger.Info("deployment workflow completed",
 		"deployment_id", deployment.ID,
 		"status", "succeeded",
-		"hostnames", len(allHostnames),
+		"domains", len(allDomains),
 	)
 
 	finishedSuccessfully = true

@@ -10,16 +10,17 @@ import (
 )
 
 const findKeyEncryptionByKeyID = `-- name: FindKeyEncryptionByKeyID :one
-SELECT workspace_id, key_id, created_at, updated_at, encrypted, encryption_key_id FROM encrypted_keys WHERE key_id = ?
+SELECT pk, workspace_id, key_id, created_at, updated_at, encrypted, encryption_key_id FROM encrypted_keys WHERE key_id = ?
 `
 
 // FindKeyEncryptionByKeyID
 //
-//	SELECT workspace_id, key_id, created_at, updated_at, encrypted, encryption_key_id FROM encrypted_keys WHERE key_id = ?
+//	SELECT pk, workspace_id, key_id, created_at, updated_at, encrypted, encryption_key_id FROM encrypted_keys WHERE key_id = ?
 func (q *Queries) FindKeyEncryptionByKeyID(ctx context.Context, db DBTX, keyID string) (EncryptedKey, error) {
 	row := db.QueryRowContext(ctx, findKeyEncryptionByKeyID, keyID)
 	var i EncryptedKey
 	err := row.Scan(
+		&i.Pk,
 		&i.WorkspaceID,
 		&i.KeyID,
 		&i.CreatedAt,

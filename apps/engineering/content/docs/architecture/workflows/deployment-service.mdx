@@ -23,7 +23,7 @@ The `DeploymentService` orchestrates the complete deployment lifecycle, from bui
     PollStatus --> UpsertVMs[Upsert VM Records]
     UpsertVMs --> PollStatus
     PollStatus --> ScrapeAPI[Scrape OpenAPI Spec]
-    ScrapeAPI --> BuildRoutes[Build Ingress Routes]
+    ScrapeAPI --> BuildRoutes[Build Frontline Routes]
     BuildRoutes --> AssignRoutes[Call RoutingService]
     AssignRoutes --> StatusReady[Status: Ready]
     StatusReady --> UpdateLive[Update Live Deployment]
@@ -38,7 +38,7 @@ Creates a new deployment:
 2. Create deployment in Krane
 3. Poll until instances are running
 4. Scrape OpenAPI spec
-5. Call RoutingService to assign ingress routes atomically
+5. Call RoutingService to assign frontline routes atomically
 6. Update project's live deployment ID
 
 Implementation: `go/apps/ctrl/workflows/deploy/deploy_handler.go`
@@ -48,7 +48,7 @@ Implementation: `go/apps/ctrl/workflows/deploy/deploy_handler.go`
 <Mermaid chart={`flowchart TD
     Start([Rollback Request]) --> Validate[Validate Deployments]
     Validate --> CheckVMs[Check Target VMs]
-    CheckVMs --> FindRoutes[Find Sticky Ingress Routes]
+    CheckVMs --> FindRoutes[Find Sticky Frontline Routes]
     FindRoutes --> UpdateRoutes[Update Route Deployment IDs]
     UpdateRoutes --> UpdateProject[Update Live Deployment]
     UpdateProject --> End([Success])
@@ -59,8 +59,8 @@ Implementation: `go/apps/ctrl/workflows/deploy/deploy_handler.go`
 
 Rolls back to a previous deployment:
 1. Validate source/target deployments
-2. Find sticky ingress routes (live + environment level)
-3. Update ingress routes to point to target deployment
+2. Find sticky frontline routes (live + environment level)
+3. Update frontline routes to point to target deployment
 4. Update project metadata
 
 Implementation: `go/apps/ctrl/workflows/deploy/rollback_handler.go`
@@ -69,7 +69,7 @@ Implementation: `go/apps/ctrl/workflows/deploy/rollback_handler.go`
 
 <Mermaid chart={`flowchart TD
     Start([Promote Request]) --> Validate[Validate Deployment]
-    Validate --> FindRoutes[Find All Ingress Routes]
+    Validate --> FindRoutes[Find All Frontline Routes]
     FindRoutes --> UpdateRoutes[Update Route Deployment IDs]
     UpdateRoutes --> UpdateProject[Update Live Deployment]
     UpdateProject --> End([Success])
@@ -79,15 +79,15 @@ Implementation: `go/apps/ctrl/workflows/deploy/rollback_handler.go`
 
 Promotes a deployment to live, removing rolled-back state:
 1. Validate deployment is ready
-2. Find all project ingress routes
-3. Update ingress routes to point to new deployment
+2. Find all project frontline routes
+3. Update frontline routes to point to new deployment
 4. Clear rolled_back flag
 
 Implementation: `go/apps/ctrl/workflows/deploy/promote_handler.go`
 
 ## Why RoutingService?
 
-All ingress route operations are delegated to `RoutingService` to:
+All frontline route operations are delegated to `RoutingService` to:
 - Ensure atomic updates to routing configuration
-- Serialize ingress route operations per project
+- Serialize frontline route operations per project
 - Provide rollback capabilities for failed routing changes

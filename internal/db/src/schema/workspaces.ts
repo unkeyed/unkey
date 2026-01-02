@@ -4,7 +4,6 @@ import { boolean, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql
 import { apis } from "./apis";
 import { certificates } from "./certificates";
 import { clickhouseWorkspaceSettings } from "./clickhouse_workspace_settings";
-import { gateways } from "./gateways";
 import { identities } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
@@ -12,6 +11,7 @@ import { projects } from "./projects";
 import { quotas } from "./quota";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
+import { sentinels } from "./sentinels";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
@@ -24,6 +24,8 @@ export const workspaces = mysqlTable("workspaces", {
 
   // slug is used for the workspace URL
   slug: varchar("slug", { length: 64 }).notNull().unique(),
+
+  k8sNamespace: varchar("k8s_namespace", { length: 256 }).unique(),
 
   // Deployment platform - which partition this workspace deploys to
   partitionId: varchar("partition_id", { length: 256 }),
@@ -126,6 +128,6 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   clickhouseSettings: one(clickhouseWorkspaceSettings),
 
   projects: many(projects),
-  gateways: many(gateways),
+  sentinels: many(sentinels),
   certificates: many(certificates),
 }));

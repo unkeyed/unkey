@@ -1,5 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { type Identity, db, schema } from "@/lib/db";
+import { type InsertIdentity, db, schema } from "@/lib/db";
 import { ratelimitItemSchema } from "@/lib/schemas/ratelimit";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -56,7 +56,7 @@ export const createIdentity = workspaceProcedure
       }
 
       await db.transaction(async (tx) => {
-        const payload: Identity = {
+        const payload: InsertIdentity = {
           id: identityId,
           externalId: input.externalId,
           workspaceId: ctx.workspace.id,

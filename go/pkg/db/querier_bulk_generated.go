@@ -15,13 +15,12 @@ type BulkQuerier interface {
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
 	UpsertCustomDomain(ctx context.Context, db DBTX, args []UpsertCustomDomainParams) error
 	InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error
-	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
+	InsertDeploymentTopologies(ctx context.Context, db DBTX, args []InsertDeploymentTopologyParams) error
 	InsertEnvironments(ctx context.Context, db DBTX, args []InsertEnvironmentParams) error
 	UpsertEnvironment(ctx context.Context, db DBTX, args []UpsertEnvironmentParams) error
-	InsertGateways(ctx context.Context, db DBTX, args []InsertGatewayParams) error
 	InsertIdentities(ctx context.Context, db DBTX, args []InsertIdentityParams) error
 	InsertIdentityRatelimits(ctx context.Context, db DBTX, args []InsertIdentityRatelimitParams) error
-	InsertIngressRoutes(ctx context.Context, db DBTX, args []InsertIngressRouteParams) error
+	InsertFrontlineRoutes(ctx context.Context, db DBTX, args []InsertFrontlineRouteParams) error
 	UpsertInstance(ctx context.Context, db DBTX, args []UpsertInstanceParams) error
 	InsertKeyAuths(ctx context.Context, db DBTX, args []InsertKeyAuthParams) error
 	InsertKeyEncryptions(ctx context.Context, db DBTX, args []InsertKeyEncryptionParams) error
@@ -39,6 +38,7 @@ type BulkQuerier interface {
 	InsertRatelimitOverrides(ctx context.Context, db DBTX, args []InsertRatelimitOverrideParams) error
 	InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, db DBTX, args []InsertRolePermissionParams) error
+	InsertSentinels(ctx context.Context, db DBTX, args []InsertSentinelParams) error
 	InsertWorkspaces(ctx context.Context, db DBTX, args []InsertWorkspaceParams) error
 	UpsertWorkspace(ctx context.Context, db DBTX, args []UpsertWorkspaceParams) error
 }

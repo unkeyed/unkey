@@ -16,7 +16,7 @@ With the built image ready, the control plane instructs Krane to create a deploy
 
 The control plane polls Krane every second (for up to 5 minutes) to check instance status. As instances become ready, their details are registered in the database. Once all instances are running, the control plane attempts to scrape an OpenAPI specification from the deployed service.
 
-Finally, the control plane calls the RoutingService to atomically assign domains and create gateway configurations, and marks the deployment as ready in the database. Meanwhile, the CLI continuously polls the control plane every 2 seconds to check the deployment status until it becomes ready.
+Finally, the control plane calls the RoutingService to atomically assign domains and create sentinel configurations, and marks the deployment as ready in the database. Meanwhile, the CLI continuously polls the control plane every 2 seconds to check the deployment status until it becomes ready.
 
 <Mermaid chart={`sequenceDiagram
     autonumber
@@ -60,7 +60,7 @@ Finally, the control plane calls the RoutingService to atomically assign domains
     Ctrl->>K8s: HTTP GET /openapi.yaml
     K8s->>Ctrl: OpenAPI spec
     
-    Ctrl->>Ctrl: AssignIngressRoutes (RoutingService)<br/>- Update ingress routes<br/>- Point to new deployment
+    Ctrl->>Ctrl: AssignFrontlineRoutes (RoutingService)<br/>- Update frontline routes<br/>- Point to new deployment
     
     Ctrl->>DB: Update deployment status: READY
     
@@ -93,4 +93,3 @@ The Docker backend uses standard Docker builds for local testing. It connects to
 Build contexts are stored in S3-compatible storage. The upload process gives customers presigned URLs to directly upload their build context, bypassing the control plane for efficient transfer. During the build, Depot receives presigned download URLs to fetch the context from S3. Build contexts are retained for the lifecycle of the deployment, allowing rebuilds and rollbacks when needed.
 
 **Location:** `go/apps/ctrl/services/build/storage/s3.go`
-

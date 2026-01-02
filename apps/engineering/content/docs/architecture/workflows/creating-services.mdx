@@ -130,20 +130,20 @@ func Run(ctx context.Context, cfg Config) error {
 
 ### 5. Call the Service
 
-The Restate SDK now generates typed ingress clients from proto definitions. Use these for type-safe, clean service calls.
+The Restate SDK now generates typed frontline clients from proto definitions. Use these for type-safe, clean service calls.
 
 **Setup - Create a helper method in your service:**
 
 ```go
 // In your service struct (e.g., apps/ctrl/services/deployment/service.go)
 type Service struct {
-    restate *restateingress.Client
+    restate *restatefrontline.Client
     // ... other fields
 }
 
 // Helper method to get typed client
-func (s *Service) yourServiceClient(key string) hydrav1.YourServiceIngressClient {
-    return hydrav1.NewYourServiceIngressClient(s.restate, key)
+func (s *Service) yourServiceClient(key string) hydrav1.YourServiceFrontlineClient {
+    return hydrav1.NewYourServiceFrontlineClient(s.restate, key)
 }
 ```
 

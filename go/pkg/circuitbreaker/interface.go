@@ -2,7 +2,6 @@ package circuitbreaker
 
 import (
 	"context"
-	"errors"
 )
 
 type State string
@@ -17,11 +16,6 @@ var (
 	// Closed state means the circuit breaker is allowing requests to pass
 	// through to the upstream service
 	Closed State = "closed"
-)
-
-var (
-	ErrTripped         = errors.New("circuit breaker is open")
-	ErrTooManyRequests = errors.New("too many requests during half open state")
 )
 
 type CircuitBreaker[Res any] interface {

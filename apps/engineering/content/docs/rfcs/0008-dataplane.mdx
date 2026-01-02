@@ -24,7 +24,7 @@ We need to design a globally distributed architecture for Unkey where the datapl
 
 ```ascii
 ┌─────────────────────┐     ┌─────────┐
-│ Gateway             │     │         │
+│ Sentinel             │     │         │
 │ ┌───────────────┐   │────►│   S3    │
 │ │ Memory Cache  │   │     │         │
 │ └───────────────┘   │     │         │
@@ -44,7 +44,7 @@ We need to design a globally distributed architecture for Unkey where the datapl
 
 ```ascii
 ┌─────────────────────┐
-│ Gateway             │
+│ Sentinel             │
 │ ┌───────────────┐   │──┐
 │ │ Memory Cache  │   │  │
 │ └───────────────┘   │  │
@@ -53,7 +53,7 @@ We need to design a globally distributed architecture for Unkey where the datapl
          │ Gossip        │    ┌─────────┐
          ▼               ├───►│         │
 ┌─────────────────────┐  │    │   S3    │
-│ Gateway             │  │    │         │
+│ Sentinel             │  │    │         │
 │ ┌───────────────┐   │──┘    └─────────┘
 │ │ Memory Cache  │   │
 │ └───────────────┘   │
@@ -76,29 +76,29 @@ If we had global fast and efficient eviction, we could set much higher TTLs.
 
 ```ascii
 ┌─────────────────┐
-│ Gateway 1       │───┐
+│ Sentinel 1       │───┐
 └─────────────────┘   │
                       │
 ┌─────────────────┐   │    ┌────────────┐
-│ Gateway 2       │───┼───►│   Load     │    ┌────────────┐
+│ Sentinel 2       │───┼───►│   Load     │    ┌────────────┐
 └─────────────────┘   │    │  Balancer  │───►│ Cache      │──┐
                       │    │            │    │ Node 1     │  │
 ┌─────────────────┐   │    │            │    └────────────┘  │
-│ Gateway 3       │───┤    │            │                    │    ┌─────────┐
+│ Sentinel 3       │───┤    │            │                    │    ┌─────────┐
 └─────────────────┘   │    │            │                    ├───►│   S3    │
                       ├───►│            │    ┌────────────┐  │    └─────────┘
 ┌─────────────────┐   │    │            │───►│ Cache      │──┘
-│ Gateway 4       │───┤    │            │    │ Node 2     │
+│ Sentinel 4       │───┤    │            │    │ Node 2     │
 └─────────────────┘   │    └────────────┘    └────────────┘
                       │
 ┌─────────────────┐   │
-│ Gateway n       │───┘
+│ Sentinel n       │───┘
 └─────────────────┘
 ```
 
-Gateways still use an in-memory SWR cache. The cache nodes help reduce the cost
+Sentinels still use an in-memory SWR cache. The cache nodes help reduce the cost
 and latency of S3, but will likely have the same freshness/staleness as the
-gateways. TBD..
+sentinels. TBD..
 
 Everything here, except the S3 bucket, would be duplicated per region.
 
@@ -113,14 +113,14 @@ Everything here, except the S3 bucket, would be duplicated per region.
 ### 4. DynamoDB Global Tables + Caching
 
 
-Option 4A: Direct DynamoDB + Gateway Memory Cache
-- Each gateway maintains a local memory SWR cache with a TTL of 10s
+Option 4A: Direct DynamoDB + Sentinel Memory Cache
+- Each sentinel maintains a local memory SWR cache with a TTL of 10s
 - DynamoDB serves as source of truth
 - Automatic multi-region replication handled by AWS
 
 ```ascii
 ┌─────────────────────┐     ┌──────────────────┐
-│ Gateway (US)        │     │  DynamoDB        │
+│ Sentinel (US)        │     │  DynamoDB        │
 │ ┌───────────────┐   │────►│  (US-WEST-1)     │
 │ │ Memory Cache  │   │     │                  │
 │ └───────────────┘   │     └──────────────────┘
@@ -129,7 +129,7 @@ Option 4A: Direct DynamoDB + Gateway Memory Cache
                                    │ Replication
                                    │
 ┌─────────────────────┐            ▼
-│ Gateway (EU)        │     ┌──────────────────┐
+│ Sentinel (EU)        │     ┌──────────────────┐
 │ ┌───────────────┐   │────►│  DynamoDB        │
 │ │ Memory Cache  │   │     │  (EU-WEST-1)     │
 │ └───────────────┘   │     │                  │
@@ -145,17 +145,17 @@ These cache nodes would be dumb, they only cache reads for 10s and don't have an
 
 ```ascii
 ┌─────────────────┐
-│ Gateway 1       │───┐
+│ Sentinel 1       │───┐
 └─────────────────┘   │
                       │    ┌────────────┐
 ┌─────────────────┐   │    │   Load     │    ┌────────────┐
-│ Gateway 2       │───┼───►│  Balancer  │───►│ Cache      │──┐
+│ Sentinel 2       │───┼───►│  Balancer  │───►│ Cache      │──┐
 └─────────────────┘   │    │            │    │ Node 1     │  │    ┌──────────────┐
                       │    │            │    └────────────┘  ├───►│  DynamoDB    │
                       │    │            │                    │    │  Global      │
                       │    │            │    ┌────────────┐  │    │  Tables      │
 ┌─────────────────┐   │    │            │───►│ Cache      │──┘    └──────────────┘
-│ Gateway n       │───┘    └────────────┘    │ Node 2     │
+│ Sentinel n       │───┘    └────────────┘    │ Node 2     │
 └─────────────────┘                          └────────────┘
 ```
 

@@ -9,23 +9,23 @@ import (
 	"context"
 )
 
-const updateIngressRouteDeploymentId = `-- name: UpdateIngressRouteDeploymentId :exec
-UPDATE ingress_routes
+const updateFrontlineRouteDeploymentId = `-- name: UpdateFrontlineRouteDeploymentId :exec
+UPDATE frontline_routes
 SET deployment_id = ?
 WHERE id = ?
 `
 
-type UpdateIngressRouteDeploymentIdParams struct {
+type UpdateFrontlineRouteDeploymentIdParams struct {
 	Deploymentid string `db:"deploymentid"`
 	ID           string `db:"id"`
 }
 
-// UpdateIngressRouteDeploymentId
+// UpdateFrontlineRouteDeploymentId
 //
-//	UPDATE ingress_routes
+//	UPDATE frontline_routes
 //	SET deployment_id = ?
 //	WHERE id = ?
-func (q *Queries) UpdateIngressRouteDeploymentId(ctx context.Context, db DBTX, arg UpdateIngressRouteDeploymentIdParams) error {
-	_, err := db.ExecContext(ctx, updateIngressRouteDeploymentId, arg.Deploymentid, arg.ID)
+func (q *Queries) UpdateFrontlineRouteDeploymentId(ctx context.Context, db DBTX, arg UpdateFrontlineRouteDeploymentIdParams) error {
+	_, err := db.ExecContext(ctx, updateFrontlineRouteDeploymentId, arg.Deploymentid, arg.ID)
 	return err
 }

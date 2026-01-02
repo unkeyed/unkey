@@ -1,11 +1,12 @@
 import { relations } from "drizzle-orm";
 // db.ts
-import { mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 export const vercelIntegrations = mysqlTable("vercel_integrations", {
-  id: varchar("id", { length: 256 }).primaryKey(),
+  pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+  id: varchar("id", { length: 256 }).notNull().unique(),
   workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
   vercelTeamId: varchar("team_id", { length: 256 }),
   accessToken: varchar("access_token", { length: 256 }).notNull(),
@@ -15,7 +16,8 @@ export const vercelIntegrations = mysqlTable("vercel_integrations", {
 export const vercelBindings = mysqlTable(
   "vercel_bindings",
   {
-    id: varchar("id", { length: 256 }).primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: varchar("id", { length: 256 }).notNull().unique(),
     integrationId: varchar("integration_id", { length: 256 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     projectId: varchar("project_id", { length: 256 }).notNull(),

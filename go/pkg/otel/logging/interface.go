@@ -1,7 +1,6 @@
 package logging
 
 import (
-	"context"
 	"log/slog"
 )
 
@@ -30,6 +29,8 @@ type Logger interface {
 	//      slog.String("method", r.Method),
 	//  )
 	WithAttrs(attrs ...slog.Attr) Logger
+
+	WithCallDepth(depth int) Logger
 
 	// ---- Standard logging methods (without context) ----
 
@@ -70,47 +71,4 @@ type Logger interface {
 	//      "error", err.Error(),
 	//  )
 	Error(msg string, args ...any)
-
-	// ---- Context-aware logging methods ----
-
-	// DebugContext logs a message at debug level with the given context
-	// and structured attributes.
-	//
-	// Example:
-	//  logger.DebugContext(ctx, "Processing request payload",
-	//      slog.Int("size", len(payload)),
-	//      slog.String("content_type", contentType),
-	//  )
-	DebugContext(ctx context.Context, msg string, attrs ...slog.Attr)
-
-	// InfoContext logs a message at info level with the given context
-	// and structured attributes.
-	//
-	// Example:
-	//  logger.InfoContext(ctx, "User authenticated",
-	//      slog.String("user_id", user.ID),
-	//      slog.String("auth_method", "password"),
-	//  )
-	InfoContext(ctx context.Context, msg string, attrs ...slog.Attr)
-
-	// WarnContext logs a message at warn level with the given context
-	// and structured attributes.
-	//
-	// Example:
-	//  logger.WarnContext(ctx, "API rate limit approaching threshold",
-	//      slog.String("client_id", clientID),
-	//      slog.Int("requests", count),
-	//      slog.Int("limit", limit),
-	//  )
-	WarnContext(ctx context.Context, msg string, attrs ...slog.Attr)
-
-	// ErrorContext logs a message at error level with the given context
-	// and structured attributes.
-	//
-	// Example:
-	//  logger.ErrorContext(ctx, "Failed to process payment",
-	//      slog.String("payment_id", paymentID),
-	//      slog.String("error", err.Error()),
-	//  )
-	ErrorContext(ctx context.Context, msg string, attrs ...slog.Attr)
 }

@@ -7,10 +7,9 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
-const updateWorkspacePlan = `-- name: UpdateWorkspacePlan :execresult
+const updateWorkspacePlan = `-- name: UpdateWorkspacePlan :exec
 UPDATE ` + "`" + `workspaces` + "`" + `
 SET plan = ?
 WHERE id = ?
@@ -26,6 +25,7 @@ type UpdateWorkspacePlanParams struct {
 //	UPDATE `workspaces`
 //	SET plan = ?
 //	WHERE id = ?
-func (q *Queries) UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) (sql.Result, error) {
-	return db.ExecContext(ctx, updateWorkspacePlan, arg.Plan, arg.ID)
+func (q *Queries) UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) error {
+	_, err := db.ExecContext(ctx, updateWorkspacePlan, arg.Plan, arg.ID)
+	return err
 }

@@ -11,7 +11,7 @@ import (
 )
 
 const listRoles = `-- name: ListRoles :many
-SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
+SELECT r.pk, r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
         (SELECT JSON_ARRAYAGG(
             json_object(
                 'id', permission.id,
@@ -40,6 +40,7 @@ type ListRolesParams struct {
 }
 
 type ListRolesRow struct {
+	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
 	Name        string         `db:"name"`
@@ -51,7 +52,7 @@ type ListRolesRow struct {
 
 // ListRoles
 //
-//	SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
+//	SELECT r.pk, r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 //	        (SELECT JSON_ARRAYAGG(
 //	            json_object(
 //	                'id', permission.id,
@@ -81,6 +82,7 @@ func (q *Queries) ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) (
 	for rows.Next() {
 		var i ListRolesRow
 		if err := rows.Scan(
+			&i.Pk,
 			&i.ID,
 			&i.WorkspaceID,
 			&i.Name,

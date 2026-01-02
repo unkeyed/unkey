@@ -10,32 +10,21 @@ import (
 )
 
 const findCustomDomainByDomain = `-- name: FindCustomDomainByDomain :one
-SELECT
-    id,
-    workspace_id,
-    domain,
-    challenge_type,
-    created_at,
-    updated_at
+SELECT pk, id, workspace_id, domain, challenge_type, created_at, updated_at
 FROM custom_domains
 WHERE domain = ?
 `
 
 // FindCustomDomainByDomain
 //
-//	SELECT
-//	    id,
-//	    workspace_id,
-//	    domain,
-//	    challenge_type,
-//	    created_at,
-//	    updated_at
+//	SELECT pk, id, workspace_id, domain, challenge_type, created_at, updated_at
 //	FROM custom_domains
 //	WHERE domain = ?
 func (q *Queries) FindCustomDomainByDomain(ctx context.Context, db DBTX, domain string) (CustomDomain, error) {
 	row := db.QueryRowContext(ctx, findCustomDomainByDomain, domain)
 	var i CustomDomain
 	err := row.Scan(
+		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
 		&i.Domain,

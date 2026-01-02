@@ -8,8 +8,8 @@ import (
 	clickhouseUser "github.com/unkeyed/unkey/go/cmd/create-clickhouse-user"
 	"github.com/unkeyed/unkey/go/cmd/deploy"
 	dev "github.com/unkeyed/unkey/go/cmd/dev"
+	"github.com/unkeyed/unkey/go/cmd/frontline"
 	"github.com/unkeyed/unkey/go/cmd/healthcheck"
-	"github.com/unkeyed/unkey/go/cmd/ingress"
 	"github.com/unkeyed/unkey/go/cmd/quotacheck"
 	"github.com/unkeyed/unkey/go/cmd/run"
 	"github.com/unkeyed/unkey/go/cmd/version"
@@ -32,7 +32,7 @@ func main() {
 			deploy.Cmd,
 			healthcheck.Cmd,
 			quotacheck.Cmd,
-			ingress.Cmd,
+			frontline.Cmd,
 			clickhouseUser.Cmd,
 			dev.Cmd,
 		},

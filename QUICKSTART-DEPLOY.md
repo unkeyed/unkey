@@ -138,7 +138,7 @@ This starts:
 - **redis**: Caching layer for session and temporary data
 - **s3**: MinIO S3-compatible storage for assets and vault data (when using docker backend)
 - **dashboard**: Web UI for managing deployments (port 3000)
-- **gw**: Gateway service for routing traffic (ports 80/443)
+- **sentinel**: Sentinel service for routing traffic (ports 80/443)
 - **krane**: VM/container management service (port 8090)
 - **ctrl**: Control plane service for managing deployments (port 7091)
 

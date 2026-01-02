@@ -24,7 +24,7 @@
     "@axiomhq/js": "1.0.0-rc.2",
     "@hono/zod-openapi": "0.11.0",
     "@hono/zod-validator": "0.2.1",
-    "@planetscale/database": "1.16.0",
+    "@planetscale/database": "1.19.0",
     "@unkey/cache": "1.5.0",
     "@unkey/clickhouse": "workspace:^",
     "@unkey/db": "workspace:^",

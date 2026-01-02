@@ -10,11 +10,13 @@ import { workspaces } from "./workspaces";
  * These settings control service availability and billing for the workspace.
  */
 export const quotas = mysqlTable("quota", {
+  pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+
   /**
    * workspaceId is the primary identifier for the quota record,
    * matching the ID of the workspace it belongs to.
    */
-  workspaceId: varchar("workspace_id", { length: 256 }).primaryKey(),
+  workspaceId: varchar("workspace_id", { length: 256 }).notNull().unique(),
 
   /**
    * requestsPerMonth specifies the maximum number of billable API requests

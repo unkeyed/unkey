@@ -17,7 +17,7 @@ export const file_krane_v1_secrets: GenFile = /*@__PURE__*/
  */
 export type DecryptSecretsBlobRequest = Message<"krane.v1.DecryptSecretsBlobRequest"> & {
   /**
-   * The encrypted secrets blob from the pod spec (UNKEY_SECRETS_BLOB env var).
+   * The encrypted secrets blob from the pod spec (UNKEY_ENCRYPTED_ENV env var).
    * This is the SecretsConfig proto, encrypted with the environment's vault keyring.
    *
    * @generated from field: bytes encrypted_blob = 1;

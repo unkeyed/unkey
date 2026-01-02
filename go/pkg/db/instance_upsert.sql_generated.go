@@ -16,12 +16,16 @@ INSERT INTO instances (
 	workspace_id,
 	project_id,
 	region,
+	cluster_id,
+	k8s_name,
 	address,
 	cpu_millicores,
-	memory_mb,
+	memory_mib,
 	status
 )
 VALUES (
+	?,
+	?,
 	?,
 	?,
 	?,
@@ -35,7 +39,7 @@ VALUES (
 ON DUPLICATE KEY UPDATE
 	address = ?,
 	cpu_millicores = ?,
-	memory_mb = ?,
+	memory_mib = ?,
 	status = ?
 `
 
@@ -45,9 +49,11 @@ type UpsertInstanceParams struct {
 	WorkspaceID   string          `db:"workspace_id"`
 	ProjectID     string          `db:"project_id"`
 	Region        string          `db:"region"`
+	ClusterID     string          `db:"cluster_id"`
+	K8sName       string          `db:"k8s_name"`
 	Address       string          `db:"address"`
 	CpuMillicores int32           `db:"cpu_millicores"`
-	MemoryMb      int32           `db:"memory_mb"`
+	MemoryMib     int32           `db:"memory_mib"`
 	Status        InstancesStatus `db:"status"`
 }
 
@@ -59,12 +65,16 @@ type UpsertInstanceParams struct {
 //		workspace_id,
 //		project_id,
 //		region,
+//		cluster_id,
+//		k8s_name,
 //		address,
 //		cpu_millicores,
-//		memory_mb,
+//		memory_mib,
 //		status
 //	)
 //	VALUES (
+//		?,
+//		?,
 //		?,
 //		?,
 //		?,
@@ -78,7 +88,7 @@ type UpsertInstanceParams struct {
 //	ON DUPLICATE KEY UPDATE
 //		address = ?,
 //		cpu_millicores = ?,
-//		memory_mb = ?,
+//		memory_mib = ?,
 //		status = ?
 func (q *Queries) UpsertInstance(ctx context.Context, db DBTX, arg UpsertInstanceParams) error {
 	_, err := db.ExecContext(ctx, upsertInstance,
@@ -87,13 +97,15 @@ func (q *Queries) UpsertInstance(ctx context.Context, db DBTX, arg UpsertInstanc
 		arg.WorkspaceID,
 		arg.ProjectID,
 		arg.Region,
+		arg.ClusterID,
+		arg.K8sName,
 		arg.Address,
 		arg.CpuMillicores,
-		arg.MemoryMb,
+		arg.MemoryMib,
 		arg.Status,
 		arg.Address,
 		arg.CpuMillicores,
-		arg.MemoryMb,
+		arg.MemoryMib,
 		arg.Status,
 	)
 	return err

@@ -15,7 +15,17 @@ export const listDomains = workspaceProcedure
           id: true,
         },
         with: {
-          ingressRoutes: {
+          frontlineRoutes: {
+            columns: {
+              id: true,
+              projectId: true,
+              deploymentId: true,
+              environmentId: true,
+              fullyQualifiedDomainName: true,
+              sticky: true,
+              createdAt: true,
+              updatedAt: true,
+            },
             limit: 500,
             orderBy: (table, { desc }) => desc(table.updatedAt),
           },
@@ -30,5 +40,5 @@ export const listDomains = workspaceProcedure
         });
       });
 
-    return project?.ingressRoutes ?? [];
+    return project?.frontlineRoutes ?? [];
   });

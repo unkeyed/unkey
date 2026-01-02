@@ -16,26 +16,26 @@ Imagine we have `["internet", "us-east-1", "eu-central-1", ...gws]`
               |                       |
           +------+                    +
           |      |                    |
-        gw-1  gw-2                  gw-3
+        s-1  s-2                  s-3
 
 We would end up with this:
 
 [
   level 0: INTERNET
   level 1: us-east-1
-  level 2: gw-1
-  level 2: gw-2
+  level 2: s-1
+  level 2: s-2
   level 1: eu-central-1
-  level 2: gw-4
+  level 2: s-4
 ]
 ```
 
 That's the easy part, but how are we going to ensure nodes don't overlap? To ensure there's no overlap between nodes, each level has to be at least as big as the subtree + node spacing. And we have to do this recursively because we don't know how many levels we'll have. This is where `calculateSubtreeWidth` comes into play. We also run the same logic for vertical stacking with `calculateSubtreeHeight`.
 
 Subtree width calculation example (bottom-up):
-- gw-1, gw-2: width = 282 (base case, no children, using node.width)
-- us-east-1 subtree: width = 282 + 25 + 282 = 589 (three gateways + two spacings between them)
-- gw-4: width = 282 (base case, no children)
+- s-1, s-2: width = 282 (base case, no children, using node.width)
+- us-east-1 subtree: width = 282 + 25 + 282 = 589 (three sentinels + two spacings between them)
+- s-4: width = 282 (base case, no children)
 - eu-central-1 subtree: width = 282 (only one child, no spacing needed)
 - INTERNET subtree: width = 589 + 25 + 282 = 896 (us-east-1 subtree + spacing + eu-central-1 subtree)
 
@@ -45,7 +45,7 @@ Now we know the width of the subtree, we can calculate the actual `X` positions 
 
 ```
 us-east-1 is at some position, let's say X=0 for this calculation
-Children: [gw-1(width=282), gw-2(width=282)]
+Children: [s-1(width=282), s-2(width=282)]
 spacing.x = 25
 
 Step 1: Total width
@@ -56,20 +56,20 @@ startX = 0 - 589/2 = -294.5
 
 Step 3 & 4: Calculate each child's center
 
-gw-1 (index=0):
+s-1 (index=0):
   x = -294.5 + 0 = -294.5  -> No PRIOR sibling, so left edge is our start
-  x += 282/2 = -153.5      ← gw-1's center
+  x += 282/2 = -153.5      ← s-1's center
 
-gw-2 (index=1):
+s-2 (index=1):
   x = -294.5 + (282 + 25) = -294.5 + 307 = 12.5  -> Left edge of the second node
-  x += 282/2 = 153.5                              ← gw-2's center
+  x += 282/2 = 153.5                              ← s-2's center
 ```
 
 When a node has `direction="vertical"`, its children spread **horizontally** below it at the same Y position.
 
 ```
 INTERNET (y=0, h=20) → us-east-1, eu-central-1 (y=135, h=100)
-us-east-1 (y=135, h=100) → gw-1, gw-2 (y=310, h=100)
+us-east-1 (y=135, h=100) → s-1, s-2 (y=310, h=100)
 spacing.y = 75
 ```
 
@@ -87,7 +87,7 @@ childY = 0 + 10 + 75 + 50 = 135
          └─────────────── parent's center
 ```
 
-**Level 2 (us-east-1 → gateways):**
+**Level 2 (us-east-1 → sentinels):**
 ```
 childY = 135 + 50 + 75 + 50 = 310
 ```
@@ -100,19 +100,19 @@ First we calculate the `subtreeHeight`, then we calculate the actual `Y` positio
 
 ```
 us-east-1: y=135, height=100
-Children: [gw-1(height=100), gw-2(height=100)]
+Children: [s-1(height=100), s-2(height=100)]
 spacing.y = 75
 
 startY = 135 + 100/2 + 75 = 260
 
 Step 1: First child's center
-y = 260 + 100/2 = 310  ← gw-1's center (no prior siblings)
+y = 260 + 100/2 = 310  ← s-1's center (no prior siblings)
 
 Step 2: Second child's center (index=1)
 y = 310      (first child's center)
 y += 100/2 = 360  (move to first child's bottom edge)
 y += 75 = 435     (add spacing gap)
-y += 100/2 = 485  ← gw-2's center (move to second child's center)
+y += 100/2 = 485  ← s-2's center (move to second child's center)
 ```
 
 # Connection Path Waypoints

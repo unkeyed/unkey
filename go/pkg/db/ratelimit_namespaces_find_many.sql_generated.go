@@ -12,7 +12,7 @@ import (
 )
 
 const findManyRatelimitNamespaces = `-- name: FindManyRatelimitNamespaces :many
-SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
+SELECT pk, id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
        coalesce(
                (select json_arrayagg(
                                json_object(
@@ -36,6 +36,7 @@ type FindManyRatelimitNamespacesParams struct {
 }
 
 type FindManyRatelimitNamespacesRow struct {
+	Pk          uint64        `db:"pk"`
 	ID          string        `db:"id"`
 	WorkspaceID string        `db:"workspace_id"`
 	Name        string        `db:"name"`
@@ -47,7 +48,7 @@ type FindManyRatelimitNamespacesRow struct {
 
 // FindManyRatelimitNamespaces
 //
-//	SELECT id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
+//	SELECT pk, id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
 //	       coalesce(
 //	               (select json_arrayagg(
 //	                               json_object(
@@ -92,6 +93,7 @@ func (q *Queries) FindManyRatelimitNamespaces(ctx context.Context, db DBTX, arg 
 	for rows.Next() {
 		var i FindManyRatelimitNamespacesRow
 		if err := rows.Scan(
+			&i.Pk,
 			&i.ID,
 			&i.WorkspaceID,
 			&i.Name,

@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useProject } from "../layout-provider";
 import {
   type DeploymentNode,
-  GatewayNode,
   InfiniteCanvas,
   InternalDevTreeGenerator,
   LiveIndicator,
@@ -13,12 +12,13 @@ import {
   ProjectDetails,
   RegionNode,
   SKELETON_TREE,
+  SentinelNode,
   SkeletonNode,
   TreeConnectionLine,
   TreeLayout,
-  isGatewayNode,
   isOriginNode,
   isRegionNode,
+  isSentinelNode,
   isSkeletonNode,
 } from "./components/unkey-flow";
 
@@ -77,11 +77,11 @@ function renderDeploymentNode(node: DeploymentNode, parent?: DeploymentNode): Re
     return <RegionNode node={node} />;
   }
 
-  if (isGatewayNode(node)) {
+  if (isSentinelNode(node)) {
     if (!parent || !isRegionNode(parent)) {
-      throw new Error("Gateway node requires parent region");
+      throw new Error("Sentinel node requires parent region");
     }
-    return <GatewayNode node={node} flagCode={parent.metadata.flagCode} />;
+    return <SentinelNode node={node} flagCode={parent.metadata.flagCode} />;
   }
 
   // This will yell at you if you don't handle a node type

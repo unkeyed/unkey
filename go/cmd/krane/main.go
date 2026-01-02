@@ -2,7 +2,6 @@ package krane
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/unkeyed/unkey/go/apps/krane"
 	"github.com/unkeyed/unkey/go/pkg/cli"
@@ -22,30 +21,58 @@ EXAMPLES:
 unkey run krane                                   # Run with default configuration`,
 	Flags: []cli.Flag{
 		// Server Configuration
-		cli.Int("http-port", "Port for the server to listen on. Default: 8080",
-			cli.Default(8080), cli.EnvVar("UNKEY_HTTP_PORT")),
+		cli.String("control-plane-url",
+			"URL of the control plane to connect to",
+			cli.Default("https://control.unkey.cloud"),
+			cli.EnvVar("UNKEY_CONTROL_PLANE_URL"),
+		),
+		cli.String("control-plane-bearer",
+			"Bearer token for authenticating with the control plane",
+			cli.Default(""),
+			cli.EnvVar("UNKEY_CONTROL_PLANE_BEARER"),
+		),
 
 		// Instance Identification
-		cli.String("instance-id", "Unique identifier for this instance. Auto-generated if not provided.",
-			cli.Default(uid.New(uid.InstancePrefix, 4)), cli.EnvVar("UNKEY_INSTANCE_ID")),
+		cli.String("instance-id",
+			"Unique identifier for this instance. Auto-generated if not provided.",
+			cli.Default(uid.New(uid.InstancePrefix, 4)),
+			cli.EnvVar("UNKEY_INSTANCE_ID"),
+		),
+		cli.String("region",
+			"The cloud region with platform, e.g. aws:us-east-1",
+			cli.Required(),
+			cli.EnvVar("UNKEY_REGION"),
+		),
+		cli.String("image",
+			"The docker image running",
+			cli.Required(),
+			cli.EnvVar("UNKEY_IMAGE"),
+		),
 
-		cli.String("backend", "Backend type for the service. Either kubernetes or docker. Default: kubernetes",
-			cli.Default("kubernetes"), cli.EnvVar("UNKEY_KRANE_BACKEND")),
+		cli.String("registry-url",
+			"URL of the container registry for pulling images. Example: registry.depot.dev",
+			cli.EnvVar("UNKEY_REGISTRY_URL"),
+		),
 
-		cli.String("docker-socket", "Path to the docker socket. Only used if backend is docker. Default: /var/run/docker.sock",
-			cli.Default("/var/run/docker.sock"), cli.EnvVar("UNKEY_DOCKER_SOCKET")),
+		cli.String("registry-username",
+			"Username for authenticating with the container registry.",
+			cli.EnvVar("UNKEY_REGISTRY_USERNAME"),
+		),
 
-		cli.String("registry-url", "URL of the container registry for pulling images. Example: registry.depot.dev",
-			cli.EnvVar("UNKEY_REGISTRY_URL")),
+		cli.String("registry-password",
+			"Password/token for authenticating with the container registry.",
+			cli.EnvVar("UNKEY_REGISTRY_PASSWORD"),
+		),
 
-		cli.String("registry-username", "Username for authenticating with the container registry.",
-			cli.EnvVar("UNKEY_REGISTRY_USERNAME")),
+		cli.Int("prometheus-port",
+			"Port for Prometheus metrics, set to 0 to disable.",
+			cli.Default(9090),
+			cli.EnvVar("UNKEY_PROMETHEUS_PORT")),
 
-		cli.String("registry-password", "Password/token for authenticating with the container registry.",
-			cli.EnvVar("UNKEY_REGISTRY_PASSWORD")),
-
-		// This has no use outside of our demo cluster and will be removed soon
-		cli.Duration("deployment-eviction-ttl", "Automatically delete deployments after some time. Use go duration formats such as 2h30m", cli.EnvVar("UNKEY_DEPLOYMENT_EVICTION_TTL")),
+		cli.Int("rpc-port",
+			"Port for RPC server",
+			cli.Default(8080),
+			cli.EnvVar("UNKEY_RPC_PORT")),
 
 		// Vault Configuration
 		cli.StringSlice("vault-master-keys", "Master keys for vault encryption (base64 encoded)",
@@ -58,57 +85,50 @@ unkey run krane                                   # Run with default configurati
 			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
 		cli.String("vault-s3-access-key-secret", "S3 access key secret for vault storage",
 			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
+
+		cli.String("control-plane-url", "URL of the control plane",
+			cli.Default("http://ctrl:7091"),
+			cli.EnvVar("UNKEY_CONTROL_PLANE_URL")),
+		cli.String("control-plane-bearer", "Bearer token for the control plane",
+			cli.Default("your-local-dev-key"),
+			cli.EnvVar("UNKEY_CONTROL_PLANE_BEARER")),
+		cli.String("cluster-id", "ID of the cluster",
+			cli.Default(uid.Nano("")),
+			cli.EnvVar("UNKEY_CLUSTER_ID")),
 	},
 	Action: action,
 }
 
 func action(ctx context.Context, cmd *cli.Command) error {
-	backend, err := parseBackend(cmd.String("backend"))
-	if err != nil {
-		return cli.Exit(err.Error(), 1)
-	}
 
 	config := krane.Config{
-		Clock:                 nil,
-		HttpPort:              cmd.Int("http-port"),
-		Backend:               backend,
-		Platform:              cmd.String("platform"),
-		Image:                 cmd.String("image"),
-		Region:                cmd.String("region"),
-		OtelEnabled:           false,
-		OtelTraceSamplingRate: 1.0,
-		InstanceID:            cmd.String("instance-id"),
-		DockerSocketPath:      cmd.String("docker-socket"),
-		RegistryURL:           cmd.String("registry-url"),
-		RegistryUsername:      cmd.String("registry-username"),
-		RegistryPassword:      cmd.String("registry-password"),
-		DeploymentEvictionTTL: cmd.Duration("deployment-eviction-ttl"),
-		VaultMasterKeys:       cmd.StringSlice("vault-master-keys"),
+		Clock:            nil,
+		Image:            cmd.RequireString("image"),
+		Region:           cmd.RequireString("region"),
+		InstanceID:       cmd.RequireString("instance-id"),
+		RegistryURL:      cmd.RequireString("registry-url"),
+		RegistryUsername: cmd.RequireString("registry-username"),
+		RegistryPassword: cmd.RequireString("registry-password"),
+		RPCPort:          cmd.RequireInt("rpc-port"),
+		VaultMasterKeys:  cmd.RequireStringSlice("vault-master-keys"),
 		VaultS3: krane.S3Config{
-			URL:             cmd.String("vault-s3-url"),
-			Bucket:          cmd.String("vault-s3-bucket"),
-			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
-			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
+			URL:             cmd.RequireString("vault-s3-url"),
+			Bucket:          cmd.RequireString("vault-s3-bucket"),
+			AccessKeyID:     cmd.RequireString("vault-s3-access-key-id"),
+			AccessKeySecret: cmd.RequireString("vault-s3-access-key-secret"),
 		},
+		PrometheusPort:     cmd.RequireInt("prometheus-port"),
+		ControlPlaneURL:    cmd.RequireString("control-plane-url"),
+		ControlPlaneBearer: cmd.RequireString("control-plane-bearer"),
+		ClusterID:          cmd.RequireString("cluster-id"),
 	}
 
 	// Validate configuration
-	err = config.Validate()
+	err := config.Validate()
 	if err != nil {
 		return cli.Exit("Invalid configuration: "+err.Error(), 1)
 	}
 
 	// Run krane
 	return krane.Run(ctx, config)
-}
-
-func parseBackend(s string) (krane.Backend, error) {
-	switch s {
-	case "docker":
-		return krane.Docker, nil
-	case "kubernetes":
-		return krane.Kubernetes, nil
-	default:
-		return "", fmt.Errorf("unknown backend type: %s", s)
-	}
 }

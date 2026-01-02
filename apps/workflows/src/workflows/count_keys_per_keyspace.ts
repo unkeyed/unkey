@@ -30,6 +30,9 @@ export class CountKeys extends WorkflowEntrypoint<Env, Params> {
             or(isNull(table.sizeLastUpdatedAt), lt(table.sizeLastUpdatedAt, now - 600_000)),
             not(like(table.id, "test_%")),
           ),
+        columns: {
+          id: true,
+        },
         orderBy: (table, { asc }) => asc(table.sizeLastUpdatedAt),
         limit: 200,
       }),

@@ -1,8 +1,7 @@
-import type { Deployment } from "@/lib/collections/deploy/deployments";
 import type { Project } from "@/lib/collections/deploy/projects";
 import { db, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { deployments, ingressRoutes, projects } from "@unkey/db/src/schema";
+import { deployments, frontlineRoutes, projects } from "@unkey/db/src/schema";
 
 type ProjectRow = {
   id: string;
@@ -16,7 +15,6 @@ type ProjectRow = {
   git_commit_author_handle: string | null;
   git_commit_author_avatar_url: string | null;
   git_commit_timestamp: number | null;
-  runtime_config: Deployment["runtimeConfig"] | null;
   domain: string | null;
   latest_deployment_id: string | null;
 };
@@ -38,8 +36,7 @@ export const listProjects = workspaceProcedure
         ${deployments.gitCommitAuthorHandle},
         ${deployments.gitCommitAuthorAvatarUrl},
         ${deployments.gitCommitTimestamp},
-        ${deployments.runtimeConfig},
-        ${ingressRoutes.hostname},
+        ${frontlineRoutes.fullyQualifiedDomainName},
         (
           SELECT id
           FROM ${deployments} d
@@ -52,8 +49,8 @@ export const listProjects = workspaceProcedure
       LEFT JOIN ${deployments}
         ON ${projects.liveDeploymentId} = ${deployments.id}
         AND ${deployments.workspaceId} = ${ctx.workspace.id}
-      LEFT JOIN ${ingressRoutes}
-      ON ${projects.id} = ${ingressRoutes.projectId}
+      LEFT JOIN ${frontlineRoutes}
+      ON ${projects.id} = ${frontlineRoutes.projectId}
       WHERE ${projects.workspaceId} = ${ctx.workspace.id}
       ORDER BY ${projects.updatedAt} DESC
     `);
@@ -71,7 +68,7 @@ export const listProjects = workspaceProcedure
         author: row.git_commit_author_handle,
         commitTimestamp: Number(row.git_commit_timestamp),
         authorAvatar: row.git_commit_author_avatar_url,
-        regions: row.runtime_config?.regions?.map((r) => r.region) ?? ["us-east-1"],
+        regions: ["dev:local"],
         domain: row.domain,
         latestDeploymentId: row.latest_deployment_id,
       }),

@@ -6,7 +6,7 @@ import "dev/restate/sdk/go.proto";
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/hydra/v1;hydrav1";
 
 service DeploymentService {
-  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+  option (dev.restate.sdk.go.service_type) = WORKFLOW;
   rpc Deploy(DeployRequest) returns (DeployResponse) {}
   rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
   rpc Promote(PromoteRequest) returns (PromoteResponse) {}

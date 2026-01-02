@@ -1,28 +1,90 @@
-// Package krane provides container orchestration with pluggable backends.
+// Package krane provides a distributed container orchestration agent for managing
+// deployments and sentinels across Kubernetes clusters via gRPC APIs.
 //
-// Krane abstracts Docker and Kubernetes behind a unified gRPC API, enabling
-// the same deployment logic to work in local development (Docker) and
-// production (Kubernetes) environments.
+// Krane acts as a node-level agent that exposes gRPC endpoints for container
+// orchestration operations. It manages two primary resource types: deployments
+// (application workloads implemented as ReplicaSets) and sentinels (monitoring/gateway
+// components implemented as Deployments). The agent handles authentication,
+// secrets decryption, and resource lifecycle management through streaming APIs.
 //
-// # Backends
+// # Architecture
 //
-// Docker: Direct container management via Docker Engine API. Suitable for
-// development and single-node deployments.
+// The system consists of three main components:
+//   - Control Plane: External service that makes gRPC calls to krane agents
+//   - Krane Agents: Node-level agents that expose gRPC APIs for orchestration
+//   - Kubernetes Cluster: Target infrastructure where containers are deployed
 //
-// Kubernetes: StatefulSet and Service management via client-go. Designed
-// for production clusters with stable DNS names and automatic eviction.
+// Each krane instance is identified by a unique InstanceID and operates within
+// a specific ClusterID for distributed coordination. The agent uses in-cluster
+// Kubernetes configuration for direct cluster access.
+//
+// # Key Services
+//
+// [kubernetes.Service]: Implements the SchedulerService gRPC interface for
+// deployment and sentinel management operations. Handles ReplicaSet and Deployment
+// creation, updates, deletion, and real-time status streaming.
+//
+// [secrets.Service]: Implements the SecretsService gRPC interface for decrypting
+// environment variables and secrets. Integrates with vault service for secure
+// secrets management and validates requests using Kubernetes service account tokens.
+//
+// # Resource Types
+//
+// Deployment: Application workloads implemented as Kubernetes ReplicaSets with
+// specified container images, resource limits, and replica counts. Each deployment
+// receives standardized environment variables and optional encrypted secrets.
+//
+// Sentinel: Edge components implemented as Kubernetes Deployments for monitoring,
+// routing, and security functions. Sentinels are managed separately from deployments
+// and provide infrastructure services.
 //
 // # Usage
 //
+// Basic krane agent setup:
+//
 //	cfg := krane.Config{
-//		Backend:     krane.Kubernetes,
-//		HttpPort:    7070,
-//		OtelEnabled: true,
+//		InstanceID:    "krane-node-001",
+//		ClusterID:     "production-cluster",
+//		Region:        "us-west-2",
+//		RegistryURL:   "registry.depot.dev",
+//		RegistryUsername: "x-token",
+//		RegistryPassword: "depot-token",
+//		RPCPort:       8080,
+//		PrometheusPort: 9090,
+//		VaultMasterKeys: []string{"master-key-1"},
+//		VaultS3: krane.S3Config{
+//			URL:             "https://s3.amazonaws.com",
+//			Bucket:          "krane-vault",
+//			AccessKeyID:     "access-key",
+//			AccessKeySecret: "secret-key",
+//		},
 //	}
 //	err := krane.Run(context.Background(), cfg)
 //
-// # Service Discovery
+// The agent will:
+//  1. Initialize Kubernetes client using in-cluster configuration
+//  2. Start gRPC server on configured RPCPort with SchedulerService handler
+//  3. Register SecretsService handler if vault configuration is provided
+//  4. Start Prometheus metrics server on configured PrometheusPort
+//  5. Handle graceful shutdown on context cancellation
 //
-//   - Docker: Dynamic port mapping on host.docker.internal
-//   - Kubernetes: StatefulSet DNS names (pod.service.namespace.svc.cluster.local)
+// # Authentication and Security
+//
+// Krane uses Kubernetes service account tokens for authentication. The SecretsService
+// validates that requests originate from pods belonging to the expected deployment
+// by checking pod annotations and service account membership. All secrets are
+// encrypted at rest using the vault service with configurable master keys.
+//
+// # Label Management
+//
+// All managed resources are labeled with standardized metadata for identification
+// and selection. The labels package provides utilities for label management following
+// Kubernetes conventions with the "unkey.com/" prefix for organization-specific
+// labels and "app.kubernetes.io/" for standard Kubernetes labels.
+//
+// # Observability
+//
+// Krane exposes Prometheus metrics for monitoring gRPC API health, resource
+// operations, and system performance. Structured logging provides detailed visibility
+// into operations with correlation through InstanceID and Region fields.
 package krane

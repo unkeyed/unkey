@@ -53,10 +53,6 @@ var Cmd = &cli.Command{
 		// Control Plane Specific
 		cli.String("auth-token", "Authentication token for control plane API access. Required for secure deployments.",
 			cli.EnvVar("UNKEY_AUTH_TOKEN")),
-		cli.String("krane-address", "Full URL of the krane service for VM operations. Required for deployments. Example: https://krane.example.com:8080",
-			cli.Required(), cli.EnvVar("UNKEY_KRANE_ADDRESS")),
-		cli.String("api-key", "API key for simple authentication (demo purposes only). Will be replaced with JWT authentication.",
-			cli.Required(), cli.EnvVar("UNKEY_API_KEY")),
 		cli.String("spiffe-socket-path", "Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/agent/agent.sock",
 			cli.Default("/var/lib/spire/agent/agent.sock"), cli.EnvVar("UNKEY_SPIFFE_SOCKET_PATH")),
 
@@ -129,7 +125,7 @@ var Cmd = &cli.Command{
 		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
 
 		// Restate Configuration
-		cli.String("restate-ingress-url", "URL of the Restate ingress endpoint for invoking workflows. Example: http://restate:8080",
+		cli.String("restate-frontline-url", "URL of the Restate frontline endpoint for invoking workflows. Example: http://restate:8080",
 			cli.Default("http://restate:8080"), cli.EnvVar("UNKEY_RESTATE_INGRESS_URL")),
 		cli.String("restate-admin-url", "URL of the Restate admin endpoint for service registration. Example: http://restate:9070",
 			cli.Default("http://restate:9070"), cli.EnvVar("UNKEY_RESTATE_ADMIN_URL")),
@@ -139,6 +135,10 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_RESTATE_REGISTER_AS")),
 		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
 			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
+
+		// The image new sentinels get deployed with
+		cli.String("sentinel-image", "The image new sentinels get deployed with", cli.Default("ghcr.io/unkeyed/unkey:local"), cli.EnvVar("UNKEY_SENTINEL_IMAGE")),
+		cli.StringSlice("available-regions", "Available regions for deployment", cli.EnvVar("UNKEY_AVAILABLE_REGIONS"), cli.Default([]string{"dev:local"})),
 	},
 	Action: action,
 }
@@ -185,8 +185,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Control Plane Specific
 		AuthToken:        cmd.String("auth-token"),
-		KraneAddress:     cmd.String("krane-address"),
-		APIKey:           cmd.String("api-key"),
 		SPIFFESocketPath: cmd.String("spiffe-socket-path"),
 
 		// Vault configuration - General secrets
@@ -245,10 +243,10 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Restate configuration
 		Restate: ctrl.RestateConfig{
-			IngressURL: cmd.String("restate-ingress-url"),
-			AdminURL:   cmd.String("restate-admin-url"),
-			HttpPort:   cmd.Int("restate-http-port"),
-			RegisterAs: cmd.String("restate-register-as"),
+			FrontlineURL: cmd.String("restate-frontline-url"),
+			AdminURL:     cmd.String("restate-admin-url"),
+			HttpPort:     cmd.Int("restate-http-port"),
+			RegisterAs:   cmd.String("restate-register-as"),
 		},
 
 		// Clickhouse Configuration
@@ -256,6 +254,10 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Common
 		Clock: clock.New(),
+
+		// Sentinel configuration
+		SentinelImage:    cmd.String("sentinel-image"),
+		AvailableRegions: cmd.RequireStringSlice("available-regions"),
 	}
 
 	err := config.Validate()

@@ -82,7 +82,7 @@ const (
 	Service_ServiceCatalog    Service = 3
 	Service_ServiceConfig     Service = 4
 	Service_ServiceDNS        Service = 5
-	Service_ServiceGateway    Service = 6
+	Service_ServiceSentinel    Service = 6
 	Service_ServiceGitHub     Service = 7
 	Service_ServiceKubernetes Service = 8
 	Service_ServiceLog        Service = 9
@@ -110,7 +110,7 @@ var (
 		3:  "ServiceCatalog",
 		4:  "ServiceConfig",
 		5:  "ServiceDNS",
-		6:  "ServiceGateway",
+		6:  "ServiceSentinel",
 		7:  "ServiceGitHub",
 		8:  "ServiceKubernetes",
 		9:  "ServiceLog",
@@ -135,7 +135,7 @@ var (
 		"ServiceCatalog":    3,
 		"ServiceConfig":     4,
 		"ServiceDNS":        5,
-		"ServiceGateway":    6,
+		"ServiceSentinel":    6,
 		"ServiceGitHub":     7,
 		"ServiceKubernetes": 8,
 		"ServiceLog":        9,

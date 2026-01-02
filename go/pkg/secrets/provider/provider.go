@@ -40,9 +40,9 @@ type FetchOptions struct {
 	// If set, Token is ignored and the token is read from this file.
 	TokenPath string
 
-	// EncryptedBlob is the encrypted secrets blob from UNKEY_SECRETS_BLOB env var.
+	// Encrypted is the encrypted secrets blob from UNKEY_ENCRYPTED_ENV env var.
 	// If set, uses DecryptSecretsBlob RPC instead of GetDeploymentSecrets.
-	EncryptedBlob []byte
+	Encrypted []byte
 }
 
 // Config holds configuration for creating a provider.

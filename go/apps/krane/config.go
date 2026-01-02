@@ -1,121 +1,107 @@
 package krane
 
 import (
-	"fmt"
-	"time"
-
 	"github.com/unkeyed/unkey/go/pkg/clock"
 )
 
-// S3Config holds S3 configuration for vault storage
+// S3Config holds S3 configuration for vault storage.
+//
+// This configuration is used when the vault service needs to store encrypted
+// secrets in S3 for persistence and cross-node synchronization.
 type S3Config struct {
-	URL             string
-	Bucket          string
-	AccessKeyID     string
+	// URL is the S3 endpoint URL including protocol and region.
+	// Examples: "https://s3.amazonaws.com" or "https://s3.us-west-2.amazonaws.com".
+	URL string
+
+	// Bucket is the S3 bucket name where encrypted vault data is stored.
+	// The bucket must exist and be accessible with the provided credentials.
+	Bucket string
+
+	// AccessKeyID is the AWS access key ID for S3 authentication.
+	// Must have permissions to read and write objects in the specified bucket.
+	AccessKeyID string
+
+	// AccessKeySecret is the AWS secret access key for S3 authentication.
+	// Should be stored securely and rotated regularly.
 	AccessKeySecret string
 }
 
-// Backend represents the container orchestration backend type.
-type Backend string
-
-const (
-	// Docker backend uses Docker Engine API for container management.
-	// Suitable for local development and single-node deployments.
-	Docker Backend = "docker"
-
-	// Kubernetes backend uses Kubernetes API for container orchestration.
-	// Designed for production multi-node cluster deployments.
-	Kubernetes Backend = "kubernetes"
-)
-
-// Config holds krane server configuration for Docker or Kubernetes backends.
+// Config holds configuration for the krane agent server.
+//
+// This configuration defines how the krane agent connects to Kubernetes,
+// authenticates with container registries, handles secrets, and exposes metrics.
 type Config struct {
-	// InstanceID is the unique identifier for this instance of the API server.
+	// InstanceID is the unique identifier for this krane agent instance.
 	// Used for distributed tracing, logging correlation, and cluster coordination.
-	// Should be unique across all running krane instances.
+	// Must be unique across all running krane instances in the same cluster.
 	InstanceID string
 
-	// Platform identifies the cloud platform where the node is running.
-	// Examples: "aws", "gcp", "azure", "hetzner", "bare-metal"
-	// Used for observability tagging and platform-specific optimizations.
-	Platform string
-
-	// Image specifies the container image identifier including repository and tag.
-	// This field may be deprecated in future versions as images should be
-	// specified per-deployment rather than globally.
+	// Image specifies the default container image identifier including repository and tag.
+	// This field is deprecated and should not be used. Images should be specified
+	// per-deployment through the control plane API instead.
+	// Deprecated: Use per-deployment image specification via control plane.
 	Image string
-
-	// HttpPort defines the HTTP port for the API server to listen on.
-	// Default is 7070. The server uses HTTP/2 with h2c for Connect protocol.
-	// Must be available and not conflicting with other services on the host.
-	HttpPort int
 
 	// Region identifies the geographic region where this node is deployed.
 	// Used for observability, latency optimization, and compliance requirements.
-	// Should match the region identifier used by the underlying cloud platform.
+	// Must match the region identifier used by the underlying cloud platform
+	// and control plane configuration.
 	Region string
 
-	// Backend specifies the container orchestration system to use.
-	// Must be either Docker or Kubernetes. Determines which backend
-	// implementation is instantiated and which configuration fields are required.
-	Backend Backend
-
-	// DockerSocketPath specifies the Docker daemon socket path.
-	// Required when Backend is Docker. Common values:
-	//   - "/var/run/docker.sock" (Linux)
-	//   - "/var/run/docker.sock" (macOS with Docker Desktop)
-	// The path must be accessible by the krane process with appropriate permissions.
-	DockerSocketPath string
-
 	// RegistryURL is the URL of the container registry for pulling images.
-	// Example: "registry.depot.dev"
+	// Should include the protocol and registry domain, e.g., "registry.depot.dev"
+	// or "https://registry.example.com". Used by all deployments unless overridden.
 	RegistryURL string
 
 	// RegistryUsername is the username for authenticating with the container registry.
-	// Example: "x-token", "depot", or any registry-specific username.
+	// Common values include "x-token" for token-based authentication or the
+	// actual registry username. Must be paired with RegistryPassword.
 	RegistryUsername string
 
-	// RegistryPassword is the password/token for authenticating with the container registry.
-	// Should be stored securely (e.g., environment variable).
+	// RegistryPassword is the password or token for authenticating with the container registry.
+	// Should be stored securely (e.g., environment variable or secret management system).
+	// For token-based auth, this is the actual token value.
 	RegistryPassword string
 
-	// OtelEnabled controls whether OpenTelemetry observability data is collected
-	// and sent to configured collectors. When enabled, the service exports
-	// distributed traces, metrics, and structured logs.
-	OtelEnabled bool
-
-	// OtelTraceSamplingRate determines the fraction of traces to sample.
-	// Range: 0.0 (no sampling) to 1.0 (sample all traces).
-	// Recommended values: 0.1 for high-traffic production, 1.0 for development.
-	OtelTraceSamplingRate float64
-
-	// DeploymentEvictionTTL specifies the duration after which idle deployments
-	// are automatically removed from the system. This prevents resource accumulation
-	// in development and testing environments.
-	//
-	// Set to 0 or negative values to disable automatic eviction.
-	// Recommended values:
-	//   - Development: 1-4 hours
-	//   - Staging: 24 hours
-	//   - Production: disabled (0)
-	DeploymentEvictionTTL time.Duration
-
 	// Clock provides time operations for testing and time zone handling.
-	// Use clock.RealClock{} for production, mock clocks for testing.
+	// Use clock.RealClock{} for production deployments and mock clocks for
+	// deterministic testing. Enables time-based operations to be controlled in tests.
 	Clock clock.Clock
 
+	// PrometheusPort specifies the port for exposing Prometheus metrics.
+	// Set to 0 to disable metrics exposure. When enabled, metrics are served
+	// on all interfaces (0.0.0.0) on the specified port.
+	PrometheusPort int
+
 	// VaultMasterKeys are the encryption keys for vault operations.
-	// Required for decrypting environment variable secrets.
+	// Required for decrypting environment variable secrets. At least one key
+	// must be provided when vault functionality is enabled.
 	VaultMasterKeys []string
 
 	// VaultS3 configures S3 storage for encrypted vault data.
+	// Required when VaultMasterKeys are provided for persistent secrets storage.
 	VaultS3 S3Config
+
+	// RPCPort specifies the port for the gRPC server that exposes krane APIs.
+	// The SchedulerService and optionally SecretsService are served on this port.
+	// Must be a valid port number (1-65535).
+	RPCPort int
+
+	ControlPlaneURL    string
+	ControlPlaneBearer string
+
+	ClusterID string
 }
 
+// Validate checks the configuration for required fields and logical consistency.
+//
+// Returns an error if required fields are missing or configuration values are invalid.
+// This method should be called before starting the krane agent to ensure
+// proper configuration and provide early feedback on configuration errors.
+//
+// Currently, this method always returns nil as validation is not implemented.
+// Future implementations will validate required fields such as RPCPort,
+// RegistryURL, and consistency between VaultMasterKeys and VaultS3 configuration.
 func (c Config) Validate() error {
-	if c.Backend == Docker && c.DockerSocketPath == "" {
-		return fmt.Errorf("--docker-socket is required when backend is docker")
-	}
-
 	return nil
 }

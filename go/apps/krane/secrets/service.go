@@ -16,9 +16,21 @@ import (
 	"github.com/unkeyed/unkey/go/apps/krane/secrets/token"
 )
 
+// Config holds configuration for the secrets service.
+//
+// This configuration provides the vault service for decryption operations
+// and token validator for request authentication.
 type Config struct {
-	Logger         logging.Logger
-	Vault          *vault.Service
+	// Logger for secrets operations and security events.
+	// Should include correlation information for audit trails.
+	Logger logging.Logger
+
+	// Vault provides secure decryption services for encrypted secrets.
+	// Must be initialized with appropriate master keys and storage backend.
+	Vault *vault.Service
+
+	// TokenValidator validates Kubernetes service account tokens
+	// to ensure requests originate from authorized deployments.
 	TokenValidator token.Validator
 }
 
@@ -29,6 +41,13 @@ type Service struct {
 	tokenValidator token.Validator
 }
 
+// New creates a secrets service with the provided configuration.
+//
+// This function initializes a Service instance that implements the SecretsService
+// gRPC interface. The service combines vault integration for secrets decryption
+// with token validation for secure request authentication.
+//
+// Returns a configured Service instance ready for gRPC handler registration.
 func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedSecretsServiceHandler: kranev1connect.UnimplementedSecretsServiceHandler{},
@@ -38,6 +57,23 @@ func New(cfg Config) *Service {
 	}
 }
 
+// DecryptSecretsBlob decrypts and returns environment variables for specified deployment.
+//
+// This method handles secure secrets decryption by validating the requesting service
+// account token belongs to the expected deployment, then decrypting both the main
+// secrets blob and individual encrypted environment variables.
+//
+// The method performs these security and decryption steps:
+// 1. Validates that the request token belongs to a pod with matching deployment ID annotation
+// 2. Decrypts the main secrets blob containing environment variable configurations
+// 3. Individually decrypts each encrypted environment variable value
+// 4. Returns clear text environment variables to authorized deployment
+//
+// Returns an authentication error if token validation fails, or internal errors
+// if decryption operations fail. Empty encrypted blob returns empty environment map.
+//
+// Security: This method only returns secrets to deployments that can prove they
+// belong to the expected deployment through Kubernetes service account token validation.
 func (s *Service) DecryptSecretsBlob(
 	ctx context.Context,
 	req *connect.Request[kranev1.DecryptSecretsBlobRequest],
@@ -45,7 +81,7 @@ func (s *Service) DecryptSecretsBlob(
 	deploymentID := req.Msg.GetDeploymentId()
 	environmentID := req.Msg.GetEnvironmentId()
 	requestToken := req.Msg.GetToken()
-	encryptedBlob := req.Msg.GetEncryptedBlob()
+	Encrypted := req.Msg.GetEncryptedBlob()
 
 	s.logger.Info("DecryptSecretsBlob request",
 		"deployment_id", deploymentID,
@@ -61,7 +97,7 @@ func (s *Service) DecryptSecretsBlob(
 		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("invalid or expired token: %w", err))
 	}
 
-	if len(encryptedBlob) == 0 {
+	if len(Encrypted) == 0 {
 		return connect.NewResponse(&kranev1.DecryptSecretsBlobResponse{
 			EnvVars: map[string]string{},
 		}), nil
@@ -69,7 +105,7 @@ func (s *Service) DecryptSecretsBlob(
 
 	decryptedBlobResp, err := s.vault.Decrypt(ctx, &vaultv1.DecryptRequest{
 		Keyring:   environmentID,
-		Encrypted: string(encryptedBlob),
+		Encrypted: string(Encrypted),
 	})
 	if err != nil {
 		s.logger.Error("failed to decrypt secrets blob",

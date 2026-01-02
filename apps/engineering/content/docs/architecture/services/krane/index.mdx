@@ -1,0 +1,175 @@
+---
+title: Krane
+description: Kubernetes cluster agent for deployment orchestration
+---
+
+import { Mermaid } from "@/app/components/mermaid";
+
+
+
+Krane is a Kubernetes cluster agent that follows a pull-based model similar to the Kubernetes kubelet. It connects to the control plane (ctrl) and maintains a long-lived streaming connection to receive deployment and sentinel configuration events. This architecture enables multi-cluster orchestration without the control plane needing direct access to individual clusters.
+
+Krane pulls desired state from ctrl and ensures the actual cluster state matches. It handles deployment and sentinel lifecycle operations (create, update, delete) by translating high-level events into Kubernetes resources.
+
+## Architecture
+
+### Pull-Based Model
+
+Krane implements a pull-based architecture where agents in each cluster:
+
+1. **Establish a Watch Stream**: Connect to ctrl's ClusterService and maintain a long-lived streaming connection
+2. **Pull Desired State**: Periodically sync the full desired state to ensure consistency
+3. **Receive Real-Time Events**: Get deployment and sentinel events pushed through the watch stream
+4. **Apply Changes Locally**: Translate events into Kubernetes resources
+
+This model eliminates the need for the control plane to know about individual clusters, improving security and scalability.
+
+
+### Event-Driven Synchronization
+
+The sync engine (`sync/`) manages the connection to the control plane:
+
+1. **Watch Stream**: Maintains a persistent connection to receive real-time events
+2. **Pull Sync**: Periodically, pulls the complete desired state as a safety net
+3. **Event Buffer**: Queues events for processing with configurable capacity
+4. **Automatic Reconnection**: Handles connection failures with exponential backoff
+
+Events flow through the system:
+- Control plane emits `InfraEvent` messages containing `ApplyDeployment` or `DeleteDeployment`
+- Krane's sync engine receives and buffers these events
+- The deployment manager processes events and calls the appropriate backend
+- The backend translates events into platform-specific resources
+
+### Why StatefulSets Instead of Deployments?
+
+We use StatefulSets for stateless containers, which is unusual. The system expects each instance to have a stable DNS address that doesn't change when pods restart.
+
+StatefulSets guarantee this. Each pod gets a predictable name (`dep-abc-0`) and DNS record (`dep-abc-0.dep-abc.unkey.svc.cluster.local`). The control plane tracks these addresses for service discovery and routing.
+
+Standard Deployments use random pod names and changing DNS addresses. This works fine behind a load balancer, but our current architecture needs stable instance addressing.
+
+This is a known design compromise. Future versions might move instance addressing to service meshes instead of requiring stable DNS.
+
+## Deployment Flow
+
+<Mermaid chart={`sequenceDiagram
+    autonumber
+    participant User
+    participant Ctrl as Control Plane
+    participant DB as Database
+    participant Krane as Krane Agent
+    participant K8s as Kubernetes API
+    participant Pod
+
+    User->>Ctrl: Create deployment request
+    Ctrl->>DB: Store desired state
+    DB->>Ctrl: Acknowledged
+
+    Note over Krane: Watch Stream Active
+
+    Ctrl->>Krane: InfraEvent: ApplyDeployment
+    Note right of Krane: Event pushed through watch stream
+
+    Krane->>K8s: Create/Update Service
+    K8s->>Krane: Service ready
+    Krane->>K8s: Create/Update StatefulSet
+    K8s->>Krane: StatefulSet created
+
+    K8s->>K8s: Schedule pods
+    K8s->>Pod: Pull image & start container
+    Pod->>Pod: Container running
+
+    Note over Krane: Periodic sync (15 min)
+    
+    Krane->>Ctrl: GetDesiredState()
+    Ctrl->>DB: Query desired deployments
+    DB->>Ctrl: Return configurations
+    Ctrl->>Krane: Stream all ApplyDeployment events
+    Krane->>Krane: Reconcile actual vs desired
+
+`} />
+
+## Kubernetes Backend
+
+The Kubernetes backend runs inside a cluster with appropriate RBAC permissions. It uses in-cluster config to authenticate with the API server.
+
+These need to be fine tuned, but they work for now.
+
+```yaml
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["pods", "services"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["statefulsets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+```
+
+### Resource Creation
+
+Creating a deployment creates two resources:
+
+**Headless Service** with `ClusterIP: None` and `publishNotReadyAddresses: true` for DNS-based discovery. Each pod gets a DNS record even before it's ready. The Service selector matches `unkey.deployment.id`.
+
+**StatefulSet** with the specified replicas, CPU, and memory. Resource requests and limits are set to the same value for predictable scheduling. Image pull secrets are automatically added for Depot registry images. Restart policy is always.
+
+Resource limits are enforced at the pod level. Exceeding memory kills the pod. Exceeding CPU throttles it.
+
+## RBAC Requirements
+
+The Kubernetes backend requires specific RBAC permissions to function. Krane needs the ability to create, read, and delete StatefulSets in the Apps API group, create, read, and delete Services in the Core API group, and list and read Pods in the Core API group to query status.
+
+A typical RBAC configuration looks like this:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: krane
+  namespace: unkey
+rules:
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    verbs: ["create", "get", "list", "delete"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["create", "get", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+```
+
+Without these permissions, Krane cannot manage deployments and will return permission denied errors.
+
+## Labels and Management
+
+All resources created by Krane are labeled with `unkey.managed.by=krane` and `unkey.deployment.id={deployment_id}`. These labels serve multiple purposes: they identify resources managed by Krane for filtering and querying, they enable automatic cleanup during eviction scans, and they prevent Krane from interfering with non-Krane resources in shared namespaces.
+
+When querying deployments, Krane verifies the `unkey.managed.by` label matches `krane`. This prevents it from returning information about deployments created by other tools or controllers in the same namespace.
+
+
+### ClusterService API
+
+The control plane exposes a `ClusterService` with two key RPCs:
+
+- **Watch**: Long-lived stream for real-time event delivery
+- **GetDesiredState**: Returns all current desired infrastructure configurations
+
+### Event Distribution
+
+When deployment changes occur:
+1. Control plane stores the desired state in the database
+2. Emits events to all connected Krane agents matching the region selector
+3. Each Krane agent applies changes to its local cluster
+
+### Multi-Region Support
+
+Krane agents connect with selectors (typically `region: aws-us-east-1`) to receive only relevant events. This enables:
+- Region-specific deployments
+- Cross-region failover capabilities
+- Isolated development environments

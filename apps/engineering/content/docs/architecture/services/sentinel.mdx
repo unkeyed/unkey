@@ -1,0 +1,184 @@
+---
+title: Sentinel
+description: Environment-scoped deployment sentinel service
+---
+
+import { Mermaid } from "@/app/components/mermaid";
+
+**Location:** `go/apps/sentinel/`
+
+**CLI Command:** [`unkey run sentinel`](/cli/run/sentinel)
+
+## What It Does
+
+Sentinel is an environment-scoped HTTP proxy service that receives requests from Frontline and routes them to the appropriate deployment instance.
+
+Each environment has its own Sentinel instance(s), and a single Sentinel handles all deployments within that environment.
+
+Sentinel handles three main responsibilities:
+
+1. **Deployment Validation**: Ensures the requested deployment belongs to this Sentinel's environment
+2. **Instance Selection**: Selects a healthy running instance for the deployment in the current region
+3. **Request Proxying**: Forwards the request to the selected instance and returns the response
+
+## Architecture
+
+### Environment-Scoped Design
+
+Sentinel is an environment-scoped service, meaning:
+
+- Each environment (e.g., production, staging, dev) has its own Sentinel instance(s)
+- A single Sentinel handles **all deployments** within its environment
+- Frontline passes the `X-Deployment-ID` header to specify which deployment to route to
+- Sentinel validates that the deployment belongs to its configured environment
+
+<Mermaid chart={`graph LR
+    Internet[Internet] --> Frontline[Frontline<br/><i>multi-tenant</i>]
+    Frontline --> Sentinel[Sentinel<br/><i>per-environment</i>]
+    Sentinel --> Instance[Instance<br/><i>per-deployment</i>]
+`} />
+
+### Request Flow
+
+<Mermaid chart={`sequenceDiagram
+    autonumber
+    participant Frontline
+    participant Sentinel
+    participant Router as Router Service
+    participant DB as MySQL
+    participant Instance as Deployment Instance
+
+    Frontline->>Sentinel: HTTP Request + X-Deployment-ID header
+    Sentinel->>Router: GetDeployment(deploymentID)
+    Router->>DB: SELECT * FROM deployments WHERE id=?
+    DB->>Router: deployment (with environment_id)
+    Router->>Router: Validate deployment.environment_id == sentinel.environment_id
+
+    alt Deployment belongs to wrong environment
+        Router->>Sentinel: DeploymentNotFound error (masked)
+        Sentinel->>Frontline: 404 Not Found
+    else Deployment valid
+        Router->>Sentinel: Deployment
+        Sentinel->>Router: SelectInstance(deploymentID)
+        Router->>DB: SELECT * FROM instances WHERE deployment_id=? AND region=?
+        DB->>Router: instances[]
+        Router->>Router: Filter for status='running'
+        Router->>Router: Select random running instance
+        Router->>Sentinel: Selected instance
+        Sentinel->>Instance: HTTP proxy to instance.address
+        Instance->>Sentinel: Response
+        Sentinel->>Frontline: Response
+    end
+
+`} />
+
+## How It Works
+
+Sentinel validates that the requested deployment belongs to its configured environment, then selects a healthy instance to proxy the request to.
+
+**Security Note**: Deployments from wrong environments are masked as "not found" rather than "forbidden" to avoid leaking information about deployments in other environments.
+
+## Database Schema
+
+Sentinel uses the following tables:
+
+```sql
+-- Deployments (one per git branch/commit)
+CREATE TABLE deployments (
+    id VARCHAR(128) PRIMARY KEY,
+    workspace_id VARCHAR(255) NOT NULL,
+    project_id VARCHAR(255) NOT NULL,
+    environment_id VARCHAR(255) NOT NULL,  -- Sentinel validates this matches
+    git_commit_sha VARCHAR(40),
+    git_branch VARCHAR(255),
+    status ENUM('pending','deploying','running','failed','stopped') NOT NULL,
+    sentinel_config JSON NOT NULL,
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
+);
+
+-- Running instances (pods/containers)
+CREATE TABLE instances (
+    id VARCHAR(128) PRIMARY KEY,
+    deployment_id VARCHAR(255) NOT NULL,
+    workspace_id VARCHAR(255) NOT NULL,
+    project_id VARCHAR(255) NOT NULL,
+    region VARCHAR(255) NOT NULL,
+    address VARCHAR(255) NOT NULL UNIQUE,  -- e.g., "10.0.1.5:8080"
+    cpu_millicores INT NOT NULL,
+    memory_mb INT NOT NULL,
+    status ENUM('allocated','provisioning','starting','running','stopping','stopped','failed') NOT NULL
+);
+
+-- Index for fast instance lookups
+CREATE INDEX idx_instances_deployment_region ON instances(deployment_id, region, status);
+```
+
+## Error Handling
+
+Sentinel uses structured error codes for consistent error handling:
+
+### Error Codes
+
+```go
+// Routing Errors
+codes.Sentinel.Routing.DeploymentNotFound      // 404 - Deployment not found or wrong environment
+codes.Sentinel.Routing.NoRunningInstances      // 503 - No healthy instances available
+codes.Sentinel.Routing.InstanceSelectionFailed // 500 - Failed to select instance
+
+// Proxy Errors
+codes.Sentinel.Proxy.BadSentinel         // 502 - Invalid response from instance
+codes.Sentinel.Proxy.ServiceUnavailable // 503 - Instance unavailable
+codes.Sentinel.Proxy.SentinelTimeout     // 504 - Instance timeout
+codes.Sentinel.Proxy.ProxyForwardFailed // 502 - Failed to forward request
+
+// Internal Errors
+codes.Sentinel.Internal.InternalServerError  // 500 - Generic internal error
+codes.Sentinel.Internal.InvalidConfiguration // 500 - Invalid configuration
+```
+
+### Error Middleware
+
+Sentinel is not user-facing (only Frontline calls it), so it always returns JSON errors:
+
+```go
+// Error response format
+{
+  "error": {
+    "code": "err:unkey:not_found:deployment_not_found",
+    "message": "The requested deployment could not be found."
+  }
+}
+```
+
+Frontline receives these errors and can decide how to present them to end users.
+
+## Configuration
+
+Sentinel is configured per-environment:
+
+```go
+type Config struct {
+    SentinelID     string  // Unique identifier for this sentinel instance
+    WorkspaceID   string  // Workspace this sentinel serves
+    EnvironmentID string  // Environment this sentinel serves (REQUIRED)
+    Region        string  // Region this sentinel runs in
+
+    HttpPort int  // Port to listen on (default: 8080)
+
+    // Database
+    DatabasePrimary         string
+    DatabaseReadonlyReplica string
+
+    // Observability
+    OtelEnabled           bool
+    OtelTraceSamplingRate float64
+    PrometheusPort        int
+}
+```
+
+**Key Configuration**: `EnvironmentID` is required and determines which deployments this Sentinel can serve.
+
+## Observability
+
+Sentinel uses structured logging and metrics for monitoring.

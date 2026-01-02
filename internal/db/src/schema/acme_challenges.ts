@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlEnum, mysqlTable, primaryKey, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { customDomains } from "./custom_domains";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -9,7 +9,9 @@ export const challengeType = mysqlEnum("challenge_type", ["HTTP-01", "DNS-01"]).
 export const acmeChallenges = mysqlTable(
   "acme_challenges",
   {
-    domainId: varchar("domain_id", { length: 255 }).notNull(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+
+    domainId: varchar("domain_id", { length: 255 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     token: varchar("token", { length: 255 }).notNull(),
     type: challengeType,
@@ -19,11 +21,7 @@ export const acmeChallenges = mysqlTable(
 
     ...lifecycleDates,
   },
-  (table) => [
-    primaryKey({ columns: [table.domainId] }),
-    index("workspace_idx").on(table.workspaceId),
-    index("status_idx").on(table.status),
-  ],
+  (table) => [index("workspace_idx").on(table.workspaceId), index("status_idx").on(table.status)],
 );
 
 export const acmeChallengeRelations = relations(acmeChallenges, ({ one }) => ({

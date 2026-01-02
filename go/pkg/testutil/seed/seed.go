@@ -354,6 +354,7 @@ func (s *Seeder) CreateRatelimit(ctx context.Context, req CreateRatelimitRequest
 	require.NoError(s.t, err)
 
 	return db.Ratelimit{
+		Pk:          0, // db internal
 		ID:          ratelimitID,
 		Name:        req.Name,
 		WorkspaceID: req.WorkspaceID,
@@ -400,6 +401,7 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 	}
 
 	return db.Identity{
+		Pk:          0, // db internal
 		ID:          identityID,
 		ExternalID:  req.ExternalID,
 		WorkspaceID: req.WorkspaceID,
@@ -447,6 +449,7 @@ func (s *Seeder) CreateRole(ctx context.Context, req CreateRoleRequest) db.Role 
 	}
 
 	return db.Role{
+		Pk:          0, // db internal
 		ID:          roleID,
 		WorkspaceID: req.WorkspaceID,
 		Name:        req.Name,
@@ -482,6 +485,7 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 	require.NoError(s.t, err)
 
 	return db.Permission{
+		Pk:          0, // db internal
 		ID:          permissionID,
 		WorkspaceID: req.WorkspaceID,
 		Name:        req.Name,

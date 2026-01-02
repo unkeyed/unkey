@@ -37,7 +37,7 @@ export function CardFooter(props: CardFooterProps) {
           value={rps}
           tooltip={
             isRegion
-              ? "Requests per second handled by this region's gateways"
+              ? "Requests per second handled by this region's sentinels"
               : "Requests per second handled by this instance"
           }
         />
@@ -49,7 +49,7 @@ export function CardFooter(props: CardFooterProps) {
             value={`${cpu}%`}
             tooltip={
               isRegion
-                ? "Average CPU usage across all gateway instances in this region"
+                ? "Average CPU usage across all sentinel instances in this region"
                 : "Current CPU usage for this instance"
             }
           />
@@ -60,7 +60,7 @@ export function CardFooter(props: CardFooterProps) {
             value={`${memory}%`}
             tooltip={
               isRegion
-                ? "Average memory usage across all gateway instances in this region"
+                ? "Average memory usage across all sentinel instances in this region"
                 : "Current memory usage for this instance"
             }
           />

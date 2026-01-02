@@ -10,7 +10,7 @@ import (
 )
 
 const findIdentityByExternalID = `-- name: FindIdentityByExternalID :one
-SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
 FROM identities
 WHERE workspace_id = ?
   AND external_id = ?
@@ -25,7 +25,7 @@ type FindIdentityByExternalIDParams struct {
 
 // FindIdentityByExternalID
 //
-//	SELECT id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+//	SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
 //	FROM identities
 //	WHERE workspace_id = ?
 //	  AND external_id = ?
@@ -34,6 +34,7 @@ func (q *Queries) FindIdentityByExternalID(ctx context.Context, db DBTX, arg Fin
 	row := db.QueryRowContext(ctx, findIdentityByExternalID, arg.WorkspaceID, arg.ExternalID, arg.Deleted)
 	var i Identity
 	err := row.Scan(
+		&i.Pk,
 		&i.ID,
 		&i.ExternalID,
 		&i.WorkspaceID,

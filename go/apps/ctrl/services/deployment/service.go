@@ -16,10 +16,11 @@ import (
 
 type Service struct {
 	ctrlv1connect.UnimplementedDeploymentServiceHandler
-	db           db.Database
-	restate      *restateingress.Client
-	buildService ctrlv1connect.BuildServiceClient
-	logger       logging.Logger
+	db               db.Database
+	restate          *restateingress.Client
+	buildService     ctrlv1connect.BuildServiceClient
+	logger           logging.Logger
+	availableRegions []string
 }
 
 // deploymentClient creates a typed Restate ingress client for the DeploymentService
@@ -29,10 +30,11 @@ func (s *Service) deploymentClient(projectID string) hydrav1.DeploymentServiceIn
 }
 
 type Config struct {
-	Database     db.Database
-	Restate      *restateingress.Client
-	BuildService ctrlv1connect.BuildServiceClient
-	Logger       logging.Logger
+	Database         db.Database
+	Restate          *restateingress.Client
+	BuildService     ctrlv1connect.BuildServiceClient
+	Logger           logging.Logger
+	AvailableRegions []string
 }
 
 func New(cfg Config) *Service {
@@ -42,5 +44,6 @@ func New(cfg Config) *Service {
 		restate:                               cfg.Restate,
 		buildService:                          cfg.BuildService,
 		logger:                                cfg.Logger,
+		availableRegions:                      cfg.AvailableRegions,
 	}
 }

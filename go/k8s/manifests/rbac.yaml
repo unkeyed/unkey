@@ -45,10 +45,30 @@ rules:
     resources: ["services"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
-  # Job management for user workloads
+  # Deployments management for user workloads
   - apiGroups: ["apps"]
-    resources: ["statefulsets", "deployments"]
+    resources: ["deployments", "replicasets"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # StatefulSets management for gateway workloads
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Sentinel CRD management
+  - apiGroups: ["kubernetes.unkey.com"]
+    resources: ["sentinels", "sentinels/status"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Sentinel CRD management
+  - apiGroups: ["kubernetes.unkey.com"]
+    resources: ["deployments", "deployments/status"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # CRD discovery
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch"]
 
   # Events access for debugging
   - apiGroups: [""]

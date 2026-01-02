@@ -131,6 +131,10 @@ func ClickHouse(t *testing.T) string {
 	return "clickhouse://default:password@localhost:9000?secure=false&skip_verify=true&dial_timeout=10s"
 }
 
+func ControlPlane(t *testing.T) (string, string) {
+	return "http://localhost:7091", "your-local-dev-key"
+}
+
 // S3 returns S3/MinIO configuration for integration testing.
 //
 // Returns a complete [S3Config] with endpoints and credentials configured

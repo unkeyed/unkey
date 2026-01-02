@@ -8,31 +8,64 @@ import (
 	"connectrpc.com/connect"
 )
 
+// Standard authentication errors returned by middleware.
 var (
+	// ErrMissingAuthHeader is returned when Authorization header is completely missing.
 	ErrMissingAuthHeader = fmt.Errorf("missing Authorization header")
+
+	// ErrInvalidAuthScheme is returned when Authorization header doesn't use Bearer scheme.
 	ErrInvalidAuthScheme = fmt.Errorf("invalid Authorization scheme, expected 'Bearer <token>'")
-	ErrInvalidAPIKey     = fmt.Errorf("invalid API key")
+
+	// ErrInvalidAPIKey is returned when API key doesn't match expected value.
+	ErrInvalidAPIKey = fmt.Errorf("invalid API key")
 )
 
-// AuthConfig contains configuration for the authentication middleware
+// AuthConfig contains configuration for the authentication middleware.
+//
+// This configuration provides the expected API key that
+// incoming requests must authenticate with using Bearer token.
 type AuthConfig struct {
-	// APIKey is the expected API key for authentication
+	// APIKey is the expected API key for authentication.
+	// Requests must provide this value in Authorization header
+	// to be allowed access to protected endpoints.
 	APIKey string
 }
 
-// AuthMiddleware provides simple API key authentication
+// AuthMiddleware provides simple API key authentication.
+//
+// This middleware validates Bearer tokens against a configured API key.
+// It allows unauthenticated access to health check endpoints
+// but protects all other API endpoints.
 type AuthMiddleware struct {
+	// config holds the authentication configuration.
 	config AuthConfig
 }
 
-// NewAuthMiddleware creates a new authentication middleware
+// NewAuthMiddleware creates a new authentication middleware.
+//
+// This function initializes an AuthMiddleware with the provided
+// configuration containing the expected API key for validation.
+//
+// Returns a configured AuthMiddleware ready for use with Connect handlers.
 func NewAuthMiddleware(config AuthConfig) *AuthMiddleware {
 	return &AuthMiddleware{
 		config: config,
 	}
 }
 
-// ConnectInterceptor returns a Connect interceptor for gRPC-like services
+// ConnectInterceptor returns a Connect interceptor for gRPC-like services.
+//
+// This method returns an interceptor function that validates Bearer tokens
+// on incoming requests. It skips authentication for health check endpoints
+// but protects all other API endpoints.
+//
+// The interceptor performs these validation steps:
+// 1. Check for Authorization header presence
+// 2. Validate Bearer scheme format (case-insensitive)
+// 3. Extract and validate API key against expected value
+// 4. Return appropriate error or continue to next handler
+//
+// Returns an interceptor function compatible with Connect middleware chains.
 func (m *AuthMiddleware) ConnectInterceptor() connect.UnaryInterceptorFunc {
 	return func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {

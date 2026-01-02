@@ -22,9 +22,9 @@
     "typescript": "5.5.3"
   },
   "dependencies": {
-    "@planetscale/database": "1.16.0",
+    "@planetscale/database": "1.19.0",
     "@unkey/billing": "workspace:^",
     "@unkey/id": "workspace:^",
-    "drizzle-orm": "0.44.5"
+    "drizzle-orm": "0.45.1"
   }
 }

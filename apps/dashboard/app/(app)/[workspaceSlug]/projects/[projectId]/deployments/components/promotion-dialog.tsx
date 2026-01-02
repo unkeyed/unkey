@@ -125,7 +125,7 @@ export const PromotionDialog = ({
                 <div className="flex items-center">
                   <Link4 className="text-gray-9" iconSize="sm-medium" />
                   <div className="text-gray-12 font-medium text-xs ml-3 mr-2">
-                    {domain.hostname}
+                    {domain.fullyQualifiedDomainName}
                   </div>
                   <div className="ml-3" />
                 </div>

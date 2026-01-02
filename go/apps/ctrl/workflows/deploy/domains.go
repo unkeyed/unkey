@@ -12,7 +12,7 @@ import (
 
 type newDomain struct {
 	domain string
-	sticky db.IngressRoutesSticky
+	sticky db.FrontlineRoutesSticky
 }
 
 // buildDomains generates the list of domains that should be assigned to a deployment.
@@ -54,7 +54,7 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 			newDomain{
 				domain: fmt.Sprintf("%s-git-%s-%s.%s", projectSlug, short, workspaceSlug, apex),
 				//nolint: exhaustruct
-				sticky: db.IngressRoutesStickyNone,
+				sticky: db.FrontlineRoutesStickyNone,
 			},
 		)
 	}
@@ -64,7 +64,7 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 			domains,
 			newDomain{
 				domain: fmt.Sprintf("%s-git-%s-%s.%s", projectSlug, sluggify(branchName), workspaceSlug, apex),
-				sticky: db.IngressRoutesStickyBranch,
+				sticky: db.FrontlineRoutesStickyBranch,
 			},
 		)
 	}
@@ -73,7 +73,7 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 		domains,
 		newDomain{
 			domain: fmt.Sprintf("%s-%s-%s.%s", projectSlug, environmentSlug, workspaceSlug, apex),
-			sticky: db.IngressRoutesStickyEnvironment,
+			sticky: db.FrontlineRoutesStickyEnvironment,
 		},
 	)
 	return domains

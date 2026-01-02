@@ -43,7 +43,7 @@ func (p *KraneVaultProvider) Name() string {
 }
 
 // FetchSecrets retrieves secrets from Krane (which decrypts via Vault).
-// If EncryptedBlob is provided, uses DecryptSecretsBlob RPC (no DB lookup).
+// If Encrypted is provided, uses DecryptSecretsBlob RPC (no DB lookup).
 // Otherwise falls back to GetDeploymentSecrets (requires DB lookup).
 func (p *KraneVaultProvider) FetchSecrets(ctx context.Context, opts FetchOptions) (map[string]string, error) {
 	token := opts.Token
@@ -64,13 +64,13 @@ func (p *KraneVaultProvider) FetchSecrets(ctx context.Context, opts FetchOptions
 	}
 
 	// Use DecryptSecretsBlob if we have an encrypted blob (preferred - no DB lookup)
-	if len(opts.EncryptedBlob) > 0 {
+	if len(opts.Encrypted) > 0 {
 		if err := assert.NotEmpty(opts.EnvironmentID, "environment_id is required for blob decryption"); err != nil {
 			return nil, err
 		}
 
 		resp, err := p.client.DecryptSecretsBlob(ctx, connect.NewRequest(&kranev1.DecryptSecretsBlobRequest{
-			EncryptedBlob: opts.EncryptedBlob,
+			EncryptedBlob: opts.Encrypted,
 			EnvironmentId: opts.EnvironmentID,
 			Token:         token,
 			DeploymentId:  opts.DeploymentID,

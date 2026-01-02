@@ -10,7 +10,7 @@ import (
 )
 
 const findRolePermissionByRoleAndPermissionID = `-- name: FindRolePermissionByRoleAndPermissionID :many
-SELECT role_id, permission_id, workspace_id, created_at_m, updated_at_m
+SELECT pk, role_id, permission_id, workspace_id, created_at_m, updated_at_m
 FROM roles_permissions
 WHERE role_id = ?
   AND permission_id = ?
@@ -23,7 +23,7 @@ type FindRolePermissionByRoleAndPermissionIDParams struct {
 
 // FindRolePermissionByRoleAndPermissionID
 //
-//	SELECT role_id, permission_id, workspace_id, created_at_m, updated_at_m
+//	SELECT pk, role_id, permission_id, workspace_id, created_at_m, updated_at_m
 //	FROM roles_permissions
 //	WHERE role_id = ?
 //	  AND permission_id = ?
@@ -37,6 +37,7 @@ func (q *Queries) FindRolePermissionByRoleAndPermissionID(ctx context.Context, d
 	for rows.Next() {
 		var i RolesPermission
 		if err := rows.Scan(
+			&i.Pk,
 			&i.RoleID,
 			&i.PermissionID,
 			&i.WorkspaceID,

@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-// bulkInsertIngressRoute is the base query for bulk insert
-const bulkInsertIngressRoute = `INSERT INTO ingress_routes ( id, project_id, deployment_id, environment_id, hostname, sticky, created_at, updated_at ) VALUES %s`
+// bulkInsertFrontlineRoute is the base query for bulk insert
+const bulkInsertFrontlineRoute = `INSERT INTO frontline_routes ( id, project_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at ) VALUES %s`
 
-// InsertIngressRoutes performs bulk insert in a single query
-func (q *BulkQueries) InsertIngressRoutes(ctx context.Context, db DBTX, args []InsertIngressRouteParams) error {
+// InsertFrontlineRoutes performs bulk insert in a single query
+func (q *BulkQueries) InsertFrontlineRoutes(ctx context.Context, db DBTX, args []InsertFrontlineRouteParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -24,7 +24,7 @@ func (q *BulkQueries) InsertIngressRoutes(ctx context.Context, db DBTX, args []I
 		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
-	bulkQuery := fmt.Sprintf(bulkInsertIngressRoute, strings.Join(valueClauses, ", "))
+	bulkQuery := fmt.Sprintf(bulkInsertFrontlineRoute, strings.Join(valueClauses, ", "))
 
 	// Collect all arguments
 	var allArgs []any
@@ -33,7 +33,7 @@ func (q *BulkQueries) InsertIngressRoutes(ctx context.Context, db DBTX, args []I
 		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.DeploymentID)
 		allArgs = append(allArgs, arg.EnvironmentID)
-		allArgs = append(allArgs, arg.Hostname)
+		allArgs = append(allArgs, arg.FullyQualifiedDomainName)
 		allArgs = append(allArgs, arg.Sticky)
 		allArgs = append(allArgs, arg.CreatedAt)
 		allArgs = append(allArgs, arg.UpdatedAt)

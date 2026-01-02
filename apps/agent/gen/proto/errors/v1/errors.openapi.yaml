@@ -28,7 +28,7 @@ components:
         - ServiceCatalog
         - ServiceConfig
         - ServiceDNS
-        - ServiceGateway
+        - ServiceSentinel
         - ServiceGitHub
         - ServiceKubernetes
         - ServiceLog

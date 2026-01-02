@@ -1,15 +1,16 @@
 import { relations } from "drizzle-orm";
-import { boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { deployments } from "./deployments";
-import { ingressRoutes } from "./ingress_routes";
+import { frontlineRoutes } from "./frontline_routes";
 export const projects = mysqlTable(
   "projects",
   {
-    id: varchar("id", { length: 128 }).primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: varchar("id", { length: 64 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
 
     name: varchar("name", { length: 256 }).notNull(),
@@ -42,6 +43,6 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
     fields: [projects.liveDeploymentId],
     references: [deployments.id],
   }),
-  ingressRoutes: many(ingressRoutes),
+  frontlineRoutes: many(frontlineRoutes),
   // environments: many(projectEnvironments),
 }));

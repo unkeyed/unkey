@@ -2,7 +2,7 @@ import { DomainRow } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/deta
 import { CircleInfo } from "@unkey/icons";
 
 type DomainsSectionProps = {
-  domains: Array<{ id: string; hostname: string }>;
+  domains: Array<{ id: string; fullyQualifiedDomainName: string }>;
 };
 
 export const DomainsSection = ({ domains }: DomainsSectionProps) => {
@@ -20,7 +20,7 @@ export const DomainsSection = ({ domains }: DomainsSectionProps) => {
         {domains.map((domain) => (
           <DomainRow
             key={domain.id}
-            domain={domain.hostname}
+            domain={domain.fullyQualifiedDomainName}
             className="bg-white dark:bg-black border-grayA-5 first:rounded-t-lg last:rounded-b-lg"
           />
         ))}

@@ -25,8 +25,8 @@ const (
 	// SystemUser indicates errors caused by user inputs or client behavior.
 	SystemUser System = "user"
 
-	// SystemGateway indicates errors caused by gateway issues.
-	SystemGateway System = "gateway"
+	// SystemSentinel indicates errors caused by sentinel issues.
+	SystemSentinel System = "sentinel"
 
 	// SystemUnkey indicates errors originating from Unkey's internal systems.
 	SystemUnkey System = "unkey"

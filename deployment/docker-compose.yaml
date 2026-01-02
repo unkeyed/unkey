@@ -301,12 +301,14 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       # Server configuration
-      UNKEY_HTTP_PORT: "8080"
+      UNKEY_REGION: "dev:local" # currently required to receive filteres events from ctrl
+      UNKEY_IMAGE: "unkey/dev:latest"
+      UNKEY_CONTROL_PLANE_URL: "http://ctrl:7091"
+      UNKEY_CONTROL_PLANE_BEARER: "your-local-dev-key"
 
       # Backend configuration - use Docker backend for development
       UNKEY_KRANE_BACKEND: "docker"
       UNKEY_DOCKER_SOCKET: "/var/run/docker.sock"
-      UNKEY_DEPLOYMENT_EVICTION_TTL: "10m"
 
       UNKEY_REGISTRY_URL: "${UNKEY_REGISTRY_URL:-}"
       UNKEY_REGISTRY_USERNAME: "${UNKEY_REGISTRY_USERNAME:-}"
@@ -318,7 +320,7 @@ services:
     container_name: restate
     image: docker.io/restatedev/restate:1.5.3
     ports:
-      - "8081:8080" # Ingress endpoint (host:container)
+      - "8081:8080" # Frontline endpoint (host:container)
       - "9070:9070" # Admin endpoint and UI
     environment:
       RESTATE_TRACING_ENDPOINT: "http://otel:4317"
@@ -358,6 +360,9 @@ services:
       restate:
         condition: service_healthy
         required: true
+      clickhouse:
+        condition: service_healthy
+        required: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
@@ -365,7 +370,6 @@ services:
 
       # Control plane configuration
       UNKEY_HTTP_PORT: "7091"
-      UNKEY_KRANE_ADDRESS: "http://krane:8080"
       UNKEY_DEFAULT_DOMAIN: "unkey.local"
 
       # Restate configuration

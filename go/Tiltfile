@@ -1,6 +1,9 @@
 # Tiltfile for Unkey development
 # This provides an enhanced development experience with hot reloading and unified logs
 
+
+allow_k8s_contexts('admin@talos-default-7')
+
 # Load Tilt extensions
 load('ext://namespace', 'namespace_create')
 load('ext://restart_process', 'docker_build_with_restart')
@@ -20,6 +23,7 @@ update_settings(suppress_unused_image_warnings=["unkey-env:latest"])
 
 # Create namespace using the extension with allow_duplicates
 namespace_create('unkey', allow_duplicates=True)
+namespace_create('untrusted', allow_duplicates=True)
 
 # Define which services to start
 start_mysql = 'all' in services or 'mysql' in services
@@ -38,6 +42,7 @@ start_preflight = 'all' in services or 'preflight' in services
 # Apply RBAC
 k8s_yaml('k8s/manifests/rbac.yaml')
 
+
 # Redis service
 redis_started = False
 if start_api:  # Redis is needed by API service
@@ -55,10 +60,10 @@ if start_api:  # Redis is needed by API service
 if start_mysql:
     print("Setting up MySQL...")
     # Only build if image doesn't exist
-    if not local('docker images -q unkey/mysql:latest 2>/dev/null', quiet=True):
+    if not local('docker images -q unkey/mysql:local 2>/dev/null', quiet=True):
         print("Building MySQL image...")
         docker_build(
-            'unkey/mysql:latest',
+            'unkey/mysql:local',
             '../',  # Build context at repo root
             dockerfile='../deployment/Dockerfile.mysql'
         )
@@ -76,10 +81,10 @@ if start_mysql:
 if start_clickhouse:
     print("Setting up ClickHouse...")
     # Only build if image doesn't exist
-    if not local('docker images -q unkey/clickhouse:latest 2>/dev/null', quiet=True):
+    if not local('docker images -q unkey/clickhouse:local 2>/dev/null', quiet=True):
         print("Building ClickHouse image...")
         docker_build(
-            'unkey/clickhouse:latest',
+            'unkey/clickhouse:local',
             '../',  # Build context at repo root
             dockerfile='../deployment/Dockerfile.clickhouse'
         )
@@ -160,7 +165,7 @@ if start_api:
     print("Setting up API service...")
 
     docker_build_with_restart(
-        'unkey-api:latest',
+        'unkey/dev:latest',
         '.',
         dockerfile='Dockerfile.tilt',
         entrypoint=['/unkey', 'run', 'api'],
@@ -168,7 +173,7 @@ if start_api:
         live_update=[
             sync('./bin/unkey', '/unkey'),
         ],
-        ignore=['./cmd/gw', './cmd/ctrl', './apps/gw', './apps/ctrl']
+        ignore=['./cmd/ctrl', './apps/ctrl']
     )
 
     k8s_yaml('k8s/manifests/api.yaml')
@@ -196,7 +201,7 @@ if start_ctrl:
     print("Setting up Ctrl service...")
 
     docker_build_with_restart(
-        'unkey-ctrl:latest',
+        'unkey/dev-ctrl:latest',
         '.',
         dockerfile='Dockerfile.tilt',
         entrypoint=['/unkey', 'run', 'ctrl'],
@@ -204,7 +209,7 @@ if start_ctrl:
         live_update=[
             sync('./bin/unkey', '/unkey'),
         ],
-        ignore=['./cmd/api', './cmd/gw', './apps/api', './apps/gw']
+        ignore=['./cmd/api', './apps/api']
     )
 
     k8s_yaml('k8s/manifests/ctrl.yaml')
@@ -231,7 +236,7 @@ if start_krane:
     print("Setting up krane service...")
 
     docker_build_with_restart(
-        'unkey-krane:latest',
+        'unkey/dev-krane:latest',
         '.',
         dockerfile='Dockerfile.tilt',
         entrypoint=['/unkey', 'run', 'krane'],
@@ -239,7 +244,7 @@ if start_krane:
         live_update=[
             sync('./bin/unkey', '/unkey'),
         ],
-        ignore=['./cmd/api', './cmd/gw', './cmd/ctrl', './apps/api', './apps/gw', './apps/ctrl']
+        ignore=['./cmd/api', './cmd/ctrl', './apps/api', './apps/ctrl']
     )
 
     k8s_yaml('k8s/manifests/krane.yaml')
@@ -248,6 +253,7 @@ if start_krane:
     krane_deps = []
     # Add compilation dependency for Unkey services
     krane_deps.append('unkey-compile')
+    krane_deps.append('ctrl')
 
     k8s_resource(
         'krane',
@@ -389,10 +395,17 @@ Web UI: http://localhost:10350
 Services available via Tilt port forwards:
 Dashboard: http://localhost:3000
 API: http://localhost:7070
+<<<<<<< HEAD
+Sentinel: http://localhost:8080
+Ctrl: http://localhost:7091
+Krane: http://localhost:8090
+Restate Frontline: http://localhost:8081
+=======
 Ctrl: http://localhost:7091
 Krane: http://localhost:8090
 Agent: http://localhost:8082
 Restate Ingress: http://localhost:8081
+>>>>>>> 39d470225bb5f8f34521d84bc2c02081b56843eb
 Restate Admin: http://localhost:9070
 Prometheus: http://localhost:9090
 S3 API: http://localhost:3902
@@ -408,6 +421,6 @@ Tips:
 Development workflow:
 - Edit Go files -> automatic rebuild & restart
 - View logs in unified Tilt UI
-- Use ingress for service access
+- Use frontline for service access
 
 """ % ', '.join(active_services))

@@ -10,28 +10,28 @@ import (
 	"database/sql"
 )
 
-const reassignIngressRoute = `-- name: ReassignIngressRoute :exec
-UPDATE ingress_routes
+const reassignFrontlineRoute = `-- name: ReassignFrontlineRoute :exec
+UPDATE frontline_routes
 SET
   deployment_id = ?,
   updated_at = ?
 WHERE id = ?
 `
 
-type ReassignIngressRouteParams struct {
+type ReassignFrontlineRouteParams struct {
 	DeploymentID string        `db:"deployment_id"`
 	UpdatedAt    sql.NullInt64 `db:"updated_at"`
 	ID           string        `db:"id"`
 }
 
-// ReassignIngressRoute
+// ReassignFrontlineRoute
 //
-//	UPDATE ingress_routes
+//	UPDATE frontline_routes
 //	SET
 //	  deployment_id = ?,
 //	  updated_at = ?
 //	WHERE id = ?
-func (q *Queries) ReassignIngressRoute(ctx context.Context, db DBTX, arg ReassignIngressRouteParams) error {
-	_, err := db.ExecContext(ctx, reassignIngressRoute, arg.DeploymentID, arg.UpdatedAt, arg.ID)
+func (q *Queries) ReassignFrontlineRoute(ctx context.Context, db DBTX, arg ReassignFrontlineRouteParams) error {
+	_, err := db.ExecContext(ctx, reassignFrontlineRoute, arg.DeploymentID, arg.UpdatedAt, arg.ID)
 	return err
 }

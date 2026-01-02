@@ -1,12 +1,21 @@
 import { relations } from "drizzle-orm";
-import { boolean, int, mysqlEnum, mysqlTable, unique, varchar } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  boolean,
+  int,
+  mysqlEnum,
+  mysqlTable,
+  unique,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 export const ratelimitNamespaces = mysqlTable(
   "ratelimit_namespaces",
   {
-    id: varchar("id", { length: 256 }).primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: varchar("id", { length: 256 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 512 }).notNull(),
 
@@ -33,7 +42,8 @@ export const ratelimitNamespaceRelations = relations(ratelimitNamespaces, ({ one
 export const ratelimitOverrides = mysqlTable(
   "ratelimit_overrides",
   {
-    id: varchar("id", { length: 256 }).primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: varchar("id", { length: 256 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     namespaceId: varchar("namespace_id", { length: 256 }).notNull(),
     identifier: varchar("identifier", { length: 512 }).notNull(),

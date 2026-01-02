@@ -11,7 +11,7 @@ import (
 )
 
 const listRolesByKeyID = `-- name: ListRolesByKeyID :many
-SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
+SELECT r.pk, r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
         (SELECT JSON_ARRAYAGG(
             json_object(
                 'id', permission.id,
@@ -33,6 +33,7 @@ ORDER BY r.name
 `
 
 type ListRolesByKeyIDRow struct {
+	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
 	Name        string         `db:"name"`
@@ -44,7 +45,7 @@ type ListRolesByKeyIDRow struct {
 
 // ListRolesByKeyID
 //
-//	SELECT r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
+//	SELECT r.pk, r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 //	        (SELECT JSON_ARRAYAGG(
 //	            json_object(
 //	                'id', permission.id,
@@ -73,6 +74,7 @@ func (q *Queries) ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) (
 	for rows.Next() {
 		var i ListRolesByKeyIDRow
 		if err := rows.Scan(
+			&i.Pk,
 			&i.ID,
 			&i.WorkspaceID,
 			&i.Name,

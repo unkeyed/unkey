@@ -5,13 +5,12 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import type { TaskContext } from "vitest";
 import {
-  type Api,
   type Database,
+  type InsertApi,
+  type InsertKeyAuth,
   type InsertPermission,
-  type KeyAuth,
-  type Permission,
-  type Role,
-  type Workspace,
+  type InsertRole,
+  type InsertWorkspace,
   drizzle,
   eq,
   schema,
@@ -19,12 +18,12 @@ import {
 import { databaseEnv } from "./env";
 
 export type Resources = {
-  unkeyWorkspace: Workspace;
-  unkeyApi: Api;
-  unkeyKeyAuth: KeyAuth;
-  userWorkspace: Workspace;
-  userApi: Api;
-  userKeyAuth: KeyAuth;
+  unkeyWorkspace: InsertWorkspace;
+  unkeyApi: InsertApi;
+  unkeyKeyAuth: InsertKeyAuth;
+  userWorkspace: InsertWorkspace;
+  userApi: InsertApi;
+  userKeyAuth: InsertKeyAuth;
 };
 
 export abstract class Harness {
@@ -200,8 +199,11 @@ export abstract class Harness {
     };
   }
 
-  private async optimisticUpsertPermission(workspaceId: string, name: string): Promise<Permission> {
-    const permission: Permission = {
+  private async optimisticUpsertPermission(
+    workspaceId: string,
+    name: string,
+  ): Promise<InsertPermission> {
+    const permission: InsertPermission = {
       id: newId("test"),
       name,
       slug: name,
@@ -226,8 +228,8 @@ export abstract class Harness {
     });
   }
 
-  private async optimisticUpsertRole(workspaceId: string, name: string): Promise<Role> {
-    const role: Role = {
+  private async optimisticUpsertRole(workspaceId: string, name: string): Promise<InsertRole> {
+    const role: InsertRole = {
       id: newId("test"),
       name,
       workspaceId,
@@ -251,7 +253,7 @@ export abstract class Harness {
   }
 
   public createResources(): Resources {
-    const unkeyWorkspace: Workspace = {
+    const unkeyWorkspace: InsertWorkspace = {
       id: newId("test"),
       name: "unkey",
       slug: newId("test"),
@@ -269,8 +271,9 @@ export abstract class Harness {
       updatedAtM: null,
       deletedAtM: null,
       partitionId: null,
+      k8sNamespace: null,
     };
-    const userWorkspace: Workspace = {
+    const userWorkspace: InsertWorkspace = {
       id: newId("test"),
       name: "user",
       slug: newId("test"),
@@ -288,9 +291,10 @@ export abstract class Harness {
       updatedAtM: null,
       deletedAtM: null,
       partitionId: null,
+      k8sNamespace: null,
     };
 
-    const unkeyKeyAuth: KeyAuth = {
+    const unkeyKeyAuth: InsertKeyAuth = {
       id: newId("test"),
       workspaceId: unkeyWorkspace.id,
       createdAtM: Date.now(),
@@ -302,7 +306,7 @@ export abstract class Harness {
       sizeApprox: 0,
       sizeLastUpdatedAt: 0,
     };
-    const userKeyAuth: KeyAuth = {
+    const userKeyAuth: InsertKeyAuth = {
       id: newId("test"),
       workspaceId: userWorkspace.id,
       createdAtM: Date.now(),
@@ -315,7 +319,7 @@ export abstract class Harness {
       sizeLastUpdatedAt: 0,
     };
 
-    const unkeyApi: Api = {
+    const unkeyApi: InsertApi = {
       id: newId("test"),
       name: "unkey",
       workspaceId: unkeyWorkspace.id,
@@ -327,7 +331,7 @@ export abstract class Harness {
       updatedAtM: null,
       deletedAtM: null,
     };
-    const userApi: Api = {
+    const userApi: InsertApi = {
       id: newId("test"),
       name: "user",
       workspaceId: userWorkspace.id,

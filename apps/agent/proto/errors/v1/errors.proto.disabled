@@ -20,7 +20,7 @@ enum Service {
   ServiceCatalog = 3;
   ServiceConfig = 4;
   ServiceDNS = 5;
-  ServiceGateway = 6;
+  ServiceSentinel = 6;
   ServiceGitHub = 7;
   ServiceKubernetes = 8;
   ServiceLog = 9;

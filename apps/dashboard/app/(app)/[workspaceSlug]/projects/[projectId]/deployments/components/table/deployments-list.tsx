@@ -136,10 +136,7 @@ export const DeploymentsList = () => {
                     <Cube className="text-gray-12" iconSize="sm-regular" />
                     <div className="flex gap-0.5">
                       <span className="font-semibold text-grayA-12 tabular-nums">
-                        {deployment.runtimeConfig.regions.reduce(
-                          (acc, region) => acc + region.vmCount,
-                          0,
-                        )}
+                        {deployment.instances.length}
                       </span>
                       <span>VMs</span>
                     </div>
@@ -158,16 +155,16 @@ export const DeploymentsList = () => {
                     <div className="flex gap-1">
                       <div className="flex gap-0.5">
                         <span className="font-semibold text-grayA-12 tabular-nums">
-                          {deployment.runtimeConfig.cpus}
+                          {deployment.cpuMillicores / 1024}
                         </span>
-                        <span>CPU</span>
+                        <span>vCPU</span>
                       </div>
                       <span> / </span>
                       <div className="flex gap-0.5">
                         <span className="font-semibold text-grayA-12 tabular-nums">
-                          {deployment.runtimeConfig.memory}
+                          {deployment.memoryMib}
                         </span>
-                        <span>MB</span>
+                        <span>MiB</span>
                       </div>
                     </div>
                   </div>

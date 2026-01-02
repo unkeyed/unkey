@@ -67,7 +67,7 @@
 // # Security Considerations
 //
 // Private keys are encrypted before storage using the vault service. Certificates
-// are stored in the database for fast access by gateways. ACME account
+// are stored in the database for fast access by sentinels. ACME account
 // credentials are workspace-scoped to prevent cross-workspace access.
 //
 // # Error Handling

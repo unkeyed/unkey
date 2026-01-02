@@ -2,7 +2,6 @@ package zen
 
 import (
 	"context"
-	"log/slog"
 	"time"
 
 	"github.com/unkeyed/unkey/go/pkg/otel/logging"
@@ -24,18 +23,18 @@ func WithLogging(logger logging.Logger) Middleware {
 			nextErr := next(ctx, s)
 			serviceLatency := time.Since(start)
 
-			logger.DebugContext(ctx, "request",
-				slog.String("method", s.r.Method),
-				slog.String("path", s.r.URL.Path),
-				slog.Int("status", s.responseStatus),
-				slog.Int64("latency", serviceLatency.Milliseconds()),
+			logger.Debug("request",
+				"method", s.r.Method,
+				"path", s.r.URL.Path,
+				"status", s.responseStatus,
+				"latency", serviceLatency.Milliseconds(),
 			)
 
 			if nextErr != nil {
-				logger.ErrorContext(ctx, nextErr.Error(),
-					slog.String("method", s.r.Method),
-					slog.String("path", s.r.URL.Path),
-					slog.Int("status", s.responseStatus))
+				logger.Error(nextErr.Error(),
+					"method", s.r.Method,
+					"path", s.r.URL.Path,
+					"status", s.responseStatus)
 			}
 			return nextErr
 		}

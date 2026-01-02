@@ -6,9 +6,11 @@ INSERT INTO instances (
 	workspace_id,
 	project_id,
 	region,
+	cluster_id,
+	k8s_name,
 	address,
 	cpu_millicores,
-	memory_mb,
+	memory_mib,
 	status
 )
 VALUES (
@@ -17,14 +19,16 @@ VALUES (
 	sqlc.arg(workspace_id),
 	sqlc.arg(project_id),
 	sqlc.arg(region),
+	sqlc.arg(cluster_id),
+	sqlc.arg(k8s_name),
 	sqlc.arg(address),
 	sqlc.arg(cpu_millicores),
-	sqlc.arg(memory_mb),
+	sqlc.arg(memory_mib),
 	sqlc.arg(status)
 )
 ON DUPLICATE KEY UPDATE
 	address = sqlc.arg(address),
 	cpu_millicores = sqlc.arg(cpu_millicores),
-	memory_mb = sqlc.arg(memory_mb),
+	memory_mib = sqlc.arg(memory_mib),
 	status = sqlc.arg(status)
-;
+	;

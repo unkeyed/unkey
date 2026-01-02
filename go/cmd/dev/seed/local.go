@@ -23,6 +23,8 @@ var localCmd = &cli.Command{
 		cli.String("database-primary", "MySQL database DSN", cli.Default("unkey:password@tcp(127.0.0.1:3306)/unkey?parseTime=true&interpolateParams=true"), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
 		cli.String("slug", "Slug used to generate all IDs and names (e.g., 'flo' creates ws_flo, proj_flo, etc.)", cli.Default("local")),
 		cli.String("org-id", "Organization ID for auth matching (defaults to org_localdefault for local auth)", cli.Default("org_localdefault")),
+		cli.String("ctrl-url", "Control plane API URL", cli.Default("http://localhost:7091"), cli.EnvVar("UNKEY_CTRL_URL")),
+		cli.String("api-key", "API key for control plane authentication", cli.Default("your-local-dev-key"), cli.EnvVar("UNKEY_API_KEY")),
 	},
 	Action: seedLocal,
 }
@@ -60,7 +62,10 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	titleCase := strings.ToUpper(slug[:1]) + slug[1:]
 	workspaceID := fmt.Sprintf("ws_%s", slug)
 	workspaceName := fmt.Sprintf("Org %s", titleCase)
-	projectID := fmt.Sprintf("proj_%s", slug)
+
+	projectID := uid.New(uid.ProjectPrefix)
+	projectSlug := fmt.Sprintf("%s-api", slug)
+	projectName := fmt.Sprintf("%s API", titleCase)
 	envID := fmt.Sprintf("env_%s", slug)
 	rootWorkspaceID := fmt.Sprintf("ws_%s_root", slug)
 	rootKeySpaceID := fmt.Sprintf("ks_%s_root_keys", slug)
@@ -76,6 +81,13 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return fmt.Errorf("failed to generate root key: %w", err)
 	}
+
+	// Create project via control plane API
+	logger.Info("creating project via control plane API",
+		"workspace", workspaceID,
+		"name", projectName,
+		"slug", projectSlug,
+	)
 
 	err = db.Tx(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.BulkQuery.UpsertWorkspace(ctx, tx, []db.UpsertWorkspaceParams{
@@ -102,6 +114,43 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create workspaces: %w", err)
 		}
 
+		err = db.Query.InsertProject(ctx, tx, db.InsertProjectParams{
+			ID:               projectID,
+			WorkspaceID:      workspaceID,
+			Name:             projectName,
+			Slug:             projectSlug,
+			GitRepositoryUrl: sql.NullString{Valid: false, String: ""},
+			DefaultBranch:    sql.NullString{Valid: false, String: ""},
+			DeleteProtection: sql.NullBool{Valid: false, Bool: false},
+			CreatedAt:        time.Now().UnixMilli(),
+			UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create project: %w", err)
+		}
+
+		err = db.BulkQuery.InsertEnvironments(ctx, tx, []db.InsertEnvironmentParams{
+			{
+				ID:             uid.New(uid.EnvironmentPrefix),
+				WorkspaceID:    workspaceID,
+				ProjectID:      projectID,
+				Slug:           "preview",
+				Description:    "",
+				CreatedAt:      time.Now().UnixMilli(),
+				UpdatedAt:      sql.NullInt64{Valid: false, Int64: 0},
+				SentinelConfig: []byte{},
+			}, {
+				ID:             uid.New(uid.EnvironmentPrefix),
+				WorkspaceID:    workspaceID,
+				ProjectID:      projectID,
+				Slug:           "production",
+				Description:    "",
+				CreatedAt:      time.Now().UnixMilli(),
+				UpdatedAt:      sql.NullInt64{Valid: false, Int64: 0},
+				SentinelConfig: []byte{},
+			},
+		})
+
 		err = db.BulkQuery.UpsertQuota(ctx, tx, []db.UpsertQuotaParams{
 			{
 				WorkspaceID:            workspaceID,
@@ -120,33 +169,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create quotas: %w", err)
-		}
-
-		err = db.Query.InsertProject(ctx, tx, db.InsertProjectParams{
-			ID:               projectID,
-			WorkspaceID:      workspaceID,
-			Name:             fmt.Sprintf("%s API", titleCase),
-			Slug:             fmt.Sprintf("%s-api", slug),
-			GitRepositoryUrl: sql.NullString{},
-			DefaultBranch:    sql.NullString{},
-			DeleteProtection: sql.NullBool{},
-			CreatedAt:        now,
-			UpdatedAt:        sql.NullInt64{},
-		})
-		if err != nil && !db.IsDuplicateKeyError(err) {
-			return fmt.Errorf("failed to create project: %w", err)
-		}
-
-		err = db.Query.UpsertEnvironment(ctx, tx, db.UpsertEnvironmentParams{
-			ID:            envID,
-			WorkspaceID:   workspaceID,
-			ProjectID:     projectID,
-			Slug:          "development",
-			GatewayConfig: []byte("{}"),
-			CreatedAt:     now,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create environment: %w", err)
 		}
 
 		err = db.BulkQuery.UpsertKeySpace(ctx, tx, []db.UpsertKeySpaceParams{
@@ -291,6 +313,8 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
+
+	logger.Info("project created successfully via control plane", "id", projectID)
 
 	logger.Info("seed completed",
 		"workspace", workspaceID,

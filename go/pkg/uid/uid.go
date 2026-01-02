@@ -33,7 +33,7 @@ const (
 	AuditLogBucketPrefix     Prefix = "buk"
 	AuditLogPrefix           Prefix = "log"
 	InstancePrefix           Prefix = "ins"
-	GatewayPrefix            Prefix = "gw"
+	SentinelPrefix           Prefix = "se"
 	WorkerPrefix             Prefix = "wkr"
 	CronJobPrefix            Prefix = "cron"
 	KeyEncryptionKeyPrefix   Prefix = "kek"
@@ -42,15 +42,15 @@ const (
 	StepPrefix               Prefix = "step"
 
 	// Control plane prefixes
-	ProjectPrefix      Prefix = "proj"
-	EnvironmentPrefix  Prefix = "env"
-	VersionPrefix      Prefix = "v"
-	BuildPrefix        Prefix = "build"
-	RootfsImagePrefix  Prefix = "img"
-	DomainPrefix       Prefix = "dom"
-	DeploymentPrefix   Prefix = "d"
-	IngressRoutePrefix Prefix = "ir"
-	CertificatePrefix  Prefix = "cert"
+	ProjectPrefix        Prefix = "proj"
+	EnvironmentPrefix    Prefix = "env"
+	VersionPrefix        Prefix = "v"
+	BuildPrefix          Prefix = "build"
+	RootfsImagePrefix    Prefix = "img"
+	DomainPrefix         Prefix = "dom"
+	DeploymentPrefix     Prefix = "d"
+	FrontlineRoutePrefix Prefix = "ir"
+	CertificatePrefix    Prefix = "cert"
 )
 
 // epoch starts more recently so that the 32-bit number space gives a

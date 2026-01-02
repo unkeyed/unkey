@@ -6,7 +6,7 @@ import { queryClient, trpcClient } from "../client";
 
 const schema = z.object({
   id: z.string(),
-  hostname: z.string(),
+  fullyQualifiedDomainName: z.string(),
   projectId: z.string(),
   deploymentId: z.string(),
   environmentId: z.string(),

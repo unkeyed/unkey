@@ -11,57 +11,57 @@ import (
 	"strings"
 )
 
-const findIngressRouteForPromotion = `-- name: FindIngressRouteForPromotion :many
+const findFrontlineRouteForPromotion = `-- name: FindFrontlineRouteForPromotion :many
 SELECT
     id,
     project_id,
     environment_id,
-    hostname,
+    fully_qualified_domain_name,
     deployment_id,
     sticky,
     created_at,
     updated_at
-FROM ingress_routes
+FROM frontline_routes
 WHERE
   environment_id = ?
   AND sticky IN (/*SLICE:sticky*/?)
 ORDER BY created_at ASC
 `
 
-type FindIngressRouteForPromotionParams struct {
-	EnvironmentID string                `db:"environment_id"`
-	Sticky        []IngressRoutesSticky `db:"sticky"`
+type FindFrontlineRouteForPromotionParams struct {
+	EnvironmentID string                  `db:"environment_id"`
+	Sticky        []FrontlineRoutesSticky `db:"sticky"`
 }
 
-type FindIngressRouteForPromotionRow struct {
-	ID            string              `db:"id"`
-	ProjectID     string              `db:"project_id"`
-	EnvironmentID string              `db:"environment_id"`
-	Hostname      string              `db:"hostname"`
-	DeploymentID  string              `db:"deployment_id"`
-	Sticky        IngressRoutesSticky `db:"sticky"`
-	CreatedAt     int64               `db:"created_at"`
-	UpdatedAt     sql.NullInt64       `db:"updated_at"`
+type FindFrontlineRouteForPromotionRow struct {
+	ID                       string                `db:"id"`
+	ProjectID                string                `db:"project_id"`
+	EnvironmentID            string                `db:"environment_id"`
+	FullyQualifiedDomainName string                `db:"fully_qualified_domain_name"`
+	DeploymentID             string                `db:"deployment_id"`
+	Sticky                   FrontlineRoutesSticky `db:"sticky"`
+	CreatedAt                int64                 `db:"created_at"`
+	UpdatedAt                sql.NullInt64         `db:"updated_at"`
 }
 
-// FindIngressRouteForPromotion
+// FindFrontlineRouteForPromotion
 //
 //	SELECT
 //	    id,
 //	    project_id,
 //	    environment_id,
-//	    hostname,
+//	    fully_qualified_domain_name,
 //	    deployment_id,
 //	    sticky,
 //	    created_at,
 //	    updated_at
-//	FROM ingress_routes
+//	FROM frontline_routes
 //	WHERE
 //	  environment_id = ?
 //	  AND sticky IN (/*SLICE:sticky*/?)
 //	ORDER BY created_at ASC
-func (q *Queries) FindIngressRouteForPromotion(ctx context.Context, db DBTX, arg FindIngressRouteForPromotionParams) ([]FindIngressRouteForPromotionRow, error) {
-	query := findIngressRouteForPromotion
+func (q *Queries) FindFrontlineRouteForPromotion(ctx context.Context, db DBTX, arg FindFrontlineRouteForPromotionParams) ([]FindFrontlineRouteForPromotionRow, error) {
+	query := findFrontlineRouteForPromotion
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.EnvironmentID)
 	if len(arg.Sticky) > 0 {
@@ -77,14 +77,14 @@ func (q *Queries) FindIngressRouteForPromotion(ctx context.Context, db DBTX, arg
 		return nil, err
 	}
 	defer rows.Close()
-	var items []FindIngressRouteForPromotionRow
+	var items []FindFrontlineRouteForPromotionRow
 	for rows.Next() {
-		var i FindIngressRouteForPromotionRow
+		var i FindFrontlineRouteForPromotionRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ProjectID,
 			&i.EnvironmentID,
-			&i.Hostname,
+			&i.FullyQualifiedDomainName,
 			&i.DeploymentID,
 			&i.Sticky,
 			&i.CreatedAt,

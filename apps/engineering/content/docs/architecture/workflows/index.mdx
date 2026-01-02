@@ -44,9 +44,9 @@ See: [Deployment Service](./deployment-service)
 **Location:** `go/apps/ctrl/workflows/routing/`
 **Proto:** `go/proto/hydra/v1/routing.proto`
 **Key:** `project_id`
-**Operations:** AssignIngressRoutes
+**Operations:** AssignFrontlineRoutes
 
-Manages atomic ingress route assignments and updates for deployments with per-tenant gateway isolation.
+Manages atomic frontline route assignments and updates for deployments with per-tenant sentinel isolation.
 
 See: [Routing Service](./routing-service)
 
@@ -63,7 +63,7 @@ Handles ACME certificate challenges and issuance for custom domains.
 
 Services auto-register with Restate on startup via `go/apps/ctrl/run.go`. Config fields (see `go/apps/ctrl/config.go`):
 
-- `Restate.IngressURL`: Restate ingress endpoint for invoking workflows
+- `Restate.FrontlineURL`: Restate frontline endpoint for invoking workflows
 - `Restate.AdminURL`: Restate admin endpoint for service registration
 - `Restate.HttpPort`: Port where ctrl listens for Restate HTTP requests
 - `Restate.RegisterAs`: Public URL of this service for self-registration

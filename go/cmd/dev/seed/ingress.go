@@ -3,7 +3,6 @@ package seed
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -18,14 +17,14 @@ import (
 	"github.com/unkeyed/unkey/go/pkg/vault/storage"
 )
 
-var ingressCmd = &cli.Command{
-	Name:  "ingress",
-	Usage: "Seed database with deployment, gateway, instance, ingress route, and TLS certificate for testing ingress/gateway",
+var frontlineCmd = &cli.Command{
+	Name:  "frontline",
+	Usage: "Seed database with deployment, sentinel, instance, frontline route, and TLS certificate for testing frontline/sentinel",
 	Flags: []cli.Flag{
 		cli.String("database-primary", "MySQL database DSN", cli.Default("unkey:password@tcp(127.0.0.1:3306)/unkey?parseTime=true&interpolateParams=true"), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
 		cli.String("slug", "Slug to match local seed (e.g., 'local' uses ws_local, proj_local, etc.)", cli.Default("local")),
-		cli.String("hostname", "Hostname for ingress route", cli.Default("unkey.local")),
-		cli.String("region", "Region for gateway and instance", cli.Default("local")),
+		cli.String("hostname", "Hostname for frontline route", cli.Default("unkey.local")),
+		cli.String("region", "Region for sentinel and instance", cli.Default("local")),
 		cli.String("address", "Address for instance (IP or hostname)", cli.Default("127.0.0.1:8787")),
 		cli.String("vault-s3-url", "Vault S3 URL", cli.Default("http://127.0.0.1:3902"), cli.EnvVar("UNKEY_VAULT_S3_URL")),
 		cli.String("vault-s3-bucket", "Vault S3 bucket", cli.Default("vault"), cli.EnvVar("UNKEY_VAULT_S3_BUCKET")),
@@ -33,10 +32,10 @@ var ingressCmd = &cli.Command{
 		cli.String("vault-s3-access-key-secret", "Vault S3 access key secret", cli.Default("minio_root_password"), cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 		cli.String("vault-master-keys", "Vault master keys (comma-separated)", cli.Default("Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="), cli.EnvVar("UNKEY_VAULT_MASTER_KEYS")),
 	},
-	Action: seedIngress,
+	Action: seedFrontline,
 }
 
-func seedIngress(ctx context.Context, cmd *cli.Command) error {
+func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 	logger := logging.New()
 
 	database, err := db.New(db.Config{
@@ -79,9 +78,9 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 	envID := fmt.Sprintf("env_%s", slug)
 
 	deploymentID := uid.New(uid.DeploymentPrefix)
-	gatewayID := uid.New(uid.GatewayPrefix)
+	sentinelID := uid.New(uid.SentinelPrefix)
 	instanceID := uid.New(uid.InstancePrefix)
-	ingressRouteID := uid.New(uid.IngressRoutePrefix)
+	frontlineRouteID := uid.New(uid.FrontlineRoutePrefix)
 	certificateID := uid.New(uid.CertificatePrefix)
 
 	certPEM, keyPEM, err := generateMkcertCertificate(hostname)
@@ -99,69 +98,63 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 
 	err = db.Tx(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err := db.Query.InsertDeployment(ctx, tx, db.InsertDeploymentParams{
-			ID:                       deploymentID,
-			WorkspaceID:              workspaceID,
-			ProjectID:                projectID,
-			EnvironmentID:            envID,
-			GitCommitSha:             sql.NullString{String: "abc123", Valid: true},
-			GitBranch:                sql.NullString{String: "main", Valid: true},
-			RuntimeConfig:            json.RawMessage(`{}`),
-			GatewayConfig:            []byte("{}"),
-			GitCommitMessage:         sql.NullString{String: "Local dev seed", Valid: true},
-			GitCommitAuthorHandle:    sql.NullString{String: "local", Valid: true},
-			GitCommitAuthorAvatarUrl: sql.NullString{},
-			GitCommitTimestamp:       sql.NullInt64{Int64: now, Valid: true},
-			OpenapiSpec:              sql.NullString{},
-			SecretsConfig:            nil,
-			Status:                   db.DeploymentsStatusReady,
-			CreatedAt:                now,
-			UpdatedAt:                sql.NullInt64{},
+			ID:                            deploymentID,
+			K8sName:                       uid.DNS1035(12),
+			WorkspaceID:                   workspaceID,
+			ProjectID:                     projectID,
+			EnvironmentID:                 envID,
+			GitCommitSha:                  sql.NullString{String: "abc123", Valid: true},
+			GitBranch:                     sql.NullString{String: "main", Valid: true},
+			SentinelConfig:                []byte("{}"),
+			GitCommitMessage:              sql.NullString{String: "Local dev seed", Valid: true},
+			GitCommitAuthorHandle:         sql.NullString{String: "local", Valid: true},
+			GitCommitAuthorAvatarUrl:      sql.NullString{},
+			GitCommitTimestamp:            sql.NullInt64{Int64: now, Valid: true},
+			OpenapiSpec:                   sql.NullString{},
+			EncryptedEnvironmentVariables: nil,
+			Status:                        db.DeploymentsStatusReady,
+			CpuMillicores:                 256,
+			MemoryMib:                     256,
+			CreatedAt:                     now,
+			UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {
 			return fmt.Errorf("failed to create deployment: %w", err)
 		}
 
-		err = db.Query.InsertGateway(ctx, tx, db.InsertGatewayParams{
-			ID:             gatewayID,
-			WorkspaceID:    workspaceID,
-			EnvironmentID:  envID,
-			K8sServiceName: fmt.Sprintf("gateway-%s", slug),
-			Region:         region,
-			Image:          "unkey/gateway:local",
-			Health:         db.GatewaysHealthHealthy,
-			Replicas:       1,
+		sentinelName := uid.DNS1035()
+		err = db.Query.InsertSentinel(ctx, tx, db.InsertSentinelParams{
+			ID:                sentinelID,
+			WorkspaceID:       workspaceID,
+			EnvironmentID:     envID,
+			K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local", sentinelName, "todonamespace"),
+			K8sName:           sentinelName,
+			Region:            region,
+			Image:             "unkey/sentinel:local",
+			Health:            db.SentinelsHealthHealthy,
+			DesiredReplicas:   1,
+			AvailableReplicas: 0,
+			ProjectID:         projectID,
+			CpuMillicores:     512,
+			MemoryMib:         512,
+			CreatedAt:         now,
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {
-			return fmt.Errorf("failed to create gateway: %w", err)
+			return fmt.Errorf("failed to create sentinel: %w", err)
 		}
 
-		err = db.Query.UpsertInstance(ctx, tx, db.UpsertInstanceParams{
-			ID:            instanceID,
-			DeploymentID:  deploymentID,
-			WorkspaceID:   workspaceID,
-			ProjectID:     projectID,
-			Region:        region,
-			Address:       address,
-			CpuMillicores: 1000,
-			MemoryMb:      512,
-			Status:        db.InstancesStatusRunning,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create instance: %w", err)
-		}
-
-		err = db.Query.InsertIngressRoute(ctx, tx, db.InsertIngressRouteParams{
-			ID:            ingressRouteID,
-			ProjectID:     projectID,
-			DeploymentID:  deploymentID,
-			EnvironmentID: envID,
-			Hostname:      hostname,
-			Sticky:        db.IngressRoutesStickyLive,
-			CreatedAt:     now,
-			UpdatedAt:     sql.NullInt64{},
+		err = db.Query.InsertFrontlineRoute(ctx, tx, db.InsertFrontlineRouteParams{
+			ID:                       frontlineRouteID,
+			ProjectID:                projectID,
+			DeploymentID:             deploymentID,
+			EnvironmentID:            envID,
+			FullyQualifiedDomainName: hostname,
+			Sticky:                   db.FrontlineRoutesStickyLive,
+			CreatedAt:                now,
+			UpdatedAt:                sql.NullInt64{},
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {
-			return fmt.Errorf("failed to create ingress route: %w", err)
+			return fmt.Errorf("failed to create frontline route: %w", err)
 		}
 
 		err = db.Query.InsertCertificate(ctx, tx, db.InsertCertificateParams{
@@ -185,9 +178,9 @@ func seedIngress(ctx context.Context, cmd *cli.Command) error {
 
 	logger.Info("seed completed",
 		"deployment", deploymentID,
-		"gateway", gatewayID,
+		"sentinel", sentinelID,
 		"instance", instanceID,
-		"ingressRoute", ingressRouteID,
+		"frontlineRoute", frontlineRouteID,
 		"certificate", certificateID,
 		"hostname", hostname,
 		"address", address,

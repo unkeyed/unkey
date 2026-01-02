@@ -1,0 +1,242 @@
+---
+title: Frontline
+description: Multi-tenant frontline and routing service
+---
+
+import { Mermaid } from "@/app/components/mermaid";
+
+**Location:** `go/apps/frontline/`
+
+**CLI Command:** [`unkey run frontline`](/cli/run/frontline)
+
+## What It Does
+
+Frontline is the multi-tenant HTTP frontline service that serves as the entry point for all customer traffic.
+It handles TLS termination, hostname-based routing, and proxying requests to environment-scoped sentinels.
+
+Frontline handles four main responsibilities:
+1. **TLS Termination**: Terminates TLS for custom domains using ACME (Let's Encrypt) or local certificates
+2. **Hostname Routing**: Looks up frontline routes by hostname to find the target deployment and environment
+3. **Sentinel Selection**: Routes requests to the appropriate environment-scoped sentinel
+4. **Smart Proxying**: Forwards to local sentinels or cross-region NLBs with hop count protection
+
+## Architecture
+
+### Multi-Tenant Design
+
+Frontline is a multi-tenant service running as a Kubernetes Deployment behind a Network Load Balancer. A single Frontline instance handles traffic for all customer deployments, performing hostname lookups and routing decisions to forward requests to the appropriate environment sentinel.
+
+### Request Flow
+
+<Mermaid chart={`sequenceDiagram
+    autonumber
+    participant Client
+    participant Frontline
+    participant DB as MySQL
+    participant Sentinel as Environment Sentinel
+
+    Client->>Frontline: HTTPS Request (custom.domain.com)
+    Frontline->>Frontline: Terminate TLS (ACME cert)
+    Frontline->>DB: SELECT * FROM frontline_routes WHERE hostname=?
+    DB->>Frontline: deployment_id, environment_id, project_id
+
+    alt Local sentinel exists
+        Frontline->>Frontline: Lookup sentinel for environment_id
+        Frontline->>Sentinel: HTTP proxy + X-Deployment-ID header
+        Sentinel->>Frontline: Response
+        Frontline->>Client: Response
+    else No local sentinel (cross-region)
+        Frontline->>Frontline: Check X-Unkey-Hop-Count < maxHops
+        Frontline->>NLB: Forward to region NLB (with hop++)
+        Note over Frontline: Remote region handles request
+    end
+`} />
+
+## Database Schema
+
+Frontline uses the following tables for routing decisions:
+
+```sql
+-- Hostname to deployment mapping
+CREATE TABLE frontline_routes (
+    id VARCHAR(128) PRIMARY KEY,
+    project_id VARCHAR(255) NOT NULL,
+    deployment_id VARCHAR(255) NOT NULL,
+    environment_id VARCHAR(255) NOT NULL,  -- Used to route to environment sentinel
+    hostname VARCHAR(256) NOT NULL UNIQUE,
+    sticky ENUM('none','branch','environment','live') NOT NULL DEFAULT 'none',
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT
+);
+
+-- ACME certificates (Let's Encrypt)
+CREATE TABLE certificates (
+    id VARCHAR(128) PRIMARY KEY,
+    hostname VARCHAR(256) NOT NULL UNIQUE,
+    certificate_pem TEXT NOT NULL,
+    private_key_pem TEXT NOT NULL,
+    expires_at BIGINT NOT NULL,
+    created_at BIGINT NOT NULL
+);
+```
+
+## TLS Strategy
+
+### ACME (Let's Encrypt)
+
+Frontline uses ACME (Automated Certificate Management Environment) to obtain and renew TLS certificates from Let's Encrypt:
+
+1. **Challenge Handler**: The `/acme` route responds to HTTP-01 challenges
+2. **Certificate Storage**: Certificates are stored in MySQL `certificates` table
+3. **Automatic Renewal**: Certificates are renewed before expiration
+4. **SNI Support**: Multiple hostnames supported via Server Name Indication
+
+### Local Development
+
+For local development, Frontline can generate self-signed certificates:
+
+```go
+// localcert.go generates certificates for *.local domains
+cert, key := generateSelfSignedCert("unkey.local")
+```
+
+### TLS Termination Flow
+
+1. Client connects with SNI hostname (e.g., `api.customer.com`)
+2. Frontline looks up certificate in database by hostname
+3. TLS handshake completes with customer's certificate
+4. Request is decrypted and forwarded to environment sentinel as plain HTTP
+
+## Sentinel Routing
+
+Frontline routes requests to environment-scoped sentinels based on the `environment_id` from the frontline route lookup.
+
+### Sentinel Discovery
+
+```go
+// After looking up the frontline route, we have:
+type FrontlineRoute struct {
+    DeploymentID   string
+    EnvironmentID  string  // Key field for sentinel routing
+    ProjectID      string
+}
+
+// Sentinel address is determined by environment_id
+// e.g., "sentinel-{environment_id}.{namespace}.svc.cluster.local:8080"
+sentinelAddress := fmt.Sprintf("sentinel-%s.%s.svc.cluster.local:8080",
+    route.EnvironmentID, namespace)
+```
+
+### Routing Strategy
+
+Frontline routes based on:
+- `environment_id` from the frontline route lookup
+- Sentinel service discovery via Kubernetes DNS
+- Current region (for local vs cross-region routing)
+
+If no local sentinel is found, Frontline forwards to the region's NLB, triggering cross-region forwarding.
+
+### Request Headers
+
+Frontline passes metadata to the Sentinel via HTTP headers:
+- `X-Deployment-ID`: The target deployment ID
+- `X-Environment-ID`: The environment ID (for validation)
+- `X-Unkey-Hop-Count`: Hop count for cross-region loop prevention
+
+## Cross-Region Forwarding
+
+When no local sentinel is available, Frontline forwards requests to the region's Network Load Balancer.
+
+### Hop Count Protection
+
+To prevent infinite loops, Frontline tracks hops via HTTP header:
+
+```go
+const maxHops = 3
+
+// Check current hop count
+hopCount, _ := strconv.Atoi(r.Header.Get("X-Unkey-Hop-Count"))
+if hopCount >= maxHops {
+    return fmt.Errorf("max hops exceeded")
+}
+
+// Increment and forward
+r.Header.Set("X-Unkey-Hop-Count", strconv.Itoa(hopCount+1))
+```
+
+### Forwarding Strategy
+
+```go
+// Forward to region NLB
+func (p *ProxyService) ForwardToNLB(ctx context.Context, region string, r *http.Request) error {
+    // Check hop count first
+    if hopCount >= maxHops {
+        return ErrMaxHopsExceeded
+    }
+
+    // Build target URL
+    targetURL := fmt.Sprintf("https://%s.%s%s",
+        region,           // e.g., "us-west-2"
+        p.cfg.BaseDomain, // e.g., "unkey.cloud"
+        r.URL.Path,
+    )
+
+    // Proxy entire request to remote NLB
+    return p.httpProxy(targetURL, r)
+}
+```
+
+### Why NLB Instead of Direct Sentinel?
+
+Forwarding to the region's NLB (instead of directly to a remote sentinel) provides:
+- **Load balancing**: NLB distributes across available Frontline instances in the target region
+- **Health checking**: NLB only routes to healthy Frontline replicas
+- **Simplicity**: No need for cross-region sentinel discovery
+- **Consistency**: Same frontline lookup and routing logic applies in the target region
+
+## Error Handling
+
+Frontline provides user-friendly error pages for common scenarios:
+
+### Error Middleware
+
+```go
+type ErrorCode int
+
+const (
+    ErrorHostnameNotFound          ErrorCode = 40401  // No frontline route for hostname
+    ErrorSentinelUnavailable        ErrorCode = 50301  // Environment sentinel not available
+    ErrorProxyServiceUnavailable   ErrorCode = 50302  // Failed to proxy to sentinel
+    ErrorRoutingMaxHopsExceeded    ErrorCode = 50801  // Too many cross-region hops
+)
+```
+
+### Status Code Mapping
+
+- **404 Not Found**: No frontline route configured for hostname
+- **503 Service Unavailable**: Environment sentinel not available
+- **508 Loop Detected**: Maximum hop count exceeded (prevents infinite loops)
+
+## Observability
+
+Frontline uses structured logging for:
+- Hostname lookups and routing decisions
+- Sentinel discovery and selection
+- Proxy operations (success/failure)
+- Cross-region forwarding
+- TLS certificate operations
+- Error conditions with context
+
+## Future Improvements
+
+### Planned Features
+
+1. **Sentinel Health Checks**: Active health probing for environment sentinels
+2. **Sticky Sessions**: Support sticky routing based on client session
+
+### Scalability
+
+Frontline is designed to scale horizontally:
+- **Stateless**: No persistent state, all routing from database
+- **Database-driven**: Routing decisions from MySQL lookups (indexed on hostname)
+- **Minimal processing**: Pure proxy layer, no business logic execution

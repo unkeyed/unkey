@@ -183,53 +183,91 @@ func (ns NullCustomDomainsChallengeType) Value() (driver.Value, error) {
 	return string(ns.CustomDomainsChallengeType), nil
 }
 
-type DeploymentStepsStatus string
+type DeploymentTopologyDesiredStatus string
 
 const (
-	DeploymentStepsStatusPending                DeploymentStepsStatus = "pending"
-	DeploymentStepsStatusDownloadingDockerImage DeploymentStepsStatus = "downloading_docker_image"
-	DeploymentStepsStatusBuildingRootfs         DeploymentStepsStatus = "building_rootfs"
-	DeploymentStepsStatusUploadingRootfs        DeploymentStepsStatus = "uploading_rootfs"
-	DeploymentStepsStatusCreatingVm             DeploymentStepsStatus = "creating_vm"
-	DeploymentStepsStatusBootingVm              DeploymentStepsStatus = "booting_vm"
-	DeploymentStepsStatusAssigningDomains       DeploymentStepsStatus = "assigning_domains"
-	DeploymentStepsStatusCompleted              DeploymentStepsStatus = "completed"
-	DeploymentStepsStatusFailed                 DeploymentStepsStatus = "failed"
+	DeploymentTopologyDesiredStatusStarting DeploymentTopologyDesiredStatus = "starting"
+	DeploymentTopologyDesiredStatusStarted  DeploymentTopologyDesiredStatus = "started"
+	DeploymentTopologyDesiredStatusStopping DeploymentTopologyDesiredStatus = "stopping"
+	DeploymentTopologyDesiredStatusStopped  DeploymentTopologyDesiredStatus = "stopped"
 )
 
-func (e *DeploymentStepsStatus) Scan(src interface{}) error {
+func (e *DeploymentTopologyDesiredStatus) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = DeploymentStepsStatus(s)
+		*e = DeploymentTopologyDesiredStatus(s)
 	case string:
-		*e = DeploymentStepsStatus(s)
+		*e = DeploymentTopologyDesiredStatus(s)
 	default:
-		return fmt.Errorf("unsupported scan type for DeploymentStepsStatus: %T", src)
+		return fmt.Errorf("unsupported scan type for DeploymentTopologyDesiredStatus: %T", src)
 	}
 	return nil
 }
 
-type NullDeploymentStepsStatus struct {
-	DeploymentStepsStatus DeploymentStepsStatus
-	Valid                 bool // Valid is true if DeploymentStepsStatus is not NULL
+type NullDeploymentTopologyDesiredStatus struct {
+	DeploymentTopologyDesiredStatus DeploymentTopologyDesiredStatus
+	Valid                           bool // Valid is true if DeploymentTopologyDesiredStatus is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullDeploymentStepsStatus) Scan(value interface{}) error {
+func (ns *NullDeploymentTopologyDesiredStatus) Scan(value interface{}) error {
 	if value == nil {
-		ns.DeploymentStepsStatus, ns.Valid = "", false
+		ns.DeploymentTopologyDesiredStatus, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.DeploymentStepsStatus.Scan(value)
+	return ns.DeploymentTopologyDesiredStatus.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullDeploymentStepsStatus) Value() (driver.Value, error) {
+func (ns NullDeploymentTopologyDesiredStatus) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.DeploymentStepsStatus), nil
+	return string(ns.DeploymentTopologyDesiredStatus), nil
+}
+
+type DeploymentsDesiredState string
+
+const (
+	DeploymentsDesiredStateRunning  DeploymentsDesiredState = "running"
+	DeploymentsDesiredStateStandby  DeploymentsDesiredState = "standby"
+	DeploymentsDesiredStateArchived DeploymentsDesiredState = "archived"
+)
+
+func (e *DeploymentsDesiredState) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentsDesiredState(s)
+	case string:
+		*e = DeploymentsDesiredState(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentsDesiredState: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentsDesiredState struct {
+	DeploymentsDesiredState DeploymentsDesiredState
+	Valid                   bool // Valid is true if DeploymentsDesiredState is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentsDesiredState) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentsDesiredState, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentsDesiredState.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentsDesiredState) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentsDesiredState), nil
 }
 
 type DeploymentsStatus string
@@ -320,104 +358,57 @@ func (ns NullEnvironmentVariablesType) Value() (driver.Value, error) {
 	return string(ns.EnvironmentVariablesType), nil
 }
 
-type GatewaysHealth string
+type FrontlineRoutesSticky string
 
 const (
-	GatewaysHealthUnknown   GatewaysHealth = "unknown"
-	GatewaysHealthPaused    GatewaysHealth = "paused"
-	GatewaysHealthHealthy   GatewaysHealth = "healthy"
-	GatewaysHealthUnhealthy GatewaysHealth = "unhealthy"
+	FrontlineRoutesStickyNone        FrontlineRoutesSticky = "none"
+	FrontlineRoutesStickyBranch      FrontlineRoutesSticky = "branch"
+	FrontlineRoutesStickyEnvironment FrontlineRoutesSticky = "environment"
+	FrontlineRoutesStickyLive        FrontlineRoutesSticky = "live"
 )
 
-func (e *GatewaysHealth) Scan(src interface{}) error {
+func (e *FrontlineRoutesSticky) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = GatewaysHealth(s)
+		*e = FrontlineRoutesSticky(s)
 	case string:
-		*e = GatewaysHealth(s)
+		*e = FrontlineRoutesSticky(s)
 	default:
-		return fmt.Errorf("unsupported scan type for GatewaysHealth: %T", src)
+		return fmt.Errorf("unsupported scan type for FrontlineRoutesSticky: %T", src)
 	}
 	return nil
 }
 
-type NullGatewaysHealth struct {
-	GatewaysHealth GatewaysHealth
-	Valid          bool // Valid is true if GatewaysHealth is not NULL
+type NullFrontlineRoutesSticky struct {
+	FrontlineRoutesSticky FrontlineRoutesSticky
+	Valid                 bool // Valid is true if FrontlineRoutesSticky is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullGatewaysHealth) Scan(value interface{}) error {
+func (ns *NullFrontlineRoutesSticky) Scan(value interface{}) error {
 	if value == nil {
-		ns.GatewaysHealth, ns.Valid = "", false
+		ns.FrontlineRoutesSticky, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.GatewaysHealth.Scan(value)
+	return ns.FrontlineRoutesSticky.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullGatewaysHealth) Value() (driver.Value, error) {
+func (ns NullFrontlineRoutesSticky) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.GatewaysHealth), nil
-}
-
-type IngressRoutesSticky string
-
-const (
-	IngressRoutesStickyNone        IngressRoutesSticky = "none"
-	IngressRoutesStickyBranch      IngressRoutesSticky = "branch"
-	IngressRoutesStickyEnvironment IngressRoutesSticky = "environment"
-	IngressRoutesStickyLive        IngressRoutesSticky = "live"
-)
-
-func (e *IngressRoutesSticky) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = IngressRoutesSticky(s)
-	case string:
-		*e = IngressRoutesSticky(s)
-	default:
-		return fmt.Errorf("unsupported scan type for IngressRoutesSticky: %T", src)
-	}
-	return nil
-}
-
-type NullIngressRoutesSticky struct {
-	IngressRoutesSticky IngressRoutesSticky
-	Valid               bool // Valid is true if IngressRoutesSticky is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullIngressRoutesSticky) Scan(value interface{}) error {
-	if value == nil {
-		ns.IngressRoutesSticky, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.IngressRoutesSticky.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullIngressRoutesSticky) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.IngressRoutesSticky), nil
+	return string(ns.FrontlineRoutesSticky), nil
 }
 
 type InstancesStatus string
 
 const (
-	InstancesStatusAllocated    InstancesStatus = "allocated"
-	InstancesStatusProvisioning InstancesStatus = "provisioning"
-	InstancesStatusStarting     InstancesStatus = "starting"
-	InstancesStatusRunning      InstancesStatus = "running"
-	InstancesStatusStopping     InstancesStatus = "stopping"
-	InstancesStatusStopped      InstancesStatus = "stopped"
-	InstancesStatusFailed       InstancesStatus = "failed"
+	InstancesStatusInactive InstancesStatus = "inactive"
+	InstancesStatusPending  InstancesStatus = "pending"
+	InstancesStatusRunning  InstancesStatus = "running"
+	InstancesStatusFailed   InstancesStatus = "failed"
 )
 
 func (e *InstancesStatus) Scan(src interface{}) error {
@@ -536,6 +527,93 @@ func (ns NullRatelimitOverridesSharding) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.RatelimitOverridesSharding), nil
+}
+
+type SentinelsDesiredState string
+
+const (
+	SentinelsDesiredStateRunning  SentinelsDesiredState = "running"
+	SentinelsDesiredStateStandby  SentinelsDesiredState = "standby"
+	SentinelsDesiredStateArchived SentinelsDesiredState = "archived"
+)
+
+func (e *SentinelsDesiredState) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SentinelsDesiredState(s)
+	case string:
+		*e = SentinelsDesiredState(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SentinelsDesiredState: %T", src)
+	}
+	return nil
+}
+
+type NullSentinelsDesiredState struct {
+	SentinelsDesiredState SentinelsDesiredState
+	Valid                 bool // Valid is true if SentinelsDesiredState is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSentinelsDesiredState) Scan(value interface{}) error {
+	if value == nil {
+		ns.SentinelsDesiredState, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SentinelsDesiredState.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSentinelsDesiredState) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SentinelsDesiredState), nil
+}
+
+type SentinelsHealth string
+
+const (
+	SentinelsHealthUnknown   SentinelsHealth = "unknown"
+	SentinelsHealthPaused    SentinelsHealth = "paused"
+	SentinelsHealthHealthy   SentinelsHealth = "healthy"
+	SentinelsHealthUnhealthy SentinelsHealth = "unhealthy"
+)
+
+func (e *SentinelsHealth) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SentinelsHealth(s)
+	case string:
+		*e = SentinelsHealth(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SentinelsHealth: %T", src)
+	}
+	return nil
+}
+
+type NullSentinelsHealth struct {
+	SentinelsHealth SentinelsHealth
+	Valid           bool // Valid is true if SentinelsHealth is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSentinelsHealth) Scan(value interface{}) error {
+	if value == nil {
+		ns.SentinelsHealth, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SentinelsHealth.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSentinelsHealth) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SentinelsHealth), nil
 }
 
 type VercelBindingsEnvironment string
@@ -667,6 +745,7 @@ func (ns NullWorkspacesPlan) Value() (driver.Value, error) {
 }
 
 type AcmeChallenge struct {
+	Pk            uint64                      `db:"pk"`
 	DomainID      string                      `db:"domain_id"`
 	WorkspaceID   string                      `db:"workspace_id"`
 	Token         string                      `db:"token"`
@@ -679,6 +758,7 @@ type AcmeChallenge struct {
 }
 
 type AcmeUser struct {
+	Pk              uint64         `db:"pk"`
 	ID              string         `db:"id"`
 	WorkspaceID     string         `db:"workspace_id"`
 	EncryptedKey    string         `db:"encrypted_key"`
@@ -688,6 +768,7 @@ type AcmeUser struct {
 }
 
 type Api struct {
+	Pk               uint64           `db:"pk"`
 	ID               string           `db:"id"`
 	Name             string           `db:"name"`
 	WorkspaceID      string           `db:"workspace_id"`
@@ -701,6 +782,7 @@ type Api struct {
 }
 
 type AuditLog struct {
+	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
 	Bucket      string         `db:"bucket"`
@@ -719,6 +801,7 @@ type AuditLog struct {
 }
 
 type AuditLogBucket struct {
+	Pk               uint64        `db:"pk"`
 	ID               string        `db:"id"`
 	WorkspaceID      string        `db:"workspace_id"`
 	Name             string        `db:"name"`
@@ -729,6 +812,7 @@ type AuditLogBucket struct {
 }
 
 type AuditLogTarget struct {
+	Pk          uint64         `db:"pk"`
 	WorkspaceID string         `db:"workspace_id"`
 	BucketID    string         `db:"bucket_id"`
 	Bucket      string         `db:"bucket"`
@@ -743,6 +827,7 @@ type AuditLogTarget struct {
 }
 
 type Certificate struct {
+	Pk                  uint64        `db:"pk"`
 	ID                  string        `db:"id"`
 	WorkspaceID         string        `db:"workspace_id"`
 	Hostname            string        `db:"hostname"`
@@ -753,6 +838,7 @@ type Certificate struct {
 }
 
 type ClickhouseWorkspaceSetting struct {
+	Pk                        uint64        `db:"pk"`
 	WorkspaceID               string        `db:"workspace_id"`
 	Username                  string        `db:"username"`
 	PasswordEncrypted         string        `db:"password_encrypted"`
@@ -767,6 +853,7 @@ type ClickhouseWorkspaceSetting struct {
 }
 
 type CustomDomain struct {
+	Pk            uint64                     `db:"pk"`
 	ID            string                     `db:"id"`
 	WorkspaceID   string                     `db:"workspace_id"`
 	Domain        string                     `db:"domain"`
@@ -776,35 +863,44 @@ type CustomDomain struct {
 }
 
 type Deployment struct {
-	ID                       string            `db:"id"`
-	WorkspaceID              string            `db:"workspace_id"`
-	ProjectID                string            `db:"project_id"`
-	EnvironmentID            string            `db:"environment_id"`
-	GitCommitSha             sql.NullString    `db:"git_commit_sha"`
-	GitBranch                sql.NullString    `db:"git_branch"`
-	GitCommitMessage         sql.NullString    `db:"git_commit_message"`
-	GitCommitAuthorHandle    sql.NullString    `db:"git_commit_author_handle"`
-	GitCommitAuthorAvatarUrl sql.NullString    `db:"git_commit_author_avatar_url"`
-	GitCommitTimestamp       sql.NullInt64     `db:"git_commit_timestamp"`
-	RuntimeConfig            json.RawMessage   `db:"runtime_config"`
-	GatewayConfig            []byte            `db:"gateway_config"`
-	OpenapiSpec              sql.NullString    `db:"openapi_spec"`
-	SecretsConfig            []byte            `db:"secrets_config"`
-	Status                   DeploymentsStatus `db:"status"`
-	CreatedAt                int64             `db:"created_at"`
-	UpdatedAt                sql.NullInt64     `db:"updated_at"`
+	Pk                            uint64                  `db:"pk"`
+	ID                            string                  `db:"id"`
+	K8sName                       string                  `db:"k8s_name"`
+	WorkspaceID                   string                  `db:"workspace_id"`
+	ProjectID                     string                  `db:"project_id"`
+	EnvironmentID                 string                  `db:"environment_id"`
+	Image                         sql.NullString          `db:"image"`
+	BuildID                       sql.NullString          `db:"build_id"`
+	GitCommitSha                  sql.NullString          `db:"git_commit_sha"`
+	GitBranch                     sql.NullString          `db:"git_branch"`
+	GitCommitMessage              sql.NullString          `db:"git_commit_message"`
+	GitCommitAuthorHandle         sql.NullString          `db:"git_commit_author_handle"`
+	GitCommitAuthorAvatarUrl      sql.NullString          `db:"git_commit_author_avatar_url"`
+	GitCommitTimestamp            sql.NullInt64           `db:"git_commit_timestamp"`
+	SentinelConfig                []byte                  `db:"sentinel_config"`
+	OpenapiSpec                   sql.NullString          `db:"openapi_spec"`
+	CpuMillicores                 int32                   `db:"cpu_millicores"`
+	MemoryMib                     int32                   `db:"memory_mib"`
+	DesiredState                  DeploymentsDesiredState `db:"desired_state"`
+	EncryptedEnvironmentVariables []byte                  `db:"encrypted_environment_variables"`
+	Status                        DeploymentsStatus       `db:"status"`
+	CreatedAt                     int64                   `db:"created_at"`
+	UpdatedAt                     sql.NullInt64           `db:"updated_at"`
 }
 
-type DeploymentStep struct {
-	DeploymentID string                `db:"deployment_id"`
-	WorkspaceID  string                `db:"workspace_id"`
-	ProjectID    string                `db:"project_id"`
-	Status       DeploymentStepsStatus `db:"status"`
-	Message      string                `db:"message"`
-	CreatedAt    int64                 `db:"created_at"`
+type DeploymentTopology struct {
+	Pk              uint64                          `db:"pk"`
+	WorkspaceID     string                          `db:"workspace_id"`
+	DeploymentID    string                          `db:"deployment_id"`
+	Region          string                          `db:"region"`
+	DesiredReplicas int32                           `db:"desired_replicas"`
+	DesiredStatus   DeploymentTopologyDesiredStatus `db:"desired_status"`
+	CreatedAt       int64                           `db:"created_at"`
+	UpdatedAt       sql.NullInt64                   `db:"updated_at"`
 }
 
 type EncryptedKey struct {
+	Pk              uint64        `db:"pk"`
 	WorkspaceID     string        `db:"workspace_id"`
 	KeyID           string        `db:"key_id"`
 	CreatedAt       int64         `db:"created_at"`
@@ -814,18 +910,20 @@ type EncryptedKey struct {
 }
 
 type Environment struct {
+	Pk               uint64        `db:"pk"`
 	ID               string        `db:"id"`
 	WorkspaceID      string        `db:"workspace_id"`
 	ProjectID        string        `db:"project_id"`
 	Slug             string        `db:"slug"`
 	Description      string        `db:"description"`
-	GatewayConfig    []byte        `db:"gateway_config"`
+	SentinelConfig   []byte        `db:"sentinel_config"`
 	DeleteProtection sql.NullBool  `db:"delete_protection"`
 	CreatedAt        int64         `db:"created_at"`
 	UpdatedAt        sql.NullInt64 `db:"updated_at"`
 }
 
 type EnvironmentVariable struct {
+	Pk               uint64                   `db:"pk"`
 	ID               string                   `db:"id"`
 	WorkspaceID      string                   `db:"workspace_id"`
 	EnvironmentID    string                   `db:"environment_id"`
@@ -838,18 +936,20 @@ type EnvironmentVariable struct {
 	UpdatedAt        sql.NullInt64            `db:"updated_at"`
 }
 
-type Gateway struct {
-	ID             string         `db:"id"`
-	WorkspaceID    string         `db:"workspace_id"`
-	EnvironmentID  string         `db:"environment_id"`
-	K8sServiceName string         `db:"k8s_service_name"`
-	Region         string         `db:"region"`
-	Image          string         `db:"image"`
-	Health         GatewaysHealth `db:"health"`
-	Replicas       int32          `db:"replicas"`
+type FrontlineRoute struct {
+	Pk                       uint64                `db:"pk"`
+	ID                       string                `db:"id"`
+	ProjectID                string                `db:"project_id"`
+	DeploymentID             string                `db:"deployment_id"`
+	EnvironmentID            string                `db:"environment_id"`
+	FullyQualifiedDomainName string                `db:"fully_qualified_domain_name"`
+	Sticky                   FrontlineRoutesSticky `db:"sticky"`
+	CreatedAt                int64                 `db:"created_at"`
+	UpdatedAt                sql.NullInt64         `db:"updated_at"`
 }
 
 type Identity struct {
+	Pk          uint64        `db:"pk"`
 	ID          string        `db:"id"`
 	ExternalID  string        `db:"external_id"`
 	WorkspaceID string        `db:"workspace_id"`
@@ -860,30 +960,23 @@ type Identity struct {
 	UpdatedAt   sql.NullInt64 `db:"updated_at"`
 }
 
-type IngressRoute struct {
-	ID            string              `db:"id"`
-	ProjectID     string              `db:"project_id"`
-	DeploymentID  string              `db:"deployment_id"`
-	EnvironmentID string              `db:"environment_id"`
-	Hostname      string              `db:"hostname"`
-	Sticky        IngressRoutesSticky `db:"sticky"`
-	CreatedAt     int64               `db:"created_at"`
-	UpdatedAt     sql.NullInt64       `db:"updated_at"`
-}
-
 type Instance struct {
+	Pk            uint64          `db:"pk"`
 	ID            string          `db:"id"`
 	DeploymentID  string          `db:"deployment_id"`
 	WorkspaceID   string          `db:"workspace_id"`
 	ProjectID     string          `db:"project_id"`
 	Region        string          `db:"region"`
+	ClusterID     string          `db:"cluster_id"`
+	K8sName       string          `db:"k8s_name"`
 	Address       string          `db:"address"`
 	CpuMillicores int32           `db:"cpu_millicores"`
-	MemoryMb      int32           `db:"memory_mb"`
+	MemoryMib     int32           `db:"memory_mib"`
 	Status        InstancesStatus `db:"status"`
 }
 
 type Key struct {
+	Pk                 uint64         `db:"pk"`
 	ID                 string         `db:"id"`
 	KeyAuthID          string         `db:"key_auth_id"`
 	Hash               string         `db:"hash"`
@@ -911,6 +1004,7 @@ type Key struct {
 }
 
 type KeyAuth struct {
+	Pk                 uint64         `db:"pk"`
 	ID                 string         `db:"id"`
 	WorkspaceID        string         `db:"workspace_id"`
 	CreatedAtM         int64          `db:"created_at_m"`
@@ -924,6 +1018,7 @@ type KeyAuth struct {
 }
 
 type KeyMigration struct {
+	Pk          uint64                 `db:"pk"`
 	ID          string                 `db:"id"`
 	WorkspaceID string                 `db:"workspace_id"`
 	Algorithm   KeyMigrationsAlgorithm `db:"algorithm"`
@@ -938,7 +1033,8 @@ type KeyMigrationError struct {
 }
 
 type KeysPermission struct {
-	TempID       int64         `db:"temp_id"`
+	Pk           uint64        `db:"pk"`
+	TempID       sql.NullInt64 `db:"temp_id"`
 	KeyID        string        `db:"key_id"`
 	PermissionID string        `db:"permission_id"`
 	WorkspaceID  string        `db:"workspace_id"`
@@ -947,6 +1043,7 @@ type KeysPermission struct {
 }
 
 type KeysRole struct {
+	Pk          uint64        `db:"pk"`
 	KeyID       string        `db:"key_id"`
 	RoleID      string        `db:"role_id"`
 	WorkspaceID string        `db:"workspace_id"`
@@ -955,6 +1052,7 @@ type KeysRole struct {
 }
 
 type Permission struct {
+	Pk          uint64            `db:"pk"`
 	ID          string            `db:"id"`
 	WorkspaceID string            `db:"workspace_id"`
 	Name        string            `db:"name"`
@@ -965,6 +1063,7 @@ type Permission struct {
 }
 
 type Project struct {
+	Pk               uint64         `db:"pk"`
 	ID               string         `db:"id"`
 	WorkspaceID      string         `db:"workspace_id"`
 	Name             string         `db:"name"`
@@ -980,6 +1079,7 @@ type Project struct {
 }
 
 type Quotum struct {
+	Pk                     uint64 `db:"pk"`
 	WorkspaceID            string `db:"workspace_id"`
 	RequestsPerMonth       int64  `db:"requests_per_month"`
 	LogsRetentionDays      int32  `db:"logs_retention_days"`
@@ -988,6 +1088,7 @@ type Quotum struct {
 }
 
 type Ratelimit struct {
+	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	Name        string         `db:"name"`
 	WorkspaceID string         `db:"workspace_id"`
@@ -1001,6 +1102,7 @@ type Ratelimit struct {
 }
 
 type RatelimitNamespace struct {
+	Pk          uint64        `db:"pk"`
 	ID          string        `db:"id"`
 	WorkspaceID string        `db:"workspace_id"`
 	Name        string        `db:"name"`
@@ -1010,6 +1112,7 @@ type RatelimitNamespace struct {
 }
 
 type RatelimitOverride struct {
+	Pk          uint64                         `db:"pk"`
 	ID          string                         `db:"id"`
 	WorkspaceID string                         `db:"workspace_id"`
 	NamespaceID string                         `db:"namespace_id"`
@@ -1024,6 +1127,7 @@ type RatelimitOverride struct {
 }
 
 type Role struct {
+	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
 	Name        string         `db:"name"`
@@ -1033,6 +1137,7 @@ type Role struct {
 }
 
 type RolesPermission struct {
+	Pk           uint64        `db:"pk"`
 	RoleID       string        `db:"role_id"`
 	PermissionID string        `db:"permission_id"`
 	WorkspaceID  string        `db:"workspace_id"`
@@ -1040,7 +1145,28 @@ type RolesPermission struct {
 	UpdatedAtM   sql.NullInt64 `db:"updated_at_m"`
 }
 
+type Sentinel struct {
+	Pk                uint64                `db:"pk"`
+	ID                string                `db:"id"`
+	WorkspaceID       string                `db:"workspace_id"`
+	ProjectID         string                `db:"project_id"`
+	EnvironmentID     string                `db:"environment_id"`
+	K8sName           string                `db:"k8s_name"`
+	K8sAddress        string                `db:"k8s_address"`
+	Region            string                `db:"region"`
+	Image             string                `db:"image"`
+	DesiredState      SentinelsDesiredState `db:"desired_state"`
+	Health            SentinelsHealth       `db:"health"`
+	DesiredReplicas   int32                 `db:"desired_replicas"`
+	AvailableReplicas int32                 `db:"available_replicas"`
+	CpuMillicores     int32                 `db:"cpu_millicores"`
+	MemoryMib         int32                 `db:"memory_mib"`
+	CreatedAt         int64                 `db:"created_at"`
+	UpdatedAt         sql.NullInt64         `db:"updated_at"`
+}
+
 type VercelBinding struct {
+	Pk            uint64                     `db:"pk"`
 	ID            string                     `db:"id"`
 	IntegrationID string                     `db:"integration_id"`
 	WorkspaceID   string                     `db:"workspace_id"`
@@ -1056,6 +1182,7 @@ type VercelBinding struct {
 }
 
 type VercelIntegration struct {
+	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
 	TeamID      sql.NullString `db:"team_id"`
@@ -1070,6 +1197,7 @@ type Workspace struct {
 	OrgID                string             `db:"org_id"`
 	Name                 string             `db:"name"`
 	Slug                 string             `db:"slug"`
+	K8sNamespace         sql.NullString     `db:"k8s_namespace"`
 	PartitionID          sql.NullString     `db:"partition_id"`
 	Plan                 NullWorkspacesPlan `db:"plan"`
 	Tier                 sql.NullString     `db:"tier"`

@@ -5,7 +5,7 @@ import {
   int,
   json,
   mysqlTable,
-  primaryKey,
+  unique,
   uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
@@ -18,9 +18,12 @@ import { deleteProtection } from "./util/delete_protection";
 export const auditLogBucket = mysqlTable(
   "audit_log_bucket",
   {
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: varchar("id", { length: 256 })
-      .primaryKey()
+      .notNull()
+      .unique()
       .$defaultFn(() => newId("auditLogBucket")),
+
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     /**
      * Buckets are used as namespaces for different logs belonging to a single workspace
@@ -33,19 +36,17 @@ export const auditLogBucket = mysqlTable(
     ...lifecycleDates,
     ...deleteProtection,
   },
-  (table) => ({
-    uniqueNamePerWorkspace: uniqueIndex("unique_name_per_workspace_idx").on(
-      table.workspaceId,
-      table.name,
-    ),
-  }),
+  (table) => [uniqueIndex("unique_name_per_workspace_idx").on(table.workspaceId, table.name)],
 );
 
 export const auditLog = mysqlTable(
   "audit_log",
   {
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: varchar("id", { length: 256 })
-      .primaryKey()
+      .notNull()
+      .unique()
+
       .$defaultFn(() => newId("auditLog")),
 
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
@@ -71,14 +72,14 @@ export const auditLog = mysqlTable(
 
     ...lifecycleDates,
   },
-  (table) => ({
-    workspaceId: index("workspace_id_idx").on(table.workspaceId),
-    bucketId: index("bucket_id_idx").on(table.bucketId),
-    bucket: index("bucket_idx").on(table.bucket),
-    event: index("event_idx").on(table.event),
-    actorId: index("actor_id_idx").on(table.actorId),
-    time: index("time_idx").on(table.time),
-  }),
+  (table) => [
+    index("workspace_id_idx").on(table.workspaceId),
+    index("bucket_id_idx").on(table.bucketId),
+    index("bucket_idx").on(table.bucket),
+    index("event_idx").on(table.event),
+    index("actor_id_idx").on(table.actorId),
+    index("time_idx").on(table.time),
+  ],
 );
 
 export const auditLogRelations = relations(auditLog, ({ one, many }) => ({
@@ -96,6 +97,8 @@ export const auditLogRelations = relations(auditLog, ({ one, many }) => ({
 export const auditLogTarget = mysqlTable(
   "audit_log_target",
   {
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     // @deprecated
     bucketId: varchar("bucket_id", { length: 256 }).notNull(),
@@ -117,12 +120,12 @@ export const auditLogTarget = mysqlTable(
 
     ...lifecycleDates,
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.auditLogId, table.id] }),
-    bucket: index("bucket").on(table.bucket),
-    auditLog: index("audit_log_id").on(table.auditLogId),
-    id: index("id_idx").on(table.id),
-  }),
+  (table) => [
+    unique("unique_id_per_log").on(table.auditLogId, table.id),
+    index("bucket").on(table.bucket),
+    index("audit_log_id").on(table.auditLogId),
+    index("id_idx").on(table.id),
+  ],
 );
 
 export const auditLogTargetRelations = relations(auditLogTarget, ({ one }) => ({

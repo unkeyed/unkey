@@ -4,7 +4,6 @@ package cache.v1;
 
 option go_package = "github.com/unkeyed/unkey/go/gen/proto/cache/v1;cachev1";
 
-
 // CacheInvalidationEvent represents a cache invalidation event
 message CacheInvalidationEvent {
   // The name/identifier of the cache to invalidate

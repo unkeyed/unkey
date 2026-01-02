@@ -8,4 +8,4 @@ COPY go/pkg/db/schema.sql /docker-entrypoint-initdb.d/01-main-schema.sql
 
 # Copy seed data for local development
 COPY deployment/04-seed-workspace.sql /docker-entrypoint-initdb.d/04-seed-workspace.sql
-COPY deployment/05-seed-chronark.sql /docker-entrypoint-initdb.d/05-seed-chronark.sql
+# COPY deployment/05-seed-chronark.sql /docker-entrypoint-initdb.d/05-seed-chronark.sql

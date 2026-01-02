@@ -67,39 +67,18 @@ func (s *Service) GetDeployment(
 	if deployment.GitCommitTimestamp.Valid {
 		protoDeployment.GitCommitTimestamp = deployment.GitCommitTimestamp.Int64
 	}
-	if deployment.UpdatedAt.Valid {
-		protoDeployment.UpdatedAt = deployment.UpdatedAt.Int64
-	}
 
-	// Fetch deployment steps
-	deploymentSteps, err := db.Query.FindDeploymentStepsByDeploymentId(ctx, s.db.RO(), deployment.ID)
+	// Fetch routes (fqdns) for this deployment
+	routes, err := db.Query.FindFrontlineRoutesByDeploymentID(ctx, s.db.RO(), req.Msg.GetDeploymentId())
 	if err != nil {
-		s.logger.Warn("failed to fetch deployment steps", "error", err, "deployment_id", deployment.ID)
-		// Continue without steps rather than failing the entire request
+		s.logger.Warn("failed to fetch frontline routes for deployment", "error", err, "deployment_id", deployment.ID)
+		// Continue without fqdns rather than failing the entire request
 	} else {
-		protoSteps := make([]*ctrlv1.DeploymentStep, len(deploymentSteps))
-		for i, step := range deploymentSteps {
-			protoSteps[i] = &ctrlv1.DeploymentStep{
-				ErrorMessage: "",
-				Status:       string(step.Status),
-				CreatedAt:    step.CreatedAt,
-				Message:      step.Message,
-			}
-		}
-		protoDeployment.Steps = protoSteps
-	}
-
-	// Fetch routes (hostnames) for this deployment
-	routes, err := db.Query.FindIngressRoutesByDeploymentID(ctx, s.db.RO(), req.Msg.GetDeploymentId())
-	if err != nil {
-		s.logger.Warn("failed to fetch ingress routes for deployment", "error", err, "deployment_id", deployment.ID)
-		// Continue without hostnames rather than failing the entire request
-	} else {
-		hostnames := make([]string, len(routes))
+		fqdns := make([]string, len(routes))
 		for i, route := range routes {
-			hostnames[i] = route.Hostname
+			fqdns[i] = route.FullyQualifiedDomainName
 		}
-		protoDeployment.Hostnames = hostnames
+		protoDeployment.Hostnames = fqdns
 	}
 
 	res := connect.NewResponse(&ctrlv1.GetDeploymentResponse{

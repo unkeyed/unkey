@@ -6,7 +6,8 @@ import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 export const keyAuth = mysqlTable("key_auth", {
-  id: varchar("id", { length: 256 }).primaryKey(),
+  pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+  id: varchar("id", { length: 256 }).notNull().unique(),
   workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
 
   ...lifecycleDatesMigration,

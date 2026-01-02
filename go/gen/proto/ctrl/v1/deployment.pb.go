@@ -804,7 +804,7 @@ func (x *DeploymentStep) GetCreatedAt() int64 {
 type Topology struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	CpuMillicores int32                  `protobuf:"varint,1,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`
-	MemoryMb      int32                  `protobuf:"varint,2,opt,name=memory_mb,json=memoryMb,proto3" json:"memory_mb,omitempty"`
+	MemoryMib     int32                  `protobuf:"varint,2,opt,name=memory_mib,json=memoryMib,proto3" json:"memory_mib,omitempty"`
 	// Regional configuration
 	Regions []*RegionalConfig `protobuf:"bytes,3,rep,name=regions,proto3" json:"regions,omitempty"`
 	// Runtime settings
@@ -852,9 +852,9 @@ func (x *Topology) GetCpuMillicores() int32 {
 	return 0
 }
 
-func (x *Topology) GetMemoryMb() int32 {
+func (x *Topology) GetMemoryMib() int32 {
 	if x != nil {
-		return x.MemoryMb
+		return x.MemoryMib
 	}
 	return 0
 }
@@ -1189,10 +1189,11 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12#\n" +
 	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x04 \x01(\x03R\tcreatedAt\"\xf3\x01\n" +
+	"created_at\x18\x04 \x01(\x03R\tcreatedAt\"\xf5\x01\n" +
 	"\bTopology\x12%\n" +
-	"\x0ecpu_millicores\x18\x01 \x01(\x05R\rcpuMillicores\x12\x1b\n" +
-	"\tmemory_mb\x18\x02 \x01(\x05R\bmemoryMb\x121\n" +
+	"\x0ecpu_millicores\x18\x01 \x01(\x05R\rcpuMillicores\x12\x1d\n" +
+	"\n" +
+	"memory_mib\x18\x02 \x01(\x05R\tmemoryMib\x121\n" +
 	"\aregions\x18\x03 \x03(\v2\x17.ctrl.v1.RegionalConfigR\aregions\x120\n" +
 	"\x14idle_timeout_seconds\x18\x04 \x01(\x05R\x12idleTimeoutSeconds\x12*\n" +
 	"\x11health_check_path\x18\x05 \x01(\tR\x0fhealthCheckPath\x12\x12\n" +

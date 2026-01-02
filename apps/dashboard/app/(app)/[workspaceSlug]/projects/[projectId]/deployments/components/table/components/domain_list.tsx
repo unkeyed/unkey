@@ -14,7 +14,7 @@ export const DomainList = ({ deploymentId }: Props) => {
     q
       .from({ domain: collections.domains })
       .where(({ domain }) => eq(domain.deploymentId, deploymentId))
-      .orderBy(({ domain }) => domain.hostname, "asc"),
+      .orderBy(({ domain }) => domain.fullyQualifiedDomainName, "asc"),
   );
 
   if (domains.isLoading || !domains.data.length) {
@@ -30,13 +30,13 @@ export const DomainList = ({ deploymentId }: Props) => {
   if (domains.data.length === 1) {
     return (
       <a
-        href={`https://${primaryDomain.hostname}`}
+        href={`https://${primaryDomain.fullyQualifiedDomainName}`}
         target="_blank"
         rel="noopener noreferrer"
         className="text-accent-12 text-xs font-mono hover:underline decoration-dashed underline-offset-2 transition-all truncate block max-w-[200px]"
         onClick={(e) => e.stopPropagation()}
       >
-        {primaryDomain.hostname}
+        {primaryDomain.fullyQualifiedDomainName}
       </a>
     );
   }
@@ -45,13 +45,13 @@ export const DomainList = ({ deploymentId }: Props) => {
   return (
     <div className="flex items-center gap-2 min-w-0">
       <a
-        href={`https://${primaryDomain.hostname}`}
+        href={`https://${primaryDomain.fullyQualifiedDomainName}`}
         target="_blank"
         rel="noopener noreferrer"
         className="text-accent-12 text-xs font-mono hover:underline decoration-dashed underline-offset-2 transition-all truncate block max-w-[150px]"
         onClick={(e) => e.stopPropagation()}
       >
-        {primaryDomain.hostname}
+        {primaryDomain.fullyQualifiedDomainName}
       </a>
 
       <InfoTooltip
@@ -65,13 +65,13 @@ export const DomainList = ({ deploymentId }: Props) => {
               <div key={d.id} className="text-xs font-medium flex items-center gap-1.5">
                 <div className="w-1 h-1 bg-gray-8 rounded-full shrink-0" />
                 <a
-                  href={`https://${d.hostname}`}
+                  href={`https://${d.fullyQualifiedDomainName}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="transition-all hover:underline decoration-dashed underline-offset-2"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {d.hostname}
+                  {d.fullyQualifiedDomainName}
                 </a>
               </div>
             ))}

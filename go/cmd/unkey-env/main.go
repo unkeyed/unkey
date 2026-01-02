@@ -29,7 +29,7 @@ type Config struct {
 	Endpoint      string
 	DeploymentID  string
 	EnvironmentID string
-	EncryptedBlob string
+	Encrypted     string
 	Token         string
 	TokenPath     string
 	Debug         bool
@@ -62,7 +62,7 @@ var Cmd = &cli.Command{
 		cli.String("environment-id", "Environment ID for decryption",
 			cli.EnvVar("UNKEY_ENVIRONMENT_ID")),
 		cli.String("secrets-blob", "Base64-encoded encrypted secrets blob",
-			cli.EnvVar("UNKEY_SECRETS_BLOB")),
+			cli.EnvVar("UNKEY_ENCRYPTED_ENV")),
 		cli.String("token", "Authentication token",
 			cli.EnvVar("UNKEY_TOKEN")),
 		cli.String("token-path", "Path to token file",
@@ -86,7 +86,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		Endpoint:      cmd.String("endpoint"),
 		DeploymentID:  cmd.String("deployment-id"),
 		EnvironmentID: cmd.String("environment-id"),
-		EncryptedBlob: cmd.String("secrets-blob"),
+		Encrypted:     cmd.String("secrets-blob"),
 		Token:         cmd.String("token"),
 		TokenPath:     cmd.String("token-path"),
 		Debug:         cmd.Bool("debug"),
@@ -123,10 +123,10 @@ func run(ctx context.Context, cfg Config) error {
 	fetchCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	var encryptedBlob []byte
-	if cfg.EncryptedBlob != "" {
+	var Encrypted []byte
+	if cfg.Encrypted != "" {
 		var decodeErr error
-		encryptedBlob, decodeErr = base64.StdEncoding.DecodeString(cfg.EncryptedBlob)
+		Encrypted, decodeErr = base64.StdEncoding.DecodeString(cfg.Encrypted)
 		if decodeErr != nil {
 			return fmt.Errorf("failed to decode secrets blob: %w", decodeErr)
 		}
@@ -135,7 +135,7 @@ func run(ctx context.Context, cfg Config) error {
 	secrets, err := p.FetchSecrets(fetchCtx, provider.FetchOptions{
 		DeploymentID:  cfg.DeploymentID,
 		EnvironmentID: cfg.EnvironmentID,
-		EncryptedBlob: encryptedBlob,
+		Encrypted:     Encrypted,
 		Token:         cfg.Token,
 		TokenPath:     cfg.TokenPath,
 	})

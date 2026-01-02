@@ -3,19 +3,19 @@ import { Button, InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import {
   type DeploymentNode,
-  type GatewayNode,
   REGION_INFO,
   type RegionNode,
-  isGatewayNode,
+  type SentinelNode,
   isOriginNode,
   isRegionNode,
+  isSentinelNode,
   isSkeletonNode,
 } from "../nodes/types";
 import { NodeDetailsPanelHeader } from "./node-details-panel/components/header";
 import { Metrics } from "./node-details-panel/components/metrics";
 import { SettingsSection } from "./node-details-panel/components/settings-row";
 import { metrics } from "./node-details-panel/constants";
-import { GatewayInstances } from "./node-details-panel/region-node/gateway-instances";
+import { SentinelInstances } from "./node-details-panel/region-node/sentinel-instances";
 
 const RegionNodeDetails = ({
   node,
@@ -51,7 +51,7 @@ const RegionNodeDetails = ({
         }}
       />
       <Metrics metrics={metrics} />
-      <GatewayInstances instances={node.children ?? []} />
+      <SentinelInstances instances={node.children ?? []} />
       <SettingsSection
         title="Scaling Configuration"
         settings={[
@@ -94,12 +94,12 @@ const RegionNodeDetails = ({
   );
 };
 
-type GatewayNodeDetailsProps = {
-  node: GatewayNode;
+type SentinelNodeDetailsProps = {
+  node: SentinelNode;
   onClose: () => void;
 };
 
-const GatewayNodeDetails = ({ node, onClose }: GatewayNodeDetailsProps) => {
+const SentinelNodeDetails = ({ node, onClose }: SentinelNodeDetailsProps) => {
   const { health } = node.metadata;
 
   return (
@@ -120,7 +120,7 @@ const GatewayNodeDetails = ({ node, onClose }: GatewayNodeDetailsProps) => {
       />
       <Metrics metrics={metrics} />
       <SettingsSection
-        title="Gateway settings"
+        title="Sentinel settings"
         settings={[
           { label: "Protocol", value: "HTTP/2" },
           { label: "Port", value: 8080 },
@@ -151,8 +151,8 @@ export function NodeDetailsPanel({ node, onClose }: Props) {
     if (isRegionNode(node)) {
       return <RegionNodeDetails node={node} onClose={onClose} />;
     }
-    if (isGatewayNode(node)) {
-      return <GatewayNodeDetails node={node} onClose={onClose} />;
+    if (isSentinelNode(node)) {
+      return <SentinelNodeDetails node={node} onClose={onClose} />;
     }
     const _exhaustive: never = node;
     return _exhaustive;

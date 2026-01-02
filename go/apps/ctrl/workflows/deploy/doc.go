@@ -2,7 +2,7 @@
 //
 // This package manages the complete deployment lifecycle including deploying new versions,
 // rolling back to previous versions, and promoting deployments. It coordinates between
-// container orchestration (Krane), database updates, domain routing, and gateway configuration
+// container orchestration (Krane), database updates, domain routing, and sentinel configuration
 // to ensure consistent deployment state.
 //
 // # Built on Restate
@@ -72,7 +72,7 @@
 // 5. Polling for readiness - Wait for all instances to be running
 // 6. VM registration - Register running instances in DB
 // 7. OpenAPI scraping - Fetch API spec from running instances (if available)
-// 8. Domain assignment - Create/update domains and gateway configs via routing service
+// 8. Domain assignment - Create/update domains and sentinel configs via routing service
 // 9. Status update to ready - Mark deployment as live
 // 10. Project update - Update live deployment pointer (if production)
 //
@@ -102,9 +102,9 @@
 // The sticky behavior ensures that branch and environment domains follow the latest
 // deployment for that branch/environment, while commit domains remain immutable.
 //
-// # Gateway Configuration
+// # Sentinel Configuration
 //
-// Gateway configs are created for all domains (except localhost and .local/.test TLDs)
+// Sentinel configs are created for all domains (except localhost and .local/.test TLDs)
 // and stored as JSON in the database. Each config includes:
 //
 // - Deployment ID and enabled status
@@ -112,7 +112,7 @@
 // - Optional auth configuration (key auth ID)
 // - Optional validation configuration (OpenAPI spec)
 //
-// Gateway configs use protojson encoding for easier debugging and direct database inspection.
+// Sentinel configs use protojson encoding for easier debugging and direct database inspection.
 //
 // # Error Handling
 //

@@ -7,9 +7,9 @@ import {
   int,
   mysqlEnum,
   mysqlTable,
-  primaryKey,
   text,
   tinyint,
+  unique,
   uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
@@ -23,7 +23,9 @@ import { workspaces } from "./workspaces";
 export const keys = mysqlTable(
   "keys",
   {
-    id: varchar("id", { length: 256 }).primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: varchar("id", { length: 256 }).notNull().unique(),
+
     keyAuthId: varchar("key_auth_id", { length: 256 }).notNull(),
     hash: varchar("hash", { length: 256 }).notNull(),
     start: varchar("start", { length: 256 }).notNull(),
@@ -136,6 +138,7 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
 export const encryptedKeys = mysqlTable(
   "encrypted_keys",
   {
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     keyId: varchar("key_id", { length: 256 }).notNull(),
     ...lifecycleDatesV2,
@@ -160,11 +163,10 @@ export const encryptedKeysRelations = relations(encryptedKeys, ({ one }) => ({
 export const keyMigrations = mysqlTable(
   "key_migrations",
   {
-    id: varchar("id", { length: 255 }),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: varchar("id", { length: 256 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     algorithm: mysqlEnum("algorithm", ["sha256", "github.com/seamapi/prefixed-api-key"]).notNull(),
   },
-  (table) => ({
-    idWorkspacePk: primaryKey({ columns: [table.id, table.workspaceId] }),
-  }),
+  (table) => [unique("unique_id_per_workspace_id").on(table.id, table.workspaceId)],
 );

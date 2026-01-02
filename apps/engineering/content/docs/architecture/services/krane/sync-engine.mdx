@@ -1,0 +1,52 @@
+---
+title: Krane Sync Engine Architecture
+description: Deep dive into Krane's event processing engine that maintains persistent connections, handles reconciliation, and ensures eventual consistency
+---
+
+import { Mermaid } from "@/app/components/mermaid";
+
+
+The Krane Sync Engine is the core component that implements the pull-based infrastructure model. It maintains a persistent connection to the control plane, processes infrastructure events, and ensures eventual consistency through periodic reconciliation.
+
+## Architecture
+
+<Mermaid
+  chart="
+graph TB
+    subgraph 'Krane Agent'
+        SE[Sync Engine]
+        DC[Deployment Controller]
+        GC[Sentinel Controller]
+        EB[Event Buffer]
+        IUB[Instance Update Buffer]
+        GUB[Sentinel Update Buffer]
+        
+        SE --> EB
+        EB --> DC
+        EB --> GC
+        DC --> IUB
+        GC --> GUB
+        IUB --> SE
+        GUB --> SE
+    end
+    
+    subgraph 'Control Plane'
+        CS[ClusterService]
+    end
+    
+    subgraph Kubernetes
+        API[K8s API Server]
+        W1[Pod Watcher]
+        W2[StatefulSet Watcher]
+    end
+    
+    SE -.->|Watch Stream| CS
+    SE -->|GetDesiredState| CS
+    SE -->|UpdateInstance| CS
+    SE -->|UpdateSentinel| CS
+    
+    DC -->|Apply/Delete| API
+    GC -->|Apply/Delete| API
+    W1 -->|Events| DC
+    W2 -->|Events| DC"
+/>

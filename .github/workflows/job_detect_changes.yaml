@@ -85,7 +85,6 @@ jobs:
               - 'internal/icons/**'
               - 'internal/id/**'
               - 'internal/keys/**'
-              - 'internal/proto/**'
               - 'internal/resend/**'
               - 'internal/schema/**'
               - 'internal/ui/**'

@@ -411,6 +411,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					})
 
 					requestedPermissions = append(requestedPermissions, db.Permission{
+						Pk:          0, // only here to make the linter happy
 						ID:          newPermID,
 						Name:        requestedSlug,
 						Slug:        requestedSlug,

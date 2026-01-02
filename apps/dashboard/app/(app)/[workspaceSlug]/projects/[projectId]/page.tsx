@@ -48,7 +48,9 @@ export default function ProjectDetails() {
               <DomainRowSkeleton />
             </>
           ) : domains?.length > 0 ? (
-            domains.map((domain) => <DomainRow key={domain.id} domain={domain.hostname} />)
+            domains.map((domain) => (
+              <DomainRow key={domain.id} domain={domain.fullyQualifiedDomainName} />
+            ))
           ) : (
             <DomainRowEmpty />
           )}
