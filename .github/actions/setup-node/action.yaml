@@ -26,10 +26,12 @@ runs:
     - name: Enable Corepack
       shell: bash
       run: corepack enable
+      working-directory: ./web
     - name: Install dependencies
       if: inputs.install == 'true'
       shell: bash
       run: pnpm install --recursive --frozen-lockfile
+      working-directory: ./web
       env:
         CI: 1
         GITHUB_TOKEN: ${{ inputs.github_token }}
