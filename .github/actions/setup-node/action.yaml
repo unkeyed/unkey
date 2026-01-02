@@ -15,6 +15,7 @@ runs:
   steps:
     - name: Setup pnpm
       run: npm install -g pnpm@10
+
     - name: Setup Node with pnpm cache
       uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
       with:
