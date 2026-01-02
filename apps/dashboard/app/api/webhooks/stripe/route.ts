@@ -5,6 +5,7 @@ import { formatPrice } from "@/lib/fmt";
 import { freeTierQuotas } from "@/lib/quotas";
 import {
   alertIsCancellingSubscription,
+  alertPaymentFailed,
   alertSubscriptionCancelled,
   alertSubscriptionCreation,
   alertSubscriptionUpdate,
@@ -28,6 +29,7 @@ interface PreviousAttributes {
   cancel_at_period_end?: boolean;
   collection_method?: string;
   latest_invoice?: string | Stripe.Invoice | null;
+  status?: Stripe.Subscription.Status;
 }
 
 function isAutomatedBillingRenewal(
@@ -203,6 +205,41 @@ export const POST = async (req: Request): Promise<Response> => {
         const product = await stripe.products.retrieve(
           typeof price.product === "string" ? price.product : price.product.id,
         );
+
+        // Handle payment failure: status changed to past_due or unpaid
+        if (
+          (sub.status === "past_due" || sub.status === "unpaid") &&
+          previousAttributes?.status !== sub.status
+        ) {
+          if (customer && !customer.deleted && customer.email) {
+            const formattedPrice = formatPrice(price.unit_amount);
+            await alertPaymentFailed(
+              product.name,
+              formattedPrice,
+              customer.email,
+              customer.name || "Unknown",
+            );
+
+            // Record payment failure audit log
+            await insertAuditLogs(db, {
+              workspaceId: ws.id,
+              actor: {
+                type: "system",
+                id: "stripe",
+              },
+              event: "workspace.update",
+              description: `Payment failed for ${product.name} subscription. Status changed to ${sub.status}. Customer: ${customer.email}, Amount: ${formattedPrice}`,
+              resources: [],
+              context: {
+                location: "",
+                userAgent: undefined,
+              },
+            });
+
+            // Return early to avoid updating workspace tier and sending subscription-update notifications
+            return new Response("Payment failure handled", { status: 200 });
+          }
+        }
 
         /**
          * In our case, when a user cancels their subscription, it's not in effect until the beginning of the next month.

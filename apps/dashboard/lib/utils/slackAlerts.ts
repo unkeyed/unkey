@@ -20,7 +20,7 @@ export async function alertSubscriptionCreation(
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `:bugeyes: New customer ${name} signed up`,
+            text: `:bugeyes: New customer ${name || "Unknown"} signed up`,
           },
         },
         {
@@ -64,7 +64,9 @@ export async function alertSubscriptionUpdate(
   // Build the subscription change message
   let subscriptionText = `Subscription ${changeType} to the ${product} tier`;
   if (previousTier && changeType !== "updated") {
-    subscriptionText = `${name}'s subscription ${changeType} from ${previousTier} to ${product} tier, they are now paying ${price}. `;
+    subscriptionText = `${
+      name || "Unknown"
+    }'s subscription ${changeType} from ${previousTier} to ${product} tier, they are now paying ${price}. `;
   }
 
   const contactInfo = `Here is their contact information: ${email}`;
@@ -80,7 +82,7 @@ export async function alertSubscriptionUpdate(
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `${emoji} ${name} ${actionText}`,
+            text: `${emoji} ${name || "Unknown"} ${actionText}`,
           },
         },
         {
@@ -126,7 +128,7 @@ export async function alertIsCancellingSubscription(
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `:warning: ${name} is cancelling their subscription.`,
+            text: `:warning: ${name || "Unknown"} is cancelling their subscription.`,
           },
         },
         {
@@ -134,6 +136,45 @@ export async function alertIsCancellingSubscription(
           text: {
             type: "mrkdwn",
             text: `Subscription cancellation requested by ${email} - for ${product} at ${price} they will be moved back to the free tier, at the end of the month. We should reach out to find out why they are cancelling.`,
+          },
+        },
+      ],
+    }),
+  }).catch((err: Error) => {
+    console.error(err);
+  });
+}
+
+export async function alertPaymentFailed(
+  product: string,
+  price: string,
+  email: string,
+  name?: string,
+): Promise<void> {
+  const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
+  if (!url) {
+    return;
+  }
+
+  await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `:warning: Payment failed for ${name || "Unknown"}`,
+          },
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `Payment for ${product} subscription at ${price} failed for ${email}. Subscription is now past due. Please reach out to customer to update payment method.`,
           },
         },
       ],
@@ -160,7 +201,7 @@ export async function alertSubscriptionCancelled(email: string, name?: string): 
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `:caleb-sad: ${name} cancelled their subscription`,
+            text: `:caleb-sad: ${name || "Unknown"} cancelled their subscription`,
           },
         },
         {
