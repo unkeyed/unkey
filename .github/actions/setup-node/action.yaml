@@ -24,7 +24,6 @@ runs:
         node-version: lts/*
         cache: "pnpm"
         cache-dependency-path: "**/pnpm-lock.yaml"
-      working-directory: ./web
     - name: Enable Corepack
       shell: bash
       run: corepack enable
