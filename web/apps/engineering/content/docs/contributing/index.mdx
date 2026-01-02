@@ -1,0 +1,127 @@
+---
+title: Contributing
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Contributions are what makes the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**. To ensure the best possible outcome for everyone, please read this guide carefully before starting work.
+
+## Before You Contribute
+
+To make contributing a great experience for everyone and avoid wasted effort, please follow these important steps:
+
+### Public Discussion Required
+
+1. **All contribution discussions MUST happen in public channels:**
+   - GitHub Issues/Discussions
+   - [Public Discord channels](https://unkey.dev/discord)
+
+2. **Do not send Direct Messages (DMs) to team members about contributions!**
+   - DMs will be redirected to public channels
+   - This ensures transparency and helps others learn from the discussion
+
+### Getting Started
+
+1. **For Existing Issues:**
+   - Look for issues labeled `good first issue` or `help wanted`
+   - Comment on the issue to express your interest
+   - Wait for a core team member to assign the issue to you
+   - Only begin work after receiving confirmation
+
+2. **For New Ideas:**
+   - **Do not start coding immediately**
+   - Discuss your idea first in our public channels:
+     - Create a GitHub issue
+     - Start a discussion in our [Discord](https://unkey.com/discord)
+   - Wait for feedback from a core team member
+   - Only proceed with development after receiving explicit approval
+
+This process helps ensure your contribution aligns with our roadmap and prevents duplicate or conflicting work.
+
+## House Rules
+
+### Issue and PR Guidelines
+- Before submitting a new issue or PR, check if it already exists in [issues](https://github.com/unkeyed/unkey/issues) or [PRs](https://github.com/unkeyed/unkey/pulls)
+- Always create an issue before starting development
+- Reference the issue in your PR using `fixes #XXX` or `refs #XXX`
+
+### Approval Process
+- All new issues get a `needs-approval` label automatically
+- **What Needs Prior Approval:**
+  - New features (large or small)
+  - Refactoring work
+  - Changes to core functionality
+  - UI/UX changes
+- **What Can Start Immediately:**
+  - Bug fixes
+  - Security improvements
+  - Documentation updates
+  - Typo corrections
+
+
+
+### Prerequisites
+
+There are no required services to run Unkey. Unkey has a built-in local auth mode with a permanently logged in user belonging to a single organization. Additional users, organizations, and multi-workspace features are not supported with local authentication.
+
+To run in local auth mode, ensure you have the following environment variable set in your `.env` file:
+
+`AUTH_PROVIDER="local"`
+
+You also need the following tools installed.
+
+- [Go](https://go.dev/doc/install)
+- [Node](https://nodejs.org)
+- [pnpm](https://pnpm.io/installation)
+- [Docker](https://www.docker.com/products/docker-desktop)
+
+#### Optional Services
+
+- [WorkOS](https://workos.com/) - Authentication: If you need to work with multi-workspace scenarios, you must have WorkOS credentials within your environment file.
+  - `AUTH_PROVIDER="workos"`
+  - `WORKOS_CLIENT_ID=<your client ID>` 
+  - `WORKOS_API_KEY=<your API key>`
+  - `WORKOS_COOKIE_PASSWORD=<your base64 generated password>`
+- [Stripe](https://stripe.com/) - Billing: In order to work with multi-user workspaces, you need to have your Stripe credentials configured within your environment file to simulate a Pro plan to support features like inviting team members to your workspace.
+  - `STRIPE_SECRET_KEY=<your Stripe secret key>`
+
+
+### Developing Unkey
+<Steps>
+  <Step>
+    #### Repository
+    Clone the [repo](https://github.com/unkeyed/unkey)
+
+    ```bash
+    git clone https://github.com/unkeyed/unkey
+    ```
+
+
+  </Step>
+
+  <Step>
+   #### Install
+    ```bash
+    cd unkey
+    corepack enable
+    make install
+    ```
+
+  </Step>
+
+  <Step>
+  #### Setup local development for dashboard
+  
+To get started developing the dashboard application, run the following command in your terminal:
+
+  ```bash
+  cd web/apps/dashboard
+  pnpm local
+  ```
+  <Callout type="warn">
+    Docker must be running for us to spin up the databases and supporting services.
+  </Callout>
+
+  We will create the required `.env` files if necessary.
+
+  </Step>
+</Steps>

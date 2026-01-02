@@ -1,0 +1,49 @@
+{
+  "name": "unkey",
+  "workspaces": ["apps/*", "packages/*"],
+  "private": true,
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "pnpm turbo run build",
+    "fmt": "pnpm biome format . --write && pnpm biome check . --write",
+    "test": "turbo run test --concurrency=1",
+    "bootstrap": "turbo run bootstrap",
+    "commit": "cz",
+    "bump-versions": "pnpm changeset version && pnpm install",
+    "knip": "knip --include files,dependencies",
+    "up": "docker compose -f ./deployment/docker-compose.yaml up",
+    "migrate": "pnpm turbo run migrate"
+  },
+  "author": "Andreas Thomas",
+  "license": "AGPL-3.0",
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@changesets/cli": "2.28.1",
+    "@types/node": "22.14.0",
+    "@vitest/ui": "3.2.4",
+    "cz-conventional-changelog": "3.3.0",
+    "knip": "5.45.0",
+    "turbo": "2.4.3",
+    "typescript": "5.7.3",
+    "vitest": "3.2.4"
+  },
+  "pnpm": {
+    "overrides": {
+      "@radix-ui/react-dialog": "1.1.15",
+      "@radix-ui/react-popover": "1.1.15",
+      "zod": "3.23.8"
+    }
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  },
+  "packageManager": "pnpm@8.6.9+sha256.c94450b6623ecedb5e8c7045c7e67cb240bbe88e17660b3d8c57207dfd1eff90",
+  "engines": {
+    "node": ">=22"
+  }
+}

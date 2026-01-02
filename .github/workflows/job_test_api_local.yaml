@@ -17,8 +17,8 @@ jobs:
           install: true
       - name: Create dashboard env file for Docker Compose
         run: |
-          mkdir -p ./apps/dashboard
-          touch ./apps/dashboard/.env
+          mkdir -p ./web/apps/dashboard
+          touch ./web/apps/dashboard/.env
       - name: Run containers
         run: docker compose -f ./deployment/docker-compose.yaml up mysql redis clickhouse planetscale agent s3 apiv2 api -d --wait
         env:
@@ -37,6 +37,7 @@ jobs:
         run: pnpm turbo run build --filter=./apps/api...
         env:
           CI: 1
+        working-directory: web
       - name: Load Schema into MySQL
         run: pnpm drizzle-kit push
         working-directory: internal/db
@@ -45,7 +46,7 @@ jobs:
           CI: 1
       - name: Test
         run: pnpm vitest run -c vitest.integration.ts --bail=1
-        working-directory: apps/api
+        working-directory: web/apps/api
         env:
           UNKEY_BASE_URL: http://localhost:8787
           DATABASE_HOST: localhost:3900

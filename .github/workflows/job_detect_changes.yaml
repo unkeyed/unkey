@@ -8,12 +8,6 @@ on:
       dashboard:
         description: "Whether Dashboard has changed"
         value: ${{ jobs.build.outputs.dashboard }}
-      agent:
-        description: "Whether Agent has changed"
-        value: ${{ jobs.build.outputs.agent }}
-      logdrain:
-        description: "Whether Logdrain has changed"
-        value: ${{ jobs.build.outputs.logdrain }}
       go:
         description: "Whether Go services have changed"
         value: ${{ jobs.build.outputs.go }}
@@ -44,8 +38,6 @@ jobs:
     outputs:
       api: ${{ steps.changes.outputs.api }}
       dashboard: ${{ steps.changes.outputs.dashboard }}
-      agent: ${{ steps.changes.outputs.agent }}
-      logdrain: ${{ steps.changes.outputs.logdrain }}
       go: ${{ steps.changes.outputs.go }}
       clickhouse: ${{ steps.changes.outputs.clickhouse }}
       docs: ${{ steps.changes.outputs.docs }}
@@ -61,60 +53,49 @@ jobs:
           filters: |
             # API application and its direct dependencies
             api:
-              - 'apps/api/**'
-              - 'go/**'
-              - 'internal/db/**'
-              - 'internal/encoding/**'
-              - 'internal/encryption/**'
-              - 'internal/hash/**'
-              - 'internal/id/**'
-              - 'internal/keys/**'
-              - 'internal/validation/**'
-              - 'internal/vault/**'
+              - 'web/apps/api/**'
+              - 'web/internal/db/**'
+              - 'web/internal/encoding/**'
+              - 'web/internal/encryption/**'
+              - 'web/internal/hash/**'
+              - 'web/internal/id/**'
+              - 'web/internal/keys/**'
+              - 'web/internal/validation/**'
+              - 'web/internal/vault/**'
 
             # Dashboard application and its dependencies
             dashboard:
-              - 'apps/dashboard/**/!(*.md|*.txt)'
-              - 'apps/dashboard/!(*.md|*.txt)'
-              - 'internal/billing/**'
-              - 'internal/clickhouse/**'
-              - 'internal/db/**'
-              - 'internal/encryption/**'
-              - 'internal/events/**'
-              - 'internal/hash/**'
-              - 'internal/icons/**'
-              - 'internal/id/**'
-              - 'internal/keys/**'
-              - 'internal/resend/**'
-              - 'internal/schema/**'
-              - 'internal/ui/**'
-              - 'internal/validation/**'
-              - 'internal/vercel/**'
-              - 'packages/error/**'
-              - 'packages/rbac/**'
+              - 'web/apps/dashboard/**/!(*.md|*.txt)'
+              - 'web/apps/dashboard/!(*.md|*.txt)'
+              - 'web/internal/billing/**'
+              - 'web/internal/clickhouse/**'
+              - 'web/internal/db/**'
+              - 'web/internal/encryption/**'
+              - 'web/internal/events/**'
+              - 'web/internal/hash/**'
+              - 'web/internal/icons/**'
+              - 'web/internal/id/**'
+              - 'web/internal/keys/**'
+              - 'web/internal/resend/**'
+              - 'web/internal/schema/**'
+              - 'web/internal/ui/**'
+              - 'web/internal/validation/**'
+              - 'web/internal/vercel/**'
+              - 'web/packages/error/**'
+              - 'web/packages/rbac/**'
 
-            # Agent application (Go-based)
-            agent:
-              - 'apps/agent/**'
-
-            # Logdrain application
-            logdrain:
-              - 'apps/logdrain/**/!(*.md|*.txt)'
-              - 'apps/logdrain/!(*.md|*.txt)'
 
             # Go services (API v2, Ctrl, Deploy services)
             go:
-              - 'go/!(benchmarks|demo_api)/**'
-              - 'go/!(benchmarks|demo_api)'
+              - './**' # not really sure what to do here
 
             # ClickHouse schema and related
             clickhouse:
               - 'internal/clickhouse/**'
-              - 'go/internal/clickhouse/**'
 
             # Documentation (apps/docs only - .md files ARE content)
             docs:
-              - 'apps/docs/**'
+              - 'web/apps/docs/**'
 
             # GitHub workflows and CI/CD
             workflows:
@@ -122,7 +103,7 @@ jobs:
 
             # Dependency changes
             dependencies:
-              - 'pnpm-lock.yaml'
+              - 'web/pnpm-lock.yaml'
               - 'go.sum'
               - 'go.mod'
               - '**/package.json'
@@ -131,8 +112,8 @@ jobs:
 
             # Internal packages (affect multiple apps)
             packages:
-              - 'internal/**'
-              - 'packages/**'
+              - 'web/internal/**'
+              - 'web/packages/**'
 
             # Configuration files
             configs:

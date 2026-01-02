@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package ctrl.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
+
+message GetOpenApiDiffRequest {
+  string old_deployment_id = 1;
+  string new_deployment_id = 2;
+}
+
+message ChangelogEntry {
+  string id = 1;
+  string text = 2;
+  int32 level = 3;
+  string operation = 4;
+  optional string operation_id = 5;
+  string path = 6;
+}
+
+message DiffSummary {
+  bool diff = 1;
+  DiffDetails details = 2;
+}
+
+message DiffDetails {
+  DiffCounts endpoints = 1;
+  DiffCounts paths = 2;
+  DiffCounts schemas = 3;
+}
+
+message DiffCounts {
+  int32 added = 1;
+  int32 deleted = 2;
+  int32 modified = 3;
+}
+
+message GetOpenApiDiffResponse {
+  DiffSummary summary = 1;
+  bool has_breaking_changes = 2;
+  repeated ChangelogEntry changes = 3;
+}
+
+service OpenApiService {
+  rpc GetOpenApiDiff(GetOpenApiDiffRequest) returns (GetOpenApiDiffResponse) {}
+}

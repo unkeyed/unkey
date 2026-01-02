@@ -1,0 +1,174 @@
+syntax = "proto3";
+
+package krane.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/krane/v1;kranev1";
+
+service SchedulerService {
+  rpc ApplyDeployment(ApplyDeploymentRequest) returns (ApplyDeploymentResponse);
+  rpc DeleteDeployment(DeleteDeploymentRequest) returns (DeleteDeploymentResponse);
+
+  rpc ApplySentinel(ApplySentinelRequest) returns (ApplySentinelResponse);
+  rpc DeleteSentinel(DeleteSentinelRequest) returns (DeleteSentinelResponse);
+
+  rpc Watch(WatchRequest) returns (stream State);
+
+  rpc ScrapeOpenApiSchema(ScrapeOpenApiSchemaRequest) returns (ScrapeOpenApiSchemaResponse);
+}
+
+message ScrapeOpenApiSchemaRequest {
+  string namespace = 1;
+  string name = 2;
+  string path = 3;
+}
+
+message ScrapeOpenApiSchemaResponse {
+  string spec = 1;
+}
+
+message WatchRequest {}
+
+message State {
+  message Deployment {
+    message Instance {
+      enum Status {
+        STATUS_UNSPECIFIED = 0;
+        STATUS_PENDING = 1; // Deployment request accepted, container/pod creation in progress
+        STATUS_RUNNING = 2; // Container/pod is running and healthy
+        STATUS_FAILED = 3; // Container/pod failed to start
+      }
+      string instance_k8s_name = 1;
+      string address = 2;
+      int64 cpu_millicores = 3;
+      int64 memory_mib = 4;
+      Status status = 5;
+    }
+
+    string deployment_k8s_name = 2;
+    repeated Instance instances = 3;
+    optional string readiness_id = 11;
+  }
+  message Sentinel {
+    string k8s_name = 1;
+    int32 available_replicas = 2;
+  }
+
+  oneof state {
+    Deployment deployment = 1;
+    Sentinel sentinel = 2;
+  }
+}
+
+// ApplySentinel contains the desired configuration for a sentinel.
+//
+// The cluster agent will ensure a sentinel exists with this exact configuration, creating it if
+// it doesn't exist or updating it if it does. All fields except namespace are required.
+// The control plane ensures that sentinel_id is unique within the namespace.
+message ApplySentinelRequest {
+  // namespace is the Kubernetes namespace in which the sentinel should exist.
+  string k8s_namespace = 1;
+
+  string k8s_name = 2;
+  // workspace_id identifies the workspace that owns this sentinel.
+  string workspace_id = 3;
+
+  // project_id identifies the project within the workspace.
+  string project_id = 4;
+
+  // environment_id in which the sentinel should exist.
+  string environment_id = 5;
+
+  // sentinel_id is the unique identifier for this sentinel globally
+  string sentinel_id = 6;
+
+  string image = 7;
+  int32 replicas = 8;
+  int64 cpu_millicores = 9;
+  int64 memory_mib = 10;
+}
+
+// ApplySentinelResponse is the response to ApplySentinelRequest.
+message ApplySentinelResponse {}
+
+// DeleteSentinel identifies a sentinel to remove from the cluster.
+//
+// The sentinel and all its resources (pods, services, frontline) will be deleted.
+// In-flight requests may be disrupted unless proper connection draining is configured.
+message DeleteSentinelRequest {
+  string k8s_namespace = 1;
+  string k8s_name = 2;
+}
+message DeleteSentinelResponse {}
+
+// ApplyDeployment contains the desired configuration for a deployment.
+//
+// The cluster agent will ensure a deployment exists with this exact configuration, creating it if
+// it doesn't exist or updating it if it does. All fields except namespace are required.
+// The control plane ensures that deployment_id is unique within the namespace.
+message ApplyDeploymentRequest {
+  // namespace is the Kubernetes namespace in which the deployment should exist.
+  string k8s_namespace = 1;
+
+  string k8s_name = 2;
+  // workspace_id identifies the workspace that owns this deployment.
+  // Used for multi-tenancy and access control.
+  string workspace_id = 3;
+
+  // project_id identifies the project within the workspace.
+  // Deployments are scoped to projects for organizational purposes.
+  string project_id = 4;
+
+  // environment_id specifies the environment .
+  // Used for environment-specific configuration and isolation.
+  string environment_id = 5;
+
+  // deployment_id is the unique identifier for this deployment within the namespace.
+  string deployment_id = 6;
+
+  // image is the container image to deploy.
+  // Must be a valid container registry URL accessible by the cluster.
+  // Example: "gcr.io/myproject/app:v2.1.0"
+  string image = 7;
+
+  // replicas is the desired number of pod instances.
+  // Must be at least 1. Set higher for increased availability and load distribution.
+  int32 replicas = 8;
+
+  // cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
+  // This ensures each pod has sufficient CPU resources.
+  // Example: 250 = 0.25 CPU cores
+  int64 cpu_millicores = 9;
+
+  // memory_mib is the memory request/limit in mebibytes.
+  // This ensures each pod has sufficient memory.
+  // Example: 256 = 256 MiB
+  int64 memory_mib = 10;
+
+  // build_id is the unique identifier for this build from depot
+  // if we did not build this image via depot, no buildID exists and we
+  // assume kubernetes will pull from a public registry
+  optional string build_id = 11;
+
+  // Encrypted secrets blob to be decrypted at runtime by unkey-env.
+  // This is set as UNKEY_ENCRYPTED_ENV env var in the container.
+  // unkey-env calls krane's DecryptSecretsBlob RPC to decrypt.
+  bytes encrypted_environment_variables = 12;
+
+  // An opaque identifier used in a restate awakable.
+  // If set, the cluster must add this as annotation and report back during Watch checks
+  optional string readiness_id = 13;
+}
+
+message ApplyDeploymentResponse {}
+
+// DeleteDeployment identifies a deployment to remove from the cluster.
+//
+// The deployment and all its pods will be terminated gracefully according to
+// the configured termination grace period. All associated resources (services,
+// configmaps specific to this deployment) will also be cleaned up.
+message DeleteDeploymentRequest {
+  string k8s_namespace = 1;
+  string k8s_name = 2;
+}
+
+message DeleteDeploymentResponse {}

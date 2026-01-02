@@ -45,11 +45,6 @@ jobs:
     if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && needs.detect_changes.outputs.dashboard == 'true'
     needs: [detect_changes]
     uses: ./.github/workflows/job_test_dashboard.yaml
-  test_logdrain:
-    name: Test Logdrain
-    if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && needs.detect_changes.outputs.logdrain == 'true'
-    needs: [detect_changes]
-    uses: ./.github/workflows/job_test_logdrain.yaml
   validate_workflows:
     name: Validate Workflows
     if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && needs.detect_changes.outputs.workflows == 'true'

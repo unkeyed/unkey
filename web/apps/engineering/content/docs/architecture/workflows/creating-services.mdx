@@ -1,0 +1,202 @@
+---
+title: Creating Workflow Services
+description: Guide to adding new Restate workflow services
+---
+
+# Creating Workflow Services
+
+## When to Use Workflows
+
+Use Restate workflows for operations that:
+
+- ✅ Are long-running (seconds to hours)
+- ✅ Need guaranteed completion despite failures
+- ✅ Involve multiple external systems
+- ✅ Must not run concurrently (use Virtual Objects)
+
+Don't use workflows for:
+
+- ❌ Simple CRUD operations
+- ❌ Synchronous API calls
+- ❌ Operations that complete in milliseconds
+
+## Steps
+
+### 1. Define the Proto
+
+Create `go/proto/hydra/v1/yourservice.proto`:
+
+```protobuf
+syntax = "proto3";
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+service YourService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+  rpc YourOperation(YourRequest) returns (YourResponse) {}
+}
+
+message YourRequest {
+  string key_field = 1;  // Used as Virtual Object key
+}
+
+message YourResponse {}
+```
+
+**Key decisions:**
+
+- Service type: `VIRTUAL_OBJECT` for serialization, `SERVICE` otherwise
+- Key field: The field used for Virtual Object key (e.g., `user_id`, `project_id`)
+
+### 2. Generate Code
+
+```bash
+cd go
+make generate
+```
+
+### 3. Implement the Service
+
+Create `go/apps/ctrl/workflows/yourservice/`:
+
+**service.go:**
+
+```go
+package yourservice
+
+import (
+    hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+    "github.com/unkeyed/unkey/pkg/db"
+    "github.com/unkeyed/unkey/pkg/otel/logging"
+)
+
+type Service struct {
+    hydrav1.UnimplementedYourServiceServer
+    db     db.Database
+    logger logging.Logger
+}
+
+func New(cfg Config) *Service {
+    return &Service{db: cfg.DB, logger: cfg.Logger}
+}
+```
+
+**your_operation_handler.go:**
+
+```go
+func (s *Service) YourOperation(
+    ctx restate.ObjectContext,
+    req *hydrav1.YourRequest,
+) (*hydrav1.YourResponse, error) {
+    // Step 1: Durable step example
+    data, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.YourData, error) {
+        return db.Query.FindYourData(stepCtx, s.db.RO(), req.KeyField)
+    }, restate.WithName("fetch data"))
+    if err != nil {
+        return nil, err
+    }
+
+    // Step 2: Another durable step
+    _, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
+        // Your logic here
+        return restate.Void{}, nil
+    }, restate.WithName("process data"))
+
+    return &hydrav1.YourResponse{}, nil
+}
+```
+
+### 4. Register the Service
+
+Update `go/apps/ctrl/run.go`:
+
+```go
+import (
+    "github.com/unkeyed/unkey/apps/ctrl/workflows/yourservice"
+)
+
+func Run(ctx context.Context, cfg Config) error {
+    // ... existing setup ...
+
+    restateSrv.Bind(hydrav1.NewYourServiceServer(yourservice.New(yourservice.Config{
+        DB:     database,
+        Logger: logger,
+    })))
+}
+```
+
+### 5. Call the Service
+
+The Restate SDK now generates typed frontline clients from proto definitions. Use these for type-safe, clean service calls.
+
+**Setup - Create a helper method in your service:**
+
+```go
+// In your service struct (e.g., apps/ctrl/services/deployment/service.go)
+type Service struct {
+    restate *restatefrontline.Client
+    // ... other fields
+}
+
+// Helper method to get typed client
+func (s *Service) yourServiceClient(key string) hydrav1.YourServiceFrontlineClient {
+    return hydrav1.NewYourServiceFrontlineClient(s.restate, key)
+}
+```
+
+**Blocking call (Request):**
+
+```go
+response, err := s.yourServiceClient(keyValue).
+    YourOperation().
+    Request(ctx, &hydrav1.YourRequest{
+        KeyField: keyValue,
+    })
+if err != nil {
+    return nil, fmt.Errorf("operation failed: %w", err)
+}
+```
+
+**Fire-and-forget (Send):**
+
+```go
+invocation, err := s.yourServiceClient(keyValue).
+    YourOperation().
+    Send(ctx, &hydrav1.YourRequest{
+        KeyField: keyValue,
+    })
+if err != nil {
+    return fmt.Errorf("failed to start: %w", err)
+}
+// Use invocation.Id for tracking
+```
+
+**Benefits:**
+
+- Type-safe: Compile-time checking of requests/responses
+- Discoverable: IDE autocomplete for all operations
+- Cleaner: No manual service name strings or type parameters
+- Maintainable: Refactors automatically when proto changes
+
+## Best Practices
+
+1. **Small Steps**: Break operations into focused, single-purpose durable steps
+2. **Named Steps**: Always use `restate.WithName("step name")` for observability
+3. **Terminal Errors**: Use `restate.TerminalError(err, statusCode)` for validation failures
+4. **Virtual Object Keys**: Choose keys that represent the resource being protected
+
+## Examples
+
+See existing implementations:
+
+- **DeploymentService**: `go/apps/ctrl/workflows/deploy/`
+- **RoutingService**: `go/apps/ctrl/workflows/routing/`
+- **CertificateService**: `go/apps/ctrl/workflows/certificate/`
+
+## References
+
+- [Restate Go SDK Docs](https://docs.restate.dev/develop/go/)
+- [Restate Overview](./index)

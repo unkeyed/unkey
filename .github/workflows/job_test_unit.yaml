@@ -23,6 +23,7 @@ jobs:
         run: pnpm turbo run build --filter='./internal/*'
         env:
           CI: 1
+        working-directory: web
       - name: Test
         run: pnpm turbo run test --filter '!api'
         env:
@@ -30,3 +31,4 @@ jobs:
           TESTCONTAINERS_RYUK_DISABLED: true
           DOCKER_HOST: unix:///var/run/docker.sock
           TESTCONTAINERS_HOST_OVERRIDE: localhost
+        working-directory: web
