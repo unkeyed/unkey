@@ -35,6 +35,7 @@
     "@unkey/keys": "workspace:^",
     "@unkey/logs": "workspace:^",
     "@unkey/metrics": "workspace:^",
+    "@unkey/ratelimit": "2.1.3",
     "@unkey/rbac": "workspace:^",
     "@unkey/schema": "workspace:^",
     "@unkey/validation": "workspace:^",
