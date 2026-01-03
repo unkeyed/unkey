@@ -1,0 +1,239 @@
+syntax = "proto3";
+
+// Package ctrl.v1 provides the Cluster service for multi-cluster deployment orchestration.
+//
+// The Cluster service enables a central control plane to coordinate deployments and sentinels
+// across multiple Kubernetes clusters. Each cluster runs an agent (such as krane) that establishes
+// a long-lived watch connection to receive deployment and sentinel configuration events.
+//
+// This design follows the Kubernetes watch pattern where agents (like kubelet) maintain
+// a streaming connection to receive incremental updates, enabling real-time deployment
+// orchestration across distributed clusters.
+package ctrl.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
+
+// ClusterService coordinates deployment and sentinel configurations across multiple clusters.
+//
+// Agents in each cluster establish a watch stream to receive configuration events
+// from the control plane. The service streams deployment and sentinel lifecycle events
+// (apply, delete) to the appropriate clusters based on their cluster_id and region.
+//
+// The watch connection is designed to be long-lived with automatic reconnection on failure.
+// When an agent reconnects, it should initiate reconciliation to ensure consistency.
+service ClusterService {
+  rpc Watch(WatchRequest) returns (stream State);
+  rpc GetDesiredSentinelState(GetDesiredSentinelStateRequest) returns (SentinelState);
+  rpc UpdateSentinelState(UpdateSentinelStateRequest) returns (UpdateSentinelStateResponse);
+
+  rpc GetDesiredDeploymentState(GetDesiredDeploymentStateRequest) returns (DeploymentState);
+  rpc UpdateDeploymentState(UpdateDeploymentStateRequest) returns (UpdateDeploymentStateResponse);
+}
+
+message GetDesiredSentinelStateRequest {
+  string sentinel_id = 1;
+}
+
+message GetDesiredDeploymentStateRequest {
+  string deployment_id = 1;
+}
+
+message UpdateDeploymentStateRequest {
+  message Update {
+    message Instance {
+      enum Status {
+        STATUS_UNSPECIFIED = 0;
+        STATUS_PENDING = 1; // Deployment request accepted, container/pod creation in progress
+        STATUS_RUNNING = 2; // Container/pod is running and healthy
+        STATUS_FAILED = 3; // Container/pod failed to start
+      }
+      string k8s_name = 1;
+      string address = 2;
+      int64 cpu_millicores = 3;
+      int64 memory_mib = 4;
+      Status status = 5;
+    }
+
+    string k8s_name = 1;
+    repeated Instance instances = 2;
+  }
+  message Delete {
+    string k8s_name = 1;
+  }
+
+  oneof change {
+    Update update = 1;
+    Delete delete = 2;
+  }
+}
+
+message UpdateDeploymentStateResponse {}
+
+message UpdateInstanceStateResponse {}
+
+message UpdateSentinelStateRequest {
+  string k8s_name = 1;
+  int32 available_replicas = 2;
+}
+
+message UpdateSentinelStateResponse {}
+
+// WatchRequest identifies the cluster requesting a watch stream.
+message WatchRequest {
+  // cluster_id uniquely identifies the client requesting the watch stream.
+  string cluster_id = 1;
+
+  string region = 2;
+
+  // live indicates whether the client wants live updates of changes
+  // if true, the stream never ends
+  bool live = 3;
+
+  // synthetic indicates whether the client wants synthetic events
+  // if true, the server generates synthetic events to replay the full current desired state.
+  bool synthetic = 4;
+}
+
+message State {
+  oneof kind {
+    DeploymentState deployment = 1;
+    SentinelState sentinel = 2;
+  }
+  optional string acknowledge_id = 3;
+}
+
+// SentinelState represents a lifecycle event for an API sentinel configuration.
+//
+// Sentinels are frontline points for services, typically handling routing, load balancing,
+// and API management. The event follows a declarative model where the cluster agent ensures
+// the cluster state matches the desired configuration.
+message SentinelState {
+  // state contains the specific sentinel operation to perform.
+  // Only one state type is set per message, determining the action the agent should take.
+  oneof state {
+    // apply indicates the sentinel should exist with this configuration.
+    // The agent will create the sentinel if it doesn't exist or update it if it does.
+    // This follows the same semantics as "kubectl apply" - declare desired state
+    // and let the agent determine the appropriate action.
+    ApplySentinel apply = 1;
+
+    // delete indicates the sentinel should be removed from the cluster.
+    DeleteSentinel delete = 2;
+  }
+}
+
+// DeploymentState represents a lifecycle event for an application deployment.
+//
+// Deployments are the primary workload type, representing stateless applications
+// that can be scaled horizontally. The event follows a declarative model where
+// the cluster agent ensures the cluster state matches the desired configuration.
+message DeploymentState {
+  // state contains the specific deployment operation to perform.
+  // Only one state type is set per message, determining the action the agent should take.
+  oneof state {
+    // apply indicates the deployment should exist with this configuration.
+    // The agent will create the deployment if it doesn't exist or update it if it does.
+    // This follows the same semantics as "kubectl apply" - declare desired state
+    // and let the agent determine the appropriate action.
+    ApplyDeployment apply = 1;
+
+    // delete indicates the deployment should be removed from the cluster.
+    DeleteDeployment delete = 2;
+  }
+}
+
+// ApplySentinel contains the desired configuration for a sentinel.
+//
+// The cluster agent will ensure a sentinel exists with this exact configuration, creating it if
+// it doesn't exist or updating it if it does. All fields except namespace are required.
+// The control plane ensures that sentinel_id is unique within the namespace.
+message ApplySentinel {
+  // namespace is the Kubernetes namespace in which the sentinel should exist.
+  string k8s_namespace = 1;
+
+  string k8s_name = 2;
+  // workspace_id identifies the workspace that owns this sentinel.
+  string workspace_id = 3;
+
+  // project_id identifies the project within the workspace.
+  string project_id = 4;
+
+  // environment_id in which the sentinel should exist.
+  string environment_id = 5;
+
+  // sentinel_id is the unique identifier for this sentinel globally
+  string sentinel_id = 6;
+
+  string image = 7;
+  int32 replicas = 8;
+  int64 cpu_millicores = 9;
+  int64 memory_mib = 10;
+}
+
+// DeleteSentinel identifies a sentinel to remove from the cluster.
+//
+// The sentinel and all its resources (pods, services, frontline) will be deleted.
+// In-flight requests may be disrupted unless proper connection draining is configured.
+message DeleteSentinel {
+  string k8s_namespace = 1;
+  string k8s_name = 2;
+}
+
+// ApplyDeployment contains the desired configuration for a deployment.
+//
+// The cluster agent will ensure a deployment exists with this exact configuration, creating it if
+// it doesn't exist or updating it if it does. All fields except namespace are required.
+// The control plane ensures that deployment_id is unique within the namespace.
+message ApplyDeployment {
+  // namespace is the Kubernetes namespace in which the deployment should exist.
+  string k8s_namespace = 1;
+
+  string k8s_name = 2;
+  // workspace_id identifies the workspace that owns this deployment.
+  // Used for multi-tenancy and access control.
+  string workspace_id = 3;
+
+  // project_id identifies the project within the workspace.
+  // Deployments are scoped to projects for organizational purposes.
+  string project_id = 4;
+
+  // environment_id specifies the environment .
+  // Used for environment-specific configuration and isolation.
+  string environment_id = 5;
+
+  // deployment_id is the unique identifier for this deployment within the namespace.
+  string deployment_id = 6;
+
+  // image is the container image to deploy.
+  // Must be a valid container registry URL accessible by the cluster.
+  // Example: "gcr.io/myproject/app:v2.1.0"
+  string image = 7;
+
+  // replicas is the desired number of pod instances.
+  // Must be at least 1. Set higher for increased availability and load distribution.
+  int32 replicas = 8;
+
+  // cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
+  // This ensures each pod has sufficient CPU resources.
+  // Example: 250 = 0.25 CPU cores
+  int64 cpu_millicores = 9;
+
+  // memory_mib is the memory request/limit in mebibytes.
+  // This ensures each pod has sufficient memory.
+  // Example: 256 = 256 MiB
+  int64 memory_mib = 10;
+
+  optional string build_id = 11;
+  bytes encrypted_environment_variables = 12;
+  optional string readiness_id = 13;
+}
+
+// DeleteDeployment identifies a deployment to remove from the cluster.
+//
+// The deployment and all its pods will be terminated gracefully according to
+// the configured termination grace period. All associated resources (services,
+// configmaps specific to this deployment) will also be cleaned up.
+message DeleteDeployment {
+  string k8s_namespace = 1;
+  string k8s_name = 2;
+}

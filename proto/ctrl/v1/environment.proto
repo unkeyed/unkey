@@ -1,0 +1,26 @@
+syntax = "proto3";
+package ctrl.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
+
+service EnvironmentService {
+  rpc CreateEnvironment(CreateEnvironmentRequest) returns (CreateEnvironmentResponse) {}
+}
+
+enum EnvironmentType {
+  ENVIRONMENT_TYPE_UNSPECIFIED = 0;
+  ENVIRONMENT_TYPE_DEVELOPMENT = 1;
+  ENVIRONMENT_TYPE_PREVIEW = 2;
+  ENVIRONMENT_TYPE_PRODUCTION = 3;
+}
+
+message CreateEnvironmentRequest {
+  string project_id = 1;
+  string slug = 2;
+  string description = 3;
+  EnvironmentType type = 4;
+}
+
+message CreateEnvironmentResponse {
+  string id = 1;
+}

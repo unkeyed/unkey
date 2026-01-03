@@ -17,6 +17,7 @@ jobs:
         run: pnpm turbo run test --filter=@unkey/dashboard
         env:
           CI: 1
+        working-directory: web
       - name: Build
         run: pnpm turbo run build --filter=@unkey/dashboard
         env:
@@ -35,3 +36,4 @@ jobs:
           WORKOS_API_KEY: "sk_test_"
           WORKOS_COOKIE_PASSWORD: "IAMACOOKIEPASSWORD"
           NEXT_PUBLIC_WORKOS_REDIRECT_URI: "http://localhost:3000/auth/sso-callback"
+        working-directory: web

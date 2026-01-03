@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// CertificateService manages ACME certificate challenges and issuance
+service CertificateService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // ProcessChallenge handles the complete ACME certificate challenge flow
+  // Key: domain name (ensures only one challenge per domain at a time)
+  rpc ProcessChallenge(ProcessChallengeRequest) returns (ProcessChallengeResponse) {}
+
+  // RenewExpiringCertificates checks for certificates expiring soon and renews them.
+  // This should be called periodically (e.g., daily via cron).
+  // Key: "global" (single instance ensures no duplicate renewal runs)
+  rpc RenewExpiringCertificates(RenewExpiringCertificatesRequest) returns (RenewExpiringCertificatesResponse) {}
+}
+
+message ProcessChallengeRequest {
+  string workspace_id = 1;
+  string domain = 2;
+}
+
+message ProcessChallengeResponse {
+  string certificate_id = 1;
+  string status = 2; // "success", "failed", "pending"
+}
+
+message RenewExpiringCertificatesRequest {
+  // Number of days before expiry to start renewal (default: 30)
+  int32 days_before_expiry = 1;
+}
+
+message RenewExpiringCertificatesResponse {
+  int32 certificates_checked = 1;
+  int32 renewals_triggered = 2;
+  repeated string failed_domains = 3;
+}

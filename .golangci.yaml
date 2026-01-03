@@ -1,0 +1,200 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - bodyclose
+    - canonicalheader
+    - copyloopvar
+    - errcheck
+    - errname
+    - exhaustive
+    - exhaustruct
+    - gochecksumtype
+    - goconst
+    - godox
+    - gosec
+    - govet
+    - ineffassign
+    - loggercheck
+    - musttag
+    - nestif
+    - predeclared
+    - promlinter
+    - protogetter
+    - reassign
+    - rowserrcheck
+    - sloglint
+    - spancheck
+    - sqlclosecheck
+    - staticcheck
+    - tparallel
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - wastedassign
+  settings:
+    gosec:
+      excludes:
+        - G115 # Potential integer overflow when converting between integer types
+        - G404
+    nestif:
+      min-complexity: 15
+    cyclop:
+      max-complexity: 30
+      package-average: 10
+    errcheck:
+      check-type-assertions: true
+    exhaustive:
+      check:
+        - switch
+        - map
+    exhaustruct:
+      exclude:
+        - ^net/http.Client$
+        - ^net/http.Cookie$
+        - ^net/http.Request$
+        - ^net/http.Response$
+        - ^net/http.Server$
+        - ^net/http.Transport$
+        - ^net/url.URL$
+        - ^os/exec.Cmd$
+        - ^reflect.StructField$
+        - ^github.com/prometheus/client_golang/.+Opts$
+        - ^github.com/testcontainers/testcontainers-go.+Request$
+        - ^github.com/testcontainers/testcontainers-go.FromDockerfile$
+        - ^github.com/ory/dockertest/v3.*$
+        - ^golang.org/x/tools/go/analysis.Analyzer$
+        - ^google.golang.org/protobuf/.+Options$
+        - ^gopkg.in/yaml.v3.Node$
+        - ^github.com/urfave/cli/v3.*$
+        - ^github.com/ClickHouse/clickhouse-go/v2.*$
+        - ^github.com/aws/aws-sdk-go-v2/.*$
+        - ^github.com/unkeyed/unkey/apps/api/openapi.Meta$
+        - ^gorm.io/gorm.Config$
+        - ^gorm.io/gorm.*$
+        - ^github.com/redis/go-redis/v9.Options$
+        - ^github.com/go-redis/redis/v8.Options$
+        - ^github.com/unkeyed/unkey/pkg/cli.Command$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*BinaryOperation$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*NestedIdentifier$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*Ident$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*StringLiteral$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*WhereClause$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*NumberLiteral$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*LimitClause$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*ParamExprList$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*ColumnExprList$
+        - ^github.com/AfterShip/clickhouse-sql-parser/parser.*ColumnExpr$
+        - ^database/sql\.Null.*$
+        - ^k8s.io/api/core/v1.*$
+        - ^k8s.io/api/apps/v1.*$
+        - ^k8s.io/apimachinery/pkg/apis/meta/v1.*$
+        - ^sigs.k8s.io/controller-runtime/pkg/client.*$
+        - ^github.com/moby/buildkit/client.*$
+
+    funlen:
+      lines: 100
+      statements: 50
+      ignore-comments: true
+    gocognit:
+      min-complexity: 20
+    gomodguard:
+      blocked:
+        modules:
+          - github.com/golang/protobuf:
+              recommendations:
+                - google.golang.org/protobuf
+              reason: see https://developers.google.com/protocol-buffers/docs/reference/go/faq#modules
+          - github.com/satori/go.uuid:
+              recommendations:
+                - github.com/google/uuid
+              reason: satori's package is not maintained
+          - github.com/gofrs/uuid:
+              recommendations:
+                - github.com/gofrs/uuid/v5
+              reason: gofrs' package was not go module before v5
+    goconst:
+      min-len: 4
+      min-occurrences: 5
+    govet:
+      disable:
+        - fieldalignment
+        - shadow
+      enable-all: true
+    inamedparam:
+      skip-single-param: true
+    lll:
+      line-length: 120
+    mnd:
+      ignored-functions:
+        - args.Error
+        - flag.Arg
+        - flag.Duration.*
+        - flag.Float.*
+        - flag.Int.*
+        - flag.Uint.*
+        - os.Chmod
+        - os.Mkdir.*
+        - os.OpenFile
+        - os.WriteFile
+        - prometheus.ExponentialBuckets.*
+        - prometheus.LinearBuckets
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-no-explanation:
+        - funlen
+        - gocognit
+        - lll
+    perfsprint:
+      strconcat: false
+    rowserrcheck:
+      packages:
+        - github.com/jmoiron/sqlx
+    sloglint:
+      no-global: all
+      context: scope
+    wrapcheck:
+      extra-ignore-sigs:
+        - fault.New(
+      ignore-sig-regexps:
+        - mw\.next\..*
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - godot
+        source: (noinspection|TODO)
+      - linters:
+          - gocritic
+        source: //noinspection
+      - linters:
+          - bodyclose
+          - dupl
+          - errcheck
+          - exhaustruct
+          - funlen
+          - goconst
+          - gosec
+          - noctx
+          - wrapcheck
+        path: _test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-same-issues: 50
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

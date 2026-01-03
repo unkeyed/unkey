@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package ctrl.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
+
+message LivenessRequest {}
+
+message LivenessResponse {
+  string status = 1;
+  string version = 2;
+  string instance_id = 3;
+}
+
+service CtrlService {
+  rpc Liveness(LivenessRequest) returns (LivenessResponse) {}
+}

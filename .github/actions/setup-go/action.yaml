@@ -13,12 +13,11 @@ runs:
     - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6
       name: Setup Go
       with:
-        go-version-file: ./go/go.mod
-        cache-dependency-path: ./go/go.sum
+        go-version-file: ./go.mod
+        cache-dependency-path: ./go.sum
 
     - name: Install
-      run: make install
+      run: go mod download
       shell: bash
-      working-directory: ./go
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}

@@ -40,9 +40,10 @@ jobs:
         run: pnpm turbo run build --filter=./apps/api
         env:
           CI: 1
+        working-directory: web
       - name: Test
         run: pnpm vitest run -c vitest.integration.ts --bail=1 --shard=${{ matrix.shard }}
-        working-directory: apps/api
+        working-directory: web/apps/api
         env:
           CI: 1
           UNKEY_BASE_URL: ${{ inputs.UNKEY_BASE_URL }}

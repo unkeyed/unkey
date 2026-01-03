@@ -66,7 +66,7 @@ services:
       endpoint_mode: vip
     command: ["run", "api"]
     build:
-      context: ../go
+      context: ../
       dockerfile: ./Dockerfile
     depends_on:
       mysql:
@@ -124,7 +124,7 @@ services:
     container_name: agent
     command: ["/usr/local/bin/unkey", "agent", "--config", "config.docker.json"]
     build:
-      context: ../apps/agent
+      context: ../web/apps/agent
       dockerfile: ./Dockerfile
     ports:
       - 8080:8080
@@ -204,7 +204,7 @@ services:
     container_name: api
     build:
       context: ..
-      dockerfile: ./apps/api/Dockerfile.dev
+      dockerfile: ./web/apps/api/Dockerfile
     ports:
       - 8787:8787
     command:
@@ -231,64 +231,10 @@ services:
       - clickhouse
       - apiv2
 
-  gw:
-    networks:
-      - default
-    build:
-      context: ../go
-      dockerfile: Dockerfile
-      args:
-        VERSION: "latest"
-    container_name: gw
-    command: ["run", "gw"]
-    ports:
-      - "80:80"
-      - "443:443"
-    depends_on:
-      mysql:
-        condition: service_healthy
-        required: true
-      s3:
-        condition: service_healthy
-        required: true
-      redis:
-        condition: service_healthy
-        required: true
-      clickhouse:
-        condition: service_healthy
-        required: true
-    volumes:
-      - ./certs:/certs
-    environment:
-      UNKEY_HTTP_PORT: 80
-      UNKEY_HTTPS_PORT: 443
-
-      UNKEY_TLS_ENABLED: true
-      UNKEY_DEFAULT_CERT_DOMAIN: "unkey.local"
-      UNKEY_MAIN_DOMAIN: "unkey.local"
-      UNKEY_CTRL_ADDR: "http://ctrl:7091"
-      UNKEY_REQUIRE_LOCAL_CERT: true
-
-      UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
-      UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
-      UNKEY_REDIS_URL: "redis://redis:6379"
-
-      # Vault - General secrets (env vars, API keys)
-      UNKEY_VAULT_S3_URL: "http://s3:3902"
-      UNKEY_VAULT_S3_BUCKET: "vault"
-      UNKEY_VAULT_S3_ACCESS_KEY_ID: "minio_root_user"
-      UNKEY_VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
-      UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
-      # ACME Vault - Let's Encrypt certificates
-      UNKEY_ACME_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
-      UNKEY_ACME_VAULT_S3_URL: "http://s3:3902"
-      UNKEY_ACME_VAULT_S3_BUCKET: "acme-vault"
-      UNKEY_ACME_VAULT_S3_ACCESS_KEY_ID: "minio_root_user"
-      UNKEY_ACME_VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
 
   krane:
     build:
-      context: ../go
+      context: ../
       dockerfile: Dockerfile
       args:
         VERSION: "latest"
@@ -338,7 +284,7 @@ services:
     networks:
       - default
     build:
-      context: ../go
+      context: ../
       dockerfile: Dockerfile
       args:
         VERSION: "latest"
@@ -442,7 +388,7 @@ services:
     networks:
       - default
     build:
-      context: ..
+      context: ../web
       dockerfile: ./apps/dashboard/Dockerfile
     container_name: unkey-dashboard
     ports:

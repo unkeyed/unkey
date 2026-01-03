@@ -1,7 +1,7 @@
 FROM bitnamilegacy/clickhouse:25.6.4
 
 # Copy ClickHouse schemas
-COPY go/pkg/clickhouse/migrations /opt/clickhouse-schemas/
+COPY pkg/clickhouse/migrations /opt/clickhouse-schemas/
 
 # Create initialization script that will execute our SQL files on first run
 # (script is already made executable on host)

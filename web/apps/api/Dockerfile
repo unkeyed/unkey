@@ -1,0 +1,22 @@
+FROM node:22.18.0
+
+RUN npm i -g pnpm turbo
+
+WORKDIR /unkey
+
+
+COPY . .
+
+
+WORKDIR /unkey/web
+
+
+RUN pnpm install
+
+RUN pnpm turbo build --filter=api...
+
+
+WORKDIR /unkey/web/apps/api
+ENV WRANGLER_SEND_METRICS=false
+RUN rm .dev.vars || true
+CMD pnpm wrangler dev

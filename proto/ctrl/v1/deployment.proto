@@ -1,0 +1,162 @@
+syntax = "proto3";
+package ctrl.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
+
+// Deployment status enum
+enum DeploymentStatus {
+  DEPLOYMENT_STATUS_UNSPECIFIED = 0;
+  DEPLOYMENT_STATUS_PENDING = 1;
+  DEPLOYMENT_STATUS_BUILDING = 2;
+  DEPLOYMENT_STATUS_DEPLOYING = 3;
+  DEPLOYMENT_STATUS_NETWORK = 4;
+  DEPLOYMENT_STATUS_READY = 5;
+  DEPLOYMENT_STATUS_FAILED = 6;
+}
+
+// Source type for deployment creation
+enum SourceType {
+  SOURCE_TYPE_UNSPECIFIED = 0;
+  SOURCE_TYPE_GIT = 1;
+  SOURCE_TYPE_CLI_UPLOAD = 2;
+}
+
+message CreateDeploymentRequest {
+  reserved 1; // was workspace_id, now inferred from project_id
+  string project_id = 2;
+  string branch = 3;
+  string environment_slug = 4;
+
+  // Build source, we can either build it from scratch or accept prebuilt image
+  oneof source {
+    BuildContext build_context = 5;
+    string docker_image = 6; // Prebuilt image reference
+  }
+
+  // Git information
+  optional GitCommitInfo git_commit = 7;
+
+  // Authentication
+  optional string keyspace_id = 8;
+}
+
+message BuildContext {
+  string build_context_path = 1; // S3 key for uploaded build context
+  optional string dockerfile_path = 2; // Path to Dockerfile within context (default: "Dockerfile")
+}
+
+message GitCommitInfo {
+  string commit_sha = 1;
+  string commit_message = 2;
+  string author_handle = 3;
+  string author_avatar_url = 4;
+  int64 timestamp = 5; // Unix epoch milliseconds
+}
+
+message CreateDeploymentResponse {
+  string deployment_id = 1;
+  DeploymentStatus status = 2; // Will be PENDING or BUILDING
+}
+
+message GetDeploymentRequest {
+  string deployment_id = 1;
+}
+
+message GetDeploymentResponse {
+  Deployment deployment = 1;
+}
+
+message Deployment {
+  string id = 1;
+  string workspace_id = 2;
+  string project_id = 3;
+  string environment_id = 4;
+
+  // Source information
+  string git_commit_sha = 5;
+  string git_branch = 6;
+
+  // Status and lifecycle
+  DeploymentStatus status = 7;
+  string error_message = 8; // For failed deployments
+
+  // Configuration snapshot (resolved at creation time)
+  map<string, string> environment_variables = 9;
+
+  // Topology configuration
+  Topology topology = 10;
+
+  // Timestamps
+  int64 created_at = 11;
+  int64 updated_at = 12;
+
+  // Associated hostnames for this deployment
+  repeated string hostnames = 13;
+
+  // Build information
+  string rootfs_image_id = 14;
+  string build_id = 15;
+
+  // Deployment steps
+  repeated DeploymentStep steps = 16;
+
+  // Extended git information
+  string git_commit_message = 17;
+  // Removed: email is PII and not stored
+  string git_commit_author_handle = 18;
+  string git_commit_author_avatar_url = 19;
+  int64 git_commit_timestamp = 20; // Unix epoch milliseconds
+}
+
+message DeploymentStep {
+  string status = 1;
+  string message = 2;
+  string error_message = 3;
+  int64 created_at = 4;
+}
+
+message Topology {
+  int32 cpu_millicores = 1;
+  int32 memory_mib = 2;
+
+  // Regional configuration
+  repeated RegionalConfig regions = 3;
+
+  // Runtime settings
+  int32 idle_timeout_seconds = 4; // 0 means no timeout
+  string health_check_path = 5;
+  int32 port = 6;
+}
+
+message RegionalConfig {
+  string region = 1;
+  int32 min_instances = 2;
+  int32 max_instances = 3;
+}
+
+message RollbackRequest {
+  string source_deployment_id = 1;
+  string target_deployment_id = 2;
+}
+
+message RollbackResponse {}
+
+message PromoteRequest {
+  string target_deployment_id = 1;
+}
+
+message PromoteResponse {}
+
+service DeploymentService {
+  // Create a new deployment
+  rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse) {}
+
+  // Get deployment details
+  rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse) {}
+
+  // Reassign the sticky domains of the projects live deployment to the target deployment
+  rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
+
+  // Promote the deployment to the live environment
+  rpc Promote(PromoteRequest) returns (PromoteResponse) {}
+}

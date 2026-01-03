@@ -1,10 +1,19 @@
-version: v1
-breaking:
-  use:
-    - FILE
-    - PACKAGE
-    - WIRE
-    - WIRE_JSON
+
+version: v2
+
+modules:
+  - path: proto
 lint:
   use:
-    - DEFAULT
+    - STANDARD
+breaking:
+  use:
+    - PACKAGE
+    - FILE
+    - WIRE
+    - WIRE_JSON
+    - FIELD_NO_DELETE
+    - FIELD_NO_DELETE_UNLESS_NAME_RESERVED
+    - FIELD_NO_DELETE_UNLESS_NUMBER_RESERVED
+deps:
+  - buf.build/restatedev/sdk-go

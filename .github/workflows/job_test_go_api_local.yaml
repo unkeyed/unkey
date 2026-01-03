@@ -24,7 +24,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run unit and light integration tests
         run: make test-integration
-        working-directory: go
         env:
           DOCKER_BUILDKIT: 1
           COMPOSE_DOCKER_CLI_BUILD: 1
