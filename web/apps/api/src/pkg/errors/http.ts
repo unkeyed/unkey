@@ -21,6 +21,7 @@ const ErrorCode = z.enum([
   "METHOD_NOT_ALLOWED",
   "EXPIRED",
   "DELETE_PROTECTED",
+  "API_V1_EOL",
 ]);
 
 // biome-ignore lint/suspicious/noExplicitAny: Safe to leave
@@ -35,9 +36,9 @@ export function errorSchemaFactory(code: z.ZodEnum<any>) {
         description: "A link to our documentation with more details about this error code",
         example: `https://unkey.dev/docs/api-reference/errors/code/${code._def.values.at(0)}`,
       }),
-      message: z
-        .string()
-        .openapi({ description: "A human readable explanation of what went wrong" }),
+      message: z.string().openapi({
+        description: "A human readable explanation of what went wrong",
+      }),
       requestId: z.string().openapi({
         description: "Please always include the requestId in your error report",
         example: "req_1234",
@@ -56,7 +57,9 @@ export const ErrorSchema = z.object({
       description: "A link to our documentation with more details about this error code",
       example: "https://unkey.dev/docs/api-reference/errors/code/BAD_REQUEST",
     }),
-    message: z.string().openapi({ description: "A human readable explanation of what went wrong" }),
+    message: z.string().openapi({
+      description: "A human readable explanation of what went wrong",
+    }),
     requestId: z.string().openapi({
       description: "Please always include the requestId in your error report",
       example: "req_1234",
@@ -87,6 +90,7 @@ function codeToStatus(code: z.infer<typeof ErrorCode>): StatusCode {
     case "PRECONDITION_FAILED":
       return 412;
     case "RATE_LIMITED":
+    case "API_V1_EOL":
       return 429;
     case "INTERNAL_SERVER_ERROR":
       return 500;
@@ -117,7 +121,13 @@ function statusToCode(status: StatusCode): z.infer<typeof ErrorCode> {
 export class UnkeyApiError extends HTTPException {
   public readonly code: z.infer<typeof ErrorCode>;
 
-  constructor({ code, message }: { code: z.infer<typeof ErrorCode>; message: string }) {
+  constructor({
+    code,
+    message,
+  }: {
+    code: z.infer<typeof ErrorCode>;
+    message: string;
+  }) {
     super(codeToStatus(code), { message });
     this.code = code;
   }

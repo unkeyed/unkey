@@ -8,6 +8,7 @@ import { RBAC } from "@unkey/rbac";
 import { ConsoleLogger } from "@unkey/worker-logging";
 
 import { newId } from "@unkey/id";
+import { Ratelimit as UnkeyRatelimiter } from "@unkey/ratelimit";
 import type { MiddlewareHandler } from "hono";
 import { initCache } from "../cache";
 import type { HonoEnv } from "../hono/env";
@@ -19,6 +20,7 @@ import { Vault } from "../vault";
  * These maps persist between worker executions and are used for caching
  */
 const rlMap = new Map();
+const depMap = new Map();
 
 /**
  * workerId and coldStartAt are used to track the lifetime of the worker
@@ -49,6 +51,23 @@ export function init(): MiddlewareHandler<HonoEnv> {
     c.set("requestStartedAt", Date.now());
 
     c.res.headers.set("Unkey-Request-Id", requestId);
+
+    const deprecationRatelimiter = new UnkeyRatelimiter({
+      rootKey: c.env.UNKEY_ROOT_KEY,
+      cache: depMap,
+      namespace: "v1_deprecation",
+      limit: 10,
+      duration: 60_000,
+      timeout: {
+        ms: 5000,
+        fallback: {
+          limit: 10,
+          remaining: 10,
+          success: true,
+          reset: Date.now() + 60_000,
+        },
+      },
+    });
 
     const logger = new ConsoleLogger({
       requestId,
@@ -134,6 +153,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
       analytics,
       cache,
       keyService,
+      deprecationRatelimiter,
     });
 
     await next();
