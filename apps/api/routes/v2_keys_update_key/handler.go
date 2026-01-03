@@ -106,9 +106,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Retry transaction up to 2 times on deadlock or identity creation race
+	// Retry transaction up to 9 times on deadlock or identity creation race
 	var txErr error
-	for attempt := range 3 {
+	for attempt := range 10 {
 		txErr = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 			auditLogs := []auditlog.AuditLog{}
 

@@ -1,55 +1,22 @@
-FROM  node:22.18.0-slim AS compile
+FROM node:22.18.0
 
-WORKDIR /app
-RUN npm install -g workerd@latest pnpm
+RUN npm i -g pnpm turbo
 
-COPY pnpm-lock.yaml ./
-RUN pnpm fetch
+WORKDIR /unkey
 
 
 COPY . .
+
+
+WORKDIR /unkey/web
+
+
+RUN pnpm install
+
+RUN pnpm turbo build --filter=api...
+
+
+WORKDIR /unkey/web/apps/api
+ENV WRANGLER_SEND_METRICS=false
 RUN rm .dev.vars || true
-
-
-RUN pnpm install --offline -r
-
-WORKDIR /app/apps/api
-RUN pnpm wrangler deploy --outdir=dist --dry-run
-
-RUN pnpm workerd compile ./worker.capnp > unkey
-
-
-FROM ubuntu:24.04
-COPY --from=compile /app/apps/api/unkey /usr/bin/unkey
-
-EXPOSE 8787
-CMD ["unkey"]
-
-
-# FROM --platform=linux/amd64 node:lts AS compile
-
-# WORKDIR /app
-# RUN npm install -g workerd pnpm
-
-# COPY pnpm-lock.yaml ./
-# RUN pnpm fetch
-
-
-# COPY . .
-# RUN rm .dev.vars || true
-
-
-
-# RUN pnpm install --offline -r
-
-# WORKDIR /app/apps/api
-# RUN pnpm wrangler deploy --dry-run --outdir .wrangler/dist
-
-# FROM jacoblincool/workerd
-
-# COPY --from=compile /app/apps/api/worker.capnp /app/worker.capnp
-# COPY --from=compile /app/apps/api/.wrangler/dist /app/.wrangler/dist
-
-# WORKDIR /app
-
-# EXPOSE 8787
+CMD pnpm wrangler dev

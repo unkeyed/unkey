@@ -3,9 +3,9 @@ set -e
 
 # Build the binary first
 echo "Building unkey binary..."
-cd ../../go/
-make build
-cd ../apps/engineering/
+cd ../../../
+make build-go
+cd web/apps/engineering/
 
 # Set docs directory relative to engineering/
 DOCS_DIR="./content/docs/cli"
@@ -15,12 +15,12 @@ echo "DOCS_DIR: $DOCS_DIR"
 
 # Get available commands dynamically
 echo "Discovering available commands..."
-AVAILABLE_COMMANDS=$(../../go/unkey --help 2>/dev/null | awk '/COMMANDS:/{flag=1; next} /^$/{flag=0} flag && /^   [a-zA-Z]/ {gsub(/,.*/, "", $1); print $1}' | grep -v "help" | tr '\n' ' ')
+AVAILABLE_COMMANDS=$(../../../unkey --help 2>/dev/null | awk '/COMMANDS:/{flag=1; next} /^$/{flag=0} flag && /^   [a-zA-Z]/ {gsub(/,.*/, "", $1); print $1}' | grep -v "help" | tr '\n' ' ')
 echo "Found commands: $AVAILABLE_COMMANDS"
 
 if [ -z "$AVAILABLE_COMMANDS" ]; then
   echo "ERROR: No commands found. Is the binary working?"
-  ../../go/unkey --help
+  ../../../unkey --help
   exit 1
 fi
 
@@ -34,7 +34,7 @@ for cmd in $AVAILABLE_COMMANDS; do
   mkdir -p "$DOCS_DIR/$cmd"
   total=$((total + 1))
 
-  if ../../go/unkey $cmd mdx >"$DOCS_DIR/$cmd/index.mdx" 2>/dev/null; then
+  if ../../../unkey $cmd mdx >"$DOCS_DIR/$cmd/index.mdx" 2>/dev/null; then
     echo "✓ Generated $DOCS_DIR/$cmd/index.mdx"
     success=$((success + 1))
     generated_commands+=("$cmd")
@@ -44,7 +44,7 @@ for cmd in $AVAILABLE_COMMANDS; do
   fi
 
   # Check for subcommands
-  help_output=$(../../go/unkey $cmd --help 2>/dev/null)
+  help_output=$(../../../unkey $cmd --help 2>/dev/null)
   if echo "$help_output" | grep -q "COMMANDS:"; then
     subcmds=$(echo "$help_output" | awk '/COMMANDS:/{flag=1; next} /^$/{flag=0} flag && /^   [a-zA-Z]/ {gsub(/,.*/, "", $1); print $1}' | grep -v "help")
     subcount=$(echo "$subcmds" | wc -w)
@@ -54,7 +54,7 @@ for cmd in $AVAILABLE_COMMANDS; do
       if [ "$subcmd" != "" ]; then
         mkdir -p "$DOCS_DIR/$cmd/$subcmd"
         total=$((total + 1))
-        if ../../go/unkey $cmd $subcmd mdx >"$DOCS_DIR/$cmd/$subcmd/index.mdx" 2>/dev/null; then
+        if ../../../unkey $cmd $subcmd mdx >"$DOCS_DIR/$cmd/$subcmd/index.mdx" 2>/dev/null; then
           echo "  ✓ Generated $DOCS_DIR/$cmd/$subcmd/index.mdx"
           success=$((success + 1))
         else

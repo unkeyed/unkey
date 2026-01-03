@@ -102,7 +102,6 @@ You also need the following tools installed.
    #### Install
     ```bash
     cd unkey
-    corepack enable
     make install
     ```
 
@@ -114,8 +113,7 @@ You also need the following tools installed.
 To get started developing the dashboard application, run the following command in your terminal:
 
   ```bash
-  cd web/apps/dashboard
-  pnpm local
+  make local-dashboard
   ```
   <Callout type="warn">
     Docker must be running for us to spin up the databases and supporting services.

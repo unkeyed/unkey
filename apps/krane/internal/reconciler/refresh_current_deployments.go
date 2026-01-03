@@ -28,6 +28,7 @@ import (
 // synchronization mechanism.
 func (r *Reconciler) refreshCurrentDeployments(ctx context.Context) {
 	repeat.Every(1*time.Minute, func() {
+		r.logger.Info("refreshing current deployments")
 
 		cursor := ""
 		for {

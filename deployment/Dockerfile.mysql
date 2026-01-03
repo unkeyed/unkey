@@ -4,8 +4,7 @@ FROM mysql:9.4.0
 COPY deployment/init-databases.sql /docker-entrypoint-initdb.d/00-init-databases.sql
 
 # Copy schemas from their respective packages
-COPY go/pkg/db/schema.sql /docker-entrypoint-initdb.d/01-main-schema.sql
+COPY pkg/db/schema.sql /docker-entrypoint-initdb.d/01-main-schema.sql
 
 # Copy seed data for local development
 COPY deployment/04-seed-workspace.sql /docker-entrypoint-initdb.d/04-seed-workspace.sql
-# COPY deployment/05-seed-chronark.sql /docker-entrypoint-initdb.d/05-seed-chronark.sql

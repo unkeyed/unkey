@@ -64,8 +64,8 @@ if start_mysql:
         print("Building MySQL image...")
         docker_build(
             'unkey/mysql:local',
-            '../',  # Build context at repo root
-            dockerfile='../deployment/Dockerfile.mysql'
+            '.',  # Build context at repo root
+            dockerfile='./deployment/Dockerfile.mysql'
         )
     else:
         print("Using existing MySQL image")
@@ -85,8 +85,8 @@ if start_clickhouse:
         print("Building ClickHouse image...")
         docker_build(
             'unkey/clickhouse:local',
-            '../',  # Build context at repo root
-            dockerfile='../deployment/Dockerfile.clickhouse'
+            '.',  # Build context at repo root
+            dockerfile='./deployment/Dockerfile.clickhouse'
         )
     else:
         print("Using existing ClickHouse image")
@@ -320,8 +320,8 @@ if start_agent:
     print("Setting up Agent service...")
     docker_build(
         'unkey-agent:latest',
-        '../apps/agent',
-        dockerfile='../apps/agent/Dockerfile',
+        'web/apps/agent',
+        dockerfile='./web/apps/agent/Dockerfile',
     )
     k8s_yaml('k8s/manifests/agent.yaml')
 
@@ -345,11 +345,11 @@ if start_dashboard:
     # Build the dashboard image
     docker_build(
         'unkey/dashboard:latest',
-        '../',
-        dockerfile='../apps/dashboard/Dockerfile',
+        '.',
+        dockerfile='./web/apps/dashboard/Dockerfile',
         live_update=[
-            sync('../apps/dashboard', '/unkey/apps/dashboard'),
-            run('cd /unkey/apps/dashboard && pnpm build', trigger=['**/*.tsx', '**/*.ts', '**/*.css']),
+            sync('./web/apps/dashboard', '/unkey/web/apps/dashboard'),
+            run('cd /unkey/web/apps/dashboard && pnpm build', trigger=['**/*.tsx', '**/*.ts', '**/*.css']),
         ]
     )
     k8s_yaml('k8s/manifests/dashboard.yaml')

@@ -11,6 +11,8 @@ import (
 )
 
 func (s *Service) UpdateDeploymentState(ctx context.Context, req *connect.Request[ctrlv1.UpdateDeploymentStateRequest]) (*connect.Response[ctrlv1.UpdateDeploymentStateResponse], error) {
+	s.logger.Info("updating deployment state", "req", req.Msg)
+	//"update:{k8s_name:\"pgeywtmuengq\" instances:{k8s_name:\"pgeywtmuengq-kdfvj\" address:\"192-168-194-33.uzapavou.pod.cluster.local\" status:STATUS_RUNNING}}"
 
 	if err := s.authenticate(req); err != nil {
 		return nil, err
@@ -26,80 +28,84 @@ func (s *Service) UpdateDeploymentState(ctx context.Context, req *connect.Reques
 		return nil, err
 	}
 
-	switch msg := req.Msg.GetChange().(type) {
-	case *ctrlv1.UpdateDeploymentStateRequest_Update_:
-		{
-			deployment, err := db.Query.FindDeploymentByK8sName(ctx, s.db.RO(), msg.Update.GetK8SName())
-			if err != nil {
-				return nil, err
-			}
+	err = db.Tx(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 
-			staleInstances, err := db.Query.FindInstancesByDeploymentIdAndRegion(ctx, s.db.RO(), db.FindInstancesByDeploymentIdAndRegionParams{
-				Deploymentid: deployment.ID,
-				Region:       region,
-			})
-			if err != nil {
-				return nil, err
-			}
+		switch msg := req.Msg.GetChange().(type) {
+		case *ctrlv1.UpdateDeploymentStateRequest_Update_:
+			{
+				deployment, err := db.Query.FindDeploymentByK8sName(ctx, tx, msg.Update.GetK8SName())
+				if err != nil {
+					return err
+				}
 
-			wantInstanceNames := map[string]*ctrlv1.UpdateDeploymentStateRequest_Update_Instance{}
-			for _, instance := range msg.Update.GetInstances() {
-				wantInstanceNames[instance.GetK8SName()] = instance
-			}
+				staleInstances, err := db.Query.FindInstancesByDeploymentIdAndRegion(ctx, tx, db.FindInstancesByDeploymentIdAndRegionParams{
+					Deploymentid: deployment.ID,
+					Region:       region,
+				})
+				if err != nil {
+					return err
+				}
 
-			for _, staleInstance := range staleInstances {
-				if _, ok := wantInstanceNames[staleInstance.K8sName]; !ok {
-					err = db.Query.DeleteInstance(ctx, s.db.RW(), db.DeleteInstanceParams{
-						K8sName:   staleInstance.K8sName,
-						Region:    region,
-						ClusterID: clusterID,
+				wantInstanceNames := map[string]*ctrlv1.UpdateDeploymentStateRequest_Update_Instance{}
+				for _, instance := range msg.Update.GetInstances() {
+					wantInstanceNames[instance.GetK8SName()] = instance
+				}
+
+				for _, staleInstance := range staleInstances {
+					if _, ok := wantInstanceNames[staleInstance.K8sName]; !ok {
+						err = db.Query.DeleteInstance(ctx, tx, db.DeleteInstanceParams{
+							K8sName:   staleInstance.K8sName,
+							Region:    region,
+							ClusterID: clusterID,
+						})
+						if err != nil {
+							return err
+						}
+					}
+				}
+
+				for _, instance := range msg.Update.GetInstances() {
+					err = db.Query.UpsertInstance(ctx, tx, db.UpsertInstanceParams{
+						ID:            uid.New(uid.InstancePrefix),
+						DeploymentID:  deployment.ID,
+						WorkspaceID:   deployment.WorkspaceID,
+						ProjectID:     deployment.ProjectID,
+						Region:        region,
+						ClusterID:     clusterID,
+						K8sName:       instance.GetK8SName(),
+						Address:       instance.GetAddress(),
+						CpuMillicores: int32(instance.GetCpuMillicores()),
+						MemoryMib:     int32(instance.GetMemoryMib()),
+						Status:        ctrlDeploymentStatusToDbStatus(instance.GetStatus()),
 					})
 					if err != nil {
-						return nil, err
+						return err
 					}
 				}
 			}
 
-			for _, instance := range msg.Update.GetInstances() {
-				err = db.Query.UpsertInstance(ctx, s.db.RW(), db.UpsertInstanceParams{
-					ID:            uid.New(uid.InstancePrefix),
-					DeploymentID:  deployment.ID,
-					WorkspaceID:   deployment.WorkspaceID,
-					ProjectID:     deployment.ProjectID,
-					Region:        region,
-					ClusterID:     clusterID,
-					K8sName:       instance.GetK8SName(),
-					Address:       instance.GetAddress(),
-					CpuMillicores: int32(instance.GetCpuMillicores()),
-					MemoryMib:     int32(instance.GetMemoryMib()),
-					Status:        ctrlDeploymentStatusToDbStatus(instance.GetStatus()),
+		case *ctrlv1.UpdateDeploymentStateRequest_Delete_:
+			{
+
+				deployment, err := db.Query.FindDeploymentByK8sName(ctx, tx, msg.Delete.GetK8SName())
+				if err != nil {
+					return err
+				}
+
+				err = db.Query.DeleteDeploymentInstances(ctx, tx, db.DeleteDeploymentInstancesParams{
+					DeploymentID: deployment.ID,
+					ClusterID:    clusterID,
 				})
 				if err != nil {
-					return nil, err
+					return err
 				}
 			}
+
 		}
+		return nil
+	})
 
-	case *ctrlv1.UpdateDeploymentStateRequest_Delete_:
-		{
-
-			deployment, err := db.Query.FindDeploymentByK8sName(ctx, s.db.RO(), msg.Delete.GetK8SName())
-			if err != nil {
-				return nil, err
-			}
-
-			err = db.Query.DeleteDeploymentInstances(ctx, s.db.RW(), db.DeleteDeploymentInstancesParams{
-				DeploymentID: deployment.ID,
-				ClusterID:    clusterID,
-			})
-			if err != nil {
-				return nil, err
-			}
-		}
-
-	}
-
-	return connect.NewResponse(&ctrlv1.UpdateDeploymentStateResponse{}), nil
+	return connect.NewResponse(&ctrlv1.UpdateDeploymentStateResponse{}), err
 
 }
 

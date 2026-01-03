@@ -5,6 +5,8 @@ WORKDIR /go/src/github.com/unkeyed/unkey
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
+
+
 ARG VERSION
 ENV CGO_ENABLED=0
 RUN go build -o bin/unkey -ldflags="-X 'github.com/unkeyed/unkey/pkg/version.Version=${VERSION}'" ./main.go

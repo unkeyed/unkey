@@ -21,7 +21,7 @@ help: ## Display this help.
 
 
 .PHONY: install
-install: ## Install Go modules and pnpm dependencies
+install: ## Install all dependencies
 	@[ -f go.work ] || go work init . tools
 
 	go mod download
@@ -72,14 +72,19 @@ up: pull ## Start all infrastructure services
 clean: ## Stop and remove all services with volumes
 	@docker compose -f ../deployment/docker-compose.yaml down --volumes
 
-.PHONY: build
-build: install ## Build all artifacts
+.PHONY: build-go
+build-go: ## Build go services
 	go build -o bin/unkey .
 
+.PHONY: build-web
+build-web: ## Build web services
 	pnpm --dir=web build
 
+.PHONY: build
+build: install build-go build-web ## Build all artifacts
+
 .PHONY: generate
-generate: ## Generate code from protobuf and other sources
+generate: generate-sql ## Generate code from protobuf and other sources
 	rm ./pkg/db/*_generated.go || true
 	go tool buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/ctrl" --path "./proto/krane" --path "./proto/vault" --path "./proto/cache" --path "./proto/gateway"
 	go tool buf generate --template ./buf.gen.restate.yaml --path "./proto/hydra"
@@ -98,6 +103,7 @@ test-k8s: talos ## Run Kubernetes cluster tests
 
 .PHONY: test
 test: test-unit ## Run unit tests (alias)
+	pnpm --dir=web run test
 
 .PHONY: test-unit
 test-unit: up ## Run unit tests with infrastructure
@@ -174,92 +180,11 @@ k8s-down: ## Delete all services from current Kubernetes cluster
 	@kubectl delete namespace unkey --ignore-not-found=true
 	@echo "Services deleted"
 
-.PHONY: k8s-reset
-k8s-reset: k8s-down k8s-up ## Reset the entire Kubernetes environment
-
-# Helper function to deploy a service
-define deploy-service
-	@echo "Starting $(2)..."
-	$(if $(3),@docker build -t $(3) $(4))
-	@kubectl apply -f k8s/manifests/namespace.yaml
-	@kubectl apply -f k8s/manifests/$(1).yaml
-	@kubectl wait --for=condition=ready pod -l app=$(1) -n unkey --timeout=180s
-	$(if $(5),@kubectl wait --for=condition=ready pod -l app=$(5) -n unkey --timeout=180s)
-	@echo "$(2) is ready!"
-endef
-
-.PHONY: start-mysql
-start-mysql: k8s-check ## Deploy only MySQL
-	$(call deploy-service,mysql,MySQL,unkey/mysql:local,-f ../deployment/Dockerfile.mysql ../)
-
-.PHONY: start-clickhouse
-start-clickhouse: k8s-check ## Deploy only ClickHouse
-	@docker build -t unkey/clickhouse:local -f ../deployment/Dockerfile.clickhouse ../
-	$(call deploy-service,clickhouse,ClickHouse)
-
-.PHONY: start-redis
-start-redis: k8s-check ## Deploy only Redis
-	$(call deploy-service,redis,Redis)
-
-.PHONY: start-s3
-start-s3: k8s-check ## Deploy only S3 (MinIO)
-	$(call deploy-service,s3,S3 (MinIO))
-
-.PHONY: start-planetscale
-start-planetscale: k8s-check ## Deploy only PlanetScale HTTP driver
-	$(call deploy-service,planetscale,PlanetScale HTTP driver)
-
-.PHONY: start-observability
-start-observability: k8s-check ## Deploy only Observability stack
-	$(call deploy-service,observability,Observability stack,,,otel-collector)
-
-.PHONY: start-restate
-start-restate: k8s-check ## Deploy only Restate
-	$(call deploy-service,restate,Restate)
-
-.PHONY: start-api
-start-api: k8s-check ## Deploy only API service (3 replicas)
-	$(call deploy-service,api,API,unkey:local,.)
-
-
-.PHONY: start-ctrl
-start-ctrl: k8s-check ## Deploy only ctrl service
-	$(call deploy-service,ctrl,Control Plane,unkey:local,.)
-
-.PHONY: start-dashboard
-start-dashboard: k8s-check ## Deploy only dashboard service
-	$(call deploy-service,dashboard,Dashboard,unkey/dashboard:latest,-f ../apps/dashboard/Dockerfile ../)
-
-.PHONY: start-unkey-services
-start-unkey-services: start-api start-ctrl start-dashboard ## Deploy all Unkey services
-
-.PHONY: start-dependencies
-start-dependencies: start-mysql start-clickhouse start-redis start-s3 start-planetscale start-observability start-restate ## Deploy all dependency services
-
-.PHONY: start-all
-start-all: start-dependencies start-unkey-services ## Deploy all services individually
-
-
-.PHONY: image
-image: ## Build Docker image for development
-	docker build -t unkey/dev:latest .
-	# minikube image load unkey/dev:latest
-
-.PHONY: cluster
-cluster: ## Create Kubernetes cluster using ctlptl
-	ctlptl apply -f cluster.yaml
-
-	#minikube start \
-	#  --driver=docker \
-	#	--container-runtime=containerd \
-	#	--docker-opt="containerd=/var/run/containerd/containerd.sock" \
-	#	--cpus=no-limit \
-	#	--memory=no-limit \
-	#	--disk-size=50gb \
-	#	--addons=metrics-server,dashboard,gvisor
 
 .PHONY: dev
-dev: image ## Start with Tilt (if available) or fallback to k8s-up
+dev: ## Start with Tilt (if available) or fallback to k8s-up
+	docker build -t unkey/dev:latest .
+
 	@if command -v tilt >/dev/null 2>&1; then \
 		echo "Starting with Tilt..."; \
 		tilt up; \
@@ -271,6 +196,6 @@ dev: image ## Start with Tilt (if available) or fallback to k8s-up
 
 
 
-.PHONY: local
-local: ## Run local development setup
-	@go run . dev local
+.PHONY: local-dashboard
+local-dashboard: install build ## Run local development setup for dashboard
+	pnpm --dir=web/apps/dashboard local
