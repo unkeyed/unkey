@@ -19,8 +19,7 @@ services:
     volumes:
       - mysql:/var/lib/mysql
     healthcheck:
-      test:
-        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
       timeout: 20s
       retries: 10
       start_period: 40s
@@ -224,13 +223,13 @@ services:
         "--var=CLICKHOUSE_URL:http://default:password@clickhouse:8123",
         "--var=CLICKHOUSE_INSERT_URL:http://apiv2:7070",
         "--var=CLICKHOUSE_PROXY_TOKEN:chproxy-test-token-123",
+        "--var=UNKEY_ROOT_KEY:$UNKEY_ROOT_KEY",
       ]
     depends_on:
       - planetscale
       - agent
       - clickhouse
       - apiv2
-
 
   krane:
     build:

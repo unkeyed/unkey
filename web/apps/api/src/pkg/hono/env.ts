@@ -21,7 +21,7 @@ export type ServiceContext = {
   usageLimiter: UsageLimiter;
   rateLimiter: RateLimiter;
   vault: Vault;
-  deprecationRatelimiter: UnkeyRatelimiter;
+  deprecationRatelimiter?: UnkeyRatelimiter;
 };
 
 export type HonoEnv = {
