@@ -33,7 +33,8 @@ export function errorSchemaFactory(code: z.ZodEnum<any>) {
         example: code._def.values.at(0),
       }),
       docs: z.string().openapi({
-        description: "A link to our documentation with more details about this error code",
+        description:
+          "A link to our documentation with more details about this error code",
         example: `https://unkey.dev/docs/api-reference/errors/code/${code._def.values.at(0)}`,
       }),
       message: z.string().openapi({
@@ -54,7 +55,8 @@ export const ErrorSchema = z.object({
       example: "INTERNAL_SERVER_ERROR",
     }),
     docs: z.string().openapi({
-      description: "A link to our documentation with more details about this error code",
+      description:
+        "A link to our documentation with more details about this error code",
       example: "https://unkey.dev/docs/api-reference/errors/code/BAD_REQUEST",
     }),
     message: z.string().openapi({
@@ -179,7 +181,10 @@ export function handleError(err: Error, c: Context<HonoEnv>): Response {
       {
         error: {
           code: err.code,
-          docs: `https://unkey.dev/docs/api-reference/errors/code/${err.code}`,
+          docs:
+            err.code === "API_V1_EOL"
+              ? "https://www.unkey.com/docs/api-reference/v1/migration"
+              : `https://unkey.dev/docs/api-reference/errors/code/${err.code}`,
           message: err.message,
           requestId: c.get("requestId"),
         },
@@ -237,7 +242,11 @@ export function handleError(err: Error, c: Context<HonoEnv>): Response {
   );
 }
 
-export function errorResponse(c: Context, code: z.infer<typeof ErrorCode>, message: string) {
+export function errorResponse(
+  c: Context,
+  code: z.infer<typeof ErrorCode>,
+  message: string,
+) {
   return c.json<z.infer<typeof ErrorSchema>>(
     {
       error: {
