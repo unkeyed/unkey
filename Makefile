@@ -85,9 +85,8 @@ build: install build-go build-web ## Build all artifacts
 
 .PHONY: generate
 generate: generate-sql ## Generate code from protobuf and other sources
+	rm -rf ./gen || true
 	rm ./pkg/db/*_generated.go || true
-	go tool buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/ctrl" --path "./proto/krane" --path "./proto/vault" --path "./proto/cache" --path "./proto/gateway"
-	go tool buf generate --template ./buf.gen.restate.yaml --path "./proto/hydra"
 	go generate ./...
 	go fmt ./...
 	pnpm --dir=web fmt
