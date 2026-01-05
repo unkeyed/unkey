@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
+	"github.com/unkeyed/unkey/svc/agent/pkg/prometheus"
 )
 
 type responseWriterStatusInterceptor struct {

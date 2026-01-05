@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/apps/agent/pkg/config"
+	"github.com/unkeyed/unkey/svc/agent/pkg/config"
 )
 
 func TestLoadFile_WithMissingRequired(t *testing.T) {

@@ -2,7 +2,7 @@ syntax = "proto3";
 import "google/protobuf/struct.proto";
 
 package errors.v1;
-option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/errors/v1;errorsv1";
+option go_package = "github.com/unkeyed/unkey/svc/agent/gen/proto/errors/v1;errorsv1";
 
 
 

@@ -3,8 +3,8 @@ package openapi
 import (
 	"net/http"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
-	"github.com/unkeyed/unkey/apps/agent/pkg/openapi"
+	"github.com/unkeyed/unkey/svc/agent/pkg/api/routes"
+	"github.com/unkeyed/unkey/svc/agent/pkg/openapi"
 )
 
 func New(svc routes.Services) *routes.Route {

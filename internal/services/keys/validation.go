@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/unkeyed/unkey/apps/api/openapi"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -15,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 // withCredits validates that the key has sufficient usage credits and deducts the specified cost.

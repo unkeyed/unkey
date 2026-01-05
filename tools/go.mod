@@ -1,4 +1,4 @@
-module github.com/unkeyed/unkey/go/tools
+module github.com/unkeyed/unkey/tools
 
 go 1.25.1
 

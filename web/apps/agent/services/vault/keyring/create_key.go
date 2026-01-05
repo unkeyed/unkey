@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
-	"github.com/unkeyed/unkey/apps/agent/services/vault/keys"
+	vaultv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/svc/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/svc/agent/services/vault/keys"
 )
 
 func (k *Keyring) CreateKey(ctx context.Context, ringID string) (*vaultv1.DataEncryptionKey, error) {

@@ -1,9 +1,9 @@
 package keys
 
 import (
-	"github.com/unkeyed/unkey/apps/api/openapi"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 // KeyStatus represents the validation status of a key after verification.

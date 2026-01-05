@@ -3,7 +3,7 @@ package ratelimit
 import (
 	"context"
 
-	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
+	ratelimitv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/ratelimit/v1"
 )
 
 type Service interface {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/Southclaws/fault"
 	ax "github.com/axiomhq/axiom-go/axiom"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/svc/agent/pkg/tracing"
 )
 
 type AxiomWriter struct {

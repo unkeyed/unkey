@@ -10,9 +10,9 @@ import (
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fmsg"
 	"github.com/hashicorp/serf/serf"
-	"github.com/unkeyed/unkey/apps/agent/pkg/events"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/util"
+	"github.com/unkeyed/unkey/svc/agent/pkg/events"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/util"
 )
 
 type Config struct {

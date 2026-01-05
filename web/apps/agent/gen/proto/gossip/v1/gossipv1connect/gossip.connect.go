@@ -8,7 +8,7 @@ import (
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	v1 "github.com/unkeyed/unkey/apps/agent/gen/proto/gossip/v1"
+	v1 "github.com/unkeyed/unkey/svc/agent/gen/proto/gossip/v1"
 	http "net/http"
 	strings "strings"
 )

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
 )
 
 // memory is an in-memory storage implementation for testing purposes.

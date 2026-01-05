@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/api/ctxutil"
-	"github.com/unkeyed/unkey/apps/agent/pkg/clickhouse"
-	"github.com/unkeyed/unkey/apps/agent/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/api/ctxutil"
+	"github.com/unkeyed/unkey/svc/agent/pkg/clickhouse"
+	"github.com/unkeyed/unkey/svc/agent/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
 )
 
 type responseWriterInterceptor struct {

@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	ratelimitv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/svc/agent/pkg/prometheus"
+	"github.com/unkeyed/unkey/svc/agent/pkg/tracing"
 )
 
 type syncWithOriginRequest struct {

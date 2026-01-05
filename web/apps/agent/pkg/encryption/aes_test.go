@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/apps/agent/pkg/encryption"
+	"github.com/unkeyed/unkey/svc/agent/pkg/encryption"
 )
 
 func TestEncryptDecrypt(t *testing.T) {

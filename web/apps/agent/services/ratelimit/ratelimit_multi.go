@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
+	ratelimitv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/ratelimit/v1"
 )
 
 func (s *service) MultiRatelimit(ctx context.Context, req *ratelimitv1.RatelimitMultiRequest) (*ratelimitv1.RatelimitMultiResponse, error) {

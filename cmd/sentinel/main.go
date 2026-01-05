@@ -3,9 +3,9 @@ package sentinel
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/apps/sentinel"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/sentinel"
 )
 
 var Cmd = &cli.Command{

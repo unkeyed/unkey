@@ -6,12 +6,12 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
-	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/testutils/containers"
-	"github.com/unkeyed/unkey/apps/agent/services/vault"
-	"github.com/unkeyed/unkey/apps/agent/services/vault/keys"
-	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
+	vaultv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/testutils/containers"
+	"github.com/unkeyed/unkey/svc/agent/services/vault"
+	"github.com/unkeyed/unkey/svc/agent/services/vault/keys"
+	"github.com/unkeyed/unkey/svc/agent/services/vault/storage"
 )
 
 // This scenario tests the cold start of the vault service.

@@ -11,11 +11,11 @@ import (
 	"connectrpc.com/connect"
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fmsg"
-	gossipv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/gossip/v1"
-	"github.com/unkeyed/unkey/apps/agent/gen/proto/gossip/v1/gossipv1connect"
-	"github.com/unkeyed/unkey/apps/agent/pkg/events"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/util"
+	gossipv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/gossip/v1"
+	"github.com/unkeyed/unkey/svc/agent/gen/proto/gossip/v1/gossipv1connect"
+	"github.com/unkeyed/unkey/svc/agent/pkg/events"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/util"
 )
 
 // ensure cluster implements Cluster

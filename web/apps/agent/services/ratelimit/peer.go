@@ -10,9 +10,9 @@ import (
 	"connectrpc.com/otelconnect"
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fmsg"
-	"github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
-	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/svc/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
+	"github.com/unkeyed/unkey/svc/agent/pkg/cluster"
+	"github.com/unkeyed/unkey/svc/agent/pkg/tracing"
 )
 
 type authorizedRoundTripper struct {

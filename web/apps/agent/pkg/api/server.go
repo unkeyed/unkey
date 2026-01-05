@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/api/validation"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
-	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
-	"github.com/unkeyed/unkey/apps/agent/services/vault"
+	"github.com/unkeyed/unkey/svc/agent/pkg/api/validation"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/metrics"
+	"github.com/unkeyed/unkey/svc/agent/services/ratelimit"
+	"github.com/unkeyed/unkey/svc/agent/services/vault"
 )
 
 type Server struct {

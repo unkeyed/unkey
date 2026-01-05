@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/unkeyed/unkey/apps/api/openapi"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 // WithErrorHandling returns middleware that translates errors into appropriate

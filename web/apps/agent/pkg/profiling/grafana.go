@@ -7,8 +7,8 @@ import (
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fmsg"
 	"github.com/grafana/pyroscope-go"
-	"github.com/unkeyed/unkey/apps/agent/pkg/config"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/config"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
 )
 
 func Start(cfg config.Agent, logger logging.Logger) error {

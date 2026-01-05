@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/unkeyed/unkey/apps/agent/services/vault/keys"
+	"github.com/unkeyed/unkey/svc/agent/services/vault/keys"
 )
 
 // AgentCmd represents the agent command

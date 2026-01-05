@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
-	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
+	"github.com/unkeyed/unkey/svc/agent/pkg/cache"
+	"github.com/unkeyed/unkey/svc/agent/pkg/metrics"
+	"github.com/unkeyed/unkey/svc/agent/pkg/prometheus"
 )
 
 type metricsMiddleware[T any] struct {

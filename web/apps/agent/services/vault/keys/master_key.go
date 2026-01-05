@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
+	vaultv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/vault/v1"
 	"google.golang.org/protobuf/proto"
 )
 

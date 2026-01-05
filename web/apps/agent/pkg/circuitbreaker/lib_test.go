@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/apps/agent/pkg/clock"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/clock"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
 )
 
 var errTestDownstream = errors.New("downstream test error")
