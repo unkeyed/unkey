@@ -3,8 +3,8 @@ package middleware
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/svc/agent/pkg/cache"
+	"github.com/unkeyed/unkey/svc/agent/pkg/tracing"
 	"go.opentelemetry.io/otel/attribute"
 )
 

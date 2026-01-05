@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/clock"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/svc/agent/pkg/clock"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/tracing"
 )
 
 type CB[Res any] struct {

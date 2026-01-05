@@ -3,10 +3,10 @@ package v1RatelimitMultiRatelimit
 import (
 	"net/http"
 
-	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/api/errors"
-	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
-	"github.com/unkeyed/unkey/apps/agent/pkg/openapi"
+	ratelimitv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/svc/agent/pkg/api/errors"
+	"github.com/unkeyed/unkey/svc/agent/pkg/api/routes"
+	"github.com/unkeyed/unkey/svc/agent/pkg/openapi"
 )
 
 func New(svc routes.Services) *routes.Route {

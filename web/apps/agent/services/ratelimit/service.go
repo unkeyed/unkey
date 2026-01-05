@@ -6,14 +6,14 @@ import (
 
 	"connectrpc.com/connect"
 
-	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
-	"github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
-	"github.com/unkeyed/unkey/apps/agent/pkg/circuitbreaker"
-	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
-	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
-	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
+	ratelimitv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/svc/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
+	"github.com/unkeyed/unkey/svc/agent/pkg/circuitbreaker"
+	"github.com/unkeyed/unkey/svc/agent/pkg/cluster"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/metrics"
+	"github.com/unkeyed/unkey/svc/agent/pkg/prometheus"
+	"github.com/unkeyed/unkey/svc/agent/pkg/repeat"
 )
 
 type service struct {

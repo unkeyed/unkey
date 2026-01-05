@@ -7,11 +7,11 @@ import (
 
 	"connectrpc.com/connect"
 	"connectrpc.com/otelconnect"
-	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
-	"github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
-	"github.com/unkeyed/unkey/apps/agent/pkg/auth"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	ratelimitv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/svc/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
+	"github.com/unkeyed/unkey/svc/agent/pkg/auth"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/tracing"
 )
 
 var _ ratelimitv1connect.RatelimitServiceHandler = (*ratelimitServer)(nil)

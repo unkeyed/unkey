@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/encryption"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	vaultv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/svc/agent/pkg/encryption"
+	"github.com/unkeyed/unkey/svc/agent/pkg/tracing"
 	"google.golang.org/protobuf/proto"
 )
 

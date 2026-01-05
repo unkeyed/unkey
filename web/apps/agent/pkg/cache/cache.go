@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/maypok86/otter"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
-	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
-	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/metrics"
+	"github.com/unkeyed/unkey/svc/agent/pkg/prometheus"
+	"github.com/unkeyed/unkey/svc/agent/pkg/repeat"
+	"github.com/unkeyed/unkey/svc/agent/pkg/tracing"
 	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/Southclaws/fault"

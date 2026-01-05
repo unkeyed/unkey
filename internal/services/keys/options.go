@@ -3,8 +3,8 @@ package keys
 import (
 	"errors"
 
-	"github.com/unkeyed/unkey/apps/api/openapi"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 // VerifyOption represents a functional option for configuring key verification.

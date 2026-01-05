@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/api/ctxutil"
-	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
+	"github.com/unkeyed/unkey/svc/agent/pkg/api/ctxutil"
+	"github.com/unkeyed/unkey/svc/agent/pkg/uid"
 )
 
 func withRequestId(next http.Handler) http.Handler {

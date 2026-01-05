@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/Southclaws/fault"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/repeat"
 )
 
 // Node represents an individual entity in the ring, usually a container instance.

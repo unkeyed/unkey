@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
+	ratelimitv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/ratelimit/v1"
 )
 
 // Generally there is one bucket per identifier.

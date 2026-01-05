@@ -4,10 +4,10 @@ import (
 	"io"
 	"time"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/config"
-	"github.com/unkeyed/unkey/apps/agent/pkg/heartbeat"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
+	"github.com/unkeyed/unkey/svc/agent/pkg/config"
+	"github.com/unkeyed/unkey/svc/agent/pkg/heartbeat"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/uid"
 )
 
 func setupLogging(cfg config.Agent) (logging.Logger, error) {

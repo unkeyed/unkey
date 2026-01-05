@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/Southclaws/fault/fmsg"
-	"github.com/unkeyed/unkey/apps/agent/pkg/api/ctxutil"
-	"github.com/unkeyed/unkey/apps/agent/pkg/openapi"
+	"github.com/unkeyed/unkey/svc/agent/pkg/api/ctxutil"
+	"github.com/unkeyed/unkey/svc/agent/pkg/openapi"
 )
 
 func HandleValidationError(ctx context.Context, err error) openapi.ValidationError {

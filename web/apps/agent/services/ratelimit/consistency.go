@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/repeat"
 )
 
 type consistencyChecker struct {

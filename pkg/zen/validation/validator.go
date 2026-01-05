@@ -6,10 +6,10 @@ import (
 
 	"github.com/pb33f/libopenapi"
 	validator "github.com/pb33f/libopenapi-validator"
-	"github.com/unkeyed/unkey/apps/api/openapi"
 	"github.com/unkeyed/unkey/pkg/ctxutil"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 type OpenAPIValidator interface {

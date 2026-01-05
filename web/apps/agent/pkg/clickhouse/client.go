@@ -7,10 +7,10 @@ import (
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fmsg"
-	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
-	"github.com/unkeyed/unkey/apps/agent/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/util"
+	"github.com/unkeyed/unkey/svc/agent/pkg/batch"
+	"github.com/unkeyed/unkey/svc/agent/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/util"
 )
 
 type Clickhouse struct {

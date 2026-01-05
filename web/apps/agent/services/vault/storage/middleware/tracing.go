@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
-	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
+	"github.com/unkeyed/unkey/svc/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/svc/agent/services/vault/storage"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 )

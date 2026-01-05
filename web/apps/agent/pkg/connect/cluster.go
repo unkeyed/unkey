@@ -6,11 +6,11 @@ import (
 
 	"connectrpc.com/connect"
 	"connectrpc.com/otelconnect"
-	clusterv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1"
-	"github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1/clusterv1connect"
-	"github.com/unkeyed/unkey/apps/agent/pkg/auth"
-	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	clusterv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/cluster/v1"
+	"github.com/unkeyed/unkey/svc/agent/gen/proto/cluster/v1/clusterv1connect"
+	"github.com/unkeyed/unkey/svc/agent/pkg/auth"
+	"github.com/unkeyed/unkey/svc/agent/pkg/cluster"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
 )
 
 type clusterServer struct {

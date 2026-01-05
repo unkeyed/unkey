@@ -1,4 +1,4 @@
-module github.com/unkeyed/unkey/apps/agent
+module github.com/unkeyed/unkey/svc/agent
 
 go 1.23.0
 

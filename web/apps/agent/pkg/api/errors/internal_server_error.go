@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/Southclaws/fault/fmsg"
-	"github.com/unkeyed/unkey/apps/agent/pkg/api/ctxutil"
-	"github.com/unkeyed/unkey/apps/agent/pkg/openapi"
+	"github.com/unkeyed/unkey/svc/agent/pkg/api/ctxutil"
+	"github.com/unkeyed/unkey/svc/agent/pkg/openapi"
 )
 
 // HandleError takes in any unforseen error and returns a BaseError to be sent to the client

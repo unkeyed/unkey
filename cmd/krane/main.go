@@ -3,9 +3,9 @@ package krane
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/apps/krane"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/krane"
 )
 
 var Cmd = &cli.Command{

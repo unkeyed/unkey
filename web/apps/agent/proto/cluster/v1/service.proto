@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package cluster.v1;
 
-option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1;clusterv1";
+option go_package = "github.com/unkeyed/unkey/svc/agent/gen/proto/cluster/v1;clusterv1";
 
 enum NodeState {
   NODE_STATE_UNSPECIFIED = 0;

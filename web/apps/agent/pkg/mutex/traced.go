@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/svc/agent/pkg/tracing"
 )
 
 // Lock is a wrapper around sync.RWMutex that traces lock and unlock operations.

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
+	ratelimitv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/ratelimit/v1"
 )
 
 func (s *service) CommitLease(ctx context.Context, req *ratelimitv1.CommitLeaseRequest) (*ratelimitv1.CommitLeaseResponse, error) {

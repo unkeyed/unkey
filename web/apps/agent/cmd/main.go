@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/Southclaws/fault"
-	"github.com/unkeyed/unkey/apps/agent/cmd/agent"
+	"github.com/unkeyed/unkey/svc/agent/cmd/agent"
 	"github.com/urfave/cli/v2"
 )
 

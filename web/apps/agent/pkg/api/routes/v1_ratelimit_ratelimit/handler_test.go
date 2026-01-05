@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	v1RatelimitRatelimit "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_ratelimit"
-	"github.com/unkeyed/unkey/apps/agent/pkg/api/testutil"
-	"github.com/unkeyed/unkey/apps/agent/pkg/openapi"
-	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
+	v1RatelimitRatelimit "github.com/unkeyed/unkey/svc/agent/pkg/api/routes/v1_ratelimit_ratelimit"
+	"github.com/unkeyed/unkey/svc/agent/pkg/api/testutil"
+	"github.com/unkeyed/unkey/svc/agent/pkg/openapi"
+	"github.com/unkeyed/unkey/svc/agent/pkg/uid"
 )
 
 func TestRatelimit(t *testing.T) {

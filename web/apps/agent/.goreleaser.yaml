@@ -11,7 +11,7 @@ builds:
     binary: unkey
 
     ldflags:
-      - -X 'github.com/unkeyed/unkey/apps/agent/pkg/version.Version=${VERSION}'
+      - -X 'github.com/unkeyed/unkey/svc/agent/pkg/version.Version=${VERSION}'
 
     # Custom build tags templates.
     # For more info refer to: https://pkg.go.dev/cmd/go#hdr-Build_constraints

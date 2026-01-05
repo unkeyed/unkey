@@ -12,9 +12,9 @@ import (
 	"net/http/pprof"
 
 	"connectrpc.com/connect"
-	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
+	ratelimitv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/metrics"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )

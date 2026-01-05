@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
+	"github.com/unkeyed/unkey/svc/agent/pkg/api/routes"
 )
 
 func newBearerAuthMiddleware(secret string) routes.Middeware {

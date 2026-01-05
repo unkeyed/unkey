@@ -70,7 +70,7 @@ linters:
         - ^github.com/urfave/cli/v3.*$
         - ^github.com/ClickHouse/clickhouse-go/v2.*$
         - ^github.com/aws/aws-sdk-go-v2/.*$
-        - ^github.com/unkeyed/unkey/apps/api/openapi.Meta$
+        - ^github.com/unkeyed/unkey/svc/api/openapi.Meta$
         - ^gorm.io/gorm.Config$
         - ^gorm.io/gorm.*$
         - ^github.com/redis/go-redis/v9.Options$
