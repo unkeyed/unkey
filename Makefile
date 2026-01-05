@@ -25,7 +25,7 @@ install: ## Install all dependencies
 	@[ -f go.work ] || go work init . ./tools
 
 	go mod download
-	pnpm --dir=web install
+	pnpm --dir=web install --frozen-lockfile
 
 
 
