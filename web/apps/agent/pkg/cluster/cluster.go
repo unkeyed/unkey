@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
-	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
-	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
-	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
-	"github.com/unkeyed/unkey/apps/agent/pkg/ring"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/membership"
+	"github.com/unkeyed/unkey/svc/agent/pkg/metrics"
+	"github.com/unkeyed/unkey/svc/agent/pkg/prometheus"
+	"github.com/unkeyed/unkey/svc/agent/pkg/repeat"
+	"github.com/unkeyed/unkey/svc/agent/pkg/ring"
 )
 
 const defaultTokensPerNode = 256

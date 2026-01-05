@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/util"
+	"github.com/unkeyed/unkey/svc/agent/pkg/batch"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/util"
 )
 
 type axiom struct {

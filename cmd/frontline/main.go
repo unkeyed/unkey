@@ -3,10 +3,10 @@ package frontline
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/apps/frontline"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/vault/storage"
+	"github.com/unkeyed/unkey/svc/frontline"
 )
 
 var Cmd = &cli.Command{

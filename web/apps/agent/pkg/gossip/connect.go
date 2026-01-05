@@ -9,9 +9,9 @@ import (
 	"connectrpc.com/otelconnect"
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fmsg"
-	gossipv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/gossip/v1"
-	"github.com/unkeyed/unkey/apps/agent/gen/proto/gossip/v1/gossipv1connect"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	gossipv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/gossip/v1"
+	"github.com/unkeyed/unkey/svc/agent/gen/proto/gossip/v1/gossipv1connect"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )

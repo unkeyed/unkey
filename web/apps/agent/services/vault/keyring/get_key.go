@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
-	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
+	vaultv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/svc/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/svc/agent/services/vault/storage"
 	"go.opentelemetry.io/otel/attribute"
 )
 

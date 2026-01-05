@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
-	cacheMiddleware "github.com/unkeyed/unkey/apps/agent/pkg/cache/middleware"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
-	"github.com/unkeyed/unkey/apps/agent/services/vault/keyring"
-	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
+	vaultv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/svc/agent/pkg/cache"
+	cacheMiddleware "github.com/unkeyed/unkey/svc/agent/pkg/cache/middleware"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/metrics"
+	"github.com/unkeyed/unkey/svc/agent/services/vault/keyring"
+	"github.com/unkeyed/unkey/svc/agent/services/vault/storage"
 	"google.golang.org/protobuf/proto"
 )
 

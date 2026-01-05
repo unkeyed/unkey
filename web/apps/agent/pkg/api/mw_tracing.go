@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/svc/agent/pkg/tracing"
 )
 
 func withTracing(next http.Handler) http.Handler {

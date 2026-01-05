@@ -22,7 +22,7 @@ help: ## Display this help.
 
 .PHONY: install
 install: ## Install all dependencies
-	@[ -f go.work ] || go work init . tools
+	@[ -f go.work ] || go work init . ./tools
 
 	go mod download
 	pnpm --dir=web install

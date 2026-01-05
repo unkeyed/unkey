@@ -6,9 +6,9 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/Southclaws/fault"
-	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
-	"github.com/unkeyed/unkey/apps/agent/pkg/util"
+	ratelimitv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/svc/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/svc/agent/pkg/util"
 	"go.opentelemetry.io/otel/attribute"
 )
 

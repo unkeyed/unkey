@@ -3,11 +3,11 @@ package ctrl
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/apps/ctrl"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/tls"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl"
 )
 
 var Cmd = &cli.Command{

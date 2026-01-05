@@ -3,11 +3,11 @@ package api
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/apps/api"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/tls"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api"
 )
 
 var Cmd = &cli.Command{

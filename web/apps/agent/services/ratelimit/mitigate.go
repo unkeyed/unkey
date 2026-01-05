@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	ratelimitv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/svc/agent/pkg/tracing"
 )
 
 // Mitigate is an RPC handler receiving a mitigation broadcast from the origin node

@@ -5,12 +5,12 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	v1RatelimitCommitLease "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_commitLease"
-	v1RatelimitRatelimit "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_ratelimit"
-	"github.com/unkeyed/unkey/apps/agent/pkg/api/testutil"
-	"github.com/unkeyed/unkey/apps/agent/pkg/openapi"
-	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
-	"github.com/unkeyed/unkey/apps/agent/pkg/util"
+	v1RatelimitCommitLease "github.com/unkeyed/unkey/svc/agent/pkg/api/routes/v1_ratelimit_commitLease"
+	v1RatelimitRatelimit "github.com/unkeyed/unkey/svc/agent/pkg/api/routes/v1_ratelimit_ratelimit"
+	"github.com/unkeyed/unkey/svc/agent/pkg/api/testutil"
+	"github.com/unkeyed/unkey/svc/agent/pkg/openapi"
+	"github.com/unkeyed/unkey/svc/agent/pkg/uid"
+	"github.com/unkeyed/unkey/svc/agent/pkg/util"
 )
 
 func TestCommitLease(t *testing.T) {

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	vaultv1 "github.com/unkeyed/unkey/svc/agent/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/svc/agent/pkg/tracing"
 )
 
 func (s *Service) ReEncrypt(ctx context.Context, req *vaultv1.ReEncryptRequest) (*vaultv1.ReEncryptResponse, error) {

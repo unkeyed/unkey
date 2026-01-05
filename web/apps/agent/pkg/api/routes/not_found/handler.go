@@ -3,9 +3,9 @@ package notFound
 import (
 	"net/http"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/api/ctxutil"
-	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
-	"github.com/unkeyed/unkey/apps/agent/pkg/openapi"
+	"github.com/unkeyed/unkey/svc/agent/pkg/api/ctxutil"
+	"github.com/unkeyed/unkey/svc/agent/pkg/api/routes"
+	"github.com/unkeyed/unkey/svc/agent/pkg/openapi"
 )
 
 // This is a hack, because / matches everything, so we need to make sure this is the last route

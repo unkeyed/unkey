@@ -3,8 +3,8 @@ package preflight
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/apps/preflight"
 	"github.com/unkeyed/unkey/pkg/cli"
+	"github.com/unkeyed/unkey/svc/preflight"
 )
 
 var Cmd = &cli.Command{

@@ -9,15 +9,15 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
-	"github.com/unkeyed/unkey/apps/agent/pkg/api/validation"
-	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
-	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
-	"github.com/unkeyed/unkey/apps/agent/pkg/port"
-	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
-	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
+	"github.com/unkeyed/unkey/svc/agent/pkg/api/routes"
+	"github.com/unkeyed/unkey/svc/agent/pkg/api/validation"
+	"github.com/unkeyed/unkey/svc/agent/pkg/cluster"
+	"github.com/unkeyed/unkey/svc/agent/pkg/logging"
+	"github.com/unkeyed/unkey/svc/agent/pkg/membership"
+	"github.com/unkeyed/unkey/svc/agent/pkg/metrics"
+	"github.com/unkeyed/unkey/svc/agent/pkg/port"
+	"github.com/unkeyed/unkey/svc/agent/pkg/uid"
+	"github.com/unkeyed/unkey/svc/agent/services/ratelimit"
 )
 
 type Harness struct {

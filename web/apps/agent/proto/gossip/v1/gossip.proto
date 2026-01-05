@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package gossip.v1;
 
-option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/gossip/v1;gossipv1";
+option go_package = "github.com/unkeyed/unkey/svc/agent/gen/proto/gossip/v1;gossipv1";
 
 enum State {
   State_UNSPECIFIED = 0;
