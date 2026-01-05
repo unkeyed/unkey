@@ -176,3 +176,94 @@ export async function alertSubscriptionCancelled(email: string, name?: string): 
     console.error(err);
   });
 }
+
+export async function alertPaymentFailed(
+  customerEmail: string,
+  customerName: string,
+  amount: number,
+  currency: string,
+  failureReason?: string,
+): Promise<void> {
+  const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
+  if (!url) {
+    return;
+  }
+
+  const formattedAmount = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+  }).format(amount / 100);
+
+  const reasonText = failureReason ? ` Reason: ${failureReason}` : "";
+
+  await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `:warning: Payment failed for ${customerName}`,
+          },
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `Payment of ${formattedAmount} failed for ${customerEmail}.${reasonText} We should reach out to help resolve the payment issue.`,
+          },
+        },
+      ],
+    }),
+  }).catch((err: Error) => {
+    console.error(err);
+  });
+}
+
+export async function alertPaymentRecovered(
+  customerEmail: string,
+  customerName: string,
+  amount: number,
+  currency: string,
+): Promise<void> {
+  const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
+  if (!url) {
+    return;
+  }
+
+  const formattedAmount = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+  }).format(amount / 100);
+
+  await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `:tada: Payment recovered for ${customerName}`,
+          },
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `Great news! Payment of ${formattedAmount} has been successfully processed for ${customerEmail} after a previous failure. Their service should now be restored.`,
+          },
+        },
+      ],
+    }),
+  }).catch((err: Error) => {
+    console.error(err);
+  });
+}
