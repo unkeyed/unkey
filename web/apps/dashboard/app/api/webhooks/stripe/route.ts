@@ -225,7 +225,7 @@ export const POST = async (req: Request): Promise<Response> => {
     event = stripe.webhooks.constructEvent(requestBody, signature, e.STRIPE_WEBHOOK_SECRET);
   } catch (error) {
     console.error("Webhook signature validation failed:", error);
-    return new Response("Error ", { status: 400 });
+    return new Response("Error", { status: 400 });
   }
   switch (event.type) {
     case "customer.subscription.updated": {
@@ -683,7 +683,11 @@ export const POST = async (req: Request): Promise<Response> => {
         // Extract payment failure details with validation
         const amount = invoice.amount_due || 0;
         const currency = invoice.currency || "usd";
-        const failureReason = invoice.last_finalization_error?.message;
+        const failureReason = 
+          invoice.payment_intent?.last_payment_error?.message ||
+          invoice.charge?.failure_message ||
+          invoice.last_finalization_error?.message ||
+          "Payment failed";
 
         // Validate amount and currency
         if (amount < 0) {
