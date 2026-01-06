@@ -229,19 +229,22 @@ export async function alertPaymentFailed(
         statusText: response.statusText,
         customerEmail,
         amount,
-        currency
+        currency,
       });
     }
   } catch (err: unknown) {
     console.error("Error sending payment failure alert:", {
-      error: err instanceof Error ? {
-        message: err.message,
-        stack: err.stack,
-        name: err.name
-      } : err,
+      error:
+        err instanceof Error
+          ? {
+              message: err.message,
+              stack: err.stack,
+              name: err.name,
+            }
+          : err,
       customerEmail,
       amount,
-      currency
+      currency,
     });
   }
 }
@@ -293,19 +296,22 @@ export async function alertPaymentRecovered(
         statusText: response.statusText,
         customerEmail,
         amount,
-        currency
+        currency,
       });
     }
   } catch (err: unknown) {
     console.error("Error sending payment recovery alert:", {
-      error: err instanceof Error ? {
-        message: err.message,
-        stack: err.stack,
-        name: err.name
-      } : err,
+      error:
+        err instanceof Error
+          ? {
+              message: err.message,
+              stack: err.stack,
+              name: err.name,
+            }
+          : err,
       customerEmail,
       amount,
-      currency
+      currency,
     });
   }
 }
