@@ -1,4 +1,5 @@
 import type Stripe from "stripe";
+import type { PreviousAttributes } from "./subscriptionUtils";
 
 /**
  * Interface for payment context extracted from Stripe events
@@ -14,6 +15,110 @@ interface PaymentContext {
   failureReason?: string;
   attemptCount?: number;
   eventTimestamp: number;
+}
+
+/**
+ * Determines if a subscription update is due to payment recovery.
+ * This happens when:
+ * 1. Subscription status changed from past_due/unpaid to active
+ * 2. Latest invoice changed (indicating successful payment processing)
+ * 3. No manual changes to pricing, plan, or other subscription settings
+ */
+export async function isPaymentRecoveryUpdate(
+  stripe: Stripe,
+  sub: Stripe.Subscription,
+  previousAttributes: PreviousAttributes | undefined,
+  event: Stripe.Event,
+): Promise<boolean> {
+  if (!previousAttributes) {
+    return false;
+  }
+
+  const changedKeys = Object.keys(previousAttributes);
+
+  // Check if status changed from payment failure status to active
+  const paymentFailureStatuses = ["past_due", "unpaid", "incomplete"];
+  const statusRecovered =
+    changedKeys.includes("status") &&
+    paymentFailureStatuses.includes(previousAttributes.status || "") &&
+    sub.status === "active";
+
+  // Check if latest_invoice changed (indicates payment processing)
+  const invoiceChanged = changedKeys.includes("latest_invoice");
+
+  // Define keys that indicate manual changes (not payment-related)
+  const manualChangeKeys = [
+    "cancel_at_period_end",
+    "collection_method",
+    "plan",
+    "quantity",
+    "discount",
+    "items", // pricing/plan changes
+  ];
+
+  // If any manual change keys are present, this is not a payment recovery update
+  const hasManualChanges = manualChangeKeys.some((key) => changedKeys.includes(key));
+
+  // Quick check: if status recovered to active without manual changes, it's a payment recovery
+  if (statusRecovered && !hasManualChanges) {
+    return true;
+  }
+
+  // If only invoice changed without manual changes, check if it was recently paid
+  if (invoiceChanged && !hasManualChanges && sub.status === "active") {
+    return await checkRecentPaymentSuccess(stripe, sub, event);
+  }
+
+  return false;
+}
+
+/**
+ * Checks if there was a recent successful payment for the subscription.
+ * Used to determine if a subscription update is due to payment recovery.
+ */
+export async function checkRecentPaymentSuccess(
+  stripe: Stripe,
+  sub: Stripe.Subscription,
+  event: Stripe.Event,
+): Promise<boolean> {
+  try {
+    // Instead of fetching many events, check the subscription's latest invoice directly
+    if (!sub.latest_invoice) {
+      return false;
+    }
+
+    const invoiceId =
+      typeof sub.latest_invoice === "string" ? sub.latest_invoice : sub.latest_invoice.id;
+
+    // Retrieve the latest invoice to check its payment status
+    const invoice = await stripe.invoices.retrieve(invoiceId);
+
+    // Check if the invoice was recently paid successfully
+    if (invoice.status === "paid" && invoice.status_transitions?.paid_at) {
+      // Consider it recent if paid within the last 2 hours
+      const recentPaymentThreshold = 2 * 60 * 60; // 2 hours in seconds
+      const timeSincePayment = event.created - invoice.status_transitions.paid_at;
+
+      return timeSincePayment <= recentPaymentThreshold && timeSincePayment >= 0;
+    }
+
+    return false;
+  } catch (error) {
+    console.error("Error checking recent payment success:", {
+      error:
+        error instanceof Error
+          ? {
+              message: error.message,
+              stack: error.stack,
+              name: error.name,
+            }
+          : error,
+      subscriptionId: sub.id,
+      eventId: event.id,
+    });
+    // Fail safely - if we can't determine, assume it's not a recovery
+    return false;
+  }
 }
 
 /**
@@ -212,21 +317,6 @@ export class PaymentRecoveryDetector {
       // Fail safely - if we can't determine, assume it's not a subscription change
       return false;
     }
-  }
-
-  /**
-   * Checks if a failure event is recent enough to be considered for recovery detection
-   *
-   * @param failureEvent - The payment failure event
-   * @param successTimestamp - Timestamp of the success event
-   * @returns boolean - True if the failure is recent enough
-   */
-  private isRecentFailure(failureEvent: Stripe.Event, successTimestamp: number): boolean {
-    // Consider failures within the last 24 hours as recent
-    const maxFailureAge = 24 * 60 * 60; // 24 hours in seconds
-    const failureAge = successTimestamp - failureEvent.created;
-
-    return failureAge <= maxFailureAge && failureAge >= 0;
   }
 
   /**
@@ -459,3 +549,5 @@ export async function isPaymentRecovery(
 
   return detector.isRecoveryFromFailure(successEvent, invoice.id);
 }
+
+export type { PaymentContext };
