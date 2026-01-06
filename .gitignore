@@ -20,6 +20,7 @@ dist
 .wrangler
 .vitest
 .react-email
+.kiro
 
 .secrets.json
 certs/
