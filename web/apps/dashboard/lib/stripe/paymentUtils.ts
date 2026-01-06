@@ -270,27 +270,54 @@ export class PaymentRecoveryDetector {
       }
 
       // Check if the invoice was created very recently relative to subscription billing cycle
-      // Upgrade invoices are typically created immediately, not at billing cycle boundaries
+      // BUT also check if this invoice has had previous payment attempts (indicating it's not a new upgrade)
       if (subscriptionId) {
         try {
           const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
 
-          // If invoice was created significantly before the next billing cycle,
-          // it's likely an upgrade/change
+          // Check if the invoice was created at the start of the billing period
+          // Subscription changes typically create invoices immediately, while
+          // regular billing invoices are created at period boundaries
+          const currentPeriodStart = subscription.current_period_start;
           const invoiceCreated = invoice.created;
-          const nextBillingCycle = subscription.current_period_end;
-          const timeUntilNextCycle = nextBillingCycle - invoiceCreated;
+          const timeSincePeriodStart = invoiceCreated - currentPeriodStart;
 
-          // If more than 1 day until next billing cycle, a mid-cycle change
-          const oneDayInSeconds = 24 * 60 * 60;
-          if (timeUntilNextCycle > oneDayInSeconds) {
-            console.info("Invoice created mid-cycle, likely subscription change", {
+          // If invoice was created within 1 hour of period start, it's likely regular billing
+          const oneHourInSeconds = 60 * 60;
+          if (timeSincePeriodStart <= oneHourInSeconds) {
+            console.info("Invoice created at period start, treating as regular billing", {
               invoiceId: invoice.id,
               subscriptionId,
-              timeUntilNextCycle,
+              timeSincePeriodStart,
             });
-            return true;
+            return false;
           }
+
+          // If invoice was created more than 1 hour after period start, check if it's truly a new change
+          // Additional check: if this invoice has multiple attempts or previous failures,
+          // it's likely a recovery, not a subscription change
+          if (invoice.attempt_count && invoice.attempt_count > 1) {
+            console.info(
+              "Invoice has multiple attempts, treating as recovery not subscription change",
+              {
+                invoiceId: invoice.id,
+                subscriptionId,
+                attemptCount: invoice.attempt_count,
+              },
+            );
+            return false;
+          }
+
+          // If created more than 1 hour after period start with no retry attempts, likely subscription change
+          console.info(
+            "Invoice created mid-cycle with no retry attempts, likely subscription change",
+            {
+              invoiceId: invoice.id,
+              subscriptionId,
+              timeSincePeriodStart,
+            },
+          );
+          return true;
         } catch (subscriptionError) {
           console.warn("Could not retrieve subscription for change detection:", {
             error: subscriptionError,
