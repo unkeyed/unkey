@@ -683,9 +683,10 @@ export const POST = async (req: Request): Promise<Response> => {
         // Extract payment failure details with validation
         const amount = invoice.amount_due || 0;
         const currency = invoice.currency || "usd";
-        const failureReason = 
-          invoice.payment_intent?.last_payment_error?.message ||
-          invoice.charge?.failure_message ||
+        const failureReason =
+          (typeof invoice.payment_intent === "object" &&
+            invoice.payment_intent?.last_payment_error?.message) ||
+          (typeof invoice.charge === "object" && invoice.charge?.failure_message) ||
           invoice.last_finalization_error?.message ||
           "Payment failed";
 
