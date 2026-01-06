@@ -184,7 +184,6 @@ export async function alertPaymentFailed(
   customerName: string,
   amount: number,
   currency: string,
-  failureReason?: string,
 ): Promise<void> {
   const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
   if (!url) {
@@ -195,8 +194,6 @@ export async function alertPaymentFailed(
   try {
     // Use existing formatPrice utility for consistent formatting
     const formattedAmount = formatPrice(amount);
-
-    const reasonText = failureReason ? ` Reason: ${failureReason}` : "";
 
     const response = await fetch(url, {
       method: "POST",
@@ -216,7 +213,7 @@ export async function alertPaymentFailed(
             type: "section",
             text: {
               type: "mrkdwn",
-              text: `Payment of ${formattedAmount} failed for ${customerEmail}.${reasonText} We should reach out to help resolve the payment issue.`,
+              text: `Payment of ${formattedAmount} failed for ${customerEmail}. We should reach out to help resolve the payment issue.`,
             },
           },
         ],

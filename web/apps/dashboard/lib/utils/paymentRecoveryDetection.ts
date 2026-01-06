@@ -40,6 +40,19 @@ export class PaymentRecoveryDetector {
       // Extract the invoice from the success event
       const invoice = successEvent.data.object as Stripe.Invoice;
 
+      // Check if this is likely an upgrade/downgrade payment
+      if (await this.isSubscriptionChangePayment(invoice)) {
+        console.info("Payment success detected as subscription change, not recovery", {
+          invoiceId,
+          eventId: successEvent.id,
+          subscriptionId:
+            typeof invoice.subscription === "string"
+              ? invoice.subscription
+              : invoice.subscription?.id,
+        });
+        return false;
+      }
+
       // Get the customer ID for filtering events
       const customerId =
         typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
@@ -80,21 +93,15 @@ export class PaymentRecoveryDetector {
         return await this.checkInvoicePaymentAttempts(invoice);
       }
 
-      // Check if any recent failure events are for the same invoice or customer
+      // Check if any recent failure events are for the SAME INVOICE ONLY
+      // Don't consider failures from other invoices as recovery candidates
       const hasRecentFailure = recentEvents.data.some((failureEvent) => {
         try {
           const failedInvoice = failureEvent.data.object as Stripe.Invoice;
-          const failedCustomerId =
-            typeof failedInvoice.customer === "string"
-              ? failedInvoice.customer
-              : failedInvoice.customer?.id;
 
-          // Check if it's the same invoice or same customer with recent failure
-          return (
-            failedInvoice.id === invoiceId ||
-            (failedCustomerId === customerId &&
-              this.isRecentFailure(failureEvent, successTimestamp))
-          );
+          // Only consider it a recovery if the EXACT SAME INVOICE failed and then succeeded
+          // This prevents upgrade payments from being flagged as recoveries
+          return failedInvoice.id === invoiceId;
         } catch (eventProcessingError) {
           console.warn("Error processing failure event during recovery detection:", {
             error: eventProcessingError,
@@ -132,6 +139,89 @@ export class PaymentRecoveryDetector {
         eventId: successEvent.id,
       });
       // Fail safely - if we can't determine, assume it's not a recovery
+      return false;
+    }
+  }
+
+  /**
+   * Determines if an invoice payment is likely due to a subscription change (upgrade/downgrade)
+   * rather than a payment recovery scenario
+   *
+   * @param invoice - The Stripe invoice object
+   * @returns Promise<boolean> - True if this appears to be a subscription change payment
+   */
+  private async isSubscriptionChangePayment(invoice: Stripe.Invoice): Promise<boolean> {
+    try {
+      // Check for subscription-related indicators
+      if (!invoice.subscription) {
+        return false;
+      }
+
+      const subscriptionId =
+        typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription.id;
+
+      // Check if this is a proration invoice, used in mid cycle upgrades
+      if (invoice.lines?.data) {
+        const hasProrationLines = invoice.lines.data.some(
+          (line) =>
+            line.proration === true || line.description?.toLowerCase().includes("proration"),
+        );
+
+        if (hasProrationLines) {
+          console.info("Invoice contains proration lines, likely subscription change", {
+            invoiceId: invoice.id,
+            subscriptionId,
+          });
+          return true;
+        }
+      }
+
+      // Check if the invoice was created very recently relative to subscription billing cycle
+      // Upgrade invoices are typically created immediately, not at billing cycle boundaries
+      if (subscriptionId) {
+        try {
+          const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
+
+          // If invoice was created significantly before the next billing cycle,
+          // it's likely an upgrade/change
+          const invoiceCreated = invoice.created;
+          const nextBillingCycle = subscription.current_period_end;
+          const timeUntilNextCycle = nextBillingCycle - invoiceCreated;
+
+          // If more than 1 day until next billing cycle, a mid-cycle change
+          const oneDayInSeconds = 24 * 60 * 60;
+          if (timeUntilNextCycle > oneDayInSeconds) {
+            console.info("Invoice created mid-cycle, likely subscription change", {
+              invoiceId: invoice.id,
+              subscriptionId,
+              timeUntilNextCycle,
+            });
+            return true;
+          }
+        } catch (subscriptionError) {
+          console.warn("Could not retrieve subscription for change detection:", {
+            error: subscriptionError,
+            subscriptionId,
+            invoiceId: invoice.id,
+          });
+          // Continue with other checks
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.error("Error checking if payment is subscription change:", {
+        error:
+          error instanceof Error
+            ? {
+                message: error.message,
+                stack: error.stack,
+                name: error.name,
+              }
+            : error,
+        invoiceId: invoice.id,
+      });
+      // Fail safely - if we can't determine, assume it's not a subscription change
       return false;
     }
   }
@@ -279,13 +369,16 @@ export class PaymentRecoveryDetector {
   }
 
   /**
-   * Performs temporal analysis to detect recent failure patterns
+   * Performs temporal analysis to detect recent failure patterns for a specific invoice
+   * Updated to be more precise about invoice-specific failures
    *
+   * @param invoiceId - The specific invoice ID to check
    * @param customerId - The Stripe customer ID
    * @param currentTimestamp - Current event timestamp
-   * @returns Promise<boolean> - True if recent failure patterns detected
+   * @returns Promise<boolean> - True if recent failure patterns detected for this invoice
    */
   async analyzeRecentFailurePatterns(
+    invoiceId: string,
     customerId: string,
     currentTimestamp: number,
   ): Promise<boolean> {
@@ -315,13 +408,12 @@ export class PaymentRecoveryDetector {
         return false;
       }
 
-      // Filter events for this specific customer
-      const customerFailures = failureEvents.data.filter((event) => {
+      // Filter events for this specific invoice only (not just customer)
+      const invoiceFailures = failureEvents.data.filter((event) => {
         try {
           const invoice = event.data.object as Stripe.Invoice;
-          const eventCustomerId =
-            typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
-          return eventCustomerId === customerId;
+          // Only count failures for the exact same invoice
+          return invoice.id === invoiceId;
         } catch (filterError) {
           console.warn("Error filtering failure event:", {
             error: filterError,
@@ -331,22 +423,8 @@ export class PaymentRecoveryDetector {
         }
       });
 
-      // Analyze failure patterns
-      if (customerFailures.length === 0) {
-        return false;
-      }
-
-      // Check for multiple failures in recent period
-      if (customerFailures.length >= 2) {
-        return true;
-      }
-
-      // Check if the single failure was very recent (within last 6 hours)
-      const recentFailureThreshold = 6 * 60 * 60; // 6 hours in seconds
-      const mostRecentFailure = customerFailures[0];
-      const timeSinceFailure = currentTimestamp - mostRecentFailure.created;
-
-      return timeSinceFailure <= recentFailureThreshold;
+      // Only consider it a recovery if this specific invoice had previous failures
+      return invoiceFailures.length > 0;
     } catch (error) {
       console.error("Error analyzing failure patterns:", {
         error:
@@ -357,6 +435,7 @@ export class PaymentRecoveryDetector {
                 name: error.name,
               }
             : error,
+        invoiceId,
         customerId,
         currentTimestamp,
       });

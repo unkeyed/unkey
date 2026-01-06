@@ -140,6 +140,121 @@ function isAutomatedBillingRenewal(
   return hasOnlyAllowedKeys;
 }
 
+async function isPaymentRecoveryUpdate(
+  stripe: Stripe,
+  sub: Stripe.Subscription,
+  previousAttributes: PreviousAttributes | undefined,
+  event: Stripe.Event,
+): Promise<boolean> {
+  // Detect if subscription update is due to payment recovery
+  // This happens when:
+  // 1. Subscription status changed from past_due/unpaid to active
+  // 2. Latest invoice changed (indicating successful payment processing)
+  // 3. No manual changes to pricing, plan, or other subscription settings
+
+  console.info("Checking payment recovery update", {
+    subscriptionId: sub.id,
+    eventId: event.id,
+    currentStatus: sub.status,
+    previousAttributes: previousAttributes ? Object.keys(previousAttributes) : null,
+    previousStatus: previousAttributes?.status,
+  });
+
+  if (!previousAttributes) {
+    return false;
+  }
+
+  const changedKeys = Object.keys(previousAttributes);
+
+  // Check if status changed from payment failure status to active
+  const paymentFailureStatuses = ["past_due", "unpaid", "incomplete"];
+  const statusRecovered =
+    changedKeys.includes("status") &&
+    paymentFailureStatuses.includes(previousAttributes.status || "") &&
+    sub.status === "active";
+
+  // Check if latest_invoice changed (indicates payment processing)
+  const invoiceChanged = changedKeys.includes("latest_invoice");
+
+  // Define keys that indicate manual changes (not payment-related)
+  const manualChangeKeys = [
+    "cancel_at_period_end",
+    "collection_method",
+    "plan",
+    "quantity",
+    "discount",
+    "items", // pricing/plan changes
+  ];
+
+  // If any manual change keys are present, this is not a payment recovery update
+  const hasManualChanges = manualChangeKeys.some((key) => changedKeys.includes(key));
+
+  console.info("Payment recovery analysis", {
+    subscriptionId: sub.id,
+    statusRecovered,
+    invoiceChanged,
+    hasManualChanges,
+    changedKeys,
+  });
+
+  // Quick check: if status recovered to active without manual changes, it's a payment recovery
+  if (statusRecovered && !hasManualChanges) {
+    return true;
+  }
+
+  // If only invoice changed without manual changes, check if it was recently paid
+  if (invoiceChanged && !hasManualChanges && sub.status === "active") {
+    return await checkRecentPaymentSuccess(stripe, sub, event);
+  }
+
+  return false;
+}
+
+async function checkRecentPaymentSuccess(
+  stripe: Stripe,
+  sub: Stripe.Subscription,
+  event: Stripe.Event,
+): Promise<boolean> {
+  try {
+    // Instead of fetching many events, check the subscription's latest invoice directly
+    if (!sub.latest_invoice) {
+      return false;
+    }
+
+    const invoiceId =
+      typeof sub.latest_invoice === "string" ? sub.latest_invoice : sub.latest_invoice.id;
+
+    // Retrieve the latest invoice to check its payment status
+    const invoice = await stripe.invoices.retrieve(invoiceId);
+
+    // Check if the invoice was recently paid successfully
+    if (invoice.status === "paid" && invoice.status_transitions?.paid_at) {
+      // Consider it recent if paid within the last 2 hours
+      const recentPaymentThreshold = 2 * 60 * 60; // 2 hours in seconds
+      const timeSincePayment = event.created - invoice.status_transitions.paid_at;
+
+      return timeSincePayment <= recentPaymentThreshold && timeSincePayment >= 0;
+    }
+
+    return false;
+  } catch (error) {
+    console.error("Error checking recent payment success:", {
+      error:
+        error instanceof Error
+          ? {
+              message: error.message,
+              stack: error.stack,
+              name: error.name,
+            }
+          : error,
+      subscriptionId: sub.id,
+      eventId: event.id,
+    });
+    // Fail safely - if we can't determine, assume it's not a recovery
+    return false;
+  }
+}
+
 function validateAndParseQuotas(product: Stripe.Product): {
   valid: boolean;
   requestsPerMonth?: number;
@@ -256,6 +371,22 @@ export const POST = async (req: Request): Promise<Response> => {
         if (isPaymentFailureRelatedUpdate(sub, previousAttributes)) {
           console.info(
             "Skipping subscription update due to payment failure - handled by payment webhook",
+            {
+              subscriptionId: sub.id,
+              eventId: event.id,
+              subscriptionStatus: sub.status,
+              previousAttributes: Object.keys(previousAttributes || {}),
+            },
+          );
+          return new Response("OK", { status: 201 });
+        }
+
+        // Skip database updates and notifications for payment recovery scenarios
+        // Payment recoveries are handled by the invoice.payment_succeeded webhook
+        const isRecovery = await isPaymentRecoveryUpdate(stripe, sub, previousAttributes, event);
+        if (isRecovery) {
+          console.info(
+            "Skipping subscription update due to payment recovery - handled by payment success webhook",
             {
               subscriptionId: sub.id,
               eventId: event.id,
@@ -670,13 +801,6 @@ export const POST = async (req: Request): Promise<Response> => {
         }
 
         if (customer.deleted || !("email" in customer) || !customer.email) {
-          console.warn("Payment failed event for deleted customer or customer without email", {
-            customerId: customer.id,
-            deleted: customer.deleted,
-            hasEmail: "email" in customer && !!customer.email,
-            invoiceId: invoice.id,
-            eventId: event.id,
-          });
           return new Response("OK", { status: 200 });
         }
 
@@ -868,10 +992,6 @@ export const POST = async (req: Request): Promise<Response> => {
     }
 
     default:
-      console.warn("Incoming stripe event that should not be received:", {
-        eventType: event.type,
-        eventId: event.id,
-      });
       break;
   }
   return new Response("OK");
