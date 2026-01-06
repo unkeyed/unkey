@@ -831,8 +831,7 @@ export const POST = async (req: Request): Promise<Response> => {
               customerEmail,
               (customer as Stripe.Customer).name || "Unknown",
               amount,
-              currency,
-              failureReason,
+              currency
             );
           }
         } catch (alertError) {
