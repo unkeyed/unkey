@@ -156,7 +156,7 @@ if start_api or start_ctrl or start_krane or start_preflight:
     local_resource(
         'unkey-compile',
         'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/unkey ./main.go',
-        deps=['./main.go', './pkg', './cmd', './apps'],
+        deps=['./main.go', './pkg', './cmd', './svc'],
     )
 
 
@@ -395,17 +395,10 @@ Web UI: http://localhost:10350
 Services available via Tilt port forwards:
 Dashboard: http://localhost:3000
 API: http://localhost:7070
-<<<<<<< HEAD
-Sentinel: http://localhost:8080
-Ctrl: http://localhost:7091
-Krane: http://localhost:8090
-Restate Frontline: http://localhost:8081
-=======
 Ctrl: http://localhost:7091
 Krane: http://localhost:8090
 Agent: http://localhost:8082
 Restate Ingress: http://localhost:8081
->>>>>>> 39d470225bb5f8f34521d84bc2c02081b56843eb
 Restate Admin: http://localhost:9070
 Prometheus: http://localhost:9090
 S3 API: http://localhost:3902

@@ -18,6 +18,13 @@ import (
 	"github.com/unkeyed/unkey/svc/preflight/internal/services/registry/credentials"
 )
 
+const (
+	// tokenTTL is the lifetime of Depot pull tokens. We use a slightly shorter
+	// duration for the expiry check to account for clock skew and processing time.
+	tokenTTL            = 55 * time.Minute
+	expiresAtAnnotation = "preflight.unkey.com/expires-at"
+)
+
 type Mutator struct {
 	logger                  logging.Logger
 	registry                *registry.Registry
@@ -25,7 +32,6 @@ type Mutator struct {
 	credentials             *credentials.Manager
 	unkeyEnvImage           string
 	unkeyEnvImagePullPolicy string
-	annotationPrefix        string
 	defaultProviderEndpoint string
 }
 
@@ -37,7 +43,6 @@ func New(cfg Config) *Mutator {
 		credentials:             cfg.Credentials,
 		unkeyEnvImage:           cfg.UnkeyEnvImage,
 		unkeyEnvImagePullPolicy: cfg.UnkeyEnvImagePullPolicy,
-		annotationPrefix:        cfg.AnnotationPrefix,
 		defaultProviderEndpoint: cfg.DefaultProviderEndpoint,
 	}
 }
@@ -49,28 +54,28 @@ type Result struct {
 }
 
 func (m *Mutator) ShouldMutate(pod *corev1.Pod) bool {
-	annotations := pod.GetAnnotations()
-	if annotations == nil {
+	labels := pod.GetLabels()
+	if labels == nil {
 		return false
 	}
 
-	return annotations[m.getAnnotation(AnnotationDeploymentID)] != ""
+	return labels[LabelDeploymentID] != ""
 }
 
 func (m *Mutator) Mutate(ctx context.Context, pod *corev1.Pod, namespace string) (*Result, error) {
 	if !m.ShouldMutate(pod) {
-		return &Result{Mutated: false, Patch: nil, Message: "pod not annotated for injection"}, nil
+		return &Result{Mutated: false, Patch: nil, Message: "pod not labeled for injection"}, nil
 	}
 
-	annotations := pod.GetAnnotations()
+	labels := pod.GetLabels()
 
-	podCfg, err := m.loadPodConfig(annotations)
+	podCfg, err := m.loadPodConfig(labels)
 	if err != nil {
 		return nil, err
 	}
 
 	var patches []map[string]interface{}
-	buildID := annotations[m.getAnnotation("build-id")]
+	buildID := labels[LabelBuildID]
 
 	// Check if any container uses a private registry image and inject imagePullSecret if needed
 	privateImages := m.collectPrivateRegistryImages(pod)
@@ -150,13 +155,6 @@ func (m *Mutator) collectPrivateRegistryImages(pod *corev1.Pod) []string {
 
 	return images
 }
-
-const (
-	// tokenTTL is the lifetime of Depot pull tokens. We use a slightly shorter
-	// duration for the expiry check to account for clock skew and processing time.
-	tokenTTL            = 55 * time.Minute
-	expiresAtAnnotation = "preflight.unkey.com/expires-at"
-)
 
 // ensurePullSecrets creates or reuses pull secrets for each private image and returns
 // patches to add them to the pod's imagePullSecrets.
