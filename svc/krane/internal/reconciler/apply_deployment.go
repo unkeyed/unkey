@@ -60,8 +60,10 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		ProjectID(req.GetProjectId()).
 		EnvironmentID(req.GetEnvironmentId()).
 		DeploymentID(req.GetDeploymentId()).
+		BuildID(req.GetBuildId()).
 		ManagedByKrane().
-		ComponentDeployment()
+		ComponentDeployment().
+		Inject()
 
 	desired := &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{

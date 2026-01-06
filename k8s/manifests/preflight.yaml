@@ -161,8 +161,8 @@ webhooks:
         - key: unkey.com/inject
           operator: In
           values: ["true"]
-    failurePolicy: Ignore
+    failurePolicy: Fail
     reinvocationPolicy: Never
     sideEffects: NoneOnDryRun
     admissionReviewVersions: ["v1"]
-    timeoutSeconds: 10
+    timeoutSeconds: 30
