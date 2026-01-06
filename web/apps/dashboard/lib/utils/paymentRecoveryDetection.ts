@@ -42,14 +42,6 @@ export class PaymentRecoveryDetector {
 
       // Check if this is likely an upgrade/downgrade payment
       if (await this.isSubscriptionChangePayment(invoice)) {
-        console.info("Payment success detected as subscription change, not recovery", {
-          invoiceId,
-          eventId: successEvent.id,
-          subscriptionId:
-            typeof invoice.subscription === "string"
-              ? invoice.subscription
-              : invoice.subscription?.id,
-        });
         return false;
       }
 
@@ -168,10 +160,6 @@ export class PaymentRecoveryDetector {
         );
 
         if (hasProrationLines) {
-          console.info("Invoice contains proration lines, likely subscription change", {
-            invoiceId: invoice.id,
-            subscriptionId,
-          });
           return true;
         }
       }

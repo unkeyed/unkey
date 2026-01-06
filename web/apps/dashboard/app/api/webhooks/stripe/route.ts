@@ -152,14 +152,6 @@ async function isPaymentRecoveryUpdate(
   // 2. Latest invoice changed (indicating successful payment processing)
   // 3. No manual changes to pricing, plan, or other subscription settings
 
-  console.info("Checking payment recovery update", {
-    subscriptionId: sub.id,
-    eventId: event.id,
-    currentStatus: sub.status,
-    previousAttributes: previousAttributes ? Object.keys(previousAttributes) : null,
-    previousStatus: previousAttributes?.status,
-  });
-
   if (!previousAttributes) {
     return false;
   }
@@ -188,14 +180,6 @@ async function isPaymentRecoveryUpdate(
 
   // If any manual change keys are present, this is not a payment recovery update
   const hasManualChanges = manualChangeKeys.some((key) => changedKeys.includes(key));
-
-  console.info("Payment recovery analysis", {
-    subscriptionId: sub.id,
-    statusRecovered,
-    invoiceChanged,
-    hasManualChanges,
-    changedKeys,
-  });
 
   // Quick check: if status recovered to active without manual changes, it's a payment recovery
   if (statusRecovered && !hasManualChanges) {
@@ -369,15 +353,6 @@ export const POST = async (req: Request): Promise<Response> => {
         // Skip database updates and notifications for payment failure related updates
         // Payment failures are handled by the invoice.payment_failed webhook
         if (isPaymentFailureRelatedUpdate(sub, previousAttributes)) {
-          console.info(
-            "Skipping subscription update due to payment failure - handled by payment webhook",
-            {
-              subscriptionId: sub.id,
-              eventId: event.id,
-              subscriptionStatus: sub.status,
-              previousAttributes: Object.keys(previousAttributes || {}),
-            },
-          );
           return new Response("OK", { status: 201 });
         }
 
@@ -385,15 +360,6 @@ export const POST = async (req: Request): Promise<Response> => {
         // Payment recoveries are handled by the invoice.payment_succeeded webhook
         const isRecovery = await isPaymentRecoveryUpdate(stripe, sub, previousAttributes, event);
         if (isRecovery) {
-          console.info(
-            "Skipping subscription update due to payment recovery - handled by payment success webhook",
-            {
-              subscriptionId: sub.id,
-              eventId: event.id,
-              subscriptionStatus: sub.status,
-              previousAttributes: Object.keys(previousAttributes || {}),
-            },
-          );
           return new Response("OK", { status: 201 });
         }
 
@@ -807,12 +773,6 @@ export const POST = async (req: Request): Promise<Response> => {
         // Extract payment failure details with validation
         const amount = invoice.amount_due || 0;
         const currency = invoice.currency || "usd";
-        const failureReason =
-          (typeof invoice.payment_intent === "object" &&
-            invoice.payment_intent?.last_payment_error?.message) ||
-          (typeof invoice.charge === "object" && invoice.charge?.failure_message) ||
-          invoice.last_finalization_error?.message ||
-          "Payment failed";
 
         // Validate amount and currency
         if (amount < 0) {
@@ -831,7 +791,7 @@ export const POST = async (req: Request): Promise<Response> => {
               customerEmail,
               (customer as Stripe.Customer).name || "Unknown",
               amount,
-              currency
+              currency,
             );
           }
         } catch (alertError) {
@@ -906,13 +866,6 @@ export const POST = async (req: Request): Promise<Response> => {
         }
 
         if (customer.deleted || !("email" in customer) || !customer.email) {
-          console.warn("Payment success event for deleted customer or customer without email", {
-            customerId: customer.id,
-            deleted: customer.deleted,
-            hasEmail: "email" in customer && !!customer.email,
-            invoiceId: invoice.id,
-            eventId: event.id,
-          });
           return new Response("OK", { status: 200 });
         }
 
