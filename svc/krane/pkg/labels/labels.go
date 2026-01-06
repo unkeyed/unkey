@@ -101,6 +101,26 @@ func (l Labels) EnvironmentID(id string) Labels {
 	return l
 }
 
+// Inject adds the inject label to the label set.
+//
+// This method sets the "unkey.com/inject" label to "true" to indicate
+// that the resource should be injected. Returns the same Labels instance
+// for method chaining.
+func (l Labels) Inject() Labels {
+	(l)["unkey.com/inject"] = "true"
+	return l
+}
+
+// BuildID adds build ID label to the label set.
+//
+// This method sets the "unkey.com/build.id" label for identifying
+// the build that produced the container image. Returns the same Labels
+// instance for method chaining.
+func (l Labels) BuildID(id string) Labels {
+	(l)["unkey.com/build.id"] = id
+	return l
+}
+
 // ToString converts Labels map to Kubernetes label selector string.
 //
 // This method formats the labels as a comma-separated list of key=value pairs
