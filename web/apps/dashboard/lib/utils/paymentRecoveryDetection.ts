@@ -49,6 +49,10 @@ export class PaymentRecoveryDetector {
         : invoice.customer?.id;
       
       if (!customerId) {
+        console.warn("Payment recovery detection: No customer ID found", {
+          invoiceId,
+          eventId: successEvent.id
+        });
         return false;
       }
 
@@ -58,36 +62,74 @@ export class PaymentRecoveryDetector {
       const successTimestamp = successEvent.created;
       const earliestFailureTime = successTimestamp - timeWindowSeconds;
 
-      // Retrieve recent events for this customer to look for payment failures
-      const recentEvents = await this.stripe.events.list({
-        type: 'invoice.payment_failed',
-        created: {
-          gte: earliestFailureTime,
-          lte: successTimestamp
-        },
-        limit: 100 // Reasonable limit to check recent failures
-      });
+      let recentEvents;
+      try {
+        // Retrieve recent events for this customer to look for payment failures
+        recentEvents = await this.stripe.events.list({
+          type: 'invoice.payment_failed',
+          created: {
+            gte: earliestFailureTime,
+            lte: successTimestamp
+          },
+          limit: 100 // Reasonable limit to check recent failures
+        });
+      } catch (eventsError) {
+        console.error("Failed to retrieve recent payment failure events:", {
+          error: eventsError,
+          customerId,
+          invoiceId,
+          eventId: successEvent.id
+        });
+        // Fallback to checking invoice payment attempts only
+        return await this.checkInvoicePaymentAttempts(invoice);
+      }
 
       // Check if any recent failure events are for the same invoice or customer
       const hasRecentFailure = recentEvents.data.some(failureEvent => {
-        const failedInvoice = failureEvent.data.object as Stripe.Invoice;
-        const failedCustomerId = typeof failedInvoice.customer === 'string'
-          ? failedInvoice.customer
-          : failedInvoice.customer?.id;
+        try {
+          const failedInvoice = failureEvent.data.object as Stripe.Invoice;
+          const failedCustomerId = typeof failedInvoice.customer === 'string'
+            ? failedInvoice.customer
+            : failedInvoice.customer?.id;
 
-        // Check if it's the same invoice or same customer with recent failure
-        return (
-          failedInvoice.id === invoiceId || 
-          (failedCustomerId === customerId && this.isRecentFailure(failureEvent, successTimestamp))
-        );
+          // Check if it's the same invoice or same customer with recent failure
+          return (
+            failedInvoice.id === invoiceId || 
+            (failedCustomerId === customerId && this.isRecentFailure(failureEvent, successTimestamp))
+          );
+        } catch (eventProcessingError) {
+          console.warn("Error processing failure event during recovery detection:", {
+            error: eventProcessingError,
+            failureEventId: failureEvent.id
+          });
+          return false;
+        }
       });
 
       // Additional check: examine the invoice's payment attempt history
-      const hasMultipleAttempts = await this.checkInvoicePaymentAttempts(invoice);
+      let hasMultipleAttempts = false;
+      try {
+        hasMultipleAttempts = await this.checkInvoicePaymentAttempts(invoice);
+      } catch (attemptsError) {
+        console.error("Failed to check invoice payment attempts:", {
+          error: attemptsError,
+          invoiceId,
+          eventId: successEvent.id
+        });
+        // Continue with just the recent failure check
+      }
 
       return hasRecentFailure || hasMultipleAttempts;
     } catch (error) {
-      console.error('Error detecting payment recovery:', error);
+      console.error('Error detecting payment recovery:', {
+        error: error instanceof Error ? {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        } : error,
+        invoiceId,
+        eventId: successEvent.id
+      });
       // Fail safely - if we can't determine, assume it's not a recovery
       return false;
     }
@@ -127,11 +169,21 @@ export class PaymentRecoveryDetector {
           ? invoice.payment_intent
           : invoice.payment_intent.id;
 
-        // Retrieve charges for this payment intent
-        const charges = await this.stripe.charges.list({
-          payment_intent: paymentIntentId,
-          limit: 10
-        });
+        let charges;
+        try {
+          // Retrieve charges for this payment intent
+          charges = await this.stripe.charges.list({
+            payment_intent: paymentIntentId,
+            limit: 10
+          });
+        } catch (chargesError) {
+          console.error('Error retrieving charges for payment intent:', {
+            error: chargesError,
+            paymentIntentId,
+            invoiceId: invoice.id
+          });
+          return false;
+        }
         
         // Check if there were multiple charges (indicating retry attempts)
         if (charges.data.length > 1) {
@@ -147,7 +199,14 @@ export class PaymentRecoveryDetector {
 
       return false;
     } catch (error) {
-      console.error('Error checking invoice payment attempts:', error);
+      console.error('Error checking invoice payment attempts:', {
+        error: error instanceof Error ? {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        } : error,
+        invoiceId: invoice.id
+      });
       return false;
     }
   }
@@ -225,23 +284,41 @@ export class PaymentRecoveryDetector {
       const lookbackSeconds = lookbackDays * 24 * 60 * 60;
       const earliestTime = currentTimestamp - lookbackSeconds;
 
-      // Get recent payment failure events for this customer
-      const failureEvents = await this.stripe.events.list({
-        type: 'invoice.payment_failed',
-        created: {
-          gte: earliestTime,
-          lte: currentTimestamp
-        },
-        limit: 50
-      });
+      let failureEvents;
+      try {
+        // Get recent payment failure events for this customer
+        failureEvents = await this.stripe.events.list({
+          type: 'invoice.payment_failed',
+          created: {
+            gte: earliestTime,
+            lte: currentTimestamp
+          },
+          limit: 50
+        });
+      } catch (eventsError) {
+        console.error('Error retrieving failure events for pattern analysis:', {
+          error: eventsError,
+          customerId,
+          currentTimestamp
+        });
+        return false;
+      }
 
       // Filter events for this specific customer
       const customerFailures = failureEvents.data.filter(event => {
-        const invoice = event.data.object as Stripe.Invoice;
-        const eventCustomerId = typeof invoice.customer === 'string'
-          ? invoice.customer
-          : invoice.customer?.id;
-        return eventCustomerId === customerId;
+        try {
+          const invoice = event.data.object as Stripe.Invoice;
+          const eventCustomerId = typeof invoice.customer === 'string'
+            ? invoice.customer
+            : invoice.customer?.id;
+          return eventCustomerId === customerId;
+        } catch (filterError) {
+          console.warn('Error filtering failure event:', {
+            error: filterError,
+            eventId: event.id
+          });
+          return false;
+        }
       });
 
       // Analyze failure patterns
@@ -261,7 +338,15 @@ export class PaymentRecoveryDetector {
 
       return timeSinceFailure <= recentFailureThreshold;
     } catch (error) {
-      console.error('Error analyzing failure patterns:', error);
+      console.error('Error analyzing failure patterns:', {
+        error: error instanceof Error ? {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        } : error,
+        customerId,
+        currentTimestamp
+      });
       return false;
     }
   }

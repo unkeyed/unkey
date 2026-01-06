@@ -1,3 +1,5 @@
+import { formatPrice } from "@/lib/fmt";
+
 export async function alertSubscriptionCreation(
   product: string,
   price: string,
@@ -186,42 +188,62 @@ export async function alertPaymentFailed(
 ): Promise<void> {
   const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
   if (!url) {
+    console.warn("Slack webhook URL not configured for payment failure alerts");
     return;
   }
 
-  const formattedAmount = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency.toUpperCase(),
-  }).format(amount / 100);
+  try {
+    // Use existing formatPrice utility for consistent formatting
+    const formattedAmount = formatPrice(amount);
 
-  const reasonText = failureReason ? ` Reason: ${failureReason}` : "";
+    const reasonText = failureReason ? ` Reason: ${failureReason}` : "";
 
-  await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `:warning: Payment failed for ${customerName}`,
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `:warning: Payment failed for ${customerName}`,
+            },
           },
-        },
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `Payment of ${formattedAmount} failed for ${customerEmail}.${reasonText} We should reach out to help resolve the payment issue.`,
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `Payment of ${formattedAmount} failed for ${customerEmail}.${reasonText} We should reach out to help resolve the payment issue.`,
+            },
           },
-        },
-      ],
-    }),
-  }).catch((err: Error) => {
-    console.error(err);
-  });
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Failed to send payment failure alert to Slack:", {
+        status: response.status,
+        statusText: response.statusText,
+        customerEmail,
+        amount,
+        currency
+      });
+    }
+  } catch (err: unknown) {
+    console.error("Error sending payment failure alert:", {
+      error: err instanceof Error ? {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      } : err,
+      customerEmail,
+      amount,
+      currency
+    });
+  }
 }
 
 export async function alertPaymentRecovered(
@@ -232,38 +254,58 @@ export async function alertPaymentRecovered(
 ): Promise<void> {
   const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
   if (!url) {
+    console.warn("Slack webhook URL not configured for payment recovery alerts");
     return;
   }
 
-  const formattedAmount = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency.toUpperCase(),
-  }).format(amount / 100);
+  try {
+    // Use existing formatPrice utility for consistent formatting
+    const formattedAmount = formatPrice(amount);
 
-  await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `:tada: Payment recovered for ${customerName}`,
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `:tada: Payment recovered for ${customerName}`,
+            },
           },
-        },
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `Great news! Payment of ${formattedAmount} has been successfully processed for ${customerEmail} after a previous failure. Their service should now be restored.`,
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `Great news! Payment of ${formattedAmount} has been successfully processed for ${customerEmail} after a previous failure. Their service should now be restored.`,
+            },
           },
-        },
-      ],
-    }),
-  }).catch((err: Error) => {
-    console.error(err);
-  });
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Failed to send payment recovery alert to Slack:", {
+        status: response.status,
+        statusText: response.statusText,
+        customerEmail,
+        amount,
+        currency
+      });
+    }
+  } catch (err: unknown) {
+    console.error("Error sending payment recovery alert:", {
+      error: err instanceof Error ? {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      } : err,
+      customerEmail,
+      amount,
+      currency
+    });
+  }
 }

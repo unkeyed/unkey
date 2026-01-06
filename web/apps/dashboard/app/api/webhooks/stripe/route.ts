@@ -5,10 +5,13 @@ import { formatPrice } from "@/lib/fmt";
 import { freeTierQuotas } from "@/lib/quotas";
 import {
   alertIsCancellingSubscription,
+  alertPaymentFailed,
+  alertPaymentRecovered,
   alertSubscriptionCancelled,
   alertSubscriptionCreation,
   alertSubscriptionUpdate,
 } from "@/lib/utils/slackAlerts";
+import { isPaymentRecovery } from "@/lib/utils/paymentRecoveryDetection";
 import Stripe from "stripe";
 
 interface PreviousAttributes {
@@ -28,6 +31,52 @@ interface PreviousAttributes {
   cancel_at_period_end?: boolean;
   collection_method?: string;
   latest_invoice?: string | Stripe.Invoice | null;
+  
+  // Status changes (can indicate payment failures)
+  status?: Stripe.Subscription.Status;
+}
+
+function isPaymentFailureRelatedUpdate(
+  sub: Stripe.Subscription,
+  previousAttributes: PreviousAttributes | undefined,
+): boolean {
+  // Detect if subscription update is due to payment failure
+  // This happens when:
+  // 1. Subscription status changed to past_due, unpaid, or incomplete
+  // 2. Latest invoice changed (indicating a payment attempt)
+  // 3. No manual changes to pricing, plan, or other subscription settings
+
+  if (!previousAttributes) {
+    return false;
+  }
+
+  const changedKeys = Object.keys(previousAttributes);
+
+  // Check if status changed to a payment-failure-related status
+  const paymentFailureStatuses = ['past_due', 'unpaid', 'incomplete'];
+  const statusChanged = changedKeys.includes('status') && 
+    paymentFailureStatuses.includes(sub.status);
+
+  // Check if latest_invoice changed (indicates payment processing)
+  const invoiceChanged = changedKeys.includes('latest_invoice');
+
+  // Define keys that indicate manual changes (not payment-related)
+  const manualChangeKeys = [
+    'cancel_at_period_end',
+    'collection_method',
+    'plan',
+    'quantity',
+    'discount',
+    'items', // pricing/plan changes
+  ];
+
+  // If any manual change keys are present, this is not a payment failure update
+  const hasManualChanges = manualChangeKeys.some((key) => changedKeys.includes(key));
+
+  // Consider it a payment failure update if:
+  // - Status changed to payment failure status, OR
+  // - Latest invoice changed without manual subscription changes
+  return (statusChanged || invoiceChanged) && !hasManualChanges;
 }
 
 function isAutomatedBillingRenewal(
@@ -136,22 +185,21 @@ export const runtime = "nodejs";
 export const POST = async (req: Request): Promise<Response> => {
   const signature = req.headers.get("stripe-signature");
   if (!signature) {
-    throw new Error("Signature missing");
+    console.error("Webhook signature validation failed: Missing stripe-signature header");
+    return new Response("Webhook signature missing", { status: 400 });
   }
 
   const e = stripeEnv();
 
   if (!e) {
-    throw new Error(
-      "Stripe environment configuration is missing. Check that STRIPE_SECRET_KEY and other required Stripe environment variables are properly set.",
-    );
+    console.error("Stripe environment configuration is missing. Check that STRIPE_SECRET_KEY and other required Stripe environment variables are properly set.");
+    return new Response("Server configuration error", { status: 500 });
   }
 
   const stripeSecretKey = stripeEnv()?.STRIPE_SECRET_KEY;
   if (!stripeSecretKey) {
-    throw new Error(
-      "STRIPE_SECRET_KEY environment variable is not set. This is required for Stripe API operations.",
-    );
+    console.error("STRIPE_SECRET_KEY environment variable is not set. This is required for Stripe API operations.");
+    return new Response("Server configuration error", { status: 500 });
   }
 
   const stripe = new Stripe(stripeSecretKey, {
@@ -159,11 +207,26 @@ export const POST = async (req: Request): Promise<Response> => {
     typescript: true,
   });
 
-  const event = stripe.webhooks.constructEvent(
-    await req.text(),
-    signature,
-    e.STRIPE_WEBHOOK_SECRET,
-  );
+  let event: Stripe.Event;
+  let requestBody: string;
+
+  try {
+    requestBody = await req.text();
+  } catch (error) {
+    console.error("Failed to read request body:", error);
+    return new Response("Error", { status: 400 });
+  }
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      requestBody,
+      signature,
+      e.STRIPE_WEBHOOK_SECRET,
+    );
+  } catch (error) {
+    console.error("Webhook signature validation failed:", error);
+    return new Response("Error ", { status: 400 });
+  }
   switch (event.type) {
     case "customer.subscription.updated": {
       try {
@@ -174,7 +237,10 @@ export const POST = async (req: Request): Promise<Response> => {
             and(eq(table.stripeSubscriptionId, sub.id), isNull(table.deletedAtM)),
         });
         if (!ws) {
-          console.error("Workspace not found for subscription:", sub.id);
+          console.error("Workspace not found for subscription:", {
+            subscriptionId: sub.id,
+            eventId: event.id
+          });
           return new Response("OK", { status: 200 });
         }
 
@@ -182,7 +248,19 @@ export const POST = async (req: Request): Promise<Response> => {
 
         // Skip database updates and notifications for automated billing renewals
         if (isAutomatedBillingRenewal(sub, previousAttributes)) {
-          return new Response("Skip", { status: 201 });
+          return new Response("OK", { status: 201 });
+        }
+
+        // Skip database updates and notifications for payment failure related updates
+        // Payment failures are handled by the invoice.payment_failed webhook
+        if (isPaymentFailureRelatedUpdate(sub, previousAttributes)) {
+          console.info("Skipping subscription update due to payment failure - handled by payment webhook", {
+            subscriptionId: sub.id,
+            eventId: event.id,
+            subscriptionStatus: sub.status,
+            previousAttributes: Object.keys(previousAttributes || {})
+          });
+          return new Response("OK", { status: 201 });
         }
 
         if (!sub.items?.data?.[0]?.price?.id || !sub.customer) {
@@ -308,7 +386,11 @@ export const POST = async (req: Request): Promise<Response> => {
               }
             }
           } catch (error) {
-            console.error("Error retrieving previous subscription details:", error);
+            console.error("Error retrieving previous subscription details:", {
+              error,
+              eventId: event.id,
+              subscriptionId: sub.id
+            });
           }
         }
 
@@ -326,64 +408,97 @@ export const POST = async (req: Request): Promise<Response> => {
           );
         }
       } catch (error) {
-        console.error("Webhook error:", error);
+        console.error("Subscription update webhook error:", {
+          error: error instanceof Error ? {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+          } : error,
+          eventId: event.id,
+          eventType: event.type
+        });
         return new Response("Error", { status: 500 });
       }
       break;
     }
     case "customer.subscription.deleted": {
-      const sub = event.data.object as Stripe.Subscription;
+      try {
+        const sub = event.data.object as Stripe.Subscription;
 
-      const ws = await db.query.workspaces.findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.stripeSubscriptionId, sub.id), isNull(table.deletedAtM)),
-      });
-      if (!ws) {
-        console.error("Workspace not found for subscription:", sub.id);
-        return new Response("OK", { status: 200 });
-      }
-      await db
-        .update(schema.workspaces)
-        .set({
-          stripeSubscriptionId: null,
-          tier: "Free",
-        })
-        .where(eq(schema.workspaces.id, ws.id));
+        const ws = await db.query.workspaces.findFirst({
+          where: (table, { and, eq, isNull }) =>
+            and(eq(table.stripeSubscriptionId, sub.id), isNull(table.deletedAtM)),
+        });
+        if (!ws) {
+          console.error("Workspace not found for subscription:", {
+            subscriptionId: sub.id,
+            eventId: event.id
+          });
+          return new Response("OK", { status: 200 });
+        }
+        await db
+          .update(schema.workspaces)
+          .set({
+            stripeSubscriptionId: null,
+            tier: "Free",
+          })
+          .where(eq(schema.workspaces.id, ws.id));
 
-      await db
-        .insert(schema.quotas)
-        .values({
+        await db
+          .insert(schema.quotas)
+          .values({
+            workspaceId: ws.id,
+            ...freeTierQuotas,
+          })
+          .onDuplicateKeyUpdate({
+            set: freeTierQuotas,
+          });
+
+        await insertAuditLogs(db, {
           workspaceId: ws.id,
-          ...freeTierQuotas,
-        })
-        .onDuplicateKeyUpdate({
-          set: freeTierQuotas,
+          actor: {
+            type: "system",
+            id: "stripe",
+          },
+          event: "workspace.update",
+          description: "Cancelled subscription.",
+          resources: [],
+          context: {
+            location: "",
+            userAgent: undefined,
+          },
         });
 
-      await insertAuditLogs(db, {
-        workspaceId: ws.id,
-        actor: {
-          type: "system",
-          id: "stripe",
-        },
-        event: "workspace.update",
-        description: "Cancelled subscription.",
-        resources: [],
-        context: {
-          location: "",
-          userAgent: undefined,
-        },
-      });
+        // Send notification for subscription cancellation
+        if (sub.customer) {
+          try {
+            const customer = await stripe.customers.retrieve(
+              typeof sub.customer === "string" ? sub.customer : sub.customer.id,
+            );
 
-      // Send notification for subscription cancellation
-      if (sub.customer) {
-        const customer = await stripe.customers.retrieve(
-          typeof sub.customer === "string" ? sub.customer : sub.customer.id,
-        );
-
-        if (customer && !customer.deleted && customer.email) {
-          await alertSubscriptionCancelled(customer.email, customer.name || "Unknown");
+            if (customer && !customer.deleted && customer.email) {
+              await alertSubscriptionCancelled(customer.email, customer.name || "Unknown");
+            }
+          } catch (customerError) {
+            console.error("Failed to retrieve customer for subscription cancellation alert:", {
+              error: customerError,
+              subscriptionId: sub.id,
+              eventId: event.id
+            });
+            // Continue without sending alert rather than failing
+          }
         }
+      } catch (error) {
+        console.error("Subscription deletion webhook error:", {
+          error: error instanceof Error ? {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+          } : error,
+          eventId: event.id,
+          eventType: event.type
+        });
+        return new Response("Error", { status: 500 });
       }
       break;
     }
@@ -422,7 +537,10 @@ export const POST = async (req: Request): Promise<Response> => {
         });
 
         if (!ws) {
-          console.error("Workspace not found for customer:", customerId);
+          console.error("Workspace not found for customer:", {
+            customerId,
+            eventId: event.id
+          });
           return new Response("OK", { status: 200 });
         }
 
@@ -488,13 +606,268 @@ export const POST = async (req: Request): Promise<Response> => {
         );
         break;
       } catch (error) {
-        console.error("Webhook error:", error);
+        console.error("Subscription creation webhook error:", {
+          error: error instanceof Error ? {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+          } : error,
+          eventId: event.id,
+          eventType: event.type
+        });
         return new Response("Error", { status: 500 });
       }
     }
 
+    case "invoice.payment_failed": {
+      try {
+        const invoice = event.data.object as Stripe.Invoice;
+
+        // Validate invoice data structure
+        if (!invoice || typeof invoice !== 'object') {
+          console.error("Payment failed event received with invalid invoice data structure");
+          return new Response("Invalid event data", { status: 400 });
+        }
+
+        // Extract customer information from the invoice
+        if (!invoice.customer) {
+          console.warn("Payment failed event received without customer information", {
+            invoiceId: invoice.id,
+            eventId: event.id
+          });
+          return new Response("OK", { status: 200 });
+        }
+
+        let customer: Stripe.Customer | Stripe.DeletedCustomer;
+        
+        try {
+          // Get customer details from Stripe with timeout handling
+          customer = await stripe.customers.retrieve(
+            typeof invoice.customer === "string" ? invoice.customer : invoice.customer.id,
+          );
+        } catch (customerError) {
+          console.error("Failed to retrieve customer for payment failure event:", {
+            error: customerError,
+            customerId: typeof invoice.customer === "string" ? invoice.customer : invoice.customer.id,
+            invoiceId: invoice.id,
+            eventId: event.id
+          });
+          // Continue processing without customer details rather than failing completely
+          return new Response("OK", { status: 200 });
+        }
+
+        if (customer.deleted || !('email' in customer) || !customer.email) {
+          console.warn("Payment failed event for deleted customer or customer without email", {
+            customerId: customer.id,
+            deleted: customer.deleted,
+            hasEmail: 'email' in customer && !!customer.email,
+            invoiceId: invoice.id,
+            eventId: event.id
+          });
+          return new Response("OK", { status: 200 });
+        }
+
+        // Extract payment failure details with validation
+        const amount = invoice.amount_due || 0;
+        const currency = invoice.currency || "usd";
+        const failureReason = invoice.last_finalization_error?.message;
+
+        // Validate amount and currency
+        if (amount < 0) {
+          console.warn("Payment failed event with negative amount", {
+            amount,
+            invoiceId: invoice.id,
+            eventId: event.id
+          });
+        }
+
+        try {
+          // Send payment failure alert without triggering subscription updates
+          await alertPaymentFailed(
+            (customer as Stripe.Customer).email!,
+            (customer as Stripe.Customer).name || "Unknown",
+            amount,
+            currency,
+            failureReason,
+          );
+
+          console.log("Payment failure alert sent successfully", {
+            customerEmail: (customer as Stripe.Customer).email,
+            amount,
+            currency,
+            invoiceId: invoice.id,
+            eventId: event.id
+          });
+        } catch (alertError) {
+          console.error("Failed to send payment failure alert:", {
+            error: alertError,
+            customerEmail: (customer as Stripe.Customer).email,
+            invoiceId: invoice.id,
+            eventId: event.id
+          });
+          // Don't fail the webhook if alert fails - return success to prevent retries
+          return new Response("Alert failed but event processed", { status: 200 });
+        }
+
+        // Return success immediately to prevent fall-through to other webhook handlers
+        return new Response("OK", { status: 200 });
+        
+      } catch (error) {
+        console.error("Error processing payment failure webhook:", {
+          error: error instanceof Error ? {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+          } : error,
+          eventId: event.id,
+          eventType: event.type
+        });
+        
+        // Return 200 to prevent Stripe from retrying, but log the error
+        // This ensures payment processing errors don't affect other webhook types
+        return new Response("Error processing payment failure", { status: 200 });
+      }
+      break;
+    }
+
+    case "invoice.payment_succeeded": {
+      try {
+        const invoice = event.data.object as Stripe.Invoice;
+
+        // Validate invoice data structure
+        if (!invoice || typeof invoice !== 'object') {
+          console.error("Payment success event received with invalid invoice data structure");
+          return new Response("Invalid event data", { status: 400 });
+        }
+
+        // Extract customer information from the invoice
+        if (!invoice.customer) {
+          console.warn("Payment success event received without customer information", {
+            invoiceId: invoice.id,
+            eventId: event.id
+          });
+          return new Response("OK", { status: 200 });
+        }
+
+        let customer: Stripe.Customer | Stripe.DeletedCustomer;
+        
+        try {
+          // Get customer details from Stripe with timeout handling
+          customer = await stripe.customers.retrieve(
+            typeof invoice.customer === "string" ? invoice.customer : invoice.customer.id,
+          );
+        } catch (customerError) {
+          console.error("Failed to retrieve customer for payment success event:", {
+            error: customerError,
+            customerId: typeof invoice.customer === "string" ? invoice.customer : invoice.customer.id,
+            invoiceId: invoice.id,
+            eventId: event.id
+          });
+          // Continue processing without customer details rather than failing completely
+          return new Response("OK", { status: 200 });
+        }
+
+        if (customer.deleted || !('email' in customer) || !customer.email) {
+          console.warn("Payment success event for deleted customer or customer without email", {
+            customerId: customer.id,
+            deleted: customer.deleted,
+            hasEmail: 'email' in customer && !!customer.email,
+            invoiceId: invoice.id,
+            eventId: event.id
+          });
+          return new Response("OK", { status: 200 });
+        }
+
+        let isRecovery = false;
+        
+        try {
+          // Use recovery detection logic to determine if success follows failure
+          isRecovery = await isPaymentRecovery(stripe, event);
+        } catch (recoveryError) {
+          console.error("Failed to determine payment recovery status:", {
+            error: recoveryError,
+            invoiceId: invoice.id,
+            eventId: event.id,
+            customerEmail: customer.email
+          });
+          // Assume not a recovery if detection fails to avoid false positives
+          isRecovery = false;
+        }
+
+        // Send recovery alert only when appropriate (after previous failures)
+        if (isRecovery) {
+          const amount = invoice.amount_paid || 0;
+          const currency = invoice.currency || "usd";
+
+          // Validate amount and currency
+          if (amount < 0) {
+            console.warn("Payment success event with negative amount", {
+              amount,
+              invoiceId: invoice.id,
+              eventId: event.id
+            });
+          }
+
+          try {
+            await alertPaymentRecovered(
+              (customer as Stripe.Customer).email!,
+              (customer as Stripe.Customer).name || "Unknown",
+              amount,
+              currency,
+            );
+
+            console.log("Payment recovery alert sent successfully", {
+              customerEmail: (customer as Stripe.Customer).email,
+              amount,
+              currency,
+              invoiceId: invoice.id,
+              eventId: event.id
+            });
+          } catch (alertError) {
+            console.error("Failed to send payment recovery alert:", {
+              error: alertError,
+              customerEmail: (customer as Stripe.Customer).email,
+              invoiceId: invoice.id,
+              eventId: event.id
+            });
+            // Don't fail the webhook if alert fails - return success to prevent retries
+            return new Response("Alert failed but event processed", { status: 200 });
+          }
+        } else {
+          console.log("Payment success processed - no recovery alert needed", {
+            customerEmail: (customer as Stripe.Customer).email,
+            invoiceId: invoice.id,
+            eventId: event.id,
+            isRecovery
+          });
+        }
+
+        // Return success immediately to prevent fall-through to other webhook handlers
+        return new Response("OK", { status: 200 });
+
+      } catch (error) {
+        console.error("Error processing payment success webhook:", {
+          error: error instanceof Error ? {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+          } : error,
+          eventId: event.id,
+          eventType: event.type
+        });
+        
+        // Return 200 to prevent Stripe from retrying, but log the error
+        // This ensures payment processing errors don't affect other webhook types
+        return new Response("Error processing payment success", { status: 200 });
+      }
+      break;
+    }
+
     default:
-      console.warn("Incoming stripe event, that should not be received", event.type);
+      console.warn("Incoming stripe event that should not be received:", {
+        eventType: event.type,
+        eventId: event.id
+      });
       break;
   }
   return new Response("OK");
