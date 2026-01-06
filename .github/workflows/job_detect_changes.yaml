@@ -87,11 +87,26 @@ jobs:
 
             # Go services (API v2, Ctrl, Deploy services)
             go:
-              - './**' # not really sure what to do here
+              - 'cmd/**'
+              - 'svc/**'
+              - 'pkg/**'
+              - 'internal/**'
+              - 'proto/**'
+              - 'gen/**'
+              - 'demo_api/**'
+              - 'test-docker/**'
+              - 'go.mod'
+              - 'go.sum'
+              - '*.go'
+              - 'tools/**'
+              - 'web/apps/agent/**'
 
             # ClickHouse schema and related
             clickhouse:
-              - 'internal/clickhouse/**'
+              - 'pkg/clickhouse/**'
+              - 'web/internal/clickhouse/**'
+              - 'web/apps/agent/pkg/clickhouse/**'
+              - 'deployment/config/clickhouse/**'
 
             # Documentation (apps/docs only - .md files ARE content)
             docs:

@@ -11,7 +11,7 @@ COPY . .
 WORKDIR /unkey/web
 
 
-RUN pnpm install
+RUN pnpm install --frozen-lockfile
 
 RUN pnpm turbo build --filter=api...
 
