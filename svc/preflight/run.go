@@ -75,7 +75,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Credentials:             credentialsManager,
 		UnkeyEnvImage:           cfg.UnkeyEnvImage,
 		UnkeyEnvImagePullPolicy: cfg.UnkeyEnvImagePullPolicy,
-		AnnotationPrefix:        cfg.AnnotationPrefix,
 		DefaultProviderEndpoint: cfg.KraneEndpoint,
 	})
 

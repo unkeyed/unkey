@@ -12,7 +12,7 @@ RUN rm -rf ./**/node_modules
 WORKDIR /unkey/web
 
 
-RUN pnpm install
+RUN pnpm install --frozen-lockfile
 
 RUN pnpm turbo build --filter=api...
 
