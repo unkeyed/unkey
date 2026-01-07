@@ -106,12 +106,6 @@ func run(ctx context.Context, cfg Config) error {
 		logger = logger.With(slog.String("deployment", cfg.DeploymentID))
 	}
 
-	logger.Debug("starting unkey-env",
-		"provider", cfg.Provider,
-		"endpoint", cfg.Endpoint,
-		"deployment", cfg.DeploymentID,
-	)
-
 	p, err := provider.New(provider.Config{
 		Type:     cfg.Provider,
 		Endpoint: cfg.Endpoint,
