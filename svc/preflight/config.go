@@ -9,16 +9,12 @@ type Config struct {
 	UnkeyEnvImage           string
 	UnkeyEnvImagePullPolicy string
 	KraneEndpoint           string
-	AnnotationPrefix        string
 	DepotToken              string
 }
 
 func (c *Config) Validate() error {
 	if c.HttpPort == 0 {
 		c.HttpPort = 8443
-	}
-	if c.AnnotationPrefix == "" {
-		c.AnnotationPrefix = "unkey.com"
 	}
 
 	return assert.All(

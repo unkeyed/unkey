@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-pnpm install
+pnpm install --frozen-lockfile
 
 docker compose -f ../../../deployment/docker-compose.yaml up -d planetscale agent clickhouse apiv2
 
