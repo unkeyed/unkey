@@ -7,7 +7,7 @@ permissions:
   contents: read
 jobs:
   detect_changes:
-    if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
+    if: github.event.pull_request.draft == true || github.event_name != 'pull_request'
     uses: ./.github/workflows/job_detect_changes.yaml
   autofix:
     if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
