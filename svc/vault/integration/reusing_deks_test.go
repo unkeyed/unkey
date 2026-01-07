@@ -37,10 +37,13 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 	_, masterKey, err := keys.GenerateMasterKey()
 	require.NoError(t, err)
 
+	bearer := uid.Nano("")
+
 	v, err := vault.New(vault.Config{
-		Storage:    storage,
-		Logger:     logger,
-		MasterKeys: []string{masterKey},
+		Storage:     storage,
+		Logger:      logger,
+		MasterKeys:  []string{masterKey},
+		BearerToken: bearer,
 	})
 	require.NoError(t, err)
 
@@ -49,10 +52,12 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 	deks := map[string]bool{}
 
 	for range 10 {
-		res, encryptErr := v.Encrypt(ctx, connect.NewRequest(&vaultv1.EncryptRequest{
+		req := connect.NewRequest(&vaultv1.EncryptRequest{
 			Keyring: "keyring",
 			Data:    uid.New(uid.TestPrefix),
-		}))
+		})
+		req.Header().Add("Authorization", fmt.Sprintf("Bearer %s", bearer))
+		res, encryptErr := v.Encrypt(ctx, req)
 		require.NoError(t, encryptErr)
 		deks[res.Msg.GetKeyId()] = true
 	}
@@ -79,11 +84,13 @@ func TestIndividualDEKsPerKeyring(t *testing.T) {
 
 	_, masterKey, err := keys.GenerateMasterKey()
 	require.NoError(t, err)
+	bearer := uid.Nano("")
 
 	v, err := vault.New(vault.Config{
-		Storage:    storage,
-		Logger:     logger,
-		MasterKeys: []string{masterKey},
+		Storage:     storage,
+		Logger:      logger,
+		MasterKeys:  []string{masterKey},
+		BearerToken: bearer,
 	})
 	require.NoError(t, err)
 
@@ -92,10 +99,12 @@ func TestIndividualDEKsPerKeyring(t *testing.T) {
 	deks := map[string]bool{}
 
 	for range 10 {
-		res, encryptErr := v.Encrypt(ctx, connect.NewRequest(&vaultv1.EncryptRequest{
+		req := connect.NewRequest(&vaultv1.EncryptRequest{
 			Keyring: uid.New(uid.TestPrefix),
 			Data:    uid.New(uid.TestPrefix),
-		}))
+		})
+		req.Header().Add("Authorization", fmt.Sprintf("Bearer %s", bearer))
+		res, encryptErr := v.Encrypt(ctx, req)
 		require.NoError(t, encryptErr)
 		deks[res.Msg.GetKeyId()] = true
 	}

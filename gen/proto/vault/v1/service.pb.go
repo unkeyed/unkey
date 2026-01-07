@@ -7,6 +7,7 @@
 package vaultv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -490,25 +491,25 @@ var File_vault_v1_service_proto protoreflect.FileDescriptor
 
 const file_vault_v1_service_proto_rawDesc = "" +
 	"\n" +
-	"\x16vault/v1/service.proto\x12\bvault.v1\"\x11\n" +
+	"\x16vault/v1/service.proto\x12\bvault.v1\x1a\x1bbuf/validate/validate.proto\"\x11\n" +
 	"\x0fLivenessRequest\"*\n" +
 	"\x10LivenessResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status\">\n" +
-	"\x0eEncryptRequest\x12\x18\n" +
-	"\akeyring\x18\x01 \x01(\tR\akeyring\x12\x12\n" +
-	"\x04data\x18\x02 \x01(\tR\x04data\"F\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status\"R\n" +
+	"\x0eEncryptRequest\x12!\n" +
+	"\akeyring\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x18@R\akeyring\x12\x1d\n" +
+	"\x04data\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x02R\x04data\"F\n" +
 	"\x0fEncryptResponse\x12\x1c\n" +
 	"\tencrypted\x18\x01 \x01(\tR\tencrypted\x12\x15\n" +
-	"\x06key_id\x18\x02 \x01(\tR\x05keyId\"H\n" +
-	"\x0eDecryptRequest\x12\x18\n" +
-	"\akeyring\x18\x01 \x01(\tR\akeyring\x12\x1c\n" +
-	"\tencrypted\x18\x02 \x01(\tR\tencrypted\"/\n" +
+	"\x06key_id\x18\x02 \x01(\tR\x05keyId\"\\\n" +
+	"\x0eDecryptRequest\x12!\n" +
+	"\akeyring\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x18@R\akeyring\x12'\n" +
+	"\tencrypted\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x02R\tencrypted\"/\n" +
 	"\x0fDecryptResponse\x12\x1c\n" +
-	"\tplaintext\x18\x01 \x01(\tR\tplaintext\"q\n" +
-	"\x10ReEncryptRequest\x12\x18\n" +
-	"\akeyring\x18\x01 \x01(\tR\akeyring\x12\x1c\n" +
-	"\tencrypted\x18\x02 \x01(\tR\tencrypted\x12\x1a\n" +
-	"\x06key_id\x18\x03 \x01(\tH\x00R\x05keyId\x88\x01\x01B\t\n" +
+	"\tplaintext\x18\x01 \x01(\tR\tplaintext\"\x8e\x01\n" +
+	"\x10ReEncryptRequest\x12!\n" +
+	"\akeyring\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x18@R\akeyring\x12'\n" +
+	"\tencrypted\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x02R\tencrypted\x12#\n" +
+	"\x06key_id\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x18@H\x00R\x05keyId\x88\x01\x01B\t\n" +
 	"\a_key_id\"H\n" +
 	"\x11ReEncryptResponse\x12\x1c\n" +
 	"\tencrypted\x18\x01 \x01(\tR\tencrypted\x12\x15\n" +

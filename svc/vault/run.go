@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"time"
 
+	"connectrpc.com/connect"
+	"connectrpc.com/validate"
+
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/shutdown"
@@ -43,15 +46,18 @@ func Run(ctx context.Context, cfg Config) error {
 
 	s3 = storagemiddleware.WithTracing("s3", s3)
 	v, err := vault.New(vault.Config{
-		Logger:     logger,
-		Storage:    s3,
-		MasterKeys: cfg.MasterKeys,
+		Logger:      logger,
+		Storage:     s3,
+		MasterKeys:  cfg.MasterKeys,
+		BearerToken: cfg.BearerToken,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create vault service: %w", err)
 	}
 
-	mux.Handle(vaultv1connect.NewVaultServiceHandler(v))
+	mux.Handle(vaultv1connect.NewVaultServiceHandler(v,
+		connect.WithInterceptors(validate.NewInterceptor()),
+	))
 
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)
 	server := &http.Server{

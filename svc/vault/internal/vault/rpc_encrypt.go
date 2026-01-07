@@ -19,6 +19,9 @@ func (s *Service) Encrypt(
 	ctx context.Context,
 	req *connect.Request[vaultv1.EncryptRequest],
 ) (*connect.Response[vaultv1.EncryptResponse], error) {
+	if err := s.authenticate(req); err != nil {
+		return nil, err
+	}
 	res, err := s.encrypt(ctx, req.Msg)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)

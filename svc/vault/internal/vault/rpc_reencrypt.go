@@ -10,6 +10,9 @@ import (
 )
 
 func (s *Service) ReEncrypt(ctx context.Context, req *connect.Request[vaultv1.ReEncryptRequest]) (*connect.Response[vaultv1.ReEncryptResponse], error) {
+	if err := s.authenticate(req); err != nil {
+		return nil, err
+	}
 	ctx, span := tracing.Start(ctx, "vault.ReEncrypt")
 	defer span.End()
 	s.logger.Info("reencrypting",

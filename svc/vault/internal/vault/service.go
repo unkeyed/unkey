@@ -28,14 +28,16 @@ type Service struct {
 	encryptionKey  *vaultv1.KeyEncryptionKey
 
 	keyring *keyring.Keyring
+	bearer  string
 }
 
 var _ vaultv1connect.VaultServiceHandler = (*Service)(nil)
 
 type Config struct {
-	Logger     logging.Logger
-	Storage    storage.Storage
-	MasterKeys []string
+	Logger      logging.Logger
+	Storage     storage.Storage
+	MasterKeys  []string
+	BearerToken string
 }
 
 func New(cfg Config) (*Service, error) {
@@ -76,6 +78,7 @@ func New(cfg Config) (*Service, error) {
 
 		encryptionKey: encryptionKey,
 		keyring:       kr,
+		bearer:        cfg.BearerToken,
 	}, nil
 }
 

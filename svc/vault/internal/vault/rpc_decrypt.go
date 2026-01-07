@@ -17,6 +17,10 @@ func (s *Service) Decrypt(
 	ctx context.Context,
 	req *connect.Request[vaultv1.DecryptRequest],
 ) (*connect.Response[vaultv1.DecryptResponse], error) {
+	if err := s.authenticate(req); err != nil {
+		return nil, err
+	}
+
 	res, err := s.decrypt(ctx, req.Msg)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)

@@ -7,8 +7,8 @@ modules:
   - path: proto
 
 deps:
-  - buf.build/googleapis/googleapis
   - buf.build/restatedev/sdk-go
+  - buf.build/bufbuild/protovalidate
 lint:
   use:
     - STANDARD

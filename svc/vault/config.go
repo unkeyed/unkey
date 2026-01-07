@@ -28,6 +28,8 @@ type Config struct {
 	//
 	// If multiple keys are provided, vault will start a rekey process to migrate all secrets to the new key
 	MasterKeys []string
+	// BearerToken is the authentication token for securing vault operations
+	BearerToken string
 }
 
 func (c Config) Validate() error {
@@ -42,6 +44,7 @@ func (c Config) Validate() error {
 		assert.NotEmpty(c.S3AccessKeyID, "s3AccessKeyID must not be empty"),
 		assert.NotEmpty(c.S3AccessKeySecret, "s3AccessKeySecret must not be empty"),
 		assert.NotEmpty(c.MasterKeys, "masterKeys must not be empty"),
+		assert.NotEmpty(c.BearerToken, "bearerToken must not be empty"),
 	)
 
 }

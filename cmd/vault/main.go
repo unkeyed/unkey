@@ -30,10 +30,9 @@ var Cmd = &cli.Command{
 		cli.String("instance-id", "Unique identifier for this instance. Auto-generated if not provided.",
 			cli.Default(uid.New(uid.InstancePrefix, 4)), cli.EnvVar("UNKEY_INSTANCE_ID")),
 
-		// Control Plane Specific
-		cli.String("auth-token", "Authentication token for API access.",
+		cli.String("bearer-token", "Authentication token for API access.",
 			cli.Required(),
-			cli.EnvVar("UNKEY_AUTH_TOKEN")),
+			cli.EnvVar("UNKEY_BEARER_TOKEN")),
 
 		// Vault Configuration - General secrets (env vars, API keys)
 		cli.StringSlice("master-keys", "Vault master keys for encryption (general vault)",
@@ -63,6 +62,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		S3AccessKeyID:     cmd.RequireString("s3-access-key-id"),
 		S3AccessKeySecret: cmd.RequireString("s3-access-key-secret"),
 		MasterKeys:        cmd.RequireStringSlice("master-keys"),
+		BearerToken:       cmd.RequireString("bearer-token"),
 	}
 
 	err := config.Validate()
