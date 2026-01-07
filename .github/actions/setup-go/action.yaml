@@ -17,7 +17,7 @@ runs:
         cache-dependency-path: ./go.sum
 
     - name: Install
-      run: go mod download
+      run: make install-go
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
