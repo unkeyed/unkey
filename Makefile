@@ -64,15 +64,15 @@ fmt: ## Format code and run linters
 
 .PHONY: pull
 pull: ## Pull latest Docker images for services
-	@docker compose -f ../deployment/docker-compose.yaml pull
+	@docker compose -f ./deployment/docker-compose.yaml pull
 
 .PHONY: up
 up: pull ## Start all infrastructure services
-	@docker compose -f ../deployment/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka restate --wait
+	@docker compose -f ./deployment/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka restate --wait
 
 .PHONY: clean
 clean: ## Stop and remove all services with volumes
-	@docker compose -f ../deployment/docker-compose.yaml down --volumes
+	@docker compose -f ./deployment/docker-compose.yaml down --volumes
 
 .PHONY: build-go
 build-go: ## Build go services
