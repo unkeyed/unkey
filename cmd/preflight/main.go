@@ -23,8 +23,6 @@ var Cmd = &cli.Command{
 			cli.Default("IfNotPresent"), cli.EnvVar("UNKEY_ENV_IMAGE_PULL_POLICY")),
 		cli.String("krane-endpoint", "Endpoint for Krane secrets service",
 			cli.Default("http://krane.unkey.svc.cluster.local:8080"), cli.EnvVar("KRANE_ENDPOINT")),
-		cli.String("annotation-prefix", "Annotation prefix for pod configuration",
-			cli.Default("unkey.com"), cli.EnvVar("ANNOTATION_PREFIX")),
 		cli.String("depot-token", "Depot API token for fetching on-demand pull tokens",
 			cli.EnvVar("UNKEY_DEPOT_TOKEN"), cli.Required()),
 	},
@@ -39,7 +37,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		UnkeyEnvImage:           cmd.String("unkey-env-image"),
 		UnkeyEnvImagePullPolicy: cmd.String("unkey-env-image-pull-policy"),
 		KraneEndpoint:           cmd.String("krane-endpoint"),
-		AnnotationPrefix:        cmd.String("annotation-prefix"),
 		DepotToken:              cmd.String("depot-token"),
 	}
 

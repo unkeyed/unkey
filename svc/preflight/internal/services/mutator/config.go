@@ -1,10 +1,9 @@
 package mutator
 
 import (
-	"fmt"
-
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/svc/preflight/internal/services/registry"
 	"github.com/unkeyed/unkey/svc/preflight/internal/services/registry/credentials"
@@ -19,8 +18,9 @@ const (
 )
 
 const (
-	AnnotationDeploymentID     = "deployment-id"
-	AnnotationProviderEndpoint = "provider-endpoint"
+	LabelInject       = "unkey.com/inject"
+	LabelDeploymentID = "unkey.com/deployment.id"
+	LabelBuildID      = "unkey.com/build.id"
 )
 
 type Config struct {
@@ -30,7 +30,6 @@ type Config struct {
 	Credentials             *credentials.Manager
 	UnkeyEnvImage           string
 	UnkeyEnvImagePullPolicy string
-	AnnotationPrefix        string
 	DefaultProviderEndpoint string
 }
 
@@ -39,25 +38,16 @@ type podConfig struct {
 	ProviderEndpoint string
 }
 
-func (m *Mutator) getAnnotation(suffix string) string {
-	return fmt.Sprintf("%s/%s", m.annotationPrefix, suffix)
-}
-
-func (m *Mutator) loadPodConfig(annotations map[string]string) (*podConfig, error) {
+func (m *Mutator) loadPodConfig(labels map[string]string) (*podConfig, error) {
 	cfg := &podConfig{
-		DeploymentID:     "",
-		ProviderEndpoint: "",
+		DeploymentID:     labels[LabelDeploymentID],
+		ProviderEndpoint: m.defaultProviderEndpoint,
 	}
 
-	cfg.DeploymentID = annotations[m.getAnnotation(AnnotationDeploymentID)]
-	if cfg.DeploymentID == "" {
-		return nil, fmt.Errorf("missing required annotation: %s", m.getAnnotation(AnnotationDeploymentID))
-	}
-
-	if val, ok := annotations[m.getAnnotation(AnnotationProviderEndpoint)]; ok && val != "" {
-		cfg.ProviderEndpoint = val
-	} else {
-		cfg.ProviderEndpoint = m.defaultProviderEndpoint
+	if err := assert.All(
+		assert.NotEmpty(cfg.DeploymentID, "missing required label: "+LabelDeploymentID),
+	); err != nil {
+		return nil, err
 	}
 
 	return cfg, nil

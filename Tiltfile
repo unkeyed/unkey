@@ -157,7 +157,7 @@ if start_api or start_ctrl or start_krane or start_preflight:
     local_resource(
         'unkey-compile',
         'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/unkey ./main.go',
-        deps=['./main.go', './pkg', './cmd', './apps'],
+        deps=['./main.go', './pkg', './cmd', './svc'],
     )
 
 
@@ -325,11 +325,11 @@ if start_vault:
         dockerfile='./svc/vault/Dockerfile',
     )
     k8s_yaml('k8s/manifests/vault.yaml')
-    
+
     # Build dependency list
     vault_deps = []
     if start_s3: vault_deps.append('s3')
-    
+
     k8s_resource(
         'vault',
         port_forwards='7070:7070',
@@ -348,12 +348,12 @@ if start_agent:
         dockerfile='./web/apps/agent/Dockerfile',
     )
     k8s_yaml('k8s/manifests/agent.yaml')
-    
+
     # Build dependency list
     agent_deps = []
     if start_s3: agent_deps.append('s3')
     if start_clickhouse: agent_deps.append('clickhouse')
-    
+
     k8s_resource(
         'agent',
         port_forwards='8082:8080',
@@ -423,14 +423,12 @@ Web UI: http://localhost:10350
 Services available via Tilt port forwards:
 Dashboard: http://localhost:3000
 API: http://localhost:7070
-<<<<<<< HEAD
 Vault: http://localhost:7070
 Sentinel: http://localhost:8080
 Ctrl: http://localhost:7091
 Krane: http://localhost:8090
 Agent: http://localhost:8082
-Restate Frontline: http://localhost:8081
->>>>>>> 39d470225bb5f8f34521d84bc2c02081b56843eb
+Restate Ingress: http://localhost:8081
 Restate Admin: http://localhost:9070
 Prometheus: http://localhost:9090
 S3 API: http://localhost:3902

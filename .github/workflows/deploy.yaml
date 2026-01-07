@@ -11,12 +11,6 @@ concurrency:
 jobs:
   detect_changes:
     uses: ./.github/workflows/job_detect_changes.yaml
-  build_agent_image:
-    needs: [detect_changes]
-    if: needs.detect_changes.outputs.agent == 'true'
-    uses: ./.github/workflows/job_build_agent_image.yaml
-    secrets:
-      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
   api_local_test:
     name: Test API
     uses: ./.github/workflows/job_test_api_local.yaml
@@ -74,22 +68,6 @@ jobs:
           curl --request POST \
           --url https://api.mintlify.com/v1/project/update/648b83e0e20b94f5a3e41a70 \
           --header 'Authorization: Bearer ${{secrets.MINTLIFY_API_KEY}}'
-  logdrain_production_deployment:
-    needs:
-      - api_production_deployment
-      - detect_changes
-    if: needs.detect_changes.outputs.logdrain == 'true'
-    uses: ./.github/workflows/job_deploy_logdrain_production.yaml
-    secrets:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-  workflows_deployment:
-    needs:
-      - api_local_test
-      - detect_changes
-    if: needs.detect_changes.outputs.workflows == 'true'
-    uses: ./.github/workflows/job_deploy_workflows.yaml
-    secrets:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   deploy-enterprise-worker:
     needs: api_production_deployment
     uses: ./.github/workflows/job_deploy_api_enterprise.yaml

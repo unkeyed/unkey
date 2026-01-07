@@ -106,12 +106,6 @@ func run(ctx context.Context, cfg Config) error {
 		logger = logger.With(slog.String("deployment", cfg.DeploymentID))
 	}
 
-	logger.Debug("starting unkey-env",
-		"provider", cfg.Provider,
-		"endpoint", cfg.Endpoint,
-		"deployment", cfg.DeploymentID,
-	)
-
 	p, err := provider.New(provider.Config{
 		Type:     cfg.Provider,
 		Endpoint: cfg.Endpoint,
@@ -144,7 +138,6 @@ func run(ctx context.Context, cfg Config) error {
 	}
 
 	logger.Debug("fetched secrets", "count", len(secrets))
-
 	for _, env := range os.Environ() {
 		name, _, _ := strings.Cut(env, "=")
 		if strings.HasPrefix(name, "UNKEY_") && !allowedUnkeyVars[name] {
