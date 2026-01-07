@@ -1,5 +1,6 @@
 import type { Env } from "@/pkg/env";
 import type { Vault } from "@/pkg/vault";
+import type { Ratelimit as UnkeyRatelimiter } from "@unkey/ratelimit";
 import type { RBAC } from "@unkey/rbac";
 import type { Logger } from "@unkey/worker-logging";
 import type { Analytics } from "../analytics";
@@ -9,7 +10,6 @@ import type { KeyService } from "../keys/service";
 import type { Metrics } from "../metrics";
 import type { RateLimiter } from "../ratelimit";
 import type { UsageLimiter } from "../usagelimit";
-
 export type ServiceContext = {
   rbac: RBAC;
   cache: Cache;
@@ -21,6 +21,7 @@ export type ServiceContext = {
   usageLimiter: UsageLimiter;
   rateLimiter: RateLimiter;
   vault: Vault;
+  deprecationRatelimiter?: UnkeyRatelimiter;
 };
 
 export type HonoEnv = {

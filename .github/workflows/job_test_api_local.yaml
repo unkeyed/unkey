@@ -38,12 +38,6 @@ jobs:
         env:
           CI: 1
         working-directory: web
-      - name: Load Schema into MySQL
-        run: pnpm drizzle-kit push
-        working-directory: internal/db
-        env:
-          DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
-          CI: 1
       - name: Test
         run: pnpm vitest run -c vitest.integration.ts --bail=1
         working-directory: web/apps/api

@@ -8,7 +8,7 @@
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
   "scripts": {
-    "build-clickhouse": "docker compose -f ../../deployment/docker-compose.yaml build clickhouse",
+    "build-clickhouse": "docker compose -f ../../../deployment/docker-compose.yaml build clickhouse",
     "test": "pnpm build-clickhouse && vitest run"
   },
   "devDependencies": {

@@ -8,6 +8,7 @@ import { BaseError, Err, FetchError, Ok, type Result, SchemaError, wrap } from "
 import { sha256 } from "@unkey/hash";
 import type { PermissionQuery, RBAC } from "@unkey/rbac";
 import type { Logger } from "@unkey/worker-logging";
+import { UnkeyApiError } from "../errors";
 import { retry } from "../util/retry";
 
 /*
@@ -190,6 +191,24 @@ export class KeyService {
         apiId: res.val.api?.id,
         keyId: res.val.key?.id,
       });
+
+      const { logger, deprecationRatelimiter } = c.get("services");
+      if (deprecationRatelimiter) {
+        const deprecationWarningLimit = await deprecationRatelimiter
+          .limit(res.val.key?.forWorkspaceId ?? res.val.key?.workspaceId ?? "anon")
+          .catch((err) => {
+            logger.error(err);
+            return { success: true };
+          });
+
+        if (!deprecationWarningLimit.success) {
+          throw new UnkeyApiError({
+            code: "API_V1_EOL",
+            message:
+              "The api.unkey.dev/v1 api is no longer supported and about to be removed. Please migrate (https://www.unkey.com/docs/api-reference/v1/migration) or reach out to support@unkey.dev",
+          });
+        }
+      }
 
       return res;
     } catch (e) {
