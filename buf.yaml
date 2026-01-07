@@ -1,19 +1,19 @@
-
 version: v2
 
 modules:
+  - path: svc/ctrl/proto
+  - path: svc/krane/proto
   - path: proto
+
+deps:
+  - buf.build/googleapis/googleapis
+  - buf.build/restatedev/sdk-go
 lint:
   use:
     - STANDARD
+  except:
+    - PACKAGE_DIRECTORY_MATCH
+
 breaking:
   use:
-    - PACKAGE
     - FILE
-    - WIRE
-    - WIRE_JSON
-    - FIELD_NO_DELETE
-    - FIELD_NO_DELETE_UNLESS_NAME_RESERVED
-    - FIELD_NO_DELETE_UNLESS_NUMBER_RESERVED
-deps:
-  - buf.build/restatedev/sdk-go

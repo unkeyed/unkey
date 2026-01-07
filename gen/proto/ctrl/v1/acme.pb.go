@@ -9,7 +9,6 @@ package ctrlv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	_ "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -122,7 +121,7 @@ var File_ctrl_v1_acme_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_acme_proto_rawDesc = "" +
 	"\n" +
-	"\x12ctrl/v1/acme.proto\x12\actrl.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"H\n" +
+	"\x12ctrl/v1/acme.proto\x12\actrl.v1\"H\n" +
 	"\x18VerifyCertificateRequest\x12\x16\n" +
 	"\x06domain\x18\x01 \x01(\tR\x06domain\x12\x14\n" +
 	"\x05token\x18\x02 \x01(\tR\x05token\"A\n" +
