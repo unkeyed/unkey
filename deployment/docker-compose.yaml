@@ -387,8 +387,8 @@ services:
     networks:
       - default
     build:
-      context: ../web
-      dockerfile: ./apps/dashboard/Dockerfile
+      context: ..
+      dockerfile: ./web/apps/dashboard/Dockerfile
     container_name: unkey-dashboard
     ports:
       - "3000:3000"
@@ -400,7 +400,7 @@ services:
         condition: service_started
         required: true
     env_file:
-      - ../apps/dashboard/.env
+      - ../web/apps/dashboard/.env
     environment:
       # Database configuration
       DATABASE_HOST: "planetscale:3900"
