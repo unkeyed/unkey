@@ -1,6 +1,6 @@
 import { trpc } from "@/lib/trpc/client";
 import { LLMSearch, toast, transformStructuredOutputToFilters } from "@unkey/ui";
-import type { KeyDetailsFilterValue } from "../../../../filters.schema";
+import type { Filter } from "@/components/logs/verification-chart";
 import { useFilters } from "../../../../hooks/use-filters";
 
 const VALID_FIELDS = ["startTime", "endTime", "since", "outcomes"] as const;
@@ -25,7 +25,7 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
 
       const transformedFilters = transformStructuredOutputToFilters(data, filters);
 
-      const validFilters = transformedFilters.filter((filter): filter is KeyDetailsFilterValue =>
+      const validFilters = transformedFilters.filter((filter): filter is Filter =>
         VALID_FIELDS.includes(filter.field as ValidField),
       );
 

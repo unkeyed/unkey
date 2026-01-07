@@ -2,11 +2,11 @@
 
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { useCallback, useState } from "react";
-import { KeyDetailsLogsChart } from "./components/charts";
+import { KeyDetailsLogsChart } from "./components/charts/key-details-logs-chart";
 import { KeysDetailsLogsControlCloud } from "./components/control-cloud";
 import { KeysDetailsLogsControls } from "./components/controls";
 import { KeyDetailsDrawer } from "./components/table/components/log-details";
-import { KeyDetailsLogsTable } from "./components/table/logs-table";
+import { KeyDetailsLogsTable } from "./components/table/key-details-logs-table";
 import { KeyDetailsLogsProvider } from "./context/logs";
 
 export const KeyDetailsLogsClient = ({

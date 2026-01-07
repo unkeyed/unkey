@@ -2,13 +2,12 @@ import {
   parseAsFilterValueArray,
   parseAsRelativeTime,
 } from "@/components/logs/validation/utils/nuqs-parsers";
+import type { Filter } from "@/components/logs/verification-chart";
 import { parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
 import {
   type AllOperatorsUrlValue,
   type IsOnlyUrlValue,
-  type KeyDetailsFilterField,
-  type KeyDetailsFilterValue,
   type KeysQuerySearchParams,
   keyDetailsFilterFieldConfig,
 } from "../filters.schema";
@@ -32,7 +31,7 @@ export const useFilters = () => {
   });
 
   const filters = useMemo(() => {
-    const activeFilters: KeyDetailsFilterValue[] = [];
+    const activeFilters: Filter[] = [];
 
     for (const [field, value] of Object.entries(searchParams)) {
       if (!Array.isArray(value) || (field !== "outcomes" && field !== "tags")) {
@@ -40,25 +39,12 @@ export const useFilters = () => {
       }
 
       for (const filterItem of value) {
-        const baseFilter = {
+        activeFilters.push({
           id: crypto.randomUUID(),
-          field: field as KeyDetailsFilterField,
+          field: field,
           operator: filterItem.operator,
           value: filterItem.value,
-        };
-
-        if (field === "outcomes") {
-          activeFilters.push({
-            ...baseFilter,
-            metadata: {
-              colorClass: keyDetailsFilterFieldConfig.outcomes.getColorClass?.(
-                filterItem.value as string,
-              ),
-            },
-          });
-        } else {
-          activeFilters.push(baseFilter);
-        }
+        });
       }
     }
 
@@ -67,7 +53,7 @@ export const useFilters = () => {
       if (value !== null && value !== undefined) {
         activeFilters.push({
           id: crypto.randomUUID(),
-          field: field as KeyDetailsFilterField,
+          field: field,
           operator: "is",
           value: value as string | number,
         });
@@ -78,7 +64,7 @@ export const useFilters = () => {
   }, [searchParams]);
 
   const updateFilters = useCallback(
-    (newFilters: KeyDetailsFilterValue[]) => {
+    (newFilters: Filter[]) => {
       const newParams: Partial<KeysQuerySearchParams> = {
         startTime: null,
         endTime: null,
@@ -91,15 +77,17 @@ export const useFilters = () => {
       const tagFilters: AllOperatorsUrlValue[] = [];
 
       newFilters.forEach((filter) => {
-        const fieldConfig = keyDetailsFilterFieldConfig[filter.field];
+        const fieldConfig = keyDetailsFilterFieldConfig[filter.field as keyof typeof keyDetailsFilterFieldConfig];
+        if (!fieldConfig) return;
+        
         const validOperators = fieldConfig.operators;
-
-        const operator = validOperators.includes(filter.operator)
+        const operator = validOperators.includes(filter.operator as any)
           ? filter.operator
           : validOperators[0];
+          
         switch (filter.field) {
           case "tags":
-            if (!validOperators.includes(filter.operator)) {
+            if (!validOperators.includes(filter.operator as any)) {
               throw new Error(
                 `Invalid filter operator for tags. Allowed operators are: ${validOperators.join(
                   ", ",

@@ -34,7 +34,7 @@ export const useFetchVerificationTimeseries = (keyId: string, keyspaceId: string
             const fieldConfig = keyDetailsFilterFieldConfig[filter.field];
             const validOperators = fieldConfig.operators;
 
-            const operator = validOperators.includes(filter.operator)
+            const operator = validOperators.includes(filter.operator as any)
               ? filter.operator
               : validOperators[0];
 
