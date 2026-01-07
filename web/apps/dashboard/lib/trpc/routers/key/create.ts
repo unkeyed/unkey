@@ -5,17 +5,13 @@ import {
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { Vault } from "@/lib/vault";
+import { createVault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
-const vault = new Vault({
-  baseUrl: env().AGENT_URL,
-  token: env().AGENT_TOKEN,
-});
-
+const vault = createVault(env().VAULT_URL, env().VAULT_TOKEN);
 export const createKey = workspaceProcedure
   .use(withRatelimit(ratelimit.create))
   .input(createKeyInputSchema)
@@ -23,7 +19,10 @@ export const createKey = workspaceProcedure
     const keyAuth = await db.query.keyAuth
       .findFirst({
         where: (table, { and, eq }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.keyAuthId)),
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            eq(table.id, input.keyAuthId),
+          ),
         with: {
           api: true,
         },
@@ -59,7 +58,8 @@ export const createKey = workspaceProcedure
     } catch (_err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "We are unable to create the key. Please contact support using support.unkey.dev",
+        message:
+          "We are unable to create the key. Please contact support using support.unkey.dev",
       });
     }
   });

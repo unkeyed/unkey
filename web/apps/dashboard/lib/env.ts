@@ -25,8 +25,8 @@ export const env = () =>
 
       RATELIMIT_DEMO_ROOT_KEY: z.string().optional(),
 
-      AGENT_URL: z.string().url(),
-      AGENT_TOKEN: z.string(),
+      VAULT_URL: z.string().url(),
+      VAULT_TOKEN: z.string(),
 
       CTRL_URL: z.string().url().optional(),
       CTRL_API_KEY: z.string().optional(),
@@ -81,4 +81,5 @@ const stripeSchema = z.object({
 });
 
 const stripeParsed = stripeSchema.safeParse(process.env);
-export const stripeEnv = () => (stripeParsed.success ? stripeParsed.data : null);
+export const stripeEnv = () =>
+  stripeParsed.success ? stripeParsed.data : null;

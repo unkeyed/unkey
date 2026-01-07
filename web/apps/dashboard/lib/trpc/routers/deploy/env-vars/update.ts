@@ -1,14 +1,11 @@
 import { and, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { Vault } from "@/lib/vault";
+import { createVault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 
-const vault = new Vault({
-  baseUrl: env().AGENT_URL,
-  token: env().AGENT_TOKEN,
-});
+const vault = createVault(env().VAULT_URL, env().VAULT_TOKEN);
 
 export const updateEnvVar = workspaceProcedure
   .input(
@@ -43,7 +40,11 @@ export const updateEnvVar = workspaceProcedure
         });
       }
 
-      if (envVar.type === "writeonly" && input.key && input.key !== envVar.key) {
+      if (
+        envVar.type === "writeonly" &&
+        input.key &&
+        input.key !== envVar.key
+      ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Cannot rename writeonly environment variables",

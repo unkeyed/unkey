@@ -1,15 +1,12 @@
 import { and, db, eq } from "@/lib/db";
 import { env } from "@/lib/env";
-import { Vault } from "@/lib/vault";
+import { createVault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
 import { environmentVariables } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 
-const vault = new Vault({
-  baseUrl: env().AGENT_URL,
-  token: env().AGENT_TOKEN,
-});
+const vault = createVault(env().VAULT_URL, env().VAULT_TOKEN);
 
 export const decryptEnvVar = workspaceProcedure
   .input(

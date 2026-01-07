@@ -1,17 +1,13 @@
 import { and, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { Vault } from "@/lib/vault";
+import { createVault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
 import { environments } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 
-const vault = new Vault({
-  baseUrl: env().AGENT_URL,
-  token: env().AGENT_TOKEN,
-});
-
+const vault = createVault(env().VAULT_URL, env().VAULT_TOKEN);
 const envVarInputSchema = z.object({
   key: z.string().min(1),
   value: z.string().min(1),
