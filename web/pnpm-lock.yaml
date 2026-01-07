@@ -82,6 +82,9 @@ importers:
       '@unkey/metrics':
         specifier: workspace:^
         version: link:../../internal/metrics
+      '@unkey/ratelimit':
+        specifier: 2.1.3
+        version: 2.1.3
       '@unkey/rbac':
         specifier: workspace:^
         version: link:../../internal/rbac

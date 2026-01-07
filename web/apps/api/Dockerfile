@@ -6,6 +6,7 @@ WORKDIR /unkey
 
 
 COPY . .
+RUN rm -rf ./**/node_modules
 
 
 WORKDIR /unkey/web
