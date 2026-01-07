@@ -22,7 +22,7 @@ help: ## Display this help.
 
 .PHONY: install-go
 install-go: ## Install Go dependencies and setup workspace
-	@[ -f go.work ] || go work init . ./tools || true
+	@[ -f go.work ] || go work init . ./tools
 	go mod download
 
 .PHONY: install

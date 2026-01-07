@@ -21,9 +21,6 @@ jobs:
       - name: Setup Go
         uses: ./.github/actions/setup-go
 
-      - name: Install Go tooling
-        run: go work init . ./tools
-
       - name: Format
         run: make fmt
 
