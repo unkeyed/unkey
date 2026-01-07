@@ -15,6 +15,8 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install Go dependencies
+        run: make install-go
+
       - name: Run golangci-lint
-        run: |
-          go tool golangci-lint run
+        run: go tool golangci-lint run
