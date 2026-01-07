@@ -8,14 +8,15 @@ import (
 
 	"fmt"
 
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/vault"
-	"github.com/unkeyed/unkey/pkg/vault/keys"
-	"github.com/unkeyed/unkey/pkg/vault/storage"
+	"github.com/unkeyed/unkey/svc/vault/internal/keys"
+	"github.com/unkeyed/unkey/svc/vault/internal/storage"
+	"github.com/unkeyed/unkey/svc/vault/internal/vault"
 )
 
 // This scenario tests the re-encryption of a secret.
@@ -57,12 +58,12 @@ func TestMigrateDeks(t *testing.T) {
 		_, err = rand.Read(buf)
 		d := string(buf)
 		require.NoError(t, err)
-		res, encryptErr := v.Encrypt(ctx, &vaultv1.EncryptRequest{
+		res, encryptErr := v.Encrypt(ctx, connect.NewRequest(&vaultv1.EncryptRequest{
 			Keyring: keyring,
 			Data:    d,
-		})
+		}))
 		require.NoError(t, encryptErr)
-		data[d] = res.GetEncrypted()
+		data[d] = res.Msg.GetEncrypted()
 	}
 
 	// Simulate Restart
@@ -73,7 +74,7 @@ func TestMigrateDeks(t *testing.T) {
 	v, err = vault.New(vault.Config{
 		Storage:    storage,
 		Logger:     logger,
-		MasterKeys: []string{masterKeyOld, masterKeyNew},
+		MasterKeys: []string{masterKeyNew, masterKeyOld},
 	})
 	require.NoError(t, err)
 
@@ -82,12 +83,12 @@ func TestMigrateDeks(t *testing.T) {
 
 	// Check each piece of data can be decrypted
 	for d, e := range data {
-		res, decryptErr := v.Decrypt(ctx, &vaultv1.DecryptRequest{
+		res, decryptErr := v.Decrypt(ctx, connect.NewRequest(&vaultv1.DecryptRequest{
 			Keyring:   keyring,
 			Encrypted: e,
-		})
+		}))
 		require.NoError(t, decryptErr)
-		require.Equal(t, d, res.GetPlaintext())
+		require.Equal(t, d, res.Msg.GetPlaintext())
 	}
 	// Simulate another restart, removing the old master key
 
@@ -100,12 +101,12 @@ func TestMigrateDeks(t *testing.T) {
 
 	// Check each piece of data can be decrypted
 	for d, e := range data {
-		res, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
+		res, err := v.Decrypt(ctx, connect.NewRequest(&vaultv1.DecryptRequest{
 			Keyring:   keyring,
 			Encrypted: e,
-		})
+		}))
 		require.NoError(t, err)
-		require.Equal(t, d, res.GetPlaintext())
+		require.Equal(t, d, res.Msg.GetPlaintext())
 	}
 
 }

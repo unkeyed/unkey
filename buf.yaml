@@ -3,6 +3,7 @@ version: v2
 modules:
   - path: svc/ctrl/proto
   - path: svc/krane/proto
+  - path: svc/vault/proto
   - path: proto
 
 deps:

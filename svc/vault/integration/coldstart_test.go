@@ -4,14 +4,15 @@ import (
 	"context"
 	"testing"
 
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/vault"
-	"github.com/unkeyed/unkey/pkg/vault/keys"
-	"github.com/unkeyed/unkey/pkg/vault/storage"
+	"github.com/unkeyed/unkey/svc/vault/internal/keys"
+	"github.com/unkeyed/unkey/svc/vault/internal/storage"
+	"github.com/unkeyed/unkey/svc/vault/internal/vault"
 )
 
 // This scenario tests the cold start of the vault service.
@@ -48,46 +49,46 @@ func Test_ColdStart(t *testing.T) {
 	bobKeyRing := uid.New("bob")
 	// Alice encrypts a secret
 	aliceData := "alice secret"
-	aliceEncryptionRes, err := v.Encrypt(ctx, &vaultv1.EncryptRequest{
+	aliceEncryptionRes, err := v.Encrypt(ctx, connect.NewRequest(&vaultv1.EncryptRequest{
 		Keyring: aliceKeyRing,
 		Data:    aliceData,
-	})
+	}))
 	require.NoError(t, err)
 
 	// Bob encrypts a secret
 	bobData := "bob secret"
-	bobEncryptionRes, err := v.Encrypt(ctx, &vaultv1.EncryptRequest{
+	bobEncryptionRes, err := v.Encrypt(ctx, connect.NewRequest(&vaultv1.EncryptRequest{
 		Keyring: bobKeyRing,
 		Data:    bobData,
-	})
+	}))
 	require.NoError(t, err)
 
 	// Alice decrypts her secret
-	aliceDecryptionRes, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
+	aliceDecryptionRes, err := v.Decrypt(ctx, connect.NewRequest(&vaultv1.DecryptRequest{
 		Keyring:   aliceKeyRing,
-		Encrypted: aliceEncryptionRes.GetEncrypted(),
-	})
+		Encrypted: aliceEncryptionRes.Msg.GetEncrypted(),
+	}))
 	require.NoError(t, err)
-	require.Equal(t, aliceData, aliceDecryptionRes.GetPlaintext())
+	require.Equal(t, aliceData, aliceDecryptionRes.Msg.GetPlaintext())
 
 	// Bob reencrypts his secret
 
 	_, err = v.CreateDEK(ctx, bobKeyRing)
 	require.NoError(t, err)
-	bobReencryptionRes, err := v.ReEncrypt(ctx, &vaultv1.ReEncryptRequest{
+	bobReencryptionRes, err := v.ReEncrypt(ctx, connect.NewRequest(&vaultv1.ReEncryptRequest{
 		Keyring:   bobKeyRing,
-		Encrypted: bobEncryptionRes.GetEncrypted(),
-	})
+		Encrypted: bobEncryptionRes.Msg.GetEncrypted(),
+	}))
 	require.NoError(t, err)
 
 	// Bob decrypts his secret
-	bobDecryptionRes, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
+	bobDecryptionRes, err := v.Decrypt(ctx, connect.NewRequest(&vaultv1.DecryptRequest{
 		Keyring:   bobKeyRing,
-		Encrypted: bobReencryptionRes.GetEncrypted(),
-	})
+		Encrypted: bobReencryptionRes.Msg.GetEncrypted(),
+	}))
 	require.NoError(t, err)
-	require.Equal(t, bobData, bobDecryptionRes.GetPlaintext())
+	require.Equal(t, bobData, bobDecryptionRes.Msg.GetPlaintext())
 	// expect the key to be different
-	require.NotEqual(t, bobEncryptionRes.GetKeyId(), bobReencryptionRes.GetKeyId())
+	require.NotEqual(t, bobEncryptionRes.Msg.GetKeyId(), bobReencryptionRes.Msg.GetKeyId())
 
 }
