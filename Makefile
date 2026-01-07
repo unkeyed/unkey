@@ -198,5 +198,5 @@ dev: ## Start with Tilt (if available) or fallback to k8s-up
 
 
 .PHONY: local-dashboard
-local-dashboard: install build ## Run local development setup for dashboard
+local-dashboard: install build-go ## Run local development setup for dashboard
 	pnpm --dir=web/apps/dashboard local
