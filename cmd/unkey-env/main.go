@@ -138,7 +138,6 @@ func run(ctx context.Context, cfg Config) error {
 	}
 
 	logger.Debug("fetched secrets", "count", len(secrets))
-
 	for _, env := range os.Environ() {
 		name, _, _ := strings.Cut(env, "=")
 		if strings.HasPrefix(name, "UNKEY_") && !allowedUnkeyVars[name] {
