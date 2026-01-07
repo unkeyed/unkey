@@ -1939,6 +1939,20 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesRow, error)
+	// Acquires an exclusive lock on the identity row to prevent concurrent modifications.
+	// This should be called at the start of a transaction before modifying identity-related data.
+	//
+	//  SELECT id FROM identities
+	//  WHERE id = ?
+	//  FOR UPDATE
+	LockIdentityForUpdate(ctx context.Context, db DBTX, id string) (string, error)
+	// Acquires an exclusive lock on the key row to prevent concurrent modifications.
+	// This is used to prevent deadlocks when updating key ratelimits concurrently.
+	//
+	//  SELECT id FROM `keys`
+	//  WHERE id = ?
+	//  FOR UPDATE
+	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
 	//ReassignFrontlineRoute
 	//
 	//  UPDATE frontline_routes

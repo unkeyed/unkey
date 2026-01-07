@@ -106,10 +106,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Retry transaction up to 9 times on deadlock or identity creation race
+	// Retry transaction up to 2 times for identity creation race conditions
 	var txErr error
-	for attempt := range 10 {
+	for range 3 {
 		txErr = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+			// Lock the key row to prevent concurrent modifications and deadlocks
+			_, err := db.Query.LockKeyForUpdate(ctx, tx, key.ID)
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Internal("unable to lock key"),
+					fault.Public("We're unable to update the key."),
+				)
+			}
+
 			auditLogs := []auditlog.AuditLog{}
 
 			update := db.UpdateKeyParams{
@@ -612,17 +621,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			break
 		}
 
-		// Check if error is retryable (deadlock or identity race condition)
-		isRetryable := db.IsDeadlockError(txErr) || (db.IsDuplicateKeyError(txErr) && attempt < 2)
-
-		if !isRetryable {
+		// Only retry on identity creation race condition (duplicate key errors)
+		if !db.IsDuplicateKeyError(txErr) {
 			break
 		}
 	}
 
 	if txErr != nil {
-		// Wrap retryable errors with appropriate message after exhausting retries
-		if db.IsDuplicateKeyError(txErr) || db.IsDeadlockError(txErr) {
+		// Wrap duplicate key error with appropriate message after exhausting retries
+		if db.IsDuplicateKeyError(txErr) {
 			return fault.Wrap(txErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("failed to update key after retries"),
