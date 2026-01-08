@@ -113,6 +113,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		Names:       req.Roles,
 	})
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"), fault.Public("Failed to retrieve roles."),
+		)
+	}
 
 	foundMap := make(map[string]struct{})
 	for _, role := range foundRoles {
