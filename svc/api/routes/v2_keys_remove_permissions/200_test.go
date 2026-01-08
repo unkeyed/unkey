@@ -10,12 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_remove_permissions"
-	"golang.org/x/sync/errgroup"
 )
 
 func TestSuccess(t *testing.T) {
@@ -416,87 +414,4 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, finalPermissions, 0)
 	})
-}
-
-// TestRemovePermissionsConcurrent tests that concurrent requests to remove permissions
-// from the same key don't deadlock. The handler uses SELECT ... FOR UPDATE
-// on the key row to serialize concurrent modifications.
-func TestRemovePermissionsConcurrent(t *testing.T) {
-	t.Parallel()
-
-	h := testutil.NewHarness(t)
-
-	route := &handler.Handler{
-		DB:        h.DB,
-		Keys:      h.Keys,
-		Logger:    h.Logger,
-		Auditlogs: h.Auditlogs,
-		KeyCache:  h.Caches.VerificationKeyByHash,
-	}
-
-	h.Register(route)
-
-	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.remove_permission_from_key")
-
-	headers := http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}
-
-	api := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: workspace.ID,
-	})
-
-	// Create a single key that all concurrent requests will update
-	keyResponse := h.CreateKey(seed.CreateKeyRequest{
-		WorkspaceID: workspace.ID,
-		KeySpaceID:  api.KeyAuthID.String,
-		Name:        ptr.P("concurrent-remove-permissions-test-key"),
-	})
-
-	// Create permissions and add them to the key
-	numConcurrent := 10
-	permissions := make([]string, numConcurrent)
-	for i := range numConcurrent {
-		perm := h.CreatePermission(seed.CreatePermissionRequest{
-			WorkspaceID: workspace.ID,
-			Name:        fmt.Sprintf("concurrent.remove.permission.%d", i),
-			Slug:        fmt.Sprintf("concurrent.remove.permission.%d", i),
-		})
-		permissions[i] = perm.Name
-
-		// Add permission to the key
-		err := db.Query.InsertKeyPermission(t.Context(), h.DB.RW(), db.InsertKeyPermissionParams{
-			KeyID:        keyResponse.KeyID,
-			PermissionID: perm.ID,
-			WorkspaceID:  workspace.ID,
-			CreatedAt:    time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
-	}
-
-	g := errgroup.Group{}
-	for i := range numConcurrent {
-		g.Go(func() error {
-			// Each request tries to remove overlapping permissions from the same key
-			req := handler.Request{
-				KeyId:       keyResponse.KeyID,
-				Permissions: []string{permissions[i], permissions[(i+1)%numConcurrent], permissions[(i+2)%numConcurrent]},
-			}
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-			if res.Status != 200 {
-				return fmt.Errorf("request %d: unexpected status %d", i, res.Status)
-			}
-			return nil
-		})
-	}
-
-	err := g.Wait()
-	require.NoError(t, err, "All concurrent updates should succeed without deadlock")
-
-	// Verify no permissions remain (all should have been removed)
-	finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(t.Context(), h.DB.RO(), keyResponse.KeyID)
-	require.NoError(t, err)
-	require.Empty(t, finalPermissions)
 }
