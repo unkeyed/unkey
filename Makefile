@@ -20,11 +20,13 @@ help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 
-.PHONY: install
-install: ## Install all dependencies
+.PHONY: install-go
+install-go: ## Install Go dependencies and setup workspace
 	@[ -f go.work ] || go work init . ./tools
-
 	go mod download
+
+.PHONY: install
+install: install-go ## Install all dependencies
 	pnpm --dir=web install --frozen-lockfile
 
 
@@ -62,15 +64,15 @@ fmt: ## Format code and run linters
 
 .PHONY: pull
 pull: ## Pull latest Docker images for services
-	@docker compose -f ../deployment/docker-compose.yaml pull
+	@docker compose -f ./deployment/docker-compose.yaml pull
 
 .PHONY: up
 up: pull ## Start all infrastructure services
-	@docker compose -f ../deployment/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka restate --wait
+	@docker compose -f ./deployment/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka restate --wait
 
 .PHONY: clean
 clean: ## Stop and remove all services with volumes
-	@docker compose -f ../deployment/docker-compose.yaml down --volumes
+	@docker compose -f ./deployment/docker-compose.yaml down --volumes
 
 .PHONY: build-go
 build-go: ## Build go services
@@ -85,9 +87,8 @@ build: install build-go build-web ## Build all artifacts
 
 .PHONY: generate
 generate: generate-sql ## Generate code from protobuf and other sources
+	rm -rf ./gen || true
 	rm ./pkg/db/*_generated.go || true
-	go tool buf generate --template ./buf.gen.connect.yaml --clean --path "./proto/ctrl" --path "./proto/krane" --path "./proto/vault" --path "./proto/cache" --path "./proto/gateway"
-	go tool buf generate --template ./buf.gen.restate.yaml --path "./proto/hydra"
 	go generate ./...
 	go fmt ./...
 	pnpm --dir=web fmt
@@ -197,5 +198,5 @@ dev: ## Start with Tilt (if available) or fallback to k8s-up
 
 
 .PHONY: local-dashboard
-local-dashboard: install build ## Run local development setup for dashboard
+local-dashboard: install build-go ## Run local development setup for dashboard
 	pnpm --dir=web/apps/dashboard local
