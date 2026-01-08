@@ -35,6 +35,8 @@ export const zEnv = z.object({
   CLICKHOUSE_PROXY_URL: z.string().optional(),
   CLICKHOUSE_PROXY_TOKEN: z.string().optional(),
 
+  UNKEY_ROOT_KEY: z.string().optional(),
+
   SYNC_RATELIMIT_ON_NO_DATA: z
     .string()
     .optional()

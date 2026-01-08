@@ -501,7 +501,6 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             keyId: key.keyId,
             createdAtM: Date.now(),
             permissionId,
-            tempId: 0,
             updatedAtM: null,
             workspaceId: authorizedWorkspaceId,
           });
