@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_update_key"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestUpdateKeySuccess(t *testing.T) {
@@ -277,4 +278,93 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 
 	require.True(t, authAfter.Key.RemainingRequests.Valid)
 	require.Equal(t, int32(newCredits)-1, authAfter.Key.RemainingRequests.Int32)
+}
+
+// TestUpdateKeyConcurrentWithSameExternalId tests that concurrent updates
+// to different keys with the same new externalId don't deadlock.
+// This was previously possible due to gap locks when inserting identities.
+// The fix uses INSERT ... ON DUPLICATE KEY UPDATE (upsert) to avoid deadlocks.
+func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	ctx := t.Context()
+
+	route := &handler.Handler{
+		DB:           h.DB,
+		Keys:         h.Keys,
+		Logger:       h.Logger,
+		Auditlogs:    h.Auditlogs,
+		KeyCache:     h.Caches.VerificationKeyByHash,
+		UsageLimiter: h.UsageLimiter,
+	}
+
+	h.Register(route)
+
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+	})
+
+	// Create multiple keys without identities
+	numKeys := 10
+	keyIDs := make([]string, numKeys)
+	for i := range numKeys {
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			Name:        ptr.P(fmt.Sprintf("key-%d", i)),
+		})
+		keyIDs[i] = keyResponse.KeyID
+	}
+
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.update_key")
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	externalID := "shared_identity_deadlock_test"
+
+	g := errgroup.Group{}
+	for _, keyID := range keyIDs {
+		g.Go(func() error {
+			req := handler.Request{
+				KeyId:      keyID,
+				ExternalId: nullable.NewNullableWithValue(externalID),
+			}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			if res.Status != 200 {
+				return fmt.Errorf("key %s: unexpected status %d", keyID, res.Status)
+			}
+			return nil
+		})
+	}
+
+	err := g.Wait()
+	require.NoError(t, err, "All concurrent updates should succeed without deadlock")
+
+	// Verify all keys reference the same identity
+	var sharedIdentityID string
+	for i, keyID := range keyIDs {
+		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
+		require.NoError(t, err)
+		require.True(t, key.IdentityID.Valid, "Key should have identity after update")
+
+		if i == 0 {
+			sharedIdentityID = key.IdentityID.String
+		} else {
+			require.Equal(t, sharedIdentityID, key.IdentityID.String,
+				"All keys updated with same externalId should share the same identity")
+		}
+	}
+
+	// Verify only one identity was created
+	identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ExternalID:  externalID,
+		Deleted:     false,
+	})
+	require.NoError(t, err)
+	require.Equal(t, sharedIdentityID, identity.ID)
 }
