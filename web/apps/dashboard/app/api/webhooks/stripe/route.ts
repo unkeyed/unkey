@@ -8,6 +8,7 @@ import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import {
   isAutomatedBillingRenewal,
   isPaymentFailureRelatedUpdate,
+  isCardUpdateOnly,
 } from "@/lib/stripe/subscriptionUtils";
 import {
   alertIsCancellingSubscription,
@@ -100,6 +101,12 @@ export const POST = async (req: Request): Promise<Response> => {
         // Payment recoveries are handled by the invoice.payment_succeeded webhook
         const isRecovery = await isPaymentRecoveryUpdate(stripe, sub, previousAttributes, event);
         if (isRecovery) {
+          return new Response("OK", { status: 201 });
+        }
+
+        // Skip database updates and notifications for card/payment method updates only
+        // These don't affect subscription pricing, quotas, or other business logic
+        if (isCardUpdateOnly(sub, previousAttributes)) {
           return new Response("OK", { status: 201 });
         }
 

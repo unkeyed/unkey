@@ -18,6 +18,9 @@ interface PreviousAttributes {
   collection_method?: string;
   latest_invoice?: string | Stripe.Invoice | null;
 
+  // Payment method changes (when users update their card)
+  default_payment_method?: string | Stripe.PaymentMethod | null;
+
   // Status changes (can indicate payment failures)
   status?: Stripe.Subscription.Status;
 }
@@ -127,6 +130,30 @@ export function isAutomatedBillingRenewal(
   const hasOnlyAllowedKeys = changedKeys.every((key) => allowedKeys.includes(key));
 
   return hasOnlyAllowedKeys;
+}
+
+/**
+ * Determines if a subscription update is only a payment method (card) update.
+ * This happens when:
+ * 1. Only the default_payment_method field changed
+ * 2. No other subscription properties changed (pricing, plan, status, etc.)
+ */
+export function isCardUpdateOnly(
+  sub: Stripe.Subscription,
+  previousAttributes: PreviousAttributes | undefined,
+): boolean {
+  if (!previousAttributes) {
+    return false;
+  }
+
+  const changedKeys = Object.keys(previousAttributes);
+
+  // Check if only default_payment_method changed
+  if (changedKeys.length === 1 && changedKeys.includes("default_payment_method")) {
+    return true;
+  }
+
+  return false;
 }
 
 export type { PreviousAttributes };
