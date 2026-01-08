@@ -6,6 +6,7 @@ properties:
     enum:
       - daily
       - monthly
+    x-speakeasy-unknown-values: allow
     description: How often credits are automatically refilled.
     example: daily
   amount:
