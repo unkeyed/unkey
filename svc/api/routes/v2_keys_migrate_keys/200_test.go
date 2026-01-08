@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_migrate_keys"
 )
@@ -38,8 +39,9 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
 
+	migrationID := uid.New(uid.TestPrefix)
 	err := db.Query.InsertKeyMigration(ctx, h.DB.RW(), db.InsertKeyMigrationParams{
-		ID:          "unkeyed",
+		ID:          migrationID,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 		Algorithm:   db.KeyMigrationsAlgorithmGithubcomSeamapiPrefixedApiKey,
 	})
@@ -84,7 +86,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 	t.Run("basic migration", func(t *testing.T) {
 		req := handler.Request{
 			ApiId:       api.ID,
-			MigrationId: "unkeyed",
+			MigrationId: migrationID,
 			Keys:        []openapi.V2KeysMigrateKeyData{keyToMigrate},
 		}
 
@@ -138,7 +140,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 
 		req := handler.Request{
 			ApiId:       api.ID,
-			MigrationId: "unkeyed",
+			MigrationId: migrationID,
 			Keys:        []openapi.V2KeysMigrateKeyData{keyToMigrate2},
 		}
 
@@ -216,7 +218,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 	t.Run("Fail duplicate hashes", func(t *testing.T) {
 		req := handler.Request{
 			ApiId:       api.ID,
-			MigrationId: "unkeyed",
+			MigrationId: migrationID,
 			Keys:        []openapi.V2KeysMigrateKeyData{keyToMigrate},
 		}
 

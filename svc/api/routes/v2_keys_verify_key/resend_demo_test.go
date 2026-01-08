@@ -52,8 +52,9 @@ func TestResendDemo(t *testing.T) {
 		// This will be done by us, no need to think about it.
 
 		// Insert migration directly to database
+		migrationID := uid.New(uid.TestPrefix)
 		err := db.Query.InsertKeyMigration(ctx, h.DB.RW(), db.InsertKeyMigrationParams{
-			ID:          "resend",
+			ID:          migrationID,
 			WorkspaceID: workspace.ID,
 			Algorithm:   db.KeyMigrationsAlgorithmGithubcomSeamapiPrefixedApiKey,
 		})
@@ -105,7 +106,7 @@ func TestResendDemo(t *testing.T) {
 			CreatedAtM:         time.Now().UnixMilli(),
 			Hash:               resendKey.LongTokenHash,
 			Enabled:            true,
-			PendingMigrationID: sql.NullString{Valid: true, String: "resend"},
+			PendingMigrationID: sql.NullString{Valid: true, String: migrationID},
 		})
 		require.NoError(t, err)
 
@@ -116,7 +117,7 @@ func TestResendDemo(t *testing.T) {
 
 		res1 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Key:         resendKey.Token,
-			MigrationId: ptr.P("resend"),
+			MigrationId: ptr.P(migrationID),
 		})
 
 		require.Equal(t, 200, res1.Status)

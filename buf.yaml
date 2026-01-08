@@ -5,7 +5,6 @@ modules:
   - path: svc/krane/proto
   - path: svc/vault/proto
   - path: proto
-
 deps:
   - buf.build/restatedev/sdk-go
   - buf.build/bufbuild/protovalidate
