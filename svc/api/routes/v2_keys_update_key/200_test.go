@@ -368,3 +368,84 @@ func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, sharedIdentityID, identity.ID)
 }
+
+// TestUpdateKeyConcurrentRatelimits tests that concurrent updates to the
+// same key's ratelimits don't deadlock. The handler uses SELECT ... FOR UPDATE
+// on the key row to serialize concurrent modifications.
+func TestUpdateKeyConcurrentRatelimits(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:           h.DB,
+		Keys:         h.Keys,
+		Logger:       h.Logger,
+		Auditlogs:    h.Auditlogs,
+		KeyCache:     h.Caches.VerificationKeyByHash,
+		UsageLimiter: h.UsageLimiter,
+	}
+
+	h.Register(route)
+
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+	})
+
+	// Create a single key that all concurrent requests will update
+	keyResponse := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		Name:        ptr.P("concurrent-ratelimit-test-key"),
+	})
+
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.update_key")
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	numConcurrent := 10
+
+	g := errgroup.Group{}
+	for i := range numConcurrent {
+		g.Go(func() error {
+			// All concurrent requests modify the SAME ratelimits on the SAME key
+			// This triggers deadlock when transactions acquire row locks
+			// in different orders due to non-deterministic map iteration
+			ratelimits := []openapi.RatelimitRequest{
+				{
+					Name:      "shared_limit_a",
+					Limit:     int64(100 + i),
+					Duration:  60000,
+					AutoApply: true,
+				},
+				{
+					Name:      "shared_limit_b",
+					Limit:     int64(200 + i),
+					Duration:  60000,
+					AutoApply: true,
+				},
+				{
+					Name:      "shared_limit_c",
+					Limit:     int64(300 + i),
+					Duration:  60000,
+					AutoApply: true,
+				},
+			}
+			req := handler.Request{
+				KeyId:      keyResponse.KeyID,
+				Ratelimits: ptr.P(ratelimits),
+			}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			if res.Status != 200 {
+				return fmt.Errorf("request %d: unexpected status %d", i, res.Status)
+			}
+			return nil
+		})
+	}
+
+	err := g.Wait()
+	require.NoError(t, err, "All concurrent updates should succeed without deadlock")
+}
