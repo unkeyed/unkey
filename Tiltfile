@@ -19,7 +19,7 @@ debug_mode = cfg.get('debug', False)
 print("Tilt starting with services: %s" % services)
 
 # Suppress warnings for images used indirectly (injected into pods by webhook)
-update_settings(suppress_unused_image_warnings=["unkey-env:latest"])
+update_settings(suppress_unused_image_warnings=["inject:latest"])
 
 # Create namespace using the extension with allow_duplicates
 namespace_create('unkey', allow_duplicates=True)
@@ -282,12 +282,12 @@ if start_preflight:
         labels=['unkey'],
     )
 
-    # Build unkey-env image for injection into customer pods
+    # Build inject image for injection into customer pods
     # Uses local_resource so it shows up in Tilt UI and can be triggered manually
     local_resource(
-        'build-unkey-env',
-        'docker build -t unkey-env:latest -f cmd/unkey-env/Dockerfile .',
-        deps=['./cmd/unkey-env', './pkg/secrets', './pkg/cli', './cmd/unkey-env/Dockerfile'],
+        'build-inject',
+        'docker build -t inject:latest -f cmd/inject/Dockerfile .',
+        deps=['./cmd/inject', './pkg/secrets', './pkg/cli', './cmd/inject/Dockerfile'],
         labels=['build'],
     )
 
@@ -304,7 +304,7 @@ if start_preflight:
 
     k8s_yaml('k8s/manifests/preflight.yaml')
 
-    preflight_deps = ['build-unkey', 'preflight-tls', 'build-unkey-env']
+    preflight_deps = ['build-unkey', 'preflight-tls', 'build-inject']
     if start_krane: preflight_deps.append('krane')
 
     k8s_resource(

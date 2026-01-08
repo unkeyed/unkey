@@ -8,7 +8,7 @@ import (
 )
 
 var cmd = &cli.Command{
-	Name:        "unkey-env",
+	Name:        "inject",
 	Usage:       "Fetch secrets and exec the given command",
 	AcceptsArgs: true,
 	Flags: []cli.Flag{

@@ -3,13 +3,13 @@ package preflight
 import "github.com/unkeyed/unkey/pkg/assert"
 
 type Config struct {
-	HttpPort                int
-	TLSCertFile             string
-	TLSKeyFile              string
-	UnkeyEnvImage           string
-	UnkeyEnvImagePullPolicy string
-	KraneEndpoint           string
-	DepotToken              string
+	HttpPort              int
+	TLSCertFile           string
+	TLSKeyFile            string
+	InjectImage           string
+	InjectImagePullPolicy string
+	KraneEndpoint         string
+	DepotToken            string
 }
 
 func (c *Config) Validate() error {
@@ -20,7 +20,7 @@ func (c *Config) Validate() error {
 	return assert.All(
 		assert.NotEmpty(c.TLSCertFile, "tls-cert-file is required"),
 		assert.NotEmpty(c.TLSKeyFile, "tls-key-file is required"),
-		assert.NotEmpty(c.UnkeyEnvImage, "unkey-env-image is required"),
+		assert.NotEmpty(c.InjectImage, "inject-image is required"),
 		assert.NotEmpty(c.KraneEndpoint, "krane-endpoint is required"),
 	)
 }

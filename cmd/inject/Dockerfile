@@ -13,17 +13,17 @@ RUN go mod download
 COPY . .
 
 # Build the binary with all optimizations
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /unkey-env ./cmd/unkey-env \
-    && upx --best --lzma /unkey-env
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /inject ./cmd/inject \
+    && upx --best --lzma /inject
 
 # Final stage - minimal image with CA certs for HTTPS calls
 FROM alpine:3.19
 
 RUN apk --no-cache add ca-certificates
 
-COPY --from=builder /unkey-env /unkey-env
+COPY --from=builder /inject /inject
 
 LABEL org.opencontainers.image.source=https://github.com/unkeyed/unkey
-LABEL org.opencontainers.image.description="Unkey Environment Injector"
+LABEL org.opencontainers.image.description="Unkey Secrets Injector"
 
-ENTRYPOINT ["/unkey-env"]
+ENTRYPOINT ["/inject"]

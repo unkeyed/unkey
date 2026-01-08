@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
-# Run from repo root: goreleaser release --config cmd/unkey-env/.goreleaser.yaml
+# Run from repo root: goreleaser release --config cmd/inject/.goreleaser.yaml
 version: 2
 
-project_name: unkey-env
+project_name: inject
 
 # Skip Go builds - the Dockerfile handles compilation via multi-stage build
 builds:
@@ -10,8 +10,8 @@ builds:
 
 dockers:
   - image_templates:
-      - "ghcr.io/unkeyed/unkey-env:{{ .Version }}-amd64"
-    dockerfile: cmd/unkey-env/Dockerfile
+      - "ghcr.io/unkeyed/inject:{{ .Version }}-amd64"
+    dockerfile: cmd/inject/Dockerfile
     use: buildx
     build_flag_templates:
       - "--label=org.opencontainers.image.created={{.Date}}"
@@ -21,8 +21,8 @@ dockers:
       - "--platform=linux/amd64"
 
   - image_templates:
-      - "ghcr.io/unkeyed/unkey-env:{{ .Version }}-arm64"
-    dockerfile: cmd/unkey-env/Dockerfile
+      - "ghcr.io/unkeyed/inject:{{ .Version }}-arm64"
+    dockerfile: cmd/inject/Dockerfile
     use: buildx
     build_flag_templates:
       - "--label=org.opencontainers.image.created={{.Date}}"
@@ -32,15 +32,15 @@ dockers:
       - "--platform=linux/arm64"
 
 docker_manifests:
-  - name_template: "ghcr.io/unkeyed/unkey-env:{{ .Version }}"
+  - name_template: "ghcr.io/unkeyed/inject:{{ .Version }}"
     image_templates:
-      - "ghcr.io/unkeyed/unkey-env:{{ .Version }}-amd64"
-      - "ghcr.io/unkeyed/unkey-env:{{ .Version }}-arm64"
+      - "ghcr.io/unkeyed/inject:{{ .Version }}-amd64"
+      - "ghcr.io/unkeyed/inject:{{ .Version }}-arm64"
 
-  - name_template: "ghcr.io/unkeyed/unkey-env:latest"
+  - name_template: "ghcr.io/unkeyed/inject:latest"
     image_templates:
-      - "ghcr.io/unkeyed/unkey-env:{{ .Version }}-amd64"
-      - "ghcr.io/unkeyed/unkey-env:{{ .Version }}-arm64"
+      - "ghcr.io/unkeyed/inject:{{ .Version }}-amd64"
+      - "ghcr.io/unkeyed/inject:{{ .Version }}-arm64"
 
 snapshot:
   version_template: "{{ incpatch .Version }}-next"

@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	unkeyEnvVolumeName = "unkey-env-bin"
-	unkeyEnvMountPath  = "/unkey"
-	unkeyEnvBinary     = "/unkey/unkey-env"
+	injectVolumeName = "inject-bin"
+	injectMountPath  = "/inject"
+	injectBinary     = "/inject/inject"
 	//nolint:gosec // G101: This is a file path, not credentials
 	ServiceAccountTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 )
@@ -28,8 +28,8 @@ type Config struct {
 	Registry                *registry.Registry
 	Clientset               kubernetes.Interface
 	Credentials             *credentials.Manager
-	UnkeyEnvImage           string
-	UnkeyEnvImagePullPolicy string
+	InjectImage             string
+	InjectImagePullPolicy   string
 	DefaultProviderEndpoint string
 }
 
