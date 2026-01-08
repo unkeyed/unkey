@@ -1,7 +1,7 @@
 # Build stage
-FROM golang:1.23-alpine AS builder
+FROM golang:1.25 AS builder
 
-RUN apk add --no-cache upx
+RUN apt-get update && apt-get install -y upx-ucl
 
 WORKDIR /app
 
@@ -16,9 +16,14 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /unkey-env ./cmd/unkey-env \
     && upx --best --lzma /unkey-env
 
-# Final stage - scratch image with just the binary
-FROM scratch
+# Final stage - minimal image with CA certs for HTTPS calls
+FROM alpine:3.19
+
+RUN apk --no-cache add ca-certificates
 
 COPY --from=builder /unkey-env /unkey-env
+
+LABEL org.opencontainers.image.source=https://github.com/unkeyed/unkey
+LABEL org.opencontainers.image.description="Unkey Environment Injector"
 
 ENTRYPOINT ["/unkey-env"]
