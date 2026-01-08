@@ -1208,6 +1208,7 @@ components:
                         - set
                         - increment
                         - decrement
+                    x-speakeasy-unknown-values: allow
                     description: |
                         Defines how to modify the key's remaining credits. Use 'set' to replace current credits with a specific value or unlimited usage, 'increment' to add credits for plan upgrades or credit purchases, and 'decrement' to reduce credits for refunds or policy violations.
                     example: set
@@ -2473,6 +2474,7 @@ components:
                     enum:
                         - daily
                         - monthly
+                    x-speakeasy-unknown-values: allow
                     description: How often credits are automatically refilled.
                     example: daily
                 amount:
@@ -2987,6 +2989,7 @@ components:
                     enum:
                         - daily
                         - monthly
+                    x-speakeasy-unknown-values: allow
                     description: How often credits are automatically refilled.
                     example: daily
                 amount:
@@ -3079,6 +3082,7 @@ components:
                         - RATE_LIMITED
                         - DISABLED
                         - EXPIRED
+                    x-speakeasy-unknown-values: allow
                     description: |
                         A machine-readable code indicating the verification status
                         or failure reason. Values: `VALID` (key is valid and passed all checks), `NOT_FOUND` (key doesn't

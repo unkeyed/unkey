@@ -19,6 +19,7 @@ properties:
       - RATE_LIMITED
       - DISABLED
       - EXPIRED
+    x-speakeasy-unknown-values: allow
     description: |
       A machine-readable code indicating the verification status
       or failure reason. Values: `VALID` (key is valid and passed all checks), `NOT_FOUND` (key doesn't
