@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_add_permissions"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestSuccess(t *testing.T) {
@@ -299,4 +300,78 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, finalPermissions, 2)
 	})
+}
+
+// TestAddPermissionsConcurrent tests that concurrent requests to add permissions
+// to the same key don't deadlock. The handler uses SELECT ... FOR UPDATE
+// on the key row to serialize concurrent modifications.
+func TestAddPermissionsConcurrent(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Logger:    h.Logger,
+		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
+	}
+
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.add_permission_to_key", "rbac.*.create_permission")
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+
+	// Create a single key that all concurrent requests will update
+	keyResponse := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		Name:        ptr.P("concurrent-permissions-test-key"),
+	})
+
+	// Create permissions that will be added concurrently
+	numConcurrent := 10
+	permissions := make([]string, numConcurrent)
+	for i := range numConcurrent {
+		perm := h.CreatePermission(seed.CreatePermissionRequest{
+			WorkspaceID: workspace.ID,
+			Name:        fmt.Sprintf("concurrent.permission.%d", i),
+			Slug:        fmt.Sprintf("concurrent.permission.%d", i),
+		})
+		permissions[i] = perm.Name
+	}
+
+	g := errgroup.Group{}
+	for i := range numConcurrent {
+		g.Go(func() error {
+			// Each request adds multiple permissions to the same key
+			req := handler.Request{
+				KeyId:       keyResponse.KeyID,
+				Permissions: []string{permissions[i], permissions[(i+1)%numConcurrent], permissions[(i+2)%numConcurrent]},
+			}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			if res.Status != 200 {
+				return fmt.Errorf("request %d: unexpected status %d", i, res.Status)
+			}
+			return nil
+		})
+	}
+
+	err := g.Wait()
+	require.NoError(t, err, "All concurrent updates should succeed without deadlock")
+
+	// Verify all permissions were added
+	finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(t.Context(), h.DB.RO(), keyResponse.KeyID)
+	require.NoError(t, err)
+	require.Len(t, finalPermissions, numConcurrent)
 }

@@ -214,6 +214,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		// Lock the key row to prevent concurrent modifications and deadlocks
 		_, err := db.Query.LockKeyForUpdate(ctx, tx, key.ID)
 		if err != nil {
 			return fault.Wrap(err,

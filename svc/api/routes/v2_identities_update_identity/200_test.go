@@ -312,27 +312,10 @@ func TestUpdateIdentityConcurrentRatelimits(t *testing.T) {
 	for i := range numConcurrent {
 		g.Go(func() error {
 			// All concurrent requests modify the SAME ratelimits
-			// This triggers deadlock when transactions acquire row locks
-			// in different orders due to non-deterministic map iteration
 			ratelimits := []openapi.RatelimitRequest{
-				{
-					Name:      "shared_limit_a",
-					Limit:     int64(100 + i),
-					Duration:  60000,
-					AutoApply: true,
-				},
-				{
-					Name:      "shared_limit_b",
-					Limit:     int64(200 + i),
-					Duration:  60000,
-					AutoApply: true,
-				},
-				{
-					Name:      "shared_limit_c",
-					Limit:     int64(300 + i),
-					Duration:  60000,
-					AutoApply: true,
-				},
+				{Name: "shared_limit_a", Limit: int64(100 + i), Duration: 60000, AutoApply: true},
+				{Name: "shared_limit_b", Limit: int64(200 + i), Duration: 60000, AutoApply: true},
+				{Name: "shared_limit_c", Limit: int64(300 + i), Duration: 60000, AutoApply: true},
 			}
 			req := handler.Request{
 				Identity:   externalID,

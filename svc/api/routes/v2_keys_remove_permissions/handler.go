@@ -162,14 +162,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if len(permissionsToRemove) > 0 {
 		err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-			_, err := db.Query.LockKeyForUpdate(ctx, tx, req.KeyId)
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Internal("unable to lock key"),
-					fault.Public("We're unable to update the key."),
-				)
-			}
-
 			var auditLogs []auditlog.AuditLog
 			var idsToRemove []string
 
