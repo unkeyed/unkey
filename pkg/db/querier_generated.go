@@ -2255,6 +2255,26 @@ type Querier interface {
 	//  ) VALUES (?, ?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE slug = VALUES(slug)
 	UpsertEnvironment(ctx context.Context, db DBTX, arg UpsertEnvironmentParams) error
+	// Inserts a new identity or does nothing if one already exists for this workspace/external_id.
+	// Use FindIdentityByExternalID after this to get the actual ID.
+	//
+	//  INSERT INTO `identities` (
+	//      id,
+	//      external_id,
+	//      workspace_id,
+	//      environment,
+	//      created_at,
+	//      meta
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      CAST(? AS JSON)
+	//  )
+	//  ON DUPLICATE KEY UPDATE external_id = external_id
+	UpsertIdentity(ctx context.Context, db DBTX, arg UpsertIdentityParams) error
 	//UpsertInstance
 	//
 	//  INSERT INTO instances (
