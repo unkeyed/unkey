@@ -49,7 +49,7 @@ examples:
       meta:
         requestId: req_ghi789jkl012
       data:
-        code: INSUFFICIENT_CREDITS
+        code: USAGE_EXCEEDED
         valid: false
         enabled: true
         keyId: key_9012ijkl
