@@ -139,7 +139,7 @@ export function isAutomatedBillingRenewal(
  * 2. No other subscription properties changed (pricing, plan, status, etc.)
  */
 export function isCardUpdateOnly(
-  sub: Stripe.Subscription,
+  _sub: Stripe.Subscription,
   previousAttributes: PreviousAttributes | undefined,
 ): boolean {
   if (!previousAttributes) {

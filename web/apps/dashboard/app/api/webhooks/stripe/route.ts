@@ -7,8 +7,8 @@ import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/payment
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import {
   isAutomatedBillingRenewal,
-  isPaymentFailureRelatedUpdate,
   isCardUpdateOnly,
+  isPaymentFailureRelatedUpdate,
 } from "@/lib/stripe/subscriptionUtils";
 import {
   alertIsCancellingSubscription,
