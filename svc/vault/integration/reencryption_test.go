@@ -7,14 +7,15 @@ import (
 	"math"
 	"testing"
 
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/vault"
-	"github.com/unkeyed/unkey/pkg/vault/keys"
-	"github.com/unkeyed/unkey/pkg/vault/storage"
+	"github.com/unkeyed/unkey/svc/vault/internal/keys"
+	"github.com/unkeyed/unkey/svc/vault/internal/storage"
+	"github.com/unkeyed/unkey/svc/vault/internal/vault"
 )
 
 // This scenario tests the re-encryption of a secret.
@@ -36,10 +37,13 @@ func TestReEncrypt(t *testing.T) {
 	_, masterKey, err := keys.GenerateMasterKey()
 	require.NoError(t, err)
 
+	bearer := uid.Nano("")
+
 	v, err := vault.New(vault.Config{
-		Storage:    storage,
-		Logger:     logger,
-		MasterKeys: []string{masterKey},
+		Storage:     storage,
+		Logger:      logger,
+		MasterKeys:  []string{masterKey},
+		BearerToken: bearer,
 	})
 	require.NoError(t, err)
 
@@ -57,10 +61,12 @@ func TestReEncrypt(t *testing.T) {
 
 			data := string(buf)
 
-			enc, err := v.Encrypt(ctx, &vaultv1.EncryptRequest{
+			encReq := connect.NewRequest(&vaultv1.EncryptRequest{
 				Keyring: keyring,
 				Data:    data,
 			})
+			encReq.Header().Add("Authorization", fmt.Sprintf("Bearer %s", bearer))
+			enc, err := v.Encrypt(ctx, encReq)
 			require.NoError(t, err)
 
 			deks := []string{}
@@ -69,19 +75,22 @@ func TestReEncrypt(t *testing.T) {
 				require.NoError(t, createDekErr)
 				require.NotContains(t, deks, dekID)
 				deks = append(deks, dekID)
-				_, err = v.ReEncrypt(ctx, &vaultv1.ReEncryptRequest{
+				reReq := connect.NewRequest(&vaultv1.ReEncryptRequest{
 					Keyring:   keyring,
-					Encrypted: enc.GetEncrypted(),
+					Encrypted: enc.Msg.GetEncrypted(),
 				})
+				reReq.Header().Add("Authorization", fmt.Sprintf("Bearer %s", bearer))
+				_, err = v.ReEncrypt(ctx, reReq)
 				require.NoError(t, err)
 			}
-
-			dec, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
+			decReq := connect.NewRequest(&vaultv1.DecryptRequest{
 				Keyring:   keyring,
-				Encrypted: enc.GetEncrypted(),
+				Encrypted: enc.Msg.GetEncrypted(),
 			})
+			decReq.Header().Add("Authorization", fmt.Sprintf("Bearer %s", bearer))
+			dec, err := v.Decrypt(ctx, decReq)
 			require.NoError(t, err)
-			require.Equal(t, data, dec.GetPlaintext())
+			require.Equal(t, data, dec.Msg.GetPlaintext())
 		})
 
 	}

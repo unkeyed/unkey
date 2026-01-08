@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package vault.v1;
 
+import "buf/validate/validate.proto";
+
 option go_package = "github.com/unkeyed/unkey/gen/proto/vault/v1;vaultv1";
 
 message LivenessRequest {}
@@ -10,8 +12,8 @@ message LivenessResponse {
 }
 
 message EncryptRequest {
-  string keyring = 1;
-  string data = 2;
+  string keyring = 1 [(buf.validate.field).string.max_len = 64];
+  string data = 2 [(buf.validate.field).string.max_len = 32768];
 }
 
 message EncryptResponse {
@@ -19,38 +21,21 @@ message EncryptResponse {
   string key_id = 2;
 }
 
-message EncryptBulkRequest {
-  string keyring = 1;
-  repeated string data = 2;
-}
-
-message EncryptBulkResponse {
-  repeated EncryptResponse encrypted = 1;
-}
-
 message DecryptRequest {
-  string keyring = 1;
-  string encrypted = 2;
+  string keyring = 1 [(buf.validate.field).string.max_len = 64];
+  string encrypted = 2 [(buf.validate.field).string.max_len = 32768];
 }
 
 message DecryptResponse {
   string plaintext = 1;
 }
 
-message CreateDEKRequest {
-  string keyring = 1;
-}
-
-message CreateDEKResponse {
-  string key_id = 1;
-}
-
 message ReEncryptRequest {
-  string keyring = 1;
-  string encrypted = 2;
+  string keyring = 1 [(buf.validate.field).string.max_len = 64];
+  string encrypted = 2 [(buf.validate.field).string.max_len = 32768];
 
   // Specify the key_id to use for re-encryption. If not provided, the latest will be used
-  optional string key_id = 3;
+  optional string key_id = 3 [(buf.validate.field).string.max_len = 64];
 }
 message ReEncryptResponse {
   string encrypted = 1;
@@ -62,12 +47,9 @@ message ReEncryptDEKsResponse {}
 
 service VaultService {
   rpc Liveness(LivenessRequest) returns (LivenessResponse) {}
-  rpc CreateDEK(CreateDEKRequest) returns (CreateDEKResponse) {}
   rpc Encrypt(EncryptRequest) returns (EncryptResponse) {}
-  rpc EncryptBulk(EncryptBulkRequest) returns (EncryptBulkResponse) {}
   rpc Decrypt(DecryptRequest) returns (DecryptResponse) {}
 
   // ReEncrypt rec
   rpc ReEncrypt(ReEncryptRequest) returns (ReEncryptResponse) {}
-  rpc ReEncryptDEKs(ReEncryptDEKsRequest) returns (ReEncryptDEKsResponse) {}
 }

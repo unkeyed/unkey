@@ -38,6 +38,7 @@ start_krane = 'all' in services or 'krane' in services
 start_dashboard = 'all' in services or 'dashboard' in services
 start_agent = 'all' in services or 'agent' in services
 start_preflight = 'all' in services or 'preflight' in services
+start_vault = 'all' in services or 'vault' in services
 
 # Apply RBAC
 k8s_yaml('k8s/manifests/rbac.yaml')
@@ -315,6 +316,29 @@ if start_preflight:
         trigger_mode=TRIGGER_MODE_AUTO
     )
 
+# Vault service
+if start_vault:
+    print("Setting up Vault service...")
+    docker_build(
+        'unkey/vault:latest',
+        '../svc/vault',
+        dockerfile='./svc/vault/Dockerfile',
+    )
+    k8s_yaml('k8s/manifests/vault.yaml')
+
+    # Build dependency list
+    vault_deps = []
+    if start_s3: vault_deps.append('s3')
+
+    k8s_resource(
+        'vault',
+        port_forwards='7070:7070',
+        resource_deps=vault_deps,
+        labels=['unkey'],
+        auto_init=True,
+        trigger_mode=TRIGGER_MODE_AUTO
+    )
+
 # Agent service
 if start_agent:
     print("Setting up Agent service...")
@@ -384,6 +408,7 @@ if start_krane: active_services.append('krane')
 if start_preflight: active_services.append('preflight')
 if start_dashboard: active_services.append('dashboard')
 if start_agent: active_services.append('agent')
+if start_vault: active_services.append('vault')
 
 print("""
 Tilt is ready!
@@ -391,10 +416,15 @@ Tilt is ready!
 Services running: %s
 
 Web UI: http://localhost:10350
+Services running: %s
+
+Web UI: http://localhost:10350
 
 Services available via Tilt port forwards:
 Dashboard: http://localhost:3000
 API: http://localhost:7070
+Vault: http://localhost:7070
+Sentinel: http://localhost:8080
 Ctrl: http://localhost:7091
 Krane: http://localhost:8090
 Agent: http://localhost:8082

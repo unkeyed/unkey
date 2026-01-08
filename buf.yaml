@@ -3,11 +3,11 @@ version: v2
 modules:
   - path: svc/ctrl/proto
   - path: svc/krane/proto
+  - path: svc/vault/proto
   - path: proto
-
 deps:
-  - buf.build/googleapis/googleapis
   - buf.build/restatedev/sdk-go
+  - buf.build/bufbuild/protovalidate
 lint:
   use:
     - STANDARD

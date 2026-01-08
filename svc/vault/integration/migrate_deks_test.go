@@ -4,18 +4,16 @@ import (
 	"context"
 	"crypto/rand"
 	"testing"
-	"time"
 
-	"fmt"
-
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/vault"
-	"github.com/unkeyed/unkey/pkg/vault/keys"
-	"github.com/unkeyed/unkey/pkg/vault/storage"
+	"github.com/unkeyed/unkey/svc/vault/internal/keys"
+	"github.com/unkeyed/unkey/svc/vault/internal/storage"
+	"github.com/unkeyed/unkey/svc/vault/internal/vault"
 )
 
 // This scenario tests the re-encryption of a secret.
@@ -23,11 +21,12 @@ func TestMigrateDeks(t *testing.T) {
 
 	logger := logging.NewNoop()
 	data := make(map[string]string)
+	bearerToken := "integration-test-token"
 	s3 := containers.S3(t)
 
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.HostURL,
-		S3Bucket:          fmt.Sprintf("%d", time.Now().Unix()),
+		S3Bucket:          "test",
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.AccessKeySecret,
 		Logger:            logger,
@@ -38,9 +37,10 @@ func TestMigrateDeks(t *testing.T) {
 	require.NoError(t, err)
 
 	v, err := vault.New(vault.Config{
-		Storage:    storage,
-		Logger:     logger,
-		MasterKeys: []string{masterKeyOld},
+		Storage:     storage,
+		Logger:      logger,
+		MasterKeys:  []string{masterKeyOld},
+		BearerToken: bearerToken,
 	})
 	require.NoError(t, err)
 
@@ -57,12 +57,14 @@ func TestMigrateDeks(t *testing.T) {
 		_, err = rand.Read(buf)
 		d := string(buf)
 		require.NoError(t, err)
-		res, encryptErr := v.Encrypt(ctx, &vaultv1.EncryptRequest{
+		encryptReq := connect.NewRequest(&vaultv1.EncryptRequest{
 			Keyring: keyring,
 			Data:    d,
 		})
+		encryptReq.Header().Set("Authorization", "Bearer "+bearerToken)
+		res, encryptErr := v.Encrypt(ctx, encryptReq)
 		require.NoError(t, encryptErr)
-		data[d] = res.GetEncrypted()
+		data[d] = res.Msg.GetEncrypted()
 	}
 
 	// Simulate Restart
@@ -71,41 +73,23 @@ func TestMigrateDeks(t *testing.T) {
 	require.NoError(t, err)
 
 	v, err = vault.New(vault.Config{
-		Storage:    storage,
-		Logger:     logger,
-		MasterKeys: []string{masterKeyOld, masterKeyNew},
+		Storage:     storage,
+		Logger:      logger,
+		MasterKeys:  []string{masterKeyNew, masterKeyOld},
+		BearerToken: bearerToken,
 	})
-	require.NoError(t, err)
-
-	err = v.RollDeks(ctx)
 	require.NoError(t, err)
 
 	// Check each piece of data can be decrypted
 	for d, e := range data {
-		res, decryptErr := v.Decrypt(ctx, &vaultv1.DecryptRequest{
+		decryptReq := connect.NewRequest(&vaultv1.DecryptRequest{
 			Keyring:   keyring,
 			Encrypted: e,
 		})
+		decryptReq.Header().Set("Authorization", "Bearer "+bearerToken)
+		res, decryptErr := v.Decrypt(ctx, decryptReq)
 		require.NoError(t, decryptErr)
-		require.Equal(t, d, res.GetPlaintext())
-	}
-	// Simulate another restart, removing the old master key
-
-	v, err = vault.New(vault.Config{
-		Storage:    storage,
-		Logger:     logger,
-		MasterKeys: []string{masterKeyNew},
-	})
-	require.NoError(t, err)
-
-	// Check each piece of data can be decrypted
-	for d, e := range data {
-		res, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
-			Keyring:   keyring,
-			Encrypted: e,
-		})
-		require.NoError(t, err)
-		require.Equal(t, d, res.GetPlaintext())
+		require.Equal(t, d, res.Msg.GetPlaintext())
 	}
 
 }
