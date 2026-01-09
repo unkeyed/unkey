@@ -21,6 +21,7 @@ go_library(
 
 go_test(
     name = "cli_test",
+    size = "small",
     srcs = ["flag_test.go"],
     embed = [":cli"],
     deps = ["@com_github_stretchr_testify//require"],

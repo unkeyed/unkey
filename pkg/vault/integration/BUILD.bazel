@@ -2,6 +2,7 @@ load("@rules_go//go:def.bzl", "go_test")
 
 go_test(
     name = "integration_test",
+    size = "small",
     srcs = [
         "coldstart_test.go",
         "migrate_deks_test.go",

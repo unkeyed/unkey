@@ -261,6 +261,7 @@ go_library(
 
 go_test(
     name = "db_test",
+    size = "small",
     srcs = [
         "key_data_test.go",
         "retry_test.go",

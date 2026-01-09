@@ -24,6 +24,7 @@ go_library(
 
 go_test(
     name = "v2_keys_update_credits_test",
+    size = "small",
     srcs = [
         "200_test.go",
         "400_test.go",

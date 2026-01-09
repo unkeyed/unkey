@@ -42,6 +42,7 @@ go_library(
 
 go_test(
     name = "zen_test",
+    size = "small",
     srcs = [
         "auth_test.go",
         "middleware_metrics_test.go",

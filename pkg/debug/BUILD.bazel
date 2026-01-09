@@ -14,6 +14,7 @@ go_library(
 
 go_test(
     name = "debug_test",
+    size = "small",
     srcs = [
         "cacheheaders_test.go",
         "header_test.go",

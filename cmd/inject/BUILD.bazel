@@ -20,6 +20,8 @@ go_library(
 
 go_binary(
     name = "inject",
+    out = "bin/inject",
     embed = [":inject_lib"],
+    pure = "on",
     visibility = ["//visibility:public"],
 )

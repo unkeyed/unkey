@@ -22,6 +22,7 @@ go_library(
 
 go_test(
     name = "eventstream_test",
+    size = "small",
     srcs = ["eventstream_integration_test.go"],
     deps = [
         ":eventstream",

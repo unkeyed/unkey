@@ -13,6 +13,7 @@ go_library(
 
 go_test(
     name = "ecs_test",
+    size = "small",
     srcs = ["private_dns_name_test.go"],
     embed = [":ecs"],
     deps = ["@com_github_stretchr_testify//require"],

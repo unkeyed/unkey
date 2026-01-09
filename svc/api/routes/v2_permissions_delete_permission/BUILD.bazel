@@ -21,6 +21,7 @@ go_library(
 
 go_test(
     name = "v2_permissions_delete_permission_test",
+    size = "small",
     srcs = [
         "200_test.go",
         "400_test.go",

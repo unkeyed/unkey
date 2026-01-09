@@ -12,6 +12,7 @@ go_library(
 
 go_test(
     name = "ctxutil_test",
+    size = "small",
     srcs = ["context_test.go"],
     deps = [
         ":ctxutil",

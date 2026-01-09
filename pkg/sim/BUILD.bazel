@@ -18,6 +18,7 @@ go_library(
 
 go_test(
     name = "sim_test",
+    size = "small",
     srcs = ["sim_test.go"],
     deps = [
         ":sim",

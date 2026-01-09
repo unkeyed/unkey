@@ -24,7 +24,8 @@ go_library(
 
 go_binary(
     name = "unkey",
-    embed = [":unkey_lib"],
     out = "bin/unkey",
+    embed = [":unkey_lib"],
+    pure = "on",
     visibility = ["//visibility:public"],
 )

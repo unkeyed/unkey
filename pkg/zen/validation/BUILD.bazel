@@ -17,6 +17,7 @@ go_library(
 
 go_test(
     name = "validation_test",
+    size = "small",
     srcs = ["validator_test.go"],
     embed = [":validation"],
     deps = ["@com_github_stretchr_testify//require"],

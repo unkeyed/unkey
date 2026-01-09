@@ -12,6 +12,7 @@ go_library(
 
 go_test(
     name = "match_test",
+    size = "small",
     srcs = ["wildcard_test.go"],
     embed = [":match"],
     deps = ["@com_github_stretchr_testify//require"],

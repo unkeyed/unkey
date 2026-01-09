@@ -10,6 +10,7 @@ go_library(
 
 go_test(
     name = "repeat_test",
+    size = "small",
     srcs = ["every_test.go"],
     embed = [":repeat"],
     deps = ["@com_github_stretchr_testify//assert"],

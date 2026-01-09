@@ -28,6 +28,7 @@ go_library(
 
 go_test(
     name = "deployment_test",
+    size = "small",
     srcs = ["create_deployment_simple_test.go"],
     embed = [":deployment"],
     deps = [

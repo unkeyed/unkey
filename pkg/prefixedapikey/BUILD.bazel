@@ -10,6 +10,7 @@ go_library(
 
 go_test(
     name = "prefixedapikey_test",
+    size = "small",
     srcs = ["prefixedapikey_test.go"],
     embed = [":prefixedapikey"],
 )

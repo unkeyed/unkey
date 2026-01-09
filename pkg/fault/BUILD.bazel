@@ -16,6 +16,7 @@ go_library(
 
 go_test(
     name = "fault_test",
+    size = "small",
     srcs = [
         "code_test.go",
         "dst_test.go",

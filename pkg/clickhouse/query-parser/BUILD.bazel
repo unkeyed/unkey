@@ -25,6 +25,7 @@ go_library(
 
 go_test(
     name = "query-parser_test",
+    size = "small",
     srcs = [
         "errors_test.go",
         "extract_test.go",

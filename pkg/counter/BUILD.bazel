@@ -19,6 +19,7 @@ go_library(
 
 go_test(
     name = "counter_test",
+    size = "small",
     srcs = ["redis_test.go"],
     embed = [":counter"],
     deps = [

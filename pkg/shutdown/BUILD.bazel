@@ -12,6 +12,7 @@ go_library(
 
 go_test(
     name = "shutdown_test",
+    size = "small",
     srcs = ["shutdown_test.go"],
     embed = [":shutdown"],
     deps = ["@com_github_stretchr_testify//require"],

@@ -18,6 +18,7 @@ go_library(
 
 go_test(
     name = "uid_test",
+    size = "small",
     srcs = [
         "benchmark_test.go",
         "nanoid_test.go",

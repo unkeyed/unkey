@@ -41,6 +41,7 @@ go_library(
 
 go_test(
     name = "keys_test",
+    size = "small",
     srcs = [
         "create_test.go",
         "get_test.go",

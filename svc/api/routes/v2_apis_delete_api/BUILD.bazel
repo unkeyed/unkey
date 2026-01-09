@@ -23,6 +23,7 @@ go_library(
 
 go_test(
     name = "v2_apis_delete_api_test",
+    size = "small",
     srcs = [
         "200_test.go",
         "400_test.go",

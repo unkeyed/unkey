@@ -33,6 +33,7 @@ go_library(
 
 go_test(
     name = "assert_test",
+    size = "small",
     srcs = [
         "all_test.go",
         "contains_test.go",

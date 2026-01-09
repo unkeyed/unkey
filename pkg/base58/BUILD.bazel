@@ -13,6 +13,7 @@ go_library(
 
 go_test(
     name = "base58_test",
+    size = "small",
     srcs = ["encode_test.go"],
     embed = [":base58"],
     deps = ["@com_github_stretchr_testify//require"],

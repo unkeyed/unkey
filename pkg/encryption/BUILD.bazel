@@ -9,6 +9,7 @@ go_library(
 
 go_test(
     name = "encryption_test",
+    size = "small",
     srcs = [
         "aes_test.go",
         "fuzz_test.go",

@@ -34,7 +34,7 @@ func IsEnabled(envVar string) bool {
 // via INTEGRATION_TEST=1
 func SkipUnlessIntegration(t *testing.T) {
 	t.Helper()
-	if !IsEnabled(EnvIntegration) {
+	if !IsEnabled(EnvIntegration) && false{
 		t.Skip("Skipping integration test. Set INTEGRATION_TEST=1 to run")
 	}
 }

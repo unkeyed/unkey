@@ -15,6 +15,7 @@ go_library(
 
 go_test(
     name = "clock_test",
+    size = "small",
     srcs = [
         "cached_clock_test.go",
         "clock_benchmarks_test.go",

@@ -11,7 +11,7 @@ go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
 go_deps.gazelle_default_attributes(
     directives = [
-        "gazelle:proto disable",
+        "gazelle:proto disable", # we are generating code from protos already
     ],
 )
 use_repo(

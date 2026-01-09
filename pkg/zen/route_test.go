@@ -2,12 +2,12 @@ package zen
 
 import (
 	"context"
+	"encoding/json"
+	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-"encoding/json"
-	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 func TestCatchAllRoute(t *testing.T) {

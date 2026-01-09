@@ -16,6 +16,7 @@ go_library(
 
 go_test(
     name = "tls_test",
+    size = "small",
     srcs = ["tls_test.go"],
     embed = [":tls"],
     deps = ["@com_github_stretchr_testify//require"],

@@ -12,6 +12,7 @@ go_library(
 
 go_test(
     name = "hash_test",
+    size = "small",
     srcs = ["sha256_test.go"],
     embed = [":hash"],
     deps = ["@com_github_stretchr_testify//require"],

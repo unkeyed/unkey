@@ -20,6 +20,7 @@ go_library(
 
 go_test(
     name = "circuitbreaker_test",
+    size = "small",
     srcs = ["lib_test.go"],
     embed = [":circuitbreaker"],
     deps = [

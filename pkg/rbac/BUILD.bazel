@@ -20,6 +20,7 @@ go_library(
 
 go_test(
     name = "rbac_test",
+    size = "small",
     srcs = [
         "integration_test.go",
         "lexer_test.go",

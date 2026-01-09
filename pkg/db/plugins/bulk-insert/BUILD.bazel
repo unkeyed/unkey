@@ -28,6 +28,7 @@ go_binary(
 
 go_test(
     name = "bulk-insert_test",
+    size = "small",
     srcs = [
         "generator_test.go",
         "parser_test.go",
