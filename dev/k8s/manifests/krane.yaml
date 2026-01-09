@@ -29,8 +29,6 @@ spec:
             # Server configuration
             - name: UNKEY_REGION
               value: "dev:local"
-            - name: UNKEY_IMAGE
-              value: "unkey/dev:latest"
             - name: "UNKEY_CONTROL_PLANE_URL"
               value: "http://ctrl:7091"
             - name: "UNKEY_CONTROL_PLANE_BEARER"

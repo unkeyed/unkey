@@ -27,9 +27,6 @@ var Cmd = &cli.Command{
 		cli.Bool("tls-enabled", "Enable TLS termination for the frontline. Default: true",
 			cli.Default(true), cli.EnvVar("UNKEY_TLS_ENABLED")),
 
-		cli.String("image", "Container image identifier. Used for logging and metrics.",
-			cli.EnvVar("UNKEY_IMAGE")),
-
 		cli.String("region", "Geographic region identifier. Used for logging and routing. Default: unknown",
 			cli.Default("unknown"), cli.EnvVar("UNKEY_REGION"), cli.EnvVar("AWS_REGION")),
 

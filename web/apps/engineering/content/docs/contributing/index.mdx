@@ -73,6 +73,9 @@ You also need the following tools installed.
 - [Node](https://nodejs.org)
 - [pnpm](https://pnpm.io/installation)
 - [Docker](https://www.docker.com/products/docker-desktop)
+- [Minikube](https://minikube.sigs.k8s.io/docs/)
+- [Tilt](https://tilt.dev/)
+- [ctlptl](https://github.com/tilt-dev/ctlptl)
 
 #### Optional Services
 
@@ -106,6 +109,17 @@ You also need the following tools installed.
     ```
 
   </Step>
+
+
+<Step>
+  #### Setup local development for backend services
+  
+  Fill in the depot.dev secrets
+  ```bash
+  cp ./dev/.env.depot ./.env.depot
+  ```
+  
+  Then start the services with `make dev`
 
   <Step>
   #### Setup local development for dashboard

@@ -1,20 +1,30 @@
-# Tiltfile for Unkey development
-# This provides an enhanced development experience with hot reloading and unified logs
-
-# Load Tilt extensions
 load('ext://namespace', 'namespace_create')
 load('ext://restart_process',  'docker_build_with_restart')
+load('ext://secret', 'secret_create_generic')
 
 cfg = config.parse()
 
-# Suppress warnings for images used indirectly (injected into pods by webhook)
-update_settings(suppress_unused_image_warnings=["unkey/inject:latest", "unkey/dev:latest"])
 
-# Create namespace using the extension with allow_duplicates
-unkey_namespace = namespace_create('unkey', allow_duplicates=True)
+local_resource(
+  'namespace',
+  'kubectl apply -f k8s/manifests/namespace.yaml',
+  labels=['setup'],
+)
 
-# Apply RBAC
-k8s_yaml('k8s/manifests/rbac.yaml')
+
+local_resource(
+  'rbac',
+  'kubectl apply -f k8s/manifests/rbac.yaml',
+  labels=['setup'],
+)
+
+local_resource(
+    'depot-credentials',
+    'kubectl -n unkey create secret generic depot-credentials --from-env-file=./.env.depot -o yaml --dry-run=client | kubectl apply -f -',
+    resource_deps=['namespace'],
+    deps=['./.env.depot'],
+    labels=['setup'],
+)
 
 
 # Redis service
@@ -49,7 +59,7 @@ k8s_resource('restate', port_forwards=['8081:8080', '9070:9070'], resource_deps=
 
 
 # Build Unkey binary locally (independent of infrastructure)
-local_resource('build-unkey','cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o bin/unkey .', deps=['../main.go', '../pkg', '../cmd', '../svc', '../gen'])
+local_resource('build-unkey','cd .. && CGO_ENABLED=0 GOOS=linux ARCH=amd64 go build -o bin/unkey .', deps=['../main.go', '../pkg', '../cmd', '../svc', '../gen'], labels=['build'])
 
 
 
@@ -106,8 +116,8 @@ k8s_yaml('k8s/manifests/ctrl.yaml')
 k8s_resource(
   'ctrl',
   port_forwards='7091:7091',
-  resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey'],
-  labels=['build'],
+  resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey', 'depot-credentials'],
+  labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
 )
@@ -127,7 +137,7 @@ k8s_yaml('k8s/manifests/krane.yaml')
 k8s_resource(
   'krane',
   port_forwards='8070:8070',
-  resource_deps=['ctrl', 'build-unkey'],
+  resource_deps=['ctrl', 'build-unkey', 'rbac', 'namespace'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -147,16 +157,15 @@ local_resource(
       --cert=/tmp/preflight-tls.crt --key=/tmp/preflight-tls.key && \
   rm /tmp/preflight-tls.crt /tmp/preflight-tls.key
   ''',
-  resource_deps=['unkey_namespace'],
-  labels=['unkey'],
+  resource_deps=['namespace'],
+  labels=['setup'],
 )
 # Build inject image for injection into customer pods
-# Uses local_resource so it shows up in Tilt UI and can be triggered
 local_resource(
     'inject',
-    'minikube image build -t unkey/inject:latest -f ./cmd/inject/Dockerfile ..',
+    'minikube image build -t inject:latest -f ./cmd/inject/Dockerfile ..',
     deps=['../cmd/inject', '../pkg/secrets', '../pkg/cli', '../cmd/inject/Dockerfile'],
-    labels=['images'],
+    labels=['build'],
 )
 
 
@@ -182,12 +191,11 @@ k8s_resource(
 )
 
 # Build image for sentinels to use
-
 local_resource(
-    'unkey-dev',
-    'cd .. && docker build -t unkey/dev:latest . && minikube image load unkey/dev:latest',
+    'sentinel',
+    'minikube image build -t unkey/sentinel:latest -f ./Dockerfile ..',
     deps=['../main.go', '../pkg', '../cmd', '../svc', '../gen', '../Dockerfile'],
-    labels=['images'],
+    labels=['build'],
 )
 
 

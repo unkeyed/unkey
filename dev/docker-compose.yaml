@@ -247,7 +247,6 @@ services:
     environment:
       # Server configuration
       UNKEY_REGION: "dev:local" # currently required to receive filteres events from ctrl
-      UNKEY_IMAGE: "unkey/dev:latest"
       UNKEY_CONTROL_PLANE_URL: "http://ctrl:7091"
       UNKEY_CONTROL_PLANE_BEARER: "your-local-dev-key"
 
