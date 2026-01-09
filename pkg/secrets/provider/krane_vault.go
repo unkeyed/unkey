@@ -76,7 +76,11 @@ func resolveToken(opts FetchOptions) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failed to read token file: %w", err)
 		}
-		return strings.TrimSpace(string(tokenBytes)), nil
+		token := strings.TrimSpace(string(tokenBytes))
+		if err := assert.NotEmpty(token, "token file exists but is empty"); err != nil {
+			return "", err
+		}
+		return token, nil
 	}
 
 	if err := assert.NotEmpty(opts.Token, "token is required"); err != nil {

@@ -32,12 +32,12 @@ var Cmd = &cli.Command{
 func action(ctx context.Context, cmd *cli.Command) error {
 	config := preflight.Config{
 		HttpPort:              cmd.Int("port"),
-		TLSCertFile:           cmd.String("tls-cert-file"),
-		TLSKeyFile:            cmd.String("tls-key-file"),
+		TLSCertFile:           cmd.RequireString("tls-cert-file"),
+		TLSKeyFile:            cmd.RequireString("tls-key-file"),
 		InjectImage:           cmd.String("inject-image"),
 		InjectImagePullPolicy: cmd.String("inject-image-pull-policy"),
 		KraneEndpoint:         cmd.String("krane-endpoint"),
-		DepotToken:            cmd.String("depot-token"),
+		DepotToken:            cmd.RequireString("depot-token"),
 	}
 
 	if err := config.Validate(); err != nil {

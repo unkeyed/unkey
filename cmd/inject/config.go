@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/secrets/provider"
 )
@@ -39,9 +41,15 @@ func (c *config) validate() error {
 		return nil
 	}
 
-	return assert.All(
-		assert.NotEmpty(c.Endpoint, "endpoint is required when secrets-blob is provided"),
-		assert.NotEmpty(c.DeploymentID, "deployment-id is required when secrets-blob is provided"),
-		assert.True(c.Token != "" || c.TokenPath != "", "either token or token-path is required when secrets-blob is provided"),
-	)
+	switch c.Provider {
+	case provider.KraneVault:
+		return assert.All(
+			assert.True((c.Token != "") != (c.TokenPath != ""), "exactly one of token or token-path is required"),
+			assert.NotEmpty(c.EnvironmentID, "environment-id is required when secrets-blob is provided"),
+			assert.NotEmpty(c.Endpoint, "endpoint is required for krane-vault provider"),
+			assert.NotEmpty(c.DeploymentID, "deployment-id is required for krane-vault provider"),
+		)
+	default:
+		return fmt.Errorf("unknown provider: %s", c.Provider)
+	}
 }

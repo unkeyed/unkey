@@ -15,6 +15,10 @@ import (
 )
 
 func run(ctx context.Context, cfg config) error {
+	if len(cfg.Args) == 0 {
+		return fmt.Errorf("no command specified")
+	}
+
 	logger := logging.New()
 
 	// Clear sensitive UNKEY_* env vars first, before setting user secrets.
