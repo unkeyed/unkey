@@ -1,0 +1,227 @@
+# Tiltfile for Unkey development
+# This provides an enhanced development experience with hot reloading and unified logs
+
+# Load Tilt extensions
+load('ext://namespace', 'namespace_create')
+load('ext://restart_process',  'docker_build_with_restart')
+
+cfg = config.parse()
+
+# Suppress warnings for images used indirectly (injected into pods by webhook)
+update_settings(suppress_unused_image_warnings=["unkey/env:latest", "unkey/dev:latest"])
+
+# Create namespace using the extension with allow_duplicates
+unkey_namespace = namespace_create('unkey', allow_duplicates=True)
+
+# Apply RBAC
+k8s_yaml('k8s/manifests/rbac.yaml')
+
+
+# Redis service
+k8s_yaml('k8s/manifests/redis.yaml')
+k8s_resource('redis', port_forwards='6379:6379', resource_deps=[], labels=['database'])
+
+# MySQL service
+docker_build('unkey/mysql:local', '..', dockerfile='./Dockerfile.mysql')
+k8s_yaml('k8s/manifests/mysql.yaml')
+k8s_resource('mysql', port_forwards='3306:3306', resource_deps=[], labels=['database'])
+
+# ClickHouse service
+docker_build('unkey/clickhouse:local', '..', dockerfile='./Dockerfile.clickhouse')
+k8s_yaml('k8s/manifests/clickhouse.yaml')
+k8s_resource('clickhouse', port_forwards='8123:8123', resource_deps=[], labels=['database'])
+
+# S3 (MinIO) service
+k8s_yaml('k8s/manifests/s3.yaml')
+k8s_resource('s3', port_forwards=['3902:3902', '3903:3903'], resource_deps=[], labels=['database'])
+
+# PlanetScale HTTP driver
+k8s_yaml('k8s/manifests/planetscale.yaml')
+k8s_resource(
+    'planetscale',
+    resource_deps=['mysql'],
+    labels=['database']
+)
+
+# Restate service
+k8s_yaml('k8s/manifests/restate.yaml')
+k8s_resource('restate', port_forwards=['8081:8080', '9070:9070'], resource_deps=[], labels=['database'])
+
+
+# Build Unkey binary locally (independent of infrastructure)
+local_resource('unkey-compile','cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o bin/unkey .', deps=['../main.go', '../pkg', '../cmd', '../svc', '../gen'])
+
+
+
+
+# Agent service (1 replica)
+docker_build(
+        'unkey/agent:latest',
+        '../web/apps/agent',
+        dockerfile='../web/apps/agent/Dockerfile',
+    )
+k8s_yaml('k8s/manifests/agent.yaml')
+k8s_resource(
+  'agent',
+  port_forwards='8082:8080',
+  resource_deps=['s3', 'clickhouse'],
+  labels=['unkey'],
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_AUTO
+)
+
+# API service (3 replicas)
+docker_build_with_restart(
+        'unkey/api:latest',
+        '..',
+        dockerfile='./Dockerfile.tilt',
+        entrypoint=['/unkey', 'run', 'api'],
+        only=['./bin'],
+        live_update=[
+            sync('./bin/unkey', '/unkey'),
+        ]
+    )
+k8s_yaml('k8s/manifests/api.yaml')
+k8s_resource(
+  'api',
+  port_forwards='7070:7070',
+  resource_deps=['mysql', 'clickhouse', 'redis', 'unkey-compile'],
+  labels=['unkey'],
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_AUTO
+)
+
+# Ctrl service (1 replica)
+docker_build_with_restart(
+        'unkey/ctrl:latest',
+        '..',
+        dockerfile='./Dockerfile.tilt',
+        entrypoint=['/unkey', 'run', 'ctrl'],
+        only=['./bin'],
+        live_update=[
+            sync('./bin/unkey', '/unkey'),
+        ]
+    )
+k8s_yaml('k8s/manifests/ctrl.yaml')
+k8s_resource(
+  'ctrl',
+  port_forwards='7091:7091',
+  resource_deps=['mysql', 'clickhouse', 'restate', 'unkey-compile'],
+  labels=['unkey'],
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_AUTO
+)
+
+# Krane service (1 replica)
+docker_build_with_restart(
+        'unkey/krane:latest',
+        '..',
+        dockerfile='./Dockerfile.tilt',
+        entrypoint=['/unkey', 'run', 'krane'],
+        only=['./bin'],
+        live_update=[
+            sync('./bin/unkey', '/unkey'),
+        ]
+    )
+k8s_yaml('k8s/manifests/krane.yaml')
+k8s_resource(
+  'krane',
+  port_forwards='8070:8070',
+  resource_deps=['ctrl', 'unkey-compile'],
+  labels=['unkey'],
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_AUTO
+)
+
+
+
+
+# Preflight (mutating admission controller for secrets and credentials injection)
+local_resource(
+  'preflight-tls',
+  '''
+  mkcert -cert-file /tmp/preflight-tls.crt -key-file /tmp/preflight-tls.key \
+      preflight.unkey.svc preflight.unkey.svc.cluster.local && \
+  kubectl delete secret preflight-tls -n unkey --ignore-not-found && \
+  kubectl create secret tls preflight-tls -n unkey \
+      --cert=/tmp/preflight-tls.crt --key=/tmp/preflight-tls.key && \
+  rm /tmp/preflight-tls.crt /tmp/preflight-tls.key
+  ''',
+  resource_deps=['unkey_namespace'],
+  labels=['unkey'],
+)
+# Build unkey-env image for injection into customer pods
+# Uses local_resource so it shows up in Tilt UI and can be triggered
+local_resource(
+    'unkey-env',
+    'minikube image build -t unkey/env:latest -f ./cmd/unkey-env/Dockerfile ..',
+    deps=['../main.go', '../pkg', '../cmd', '../svc', '../gen'],
+    labels=['images'],
+)
+
+
+
+docker_build_with_restart(
+        'unkey/preflight:latest',
+        '..',
+        dockerfile='Dockerfile.tilt',
+        entrypoint=['/unkey', 'run', 'preflight'],
+        only=['./bin'],
+        live_update=[
+            sync('./bin/unkey', '/unkey'),
+        ]
+    )
+k8s_yaml('k8s/manifests/preflight.yaml')
+k8s_resource(
+  'preflight',
+  port_forwards='8090:8080',
+  resource_deps=['preflight-tls', 'unkey-env', 'unkey-compile'],
+  labels=['unkey'],
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_AUTO
+)
+
+# Build image for sentinels to use
+
+local_resource(
+    'unkey-dev',
+    'cd .. && docker build -t unkey/dev:latest . && minikube image load unkey/dev:latest',
+    deps=['../main.go', '../pkg', '../cmd', '../svc', '../gen', '../Dockerfile'],
+    labels=['images'],
+)
+
+
+# Dashboard service
+docker_build(
+  'unkey/dashboard:latest',
+  '..',
+  dockerfile='../web/apps/dashboard/Dockerfile',
+  live_update=[
+      sync('../web/apps/dashboard', '/unkey/web/apps/dashboard'),
+      run('cd /unkey/web/apps/dashboard && pnpm build', trigger=['**/*.tsx', '**/*.ts', '**/*.css']),
+  ]
+)
+k8s_yaml('k8s/manifests/dashboard.yaml')
+
+k8s_resource(
+    'dashboard',
+    port_forwards='3000:3000',
+    resource_deps=['mysql', 'clickhouse'],
+    labels=['unkey'],
+    auto_init=True,
+    trigger_mode=TRIGGER_MODE_MANUAL
+)
+
+print("""
+Tilt is ready!
+
+
+Web UI: http://localhost:10350
+
+Tips:
+- Press 's' to open a shell in running containers
+- Press 'r' to manually trigger rebuilds
+- Use 'tilt down' to stop all services
+- Use 'tilt logs <service>' to view specific service logs
+
+""")

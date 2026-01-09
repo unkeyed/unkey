@@ -71,7 +71,7 @@ unkey run krane                                   # Run with default configurati
 
 		cli.Int("rpc-port",
 			"Port for RPC server",
-			cli.Default(8080),
+			cli.Default(8070),
 			cli.EnvVar("UNKEY_RPC_PORT")),
 
 		// Vault Configuration

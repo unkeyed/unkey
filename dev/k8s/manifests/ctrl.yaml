@@ -24,7 +24,7 @@ spec:
             type: Socket
       containers:
         - name: ctrl
-          image: unkey/dev-ctrl:latest
+          image: unkey/ctrl:latest
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 7091
@@ -39,7 +39,7 @@ spec:
             - name: UNKEY_PLATFORM
               value: "kubernetes"
             - name: UNKEY_IMAGE
-              value: "unkey/dev-ctrl:latest"
+              value: "unkey/dev:latest"
             - name: UNKEY_REGION
               value: "local"
             - name: UNKEY_INSTANCE_ID
@@ -67,7 +67,7 @@ spec:
             - name: UNKEY_BUILD_BACKEND
               value: "depot" # Changed to docker as default for local k8s
             - name: UNKEY_BUILD_PLATFORM
-              value: "linux/amd64"
+              value: "linux/arm64"
             # Build S3 Storage (from depot-credentials secret)
             #kubectl create secret generic depot-credentials \
             # --from-literal=token=xxxx \

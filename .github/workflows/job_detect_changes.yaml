@@ -106,7 +106,7 @@ jobs:
               - 'pkg/clickhouse/**'
               - 'web/internal/clickhouse/**'
               - 'web/apps/agent/pkg/clickhouse/**'
-              - 'deployment/config/clickhouse/**'
+              - 'dev/config/clickhouse/**'
 
             # Documentation (apps/docs only - .md files ARE content)
             docs:
@@ -139,7 +139,7 @@ jobs:
               - '*.config.*'
               - 'Dockerfile*'
               - 'docker-compose*'
-              - 'deployment/**'
+              - 'dev/**'
               - 'biome.json'
               - 'turbo.json'
               - 'vitest.workspace.json'
