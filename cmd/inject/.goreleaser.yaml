@@ -1,8 +1,11 @@
-# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# yaml-language-server: $schema=https://goreleaser.com/static/schema-pro.json
 # Run from repo root: goreleaser release --config cmd/inject/.goreleaser.yaml
 version: 2
 
 project_name: inject
+
+monorepo:
+  tag_prefix: inject/
 
 # Skip Go builds - the Dockerfile handles compilation via multi-stage build
 builds:
