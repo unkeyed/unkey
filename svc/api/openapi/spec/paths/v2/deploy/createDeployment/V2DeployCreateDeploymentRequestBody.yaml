@@ -1,0 +1,63 @@
+type: object
+required:
+  - projectId
+  - branch
+  - environmentSlug
+properties:
+  projectId:
+    type: string
+    description: Unkey project ID
+    example: "proj_123abc"
+  keyspaceId:
+    type: string
+    description: Optional keyspace ID for authentication context
+    example: "key_abc123"
+  branch:
+    type: string
+    description: Git branch name
+    example: "main"
+  environmentSlug:
+    type: string
+    description: Environment slug (e.g., "production", "staging")
+    example: "production"
+  buildContext:
+    type: object
+    description: Build context for building from source
+    properties:
+      buildContextPath:
+        type: string
+        description: S3 path to uploaded build context tarball
+        example: "s3://bucket/path/to/context.tar.gz"
+      dockerfilePath:
+        type: string
+        description: Optional path to Dockerfile within build context
+        example: "Dockerfile"
+  dockerImage:
+    type: string
+    description: Prebuilt Docker image reference
+    example: "nginx:latest"
+  gitCommit:
+    type: object
+    description: Optional git commit information
+    properties:
+      commitSha:
+        type: string
+        description: Git commit SHA
+        example: "a1b2c3d4e5f6"
+      commitMessage:
+        type: string
+        description: Git commit message
+        example: "feat: add new feature"
+      authorHandle:
+        type: string
+        description: Git author handle/username
+        example: "johndoe"
+      authorAvatarUrl:
+        type: string
+        description: Git author avatar URL
+        example: "https://avatars.githubusercontent.com/u/123456"
+      timestamp:
+        type: integer
+        format: int64
+        description: Commit timestamp in milliseconds
+        example: 1704067200000

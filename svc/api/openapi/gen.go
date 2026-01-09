@@ -693,6 +693,65 @@ type V2ApisListKeysResponseBody struct {
 // V2ApisListKeysResponseData Array of API keys with complete configuration and metadata.
 type V2ApisListKeysResponseData = []KeyResponseData
 
+// V2DeployCreateDeploymentRequestBody defines model for V2DeployCreateDeploymentRequestBody.
+type V2DeployCreateDeploymentRequestBody struct {
+	// Branch Git branch name
+	Branch string `json:"branch"`
+
+	// BuildContext Build context for building from source
+	BuildContext *struct {
+		// BuildContextPath S3 path to uploaded build context tarball
+		BuildContextPath *string `json:"buildContextPath,omitempty"`
+
+		// DockerfilePath Optional path to Dockerfile within build context
+		DockerfilePath *string `json:"dockerfilePath,omitempty"`
+	} `json:"buildContext,omitempty"`
+
+	// DockerImage Prebuilt Docker image reference
+	DockerImage *string `json:"dockerImage,omitempty"`
+
+	// EnvironmentSlug Environment slug (e.g., "production", "staging")
+	EnvironmentSlug string `json:"environmentSlug"`
+
+	// GitCommit Optional git commit information
+	GitCommit *struct {
+		// AuthorAvatarUrl Git author avatar URL
+		AuthorAvatarUrl *string `json:"authorAvatarUrl,omitempty"`
+
+		// AuthorHandle Git author handle/username
+		AuthorHandle *string `json:"authorHandle,omitempty"`
+
+		// CommitMessage Git commit message
+		CommitMessage *string `json:"commitMessage,omitempty"`
+
+		// CommitSha Git commit SHA
+		CommitSha *string `json:"commitSha,omitempty"`
+
+		// Timestamp Commit timestamp in milliseconds
+		Timestamp *int64 `json:"timestamp,omitempty"`
+	} `json:"gitCommit,omitempty"`
+
+	// KeyspaceId Optional keyspace ID for authentication context
+	KeyspaceId *string `json:"keyspaceId,omitempty"`
+
+	// ProjectId Unkey project ID
+	ProjectId string `json:"projectId"`
+}
+
+// V2DeployCreateDeploymentResponseBody defines model for V2DeployCreateDeploymentResponseBody.
+type V2DeployCreateDeploymentResponseBody struct {
+	Data V2DeployCreateDeploymentResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeployCreateDeploymentResponseData defines model for V2DeployCreateDeploymentResponseData.
+type V2DeployCreateDeploymentResponseData struct {
+	// DeploymentId Unique deployment identifier
+	DeploymentId string `json:"deploymentId"`
+}
+
 // V2IdentitiesCreateIdentityRequestBody defines model for V2IdentitiesCreateIdentityRequestBody.
 type V2IdentitiesCreateIdentityRequestBody struct {
 	// ExternalId Creates an identity using your system's unique identifier for a user, organization, or entity.
@@ -2260,6 +2319,9 @@ type GetApiJSONRequestBody = V2ApisGetApiRequestBody
 
 // ListKeysJSONRequestBody defines body for ListKeys for application/json ContentType.
 type ListKeysJSONRequestBody = V2ApisListKeysRequestBody
+
+// CreateDeploymentJSONRequestBody defines body for CreateDeployment for application/json ContentType.
+type CreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody
 
 // IdentitiesCreateIdentityJSONRequestBody defines body for IdentitiesCreateIdentity for application/json ContentType.
 type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody

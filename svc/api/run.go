@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/http"
 	"runtime/debug"
 	"time"
 
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
+	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
@@ -293,6 +295,18 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
+	// Initialize CTRL deployment client using bufconnect
+	var ctrlDeploymentClient ctrlv1connect.DeploymentServiceClient
+	if cfg.CtrlURL != "" {
+		ctrlDeploymentClient = ctrlv1connect.NewDeploymentServiceClient(
+			&http.Client{},
+			cfg.CtrlURL,
+		)
+		logger.Info("CTRL deployment client initialized", "url", cfg.CtrlURL)
+	} else {
+		logger.Warn("CTRL URL not configured, deployment endpoints will be unavailable")
+	}
+
 	routes.Register(srv, &routes.Services{
 		Logger:                     logger,
 		Database:                   db,
@@ -304,6 +318,8 @@ func Run(ctx context.Context, cfg Config) error {
 		Caches:                     caches,
 		Vault:                      vaultSvc,
 		ChproxyToken:               cfg.ChproxyToken,
+		CtrlDeploymentClient:       ctrlDeploymentClient,
+		CtrlToken:                  cfg.CtrlToken,
 		PprofEnabled:               cfg.PprofEnabled,
 		PprofUsername:              cfg.PprofUsername,
 		PprofPassword:              cfg.PprofPassword,

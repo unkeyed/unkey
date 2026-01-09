@@ -102,6 +102,8 @@ tags:
     description: Analytics query operations
   - name: apis
     description: API management operations
+  - name: deploy
+    description: Deployment operations
   - name: identities
     description: Identity management operations
   - name: keys
@@ -131,6 +133,10 @@ paths:
     $ref: "./spec/paths/v2/apis/getApi/index.yaml"
   /v2/apis.listKeys:
     $ref: "./spec/paths/v2/apis/listKeys/index.yaml"
+
+  # Deploy Endpoints
+  /v2/deploy.createDeployment:
+    $ref: "./spec/paths/v2/deploy/createDeployment/index.yaml"
 
   # Identity Endpoints
   /v2/identities.createIdentity:
