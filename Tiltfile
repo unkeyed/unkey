@@ -19,7 +19,7 @@ debug_mode = cfg.get('debug', False)
 print("Tilt starting with services: %s" % services)
 
 # Suppress warnings for images used indirectly (injected into pods by webhook)
-update_settings(suppress_unused_image_warnings=["unkey-env:latest"])
+update_settings(suppress_unused_image_warnings=["inject:latest"])
 
 # Create namespace using the extension with allow_duplicates
 namespace_create('unkey', allow_duplicates=True)
@@ -41,7 +41,6 @@ start_preflight = 'all' in services or 'preflight' in services
 
 # Apply RBAC
 k8s_yaml('k8s/manifests/rbac.yaml')
-
 
 # Redis service
 redis_started = False
@@ -154,9 +153,10 @@ if start_api or start_ctrl or start_krane or start_preflight:
     print("Building Unkey binary...")
     # Build locally first for faster updates
     local_resource(
-        'unkey-compile',
+        'build-unkey',
         'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/unkey ./main.go',
         deps=['./main.go', './pkg', './cmd', './svc'],
+        labels=['build'],
     )
 
 
@@ -185,7 +185,7 @@ if start_api:
     if redis_started: api_deps.append('redis')
 
     # Add compilation dependency for Unkey services
-    api_deps.append('unkey-compile')
+    api_deps.append('build-unkey')
 
     k8s_resource(
         'api',
@@ -220,7 +220,7 @@ if start_ctrl:
     if start_s3: ctrl_deps.append('s3')
     if start_restate: ctrl_deps.append('restate')
     # Add compilation dependency for Unkey services
-    ctrl_deps.append('unkey-compile')
+    ctrl_deps.append('build-unkey')
 
     k8s_resource(
         'ctrl',
@@ -252,7 +252,7 @@ if start_krane:
     # Build dependency list
     krane_deps = []
     # Add compilation dependency for Unkey services
-    krane_deps.append('unkey-compile')
+    krane_deps.append('build-unkey')
     krane_deps.append('ctrl')
 
     k8s_resource(
@@ -282,13 +282,13 @@ if start_preflight:
         labels=['unkey'],
     )
 
-    # Build unkey-env image for injection into customer pods
-    # Uses local_resource so it shows up in Tilt UI and can be triggered
+    # Build inject image for injection into customer pods
+    # Uses local_resource so it shows up in Tilt UI and can be triggered manually
     local_resource(
-        'unkey-env',
-        'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/unkey-env ./cmd/unkey-env && docker build -t unkey-env:latest -f Dockerfile.unkey-env .',
-        deps=['./cmd/unkey-env', './pkg/secrets', './pkg/cli', './Dockerfile.unkey-env'],
-        labels=['unkey'],
+        'build-inject',
+        'docker build -t inject:latest -f cmd/inject/Dockerfile .',
+        deps=['./cmd/inject', './pkg/secrets', './pkg/cli', './cmd/inject/Dockerfile'],
+        labels=['build'],
     )
 
     docker_build_with_restart(
@@ -304,7 +304,7 @@ if start_preflight:
 
     k8s_yaml('k8s/manifests/preflight.yaml')
 
-    preflight_deps = ['unkey-compile', 'preflight-tls', 'unkey-env']
+    preflight_deps = ['build-unkey', 'preflight-tls', 'build-inject']
     if start_krane: preflight_deps.append('krane')
 
     k8s_resource(

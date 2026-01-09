@@ -34,6 +34,6 @@ go.work
 go.work.sum
 
 /unkey
-/unkey-env
+/inject
 # Added by goreleaser init:
 dist/
