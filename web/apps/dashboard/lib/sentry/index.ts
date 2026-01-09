@@ -46,3 +46,6 @@ export {
   type LogContext,
   type LogLevel,
 } from "../logging/structured-logger";
+
+// Export trace sampling functionality
+export { createTracesSampler } from "./trace-sampler";
