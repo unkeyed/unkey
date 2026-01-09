@@ -3,9 +3,13 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import { createServerErrorFilter } from "./lib/sentry/error-filter";
 
 Sentry.init({
   dsn: "https://08589d17fe3b4b7e8b70b6c916123ee5@o4510544758046720.ingest.us.sentry.io/4510544758308864",
+
+  // Filter expected tRPC errors from being reported as Sentry errors
+  beforeSend: createServerErrorFilter(),
 
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
   tracesSampleRate: 1,
