@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "reference",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/routes/reference",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/otel/logging",
+        "//pkg/zen",
+        "//svc/api/openapi",
+    ],
+)

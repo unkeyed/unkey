@@ -1,0 +1,32 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "frontline",
+    srcs = [
+        "config.go",
+        "run.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/frontline",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//pkg/assert",
+        "//pkg/clock",
+        "//pkg/db",
+        "//pkg/otel",
+        "//pkg/otel/logging",
+        "//pkg/prometheus",
+        "//pkg/ptr",
+        "//pkg/shutdown",
+        "//pkg/tls",
+        "//pkg/vault",
+        "//pkg/vault/storage",
+        "//pkg/version",
+        "//pkg/zen",
+        "//svc/frontline/routes",
+        "//svc/frontline/services/caches",
+        "//svc/frontline/services/certmanager",
+        "//svc/frontline/services/proxy",
+        "//svc/frontline/services/router",
+    ],
+)

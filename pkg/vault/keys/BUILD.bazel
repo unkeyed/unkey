@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "keys",
+    srcs = [
+        "key.go",
+        "master_key.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/vault/keys",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/vault/v1:vault",
+        "//pkg/uid",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

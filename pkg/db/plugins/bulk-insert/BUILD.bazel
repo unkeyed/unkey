@@ -1,0 +1,39 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "bulk-insert_lib",
+    srcs = [
+        "generator.go",
+        "main.go",
+        "parser.go",
+        "template.go",
+        "utils.go",
+    ],
+    embedsrcs = ["bulk_insert.go.tmpl"],
+    importpath = "github.com/unkeyed/unkey/pkg/db/plugins/bulk-insert",
+    visibility = ["//visibility:private"],
+    deps = [
+        "@com_github_sqlc_dev_plugin_sdk_go//codegen",
+        "@com_github_sqlc_dev_plugin_sdk_go//plugin",
+        "@org_golang_x_text//cases",
+        "@org_golang_x_text//language",
+    ],
+)
+
+go_binary(
+    name = "bulk-insert",
+    embed = [":bulk-insert_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "bulk-insert_test",
+    srcs = [
+        "generator_test.go",
+        "parser_test.go",
+        "template_test.go",
+        "utils_test.go",
+    ],
+    embed = [":bulk-insert_lib"],
+    deps = ["@com_github_sqlc_dev_plugin_sdk_go//plugin"],
+)

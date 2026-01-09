@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "match",
+    srcs = [
+        "doc.go",
+        "wildcard.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/match",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "match_test",
+    srcs = ["wildcard_test.go"],
+    embed = [":match"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

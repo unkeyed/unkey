@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mutator",
+    srcs = [
+        "config.go",
+        "mutator.go",
+        "patch.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/preflight/internal/services/mutator",
+    visibility = ["//svc/preflight:__subpackages__"],
+    deps = [
+        "//pkg/assert",
+        "//pkg/otel/logging",
+        "//svc/preflight/internal/services/registry",
+        "//svc/preflight/internal/services/registry/credentials",
+        "@io_k8s_api//core/v1:core",
+        "@io_k8s_apimachinery//pkg/api/errors",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
+        "@io_k8s_client_go//kubernetes",
+    ],
+)

@@ -1,0 +1,30 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "circuitbreaker",
+    srcs = [
+        "doc.go",
+        "errors.go",
+        "interface.go",
+        "lib.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/circuitbreaker",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/clock",
+        "//pkg/otel/logging",
+        "//pkg/otel/tracing",
+        "//pkg/prometheus/metrics",
+    ],
+)
+
+go_test(
+    name = "circuitbreaker_test",
+    srcs = ["lib_test.go"],
+    embed = [":circuitbreaker"],
+    deps = [
+        "//pkg/clock",
+        "//pkg/otel/logging",
+        "@com_github_stretchr_testify//require",
+    ],
+)

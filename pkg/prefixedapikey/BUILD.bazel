@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "prefixedapikey",
+    srcs = ["prefixedapikey.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/prefixedapikey",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/base58"],
+)
+
+go_test(
+    name = "prefixedapikey_test",
+    srcs = ["prefixedapikey_test.go"],
+    embed = [":prefixedapikey"],
+)

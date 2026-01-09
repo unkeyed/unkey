@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "encryption",
+    srcs = ["aes.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/encryption",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "encryption_test",
+    srcs = [
+        "aes_test.go",
+        "fuzz_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    deps = [
+        ":encryption",
+        "@com_github_stretchr_testify//require",
+    ],
+)

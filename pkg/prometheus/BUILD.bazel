@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "prometheus",
+    srcs = ["server.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/prometheus",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/otel/logging",
+        "//pkg/zen",
+        "@com_github_prometheus_client_golang//prometheus/promhttp",
+    ],
+)

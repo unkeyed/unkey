@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "caches",
+    srcs = ["caches.go"],
+    importpath = "github.com/unkeyed/unkey/svc/frontline/services/caches",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/cache",
+        "//pkg/cache/middleware",
+        "//pkg/clock",
+        "//pkg/db",
+        "//pkg/otel/logging",
+    ],
+)

@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "array",
+    srcs = [
+        "chunk.go",
+        "doc.go",
+        "fill.go",
+        "map.go",
+        "random.go",
+        "reduce.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/array",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "array_test",
+    srcs = [
+        "fill_test.go",
+        "map_test.go",
+        "random_test.go",
+        "reduce_test.go",
+    ],
+    embed = [":array"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

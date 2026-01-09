@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "clock",
+    srcs = [
+        "cached_clock.go",
+        "doc.go",
+        "interface.go",
+        "real_clock.go",
+        "test_clock.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/clock",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "clock_test",
+    srcs = [
+        "cached_clock_test.go",
+        "clock_benchmarks_test.go",
+        "real_clock_test.go",
+        "test_clock_test.go",
+    ],
+    embed = [":clock"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

@@ -1,0 +1,24 @@
+load("@rules_go//go:def.bzl", "go_test")
+
+go_test(
+    name = "cache_test",
+    srcs = [
+        "consume_events_test.go",
+        "e2e_test.go",
+        "produce_events_test.go",
+    ],
+    deps = [
+        "//gen/proto/cache/v1:cache",
+        "//pkg/cache",
+        "//pkg/debug",
+        "//pkg/eventstream",
+        "//pkg/otel/logging",
+        "//pkg/testutil",
+        "//pkg/testutil/containers",
+        "//pkg/testutil/seed",
+        "//pkg/uid",
+        "//svc/api/integration",
+        "//svc/api/openapi",
+        "@com_github_stretchr_testify//require",
+    ],
+)

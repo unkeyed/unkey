@@ -1,0 +1,55 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "keys",
+    srcs = [
+        "create.go",
+        "doc.go",
+        "get.go",
+        "get_migrated.go",
+        "interface.go",
+        "options.go",
+        "service.go",
+        "status.go",
+        "validation.go",
+        "verifier.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/internal/services/keys",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/services/caches",
+        "//internal/services/ratelimit",
+        "//internal/services/usagelimiter",
+        "//pkg/assert",
+        "//pkg/base58",
+        "//pkg/cache",
+        "//pkg/clickhouse",
+        "//pkg/clickhouse/schema",
+        "//pkg/codes",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/hash",
+        "//pkg/otel/logging",
+        "//pkg/otel/tracing",
+        "//pkg/prometheus/metrics",
+        "//pkg/ptr",
+        "//pkg/rbac",
+        "//pkg/zen",
+        "//svc/api/openapi",
+    ],
+)
+
+go_test(
+    name = "keys_test",
+    srcs = [
+        "create_test.go",
+        "get_test.go",
+    ],
+    embed = [":keys"],
+    deps = [
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/hash",
+        "@com_github_stretchr_testify//require",
+    ],
+)

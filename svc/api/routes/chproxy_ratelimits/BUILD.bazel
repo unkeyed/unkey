@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "chproxy_ratelimits",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/routes/chproxy_ratelimits",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/clickhouse",
+        "//pkg/clickhouse/schema",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "//pkg/prometheus/metrics",
+        "//pkg/zen",
+    ],
+)

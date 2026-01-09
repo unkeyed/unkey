@@ -1,0 +1,45 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "cache",
+    srcs = [
+        "cache.go",
+        "doc.go",
+        "entry.go",
+        "interface.go",
+        "middleware.go",
+        "noop.go",
+        "scoped_key.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/cache",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/clock",
+        "//pkg/db",
+        "//pkg/debug",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "//pkg/prometheus/metrics",
+        "//pkg/repeat",
+        "@com_github_maypok86_otter//:otter",
+    ],
+)
+
+go_test(
+    name = "cache_test",
+    srcs = [
+        "cache_test.go",
+        "many_test.go",
+        "simulation_test.go",
+        "swr_test.go",
+    ],
+    deps = [
+        ":cache",
+        "//pkg/clock",
+        "//pkg/db",
+        "//pkg/otel/logging",
+        "//pkg/sim",
+        "//pkg/testutil",
+        "@com_github_stretchr_testify//require",
+    ],
+)

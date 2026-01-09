@@ -1,0 +1,34 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "testutil",
+    srcs = [
+        "flags.go",
+        "http.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/testutil",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/vault/v1:vault",
+        "//internal/services/analytics",
+        "//internal/services/auditlogs",
+        "//internal/services/caches",
+        "//internal/services/keys",
+        "//internal/services/ratelimit",
+        "//internal/services/usagelimiter",
+        "//pkg/clickhouse",
+        "//pkg/clock",
+        "//pkg/counter",
+        "//pkg/db",
+        "//pkg/otel/logging",
+        "//pkg/rbac",
+        "//pkg/testutil/containers",
+        "//pkg/testutil/seed",
+        "//pkg/vault",
+        "//pkg/vault/keys",
+        "//pkg/vault/storage",
+        "//pkg/zen",
+        "//pkg/zen/validation",
+        "@com_github_stretchr_testify//require",
+    ],
+)

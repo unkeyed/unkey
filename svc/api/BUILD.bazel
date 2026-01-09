@@ -1,0 +1,51 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "api",
+    srcs = [
+        "config.go",
+        "run.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/api",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/cache/v1:cache",
+        "//internal/services/analytics",
+        "//internal/services/auditlogs",
+        "//internal/services/caches",
+        "//internal/services/keys",
+        "//internal/services/ratelimit",
+        "//internal/services/usagelimiter",
+        "//pkg/assert",
+        "//pkg/clickhouse",
+        "//pkg/clock",
+        "//pkg/counter",
+        "//pkg/db",
+        "//pkg/debug",
+        "//pkg/eventstream",
+        "//pkg/otel",
+        "//pkg/otel/logging",
+        "//pkg/prometheus",
+        "//pkg/rbac",
+        "//pkg/shutdown",
+        "//pkg/tls",
+        "//pkg/vault",
+        "//pkg/vault/storage",
+        "//pkg/version",
+        "//pkg/zen",
+        "//pkg/zen/validation",
+        "//svc/api/routes",
+    ],
+)
+
+go_test(
+    name = "api_test",
+    srcs = ["cancel_test.go"],
+    deps = [
+        ":api",
+        "//pkg/testutil/containers",
+        "//pkg/uid",
+        "//pkg/vault/keys",
+        "@com_github_stretchr_testify//require",
+    ],
+)

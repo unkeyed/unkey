@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "inject_lib",
+    srcs = [
+        "command.go",
+        "config.go",
+        "main.go",
+        "run.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/cmd/inject",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//pkg/assert",
+        "//pkg/cli",
+        "//pkg/otel/logging",
+        "//pkg/secrets/provider",
+    ],
+)
+
+go_binary(
+    name = "inject",
+    embed = [":inject_lib"],
+    visibility = ["//visibility:public"],
+)

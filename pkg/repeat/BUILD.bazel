@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "repeat",
+    srcs = ["every.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/repeat",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/prometheus/metrics"],
+)
+
+go_test(
+    name = "repeat_test",
+    srcs = ["every_test.go"],
+    embed = [":repeat"],
+    deps = ["@com_github_stretchr_testify//assert"],
+)

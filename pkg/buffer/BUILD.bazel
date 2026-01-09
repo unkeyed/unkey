@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "buffer",
+    srcs = [
+        "buffer.go",
+        "doc.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/buffer",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/prometheus/metrics",
+        "//pkg/repeat",
+    ],
+)
+
+go_test(
+    name = "buffer_test",
+    srcs = ["buffer_test.go"],
+    embed = [":buffer"],
+    deps = ["@com_github_stretchr_testify//assert"],
+)

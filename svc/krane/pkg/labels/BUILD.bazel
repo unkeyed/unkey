@@ -1,0 +1,11 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "labels",
+    srcs = [
+        "doc.go",
+        "labels.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/krane/pkg/labels",
+    visibility = ["//visibility:public"],
+)

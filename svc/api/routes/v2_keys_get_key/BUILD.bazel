@@ -1,0 +1,49 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "v2_keys_get_key",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_keys_get_key",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/vault/v1:vault",
+        "//internal/services/auditlogs",
+        "//internal/services/keys",
+        "//pkg/codes",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "//pkg/ptr",
+        "//pkg/rbac",
+        "//pkg/vault",
+        "//pkg/zen",
+        "//svc/api/openapi",
+        "@com_github_oapi_codegen_nullable//:nullable",
+    ],
+)
+
+go_test(
+    name = "v2_keys_get_key_test",
+    srcs = [
+        "200_test.go",
+        "400_test.go",
+        "401_test.go",
+        "403_test.go",
+        "404_test.go",
+        "412_test.go",
+        "500_test.go",
+    ],
+    deps = [
+        ":v2_keys_get_key",
+        "//gen/proto/vault/v1:vault",
+        "//pkg/db",
+        "//pkg/hash",
+        "//pkg/ptr",
+        "//pkg/testutil",
+        "//pkg/testutil/seed",
+        "//pkg/uid",
+        "//svc/api/openapi",
+        "@com_github_oapi_codegen_nullable//:nullable",
+        "@com_github_stretchr_testify//require",
+    ],
+)

@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "cluster",
+    srcs = [
+        "auth.go",
+        "emit.go",
+        "rpc_get_desired_deployment_state.go",
+        "rpc_get_desired_sentinel_state.go",
+        "rpc_update_deployment_state.go",
+        "rpc_update_sentinel_state.go",
+        "rpc_watch.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/services/cluster",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//pkg/assert",
+        "//pkg/db",
+        "//pkg/otel/logging",
+        "//pkg/uid",
+        "@com_connectrpc_connect//:connect",
+    ],
+)

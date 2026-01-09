@@ -5,8 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	json "github.com/bytedance/sonic"
+"encoding/json"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
