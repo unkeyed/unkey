@@ -11,8 +11,8 @@ import (
 
 const (
 	injectVolumeName = "inject-bin"
-	injectMountPath  = "/inject"
-	injectBinary     = "/inject/inject"
+	injectMountPath  = "/inject-bin"
+	injectBinary     = "/inject-bin/inject"
 	//nolint:gosec // G101: This is a file path, not credentials
 	ServiceAccountTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 )
