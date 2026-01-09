@@ -6,6 +6,7 @@ required:
 properties:
   projectId:
     type: string
+    minLength: 1
     description: Unkey project ID
     example: "proj_123abc"
   keyspaceId:
@@ -14,27 +15,37 @@ properties:
     example: "key_abc123"
   branch:
     type: string
+    minLength: 1
     description: Git branch name
     example: "main"
   environmentSlug:
     type: string
+    minLength: 1
     description: Environment slug (e.g., "production", "staging")
     example: "production"
   buildContext:
     type: object
-    description: Build context for building from source
+    description: |
+      Build context for building from source.
+      Either buildContext or dockerImage must be provided, but not both.
+    required:
+      - buildContextPath
     properties:
       buildContextPath:
         type: string
+        minLength: 1
         description: S3 path to uploaded build context tarball
         example: "s3://bucket/path/to/context.tar.gz"
       dockerfilePath:
         type: string
-        description: Optional path to Dockerfile within build context
+        description: Optional path to Dockerfile within build context (defaults to "Dockerfile")
         example: "Dockerfile"
+        default: "Dockerfile"
   dockerImage:
     type: string
-    description: Prebuilt Docker image reference
+    description: |
+      Prebuilt Docker image reference.
+      Either dockerImage or buildContext must be provided, but not both.
     example: "nginx:latest"
   gitCommit:
     type: object

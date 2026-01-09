@@ -47,10 +47,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// TODO: We'll add RBAC permission in the following PRs when we add project permissions
-
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
+	}
+
+	if req.ProjectId == "" {
+		return fault.New("projectId is required",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Public("projectId is required."),
+		)
 	}
 
 	// Validate that either buildContext or dockerImage is provided
@@ -84,7 +90,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if req.BuildContext != nil {
 		// nolint: exhaustruct // optional proto fields, only setting whats provided
 		buildContext := &ctrlv1.BuildContext{
-			BuildContextPath: *req.BuildContext.BuildContextPath,
+			BuildContextPath: req.BuildContext.BuildContextPath,
 		}
 		if req.BuildContext.DockerfilePath != nil {
 			buildContext.DockerfilePath = req.BuildContext.DockerfilePath

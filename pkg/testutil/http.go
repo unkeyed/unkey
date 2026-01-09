@@ -254,6 +254,14 @@ func (h *Harness) CreatePermission(req seed.CreatePermissionRequest) db.Permissi
 	return h.seeder.CreatePermission(context.Background(), req)
 }
 
+func (h *Harness) CreateProject(req seed.CreateProjectRequest) db.Project {
+	return h.seeder.CreateProject(context.Background(), req)
+}
+
+func (h *Harness) CreateEnvironment(req seed.CreateEnvironmentRequest) db.Environment {
+	return h.seeder.CreateEnvironment(h.t.Context(), req)
+}
+
 type SetupAnalyticsOption func(*setupAnalyticsConfig)
 
 type setupAnalyticsConfig struct {

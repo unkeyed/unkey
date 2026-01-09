@@ -698,16 +698,18 @@ type V2DeployCreateDeploymentRequestBody struct {
 	// Branch Git branch name
 	Branch string `json:"branch"`
 
-	// BuildContext Build context for building from source
+	// BuildContext Build context for building from source.
+	// Either buildContext or dockerImage must be provided, but not both.
 	BuildContext *struct {
 		// BuildContextPath S3 path to uploaded build context tarball
-		BuildContextPath *string `json:"buildContextPath,omitempty"`
+		BuildContextPath string `json:"buildContextPath"`
 
-		// DockerfilePath Optional path to Dockerfile within build context
+		// DockerfilePath Optional path to Dockerfile within build context (defaults to "Dockerfile")
 		DockerfilePath *string `json:"dockerfilePath,omitempty"`
 	} `json:"buildContext,omitempty"`
 
-	// DockerImage Prebuilt Docker image reference
+	// DockerImage Prebuilt Docker image reference.
+	// Either dockerImage or buildContext must be provided, but not both.
 	DockerImage *string `json:"dockerImage,omitempty"`
 
 	// EnvironmentSlug Environment slug (e.g., "production", "staging")

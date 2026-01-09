@@ -68,7 +68,7 @@ pull: ## Pull latest Docker images for services
 
 .PHONY: up
 up: pull ## Start all infrastructure services
-	@docker compose -f ./deployment/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka restate --wait
+	@docker compose -f ./deployment/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka restate ctrl --wait
 
 .PHONY: clean
 clean: ## Stop and remove all services with volumes
