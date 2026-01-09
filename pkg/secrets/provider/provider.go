@@ -1,5 +1,5 @@
 // Package provider defines the interface for secrets providers.
-// This abstraction allows unkey-env to fetch secrets from different backends.
+// This abstraction allows inject to fetch secrets from different backends.
 package provider
 
 import (

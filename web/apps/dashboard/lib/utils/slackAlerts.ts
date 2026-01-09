@@ -1,3 +1,5 @@
+import { formatPrice } from "@/lib/fmt";
+
 export async function alertSubscriptionCreation(
   product: string,
   price: string,
@@ -175,4 +177,138 @@ export async function alertSubscriptionCancelled(email: string, name?: string): 
   }).catch((err: Error) => {
     console.error(err);
   });
+}
+
+export async function alertPaymentFailed(
+  customerEmail: string,
+  customerName: string,
+  amount: number,
+  currency: string,
+): Promise<void> {
+  const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
+  if (!url) {
+    console.warn("Slack webhook URL not configured for payment failure alerts");
+    return;
+  }
+
+  try {
+    // Use existing formatPrice utility for consistent formatting
+    const formattedAmount = formatPrice(amount);
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `:warning: Payment failed for ${customerName}`,
+            },
+          },
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `Payment of ${formattedAmount} failed for ${customerEmail}. We should reach out to help resolve the payment issue.`,
+            },
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Failed to send payment failure alert to Slack:", {
+        status: response.status,
+        statusText: response.statusText,
+        customerEmail,
+        amount,
+        currency,
+      });
+    }
+  } catch (err: unknown) {
+    console.error("Error sending payment failure alert:", {
+      error:
+        err instanceof Error
+          ? {
+              message: err.message,
+              stack: err.stack,
+              name: err.name,
+            }
+          : err,
+      customerEmail,
+      amount,
+      currency,
+    });
+  }
+}
+
+export async function alertPaymentRecovered(
+  customerEmail: string,
+  customerName: string,
+  amount: number,
+  currency: string,
+): Promise<void> {
+  const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
+  if (!url) {
+    console.warn("Slack webhook URL not configured for payment recovery alerts");
+    return;
+  }
+
+  try {
+    // Use existing formatPrice utility for consistent formatting
+    const formattedAmount = formatPrice(amount);
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `:tada: Payment recovered for ${customerName}`,
+            },
+          },
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `Great news! Payment of ${formattedAmount} has been successfully processed for ${customerEmail} after a previous failure. Their service should now be restored.`,
+            },
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Failed to send payment recovery alert to Slack:", {
+        status: response.status,
+        statusText: response.statusText,
+        customerEmail,
+        amount,
+        currency,
+      });
+    }
+  } catch (err: unknown) {
+    console.error("Error sending payment recovery alert:", {
+      error:
+        err instanceof Error
+          ? {
+              message: err.message,
+              stack: err.stack,
+              name: err.name,
+            }
+          : err,
+      customerEmail,
+      amount,
+      currency,
+    });
+  }
 }

@@ -1,5 +1,6 @@
 .vercel
 
+./**/.env*
 .env*
 !.env.example
 rm
@@ -24,8 +25,8 @@ dist
 
 .secrets.json
 certs/
-deployment/data/*
-deployment/config/depot.json
+dev/data/*
+dev/config/depot.json
 metald.db
 bin/
 
@@ -34,6 +35,8 @@ go.work
 go.work.sum
 
 /unkey
-/unkey-env
+/inject
 # Added by goreleaser init:
 dist/
+
+.talos

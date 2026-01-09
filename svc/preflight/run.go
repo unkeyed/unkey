@@ -73,8 +73,8 @@ func Run(ctx context.Context, cfg Config) error {
 		Registry:                reg,
 		Clientset:               clientset,
 		Credentials:             credentialsManager,
-		UnkeyEnvImage:           cfg.UnkeyEnvImage,
-		UnkeyEnvImagePullPolicy: cfg.UnkeyEnvImagePullPolicy,
+		InjectImage:             cfg.InjectImage,
+		InjectImagePullPolicy:   cfg.InjectImagePullPolicy,
 		DefaultProviderEndpoint: cfg.KraneEndpoint,
 	})
 

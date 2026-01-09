@@ -6,7 +6,7 @@ services:
     container_name: mysql
     build:
       context: ..
-      dockerfile: deployment/Dockerfile.mysql
+      dockerfile: dev/Dockerfile.mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
@@ -146,7 +146,7 @@ services:
       - default
     build:
       context: ..
-      dockerfile: deployment/Dockerfile.clickhouse
+      dockerfile: dev/Dockerfile.clickhouse
     container_name: clickhouse
     environment:
       CLICKHOUSE_ADMIN_USER: default
@@ -240,14 +240,13 @@ services:
     container_name: krane
     command: ["run", "krane"]
     ports:
-      - "8090:8080"
+      - "8070:8070"
     volumes:
       # Mount Docker socket for Docker backend support
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       # Server configuration
       UNKEY_REGION: "dev:local" # currently required to receive filteres events from ctrl
-      UNKEY_IMAGE: "unkey/dev:latest"
       UNKEY_CONTROL_PLANE_URL: "http://ctrl:7091"
       UNKEY_CONTROL_PLANE_BEARER: "your-local-dev-key"
 

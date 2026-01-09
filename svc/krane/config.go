@@ -36,12 +36,6 @@ type Config struct {
 	// Must be unique across all running krane instances in the same cluster.
 	InstanceID string
 
-	// Image specifies the default container image identifier including repository and tag.
-	// This field is deprecated and should not be used. Images should be specified
-	// per-deployment through the control plane API instead.
-	// Deprecated: Use per-deployment image specification via control plane.
-	Image string
-
 	// Region identifies the geographic region where this node is deployed.
 	// Used for observability, latency optimization, and compliance requirements.
 	// Must match the region identifier used by the underlying cloud platform

@@ -11,7 +11,7 @@ metadata:
 ---
 # Restricted service account for customer workloads
 # This account has NO K8s API permissions - customers cannot query the K8s API.
-# Token is mounted for unkey-env to authenticate with the secrets provider.
+# Token is mounted for inject to authenticate with the secrets provider.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
