@@ -190,6 +190,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		// Lock the key row to prevent concurrent modifications and deadlocks
+		_, err := db.Query.LockKeyForUpdate(ctx, tx, req.KeyId)
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Internal("unable to lock key"),
+				fault.Public("We're unable to update the key."),
+			)
+		}
+
 		var auditLogs []auditlog.AuditLog
 
 		if len(permissionsToInsert) > 0 {
