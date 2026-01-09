@@ -1,0 +1,195 @@
+package handler_test
+
+import (
+	"fmt"
+	"net/http"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/testutil"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/testutil/seed"
+	"github.com/unkeyed/unkey/pkg/uid"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment"
+)
+
+func TestCreateDeploymentSuccessfully(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	// Get CTRL service URL and token
+	ctrlURL, ctrlToken := containers.ControlPlane(t)
+
+	// Create real CTRL client
+	ctrlClient := ctrlv1connect.NewDeploymentServiceClient(
+		http.DefaultClient,
+		ctrlURL,
+	)
+
+	route := &handler.Handler{
+		Logger:     h.Logger,
+		DB:         h.DB,
+		Keys:       h.Keys,
+		CtrlClient: ctrlClient,
+		CtrlToken:  ctrlToken,
+	}
+	h.Register(route)
+
+	t.Run("create deployment with docker image", func(t *testing.T) {
+		workspace := h.CreateWorkspace()
+		rootKey := h.CreateRootKey(workspace.ID)
+
+		projectID := uid.New(uid.ProjectPrefix)
+		projectName := "test-project"
+		projectSlug := "production"
+
+		project := h.CreateProject(seed.CreateProjectRequest{
+			WorkspaceID: workspace.ID,
+			Name:        projectName,
+			ID:          projectID,
+			Slug:        projectSlug,
+		})
+
+		h.CreateEnvironment(seed.CreateEnvironmentRequest{
+			ID:               uid.New(uid.EnvironmentPrefix),
+			WorkspaceID:      workspace.ID,
+			ProjectID:        project.ID,
+			Slug:             projectSlug,
+			Description:      "Production environment",
+			DeleteProtection: false,
+		})
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			handler.Request{
+				ProjectId:       project.ID,
+				Branch:          "main",
+				EnvironmentSlug: "production",
+				DockerImage:     ptr.P("nginx:latest"),
+			},
+		)
+
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.NotEmpty(t, res.Body.Data.DeploymentId, "deployment ID should not be empty")
+	})
+
+	t.Run("create deployment with build context", func(t *testing.T) {
+		workspace := h.CreateWorkspace()
+		rootKey := h.CreateRootKey(workspace.ID)
+
+		projectID := uid.New(uid.ProjectPrefix)
+		projectName := "test-build-project"
+		projectSlug := "staging"
+
+		project := h.CreateProject(seed.CreateProjectRequest{
+			WorkspaceID: workspace.ID,
+			Name:        projectName,
+			ID:          projectID,
+			Slug:        projectSlug,
+		})
+
+		h.CreateEnvironment(seed.CreateEnvironmentRequest{
+			ID:               uid.New(uid.EnvironmentPrefix),
+			WorkspaceID:      workspace.ID,
+			ProjectID:        project.ID,
+			Slug:             projectSlug,
+			Description:      "Staging environment",
+			DeleteProtection: false,
+		})
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			handler.Request{
+				ProjectId:       project.ID,
+				Branch:          "develop",
+				EnvironmentSlug: "staging",
+				BuildContext: &struct {
+					BuildContextPath string  `json:"buildContextPath"`
+					DockerfilePath   *string `json:"dockerfilePath,omitempty"`
+				}{
+					BuildContextPath: "s3://bucket/path/to/context.tar.gz",
+					DockerfilePath:   ptr.P("./Dockerfile"),
+				},
+			},
+		)
+
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.NotEmpty(t, res.Body.Data.DeploymentId, "deployment ID should not be empty")
+	})
+
+	t.Run("create deployment with git commit info", func(t *testing.T) {
+		workspace := h.CreateWorkspace()
+		rootKey := h.CreateRootKey(workspace.ID)
+
+		projectID := uid.New(uid.ProjectPrefix)
+		projectName := "test-git-project"
+		projectSlug := "production"
+
+		project := h.CreateProject(seed.CreateProjectRequest{
+			WorkspaceID: workspace.ID,
+			Name:        projectName,
+			ID:          projectID,
+			Slug:        projectSlug,
+		})
+
+		h.CreateEnvironment(seed.CreateEnvironmentRequest{
+			ID:               uid.New(uid.EnvironmentPrefix),
+			WorkspaceID:      workspace.ID,
+			ProjectID:        project.ID,
+			Slug:             projectSlug,
+			Description:      "Production environment",
+			DeleteProtection: false,
+		})
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			handler.Request{
+				ProjectId:       project.ID,
+				Branch:          "main",
+				EnvironmentSlug: "production",
+				DockerImage:     ptr.P("nginx:latest"),
+				GitCommit: &struct {
+					AuthorAvatarUrl *string `json:"authorAvatarUrl,omitempty"`
+					AuthorHandle    *string `json:"authorHandle,omitempty"`
+					CommitMessage   *string `json:"commitMessage,omitempty"`
+					CommitSha       *string `json:"commitSha,omitempty"`
+					Timestamp       *int64  `json:"timestamp,omitempty"`
+				}{
+					AuthorAvatarUrl: ptr.P("https://avatar.example.com/johndoe.jpg"),
+					AuthorHandle:    ptr.P("johndoe"),
+					CommitMessage:   ptr.P("feat: add new feature"),
+					CommitSha:       ptr.P("abc123def456"),
+					Timestamp:       ptr.P(int64(1704067200000)),
+				},
+			},
+		)
+
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.NotEmpty(t, res.Body.Data.DeploymentId, "deployment ID should not be empty")
+	})
+}

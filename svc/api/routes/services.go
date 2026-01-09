@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
@@ -25,6 +26,8 @@ type Services struct {
 	Caches                     caches.Caches
 	Vault                      *vault.Service
 	ChproxyToken               string
+	CtrlDeploymentClient       ctrlv1connect.DeploymentServiceClient
+	CtrlToken                  string
 	PprofEnabled               bool
 	PprofUsername              string
 	PprofPassword              string

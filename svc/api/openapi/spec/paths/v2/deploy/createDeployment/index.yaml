@@ -1,0 +1,55 @@
+post:
+  tags:
+    - deploy
+  summary: Create deployment
+  description: |
+    Creates a new deployment for a project using either a pre-built Docker image or build context.
+
+    **Authentication**: Requires a valid root key with appropriate permissions.
+  operationId: createDeployment
+  x-speakeasy-name-override: createDeployment
+  security:
+    - rootKey: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DeployCreateDeploymentRequestBody.yaml"
+  responses:
+    "200":
+      description: Deployment created successfully
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DeployCreateDeploymentResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+    "503":
+      description: Service unavailable
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ServiceUnavailableErrorResponse.yaml"
