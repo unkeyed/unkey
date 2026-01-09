@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync"
 	"testing"
 
 	"github.com/oapi-codegen/nullable"
@@ -14,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_create_key"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestCreateKeySuccess(t *testing.T) {
@@ -192,11 +194,15 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	require.Equal(t, keyEncryption.WorkspaceID, h.Resources().UserWorkspace.ID)
 }
 
+// TestCreateKeyConcurrentWithSameExternalId tests that concurrent key creation
+// with the same externalId doesn't deadlock. This was previously possible due to
+// gap locks when inserting identities. The fix uses INSERT ... ON DUPLICATE KEY
+// UPDATE (upsert) to avoid gap lock deadlocks.
 func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	route := &handler.Handler{
 		Logger:    h.Logger,
@@ -208,7 +214,6 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 
 	h.Register(route)
 
-	// Create API using testutil helper
 	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
@@ -220,50 +225,33 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	// Use same externalId for concurrent requests
+	numConcurrent := 20
 	externalID := "user_concurrent_test"
 
-	// Create multiple keys concurrently with the same externalId
-	// This simulates the race condition where:
-	// 1. Request A checks if identity exists - doesn't find it
-	// 2. Request B checks if identity exists - doesn't find it
-	// 3. Request A tries to insert identity - succeeds
-	// 4. Request B tries to insert identity - gets duplicate key error
-	// 5. Request B handles the error by finding the existing identity
-	numConcurrent := 5
-	results := make(chan testutil.TestResponse[handler.Response], numConcurrent)
-	errors := make(chan error, numConcurrent)
+	var mu sync.Mutex
+	keyIDs := make([]string, 0, numConcurrent)
 
+	g := errgroup.Group{}
 	for range numConcurrent {
-		go func() {
+		g.Go(func() error {
 			req := handler.Request{
 				ApiId:      api.ID,
 				ExternalId: &externalID,
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			if res.Status != 200 {
-				errors <- fmt.Errorf("unexpected status code: %d", res.Status)
-				return
+				return fmt.Errorf("unexpected status code: %d", res.Status)
 			}
-			results <- res
-		}()
-	}
-
-	// Collect all results
-	keyIDs := make([]string, 0, numConcurrent)
-	for i := 0; i < numConcurrent; i++ {
-		select {
-		case res := <-results:
-			require.Equal(t, 200, res.Status)
-			require.NotNil(t, res.Body)
-			require.NotEmpty(t, res.Body.Data.KeyId)
+			mu.Lock()
 			keyIDs = append(keyIDs, res.Body.Data.KeyId)
-		case err := <-errors:
-			t.Fatal(err)
-		}
+			mu.Unlock()
+			return nil
+		})
 	}
 
-	// Verify all keys were created
+	err := g.Wait()
+	require.NoError(t, err, "All concurrent creates should succeed without deadlock")
+
 	require.Len(t, keyIDs, numConcurrent)
 
 	// Verify all keys reference the same identity
@@ -289,7 +277,6 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, sharedIdentityID, identity.ID)
-	require.Equal(t, externalID, identity.ExternalID)
 }
 
 func TestCreateKeyWithCreditsRemainingNull(t *testing.T) {

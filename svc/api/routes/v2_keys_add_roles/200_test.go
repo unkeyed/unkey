@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_add_roles"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestSuccess(t *testing.T) {
@@ -160,4 +161,79 @@ func TestSuccess(t *testing.T) {
 		}
 		require.Equal(t, 1, editorConnectEvents, "Should find only 1 new role connect event for editor")
 	})
+}
+
+// TestAddRolesConcurrent tests that concurrent requests to add roles
+// to the same key don't deadlock. The handler uses SELECT ... FOR UPDATE
+// on the key row to serialize concurrent modifications.
+func TestAddRolesConcurrent(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
+	}
+
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.add_role_to_key")
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+
+	// Create a single key that all concurrent requests will update
+	keyResponse := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		Name:        ptr.P("concurrent-add-roles-test-key"),
+	})
+
+	// Create roles that will be added concurrently
+	numConcurrent := 10
+	roles := make([]string, numConcurrent)
+	for i := range numConcurrent {
+		role := h.CreateRole(seed.CreateRoleRequest{
+			WorkspaceID: workspace.ID,
+			Name:        fmt.Sprintf("concurrent.add.role.%d", i),
+			Description: ptr.P(fmt.Sprintf("Concurrent role %d", i)),
+		})
+		roles[i] = role.Name
+	}
+
+	g := errgroup.Group{}
+	for i := range numConcurrent {
+		g.Go(func() error {
+			// Each request adds a unique role to the same key
+			// This tests deadlock prevention without triggering duplicate entry issues
+			req := handler.Request{
+				KeyId: keyResponse.KeyID,
+				Roles: []string{roles[i]},
+			}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			if res.Status != 200 {
+				return fmt.Errorf("request %d: unexpected status %d", i, res.Status)
+			}
+			return nil
+		})
+	}
+
+	err := g.Wait()
+	require.NoError(t, err, "All concurrent updates should succeed without deadlock")
+
+	// Verify all roles were added
+	finalRoles, err := db.Query.ListRolesByKeyID(t.Context(), h.DB.RO(), keyResponse.KeyID)
+	require.NoError(t, err)
+	require.Len(t, finalRoles, numConcurrent)
 }
