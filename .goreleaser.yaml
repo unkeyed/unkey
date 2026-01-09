@@ -8,13 +8,18 @@
 
 version: 2
 
+git:
+  ignore_tags:
+    - "inject/*"
+
 before:
   hooks:
     # You may remove this if you don't use go modules.
     - go mod tidy
 
 builds:
-  - env:
+  - id: unkey
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
@@ -25,7 +30,17 @@ builds:
     binary: unkey
 
     ldflags:
+      - -s -w
       - -X 'github.com/unkeyed/unkey/pkg/version.Version={{.Version}}'
+
+upx:
+  - enabled: false
+    ids:
+      - unkey
+    goos:
+      - linux  # UPX doesn't support macOS
+    compress: best
+    lzma: true
 
 archives:
   - formats: [tar.gz]
