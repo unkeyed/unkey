@@ -1,0 +1,60 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema-pro.json
+# Run from repo root: goreleaser release --config cmd/inject/.goreleaser.yaml
+version: 2
+
+project_name: inject
+
+monorepo:
+  tag_prefix: inject/
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: inject
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    main: ./cmd/inject
+    binary: inject
+    ldflags:
+      - -s -w
+
+upx:
+  - enabled: true
+    ids:
+      - inject
+    compress: best
+    lzma: true
+
+kos:
+  - build: inject
+    repositories:
+      - ghcr.io/unkeyed/inject
+    tags:
+      - "{{ .Version }}"
+      - latest
+    bare: true
+    platforms:
+      - linux/amd64
+      - linux/arm64
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  prerelease: auto

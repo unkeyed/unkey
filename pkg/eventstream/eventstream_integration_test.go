@@ -50,6 +50,13 @@ func TestEventStreamIntegration(t *testing.T) {
 	t.Logf("Topic created successfully")
 	defer topic.Close()
 
+	// Wait for topic to be fully propagated before using it
+	waitCtx, waitCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer waitCancel()
+	err = topic.WaitUntilReady(waitCtx)
+	require.NoError(t, err, "Topic should become ready")
+	t.Logf("Topic is ready")
+
 	// Test data
 	testEvent := &cachev1.CacheInvalidationEvent{
 		CacheName:      "test-cache",
@@ -129,6 +136,12 @@ func TestEventStreamMultipleMessages(t *testing.T) {
 	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err)
 	defer topic.Close()
+
+	// Wait for topic to be fully propagated before using it
+	waitCtx, waitCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer waitCancel()
+	err = topic.WaitUntilReady(waitCtx)
+	require.NoError(t, err, "Topic should become ready")
 
 	// Test multiple messages
 	numMessages := 5

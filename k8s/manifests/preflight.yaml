@@ -71,9 +71,9 @@ spec:
               value: "/certs/tls.crt"
             - name: WEBHOOK_TLS_KEY_FILE
               value: "/certs/tls.key"
-            - name: UNKEY_ENV_IMAGE
-              value: "unkey-env:latest"
-            - name: UNKEY_ENV_IMAGE_PULL_POLICY
+            - name: INJECT_IMAGE
+              value: "inject:latest"
+            - name: INJECT_IMAGE_PULL_POLICY
               value: "Never" # Local dev uses pre-loaded images; use IfNotPresent in prod
             - name: KRANE_ENDPOINT
               value: "http://krane.unkey.svc.cluster.local:8080"

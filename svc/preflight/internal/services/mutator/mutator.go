@@ -30,8 +30,8 @@ type Mutator struct {
 	registry                *registry.Registry
 	clientset               kubernetes.Interface
 	credentials             *credentials.Manager
-	unkeyEnvImage           string
-	unkeyEnvImagePullPolicy string
+	injectImage             string
+	injectImagePullPolicy   string
 	defaultProviderEndpoint string
 }
 
@@ -41,8 +41,8 @@ func New(cfg Config) *Mutator {
 		registry:                cfg.Registry,
 		clientset:               cfg.Clientset,
 		credentials:             cfg.Credentials,
-		unkeyEnvImage:           cfg.UnkeyEnvImage,
-		unkeyEnvImagePullPolicy: cfg.UnkeyEnvImagePullPolicy,
+		injectImage:             cfg.InjectImage,
+		injectImagePullPolicy:   cfg.InjectImagePullPolicy,
 		defaultProviderEndpoint: cfg.DefaultProviderEndpoint,
 	}
 }
@@ -130,7 +130,7 @@ func (m *Mutator) Mutate(ctx context.Context, pod *corev1.Pod, namespace string)
 	return &Result{
 		Mutated: true,
 		Patch:   patchBytes,
-		Message: fmt.Sprintf("injected unkey-env for deployment %s", podCfg.DeploymentID),
+		Message: fmt.Sprintf("injected secrets for deployment %s", podCfg.DeploymentID),
 	}, nil
 }
 

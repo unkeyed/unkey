@@ -9,14 +9,14 @@ import (
 
 func (m *Mutator) buildInitContainer() corev1.Container {
 	return corev1.Container{
-		Name:            "copy-unkey-env",
-		Image:           m.unkeyEnvImage,
-		ImagePullPolicy: corev1.PullPolicy(m.unkeyEnvImagePullPolicy),
-		Command:         []string{"cp", "/unkey-env", unkeyEnvBinary},
+		Name:            "copy-inject",
+		Image:           m.injectImage,
+		ImagePullPolicy: corev1.PullPolicy(m.injectImagePullPolicy),
+		Command:         []string{"cp", "/inject", injectBinary},
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      unkeyEnvVolumeName,
-				MountPath: unkeyEnvMountPath,
+				Name:      injectVolumeName,
+				MountPath: injectMountPath,
 			},
 		},
 	}
@@ -24,7 +24,7 @@ func (m *Mutator) buildInitContainer() corev1.Container {
 
 func (m *Mutator) buildVolume() corev1.Volume {
 	return corev1.Volume{
-		Name: unkeyEnvVolumeName,
+		Name: injectVolumeName,
 		VolumeSource: corev1.VolumeSource{
 			EmptyDir: &corev1.EmptyDirVolumeSource{
 				Medium: corev1.StorageMediumMemory,
@@ -46,8 +46,8 @@ func (m *Mutator) buildContainerPatches(
 	basePath := fmt.Sprintf("/spec/containers/%d", containerIndex)
 
 	volumeMount := corev1.VolumeMount{
-		Name:      unkeyEnvVolumeName,
-		MountPath: unkeyEnvMountPath,
+		Name:      injectVolumeName,
+		MountPath: injectMountPath,
 		ReadOnly:  true,
 	}
 
@@ -82,7 +82,7 @@ func (m *Mutator) buildContainerPatches(
 		}
 	}
 
-	// We replace the container's command with unkey-env, which decrypts secrets and then
+	// We replace the container's command with inject, which decrypts secrets and then
 	// exec's the original entrypoint. If the pod spec doesn't define a command, we need to
 	// fetch the image's ENTRYPOINT/CMD from the registry so we know what to exec into.
 	var args []string
@@ -109,7 +109,7 @@ func (m *Mutator) buildContainerPatches(
 	patches = append(patches, map[string]interface{}{
 		"op":    "add",
 		"path":  fmt.Sprintf("%s/command", basePath),
-		"value": []string{unkeyEnvBinary},
+		"value": []string{injectBinary},
 	})
 
 	if len(args) > 0 {
