@@ -32,7 +32,7 @@ export default function ProjectDetails() {
       <Section>
         <SectionHeader
           icon={<Cloud iconSize="md-regular" className="text-gray-9" />}
-          title="Active Deployment"
+          title="Live Deployment"
         />
         <ActiveDeploymentCard deploymentId={project?.liveDeploymentId ?? null} />
       </Section>

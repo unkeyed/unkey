@@ -137,8 +137,10 @@ test-integration: up ## Run integration tests
 
 .PHONY: dev
 dev: ## Start dev environment with tilt
-	ctlptl apply -f ./dev/cluster.yaml
-	minikube addons enable metrics-server
+	@ctlptl apply -f ./dev/cluster.yaml
+	@minikube addons enable metrics-server
+	@tilt up -f ./dev/Tiltfile
 
-
-	tilt up -f ./dev/Tiltfile
+.PHONY: down
+down: ## Stop dev environment
+	@minikube delete

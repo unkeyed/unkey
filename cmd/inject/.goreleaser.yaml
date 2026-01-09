@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# Run from repo root: goreleaser release --config cmd/inject/.goreleaser.yaml
+version: 2
+
+project_name: inject
+
+# Skip Go builds - the Dockerfile handles compilation via multi-stage build
+builds:
+  - skip: true
+
+dockers:
+  - image_templates:
+      - "ghcr.io/unkeyed/inject:{{ .Version }}-amd64"
+    dockerfile: cmd/inject/Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--platform=linux/amd64"
+
+  - image_templates:
+      - "ghcr.io/unkeyed/inject:{{ .Version }}-arm64"
+    dockerfile: cmd/inject/Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--platform=linux/arm64"
+
+docker_manifests:
+  - name_template: "ghcr.io/unkeyed/inject:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/unkeyed/inject:{{ .Version }}-amd64"
+      - "ghcr.io/unkeyed/inject:{{ .Version }}-arm64"
+
+  - name_template: "ghcr.io/unkeyed/inject:latest"
+    image_templates:
+      - "ghcr.io/unkeyed/inject:{{ .Version }}-amd64"
+      - "ghcr.io/unkeyed/inject:{{ .Version }}-arm64"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  prerelease: auto

@@ -8,7 +8,7 @@ load('ext://restart_process',  'docker_build_with_restart')
 cfg = config.parse()
 
 # Suppress warnings for images used indirectly (injected into pods by webhook)
-update_settings(suppress_unused_image_warnings=["unkey/env:latest", "unkey/dev:latest"])
+update_settings(suppress_unused_image_warnings=["unkey/inject:latest", "unkey/dev:latest"])
 
 # Create namespace using the extension with allow_duplicates
 unkey_namespace = namespace_create('unkey', allow_duplicates=True)
@@ -49,7 +49,7 @@ k8s_resource('restate', port_forwards=['8081:8080', '9070:9070'], resource_deps=
 
 
 # Build Unkey binary locally (independent of infrastructure)
-local_resource('unkey-compile','cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o bin/unkey .', deps=['../main.go', '../pkg', '../cmd', '../svc', '../gen'])
+local_resource('build-unkey','cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o bin/unkey .', deps=['../main.go', '../pkg', '../cmd', '../svc', '../gen'])
 
 
 
@@ -85,7 +85,7 @@ k8s_yaml('k8s/manifests/api.yaml')
 k8s_resource(
   'api',
   port_forwards='7070:7070',
-  resource_deps=['mysql', 'clickhouse', 'redis', 'unkey-compile'],
+  resource_deps=['mysql', 'clickhouse', 'redis', 'build-unkey'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -106,8 +106,8 @@ k8s_yaml('k8s/manifests/ctrl.yaml')
 k8s_resource(
   'ctrl',
   port_forwards='7091:7091',
-  resource_deps=['mysql', 'clickhouse', 'restate', 'unkey-compile'],
-  labels=['unkey'],
+  resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey'],
+  labels=['build'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
 )
@@ -127,7 +127,7 @@ k8s_yaml('k8s/manifests/krane.yaml')
 k8s_resource(
   'krane',
   port_forwards='8070:8070',
-  resource_deps=['ctrl', 'unkey-compile'],
+  resource_deps=['ctrl', 'build-unkey'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -150,12 +150,12 @@ local_resource(
   resource_deps=['unkey_namespace'],
   labels=['unkey'],
 )
-# Build unkey-env image for injection into customer pods
+# Build inject image for injection into customer pods
 # Uses local_resource so it shows up in Tilt UI and can be triggered
 local_resource(
-    'unkey-env',
-    'minikube image build -t unkey/env:latest -f ./cmd/unkey-env/Dockerfile ..',
-    deps=['../main.go', '../pkg', '../cmd', '../svc', '../gen'],
+    'inject',
+    'minikube image build -t unkey/inject:latest -f ./cmd/inject/Dockerfile ..',
+    deps=['../cmd/inject', '../pkg/secrets', '../pkg/cli', '../cmd/inject/Dockerfile'],
     labels=['images'],
 )
 
@@ -175,7 +175,7 @@ k8s_yaml('k8s/manifests/preflight.yaml')
 k8s_resource(
   'preflight',
   port_forwards='8090:8080',
-  resource_deps=['preflight-tls', 'unkey-env', 'unkey-compile'],
+  resource_deps=['preflight-tls', 'inject', 'build-unkey'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
