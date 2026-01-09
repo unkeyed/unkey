@@ -147,3 +147,7 @@ dev: ## Start dev environment
 .PHONY: down
 down: ## Stop dev environment
 	@minikube delete
+
+.PHONY: local-dashboard
+local-dashboard: install build-go ## Run local development setup for dashboard
+	pnpm --dir=web/apps/dashboard local
