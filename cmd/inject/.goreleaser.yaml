@@ -33,8 +33,7 @@ upx:
     lzma: true
 
 kos:
-  - main: ./cmd/inject
-    id: inject
+  - build: inject
     repositories:
       - ghcr.io/unkeyed/inject
     tags:
