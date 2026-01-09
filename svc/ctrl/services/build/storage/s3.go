@@ -64,7 +64,6 @@ func NewS3(config S3Config) (*S3, error) {
 		Bucket: aws.String(config.S3Bucket),
 	})
 	if err != nil && !strings.Contains(err.Error(), "BucketAlreadyOwnedByYou") {
-		logger.Warn("cfg", "s3_url", config.S3URL)
 		return nil, fmt.Errorf("failed to create bucket: %w", err)
 	}
 
