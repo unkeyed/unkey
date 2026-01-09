@@ -86,9 +86,10 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 					Labels:       usedLabels,
 				},
 				Spec: corev1.PodSpec{
-
-					RestartPolicy: corev1.RestartPolicyAlways,
+					RuntimeClassName: ptr.P("gvisor"),
+					RestartPolicy:    corev1.RestartPolicyAlways,
 					Containers: []corev1.Container{{
+
 						Image:           req.GetImage(),
 						Name:            "deployment",
 						ImagePullPolicy: corev1.PullIfNotPresent,

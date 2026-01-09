@@ -3,7 +3,7 @@
 
 pnpm install --frozen-lockfile
 
-docker compose -f ../../../deployment/docker-compose.yaml up -d planetscale agent clickhouse apiv2
+docker compose -f ../../../dev/docker-compose.yaml up -d planetscale agent clickhouse apiv2
 
 # Write environment variables to .env if it doesn't exist
 if [ ! -f .env ]; then

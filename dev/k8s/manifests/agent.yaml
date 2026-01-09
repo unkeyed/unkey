@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: agent
-          image: unkey-agent:latest
+          image: unkey/agent:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 8080
