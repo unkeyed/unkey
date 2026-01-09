@@ -46,8 +46,49 @@ Sentry.init({
     }),
   ],
 
-  // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-  tracesSampleRate: 1,
+  // Use dynamic sampling to reduce non-error traces while ensuring all errors are captured
+  tracesSampler: (samplingContext) => {
+    const { name, attributes } = samplingContext;
+
+    // Handle cases where name might be undefined
+    if (typeof name !== "string") {
+      return 0.1; // Default sampling for unnamed transactions
+    }
+    // Always sample traces that might contain errors or are critical operations
+    if (
+      name.includes("error") ||
+      name.includes("auth") ||
+      name.includes("payment") ||
+      name.includes("api/key") ||
+      name.includes("trpc") ||
+      (attributes?.["http.status_code"] && Number(attributes["http.status_code"]) >= 400)
+    ) {
+      return 1.0; // 100% sampling for error-prone or critical operations
+    }
+
+    // Reduce sampling for health checks and monitoring endpoints
+    if (
+      name.includes("healthcheck") ||
+      name.includes("health") ||
+      name.includes("ping") ||
+      name.includes("metrics")
+    ) {
+      return 0.01; // 1% sampling for health checks
+    }
+
+    // Reduce sampling for static assets and non-critical operations
+    if (
+      name.includes("_next/static") ||
+      name.includes("favicon") ||
+      name.includes("robots.txt") ||
+      name.includes("sitemap")
+    ) {
+      return 0.00; // 0% sampling for static assets
+    }
+
+    // Default sampling rate for other operations (significantly reduced)
+    return 0.1; // 10% sampling for general operations
+  },
   // Enable logs to be sent to Sentry
   enableLogs: true,
 
