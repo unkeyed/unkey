@@ -136,7 +136,10 @@ test-integration: up ## Run integration tests
 
 
 .PHONY: dev
-dev: ## Start dev environment with tilt
+dev: ## Start dev environment
+	@# Make sure you have ./dev/.env.depot populated, or you will get some funny errors
+	@# we're working on making this optional soon
+
 	@ctlptl apply -f ./dev/cluster.yaml
 	@minikube addons enable metrics-server
 	@tilt up -f ./dev/Tiltfile
