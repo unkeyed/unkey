@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "codes",
+    srcs = [
+        "codes.go",
+        "constants_gen.go",
+        "doc.go",
+        "generate_run.go",
+        "nil.go",
+        "unkey_application.go",
+        "unkey_auth.go",
+        "unkey_data.go",
+        "unkey_ingress.go",
+        "unkey_sentinel.go",
+        "user_request.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/codes",
+    visibility = ["//visibility:public"],
+)

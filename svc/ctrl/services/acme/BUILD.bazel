@@ -1,0 +1,28 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "acme",
+    srcs = [
+        "certificate_verification.go",
+        "doc.go",
+        "pem.go",
+        "service.go",
+        "user.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/services/acme",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//gen/proto/vault/v1:vault",
+        "//internal/services/caches",
+        "//pkg/cache",
+        "//pkg/db",
+        "//pkg/otel/logging",
+        "//pkg/uid",
+        "//pkg/vault",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_go_acme_lego_v4//lego",
+        "@com_github_go_acme_lego_v4//registration",
+    ],
+)

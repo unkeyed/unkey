@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "ctxutil",
+    srcs = [
+        "context.go",
+        "doc.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/ctxutil",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "ctxutil_test",
+    size = "small",
+    srcs = ["context_test.go"],
+    deps = [
+        ":ctxutil",
+        "@com_github_stretchr_testify//require",
+    ],
+)

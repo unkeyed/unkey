@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "hydra",
+    srcs = [
+        "certificate.pb.go",
+        "certificate_restate.pb.go",
+        "deployment.pb.go",
+        "deployment_restate.pb.go",
+        "routing.pb.go",
+        "routing_restate.pb.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/gen/proto/hydra/v1",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_restatedev_sdk_go//:sdk-go",
+        "@com_github_restatedev_sdk_go//encoding",
+        "@com_github_restatedev_sdk_go//generated/dev/restate/sdk",
+        "@com_github_restatedev_sdk_go//ingress",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+    ],
+)

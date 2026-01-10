@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "hash",
+    srcs = [
+        "doc.go",
+        "hash.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/pkg/hash",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/db"],
+)

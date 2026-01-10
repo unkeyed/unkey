@@ -1,0 +1,30 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "ratelimit",
+    srcs = [
+        "bucket.go",
+        "doc.go",
+        "interface.go",
+        "janitor.go",
+        "replay.go",
+        "sequence.go",
+        "service.go",
+        "util.go",
+        "window.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/internal/services/ratelimit",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//pkg/assert",
+        "//pkg/buffer",
+        "//pkg/circuitbreaker",
+        "//pkg/clock",
+        "//pkg/counter",
+        "//pkg/otel/logging",
+        "//pkg/otel/tracing",
+        "//pkg/prometheus/metrics",
+        "//pkg/repeat",
+        "@io_opentelemetry_go_otel//attribute",
+    ],
+)

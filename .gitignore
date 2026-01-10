@@ -40,3 +40,8 @@ go.work.sum
 dist/
 
 .talos
+
+bazel-bin
+bazel-out
+bazel-testlogs
+bazel-unkey

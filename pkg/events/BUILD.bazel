@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "events",
+    srcs = ["topic.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/events",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/otel/tracing",
+        "@io_opentelemetry_go_otel//attribute",
+    ],
+)

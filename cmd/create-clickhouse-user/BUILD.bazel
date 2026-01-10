@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "create-clickhouse-user",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/cmd/create-clickhouse-user",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/vault/v1:vault",
+        "//pkg/cli",
+        "//pkg/clickhouse",
+        "//pkg/clock",
+        "//pkg/db",
+        "//pkg/otel/logging",
+        "//pkg/vault",
+        "//pkg/vault/storage",
+    ],
+)

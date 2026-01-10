@@ -113,28 +113,6 @@ test-unit: up ## Run unit tests with infrastructure
 	@echo "Running tests w/$(PARALLEL_PROCS) parallel test processes"
 	@go test -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | go run github.com/mfridman/tparse@ba2512e7be150bfcbd6f6220d517d3741f8f2f75 -all -smallscreen
 
-.PHONY: test-stress
-test-stress: export INTEGRATION_TEST=true
-test-stress: export SIMULATION_TEST=false
-test-stress: up ## Run stress tests
-	@echo "Running stress tests w/$(PARALLEL_PROCS) parallel test processes"
-	@go test -tags=stress,integration,integration_long -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | go run github.com/mfridman/tparse@ba2512e7be150bfcbd6f6220d517d3741f8f2f75 -all -smallscreen
-
-.PHONY: test-integration-long
-test-integration-long: export INTEGRATION_TEST=true
-test-integration-long: export SIMULATION_TEST=false
-test-integration-long: up ## Run long integration tests
-	@echo "Running long-ish integration tests w/$(PARALLEL_PROCS) parallel test processes"
-	@go test -tags=integration,integration_long -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | go run github.com/mfridman/tparse@ba2512e7be150bfcbd6f6220d517d3741f8f2f75 -all -smallscreen
-
-.PHONY: test-integration
-test-integration: export INTEGRATION_TEST=true
-test-integration: export SIMULATION_TEST=false
-test-integration: up ## Run integration tests
-	@echo "Running integration tests w/$(PARALLEL_PROCS) parallel test processes"
-	@go test -tags=integration -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | go run github.com/mfridman/tparse@ba2512e7be150bfcbd6f6220d517d3741f8f2f75 -smallscreen
-
-
 .PHONY: dev
 dev: ## Start dev environment
 	@# Make sure you have ./dev/.env.depot populated, or you will get some funny errors

@@ -22,6 +22,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
@@ -67,7 +68,7 @@ func NewHarness(t *testing.T) *Harness {
 	mysqlCfg.DBName = "unkey"
 	mysqlDSN := mysqlCfg.FormatDSN()
 
-	redisUrl := containers.Redis(t)
+	redisUrl := dockertest.Redis(t)
 
 	db, err := db.New(db.Config{
 		Logger:      logger,

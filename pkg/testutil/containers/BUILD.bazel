@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "containers",
+    srcs = [
+        "containers.go",
+        "doc.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/testutil/containers",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_go_sql_driver_mysql//:mysql"],
+)

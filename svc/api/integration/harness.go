@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
@@ -136,7 +137,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		mysqlHostCfg := containers.MySQL(h.t)
 		mysqlHostCfg.DBName = "unkey" // Set the database name
 		clickhouseHostDSN := containers.ClickHouse(h.t)
-		redisHostAddr := containers.Redis(h.t)
+		redisHostAddr := dockertest.Redis(h.t)
 		kafkaBrokers := containers.Kafka(h.t)
 		apiConfig := api.Config{
 			CacheInvalidationTopic:  "",

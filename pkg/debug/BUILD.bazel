@@ -1,0 +1,28 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "debug",
+    srcs = [
+        "cacheheaders.go",
+        "doc.go",
+        "header.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/debug",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/zen"],
+)
+
+go_test(
+    name = "debug_test",
+    size = "small",
+    srcs = [
+        "cacheheaders_test.go",
+        "header_test.go",
+    ],
+    embed = [":debug"],
+    deps = [
+        "//pkg/zen",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

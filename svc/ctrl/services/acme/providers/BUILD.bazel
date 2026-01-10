@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "providers",
+    srcs = [
+        "cloudflare_provider.go",
+        "http_provider.go",
+        "provider.go",
+        "route53_provider.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/services/acme/providers",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/services/caches",
+        "//pkg/assert",
+        "//pkg/cache",
+        "//pkg/db",
+        "//pkg/otel/logging",
+        "@com_github_go_acme_lego_v4//challenge",
+        "@com_github_go_acme_lego_v4//providers/dns/cloudflare",
+        "@com_github_go_acme_lego_v4//providers/dns/route53",
+    ],
+)

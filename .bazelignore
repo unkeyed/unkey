@@ -1,0 +1,6 @@
+web
+
+# we need to figure out how to do the proto generation in bazel
+proto
+svc/ctrl/proto
+svc/krane/proto

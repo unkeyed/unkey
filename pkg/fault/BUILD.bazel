@@ -1,0 +1,33 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "fault",
+    srcs = [
+        "code.go",
+        "doc.go",
+        "flatten.go",
+        "wrap.go",
+        "wrapped.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/fault",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/codes"],
+)
+
+go_test(
+    name = "fault_test",
+    size = "small",
+    srcs = [
+        "code_test.go",
+        "dst_test.go",
+        "example_test.go",
+        "flattening_demo_test.go",
+        "wrap_test.go",
+        "wrapped_test.go",
+    ],
+    embed = [":fault"],
+    deps = [
+        "//pkg/codes",
+        "@com_github_stretchr_testify//require",
+    ],
+)

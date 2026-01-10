@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "controlplane",
+    srcs = [
+        "client.go",
+        "interceptor.go",
+        "watcher.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/krane/pkg/controlplane",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//pkg/otel/logging",
+        "//pkg/repeat",
+        "@com_connectrpc_connect//:connect",
+    ],
+)

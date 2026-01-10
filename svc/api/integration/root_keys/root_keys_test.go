@@ -22,7 +22,7 @@ import (
 
 // TestGetRootKey_Valid tests that a valid root key works correctly
 func TestGetRootKey_Valid(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	ctx := context.Background()
 	h := integration.New(t, integration.Config{NumNodes: 1})
@@ -56,7 +56,7 @@ func TestGetRootKey_Valid(t *testing.T) {
 
 // TestGetRootKey_NotFound tests that a non-existent root key returns proper error
 func TestGetRootKey_NotFound(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	ctx := context.Background()
 	h := integration.New(t, integration.Config{NumNodes: 1})
@@ -88,7 +88,7 @@ func TestGetRootKey_NotFound(t *testing.T) {
 
 // TestGetRootKey_Disabled tests that a disabled root key returns proper error
 func TestGetRootKey_Disabled(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	ctx := context.Background()
 	h := integration.New(t, integration.Config{NumNodes: 1})
@@ -134,7 +134,7 @@ func TestGetRootKey_Disabled(t *testing.T) {
 
 // TestGetRootKey_Expired tests that an expired root key returns proper error
 func TestGetRootKey_Expired(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	ctx := context.Background()
 	h := integration.New(t, integration.Config{NumNodes: 1})
@@ -178,7 +178,7 @@ func TestGetRootKey_Expired(t *testing.T) {
 
 // TestGetRootKey_TargetWorkspaceDisabled tests that a root key for a disabled workspace returns proper error
 func TestGetRootKey_TargetWorkspaceDisabled(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	ctx := context.Background()
 	h := integration.New(t, integration.Config{NumNodes: 1})
@@ -217,7 +217,7 @@ func TestGetRootKey_TargetWorkspaceDisabled(t *testing.T) {
 
 // TestGetRootKey_RootWorkspaceDisabled tests that a root key whose owning workspace is disabled returns proper error
 func TestGetRootKey_RootWorkspaceDisabled(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	ctx := context.Background()
 	h := integration.New(t, integration.Config{NumNodes: 1})
@@ -258,7 +258,7 @@ func TestGetRootKey_RootWorkspaceDisabled(t *testing.T) {
 
 // TestGetRootKey_WorkspaceNotFound tests that a root key pointing to a non-existent workspace returns proper error
 func TestGetRootKey_WorkspaceNotFound(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	ctx := context.Background()
 	h := integration.New(t, integration.Config{NumNodes: 1})
@@ -301,7 +301,7 @@ func TestGetRootKey_WorkspaceNotFound(t *testing.T) {
 
 // TestGetRootKey_MissingBearer tests that missing Authorization header returns proper error
 func TestGetRootKey_MissingBearer(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	ctx := context.Background()
 	h := integration.New(t, integration.Config{NumNodes: 1})
@@ -332,7 +332,7 @@ func TestGetRootKey_MissingBearer(t *testing.T) {
 
 // TestGetRootKey_Deleted tests that a soft-deleted root key returns proper error
 func TestGetRootKey_Deleted(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	ctx := context.Background()
 	h := integration.New(t, integration.Config{NumNodes: 1})
@@ -376,7 +376,7 @@ func TestGetRootKey_Deleted(t *testing.T) {
 
 // TestGetRootKey_InsufficientPermissions tests that a root key without required permissions returns proper error
 func TestGetRootKey_InsufficientPermissions(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	ctx := context.Background()
 	h := integration.New(t, integration.Config{NumNodes: 1})
@@ -421,7 +421,7 @@ func TestGetRootKey_InsufficientPermissions(t *testing.T) {
 // as a root key even if it has the same permissions. This is a security test to ensure
 // that only keys with ForWorkspaceID set can act as root keys.
 func TestGetRootKey_RegularKeyWithSamePermissions(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	ctx := context.Background()
 	h := integration.New(t, integration.Config{NumNodes: 1})

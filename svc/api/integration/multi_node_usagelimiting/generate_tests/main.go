@@ -102,7 +102,7 @@ import (
 )
 
 func {{ .TestName }}(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	h := integration.New(t, integration.Config{
 		NumNodes: {{ .NodeCount }},

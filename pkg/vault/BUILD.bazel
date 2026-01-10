@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "vault",
+    srcs = [
+        "create_dek.go",
+        "decrypt.go",
+        "encrypt.go",
+        "encrypt_bulk.go",
+        "reencrypt.go",
+        "roll_deks.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/vault",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/vault/v1:vault",
+        "//pkg/cache",
+        "//pkg/cache/middleware",
+        "//pkg/clock",
+        "//pkg/encryption",
+        "//pkg/otel/logging",
+        "//pkg/otel/tracing",
+        "//pkg/vault/keyring",
+        "//pkg/vault/storage",
+        "@io_opentelemetry_go_otel//attribute",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

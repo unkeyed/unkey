@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "multi_node_usagelimiting",
+    srcs = ["run.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/integration/multi_node_usagelimiting",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/clickhouse",
+        "//pkg/ptr",
+        "//pkg/testutil/seed",
+        "//svc/api/integration",
+        "//svc/api/openapi",
+        "//svc/api/routes/v2_keys_verify_key",
+        "@com_github_stretchr_testify//require",
+    ],
+)

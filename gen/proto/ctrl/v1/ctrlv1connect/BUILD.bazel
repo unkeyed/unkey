@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "ctrlv1connect",
+    srcs = [
+        "acme.connect.go",
+        "build.connect.go",
+        "cluster.connect.go",
+        "deployment.connect.go",
+        "environment.connect.go",
+        "openapi.connect.go",
+        "service.connect.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "@com_connectrpc_connect//:connect",
+    ],
+)

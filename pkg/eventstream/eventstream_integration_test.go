@@ -12,13 +12,11 @@ import (
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/pkg/eventstream"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func TestEventStreamIntegration(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
 
 	// Get Kafka brokers from test containers
 	brokers := containers.Kafka(t)
@@ -116,7 +114,6 @@ func TestEventStreamIntegration(t *testing.T) {
 }
 
 func TestEventStreamMultipleMessages(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
 
 	brokers := containers.Kafka(t)
 

@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "spiffe",
+    srcs = ["client.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/spiffe",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_spiffe_go_spiffe_v2//spiffeid",
+        "@com_github_spiffe_go_spiffe_v2//spiffetls/tlsconfig",
+        "@com_github_spiffe_go_spiffe_v2//workloadapi",
+    ],
+)

@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "proxy",
+    srcs = [
+        "context.go",
+        "director.go",
+        "doc.go",
+        "error.go",
+        "forward.go",
+        "headers.go",
+        "hostname.go",
+        "interface.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/frontline/services/proxy",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/clock",
+        "//pkg/codes",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "//pkg/zen",
+    ],
+)

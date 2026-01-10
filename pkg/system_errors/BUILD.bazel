@@ -1,0 +1,8 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "system_errors",
+    srcs = ["errors.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/system_errors",
+    visibility = ["//visibility:public"],
+)

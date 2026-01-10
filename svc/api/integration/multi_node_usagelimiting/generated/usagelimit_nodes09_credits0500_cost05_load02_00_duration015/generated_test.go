@@ -12,7 +12,7 @@ import (
 )
 
 func TestIntegration_UsageLimit_Nodes09_Credits0500_Cost05_Load02_00_Duration015(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	h := integration.New(t, integration.Config{
 		NumNodes: 9,

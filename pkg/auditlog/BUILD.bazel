@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "auditlog",
+    srcs = [
+        "actors.go",
+        "doc.go",
+        "events.go",
+        "log.go",
+        "target.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/auditlog",
+    visibility = ["//visibility:public"],
+)

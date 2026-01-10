@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/testutil"
 )
 
 var (
@@ -178,7 +177,6 @@ func (g *ErrorChainGenerator) generateErrorChain() ([]codes.URN, []string, error
 }
 
 func TestDST(t *testing.T) {
-	testutil.SkipUnlessSimulation(t)
 	seed := time.Now().UnixNano()
 	t.Logf("Using seed: %d", seed)
 

@@ -1,0 +1,28 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "cli",
+    srcs = [
+        "command.go",
+        "docs.go",
+        "docs_handler.go",
+        "docs_template.go",
+        "flag.go",
+        "help.go",
+        "parser.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/cli",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@org_golang_x_text//cases",
+        "@org_golang_x_text//language",
+    ],
+)
+
+go_test(
+    name = "cli_test",
+    size = "small",
+    srcs = ["flag_test.go"],
+    embed = [":cli"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

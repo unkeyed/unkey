@@ -1,0 +1,8 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "git",
+    srcs = ["git.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/git",
+    visibility = ["//visibility:public"],
+)

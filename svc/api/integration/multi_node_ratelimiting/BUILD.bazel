@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "multi_node_ratelimiting",
+    srcs = ["run.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/integration/multi_node_ratelimiting",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/clickhouse",
+        "//pkg/clock",
+        "//pkg/db",
+        "//pkg/ptr",
+        "//pkg/uid",
+        "//svc/api/integration",
+        "//svc/api/routes/v2_ratelimit_limit",
+        "@com_github_stretchr_testify//require",
+    ],
+)

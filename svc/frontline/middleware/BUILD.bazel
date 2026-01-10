@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "middleware",
+    srcs = ["observability.go"],
+    importpath = "github.com/unkeyed/unkey/svc/frontline/middleware",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "//pkg/zen",
+        "@com_github_prometheus_client_golang//prometheus",
+        "@com_github_prometheus_client_golang//prometheus/promauto",
+    ],
+)

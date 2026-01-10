@@ -15,13 +15,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/eventstream"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func TestClusterCache_ProducesInvalidationOnRemoveAndSetNull(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
 
 	brokers := containers.Kafka(t)
 

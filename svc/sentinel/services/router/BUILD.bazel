@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "router",
+    srcs = [
+        "interface.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/sentinel/services/router",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/services/caches",
+        "//pkg/array",
+        "//pkg/cache",
+        "//pkg/clock",
+        "//pkg/codes",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+    ],
+)

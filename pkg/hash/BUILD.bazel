@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "hash",
+    srcs = [
+        "doc.go",
+        "sha256.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/hash",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "hash_test",
+    size = "small",
+    srcs = ["sha256_test.go"],
+    embed = [":hash"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

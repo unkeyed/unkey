@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "shutdown",
+    srcs = [
+        "doc.go",
+        "shutdown.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/shutdown",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "shutdown_test",
+    size = "small",
+    srcs = ["shutdown_test.go"],
+    embed = [":shutdown"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

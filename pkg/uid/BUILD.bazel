@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "uid",
+    srcs = [
+        "dns1035.go",
+        "doc.go",
+        "nanoid.go",
+        "uid.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/uid",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/base58",
+        "//pkg/batchrand",
+    ],
+)
+
+go_test(
+    name = "uid_test",
+    size = "small",
+    srcs = [
+        "benchmark_test.go",
+        "nanoid_test.go",
+        "uid_test.go",
+    ],
+    embed = [":uid"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

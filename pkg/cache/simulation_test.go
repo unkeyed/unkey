@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/sim"
-	"github.com/unkeyed/unkey/pkg/testutil"
 )
 
 type state struct {
@@ -93,7 +92,6 @@ func (e *advanceTimeEvent) Run(rng *rand.Rand, s *state) error {
 }
 
 func TestSimulation(t *testing.T) {
-	testutil.SkipUnlessSimulation(t)
 
 	for i := 0; i < 10; i++ {
 		t.Run(fmt.Sprintf("run=%d", i), func(t *testing.T) {

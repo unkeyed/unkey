@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "docker",
+    srcs = [
+        "create_build.go",
+        "doc.go",
+        "generate_upload_url.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/services/build/backend/docker",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//pkg/assert",
+        "//pkg/db",
+        "//pkg/otel/logging",
+        "//pkg/uid",
+        "//svc/ctrl/services/build/storage",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_docker_docker//api/types/build",
+        "@com_github_docker_docker//client",
+    ],
+)

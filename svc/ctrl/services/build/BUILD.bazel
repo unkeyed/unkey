@@ -1,0 +1,8 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "build",
+    srcs = ["doc.go"],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/services/build",
+    visibility = ["//visibility:public"],
+)

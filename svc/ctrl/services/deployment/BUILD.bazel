@@ -1,0 +1,40 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "deployment",
+    srcs = [
+        "create_deployment.go",
+        "doc.go",
+        "get_deployment.go",
+        "promote.go",
+        "rollback.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/services/deployment",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/db",
+        "//pkg/otel/logging",
+        "//pkg/uid",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_restatedev_sdk_go//ingress",
+        "@org_golang_google_protobuf//encoding/protojson",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "deployment_test",
+    size = "small",
+    srcs = ["create_deployment_simple_test.go"],
+    embed = [":deployment"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//pkg/db",
+        "//pkg/ptr",
+        "@com_github_stretchr_testify//require",
+    ],
+)

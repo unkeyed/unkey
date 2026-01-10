@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "api",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/cmd/api",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/cli",
+        "//pkg/clock",
+        "//pkg/tls",
+        "//pkg/uid",
+        "//svc/api",
+    ],
+)

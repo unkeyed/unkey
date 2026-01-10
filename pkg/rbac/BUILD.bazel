@@ -1,0 +1,32 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "rbac",
+    srcs = [
+        "doc.go",
+        "lexer.go",
+        "parser.go",
+        "permissions.go",
+        "query.go",
+        "rbac.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/rbac",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/codes",
+        "//pkg/fault",
+    ],
+)
+
+go_test(
+    name = "rbac_test",
+    size = "small",
+    srcs = [
+        "integration_test.go",
+        "lexer_test.go",
+        "parse_test.go",
+        "rbac_test.go",
+    ],
+    embed = [":rbac"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

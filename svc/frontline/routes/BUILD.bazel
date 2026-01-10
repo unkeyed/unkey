@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "routes",
+    srcs = [
+        "register.go",
+        "services.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/frontline/routes",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//pkg/clock",
+        "//pkg/otel/logging",
+        "//pkg/zen",
+        "//svc/frontline/middleware",
+        "//svc/frontline/routes/acme",
+        "//svc/frontline/routes/internal_health",
+        "//svc/frontline/routes/proxy",
+        "//svc/frontline/services/proxy",
+        "//svc/frontline/services/router",
+    ],
+)
