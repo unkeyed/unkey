@@ -21,8 +21,12 @@ export const LogSection = ({
                   const value = valueParts.join(":").trim();
                   return (
                     <div className="group flex items-center w-full p-[3px]" key={key}>
-                      <span className="text-left text-accent-9 whitespace-nowrap">{key}:</span>
-                      <span className="ml-2 text-xs text-accent-12 truncate">{value}</span>
+                      <span className="text-left text-accent-9 whitespace-nowrap flex-shrink-0">
+                        {key}:
+                      </span>
+                      <span className="ml-2 text-xs text-accent-12 truncate flex-1 min-w-0">
+                        {value}
+                      </span>
                     </div>
                   );
                 })
