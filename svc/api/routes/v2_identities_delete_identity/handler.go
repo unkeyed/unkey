@@ -96,7 +96,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		_ = json.Unmarshal(ratelimitBytes, &ratelimits) // Ignore error, default to empty array
 	}
 
-	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.Query.SoftDeleteIdentity(ctx, tx, db.SoftDeleteIdentityParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Identity:    identity.ID,

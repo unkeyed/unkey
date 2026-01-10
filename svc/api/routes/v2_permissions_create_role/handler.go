@@ -77,7 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	description := ptr.SafeDeref(req.Description)
 
 	// 5. Create role in a transaction with audit log
-	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		// Insert the role
 		err = db.Query.InsertRole(ctx, tx, db.InsertRoleParams{
 			RoleID:      roleID,

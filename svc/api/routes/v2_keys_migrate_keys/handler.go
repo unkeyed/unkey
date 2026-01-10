@@ -263,7 +263,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	permissionsToFind = deduplicate(permissionsToFind)
 	rolesToFind = deduplicate(rolesToFind)
 
-	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		usedHashes, findErr := db.Query.FindKeysByHash(ctx, tx, hashes)
 		if findErr != nil && !db.IsNotFound(findErr) {
 			return fault.Wrap(findErr,

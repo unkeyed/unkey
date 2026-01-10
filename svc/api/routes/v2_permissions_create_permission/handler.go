@@ -70,7 +70,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	description := ptr.SafeDeref(req.Description)
 
 	// Create permission in a transaction with audit log
-	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		// Insert the permission
 		err = db.Query.InsertPermission(ctx, tx, db.InsertPermissionParams{
 			PermissionID: permissionID,
