@@ -60,30 +60,49 @@ func backoffStrategy(n int) time.Duration {
 }
 
 // shouldRetryError determines if a database error should trigger a retry.
-// Returns true for transient errors like deadlocks that may succeed on retry.
-// Returns false for "not found" and "duplicate key" errors as these won't succeed on retry.
+//
+// Returns true for transient errors that may succeed on retry:
+//   - Deadlocks (MySQL error 1213)
+//   - Lock wait timeouts (MySQL error 1205)
+//   - Connection errors (MySQL errors 2006, 2013, network errors)
+//   - Too many connections (MySQL error 1040)
+//
+// Returns false for permanent errors that won't succeed on retry:
+//   - Not found errors
+//   - Duplicate key errors (MySQL error 1062)
+//
+// See: https://dev.mysql.com/doc/refman/8.0/en/innodb-error-handling.html
 func shouldRetryError(err error) bool {
-	// Not found errors won't succeed on retry
+	// Not found and duplicate key errors are permanent - don't retry
 	if IsNotFound(err) || IsDuplicateKeyError(err) {
 		return false
 	}
 
-	// Default: retry other errors (connection issues, timeouts, deadlocks etc.)
-	return true
+	// Only retry known transient errors
+	return IsTransientError(err)
 }
 
-// TxWithResultRetry executes a transaction with automatic retry on transient errors like deadlocks.
+// TxWithResultRetry executes a transaction with automatic retry on transient errors.
 // It wraps TxWithResult with retry logic, retrying the entire transaction (begin -> fn -> commit)
 // on retryable errors.
 //
-// This is useful for transactions that may encounter deadlocks due to concurrent access patterns.
-// When a deadlock occurs, MySQL rolls back the transaction, so we retry from the beginning.
+// This is useful for transactions that may encounter transient errors due to concurrent access
+// patterns or temporary resource constraints. When such errors occur, MySQL rolls back the
+// transaction, so we retry from the beginning.
 //
 // Configuration:
 //   - 3 attempts maximum
 //   - Exponential backoff: 50ms, 100ms, 200ms
-//   - Retries on deadlock errors (MySQL error 1213)
-//   - Does NOT retry on "not found" or "duplicate key" errors
+//
+// Retries on transient errors:
+//   - Deadlocks (MySQL error 1213)
+//   - Lock wait timeouts (MySQL error 1205)
+//   - Connection errors (MySQL errors 2006, 2013, network errors)
+//   - Too many connections (MySQL error 1040)
+//
+// Does NOT retry on permanent errors:
+//   - Not found errors
+//   - Duplicate key errors (MySQL error 1062)
 //
 // Usage:
 //
