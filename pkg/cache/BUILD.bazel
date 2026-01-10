@@ -40,7 +40,6 @@ go_test(
         "//pkg/db",
         "//pkg/otel/logging",
         "//pkg/sim",
-        "//pkg/testutil",
         "@com_github_stretchr_testify//require",
     ],
 )

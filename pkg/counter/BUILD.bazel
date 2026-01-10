@@ -23,8 +23,8 @@ go_test(
     srcs = ["redis_test.go"],
     embed = [":counter"],
     deps = [
+        "//pkg/dockertest",
         "//pkg/otel/logging",
-        "//pkg/testutil/containers",
         "//pkg/uid",
         "@com_github_stretchr_testify//require",
     ],

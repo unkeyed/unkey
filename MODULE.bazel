@@ -11,7 +11,7 @@ go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
 go_deps.gazelle_default_attributes(
     directives = [
-        "gazelle:proto disable", # we are generating code from protos already
+        "gazelle:proto disable",  # we are generating code from protos already
     ],
 )
 use_repo(
@@ -29,6 +29,7 @@ use_repo(
     "com_github_depot_depot_go",
     "com_github_docker_cli",
     "com_github_docker_docker",
+    "com_github_docker_go_connections",
     "com_github_getkin_kin_openapi",
     "com_github_go_acme_lego_v4",
     "com_github_go_sql_driver_mysql",

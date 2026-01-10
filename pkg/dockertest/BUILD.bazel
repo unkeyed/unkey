@@ -1,0 +1,31 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "dockertest",
+    srcs = [
+        "doc.go",
+        "docker.go",
+        "redis.go",
+        "wait.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/dockertest",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_docker_docker//api/types/container",
+        "@com_github_docker_docker//api/types/image",
+        "@com_github_docker_docker//client",
+        "@com_github_docker_go_connections//nat",
+        "@com_github_stretchr_testify//require",
+    ],
+)
+
+go_test(
+    name = "dockertest_test",
+    size = "small",
+    srcs = ["redis_test.go"],
+    deps = [
+        ":dockertest",
+        "@com_github_redis_go_redis_v9//:go-redis",
+        "@com_github_stretchr_testify//require",
+    ],
+)

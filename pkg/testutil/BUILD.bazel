@@ -2,10 +2,7 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "testutil",
-    srcs = [
-        "flags.go",
-        "http.go",
-    ],
+    srcs = ["http.go"],
     importpath = "github.com/unkeyed/unkey/pkg/testutil",
     visibility = ["//visibility:public"],
     deps = [
@@ -20,6 +17,7 @@ go_library(
         "//pkg/clock",
         "//pkg/counter",
         "//pkg/db",
+        "//pkg/dockertest",
         "//pkg/otel/logging",
         "//pkg/rbac",
         "//pkg/testutil/containers",

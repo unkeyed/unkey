@@ -28,7 +28,6 @@ go_test(
     embed = [":fault"],
     deps = [
         "//pkg/codes",
-        "//pkg/testutil",
         "@com_github_stretchr_testify//require",
     ],
 )

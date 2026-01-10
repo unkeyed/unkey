@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/vault/keys"
@@ -22,7 +23,7 @@ func TestContextCancellation(t *testing.T) {
 	mysqlCfg := containers.MySQL(t)
 	mysqlCfg.DBName = "unkey"
 	dbDsn := mysqlCfg.FormatDSN()
-	redisUrl := containers.Redis(t)
+	redisUrl := dockertest.Redis(t)
 
 	// Create ephemeral listener
 	ln, err := net.Listen("tcp", ":0")

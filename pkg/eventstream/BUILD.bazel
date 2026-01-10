@@ -28,7 +28,6 @@ go_test(
         ":eventstream",
         "//gen/proto/cache/v1:cache",
         "//pkg/otel/logging",
-        "//pkg/testutil",
         "//pkg/testutil/containers",
         "//pkg/uid",
         "@com_github_stretchr_testify//require",

@@ -14,7 +14,6 @@ go_test(
         "//pkg/debug",
         "//pkg/eventstream",
         "//pkg/otel/logging",
-        "//pkg/testutil",
         "//pkg/testutil/containers",
         "//pkg/testutil/seed",
         "//pkg/uid",

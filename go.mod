@@ -15,6 +15,7 @@ require (
 	github.com/depot/depot-go v0.5.2
 	github.com/docker/cli v29.1.3+incompatible
 	github.com/docker/docker v28.5.2+incompatible
+	github.com/docker/go-connections v0.6.0
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/go-acme/lego/v4 v4.25.2
 	github.com/go-sql-driver/mysql v1.9.3
@@ -199,7 +200,6 @@ require (
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.4 // indirect
-	github.com/docker/go-connections v0.6.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dolthub/maphash v0.1.0 // indirect
 	github.com/dprotaso/go-yit v0.0.0-20220510233725-9ba8df137936 // indirect

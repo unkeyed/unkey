@@ -34,7 +34,6 @@ go_test(
         "//pkg/clock",
         "//pkg/eventstream",
         "//pkg/otel/logging",
-        "//pkg/testutil",
         "//pkg/testutil/containers",
         "//pkg/uid",
         "@com_github_stretchr_testify//require",

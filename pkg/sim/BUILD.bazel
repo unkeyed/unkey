@@ -22,7 +22,6 @@ go_test(
     srcs = ["sim_test.go"],
     deps = [
         ":sim",
-        "//pkg/testutil",
         "@com_github_stretchr_testify//require",
     ],
 )

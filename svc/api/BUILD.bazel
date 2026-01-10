@@ -44,6 +44,7 @@ go_test(
     srcs = ["cancel_test.go"],
     deps = [
         ":api",
+        "//pkg/dockertest",
         "//pkg/testutil/containers",
         "//pkg/uid",
         "//pkg/vault/keys",
