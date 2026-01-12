@@ -6,12 +6,6 @@ type Config struct {
 	// InstanceID is the unique identifier for this instance of the API server
 	InstanceID string
 
-	// Platform identifies the cloud platform where the node is running (e.g., aws, gcp, hetzner)
-	Platform string
-
-	// Image specifies the container image identifier including repository and tag
-	Image string
-
 	// HttpPort defines the HTTP port for the API server to listen on (default: 7070)
 	HttpPort int
 
@@ -36,8 +30,6 @@ func (c Config) Validate() error {
 
 	return assert.All(
 		assert.NotEmpty(c.InstanceID, "instanceID must not be empty"),
-		assert.NotEmpty(c.Platform, "platform must not be empty"),
-		assert.NotEmpty(c.Image, "image must not be empty"),
 		assert.Greater(c.HttpPort, 0, "httpPort must be greater than 0"),
 		assert.NotEmpty(c.S3Bucket, "s3Bucket must not be empty"),
 		assert.NotEmpty(c.S3Url, "s3Url must not be empty"),

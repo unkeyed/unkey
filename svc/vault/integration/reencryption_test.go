@@ -10,26 +10,33 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/vault/internal/keys"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	"github.com/unkeyed/unkey/svc/vault/internal/vault"
 )
 
-// This scenario tests the re-encryption of a secret.
+// TestReEncrypt verifies that re-encryption works correctly across varying data sizes.
+//
+// This test encrypts data of increasing sizes (8^1 to 8^8 bytes), then performs
+// multiple DEK rotations and verifies the original encrypted data can still be
+// decrypted. This ensures:
+//   - Large data is handled correctly
+//   - Re-encryption with new DEKs doesn't lose data
+//   - Old ciphertexts remain valid after DEK rotation
 func TestReEncrypt(t *testing.T) {
 
 	logger := logging.NewNoop()
 
-	s3 := containers.S3(t)
+	s3 := dockertest.S3(t)
 
 	storage, err := storage.NewS3(storage.S3Config{
-		S3URL:             s3.HostURL,
+		S3URL:             s3.URL,
 		S3Bucket:          "vault",
 		S3AccessKeyID:     s3.AccessKeyID,
-		S3AccessKeySecret: s3.AccessKeySecret,
+		S3AccessKeySecret: s3.SecretAccessKey,
 		Logger:            logger,
 	})
 	require.NoError(t, err)

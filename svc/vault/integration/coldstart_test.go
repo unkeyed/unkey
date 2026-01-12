@@ -7,28 +7,34 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/vault/internal/keys"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	"github.com/unkeyed/unkey/svc/vault/internal/vault"
 )
 
-// This scenario tests the cold start of the vault service.
-// There are no keys in the storage and a few users are starting to use it
+// Test_ColdStart verifies the vault service starts correctly with empty storage.
+//
+// This scenario tests that multiple users can encrypt and decrypt secrets
+// when the vault has no pre-existing keys. It validates:
+//   - DEK creation on first encrypt per keyring
+//   - Encrypt/decrypt roundtrip for multiple users
+//   - Re-encryption with a new DEK
+//   - Keyring isolation between users
 
 func Test_ColdStart(t *testing.T) {
 
-	s3 := containers.S3(t)
+	s3 := dockertest.S3(t)
 
 	logger := logging.NewNoop()
 
 	storage, err := storage.NewS3(storage.S3Config{
-		S3URL:             s3.HostURL,
+		S3URL:             s3.URL,
 		S3Bucket:          "test",
 		S3AccessKeyID:     s3.AccessKeyID,
-		S3AccessKeySecret: s3.AccessKeySecret,
+		S3AccessKeySecret: s3.SecretAccessKey,
 		Logger:            logger,
 	})
 	require.NoError(t, err)

@@ -7,6 +7,7 @@ import (
 
 	"connectrpc.com/connect"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/encryption"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
@@ -23,7 +24,7 @@ func (s *Service) Decrypt(
 
 	res, err := s.decrypt(ctx, req.Msg)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	return connect.NewResponse(res), nil
 
@@ -46,6 +47,11 @@ func (s *Service) decrypt(
 		return nil, fmt.Errorf("failed to unmarshal encrypted data: %w", err)
 	}
 
+	// Validate the encrypted message structure
+	if err := validateEncrypted(&encrypted); err != nil {
+		return nil, fmt.Errorf("invalid encrypted message: %w", err)
+	}
+
 	cacheKey := fmt.Sprintf("%s-%s", req.GetKeyring(), encrypted.GetEncryptionKeyId())
 
 	dek, hit := s.keyCache.Get(ctx, cacheKey)
@@ -66,4 +72,38 @@ func (s *Service) decrypt(
 		Plaintext: string(plaintext),
 	}, nil
 
+}
+
+// validateEncrypted validates the structure of an Encrypted message.
+//
+// This validation is critical for security:
+//   - Nonce must be exactly 12 bytes (GCM requirement)
+//   - Ciphertext must be at least 16 bytes (GCM auth tag size)
+//   - Encryption key ID must not be empty
+//
+// Without this validation, malformed messages could cause panics or
+// undefined behavior in the crypto library.
+//
+// Note: Proto validation (buf.validate) on the Encrypted message is NOT
+// automatically enforced because we manually unmarshal it. This Go validation
+// provides the actual security guarantee.
+func validateEncrypted(e *vaultv1.Encrypted) error {
+	const (
+		gcmNonceSize   = 12
+		gcmAuthTagSize = 16
+	)
+
+	if err := assert.Equal(len(e.GetNonce()), gcmNonceSize, fmt.Sprintf("invalid nonce length: expected %d bytes, got %d", gcmNonceSize, len(e.GetNonce()))); err != nil {
+		return err
+	}
+
+	if err := assert.GreaterOrEqual(len(e.GetCiphertext()), gcmAuthTagSize, fmt.Sprintf("invalid ciphertext length: expected at least %d bytes, got %d", gcmAuthTagSize, len(e.GetCiphertext()))); err != nil {
+		return err
+	}
+
+	if err := assert.NotEmpty(e.GetEncryptionKeyId(), "encryption key ID is required"); err != nil {
+		return err
+	}
+
+	return nil
 }

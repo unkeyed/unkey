@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package vault.v1;
 
-import "buf/validate/validate.proto";
-
 option go_package = "github.com/unkeyed/unkey/gen/proto/vault/v1;vaultv1";
 
 message LivenessRequest {}
@@ -12,8 +10,8 @@ message LivenessResponse {
 }
 
 message EncryptRequest {
-  string keyring = 1 [(buf.validate.field).string.max_len = 64];
-  string data = 2 [(buf.validate.field).string.max_len = 32768];
+  string keyring = 1;
+  string data = 2;
 }
 
 message EncryptResponse {
@@ -22,8 +20,8 @@ message EncryptResponse {
 }
 
 message DecryptRequest {
-  string keyring = 1 [(buf.validate.field).string.max_len = 64];
-  string encrypted = 2 [(buf.validate.field).string.max_len = 32768];
+  string keyring = 1;
+  string encrypted = 2;
 }
 
 message DecryptResponse {
@@ -31,11 +29,11 @@ message DecryptResponse {
 }
 
 message ReEncryptRequest {
-  string keyring = 1 [(buf.validate.field).string.max_len = 64];
-  string encrypted = 2 [(buf.validate.field).string.max_len = 32768];
+  string keyring = 1;
+  string encrypted = 2;
 
   // Specify the key_id to use for re-encryption. If not provided, the latest will be used
-  optional string key_id = 3 [(buf.validate.field).string.max_len = 64];
+  optional string key_id = 3;
 }
 message ReEncryptResponse {
   string encrypted = 1;

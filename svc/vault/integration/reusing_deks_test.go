@@ -10,26 +10,31 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/vault/internal/keys"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	"github.com/unkeyed/unkey/svc/vault/internal/vault"
 )
 
-// When encrypting multiple secrets with the same keyring, the same DEK should be reused for all of them.
+// TestReuseDEKsForSameKeyring verifies that multiple encrypts with the same keyring
+// reuse the same DEK.
+//
+// This is important for efficiency - we don't want to create a new DEK for every
+// encrypt operation. All secrets within a keyring should use the same DEK until
+// it is explicitly rotated.
 func TestReuseDEKsForSameKeyring(t *testing.T) {
 
 	logger := logging.NewNoop()
 
-	s3 := containers.S3(t)
+	s3 := dockertest.S3(t)
 
 	storage, err := storage.NewS3(storage.S3Config{
-		S3URL:             s3.HostURL,
+		S3URL:             s3.URL,
 		S3Bucket:          fmt.Sprintf("%d", time.Now().UnixMilli()),
 		S3AccessKeyID:     s3.AccessKeyID,
-		S3AccessKeySecret: s3.AccessKeySecret,
+		S3AccessKeySecret: s3.SecretAccessKey,
 		Logger:            logger,
 	})
 	require.NoError(t, err)
@@ -66,18 +71,22 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 
 }
 
-// When encrypting multiple secrets with different keyrings, a different DEK should be used for each keyring.
+// TestIndividualDEKsPerKeyring verifies that different keyrings use different DEKs.
+//
+// This provides tenant isolation - each keyring (typically representing a workspace
+// or tenant) gets its own encryption key. Compromise of one keyring's DEK does not
+// affect other keyrings.
 func TestIndividualDEKsPerKeyring(t *testing.T) {
 
 	logger := logging.NewNoop()
 
-	s3 := containers.S3(t)
+	s3 := dockertest.S3(t)
 
 	storage, err := storage.NewS3(storage.S3Config{
-		S3URL:             s3.HostURL,
+		S3URL:             s3.URL,
 		S3Bucket:          fmt.Sprintf("%d", time.Now().UnixMilli()),
 		S3AccessKeyID:     s3.AccessKeyID,
-		S3AccessKeySecret: s3.AccessKeySecret,
+		S3AccessKeySecret: s3.SecretAccessKey,
 		Logger:            logger,
 	})
 	require.NoError(t, err)

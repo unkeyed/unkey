@@ -18,15 +18,9 @@ var Cmd = &cli.Command{
 	Flags: []cli.Flag{
 		// Server Configuration
 		cli.Int("http-port", "HTTP port for the control plane server to listen on. Default: 8080",
-			cli.Default(8080), cli.EnvVar("UNKEY_HTTP_PORT")),
+			cli.Default(8060), cli.EnvVar("UNKEY_HTTP_PORT")),
 
 		// Instance Identification
-		cli.String("platform", "Cloud platform identifier for this node. Used for logging and metrics.",
-			cli.EnvVar("UNKEY_PLATFORM")),
-		cli.String("image", "Container image identifier. Used for logging and metrics.",
-			cli.EnvVar("UNKEY_IMAGE")),
-		cli.String("region", "Geographic region identifier. Used for logging and routing. Default: unknown",
-			cli.Default("unknown"), cli.EnvVar("UNKEY_REGION"), cli.EnvVar("AWS_REGION")),
 		cli.String("instance-id", "Unique identifier for this instance. Auto-generated if not provided.",
 			cli.Default(uid.New(uid.InstancePrefix, 4)), cli.EnvVar("UNKEY_INSTANCE_ID")),
 
@@ -57,8 +51,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 	config := vault.Config{
 		// Basic configuration
-		Platform:          cmd.RequireString("platform"),
-		Image:             cmd.RequireString("image"),
 		HttpPort:          cmd.RequireInt("http-port"),
 		InstanceID:        cmd.RequireString("instance-id"),
 		S3Url:             cmd.RequireString("s3-url"),
