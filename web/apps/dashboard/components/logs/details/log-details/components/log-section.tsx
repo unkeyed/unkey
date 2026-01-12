@@ -24,7 +24,7 @@ export const LogSection = ({
                       <span className="text-left text-accent-9 whitespace-nowrap flex-shrink-0">
                         {key}:
                       </span>
-                      <span className="ml-2 text-xs text-accent-12 truncate flex-1 min-w-0">
+                      <span className="ml-2 text-xs text-accent-12 flex-1 min-w-0 break-words overflow-hidden">
                         {value}
                       </span>
                     </div>
