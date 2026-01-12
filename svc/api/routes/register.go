@@ -324,17 +324,19 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	// ---------------------------------------------------------------------------
 	// v2/deploy
 
-	// v2/deploy.createDeployment
-	srv.RegisterRoute(
-		defaultMiddlewares,
-		&v2DeployCreateDeployment.Handler{
-			Logger:     svc.Logger,
-			DB:         svc.Database,
-			Keys:       svc.Keys,
-			CtrlClient: svc.CtrlDeploymentClient,
-			CtrlToken:  svc.CtrlToken,
-		},
-	)
+	if svc.CtrlDeploymentClient != nil {
+		// v2/deploy.createDeployment
+		srv.RegisterRoute(
+			defaultMiddlewares,
+			&v2DeployCreateDeployment.Handler{
+				Logger:     svc.Logger,
+				DB:         svc.Database,
+				Keys:       svc.Keys,
+				CtrlClient: svc.CtrlDeploymentClient,
+				CtrlToken:  svc.CtrlToken,
+			},
+		)
+	}
 
 	// ---------------------------------------------------------------------------
 	// v2/permissions
