@@ -129,7 +129,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		credits = sql.NullInt32{Int32: int32(reqVal), Valid: true} // nolint:gosec
 	}
 
-	key, err = db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindLiveKeyByIDRow, error) {
+	key, err = db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindLiveKeyByIDRow, error) {
 		switch req.Operation {
 		case openapi.Set:
 			err = db.Query.UpdateKeyCreditsSet(ctx, tx, db.UpdateKeyCreditsSetParams{

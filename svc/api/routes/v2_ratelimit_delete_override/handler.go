@@ -158,7 +158,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.Query.SoftDeleteRatelimitOverride(ctx, tx, db.SoftDeleteRatelimitOverrideParams{
 			ID:  override.ID,
 			Now: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},

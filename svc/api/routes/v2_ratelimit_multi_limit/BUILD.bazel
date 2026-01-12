@@ -1,0 +1,52 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "v2_ratelimit_multi_limit",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_multi_limit",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/services/auditlogs",
+        "//internal/services/caches",
+        "//internal/services/keys",
+        "//internal/services/ratelimit",
+        "//pkg/auditlog",
+        "//pkg/cache",
+        "//pkg/clickhouse",
+        "//pkg/clickhouse/schema",
+        "//pkg/codes",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/match",
+        "//pkg/otel/logging",
+        "//pkg/ptr",
+        "//pkg/rbac",
+        "//pkg/uid",
+        "//pkg/zen",
+        "//svc/api/openapi",
+    ],
+)
+
+go_test(
+    name = "v2_ratelimit_multi_limit_test",
+    size = "medium",
+    srcs = [
+        "200_test.go",
+        "400_test.go",
+        "401_test.go",
+        "403_test.go",
+        "410_test.go",
+    ],
+    deps = [
+        ":v2_ratelimit_multi_limit",
+        "//pkg/auditlog",
+        "//pkg/clickhouse",
+        "//pkg/clickhouse/schema",
+        "//pkg/db",
+        "//pkg/ptr",
+        "//pkg/testutil",
+        "//pkg/uid",
+        "//svc/api/openapi",
+        "@com_github_stretchr_testify//require",
+    ],
+)

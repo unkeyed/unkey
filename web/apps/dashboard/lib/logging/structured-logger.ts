@@ -122,12 +122,11 @@ export function logTRPCError(errorInfo: TRPCErrorInfo, context: LogContext): voi
     if (Sentry?.logger && typeof Sentry.logger[level] === "function") {
       Sentry.logger[level]("tRPC operation completed with expected error", cleanAttributes);
     } else {
-      // Fallback to console if Sentry fails
-      console.error("Sentry logger not available, falling back to console:", {
-        level,
-        message: "tRPC operation completed with expected error",
-        attributes: cleanAttributes,
-      });
+      // Fallback to console if Sentry is disabled or not available
+      console.debug(
+        `[${level.toUpperCase()}] tRPC operation completed with expected error`,
+        cleanAttributes,
+      );
     }
   } catch (error) {
     // Fallback to console if Sentry fails

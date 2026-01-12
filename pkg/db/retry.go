@@ -55,17 +55,88 @@ func backoffStrategy(n int) time.Duration {
 	if n <= 0 || n > len(delays) {
 		return DefaultBackoff
 	}
+
 	return delays[n-1]
 }
 
 // shouldRetryError determines if a database error should trigger a retry.
-// Returns false for "not found" and "duplicate key" errors as these won't succeed on retry.
+//
+// Returns true for transient errors that may succeed on retry:
+//   - Deadlocks (MySQL error 1213)
+//   - Lock wait timeouts (MySQL error 1205)
+//   - Connection errors (MySQL errors 2006, 2013, network errors)
+//   - Too many connections (MySQL error 1040)
+//
+// Returns false for permanent errors that won't succeed on retry:
+//   - Not found errors
+//   - Duplicate key errors (MySQL error 1062)
+//
+// See: https://dev.mysql.com/doc/refman/8.0/en/innodb-error-handling.html
 func shouldRetryError(err error) bool {
-	if IsNotFound(err) {
+	// Not found and duplicate key errors are permanent - don't retry
+	if IsNotFound(err) || IsDuplicateKeyError(err) {
 		return false
 	}
-	if IsDuplicateKeyError(err) {
-		return false
-	}
-	return true
+
+	// Only retry known transient errors
+	return IsTransientError(err)
+}
+
+// TxWithResultRetry executes a transaction with automatic retry on transient errors.
+// It wraps TxWithResult with retry logic, retrying the entire transaction (begin -> fn -> commit)
+// on retryable errors.
+//
+// This is useful for transactions that may encounter transient errors due to concurrent access
+// patterns or temporary resource constraints. When such errors occur, MySQL rolls back the
+// transaction, so we retry from the beginning.
+//
+// Configuration:
+//   - 3 attempts maximum
+//   - Exponential backoff: 50ms, 100ms, 200ms
+//
+// Retries on transient errors:
+//   - Deadlocks (MySQL error 1213)
+//   - Lock wait timeouts (MySQL error 1205)
+//   - Connection errors (MySQL errors 2006, 2013, network errors)
+//   - Too many connections (MySQL error 1040)
+//
+// Does NOT retry on permanent errors:
+//   - Not found errors
+//   - Duplicate key errors (MySQL error 1062)
+//
+// Usage:
+//
+//	result, err := db.TxWithResultRetry(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) (*Result, error) {
+//		// Perform transactional operations
+//		return &Result{}, nil
+//	})
+func TxWithResultRetry[T any](ctx context.Context, db *Replica, fn func(context.Context, DBTX) (T, error)) (T, error) {
+	return retry.DoWithResultContext(
+		retry.New(
+			retry.Attempts(DefaultAttempts),
+			retry.Backoff(backoffStrategy),
+			retry.ShouldRetry(shouldRetryError),
+		),
+		ctx,
+		func() (T, error) {
+			return TxWithResult(ctx, db, fn)
+		},
+	)
+}
+
+// TxRetry executes a transaction with automatic retry on transient errors like deadlocks.
+// It is a convenience wrapper around TxWithResultRetry for operations that don't return a value.
+//
+// Usage:
+//
+//	err := db.TxRetry(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
+//		// Perform transactional operations
+//		return nil
+//	})
+func TxRetry(ctx context.Context, db *Replica, fn func(context.Context, DBTX) error) error {
+	_, err := TxWithResultRetry(ctx, db, func(ctx context.Context, tx DBTX) (any, error) {
+		return nil, fn(ctx, tx)
+	})
+
+	return err
 }

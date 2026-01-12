@@ -1,0 +1,31 @@
+load("@gazelle//:def.bzl", "gazelle")
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+gazelle(name = "gazelle")
+
+go_library(
+    name = "unkey_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//cmd/create-clickhouse-user",
+        "//cmd/deploy",
+        "//cmd/dev",
+        "//cmd/frontline",
+        "//cmd/healthcheck",
+        "//cmd/quotacheck",
+        "//cmd/run",
+        "//cmd/version",
+        "//pkg/cli",
+        "//pkg/version",
+    ],
+)
+
+go_binary(
+    name = "unkey",
+    out = "bin/unkey",
+    embed = [":unkey_lib"],
+    pure = "on",
+    visibility = ["//visibility:public"],
+)

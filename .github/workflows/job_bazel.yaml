@@ -1,0 +1,56 @@
+name: Bazel
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Build
+    runs-on: depot-ubuntu-24.04-8
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - uses: bazel-contrib/setup-bazel@083175551ceeceebc757ebee2127fde78840ca77 # 0.18.0
+        with:
+          # Avoid downloading Bazel every time.
+          bazelisk-cache: true
+          # Store build cache per workflow.
+          disk-cache: ${{ github.workflow }}
+          # Share repository cache between workflows.
+          repository-cache: true
+          bazelrc: |
+            build --remote_cache=https://cache.depot.dev
+            build --remote_header=authorization=${{ secrets.DEPOT_BAZEL_CACHE_AUTHORIZATION }}
+
+      - name: Build
+        run: bazel build //...
+
+  test:
+    name: Test
+    runs-on: depot-ubuntu-24.04-8
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - uses: bazel-contrib/setup-bazel@083175551ceeceebc757ebee2127fde78840ca77 # 0.18.0
+        with:
+          # Avoid downloading Bazel every time.
+          bazelisk-cache: true
+          # Store build cache per workflow.
+          disk-cache: ${{ github.workflow }}
+          # Share repository cache between workflows.
+          repository-cache: true
+          bazelrc: |
+            build --remote_cache=https://cache.depot.dev
+            build --remote_header=authorization=${{ secrets.DEPOT_BAZEL_CACHE_AUTHORIZATION }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        with:
+          install: true
+
+      - name: Run containers
+        run: docker compose -f ./dev/docker-compose.yaml up -d s3 clickhouse kafka mysql --wait
+        env:
+          DOCKER_BUILDKIT: 1
+          COMPOSE_DOCKER_CLI_BUILD: 1
+
+      - name: Run tests
+        run: bazel test //... --test_output=errors

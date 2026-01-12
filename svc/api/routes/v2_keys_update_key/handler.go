@@ -106,7 +106,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	txErr := db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+	txErr := db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		auditLogs := []auditlog.AuditLog{}
 
 		update := db.UpdateKeyParams{

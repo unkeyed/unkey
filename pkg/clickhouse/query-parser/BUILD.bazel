@@ -1,0 +1,45 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "query-parser",
+    srcs = [
+        "cte.go",
+        "extract.go",
+        "filter.go",
+        "limits.go",
+        "parser.go",
+        "tables.go",
+        "time_range.go",
+        "types.go",
+        "validation.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/clickhouse/query-parser",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "@com_github_aftership_clickhouse_sql_parser//parser",
+    ],
+)
+
+go_test(
+    name = "query-parser_test",
+    size = "small",
+    srcs = [
+        "errors_test.go",
+        "extract_test.go",
+        "filter_test.go",
+        "limits_test.go",
+        "tables_test.go",
+        "time_range_test.go",
+        "validation_test.go",
+    ],
+    embed = [":query-parser"],
+    deps = [
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "@com_github_stretchr_testify//require",
+    ],
+)

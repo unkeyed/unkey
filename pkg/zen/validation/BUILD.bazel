@@ -1,0 +1,24 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "validation",
+    srcs = ["validator.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/zen/validation",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/ctxutil",
+        "//pkg/fault",
+        "//pkg/otel/tracing",
+        "//svc/api/openapi",
+        "@com_github_pb33f_libopenapi//:libopenapi",
+        "@com_github_pb33f_libopenapi_validator//:libopenapi-validator",
+    ],
+)
+
+go_test(
+    name = "validation_test",
+    size = "small",
+    srcs = ["validator_test.go"],
+    embed = [":validation"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

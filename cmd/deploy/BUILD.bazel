@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "deploy",
+    srcs = [
+        "config.go",
+        "control_plane.go",
+        "init.go",
+        "main.go",
+        "ui.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/cmd/deploy",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//pkg/cli",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/git",
+        "//pkg/otel/logging",
+        "//pkg/ptr",
+        "@com_connectrpc_connect//:connect",
+        "@org_golang_x_text//cases",
+        "@org_golang_x_text//language",
+    ],
+)

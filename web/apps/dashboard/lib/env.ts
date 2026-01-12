@@ -50,6 +50,16 @@ export const env = () =>
 
       NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY: z.string().optional(),
       CLOUDFLARE_TURNSTILE_SECRET_KEY: z.string().optional(),
+
+      // Sentry configuration
+      SENTRY_DISABLED: z
+        .string()
+        .optional()
+        .transform((val) => val === "true"),
+      NEXT_PUBLIC_SENTRY_DISABLED: z
+        .string()
+        .optional()
+        .transform((val) => val === "true"),
     })
     .parse(process.env);
 

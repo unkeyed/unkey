@@ -96,7 +96,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	identityID := uid.New(uid.IdentityPrefix)
 
-	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		args := db.InsertIdentityParams{
 			ID:          identityID,
 			ExternalID:  req.ExternalId,
