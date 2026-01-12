@@ -93,7 +93,7 @@ const WarningIcon = ({ status }: { status: number }) => (
 
 const additionalColumns: Column<Log>[] = [
   "response_body",
-  "request_body", 
+  "request_body",
   "request_headers",
   "response_headers",
   "request_id",
@@ -107,12 +107,12 @@ const additionalColumns: Column<Log>[] = [
     .join(" "),
   width: key === "response_body" ? "50%" : "auto",
   render: (log: Log) => (
-    <div 
+    <div
       className={cn(
         "font-mono overflow-hidden text-ellipsis",
-        key === "response_body" 
-          ? "whitespace-nowrap truncate min-w-0" 
-          : "whitespace-nowrap truncate max-w-[200px]"
+        key === "response_body"
+          ? "whitespace-nowrap truncate min-w-0"
+          : "whitespace-nowrap truncate max-w-[200px]",
       )}
     >
       {log[key as keyof Log]}
