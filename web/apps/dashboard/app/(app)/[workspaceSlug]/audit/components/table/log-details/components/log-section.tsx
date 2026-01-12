@@ -17,6 +17,7 @@ export const LogSection = ({
           <pre className="flex flex-col gap-1 whitespace-pre-wrap leading-relaxed">
             {Array.isArray(details)
               ? details
+                  .slice()
                   .sort((a, b) => {
                     const keyA = a.split(":")[0].toLowerCase();
                     const keyB = b.split(":")[0].toLowerCase();
