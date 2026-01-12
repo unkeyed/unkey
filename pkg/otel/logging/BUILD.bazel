@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "logging",
+    srcs = [
+        "doc.go",
+        "interface.go",
+        "multi.go",
+        "noop.go",
+        "slog.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/otel/logging",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_lmittmann_tint//:tint"],
+)

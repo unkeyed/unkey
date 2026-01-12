@@ -1,0 +1,50 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "clickhouse",
+    srcs = [
+        "billable_ratelimits.go",
+        "billable_verifications.go",
+        "client.go",
+        "doc.go",
+        "errors.go",
+        "flush.go",
+        "interface.go",
+        "noop.go",
+        "select.go",
+        "user.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/clickhouse",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/batch",
+        "//pkg/circuitbreaker",
+        "//pkg/clickhouse/schema",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "//pkg/retry",
+        "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",
+        "@com_github_clickhouse_clickhouse_go_v2//lib/driver",
+    ],
+)
+
+go_test(
+    name = "clickhouse_test",
+    srcs = [
+        "errors_test.go",
+        "key_verifications_test.go",
+        "ratelimits_test.go",
+        "testutil_test.go",
+    ],
+    embed = [":clickhouse"],
+    deps = [
+        "//pkg/array",
+        "//pkg/clickhouse/schema",
+        "//pkg/testutil/containers",
+        "//pkg/uid",
+        "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

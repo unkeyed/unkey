@@ -8,14 +8,14 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func TestRedisCounter(t *testing.T) {
 	ctx := context.Background()
-	redisURL := containers.Redis(t)
+	redisURL := dockertest.Redis(t)
 
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
@@ -325,7 +325,7 @@ func TestRedisCounterConnection(t *testing.T) {
 
 func TestRedisCounterMultiGet(t *testing.T) {
 	ctx := context.Background()
-	redisURL := containers.Redis(t)
+	redisURL := dockertest.Redis(t)
 
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
@@ -447,7 +447,7 @@ func TestRedisCounterMultiGet(t *testing.T) {
 
 func TestRedisCounterDecrement(t *testing.T) {
 	ctx := context.Background()
-	redisURL := containers.Redis(t)
+	redisURL := dockertest.Redis(t)
 
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
@@ -539,7 +539,7 @@ func TestRedisCounterDecrement(t *testing.T) {
 
 func TestRedisCounterDecrementIfExists(t *testing.T) {
 	ctx := context.Background()
-	redisURL := containers.Redis(t)
+	redisURL := dockertest.Redis(t)
 
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
@@ -652,7 +652,7 @@ func TestRedisCounterDecrementIfExists(t *testing.T) {
 func TestRedisCounterDelete(t *testing.T) {
 	ctx := context.Background()
 	logger := logging.New()
-	redisURL := containers.Redis(t)
+	redisURL := dockertest.Redis(t)
 
 	ctr, err := NewRedis(RedisConfig{
 		RedisURL: redisURL,
@@ -732,7 +732,7 @@ func TestRedisCounterDelete(t *testing.T) {
 func TestRedisCounterDecrementLogic(t *testing.T) {
 	ctx := context.Background()
 	logger := logging.New()
-	redisURL := containers.Redis(t)
+	redisURL := dockertest.Redis(t)
 
 	ctr, err := NewRedis(RedisConfig{
 		RedisURL: redisURL,

@@ -1,0 +1,35 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "otel",
+    srcs = [
+        "grafana.go",
+        "schema.go",
+        "util.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/otel",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/otel/logging",
+        "//pkg/otel/tracing",
+        "//pkg/shutdown",
+        "//pkg/version",
+        "@com_github_shirou_gopsutil_v4//cpu",
+        "@com_github_shirou_gopsutil_v4//mem",
+        "@io_opentelemetry_go_contrib_bridges_otelslog//:otelslog",
+        "@io_opentelemetry_go_contrib_bridges_prometheus//:prometheus",
+        "@io_opentelemetry_go_contrib_processors_minsev//:minsev",
+        "@io_opentelemetry_go_otel//:otel",
+        "@io_opentelemetry_go_otel//codes",
+        "@io_opentelemetry_go_otel//semconv/v1.21.0:v1_21_0",
+        "@io_opentelemetry_go_otel_exporters_otlp_otlplog_otlploghttp//:otlploghttp",
+        "@io_opentelemetry_go_otel_exporters_otlp_otlpmetric_otlpmetrichttp//:otlpmetrichttp",
+        "@io_opentelemetry_go_otel_exporters_otlp_otlptrace_otlptracehttp//:otlptracehttp",
+        "@io_opentelemetry_go_otel_metric//:metric",
+        "@io_opentelemetry_go_otel_sdk//resource",
+        "@io_opentelemetry_go_otel_sdk//trace",
+        "@io_opentelemetry_go_otel_sdk_log//:log",
+        "@io_opentelemetry_go_otel_sdk_metric//:metric",
+        "@io_opentelemetry_go_otel_trace//:trace",
+    ],
+)

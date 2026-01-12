@@ -172,6 +172,9 @@ usage decisions (e.g., "O(n²) - use [AlternativeFunc] for large inputs" or "blo
 **Context**: Only document context behavior if it's non-standard (e.g., uses context values,
 has specific timeout behavior, or has special cancellation semantics).
 
+**Ascii Diagrams**: Use sparingly for complex algorithms or workflows that benefit from visual explanation.
+Never exceed 80 characters width.
+
 ### Internal Functions (Focus on "Why")
 
 ```go
@@ -378,20 +381,6 @@ func TestConcurrentAccess(t *testing.T) {
     // ... implementation
 }
 ```
-
-## Consistency and Style
-
-**Terminology must be consistent** across the entire codebase:
-
-- Use the same terms for the same concepts (e.g., always "identifier", never mix with "key" or "ID")
-- Define domain-specific terms in package documentation
-- Create a glossary for complex domains
-
-**Parameter naming should be predictable:**
-
-- `ctx context.Context` (always first parameter)
-- `id string` or `identifier string` for rate limit keys
-- `cost int` or `count int` for operation quantities
 
 ## Go Documentation Conventions
 

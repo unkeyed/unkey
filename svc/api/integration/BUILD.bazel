@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "integration",
+    srcs = [
+        "harness.go",
+        "http.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/api/integration",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/clickhouse",
+        "//pkg/clock",
+        "//pkg/db",
+        "//pkg/dockertest",
+        "//pkg/otel/logging",
+        "//pkg/testutil/containers",
+        "//pkg/testutil/seed",
+        "//svc/api",
+        "@com_github_stretchr_testify//require",
+    ],
+)

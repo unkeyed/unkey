@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "cleanup",
+    srcs = ["cleanup.go"],
+    importpath = "github.com/unkeyed/unkey/svc/preflight/internal/services/cleanup",
+    visibility = ["//svc/preflight:__subpackages__"],
+    deps = [
+        "//pkg/otel/logging",
+        "@io_k8s_api//core/v1:core",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
+        "@io_k8s_client_go//kubernetes",
+    ],
+)

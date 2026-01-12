@@ -8,6 +8,7 @@
     "quickstart",
     "sdk-development",
     "testing",
+    "bazel",
     "client-structure",
     "seeding-db-and-clickhouse",
     "pull-request-checks"

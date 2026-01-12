@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "generate_tests_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/integration/multi_node_usagelimiting/generate_tests",
+    visibility = ["//visibility:private"],
+)
+
+go_binary(
+    name = "generate_tests",
+    embed = [":generate_tests_lib"],
+    visibility = ["//visibility:public"],
+)
