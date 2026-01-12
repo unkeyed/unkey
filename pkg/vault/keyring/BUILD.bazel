@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "keyring",
+    srcs = [
+        "create_key.go",
+        "decode_and_decrypt_key.go",
+        "encrypt_and_encode_key.go",
+        "get_key.go",
+        "get_latest_key.go",
+        "get_or_create_key.go",
+        "keyring.go",
+        "roll_keys.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/vault/keyring",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/vault/v1:vault",
+        "//pkg/encryption",
+        "//pkg/otel/logging",
+        "//pkg/otel/tracing",
+        "//pkg/vault/keys",
+        "//pkg/vault/storage",
+        "@io_opentelemetry_go_otel//attribute",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

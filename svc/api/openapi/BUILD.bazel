@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "openapi",
+    srcs = [
+        "gen.go",
+        "generate.go",
+        "spec.go",
+    ],
+    embedsrcs = ["openapi-generated.yaml"],
+    importpath = "github.com/unkeyed/unkey/svc/api/openapi",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_oapi_codegen_nullable//:nullable"],
+)

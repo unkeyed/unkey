@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "middleware",
+    srcs = ["errors.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/internal/middleware",
+    visibility = ["//svc/api:__subpackages__"],
+    deps = [
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "//pkg/zen",
+        "//svc/api/openapi",
+    ],
+)

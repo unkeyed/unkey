@@ -1,0 +1,31 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "counter",
+    srcs = [
+        "doc.go",
+        "interface.go",
+        "redis.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/counter",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/assert",
+        "//pkg/otel/logging",
+        "//pkg/otel/tracing",
+        "@com_github_redis_go_redis_v9//:go-redis",
+    ],
+)
+
+go_test(
+    name = "counter_test",
+    size = "small",
+    srcs = ["redis_test.go"],
+    embed = [":counter"],
+    deps = [
+        "//pkg/dockertest",
+        "//pkg/otel/logging",
+        "//pkg/uid",
+        "@com_github_stretchr_testify//require",
+    ],
+)

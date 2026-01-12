@@ -28,7 +28,7 @@ func (s *Service) UpdateDeploymentState(ctx context.Context, req *connect.Reques
 		return nil, err
 	}
 
-	err = db.Tx(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 
 		switch msg := req.Msg.GetChange().(type) {
 		case *ctrlv1.UpdateDeploymentStateRequest_Update_:

@@ -1,0 +1,11 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "ptr",
+    srcs = [
+        "deref.go",
+        "pointer.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/ptr",
+    visibility = ["//visibility:public"],
+)
