@@ -39,7 +39,7 @@ spec:
               value: "planetscale:3900"
             # ClickHouse configuration
             - name: CLICKHOUSE_URL
-              value: "http://unkey:password@clickhouse:8123"
+              value: "http://default:password@clickhouse:8123"
             # Environment
             - name: NODE_ENV
               value: "production"
