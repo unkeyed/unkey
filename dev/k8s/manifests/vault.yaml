@@ -28,17 +28,17 @@ spec:
           env:
             - name: UNKEY_HTTP_PORT
               value: "8060"
-            - name: UNKEY_VAULT_S3_URL
+            - name: UNKEY_S3_URL
               value: "http://s3:3902"
-            - name: UNKEY_VAULT_S3_BUCKET
+            - name: UNKEY_S3_BUCKET
               value: "vault"
-            - name: UNKEY_VAULT_S3_ACCESS_KEY_ID
+            - name: UNKEY_S3_ACCESS_KEY_ID
               value: "minio_root_user"
-            - name: UNKEY_VAULT_S3_ACCESS_KEY_SECRET
+            - name: UNKEY_S3_ACCESS_KEY_SECRET
               value: "minio_root_password"
-            - name: UNKEY_VAULT_MASTER_KEYS
+            - name: UNKEY_MASTER_KEYS
               value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
-            - name: UNKEY_VAULT_BEARER_TOKEN
+            - name: UNKEY_BEARER_TOKEN
               value: "vault-test-token-123"
           livenessProbe:
             httpGet:
