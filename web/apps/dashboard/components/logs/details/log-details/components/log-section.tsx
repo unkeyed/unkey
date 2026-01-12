@@ -23,11 +23,13 @@ export const LogSection = ({
                     const keyB = b.split(":")[0].toLowerCase();
                     return keyA.localeCompare(keyB);
                   })
-                  .map((header) => {
+                  .map((header, index) => {
                     const [key, ...valueParts] = header.split(":");
                     const value = valueParts.join(":").trim();
+                    // Create unique key by combining key, value hash, and position for duplicates
+                    const uniqueKey = `${key}-${value.slice(0, 20)}-${header.length}-${index}`;
                     return (
-                      <div className="group flex items-center w-full p-[3px]" key={key}>
+                      <div className="group flex items-center w-full p-[3px]" key={uniqueKey}>
                         <span className="text-left text-accent-9 whitespace-nowrap flex-shrink-0">
                           {key}:
                         </span>
