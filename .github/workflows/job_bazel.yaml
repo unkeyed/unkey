@@ -18,7 +18,8 @@ jobs:
           # Share repository cache between workflows.
           repository-cache: true
           bazelrc: |
-            # ignored for now
+            build --remote_cache=https://cache.depot.dev
+            build --remote_header=authorization=${{ secrets.DEPOT_BAZEL_CACHE_AUTHORIZATION }}
 
       - name: Build
         run: bazel build //...
