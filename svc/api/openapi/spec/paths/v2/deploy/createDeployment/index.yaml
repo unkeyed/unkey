@@ -17,7 +17,7 @@ post:
         schema:
           "$ref": "./V2DeployCreateDeploymentRequestBody.yaml"
   responses:
-    "200":
+    "201":
       description: Deployment created successfully
       content:
         application/json:

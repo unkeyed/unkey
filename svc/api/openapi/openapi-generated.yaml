@@ -4150,7 +4150,7 @@ paths:
                             $ref: '#/components/schemas/V2DeployCreateDeploymentRequestBody'
                 required: true
             responses:
-                "200":
+                "201":
                     content:
                         application/json:
                             schema:
