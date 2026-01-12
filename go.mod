@@ -25,6 +25,7 @@ require (
 	github.com/maypok86/otter v1.2.4
 	github.com/moby/buildkit v0.25.0
 	github.com/oapi-codegen/nullable v1.1.0
+	github.com/oapi-codegen/runtime v1.1.2
 	github.com/oasdiff/oasdiff v1.11.7
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/pb33f/libopenapi v0.28.0
@@ -349,7 +350,6 @@ require (
 	github.com/nishanths/predeclared v0.2.2 // indirect
 	github.com/nunnatsa/ginkgolinter v0.21.2 // indirect
 	github.com/oapi-codegen/oapi-codegen/v2 v2.5.1 // indirect
-	github.com/oapi-codegen/runtime v1.1.2 // indirect
 	github.com/oasdiff/yaml v0.0.0-20250309154309-f31be36b4037 // indirect
 	github.com/oasdiff/yaml3 v0.0.0-20250309153720-d2182401db90 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect

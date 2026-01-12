@@ -121,7 +121,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return h.handleCtrlError(err)
 	}
 
-	return s.JSON(http.StatusOK, Response{
+	return s.JSON(http.StatusCreated, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
@@ -145,7 +145,7 @@ func (h *Handler) handleCtrlError(err error) error {
 		case connect.CodeInvalidArgument:
 			return fault.Wrap(err,
 				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Public(connectErr.Message()),
+				fault.Public("Invalid deployment request."),
 			)
 		case connect.CodeUnauthenticated:
 			return fault.Wrap(err,

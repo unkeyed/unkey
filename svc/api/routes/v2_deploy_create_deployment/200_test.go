@@ -86,7 +86,7 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 			req,
 		)
 
-		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.Equal(t, 201, res.Status, "expected 201, received: %#v", res)
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.Data.DeploymentId, "deployment ID should not be empty")
 	})
@@ -143,7 +143,7 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 			req,
 		)
 
-		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.Equal(t, 201, res.Status, "expected 201, received: %#v", res)
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.Data.DeploymentId, "deployment ID should not be empty")
 	})
@@ -201,7 +201,7 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 			req,
 		)
 
-		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.Equal(t, 201, res.Status, "expected 201, received: %#v", res)
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.Data.DeploymentId, "deployment ID should not be empty")
 	})
