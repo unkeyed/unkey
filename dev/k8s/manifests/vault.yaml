@@ -51,7 +51,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /v1.vault.VaultService/Liveness
-              port: 7070
+              port: 8060
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 3
@@ -76,8 +76,8 @@ spec:
   type: ClusterIP
   ports:
     - name: http
-      port: 7070
-      targetPort: 7070
+      port: 8060
+      targetPort: 8060
       protocol: TCP
   selector:
     app: vault
