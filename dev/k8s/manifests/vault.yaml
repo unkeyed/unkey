@@ -42,7 +42,7 @@ spec:
               value: "vault-test-token-123"
           livenessProbe:
             httpGet:
-              path: /v1.vault.VaultService/Liveness
+              path: /vault.v1.VaultService/Liveness
               port: 8060
             initialDelaySeconds: 30
             periodSeconds: 10
