@@ -1,0 +1,62 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "assert",
+    srcs = [
+        "all.go",
+        "contains.go",
+        "doc.go",
+        "empty.go",
+        "equal.go",
+        "false.go",
+        "greater.go",
+        "greater_or_equal.go",
+        "in_range.go",
+        "less.go",
+        "less_or_equal.go",
+        "nil.go",
+        "not_empty.go",
+        "not_equal.go",
+        "not_nil.go",
+        "not_nil_and_not_zero.go",
+        "not_zero.go",
+        "some.go",
+        "true.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/assert",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/codes",
+        "//pkg/fault",
+    ],
+)
+
+go_test(
+    name = "assert_test",
+    size = "small",
+    srcs = [
+        "all_test.go",
+        "contains_test.go",
+        "empty_test.go",
+        "equal_test.go",
+        "error_codes_test.go",
+        "false_test.go",
+        "greater_or_equal_test.go",
+        "greater_test.go",
+        "in_range_test.go",
+        "less_or_equal_test.go",
+        "less_test.go",
+        "nil_test.go",
+        "not_empty_test.go",
+        "not_equal_test.go",
+        "not_nil_and_not_zero_test.go",
+        "not_nil_test.go",
+        "not_zero_test.go",
+        "some_test.go",
+        "true_test.go",
+    ],
+    deps = [
+        ":assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

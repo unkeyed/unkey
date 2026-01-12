@@ -205,7 +205,6 @@ func TestWithRetryContext_Integration(t *testing.T) {
 
 	// Set up test database using containers
 	mysqlCfg := containers.MySQL(t)
-	mysqlCfg.DBName = "unkey"
 
 	// Create database instance
 	dbInstance, err := New(Config{

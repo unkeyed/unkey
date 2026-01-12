@@ -1,0 +1,88 @@
+---
+title: Bazel
+description: Why we use Bazel and how it improves our development workflow
+---
+
+## The Problem We Had
+
+Our integration tests were becoming a significant bottleneck in the development process. Running the full test suite required spinning up Docker images and various dependencies, which meant tests took a long time to complete. More problematically, our change detection was unreliable. The system frequently failed to identify which tests were actually affected by a given change, leading to tests being skipped when they should have run.
+
+We tried to solve this by manually fine-tuning change detection in our GitHub Actions workflows. This turned into a maintenance nightmare. We wrote path filters and conditional logic to determine which tests should run based on which files changed, but the heuristics were never quite right. Every time we added a new package or changed the dependency structure, the workflow logic needed updating. We spent significant engineering time maintaining this detection system instead of building features, and it still got things wrong.
+
+This created a dangerous situation where we lost confidence in our CI pipeline. When tests that should run get skipped, bugs slip through. When every test runs regardless of what changed, developers wait unnecessarily. Either way, the feedback loop suffers and so does the quality of what gets merged.
+
+## Why Bazel
+
+Bazel solves both problems through its fundamental design. At its core, Bazel builds a complete dependency graph of your codebase. Every file, every package, and every test explicitly declares what it depends on. When you make a change, Bazel can trace exactly which targets are affected and only rebuild or retest those specific targets.
+
+This is not heuristic-based guessing. Bazel knows with certainty that if you modify a utility function in `pkg/hash`, it needs to rerun tests for every package that imports `pkg/hash`, but nothing else. If you change a test file, only that test runs. If you modify a shared library, every dependent test runs automatically.
+
+The other major advantage is caching. Bazel caches build and test results based on the exact inputs that produced them. If the inputs have not changed, Bazel reuses the cached result instead of rebuilding. This applies locally across runs and can be shared across the team through remote caching. A test that passed on another developer's machine with identical inputs does not need to run again on yours.
+
+## How This Helps Us
+
+With Bazel, our CI pipeline now has accurate change detection. When a pull request modifies Go code in `pkg/cache`, only the tests that actually depend on that package run. When someone updates documentation or frontend code, the Go tests do not run at all because Bazel knows they are unrelated.
+
+This accuracy means faster feedback for developers. Instead of waiting for the entire test suite, you wait only for the tests that matter. It also means we can trust the results. If Bazel says a test passed, it actually ran against the current state of the code. If Bazel says a test was cached, we know the inputs have not changed since it last passed.
+
+The explicit dependency declarations also serve as living documentation. Looking at a BUILD.bazel file tells you exactly what a package depends on, making the codebase structure clearer and helping prevent unintended coupling between components.
+
+## Working with Bazel
+
+Bazel uses BUILD.bazel files to define targets and their dependencies. Each directory that contains buildable code has one of these files. You do not typically need to write these from scratch as Gazelle generates them for Go code.
+
+We have Makefile targets that wrap the common Bazel operations to make them easier to use.
+
+### Running Tests
+
+To run the full test suite:
+
+```bash
+make test
+```
+
+This starts the required infrastructure services (MySQL, ClickHouse, S3, Kafka), runs all tests through Bazel, and cleans up test containers afterward. Bazel handles determining which tests actually need to run based on what has changed.
+
+To run tests for a specific package directly:
+
+```bash
+bazel test //pkg/cache:cache_test
+```
+
+### Building
+
+To build all Go artifacts:
+
+```bash
+make build
+```
+
+This runs `bazel build //...` under the hood.
+
+### Keeping BUILD Files in Sync
+
+When you add new Go files, change imports, or modify dependencies, you need to update the BUILD.bazel files. Gazelle handles this automatically:
+
+```bash
+make bazel
+```
+
+This runs `bazel mod tidy` to sync module dependencies and then `bazel run //:gazelle` to regenerate BUILD files based on your Go source code.
+
+After running code generation (protobuf, SQL, etc.), the generate target also updates BUILD files:
+
+```bash
+make generate
+```
+
+### Installation
+
+If you do not have Bazel installed, the Makefile can install it via Homebrew:
+
+```bash
+make install-brew-tools
+```
+
+This installs bazelisk, which is a wrapper that automatically downloads and runs the correct version of Bazel for the project.
+
+The initial build may take longer as Bazel populates its cache, but subsequent builds and tests will be significantly faster as Bazel reuses cached results for unchanged targets.

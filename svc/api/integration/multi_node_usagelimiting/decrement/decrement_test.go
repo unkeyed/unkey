@@ -22,7 +22,7 @@ import (
 
 // TestDecrementAccuracy tests the decrement logic through the verify key endpoint
 func TestDecrementAccuracy(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	testCases := []struct {
 		name         string
@@ -210,7 +210,7 @@ func TestDecrementAccuracy(t *testing.T) {
 
 // TestDecrementEdgeCases tests edge cases for the decrement logic
 func TestDecrementEdgeCases(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	t.Run("ZeroCreditHandling", func(t *testing.T) {
 		ctx := context.Background()
