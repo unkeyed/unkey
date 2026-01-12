@@ -79,6 +79,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_started
+      ctrl:
+        condition: service_started
     environment:
       UNKEY_HTTP_PORT: 7070
       UNKEY_REDIS_URL: "redis://redis:6379"
@@ -93,6 +95,8 @@ services:
       UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       UNKEY_KAFKA_BROKERS: "kafka:9092"
       UNKEY_CLICKHOUSE_ANALYTICS_URL: "http://clickhouse:8123/default"
+      UNKEY_CTRL_URL: "http://ctrl:7091"
+      UNKEY_CTRL_TOKEN: "your-local-dev-key"
       UNKEY_PPROF_ENABLED: "true"
       UNKEY_PPROF_USERNAME: "admin"
       UNKEY_PPROF_PASSWORD: "password"

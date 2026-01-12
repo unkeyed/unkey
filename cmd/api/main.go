@@ -113,6 +113,12 @@ var Cmd = &cli.Command{
 		// Debug Configuration
 		cli.Bool("debug-cache-headers", "Enable cache debug headers (X-Unkey-Debug-Cache) in HTTP responses for debugging cache behavior",
 			cli.Default(false), cli.EnvVar("UNKEY_DEBUG_CACHE_HEADERS")),
+
+		// CTRL Service Configuration
+		cli.String("ctrl-url", "CTRL service connection URL for deployment management. Example: http://ctrl:7091",
+			cli.EnvVar("UNKEY_CTRL_URL")),
+		cli.String("ctrl-token", "Bearer token for CTRL service authentication",
+			cli.EnvVar("UNKEY_CTRL_TOKEN")),
 	},
 
 	Action: action,
@@ -187,6 +193,10 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// ClickHouse proxy configuration
 		ChproxyToken: cmd.String("chproxy-auth-token"),
+
+		// CTRL service configuration
+		CtrlURL:   cmd.String("ctrl-url"),
+		CtrlToken: cmd.String("ctrl-token"),
 
 		// Profiling configuration
 		PprofEnabled:  cmd.Bool("pprof-enabled"),
