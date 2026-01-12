@@ -56,14 +56,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Validate that at least one of build or image is provided
-	if req.Build == nil && req.Image == nil {
-		return fault.New("must provide either build or image",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Public("Either build or image must be provided."),
-		)
-	}
-
 	// nolint: exhaustruct // optional proto fields, only setting whats provided
 	ctrlReq := &ctrlv1.CreateDeploymentRequest{
 		ProjectId:       req.ProjectId,
@@ -77,26 +69,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		ctrlReq.KeyspaceId = req.KeyspaceId
 	}
 
-	// Handle source (build vs image) - validate that only one is provided
-	if req.Build != nil && req.Image != nil {
-		return fault.New("cannot provide both build and image",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Public("Only one of build or image can be provided."),
-		)
-	} else if req.Build != nil {
+	// Handle source (build vs image) using oneOf union type
+	buildSource, buildErr := req.AsV2DeployBuildSource()
+
+	if buildErr == nil && buildSource.Build.Context != "" {
+		// Build source
 		// nolint: exhaustruct // optional proto fields, only setting whats provided
 		buildContext := &ctrlv1.BuildContext{
-			BuildContextPath: req.Build.Context,
+			BuildContextPath: buildSource.Build.Context,
 		}
-		if req.Build.Dockerfile != nil {
-			buildContext.DockerfilePath = req.Build.Dockerfile
+		if buildSource.Build.Dockerfile != nil {
+			buildContext.DockerfilePath = buildSource.Build.Dockerfile
 		}
 		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_BuildContext{
 			BuildContext: buildContext,
 		}
-	} else if req.Image != nil {
+	} else {
+		// Image source
+		imageSource, _ := req.AsV2DeployImageSource()
 		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_DockerImage{
-			DockerImage: *req.Image,
+			DockerImage: imageSource.Image,
 		}
 	}
 

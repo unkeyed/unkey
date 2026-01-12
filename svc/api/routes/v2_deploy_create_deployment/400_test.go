@@ -8,7 +8,6 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
@@ -81,7 +80,8 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "Either build or image must be provided.", res.Body.Error.Detail)
+		// The OpenAPI schema validator catches this with a generic schema validation error
+		require.Contains(t, res.Body.Error.Detail, "failed to validate schema")
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
@@ -91,21 +91,29 @@ func TestBadRequests(t *testing.T) {
 			ProjectId:       project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
-			Build: &struct {
-				Context    string  `json:"context"`
-				Dockerfile *string `json:"dockerfile,omitempty"`
+		}
+
+		// Manually set both build and image in the union by merging both types
+		// This tests that the OpenAPI oneOf validation rejects requests with both sources
+		_ = req.FromV2DeployBuildSource(openapi.V2DeployBuildSource{
+			Build: struct {
+				Context    string  "json:\"context\""
+				Dockerfile *string "json:\"dockerfile,omitempty\""
 			}{
 				Context: "/app",
 			},
-			Image: ptr.P("nginx:latest"),
-		}
+		})
+		_ = req.MergeV2DeployImageSource(openapi.V2DeployImageSource{
+			Image: "nginx:latest",
+		})
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
-		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
+		require.Equal(t, 400, res.Status, "expected 400 when both build and image are provided, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "Only one of build or image can be provided.", res.Body.Error.Detail)
+		// The OpenAPI schema validator catches this with a generic schema validation error
+		require.Contains(t, res.Body.Error.Detail, "failed to validate schema")
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
@@ -114,8 +122,10 @@ func TestBadRequests(t *testing.T) {
 		req := handler.Request{
 			Branch:          "main",
 			EnvironmentSlug: "production",
-			Image:           ptr.P("nginx:latest"),
 		}
+		_ = req.FromV2DeployImageSource(openapi.V2DeployImageSource{
+			Image: "nginx:latest",
+		})
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
@@ -129,8 +139,10 @@ func TestBadRequests(t *testing.T) {
 		req := handler.Request{
 			ProjectId:       project.ID,
 			EnvironmentSlug: "production",
-			Image:           ptr.P("nginx:latest"),
 		}
+		_ = req.FromV2DeployImageSource(openapi.V2DeployImageSource{
+			Image: "nginx:latest",
+		})
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
@@ -146,8 +158,12 @@ func TestBadRequests(t *testing.T) {
 		req := handler.Request{
 			ProjectId: project.ID,
 			Branch:    "main",
-			Image:     ptr.P("nginx:latest"),
 		}
+
+		err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
+			Image: "nginx:latest",
+		})
+		require.NoError(t, err, "failed to set image source")
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
@@ -169,8 +185,12 @@ func TestBadRequests(t *testing.T) {
 			ProjectId:       project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
-			Image:           ptr.P("nginx:latest"),
 		}
+
+		err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
+			Image: "nginx:latest",
+		})
+		require.NoError(t, err, "failed to set image source")
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusBadRequest, res.Status)
@@ -187,8 +207,12 @@ func TestBadRequests(t *testing.T) {
 			ProjectId:       project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
-			Image:           ptr.P("nginx:latest"),
 		}
+
+		err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
+			Image: "nginx:latest",
+		})
+		require.NoError(t, err, "failed to set image source")
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusBadRequest, res.Status)
@@ -200,8 +224,12 @@ func TestBadRequests(t *testing.T) {
 			ProjectId:       "",
 			Branch:          "main",
 			EnvironmentSlug: "production",
-			Image:           ptr.P("nginx:latest"),
 		}
+
+		err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
+			Image: "nginx:latest",
+		})
+		require.NoError(t, err, "failed to set image source")
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
@@ -217,8 +245,12 @@ func TestBadRequests(t *testing.T) {
 			ProjectId:       project.ID,
 			Branch:          "",
 			EnvironmentSlug: "production",
-			Image:           ptr.P("nginx:latest"),
 		}
+
+		err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
+			Image: "nginx:latest",
+		})
+		require.NoError(t, err, "failed to set image source")
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
@@ -234,8 +266,12 @@ func TestBadRequests(t *testing.T) {
 			ProjectId:       project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "",
-			Image:           ptr.P("nginx:latest"),
 		}
+
+		err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
+			Image: "nginx:latest",
+		})
+		require.NoError(t, err, "failed to set image source")
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 
@@ -251,11 +287,15 @@ func TestBadRequests(t *testing.T) {
 			ProjectId:       project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
-			Build: &struct {
-				Context    string  `json:"context"`
-				Dockerfile *string `json:"dockerfile,omitempty"`
-			}{},
 		}
+
+		err := req.FromV2DeployBuildSource(openapi.V2DeployBuildSource{
+			Build: struct {
+				Context    string  "json:\"context\""
+				Dockerfile *string "json:\"dockerfile,omitempty\""
+			}{},
+		})
+		require.NoError(t, err, "failed to set build source")
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 

@@ -10,5 +10,8 @@ go_library(
     embedsrcs = ["openapi-generated.yaml"],
     importpath = "github.com/unkeyed/unkey/svc/api/openapi",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_oapi_codegen_nullable//:nullable"],
+    deps = [
+        "@com_github_oapi_codegen_nullable//:nullable",
+        "@com_github_oapi_codegen_runtime//:runtime",
+    ],
 )

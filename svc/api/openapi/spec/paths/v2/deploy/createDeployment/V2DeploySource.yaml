@@ -1,0 +1,4 @@
+oneOf:
+  - $ref: "./V2DeployBuildSource.yaml"
+  - $ref: "./V2DeployImageSource.yaml"
+description: Deployment source - either build from source or use prebuilt image

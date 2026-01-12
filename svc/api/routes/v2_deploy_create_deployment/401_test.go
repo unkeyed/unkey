@@ -8,12 +8,12 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment"
 )
 
@@ -71,8 +71,13 @@ func TestUnauthorizedAccess(t *testing.T) {
 			ProjectId:       project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
-			Image:           ptr.P("nginx:latest"),
 		}
+
+		err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
+			Image: "nginx:latest",
+		})
+
+		require.NoError(t, err, "failed to set image source")
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, received: %s", res.RawBody)

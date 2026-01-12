@@ -387,80 +387,35 @@ components:
                     x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2DeployCreateDeploymentRequestBody:
-            type: object
-            required:
-                - projectId
-                - branch
-                - environmentSlug
-            properties:
-                projectId:
-                    type: string
-                    minLength: 1
-                    description: Unkey project ID
-                    example: "proj_123abc"
-                keyspaceId:
-                    type: string
-                    description: Optional keyspace ID for authentication context
-                    example: "key_abc123"
-                branch:
-                    type: string
-                    minLength: 1
-                    description: Git branch name
-                    example: "main"
-                environmentSlug:
-                    type: string
-                    minLength: 1
-                    description: Environment slug (e.g., "production", "staging")
-                    example: "production"
-                build:
-                    type: object
-                    description: |
-                        Build context for building from source.
-                        Either buildContext or dockerImage must be provided, but not both.
-                    required:
-                        - context
-                    properties:
-                        context:
-                            type: string
-                            minLength: 1
-                            description: S3 path to uploaded build context tarball
-                            example: "s3://bucket/path/to/context.tar.gz"
-                        dockerfile:
-                            type: string
-                            description: Optional path to Dockerfile within build context (defaults to "Dockerfile")
-                            example: "Dockerfile"
-                            default: "Dockerfile"
-                image:
-                    type: string
-                    description: |
-                        Prebuilt Docker image reference.
-                        Either dockerImage or buildContext must be provided, but not both.
-                    example: "nginx:latest"
-                gitCommit:
-                    type: object
-                    description: Optional git commit information
-                    properties:
-                        commitSha:
-                            type: string
-                            description: Git commit SHA
-                            example: "a1b2c3d4e5f6"
-                        commitMessage:
-                            type: string
-                            description: Git commit message
-                            example: "feat: add new feature"
-                        authorHandle:
-                            type: string
-                            description: Git author handle/username
-                            example: "johndoe"
-                        authorAvatarUrl:
-                            type: string
-                            description: Git author avatar URL
-                            example: "https://avatars.githubusercontent.com/u/123456"
-                        timestamp:
-                            type: integer
-                            format: int64
-                            description: Commit timestamp in milliseconds
-                            example: 1704067200000
+            allOf:
+                - type: object
+                  required:
+                    - projectId
+                    - branch
+                    - environmentSlug
+                  properties:
+                    projectId:
+                        type: string
+                        minLength: 1
+                        description: Unkey project ID
+                        example: "proj_123abc"
+                    keyspaceId:
+                        type: string
+                        description: Optional keyspace ID for authentication context
+                        example: "key_abc123"
+                    branch:
+                        type: string
+                        minLength: 1
+                        description: Git branch name
+                        example: "main"
+                    environmentSlug:
+                        type: string
+                        minLength: 1
+                        description: Environment slug (e.g., "production", "staging")
+                        example: "production"
+                    gitCommit:
+                        $ref: "#/components/schemas/V2DeployGitCommit"
+                - $ref: "#/components/schemas/V2DeploySource"
         V2DeployCreateDeploymentResponseBody:
             type: object
             required:
@@ -2584,6 +2539,71 @@ components:
                 - interval
                 - amount
             additionalProperties: false
+        V2DeployGitCommit:
+            type: object
+            description: Optional git commit information
+            properties:
+                commitSha:
+                    type: string
+                    description: Git commit SHA
+                    example: "a1b2c3d4e5f6"
+                commitMessage:
+                    type: string
+                    description: Git commit message
+                    example: "feat: add new feature"
+                authorHandle:
+                    type: string
+                    description: Git author handle/username
+                    example: "johndoe"
+                authorAvatarUrl:
+                    type: string
+                    description: Git author avatar URL
+                    example: "https://avatars.githubusercontent.com/u/123456"
+                timestamp:
+                    type: integer
+                    format: int64
+                    description: Commit timestamp in milliseconds
+                    example: 1704067200000
+        V2DeploySource:
+            oneOf:
+                - $ref: "#/components/schemas/V2DeployBuildSource"
+                - $ref: "#/components/schemas/V2DeployImageSource"
+            description: Deployment source - either build from source or use prebuilt image
+        V2DeployBuildSource:
+            type: object
+            description: Build from source configuration
+            required:
+                - build
+            properties:
+                build:
+                    type: object
+                    description: |
+                        Build context for building from source.
+                        Either buildContext or dockerImage must be provided, but not both.
+                    required:
+                        - context
+                    properties:
+                        context:
+                            type: string
+                            minLength: 1
+                            description: S3 path to uploaded build context tarball
+                            example: "s3://bucket/path/to/context.tar.gz"
+                        dockerfile:
+                            type: string
+                            description: Optional path to Dockerfile within build context (defaults to "Dockerfile")
+                            example: "Dockerfile"
+                            default: "Dockerfile"
+        V2DeployImageSource:
+            type: object
+            description: Prebuilt Docker image configuration
+            required:
+                - image
+            properties:
+                image:
+                    type: string
+                    minLength: 1
+                    description: Prebuilt Docker image reference
+                    example: "nginx:latest"
         V2DeployCreateDeploymentResponseData:
             type: object
             required:
@@ -4180,12 +4200,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
-                "503":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ServiceUnavailableErrorResponse'
-                    description: Service unavailable
             security:
                 - rootKey: []
             summary: Create deployment

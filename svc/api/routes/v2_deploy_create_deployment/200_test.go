@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 func TestCreateDeploymentSuccessfully(t *testing.T) {
@@ -68,16 +69,21 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
+		req := handler.Request{
+			ProjectId:       project.ID,
+			Branch:          "main",
+			EnvironmentSlug: "production",
+		}
+		err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
+			Image: "nginx:latest",
+		})
+		require.NoError(t, err, "failed to set image source")
+
 		res := testutil.CallRoute[handler.Request, handler.Response](
 			h,
 			route,
 			headers,
-			handler.Request{
-				ProjectId:       project.ID,
-				Branch:          "main",
-				EnvironmentSlug: "production",
-				Image:           ptr.P("nginx:latest"),
-			},
+			req,
 		)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -114,22 +120,27 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
+		req := handler.Request{
+			ProjectId:       project.ID,
+			Branch:          "develop",
+			EnvironmentSlug: "staging",
+		}
+		err := req.FromV2DeployBuildSource(openapi.V2DeployBuildSource{
+			Build: struct {
+				Context    string  `json:"context"`
+				Dockerfile *string `json:"dockerfile,omitempty"`
+			}{
+				Context:    "s3://bucket/path/to/context.tar.gz",
+				Dockerfile: ptr.P("./Dockerfile"),
+			},
+		})
+		require.NoError(t, err, "failed to set build source")
+
 		res := testutil.CallRoute[handler.Request, handler.Response](
 			h,
 			route,
 			headers,
-			handler.Request{
-				ProjectId:       project.ID,
-				Branch:          "develop",
-				EnvironmentSlug: "staging",
-				Build: &struct {
-					Context    string  `json:"context"`
-					Dockerfile *string `json:"dockerfile,omitempty"`
-				}{
-					Context:    "s3://bucket/path/to/context.tar.gz",
-					Dockerfile: ptr.P("./Dockerfile"),
-				},
-			},
+			req,
 		)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -166,29 +177,28 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
+		req := handler.Request{
+			ProjectId:       project.ID,
+			Branch:          "main",
+			EnvironmentSlug: "production",
+			GitCommit: &openapi.V2DeployGitCommit{
+				AuthorAvatarUrl: ptr.P("https://avatar.example.com/johndoe.jpg"),
+				AuthorHandle:    ptr.P("johndoe"),
+				CommitMessage:   ptr.P("feat: add new feature"),
+				CommitSha:       ptr.P("abc123def456"),
+				Timestamp:       ptr.P(int64(1704067200000)),
+			},
+		}
+		err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
+			Image: "nginx:latest",
+		})
+		require.NoError(t, err, "failed to set image source")
+
 		res := testutil.CallRoute[handler.Request, handler.Response](
 			h,
 			route,
 			headers,
-			handler.Request{
-				ProjectId:       project.ID,
-				Branch:          "main",
-				EnvironmentSlug: "production",
-				Image:           ptr.P("nginx:latest"),
-				GitCommit: &struct {
-					AuthorAvatarUrl *string `json:"authorAvatarUrl,omitempty"`
-					AuthorHandle    *string `json:"authorHandle,omitempty"`
-					CommitMessage   *string `json:"commitMessage,omitempty"`
-					CommitSha       *string `json:"commitSha,omitempty"`
-					Timestamp       *int64  `json:"timestamp,omitempty"`
-				}{
-					AuthorAvatarUrl: ptr.P("https://avatar.example.com/johndoe.jpg"),
-					AuthorHandle:    ptr.P("johndoe"),
-					CommitMessage:   ptr.P("feat: add new feature"),
-					CommitSha:       ptr.P("abc123def456"),
-					Timestamp:       ptr.P(int64(1704067200000)),
-				},
-			},
+			req,
 		)
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)

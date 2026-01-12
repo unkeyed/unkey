@@ -8,7 +8,6 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
@@ -53,8 +52,13 @@ func TestNotFound(t *testing.T) {
 			ProjectId:       uid.New(uid.ProjectPrefix), // Non-existent project ID
 			Branch:          "main",
 			EnvironmentSlug: "production",
-			Image:           ptr.P("nginx:latest"),
 		}
+
+		err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
+			Image: "nginx:latest",
+		})
+
+		require.NoError(t, err, "failed to set image source")
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusInternalServerError, res.Status, "expected 500, received: %s", res.RawBody)
@@ -79,8 +83,12 @@ func TestNotFound(t *testing.T) {
 			ProjectId:       projectID,
 			Branch:          "main",
 			EnvironmentSlug: "nonexistent-env", // Non-existent environment
-			Image:           ptr.P("nginx:latest"),
 		}
+
+		err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
+			Image: "nginx:latest",
+		})
+		require.NoError(t, err, "failed to set image source")
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusInternalServerError, res.Status, "expected , received: %s", res.RawBody)

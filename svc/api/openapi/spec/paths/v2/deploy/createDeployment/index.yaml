@@ -47,9 +47,3 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/InternalServerErrorResponse.yaml"
-    "503":
-      description: Service unavailable
-      content:
-        application/json:
-          schema:
-            "$ref": "../../../../error/ServiceUnavailableErrorResponse.yaml"
