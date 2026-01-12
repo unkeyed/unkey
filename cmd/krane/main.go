@@ -43,11 +43,6 @@ unkey run krane                                   # Run with default configurati
 			cli.Required(),
 			cli.EnvVar("UNKEY_REGION"),
 		),
-		cli.String("image",
-			"The docker image running",
-			cli.Required(),
-			cli.EnvVar("UNKEY_IMAGE"),
-		),
 
 		cli.String("registry-url",
 			"URL of the container registry for pulling images. Example: registry.depot.dev",
@@ -71,7 +66,7 @@ unkey run krane                                   # Run with default configurati
 
 		cli.Int("rpc-port",
 			"Port for RPC server",
-			cli.Default(8080),
+			cli.Default(8070),
 			cli.EnvVar("UNKEY_RPC_PORT")),
 
 		// Vault Configuration
@@ -103,7 +98,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 	config := krane.Config{
 		Clock:            nil,
-		Image:            cmd.RequireString("image"),
 		Region:           cmd.RequireString("region"),
 		InstanceID:       cmd.RequireString("instance-id"),
 		RegistryURL:      cmd.RequireString("registry-url"),

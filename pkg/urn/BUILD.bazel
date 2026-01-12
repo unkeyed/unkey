@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "urn",
+    srcs = [
+        "resource.go",
+        "service.go",
+        "urn.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/urn",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/assert",
+        "//pkg/codes",
+        "//pkg/fault",
+    ],
+)

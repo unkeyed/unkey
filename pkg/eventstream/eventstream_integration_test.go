@@ -12,13 +12,11 @@ import (
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/pkg/eventstream"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func TestEventStreamIntegration(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
 
 	// Get Kafka brokers from test containers
 	brokers := containers.Kafka(t)
@@ -49,6 +47,13 @@ func TestEventStreamIntegration(t *testing.T) {
 	require.NoError(t, err, "Failed to create test topic")
 	t.Logf("Topic created successfully")
 	defer topic.Close()
+
+	// Wait for topic to be fully propagated before using it
+	waitCtx, waitCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer waitCancel()
+	err = topic.WaitUntilReady(waitCtx)
+	require.NoError(t, err, "Topic should become ready")
+	t.Logf("Topic is ready")
 
 	// Test data
 	testEvent := &cachev1.CacheInvalidationEvent{
@@ -109,7 +114,6 @@ func TestEventStreamIntegration(t *testing.T) {
 }
 
 func TestEventStreamMultipleMessages(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
 
 	brokers := containers.Kafka(t)
 
@@ -129,6 +133,12 @@ func TestEventStreamMultipleMessages(t *testing.T) {
 	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err)
 	defer topic.Close()
+
+	// Wait for topic to be fully propagated before using it
+	waitCtx, waitCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer waitCancel()
+	err = topic.WaitUntilReady(waitCtx)
+	require.NoError(t, err, "Topic should become ready")
 
 	// Test multiple messages
 	numMessages := 5

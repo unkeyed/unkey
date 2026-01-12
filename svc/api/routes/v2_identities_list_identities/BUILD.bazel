@@ -1,0 +1,39 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "v2_identities_list_identities",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_identities_list_identities",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/services/keys",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "//pkg/ptr",
+        "//pkg/rbac",
+        "//pkg/zen",
+        "//svc/api/openapi",
+    ],
+)
+
+go_test(
+    name = "v2_identities_list_identities_test",
+    size = "medium",
+    srcs = [
+        "200_test.go",
+        "400_test.go",
+        "401_test.go",
+        "403_test.go",
+        "cross_workspace_test.go",
+    ],
+    deps = [
+        ":v2_identities_list_identities",
+        "//pkg/db",
+        "//pkg/ptr",
+        "//pkg/testutil",
+        "//pkg/uid",
+        "//svc/api/openapi",
+        "@com_github_stretchr_testify//require",
+    ],
+)

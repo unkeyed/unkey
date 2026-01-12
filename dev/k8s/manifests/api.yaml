@@ -1,0 +1,132 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: unkey
+  labels:
+    app: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: api
+          image: unkey/api:latest
+          imagePullPolicy: Never # Use local images
+          ports:
+            - containerPort: 7070
+          env:
+            # Server Configuration
+            - name: UNKEY_HTTP_PORT
+              value: "7070"
+            - name: UNKEY_LOGS_COLOR
+              value: "true"
+            - name: UNKEY_TEST_MODE
+              value: "false"
+            # Instance Identification
+            - name: UNKEY_PLATFORM
+              value: "kubernetes"
+            - name: UNKEY_IMAGE
+              value: "unkey:local"
+            - name: UNKEY_REGION
+              value: "local"
+            - name: UNKEY_INSTANCE_ID
+              value: "api-dev"
+            # Database Configuration
+            - name: UNKEY_DATABASE_PRIMARY
+              value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+            # Caching and Storage
+            - name: UNKEY_REDIS_URL
+              value: "redis://redis:6379"
+            - name: UNKEY_CLICKHOUSE_URL
+              value: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+            - name: UNKEY_CLICKHOUSE_ANALYTICS_URL
+              value: "http://clickhouse:8123/default"
+            # Observability - DISABLED for development
+            - name: UNKEY_OTEL
+              value: "false"
+            - name: UNKEY_PROMETHEUS_PORT
+              value: "0"
+            # Vault Configuration
+            - name: UNKEY_VAULT_MASTER_KEYS
+              value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
+            - name: UNKEY_VAULT_S3_URL
+              value: "http://s3:3902"
+            - name: UNKEY_VAULT_S3_BUCKET
+              value: "vault"
+            - name: UNKEY_VAULT_S3_ACCESS_KEY_ID
+              value: "minio_root_user"
+            - name: UNKEY_VAULT_S3_ACCESS_KEY_SECRET
+              value: "minio_root_password"
+            # ClickHouse Proxy Service Configuration
+            - name: UNKEY_CHPROXY_AUTH_TOKEN
+              value: "chproxy-test-token-123"
+            # Request Body Configuration
+            - name: UNKEY_MAX_REQUEST_BODY_SIZE
+              value: "10485760"
+          command: ["/unkey", "run", "api"]
+          readinessProbe:
+            httpGet:
+              path: /v2/liveness
+              port: 7070
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /v2/liveness
+              port: 7070
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      initContainers:
+        - name: wait-for-dependencies
+          image: busybox:1.36
+          command:
+            [
+              "sh",
+              "-c",
+              "until nc -z mysql 3306 && nc -z clickhouse 8123; do echo waiting for dependencies; sleep 2; done;",
+            ]
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: unkey
+  labels:
+    app: api
+spec:
+  selector:
+    app: api
+  ports:
+    - name: http
+      port: 7070
+      targetPort: 7070
+      protocol: TCP
+  type: LoadBalancer
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-lb
+  namespace: unkey
+  labels:
+    app: api
+    service: loadbalancer
+spec:
+  selector:
+    app: api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 7070
+      protocol: TCP
+  type: LoadBalancer

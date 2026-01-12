@@ -141,129 +141,139 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	now := time.Now().UnixMilli()
 
-	var hashes []string
-	var identitiesToFind []string
-	var permissionsToFind []string
-	var rolesToFind []string
-
 	var keysArray []db.InsertKeyParams
-	var ratelimitsToInsert []db.InsertKeyRatelimitParams
-	var identitiesToInsert []db.InsertIdentityParams
-	var keyRolesToInsert []db.InsertKeyRoleParams
-	var keyPermissionsToInsert []db.InsertKeyPermissionParams
-	var rolesToInsert []db.InsertRoleParams
-	var permissionsToInsert []db.InsertPermissionParams
+	var failedHashes []string
 
-	var keysToInsert = make(map[string]db.InsertKeyParams)
-	var externalIdToIdentityId = make(map[string]*string)
-	var permissionSlugToPermissionId = make(map[string]*string)
-	var roleNameToRoleId = make(map[string]*string)
+	// nolint:godox // TODO: This transaction is not optimal. All the lookups (FindKeysByHash, FindIdentitiesByExternalId,
+	// FindPermissionsBySlug, FindRolesByName) could be moved outside the transaction to reduce lock duration.
+	// The only things that strictly need to be inside the tx are the INSERT operations.
+	// However, all state (maps, slices, generated IDs) must be initialized inside the closure to ensure
+	// retry safety - if the tx fails and retries, we need fresh state to avoid orphaned references from stale IDs.
+	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		var hashes []string
+		var identitiesToFind []string
+		var permissionsToFind []string
+		var rolesToFind []string
 
-	var auditLogs []auditlog.AuditLog
-	var failedHashes = make([]string, 0)
+		var ratelimitsToInsert []db.InsertKeyRatelimitParams
+		var identitiesToInsert []db.InsertIdentityParams
+		var keyRolesToInsert []db.InsertKeyRoleParams
+		var keyPermissionsToInsert []db.InsertKeyPermissionParams
+		var rolesToInsert []db.InsertRoleParams
+		var permissionsToInsert []db.InsertPermissionParams
 
-	for _, key := range req.Keys {
-		hashes = append(hashes, key.Hash)
-		name := ptr.SafeDeref(key.Name)
+		keysToInsert := make(map[string]db.InsertKeyParams)
+		externalIdToIdentityId := make(map[string]*string)
+		permissionSlugToPermissionId := make(map[string]*string)
+		roleNameToRoleId := make(map[string]*string)
 
-		newKey := db.InsertKeyParams{
-			ID:                 uid.New(uid.KeyPrefix),
-			Hash:               key.Hash,
-			KeySpaceID:         api.KeyAuth.ID,
-			Start:              "", // Unknown at this point
-			WorkspaceID:        auth.AuthorizedWorkspaceID,
-			Name:               sql.NullString{Valid: name != "", String: name},
-			Meta:               sql.NullString{Valid: false, String: ""},
-			PendingMigrationID: sql.NullString{Valid: true, String: migration.ID},
-			ForWorkspaceID:     sql.NullString{Valid: false, String: ""},
-			IdentityID:         sql.NullString{Valid: false, String: ""},
-			Expires:            sql.NullTime{Valid: false, Time: time.Time{}},
-			CreatedAtM:         now,
-			Enabled:            ptr.SafeDeref(key.Enabled, true),
-			RemainingRequests:  sql.NullInt32{Valid: false, Int32: 0},
-			RefillDay:          sql.NullInt16{Valid: false, Int16: 0},
-			RefillAmount:       sql.NullInt32{Valid: false, Int32: 0},
-		} // nolint:exhaustruct
+		var auditLogs []auditlog.AuditLog
 
-		if key.Meta != nil {
-			metaBytes, marshalErr := json.Marshal(*key.Meta)
-			if marshalErr != nil {
-				return fault.Wrap(marshalErr,
-					fault.Code(codes.App.Validation.InvalidInput.URN()),
-					fault.Internal("failed to marshal meta"), fault.Public("Invalid metadata format."),
-				)
-			}
+		// Reset output slices for retry safety.
+		keysArray = nil
+		failedHashes = nil
 
-			newKey.Meta = sql.NullString{String: string(metaBytes), Valid: true}
-		}
+		for _, key := range req.Keys {
+			hashes = append(hashes, key.Hash)
+			name := ptr.SafeDeref(key.Name)
 
-		if key.Expires != nil {
-			newKey.Expires = sql.NullTime{Time: time.UnixMilli(*key.Expires), Valid: true}
-		}
+			newKey := db.InsertKeyParams{
+				ID:                 uid.New(uid.KeyPrefix),
+				Hash:               key.Hash,
+				KeySpaceID:         api.KeyAuth.ID,
+				Start:              "", // Unknown at this point
+				WorkspaceID:        auth.AuthorizedWorkspaceID,
+				Name:               sql.NullString{Valid: name != "", String: name},
+				Meta:               sql.NullString{Valid: false, String: ""},
+				PendingMigrationID: sql.NullString{Valid: true, String: migration.ID},
+				ForWorkspaceID:     sql.NullString{Valid: false, String: ""},
+				IdentityID:         sql.NullString{Valid: false, String: ""},
+				Expires:            sql.NullTime{Valid: false, Time: time.Time{}},
+				CreatedAtM:         now,
+				Enabled:            ptr.SafeDeref(key.Enabled, true),
+				RemainingRequests:  sql.NullInt32{Valid: false, Int32: 0},
+				RefillDay:          sql.NullInt16{Valid: false, Int16: 0},
+				RefillAmount:       sql.NullInt32{Valid: false, Int32: 0},
+			} // nolint:exhaustruct
 
-		if key.Credits != nil {
-			if key.Credits.Remaining.IsSpecified() {
-				newKey.RemainingRequests = sql.NullInt32{
-					Int32: int32(key.Credits.Remaining.MustGet()), // nolint:gosec
-					Valid: true,
-				}
-			}
-
-			if key.Credits.Refill != nil {
-				newKey.RefillAmount = sql.NullInt32{
-					Int32: int32(key.Credits.Refill.Amount), // nolint:gosec
-					Valid: true,
+			if key.Meta != nil {
+				metaBytes, marshalErr := json.Marshal(*key.Meta)
+				if marshalErr != nil {
+					return fault.Wrap(marshalErr,
+						fault.Code(codes.App.Validation.InvalidInput.URN()),
+						fault.Internal("failed to marshal meta"), fault.Public("Invalid metadata format."),
+					)
 				}
 
-				if key.Credits.Refill.Interval == openapi.KeyCreditsRefillIntervalMonthly {
-					if key.Credits.Refill.RefillDay == 0 {
-						return fault.New("missing refillDay",
-							fault.Code(codes.App.Validation.InvalidInput.URN()),
-							fault.Internal("refillDay required for monthly interval"),
-							fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
-						)
-					}
+				newKey.Meta = sql.NullString{String: string(metaBytes), Valid: true}
+			}
 
-					newKey.RefillDay = sql.NullInt16{
-						Int16: int16(key.Credits.Refill.RefillDay), // nolint:gosec
+			if key.Expires != nil {
+				newKey.Expires = sql.NullTime{Time: time.UnixMilli(*key.Expires), Valid: true}
+			}
+
+			if key.Credits != nil {
+				if key.Credits.Remaining.IsSpecified() {
+					newKey.RemainingRequests = sql.NullInt32{
+						Int32: int32(key.Credits.Remaining.MustGet()), // nolint:gosec
 						Valid: true,
 					}
 				}
+
+				if key.Credits.Refill != nil {
+					newKey.RefillAmount = sql.NullInt32{
+						Int32: int32(key.Credits.Refill.Amount), // nolint:gosec
+						Valid: true,
+					}
+
+					if key.Credits.Refill.Interval == openapi.KeyCreditsRefillIntervalMonthly {
+						if key.Credits.Refill.RefillDay == 0 {
+							return fault.New("missing refillDay",
+								fault.Code(codes.App.Validation.InvalidInput.URN()),
+								fault.Internal("refillDay required for monthly interval"),
+								fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
+							)
+						}
+
+						newKey.RefillDay = sql.NullInt16{
+							Int16: int16(key.Credits.Refill.RefillDay), // nolint:gosec
+							Valid: true,
+						}
+					}
+				}
 			}
-		}
 
-		if key.ExternalId != nil {
-			identitiesToFind = append(identitiesToFind, *key.ExternalId)
+			if key.ExternalId != nil {
+				identitiesToFind = append(identitiesToFind, *key.ExternalId)
 
-			externalIdToIdentityId[*key.ExternalId] = nil
-		}
-
-		if key.Permissions != nil {
-			permissionsToFind = append(permissionsToFind, *key.Permissions...)
-
-			for _, permission := range *key.Permissions {
-				permissionSlugToPermissionId[permission] = nil
+				externalIdToIdentityId[*key.ExternalId] = nil
 			}
-		}
 
-		if key.Roles != nil {
-			rolesToFind = append(rolesToFind, *key.Roles...)
+			if key.Permissions != nil {
+				permissionsToFind = append(permissionsToFind, *key.Permissions...)
 
-			for _, role := range *key.Roles {
-				roleNameToRoleId[role] = nil
+				for _, permission := range *key.Permissions {
+					permissionSlugToPermissionId[permission] = nil
+				}
 			}
+
+			if key.Roles != nil {
+				rolesToFind = append(rolesToFind, *key.Roles...)
+
+				for _, role := range *key.Roles {
+					roleNameToRoleId[role] = nil
+				}
+			}
+
+			// Any other data of the key will be set later down the line.
+			keysToInsert[key.Hash] = newKey
 		}
 
-		// Any other data of the key will be set later down the line.
-		keysToInsert[key.Hash] = newKey
-	}
+		hashes = deduplicate(hashes)
+		identitiesToFind = deduplicate(identitiesToFind)
+		permissionsToFind = deduplicate(permissionsToFind)
+		rolesToFind = deduplicate(rolesToFind)
 
-	hashes = deduplicate(hashes)
-	identitiesToFind = deduplicate(identitiesToFind)
-	permissionsToFind = deduplicate(permissionsToFind)
-	rolesToFind = deduplicate(rolesToFind)
-
-	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		usedHashes, findErr := db.Query.FindKeysByHash(ctx, tx, hashes)
 		if findErr != nil && !db.IsNotFound(findErr) {
 			return fault.Wrap(findErr,

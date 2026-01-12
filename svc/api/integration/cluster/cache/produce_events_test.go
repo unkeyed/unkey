@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/eventstream"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -22,7 +21,6 @@ import (
 )
 
 func TestAPI_ProducesInvalidationEvents(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
 
 	// Set up event stream listener to capture invalidation events BEFORE starting API node
 	brokers := containers.Kafka(t)
@@ -43,6 +41,12 @@ func TestAPI_ProducesInvalidationEvents(t *testing.T) {
 	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err, "Should be able to create topic")
 	defer topic.Close()
+
+	// Wait for topic to be fully propagated before using it
+	waitCtx, waitCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer waitCancel()
+	err = topic.WaitUntilReady(waitCtx)
+	require.NoError(t, err, "Topic should become ready")
 
 	// Track received events
 	var receivedEvents []*cachev1.CacheInvalidationEvent

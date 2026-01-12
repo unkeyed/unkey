@@ -1,0 +1,205 @@
+---
+title: Quickstart
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Get up and running with Unkey development quickly. Choose your development path based on what you're working on.
+
+## Getting Started
+
+### Universal Prerequisites
+
+You'll need these tools regardless of your development path:
+
+- [Node.js](https://nodejs.org)
+- [pnpm](https://pnpm.io/installation)
+- [Docker](https://www.docker.com/products/docker-desktop)
+- [Bazel](https://bazel.build/install) (build system)
+
+### Initial Setup
+
+Clone the repository and install dependencies:
+
+```bash
+git clone https://github.com/unkeyed/unkey
+cd unkey
+make install
+```
+
+This sets up the Go workspace and installs all web dependencies.
+
+---
+
+## Choose Your Development Path
+
+Select the path that matches what you're working on:
+
+### **Path A: Frontend Development (Dashboard)**
+
+**Perfect for:** Working on the dashboard UI, components, and frontend features.
+
+**Setup:** Quick and simple - all backend services run automatically in the background.
+
+<Steps>
+  <Step>
+    #### Start Dashboard Development
+    
+    Run the local development setup:
+    
+    ```bash
+    make local-dashboard
+    ```
+    
+    This will:
+    - Start required databases and services with Docker Compose
+    - Create necessary `.env` files if they don't exist
+    - Launch the dashboard development server
+  </Step>
+</Steps>
+
+**What you get:**
+- Dashboard running at `http://localhost:3000`
+- All backend services running in Docker containers
+- Hot reload for frontend code changes
+- Simple, minimal setup focused on UI development
+
+---
+
+### **Path B: Backend Development (Go Services)**
+
+**Perfect for:** Working on API services, backend logic, database schemas, and infrastructure.
+
+**Setup:** Full Kubernetes environment with hot reload for Go services.
+
+#### Additional Prerequisites
+
+In addition to the universal tools, you'll need:
+
+- [Go](https://go.dev/doc/install) (for Go development)
+- [Minikube](https://minikube.sigs.k8s.io/docs/) (local Kubernetes cluster)
+- [Tilt](https://tilt.dev/) (development orchestrator)
+- [ctlptl](https://github.com/tilt-dev/ctlptl) (cluster management)
+- [mkcert](https://github.com/FiloSottile/mkcert) (local TLS certificates)
+- [Homebrew](https://brew.sh/) (recommended for easy tool installation)
+
+#### Installation Options
+
+**Option 1: Automated Installation (Recommended)**
+```bash
+make install-brew-tools
+```
+This uses Homebrew to install Minikube, Tilt, and ctlptl automatically.
+
+**Option 2: Manual Installation**
+Install tools individually using your preferred method if you're not using Homebrew.
+
+#### System Requirements
+
+The Kubernetes setup requires more resources:
+- **RAM:** At least 8GB recommended
+- **CPU:** 4+ cores recommended  
+- **Storage:** 20GB+ free space
+- Docker Desktop or similar container runtime
+
+#### Depot Configuration (Build Service)
+
+Unkey uses [Depot](https://depot.dev/) as part of the deployment pipeline during development.
+
+**Current Setup (Required for now):**
+```bash
+cp ./dev/.env.depot.example ./.env.depot
+# Edit ./.env.depot with your Depot credentials
+```
+
+*Note: We're working on making Depot optional soon.*
+
+#### Start Backend Development
+
+<Steps>
+  <Step>
+    #### Start Kubernetes Development Environment
+    
+    Run the full development setup:
+    
+    ```bash
+    make dev
+    ```
+    
+    This will:
+    - Configure and start Minikube cluster
+    - Launch Tilt development interface
+    - Build and deploy all services to Kubernetes
+    - Set up hot reload for Go services
+  </Step>
+</Steps>
+
+**What you get:**
+- **Tilt UI** at `http://localhost:10350` (unified development interface)
+- **Services** accessible on localhost ports:
+  - API: `http://localhost:7070`
+  - Ctrl: `http://localhost:7091` 
+  - Krane: `http://localhost:8070`
+  - Dashboard: `http://localhost:3000`
+- **Hot reload** for Go services (automatic rebuild on code changes)
+- **Production-like** Kubernetes environment
+
+#### Stop Development Environment
+
+When you're done developing:
+
+```bash
+make down
+```
+
+This cleanly shuts down the Minikube cluster and cleans up resources.
+
+---
+
+## Environment Configuration
+
+### Local Authentication
+
+Unkey has a built-in local auth mode with a permanently logged in user belonging to a single organization. This is perfect for development and testing.
+
+Set this environment variable in your `.env` file:
+
+```
+AUTH_PROVIDER="local"
+```
+
+### Optional Services
+
+**WorkOS Authentication** (for multi-workspace scenarios):
+- `AUTH_PROVIDER="workos"`
+- `WORKOS_CLIENT_ID=<your client ID>` 
+- `WORKOS_API_KEY=<your API key>`
+- `WORKOS_COOKIE_PASSWORD=<your base64 generated password>`
+
+**Stripe Billing** (for multi-user workspaces):
+- `STRIPE_SECRET_KEY=<your Stripe secret key>`
+
+---
+
+## Common Development Tasks
+
+### Testing
+
+```bash
+# Run unit tests
+make test
+
+# Run integration tests
+make test-integration
+
+```
+
+### Code Quality
+
+```bash
+# Format code and run linters
+make fmt
+
+# Build all artifacts
+make build
+```

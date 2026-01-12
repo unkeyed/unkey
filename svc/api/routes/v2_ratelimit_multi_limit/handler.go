@@ -334,7 +334,7 @@ func (h *Handler) createMissingNamespaces(
 		return err
 	}
 
-	createdNamespaces, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (map[cache.ScopedKey]db.FindRatelimitNamespace, error) {
+	createdNamespaces, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (map[cache.ScopedKey]db.FindRatelimitNamespace, error) {
 		now := time.Now().UnixMilli()
 		created := make(map[cache.ScopedKey]db.FindRatelimitNamespace)
 

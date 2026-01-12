@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: krane
+  namespace: unkey
+  labels:
+    app: krane
+    component: krane
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: krane
+  template:
+    metadata:
+      labels:
+        app: krane
+        component: krane
+    spec:
+      serviceAccountName: unkey-serviceaccount
+      containers:
+        - name: krane
+          image: unkey/krane:latest
+          imagePullPolicy: Never # Use local images
+          command: ["/unkey", "run", "krane"]
+          ports:
+            - containerPort: 8070
+          env:
+            # Server configuration
+            - name: UNKEY_REGION
+              value: "dev:local"
+            - name: "UNKEY_CONTROL_PLANE_URL"
+              value: "http://ctrl:7091"
+            - name: "UNKEY_CONTROL_PLANE_BEARER"
+              value: "your-local-dev-key"

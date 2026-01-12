@@ -113,6 +113,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		WorkspaceID: auth.AuthorizedWorkspaceID,
 		Names:       req.Roles,
 	})
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"), fault.Public("Failed to retrieve roles."),
+		)
+	}
 
 	foundMap := make(map[string]struct{})
 	for _, role := range foundRoles {
@@ -152,7 +158,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		// Lock the key row to prevent concurrent modifications and deadlocks
+		_, err := db.Query.LockKeyForUpdate(ctx, tx, req.KeyId)
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Internal("unable to lock key"),
+				fault.Public("We're unable to update the key."),
+			)
+		}
+
 		var auditLogs []auditlog.AuditLog
 
 		if len(rolesToRemove) > 0 {

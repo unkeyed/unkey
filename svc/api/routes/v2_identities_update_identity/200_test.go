@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_update_identity"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestSuccess(t *testing.T) {
@@ -265,4 +266,77 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, int64(50), rlimits[0].Limit)
 		require.Equal(t, int64(3600000), rlimits[0].Duration)
 	})
+}
+
+// TestUpdateIdentityConcurrentRatelimits tests that concurrent updates to the
+// same identity's ratelimits don't deadlock. The handler uses SELECT ... FOR UPDATE
+// on the identity row to serialize concurrent modifications.
+func TestUpdateIdentityConcurrentRatelimits(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+
+	route := &handler.Handler{
+		Logger:    h.Logger,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+	}
+
+	h.Register(route)
+
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.update_identity")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	identityID := uid.New(uid.IdentityPrefix)
+	externalID := "concurrent_ratelimit_test"
+
+	err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
+		ID:          identityID,
+		ExternalID:  externalID,
+		WorkspaceID: workspaceID,
+		Environment: "default",
+		CreatedAt:   time.Now().UnixMilli(),
+		Meta:        []byte("{}"),
+	})
+	require.NoError(t, err)
+
+	numConcurrent := 10
+
+	g := errgroup.Group{}
+	for i := range numConcurrent {
+		g.Go(func() error {
+			// All concurrent requests modify the SAME ratelimits
+			ratelimits := []openapi.RatelimitRequest{
+				{Name: "shared_limit_a", Limit: int64(100 + i), Duration: 60000, AutoApply: true},
+				{Name: "shared_limit_b", Limit: int64(200 + i), Duration: 60000, AutoApply: true},
+				{Name: "shared_limit_c", Limit: int64(300 + i), Duration: 60000, AutoApply: true},
+			}
+			req := handler.Request{
+				Identity:   externalID,
+				Ratelimits: &ratelimits,
+			}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			if res.Status != 200 {
+				return fmt.Errorf("request %d: unexpected status %d", i, res.Status)
+			}
+			return nil
+		})
+	}
+
+	err = g.Wait()
+	require.NoError(t, err, "All concurrent updates should succeed without deadlock")
+
+	// Verify identity still exists
+	_, err = db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
+		WorkspaceID: workspaceID,
+		ExternalID:  externalID,
+		Deleted:     false,
+	})
+	require.NoError(t, err)
 }

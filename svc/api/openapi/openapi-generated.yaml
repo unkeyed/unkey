@@ -1198,7 +1198,7 @@ components:
                     description: |
                         The credit value to use with the specified operation. The meaning depends on the operation: for 'set', this becomes the new remaining credits value; for 'increment', this amount is added to current credits; for 'decrement', this amount is subtracted from current credits.
 
-                        Set to null when using 'set' operation to make the key unlimited (removes usage restrictions entirely). When decrementing, if the result would be negative, remaining credits are automatically set to zero. Credits are consumed during successful key verification, and when credits reach zero, verification fails with `code=INSUFFICIENT_CREDITS`.
+                        Set to null when using 'set' operation to make the key unlimited (removes usage restrictions entirely). When decrementing, if the result would be negative, remaining credits are automatically set to zero. Credits are consumed during successful key verification, and when credits reach zero, verification fails with `code=USAGE_EXCEEDED`.
 
                         Required when using 'increment' or 'decrement' operations. Optional for 'set' operation (null creates unlimited usage).
                     example: 1000
@@ -1208,6 +1208,7 @@ components:
                         - set
                         - increment
                         - decrement
+                    x-speakeasy-unknown-values: allow
                     description: |
                         Defines how to modify the key's remaining credits. Use 'set' to replace current credits with a specific value or unlimited usage, 'increment' to add credits for plan upgrades or credit purchases, and 'decrement' to reduce credits for refunds or policy violations.
                     example: set
@@ -2473,6 +2474,7 @@ components:
                     enum:
                         - daily
                         - monthly
+                    x-speakeasy-unknown-values: allow
                     description: How often credits are automatically refilled.
                     example: daily
                 amount:
@@ -2987,6 +2989,7 @@ components:
                     enum:
                         - daily
                         - monthly
+                    x-speakeasy-unknown-values: allow
                     description: How often credits are automatically refilled.
                     example: daily
                 amount:
@@ -3074,17 +3077,16 @@ components:
                         - NOT_FOUND
                         - FORBIDDEN
                         - INSUFFICIENT_PERMISSIONS
-                        - INSUFFICIENT_CREDITS
                         - USAGE_EXCEEDED
                         - RATE_LIMITED
                         - DISABLED
                         - EXPIRED
+                    x-speakeasy-unknown-values: allow
                     description: |
                         A machine-readable code indicating the verification status
                         or failure reason. Values: `VALID` (key is valid and passed all checks), `NOT_FOUND` (key doesn't
                         exist or belongs to wrong API), `FORBIDDEN` (key lacks required permissions), `INSUFFICIENT_PERMISSIONS`
-                        (key lacks specific required permissions for this request), `INSUFFICIENT_CREDITS`
-                        (key has no remaining credits), `USAGE_EXCEEDED` (key exceeded usage limits), `RATE_LIMITED` (key exceeded rate limits), `DISABLED` (key was explicitly disabled),
+                        (key lacks specific required permissions for this request), `USAGE_EXCEEDED` (key has no remaining credits), `RATE_LIMITED` (key exceeded rate limits), `DISABLED` (key was explicitly disabled),
                         `EXPIRED` (key has passed its expiration date).
                 keyId:
                     type: string

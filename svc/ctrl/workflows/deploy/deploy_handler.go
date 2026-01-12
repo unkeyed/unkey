@@ -39,7 +39,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	workspace, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
 
 		var ws db.Workspace
-		err := db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		err := db.TxRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 
 			found, err := db.Query.FindWorkspaceByID(txCtx, tx, deployment.WorkspaceID)
 			if err != nil {
@@ -355,7 +355,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 
 	for _, domain := range allDomains {
 		frontlineRouteID, getFrontlineRouteErr := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
-			return db.TxWithResult(stepCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
+			return db.TxWithResultRetry(stepCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
 				found, err := db.Query.FindFrontlineRouteByFQDN(txCtx, tx, domain.domain)
 				if err != nil {
 					if db.IsNotFound(err) {

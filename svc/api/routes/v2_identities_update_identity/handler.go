@@ -142,7 +142,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		finalRatelimits []openapi.RatelimitResponse
 	}
 
-	result, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (txResult, error) {
+	result, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (txResult, error) {
+		// Lock the identity row to prevent concurrent modifications and deadlocks.
+		// This is necessary because UpdateIdentity is only called when req.Meta != nil,
+		// so without this lock, concurrent ratelimit updates could deadlock.
+		_, err := db.Query.LockIdentityForUpdate(ctx, tx, identityRow.ID)
+		if err != nil {
+			return txResult{}, fault.Wrap(err,
+				fault.Internal("unable to lock identity"),
+				fault.Public("We're unable to update the identity."),
+			)
+		}
+
 		auditLogs := []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,

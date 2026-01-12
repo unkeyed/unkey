@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/debug"
 	"github.com/unkeyed/unkey/pkg/eventstream"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -22,7 +21,6 @@ import (
 )
 
 func TestAPI_ConsumesInvalidationEvents(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
 
 	// Start a single API node
 	h := integration.New(t, integration.Config{NumNodes: 1})
@@ -93,8 +91,11 @@ func TestAPI_ConsumesInvalidationEvents(t *testing.T) {
 	require.NoError(t, err, "Should be able to create topic")
 	defer topic.Close()
 
-	// Wait for topic metadata to propagate across Kafka cluster
-	time.Sleep(1 * time.Second)
+	// Wait for topic to be fully propagated before using it
+	waitCtx, waitCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer waitCancel()
+	err = topic.WaitUntilReady(waitCtx)
+	require.NoError(t, err, "Topic should become ready")
 
 	producer := topic.NewProducer()
 
