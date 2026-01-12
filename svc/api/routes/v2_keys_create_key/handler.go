@@ -178,7 +178,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	now := time.Now().UnixMilli()
 
-	txErr := db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+	txErr := db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		insertKeyParams := db.InsertKeyParams{
 			ID:                 keyID,
 			KeySpaceID:         api.KeyAuthID.String,

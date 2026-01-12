@@ -50,7 +50,7 @@ func (s *service) Insert(ctx context.Context, tx db.DBTX, logs []auditlog.AuditL
 	}
 
 	if tx == nil {
-		return db.Tx(ctx, s.db.RW(), func(ctx context.Context, tx db.DBTX) error {
+		return db.TxRetry(ctx, s.db.RW(), func(ctx context.Context, tx db.DBTX) error {
 			return s.insertLogs(ctx, tx, logs)
 		})
 	}

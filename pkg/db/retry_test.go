@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"testing"
 	"time"
 
@@ -32,12 +31,13 @@ func TestWithRetryContext_Success(t *testing.T) {
 func TestWithRetryContext_RetriesTransientErrors(t *testing.T) {
 	ctx := context.Background()
 	callCount := 0
-	transientErr := errors.New("connection timeout")
+	// Use actual MySQL deadlock error (1213) which is recognized as transient
+	deadlockErr := &mysql.MySQLError{Number: 1213, Message: "Deadlock found when trying to get lock"}
 
 	result, err := WithRetryContext(ctx, func() (string, error) {
 		callCount++
 		if callCount < 3 {
-			return "", transientErr
+			return "", deadlockErr
 		}
 		return "success", nil
 	})
@@ -81,15 +81,16 @@ func TestWithRetryContext_SkipsRetryOnDuplicateKey(t *testing.T) {
 func TestWithRetryContext_ExhaustsRetries(t *testing.T) {
 	ctx := context.Background()
 	callCount := 0
-	transientErr := errors.New("persistent connection failure")
+	// Use actual MySQL lock wait timeout error (1205) which is recognized as transient
+	lockWaitErr := &mysql.MySQLError{Number: 1205, Message: "Lock wait timeout exceeded"}
 
 	result, err := WithRetryContext(ctx, func() (string, error) {
 		callCount++
-		return "", transientErr
+		return "", lockWaitErr
 	})
 
 	require.Error(t, err)
-	require.Equal(t, transientErr, err)
+	require.ErrorIs(t, err, lockWaitErr)
 	require.Equal(t, "", result)
 	require.Equal(t, 3, callCount, "should try 3 times then give up")
 }
@@ -145,9 +146,11 @@ func TestWithRetryContext_ContextCancellation(t *testing.T) {
 		time.AfterFunc(25*time.Millisecond, cancel)
 
 		callCount := 0
+		// Use actual MySQL deadlock error to trigger retry
+		deadlockErr := &mysql.MySQLError{Number: 1213, Message: "Deadlock found"}
 		result, err := WithRetryContext(ctx, func() (string, error) {
 			callCount++
-			return "", errors.New("temporary error")
+			return "", deadlockErr
 		})
 
 		require.ErrorIs(t, err, context.Canceled)
@@ -160,9 +163,11 @@ func TestWithRetryContext_ContextCancellation(t *testing.T) {
 		defer cancel()
 
 		callCount := 0
+		// Use actual MySQL deadlock error to trigger retry
+		deadlockErr := &mysql.MySQLError{Number: 1213, Message: "Deadlock found"}
 		result, err := WithRetryContext(ctx, func() (string, error) {
 			callCount++
-			return "", errors.New("temporary error")
+			return "", deadlockErr
 		})
 
 		require.ErrorIs(t, err, context.DeadlineExceeded)
@@ -175,10 +180,12 @@ func TestWithRetryContext_ContextCancellation(t *testing.T) {
 		defer cancel()
 
 		callCount := 0
+		// Use actual MySQL deadlock error to trigger retry
+		deadlockErr := &mysql.MySQLError{Number: 1213, Message: "Deadlock found"}
 		result, err := WithRetryContext(ctx, func() (string, error) {
 			callCount++
 			if callCount < 2 {
-				return "", errors.New("temporary error")
+				return "", deadlockErr
 			}
 			return "success", nil
 		})
@@ -231,12 +238,14 @@ func TestWithRetryContext_Integration(t *testing.T) {
 
 	t.Run("retry with real database - success after transient failure", func(t *testing.T) {
 		callCount := 0
+		// Use actual MySQL deadlock error to trigger retry
+		deadlockErr := &mysql.MySQLError{Number: 1213, Message: "Deadlock found"}
 		keyID, err := WithRetryContext(ctx, func() (string, error) {
 			callCount++
 
 			// Simulate transient failure on first attempt
 			if callCount == 1 {
-				return "", errors.New("dial tcp: connection refused")
+				return "", deadlockErr
 			}
 
 			// Succeed on second attempt - insert using sqlc
@@ -327,13 +336,15 @@ func TestWithRetryContext_Integration(t *testing.T) {
 
 		callCount := 0
 		insertedKeyID := ""
+		// Use actual MySQL deadlock error to trigger retry
+		deadlockErr := &mysql.MySQLError{Number: 1213, Message: "Deadlock found"}
 
 		_, err := WithRetryContext(ctx, func() (string, error) {
 			callCount++
 
 			// Simulate transient error that would normally trigger retry
 			if callCount == 1 {
-				return "", errors.New("connection timeout")
+				return "", deadlockErr
 			}
 
 			// This should never execute because context is cancelled during backoff

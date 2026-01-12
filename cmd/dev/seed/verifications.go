@@ -299,7 +299,7 @@ func (s *Seeder) createKeysBatched(ctx context.Context, workspaceID, keyAuthID, 
 	// Commit every 5 chunks (250k rows per transaction)
 	batchSize := 5
 	for i := 0; i < len(chunks); i += batchSize {
-		err := db.Tx(ctx, s.db.RW(), func(ctx context.Context, tx db.DBTX) error {
+		err := db.TxRetry(ctx, s.db.RW(), func(ctx context.Context, tx db.DBTX) error {
 			end := min(i+batchSize, len(chunks))
 			for j := i; j < end; j++ {
 				log.Printf("  Inserting %d keys... chunk %d/%d", len(chunks[j]), j+1, len(chunks))
@@ -363,7 +363,7 @@ func (s *Seeder) createIdentitiesBatched(ctx context.Context, workspaceID string
 	// Commit every 5 chunks (250k rows per transaction)
 	batchSize := 5
 	for i := 0; i < len(chunks); i += batchSize {
-		err := db.Tx(ctx, s.db.RW(), func(ctx context.Context, tx db.DBTX) error {
+		err := db.TxRetry(ctx, s.db.RW(), func(ctx context.Context, tx db.DBTX) error {
 			end := min(i+batchSize, len(chunks))
 			for j := i; j < end; j++ {
 				log.Printf("  Inserting %d identities... chunk %d/%d", len(chunks[j]), j+1, len(chunks))

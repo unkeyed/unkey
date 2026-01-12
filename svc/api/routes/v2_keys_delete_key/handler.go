@@ -103,7 +103,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (err error) {
+	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (err error) {
 		description := "Deleted"
 		if ptr.SafeDeref(req.Permanent) {
 			err = db.Query.DeleteKeyByID(ctx, tx, req.KeyId)

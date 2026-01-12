@@ -96,7 +96,7 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to encrypt private key: %w", err)
 	}
 
-	err = db.Tx(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
+	err = db.TxRetry(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err := db.Query.InsertDeployment(ctx, tx, db.InsertDeploymentParams{
 			ID:                            deploymentID,
 			K8sName:                       uid.DNS1035(12),

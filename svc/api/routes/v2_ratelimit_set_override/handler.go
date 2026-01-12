@@ -59,7 +59,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	overrideID, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+	overrideID, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
 		var namespace db.FindRatelimitNamespaceRow
 		namespace, err = db.Query.FindRatelimitNamespace(ctx, tx, db.FindRatelimitNamespaceParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
