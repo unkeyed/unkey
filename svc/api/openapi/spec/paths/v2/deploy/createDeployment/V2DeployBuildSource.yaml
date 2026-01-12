@@ -6,8 +6,8 @@ properties:
   build:
     type: object
     description: |
-      Build context for building from source.
-      Either buildContext or dockerImage must be provided, but not both.
+          Build context for building from source.
+          Provide either `build.context` (build from source) or `image` (prebuilt image), but not both.
     required:
       - context
     properties:

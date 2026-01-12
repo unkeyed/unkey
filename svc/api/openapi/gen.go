@@ -700,7 +700,7 @@ type V2ApisListKeysResponseData = []KeyResponseData
 // V2DeployBuildSource Build from source configuration
 type V2DeployBuildSource struct {
 	// Build Build context for building from source.
-	// Either buildContext or dockerImage must be provided, but not both.
+	// Provide either `build.context` (build from source) or `image` (prebuilt image), but not both.
 	Build struct {
 		// Context S3 path to uploaded build context tarball
 		Context string `json:"context"`
