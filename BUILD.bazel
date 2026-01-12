@@ -28,5 +28,4 @@ go_binary(
     embed = [":unkey_lib"],
     pure = "on",
     visibility = ["//visibility:public"],
-    
 )

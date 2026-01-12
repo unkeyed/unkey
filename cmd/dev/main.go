@@ -1,7 +1,7 @@
 package dev
 
 import (
-	"github.com/unkeyed/unkey/cmd/seed"
+	"github.com/unkeyed/unkey/cmd/dev/seed"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 

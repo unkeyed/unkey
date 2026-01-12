@@ -13,17 +13,20 @@ import (
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
+	"github.com/stretchr/testify/require"
 )
 
 var (
 	dockerClient     *client.Client
 	dockerClientOnce sync.Once
-	dockerClientErr  error
 )
 
 // Container holds metadata about a running Docker container.
+//
+// Use the [Container.Port] method to retrieve the host port mapped to a
+// specific container port.
 type Container struct {
-	// ID is the Docker container ID.
+	// ID is the Docker container ID (64-character hex string).
 	ID string
 
 	// Host is the hostname to connect to (typically "localhost").
@@ -36,35 +39,43 @@ type Container struct {
 
 // Port returns the mapped host port for a given container port.
 // The containerPort should be in the format "port/protocol" (e.g., "6379/tcp").
+// Returns an empty string if the port is not mapped.
 func (c *Container) Port(containerPort string) string {
 	return c.Ports[containerPort]
 }
 
 // containerConfig holds the configuration for starting a container.
 type containerConfig struct {
-	Image        string
+	// Image is the Docker image to use (e.g., "redis:8.0").
+	Image string
+
+	// ExposedPorts lists container ports to expose (e.g., "6379/tcp").
 	ExposedPorts []string
-	Env          []string
-	Cmd          []string
+
+	// WaitStrategy determines how to detect container readiness.
+	// If nil, the container is considered ready immediately after starting.
 	WaitStrategy WaitStrategy
-	WaitTimeout  time.Duration
+
+	// WaitTimeout is the maximum time to wait for container readiness.
+	// Defaults to 30 seconds if zero.
+	WaitTimeout time.Duration
 }
 
 // getClient returns a shared Docker client instance.
-// The client is lazily initialized on first call and reused thereafter.
+//
+// The client is lazily initialized on first call and reused across all tests
+// in the same process. Fails the test immediately if Docker is not accessible.
 func getClient(t *testing.T) *client.Client {
 	t.Helper()
 
 	dockerClientOnce.Do(func() {
-		dockerClient, dockerClientErr = client.NewClientWithOpts(
+		var err error
+		dockerClient, err = client.NewClientWithOpts(
 			client.FromEnv,
 			client.WithAPIVersionNegotiation(),
 		)
+		require.NoError(t, err, "failed to create Docker client")
 	})
-
-	if dockerClientErr != nil {
-		t.Fatalf("failed to create Docker client: %v", dockerClientErr)
-	}
 
 	// Verify Docker is accessible
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -72,13 +83,14 @@ func getClient(t *testing.T) *client.Client {
 
 	_, err := dockerClient.Ping(ctx)
 	if err != nil {
-		t.Skipf("Docker is not available: %v", err)
+		t.Fatalf("Docker is not available: %v. Ensure Docker is running.", err)
 	}
 
 	return dockerClient
 }
 
 // pullImage pulls a Docker image if it's not already present locally.
+// This is a no-op if the image already exists in the local Docker cache.
 func pullImage(t *testing.T, cli *client.Client, imageName string) {
 	t.Helper()
 
@@ -92,6 +104,7 @@ func pullImage(t *testing.T, cli *client.Client, imageName string) {
 	}
 
 	// Pull the image
+	// nolint:exhaustruct
 	reader, err := cli.ImagePull(ctx, imageName, image.PullOptions{})
 	if err != nil {
 		t.Fatalf("failed to pull image %s: %v", imageName, err)
@@ -106,14 +119,20 @@ func pullImage(t *testing.T, cli *client.Client, imageName string) {
 }
 
 // startContainer creates and starts a Docker container with the given configuration.
-// It returns the container metadata including mapped ports.
-// The container is automatically cleaned up when the test completes via t.Cleanup.
+//
+// Returns the container metadata including mapped ports. The container is
+// automatically removed when the test completes via t.Cleanup, ensuring no
+// orphaned containers remain even if the test fails.
+//
+// If WaitStrategy is provided, this function blocks until the container is
+// ready or the WaitTimeout is exceeded. If WaitTimeout is zero, defaults to
+// 30 seconds.
 func startContainer(t *testing.T, cfg containerConfig) *Container {
 	t.Helper()
 
 	cli := getClient(t)
 
-	// Pull image if needed
+	// Pull image if not present locally
 	pullImage(t, cli, cfg.Image)
 
 	// Build exposed ports and port bindings
@@ -132,15 +151,18 @@ func startContainer(t *testing.T, cfg containerConfig) *Container {
 	ctx := context.Background()
 
 	// Create the container
+	containerName := strings.NewReplacer(
+		":", "-",
+		"/", "-",
+	).Replace(fmt.Sprintf("%s_%s_%d", cfg.Image, t.Name(), time.Now().UnixNano()))
+
 	resp, err := cli.ContainerCreate(
 		ctx,
 		&container.Config{
 			Image:        cfg.Image,
-			Env:          cfg.Env,
-			Cmd:          cfg.Cmd,
 			ExposedPorts: exposedPorts,
 			Labels: map[string]string{
-				"owner": "bazel",
+				"owner": "dockertest",
 			},
 		},
 		&container.HostConfig{
@@ -149,44 +171,25 @@ func startContainer(t *testing.T, cfg containerConfig) *Container {
 		},
 		nil, // NetworkingConfig
 		nil, // Platform
-		strings.NewReplacer(
-			":", "-",
-			"/", "-",
-		).Replace(fmt.Sprintf("%s_%s_%d", cfg.Image, t.Name(), time.Now().UnixNano())),
+		containerName,
 	)
-	if err != nil {
-		t.Fatalf("failed to create container: %v", err)
-	}
+	require.NoError(t, err, "failed to create container")
 
 	containerID := resp.ID
 
 	// Register cleanup to ensure container is removed when test completes
 	t.Cleanup(func() {
-		cleanupCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		// Stop the container (with a short timeout)
-		stopTimeout := 5
-		_ = cli.ContainerStop(cleanupCtx, containerID, container.StopOptions{
-			Timeout: &stopTimeout,
-		})
-
-		// Remove the container
-		_ = cli.ContainerRemove(cleanupCtx, containerID, container.RemoveOptions{
+		require.NoError(t, cli.ContainerRemove(ctx, containerID, container.RemoveOptions{
 			Force: true,
-		})
+		}))
 	})
 
 	// Start the container
-	if err := cli.ContainerStart(ctx, containerID, container.StartOptions{}); err != nil {
-		t.Fatalf("failed to start container: %v", err)
-	}
+	require.NoError(t, cli.ContainerStart(ctx, containerID, container.StartOptions{}))
 
 	// Inspect to get the mapped ports
 	inspect, err := cli.ContainerInspect(ctx, containerID)
-	if err != nil {
-		t.Fatalf("failed to inspect container: %v", err)
-	}
+	require.NoError(t, err, "failed to inspect container")
 
 	// Extract port mappings
 	ports := make(map[string]string)

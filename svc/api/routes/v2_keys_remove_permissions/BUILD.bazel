@@ -22,7 +22,7 @@ go_library(
 
 go_test(
     name = "v2_keys_remove_permissions_test",
-    size = "small",
+    size = "medium",
     srcs = [
         "200_test.go",
         "400_test.go",

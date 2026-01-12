@@ -29,7 +29,7 @@ go_library(
 
 go_test(
     name = "v2_ratelimit_multi_limit_test",
-    size = "small",
+    size = "medium",
     srcs = [
         "200_test.go",
         "400_test.go",

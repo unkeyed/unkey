@@ -7,27 +7,18 @@ import (
 )
 
 const (
-	// redisImage is the Docker image used for Redis containers.
 	redisImage = "redis:8.0"
-
-	// redisPort is the default Redis port.
-	redisPort = "6379/tcp"
+	redisPort  = "6379/tcp"
 )
 
-// Redis starts a Redis container and returns the connection URL.
-//
-// The container uses Redis 8.0 and is automatically removed when the test
-// completes. If Docker is unavailable, the test is skipped.
+// Redis starts a Redis 8.0 container and returns the connection URL.
 //
 // The returned URL is in the format "redis://localhost:{port}" and can be
-// used directly with most Redis client libraries.
+// used directly with most Redis client libraries. The container is
+// automatically removed when the test completes via t.Cleanup.
 //
-// Example:
-//
-//	func TestWithRedis(t *testing.T) {
-//	    url := dockertest.Redis(t)
-//	    // Use url with your Redis client
-//	}
+// This function blocks until Redis is accepting TCP connections (up to 30s).
+// Fails the test if Docker is unavailable or the container fails to start.
 func Redis(t *testing.T) string {
 	t.Helper()
 

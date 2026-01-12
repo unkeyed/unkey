@@ -21,7 +21,6 @@ func TestContextCancellation(t *testing.T) {
 
 	// Use testcontainers for dynamic service management
 	mysqlCfg := containers.MySQL(t)
-	mysqlCfg.DBName = "unkey"
 	dbDsn := mysqlCfg.FormatDSN()
 	redisUrl := dockertest.Redis(t)
 

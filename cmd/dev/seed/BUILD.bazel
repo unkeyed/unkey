@@ -8,7 +8,7 @@ go_library(
         "run.go",
         "verifications.go",
     ],
-    importpath = "github.com/unkeyed/unkey/cmd/seed",
+    importpath = "github.com/unkeyed/unkey/cmd/dev/seed",
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/vault/v1:vault",

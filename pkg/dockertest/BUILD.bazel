@@ -21,7 +21,7 @@ go_library(
 
 go_test(
     name = "dockertest_test",
-    size = "small",
+    size = "large",
     srcs = ["redis_test.go"],
     deps = [
         ":dockertest",

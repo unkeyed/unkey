@@ -65,7 +65,6 @@ func NewHarness(t *testing.T) *Harness {
 	containers.StartAllServices(t)
 
 	mysqlCfg := containers.MySQL(t)
-	mysqlCfg.DBName = "unkey"
 	mysqlDSN := mysqlCfg.FormatDSN()
 
 	redisUrl := dockertest.Redis(t)

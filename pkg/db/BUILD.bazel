@@ -1,5 +1,8 @@
 load("@rules_go//go:def.bzl", "go_library", "go_test")
 
+# Export schema.sql for use by //pkg/dockertest MySQL image
+exports_files(["schema.sql"])
+
 go_library(
     name = "db",
     srcs = [

@@ -2,7 +2,24 @@
 //
 // This package uses the Docker SDK directly to spin up containers dynamically,
 // avoiding the overhead of external tools like docker-compose or testcontainers.
-// Containers are automatically cleaned up when tests complete.
+// Containers are automatically cleaned up when tests complete via t.Cleanup.
+//
+// # Requirements
+//
+// Tests using this package MUST be run via Bazel:
+//
+//	bazel test //pkg/dockertest:dockertest_test
+//
+// Running via `go test` directly is not supported and will fail with an error.
+//
+// # Key Types
+//
+// The main entry point is through service functions like [Redis], which start
+// containers and return connection information. For lower-level access, [Container]
+// provides metadata about running containers including port mappings.
+//
+// Container readiness is determined by [WaitStrategy] implementations. The package
+// provides [TCPWait] for TCP port-based health checks, created via [NewTCPWait].
 //
 // # Usage
 //
@@ -14,27 +31,15 @@
 //	    // Container is automatically removed when test completes
 //	}
 //
-// # Requirements
-//
-// Tests using this package require Docker to be running and accessible.
-// If Docker is unavailable, tests will be skipped with t.Skip().
-//
 // # Design
 //
 // Containers are created per-test for isolation. Each container:
 //   - Uses a random host port to avoid conflicts
 //   - Waits for the service to be ready before returning
-//   - Is automatically removed via t.Cleanup()
+//   - Is automatically removed via t.Cleanup
 //
 // # Available Services
 //
 // Currently supported:
-//   - [Redis]: Redis 8.0 container
-//
-// # Comparison with pkg/testutil/containers
-//
-// The [pkg/testutil/containers] package returns hardcoded localhost URLs and
-// expects services to be running via docker-compose. This package dynamically
-// starts containers, making tests self-contained and runnable without external
-// setup. Both packages can coexist during migration.
+//   - [Redis]: Redis 8.0 container (pulled from Docker Hub)
 package dockertest

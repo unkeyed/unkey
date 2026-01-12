@@ -91,7 +91,7 @@ func MySQL(t *testing.T) *mysql.Config {
 	cfg.Passwd = "password"
 	cfg.Net = "tcp"
 	cfg.Addr = "localhost:3306"
-	cfg.DBName = ""
+	cfg.DBName = "unkey"
 	cfg.ParseTime = true
 	cfg.Logger = &mysql.NopLogger{}
 

@@ -2,7 +2,6 @@ package dockertest_test
 
 import (
 	"context"
-	"log"
 	"testing"
 	"time"
 
@@ -76,6 +75,4 @@ func TestRedis_MultipleContainers(t *testing.T) {
 	val2, err := client2.Get(ctx, "key").Result()
 	require.NoError(t, err)
 	require.Equal(t, "value2", val2)
-
-	log.Println(val2)
 }
