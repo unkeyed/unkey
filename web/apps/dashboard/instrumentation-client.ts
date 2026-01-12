@@ -7,8 +7,8 @@ import { env } from "./lib/env";
 import { createClientErrorFilter, createTracesSampler } from "./lib/sentry";
 
 // Skip Sentry initialization in development or when explicitly disabled
-const envVars = env();
-if (process.env.NODE_ENV !== "development" && !envVars.NEXT_PUBLIC_SENTRY_DISABLED) {
+const isSentryDisabled = process.env.NEXT_PUBLIC_SENTRY_DISABLED === "true";
+if (process.env.NODE_ENV !== "development" && !isSentryDisabled) {
   Sentry.init({
     dsn: "https://08589d17fe3b4b7e8b70b6c916123ee5@o4510544758046720.ingest.us.sentry.io/4510544758308864",
 
