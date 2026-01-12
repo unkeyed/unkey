@@ -14,8 +14,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment"
 	"github.com/unkeyed/unkey/svc/api/openapi"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment"
 )
 
 func TestCreateDeploymentSuccessfully(t *testing.T) {

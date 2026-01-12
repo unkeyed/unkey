@@ -282,7 +282,7 @@ func TestBadRequests(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
-	t.Run("buildContext with missing buildContextPath", func(t *testing.T) {
+	t.Run("build with missing context", func(t *testing.T) {
 		req := handler.Request{
 			ProjectId:       project.ID,
 			Branch:          "main",

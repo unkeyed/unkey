@@ -710,7 +710,7 @@ type V2DeployBuildSource struct {
 	} `json:"build"`
 }
 
-// V2DeployCreateDeploymentRequestBody defines model for V2DeployCreateDeploymentRequestBody.
+// V2DeployCreateDeploymentRequestBody Deployment source - either build from source or use prebuilt image
 type V2DeployCreateDeploymentRequestBody struct {
 	// Branch Git branch name
 	Branch string `json:"branch"`
@@ -765,11 +765,6 @@ type V2DeployGitCommit struct {
 type V2DeployImageSource struct {
 	// Image Prebuilt Docker image reference
 	Image string `json:"image"`
-}
-
-// V2DeploySource Deployment source - either build from source or use prebuilt image
-type V2DeploySource struct {
-	union json.RawMessage
 }
 
 // V2IdentitiesCreateIdentityRequestBody defines model for V2IdentitiesCreateIdentityRequestBody.
@@ -2589,67 +2584,5 @@ func (t *V2DeployCreateDeploymentRequestBody) UnmarshalJSON(b []byte) error {
 		}
 	}
 
-	return err
-}
-
-// AsV2DeployBuildSource returns the union data inside the V2DeploySource as a V2DeployBuildSource
-func (t V2DeploySource) AsV2DeployBuildSource() (V2DeployBuildSource, error) {
-	var body V2DeployBuildSource
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromV2DeployBuildSource overwrites any union data inside the V2DeploySource as the provided V2DeployBuildSource
-func (t *V2DeploySource) FromV2DeployBuildSource(v V2DeployBuildSource) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeV2DeployBuildSource performs a merge with any union data inside the V2DeploySource, using the provided V2DeployBuildSource
-func (t *V2DeploySource) MergeV2DeployBuildSource(v V2DeployBuildSource) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsV2DeployImageSource returns the union data inside the V2DeploySource as a V2DeployImageSource
-func (t V2DeploySource) AsV2DeployImageSource() (V2DeployImageSource, error) {
-	var body V2DeployImageSource
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromV2DeployImageSource overwrites any union data inside the V2DeploySource as the provided V2DeployImageSource
-func (t *V2DeploySource) FromV2DeployImageSource(v V2DeployImageSource) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeV2DeployImageSource performs a merge with any union data inside the V2DeploySource, using the provided V2DeployImageSource
-func (t *V2DeploySource) MergeV2DeployImageSource(v V2DeployImageSource) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t V2DeploySource) MarshalJSON() ([]byte, error) {
-	b, err := t.union.MarshalJSON()
-	return b, err
-}
-
-func (t *V2DeploySource) UnmarshalJSON(b []byte) error {
-	err := t.union.UnmarshalJSON(b)
 	return err
 }

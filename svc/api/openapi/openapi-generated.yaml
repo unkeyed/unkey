@@ -415,7 +415,10 @@ components:
                         example: "production"
                     gitCommit:
                         $ref: "#/components/schemas/V2DeployGitCommit"
-                - $ref: "#/components/schemas/V2DeploySource"
+                  oneOf:
+                    - $ref: "#/components/schemas/V2DeployBuildSource"
+                    - $ref: "#/components/schemas/V2DeployImageSource"
+                  description: Deployment source - either build from source or use prebuilt image
         V2DeployCreateDeploymentResponseBody:
             type: object
             required:
@@ -2564,11 +2567,6 @@ components:
                     format: int64
                     description: Commit timestamp in milliseconds
                     example: 1704067200000
-        V2DeploySource:
-            oneOf:
-                - $ref: "#/components/schemas/V2DeployBuildSource"
-                - $ref: "#/components/schemas/V2DeployImageSource"
-            description: Deployment source - either build from source or use prebuilt image
         V2DeployBuildSource:
             type: object
             description: Build from source configuration
