@@ -1,11 +1,11 @@
-name: Bazel
+name: Bazel Test
 on:
   workflow_call:
 permissions:
   contents: read
 jobs:
-  build_and_test:
-    name: Build and Test
+  test:
+    name: Test
     runs-on: depot-ubuntu-24.04-8
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
@@ -25,8 +25,6 @@ jobs:
         with:
           version: v0.29.1
           install: true
-      - name: Build
-        run: bazel build //...
       - name: Run containers
         run: docker compose -f ./dev/docker-compose.yaml up -d s3 clickhouse kafka mysql --wait
         env:
