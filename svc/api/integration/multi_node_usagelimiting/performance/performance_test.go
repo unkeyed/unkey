@@ -21,7 +21,7 @@ import (
 
 // TestUsageLimitPerformance tests the performance of usage limiting
 func TestUsageLimitPerformance(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	testCases := []struct {
 		name      string
@@ -108,7 +108,7 @@ func runPerformanceTest(t *testing.T, nodeCount int, totalCredits, cost int64) {
 
 // TestUsageLimitThroughput measures maximum throughput under sustained load
 func TestUsageLimitThroughput(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	h := integration.New(t, integration.Config{
 		NumNodes: 3,

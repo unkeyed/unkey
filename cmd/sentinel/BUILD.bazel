@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "sentinel",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/cmd/sentinel",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/cli",
+        "//pkg/uid",
+        "//svc/sentinel",
+    ],
+)

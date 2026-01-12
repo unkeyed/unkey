@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/eventstream"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -22,7 +21,6 @@ import (
 )
 
 func TestAPI_ProducesInvalidationEvents(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
 
 	// Set up event stream listener to capture invalidation events BEFORE starting API node
 	brokers := containers.Kafka(t)

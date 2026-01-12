@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "analytics",
+    srcs = [
+        "interface.go",
+        "noop.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/internal/services/analytics",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//gen/proto/vault/v1:vault",
+        "//internal/services/caches",
+        "//pkg/assert",
+        "//pkg/cache",
+        "//pkg/clickhouse",
+        "//pkg/clock",
+        "//pkg/codes",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "//pkg/vault",
+    ],
+)

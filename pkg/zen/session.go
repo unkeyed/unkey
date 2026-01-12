@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	json "github.com/bytedance/sonic"
+	"encoding/json"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/uid"

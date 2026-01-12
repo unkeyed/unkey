@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "openapi",
+    srcs = [
+        "convert.go",
+        "doc.go",
+        "get_diff.go",
+        "service.go",
+        "utils.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/services/openapi",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "//pkg/ptr",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_getkin_kin_openapi//openapi3",
+        "@com_github_oasdiff_oasdiff//checker",
+        "@com_github_oasdiff_oasdiff//diff",
+    ],
+)

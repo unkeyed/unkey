@@ -12,7 +12,7 @@ import (
 )
 
 func TestIntegration_RateLimit_Nodes01_Limit0100_Duration000010000_Load02_00_Windows010(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
+
 
 	h := integration.New(t, integration.Config{
 		NumNodes: 1,

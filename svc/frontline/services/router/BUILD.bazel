@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "router",
+    srcs = [
+        "doc.go",
+        "interface.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/frontline/services/router",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/services/caches",
+        "//pkg/cache",
+        "//pkg/codes",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+    ],
+)

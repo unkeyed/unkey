@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "seed",
+    srcs = ["seed.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/testutil/seed",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/vault/v1:vault",
+        "//pkg/assert",
+        "//pkg/db",
+        "//pkg/db/types",
+        "//pkg/hash",
+        "//pkg/ptr",
+        "//pkg/uid",
+        "//pkg/vault",
+        "@com_github_go_sql_driver_mysql//:mysql",
+        "@com_github_stretchr_testify//require",
+    ],
+)

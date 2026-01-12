@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "proxy",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/frontline/routes/proxy",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/clock",
+        "//pkg/otel/logging",
+        "//pkg/zen",
+        "//svc/frontline/services/proxy",
+        "//svc/frontline/services/router",
+    ],
+)

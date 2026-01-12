@@ -16,7 +16,6 @@ import (
 )
 
 func TestRateLimitAccuracy(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
 
 	// Define test matrices for each dimension
 	limits := []int64{

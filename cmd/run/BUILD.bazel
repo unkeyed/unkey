@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "run",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/cmd/run",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cmd/api",
+        "//cmd/ctrl",
+        "//cmd/frontline",
+        "//cmd/krane",
+        "//cmd/preflight",
+        "//cmd/sentinel",
+        "//pkg/cli",
+    ],
+)

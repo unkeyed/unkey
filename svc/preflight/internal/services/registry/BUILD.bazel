@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "registry",
+    srcs = ["registry.go"],
+    importpath = "github.com/unkeyed/unkey/svc/preflight/internal/services/registry",
+    visibility = ["//svc/preflight:__subpackages__"],
+    deps = [
+        "//pkg/otel/logging",
+        "//svc/preflight/internal/services/registry/credentials",
+        "@com_github_google_go_containerregistry//pkg/authn",
+        "@com_github_google_go_containerregistry//pkg/name",
+        "@com_github_google_go_containerregistry//pkg/v1:pkg",
+        "@com_github_google_go_containerregistry//pkg/v1/remote",
+        "@com_github_google_go_containerregistry_pkg_authn_k8schain//:k8schain",
+        "@io_k8s_api//core/v1:core",
+        "@io_k8s_client_go//kubernetes",
+    ],
+)

@@ -10,14 +10,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/debug"
-	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/integration"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 func TestDistributedCacheInvalidation_EndToEnd(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
 
 	// Start a 3-node cluster
 	h := integration.New(t, integration.Config{NumNodes: 3})
@@ -126,7 +124,6 @@ func TestDistributedCacheInvalidation_EndToEnd(t *testing.T) {
 }
 
 func TestCacheDebugHeaders(t *testing.T) {
-	testutil.SkipUnlessIntegration(t)
 
 	// Start a single node for this test
 	h := integration.New(t, integration.Config{NumNodes: 1})

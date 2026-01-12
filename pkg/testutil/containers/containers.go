@@ -91,23 +91,11 @@ func MySQL(t *testing.T) *mysql.Config {
 	cfg.Passwd = "password"
 	cfg.Net = "tcp"
 	cfg.Addr = "localhost:3306"
-	cfg.DBName = ""
+	cfg.DBName = "unkey"
 	cfg.ParseTime = true
 	cfg.Logger = &mysql.NopLogger{}
 
 	return cfg
-}
-
-// Redis returns Redis connection URL for integration testing.
-//
-// Returns a Redis URL configured for connecting from test runners to localhost:6379.
-//
-// Example usage:
-//
-//	redisURL := containers.Redis(t)
-//	// Use redisURL with your Redis client
-func Redis(t *testing.T) string {
-	return "redis://localhost:6379"
 }
 
 // ClickHouse returns ClickHouse database connection string for integration testing.

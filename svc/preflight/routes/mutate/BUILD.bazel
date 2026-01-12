@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mutate",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/preflight/routes/mutate",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/otel/logging",
+        "//pkg/zen",
+        "//svc/preflight/internal/services/mutator",
+        "@io_k8s_api//admission/v1:admission",
+        "@io_k8s_api//core/v1:core",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
+        "@io_k8s_apimachinery//pkg/types",
+    ],
+)

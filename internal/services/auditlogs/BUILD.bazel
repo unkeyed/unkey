@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "auditlogs",
+    srcs = [
+        "insert.go",
+        "interface.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/internal/services/auditlogs",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//pkg/auditlog",
+        "//pkg/codes",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "//pkg/uid",
+    ],
+)

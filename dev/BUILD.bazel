@@ -1,0 +1,5 @@
+# Export SQL files for use by //pkg/dockertest MySQL image
+exports_files([
+    "init-databases.sql",
+    "04-seed-workspace.sql",
+])
