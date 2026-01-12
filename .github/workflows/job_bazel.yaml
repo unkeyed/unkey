@@ -23,9 +23,8 @@ jobs:
             build --remote_cache=grpcs://remote.buildbuddy.io
             build --remote_timeout=10m
             build --workspace_status_command=$(pwd)/dev/workspace_status.sh
+            build --remote_header=x-buildbuddy-api-key=${{ secrets.BUILDBUDDY_API_KEY }}
 
-      - name: Authenticate buildbuddy
-        run: echo "build --remote_header=x-buildbuddy-api-key=${{ secrets.BUILDBUDDY_API_KEY }}" >> ./.auth.bazelrc
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
         with:
