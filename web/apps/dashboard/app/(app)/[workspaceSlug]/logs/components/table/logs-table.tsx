@@ -93,7 +93,7 @@ const WarningIcon = ({ status }: { status: number }) => (
 
 const additionalColumns: Column<Log>[] = [
   "response_body",
-  "request_body",
+  "request_body", 
   "request_headers",
   "response_headers",
   "request_id",
@@ -105,9 +105,18 @@ const additionalColumns: Column<Log>[] = [
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" "),
-  width: "auto",
+  width: key === "response_body" ? "50%" : "auto",
   render: (log: Log) => (
-    <div className="font-mono whitespace-nowrap truncate w-[500px]">{log[key as keyof Log]}</div>
+    <div 
+      className={cn(
+        "font-mono overflow-hidden text-ellipsis",
+        key === "response_body" 
+          ? "whitespace-nowrap truncate min-w-0" 
+          : "whitespace-nowrap truncate max-w-[200px]"
+      )}
+    >
+      {log[key as keyof Log]}
+    </div>
   ),
 }));
 
@@ -147,7 +156,7 @@ export const LogsTable = () => {
       {
         key: "time",
         header: "Time",
-        width: "5%",
+        width: "12%",
         render: (log) => (
           <TimestampInfo
             value={log.time}
@@ -161,7 +170,7 @@ export const LogsTable = () => {
       {
         key: "response_status",
         header: "Status",
-        width: "7.5%",
+        width: "10%",
         render: (log) => {
           const style = getStatusStyle(log.response_status);
           const isSelected = selectedLog?.request_id === log.request_id;
@@ -181,7 +190,7 @@ export const LogsTable = () => {
       {
         key: "method",
         header: "Method",
-        width: "7.5%",
+        width: "8%",
         render: (log) => {
           const isSelected = selectedLog?.request_id === log.request_id;
           return (
@@ -201,8 +210,8 @@ export const LogsTable = () => {
       {
         key: "path",
         header: "Path",
-        width: "15%",
-        render: (log) => <div className="font-mono pr-4">{log.path}</div>,
+        width: "20%",
+        render: (log) => <div className="font-mono pr-4 truncate">{log.path}</div>,
       },
     ],
     [selectedLog?.request_id],

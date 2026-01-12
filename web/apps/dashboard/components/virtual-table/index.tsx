@@ -85,6 +85,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     const tableClassName = cn(
       "w-full",
       isGridLayout ? "border-collapse" : "border-separate border-spacing-0",
+      "table-fixed" // Add fixed table layout for proper column width control
     );
 
     const containerClassName = cn(
