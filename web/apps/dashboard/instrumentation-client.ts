@@ -3,7 +3,6 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
-import { env } from "./lib/env";
 import { createClientErrorFilter, createTracesSampler } from "./lib/sentry";
 
 // Skip Sentry initialization in development or when explicitly disabled
