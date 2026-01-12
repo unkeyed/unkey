@@ -16,8 +16,7 @@ export const LogSection = ({
         <CardContent className="py-2 px-3 text-xs relative group ">
           <pre className="flex flex-col gap-1 whitespace-pre-wrap leading-relaxed">
             {Array.isArray(details)
-              ? details
-                  .slice()
+              ? [...details]
                   .sort((a, b) => {
                     const keyA = a.split(":")[0].toLowerCase();
                     const keyB = b.split(":")[0].toLowerCase();
@@ -53,7 +52,7 @@ export const LogSection = ({
 
 const getFormattedContent = (details: string | string[]) => {
   if (Array.isArray(details)) {
-    return details
+    return [...details]
       .sort((a, b) => {
         const keyA = a.split(":")[0].toLowerCase();
         const keyB = b.split(":")[0].toLowerCase();
