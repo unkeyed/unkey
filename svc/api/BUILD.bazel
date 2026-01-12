@@ -10,6 +10,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/cache/v1:cache",
+        "//gen/proto/ctrl/v1/ctrlv1connect",
         "//internal/services/analytics",
         "//internal/services/auditlogs",
         "//internal/services/caches",
