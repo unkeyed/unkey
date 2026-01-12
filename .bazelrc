@@ -1,2 +1,4 @@
 build --color=yes
 build --show_timestamps
+
+try-import ./.auth.bazelrc
