@@ -64,12 +64,12 @@ func TestBadRequests(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	t.Run("missing both buildContext and dockerImage", func(t *testing.T) {
+	t.Run("missing both build and image", func(t *testing.T) {
 		req := handler.Request{
 			ProjectId:       project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
-			// Neither buildContext nor dockerImage provided
+			// Neither build nor image provided
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -77,23 +77,23 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "Either buildContext or dockerImage must be provided.", res.Body.Error.Detail)
+		require.Equal(t, "Either build or image must be provided.", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
-	t.Run("both buildContext and dockerImage provided", func(t *testing.T) {
+	t.Run("both build and image provided", func(t *testing.T) {
 		req := handler.Request{
 			ProjectId:       project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
-			BuildContext: &struct {
-				BuildContextPath string  `json:"buildContextPath"`
-				DockerfilePath   *string `json:"dockerfilePath,omitempty"`
+			Build: &struct {
+				Context    string  `json:"context"`
+				Dockerfile *string `json:"dockerfile,omitempty"`
 			}{
-				BuildContextPath: "/app",
+				Context: "/app",
 			},
-			DockerImage: ptr.P("nginx:latest"),
+			Image: ptr.P("nginx:latest"),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -101,7 +101,7 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "Only one of buildContext or dockerImage can be provided.", res.Body.Error.Detail)
+		require.Equal(t, "Only one of build or image can be provided.", res.Body.Error.Detail)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
@@ -110,7 +110,7 @@ func TestBadRequests(t *testing.T) {
 		req := handler.Request{
 			Branch:          "main",
 			EnvironmentSlug: "production",
-			DockerImage:     ptr.P("nginx:latest"),
+			Image:           ptr.P("nginx:latest"),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -125,7 +125,7 @@ func TestBadRequests(t *testing.T) {
 		req := handler.Request{
 			ProjectId:       project.ID,
 			EnvironmentSlug: "production",
-			DockerImage:     ptr.P("nginx:latest"),
+			Image:           ptr.P("nginx:latest"),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -140,9 +140,9 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("missing environmentSlug", func(t *testing.T) {
 		req := handler.Request{
-			ProjectId:   project.ID,
-			Branch:      "main",
-			DockerImage: ptr.P("nginx:latest"),
+			ProjectId: project.ID,
+			Branch:    "main",
+			Image:     ptr.P("nginx:latest"),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -165,7 +165,7 @@ func TestBadRequests(t *testing.T) {
 			ProjectId:       project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
-			DockerImage:     ptr.P("nginx:latest"),
+			Image:           ptr.P("nginx:latest"),
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -183,7 +183,7 @@ func TestBadRequests(t *testing.T) {
 			ProjectId:       project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
-			DockerImage:     ptr.P("nginx:latest"),
+			Image:           ptr.P("nginx:latest"),
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -196,7 +196,7 @@ func TestBadRequests(t *testing.T) {
 			ProjectId:       "",
 			Branch:          "main",
 			EnvironmentSlug: "production",
-			DockerImage:     ptr.P("nginx:latest"),
+			Image:           ptr.P("nginx:latest"),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -213,7 +213,7 @@ func TestBadRequests(t *testing.T) {
 			ProjectId:       project.ID,
 			Branch:          "",
 			EnvironmentSlug: "production",
-			DockerImage:     ptr.P("nginx:latest"),
+			Image:           ptr.P("nginx:latest"),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -230,7 +230,7 @@ func TestBadRequests(t *testing.T) {
 			ProjectId:       project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "",
-			DockerImage:     ptr.P("nginx:latest"),
+			Image:           ptr.P("nginx:latest"),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -247,9 +247,9 @@ func TestBadRequests(t *testing.T) {
 			ProjectId:       project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
-			BuildContext: &struct {
-				BuildContextPath string  `json:"buildContextPath"`
-				DockerfilePath   *string `json:"dockerfilePath,omitempty"`
+			Build: &struct {
+				Context    string  `json:"context"`
+				Dockerfile *string `json:"dockerfile,omitempty"`
 			}{},
 		}
 

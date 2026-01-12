@@ -66,7 +66,7 @@ func TestUnauthorizedAccess(t *testing.T) {
 			ProjectId:       project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
-			DockerImage:     ptr.P("nginx:latest"),
+			Image:           ptr.P("nginx:latest"),
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

@@ -72,7 +72,7 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 				ProjectId:       project.ID,
 				Branch:          "main",
 				EnvironmentSlug: "production",
-				DockerImage:     ptr.P("nginx:latest"),
+				Image:           ptr.P("nginx:latest"),
 			},
 		)
 
@@ -118,12 +118,12 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 				ProjectId:       project.ID,
 				Branch:          "develop",
 				EnvironmentSlug: "staging",
-				BuildContext: &struct {
-					BuildContextPath string  `json:"buildContextPath"`
-					DockerfilePath   *string `json:"dockerfilePath,omitempty"`
+				Build: &struct {
+					Context    string  `json:"context"`
+					Dockerfile *string `json:"dockerfile,omitempty"`
 				}{
-					BuildContextPath: "s3://bucket/path/to/context.tar.gz",
-					DockerfilePath:   ptr.P("./Dockerfile"),
+					Context:    "s3://bucket/path/to/context.tar.gz",
+					Dockerfile: ptr.P("./Dockerfile"),
 				},
 			},
 		)
@@ -170,7 +170,7 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 				ProjectId:       project.ID,
 				Branch:          "main",
 				EnvironmentSlug: "production",
-				DockerImage:     ptr.P("nginx:latest"),
+				Image:           ptr.P("nginx:latest"),
 				GitCommit: &struct {
 					AuthorAvatarUrl *string `json:"authorAvatarUrl,omitempty"`
 					AuthorHandle    *string `json:"authorHandle,omitempty"`

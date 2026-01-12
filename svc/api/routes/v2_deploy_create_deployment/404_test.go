@@ -49,7 +49,7 @@ func TestNotFound(t *testing.T) {
 			ProjectId:       uid.New(uid.ProjectPrefix), // Non-existent project ID
 			Branch:          "main",
 			EnvironmentSlug: "production",
-			DockerImage:     ptr.P("nginx:latest"),
+			Image:           ptr.P("nginx:latest"),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
@@ -75,7 +75,7 @@ func TestNotFound(t *testing.T) {
 			ProjectId:       projectID,
 			Branch:          "main",
 			EnvironmentSlug: "nonexistent-env", // Non-existent environment
-			DockerImage:     ptr.P("nginx:latest"),
+			Image:           ptr.P("nginx:latest"),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)

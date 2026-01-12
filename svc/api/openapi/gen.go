@@ -698,19 +698,15 @@ type V2DeployCreateDeploymentRequestBody struct {
 	// Branch Git branch name
 	Branch string `json:"branch"`
 
-	// BuildContext Build context for building from source.
+	// Build Build context for building from source.
 	// Either buildContext or dockerImage must be provided, but not both.
-	BuildContext *struct {
-		// BuildContextPath S3 path to uploaded build context tarball
-		BuildContextPath string `json:"buildContextPath"`
+	Build *struct {
+		// Context S3 path to uploaded build context tarball
+		Context string `json:"context"`
 
-		// DockerfilePath Optional path to Dockerfile within build context (defaults to "Dockerfile")
-		DockerfilePath *string `json:"dockerfilePath,omitempty"`
-	} `json:"buildContext,omitempty"`
-
-	// DockerImage Prebuilt Docker image reference.
-	// Either dockerImage or buildContext must be provided, but not both.
-	DockerImage *string `json:"dockerImage,omitempty"`
+		// Dockerfile Optional path to Dockerfile within build context (defaults to "Dockerfile")
+		Dockerfile *string `json:"dockerfile,omitempty"`
+	} `json:"build,omitempty"`
 
 	// EnvironmentSlug Environment slug (e.g., "production", "staging")
 	EnvironmentSlug string `json:"environmentSlug"`
@@ -732,6 +728,10 @@ type V2DeployCreateDeploymentRequestBody struct {
 		// Timestamp Commit timestamp in milliseconds
 		Timestamp *int64 `json:"timestamp,omitempty"`
 	} `json:"gitCommit,omitempty"`
+
+	// Image Prebuilt Docker image reference.
+	// Either dockerImage or buildContext must be provided, but not both.
+	Image *string `json:"image,omitempty"`
 
 	// KeyspaceId Optional keyspace ID for authentication context
 	KeyspaceId *string `json:"keyspaceId,omitempty"`

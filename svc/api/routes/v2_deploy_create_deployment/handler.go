@@ -58,17 +58,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Validate that either buildContext or dockerImage is provided
-	if req.BuildContext == nil && req.DockerImage == nil {
-		return fault.New("must provide either buildContext or dockerImage",
+	// Validate that at least one of build or image is provided
+	if req.Build == nil && req.Image == nil {
+		return fault.New("must provide either build or image",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Public("Either buildContext or dockerImage must be provided."),
-		)
-	}
-	if req.BuildContext != nil && req.DockerImage != nil {
-		return fault.New("cannot provide both buildContext and dockerImage",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Public("Only one of buildContext or dockerImage can be provided."),
+			fault.Public("Either build or image must be provided."),
 		)
 	}
 
@@ -85,21 +79,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		ctrlReq.KeyspaceId = req.KeyspaceId
 	}
 
-	// Handle source (build_context vs docker_image)
-	if req.BuildContext != nil {
+	// Handle source (build vs image) - validate that only one is provided
+	if req.Build != nil && req.Image != nil {
+		return fault.New("cannot provide both build and image",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Public("Only one of build or image can be provided."),
+		)
+	} else if req.Build != nil {
 		// nolint: exhaustruct // optional proto fields, only setting whats provided
 		buildContext := &ctrlv1.BuildContext{
-			BuildContextPath: req.BuildContext.BuildContextPath,
+			BuildContextPath: req.Build.Context,
 		}
-		if req.BuildContext.DockerfilePath != nil {
-			buildContext.DockerfilePath = req.BuildContext.DockerfilePath
+		if req.Build.Dockerfile != nil {
+			buildContext.DockerfilePath = req.Build.Dockerfile
 		}
 		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_BuildContext{
 			BuildContext: buildContext,
 		}
-	} else if req.DockerImage != nil {
+	} else if req.Image != nil {
 		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_DockerImage{
-			DockerImage: *req.DockerImage,
+			DockerImage: *req.Image,
 		}
 	}
 

@@ -412,25 +412,25 @@ components:
                     minLength: 1
                     description: Environment slug (e.g., "production", "staging")
                     example: "production"
-                buildContext:
+                build:
                     type: object
                     description: |
                         Build context for building from source.
                         Either buildContext or dockerImage must be provided, but not both.
                     required:
-                        - buildContextPath
+                        - context
                     properties:
-                        buildContextPath:
+                        context:
                             type: string
                             minLength: 1
                             description: S3 path to uploaded build context tarball
                             example: "s3://bucket/path/to/context.tar.gz"
-                        dockerfilePath:
+                        dockerfile:
                             type: string
                             description: Optional path to Dockerfile within build context (defaults to "Dockerfile")
                             example: "Dockerfile"
                             default: "Dockerfile"
-                dockerImage:
+                image:
                     type: string
                     description: |
                         Prebuilt Docker image reference.
