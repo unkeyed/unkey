@@ -30,9 +30,14 @@ const rlMap = new Map();
 let isolateId: string | undefined = undefined;
 let isolateCreatedAt: number | undefined = undefined;
 /**
- * Initialize all services.
+ * Create a Hono middleware that initializes request and worker context and registers services.
  *
- * Call this once before any hono handlers run.
+ * Initializes worker-level identifiers when first run, sets per-request identifiers and the
+ * `Unkey-Request-Id` response header, and constructs/attaches database, metrics, rate limiting,
+ * analytics, cache, RBAC, key service, vault, logger, and usage limiter instances to the context
+ * under the `services` key.
+ *
+ * @returns A middleware handler that prepares context for downstream handlers and sets the `Unkey-Request-Id` response header.
  */
 export function init(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
