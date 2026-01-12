@@ -16,16 +16,22 @@ export const LogSection = ({
         <CardContent className="py-2 px-3 text-xs relative group ">
           <pre className="flex flex-col gap-1 whitespace-pre-wrap leading-relaxed">
             {Array.isArray(details)
-              ? details.map((header) => {
-                  const [key, ...valueParts] = header.split(":");
-                  const value = valueParts.join(":").trim();
-                  return (
-                    <div className="group flex items-center w-full p-[3px]" key={key}>
-                      <span className="text-left text-accent-9 whitespace-nowrap">{key}:</span>
-                      <span className="ml-2 text-xs text-accent-12 truncate">{value}</span>
-                    </div>
-                  );
-                })
+              ? details
+                  .sort((a, b) => {
+                    const keyA = a.split(":")[0].toLowerCase();
+                    const keyB = b.split(":")[0].toLowerCase();
+                    return keyA.localeCompare(keyB);
+                  })
+                  .map((header) => {
+                    const [key, ...valueParts] = header.split(":");
+                    const value = valueParts.join(":").trim();
+                    return (
+                      <div className="group flex items-center w-full p-[3px]" key={key}>
+                        <span className="text-left text-accent-9 whitespace-nowrap">{key}:</span>
+                        <span className="ml-2 text-xs text-accent-12 truncate">{value}</span>
+                      </div>
+                    );
+                  })
               : details}
           </pre>
           <CopyButton
@@ -45,6 +51,11 @@ export const LogSection = ({
 const getFormattedContent = (details: string | string[]) => {
   if (Array.isArray(details)) {
     return details
+      .sort((a, b) => {
+        const keyA = a.split(":")[0].toLowerCase();
+        const keyB = b.split(":")[0].toLowerCase();
+        return keyA.localeCompare(keyB);
+      })
       .map((header) => {
         const [key, ...valueParts] = header.split(":");
         const value = valueParts.join(":").trim();
