@@ -144,7 +144,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var keysArray []db.InsertKeyParams
 	var failedHashes []string
 
-	// TODO: This transaction is not optimal. All the lookups (FindKeysByHash, FindIdentitiesByExternalId,
+	// nolint:godox // TODO: This transaction is not optimal. All the lookups (FindKeysByHash, FindIdentitiesByExternalId,
 	// FindPermissionsBySlug, FindRolesByName) could be moved outside the transaction to reduce lock duration.
 	// The only things that strictly need to be inside the tx are the INSERT operations.
 	// However, all state (maps, slices, generated IDs) must be initialized inside the closure to ensure
