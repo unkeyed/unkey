@@ -13,7 +13,7 @@
     "bootstrap": "turbo run bootstrap",
     "commit": "cz",
     "knip": "knip --include files,dependencies",
-    "up": "docker compose -f ./deployment/docker-compose.yaml up",
+    "up": "docker compose -f ./dev/docker-compose.yaml up",
     "migrate": "pnpm turbo run migrate"
   },
   "author": "Andreas Thomas",

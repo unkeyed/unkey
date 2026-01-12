@@ -27,8 +27,6 @@ var Cmd = &cli.Command{
 		// Instance Identification
 		cli.String("platform", "Cloud platform identifier for this node. Used for logging and metrics.",
 			cli.EnvVar("UNKEY_PLATFORM")),
-		cli.String("image", "Container image identifier. Used for logging and metrics.",
-			cli.EnvVar("UNKEY_IMAGE")),
 		cli.String("region", "Geographic region identifier. Used for logging and routing. Default: unknown",
 			cli.Default("unknown"), cli.EnvVar("UNKEY_REGION"), cli.EnvVar("AWS_REGION")),
 		cli.String("instance-id", "Unique identifier for this instance. Auto-generated if not provided.",

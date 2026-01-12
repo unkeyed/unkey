@@ -5,6 +5,7 @@
   "root": false,
   "pages": [
     "index",
+    "quickstart",
     "sdk-development",
     "testing",
     "client-structure",

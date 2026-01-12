@@ -149,9 +149,9 @@ message ApplyDeploymentRequest {
   // assume kubernetes will pull from a public registry
   optional string build_id = 11;
 
-  // Encrypted secrets blob to be decrypted at runtime by unkey-env.
+  // Encrypted secrets blob to be decrypted at runtime by inject.
   // This is set as UNKEY_ENCRYPTED_ENV env var in the container.
-  // unkey-env calls krane's DecryptSecretsBlob RPC to decrypt.
+  // inject calls krane's DecryptSecretsBlob RPC to decrypt.
   bytes encrypted_environment_variables = 12;
 
   // An opaque identifier used in a restate awakable.

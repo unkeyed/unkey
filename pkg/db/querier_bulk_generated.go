@@ -20,6 +20,7 @@ type BulkQuerier interface {
 	UpsertEnvironment(ctx context.Context, db DBTX, args []UpsertEnvironmentParams) error
 	InsertIdentities(ctx context.Context, db DBTX, args []InsertIdentityParams) error
 	InsertIdentityRatelimits(ctx context.Context, db DBTX, args []InsertIdentityRatelimitParams) error
+	UpsertIdentity(ctx context.Context, db DBTX, args []UpsertIdentityParams) error
 	InsertFrontlineRoutes(ctx context.Context, db DBTX, args []InsertFrontlineRouteParams) error
 	UpsertInstance(ctx context.Context, db DBTX, args []UpsertInstanceParams) error
 	InsertKeyAuths(ctx context.Context, db DBTX, args []InsertKeyAuthParams) error

@@ -590,9 +590,9 @@ type ApplyDeploymentRequest struct {
 	// if we did not build this image via depot, no buildID exists and we
 	// assume kubernetes will pull from a public registry
 	BuildId *string `protobuf:"bytes,11,opt,name=build_id,json=buildId,proto3,oneof" json:"build_id,omitempty"`
-	// Encrypted secrets blob to be decrypted at runtime by unkey-env.
+	// Encrypted secrets blob to be decrypted at runtime by inject.
 	// This is set as UNKEY_ENCRYPTED_ENV env var in the container.
-	// unkey-env calls krane's DecryptSecretsBlob RPC to decrypt.
+	// inject calls krane's DecryptSecretsBlob RPC to decrypt.
 	EncryptedEnvironmentVariables []byte `protobuf:"bytes,12,opt,name=encrypted_environment_variables,json=encryptedEnvironmentVariables,proto3" json:"encrypted_environment_variables,omitempty"`
 	// An opaque identifier used in a restate awakable.
 	// If set, the cluster must add this as annotation and report back during Watch checks

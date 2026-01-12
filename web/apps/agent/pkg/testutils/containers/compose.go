@@ -18,7 +18,7 @@ func ComposeUp(t *testing.T) compose.ComposeStack {
 
 	ctx := context.Background()
 
-	file := path.Join(os.Getenv("OLDPWD"), "deployment/docker-compose.yaml")
+	file := path.Join(os.Getenv("OLDPWD"), "dev/docker-compose.yaml")
 	t.Logf("using docker-compose file: %s", file)
 
 	c, err := compose.NewDockerComposeWith(

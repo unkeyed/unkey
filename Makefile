@@ -1,3 +1,4 @@
+MAKEFLAGS += -j4
 
 
 
@@ -24,6 +25,12 @@ help: ## Display this help.
 install-go: ## Install Go dependencies and setup workspace
 	@[ -f go.work ] || go work init . ./tools
 	go mod download
+
+.PHONY: install-brew-tools
+install-brew-tools: ## Install Homebrew tools if they don't exist
+	@command -v tilt >/dev/null 2>&1 || { echo "Installing tilt..."; brew install tilt; }
+	@command -v ctlptl >/dev/null 2>&1 || { echo "Installing ctlptl..."; brew install ctlptl; }
+	@command -v minikube >/dev/null 2>&1 || { echo "Installing minikube..."; brew install minikube; }
 
 .PHONY: install
 install: install-go ## Install all dependencies
@@ -64,7 +71,7 @@ fmt: ## Format code and run linters
 
 .PHONY: pull
 pull: ## Pull latest Docker images for services
-	@docker compose -f ./deployment/docker-compose.yaml pull
+	@docker compose -f ./dev/docker-compose.yaml pull
 
 .PHONY: up
 up: pull ## Start all infrastructure services
@@ -72,7 +79,7 @@ up: pull ## Start all infrastructure services
 
 .PHONY: clean
 clean: ## Stop and remove all services with volumes
-	@docker compose -f ./deployment/docker-compose.yaml down --volumes
+	@docker compose -f ./dev/docker-compose.yaml down --volumes
 
 .PHONY: build-go
 build-go: ## Build go services
@@ -92,11 +99,6 @@ generate: generate-sql ## Generate code from protobuf and other sources
 	go generate ./...
 	go fmt ./...
 	pnpm --dir=web fmt
-
-.PHONY: talos
-talos: ## Create Talos testing cluster
-	talosctl cluster create --name=testing
-
 
 .PHONY: test-k8s
 test-k8s: talos ## Run Kubernetes cluster tests
@@ -132,70 +134,19 @@ test-integration: up ## Run integration tests
 	@echo "Running integration tests w/$(PARALLEL_PROCS) parallel test processes"
 	@go test -tags=integration -json -failfast -timeout=15m -parallel=$(PARALLEL_PROCS) ./... | go run github.com/mfridman/tparse@ba2512e7be150bfcbd6f6220d517d3741f8f2f75 -smallscreen
 
-# ============================================================================
-# Kubernetes Development Commands
-# ============================================================================
-
-.PHONY: k8s-check
-k8s-check: ## Check if kubectl is available and cluster is running
-	@command -v kubectl >/dev/null 2>&1 || { echo "ERROR: kubectl not found. Install from: https://kubernetes.io/docs/tasks/tools/"; exit 1; }
-	@kubectl cluster-info >/dev/null 2>&1 || { echo "ERROR: Kubernetes cluster not available. Enable Kubernetes in Docker Desktop/OrbStack"; exit 1; }
-	@echo "Kubernetes cluster is available"
-
-.PHONY: k8s-up
-k8s-up: k8s-check ## Deploy all services to current Kubernetes cluster
-	@echo "Building Docker images..."
-	@docker build -t unkey/mysql:local -f ../deployment/Dockerfile.mysql ../
-	@docker build -t unkey/clickhouse:local -f ../deployment/Dockerfile.clickhouse ../
-	@docker build -t unkey:local .
-	@echo "Creating namespace..."
-	@kubectl apply -f k8s/manifests/namespace.yaml
-	@echo "Applying Kubernetes manifests..."
-	@kubectl apply -f k8s/manifests/
-	@echo "Waiting for services to be ready..."
-	@kubectl wait --for=condition=ready pod -l app=mysql -n unkey --timeout=180s
-	@kubectl wait --for=condition=ready pod -l app=clickhouse -n unkey --timeout=180s
-	@kubectl wait --for=condition=ready pod -l app=s3 -n unkey --timeout=180s
-	@kubectl wait --for=condition=ready pod -l app=restate -n unkey --timeout=180s
-	@kubectl wait --for=condition=ready pod -l app=api -n unkey --timeout=180s
-	@kubectl wait --for=condition=ready pod -l app=gw -n unkey --timeout=180s
-	@kubectl wait --for=condition=ready pod -l app=ctrl -n unkey --timeout=180s
-	@kubectl wait --for=condition=ready pod -l app=krane -n unkey --timeout=180s
-	@kubectl wait --for=condition=ready pod -l app=dashboard -n unkey --timeout=180s
-	@echo "Kubernetes environment is ready!"
-	@echo ""
-	@echo "Services accessible via NodePort on localhost - check actual ports with:"
-	@echo ""
-	@echo "Check NodePort assignments: make k8s-ports"
-	@make k8s-status
-
-.PHONY: k8s-stop
-k8s-stop: ## Stop all pods (scale deployments to 0)
-	@echo "Stopping all pods..."
-	@kubectl scale deployment --all --replicas=0 -n unkey
-	@echo "All pods stopped"
-
-.PHONY: k8s-down
-k8s-down: ## Delete all services from current Kubernetes cluster
-	@echo "Deleting all services..."
-	@kubectl delete namespace unkey --ignore-not-found=true
-	@echo "Services deleted"
-
 
 .PHONY: dev
-dev: ## Start with Tilt (if available) or fallback to k8s-up
-	docker build -t unkey/dev:latest .
+dev: ## Start dev environment
+	@# Make sure you have ./dev/.env.depot populated, or you will get some funny errors
+	@# we're working on making this optional soon
 
-	@if command -v tilt >/dev/null 2>&1; then \
-		echo "Starting with Tilt..."; \
-		tilt up; \
-	else \
-		echo "Tilt not found, using k8s-up instead"; \
-		echo "Install Tilt from: https://docs.tilt.dev/install.html"; \
-		make k8s-up; \
-	fi
+	@ctlptl apply -f ./dev/cluster.yaml
+	@minikube addons enable metrics-server
+	@tilt up -f ./dev/Tiltfile
 
-
+.PHONY: down
+down: ## Stop dev environment
+	@minikube delete
 
 .PHONY: local-dashboard
 local-dashboard: install build-go ## Run local development setup for dashboard
