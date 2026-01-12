@@ -51,4 +51,4 @@ jobs:
           COMPOSE_DOCKER_CLI_BUILD: 1
 
       - name: Run tests
-        run: bazel test //...
+        run: bazel test //... --test_output=errors
