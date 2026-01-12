@@ -4,8 +4,8 @@ on:
 permissions:
   contents: read
 jobs:
-  tests:
-    name: Test
+  build_and_test:
+    name: Build and Test
     runs-on: depot-ubuntu-24.04-8
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
