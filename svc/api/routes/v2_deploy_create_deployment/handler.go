@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"connectrpc.com/connect"
@@ -28,7 +27,6 @@ type Handler struct {
 	DB         db.Database
 	Keys       keys.KeyService
 	CtrlClient ctrlv1connect.DeploymentServiceClient
-	CtrlToken  string
 }
 
 func (h *Handler) Path() string {
@@ -125,7 +123,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	connectReq := connect.NewRequest(ctrlReq)
-	connectReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", h.CtrlToken))
 
 	ctrlResp, err := h.CtrlClient.CreateDeployment(ctx, connectReq)
 	if err != nil {

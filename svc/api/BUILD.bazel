@@ -28,6 +28,7 @@ go_library(
         "//pkg/otel/logging",
         "//pkg/prometheus",
         "//pkg/rbac",
+        "//pkg/rpc/interceptor",
         "//pkg/shutdown",
         "//pkg/tls",
         "//pkg/vault",
@@ -36,6 +37,7 @@ go_library(
         "//pkg/zen",
         "//pkg/zen/validation",
         "//svc/api/routes",
+        "@com_connectrpc_connect//:connect",
     ],
 )
 

@@ -333,7 +333,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 				DB:         svc.Database,
 				Keys:       svc.Keys,
 				CtrlClient: svc.CtrlDeploymentClient,
-				CtrlToken:  svc.CtrlToken,
 			},
 		)
 	}

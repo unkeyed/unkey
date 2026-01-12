@@ -9,6 +9,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"connectrpc.com/connect"
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/internal/services/analytics"
@@ -27,6 +28,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/shutdown"
 	"github.com/unkeyed/unkey/pkg/vault"
 	"github.com/unkeyed/unkey/pkg/vault/storage"
@@ -301,6 +303,9 @@ func Run(ctx context.Context, cfg Config) error {
 		ctrlDeploymentClient = ctrlv1connect.NewDeploymentServiceClient(
 			&http.Client{},
 			cfg.CtrlURL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", cfg.CtrlToken),
+			})),
 		)
 		logger.Info("CTRL deployment client initialized", "url", cfg.CtrlURL)
 	} else {
@@ -319,7 +324,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Vault:                      vaultSvc,
 		ChproxyToken:               cfg.ChproxyToken,
 		CtrlDeploymentClient:       ctrlDeploymentClient,
-		CtrlToken:                  cfg.CtrlToken,
 		PprofEnabled:               cfg.PprofEnabled,
 		PprofUsername:              cfg.PprofUsername,
 		PprofPassword:              cfg.PprofPassword,

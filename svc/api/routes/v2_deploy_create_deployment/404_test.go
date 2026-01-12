@@ -5,9 +5,11 @@ import (
 	"net/http"
 	"testing"
 
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
@@ -25,6 +27,9 @@ func TestNotFound(t *testing.T) {
 	ctrlClient := ctrlv1connect.NewDeploymentServiceClient(
 		http.DefaultClient,
 		ctrlURL,
+		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+			"Authorization": fmt.Sprintf("Bearer %s", ctrlToken),
+		})),
 	)
 
 	route := &handler.Handler{
@@ -32,7 +37,6 @@ func TestNotFound(t *testing.T) {
 		DB:         h.DB,
 		Keys:       h.Keys,
 		CtrlClient: ctrlClient,
-		CtrlToken:  ctrlToken,
 	}
 	h.Register(route)
 

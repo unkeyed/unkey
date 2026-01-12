@@ -145,16 +145,5 @@ func (c Config) Validate() error {
 		}
 	}
 
-	// Validate CTRL configuration - URL and token must be provided together
-	if c.CtrlURL != "" || c.CtrlToken != "" {
-		err := assert.All(
-			assert.NotEmpty(c.CtrlURL, "ctrl url is required when ctrl token is provided"),
-			assert.NotEmpty(c.CtrlToken, "ctrl token is required when ctrl url is provided"),
-		)
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
