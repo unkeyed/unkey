@@ -1,3 +1,2 @@
 build --color=yes
 build --show_timestamps
-build --remote_cache_async
