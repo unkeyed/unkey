@@ -50,7 +50,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /v1.vault.VaultService/Liveness
+              path: /vault.v1.VaultService/Liveness
               port: 8060
             initialDelaySeconds: 5
             periodSeconds: 5
