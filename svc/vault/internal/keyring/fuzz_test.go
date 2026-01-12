@@ -45,7 +45,7 @@ func setupTestKeyring(t *testing.T) *Keyring {
 		Logger:        logging.NewNoop(),
 		EncryptionKey: kek,
 		DecryptionKeys: map[string]*vaultv1.KeyEncryptionKey{
-			kek.Id: kek,
+			kek.GetId(): kek,
 		},
 	})
 	require.NoError(t, err)
@@ -95,9 +95,9 @@ func FuzzEncryptDecryptKeyRoundtrip(f *testing.F) {
 		require.Equal(t, "test-kek-id", kekID)
 
 		// Verify exact match
-		require.Equal(t, dek.Id, decoded.Id)
-		require.Equal(t, dek.Key, decoded.Key)
-		require.Equal(t, dek.CreatedAt, decoded.CreatedAt)
+		require.Equal(t, dek.GetId(), decoded.GetId())
+		require.Equal(t, dek.GetKey(), decoded.GetKey())
+		require.Equal(t, dek.GetCreatedAt(), decoded.GetCreatedAt())
 	})
 }
 
@@ -196,8 +196,8 @@ func FuzzEncryptProducesDifferentCiphertext(f *testing.F) {
 		decoded2, _, err := kr.DecodeAndDecryptKey(ctx, encoded2)
 		require.NoError(t, err)
 
-		require.Equal(t, decoded1.Id, decoded2.Id)
-		require.Equal(t, decoded1.Key, decoded2.Key)
+		require.Equal(t, decoded1.GetId(), decoded2.GetId())
+		require.Equal(t, decoded1.GetKey(), decoded2.GetKey())
 	})
 }
 
@@ -220,7 +220,7 @@ func FuzzDecodeWithWrongKEK(f *testing.F) {
 			Key:       make([]byte, 32),
 			CreatedAt: time.Now().UnixMilli(),
 		}
-		for i := range kekA.Key {
+		for i := range kekA.GetKey() {
 			kekA.Key[i] = byte(i)
 		}
 
@@ -234,7 +234,7 @@ func FuzzDecodeWithWrongKEK(f *testing.F) {
 			Logger:        logging.NewNoop(),
 			EncryptionKey: kekA,
 			DecryptionKeys: map[string]*vaultv1.KeyEncryptionKey{
-				kekA.Id: kekA,
+				kekA.GetId(): kekA,
 			},
 		})
 		require.NoError(t, err)
@@ -245,7 +245,7 @@ func FuzzDecodeWithWrongKEK(f *testing.F) {
 			Key:       make([]byte, 32),
 			CreatedAt: time.Now().UnixMilli(),
 		}
-		for i := range kekB.Key {
+		for i := range kekB.GetKey() {
 			kekB.Key[i] = byte(255 - i)
 		}
 
@@ -259,7 +259,7 @@ func FuzzDecodeWithWrongKEK(f *testing.F) {
 			Logger:        logging.NewNoop(),
 			EncryptionKey: kekB,
 			DecryptionKeys: map[string]*vaultv1.KeyEncryptionKey{
-				kekB.Id: kekB,
+				kekB.GetId(): kekB,
 			},
 		})
 		require.NoError(t, err)

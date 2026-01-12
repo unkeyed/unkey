@@ -12,6 +12,7 @@ go_library(
     ],
     importpath = "github.com/unkeyed/unkey/pkg/fuzz",
     visibility = ["//visibility:public"],
+    deps = ["@com_github_stretchr_testify//require"],
 )
 
 go_test(

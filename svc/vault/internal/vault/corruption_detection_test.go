@@ -42,7 +42,7 @@ func TestCorruption_SingleBitFlip(t *testing.T) {
 	err = proto.Unmarshal(encryptedBytes, &encrypted)
 	require.NoError(t, err)
 
-	ciphertext := encrypted.Ciphertext
+	ciphertext := encrypted.GetCiphertext()
 
 	// Test flipping each bit in the first 50 bytes of ciphertext
 	testBytes := 50
@@ -60,11 +60,11 @@ func TestCorruption_SingleBitFlip(t *testing.T) {
 
 				// Create corrupted message
 				corrupted := &vaultv1.Encrypted{
-					Algorithm:       encrypted.Algorithm,
-					Nonce:           encrypted.Nonce,
+					Algorithm:       encrypted.GetAlgorithm(),
+					Nonce:           encrypted.GetNonce(),
 					Ciphertext:      corruptedCiphertext,
-					EncryptionKeyId: encrypted.EncryptionKeyId,
-					Time:            encrypted.Time,
+					EncryptionKeyId: encrypted.GetEncryptionKeyId(),
+					Time:            encrypted.GetTime(),
 				}
 
 				corruptedBytes, err := proto.Marshal(corrupted)
@@ -254,11 +254,11 @@ func TestCorruption_NonceModification(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			modified := &vaultv1.Encrypted{
-				Algorithm:       encrypted.Algorithm,
-				Nonce:           tc.modify(encrypted.Nonce),
-				Ciphertext:      encrypted.Ciphertext,
-				EncryptionKeyId: encrypted.EncryptionKeyId,
-				Time:            encrypted.Time,
+				Algorithm:       encrypted.GetAlgorithm(),
+				Nonce:           tc.modify(encrypted.GetNonce()),
+				Ciphertext:      encrypted.GetCiphertext(),
+				EncryptionKeyId: encrypted.GetEncryptionKeyId(),
+				Time:            encrypted.GetTime(),
 			}
 
 			modifiedBytes, err := proto.Marshal(modified)
@@ -326,11 +326,11 @@ func TestCorruption_CiphertextSwap(t *testing.T) {
 
 	// Swap: use A's nonce with B's ciphertext
 	swapped := &vaultv1.Encrypted{
-		Algorithm:       encryptedA.Algorithm,
-		Nonce:           encryptedA.Nonce,
-		Ciphertext:      encryptedB.Ciphertext, // Wrong ciphertext!
-		EncryptionKeyId: encryptedA.EncryptionKeyId,
-		Time:            encryptedA.Time,
+		Algorithm:       encryptedA.GetAlgorithm(),
+		Nonce:           encryptedA.GetNonce(),
+		Ciphertext:      encryptedB.GetCiphertext(), // Wrong ciphertext!
+		EncryptionKeyId: encryptedA.GetEncryptionKeyId(),
+		Time:            encryptedA.GetTime(),
 	}
 
 	swappedBytes, err := proto.Marshal(swapped)
@@ -423,17 +423,17 @@ func TestCorruption_WrongEncryptionKeyID(t *testing.T) {
 		"",
 		"fake-key-id",
 		"dek_nonexistent123456789",
-		encrypted.EncryptionKeyId + "_modified",
+		encrypted.GetEncryptionKeyId() + "_modified",
 	}
 
 	for _, fakeID := range fakeKeyIDs {
 		t.Run(fmt.Sprintf("key_id_%s", fakeID), func(t *testing.T) {
 			modified := &vaultv1.Encrypted{
-				Algorithm:       encrypted.Algorithm,
-				Nonce:           encrypted.Nonce,
-				Ciphertext:      encrypted.Ciphertext,
+				Algorithm:       encrypted.GetAlgorithm(),
+				Nonce:           encrypted.GetNonce(),
+				Ciphertext:      encrypted.GetCiphertext(),
 				EncryptionKeyId: fakeID,
-				Time:            encrypted.Time,
+				Time:            encrypted.GetTime(),
 			}
 
 			modifiedBytes, err := proto.Marshal(modified)

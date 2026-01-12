@@ -144,10 +144,10 @@ func FuzzProtobufFieldCorruption(f *testing.F) {
 		}
 
 		// Corrupt selected fields
-		if corruptNonce && len(encrypted.Nonce) > 0 {
+		if corruptNonce && len(encrypted.GetNonce()) > 0 {
 			encrypted.Nonce[0] ^= 0xff
 		}
-		if corruptCiphertext && len(encrypted.Ciphertext) > 0 {
+		if corruptCiphertext && len(encrypted.GetCiphertext()) > 0 {
 			encrypted.Ciphertext[0] ^= 0xff
 		}
 		if corruptKeyID {

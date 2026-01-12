@@ -236,11 +236,11 @@ func TestMemory_ConcurrentAccess(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(numGoroutines)
 
-	for i := 0; i < numGoroutines; i++ {
-		go func(goroutineID int) {
+	for range numGoroutines {
+		go func() {
 			defer wg.Done()
 
-			for j := 0; j < numOperations; j++ {
+			for j := range numOperations {
 				key := "concurrent-key"
 				data := []byte("data")
 
@@ -253,7 +253,7 @@ func TestMemory_ConcurrentAccess(t *testing.T) {
 					require.NoError(t, err)
 				}
 			}
-		}(i)
+		}()
 	}
 
 	wg.Wait()

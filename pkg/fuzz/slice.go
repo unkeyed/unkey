@@ -1,5 +1,7 @@
 package fuzz
 
+import "github.com/stretchr/testify/require"
+
 // Slice extracts a variable-length slice of type T from the Consumer.
 //
 // The length is determined by consuming a uint8 from the input (max 255 elements),
@@ -13,38 +15,40 @@ func Slice[T any](c *Consumer) []T {
 	result := make([]T, length)
 	for i := range length {
 		var zero T
+		var ok bool
 		switch any(zero).(type) {
 		case bool:
-			result[i] = any(c.Bool()).(T)
+			result[i], ok = any(c.Bool()).(T)
 		case int:
-			result[i] = any(c.Int()).(T)
+			result[i], ok = any(c.Int()).(T)
 		case int8:
-			result[i] = any(c.Int8()).(T)
+			result[i], ok = any(c.Int8()).(T)
 		case int16:
-			result[i] = any(c.Int16()).(T)
+			result[i], ok = any(c.Int16()).(T)
 		case int32:
-			result[i] = any(c.Int32()).(T)
+			result[i], ok = any(c.Int32()).(T)
 		case int64:
-			result[i] = any(c.Int64()).(T)
+			result[i], ok = any(c.Int64()).(T)
 		case uint:
-			result[i] = any(c.Uint()).(T)
+			result[i], ok = any(c.Uint()).(T)
 		case uint8:
-			result[i] = any(c.Uint8()).(T)
+			result[i], ok = any(c.Uint8()).(T)
 		case uint16:
-			result[i] = any(c.Uint16()).(T)
+			result[i], ok = any(c.Uint16()).(T)
 		case uint32:
-			result[i] = any(c.Uint32()).(T)
+			result[i], ok = any(c.Uint32()).(T)
 		case uint64:
-			result[i] = any(c.Uint64()).(T)
+			result[i], ok = any(c.Uint64()).(T)
 		case float32:
-			result[i] = any(c.Float32()).(T)
+			result[i], ok = any(c.Float32()).(T)
 		case float64:
-			result[i] = any(c.Float64()).(T)
+			result[i], ok = any(c.Float64()).(T)
 		case string:
-			result[i] = any(c.String()).(T)
+			result[i], ok = any(c.String()).(T)
 		default:
 			panic("fuzz.Slice: unsupported element type")
 		}
+		require.True(c.t, ok, "fuzz.Slice: type assertion failed")
 	}
 	return result
 }
