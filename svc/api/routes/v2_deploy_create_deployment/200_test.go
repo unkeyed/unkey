@@ -21,7 +21,6 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 	// Get CTRL service URL and token
 	ctrlURL, ctrlToken := containers.ControlPlane(t)
 
-	// Create real CTRL client
 	ctrlClient := ctrlv1connect.NewDeploymentServiceClient(
 		http.DefaultClient,
 		ctrlURL,

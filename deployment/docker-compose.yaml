@@ -19,7 +19,8 @@ services:
     volumes:
       - mysql:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test:
+        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
       timeout: 20s
       retries: 10
       start_period: 40s
@@ -299,9 +300,6 @@ services:
       s3:
         condition: service_healthy
         required: true
-      krane:
-        condition: service_started
-        required: true
       restate:
         condition: service_healthy
         required: true
@@ -338,7 +336,7 @@ services:
 
       # Build configuration
       UNKEY_BUILD_S3_URL: "${UNKEY_BUILD_S3_URL:-http://s3:3902}"
-      UNKEY_BUILD_S3_EXTERNAL_URL: "${UNKEY_BUILD_S3_EXTERNAL_URL:-}" # For CLI/external access
+      UNKEY_BUILD_S3_EXTERNAL_URL: "${UNKEY_BUILD_S3_EXTERNAL_URL:-http://localhost:3902}" # For CLI/external access
       UNKEY_BUILD_S3_BUCKET: "build-contexts"
       UNKEY_BUILD_S3_ACCESS_KEY_ID: "${UNKEY_BUILD_S3_ACCESS_KEY_ID:-minio_root_user}"
       UNKEY_BUILD_S3_ACCESS_KEY_SECRET: "${UNKEY_BUILD_S3_ACCESS_KEY_SECRET:-minio_root_password}"
