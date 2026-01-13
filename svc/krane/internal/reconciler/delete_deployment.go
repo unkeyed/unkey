@@ -9,19 +9,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// DeleteDeployment removes a Deployment custom resource from the Kubernetes cluster.
+// DeleteDeployment removes a user workload's ReplicaSet from the cluster.
 //
-// This function handles the deletion of deployment resources when the control
-// plane indicates they should be removed. The function gracefully handles
-// cases where the deployment resource doesn't already exist.
-//
-// Parameters:
-//   - ctx: Context for the delete operation
-//   - req: Delete request containing namespace and name of deployment to delete
-//
-// Returns an error if the delete operation fails (excluding not found errors,
-// which are ignored gracefully). The deletion cascades to owned resources
-// (Deployments, Services) through Kubernetes garbage collection.
+// Not-found errors are ignored since the desired end state (resource gone) is
+// already achieved. After deletion, the method notifies the control plane so it
+// can update routing tables and stop sending traffic to this deployment.
 func (r *Reconciler) DeleteDeployment(ctx context.Context, req *ctrlv1.DeleteDeployment) error {
 	r.logger.Info("deleting deployment",
 		"namespace", req.GetK8SNamespace(),
