@@ -61,7 +61,7 @@ unkey run krane                                   # Run with default configurati
 
 		cli.Int("prometheus-port",
 			"Port for Prometheus metrics, set to 0 to disable.",
-			cli.Default(9090),
+			cli.Default(0),
 			cli.EnvVar("UNKEY_PROMETHEUS_PORT")),
 
 		cli.Int("rpc-port",
