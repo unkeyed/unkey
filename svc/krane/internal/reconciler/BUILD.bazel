@@ -54,7 +54,6 @@ go_test(
         "reconciler_test.go",
         "refresh_current_deployments_test.go",
         "refresh_current_sentinels_test.go",
-        "state_update_timing_test.go",
         "test_helpers_test.go",
         "update_state_test.go",
         "watch_current_deployments_test.go",

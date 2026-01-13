@@ -25,7 +25,7 @@ func (r *Reconciler) DeleteSentinel(ctx context.Context, req *ctrlv1.DeleteSenti
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
-	err = r.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace()).Delete(ctx, req.GetK8SName(), metav1.DeleteOptions{})
+	err = r.clientSet.AppsV1().Deployments(req.GetK8SNamespace()).Delete(ctx, req.GetK8SName(), metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
