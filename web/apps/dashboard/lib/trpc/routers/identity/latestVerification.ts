@@ -13,8 +13,8 @@ export const identityLastVerificationTime = workspaceProcedure
     try {
       const query = clickhouse.querier.query({
         query: `
-          SELECT maxOrNull(time) as last_used
-          FROM default.key_verifications_raw_v2
+          SELECT max(toUnixTimestamp(time) * 1000) as last_used
+          FROM default.key_verifications_per_minute_v3
           WHERE workspace_id = {workspaceId: String}
             AND identity_id = {identityId: String}
         `,
