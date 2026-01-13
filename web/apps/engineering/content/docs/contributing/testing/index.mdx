@@ -1,0 +1,142 @@
+---
+title: Testing Guidelines
+description: Standards and best practices for writing tests at Unkey
+---
+
+## Why We Test
+
+Tests exist to give us confidence. Confidence to ship changes quickly, confidence that refactoring won't break production, confidence that the system behaves as we expect. A test suite that achieves 90% coverage but misses critical edge cases is less valuable than one with 60% coverage that catches real bugs.
+
+We prioritize quality over quantity. A single well-designed test that validates complex business logic is worth more than a dozen tests that exercise trivial code paths. When writing tests, ask yourself: "What could go wrong in production that this test would catch?"
+
+## What to Test
+
+Not all code deserves the same level of test coverage. Invest testing effort where bugs would hurt most.
+
+**High value targets:** Business logic with complex conditionals, error handling paths, concurrent code with race potential, security-sensitive operations, data transformations that could silently corrupt. These deserve thorough test coverage because bugs here cause real damage.
+
+**Lower value targets:** Simple getters and setters, straightforward pass-through functions, code that just delegates to well-tested libraries. A test that verifies `func (c *Config) GetTimeout() time.Duration { return c.timeout }` catches almost nothing. The only way it fails is if you mistype the field name, which the compiler would catch anyway.
+
+**Skip entirely:** Tests that merely verify the programming language works. If your function returns a string constant, testing that it returns that constant proves nothing. If you're testing that `strings.Contains()` behaves as documented, you're testing Go's standard library, not your code.
+
+The question to ask is: "What bug would this test catch that wouldn't be caught by the compiler, a code review, or a more meaningful test?" If you can't articulate a plausible bug, the test probably isn't worth writing.
+
+### Testing Observability
+
+Code that emits metrics, logs, or traces is testing-adjacent. You generally don't need to verify every log line or metric increment, but critical observability deserves attention.
+
+Test metrics that drive alerts or SLOs. If a metric going missing would cause an incident, verify the code path that emits it. Test that error conditions produce the logs operators need for debugging. Skip testing routine informational logs that exist only for convenience.
+
+```go
+// Worth testing: metric that triggers alerts
+func TestRateLimiter_EmitsRejectionMetric(t *testing.T) {
+    collector := &testMetricCollector{}
+    limiter := NewRateLimiter(Config{Limit: 1}, collector)
+    
+    limiter.Allow() // First request succeeds
+    limiter.Allow() // Second request rejected
+    
+    require.Equal(t, 1, collector.Count("rate_limit_rejected_total"))
+}
+```
+
+## Go Testing
+
+Most of our backend is written in Go, and these guides focus primarily on Go testing patterns. The principles (test behavior not implementation, isolate test state, clean up resources) apply broadly, but the specific tooling and examples are Go-focused.
+
+All Go tests use `github.com/stretchr/testify/require` for assertions. We chose testify because it provides clear error messages when tests fail, and the `require` package stops execution immediately on failure rather than continuing with invalid state. When a test fails, you want to know exactly what went wrong without wading through cascading failures.
+
+```go
+func TestUserCreation(t *testing.T) {
+    user, err := CreateUser(ctx, "alice@example.com")
+    require.NoError(t, err)
+    require.Equal(t, "alice@example.com", user.Email)
+    require.NotEmpty(t, user.ID)
+}
+```
+
+We build and test with Bazel rather than `go test` directly. Bazel provides hermetic builds, intelligent caching, and precise dependency tracking. When you modify a package, Bazel knows exactly which tests need to rerun. This speeds up CI significantly compared to running the entire test suite on every change.
+
+## Test Organization
+
+Tests live alongside the code they test. A file `cache.go` has its tests in `cache_test.go` in the same directory. This keeps related code together and makes it obvious when tests are missing.
+
+For integration tests that require substantial setup or external dependencies, we sometimes create an `integration/` subdirectory. This isn't a hard rule. Use your judgment about what makes the code easiest to navigate.
+
+Bazel requires each test target to declare a size that determines its timeout and resource allocation. Unit tests that run in milliseconds should be `small` (60 second timeout). Integration tests that spin up containers should be `large` (15 minute timeout). Getting this right matters because misclassified tests either timeout unexpectedly or waste CI resources.
+
+```python
+go_test(
+    name = "cache_test",
+    size = "small",
+    srcs = ["cache_test.go"],
+    deps = [":cache", "@com_github_stretchr_testify//require"],
+)
+```
+
+## Writing Test Helpers
+
+Test helpers reduce duplication and make tests more readable, but they need one critical annotation to be useful. Every helper function must call `t.Helper()` as its first line.
+
+```go
+func createTestWorkspace(t *testing.T) *Workspace {
+    t.Helper()
+    
+    ws, err := db.CreateWorkspace(ctx, "test-workspace")
+    require.NoError(t, err)
+    return ws
+}
+```
+
+Without `t.Helper()`, when an assertion fails inside the helper, Go reports the failure at the line inside the helper rather than at the call site. This makes debugging frustrating because you see "helpers_test.go:47" instead of "user_test.go:23" where the actual test called the helper.
+
+## Resource Cleanup
+
+Tests that acquire resources (database connections, temporary files, goroutines) must clean them up. Use `t.Cleanup()` rather than `defer` for this.
+
+```go
+func TestWithDatabase(t *testing.T) {
+    db := setupTestDatabase(t)
+    t.Cleanup(func() {
+        db.Close()
+    })
+    
+    // Test code...
+}
+```
+
+The difference matters for subtests. A `defer` in the parent test runs when the parent function returns, but `t.Cleanup()` waits until all subtests complete. It also handles panics gracefully and runs cleanups in reverse order, which is usually what you want when resources depend on each other.
+
+## Running Tests
+
+During development, run tests for the package you're working on:
+
+```bash
+bazel test //pkg/cache:cache_test --test_output=errors
+```
+
+The `--test_output=errors` flag shows output only for failing tests, which keeps the terminal readable. For debugging a specific failure, use `--test_output=all` to see everything.
+
+Before pushing, run the full test suite:
+
+```bash
+make test
+```
+
+This starts required infrastructure (MySQL, Redis, etc.), runs all tests through Bazel, and cleans up afterward. Bazel's caching means only affected tests actually run, so this is faster than it sounds.
+
+## What's Next
+
+The rest of this guide covers specific types of tests in detail:
+
+[Unit Tests](/docs/contributing/testing/unit-tests) covers table-driven tests, subtests, and parallel execution. This is the bread and butter of Go testing.
+
+[Integration Tests](/docs/contributing/testing/integration-tests) explains how to test components that need databases, caches, or other infrastructure using our Docker-based test harness.
+
+[HTTP Handler Tests](/docs/contributing/testing/http-handler-tests) walks through testing API endpoints end-to-end, including authentication and error responses.
+
+[Fuzz Tests](/docs/contributing/testing/fuzz-tests) introduces Go's built-in fuzzing for finding edge cases that humans wouldn't think to test.
+
+[Simulation Tests](/docs/contributing/testing/simulation-tests) describes our property-based testing framework for stateful systems like caches and rate limiters.
+
+[Anti-Patterns](/docs/contributing/testing/anti-patterns) catalogs common mistakes and how to avoid them. Often the fastest way to improve is learning what not to do.
