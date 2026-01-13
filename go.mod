@@ -25,6 +25,7 @@ require (
 	github.com/maypok86/otter v1.2.4
 	github.com/moby/buildkit v0.25.0
 	github.com/oapi-codegen/nullable v1.1.0
+	github.com/oapi-codegen/runtime v1.1.2
 	github.com/oasdiff/oasdiff v1.11.7
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/pb33f/libopenapi v0.28.0
@@ -127,6 +128,7 @@ require (
 	github.com/alingse/nilnesserr v0.2.0 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
+	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/ashanbrown/forbidigo/v2 v2.3.0 // indirect
 	github.com/ashanbrown/makezero/v2 v2.1.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.1 // indirect

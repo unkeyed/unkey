@@ -57,7 +57,7 @@ pull: ## Pull latest Docker images for services
 
 .PHONY: up
 up: pull ## Start all infrastructure services
-	@docker compose -f ./dev/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka restate --wait
+	@docker compose -f ./dev/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka restate ctrl --wait
 
 .PHONY: clean
 clean: ## Stop and remove all services with volumes
@@ -87,8 +87,8 @@ generate: generate-sql ## Generate code from protobuf and other sources
 
 .PHONY: test
 test: ## Run tests with bazel
-	docker compose -f ./dev/docker-compose.yaml up -d mysql clickhouse s3 kafka --wait
-	bazel test //...
+	docker compose -f ./dev/docker-compose.yaml up -d mysql clickhouse s3 kafka restate ctrl --wait
+	bazel test //... --test_output=errors
 	make clean-docker-test
 
 .PHONY: clean-docker-test
@@ -111,3 +111,13 @@ down: ## Stop dev environment
 .PHONY: local-dashboard
 local-dashboard: install build ## Run local development setup for dashboard
 	pnpm --dir=web/apps/dashboard local
+
+.PHONY: unkey
+unkey: ## Run unkey CLI (usage: make unkey dev seed local, make unkey run api ARGS="--http-port=7070")
+	@set -a; [ -f .env ] && . ./.env; set +a; bazel run //:unkey -- $(filter-out unkey,$(MAKECMDGOALS)) $(ARGS)
+
+# Catch-all to swallow extra args passed to unkey target (only when unkey is called)
+ifneq ($(filter unkey,$(MAKECMDGOALS)),)
+%:
+	@:
+endif

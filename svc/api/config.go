@@ -98,6 +98,14 @@ type Config struct {
 	// ChproxyToken is the authentication token for ClickHouse proxy endpoints
 	ChproxyToken string
 
+	// --- CTRL service configuration ---
+
+	// CtrlURL is the CTRL service connection URL
+	CtrlURL string
+
+	// CtrlToken is the Bearer token for CTRL service authentication
+	CtrlToken string
+
 	// --- pprof configuration ---
 
 	// PprofEnabled controls whether the pprof profiling endpoints are available

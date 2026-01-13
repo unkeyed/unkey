@@ -10,6 +10,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/cache/v1:cache",
+        "//gen/proto/ctrl/v1/ctrlv1connect",
         "//internal/services/analytics",
         "//internal/services/auditlogs",
         "//internal/services/caches",
@@ -27,6 +28,7 @@ go_library(
         "//pkg/otel/logging",
         "//pkg/prometheus",
         "//pkg/rbac",
+        "//pkg/rpc/interceptor",
         "//pkg/shutdown",
         "//pkg/tls",
         "//pkg/vault",
@@ -35,6 +37,7 @@ go_library(
         "//pkg/zen",
         "//pkg/zen/validation",
         "//svc/api/routes",
+        "@com_connectrpc_connect//:connect",
     ],
 )
 

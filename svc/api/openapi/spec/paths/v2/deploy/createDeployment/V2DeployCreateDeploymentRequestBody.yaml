@@ -1,0 +1,32 @@
+allOf:
+  - type: object
+    required:
+      - projectId
+      - branch
+      - environmentSlug
+    properties:
+      projectId:
+        type: string
+        minLength: 1
+        description: Unkey project ID
+        example: "proj_123abc"
+      keyspaceId:
+        type: string
+        description: Optional keyspace ID for authentication context
+        example: "key_abc123"
+      branch:
+        type: string
+        minLength: 1
+        description: Git branch name
+        example: "main"
+      environmentSlug:
+        type: string
+        minLength: 1
+        description: Environment slug (e.g., "production", "staging")
+        example: "production"
+      gitCommit:
+        $ref: "./V2DeployGitCommit.yaml"
+    oneOf:
+      - $ref: "./V2DeployBuildSource.yaml"
+      - $ref: "./V2DeployImageSource.yaml"
+    description: Deployment source - either build from source or use prebuilt image
