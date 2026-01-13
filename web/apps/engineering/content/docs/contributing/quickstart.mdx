@@ -183,6 +183,47 @@ AUTH_PROVIDER="local"
 
 ## Common Development Tasks
 
+### Running the Unkey CLI
+
+Use `make unkey` to run any CLI command with your local `.env` file loaded:
+
+```bash
+# General syntax
+make unkey <command> [subcommands...]
+
+# Run services
+make unkey run api                    # API server
+make unkey run ctrl                   # Control plane service
+make unkey run krane                  # K8s management service
+make unkey run frontline              # Multi-tenant frontline server
+make unkey run sentinel               # Deployment proxy
+make unkey run preflight              # Pod mutation webhook
+
+# Seed data
+make unkey dev seed local             # Seed local development data
+make unkey dev seed verifications     # Seed verification events
+```
+
+For commands that need flags with `--`, use the `ARGS` variable:
+
+```bash
+make unkey run api ARGS="--http-port=7071"
+```
+
+### Seeding Local Data
+
+Before running services locally, seed your database with test data:
+
+```bash
+# Start the database
+make up
+
+# Seed workspace, API, and root key for local development
+make unkey dev seed local
+```
+
+This creates everything you need to start making API requests locally.
+
 ### Testing
 
 ```bash

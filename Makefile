@@ -88,7 +88,7 @@ generate: generate-sql ## Generate code from protobuf and other sources
 .PHONY: test
 test: ## Run tests with bazel
 	docker compose -f ./dev/docker-compose.yaml up -d mysql clickhouse s3 kafka --wait
-	bazel test //...
+	bazel test //... --test_output=errors
 	make clean-docker-test
 
 .PHONY: clean-docker-test
@@ -111,3 +111,13 @@ down: ## Stop dev environment
 .PHONY: local-dashboard
 local-dashboard: install build ## Run local development setup for dashboard
 	pnpm --dir=web/apps/dashboard local
+
+.PHONY: unkey
+unkey: ## Run unkey CLI (usage: make unkey dev seed local, make unkey run api ARGS="--http-port=7070")
+	@set -a; [ -f .env ] && . ./.env; set +a; bazel run //:unkey -- $(filter-out unkey,$(MAKECMDGOALS)) $(ARGS)
+
+# Catch-all to swallow extra args passed to unkey target (only when unkey is called)
+ifneq ($(filter unkey,$(MAKECMDGOALS)),)
+%:
+	@:
+endif
