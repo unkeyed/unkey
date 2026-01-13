@@ -759,8 +759,8 @@ type V2DeployGenerateUploadUrlResponseBody struct {
 
 // V2DeployGenerateUploadUrlResponseData defines model for V2DeployGenerateUploadUrlResponseData.
 type V2DeployGenerateUploadUrlResponseData struct {
-	// BuildContextPath S3 key to reference in subsequent CreateBuild requests
-	BuildContextPath string `json:"buildContextPath"`
+	// Context S3 path to use in the createDeployment request when building from source
+	Context string `json:"context"`
 
 	// ExpiresIn Number of seconds until the upload URL expires
 	ExpiresIn int64 `json:"expiresIn"`

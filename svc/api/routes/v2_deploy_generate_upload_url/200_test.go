@@ -71,7 +71,7 @@ func TestGenerateUploadUrlSuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.Data.UploadUrl, "upload URL should not be empty")
-		require.NotEmpty(t, res.Body.Data.BuildContextPath, "build context path should not be empty")
+		require.NotEmpty(t, res.Body.Data.Context, "build context path should not be empty")
 		require.Greater(t, res.Body.Data.ExpiresIn, int64(0), "expires_in should be positive")
 	})
 }

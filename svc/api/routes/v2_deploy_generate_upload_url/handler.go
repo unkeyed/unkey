@@ -56,7 +56,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// nolint: exhaustruct // optional proto fields, only setting whats provided
 	ctrlReq := &ctrlv1.GenerateUploadURLRequest{
 		UnkeyProjectId: req.ProjectId,
 	}
@@ -73,9 +72,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.V2DeployGenerateUploadUrlResponseData{
-			UploadUrl:        ctrlResp.Msg.GetUploadUrl(),
-			BuildContextPath: ctrlResp.Msg.GetBuildContextPath(),
-			ExpiresIn:        ctrlResp.Msg.GetExpiresIn(),
+			UploadUrl: ctrlResp.Msg.GetUploadUrl(),
+			Context:   ctrlResp.Msg.GetBuildContextPath(),
+			ExpiresIn: ctrlResp.Msg.GetExpiresIn(),
 		},
 	})
 }

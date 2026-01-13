@@ -1,7 +1,7 @@
 type: object
 required:
   - uploadUrl
-  - buildContextPath
+  - context
   - expiresIn
 properties:
   uploadUrl:
@@ -11,7 +11,7 @@ properties:
   context:
     type: string
     description: S3 path to use in the createDeployment request when building from source
-    example: "builds/proj_123abc/ctx_456def.tar.gz"
+    example: "proj_123abc/ctx_456def.tar.gz"
   expiresIn:
     type: integer
     format: int64
