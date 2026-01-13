@@ -8,9 +8,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/internal/services/keys"
-	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
@@ -47,13 +45,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
-	}
-
-	if req.ProjectId == "" {
-		return fault.New("projectId is required",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Public("projectId is required."),
-		)
 	}
 
 	ctrlReq := &ctrlv1.GenerateUploadURLRequest{
