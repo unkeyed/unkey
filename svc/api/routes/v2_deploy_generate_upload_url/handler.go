@@ -65,7 +65,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Data: openapi.V2DeployGenerateUploadUrlResponseData{
 			UploadUrl: ctrlResp.Msg.GetUploadUrl(),
 			Context:   ctrlResp.Msg.GetBuildContextPath(),
-			ExpiresIn: ctrlResp.Msg.GetExpiresIn(),
 		},
 	})
 }

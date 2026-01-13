@@ -762,9 +762,6 @@ type V2DeployGenerateUploadUrlResponseData struct {
 	// Context S3 path to use in the createDeployment request when building from source
 	Context string `json:"context"`
 
-	// ExpiresIn Number of seconds until the upload URL expires
-	ExpiresIn int64 `json:"expiresIn"`
-
 	// UploadUrl Presigned PUT URL for uploading the build context tar file
 	UploadUrl string `json:"uploadUrl"`
 }

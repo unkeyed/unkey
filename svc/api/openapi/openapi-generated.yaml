@@ -2646,11 +2646,6 @@ components:
                     type: string
                     description: S3 path to use in the createDeployment request when building from source
                     example: "proj_123abc/ctx_456def.tar.gz"
-                expiresIn:
-                    type: integer
-                    format: int64
-                    description: Number of seconds until the upload URL expires
-                    example: 3600
         RatelimitRequest:
             type: object
             required:
