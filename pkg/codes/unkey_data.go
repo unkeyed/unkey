@@ -32,6 +32,12 @@ type dataKeySpace struct {
 	NotFound Code
 }
 
+// dataProject defines errors related to project operations.
+type dataProject struct {
+	// NotFound indicates the requested project was not found.
+	NotFound Code
+}
+
 // dataPermission defines errors related to permission operations.
 type dataPermission struct {
 	// Duplicate indicates the requested permission already exists.
@@ -101,6 +107,7 @@ type UnkeyDataErrors struct {
 	Key                dataKey
 	Workspace          dataWorkspace
 	Api                dataApi
+	Project            dataProject
 	Migration          dataMigration
 	KeySpace           dataKeySpace
 	Permission         dataPermission
@@ -135,6 +142,10 @@ var Data = UnkeyDataErrors{
 
 	KeySpace: dataKeySpace{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "key_space_not_found"},
+	},
+
+	Project: dataProject{
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "project_not_found"},
 	},
 
 	Permission: dataPermission{

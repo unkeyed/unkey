@@ -1,0 +1,8 @@
+type: object
+required:
+  - deploymentId
+properties:
+  deploymentId:
+    type: string
+    description: Unique deployment identifier
+    example: "dep_abc123xyz"

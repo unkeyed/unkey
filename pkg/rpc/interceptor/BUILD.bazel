@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "interceptor",
+    srcs = ["header.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/rpc/interceptor",
+    visibility = ["//visibility:public"],
+    deps = ["@com_connectrpc_connect//:connect"],
+)

@@ -1,0 +1,10 @@
+load("@rules_go//go:def.bzl", "go_test")
+
+go_test(
+    name = "usagelimit_nodes05_credits0100_cost01_load00_90_duration030_test",
+    srcs = ["generated_test.go"],
+    deps = [
+        "//svc/api/integration",
+        "//svc/api/integration/multi_node_usagelimiting",
+    ],
+)

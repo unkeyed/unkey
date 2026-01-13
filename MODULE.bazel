@@ -8,6 +8,7 @@ go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
 # Download an SDK for the host OS & architecture as well as common remote execution
 # platforms, using the version given from the `go.mod` file.
 go_sdk.from_file(go_mod = "//:go.mod")
+go_sdk.nogo(nogo = "//:my_nogo")
 
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
@@ -43,6 +44,7 @@ use_repo(
     "com_github_moby_buildkit",
     "com_github_oapi_codegen_nullable",
     "com_github_oapi_codegen_oapi_codegen_v2",
+    "com_github_oapi_codegen_runtime",
     "com_github_oasdiff_oasdiff",
     "com_github_opencontainers_go_digest",
     "com_github_pb33f_libopenapi",
