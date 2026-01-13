@@ -247,10 +247,10 @@ func TestMemory_ConcurrentAccess(t *testing.T) {
 				// Randomly put or get
 				if j%2 == 0 {
 					err := store.PutObject(ctx, key, data)
-					require.NoError(t, err)
+					assert.NoError(t, err)
 				} else {
 					_, _, err := store.GetObject(ctx, key)
-					require.NoError(t, err)
+					assert.NoError(t, err)
 				}
 			}
 		}()
