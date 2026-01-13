@@ -96,46 +96,6 @@ export const createRootKey = workspaceProcedure
           },
         });
 
-        let identityId: string | undefined = undefined;
-        await tx.query.identities
-          .findFirst({
-            where: (table, { eq }) =>
-              and(eq(table.workspaceId, ctx.workspace.id), eq(table.externalId, ctx.user.id)),
-          })
-          .then((res) => {
-            if (res) {
-              identityId = res.id;
-            }
-          });
-
-        if (!identityId) {
-          identityId = newId("identity");
-          await tx.insert(schema.identities).values({
-            id: identityId,
-            workspaceId: ctx.workspace.id,
-            externalId: ctx.user.id,
-          });
-
-          auditLogs.push({
-            workspaceId: ctx.workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "identity.create",
-            description: `Created ${identityId}`,
-            resources: [
-              {
-                type: "identity",
-                id: identityId,
-              },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
-          });
-        }
-
-        await tx.update(schema.keys).set({ identityId }).where(eq(schema.keys.id, keyId));
-
         const { permissions, auditLogs: createPermissionLogs } = await upsertPermissions(
           ctx,
           env().UNKEY_WORKSPACE_ID,
