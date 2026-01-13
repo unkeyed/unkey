@@ -112,10 +112,10 @@ down: ## Stop dev environment
 local-dashboard: install build ## Run local development setup for dashboard
 	pnpm --dir=web/apps/dashboard local
 
-.PHONY: local-run
-local-run: ## Run local service (usage: make local-run svc=api ARGS="--http-port=7070")
-	@set -a; [ -f .env ] && . ./.env; set +a; bazel run //:unkey -- run $(svc) $(ARGS)
+.PHONY: unkey
+unkey: ## Run unkey CLI (usage: make unkey dev seed local, make unkey run api ARGS="--http-port=7070")
+	@set -a; [ -f .env ] && . ./.env; set +a; bazel run //:unkey -- $(filter-out unkey,$(MAKECMDGOALS)) $(ARGS)
 
-.PHONY: local-inject
-local-inject: ## Run inject command (usage: make local-inject ARGS="--whatever")
-	@bazel run //cmd/inject:inject -- $(ARGS)
+# Catch-all to swallow extra args
+%:
+	@:
