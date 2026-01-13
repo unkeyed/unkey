@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/db"
 )
 
 func (s *Depot) GenerateUploadURL(
@@ -18,6 +19,17 @@ func (s *Depot) GenerateUploadURL(
 	if unkeyProjectID == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("unkeyProjectID is required"))
+	}
+
+	// This ensures the project exists. Without this check, callers could provide
+	// arbitrary projectIds and generate unlimited upload URLs.
+	_, err := db.Query.FindProjectById(ctx, s.db.RO(), unkeyProjectID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound,
+				fmt.Errorf("project not found: %s", unkeyProjectID))
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	// Generate unique S3 key for this build context

@@ -1,0 +1,19 @@
+type: object
+required:
+  - uploadUrl
+  - buildContextPath
+  - expiresIn
+properties:
+  uploadUrl:
+    type: string
+    description: Presigned PUT URL for uploading the build context tar file
+    example: "https://s3.amazonaws.com/bucket/path?signature=..."
+  context:
+    type: string
+    description: S3 path to use in the createDeployment request when building from source
+    example: "builds/proj_123abc/ctx_456def.tar.gz"
+  expiresIn:
+    type: integer
+    format: int64
+    description: Number of seconds until the upload URL expires
+    example: 3600

@@ -429,6 +429,26 @@ components:
                     $ref: "#/components/schemas/Meta"
                 data:
                     $ref: "#/components/schemas/V2DeployCreateDeploymentResponseData"
+        V2DeployGenerateUploadUrlRequestBody:
+            type: object
+            required:
+                - projectId
+            properties:
+                projectId:
+                    type: string
+                    minLength: 1
+                    description: Unkey project ID for which to generate the upload URL
+                    example: "proj_123abc"
+        V2DeployGenerateUploadUrlResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2DeployGenerateUploadUrlResponseData"
         V2IdentitiesCreateIdentityRequestBody:
             type: object
             required:
@@ -2611,6 +2631,26 @@ components:
                     type: string
                     description: Unique deployment identifier
                     example: "dep_abc123xyz"
+        V2DeployGenerateUploadUrlResponseData:
+            type: object
+            required:
+                - uploadUrl
+                - buildContextPath
+                - expiresIn
+            properties:
+                uploadUrl:
+                    type: string
+                    description: Presigned PUT URL for uploading the build context tar file
+                    example: "https://s3.amazonaws.com/bucket/path?signature=..."
+                buildContextPath:
+                    type: string
+                    description: S3 key to reference in subsequent CreateBuild requests
+                    example: "builds/proj_123abc/ctx_456def.tar.gz"
+                expiresIn:
+                    type: integer
+                    format: int64
+                    description: Number of seconds until the upload URL expires
+                    example: 3600
         RatelimitRequest:
             type: object
             required:
@@ -4204,6 +4244,56 @@ paths:
             tags:
                 - deploy
             x-speakeasy-name-override: createDeployment
+    /v2/deploy.generateUploadUrl:
+        post:
+            description: |
+                Generates a presigned S3 URL for uploading build context archives.
+
+                **Authentication**: Requires a valid root key with appropriate permissions.
+            operationId: generateUploadUrl
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2DeployGenerateUploadUrlRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2DeployGenerateUploadUrlResponseBody'
+                    description: Upload URL generated successfully
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Generate upload URL
+            tags:
+                - deploy
+            x-speakeasy-name-override: generateUploadUrl
     /v2/identities.createIdentity:
         post:
             description: |
