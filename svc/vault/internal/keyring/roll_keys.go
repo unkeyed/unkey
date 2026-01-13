@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/vault/storage"
+	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 )
 
 func (k *Keyring) RollKeys(ctx context.Context, ringID string) error {

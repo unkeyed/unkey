@@ -11,7 +11,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/fuzz"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/vault/storage"
+	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	"google.golang.org/protobuf/proto"
 )
 

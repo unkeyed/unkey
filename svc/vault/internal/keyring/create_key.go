@@ -7,7 +7,7 @@ import (
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/vault/keys"
+	"github.com/unkeyed/unkey/svc/vault/internal/keys"
 )
 
 func (k *Keyring) CreateKey(ctx context.Context, ringID string) (*vaultv1.DataEncryptionKey, error) {

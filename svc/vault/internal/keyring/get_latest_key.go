@@ -7,7 +7,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 
-	"github.com/unkeyed/unkey/pkg/vault/storage"
+	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 )
 
 // GetLatestKey returns the latest key from the keyring. If no key is found, it creates a new key.

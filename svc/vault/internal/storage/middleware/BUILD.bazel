@@ -7,7 +7,7 @@ go_library(
     visibility = ["//svc/vault:__subpackages__"],
     deps = [
         "//pkg/otel/tracing",
-        "//pkg/vault/storage",
+        "//svc/vault/internal/storage",
         "@io_opentelemetry_go_otel//attribute",
         "@io_opentelemetry_go_otel//codes",
     ],
