@@ -4,7 +4,10 @@ import { mapSchemaGranularity } from "@/components/logs/utils";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useMemo } from "react";
-import { identityDetailsFilterFieldConfig, type IdentityDetailsFilterValue } from "../../../../filters.schema";
+import {
+  type IdentityDetailsFilterValue,
+  identityDetailsFilterFieldConfig,
+} from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import type { IdentityQueryTimeseriesPayload } from "../query-timeseries.schema";
 

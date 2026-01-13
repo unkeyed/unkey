@@ -1,5 +1,5 @@
-import { Navigation } from "./navigation";
 import { IdentityDetailsLogsClient } from "./logs-client";
+import { Navigation } from "./navigation";
 
 export default function IdentityDetailsPage(props: {
   params: { identityId: string };

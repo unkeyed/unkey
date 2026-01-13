@@ -1,5 +1,5 @@
 import type { UnkeyAuditLog } from "@/lib/audit";
-import { and, db, eq, schema } from "@/lib/db";
+import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";

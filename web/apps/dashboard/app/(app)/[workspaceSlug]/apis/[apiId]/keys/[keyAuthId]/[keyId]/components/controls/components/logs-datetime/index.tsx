@@ -19,7 +19,7 @@ export const LogsDateTime = () => {
   // Sync title with filters - reset to default when time filters are removed
   useEffect(() => {
     const hasTimeFilters = filters.some((f) => ["startTime", "endTime", "since"].includes(f.field));
-    
+
     if (!hasTimeFilters && title !== "Last 12 hours") {
       setTitle("Last 12 hours");
     }

@@ -7,7 +7,7 @@ import {
 } from "@/components/logs/controls-container";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { Key, User } from "@unkey/icons";
+import { Key } from "@unkey/icons";
 import { Separator } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
 import { LogsDateTime } from "./components/logs-datetime";
@@ -21,17 +21,16 @@ export function IdentityDetailsLogsControls({
 }: {
   identityId: string;
 }) {
-  const { data: identity, error, isLoading } = trpc.identity.getById.useQuery({
+  const {
+    data: identity,
+    error,
+    isLoading,
+  } = trpc.identity.getById.useQuery({
     identityId,
   });
 
   // Calculate aggregate statistics
   const totalKeys = identity?.keys?.length ?? 0;
-  const totalRemainingCredits = identity?.keys?.reduce((sum, key) => {
-    // Note: We'll need to fetch remaining credits for each key
-    // For now, we'll show the key count
-    return sum;
-  }, 0) ?? 0;
 
   const hasKeys = totalKeys > 0 && !isLoading && !error;
 

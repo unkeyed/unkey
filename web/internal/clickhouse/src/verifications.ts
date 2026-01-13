@@ -911,10 +911,7 @@ function getIdentityTimeseriesWhereClause(
   params: IdentityTimeseriesParams,
   additionalConditions: string[] = [],
 ): { whereClause: string; paramSchema: z.ZodType<unknown> } {
-  const conditions = [
-    "workspace_id = {workspaceId: String}",
-    ...additionalConditions,
-  ];
+  const conditions = ["workspace_id = {workspaceId: String}", ...additionalConditions];
 
   // Create parameter schema extension
   const paramSchemaExtension: Record<string, z.ZodType> = {};
@@ -922,7 +919,7 @@ function getIdentityTimeseriesWhereClause(
   // Build keyIds condition - this is the key difference from regular verification timeseries
   if (params.keyIds && params.keyIds.length > 0) {
     const keyIdConditions = params.keyIds
-      .map((keyId, index) => {
+      .map((_keyId, index) => {
         const paramName = `keyId_${index}`;
         paramSchemaExtension[paramName] = z.string();
         return `key_id = {${paramName}: String}`;
@@ -1001,14 +998,14 @@ function createIdentityTimeseriesQuerier(interval: TimeInterval) {
     // Create parameters object with filter values
     const parameters: ExtendedParamsIdentityTimeseries = {
       ...args,
-      ...(args.keyIds.reduce(
+      ...args.keyIds.reduce(
         (acc, keyId, index) => ({
           // biome-ignore lint/performance/noAccumulatingSpread: We don't care about the spread syntax warning here
           ...acc,
           [`keyId_${index}`]: keyId,
         }),
         {},
-      )),
+      ),
       ...(args.tags?.reduce(
         (acc, filter, index) => ({
           // biome-ignore lint/performance/noAccumulatingSpread: We don't care about the spread syntax warning here
@@ -1037,14 +1034,22 @@ function createIdentityTimeseriesQuerier(interval: TimeInterval) {
 
 // Identity timeseries functions for all granularities
 export const getMinutelyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.minute);
-export const getFiveMinutelyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.fiveMinutes);
-export const getFifteenMinutelyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.fifteenMinutes);
-export const getThirtyMinutelyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.thirtyMinutes);
+export const getFiveMinutelyIdentityTimeseries = createIdentityTimeseriesQuerier(
+  INTERVALS.fiveMinutes,
+);
+export const getFifteenMinutelyIdentityTimeseries = createIdentityTimeseriesQuerier(
+  INTERVALS.fifteenMinutes,
+);
+export const getThirtyMinutelyIdentityTimeseries = createIdentityTimeseriesQuerier(
+  INTERVALS.thirtyMinutes,
+);
 export const getHourlyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.hour);
 export const getTwoHourlyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.twoHours);
 export const getFourHourlyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.fourHours);
 export const getSixHourlyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.sixHours);
-export const getTwelveHourlyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.twelveHours);
+export const getTwelveHourlyIdentityTimeseries = createIdentityTimeseriesQuerier(
+  INTERVALS.twelveHours,
+);
 export const getDailyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.day);
 export const getThreeDayIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.threeDays);
 export const getWeeklyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.week);

@@ -1,10 +1,9 @@
-import { identityLogsPayload } from "./query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
-import { db, isNull } from "@/lib/db";
+import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { z } from "zod";
+import { identityLogsPayload } from "./query-logs.schema";
 import { transformIdentityLogsFilters } from "./utils";
 
 // Extended log type that includes key identification
@@ -138,7 +137,10 @@ export const queryIdentityLogs = workspaceProcedure
       logs: enrichedLogs,
       total: result.totalCount,
       hasMore: enrichedLogs.length === input.limit,
-      nextCursor: enrichedLogs.length === input.limit ? enrichedLogs[enrichedLogs.length - 1]?.time : undefined,
+      nextCursor:
+        enrichedLogs.length === input.limit
+          ? enrichedLogs[enrichedLogs.length - 1]?.time
+          : undefined,
     };
 
     return response;

@@ -41,7 +41,7 @@ export const SCHEMA_GRANULARITY_MAP: Record<string, TimeseriesGranularity> = {
  */
 export const mapSchemaGranularity = (
   schemaGranularity: string,
-  fallback: TimeseriesGranularity = "perHour"
+  fallback: TimeseriesGranularity = "perHour",
 ): TimeseriesGranularity => {
   return SCHEMA_GRANULARITY_MAP[schemaGranularity] || fallback;
 };

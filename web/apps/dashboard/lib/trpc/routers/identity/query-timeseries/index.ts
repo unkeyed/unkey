@@ -1,12 +1,12 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { db, isNull } from "@/lib/db";
+import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { getTimestampFromRelative } from "@/lib/utils";
 import { TRPCError } from "@trpc/server";
-import type { VerificationTimeseriesDataPoint } from "@unkey/clickhouse/src/verifications";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
+import type { VerificationTimeseriesDataPoint } from "@unkey/clickhouse/src/verifications";
 import { z } from "zod";
-import { 
+import {
   type TimeseriesConfig,
   type TimeseriesGranularity,
   getTimeseriesGranularity,
@@ -19,12 +19,12 @@ export const identityTimeseriesPayload = z.object({
   endTime: z.number().int(),
   granularity: z.enum([
     "minute",
-    "fiveMinutes", 
+    "fiveMinutes",
     "fifteenMinutes",
     "thirtyMinutes",
     "hour",
     "twoHours",
-    "fourHours", 
+    "fourHours",
     "sixHours",
     "twelveHours",
     "day",
@@ -58,12 +58,12 @@ const identityTimeseriesResponse = z.object({
   timeseries: z.array(z.custom<VerificationTimeseriesDataPoint>()),
   granularity: z.enum([
     "perMinute",
-    "per5Minutes", 
+    "per5Minutes",
     "per15Minutes",
     "per30Minutes",
     "perHour",
     "per2Hours",
-    "per4Hours", 
+    "per4Hours",
     "per6Hours",
     "per12Hours",
     "perDay",
@@ -132,7 +132,7 @@ export const queryIdentityTimeseries = workspaceProcedure
 
     // Handle time conversion - similar to transformVerificationFilters
     let timeConfig: TimeseriesConfig<"forVerifications">;
-    
+
     if (input.since && input.since !== "") {
       const startTime = getTimestampFromRelative(input.since);
       const endTime = Date.now();
@@ -140,10 +140,10 @@ export const queryIdentityTimeseries = workspaceProcedure
     } else {
       timeConfig = getTimeseriesGranularity("forVerifications", input.startTime, input.endTime);
     }
-    
+
     // Prepare parameters for identity timeseries query
     const keyIds = identity.keys.map((key) => key.id);
-    
+
     const timeseriesParams = {
       workspaceId: identity.workspace.id,
       keyIds, // Array of key IDs for identity aggregation across keyspaces
@@ -154,7 +154,9 @@ export const queryIdentityTimeseries = workspaceProcedure
     };
 
     // Query ClickHouse using identity timeseries functions
-    let result;
+    let result: Awaited<
+      ReturnType<typeof clickhouse.api.identity.timeseries.getMinutelyIdentityTimeseries>
+    >;
     try {
       // Map TimeseriesGranularity back to input granularity for the switch statement
       const granularityMap: Record<TimeseriesGranularity, string> = {
@@ -173,9 +175,9 @@ export const queryIdentityTimeseries = workspaceProcedure
         perMonth: "month",
         perQuarter: "quarter",
       };
-      
+
       const mappedGranularity = granularityMap[timeConfig.granularity];
-      
+
       // Use the new identity timeseries functions that don't require keyspaceId
       switch (mappedGranularity) {
         case "minute":

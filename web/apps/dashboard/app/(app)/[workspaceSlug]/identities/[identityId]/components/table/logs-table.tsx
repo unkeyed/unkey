@@ -1,32 +1,32 @@
 "use client";
+import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/table/components/status-badge";
+import {
+  STATUS_STYLES,
+  type StatusStyle,
+  categorizeSeverity,
+} from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/table/logs-table";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
+import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
 import { cn } from "@/lib/utils";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
 import {
   Ban,
   BookBookmark,
   CircleCheck,
+  Key,
   Lock,
   ShieldKey,
   TimeClock,
   TriangleWarning2,
-  Key,
 } from "@unkey/icons";
 import { Badge, Button, CopyButton, Empty, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import { useCallback, useState } from "react";
 import { useIdentityDetailsLogsContext } from "../../context/logs";
-import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/table/components/status-badge";
 import { useIdentityLogsQuery } from "./hooks/use-logs-query";
-import {
-  STATUS_STYLES,
-  categorizeSeverity,
-  type StatusStyle,
-} from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/table/logs-table";
 
 type LogOutcomeType = (typeof KEY_VERIFICATION_OUTCOMES)[number];
 type LogOutcomeInfo = {
@@ -436,8 +436,8 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
               <Empty.Icon className="w-auto" />
               <Empty.Title>Identity Verification Logs</Empty.Title>
               <Empty.Description className="text-left">
-                No verification logs found for this identity. When API keys belonging to this identity are used, details about
-                each verification attempt will appear here.
+                No verification logs found for this identity. When API keys belonging to this
+                identity are used, details about each verification attempt will appear here.
               </Empty.Description>
               <Empty.Actions className="mt-4 justify-center md:justify-start">
                 <a

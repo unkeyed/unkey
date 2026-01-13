@@ -1,9 +1,9 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
+import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
 import { identityDetailsFilterFieldConfig } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
 import type { IdentityLogsPayload } from "../query-logs.schema";
@@ -22,9 +22,7 @@ export const useIdentityLogsQuery = ({
   startPolling = false,
   pollIntervalMs = 2000,
 }: UseIdentityLogsQueryProps) => {
-  const [historicalLogsMap, setHistoricalLogsMap] = useState(
-    () => new Map<string, IdentityLog>(),
-  );
+  const [historicalLogsMap, setHistoricalLogsMap] = useState(() => new Map<string, IdentityLog>());
   const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, IdentityLog>());
   const [totalCount, setTotalCount] = useState(0);
 
@@ -111,16 +109,9 @@ export const useIdentityLogsQuery = ({
   }, [filters, timestamp, identityId]);
 
   // Main query for historical data
-  const {
-    data,
-    isLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = trpc.identity.logs.query.useInfiniteQuery(
-    queryParams,
-    {
-      getNextPageParam: (lastPage: any) => lastPage.nextCursor,
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    trpc.identity.logs.query.useInfiniteQuery(queryParams, {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
       refetchInterval: false,
       staleTime: Number.POSITIVE_INFINITY,
       refetchOnMount: false,
@@ -130,8 +121,7 @@ export const useIdentityLogsQuery = ({
           skipBatch: true,
         },
       },
-    },
-  );
+    });
 
   // Query for new logs (polling)
   const pollForNewLogs = useCallback(async () => {
@@ -176,14 +166,7 @@ export const useIdentityLogsQuery = ({
     } catch (error) {
       console.error("Error polling for new identity logs:", error);
     }
-  }, [
-    queryParams,
-    queryClient,
-    pollIntervalMs,
-    historicalLogsMap,
-    realtimeLogs,
-    historicalLogs,
-  ]);
+  }, [queryParams, queryClient, pollIntervalMs, historicalLogsMap, realtimeLogs, historicalLogs]);
 
   // Set up polling effect
   useEffect(() => {

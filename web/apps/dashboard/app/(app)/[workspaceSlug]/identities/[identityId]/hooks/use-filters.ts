@@ -1,6 +1,6 @@
+import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
-import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type { IdentityDetailsFilterValue } from "../filters.schema";
 
 // Define parsers for each filter type
@@ -29,7 +29,12 @@ export const useFilters = () => {
       });
     }
 
-    if (searchParams.outcomes && KEY_VERIFICATION_OUTCOMES.includes(searchParams.outcomes as any)) {
+    if (
+      searchParams.outcomes &&
+      KEY_VERIFICATION_OUTCOMES.includes(
+        searchParams.outcomes as (typeof KEY_VERIFICATION_OUTCOMES)[number],
+      )
+    ) {
       activeFilters.push({
         id: crypto.randomUUID(),
         field: "outcomes",

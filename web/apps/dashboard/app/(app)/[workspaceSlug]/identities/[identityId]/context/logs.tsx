@@ -31,7 +31,9 @@ export const IdentityDetailsLogsProvider = ({ children }: PropsWithChildren) => 
 export const useIdentityDetailsLogsContext = () => {
   const context = useContext(IdentityDetailsLogsContext);
   if (!context) {
-    throw new Error("useIdentityDetailsLogsContext must be used within an IdentityDetailsLogsProvider");
+    throw new Error(
+      "useIdentityDetailsLogsContext must be used within an IdentityDetailsLogsProvider",
+    );
   }
   return context;
 };

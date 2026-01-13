@@ -1,8 +1,11 @@
+import { createOutcomeChartConfig } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/charts/bar-chart/utils";
 import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
-import { getTimeBufferForGranularity, type TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
+import {
+  type TimeseriesGranularity,
+  getTimeBufferForGranularity,
+} from "@/lib/trpc/routers/utils/granularity";
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchIdentityTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
-import { createOutcomeChartConfig } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/charts/bar-chart/utils";
 
 export const IdentityDetailsLogsChart = ({
   identityId,
@@ -37,7 +40,7 @@ export const IdentityDetailsLogsChart = ({
     month: "perMonth",
     quarter: "perQuarter",
   };
-  
+
   const mappedGranularity = granularity ? granularityMap[granularity] : undefined;
 
   const handleSelectionChange = ({
