@@ -42,21 +42,13 @@ func (r *Reconciler) watchCurrentSentinels(ctx context.Context) error {
 			switch event.Type {
 			case watch.Error:
 				r.logger.Error("error watching sentinel", "event", event.Object)
-				continue
 			case watch.Bookmark:
-				continue
-			case watch.Added, watch.Modified, watch.Deleted:
-			}
-
-			sentinel, ok := event.Object.(*appsv1.Deployment)
-			if !ok {
-				r.logger.Error("unable to cast object to deployment")
-				continue
-			}
-
-			switch event.Type {
-			case watch.Bookmark, watch.Error:
 			case watch.Added, watch.Modified:
+				sentinel, ok := event.Object.(*appsv1.Deployment)
+				if !ok {
+					r.logger.Error("unable to cast object to deployment")
+					continue
+				}
 				r.logger.Info("sentinel added/modified", "name", sentinel.Name)
 				err := r.updateSentinelState(ctx, &ctrlv1.UpdateSentinelStateRequest{
 					K8SName:           sentinel.Name,
@@ -66,6 +58,11 @@ func (r *Reconciler) watchCurrentSentinels(ctx context.Context) error {
 					r.logger.Error("error updating sentinel state", "error", err.Error())
 				}
 			case watch.Deleted:
+				sentinel, ok := event.Object.(*appsv1.Deployment)
+				if !ok {
+					r.logger.Error("unable to cast object to deployment")
+					continue
+				}
 				r.logger.Info("sentinel deleted", "name", sentinel.Name)
 				err := r.updateSentinelState(ctx, &ctrlv1.UpdateSentinelStateRequest{
 					K8SName:           sentinel.Name,
