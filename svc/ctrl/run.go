@@ -400,6 +400,11 @@ func Run(ctx context.Context, cfg Config) error {
 	// Create the connect handler
 	mux := http.NewServeMux()
 
+	// Health check endpoint for load balancers and orchestrators
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
 	mux.Handle(ctrlv1connect.NewBuildServiceHandler(buildService))
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
 	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(deployment.Config{

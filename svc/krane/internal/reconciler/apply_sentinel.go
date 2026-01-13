@@ -125,6 +125,30 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 							ContainerPort: 8040,
 							Name:          "sentinel",
 						}},
+						LivenessProbe: &corev1.Probe{
+							ProbeHandler: corev1.ProbeHandler{
+								HTTPGet: &corev1.HTTPGetAction{
+									Path: "/_unkey/internal/health",
+									Port: intstr.FromInt(8040),
+								},
+							},
+							InitialDelaySeconds: 10,
+							PeriodSeconds:       10,
+							TimeoutSeconds:      5,
+							FailureThreshold:    3,
+						},
+						ReadinessProbe: &corev1.Probe{
+							ProbeHandler: corev1.ProbeHandler{
+								HTTPGet: &corev1.HTTPGetAction{
+									Path: "/_unkey/internal/health",
+									Port: intstr.FromInt(8040),
+								},
+							},
+							InitialDelaySeconds: 5,
+							PeriodSeconds:       5,
+							TimeoutSeconds:      3,
+							FailureThreshold:    2,
+						},
 						Resources: corev1.ResourceRequirements{
 							// nolint:exhaustive
 							//	Limits: corev1.ResourceList{

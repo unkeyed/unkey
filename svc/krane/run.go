@@ -130,6 +130,11 @@ func Run(ctx context.Context, cfg Config) error {
 	// Create the connect handler
 	mux := http.NewServeMux()
 
+	// Health check endpoint for load balancers and orchestrators
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
 	tokenValidator := token.NewK8sValidator(token.K8sValidatorConfig{
 		Clientset: clientset,
 	})
