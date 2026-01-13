@@ -1,5 +1,5 @@
 load("@gazelle//:def.bzl", "gazelle")
-load("@rules_go//go:def.bzl", "go_binary", "go_library")
+load("@rules_go//go:def.bzl", "TOOLS_NOGO", "go_binary", "go_library", "nogo")
 
 gazelle(name = "gazelle")
 
@@ -28,4 +28,10 @@ go_binary(
     embed = [":unkey_lib"],
     pure = "on",
     visibility = ["//visibility:public"],
+)
+
+nogo(
+    name = "my_nogo",
+    visibility = ["//visibility:public"],  # must have public visibility
+    deps = TOOLS_NOGO,
 )

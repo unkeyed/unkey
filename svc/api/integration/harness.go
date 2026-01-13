@@ -43,6 +43,7 @@ type Harness struct {
 	DB            db.Database
 	CH            clickhouse.ClickHouse
 	apiCluster    *ApiCluster
+	redisUrl      string
 }
 
 // Config contains configuration options for the test harness
@@ -94,6 +95,7 @@ func New(t *testing.T, config Config) *Harness {
 		DB:            db,
 		CH:            ch,
 		apiCluster:    nil, // Will be set later
+		redisUrl:      dockertest.Redis(t),
 	}
 
 	h.Seed.Seed(ctx)
@@ -137,7 +139,6 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		mysqlHostCfg := containers.MySQL(h.t)
 		mysqlHostCfg.DBName = "unkey" // Set the database name
 		clickhouseHostDSN := containers.ClickHouse(h.t)
-		redisHostAddr := dockertest.Redis(h.t)
 		kafkaBrokers := containers.Kafka(h.t)
 		apiConfig := api.Config{
 			CacheInvalidationTopic:  "",
@@ -151,7 +152,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			DatabaseReadonlyReplica: "",
 			ClickhouseURL:           clickhouseHostDSN,
 			ClickhouseAnalyticsURL:  "",
-			RedisUrl:                redisHostAddr,
+			RedisUrl:                h.redisUrl,
 			Region:                  "test",
 			InstanceID:              fmt.Sprintf("test-node-%d", i),
 			Clock:                   clock.New(),
