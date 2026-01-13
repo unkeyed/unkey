@@ -1,0 +1,351 @@
+---
+title: Unit Tests
+description: Writing effective unit tests with table-driven patterns
+---
+
+## The Table-Driven Pattern
+
+Go has a distinctive approach to testing that you won't find in most other languages: table-driven tests. Instead of writing separate test functions for each case, you define a slice of test cases and iterate through them. This pattern emerged from the Go standard library and has become idiomatic for good reason.
+
+```go
+func TestValidateEmail(t *testing.T) {
+    tests := []struct {
+        name    string
+        email   string
+        wantErr bool
+    }{
+        {name: "valid email", email: "user@example.com", wantErr: false},
+        {name: "missing @", email: "userexample.com", wantErr: true},
+        {name: "empty string", email: "", wantErr: true},
+        {name: "multiple @", email: "user@@example.com", wantErr: true},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            err := ValidateEmail(tt.email)
+            if tt.wantErr {
+                require.Error(t, err)
+            } else {
+                require.NoError(t, err)
+            }
+        })
+    }
+}
+```
+
+The power of this pattern becomes clear when you need to add a new test case. Instead of copying an entire test function and modifying it, you add a single struct to the slice. The test logic stays in one place, making it easy to verify that all cases are tested consistently.
+
+### When to Use Tables vs Individual Tests
+
+Table-driven tests work best when test cases share identical setup and verification logic, differing only in inputs and expected outputs. The email validation example above is a good fit: every case calls the same function and checks for an error.
+
+Use individual test functions when cases have substantially different setup, need distinct assertions, or when the test function name itself serves as valuable documentation. For example, testing a retry mechanism:
+
+```go
+// Individual tests work better here because each tests a distinct behavior
+func TestRetry_SucceedsOnFirstAttempt(t *testing.T) { ... }
+func TestRetry_RetriesUntilSuccess(t *testing.T) { ... }
+func TestRetry_RespectsContextCancellation(t *testing.T) { ... }
+```
+
+Forcing these into a table would require complex setup functions in the struct, making the test harder to read. The descriptive function names also make CI output more informative than generic table case names would be.
+
+A reasonable heuristic: if your table struct needs function fields for setup or custom assertions, consider whether individual tests would be clearer.
+
+The `t.Run()` call is essential. It creates a subtest with a name, which means test output shows exactly which case failed. You can also run a single case with `go test -run TestValidateEmail/empty_string`. Without `t.Run()`, you'd see a failure at some line number and have to count through the slice to figure out which case it was.
+
+## Naming Tests
+
+Test naming happens at two levels: the test function name and the individual test case names within table-driven tests. Both matter for understanding failures in CI output.
+
+### Test Function Names
+
+Name test functions as `Test<Type>_<Behavior>` or `Test<Function>_<Scenario>`. The name should describe what's being tested, not just label a group of tests.
+
+```go
+// Good: describes specific behavior
+func TestBuffer_DropsElementsWhenFull(t *testing.T)
+func TestValidateEmail_RejectsInvalidFormat(t *testing.T)
+func TestCache_ExpiresEntriesAfterTTL(t *testing.T)
+
+// Bad: generic groupings that don't describe behavior
+func TestBuffer_EdgeCases(t *testing.T)
+func TestValidation(t *testing.T)
+func TestMisc(t *testing.T)
+```
+
+Avoid grouping unrelated tests under generic names like `TestEdgeCases` or `TestHelpers`. If tests don't share setup or a common theme, they belong in separate functions. When a test function grows beyond 50-60 lines, consider whether it's doing too much.
+
+### Test Case Names
+
+The name field in your test struct is documentation. It should describe the scenario and, ideally, hint at the expected outcome. Someone reading the test output should understand what was being tested without looking at the code.
+
+```go
+// These names tell a story
+{name: "valid email is accepted", ...}
+{name: "missing domain is rejected", ...}
+{name: "unicode characters are allowed", ...}
+
+// These names tell you nothing
+{name: "test1", ...}
+{name: "email", ...}
+{name: "case 3", ...}
+```
+
+When a test fails in CI, you'll see something like `TestValidateEmail/missing_domain_is_rejected`. Good names make it possible to understand failures without context-switching into the code.
+
+## Parallel Execution
+
+Go can run subtests in parallel, which speeds up test suites and surfaces race conditions. Add `t.Parallel()` at the start of your subtest to opt in.
+
+```go
+for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+        t.Parallel()
+        
+        result := ProcessInput(tt.input)
+        require.Equal(t, tt.expected, result)
+    })
+}
+```
+
+There's a critical gotcha here that trips up everyone at least once. In the loop above, `tt` is captured by reference, meaning all parallel subtests might see the same value (the last one in the slice). Before Go 1.22, you needed to create a local copy:
+
+```go
+for _, tt := range tests {
+    tt := tt // Create local copy for closure
+    t.Run(tt.name, func(t *testing.T) {
+        t.Parallel()
+        // ...
+    })
+}
+```
+
+Go 1.22 changed loop variable semantics to fix this, but if you're maintaining older code or your muscle memory includes the copy, it doesn't hurt to keep it.
+
+### When to Use Parallel
+
+Not all tests should run in parallel. Use `t.Parallel()` when tests are pure computation with no shared state. Skip it when:
+
+- Tests share a database connection and mutate state
+- Tests start background goroutines that might interfere with each other
+- Tests depend on a specific sequence of operations
+- Tests use shared resources like file paths or network ports
+- Cleanup order matters (parallel subtests have unpredictable completion order)
+
+A good heuristic: if your test creates resources that need cleanup with `defer` or `t.Cleanup()`, think carefully about whether parallel execution is safe. Tests for a buffer that starts background goroutines, for instance, should probably run serially to avoid goroutine leaks or race conditions during cleanup.
+
+## Test Data
+
+Small test data belongs inline in the test file. There's no need to read from a file when a string literal will do:
+
+```go
+func TestParseConfig(t *testing.T) {
+    input := `{"timeout": "30s", "retries": 3}`
+    
+    cfg, err := ParseConfig(input)
+    require.NoError(t, err)
+    require.Equal(t, 30*time.Second, cfg.Timeout)
+}
+```
+
+For larger fixtures (JSON schemas, certificates, binary files) use a `testdata/` directory. Go tooling ignores this directory by convention, and Bazel can include it with a glob:
+
+```python
+go_test(
+    name = "parser_test",
+    srcs = ["parser_test.go"],
+    data = glob(["testdata/**"]),
+    deps = [":parser"],
+)
+```
+
+Read test data relative to the test file:
+
+```go
+func TestParseComplexConfig(t *testing.T) {
+    data, err := os.ReadFile("testdata/complex_config.json")
+    require.NoError(t, err)
+    
+    // ...
+}
+```
+
+## Unique Identifiers
+
+Tests that create resources need unique identifiers. Hardcoded IDs like `"user_123"` work fine for a single test, but cause collisions when tests run in parallel or when cleanup fails to run.
+
+```go
+import "github.com/unkeyed/unkey/pkg/uid"
+
+func TestCreateUser(t *testing.T) {
+    // Good: unique ID for each test run
+    userID := uid.New("test_user")
+    
+    // Bad: will collide with other tests
+    userID := "user_123"
+}
+```
+
+The `uid.New()` function generates a unique identifier with a prefix for readability. When you see `test_user_01HXYZ...` in logs or database rows, you know it came from a test.
+
+## Testing Time
+
+Functions that depend on time are notoriously hard to test. If your code calls `time.Now()` directly, you can't test expiration logic without actually waiting. Our `pkg/clock` package solves this with a test clock you can control.
+
+```go
+import "github.com/unkeyed/unkey/pkg/clock"
+
+func TestTokenExpiry(t *testing.T) {
+    // Start at a known time
+    clk := clock.NewTestClock(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
+    
+    token := NewToken(clk, 1*time.Hour)
+    require.False(t, token.IsExpired())
+    
+    // Advance time past expiry
+    clk.Tick(2 * time.Hour)
+    require.True(t, token.IsExpired())
+}
+```
+
+The code under test must accept a `clock.Clock` interface rather than calling `time.Now()` directly. This is a small price for deterministic tests that run in milliseconds instead of waiting for real time to pass.
+
+## Testing Errors
+
+Test both success and failure paths. Many bugs hide in error handling code that rarely executes in manual testing.
+
+```go
+func TestDivide(t *testing.T) {
+    tests := []struct {
+        name      string
+        a, b      int
+        want      int
+        wantErr   bool
+    }{
+        {name: "normal division", a: 10, b: 2, want: 5, wantErr: false},
+        {name: "division by zero", a: 10, b: 0, want: 0, wantErr: true},
+        {name: "negative numbers", a: -10, b: 2, want: -5, wantErr: false},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            got, err := Divide(tt.a, tt.b)
+            if tt.wantErr {
+                require.Error(t, err)
+                return
+            }
+            require.NoError(t, err)
+            require.Equal(t, tt.want, got)
+        })
+    }
+}
+```
+
+When testing specific error types, use `errors.Is()` or `errors.As()` rather than string matching:
+
+```go
+err := DoSomething()
+require.ErrorIs(t, err, ErrNotFound)
+```
+
+This works correctly even when errors are wrapped with additional context.
+
+## Testing Generic Functions
+
+Go generics let you write functions that work with multiple types, but you don't need to test every possible type parameter. The compiler ensures type safety, so exhaustive type testing has low value.
+
+Test generic functions with one or two representative types that exercise the actual logic:
+
+```go
+func TestMap_TransformsElements(t *testing.T) {
+    // Testing with int is sufficient; testing with string, float64, etc.
+    // would exercise the same code paths
+    input := []int{1, 2, 3}
+    result := Map(input, func(n int) int { return n * 2 })
+    require.Equal(t, []int{2, 4, 6}, result)
+}
+
+func TestDoWithResult_ReturnsValueOnSuccess(t *testing.T) {
+    r := NewRetry()
+    // One type is enough to verify the generic wrapper works
+    result, err := DoWithResult(r, func() (string, error) {
+        return "success", nil
+    })
+    require.NoError(t, err)
+    require.Equal(t, "success", result)
+}
+```
+
+Focus tests on the behavior of the generic function itself, not on proving that Go's type system works. If your generic function has type-specific behavior (like sorting, which behaves differently for strings vs numbers), test those specific cases.
+
+## Testing Background Goroutines
+
+Code that starts background goroutines presents a testing challenge. You need to verify that the goroutine does its job and that it stops cleanly when asked. Failing to test cleanup leads to goroutine leaks that accumulate across test runs.
+
+The key is making the stop mechanism observable. If your code uses a stop channel or context cancellation, test that calling the stop function actually terminates the goroutine:
+
+```go
+func TestWorker_StopsCleanly(t *testing.T) {
+    stopped := make(chan struct{})
+    
+    w := NewWorker(func() {
+        // Work happens here
+    }, func() {
+        close(stopped) // Signal when cleanup runs
+    })
+    
+    w.Start()
+    w.Stop()
+    
+    select {
+    case <-stopped:
+        // Cleanup ran
+    case <-time.After(time.Second):
+        t.Fatal("worker did not stop within timeout")
+    }
+}
+```
+
+For code that uses timers or tickers, inject a test clock rather than waiting for real time. Our `pkg/clock` package provides this. If the background goroutine runs every minute, you don't want your test to take a minute.
+
+```go
+func TestPeriodicJob_ExecutesOnSchedule(t *testing.T) {
+    clk := clock.NewTestClock()
+    execCount := 0
+    
+    job := NewPeriodicJob(clk, time.Minute, func() {
+        execCount++
+    })
+    defer job.Stop()
+    
+    // Advance time to trigger executions
+    clk.Advance(time.Minute)
+    require.Equal(t, 1, execCount)
+    
+    clk.Advance(time.Minute)
+    require.Equal(t, 2, execCount)
+}
+```
+
+When testing cleanup, verify that resources are actually released. A goroutine that ignores its stop signal is a leak that will eventually cause problems in production.
+
+## Bazel Configuration
+
+A typical unit test BUILD.bazel entry looks like this:
+
+```python
+go_test(
+    name = "validator_test",
+    size = "small",
+    srcs = ["validator_test.go"],
+    data = glob(["testdata/**"]),
+    deps = [
+        ":validator",
+        "//pkg/uid",
+        "@com_github_stretchr_testify//require",
+    ],
+)
+```
+
+The `size = "small"` declaration tells Bazel this test should complete in under 60 seconds and doesn't need external resources. If your test needs more time or resources, you probably need an integration test instead.

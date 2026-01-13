@@ -1,0 +1,211 @@
+---
+title: Integration Tests
+description: Testing components together with real dependencies
+---
+
+## Beyond Unit Tests
+
+Unit tests verify that individual functions work correctly in isolation. Integration tests verify that components work correctly together. The distinction matters because many bugs only appear at boundaries: when a database query returns unexpected data, when a cache expires at an inconvenient moment, when two services disagree about data formats.
+
+We invest heavily in integration tests because our system has many moving parts: MySQL for persistent storage, Redis for caching and rate limiting, ClickHouse for analytics, S3 for blob storage, Kafka for event streaming. Mocking all of these would give us fast tests that don't catch real problems. Instead, we run tests against real instances of these services in Docker containers.
+
+## Two Approaches to Containers
+
+We have two patterns for managing test containers, each suited to different situations.
+
+The `pkg/dockertest` package spins up fresh containers for each test. When you call `dockertest.Redis(t)`, it starts a new Redis instance, waits for it to be ready, and returns a connection string. When the test completes, the container is automatically removed. This gives you perfect isolation (no test can affect another) at the cost of startup time.
+
+```go
+import "github.com/unkeyed/unkey/pkg/dockertest"
+
+func TestRedisCaching(t *testing.T) {
+    redisURL := dockertest.Redis(t)
+    
+    client := redis.NewClient(&redis.Options{Addr: redisURL})
+    defer client.Close()
+    
+    // This Redis instance exists only for this test
+}
+```
+
+For services that are expensive to start or that many tests share, we use `pkg/testutil/containers`. This package returns configuration for containers that are started once via docker-compose and shared across all tests. The tradeoff is that tests need to be careful about cleanup, since data written by one test is visible to the next.
+
+```go
+import "github.com/unkeyed/unkey/pkg/testutil/containers"
+
+func TestDatabaseQuery(t *testing.T) {
+    mysqlCfg := containers.MySQL(t)
+    
+    db, err := sql.Open("mysql", mysqlCfg.FormatDSN())
+    require.NoError(t, err)
+    defer db.Close()
+    
+    // This MySQL instance is shared with other tests
+}
+```
+
+Use dynamic containers from `dockertest` when isolation matters more than speed. Use shared containers from `containers` when tests are already careful about isolation or when startup time would be prohibitive.
+
+## The Test Harness
+
+For testing API handlers and services that need the full application context, we provide a test harness that sets up everything at once. The harness starts all required containers, initializes database connections, creates caches, and wires up dependencies.
+
+```go
+import "github.com/unkeyed/unkey/pkg/testutil"
+
+func TestAPIWorkflow(t *testing.T) {
+    h := testutil.NewHarness(t)
+    
+    // The harness provides pre-configured services
+    // h.DB        - Database connection
+    // h.Logger    - Logger
+    // h.Keys      - Key service
+    // h.Vault     - Vault service  
+    // h.Clock     - Test clock for time manipulation
+}
+```
+
+The harness also provides methods for creating test data. Instead of writing raw SQL or constructing complex objects, you can use helper methods that handle the details:
+
+```go
+func TestWithTestData(t *testing.T) {
+    h := testutil.NewHarness(t)
+    
+    // Create a workspace with all required relationships
+    workspace := h.CreateWorkspace()
+    
+    // Create an API key with specific permissions
+    rootKey := h.CreateRootKey(workspace.ID, "api.*.read", "api.*.write")
+    
+    // Create an API within the workspace
+    api := h.CreateApi(seed.CreateApiRequest{
+        WorkspaceID: workspace.ID,
+        Name:        "test-api",
+    })
+}
+```
+
+This approach has two benefits. First, it reduces boilerplate so you don't need to understand the database schema to write a test. Second, it insulates tests from schema changes. If we add a required column, we update the helper once rather than fixing dozens of tests.
+
+## A Complete Example
+
+Here's an integration test for our vault service that demonstrates the pattern. The test verifies that data encrypted by one vault instance can be decrypted by another, which is essential for our distributed deployment.
+
+```go
+func TestVault_ColdStart(t *testing.T) {
+    // Start an S3-compatible storage backend
+    s3 := containers.S3(t)
+    
+    logger := logging.NewNoop()
+    
+    storage, err := storage.NewS3(storage.S3Config{
+        S3URL:             s3.HostURL,
+        S3Bucket:          "test",
+        S3AccessKeyID:     s3.AccessKeyID,
+        S3AccessKeySecret: s3.AccessKeySecret,
+        Logger:            logger,
+    })
+    require.NoError(t, err)
+
+    // Generate a master key for encryption
+    _, masterKey, err := keys.GenerateMasterKey()
+    require.NoError(t, err)
+
+    // Create the vault instance
+    v, err := vault.New(vault.Config{
+        Storage:    storage,
+        Logger:     logger,
+        MasterKeys: []string{masterKey},
+    })
+    require.NoError(t, err)
+
+    ctx := context.Background()
+    
+    // Encrypt some data
+    encrypted, err := v.Encrypt(ctx, &vaultv1.EncryptRequest{
+        Keyring: "test-keyring",
+        Data:    "secret data",
+    })
+    require.NoError(t, err)
+    
+    // Verify we can decrypt it
+    decrypted, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
+        Keyring:   "test-keyring",
+        Encrypted: encrypted.GetEncrypted(),
+    })
+    require.NoError(t, err)
+    require.Equal(t, "secret data", decrypted.GetPlaintext())
+}
+```
+
+This test exercises real S3 storage (via MinIO), real encryption, and real key management. A unit test with mocks couldn't give us confidence that these components actually work together.
+
+## Directory Organization
+
+Integration tests can live alongside unit tests in the same directory, or in a separate `integration/` subdirectory. The choice depends on how substantial the integration tests are and whether they need different dependencies.
+
+For packages with a few integration tests that share setup with unit tests, keep everything together. The test file names make the distinction clear: `cache_test.go` for unit tests, `cache_integration_test.go` for integration tests.
+
+For packages with extensive integration tests that have their own Bazel dependencies or setup requirements, create an `integration/` subdirectory:
+
+```
+pkg/vault/
+├── vault.go
+├── vault_test.go           # Unit tests
+└── integration/
+    ├── coldstart_test.go   # Integration tests
+    ├── reencryption_test.go
+    └── BUILD.bazel         # Separate Bazel config
+```
+
+## Bazel Configuration
+
+Integration tests that start Docker containers need `size = "large"` to get adequate timeout and resource allocation:
+
+```python
+go_test(
+    name = "integration_test",
+    size = "large",
+    srcs = ["integration_test.go"],
+    deps = [
+        "//pkg/vault",
+        "//pkg/dockertest",
+        "@com_github_stretchr_testify//require",
+    ],
+)
+```
+
+Tests using shared containers from docker-compose can often use `size = "medium"` since they don't pay the container startup cost.
+
+During development, you might want to skip slow integration tests. Bazel makes this easy:
+
+```bash
+# Run only small and medium tests (skip large)
+bazel test //... --test_size_filters=small,medium
+
+# Run only tests for a specific package
+bazel test //pkg/cache:cache_test
+```
+
+## Debugging Failures
+
+Integration test failures are harder to debug than unit test failures because there's more state involved. A few techniques help.
+
+Verbose output shows what's happening during the test:
+
+```bash
+bazel test //pkg/vault/integration:integration_test --test_output=all
+```
+
+If you need to inspect the database or cache state, you can add a breakpoint or sleep to keep the containers running, then connect with a client:
+
+```go
+// Temporary debugging: keep containers alive
+time.Sleep(10 * time.Minute)
+```
+
+For flaky tests that fail intermittently, running multiple times often surfaces the pattern:
+
+```bash
+bazel test //pkg/cache:cache_test --runs_per_test=10
+```
