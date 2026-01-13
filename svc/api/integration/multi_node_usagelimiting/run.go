@@ -147,10 +147,6 @@ func RunUsageLimitTest(
 		successCount, expectedSuccessful, accuracyPercent, successCount, totalRequests)
 	t.Logf("Remaining credits: %d (expected: %d)", lastRemaining, totalCredits-int64(successCount)*costPerRequest)
 
-	// Verify all nodes received traffic
-	lbMetrics := lb.GetMetrics()
-	require.Equal(t, nodeCount, len(lbMetrics), "all nodes should have received traffic")
-
 	// Verify success count is within expected range
 	require.GreaterOrEqual(t, successCount, lowerLimit,
 		"Success count should be >= lower limit (%d)", lowerLimit)

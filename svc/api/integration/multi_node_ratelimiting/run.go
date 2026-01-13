@@ -86,8 +86,11 @@ func RunRateLimitTest(
 	// Maximum theoretical allowed requests across all windows
 	maxAllowed := math.Min(numWindows*float64(limit), float64(totalRequests))
 
-	// Set acceptance thresholds with 20% tolerance
-	upperLimit := int(maxAllowed * 1.2)
+	// Set acceptance thresholds at 100% + 10% per node for distributed over-admission.
+	// In a multi-node setup, each node makes local-first decisions before async replay to Redis completes,
+	// which can cause temporary over-admission proportional to the number of nodes.
+	nodeOverAdmissionFactor := 0.10 * float64(nodeCount)
+	upperLimit := int(maxAllowed * (1 + nodeOverAdmissionFactor))
 	lowerLimit := int(maxAllowed * 0.95)
 
 	// Special case: When request rate is below the limit,
