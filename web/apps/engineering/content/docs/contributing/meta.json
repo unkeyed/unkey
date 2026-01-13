@@ -6,11 +6,12 @@
   "pages": [
     "index",
     "quickstart",
-    "sdk-development",
+    "code-style",
+    "documentation",
     "testing",
     "bazel",
-    "client-structure",
-    "seeding-db-and-clickhouse",
+    "dashboard",
+    "infrastructure",
     "pull-request-checks"
   ]
 }
