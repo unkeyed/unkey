@@ -29,6 +29,7 @@ go_test(
     deps = [
         "//pkg/dockertest",
         "//pkg/otel/logging",
+        "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
     ],
 )
