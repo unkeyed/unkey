@@ -8,6 +8,9 @@ import { identityDetailsFilterFieldConfig } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
 import type { IdentityLogsPayload } from "../query-logs.schema";
 
+// Maximum number of real-time logs to store
+const REALTIME_DATA_LIMIT = 100;
+
 type UseIdentityLogsQueryProps = {
   identityId: string;
   startPolling?: boolean;
@@ -19,10 +22,21 @@ export const useIdentityLogsQuery = ({
   startPolling = false,
   pollIntervalMs = 2000,
 }: UseIdentityLogsQueryProps) => {
+  const [historicalLogsMap, setHistoricalLogsMap] = useState(
+    () => new Map<string, IdentityLog>(),
+  );
+  const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, IdentityLog>());
+  const [totalCount, setTotalCount] = useState(0);
+
   const { filters } = useFilters();
+  const queryClient = trpc.useUtils();
   const { queryTime: timestamp } = useQueryTime();
-  const [realtimeLogs, setRealtimeLogs] = useState<IdentityLog[]>([]);
-  const [lastPolledTime, setLastPolledTime] = useState<number | null>(null);
+
+  const realtimeLogs = useMemo(() => {
+    return sortLogs(Array.from(realtimeLogsMap.values()));
+  }, [realtimeLogsMap]);
+
+  const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
   const queryParams = useMemo(() => {
     const params: IdentityLogsPayload = {
@@ -108,6 +122,9 @@ export const useIdentityLogsQuery = ({
     {
       getNextPageParam: (lastPage: any) => lastPage.nextCursor,
       refetchInterval: false,
+      staleTime: Number.POSITIVE_INFINITY,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
       trpc: {
         context: {
           skipBatch: true,
@@ -116,64 +133,89 @@ export const useIdentityLogsQuery = ({
     },
   );
 
-  // Polling query for real-time updates
-  const pollingParams = useMemo(() => {
-    if (!startPolling || !lastPolledTime) return null;
+  // Query for new logs (polling)
+  const pollForNewLogs = useCallback(async () => {
+    try {
+      const latestTime = realtimeLogs[0]?.time ?? historicalLogs[0]?.time;
 
-    return {
-      ...queryParams,
-      startTime: lastPolledTime,
-      endTime: Date.now(),
-      limit: 100, // Get more recent logs
-    };
-  }, [queryParams, startPolling, lastPolledTime]);
-
-  const { data: pollingData } = trpc.identity.logs.query.useQuery(
-    pollingParams!,
-    {
-      enabled: !!pollingParams && startPolling,
-      refetchInterval: startPolling ? pollIntervalMs : false,
-      trpc: {
-        context: {
-          skipBatch: true,
-        },
-      },
-    },
-  );
-
-  // Update realtime logs when polling data changes
-  useEffect(() => {
-    if (pollingData?.logs && pollingData.logs.length > 0) {
-      setRealtimeLogs((prev) => {
-        const newLogs = pollingData.logs.filter(
-          (newLog: IdentityLog) => !prev.some((existingLog) => existingLog.request_id === newLog.request_id),
-        );
-        return [...newLogs, ...prev].slice(0, 100); // Keep only recent 100 logs
+      const result = await queryClient.identity.logs.query.fetch({
+        ...queryParams,
+        startTime: latestTime ?? Date.now() - pollIntervalMs,
+        endTime: Date.now(),
       });
-      setLastPolledTime(Date.now());
-    }
-  }, [pollingData]);
 
-  // Initialize polling timestamp when starting
+      if (result.logs.length === 0) {
+        return;
+      }
+
+      setRealtimeLogsMap((prevMap) => {
+        const newMap = new Map(prevMap);
+        let added = 0;
+
+        for (const log of result.logs) {
+          // Skip if exists in either map
+          if (newMap.has(log.request_id) || historicalLogsMap.has(log.request_id)) {
+            continue;
+          }
+
+          newMap.set(log.request_id, log);
+          added++;
+
+          // Remove oldest entries when exceeding the size limit
+          if (newMap.size > Math.min(50, REALTIME_DATA_LIMIT)) {
+            const entries = Array.from(newMap.entries());
+            const oldestEntry = entries.reduce((oldest, current) => {
+              return oldest[1].time < current[1].time ? oldest : current;
+            });
+            newMap.delete(oldestEntry[0]);
+          }
+        }
+
+        return added > 0 ? newMap : prevMap;
+      });
+    } catch (error) {
+      console.error("Error polling for new identity logs:", error);
+    }
+  }, [
+    queryParams,
+    queryClient,
+    pollIntervalMs,
+    historicalLogsMap,
+    realtimeLogs,
+    historicalLogs,
+  ]);
+
+  // Set up polling effect
   useEffect(() => {
-    if (startPolling && !lastPolledTime) {
-      setLastPolledTime(Date.now());
-    } else if (!startPolling) {
-      setRealtimeLogs([]);
-      setLastPolledTime(null);
+    if (startPolling) {
+      const interval = setInterval(pollForNewLogs, pollIntervalMs);
+      return () => clearInterval(interval);
     }
-  }, [startPolling, lastPolledTime]);
+  }, [startPolling, pollForNewLogs, pollIntervalMs]);
 
-  const historicalLogs = useMemo(() => {
-    return data?.pages.flatMap((page: any) => page.logs) ?? [];
+  // Update historical logs effect
+  useEffect(() => {
+    if (data) {
+      const newMap = new Map<string, IdentityLog>();
+      data.pages.forEach((page) => {
+        page.logs.forEach((log) => {
+          newMap.set(log.request_id, log);
+        });
+      });
+      setHistoricalLogsMap(newMap);
+
+      if (data.pages.length > 0) {
+        setTotalCount(data.pages[0].total);
+      }
+    }
   }, [data]);
 
-  const totalCount = useMemo(() => {
-    const baseTotal = data?.pages[0]?.total ?? 0;
-    // Add realtime logs count to the base total since they represent new logs
-    // that weren't included in the original total count
-    return baseTotal + realtimeLogs.length;
-  }, [data, realtimeLogs.length]);
+  // Reset realtime logs effect
+  useEffect(() => {
+    if (!startPolling) {
+      setRealtimeLogsMap(new Map());
+    }
+  }, [startPolling]);
 
   const loadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -189,5 +231,11 @@ export const useIdentityLogsQuery = ({
     loadMore,
     hasMore: hasNextPage,
     totalCount,
+    isPolling: startPolling,
   };
+};
+
+// Helper function to sort logs by time in descending order (newest first)
+const sortLogs = (logs: IdentityLog[]) => {
+  return logs.toSorted((a, b) => b.time - a.time);
 };

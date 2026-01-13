@@ -176,7 +176,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
       {
         key: "time",
         header: "Time",
-        width: "5%",
+        width: "15%", // Increased for timestamp display
         headerClassName: "pl-2",
         render: (log) => (
           <TimestampInfo
@@ -191,7 +191,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
       {
         key: "outcome",
         header: "Status",
-        width: "12%",
+        width: "15%", // Increased for status badges
         render: (log) => {
           const isSelected = selectedLog?.request_id === log.request_id;
           const outcomeType =
@@ -224,7 +224,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
       {
         key: "keyId",
         header: "Key",
-        width: "15%",
+        width: "25%", // Increased significantly for key display
         render: (log) => (
           <div className="flex items-center gap-2">
             <Key iconSize="sm-regular" className="text-gray-9" />
@@ -263,7 +263,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
       {
         key: "region",
         header: "Region",
-        width: "12%",
+        width: "12%", // Restored to reasonable size
         render: (log) => (
           <div className="flex items-center font-mono">
             <div className="w-full whitespace-nowrap" title={log.region}>
@@ -275,7 +275,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
       {
         key: "tags",
         header: "Tags",
-        width: "20%",
+        width: "33%", // Adjusted to use remaining space (100% - 15% - 15% - 25% - 12% = 33%)
         render: (log) => {
           return (
             <div className="flex flex-wrap gap-1 items-center">
@@ -422,10 +422,10 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
             <div className="flex gap-2">
               <span>Showing</span>{" "}
               <span className="text-accent-12">
-                {new Intl.NumberFormat().format(historicalLogs.length + realtimeLogs.length)}
+                {new Intl.NumberFormat().format(historicalLogs.length)}
               </span>
               <span>of</span>
-              {new Intl.NumberFormat().format(totalCount)}
+              {new Intl.NumberFormat().format(totalCount + realtimeLogs.length)}
               <span>requests</span>
             </div>
           ),
