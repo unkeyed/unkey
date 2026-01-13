@@ -12,6 +12,40 @@ const TZ_FORMATTER = new Intl.DateTimeFormat("en-US", {
   timeZoneName: "short",
 });
 
+/**
+ * Maps schema granularity strings to TimeseriesGranularity format
+ * Used to convert granularity values from API responses to the standard format
+ */
+export const SCHEMA_GRANULARITY_MAP: Record<string, TimeseriesGranularity> = {
+  minute: "perMinute",
+  fiveMinutes: "per5Minutes",
+  fifteenMinutes: "per15Minutes",
+  thirtyMinutes: "per30Minutes",
+  hour: "perHour",
+  twoHours: "per2Hours",
+  fourHours: "per4Hours",
+  sixHours: "per6Hours",
+  twelveHours: "per12Hours",
+  day: "perDay",
+  threeDays: "per3Days",
+  week: "perWeek",
+  month: "perMonth",
+  quarter: "perQuarter",
+} as const;
+
+/**
+ * Converts schema granularity string to TimeseriesGranularity format
+ * @param schemaGranularity The granularity string from API response
+ * @param fallback Fallback granularity if mapping not found (defaults to "perHour")
+ * @returns TimeseriesGranularity format
+ */
+export const mapSchemaGranularity = (
+  schemaGranularity: string,
+  fallback: TimeseriesGranularity = "perHour"
+): TimeseriesGranularity => {
+  return SCHEMA_GRANULARITY_MAP[schemaGranularity] || fallback;
+};
+
 // Helper function to safely convert local Granularity to TimeseriesGranularity
 const getGranularityBuffer = (granularity?: TimeseriesGranularity): number => {
   if (!granularity) {

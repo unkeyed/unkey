@@ -1,7 +1,7 @@
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
+import { mapSchemaGranularity } from "@/components/logs/utils";
 import { trpc } from "@/lib/trpc/client";
-import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useMemo } from "react";
 import { identityDetailsFilterFieldConfig, type IdentityDetailsFilterValue } from "../../../../filters.schema";
@@ -90,24 +90,7 @@ export const useFetchIdentityTimeseries = (identityId: string) => {
     }
 
     // Convert schema granularity to TimeseriesGranularity format
-    const granularityMap: Record<string, TimeseriesGranularity> = {
-      minute: "perMinute",
-      fiveMinutes: "per5Minutes",
-      fifteenMinutes: "per15Minutes",
-      thirtyMinutes: "per30Minutes",
-      hour: "perHour",
-      twoHours: "per2Hours",
-      fourHours: "per4Hours",
-      sixHours: "per6Hours",
-      twelveHours: "per12Hours",
-      day: "perDay",
-      threeDays: "per3Days",
-      week: "perWeek",
-      month: "perMonth",
-      quarter: "perQuarter",
-    };
-
-    const mappedGranularity = granularityMap[data.granularity] || "perHour";
+    const mappedGranularity = mapSchemaGranularity(data.granularity);
 
     return data.timeseries.map((ts) => {
       const result = {
