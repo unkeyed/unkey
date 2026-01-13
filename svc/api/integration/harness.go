@@ -168,6 +168,8 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			PprofEnabled:            true,
 			PprofUsername:           "unkey",
 			PprofPassword:           "password",
+			CtrlURL:                 "http://ctrl:7091",
+			CtrlToken:               "your-local-dev-key",
 		}
 
 		// Start API server in goroutine

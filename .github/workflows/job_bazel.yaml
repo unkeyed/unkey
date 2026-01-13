@@ -47,7 +47,7 @@ jobs:
           install: true
 
       - name: Run containers
-        run: docker compose -f ./dev/docker-compose.yaml up -d s3 clickhouse kafka mysql --wait
+        run: docker compose -f ./dev/docker-compose.yaml up -d s3 clickhouse kafka mysql ctrl restate --wait
         env:
           DOCKER_BUILDKIT: 1
           COMPOSE_DOCKER_CLI_BUILD: 1

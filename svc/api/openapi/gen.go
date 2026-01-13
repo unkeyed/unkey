@@ -4,7 +4,11 @@
 package openapi
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/oapi-codegen/nullable"
+	"github.com/oapi-codegen/runtime"
 )
 
 const (
@@ -692,6 +696,76 @@ type V2ApisListKeysResponseBody struct {
 
 // V2ApisListKeysResponseData Array of API keys with complete configuration and metadata.
 type V2ApisListKeysResponseData = []KeyResponseData
+
+// V2DeployBuildSource Build from source configuration
+type V2DeployBuildSource struct {
+	// Build Build context for building from source.
+	// Provide either `build.context` (build from source) or `image` (prebuilt image), but not both.
+	Build struct {
+		// Context S3 path to uploaded build context tarball
+		Context string `json:"context"`
+
+		// Dockerfile Optional path to Dockerfile within build context (defaults to "Dockerfile")
+		Dockerfile *string `json:"dockerfile,omitempty"`
+	} `json:"build"`
+}
+
+// V2DeployCreateDeploymentRequestBody Deployment source - either build from source or use prebuilt image
+type V2DeployCreateDeploymentRequestBody struct {
+	// Branch Git branch name
+	Branch string `json:"branch"`
+
+	// EnvironmentSlug Environment slug (e.g., "production", "staging")
+	EnvironmentSlug string `json:"environmentSlug"`
+
+	// GitCommit Optional git commit information
+	GitCommit *V2DeployGitCommit `json:"gitCommit,omitempty"`
+
+	// KeyspaceId Optional keyspace ID for authentication context
+	KeyspaceId *string `json:"keyspaceId,omitempty"`
+
+	// ProjectId Unkey project ID
+	ProjectId string `json:"projectId"`
+	union     json.RawMessage
+}
+
+// V2DeployCreateDeploymentResponseBody defines model for V2DeployCreateDeploymentResponseBody.
+type V2DeployCreateDeploymentResponseBody struct {
+	Data V2DeployCreateDeploymentResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeployCreateDeploymentResponseData defines model for V2DeployCreateDeploymentResponseData.
+type V2DeployCreateDeploymentResponseData struct {
+	// DeploymentId Unique deployment identifier
+	DeploymentId string `json:"deploymentId"`
+}
+
+// V2DeployGitCommit Optional git commit information
+type V2DeployGitCommit struct {
+	// AuthorAvatarUrl Git author avatar URL
+	AuthorAvatarUrl *string `json:"authorAvatarUrl,omitempty"`
+
+	// AuthorHandle Git author handle/username
+	AuthorHandle *string `json:"authorHandle,omitempty"`
+
+	// CommitMessage Git commit message
+	CommitMessage *string `json:"commitMessage,omitempty"`
+
+	// CommitSha Git commit SHA
+	CommitSha *string `json:"commitSha,omitempty"`
+
+	// Timestamp Commit timestamp in milliseconds
+	Timestamp *int64 `json:"timestamp,omitempty"`
+}
+
+// V2DeployImageSource Prebuilt Docker image configuration
+type V2DeployImageSource struct {
+	// Image Prebuilt Docker image reference
+	Image string `json:"image"`
+}
 
 // V2IdentitiesCreateIdentityRequestBody defines model for V2IdentitiesCreateIdentityRequestBody.
 type V2IdentitiesCreateIdentityRequestBody struct {
@@ -2261,6 +2335,9 @@ type GetApiJSONRequestBody = V2ApisGetApiRequestBody
 // ListKeysJSONRequestBody defines body for ListKeys for application/json ContentType.
 type ListKeysJSONRequestBody = V2ApisListKeysRequestBody
 
+// CreateDeploymentJSONRequestBody defines body for CreateDeployment for application/json ContentType.
+type CreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody
+
 // IdentitiesCreateIdentityJSONRequestBody defines body for IdentitiesCreateIdentity for application/json ContentType.
 type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody
 
@@ -2362,3 +2439,150 @@ type RatelimitMultiLimitJSONRequestBody = V2RatelimitMultiLimitRequestBody
 
 // RatelimitSetOverrideJSONRequestBody defines body for RatelimitSetOverride for application/json ContentType.
 type RatelimitSetOverrideJSONRequestBody = V2RatelimitSetOverrideRequestBody
+
+// AsV2DeployBuildSource returns the union data inside the V2DeployCreateDeploymentRequestBody as a V2DeployBuildSource
+func (t V2DeployCreateDeploymentRequestBody) AsV2DeployBuildSource() (V2DeployBuildSource, error) {
+	var body V2DeployBuildSource
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2DeployBuildSource overwrites any union data inside the V2DeployCreateDeploymentRequestBody as the provided V2DeployBuildSource
+func (t *V2DeployCreateDeploymentRequestBody) FromV2DeployBuildSource(v V2DeployBuildSource) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2DeployBuildSource performs a merge with any union data inside the V2DeployCreateDeploymentRequestBody, using the provided V2DeployBuildSource
+func (t *V2DeployCreateDeploymentRequestBody) MergeV2DeployBuildSource(v V2DeployBuildSource) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2DeployImageSource returns the union data inside the V2DeployCreateDeploymentRequestBody as a V2DeployImageSource
+func (t V2DeployCreateDeploymentRequestBody) AsV2DeployImageSource() (V2DeployImageSource, error) {
+	var body V2DeployImageSource
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2DeployImageSource overwrites any union data inside the V2DeployCreateDeploymentRequestBody as the provided V2DeployImageSource
+func (t *V2DeployCreateDeploymentRequestBody) FromV2DeployImageSource(v V2DeployImageSource) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2DeployImageSource performs a merge with any union data inside the V2DeployCreateDeploymentRequestBody, using the provided V2DeployImageSource
+func (t *V2DeployCreateDeploymentRequestBody) MergeV2DeployImageSource(v V2DeployImageSource) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2DeployCreateDeploymentRequestBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	object["branch"], err = json.Marshal(t.Branch)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'branch': %w", err)
+	}
+
+	object["environmentSlug"], err = json.Marshal(t.EnvironmentSlug)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'environmentSlug': %w", err)
+	}
+
+	if t.GitCommit != nil {
+		object["gitCommit"], err = json.Marshal(t.GitCommit)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'gitCommit': %w", err)
+		}
+	}
+
+	if t.KeyspaceId != nil {
+		object["keyspaceId"], err = json.Marshal(t.KeyspaceId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'keyspaceId': %w", err)
+		}
+	}
+
+	object["projectId"], err = json.Marshal(t.ProjectId)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'projectId': %w", err)
+	}
+
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *V2DeployCreateDeploymentRequestBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["branch"]; found {
+		err = json.Unmarshal(raw, &t.Branch)
+		if err != nil {
+			return fmt.Errorf("error reading 'branch': %w", err)
+		}
+	}
+
+	if raw, found := object["environmentSlug"]; found {
+		err = json.Unmarshal(raw, &t.EnvironmentSlug)
+		if err != nil {
+			return fmt.Errorf("error reading 'environmentSlug': %w", err)
+		}
+	}
+
+	if raw, found := object["gitCommit"]; found {
+		err = json.Unmarshal(raw, &t.GitCommit)
+		if err != nil {
+			return fmt.Errorf("error reading 'gitCommit': %w", err)
+		}
+	}
+
+	if raw, found := object["keyspaceId"]; found {
+		err = json.Unmarshal(raw, &t.KeyspaceId)
+		if err != nil {
+			return fmt.Errorf("error reading 'keyspaceId': %w", err)
+		}
+	}
+
+	if raw, found := object["projectId"]; found {
+		err = json.Unmarshal(raw, &t.ProjectId)
+		if err != nil {
+			return fmt.Errorf("error reading 'projectId': %w", err)
+		}
+	}
+
+	return err
+}

@@ -121,6 +121,95 @@ func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 	return api
 }
 
+type CreateProjectRequest struct {
+	ID               string
+	WorkspaceID      string
+	Name             string
+	Slug             string
+	GitRepositoryURL string
+	DefaultBranch    string
+	DeleteProtection bool
+}
+
+func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db.Project {
+	err := db.Query.InsertProject(ctx, h.DB.RW(), db.InsertProjectParams{
+		ID:               req.ID,
+		WorkspaceID:      req.WorkspaceID,
+		Name:             req.Name,
+		Slug:             req.Slug,
+		GitRepositoryUrl: sql.NullString{Valid: true, String: req.GitRepositoryURL},
+		DefaultBranch:    sql.NullString{Valid: true, String: req.DefaultBranch},
+		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
+		CreatedAt:        time.Now().UnixMilli(),
+		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},
+	})
+	require.NoError(h.t, err)
+
+	project, err := db.Query.FindProjectById(ctx, h.DB.RO(), req.ID)
+	require.NoError(h.t, err)
+
+	return db.Project{
+		ID:               project.ID,
+		WorkspaceID:      project.WorkspaceID,
+		Name:             project.Name,
+		Slug:             project.Slug,
+		GitRepositoryUrl: project.GitRepositoryUrl,
+		DefaultBranch:    project.DefaultBranch,
+		DeleteProtection: project.DeleteProtection,
+		CreatedAt:        project.CreatedAt,
+		UpdatedAt:        project.UpdatedAt,
+		Pk:               0,
+		LiveDeploymentID: sql.NullString{String: "", Valid: false},
+		IsRolledBack:     false,
+		DepotProjectID:   sql.NullString{String: "", Valid: false},
+	}
+}
+
+type CreateEnvironmentRequest struct {
+	ID               string
+	WorkspaceID      string
+	ProjectID        string
+	Slug             string
+	Description      string
+	SentinelConfig   []byte
+	DeleteProtection bool
+}
+
+func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentRequest) db.Environment {
+	sentinelConfig := []byte("{}")
+	if len(req.SentinelConfig) > 0 {
+		sentinelConfig = req.SentinelConfig
+	}
+
+	err := db.Query.InsertEnvironment(ctx, s.DB.RW(), db.InsertEnvironmentParams{
+		ID:             req.ID,
+		WorkspaceID:    req.WorkspaceID,
+		ProjectID:      req.ProjectID,
+		Slug:           req.Slug,
+		Description:    req.Description,
+		SentinelConfig: sentinelConfig,
+		CreatedAt:      time.Now().UnixMilli(),
+		UpdatedAt:      sql.NullInt64{Int64: 0, Valid: false},
+	})
+	require.NoError(s.t, err)
+
+	environment, err := db.Query.FindEnvironmentById(ctx, s.DB.RO(), req.ID)
+	require.NoError(s.t, err)
+
+	return db.Environment{
+		Pk:               0,
+		ID:               environment.ID,
+		WorkspaceID:      environment.WorkspaceID,
+		ProjectID:        environment.ProjectID,
+		Slug:             environment.Slug,
+		Description:      req.Description,
+		SentinelConfig:   sentinelConfig,
+		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
+		CreatedAt:        time.Now().UnixMilli(),
+		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},
+	}
+}
+
 // CreateRootKey creates a root key with optional permissions
 func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissions ...string) string {
 	key := uid.New("test_root_key")

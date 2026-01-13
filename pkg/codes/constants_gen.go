@@ -93,6 +93,11 @@ const (
 	// NotFound indicates the requested API was not found.
 	UnkeyDataErrorsApiNotFound URN = "err:unkey:data:api_not_found"
 
+	// Project
+
+	// NotFound indicates the requested project was not found.
+	UnkeyDataErrorsProjectNotFound URN = "err:unkey:data:project_not_found"
+
 	// Migration
 
 	// NotFound indicates the requested migration was not found.
