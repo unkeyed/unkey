@@ -116,6 +116,8 @@ local-dashboard: install build ## Run local development setup for dashboard
 unkey: ## Run unkey CLI (usage: make unkey dev seed local, make unkey run api ARGS="--http-port=7070")
 	@set -a; [ -f .env ] && . ./.env; set +a; bazel run //:unkey -- $(filter-out unkey,$(MAKECMDGOALS)) $(ARGS)
 
-# Catch-all to swallow extra args
+# Catch-all to swallow extra args passed to unkey target (only when unkey is called)
+ifneq ($(filter unkey,$(MAKECMDGOALS)),)
 %:
 	@:
+endif
