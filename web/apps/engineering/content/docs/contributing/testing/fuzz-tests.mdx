@@ -1,0 +1,167 @@
+---
+title: Fuzz Tests
+description: Finding edge cases with randomized inputs
+---
+
+## What Fuzzing Does
+
+Fuzz testing feeds random inputs to your code and watches for crashes, panics, or assertion failures. It finds bugs that humans don't think to test for: malformed UTF-8, integer overflows, nil pointer dereferences on unusual inputs, and other edge cases hiding in code paths that manual tests never exercise.
+
+Go has built-in fuzzing since Go 1.18. You write a fuzz test that looks similar to a regular test, provide some seed inputs, and the fuzzer mutates those seeds to explore the input space. When it finds an input that causes a failure, it saves that input so the bug becomes a regression test.
+
+## When to Write Fuzz Tests
+
+Fuzz tests shine for code that processes untrusted input. Parsing functions, encoding and decoding logic, input validation, and cryptographic operations are all good candidates. If your function could receive arbitrary bytes from the network or user input, fuzzing will probably find bugs in it.
+
+They're less useful for business logic with complex preconditions. A function that requires a valid database connection and authenticated user is hard to fuzz meaningfully because most random inputs won't satisfy those preconditions.
+
+## Writing Your First Fuzz Test
+
+A fuzz test starts with `Fuzz` instead of `Test` and takes `*testing.F` instead of `*testing.T`. You add seed inputs with `f.Add()`, then define the fuzz function that receives mutated versions of those seeds.
+
+```go
+func FuzzParseConfig(f *testing.F) {
+    // Seed corpus: starting points for mutation
+    f.Add(`{"timeout": "30s"}`)
+    f.Add(`{"timeout": "0s", "retries": 0}`)
+    f.Add(`{}`)
+    f.Add(`not json at all`)
+    
+    f.Fuzz(func(t *testing.T, input string) {
+        // The fuzzer will call this with many variations
+        cfg, err := ParseConfig(input)
+        if err != nil {
+            return // Invalid input is fine, just don't crash
+        }
+        
+        // If parsing succeeded, the result should be usable
+        require.NotNil(t, cfg)
+        require.GreaterOrEqual(t, cfg.Timeout, 0)
+    })
+}
+```
+
+The seed corpus matters. Good seeds help the fuzzer find interesting code paths faster. Include normal inputs, edge cases, and inputs that have caused bugs before.
+
+## Skipping Invalid Inputs
+
+Not all inputs make sense for every test. If your function requires a specific key length, skip inputs that don't meet that requirement rather than letting them fail:
+
+```go
+func FuzzEncryptDecrypt(f *testing.F) {
+    f.Add([]byte("16-byte test key!"), []byte("hello world"))
+    f.Add([]byte("24-byte key for testing!!"), []byte(""))
+    f.Add([]byte("32-byte key for thorough testing!!!"), []byte("data"))
+
+    f.Fuzz(func(t *testing.T, key, plaintext []byte) {
+        // AES requires 16, 24, or 32 byte keys
+        if len(key) != 16 && len(key) != 24 && len(key) != 32 {
+            t.Skip("invalid key size")
+        }
+
+        nonce, ciphertext, err := encryption.Encrypt(key, plaintext)
+        require.NoError(t, err)
+
+        decrypted, err := encryption.Decrypt(key, nonce, ciphertext)
+        require.NoError(t, err)
+
+        require.True(t, bytes.Equal(plaintext, decrypted))
+    })
+}
+```
+
+Use `t.Skip()` liberally. The fuzzer will generate lots of invalid inputs, and skipping them lets it focus on the interesting ones.
+
+## Testing Security Properties
+
+Fuzz tests are excellent for security-sensitive code. You can verify that tampering with data is always detected:
+
+```go
+func FuzzTamperedCiphertext(f *testing.F) {
+    f.Add([]byte("16-byte test key!"), []byte("secret"), byte(0xFF), uint16(0))
+
+    f.Fuzz(func(t *testing.T, key, plaintext []byte, tamperByte byte, position uint16) {
+        if len(key) != 16 || tamperByte == 0 {
+            t.Skip()
+        }
+
+        nonce, ciphertext, err := encryption.Encrypt(key, plaintext)
+        require.NoError(t, err)
+
+        if len(ciphertext) == 0 {
+            t.Skip()
+        }
+
+        // Tamper with one byte
+        pos := int(position) % len(ciphertext)
+        tampered := make([]byte, len(ciphertext))
+        copy(tampered, ciphertext)
+        tampered[pos] ^= tamperByte
+
+        // Decryption should fail
+        _, err = encryption.Decrypt(key, nonce, tampered)
+        require.Error(t, err, "tampered ciphertext should not decrypt")
+    })
+}
+```
+
+This test verifies that any single-byte modification to the ciphertext causes decryption to fail. A passing test gives confidence in the authentication properties of the encryption.
+
+## Running Fuzz Tests
+
+During normal test runs, fuzz tests execute only with their seed corpus:
+
+```bash
+bazel test //pkg/encryption:encryption_test
+```
+
+To actually fuzz (generate new inputs), use `go test` directly with the `-fuzz` flag:
+
+```bash
+# Fuzz for 30 seconds
+go test -fuzz=FuzzParseConfig -fuzztime=30s ./pkg/config/
+
+# Fuzz until stopped with Ctrl+C
+go test -fuzz=FuzzParseConfig ./pkg/config/
+```
+
+When fuzzing finds a failure, Go saves the failing input to `testdata/fuzz/<TestName>/`. This input becomes part of the seed corpus, so the bug is automatically tested in future runs.
+
+## What to Do When Fuzzing Finds a Bug
+
+When the fuzzer reports a failure, you'll see the input that caused it. First, write a regular unit test that reproduces the bug with that specific input. This ensures the bug stays fixed and documents the edge case.
+
+```go
+func TestParseConfig_FuzzRegression(t *testing.T) {
+    // This input was found by fuzzing and caused a panic
+    input := `{"timeout": "-1ns"}`
+    
+    cfg, err := ParseConfig(input)
+    // Negative durations should return an error, not panic
+    require.Error(t, err)
+}
+```
+
+Then fix the bug. The fuzz-discovered input in `testdata/fuzz/` will continue running as part of the seed corpus, giving you ongoing regression protection.
+
+## Bazel Configuration
+
+Fuzz tests are included in regular test targets:
+
+```python
+go_test(
+    name = "encryption_test",
+    size = "small",
+    srcs = [
+        "encryption_test.go",
+        "fuzz_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    deps = [
+        ":encryption",
+        "@com_github_stretchr_testify//require",
+    ],
+)
+```
+
+The `testdata/**` glob picks up the fuzz corpus so discovered inputs are tested in CI. Bazel runs fuzz tests with their seed corpus only; actual fuzzing happens locally with `go test -fuzz`.

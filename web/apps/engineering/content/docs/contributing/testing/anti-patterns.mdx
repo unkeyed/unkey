@@ -1,0 +1,403 @@
+---
+title: Anti-Patterns
+description: Common testing mistakes to avoid
+---
+
+## Learning from Mistakes
+
+The fastest way to write better tests is to recognize what bad tests look like. This page catalogs testing anti-patterns we've encountered, explains why they cause problems, and shows how to fix them.
+
+## Sleeping Instead of Synchronizing
+
+Using `time.Sleep()` to wait for asynchronous operations is the most common testing mistake. It makes tests slow and flaky: too short and the test fails intermittently, too long and CI takes forever.
+
+```go
+// Bad: flaky and slow
+func TestAsyncJob(t *testing.T) {
+    StartBackgroundJob()
+    time.Sleep(2 * time.Second)
+    require.True(t, JobCompleted())
+}
+```
+
+The fix depends on what you're waiting for. For most cases, `require.Eventually` from testify is the right tool. It polls a condition until it becomes true or times out, with clear failure messages.
+
+```go
+// Good: poll until condition is true
+func TestAsyncJob(t *testing.T) {
+    StartBackgroundJob()
+    
+    require.Eventually(t, func() bool {
+        return JobCompleted()
+    }, 5*time.Second, 100*time.Millisecond, "job should complete")
+}
+```
+
+The API is `require.Eventually(t, condition, timeout, pollInterval, message)`. It checks the condition every poll interval until it returns true or the timeout expires. This is much cleaner than manual channel and select patterns.
+
+For cases where you need to make assertions inside the polling function, use `require.EventuallyWithT`. This gives you a `*assert.CollectT` that collects assertion failures without immediately failing the test:
+
+```go
+// Good: poll with assertions
+func TestEventualConsistency(t *testing.T) {
+    InsertRecord(ctx, record)
+    
+    require.EventuallyWithT(t, func(c *assert.CollectT) {
+        result, err := QueryRecord(ctx, record.ID)
+        require.NoError(c, err)
+        require.Equal(c, record.Value, result.Value)
+    }, 10*time.Second, 500*time.Millisecond)
+}
+```
+
+This is particularly useful for integration tests that wait for data to propagate through async systems like message queues or eventually-consistent databases.
+
+For time-dependent logic like expiration or scheduled jobs, inject a test clock rather than waiting for real time:
+
+```go
+// Good: control time directly
+func TestExpiration(t *testing.T) {
+    clk := clock.NewTestClock()
+    token := NewToken(clk, 1*time.Hour)
+    
+    clk.Tick(2 * time.Hour)
+    require.True(t, token.IsExpired())
+}
+```
+
+Reserve manual channel patterns for cases where you need to verify specific synchronization behavior, like testing that a stop signal actually terminates a goroutine.
+
+## Testing Implementation Instead of Behavior
+
+Tests that reach into internal state are brittle. They break when you refactor, even if the behavior stays the same.
+
+```go
+// Bad: tests internal structure
+func TestCache(t *testing.T) {
+    c := NewCache()
+    c.Set("key", "value")
+    
+    require.Equal(t, 1, len(c.items))
+    require.NotNil(t, c.items["key"])
+}
+```
+
+Test the public API instead. If the behavior is correct, the implementation doesn't matter.
+
+```go
+// Good: tests behavior
+func TestCache(t *testing.T) {
+    c := NewCache()
+    c.Set("key", "value")
+    
+    got, found := c.Get("key")
+    require.True(t, found)
+    require.Equal(t, "value", got)
+}
+```
+
+This anti-pattern is especially tempting when testing constructors. You want to verify that configuration was applied correctly, so you peek at internal fields:
+
+```go
+// Bad: testing constructor by inspecting internals
+func TestNewBuffer(t *testing.T) {
+    b := NewBuffer(Config{Capacity: 100, Drop: true})
+    
+    require.Equal(t, 100, cap(b.channel))  // Internal field
+    require.True(t, b.dropEnabled)          // Internal field
+}
+```
+
+Instead, verify configuration through observable behavior. If the buffer has capacity 100, prove it by adding 100 elements without blocking. If drop is enabled, prove it by filling the buffer and observing that additional writes don't block.
+
+```go
+// Good: testing constructor through behavior
+func TestNewBuffer_RespectsCapacity(t *testing.T) {
+    b := NewBuffer(Config{Capacity: 3, Drop: true})
+    defer b.Close()
+    
+    // Fill to capacity
+    b.Add(1)
+    b.Add(2)
+    b.Add(3)
+    
+    // With drop enabled, this should return immediately (not block)
+    done := make(chan struct{})
+    go func() {
+        b.Add(4)
+        close(done)
+    }()
+    
+    select {
+    case <-done:
+        // Confirmed: buffer is full and drop works
+    case <-time.After(100 * time.Millisecond):
+        t.Fatal("Add blocked; drop behavior not working")
+    }
+}
+```
+
+This test is longer but more valuable. It verifies actual behavior that matters to callers, and it won't break if you rename internal fields or change the underlying data structure.
+
+## Shared Mutable State
+
+Tests that share mutable state affect each other. One test's leftovers become another test's pollution. This causes flaky failures that depend on test execution order.
+
+```go
+// Bad: global state causes test pollution
+var db *Database
+
+func TestCreate(t *testing.T) {
+    db.Insert("record")
+}
+
+func TestList(t *testing.T) {
+    // Fails if TestCreate ran first
+    records := db.List()
+    require.Empty(t, records)
+}
+```
+
+Give each test its own isolated state:
+
+```go
+// Good: isolated state
+func TestCreate(t *testing.T) {
+    db := setupTestDB(t)
+    db.Insert("record")
+}
+
+func TestList(t *testing.T) {
+    db := setupTestDB(t)
+    records := db.List()
+    require.Empty(t, records)
+}
+```
+
+## Ignoring Setup Errors
+
+Errors during test setup are easy to overlook but cause confusing failures later. The test fails with some unrelated error because a nil pointer got used somewhere.
+
+```go
+// Bad: setup errors ignored
+func TestFeature(t *testing.T) {
+    db, _ := setupDatabase()
+    user, _ := createUser()
+    
+    result := DoSomething(db, user)
+    // Fails with confusing nil pointer error
+}
+```
+
+Check errors immediately and fail with a clear message:
+
+```go
+// Good: fail fast with clear message
+func TestFeature(t *testing.T) {
+    db, err := setupDatabase()
+    require.NoError(t, err, "setting up database")
+    
+    user, err := createUser()
+    require.NoError(t, err, "creating test user")
+    
+    result := DoSomething(db, user)
+}
+```
+
+## Hardcoded Identifiers
+
+Hardcoded IDs like "user_123" work fine until two tests run in parallel and collide. Or until cleanup fails and the next test run finds stale data.
+
+```go
+// Bad: IDs will collide
+func TestCreateUser(t *testing.T) {
+    t.Parallel()
+    user := createUser("user_123")
+}
+```
+
+Generate unique identifiers for each test:
+
+```go
+// Good: unique IDs
+func TestCreateUser(t *testing.T) {
+    t.Parallel()
+    user := createUser(uid.New("test_user"))
+}
+```
+
+## Over-Mocking
+
+Mocks are useful but addictive. A test with five mocks might pass while the real system is completely broken, because the test only verifies that mocks were called correctly.
+
+```go
+// Bad: testing mocks, not code
+func TestOrderService(t *testing.T) {
+    mockDB := &MockDatabase{}
+    mockCache := &MockCache{}
+    mockQueue := &MockQueue{}
+    
+    mockDB.On("Save", mock.Anything).Return(nil)
+    mockCache.On("Set", mock.Anything).Return(nil)
+    
+    svc := NewOrderService(mockDB, mockCache, mockQueue)
+    svc.CreateOrder(ctx, order)
+    
+    mockDB.AssertCalled(t, "Save", mock.Anything)
+}
+```
+
+Use real implementations when practical. The test harness makes this easy:
+
+```go
+// Good: real implementations
+func TestOrderService(t *testing.T) {
+    h := testutil.NewHarness(t)
+    
+    svc := NewOrderService(h.DB, h.Cache, h.Queue)
+    order, err := svc.CreateOrder(ctx, orderRequest)
+    require.NoError(t, err)
+    
+    // Verify actual behavior
+    saved, err := h.DB.GetOrder(ctx, order.ID)
+    require.NoError(t, err)
+    require.Equal(t, order.ID, saved.ID)
+}
+```
+
+## Missing Subtests
+
+Table-driven tests without `t.Run()` make failures hard to diagnose. You see a line number but not which case failed.
+
+```go
+// Bad: which case failed?
+func TestValidate(t *testing.T) {
+    tests := []struct {
+        input string
+        valid bool
+    }{
+        {"good", true},
+        {"bad", false},
+    }
+
+    for _, tc := range tests {
+        err := Validate(tc.input)
+        if tc.valid {
+            require.NoError(t, err)
+        }
+    }
+}
+```
+
+Wrap each case in `t.Run()`:
+
+```go
+// Good: clear failure identification
+func TestValidate(t *testing.T) {
+    tests := []struct {
+        name  string
+        input string
+        valid bool
+    }{
+        {"valid input accepted", "good", true},
+        {"invalid input rejected", "bad", false},
+    }
+
+    for _, tc := range tests {
+        t.Run(tc.name, func(t *testing.T) {
+            err := Validate(tc.input)
+            if tc.valid {
+                require.NoError(t, err)
+            } else {
+                require.Error(t, err)
+            }
+        })
+    }
+}
+```
+
+## Forgetting t.Helper()
+
+Test helpers that make assertions report failures at the wrong location without `t.Helper()`. You see the line inside the helper instead of the line that called it.
+
+```go
+// Bad: errors point to wrong place
+func assertUserValid(t *testing.T, user *User) {
+    require.NotNil(t, user)        // Failure reported here
+    require.NotEmpty(t, user.Name)
+}
+
+func TestUser(t *testing.T) {
+    user := getUser()
+    assertUserValid(t, user)  // But you want it reported here
+}
+```
+
+Add `t.Helper()` as the first line of any helper that makes assertions:
+
+```go
+// Good: errors point to call site
+func assertUserValid(t *testing.T, user *User) {
+    t.Helper()
+    require.NotNil(t, user)
+    require.NotEmpty(t, user.Name)
+}
+```
+
+## Redundant Test Cases
+
+Each test case should verify a distinct behavior. If two test cases would fail for the same bug, one of them is redundant.
+
+```go
+// Bad: these test the same thing
+func TestClose(t *testing.T) {
+    t.Run("multiple close calls are safe", func(t *testing.T) {
+        b := NewBuffer()
+        b.Close()
+        b.Close()
+        b.Close()
+        // No panic = pass
+    })
+    
+    t.Run("close is idempotent", func(t *testing.T) {
+        b := NewBuffer()
+        b.Close()
+        b.Close()
+        // No panic = pass
+    })
+}
+```
+
+Both tests verify that calling `Close()` multiple times doesn't panic. If the `sync.Once` protection were removed, both would fail. Keep one and delete the other.
+
+The fix is to ask: "What bug would cause this test to fail?" If two tests have the same answer, consolidate them. Each test case should target a specific failure mode.
+
+```go
+// Good: each test targets a distinct behavior
+func TestClose(t *testing.T) {
+    t.Run("multiple closes do not panic", func(t *testing.T) {
+        b := NewBuffer()
+        require.NotPanics(t, func() {
+            b.Close()
+            b.Close()
+        })
+    })
+    
+    t.Run("close drains buffered items", func(t *testing.T) {
+        b := NewBuffer()
+        b.Add(1)
+        b.Add(2)
+        b.Close()
+        
+        var items []int
+        for item := range b.Consume() {
+            items = append(items, item)
+        }
+        require.Equal(t, []int{1, 2}, items)
+    })
+}
+```
+
+## The Common Thread
+
+Most of these anti-patterns come from the same root cause: optimizing for writing the test quickly instead of maintaining it long-term. Taking an extra minute to generate unique IDs, check errors, and use proper synchronization saves hours of debugging flaky tests later.
