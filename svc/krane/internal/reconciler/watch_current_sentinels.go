@@ -45,6 +45,7 @@ func (r *Reconciler) watchCurrentSentinels(ctx context.Context) error {
 				continue
 			case watch.Bookmark:
 				continue
+			case watch.Added, watch.Modified, watch.Deleted:
 			}
 
 			sentinel, ok := event.Object.(*appsv1.Deployment)
@@ -54,6 +55,7 @@ func (r *Reconciler) watchCurrentSentinels(ctx context.Context) error {
 			}
 
 			switch event.Type {
+			case watch.Bookmark, watch.Error:
 			case watch.Added, watch.Modified:
 				r.logger.Info("sentinel added/modified", "name", sentinel.Name)
 				err := r.updateSentinelState(ctx, &ctrlv1.UpdateSentinelStateRequest{
