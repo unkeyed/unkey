@@ -1,0 +1,42 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "v2_deploy_get_deployment",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_get_deployment",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//internal/services/keys",
+        "//pkg/db",
+        "//pkg/otel/logging",
+        "//pkg/zen",
+        "//svc/api/internal/ctrlclient",
+        "//svc/api/openapi",
+        "@com_connectrpc_connect//:connect",
+    ],
+)
+
+go_test(
+    name = "v2_deploy_get_deployment_test",
+    srcs = [
+        "200_test.go",
+        "400_test.go",
+        "401_test.go",
+        "404_test.go",
+    ],
+    deps = [
+        ":v2_deploy_get_deployment",
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//pkg/rpc/interceptor",
+        "//pkg/testutil",
+        "//pkg/testutil/containers",
+        "//pkg/testutil/seed",
+        "//pkg/uid",
+        "//svc/api/openapi",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_stretchr_testify//require",
+    ],
+)

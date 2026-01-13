@@ -449,6 +449,26 @@ components:
                     $ref: "#/components/schemas/Meta"
                 data:
                     $ref: "#/components/schemas/V2DeployGenerateUploadUrlResponseData"
+        V2DeployGetDeploymentRequestBody:
+            type: object
+            required:
+                - deploymentId
+            properties:
+                deploymentId:
+                    type: string
+                    minLength: 1
+                    description: Unique deployment identifier to retrieve
+                    example: "dep_abc123xyz"
+        V2DeployGetDeploymentResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2DeployGetDeploymentResponseData"
         V2IdentitiesCreateIdentityRequestBody:
             type: object
             required:
@@ -2645,6 +2665,63 @@ components:
                     type: string
                     description: S3 path to use in the createDeployment request when building from source
                     example: "proj_123abc/ctx_456def.tar.gz"
+        V2DeployGetDeploymentResponseData:
+            type: object
+            required:
+                - id
+                - status
+            properties:
+                id:
+                    type: string
+                    description: Unique deployment identifier
+                    example: "dep_abc123xyz"
+                status:
+                    type: string
+                    description: Current deployment status
+                    enum:
+                        - UNSPECIFIED
+                        - PENDING
+                        - BUILDING
+                        - DEPLOYING
+                        - NETWORK
+                        - READY
+                        - FAILED
+                    example: "READY"
+                errorMessage:
+                    type: string
+                    description: Error message if deployment failed
+                    example: "Failed to pull image: authentication required"
+                hostnames:
+                    type: array
+                    items:
+                        type: string
+                    description: Hostnames associated with this deployment
+                    example: ["app.example.com", "api.example.com"]
+                steps:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/V2DeployDeploymentStep"
+                    description: Deployment steps with status and messages
+        V2DeployDeploymentStep:
+            type: object
+            properties:
+                status:
+                    type: string
+                    description: Step status
+                    example: "completed"
+                message:
+                    type: string
+                    description: Step message
+                    example: "Image pulled successfully"
+                errorMessage:
+                    type: string
+                    description: Error message if step failed
+                    example: "Connection timeout"
+                createdAt:
+                    type: integer
+                    format: int64
+                    description: Unix timestamp in milliseconds
+                    example: 1704067200000
         RatelimitRequest:
             type: object
             required:
@@ -4288,6 +4365,56 @@ paths:
             tags:
                 - deploy
             x-speakeasy-name-override: generateUploadUrl
+    /v2/deploy.getDeployment:
+        post:
+            description: |
+                Retrieves deployment information including status, error messages, and steps.
+
+                **Authentication**: Requires a valid root key with appropriate permissions.
+            operationId: getDeployment
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2DeployGetDeploymentRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2DeployGetDeploymentResponseBody'
+                    description: Deployment retrieved successfully
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Get deployment
+            tags:
+                - deploy
+            x-speakeasy-name-override: getDeployment
     /v2/identities.createIdentity:
         post:
             description: |

@@ -27,6 +27,17 @@ const (
 	UpdateKeyCreditsRefillIntervalMonthly UpdateKeyCreditsRefillInterval = "monthly"
 )
 
+// Defines values for V2DeployGetDeploymentResponseDataStatus.
+const (
+	BUILDING    V2DeployGetDeploymentResponseDataStatus = "BUILDING"
+	DEPLOYING   V2DeployGetDeploymentResponseDataStatus = "DEPLOYING"
+	FAILED      V2DeployGetDeploymentResponseDataStatus = "FAILED"
+	NETWORK     V2DeployGetDeploymentResponseDataStatus = "NETWORK"
+	PENDING     V2DeployGetDeploymentResponseDataStatus = "PENDING"
+	READY       V2DeployGetDeploymentResponseDataStatus = "READY"
+	UNSPECIFIED V2DeployGetDeploymentResponseDataStatus = "UNSPECIFIED"
+)
+
 // Defines values for V2KeysUpdateCreditsRequestBodyOperation.
 const (
 	Decrement V2KeysUpdateCreditsRequestBodyOperation = "decrement"
@@ -743,6 +754,21 @@ type V2DeployCreateDeploymentResponseData struct {
 	DeploymentId string `json:"deploymentId"`
 }
 
+// V2DeployDeploymentStep defines model for V2DeployDeploymentStep.
+type V2DeployDeploymentStep struct {
+	// CreatedAt Unix timestamp in milliseconds
+	CreatedAt *int64 `json:"createdAt,omitempty"`
+
+	// ErrorMessage Error message if step failed
+	ErrorMessage *string `json:"errorMessage,omitempty"`
+
+	// Message Step message
+	Message *string `json:"message,omitempty"`
+
+	// Status Step status
+	Status *string `json:"status,omitempty"`
+}
+
 // V2DeployGenerateUploadUrlRequestBody defines model for V2DeployGenerateUploadUrlRequestBody.
 type V2DeployGenerateUploadUrlRequestBody struct {
 	// ProjectId Unkey project ID for which to generate the upload URL
@@ -765,6 +791,41 @@ type V2DeployGenerateUploadUrlResponseData struct {
 	// UploadUrl Presigned PUT URL for uploading the build context tar file
 	UploadUrl string `json:"uploadUrl"`
 }
+
+// V2DeployGetDeploymentRequestBody defines model for V2DeployGetDeploymentRequestBody.
+type V2DeployGetDeploymentRequestBody struct {
+	// DeploymentId Unique deployment identifier to retrieve
+	DeploymentId string `json:"deploymentId"`
+}
+
+// V2DeployGetDeploymentResponseBody defines model for V2DeployGetDeploymentResponseBody.
+type V2DeployGetDeploymentResponseBody struct {
+	Data V2DeployGetDeploymentResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeployGetDeploymentResponseData defines model for V2DeployGetDeploymentResponseData.
+type V2DeployGetDeploymentResponseData struct {
+	// ErrorMessage Error message if deployment failed
+	ErrorMessage *string `json:"errorMessage,omitempty"`
+
+	// Hostnames Hostnames associated with this deployment
+	Hostnames *[]string `json:"hostnames,omitempty"`
+
+	// Id Unique deployment identifier
+	Id string `json:"id"`
+
+	// Status Current deployment status
+	Status V2DeployGetDeploymentResponseDataStatus `json:"status"`
+
+	// Steps Deployment steps with status and messages
+	Steps *[]V2DeployDeploymentStep `json:"steps,omitempty"`
+}
+
+// V2DeployGetDeploymentResponseDataStatus Current deployment status
+type V2DeployGetDeploymentResponseDataStatus string
 
 // V2DeployGitCommit Optional git commit information
 type V2DeployGitCommit struct {
@@ -2363,6 +2424,9 @@ type CreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody
 
 // GenerateUploadUrlJSONRequestBody defines body for GenerateUploadUrl for application/json ContentType.
 type GenerateUploadUrlJSONRequestBody = V2DeployGenerateUploadUrlRequestBody
+
+// GetDeploymentJSONRequestBody defines body for GetDeployment for application/json ContentType.
+type GetDeploymentJSONRequestBody = V2DeployGetDeploymentRequestBody
 
 // IdentitiesCreateIdentityJSONRequestBody defines body for IdentitiesCreateIdentity for application/json ContentType.
 type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody

@@ -1,0 +1,9 @@
+type: object
+required:
+  - deploymentId
+properties:
+  deploymentId:
+    type: string
+    minLength: 1
+    description: Unique deployment identifier to retrieve
+    example: "dep_abc123xyz"

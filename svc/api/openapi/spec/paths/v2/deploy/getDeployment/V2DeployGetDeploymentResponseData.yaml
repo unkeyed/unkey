@@ -1,0 +1,36 @@
+type: object
+required:
+  - id
+  - status
+properties:
+  id:
+    type: string
+    description: Unique deployment identifier
+    example: "dep_abc123xyz"
+  status:
+    type: string
+    description: Current deployment status
+    enum:
+      - UNSPECIFIED
+      - PENDING
+      - BUILDING
+      - DEPLOYING
+      - NETWORK
+      - READY
+      - FAILED
+    example: "READY"
+  errorMessage:
+    type: string
+    description: Error message if deployment failed
+    example: "Failed to pull image: authentication required"
+  hostnames:
+    type: array
+    items:
+      type: string
+    description: Hostnames associated with this deployment
+    example: ["app.example.com", "api.example.com"]
+  steps:
+    type: array
+    items:
+      $ref: "./V2DeployDeploymentStep.yaml"
+    description: Deployment steps with status and messages
