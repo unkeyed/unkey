@@ -2636,7 +2636,6 @@ components:
             required:
                 - uploadUrl
                 - context
-                - expiresIn
             properties:
                 uploadUrl:
                     type: string
