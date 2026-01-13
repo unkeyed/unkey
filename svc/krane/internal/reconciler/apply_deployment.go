@@ -90,6 +90,14 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 				Spec: corev1.PodSpec{
 					RuntimeClassName: ptr.P("gvisor"),
 					RestartPolicy:    corev1.RestartPolicyAlways,
+					Tolerations: []corev1.Toleration{
+						{
+							Key:      "node-class",
+							Operator: corev1.TolerationOpEqual,
+							Value:    "customer-code",
+							Effect:   corev1.TaintEffectNoSchedule,
+						},
+					},
 					Containers: []corev1.Container{{
 
 						Image:           req.GetImage(),

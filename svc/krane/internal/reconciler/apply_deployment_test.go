@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func newApplyDeploymentRequest() *ctrlv1.ApplyDeployment {
@@ -259,6 +260,26 @@ func TestApplyDeployment_EnsuresNamespaceExists(t *testing.T) {
 	err := r.ApplyDeployment(ctx, req)
 	require.NoError(t, err)
 	require.True(t, nsCapture.Created, "namespace should be created if missing")
+}
+
+func TestApplyDeployment_SetsTolerations(t *testing.T) {
+	ctx := context.Background()
+	client := NewFakeClient(t)
+	capture := AddReplicaSetPatchReactor(client)
+	r := NewTestReconciler(client, nil)
+
+	req := newApplyDeploymentRequest()
+	err := r.ApplyDeployment(ctx, req)
+	require.NoError(t, err)
+
+	require.NotNil(t, capture.Applied)
+	require.Len(t, capture.Applied.Spec.Template.Spec.Tolerations, 1)
+
+	toleration := capture.Applied.Spec.Template.Spec.Tolerations[0]
+	require.Equal(t, "node-class", toleration.Key)
+	require.Equal(t, corev1.TolerationOpEqual, toleration.Operator)
+	require.Equal(t, "customer-code", toleration.Value)
+	require.Equal(t, corev1.TaintEffectNoSchedule, toleration.Effect)
 }
 
 func TestApplyDeployment_ReplicaSetPatchError(t *testing.T) {

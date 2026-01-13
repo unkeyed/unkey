@@ -110,6 +110,14 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 				},
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyAlways,
+					Tolerations: []corev1.Toleration{
+						{
+							Key:      "node-class",
+							Operator: corev1.TolerationOpEqual,
+							Value:    "customer-code",
+							Effect:   corev1.TaintEffectNoSchedule,
+						},
+					},
 					Containers: []corev1.Container{{
 						Image:           sentinel.GetImage(),
 						Name:            "sentinel",
