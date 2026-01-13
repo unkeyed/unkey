@@ -1,0 +1,189 @@
+---
+title: Code Style
+description: "Do the hard thing today to make tomorrow easy."
+---
+
+This guide captures our design philosophy and coding standards. It's not about formatting or syntax. Linters handle that. It's about how we think, how we make decisions, and what we value when building software.
+
+Our design goals are _safety_, _performance_, and _developer experience_, in that order. All three matter, but when they conflict, safety wins. A fast system that corrupts data is worthless. A readable system that crashes in production helps no one.
+
+These priorities shape everything that follows. We pursue simplicity because simple systems are safer, faster, and easier to maintain, but simplicity is not the first attempt. It's the hardest revision. It takes thought, multiple passes, and the willingness to throw work away.
+
+We have a zero technical debt policy. We do it right the first time, because the second time rarely comes. A problem solved in design costs less than one solved in implementation, which costs less than one solved in production. The cost of fixing problems grows exponentially over time.
+
+A day of design is worth weeks or months in production. Go slow to go fast. Optimize for the total cost of software ownership, not for those who write it once, but for those who read and run it many times.
+
+## Simplicity
+
+Simple and elegant systems tend to be easier and faster to design and get right, more efficient in execution, and much more reliable. But they require hard work and discipline to achieve.
+
+Simplicity is not the first attempt. It's the hardest revision. It takes thought, multiple passes, and the willingness to throw work away. The goal is to find the idea that solves multiple problems at once.
+
+## Technical Debt
+
+We have a zero technical debt policy. We do it right the first time.
+
+When we find problems, we fix them. We don't allow potential issues to slip through with a "we'll fix it later" comment. Later rarely comes, and the cost of fixing problems grows exponentially over time. A problem solved in design costs less than one solved in implementation, which costs less than one solved in production.
+
+## Safety
+
+### Assertions
+
+Crash the request, not the system.
+
+When an invariant is violated, return a 500 error immediately. Don't attempt to recover from programmer errors. That hides bugs and leads to data corruption. Assertions downgrade catastrophic correctness bugs into liveness bugs.
+
+Assertions detect programmer errors, not user errors. A user sending invalid input should get a 400. That's expected, handle it gracefully. Code reaching an "impossible" state should return a 500. That's unexpected, fail immediately.
+
+```go
+
+user, err := getUser(ctx, userID)
+if err != nil {
+		return fault.Wrap(err, fault.WithDesc("failed to get user"))
+}
+// This should never happen if getUser worked correctly.
+// If it does, something is deeply wrong. Fail fast.
+err = assert.NotEmpty(user.WorkspaceID)
+if err != nil {
+	return err
+}
+```
+
+Pair assertions. Assert the same property from multiple angles. Validate data before writing to the database and after reading from it. If they disagree, you've found a bug: either in the write path, the read path, or the storage layer itself. Assert preconditions, postconditions, invariants, and impossible states like default cases in switches or else branches that "can't happen."
+
+### Error Handling
+
+All errors must be handled. An [analysis of production failures](https://www.usenix.org/system/files/conference/osdi14/osdi14-paper-yuan.pdf) found that 92% of catastrophic failures could have been prevented by proper error handling.
+
+Never ignore errors. The blank identifier for errors is almost always wrong. If you think an error can't happen, assert that with an explicit check rather than silently discarding it.
+
+```go
+// Never do this
+result, _ := doSomething()
+
+// Always handle or propagate
+result, err := doSomething()
+if err != nil {
+    return fault.Wrap(err, fault.WithDesc("doSomething failed"))
+}
+```
+
+### Scope
+
+Declare variables at the smallest possible scope. Minimize the number of variables in play at any point. This reduces the probability of using the wrong variable and makes code easier to reason about.
+
+Calculate or check variables close to where they are used. Don't introduce variables before they are needed. Don't leave them around where they are not. Most bugs come down to a semantic gap caused by distance in time or space. It's harder to verify code when related pieces are far apart.
+
+## Failure
+
+We build distributed systems. Networks partition. Disks fail. Processes crash. Memory runs out. Clocks drift. The question is not whether things will fail, but how gracefully we handle it when they do.
+
+### Expect Failure
+
+Design for failure from the start. Not as an afterthought. Not as "we'll add retries later."
+
+Every external call can fail. Every database query can timeout. Every message can be lost. Every response can be corrupted. Write code that assumes these things will happen.
+
+### Fail Gracefully
+
+When failure happens, contain the blast radius. One bad request should not bring down the system. One slow dependency should not cascade into total unavailability.
+
+Use circuit breakers to stop calling failing dependencies and give them time to recover. We have `pkg/circuitbreaker` for this. A circuit breaker tracks failure rates. When failures exceed a threshold, the circuit opens and calls fail immediately without attempting the operation. After a cooldown, it allows a test request through. If it succeeds, normal operation resumes.
+
+### Retry with Backoff
+
+Transient failures are common. Retry them, but retry intelligently. We have `pkg/retry` for this.
+
+Use exponential backoff so you don't hammer a struggling service. If it's overloaded, more requests make things worse. Add jitter to randomize retry timing and prevent thundering herds where all clients retry at the same moment. Set budgets to limit total retry time. Don't let retries turn a 100ms request into a 10 minute hang.
+
+### Idempotency
+
+In distributed systems, exactly-once delivery is a myth. Messages arrive zero times, once, or multiple times. Design for it.
+
+Operations should be safe to retry. If a request times out, the client doesn't know if it succeeded or failed. They will retry. Make sure that's safe. Use idempotency keys for operations that must not be duplicated, like payments or resource creation.
+
+### Observability
+
+You can't fix what you can't see. When failures happen, you need to know what failed, when it started, how often it's failing, and what the blast radius is.
+
+Instrument everything. Log errors with context. Emit metrics for failure rates. Trace requests across service boundaries.
+
+## Developer Experience
+
+### Order Matters
+
+Order matters for readability even when it doesn't affect semantics. On first read, a file is read top-down, so put important things near the top.
+
+In Go files, exported functions come before unexported ones. The primary type or function that the file is named after comes first. Tests should mirror the order of the code they test.
+
+### Comments
+
+Comments are sentences. Start with a capital letter, end with a period. Use proper grammar and punctuation. Comments are well-written prose describing the code, not scribblings in the margin.
+
+```go
+// Bad
+// check if valid
+
+// Good
+// ValidateRequest checks that all required fields are present and within acceptable ranges.
+```
+
+Don't forget to say why. Code shows what it does, but not why it does it that way. Comments explain the reasoning, the tradeoffs, and the context that future readers will need.
+
+For comprehensive guidance on documentation, see the [Documentation Guidelines](/docs/contributing/documentation).
+
+### Function Length
+
+Keep functions short. If a function doesn't fit on a screen, it's probably doing too much. Aim for functions under 50 lines. This isn't a hard rule, but if you find yourself writing a 200-line function, step back and consider whether it should be broken up.
+
+Short functions are easier to name, easier to test, and easier to understand. They force you to think about the right level of abstraction.
+
+## Naming
+
+Great names are the essence of great code. They capture what a thing is or does, providing a crisp mental model. Take time to find the right name. If you can't name something clearly, you might not understand it well enough yet.
+
+Append qualifiers to names. Units, bounds, and modifiers come at the end. Sort by most significant word first (big-endian naming). This groups related variables together when sorted alphabetically and makes scanning a list of variables easier.
+
+```go
+// bad
+maxLatency
+minLatency
+p99Latency
+```
+
+```go
+// good: Qualifiers last, sorted by significance
+latencyMsMax
+latencyMsMin
+latencyMsP99
+timeoutSeconds
+bufferSizeBytes
+```
+
+Don't abbreviate. Spell out words fully. The few exceptions are universally understood: `ctx`, `err`, `req`, `res`, `db`, `id`. If you're tempted to abbreviate something else, don't. `permission` is clearer than `perm`, `workspace` is clearer than `ws`.
+
+## Dependencies
+
+We integrate with many external systems and cannot adopt a zero-dependency approach. But every dependency has costs. Security risk from supply chain attacks and vulnerabilities in transitive dependencies. Maintenance burden from updates, breaking changes, and abandoned packages. Build complexity from slower installs and version conflicts. Cognitive load from more APIs to learn and more documentation to read.
+
+Before adding a dependency, ask: Do we really need this, or is it just convenient? Can we implement the subset we need in less than 100 lines? How many transitive dependencies does it bring? Is it actively maintained, and by whom? What happens if this package disappears tomorrow?
+
+Prefer standard library over external packages. Prefer single-purpose packages over kitchen-sink frameworks. Prefer packages with zero or few transitive dependencies. Prefer well-established packages over trendy new ones.
+
+Some things should not be implemented in-house. Don't roll your own cryptography. Use official or well-maintained database drivers. Core frameworks like Next.js, Hono, and Drizzle are foundational choices. Complex protocols like Protobuf, gRPC, and OAuth have well-tested implementations.
+
+The question is not "is this useful?" but "is the value worth the cost?"
+
+## Enforcement
+
+These rules are enforced through multiple layers.
+
+Automated checks catch many issues. We use golangci-lint with strict configuration for Go, Biome for TypeScript, and CI checks run on every PR.
+
+Code reviewers should verify that loops are bounded or justified, timeouts are explicit on external calls, errors are handled not ignored, invariants are asserted at boundaries, variable names are clear with units where applicable, and new dependencies are truly necessary.
+
+Before opening a PR, ask yourself: Did I do the hard thing today, or did I take a shortcut that creates debt? Would I be confident if this code ran at 10x our current load? Will someone reading this in six months understand why it works this way?
+
+## Acknowledgments
+
+This guide is heavily inspired by [TigerStyle](https://github.com/tigerbeetle/tigerbeetle/blob/main/docs/TIGER_STYLE.md), TigerBeetle's coding style guide. We've adapted their principles for our Go and TypeScript codebase, but the philosophy is theirs: invest in quality upfront because the cost of fixing problems grows exponentially over time.

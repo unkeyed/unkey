@@ -1,0 +1,254 @@
+---
+title: HTTP Handler Tests
+description: Testing API endpoints with the test harness
+---
+
+## Testing the Full Stack
+
+HTTP handler tests exercise our API endpoints from request to response. They're integration tests in disguise. A single request might authenticate a user, check permissions, validate input, query a database, update a cache, and write an audit log. Testing handlers end-to-end catches bugs that unit tests miss.
+
+Every handler should have tests covering at least three scenarios: success cases where valid requests get valid responses, validation errors where malformed input is rejected with helpful messages, and authentication errors where unauthorized requests are blocked. Most handlers also need authorization tests to verify that permissions are enforced correctly.
+
+## Anatomy of a Handler Test
+
+Handler tests follow a consistent pattern. Create a test harness, configure the handler with dependencies from the harness, register the handler, create test credentials, make a request, and verify the response.
+
+```go
+func TestCreateApi_Success(t *testing.T) {
+    h := testutil.NewHarness(t)
+
+    // Configure the handler with dependencies
+    route := &handler.Handler{
+        Logger:    h.Logger,
+        DB:        h.DB,
+        Keys:      h.Keys,
+        Auditlogs: h.Auditlogs,
+    }
+
+    // Register with the test server
+    h.Register(route)
+
+    // Create authentication credentials with required permissions
+    rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_api")
+    
+    headers := http.Header{
+        "Content-Type":  {"application/json"},
+        "Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+    }
+
+    // Make the request
+    req := handler.Request{
+        Name: "my-new-api",
+    }
+    
+    res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+    
+    // Verify the response
+    require.Equal(t, http.StatusOK, res.Status)
+    require.NotEmpty(t, res.Body.ApiID)
+}
+```
+
+The `testutil.CallRoute` function is a generic helper that handles JSON serialization and deserialization. The type parameters specify the request and response types, and you get back a structured response with status code, headers, and parsed body.
+
+## Organizing Test Files
+
+Tests should be organized by the behavior they verify. Use descriptive file names that communicate what's being tested at a glance:
+
+```
+svc/api/routes/v2_apis_create_api/
+├── handler.go
+├── success_test.go       # Happy path tests
+├── validation_test.go    # Input validation errors
+├── auth_test.go          # Authentication and authorization
+└── BUILD.bazel
+```
+
+Some teams prefer organizing by HTTP status code (`200_test.go`, `400_test.go`, `401_test.go`). Either approach works. Pick one and be consistent within a package.
+
+## Testing Success Cases
+
+Success tests verify that valid requests produce correct results. They should cover the minimal case with only required fields, the maximal case with all optional fields, and any interesting variations in between.
+
+```go
+func TestCreateApi_Success(t *testing.T) {
+    h := testutil.NewHarness(t)
+    route := setupRoute(h)
+    h.Register(route)
+
+    rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_api")
+    headers := authHeaders(rootKey)
+
+    t.Run("minimal request succeeds", func(t *testing.T) {
+        req := handler.Request{
+            Name: "test-api",
+        }
+        res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+        
+        require.Equal(t, http.StatusOK, res.Status)
+        require.NotEmpty(t, res.Body.ApiID)
+    })
+
+    t.Run("full request with all options succeeds", func(t *testing.T) {
+        req := handler.Request{
+            Name:        "full-api",
+            Description: "A fully configured API",
+        }
+        res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+        
+        require.Equal(t, http.StatusOK, res.Status)
+    })
+}
+```
+
+Consider also testing side effects. If creating an API should write an audit log entry or send a webhook, verify those happened.
+
+## Testing Validation Errors
+
+Validation tests ensure that bad input is rejected with appropriate error messages. Test boundary conditions, missing required fields, and invalid formats.
+
+```go
+func TestCreateApi_Validation(t *testing.T) {
+    h := testutil.NewHarness(t)
+    route := setupRoute(h)
+    h.Register(route)
+
+    rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_api")
+    headers := authHeaders(rootKey)
+
+    t.Run("rejects name that is too short", func(t *testing.T) {
+        req := handler.Request{
+            Name: "ab", // Minimum is 3 characters
+        }
+        res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+        
+        require.Equal(t, http.StatusBadRequest, res.Status)
+    })
+
+    t.Run("rejects name that is too long", func(t *testing.T) {
+        req := handler.Request{
+            Name: strings.Repeat("a", 256), // Maximum is 255
+        }
+        res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+        
+        require.Equal(t, http.StatusBadRequest, res.Status)
+    })
+
+    t.Run("rejects missing required field", func(t *testing.T) {
+        req := handler.Request{
+            // Name is required but omitted
+        }
+        res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+        
+        require.Equal(t, http.StatusBadRequest, res.Status)
+    })
+}
+```
+
+These tests document the API contract. When someone asks "what's the maximum name length?", the test provides the answer.
+
+## Testing Authentication
+
+Authentication tests verify that requests without valid credentials are rejected. Test missing headers, malformed tokens, and expired or revoked credentials.
+
+```go
+func TestCreateApi_Authentication(t *testing.T) {
+    h := testutil.NewHarness(t)
+    route := setupRoute(h)
+    h.Register(route)
+
+    t.Run("rejects request without authorization header", func(t *testing.T) {
+        headers := http.Header{
+            "Content-Type": {"application/json"},
+        }
+        req := handler.Request{Name: "test-api"}
+        res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+        
+        require.Equal(t, http.StatusUnauthorized, res.Status)
+    })
+
+    t.Run("rejects invalid api key", func(t *testing.T) {
+        headers := http.Header{
+            "Content-Type":  {"application/json"},
+            "Authorization": {"Bearer invalid_key_xxx"},
+        }
+        req := handler.Request{Name: "test-api"}
+        res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+        
+        require.Equal(t, http.StatusUnauthorized, res.Status)
+    })
+}
+```
+
+## Testing Authorization
+
+Authorization tests verify that authenticated users can only access resources they're permitted to. Test insufficient permissions and cross-workspace access.
+
+```go
+func TestCreateApi_Authorization(t *testing.T) {
+    h := testutil.NewHarness(t)
+    route := setupRoute(h)
+    h.Register(route)
+
+    t.Run("rejects request with insufficient permissions", func(t *testing.T) {
+        // Create key with read permission, but endpoint requires create
+        rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_api")
+        headers := authHeaders(rootKey)
+
+        req := handler.Request{Name: "test-api"}
+        res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+        
+        require.Equal(t, http.StatusForbidden, res.Status)
+    })
+
+    t.Run("rejects access to different workspace", func(t *testing.T) {
+        otherWorkspace := h.CreateWorkspace()
+        rootKey := h.CreateRootKey(otherWorkspace.ID, "api.*.create_api")
+        headers := authHeaders(rootKey)
+
+        req := handler.Request{Name: "test-api"}
+        res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+        
+        require.Equal(t, http.StatusForbidden, res.Status)
+    })
+}
+```
+
+Authorization bugs are security vulnerabilities. These tests are essential.
+
+## Helper Functions
+
+Extract repeated setup into helper functions to keep tests focused on what they're testing:
+
+```go
+func setupRoute(h *testutil.Harness) *handler.Handler {
+    return &handler.Handler{
+        Logger:    h.Logger,
+        DB:        h.DB,
+        Keys:      h.Keys,
+        Auditlogs: h.Auditlogs,
+    }
+}
+
+func authHeaders(rootKey string) http.Header {
+    return http.Header{
+        "Content-Type":  {"application/json"},
+        "Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+    }
+}
+```
+
+These helpers don't need `t.Helper()` because they don't make assertions. They just reduce boilerplate.
+
+## Debugging Failed Requests
+
+When a handler test fails, the response body often contains useful error information. The `RawBody` field gives you the unparsed response:
+
+```go
+res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+if res.Status != http.StatusOK {
+    t.Logf("Response body: %s", res.RawBody)
+}
+```
+
+For more visibility, enable debug logging in the harness or add temporary log statements to the handler. Handler tests use real dependencies, so you can also inspect the database directly if needed.

@@ -1,0 +1,192 @@
+---
+title: Simulation Tests
+description: Property-based testing with the simulation framework
+---
+
+## Beyond Example-Based Testing
+
+Traditional tests verify specific examples: "given input X, expect output Y." This works well for simple functions, but stateful systems have too many possible states to test exhaustively. A cache might work perfectly for any single operation but corrupt data when operations interleave in a specific sequence.
+
+Simulation testing takes a different approach. Instead of testing specific examples, you define operations and invariants. The framework runs random sequences of operations and checks that invariants hold after each step. If something breaks, you get a seed that reproduces the exact sequence.
+
+Our `pkg/sim` framework provides this capability. We use it for testing caches, rate limiters, and other stateful components where bugs often hide in unexpected operation orderings.
+
+## The Mental Model
+
+A simulation has three parts: state, events, and validators.
+
+State is the system under test plus any bookkeeping you need. For a cache simulation, this might be the cache itself plus a record of what keys you've inserted.
+
+Events are operations that modify the state. Each event is a struct with a `Run` method that takes a random number generator and the state. The framework calls events in random order, and the RNG lets events make random choices (which key to access, what value to insert).
+
+Validators check invariants that should always hold. "The cache should never be nil" is a simple validator. "Every key we inserted should either be present or have been explicitly evicted" is a more interesting one.
+
+## A Simple Example
+
+Here's a simulation that tests a cache by randomly setting, getting, and removing keys:
+
+```go
+type state struct {
+    cache cache.Cache[uint64, uint64]
+    keys  []uint64
+    clk   *clock.TestClock
+}
+
+type setEvent struct{}
+
+func (e *setEvent) Name() string { return "set" }
+
+func (e *setEvent) Run(rng *rand.Rand, s *state) error {
+    key := rng.Uint64()
+    val := rng.Uint64()
+    s.keys = append(s.keys, key)
+    s.cache.Set(context.Background(), key, val)
+    return nil
+}
+
+type getEvent struct{}
+
+func (e *getEvent) Name() string { return "get" }
+
+func (e *getEvent) Run(rng *rand.Rand, s *state) error {
+    if len(s.keys) == 0 {
+        return nil
+    }
+    key := s.keys[rng.IntN(len(s.keys))]
+    s.cache.Get(context.Background(), key)
+    return nil
+}
+
+type tickEvent struct{}
+
+func (e *tickEvent) Name() string { return "tick" }
+
+func (e *tickEvent) Run(rng *rand.Rand, s *state) error {
+    // Advance time randomly to trigger expiration
+    s.clk.Tick(time.Duration(rng.IntN(10000)) * time.Millisecond)
+    return nil
+}
+```
+
+Each event is simple on its own. The power comes from running thousands of them in random sequences.
+
+## Running the Simulation
+
+Create the simulation with initial state and run it with your events:
+
+```go
+func TestCacheSimulation(t *testing.T) {
+    for i := 0; i < 10; i++ {
+        t.Run(fmt.Sprintf("run=%d", i), func(t *testing.T) {
+            seed := sim.NewSeed()
+
+            simulation := sim.New[state](seed,
+                sim.WithState(func(rng *rand.Rand) *state {
+                    clk := clock.NewTestClock(time.Now())
+                    c, _ := cache.New(cache.Config[uint64, uint64]{
+                        Clock:   clk,
+                        Fresh:   time.Second,
+                        Stale:   time.Minute,
+                        MaxSize: rng.IntN(1000) + 1,
+                    })
+                    return &state{
+                        cache: c,
+                        keys:  []uint64{},
+                        clk:   clk,
+                    }
+                }),
+            )
+
+            simulation = sim.WithValidator(func(s *state) error {
+                if s.cache == nil {
+                    return fmt.Errorf("cache should not be nil")
+                }
+                return nil
+            })(simulation)
+
+            err := simulation.Run([]sim.Event[state]{
+                &setEvent{},
+                &getEvent{},
+                &tickEvent{},
+            })
+            require.NoError(t, err)
+        })
+    }
+}
+```
+
+Running multiple iterations with different seeds explores more of the state space. Each seed produces a deterministic sequence, so failures are reproducible.
+
+## Reproducibility
+
+When a simulation fails, the output includes the seed. Save that seed to reproduce the exact sequence of events:
+
+```go
+func TestReproduceFailure(t *testing.T) {
+    // Seed from the failed run
+    seed := sim.SeedFromString("abc123...")
+    
+    simulation := sim.New[state](seed, ...)
+    err := simulation.Run(events)
+    require.NoError(t, err)
+}
+```
+
+This is critical for debugging. Random tests that can't be reproduced are nearly useless.
+
+## Writing Effective Events
+
+Events should be self-contained and valid regardless of current state. If an event requires keys to exist, check first and return early if the precondition isn't met:
+
+```go
+func (e *removeEvent) Run(rng *rand.Rand, s *state) error {
+    if len(s.keys) == 0 {
+        return nil // Nothing to remove
+    }
+    
+    idx := rng.IntN(len(s.keys))
+    key := s.keys[idx]
+    s.cache.Remove(context.Background(), key)
+    s.keys = append(s.keys[:idx], s.keys[idx+1:]...)
+    return nil
+}
+```
+
+Return errors only for actual invariant violations, not for expected conditions like "no keys to remove." The simulation collects errors and reports them at the end.
+
+## When to Use Simulations
+
+Simulations are most valuable for:
+
+- Caches where expiration and eviction interact in complex ways
+- Rate limiters where timing affects behavior
+- State machines with many valid transitions
+- Any system where operation ordering might matter
+
+They're less useful for:
+
+- Simple functions with no state
+- Code with complex external dependencies that are hard to model
+- Logic where the interesting behaviors are obvious enough to test directly
+
+Start with unit tests and add simulation tests when you suspect there are bugs hiding in operation interleavings that you haven't thought to test.
+
+## Bazel Configuration
+
+Simulation tests are regular Go tests:
+
+```python
+go_test(
+    name = "cache_test",
+    size = "small",
+    srcs = ["simulation_test.go"],
+    deps = [
+        ":cache",
+        "//pkg/clock",
+        "//pkg/sim",
+        "@com_github_stretchr_testify//require",
+    ],
+)
+```
+
+They run as `small` tests because they don't need external resources. The simulation framework handles time internally using the test clock.

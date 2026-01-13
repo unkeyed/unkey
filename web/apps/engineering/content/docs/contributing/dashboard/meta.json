@@ -1,0 +1,7 @@
+{
+  "title": "Dashboard",
+  "description": "Dashboard development guides",
+  "icon": "LayoutDashboard",
+  "root": false,
+  "pages": ["client-structure"]
+}
