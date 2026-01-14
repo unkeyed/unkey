@@ -35,7 +35,7 @@ post:
      Your root key must have:
      - `api.*.create_key` or `api.<api_id>.create_key`
      - `api.*.encrypt_key` or `api.<api_id>.encrypt_key` (only when the original key is recoverable)
-  operationId: rerollKey
+  operationId: keys.rerollKey
   x-speakeasy-name-override: rerollKey
   security:
     - rootKey: []

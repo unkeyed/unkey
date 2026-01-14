@@ -20,7 +20,7 @@ post:
 
     Additional permission required for decrypt functionality:
     - `api.*.decrypt_key` or `api.<api_id>.decrypt_key`
-  operationId: listKeys
+  operationId: apis.listKeys
   x-speakeasy-name-override: listKeys
   security:
     - rootKey: []

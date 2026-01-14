@@ -18,7 +18,7 @@ post:
     **Side Effects**
 
     Invalidates the key cache for immediate effect, and makes role changes available for verification within 30 seconds across all regions.
-  operationId: setRoles
+  operationId: keys.setRoles
   x-speakeasy-name-override: setRoles
   security:
     - rootKey: []

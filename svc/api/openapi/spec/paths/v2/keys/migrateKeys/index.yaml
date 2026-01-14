@@ -9,7 +9,7 @@ post:
     Your root key must have one of the following permissions for basic key information:
     - `api.*.create_key` (to migrate keys to any API)
     - `api.<api_id>.create_key` (to migrate keys to a specific API)
-  operationId: migrateKeys
+  operationId: keys.migrateKeys
   x-speakeasy-name-override: migrateKeys
   security:
     - rootKey: []
