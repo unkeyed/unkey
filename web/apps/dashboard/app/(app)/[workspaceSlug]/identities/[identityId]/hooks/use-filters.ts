@@ -6,6 +6,7 @@ import type { IdentityDetailsFilterValue } from "../filters.schema";
 // Define parsers for each filter type
 const queryParamsPayload = {
   tags: parseAsString,
+  tagsOperator: parseAsString,
   outcomes: parseAsString,
   startTime: parseAsInteger,
   endTime: parseAsInteger,
@@ -21,10 +22,19 @@ export const useFilters = () => {
     const activeFilters: IdentityDetailsFilterValue[] = [];
 
     if (searchParams.tags) {
+      // Parse the operator from query params, default to "contains" if not specified or invalid
+      const operator = searchParams.tagsOperator;
+      const validOperators = ["is", "contains", "startsWith", "endsWith"] as const;
+      type ValidOperator = (typeof validOperators)[number];
+      const parsedOperator =
+        operator && validOperators.includes(operator as ValidOperator)
+          ? (operator as ValidOperator)
+          : "contains";
+
       activeFilters.push({
         id: crypto.randomUUID(),
         field: "tags",
-        operator: "contains", // Default operator
+        operator: parsedOperator,
         value: searchParams.tags,
       });
     }
@@ -77,6 +87,7 @@ export const useFilters = () => {
     (newFilters: IdentityDetailsFilterValue[]) => {
       const newParams = {
         tags: null as string | null,
+        tagsOperator: null as string | null,
         outcomes: null as string | null,
         startTime: null as number | null,
         endTime: null as number | null,
@@ -87,6 +98,7 @@ export const useFilters = () => {
         switch (filter.field) {
           case "tags":
             newParams.tags = filter.value;
+            newParams.tagsOperator = filter.operator;
             break;
           case "outcomes":
             newParams.outcomes = filter.value;

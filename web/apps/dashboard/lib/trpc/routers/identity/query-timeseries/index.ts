@@ -101,7 +101,8 @@ export const queryIdentityTimeseries = workspaceProcedure
           },
         },
       })
-      .catch((_err) => {
+      .catch((err) => {
+        console.error("Failed to retrieve identity details:", err);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:

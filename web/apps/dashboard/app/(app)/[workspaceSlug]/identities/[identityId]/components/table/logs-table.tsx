@@ -424,8 +424,8 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
               <span className="text-accent-12">
                 {new Intl.NumberFormat().format(historicalLogs.length)}
               </span>
-              <span>of</span>
-              {new Intl.NumberFormat().format(totalCount + realtimeLogs.length)}
+              <span>of</span>{" "}
+              <span>{new Intl.NumberFormat().format(totalCount + realtimeLogs.length)}</span>
               <span>requests</span>
             </div>
           ),

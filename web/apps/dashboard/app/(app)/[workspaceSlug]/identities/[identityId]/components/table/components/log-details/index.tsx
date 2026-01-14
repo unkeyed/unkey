@@ -14,14 +14,14 @@ type Props = {
 };
 
 export const IdentityDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Props) => {
-  const { log, error } = useFetchRequestDetails({
+  const { log, error, isLoading } = useFetchRequestDetails({
     requestId: selectedLog?.request_id,
   });
 
   const [errorShown, setErrorShown] = useState(false);
 
   useEffect(() => {
-    if (!errorShown && selectedLog) {
+    if (!errorShown && selectedLog && !isLoading) {
       if (error) {
         toast.error("Error Loading Log Details", {
           description: `${
@@ -42,7 +42,7 @@ export const IdentityDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog 
     if (!selectedLog) {
       setErrorShown(false);
     }
-  }, [error, log, selectedLog, errorShown]);
+  }, [error, log, selectedLog, errorShown, isLoading]);
 
   const handleClose = () => {
     onLogSelect(null);
