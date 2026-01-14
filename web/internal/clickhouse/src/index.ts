@@ -116,7 +116,10 @@ export class ClickHouse {
       this.inserter = client;
     } else if (config.queryUrl && config.insertUrl) {
       this.querier = new Client({ url: config.queryUrl, request_timeout: config.requestTimeoutMs });
-      this.inserter = new Client({ url: config.insertUrl, request_timeout: config.requestTimeoutMs });
+      this.inserter = new Client({
+        url: config.insertUrl,
+        request_timeout: config.requestTimeoutMs,
+      });
     } else {
       this.querier = new Noop();
       this.inserter = new Noop();
