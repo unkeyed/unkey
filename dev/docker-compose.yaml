@@ -19,8 +19,7 @@ services:
     volumes:
       - mysql:/var/lib/mysql
     healthcheck:
-      test:
-        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
       timeout: 20s
       retries: 10
       start_period: 40s
@@ -129,7 +128,7 @@ services:
     container_name: vault
     build:
       context: ../
-      dockerfile: ./svc/vault/Dockerfile
+      dockerfile: Dockerfile
     command: ["run", "vault"]
     ports:
       - "8060:8060"
@@ -145,7 +144,7 @@ services:
       UNKEY_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       UNKEY_BEARER_TOKEN: "vault-test-token-123"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8060v1.vault.VaultService/Liveness"]
+      test: ["CMD", "curl", "-f", "http://localhost:8060/v1.vault.VaultService/Liveness"]
       timeout: 10s
       retries: 5
       start_period: 30s
