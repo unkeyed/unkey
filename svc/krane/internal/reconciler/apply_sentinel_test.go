@@ -290,6 +290,27 @@ func TestApplySentinel_ControlPlaneError(t *testing.T) {
 	require.Contains(t, err.Error(), "control plane unavailable")
 }
 
+func TestApplySentinel_SetsTolerations(t *testing.T) {
+	ctx := context.Background()
+	client := NewFakeClient(t)
+	depCapture := AddDeploymentPatchReactor(client)
+	AddServicePatchReactor(client)
+	r := NewTestReconciler(client, nil)
+
+	req := newApplySentinelRequest()
+	err := r.ApplySentinel(ctx, req)
+	require.NoError(t, err)
+
+	require.NotNil(t, depCapture.Applied)
+	require.Len(t, depCapture.Applied.Spec.Template.Spec.Tolerations, 1)
+
+	toleration := depCapture.Applied.Spec.Template.Spec.Tolerations[0]
+	require.Equal(t, "node-class", toleration.Key)
+	require.Equal(t, corev1.TolerationOpEqual, toleration.Operator)
+	require.Equal(t, "customer-code", toleration.Value)
+	require.Equal(t, corev1.TaintEffectNoSchedule, toleration.Effect)
+}
+
 func TestApplySentinel_ValidationErrors(t *testing.T) {
 	tests := []struct {
 		name   string
