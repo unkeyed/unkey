@@ -12,7 +12,7 @@ post:
     Your root key must have one of the following permissions:
     - `api.*.read_api` (to read any API)
     - `api.<api_id>.read_api` (to read a specific API)
-  operationId: getApi
+  operationId: apis.getApi
   x-speakeasy-name-override: getApi
   security:
     - rootKey: []

@@ -21,7 +21,7 @@ post:
     - `api.<api_id>.verify_key` (verify keys in specific API)
 
     **Note**: If your root key has no verify permissions at all, you will receive a `403 Forbidden` error. If your root key has verify permissions for a different API than the key you're verifying, you will receive a `200` response with `code: NOT_FOUND` to avoid leaking key existence.
-  operationId: verifyKey
+  operationId: keys.verifyKey
   x-speakeasy-name-override: verifyKey
   security:
     - rootKey: []
