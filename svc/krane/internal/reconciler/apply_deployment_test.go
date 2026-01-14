@@ -278,7 +278,7 @@ func TestApplyDeployment_SetsTolerations(t *testing.T) {
 	toleration := capture.Applied.Spec.Template.Spec.Tolerations[0]
 	require.Equal(t, "node-class", toleration.Key)
 	require.Equal(t, corev1.TolerationOpEqual, toleration.Operator)
-	require.Equal(t, "untrusted-code", toleration.Value)
+	require.Equal(t, "untrusted", toleration.Value)
 	require.Equal(t, corev1.TaintEffectNoSchedule, toleration.Effect)
 }
 
