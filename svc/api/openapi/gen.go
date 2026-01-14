@@ -2358,11 +2358,11 @@ type GetApiJSONRequestBody = V2ApisGetApiRequestBody
 // ListKeysJSONRequestBody defines body for ListKeys for application/json ContentType.
 type ListKeysJSONRequestBody = V2ApisListKeysRequestBody
 
-// CreateDeploymentJSONRequestBody defines body for CreateDeployment for application/json ContentType.
-type CreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody
+// DeployCreateDeploymentJSONRequestBody defines body for DeployCreateDeployment for application/json ContentType.
+type DeployCreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody
 
-// GenerateUploadUrlJSONRequestBody defines body for GenerateUploadUrl for application/json ContentType.
-type GenerateUploadUrlJSONRequestBody = V2DeployGenerateUploadUrlRequestBody
+// DeployGenerateUploadUrlJSONRequestBody defines body for DeployGenerateUploadUrl for application/json ContentType.
+type DeployGenerateUploadUrlJSONRequestBody = V2DeployGenerateUploadUrlRequestBody
 
 // IdentitiesCreateIdentityJSONRequestBody defines body for IdentitiesCreateIdentity for application/json ContentType.
 type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody
