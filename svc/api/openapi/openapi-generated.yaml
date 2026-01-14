@@ -458,7 +458,7 @@ components:
                     type: string
                     minLength: 1
                     description: Unique deployment identifier to retrieve
-                    example: "dep_abc123xyz"
+                    example: "d_abc123xyz"
         V2DeployGetDeploymentResponseBody:
             type: object
             required:
