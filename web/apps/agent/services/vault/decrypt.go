@@ -40,7 +40,7 @@ func (s *Service) Decrypt(
 		s.keyCache.Set(ctx, cacheKey, dek)
 	}
 
-	plaintext, err := encryption.Decrypt(dek.Key, encrypted.Nonce, encrypted.Ciphertext)
+	plaintext, err := encryption.Decrypt(dek.GetKey(), encrypted.GetNonce(), encrypted.GetCiphertext())
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt ciphertext: %w", err)
 	}

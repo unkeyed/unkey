@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_test")
+
+go_test(
+    name = "integration_test",
+    size = "large",
+    srcs = [
+        "coldstart_test.go",
+        "migrate_deks_test.go",
+        "reencryption_test.go",
+        "reusing_deks_test.go",
+    ],
+    deps = [
+        "//gen/proto/vault/v1:vault",
+        "//pkg/dockertest",
+        "//pkg/otel/logging",
+        "//pkg/uid",
+        "//svc/vault/internal/keys",
+        "//svc/vault/internal/storage",
+        "//svc/vault/internal/vault",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_stretchr_testify//require",
+    ],
+)

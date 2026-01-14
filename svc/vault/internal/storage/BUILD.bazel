@@ -1,0 +1,47 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "storage",
+    srcs = [
+        "interface.go",
+        "memory.go",
+        "s3.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/vault/internal/storage",
+    visibility = ["//svc/vault:__subpackages__"],
+    deps = [
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "@com_github_aws_aws_sdk_go_v2//aws",
+        "@com_github_aws_aws_sdk_go_v2_config//:config",
+        "@com_github_aws_aws_sdk_go_v2_credentials//:credentials",
+        "@com_github_aws_aws_sdk_go_v2_service_s3//:s3",
+    ],
+)
+
+go_test(
+    name = "storage_test",
+    srcs = [
+        "memory_test.go",
+        "s3_test.go",
+    ],
+    embed = [":storage"],
+    deps = [
+        "//pkg/dockertest",
+        "//pkg/otel/logging",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)
+
+go_test(
+    name = "storage_integration_test",
+    size = "large",
+    srcs = ["s3_test.go"],
+    embed = [":storage"],
+    deps = [
+        "//pkg/dockertest",
+        "//pkg/otel/logging",
+        "@com_github_stretchr_testify//require",
+    ],
+)

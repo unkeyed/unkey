@@ -743,6 +743,29 @@ type V2DeployCreateDeploymentResponseData struct {
 	DeploymentId string `json:"deploymentId"`
 }
 
+// V2DeployGenerateUploadUrlRequestBody defines model for V2DeployGenerateUploadUrlRequestBody.
+type V2DeployGenerateUploadUrlRequestBody struct {
+	// ProjectId Unkey project ID for which to generate the upload URL
+	ProjectId string `json:"projectId"`
+}
+
+// V2DeployGenerateUploadUrlResponseBody defines model for V2DeployGenerateUploadUrlResponseBody.
+type V2DeployGenerateUploadUrlResponseBody struct {
+	Data V2DeployGenerateUploadUrlResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeployGenerateUploadUrlResponseData defines model for V2DeployGenerateUploadUrlResponseData.
+type V2DeployGenerateUploadUrlResponseData struct {
+	// Context S3 path to use in the createDeployment request when building from source
+	Context string `json:"context"`
+
+	// UploadUrl Presigned PUT URL for uploading the build context tar file
+	UploadUrl string `json:"uploadUrl"`
+}
+
 // V2DeployGitCommit Optional git commit information
 type V2DeployGitCommit struct {
 	// AuthorAvatarUrl Git author avatar URL
@@ -2335,8 +2358,11 @@ type GetApiJSONRequestBody = V2ApisGetApiRequestBody
 // ListKeysJSONRequestBody defines body for ListKeys for application/json ContentType.
 type ListKeysJSONRequestBody = V2ApisListKeysRequestBody
 
-// CreateDeploymentJSONRequestBody defines body for CreateDeployment for application/json ContentType.
-type CreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody
+// DeployCreateDeploymentJSONRequestBody defines body for DeployCreateDeployment for application/json ContentType.
+type DeployCreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody
+
+// DeployGenerateUploadUrlJSONRequestBody defines body for DeployGenerateUploadUrl for application/json ContentType.
+type DeployGenerateUploadUrlJSONRequestBody = V2DeployGenerateUploadUrlRequestBody
 
 // IdentitiesCreateIdentityJSONRequestBody defines body for IdentitiesCreateIdentity for application/json ContentType.
 type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody

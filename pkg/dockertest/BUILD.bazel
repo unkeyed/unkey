@@ -6,6 +6,7 @@ go_library(
         "doc.go",
         "docker.go",
         "redis.go",
+        "s3.go",
         "wait.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/dockertest",
@@ -22,9 +23,16 @@ go_library(
 go_test(
     name = "dockertest_test",
     size = "large",
-    srcs = ["redis_test.go"],
+    srcs = [
+        "redis_test.go",
+        "s3_test.go",
+    ],
     deps = [
         ":dockertest",
+        "@com_github_aws_aws_sdk_go_v2//aws",
+        "@com_github_aws_aws_sdk_go_v2_config//:config",
+        "@com_github_aws_aws_sdk_go_v2_credentials//:credentials",
+        "@com_github_aws_aws_sdk_go_v2_service_s3//:s3",
         "@com_github_redis_go_redis_v9//:go-redis",
         "@com_github_stretchr_testify//require",
     ],

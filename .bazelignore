@@ -4,3 +4,4 @@ web
 proto
 svc/ctrl/proto
 svc/krane/proto
+svc/vault/proto

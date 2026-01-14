@@ -1,0 +1,49 @@
+post:
+  tags:
+    - deploy
+  summary: Generate upload URL
+  description: |
+    Generates a presigned S3 URL for uploading build context archives.
+
+    **Authentication**: Requires a valid root key with appropriate permissions.
+  operationId: deploy.generateUploadUrl
+  x-speakeasy-name-override: generateUploadUrl
+  security:
+    - rootKey: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DeployGenerateUploadUrlRequestBody.yaml"
+  responses:
+    "200":
+      description: Upload URL generated successfully
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DeployGenerateUploadUrlResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
