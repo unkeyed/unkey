@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -21,6 +22,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/retry"
 	"github.com/unkeyed/unkey/pkg/shutdown"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -400,6 +402,11 @@ func Run(ctx context.Context, cfg Config) error {
 	// Create the connect handler
 	mux := http.NewServeMux()
 
+	// Health check endpoint for load balancers and orchestrators
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
 	mux.Handle(ctrlv1connect.NewBuildServiceHandler(buildService))
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
 	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(deployment.Config{
@@ -467,6 +474,27 @@ func Run(ctx context.Context, cfg Config) error {
 			logger.Error("Server failed", "error", err)
 		}
 	}()
+
+	if cfg.PrometheusPort > 0 {
+		prom, promErr := prometheus.New(prometheus.Config{
+			Logger: logger,
+		})
+		if promErr != nil {
+			return fmt.Errorf("failed to create prometheus server: %w", promErr)
+		}
+
+		shutdowns.RegisterCtx(prom.Shutdown)
+		ln, lnErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+		if lnErr != nil {
+			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, lnErr)
+		}
+		go func() {
+			logger.Info("prometheus started", "port", cfg.PrometheusPort)
+			if serveErr := prom.Serve(ctx, ln); serveErr != nil {
+				logger.Error("failed to start prometheus server", "error", serveErr)
+			}
+		}()
+	}
 
 	// Wait for signal and handle shutdown
 	logger.Info("Ctrl server started successfully")
