@@ -30,21 +30,21 @@ local_resource(
 
 # Redis service
 k8s_yaml('k8s/manifests/redis.yaml')
-k8s_resource('redis', port_forwards='6379:6379', resource_deps=[], labels=['database'])
+k8s_resource('redis', port_forwards='6379:6379', resource_deps=['namespace'], labels=['database'])
 
 # MySQL service
 docker_build('unkey/mysql:local', '..', dockerfile='./Dockerfile.mysql')
 k8s_yaml('k8s/manifests/mysql.yaml')
-k8s_resource('mysql', port_forwards='3306:3306', resource_deps=[], labels=['database'])
+k8s_resource('mysql', port_forwards='3306:3306', resource_deps=['namespace'], labels=['database'])
 
 # ClickHouse service
 docker_build('unkey/clickhouse:local', '..', dockerfile='./Dockerfile.clickhouse')
 k8s_yaml('k8s/manifests/clickhouse.yaml')
-k8s_resource('clickhouse', port_forwards='8123:8123', resource_deps=[], labels=['database'])
+k8s_resource('clickhouse', port_forwards='8123:8123', resource_deps=['namespace'], labels=['database'])
 
 # S3 (MinIO) service
 k8s_yaml('k8s/manifests/s3.yaml')
-k8s_resource('s3', port_forwards=['3902:3902', '3903:3903'], resource_deps=[], labels=['database'])
+k8s_resource('s3', port_forwards=['3902:3902', '3903:3903'], resource_deps=['namespace'], labels=['database'])
 
 # PlanetScale HTTP driver
 k8s_yaml('k8s/manifests/planetscale.yaml')
@@ -56,15 +56,16 @@ k8s_resource(
 
 # Restate service
 k8s_yaml('k8s/manifests/restate.yaml')
-k8s_resource('restate', port_forwards=['8081:8080', '9070:9070'], resource_deps=[], labels=['database'])
+k8s_resource('restate', port_forwards=['8081:8080', '9070:9070'], resource_deps=['namespace'], labels=['database'])
 
 
 # Build Go binaries locally (auto-detect arch from minikube)
 local_resource(
     'build-unkey',
-    'cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=$(minikube ssh -- uname -m | sed "s/x86_64/amd64/" | sed "s/aarch64/arm64/" | tr -d "\\r") go build -o bin/unkey .',
+    'cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=$(minikube ssh -- uname -m | tr -d "\\r" | sed "s/x86_64/amd64/;s/aarch64/arm64/") go build -o bin/unkey .',
     deps=['../main.go', '../pkg', '../cmd', '../svc', '../gen'],
     labels=['build'],
+    allow_parallel=True,
 )
 
 
@@ -144,20 +145,39 @@ k8s_resource(
 
 # Preflight (mutating admission controller for secrets and credentials injection)
 
-# Build inject binary and image (auto-detect arch from minikube)
+# Build inject binary (auto-detect arch from minikube)
 local_resource(
-    'build-inject',
-    'cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=$(minikube ssh -- uname -m | sed "s/x86_64/amd64/" | sed "s/aarch64/arm64/" | tr -d "\\r") go build -o bin/inject ./cmd/inject && docker build -t inject:latest -f dev/Dockerfile.inject . && minikube image load inject:latest',
+    'build-inject-binary',
+    'cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=$(minikube ssh -- uname -m | tr -d "\\r" | sed "s/x86_64/amd64/;s/aarch64/arm64/") go build -o bin/inject ./cmd/inject',
     deps=['../cmd/inject', '../pkg/secrets', '../pkg/cli'],
-    allow_parallel=True,
     labels=['build'],
+    allow_parallel=True,
+)
+
+# Build inject docker image
+local_resource(
+    'build-inject-image',
+    'cd .. && docker build -t inject:latest -f dev/Dockerfile.inject .',
+    deps=['../bin/inject', '../dev/Dockerfile.inject'],
+    resource_deps=['build-inject-binary'],
+    labels=['build'],
+    allow_parallel=True,
+)
+
+# Load inject image into minikube
+local_resource(
+    'load-inject-image',
+    'minikube image load inject:latest',
+    resource_deps=['build-inject-image'],
+    labels=['build'],
+    allow_parallel=True,
 )
 
 k8s_yaml('k8s/manifests/preflight.yaml')
 k8s_resource(
   'preflight',
   port_forwards='8090:8080',
-  resource_deps=['build-unkey', 'build-inject'],
+  resource_deps=['build-unkey', 'load-inject-image'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
