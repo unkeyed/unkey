@@ -112,6 +112,17 @@ down: ## Stop dev environment
 local-dashboard: install build ## Run local development setup for dashboard
 	pnpm --dir=web/apps/dashboard local
 
+.PHONY: fuzz
+fuzz: ## Run fuzz tests
+	@files=$$(grep -r --include='*_test.go' -l 'func Fuzz' .); \
+	for file in $$files; do \
+		funcs=$$(grep -oE 'func (Fuzz[a-zA-Z0-9_]*)' $$file | sed 's/func //'); \
+		for func in $$funcs; do \
+			echo "Fuzzing $$func in $$file"; \
+			parentDir=$$(dirname $$file); \
+			go test $$parentDir -run=$$func -fuzz=$$func -fuzztime=60s; \
+		done; \
+	done
 .PHONY: unkey
 unkey: ## Run unkey CLI (usage: make unkey dev seed local, make unkey run api ARGS="--http-port=7070")
 	@set -a; [ -f .env ] && . ./.env; set +a; bazel run //:unkey -- $(filter-out unkey,$(MAKECMDGOALS)) $(ARGS)

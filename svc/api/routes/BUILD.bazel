@@ -35,6 +35,7 @@ go_library(
         "//svc/api/routes/v2_apis_get_api",
         "//svc/api/routes/v2_apis_list_keys",
         "//svc/api/routes/v2_deploy_create_deployment",
+        "//svc/api/routes/v2_deploy_generate_upload_url",
         "//svc/api/routes/v2_identities_create_identity",
         "//svc/api/routes/v2_identities_delete_identity",
         "//svc/api/routes/v2_identities_get_identity",

@@ -14,7 +14,7 @@ import (
 //	if err := assert.NotEmpty(request.IDs, "At least one ID must be provided"); err != nil {
 //	    return fault.Wrap(err, fault.Internal("IDs cannot be empty"), fault.Public("Please provide at least one ID"))
 //	}
-func NotEmpty[T ~string | ~[]any | ~map[any]any | []byte](value T, message ...string) error {
+func NotEmpty[T ~string | ~[]any | ~[]string | ~map[any]any | []byte](value T, message ...string) error {
 	if len(value) == 0 {
 		errorMsg := "value is empty"
 		if len(message) > 0 {

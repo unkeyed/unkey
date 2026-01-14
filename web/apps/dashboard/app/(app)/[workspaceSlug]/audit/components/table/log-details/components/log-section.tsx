@@ -16,16 +16,24 @@ export const LogSection = ({
         <CardContent className="py-2 px-3 text-xs relative group ">
           <pre className="flex flex-col gap-1 whitespace-pre-wrap leading-relaxed">
             {Array.isArray(details)
-              ? details.map((header) => {
-                  const [key, ...valueParts] = header.split(":");
-                  const value = valueParts.join(":").trim();
-                  return (
-                    <div className="group flex items-center w-full p-[3px]" key={key}>
-                      <span className="w-28 text-left truncate text-accent-9">{key}:</span>
-                      <span className="ml-2 text-xs text-accent-12 secret">{value}</span>
-                    </div>
-                  );
-                })
+              ? [...details]
+                  .sort((a, b) => {
+                    const keyA = a.split(":")[0].toLowerCase();
+                    const keyB = b.split(":")[0].toLowerCase();
+                    return keyA.localeCompare(keyB);
+                  })
+                  .map((header, index) => {
+                    const [key, ...valueParts] = header.split(":");
+                    const value = valueParts.join(":").trim();
+                    // Create unique key by combining key, value hash, and position for duplicates
+                    const uniqueKey = `${key}-${value.slice(0, 20)}-${header.length}-${index}`;
+                    return (
+                      <div className="group flex items-center w-full p-[3px]" key={uniqueKey}>
+                        <span className="w-28 text-left truncate text-accent-9">{key}:</span>
+                        <span className="ml-2 text-xs text-accent-12 secret">{value}</span>
+                      </div>
+                    );
+                  })
               : details}
           </pre>
           <CopyButton
@@ -44,7 +52,12 @@ export const LogSection = ({
 
 const getFormattedContent = (details: string | string[]) => {
   if (Array.isArray(details)) {
-    return details
+    return [...details]
+      .sort((a, b) => {
+        const keyA = a.split(":")[0].toLowerCase();
+        const keyB = b.split(":")[0].toLowerCase();
+        return keyA.localeCompare(keyB);
+      })
       .map((header) => {
         const [key, ...valueParts] = header.split(":");
         const value = valueParts.join(":").trim();
