@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "fuzz",
+    srcs = [
+        "consumer.go",
+        "doc.go",
+        "get.go",
+        "seed.go",
+        "slice.go",
+        "struct.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/fuzz",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_stretchr_testify//require"],
+)
+
+go_test(
+    name = "fuzz_test",
+    size = "small",
+    srcs = ["fuzz_test.go"],
+    deps = [
+        ":fuzz",
+        "@com_github_stretchr_testify//require",
+    ],
+)

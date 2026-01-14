@@ -72,9 +72,7 @@ func Test_ColdStart(t *testing.T) {
 
 	// Bob reencrypts his secret
 
-	_, err = v.CreateDEK(ctx, &vaultv1.CreateDEKRequest{
-		Keyring: bobKeyRing,
-	})
+	_, err = v.CreateDEK(ctx, bobKeyRing)
 	require.NoError(t, err)
 	bobReencryptionRes, err := v.ReEncrypt(ctx, &vaultv1.ReEncryptRequest{
 		Keyring:   bobKeyRing,

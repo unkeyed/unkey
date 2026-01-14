@@ -68,7 +68,8 @@ type DataEncryptionKey struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Linux milliseconds since epoch
-	CreatedAt     int64  `protobuf:"varint,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	CreatedAt int64 `protobuf:"varint,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// AES-256 requires exactly 32 bytes
 	Key           []byte `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -189,10 +190,11 @@ func (x *EncryptedDataEncryptionKey) GetEncrypted() *Encrypted {
 
 // KeyEncryptionKey is a key used to encrypt data encryption keys
 type KeyEncryptionKey struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	CreatedAt     int64                  `protobuf:"varint,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	Key           []byte                 `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Id        string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	CreatedAt int64                  `protobuf:"varint,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// AES-256 requires exactly 32 bytes
+	Key           []byte `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -250,10 +252,12 @@ func (x *KeyEncryptionKey) GetKey() []byte {
 
 // Encrypted contains the output of the encryption and all of the metadata required to decrypt it
 type Encrypted struct {
-	state      protoimpl.MessageState `protogen:"open.v1"`
-	Algorithm  Algorithm              `protobuf:"varint,1,opt,name=algorithm,proto3,enum=vault.v1.Algorithm" json:"algorithm,omitempty"`
-	Nonce      []byte                 `protobuf:"bytes,2,opt,name=nonce,proto3" json:"nonce,omitempty"`
-	Ciphertext []byte                 `protobuf:"bytes,3,opt,name=ciphertext,proto3" json:"ciphertext,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Algorithm Algorithm              `protobuf:"varint,1,opt,name=algorithm,proto3,enum=vault.v1.Algorithm" json:"algorithm,omitempty"`
+	// GCM nonce must be exactly 12 bytes (96 bits)
+	Nonce []byte `protobuf:"bytes,2,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	// Ciphertext must not be empty (at minimum contains the GCM auth tag)
+	Ciphertext []byte `protobuf:"bytes,3,opt,name=ciphertext,proto3" json:"ciphertext,omitempty"`
 	// key id of the key that encrypted this data
 	EncryptionKeyId string `protobuf:"bytes,4,opt,name=encryption_key_id,json=encryptionKeyId,proto3" json:"encryption_key_id,omitempty"`
 	// time of encryption
