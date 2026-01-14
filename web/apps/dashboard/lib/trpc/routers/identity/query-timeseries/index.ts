@@ -14,26 +14,11 @@ import {
 } from "../../utils/granularity";
 
 // Input schema for identity timeseries query
+// Note: granularity is auto-computed based on time range, not provided by caller
 export const identityTimeseriesPayload = z.object({
   identityId: z.string(),
   startTime: z.number().int(),
   endTime: z.number().int(),
-  granularity: z.enum([
-    "minute",
-    "fiveMinutes",
-    "fifteenMinutes",
-    "thirtyMinutes",
-    "hour",
-    "twoHours",
-    "fourHours",
-    "sixHours",
-    "twelveHours",
-    "day",
-    "threeDays",
-    "week",
-    "month",
-    "quarter",
-  ]),
   since: z.string().optional(),
   tags: z
     .array(
@@ -229,6 +214,11 @@ export const queryIdentityTimeseries = workspaceProcedure
           });
       }
     } catch (error) {
+      // Re-throw TRPCError instances unchanged (e.g., "Unsupported granularity")
+      if (error instanceof TRPCError) {
+        throw error;
+      }
+      // Log and wrap other errors
       console.error("ClickHouse identity timeseries query failed:", error);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",

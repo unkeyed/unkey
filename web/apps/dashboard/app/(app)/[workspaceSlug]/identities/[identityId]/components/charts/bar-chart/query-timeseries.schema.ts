@@ -1,26 +1,11 @@
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
 
+// Note: granularity is auto-computed based on time range, not provided by caller
 export const identityQueryTimeseriesPayload = z.object({
   identityId: z.string(),
   startTime: z.number().int(),
   endTime: z.number().int(),
-  granularity: z.enum([
-    "minute",
-    "fiveMinutes",
-    "fifteenMinutes",
-    "thirtyMinutes",
-    "hour",
-    "twoHours",
-    "fourHours",
-    "sixHours",
-    "twelveHours",
-    "day",
-    "threeDays",
-    "week",
-    "month",
-    "quarter",
-  ]),
   since: z.string().optional(),
   tags: z
     .array(

@@ -20,7 +20,6 @@ export const useFetchIdentityTimeseries = (identityId: string) => {
       identityId,
       startTime: timestamp - HISTORICAL_DATA_WINDOW,
       endTime: timestamp,
-      granularity: "hour", // Default granularity
       outcomes: null,
       tags: null,
       since: "",
