@@ -26,6 +26,11 @@ func (s *Service) CreateDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateDeploymentRequest],
 ) (*connect.Response[ctrlv1.CreateDeploymentResponse], error) {
+	if req.Msg.GetProjectId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("project_id is required"))
+	}
+
 	// Lookup project and infer workspace from it
 	project, err := db.Query.FindProjectById(ctx, s.db.RO(), req.Msg.GetProjectId())
 	if err != nil {
