@@ -65,7 +65,7 @@ func TestNotFound(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/project_not_found", res.Body.Error.Type)
 		require.Equal(t, http.StatusInternalServerError, res.Body.Error.Status)
-		require.Equal(t, "Project or environment not found.", res.Body.Error.Detail)
+		require.Equal(t, "Project not found.", res.Body.Error.Detail)
 	})
 
 	t.Run("environment not found", func(t *testing.T) {
@@ -95,6 +95,6 @@ func TestNotFound(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/project_not_found", res.Body.Error.Type)
 		require.Equal(t, http.StatusInternalServerError, res.Body.Error.Status)
-		require.Equal(t, "Project or environment not found.", res.Body.Error.Detail)
+		require.Equal(t, "Project not found.", res.Body.Error.Detail)
 	})
 }

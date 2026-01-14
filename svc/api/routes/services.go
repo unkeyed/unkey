@@ -27,6 +27,7 @@ type Services struct {
 	Vault                      *vault.Service
 	ChproxyToken               string
 	CtrlDeploymentClient       ctrlv1connect.DeploymentServiceClient
+	CtrlBuildClient            ctrlv1connect.BuildServiceClient
 	PprofEnabled               bool
 	PprofUsername              string
 	PprofPassword              string

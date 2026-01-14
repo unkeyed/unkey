@@ -1,9 +1,9 @@
 load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "v2_deploy_create_deployment",
+    name = "v2_deploy_generate_upload_url",
     srcs = ["handler.go"],
-    importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment",
+    importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_generate_upload_url",
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/ctrl/v1:ctrl",
@@ -19,7 +19,7 @@ go_library(
 )
 
 go_test(
-    name = "v2_deploy_create_deployment_test",
+    name = "v2_deploy_generate_upload_url_test",
     srcs = [
         "200_test.go",
         "400_test.go",
@@ -27,9 +27,8 @@ go_test(
         "404_test.go",
     ],
     deps = [
-        ":v2_deploy_create_deployment",
+        ":v2_deploy_generate_upload_url",
         "//gen/proto/ctrl/v1/ctrlv1connect",
-        "//pkg/ptr",
         "//pkg/rpc/interceptor",
         "//pkg/testutil",
         "//pkg/testutil/containers",

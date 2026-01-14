@@ -1,0 +1,9 @@
+type: object
+required:
+  - projectId
+properties:
+  projectId:
+    type: string
+    minLength: 1
+    description: Unkey project ID for which to generate the upload URL
+    example: "proj_123abc"
