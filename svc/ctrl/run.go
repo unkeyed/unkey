@@ -512,7 +512,6 @@ func bootstrapWildcardDomain(ctx context.Context, database db.Database, logger l
 
 	// Use "unkey_internal" as the workspace for platform-managed resources
 	workspaceID := "unkey_internal"
-
 	err = db.Query.UpsertCustomDomain(ctx, database.RW(), db.UpsertCustomDomainParams{
 		ID:            domainID,
 		WorkspaceID:   workspaceID,
