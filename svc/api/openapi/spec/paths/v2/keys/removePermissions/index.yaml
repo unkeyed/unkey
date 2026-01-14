@@ -18,7 +18,7 @@ post:
     **Side Effects**
 
     Invalidates the key cache for immediate effect, and makes permission changes available for verification within 30 seconds across all regions.
-  operationId: removePermissions
+  operationId: keys.removePermissions
   x-speakeasy-name-override: removePermissions
   security:
     - rootKey: []
