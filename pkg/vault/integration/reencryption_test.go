@@ -65,12 +65,10 @@ func TestReEncrypt(t *testing.T) {
 
 			deks := []string{}
 			for range 10 {
-				dek, createDekErr := v.CreateDEK(ctx, &vaultv1.CreateDEKRequest{
-					Keyring: keyring,
-				})
+				dekID, createDekErr := v.CreateDEK(ctx, keyring)
 				require.NoError(t, createDekErr)
-				require.NotContains(t, deks, dek.GetKeyId())
-				deks = append(deks, dek.GetKeyId())
+				require.NotContains(t, deks, dekID)
+				deks = append(deks, dekID)
 				_, err = v.ReEncrypt(ctx, &vaultv1.ReEncryptRequest{
 					Keyring:   keyring,
 					Encrypted: enc.GetEncrypted(),

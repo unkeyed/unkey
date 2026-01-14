@@ -81,12 +81,6 @@ unkey run krane                                   # Run with default configurati
 		cli.String("vault-s3-access-key-secret", "S3 access key secret for vault storage",
 			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 
-		cli.String("control-plane-url", "URL of the control plane",
-			cli.Default("http://ctrl:7091"),
-			cli.EnvVar("UNKEY_CONTROL_PLANE_URL")),
-		cli.String("control-plane-bearer", "Bearer token for the control plane",
-			cli.Default("your-local-dev-key"),
-			cli.EnvVar("UNKEY_CONTROL_PLANE_BEARER")),
 		cli.String("cluster-id", "ID of the cluster",
 			cli.Default(uid.Nano("")),
 			cli.EnvVar("UNKEY_CLUSTER_ID")),

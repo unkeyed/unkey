@@ -3,19 +3,16 @@ package vault
 import (
 	"context"
 
-	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 
-func (s *Service) CreateDEK(ctx context.Context, req *vaultv1.CreateDEKRequest) (*vaultv1.CreateDEKResponse, error) {
+func (s *Service) CreateDEK(ctx context.Context, keyring string) (string, error) {
 	ctx, span := tracing.Start(ctx, "vault.CreateDEK")
 	defer span.End()
 
-	key, err := s.keyring.CreateKey(ctx, req.GetKeyring())
+	key, err := s.keyring.CreateKey(ctx, keyring)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return &vaultv1.CreateDEKResponse{
-		KeyId: key.GetId(),
-	}, nil
+	return key.GetId(), nil
 }

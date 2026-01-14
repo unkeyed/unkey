@@ -6,7 +6,7 @@ post:
     Generates a presigned S3 URL for uploading build context archives.
 
     **Authentication**: Requires a valid root key with appropriate permissions.
-  operationId: generateUploadUrl
+  operationId: deploy.generateUploadUrl
   x-speakeasy-name-override: generateUploadUrl
   security:
     - rootKey: []

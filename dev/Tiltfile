@@ -64,7 +64,7 @@ local_resource('build-unkey','cd .. && CGO_ENABLED=0 GOOS=linux ARCH=amd64 go bu
 
 
 
-# Agent service (1 replica)
+# Agent service
 docker_build(
         'unkey/agent:latest',
         '../web/apps/agent',
@@ -80,7 +80,29 @@ k8s_resource(
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
-# API service (3 replicas)
+
+# Vault service
+docker_build_with_restart(
+        'unkey/vault:latest',
+        '..',
+        dockerfile='./Dockerfile.tilt',
+        entrypoint=['/unkey', 'run', 'vault'],
+        only=['./bin'],
+        live_update=[
+            sync('./bin/unkey', '/unkey'),
+        ]
+    )
+k8s_yaml('k8s/manifests/vault.yaml')
+k8s_resource(
+  'vault',
+  port_forwards='8060:8060',
+  resource_deps=['s3', 'build-unkey'],
+  labels=['unkey'],
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_AUTO
+)
+
+# API service
 docker_build_with_restart(
         'unkey/api:latest',
         '..',
@@ -101,7 +123,7 @@ k8s_resource(
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
-# Ctrl service (1 replica)
+# Ctrl service
 docker_build_with_restart(
         'unkey/ctrl:latest',
         '..',
@@ -122,7 +144,7 @@ k8s_resource(
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
-# Krane service (1 replica)
+# Krane service
 docker_build_with_restart(
         'unkey/krane:latest',
         '..',

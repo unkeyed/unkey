@@ -41,5 +41,6 @@
 // # Available Services
 //
 // Currently supported:
-//   - [Redis]: Redis 8.0 container (pulled from Docker Hub)
+//   - [Redis]: Redis 8.0 container
+//   - [S3]: MinIO S3-compatible object storage
 package dockertest

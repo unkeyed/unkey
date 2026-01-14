@@ -326,7 +326,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	// ---------------------------------------------------------------------------
 	// v2/deploy
 
-	if svc.CtrlDeploymentClient != nil {
+	if svc.CtrlBuildClient != nil {
 		// v2/deploy.createDeployment
 		srv.RegisterRoute(
 			defaultMiddlewares,
@@ -348,9 +348,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 				CtrlClient: svc.CtrlDeploymentClient,
 			},
 		)
-	}
 
-	if svc.CtrlBuildClient != nil {
 		// v2/deploy.generateUploadUrl
 		srv.RegisterRoute(
 			defaultMiddlewares,
@@ -654,7 +652,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	// ---------------------------------------------------------------------------
 	// misc
 
-	var miscMiddlewares = []zen.Middleware{
+	miscMiddlewares := []zen.Middleware{
 		withObservability,
 		withMetrics,
 		withLogging,

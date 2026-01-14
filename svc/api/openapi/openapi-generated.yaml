@@ -4271,7 +4271,7 @@ paths:
                 Creates a new deployment for a project using either a pre-built Docker image or build context.
 
                 **Authentication**: Requires a valid root key with appropriate permissions.
-            operationId: createDeployment
+            operationId: deploy.createDeployment
             requestBody:
                 content:
                     application/json:
@@ -4321,7 +4321,7 @@ paths:
                 Generates a presigned S3 URL for uploading build context archives.
 
                 **Authentication**: Requires a valid root key with appropriate permissions.
-            operationId: generateUploadUrl
+            operationId: deploy.generateUploadUrl
             requestBody:
                 content:
                     application/json:
