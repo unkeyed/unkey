@@ -21,7 +21,7 @@ import (
 // for events that might be missed during network partitions or restarts.
 func (r *Reconciler) watchCurrentSentinels(ctx context.Context) error {
 
-	w, err := r.clientSet.AppsV1().Deployments("").Watch(ctx, metav1.ListOptions{
+	w, err := r.clientSet.AppsV1().Deployments(SentinelNamespace).Watch(ctx, metav1.ListOptions{
 		LabelSelector: labels.New().
 			ManagedByKrane().
 			ComponentSentinel().

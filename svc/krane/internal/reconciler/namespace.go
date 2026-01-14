@@ -8,6 +8,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	SentinelNamespace  = "sentinels"
+	UnkeyNamespace     = "unkey"
+	SentinelSecretName = "sentinel-env"
+)
+
 // ensureNamespaceExists creates the namespace if it doesn't already exist.
 // AlreadyExists errors are treated as success.
 func (r *Reconciler) ensureNamespaceExists(ctx context.Context, namespace string) error {

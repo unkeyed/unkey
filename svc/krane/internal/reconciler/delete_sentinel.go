@@ -17,15 +17,15 @@ import (
 // Not-found errors are ignored since the desired end state is already achieved.
 func (r *Reconciler) DeleteSentinel(ctx context.Context, req *ctrlv1.DeleteSentinel) error {
 	r.logger.Info("deleting sentinel",
-		"namespace", req.GetK8SNamespace(),
+		"namespace", SentinelNamespace,
 		"name", req.GetK8SName(),
 	)
 
-	err := r.clientSet.CoreV1().Services(req.GetK8SNamespace()).Delete(ctx, req.GetK8SName(), metav1.DeleteOptions{})
+	err := r.clientSet.CoreV1().Services(SentinelNamespace).Delete(ctx, req.GetK8SName(), metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
-	err = r.clientSet.AppsV1().Deployments(req.GetK8SNamespace()).Delete(ctx, req.GetK8SName(), metav1.DeleteOptions{})
+	err = r.clientSet.AppsV1().Deployments(SentinelNamespace).Delete(ctx, req.GetK8SName(), metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}

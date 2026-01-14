@@ -27,7 +27,7 @@ func TestRefreshCurrentSentinels_ListsAllResources(t *testing.T) {
 	dep1 := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dep-1",
-			Namespace: "ns-1",
+			Namespace: SentinelNamespace,
 			Labels: labels.New().
 				ManagedByKrane().
 				ComponentSentinel().
@@ -37,7 +37,7 @@ func TestRefreshCurrentSentinels_ListsAllResources(t *testing.T) {
 	dep2 := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dep-2",
-			Namespace: "ns-2",
+			Namespace: SentinelNamespace,
 			Labels: labels.New().
 				ManagedByKrane().
 				ComponentSentinel().
@@ -163,7 +163,7 @@ func TestRefreshCurrentSentinels_AppliesDesiredState(t *testing.T) {
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dep-1",
-			Namespace: "test-namespace",
+			Namespace: SentinelNamespace,
 			Labels: labels.New().
 				ManagedByKrane().
 				ComponentSentinel().
@@ -184,7 +184,7 @@ func TestRefreshCurrentSentinels_AppliesDesiredState(t *testing.T) {
 						ProjectId:     "prj_123",
 						EnvironmentId: "env_123",
 						SentinelId:    "sent_1",
-						K8SNamespace:  "test-namespace",
+						K8SNamespace:  SentinelNamespace,
 						K8SName:       "dep-1",
 						Image:         "unkey/sentinel:v1.0",
 						Replicas:      1,
@@ -218,7 +218,7 @@ func TestRefreshCurrentSentinels_DeletesDesiredState(t *testing.T) {
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dep-1",
-			Namespace: "test-namespace",
+			Namespace: SentinelNamespace,
 			Labels: labels.New().
 				ManagedByKrane().
 				ComponentSentinel().
@@ -235,7 +235,7 @@ func TestRefreshCurrentSentinels_DeletesDesiredState(t *testing.T) {
 			return connect.NewResponse(&ctrlv1.SentinelState{
 				State: &ctrlv1.SentinelState_Delete{
 					Delete: &ctrlv1.DeleteSentinel{
-						K8SNamespace: "test-namespace",
+						K8SNamespace: SentinelNamespace,
 						K8SName:      "dep-1",
 					},
 				},
@@ -265,7 +265,7 @@ func TestRefreshCurrentSentinels_HandlesGetDesiredStateError(t *testing.T) {
 	dep1 := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dep-1",
-			Namespace: "ns-1",
+			Namespace: SentinelNamespace,
 			Labels: labels.New().
 				ManagedByKrane().
 				ComponentSentinel().
@@ -275,7 +275,7 @@ func TestRefreshCurrentSentinels_HandlesGetDesiredStateError(t *testing.T) {
 	dep2 := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dep-2",
-			Namespace: "ns-2",
+			Namespace: SentinelNamespace,
 			Labels: labels.New().
 				ManagedByKrane().
 				ComponentSentinel().
@@ -318,7 +318,7 @@ func TestRefreshCurrentSentinels_HandlesMissingSentinelID(t *testing.T) {
 	depWithoutID := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dep-no-id",
-			Namespace: "ns-1",
+			Namespace: SentinelNamespace,
 			Labels: labels.New().
 				ManagedByKrane().
 				ComponentSentinel(),
@@ -327,7 +327,7 @@ func TestRefreshCurrentSentinels_HandlesMissingSentinelID(t *testing.T) {
 	depWithID := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dep-with-id",
-			Namespace: "ns-2",
+			Namespace: SentinelNamespace,
 			Labels: labels.New().
 				ManagedByKrane().
 				ComponentSentinel().
