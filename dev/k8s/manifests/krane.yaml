@@ -20,9 +20,9 @@ spec:
       serviceAccountName: unkey-serviceaccount
       containers:
         - name: krane
-          image: unkey/krane:latest
+          image: unkey/go:latest
+          args: ["run", "krane"]
           imagePullPolicy: Never # Use local images
-          command: ["/unkey", "run", "krane"]
           ports:
             - containerPort: 8070
           env:
