@@ -19,8 +19,7 @@ services:
     volumes:
       - mysql:/var/lib/mysql
     healthcheck:
-      test:
-        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
       timeout: 20s
       retries: 10
       start_period: 40s
@@ -121,6 +120,35 @@ services:
     image: bufbuild/bufstream:0.4.4
     network_mode: host
     command: ["serve", "--inmemory"]
+
+  # Vault service for encryption and key management
+  vault:
+    networks:
+      - default
+    container_name: vault
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    command: ["run", "vault"]
+    ports:
+      - "8060:8060"
+    depends_on:
+      s3:
+        condition: service_healthy
+    environment:
+      UNKEY_HTTP_PORT: "8060"
+      UNKEY_S3_URL: "http://s3:3902"
+      UNKEY_S3_BUCKET: "vault"
+      UNKEY_S3_ACCESS_KEY_ID: "minio_root_user"
+      UNKEY_S3_ACCESS_KEY_SECRET: "minio_root_password"
+      UNKEY_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
+      UNKEY_BEARER_TOKEN: "vault-test-token-123"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8060/v1.vault.VaultService/Liveness"]
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+      interval: 10s
 
   agent:
     networks:

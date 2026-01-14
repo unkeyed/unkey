@@ -52,6 +52,14 @@ type containerConfig struct {
 	// ExposedPorts lists container ports to expose (e.g., "6379/tcp").
 	ExposedPorts []string
 
+	// Env holds environment variables to set in the container.
+	// Keys are variable names, values are variable values.
+	Env map[string]string
+
+	// Cmd overrides the default command for the container image.
+	// If nil, the image's default CMD is used.
+	Cmd []string
+
 	// WaitStrategy determines how to detect container readiness.
 	// If nil, the container is considered ready immediately after starting.
 	WaitStrategy WaitStrategy
@@ -156,11 +164,19 @@ func startContainer(t *testing.T, cfg containerConfig) *Container {
 		"/", "-",
 	).Replace(fmt.Sprintf("%s_%s_%d", cfg.Image, t.Name(), time.Now().UnixNano()))
 
+	// Convert environment map to slice format ("KEY=VALUE")
+	var envSlice []string
+	for k, v := range cfg.Env {
+		envSlice = append(envSlice, fmt.Sprintf("%s=%s", k, v))
+	}
+
 	resp, err := cli.ContainerCreate(
 		ctx,
 		&container.Config{
 			Image:        cfg.Image,
 			ExposedPorts: exposedPorts,
+			Env:          envSlice,
+			Cmd:          cfg.Cmd,
 			Labels: map[string]string{
 				"owner": "dockertest",
 			},

@@ -1,18 +1,19 @@
 FROM golang:1.25 AS builder
 
-WORKDIR /go/src/github.com/unkeyed/unkey
+# Install Bazelisk (which will download the correct Bazel version)
+RUN go install github.com/bazelbuild/bazelisk@latest
 
-COPY go.mod go.sum ./
-RUN go mod download
+WORKDIR /src
+
 COPY . .
 
+RUN bazelisk build //:unkey
 
-ARG VERSION
-ENV CGO_ENABLED=0
-RUN go build -o bin/unkey -ldflags="-X 'github.com/unkeyed/unkey/pkg/version.Version=${VERSION}'" ./main.go
+# Extract the binary path and copy it to a known location
+RUN cp $(bazelisk cquery //:unkey --output=files 2>/dev/null) /unkey
 
 FROM gcr.io/distroless/static-debian12
-COPY --from=builder /go/src/github.com/unkeyed/unkey/bin/unkey /
+COPY --from=builder /unkey /unkey
 
 LABEL org.opencontainers.image.source=https://github.com/unkeyed/unkey
 LABEL org.opencontainers.image.description="Unkey API"
