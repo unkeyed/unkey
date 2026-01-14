@@ -239,7 +239,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 							Sentinel: &ctrlv1.SentinelState{
 								State: &ctrlv1.SentinelState_Apply{
 									Apply: &ctrlv1.ApplySentinel{
-										K8SNamespace:  workspace.K8sNamespace.String,
 										K8SName:       sentinel.K8sName,
 										WorkspaceId:   sentinel.WorkspaceID,
 										ProjectId:     sentinel.ProjectID,
