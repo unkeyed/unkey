@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"strings"
 
 	internalCaches "github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -10,6 +11,15 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
+
+// cloudRegion extracts the cloud region from a region string.
+// Handles both "aws:eu-central-1" -> "eu-central-1" and "eu-central-1" -> "eu-central-1"
+func cloudRegion(region string) string {
+	if idx := strings.Index(region, ":"); idx != -1 {
+		return region[idx+1:]
+	}
+	return region
+}
 
 // regionProximity maps AWS regions to their closest regions in order of proximity.
 var regionProximity = map[string][]string{
@@ -104,7 +114,7 @@ func (s *service) SelectSentinel(route *db.FrontlineRoute, sentinels []db.Sentin
 			continue
 		}
 
-		healthyByRegion[gw.Region] = gw
+		healthyByRegion[cloudRegion(gw.Region)] = gw
 	}
 
 	if len(healthyByRegion) == 0 {
