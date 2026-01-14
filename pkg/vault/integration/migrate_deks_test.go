@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"fmt"
+
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
@@ -49,9 +50,7 @@ func TestMigrateDeks(t *testing.T) {
 	// Seed some DEKs
 	for range 10 {
 
-		_, err = v.CreateDEK(ctx, &vaultv1.CreateDEKRequest{
-			Keyring: keyring,
-		})
+		_, err = v.CreateDEK(ctx, keyring)
 		require.NoError(t, err)
 
 		buf := make([]byte, 32)

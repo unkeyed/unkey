@@ -12,6 +12,7 @@ message DataEncryptionKey {
   string id = 1;
   // Linux milliseconds since epoch
   int64 created_at = 2;
+  // AES-256 requires exactly 32 bytes
   bytes key = 3;
 }
 
@@ -27,13 +28,16 @@ message EncryptedDataEncryptionKey {
 message KeyEncryptionKey {
   string id = 1;
   int64 created_at = 2;
+  // AES-256 requires exactly 32 bytes
   bytes key = 3;
 }
 
 // Encrypted contains the output of the encryption and all of the metadata required to decrypt it
 message Encrypted {
   Algorithm algorithm = 1;
+  // GCM nonce must be exactly 12 bytes (96 bits)
   bytes nonce = 2;
+  // Ciphertext must not be empty (at minimum contains the GCM auth tag)
   bytes ciphertext = 3;
   // key id of the key that encrypted this data
   string encryption_key_id = 4;

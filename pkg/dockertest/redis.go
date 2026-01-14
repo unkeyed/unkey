@@ -27,6 +27,8 @@ func Redis(t *testing.T) string {
 		ExposedPorts: []string{redisPort},
 		WaitStrategy: NewTCPWait(redisPort),
 		WaitTimeout:  30 * time.Second,
+		Env:          map[string]string{},
+		Cmd:          []string{},
 	})
 
 	port := ctr.Port(redisPort)

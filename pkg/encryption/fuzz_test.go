@@ -6,21 +6,18 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/encryption"
+	"github.com/unkeyed/unkey/pkg/fuzz"
 )
 
-// FuzzEncryptDecrypt tests the round-trip encryption and decryption
+// FuzzEncryptDecrypt tests the round-trip encryption and decryption.
 func FuzzEncryptDecrypt(f *testing.F) {
-	// Add some seed corpus
-	f.Add([]byte("16-byte test key!"), []byte("hello world"))
-	f.Add([]byte("24-byte key for testing!!"), []byte("Lorem ipsum dolor sit amet"))
-	f.Add([]byte("32-byte key for thorough testing!!!"), []byte(""))
-	f.Add([]byte("16-byte test key!"), []byte{0, 1, 2, 3, 4, 5})
+	fuzz.Seed(f)
 
-	f.Fuzz(func(t *testing.T, key, plaintext []byte) {
-		// Skip invalid key sizes - AES requires keys of 16, 24, or 32 bytes
-		if len(key) != 16 && len(key) != 24 && len(key) != 32 {
-			t.Skip("Skipping invalid key size")
-		}
+	f.Fuzz(func(t *testing.T, data []byte) {
+		c := fuzz.New(t, data)
+
+		key := c.BytesN(32)
+		plaintext := c.Bytes()
 
 		// Encrypt the plaintext
 		nonce, ciphertext, err := encryption.Encrypt(key, plaintext)
@@ -38,58 +35,58 @@ func FuzzEncryptDecrypt(f *testing.F) {
 	})
 }
 
-// FuzzDecryptWithWrongKey tests that decryption with a different key fails
+// FuzzDecryptWithWrongKey tests that decryption with a different key fails.
 func FuzzDecryptWithWrongKey(f *testing.F) {
-	f.Add(
-		[]byte("16-byte test key!"),
-		[]byte("different key..."),
-		[]byte("test plaintext"),
-	)
+	fuzz.Seed(f)
 
-	f.Fuzz(func(t *testing.T, encryptKey, decryptKey, plaintext []byte) {
-		// Skip if keys are the same or invalid sizes
-		if bytes.Equal(encryptKey, decryptKey) {
-			t.Skip("Skipping identical keys")
+	f.Fuzz(func(t *testing.T, data []byte) {
+		c := fuzz.New(t, data)
+
+		// Generate two different valid AES keysi
+		key1 := c.BytesN(32)
+		key2 := c.BytesN(32)
+
+		// Skip if keys are the same
+		if bytes.Equal(key1, key2) {
+			t.Skip("Keys are identical")
 		}
-		if (len(encryptKey) != 16 && len(encryptKey) != 24 && len(encryptKey) != 32) ||
-			(len(decryptKey) != 16 && len(decryptKey) != 24 && len(decryptKey) != 32) {
-			t.Skip("Skipping invalid key sizes")
-		}
+
+		plaintext := c.Bytes()
 
 		// Encrypt with first key
-		nonce, ciphertext, err := encryption.Encrypt(encryptKey, plaintext)
-		if err != nil {
-			t.Skip("Encryption failed")
-		}
+		nonce, ciphertext, err := encryption.Encrypt(key1, plaintext)
+		require.NoError(t, err, "Encryption failed")
 
 		// Decrypt with different key - should fail
-		_, err = encryption.Decrypt(decryptKey, nonce, ciphertext)
+		_, err = encryption.Decrypt(key2, nonce, ciphertext)
 		require.Error(t, err, "Decryption should fail with wrong key")
 	})
 }
 
-// FuzzTamperedCiphertext tests that modified ciphertext fails to decrypt correctly
+// FuzzTamperedCiphertext tests that modified ciphertext fails to decrypt correctly.
 func FuzzTamperedCiphertext(f *testing.F) {
-	f.Add([]byte("16-byte test key!"), []byte("test plaintext"), byte(1), uint16(0))
+	fuzz.Seed(f)
 
-	f.Fuzz(func(t *testing.T, key, plaintext []byte, tamperedByte byte, position uint16) {
-		// Skip invalid key sizes
-		if len(key) != 16 && len(key) != 24 && len(key) != 32 {
-			t.Skip("Skipping invalid key size")
-		}
+	f.Fuzz(func(t *testing.T, data []byte) {
+		c := fuzz.New(t, data)
 
-		// Skip empty plaintext
+		key := c.BytesN(32)
+
+		plaintext := c.Bytes()
 		if len(plaintext) == 0 {
 			t.Skip("Skipping empty plaintext")
 		}
 
+		tamperedByte := c.Uint8()
+		if tamperedByte == 0 {
+			t.Skip("XOR with 0 doesn't change anything")
+		}
+		position := c.Uint16()
+
 		// Encrypt the plaintext
 		nonce, ciphertext, err := encryption.Encrypt(key, plaintext)
-		if err != nil {
-			t.Skip("Encryption failed")
-		}
+		require.NoError(t, err, "Encryption failed")
 
-		// Need at least one byte of ciphertext to tamper with
 		if len(ciphertext) == 0 {
 			t.Skip("Ciphertext too short")
 		}
@@ -102,32 +99,31 @@ func FuzzTamperedCiphertext(f *testing.F) {
 		pos := int(position) % len(tamperedCiphertext)
 		tamperedCiphertext[pos] ^= tamperedByte
 
-		// Skip if our tampering didn't actually change the byte
-		if tamperedCiphertext[pos] == ciphertext[pos] {
-			t.Skip("Tampering didn't change the ciphertext")
-		}
-
 		// Attempt to decrypt the tampered ciphertext
 		_, err = encryption.Decrypt(key, nonce, tamperedCiphertext)
 		require.Error(t, err, "Decryption should fail with tampered ciphertext")
 	})
 }
 
-// FuzzTamperedNonce tests that a modified nonce fails to decrypt correctly
+// FuzzTamperedNonce tests that a modified nonce fails to decrypt correctly.
 func FuzzTamperedNonce(f *testing.F) {
-	f.Add([]byte("16-byte test key!"), []byte("test plaintext"), byte(1), uint16(0))
+	fuzz.Seed(f)
 
-	f.Fuzz(func(t *testing.T, key, plaintext []byte, tamperedByte byte, position uint16) {
-		// Skip invalid key sizes
-		if len(key) != 16 && len(key) != 24 && len(key) != 32 {
-			t.Skip("Skipping invalid key size")
+	f.Fuzz(func(t *testing.T, data []byte) {
+		c := fuzz.New(t, data)
+
+		key := c.BytesN(32)
+		plaintext := c.Bytes()
+
+		tamperedByte := c.Uint8()
+		if tamperedByte == 0 {
+			t.Skip("XOR with 0 doesn't change anything")
 		}
+		position := c.Uint16()
 
 		// Encrypt the plaintext
 		nonce, ciphertext, err := encryption.Encrypt(key, plaintext)
-		if err != nil {
-			t.Skip("Encryption failed")
-		}
+		require.NoError(t, err, "Encryption failed")
 
 		// Create a copy of the nonce and tamper with it
 		tamperedNonce := make([]byte, len(nonce))
@@ -136,11 +132,6 @@ func FuzzTamperedNonce(f *testing.F) {
 		// Modify one byte
 		pos := int(position) % len(tamperedNonce)
 		tamperedNonce[pos] ^= tamperedByte
-
-		// Skip if our tampering didn't actually change the byte
-		if tamperedNonce[pos] == nonce[pos] {
-			t.Skip("Tampering didn't change the nonce")
-		}
 
 		// Attempt to decrypt with the tampered nonce
 		_, err = encryption.Decrypt(key, tamperedNonce, ciphertext)

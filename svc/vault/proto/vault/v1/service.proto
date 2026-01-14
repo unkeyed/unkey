@@ -19,15 +19,6 @@ message EncryptResponse {
   string key_id = 2;
 }
 
-message EncryptBulkRequest {
-  string keyring = 1;
-  repeated string data = 2;
-}
-
-message EncryptBulkResponse {
-  repeated EncryptResponse encrypted = 1;
-}
-
 message DecryptRequest {
   string keyring = 1;
   string encrypted = 2;
@@ -35,14 +26,6 @@ message DecryptRequest {
 
 message DecryptResponse {
   string plaintext = 1;
-}
-
-message CreateDEKRequest {
-  string keyring = 1;
-}
-
-message CreateDEKResponse {
-  string key_id = 1;
 }
 
 message ReEncryptRequest {
@@ -62,12 +45,9 @@ message ReEncryptDEKsResponse {}
 
 service VaultService {
   rpc Liveness(LivenessRequest) returns (LivenessResponse) {}
-  rpc CreateDEK(CreateDEKRequest) returns (CreateDEKResponse) {}
   rpc Encrypt(EncryptRequest) returns (EncryptResponse) {}
-  rpc EncryptBulk(EncryptBulkRequest) returns (EncryptBulkResponse) {}
   rpc Decrypt(DecryptRequest) returns (DecryptResponse) {}
 
   // ReEncrypt rec
   rpc ReEncrypt(ReEncryptRequest) returns (ReEncryptResponse) {}
-  rpc ReEncryptDEKs(ReEncryptDEKsRequest) returns (ReEncryptDEKsResponse) {}
 }

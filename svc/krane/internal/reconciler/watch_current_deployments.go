@@ -32,16 +32,17 @@ func (r *Reconciler) watchCurrentDeployments(ctx context.Context) error {
 		return err
 	}
 	go func() {
-
 		for event := range w.ResultChan() {
-			replicaset, ok := event.Object.(*appsv1.ReplicaSet)
-			if !ok {
-				r.logger.Error("unable to cast object to deployment", "error", err.Error())
-				continue
-			}
-
 			switch event.Type {
+			case watch.Error:
+				r.logger.Error("error watching deployment", "event", event.Object)
+			case watch.Bookmark:
 			case watch.Added, watch.Modified:
+				replicaset, ok := event.Object.(*appsv1.ReplicaSet)
+				if !ok {
+					r.logger.Error("unable to cast object to replicaset")
+					continue
+				}
 				state, err := r.getDeploymentState(ctx, replicaset)
 				if err != nil {
 					r.logger.Error("unable to get state", "error", err.Error())
@@ -53,7 +54,12 @@ func (r *Reconciler) watchCurrentDeployments(ctx context.Context) error {
 					continue
 				}
 			case watch.Deleted:
-				err = r.updateDeploymentState(ctx, &ctrlv1.UpdateDeploymentStateRequest{
+				replicaset, ok := event.Object.(*appsv1.ReplicaSet)
+				if !ok {
+					r.logger.Error("unable to cast object to replicaset")
+					continue
+				}
+				err := r.updateDeploymentState(ctx, &ctrlv1.UpdateDeploymentStateRequest{
 					Change: &ctrlv1.UpdateDeploymentStateRequest_Delete_{
 						Delete: &ctrlv1.UpdateDeploymentStateRequest_Delete{
 							K8SName: replicaset.Name,
@@ -64,9 +70,6 @@ func (r *Reconciler) watchCurrentDeployments(ctx context.Context) error {
 					r.logger.Error("unable to update state", "error", err.Error())
 					continue
 				}
-			case watch.Bookmark:
-			case watch.Error:
-				r.logger.Error("error watching deployment", "error", err.Error())
 			}
 		}
 	}()
