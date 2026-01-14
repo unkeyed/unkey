@@ -24,7 +24,8 @@ spec:
             type: Socket
       containers:
         - name: ctrl
-          image: unkey/ctrl:latest
+          image: unkey/go:latest
+          args: ["run", "ctrl"]
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 7091
@@ -142,8 +143,6 @@ spec:
 
             - name: UNKEY_SENTINEL_IMAGE
               value: "unkey/sentinel:latest"
-
-          command: ["/unkey", "run", "ctrl"]
           volumeMounts:
             - name: docker-socket
               mountPath: /var/run/docker.sock
