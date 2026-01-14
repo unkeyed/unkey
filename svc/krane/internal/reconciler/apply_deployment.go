@@ -2,7 +2,6 @@ package reconciler
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 
@@ -12,22 +11,20 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
-// ApplyDeployment creates or updates a Deployment CRD based on the provided request.
+// ApplyDeployment creates or updates a user workload as a Kubernetes ReplicaSet.
 //
-// This method validates the request, ensures the namespace exists, and creates
-// or updates the Deployment custom resource. The controller-runtime reconciler
-// will handle the actual Kubernetes resource creation based on this CRD.
+// The deployment represents a specific build of user code. ApplyDeployment uses
+// server-side apply to create or update the ReplicaSet, which allows concurrent
+// modifications from different sources without conflicts. After applying, it
+// queries the resulting pods and reports their addresses and status back to the
+// control plane so the routing layer knows where to send traffic.
 //
-// Parameters:
-//   - ctx: Context for the operation
-//   - req: Deployment application request with specifications
-//
-// Returns an error if validation fails, namespace creation fails,
-// or CRD creation/update encounters problems.
+// The namespace is created automatically if it doesn't exist. Pods run with gVisor
+// isolation (RuntimeClass "gvisor") for security since they execute untrusted user code.
 func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) error {
 
 	r.logger.Info("applying deployment",
@@ -43,6 +40,7 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		assert.NotEmpty(req.GetK8SNamespace(), "Namespace is required"),
 		assert.NotEmpty(req.GetK8SName(), "K8s CRD name is required"),
 		assert.NotEmpty(req.GetImage(), "Image is required"),
+		assert.GreaterOrEqual(req.GetReplicas(), int32(0), "Replicas must be greater than or equal to 0"),
 		assert.Greater(req.GetCpuMillicores(), int64(0), "CPU millicores must be greater than 0"),
 		assert.Greater(req.GetMemoryMib(), int64(0), "MemoryMib must be greater than 0"),
 	)
@@ -66,6 +64,10 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		Inject()
 
 	desired := &appsv1.ReplicaSet{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "apps/v1",
+			Kind:       "ReplicaSet",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      req.GetK8SName(),
 			Namespace: req.GetK8SNamespace(),
@@ -88,6 +90,14 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 				Spec: corev1.PodSpec{
 					RuntimeClassName: ptr.P("gvisor"),
 					RestartPolicy:    corev1.RestartPolicyAlways,
+					Tolerations: []corev1.Toleration{
+						{
+							Key:      "node-class",
+							Operator: corev1.TolerationOpEqual,
+							Value:    "customer-code",
+							Effect:   corev1.TaintEffectNoSchedule,
+						},
+					},
 					Containers: []corev1.Container{{
 
 						Image:           req.GetImage(),
@@ -128,32 +138,19 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 
 	client := r.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace())
 
-	existing, err := client.Get(ctx, req.GetK8SName(), metav1.GetOptions{})
+	patch, err := json.Marshal(desired)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			_, err = client.Create(ctx, desired, metav1.CreateOptions{})
-			return err
-		}
-		return err
+		return fmt.Errorf("failed to marshal replicaset: %w", err)
 	}
 
-	foundBytes, err := json.Marshal(existing.Spec)
+	applied, err := client.Patch(ctx, req.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
+		FieldManager: "krane",
+	})
 	if err != nil {
-		return err
-	}
-	wantBytes, err := json.Marshal(desired.Spec)
-	if err != nil {
-		return err
+		return fmt.Errorf("failed to apply replicaset: %w", err)
 	}
 
-	if sha256.Sum256(foundBytes) != sha256.Sum256(wantBytes) {
-		r.logger.Info("deployment spec has changed, updating", "name", req.GetK8SName())
-		existing.Spec = desired.Spec
-		_, err = client.Update(ctx, existing, metav1.UpdateOptions{})
-		return err
-	}
-
-	state, err := r.getDeploymentState(ctx, existing)
+	state, err := r.getDeploymentState(ctx, applied)
 	if err != nil {
 		return err
 	}
