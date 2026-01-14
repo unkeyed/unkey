@@ -6,7 +6,7 @@ var untrustedTolerations = []corev1.Toleration{
 	{
 		Key:      "node-class",
 		Operator: corev1.TolerationOpEqual,
-		Value:    "untrusted",
+		Value:    NamespaceUntrusted,
 		Effect:   corev1.TaintEffectNoSchedule,
 	},
 }

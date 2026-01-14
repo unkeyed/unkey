@@ -28,7 +28,7 @@ import (
 func (r *Reconciler) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentinel) error {
 
 	r.logger.Info("applying sentinel",
-		"namespace", SentinelNamespace,
+		"namespace", NamespaceSentinel,
 		"name", req.GetK8SName(),
 		"sentinel_id", req.GetSentinelId(),
 	)
@@ -47,7 +47,7 @@ func (r *Reconciler) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 		return err
 	}
 
-	if err := r.ensureNamespaceExists(ctx, SentinelNamespace); err != nil {
+	if err := r.ensureNamespaceExists(ctx, NamespaceSentinel); err != nil {
 		return err
 	}
 
@@ -77,7 +77,7 @@ func (r *Reconciler) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 // server-side apply. Returns the resulting Deployment so the caller can extract
 // its UID for setting owner references on related resources.
 func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel) (*appsv1.Deployment, error) {
-	client := r.clientSet.AppsV1().Deployments(SentinelNamespace)
+	client := r.clientSet.AppsV1().Deployments(NamespaceSentinel)
 
 	desired := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -86,7 +86,7 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sentinel.GetK8SName(),
-			Namespace: SentinelNamespace,
+			Namespace: NamespaceSentinel,
 			Labels: labels.New().
 				WorkspaceID(sentinel.GetWorkspaceId()).
 				ProjectID(sentinel.GetProjectId()).
@@ -162,7 +162,7 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 	}
 
 	return client.Patch(ctx, sentinel.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
-		FieldManager: "krane",
+		FieldManager: fieldManagerKrane,
 	})
 }
 
@@ -171,7 +171,7 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 // means Kubernetes garbage collection will delete the Service when the Deployment
 // is deleted.
 func (r *Reconciler) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel, deployment *appsv1.Deployment) (*corev1.Service, error) {
-	client := r.clientSet.CoreV1().Services(SentinelNamespace)
+	client := r.clientSet.CoreV1().Services(NamespaceSentinel)
 
 	desired := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
@@ -180,7 +180,7 @@ func (r *Reconciler) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.A
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sentinel.GetK8SName(),
-			Namespace: SentinelNamespace,
+			Namespace: NamespaceSentinel,
 			Labels: labels.New().
 				WorkspaceID(sentinel.GetWorkspaceId()).
 				ProjectID(sentinel.GetProjectId()).
@@ -216,6 +216,6 @@ func (r *Reconciler) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.A
 	}
 
 	return client.Patch(ctx, sentinel.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
-		FieldManager: "krane",
+		FieldManager: fieldManagerKrane,
 	})
 }
