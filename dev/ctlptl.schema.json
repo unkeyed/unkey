@@ -1,0 +1,1047 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tilt-dev/ctlptl/pkg/api/cluster",
+  "properties": {
+    "kind": {
+      "type": "string"
+    },
+    "apiVersion": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "product": {
+      "type": "string"
+    },
+    "minCPUs": {
+      "type": "integer"
+    },
+    "registry": {
+      "type": "string"
+    },
+    "registryAuths": {
+      "items": {
+        "properties": {
+          "host": {
+            "type": "string"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "kubernetesVersion": {
+      "type": "string"
+    },
+    "kindV1Alpha4Cluster": {
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "apiVersion": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "nodes": {
+          "items": {
+            "properties": {
+              "role": {
+                "type": "string"
+              },
+              "image": {
+                "type": "string"
+              },
+              "labels": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              "extraMounts": {
+                "items": {
+                  "properties": {
+                    "containerPath": {
+                      "type": "string"
+                    },
+                    "hostPath": {
+                      "type": "string"
+                    },
+                    "readOnly": {
+                      "type": "boolean"
+                    },
+                    "selinuxRelabel": {
+                      "type": "boolean"
+                    },
+                    "propagation": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "extraPortMappings": {
+                "items": {
+                  "properties": {
+                    "containerPort": {
+                      "type": "integer"
+                    },
+                    "hostPort": {
+                      "type": "integer"
+                    },
+                    "listenAddress": {
+                      "type": "string"
+                    },
+                    "protocol": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "kubeadmConfigPatches": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "kubeadmConfigPatchesJSON6902": {
+                "items": {
+                  "properties": {
+                    "group": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "patch": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "group",
+                    "version",
+                    "kind",
+                    "patch"
+                  ]
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "networking": {
+          "properties": {
+            "ipFamily": {
+              "type": "string"
+            },
+            "apiServerPort": {
+              "type": "integer"
+            },
+            "apiServerAddress": {
+              "type": "string"
+            },
+            "podSubnet": {
+              "type": "string"
+            },
+            "serviceSubnet": {
+              "type": "string"
+            },
+            "disableDefaultCNI": {
+              "type": "boolean"
+            },
+            "kubeProxyMode": {
+              "type": "string"
+            },
+            "dnsSearch": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "featureGates": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "type": "object"
+        },
+        "runtimeConfig": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "kubeadmConfigPatches": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "kubeadmConfigPatchesJSON6902": {
+          "items": {
+            "properties": {
+              "group": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "patch": {
+                "type": "string"
+              }
+            },
+            "type": "object",
+            "required": [
+              "group",
+              "version",
+              "kind",
+              "patch"
+            ]
+          },
+          "type": "array"
+        },
+        "containerdConfigPatches": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "containerdConfigPatchesJSON6902": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "kindExtraCreateArguments": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "minikube": {
+      "properties": {
+        "containerRuntime": {
+          "type": "string"
+        },
+        "extraConfigs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "startFlags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "k3d": {
+      "properties": {
+        "v1alpha5Simple": {
+          "properties": {
+            "Kind": {
+              "type": "string"
+            },
+            "APIVersion": {
+              "type": "string"
+            },
+            "Name": {
+              "type": "string"
+            },
+            "Servers": {
+              "type": "integer"
+            },
+            "Agents": {
+              "type": "integer"
+            },
+            "ExposeAPI": {
+              "properties": {
+                "Host": {
+                  "type": "string"
+                },
+                "HostIP": {
+                  "type": "string"
+                },
+                "HostPort": {
+                  "type": "string"
+                }
+              },
+              "type": "object",
+              "required": [
+                "Host",
+                "HostIP",
+                "HostPort"
+              ]
+            },
+            "Image": {
+              "type": "string"
+            },
+            "Network": {
+              "type": "string"
+            },
+            "Subnet": {
+              "type": "string"
+            },
+            "ClusterToken": {
+              "type": "string"
+            },
+            "Volumes": {
+              "items": {
+                "properties": {
+                  "Volume": {
+                    "type": "string"
+                  },
+                  "NodeFilters": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "Volume",
+                  "NodeFilters"
+                ]
+              },
+              "type": "array"
+            },
+            "Ports": {
+              "items": {
+                "properties": {
+                  "Port": {
+                    "type": "string"
+                  },
+                  "NodeFilters": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "Port",
+                  "NodeFilters"
+                ]
+              },
+              "type": "array"
+            },
+            "Options": {
+              "properties": {
+                "K3dOptions": {
+                  "properties": {
+                    "Wait": {
+                      "type": "boolean"
+                    },
+                    "Timeout": {
+                      "type": "integer"
+                    },
+                    "DisableLoadbalancer": {
+                      "type": "boolean"
+                    },
+                    "DisableImageVolume": {
+                      "type": "boolean"
+                    },
+                    "NoRollback": {
+                      "type": "boolean"
+                    },
+                    "Loadbalancer": {
+                      "properties": {
+                        "ConfigOverrides": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object",
+                      "required": [
+                        "ConfigOverrides"
+                      ]
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "Wait",
+                    "Timeout",
+                    "DisableLoadbalancer",
+                    "DisableImageVolume",
+                    "NoRollback",
+                    "Loadbalancer"
+                  ]
+                },
+                "K3sOptions": {
+                  "properties": {
+                    "ExtraArgs": {
+                      "items": {
+                        "properties": {
+                          "Arg": {
+                            "type": "string"
+                          },
+                          "NodeFilters": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "type": "object",
+                        "required": [
+                          "Arg",
+                          "NodeFilters"
+                        ]
+                      },
+                      "type": "array"
+                    },
+                    "NodeLabels": {
+                      "items": {
+                        "properties": {
+                          "Label": {
+                            "type": "string"
+                          },
+                          "NodeFilters": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "type": "object",
+                        "required": [
+                          "Label",
+                          "NodeFilters"
+                        ]
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "ExtraArgs",
+                    "NodeLabels"
+                  ]
+                },
+                "KubeconfigOptions": {
+                  "properties": {
+                    "UpdateDefaultKubeconfig": {
+                      "type": "boolean"
+                    },
+                    "SwitchCurrentContext": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "UpdateDefaultKubeconfig",
+                    "SwitchCurrentContext"
+                  ]
+                },
+                "Runtime": {
+                  "properties": {
+                    "GPURequest": {
+                      "type": "string"
+                    },
+                    "ServersMemory": {
+                      "type": "string"
+                    },
+                    "AgentsMemory": {
+                      "type": "string"
+                    },
+                    "HostPidMode": {
+                      "type": "boolean"
+                    },
+                    "Labels": {
+                      "items": {
+                        "properties": {
+                          "Label": {
+                            "type": "string"
+                          },
+                          "NodeFilters": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "type": "object",
+                        "required": [
+                          "Label",
+                          "NodeFilters"
+                        ]
+                      },
+                      "type": "array"
+                    },
+                    "Ulimits": {
+                      "items": {
+                        "properties": {
+                          "Name": {
+                            "type": "string"
+                          },
+                          "Soft": {
+                            "type": "integer"
+                          },
+                          "Hard": {
+                            "type": "integer"
+                          }
+                        },
+                        "type": "object",
+                        "required": [
+                          "Name",
+                          "Soft",
+                          "Hard"
+                        ]
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "GPURequest",
+                    "ServersMemory",
+                    "AgentsMemory",
+                    "HostPidMode",
+                    "Labels",
+                    "Ulimits"
+                  ]
+                }
+              },
+              "type": "object",
+              "required": [
+                "K3dOptions",
+                "K3sOptions",
+                "KubeconfigOptions",
+                "Runtime"
+              ]
+            },
+            "Env": {
+              "items": {
+                "properties": {
+                  "EnvVar": {
+                    "type": "string"
+                  },
+                  "NodeFilters": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "EnvVar",
+                  "NodeFilters"
+                ]
+              },
+              "type": "array"
+            },
+            "Registries": {
+              "properties": {
+                "Use": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "Create": {
+                  "properties": {
+                    "Name": {
+                      "type": "string"
+                    },
+                    "Host": {
+                      "type": "string"
+                    },
+                    "HostPort": {
+                      "type": "string"
+                    },
+                    "Image": {
+                      "type": "string"
+                    },
+                    "Proxy": {
+                      "properties": {
+                        "RemoteURL": {
+                          "type": "string"
+                        },
+                        "Username": {
+                          "type": "string"
+                        },
+                        "Password": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object",
+                      "required": [
+                        "RemoteURL",
+                        "Username",
+                        "Password"
+                      ]
+                    },
+                    "Volumes": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "Name",
+                    "Host",
+                    "HostPort",
+                    "Image",
+                    "Proxy",
+                    "Volumes"
+                  ]
+                },
+                "Config": {
+                  "type": "string"
+                }
+              },
+              "type": "object",
+              "required": [
+                "Use",
+                "Create",
+                "Config"
+              ]
+            },
+            "HostAliases": {
+              "items": {
+                "properties": {
+                  "ip": {
+                    "type": "string"
+                  },
+                  "hostnames": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "ip",
+                  "hostnames"
+                ]
+              },
+              "type": "array"
+            },
+            "Files": {
+              "items": {
+                "properties": {
+                  "Source": {
+                    "type": "string"
+                  },
+                  "Destination": {
+                    "type": "string"
+                  },
+                  "Description": {
+                    "type": "string"
+                  },
+                  "NodeFilters": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "Source",
+                  "Destination",
+                  "Description",
+                  "NodeFilters"
+                ]
+              },
+              "type": "array"
+            }
+          },
+          "type": "object",
+          "required": [
+            "Kind",
+            "APIVersion",
+            "Name",
+            "Servers",
+            "Agents",
+            "ExposeAPI",
+            "Image",
+            "Network",
+            "Subnet",
+            "ClusterToken",
+            "Volumes",
+            "Ports",
+            "Options",
+            "Env",
+            "Registries",
+            "HostAliases",
+            "Files"
+          ]
+        },
+        "v1alpha4Simple": {
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "apiVersion": {
+              "type": "string"
+            },
+            "metadata": {
+              "properties": {
+                "name": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "servers": {
+              "type": "integer"
+            },
+            "agents": {
+              "type": "integer"
+            },
+            "kubeAPI": {
+              "properties": {
+                "host": {
+                  "type": "string"
+                },
+                "hostIP": {
+                  "type": "string"
+                },
+                "hostPort": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "image": {
+              "type": "string"
+            },
+            "network": {
+              "type": "string"
+            },
+            "subnet": {
+              "type": "string"
+            },
+            "clusterToken": {
+              "type": "string"
+            },
+            "volumes": {
+              "items": {
+                "properties": {
+                  "volume": {
+                    "type": "string"
+                  },
+                  "nodeFilters": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "ports": {
+              "items": {
+                "properties": {
+                  "port": {
+                    "type": "string"
+                  },
+                  "nodeFilters": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "options": {
+              "properties": {
+                "k3d": {
+                  "properties": {
+                    "wait": {
+                      "type": "boolean"
+                    },
+                    "timeout": {
+                      "type": "integer"
+                    },
+                    "disableLoadbalancer": {
+                      "type": "boolean"
+                    },
+                    "disableImageVolume": {
+                      "type": "boolean"
+                    },
+                    "disableRollback": {
+                      "type": "boolean"
+                    },
+                    "loadbalancer": {
+                      "properties": {
+                        "configOverrides": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "wait",
+                    "disableLoadbalancer",
+                    "disableImageVolume",
+                    "disableRollback"
+                  ]
+                },
+                "k3s": {
+                  "properties": {
+                    "extraArgs": {
+                      "items": {
+                        "properties": {
+                          "arg": {
+                            "type": "string"
+                          },
+                          "nodeFilters": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "nodeLabels": {
+                      "items": {
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "nodeFilters": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                },
+                "kubeconfig": {
+                  "properties": {
+                    "updateDefaultKubeconfig": {
+                      "type": "boolean"
+                    },
+                    "switchCurrentContext": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                },
+                "runtime": {
+                  "properties": {
+                    "gpuRequest": {
+                      "type": "string"
+                    },
+                    "serversMemory": {
+                      "type": "string"
+                    },
+                    "agentsMemory": {
+                      "type": "string"
+                    },
+                    "hostPidMode": {
+                      "type": "boolean"
+                    },
+                    "labels": {
+                      "items": {
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "nodeFilters": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "type": "object",
+              "required": [
+                "k3d",
+                "k3s",
+                "kubeconfig",
+                "runtime"
+              ]
+            },
+            "env": {
+              "items": {
+                "properties": {
+                  "envVar": {
+                    "type": "string"
+                  },
+                  "nodeFilters": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "registries": {
+              "properties": {
+                "use": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "create": {
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "host": {
+                      "type": "string"
+                    },
+                    "hostPort": {
+                      "type": "string"
+                    },
+                    "image": {
+                      "type": "string"
+                    },
+                    "volumes": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                },
+                "config": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "hostAliases": {
+              "items": {
+                "properties": {
+                  "ip": {
+                    "type": "string"
+                  },
+                  "hostnames": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "ip",
+                  "hostnames"
+                ]
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "status": {
+      "properties": {
+        "creationTimestamp": {
+          "properties": {},
+          "type": "object"
+        },
+        "localRegistryHosting": {
+          "properties": {
+            "host": {
+              "type": "string"
+            },
+            "hostFromClusterNetwork": {
+              "type": "string"
+            },
+            "hostFromContainerRuntime": {
+              "type": "string"
+            },
+            "help": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "cpus": {
+          "type": "integer"
+        },
+        "current": {
+          "type": "boolean"
+        },
+        "kubernetesVersion": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "type": "object",
+  "title": "ctlptl Cluster Configuration",
+  "description": "Configuration schema for ctlptl cluster definitions"
+}

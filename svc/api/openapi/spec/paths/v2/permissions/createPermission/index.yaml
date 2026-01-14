@@ -13,7 +13,7 @@ post:
     
     Your root key must have the following permission:
     - `rbac.*.create_permission`
-  operationId: createPermission
+  operationId: permissions.createPermission
   x-speakeasy-name-override: CreatePermission
   security:
     - rootKey: []

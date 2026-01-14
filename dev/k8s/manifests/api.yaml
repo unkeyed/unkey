@@ -18,7 +18,8 @@ spec:
     spec:
       containers:
         - name: api
-          image: unkey/api:latest
+          image: unkey/go:latest
+          args: ["run", "api"]
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 7070
@@ -76,7 +77,6 @@ spec:
             # Request Body Configuration
             - name: UNKEY_MAX_REQUEST_BODY_SIZE
               value: "10485760"
-          command: ["/unkey", "run", "api"]
           readinessProbe:
             httpGet:
               path: /v2/liveness

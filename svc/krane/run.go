@@ -87,15 +87,15 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create k8s clientset: %w", err)
 	}
 
-	r, err := reconciler.New(reconciler.Config{
-		Logger:    logger,
+	r := reconciler.New(reconciler.Config{
 		ClientSet: clientset,
+		Logger:    logger,
 		Cluster:   cluster,
 		ClusterID: cfg.ClusterID,
 		Region:    cfg.Region,
 	})
-	if err != nil {
-		return fmt.Errorf("failed to create reconciler: %w", err)
+	if err := r.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start reconciler: %w", err)
 	}
 
 	shutdowns.Register(r.Stop)
@@ -129,6 +129,11 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create the connect handler
 	mux := http.NewServeMux()
+
+	// Health check endpoint for load balancers and orchestrators
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 
 	tokenValidator := token.NewK8sValidator(token.K8sValidatorConfig{
 		Clientset: clientset,

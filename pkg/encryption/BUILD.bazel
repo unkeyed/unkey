@@ -5,6 +5,7 @@ go_library(
     srcs = ["aes.go"],
     importpath = "github.com/unkeyed/unkey/pkg/encryption",
     visibility = ["//visibility:public"],
+    deps = ["//pkg/assert"],
 )
 
 go_test(
@@ -14,9 +15,13 @@ go_test(
         "aes_test.go",
         "fuzz_test.go",
     ],
-    data = glob(["testdata/**"]),
+    data = glob(
+        ["testdata/**"],
+        allow_empty = True,
+    ),
     deps = [
         ":encryption",
+        "//pkg/fuzz",
         "@com_github_stretchr_testify//require",
     ],
 )

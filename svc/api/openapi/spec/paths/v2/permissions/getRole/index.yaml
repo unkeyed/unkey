@@ -9,7 +9,7 @@ post:
     
     Your root key must have the following permission:
     - `rbac.*.read_role`
-  operationId: getRole
+  operationId: permissions.getRole
   x-speakeasy-name-override: GetRole
   security:
     - rootKey: []

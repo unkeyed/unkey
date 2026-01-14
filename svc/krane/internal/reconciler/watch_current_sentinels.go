@@ -10,21 +10,15 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 )
 
-// refreshCurrentdeployments performs periodic synchronization of all deployment resources.
+// watchCurrentSentinels starts a Kubernetes watch for sentinel Deployments and
+// reports replica availability back to the control plane in real-time.
 //
-// This function runs every minute to ensure all deployment resources in the
-// cluster are synchronized with their desired state from the control plane.
-// This periodic refresh provides consistency guarantees despite possible
-// missed events, network partitions, or controller restarts.
+// The watch filters for resources with the "managed-by: krane" and "component: sentinel"
+// labels. When a Deployment's available replica count changes, the method notifies
+// the control plane so it knows which sentinels are ready to receive traffic.
 //
-// The function:
-//  1. Lists all deployment resources managed by krane across all namespaces
-//  2. Queries control plane for the desired state of each deployment
-//  3. Buffers the desired state events for processing
-//
-// This approach ensures eventual consistency between the database state
-// and Kubernetes cluster state, acting as a safety net for the event-based
-// synchronization mechanism.
+// This complements [Reconciler.refreshCurrentSentinels] which handles consistency
+// for events that might be missed during network partitions or restarts.
 func (r *Reconciler) watchCurrentSentinels(ctx context.Context) error {
 
 	w, err := r.clientSet.AppsV1().Deployments("").Watch(ctx, metav1.ListOptions{
@@ -38,17 +32,18 @@ func (r *Reconciler) watchCurrentSentinels(ctx context.Context) error {
 	}
 
 	go func() {
-
 		for event := range w.ResultChan() {
-			sentinel, ok := event.Object.(*appsv1.Deployment)
-			if !ok {
-				r.logger.Error("unable to cast object to deployment", "error", err.Error())
-				continue
-			}
-
 			switch event.Type {
+			case watch.Error:
+				r.logger.Error("error watching sentinel", "event", event.Object)
+			case watch.Bookmark:
 			case watch.Added, watch.Modified:
-				r.logger.Info("sentinel added/modified/deleted", "name", sentinel.Name)
+				sentinel, ok := event.Object.(*appsv1.Deployment)
+				if !ok {
+					r.logger.Error("unable to cast object to deployment")
+					continue
+				}
+				r.logger.Info("sentinel added/modified", "name", sentinel.Name)
 				err := r.updateSentinelState(ctx, &ctrlv1.UpdateSentinelStateRequest{
 					K8SName:           sentinel.Name,
 					AvailableReplicas: sentinel.Status.AvailableReplicas,
@@ -57,6 +52,11 @@ func (r *Reconciler) watchCurrentSentinels(ctx context.Context) error {
 					r.logger.Error("error updating sentinel state", "error", err.Error())
 				}
 			case watch.Deleted:
+				sentinel, ok := event.Object.(*appsv1.Deployment)
+				if !ok {
+					r.logger.Error("unable to cast object to deployment")
+					continue
+				}
 				r.logger.Info("sentinel deleted", "name", sentinel.Name)
 				err := r.updateSentinelState(ctx, &ctrlv1.UpdateSentinelStateRequest{
 					K8SName:           sentinel.Name,
@@ -65,9 +65,6 @@ func (r *Reconciler) watchCurrentSentinels(ctx context.Context) error {
 				if err != nil {
 					r.logger.Error("error updating sentinel state", "error", err.Error())
 				}
-			case watch.Bookmark:
-			case watch.Error:
-				r.logger.Error("error watching sentinel", "error", err.Error())
 			}
 		}
 	}()

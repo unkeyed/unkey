@@ -27,7 +27,7 @@ func (k *Keyring) DecodeAndDecryptKey(ctx context.Context, b []byte) (*vaultv1.D
 		return nil, "", err
 	}
 
-	plaintext, err := encryption.Decrypt(kek.Key, encrypted.Encrypted.Nonce, encrypted.Encrypted.Ciphertext)
+	plaintext, err := encryption.Decrypt(kek.GetKey(), encrypted.GetEncrypted().GetNonce(), encrypted.GetEncrypted().GetCiphertext())
 	if err != nil {
 		tracing.RecordError(span, err)
 		return nil, "", fmt.Errorf("failed to decrypt ciphertext: %w", err)

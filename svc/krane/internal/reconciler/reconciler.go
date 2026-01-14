@@ -11,47 +11,38 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// Reconciler watches control plane changes and reflects them in the Kubernetes cluster.
+// Reconciler synchronizes control plane deployment state with Kubernetes resources.
 //
-// This struct bridges the gap between the control plane's deployment state
-// and Kubernetes resources by processing streaming events and applying
-// them as custom resources. It maintains consistency between the database
-// and cluster state through event processing and periodic refresh.
+// The reconciler maintains bidirectional state synchronization: it receives desired
+// state from the control plane via [HandleState] and applies it to Kubernetes, then
+// watches Kubernetes for actual state changes and reports them back. This dual-flow
+// ensures the control plane always knows what's actually running in the cluster.
+//
+// A single Reconciler manages all deployments and sentinels in its cluster. It uses
+// background goroutines for watching and refreshing, so callers must call [Start]
+// before processing state and [Stop] during shutdown.
 type Reconciler struct {
-	clientSet *kubernetes.Clientset
+	clientSet kubernetes.Interface
 	logger    logging.Logger
-
-	// cluster provides access to control plane APIs for state queries
-	cluster ctrlv1connect.ClusterServiceClient
-	cb      circuitbreaker.CircuitBreaker[any]
-	done    chan struct{}
-	region  string
+	cluster   ctrlv1connect.ClusterServiceClient
+	cb        circuitbreaker.CircuitBreaker[any]
+	done      chan struct{}
+	region    string
 }
 
-// Config holds the configuration required to create a new Reconciler.
-//
-// All fields are required for the Reconciler to function properly.
-// The Reconciler needs access to the Kubernetes API, logging, and the
-// control plane streaming interface to maintain synchronization.
+// Config holds the configuration required to create a new [Reconciler].
+// All fields are required.
 type Config struct {
-	// Client provides access to the Kubernetes API for resource management.
-	ClientSet *kubernetes.Clientset
-	// Logger provides structured logging for operations and debugging.
-	Logger logging.Logger
-	// Cluster provides access to control plane APIs for state queries.
-	Cluster ctrlv1connect.ClusterServiceClient
-
+	ClientSet kubernetes.Interface
+	Logger    logging.Logger
+	Cluster   ctrlv1connect.ClusterServiceClient
 	ClusterID string
 	Region    string
 }
 
-// New creates a new Reconciler with the provided configuration.
-//
-// This function initializes the Reconciler with all required dependencies.
-// The returned Reconciler is ready to start processing events after
-// calling the Start method.
-func New(cfg Config) (*Reconciler, error) {
-	r := &Reconciler{
+// New creates a [Reconciler] ready to be started with [Reconciler.Start].
+func New(cfg Config) *Reconciler {
+	return &Reconciler{
 		clientSet: cfg.ClientSet,
 		logger:    cfg.Logger,
 		cluster:   cfg.Cluster,
@@ -59,34 +50,41 @@ func New(cfg Config) (*Reconciler, error) {
 		done:      make(chan struct{}),
 		region:    cfg.Region,
 	}
-
-	go r.refreshCurrentDeployments(context.Background())
-	go r.refreshCurrentSentinels(context.Background())
-
-	if err := r.watchCurrentSentinels(context.Background()); err != nil {
-		return nil, err
-	}
-	if err := r.watchCurrentDeployments(context.Background()); err != nil {
-		return nil, err
-	}
-
-	return r, nil
 }
 
-// Start begins the Reconciler's event processing loop.
+// Start launches the background watch and refresh loops for Kubernetes resources.
 //
-// This method starts the event processing pipeline:
-//  1. Creates a buffer for handling high-throughput events
-//  2. Initiates control plane streaming for real-time updates
-//  3. Starts periodic refresh for consistency assurance
-//  4. Processes events from the buffer until context is cancelled
+// The watch loops provide real-time state updates when resources change. The refresh
+// loops run every minute to catch missed events and ensure eventual consistency.
+// Both loops continue until the context is cancelled or [Reconciler.Stop] is called.
+func (r *Reconciler) Start(ctx context.Context) error {
+	go r.refreshCurrentDeployments(ctx)
+	go r.refreshCurrentSentinels(ctx)
+
+	if err := r.watchCurrentSentinels(ctx); err != nil {
+		return err
+	}
+	if err := r.watchCurrentDeployments(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// HandleState applies a single state update from the control plane to the cluster.
 //
-// The event processing distinguishes between Apply and Delete operations
-// and routes them to appropriate handlers. Unknown event types are logged
-// as errors for debugging.
+// The state contains either a deployment or sentinel operation (apply or delete).
+// For apply operations, HandleState creates or updates the Kubernetes resource and
+// reports the resulting state back to the control plane. For delete operations, it
+// removes the resource and confirms deletion.
 //
-// This method blocks until the provided context is cancelled.
+// HandleState returns immediately after processing the single state update. It does
+// not block waiting for additional updates; use it within a loop that reads from
+// the control plane's state stream.
 func (r *Reconciler) HandleState(ctx context.Context, state *ctrlv1.State) error {
+	if state == nil {
+		return fmt.Errorf("state is nil")
+	}
 	switch kind := state.GetKind().(type) {
 	case *ctrlv1.State_Deployment:
 		{
@@ -122,6 +120,8 @@ func (r *Reconciler) HandleState(ctx context.Context, state *ctrlv1.State) error
 	return nil
 }
 
+// Stop signals all background goroutines to terminate. Safe to call multiple
+// times, but not concurrently with itself.
 func (r *Reconciler) Stop() error {
 	close(r.done)
 	return nil

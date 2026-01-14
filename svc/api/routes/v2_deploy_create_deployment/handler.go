@@ -2,18 +2,16 @@ package handler
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/internal/services/keys"
-	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -47,13 +45,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
-	}
-
-	if req.ProjectId == "" {
-		return fault.New("projectId is required",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Public("projectId is required."),
-		)
 	}
 
 	// nolint: exhaustruct // optional proto fields, only setting whats provided
@@ -118,7 +109,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	ctrlResp, err := h.CtrlClient.CreateDeployment(ctx, connectReq)
 	if err != nil {
-		return h.handleCtrlError(err)
+		return ctrlclient.HandleError(err, "create deployment")
 	}
 
 	return s.JSON(http.StatusCreated, Response{
@@ -129,41 +120,4 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			DeploymentId: ctrlResp.Msg.GetDeploymentId(),
 		},
 	})
-}
-
-func (h *Handler) handleCtrlError(err error) error {
-	// Convert Connect errors to fault errors
-	var connectErr *connect.Error
-	if errors.As(err, &connectErr) {
-		//nolint:exhaustive // Default case handles all other Connect error codes
-		switch connectErr.Code() {
-		case connect.CodeNotFound:
-			return fault.Wrap(err,
-				fault.Code(codes.Data.Project.NotFound.URN()),
-				fault.Public("Project or environment not found."),
-			)
-		case connect.CodeInvalidArgument:
-			return fault.Wrap(err,
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Public("Invalid deployment request."),
-			)
-		case connect.CodeUnauthenticated:
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Public("Failed to authenticate with deployment service."),
-			)
-		default:
-			// All other Connect errors (Internal, Unavailable, etc.)
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Public("Failed to create deployment."),
-			)
-		}
-	}
-
-	// Non-Connect errors
-	return fault.Wrap(err,
-		fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-		fault.Public("Failed to create deployment."),
-	)
 }
