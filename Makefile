@@ -105,7 +105,11 @@ dev: ## Start dev environment
 	@tilt up -f ./dev/Tiltfile
 
 .PHONY: down
-down: ## Stop dev environment
+down: ## Stop tilt (keeps cluster)
+	@tilt down -f ./dev/Tiltfile
+
+.PHONY: nuke
+nuke: ## Delete minikube cluster entirely
 	@minikube delete
 
 .PHONY: local-dashboard
@@ -125,7 +129,7 @@ fuzz: ## Run fuzz tests
 	done
 .PHONY: unkey
 unkey: ## Run unkey CLI (usage: make unkey dev seed local, make unkey run api ARGS="--http-port=7070")
-	@set -a; [ -f .env ] && . ./.env; set +a; bazel run //:unkey -- $(filter-out unkey,$(MAKECMDGOALS)) $(ARGS)
+	@set -a; [ -f .env ] && . ./.env; set +a; bazel run --ui_event_filters=-info --noshow_progress //:unkey -- $(filter-out unkey,$(MAKECMDGOALS)) $(ARGS)
 
 # Catch-all to swallow extra args passed to unkey target (only when unkey is called)
 ifneq ($(filter unkey,$(MAKECMDGOALS)),)

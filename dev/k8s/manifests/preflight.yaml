@@ -21,6 +21,9 @@ rules:
   - apiGroups: [""]
     resources: ["serviceaccounts"]
     verbs: ["get"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources: ["mutatingwebhookconfigurations"]
+    verbs: ["get", "patch"]
 ---
 # ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -35,10 +38,6 @@ subjects:
   - kind: ServiceAccount
     name: preflight
     namespace: unkey
----
-# TLS Secret for webhook is created by Tiltfile (local dev) or cert-manager (production)
-# For manual setup: mkcert -cert-file tls.crt -key-file tls.key preflight.unkey.svc preflight.unkey.svc.cluster.local
-#                   kubectl create secret tls preflight-tls -n unkey --cert=tls.crt --key=tls.key
 ---
 # Deployment for the preflight
 apiVersion: apps/v1
@@ -59,11 +58,39 @@ spec:
         app: preflight
     spec:
       serviceAccountName: preflight
+      initContainers:
+        - name: cert-gen
+          image: alpine/openssl:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              # Generate CA
+              openssl genrsa -out /certs/ca.key 2048
+              openssl req -x509 -new -nodes -key /certs/ca.key -sha256 -days 365 \
+                  -out /certs/ca.crt -subj "/CN=preflight-ca"
+              # Generate server key and CSR
+              openssl genrsa -out /certs/tls.key 2048
+              openssl req -new -key /certs/tls.key -out /tmp/tls.csr \
+                  -subj "/CN=preflight.unkey.svc"
+              # Create SAN extension file
+              cat > /tmp/ext.cnf << EOF
+              subjectAltName=DNS:preflight.unkey.svc,DNS:preflight.unkey.svc.cluster.local
+              EOF
+              # Sign the cert
+              openssl x509 -req -in /tmp/tls.csr -CA /certs/ca.crt -CAkey /certs/ca.key \
+                  -CAcreateserial -out /certs/tls.crt -days 365 -sha256 -extfile /tmp/ext.cnf
+              chmod 644 /certs/*.crt /certs/*.key
+              echo "Certificates generated successfully"
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /certs
       containers:
         - name: webhook
-          image: unkey/preflight:latest
+          image: unkey/go:latest
+          args: ["run", "preflight"]
           imagePullPolicy: IfNotPresent
-          command: ["/unkey", "run", "preflight"]
           env:
             - name: WEBHOOK_PORT
               value: "8443"
@@ -110,10 +137,36 @@ spec:
               scheme: HTTPS
             initialDelaySeconds: 5
             periodSeconds: 10
+        - name: ca-patcher
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "Waiting for CA cert..."
+              while [ ! -f /certs/ca.crt ]; do sleep 1; done
+              CA_BUNDLE=$(cat /certs/ca.crt | base64 | tr -d '\n')
+              echo "Patching MutatingWebhookConfiguration..."
+              kubectl patch mutatingwebhookconfiguration preflight \
+                --type='json' \
+                -p="[{\"op\": \"replace\", \"path\": \"/webhooks/0/clientConfig/caBundle\", \"value\": \"${CA_BUNDLE}\"}]"
+              echo "Webhook patched successfully, sleeping..."
+              sleep infinity
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /certs
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 50m
+              memory: 64Mi
       volumes:
         - name: tls-certs
-          secret:
-            secretName: preflight-tls
+          emptyDir: {}
 ---
 # Service for the webhook
 apiVersion: v1
@@ -129,9 +182,6 @@ spec:
       targetPort: 8443
       protocol: TCP
 ---
-# MutatingWebhookConfiguration
-# caBundle must be set to mkcert's root CA:
-#   cat "$(mkcert -CAROOT)/rootCA.pem" | base64 | tr -d '\n'
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
@@ -144,7 +194,7 @@ webhooks:
         namespace: unkey
         path: /mutate
         port: 443
-      caBundle: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUU3ekNDQTFlZ0F3SUJBZ0lRQ2ZuMEZBZmhDZW80MzR0QUFYVWVEekFOQmdrcWhraUc5dzBCQVFzRkFEQ0IKanpFZU1Cd0dBMVVFQ2hNVmJXdGpaWEowSUdSbGRtVnNiM0J0Wlc1MElFTkJNVEl3TUFZRFZRUUxEQ2xqYUhKdgpibUZ5YTBCTllXTkNiMjlyVUhKdkxteHZZMkZzWkc5dFlXbHVJQ2hCYm1SeVpXRnpLVEU1TURjR0ExVUVBd3d3CmJXdGpaWEowSUdOb2NtOXVZWEpyUUUxaFkwSnZiMnRRY204dWJHOWpZV3hrYjIxaGFXNGdLRUZ1WkhKbFlYTXAKTUI0WERUSTFNVEl5T1RBNE1UY3pNbG9YRFRNMU1USXlPVEE0TVRjek1sb3dnWTh4SGpBY0JnTlZCQW9URlcxcgpZMlZ5ZENCa1pYWmxiRzl3YldWdWRDQkRRVEV5TURBR0ExVUVDd3dwWTJoeWIyNWhjbXRBVFdGalFtOXZhMUJ5CmJ5NXNiMk5oYkdSdmJXRnBiaUFvUVc1a2NtVmhjeWt4T1RBM0JnTlZCQU1NTUcxclkyVnlkQ0JqYUhKdmJtRnkKYTBCTllXTkNiMjlyVUhKdkxteHZZMkZzWkc5dFlXbHVJQ2hCYm1SeVpXRnpLVENDQWFJd0RRWUpLb1pJaHZjTgpBUUVCQlFBRGdnR1BBRENDQVlvQ2dnR0JBTWVYLzdZYmNyRmVqK3lGUWZBb1VmWGZFdGlCYUNBRmJnSDBsTDdpCjhJTHNNQUVkU2o1UVBTVUF5L3hvV0h3cDlaNWRza2pxOCtqNHlhL1pHN0dLVERTazcyaFB5TkFlSU41ejdOa2wKYmFERlBuejE1TkJnQ3NJM0g2Z1pjdmNTVE9ZMlRJUDAza2FETHRONjRMS0RXOEhUN2FFOVI2aVJJUUlXWExUdgpBQnhRNC9WeFdLajZVdVp0b3FxSWVMZGlxRUVnRjF3cUU0WkVhNlVzM0VpdjcwL0Q2UWE4aVdzZi80ZjFXbitPCjY1dkFOK2tPVWU4UWROZ0NPRnFZYzRZcWVrSlVXaVVIeFh4bm1IOGE1Z1RPOXdTZGpQUzdoY1N5SEp1cFIyMUkKNXpRQ25zTFlZUHR6aHpqeCs0bjRkR1owemkvSGVSeW5QVlQ4RmhUczkvSUZjTUxxUnJDVHY1L3phaE10bzRERQorQ0VzZUNCT1dVWnJWc2tsclBvRGE1Vktzc1FxRVlZdEppN0RLRUVQUXRnbktCa0x4RTViWHZra0dnR2xGaTliCmxGMzNFUXp4SHdqRXc3ZytZVTczL280MklrTU4yWEorZmFwOTYxaDBRbXdLUEFTU2pCM2poUlQvOVpJdHpMVy8KSDFRVXVEck1JdkhLU3Vrbkg0U0Z6K2JaeXdJREFRQUJvMFV3UXpBT0JnTlZIUThCQWY4RUJBTUNBZ1F3RWdZRApWUjBUQVFIL0JBZ3dCZ0VCL3dJQkFEQWRCZ05WSFE0RUZnUVVtRUtMY0Rtb0Z5Vlo5bHRXZVc4d1g2REJVR0V3CkRRWUpLb1pJaHZjTkFRRUxCUUFEZ2dHQkFKektUT29NOFhNb0hsbmRxVUJFRFU1V2F5dG01U3VzQTdQNTEwOXAKUVJvbGF0d3pQU2JxandEYVpCTmRHRld5ZmFkQTZnUVVhd0ZaNWh4alA1QnhyMVVxY1hFZDVCTDhESDFoeFJyZworQ1VCNnI0T2ZNYzVtcUJnc1VzSkg4SE54RVp6Y2xHbFM2MWNmTmU0WlQ4Q1g5b1lpczFPL3dOY3pnZEpxMENOCmVHb0NTUXdMMHIycDhGeWM1NzFBVVhxaGRwRVY3N0gzbW9BSzlkZU96WVY4M04rT0h0SzFvZ2hCN1IrTWJlMEcKc0hhUjBidUFKZUxnN2lXVkZuUnVtdzBnZ2JoRklnMGo1Q1RaVzJqcTBpVTJDdklPbkRxSUVVQnJhUDNuK09tQgpaQmtGc0NhRUFBTkRGUGlYb1Z5NDNRN1ZzMjUzdlpBTm9MMkt4Q2lTT0s4OXViZ2E0WGswR3d5bTNyTWZyeXFNCjA5N2N6Z1d4QUQ3RDROZGJGbmVNMElidzhWZ0MrbFpkODhRVG9udlNxYzVDYjlsUm43VTFtZGRxc0cvSERaZloKT3ZFcmlGcTR3Ym43MlAzWEY2Y3NMSDFGK3l6WFJxNGhaRGYwRlNEQmhnTkxGcXlvRjkyZDZ1V0pNWVFjMk1OVQo4WTFmUSt5SlBtMmRrMFFRMjNmTHoxNjdYdz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K"
+      caBundle: ""
     rules:
       - apiGroups: [""]
         apiVersions: ["v1"]
