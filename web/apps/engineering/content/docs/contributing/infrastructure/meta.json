@@ -1,0 +1,7 @@
+{
+  "title": "Infrastructure",
+  "description": "Database, auth, and service setup",
+  "icon": "Server",
+  "root": false,
+  "pages": ["seeding-db-and-clickhouse", "workos"]
+}
