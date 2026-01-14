@@ -14,7 +14,7 @@ post:
     Your root key must have one of the following permissions:
     - `api.*.delete_key` (to delete keys in any API)
     - `api.<api_id>.delete_key` (to delete keys in a specific API)
-  operationId: deleteKey
+  operationId: keys.deleteKey
   x-speakeasy-name-override: deleteKey
   security:
     - rootKey: []

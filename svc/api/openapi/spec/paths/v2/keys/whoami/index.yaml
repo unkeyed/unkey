@@ -13,7 +13,7 @@ post:
 
     If your rootkey lacks permissions but the key exists, we may return a 404 status here to prevent leaking the existance of a key to unauthorized clients. If you believe that a key should exist, but receive a 404, please double check your root key has the correct permissions.
 
-  operationId: whoami
+  operationId: keys.whoami
   x-speakeasy-name-override: whoami
   security:
     - rootKey: []

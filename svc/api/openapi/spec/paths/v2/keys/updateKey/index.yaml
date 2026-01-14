@@ -18,7 +18,7 @@ post:
     **Side Effects**
 
     If you specify an `externalId` that doesn't exist, a new identity will be automatically created and linked to the key. Permission updates will auto-create any permissions that don't exist in your workspace. Changes take effect immediately but may take up to 30 seconds to propagate to all edge regions due to cache invalidation.
-  operationId: updateKey
+  operationId: keys.updateKey
   x-speakeasy-name-override: updateKey
   security:
     - rootKey: []

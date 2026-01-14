@@ -10,7 +10,7 @@ post:
     
     Your root key must have the following permission:
     - `rbac.*.read_permission`
-  operationId: listPermissions
+  operationId: permissions.listPermissions
   x-speakeasy-name-override: ListPermissions
   security:
     - rootKey: []

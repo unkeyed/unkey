@@ -10,7 +10,7 @@ post:
     > **Important**
     > Requires `identity.*.update_identity` permission
     > Rate limit changes propagate within 30 seconds
-  operationId: v2.identities.updateIdentity
+  operationId: identities.updateIdentity
   x-speakeasy-name-override: updateIdentity
   security:
     - rootKey: []

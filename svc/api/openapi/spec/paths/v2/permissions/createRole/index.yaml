@@ -11,7 +11,7 @@ post:
     
     Your root key must have the following permission:
     - `rbac.*.create_role`
-  operationId: createRole
+  operationId: permissions.createRole
   x-speakeasy-name-override: CreateRole
   security:
     - rootKey: []
