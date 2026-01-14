@@ -453,12 +453,18 @@ components:
             type: object
             required:
                 - deploymentId
+                - projectId
             properties:
                 deploymentId:
                     type: string
                     minLength: 1
                     description: Unique deployment identifier to retrieve
                     example: "d_abc123xyz"
+                projectId:
+                    type: string
+                    minLength: 1
+                    description: Project identifier that the deployment belongs to
+                    example: "proj_abc123xyz"
         V2DeployGetDeploymentResponseBody:
             type: object
             required:

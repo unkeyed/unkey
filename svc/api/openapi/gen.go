@@ -796,6 +796,9 @@ type V2DeployGenerateUploadUrlResponseData struct {
 type V2DeployGetDeploymentRequestBody struct {
 	// DeploymentId Unique deployment identifier to retrieve
 	DeploymentId string `json:"deploymentId"`
+
+	// ProjectId Project identifier that the deployment belongs to
+	ProjectId string `json:"projectId"`
 }
 
 // V2DeployGetDeploymentResponseBody defines model for V2DeployGetDeploymentResponseBody.

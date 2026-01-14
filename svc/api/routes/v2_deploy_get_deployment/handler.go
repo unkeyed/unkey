@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -36,13 +37,29 @@ func (h *Handler) Method() string {
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	_, emit, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
 	if err != nil {
 		return err
 	}
 
 	req, err := zen.BindBody[Request](s)
+	if err != nil {
+		return err
+	}
+
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Deploy,
+			ResourceID:   "*",
+			Action:       rbac.ReadDeployment,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Deploy,
+			ResourceID:   req.ProjectId,
+			Action:       rbac.ReadDeployment,
+		}),
+	)))
 	if err != nil {
 		return err
 	}

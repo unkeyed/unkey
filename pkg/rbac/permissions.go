@@ -28,6 +28,9 @@ const (
 
 	// Identity represents user and identity management resources
 	Identity ResourceType = "identity"
+
+	// Deploy represents deployment resources and operations
+	Deploy ResourceType = "deploy"
 )
 
 // Predefined API actions. These constants define operations that can be
@@ -163,6 +166,19 @@ const (
 	DeleteIdentity ActionType = "delete_identity"
 )
 
+// Predefined deployment actions. These constants define operations that can be
+// performed on deployment resources.
+const (
+	// CreateDeployment permits creating new deployments
+	CreateDeployment ActionType = "create_deployment"
+
+	// ReadDeployment permits viewing deployment details
+	ReadDeployment ActionType = "read_deployment"
+
+	// GenerateUploadURL permits generating S3 upload URLs for build contexts
+	GenerateUploadURL ActionType = "generate_upload_url"
+)
+
 // Tuple represents a specific permission as a combination of resource type,
 // resource ID, and action. It forms the basic unit of permission definition
 // in the RBAC system.
@@ -207,7 +223,6 @@ func TupleFromString(s string) (Tuple, error) {
 	parts := strings.Split(s, ".")
 	if len(parts) != 3 {
 		return Tuple{}, errors.New("invalid tuple format")
-
 	}
 	tuple := Tuple{
 		ResourceType: ResourceType(parts[0]),
