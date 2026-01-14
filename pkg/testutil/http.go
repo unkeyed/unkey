@@ -31,6 +31,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/vault"
 	masterKeys "github.com/unkeyed/unkey/pkg/vault/keys"
 	"github.com/unkeyed/unkey/pkg/vault/storage"
@@ -288,6 +289,76 @@ func (h *Harness) CreateProject(req seed.CreateProjectRequest) db.Project {
 
 func (h *Harness) CreateEnvironment(req seed.CreateEnvironmentRequest) db.Environment {
 	return h.seeder.CreateEnvironment(h.t.Context(), req)
+}
+
+// DeploymentTestSetup contains all resources needed for deployment tests
+type DeploymentTestSetup struct {
+	Workspace   db.Workspace
+	RootKey     string
+	Project     db.Project
+	Environment db.Environment
+}
+
+// CreateTestDeploymentSetupOptions allows customization of the test setup
+type CreateTestDeploymentSetupOptions struct {
+	ProjectName     string
+	ProjectSlug     string
+	EnvironmentSlug string
+	SkipEnvironment bool
+}
+
+// CreateTestDeploymentSetup creates workspace, root key, project, and environment with sensible defaults
+func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOptions) DeploymentTestSetup {
+	h.t.Helper()
+
+	config := CreateTestDeploymentSetupOptions{
+		ProjectName:     "test-project",
+		ProjectSlug:     "production",
+		EnvironmentSlug: "production",
+		SkipEnvironment: false,
+	}
+
+	if len(opts) > 0 {
+		if opts[0].ProjectName != "" {
+			config.ProjectName = opts[0].ProjectName
+		}
+		if opts[0].ProjectSlug != "" {
+			config.ProjectSlug = opts[0].ProjectSlug
+		}
+		if opts[0].EnvironmentSlug != "" {
+			config.EnvironmentSlug = opts[0].EnvironmentSlug
+		}
+		config.SkipEnvironment = opts[0].SkipEnvironment
+	}
+
+	workspace := h.CreateWorkspace()
+	rootKey := h.CreateRootKey(workspace.ID)
+
+	project := h.CreateProject(seed.CreateProjectRequest{
+		WorkspaceID: workspace.ID,
+		Name:        config.ProjectName,
+		ID:          uid.New(uid.ProjectPrefix),
+		Slug:        config.ProjectSlug,
+	})
+
+	var environment db.Environment
+	if !config.SkipEnvironment {
+		environment = h.CreateEnvironment(seed.CreateEnvironmentRequest{
+			ID:               uid.New(uid.EnvironmentPrefix),
+			WorkspaceID:      workspace.ID,
+			ProjectID:        project.ID,
+			Slug:             config.EnvironmentSlug,
+			Description:      config.EnvironmentSlug + " environment",
+			DeleteProtection: false,
+		})
+	}
+
+	return DeploymentTestSetup{
+		Workspace:   workspace,
+		RootKey:     rootKey,
+		Project:     project,
+		Environment: environment,
+	}
 }
 
 type SetupAnalyticsOption func(*setupAnalyticsConfig)

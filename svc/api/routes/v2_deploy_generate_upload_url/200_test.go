@@ -7,8 +7,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/testutil"
-	"github.com/unkeyed/unkey/pkg/testutil/seed"
-	"github.com/unkeyed/unkey/pkg/uid"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_generate_upload_url"
 )
 
@@ -24,26 +22,17 @@ func TestGenerateUploadUrlSuccessfully(t *testing.T) {
 	h.Register(route)
 
 	t.Run("generate upload URL successfully", func(t *testing.T) {
-		workspace := h.CreateWorkspace()
-		rootKey := h.CreateRootKey(workspace.ID)
-
-		projectID := uid.New(uid.ProjectPrefix)
-		projectName := "test-project"
-
-		h.CreateProject(seed.CreateProjectRequest{
-			WorkspaceID: workspace.ID,
-			Name:        projectName,
-			ID:          projectID,
-			Slug:        "production",
+		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+			SkipEnvironment: true,
 		})
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			"Authorization": {fmt.Sprintf("Bearer %s", setup.RootKey)},
 		}
 
 		req := handler.Request{
-			ProjectId: projectID,
+			ProjectId: setup.Project.ID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](

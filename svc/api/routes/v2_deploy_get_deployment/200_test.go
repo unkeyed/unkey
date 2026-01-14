@@ -11,8 +11,6 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/testutil"
-	"github.com/unkeyed/unkey/pkg/testutil/seed"
-	"github.com/unkeyed/unkey/pkg/uid"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_get_deployment"
 )
 
@@ -28,31 +26,13 @@ func TestGetDeploymentSuccessfully(t *testing.T) {
 	h.Register(route)
 
 	t.Run("get existing deployment successfully", func(t *testing.T) {
-		workspace := h.CreateWorkspace()
-		rootKey := h.CreateRootKey(workspace.ID)
+		setup := h.CreateTestDeploymentSetup()
 
-		projectID := uid.New(uid.ProjectPrefix)
-		project := h.CreateProject(seed.CreateProjectRequest{
-			WorkspaceID: workspace.ID,
-			Name:        "test-project",
-			ID:          projectID,
-			Slug:        "production",
-		})
-
-		h.CreateEnvironment(seed.CreateEnvironmentRequest{
-			ID:               uid.New(uid.EnvironmentPrefix),
-			WorkspaceID:      workspace.ID,
-			ProjectID:        project.ID,
-			Slug:             "production",
-			Description:      "Production environment",
-			DeleteProtection: false,
-		})
-
-		deploymentID := createTestDeployment(t, h.CtrlDeploymentClient, project.ID, rootKey)
+		deploymentID := createTestDeployment(t, h.CtrlDeploymentClient, setup.Project.ID, setup.RootKey)
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			"Authorization": {fmt.Sprintf("Bearer %s", setup.RootKey)},
 		}
 
 		req := handler.Request{

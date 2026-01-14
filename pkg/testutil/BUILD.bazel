@@ -24,6 +24,7 @@ go_library(
         "//pkg/rpc/interceptor",
         "//pkg/testutil/containers",
         "//pkg/testutil/seed",
+        "//pkg/uid",
         "//pkg/vault",
         "//pkg/vault/keys",
         "//pkg/vault/storage",
