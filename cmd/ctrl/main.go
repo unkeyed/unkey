@@ -21,6 +21,8 @@ var Cmd = &cli.Command{
 		// Server Configuration
 		cli.Int("http-port", "HTTP port for the control plane server to listen on. Default: 8080",
 			cli.Default(8080), cli.EnvVar("UNKEY_HTTP_PORT")),
+		cli.Int("prometheus-port", "Port for Prometheus metrics, set to 0 to disable.",
+			cli.Default(0), cli.EnvVar("UNKEY_PROMETHEUS_PORT")),
 		cli.Bool("color", "Enable colored log output. Default: true",
 			cli.Default(true), cli.EnvVar("UNKEY_LOGS_COLOR")),
 
@@ -165,6 +167,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		BuildPlatform:    cmd.String("build-platform"),
 		Image:            cmd.String("image"),
 		HttpPort:         cmd.Int("http-port"),
+		PrometheusPort:   cmd.Int("prometheus-port"),
 		Region:           cmd.String("region"),
 		InstanceID:       cmd.String("instance-id"),
 		RegistryURL:      cmd.String("registry-url"),
