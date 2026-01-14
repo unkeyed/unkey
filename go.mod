@@ -1,14 +1,16 @@
 module github.com/unkeyed/unkey
 
-go 1.25.1
+go 1.25
+
+toolchain go1.25.1
 
 require (
-	buf.build/gen/go/depot/api/connectrpc/go v1.19.0-20250915125527-3af9e416de91.1
-	buf.build/gen/go/depot/api/protocolbuffers/go v1.36.10-20250915125527-3af9e416de91.1
+	buf.build/gen/go/depot/api/connectrpc/go v1.19.1-20250915125527-3af9e416de91.2
+	buf.build/gen/go/depot/api/protocolbuffers/go v1.36.11-20250915125527-3af9e416de91.1
 	connectrpc.com/connect v1.19.1
 	github.com/AfterShip/clickhouse-sql-parser v0.4.16
 	github.com/ClickHouse/clickhouse-go/v2 v2.40.1
-	github.com/aws/aws-sdk-go-v2 v1.39.6
+	github.com/aws/aws-sdk-go-v2 v1.41.0
 	github.com/aws/aws-sdk-go-v2/config v1.31.17
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.21
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.84.1
@@ -32,7 +34,7 @@ require (
 	github.com/pb33f/libopenapi-validator v0.6.4
 	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.14.0
-	github.com/restatedev/sdk-go v0.22.1
+	github.com/restatedev/sdk-go v0.23.0
 	github.com/segmentio/kafka-go v0.4.49
 	github.com/shirou/gopsutil/v4 v4.25.12
 	github.com/spiffe/go-spiffe/v2 v2.6.0
@@ -58,14 +60,6 @@ require (
 	k8s.io/apimachinery v0.34.2
 	k8s.io/client-go v0.34.2
 	sigs.k8s.io/controller-runtime v0.22.4
-)
-
-tool (
-	github.com/bufbuild/buf/cmd/buf
-	github.com/golangci/golangci-lint/v2/cmd/golangci-lint
-	github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
-	github.com/restatedev/sdk-go/protoc-gen-go-restate
-	github.com/sqlc-dev/sqlc/cmd/sqlc
 )
 
 require (
@@ -133,8 +127,8 @@ require (
 	github.com/ashanbrown/makezero/v2 v2.1.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.13 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.13 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.13 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.16 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.16 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.37 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.51.2 // indirect
@@ -147,7 +141,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.39.1 // indirect
-	github.com/aws/smithy-go v1.23.2 // indirect
+	github.com/aws/smithy-go v1.24.0 // indirect
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.11.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
@@ -518,3 +512,11 @@ replace github.com/dprotaso/go-yit => github.com/dprotaso/go-yit v0.0.0-20191028
 replace github.com/pingcap/tidb/pkg/parser => github.com/pingcap/tidb/pkg/parser v0.0.0-20250806091815-327a22d5ebf8
 
 replace cloud.google.com/go/compute => cloud.google.com/go/compute v1.49.1
+
+tool (
+	github.com/bufbuild/buf/cmd/buf
+	github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+	github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
+	github.com/restatedev/sdk-go/protoc-gen-go-restate
+	github.com/sqlc-dev/sqlc/cmd/sqlc
+)

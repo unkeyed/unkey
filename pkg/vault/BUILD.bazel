@@ -6,7 +6,6 @@ go_library(
         "create_dek.go",
         "decrypt.go",
         "encrypt.go",
-        "encrypt_bulk.go",
         "reencrypt.go",
         "roll_deks.go",
         "service.go",

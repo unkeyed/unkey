@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault
+  namespace: unkey
+  labels:
+    app: vault
+    component: unkey
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault
+  template:
+    metadata:
+      labels:
+        app: vault
+        component: unkey
+    spec:
+      containers:
+        - name: vault
+          image: unkey/go:latest
+          args: ["run", "vault"]
+          ports:
+            - name: http
+              containerPort: 8060
+              protocol: TCP
+          env:
+            - name: UNKEY_HTTP_PORT
+              value: "8060"
+            - name: UNKEY_S3_URL
+              value: "http://s3:3902"
+            - name: UNKEY_S3_BUCKET
+              value: "vault"
+            - name: UNKEY_S3_ACCESS_KEY_ID
+              value: "minio_root_user"
+            - name: UNKEY_S3_ACCESS_KEY_SECRET
+              value: "minio_root_password"
+            - name: UNKEY_MASTER_KEYS
+              value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
+            - name: UNKEY_BEARER_TOKEN
+              value: "vault-test-token-123"
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "wget --header='Content-Type: application/json' --post-data='{}' -qO- http://localhost:8060/vault.v1.VaultService/Liveness"
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "wget --header='Content-Type: application/json' --post-data='{}' -qO- http://localhost:8060/vault.v1.VaultService/Liveness"
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault
+  namespace: unkey
+  labels:
+    app: vault
+    component: unkey
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8060
+      targetPort: 8060
+      protocol: TCP
+  selector:
+    app: vault
