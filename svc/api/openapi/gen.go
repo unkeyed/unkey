@@ -2425,8 +2425,8 @@ type DeployCreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody
 // DeployGenerateUploadUrlJSONRequestBody defines body for DeployGenerateUploadUrl for application/json ContentType.
 type DeployGenerateUploadUrlJSONRequestBody = V2DeployGenerateUploadUrlRequestBody
 
-// GetDeploymentJSONRequestBody defines body for GetDeployment for application/json ContentType.
-type GetDeploymentJSONRequestBody = V2DeployGetDeploymentRequestBody
+// DeployGetDeploymentJSONRequestBody defines body for DeployGetDeployment for application/json ContentType.
+type DeployGetDeploymentJSONRequestBody = V2DeployGetDeploymentRequestBody
 
 // IdentitiesCreateIdentityJSONRequestBody defines body for IdentitiesCreateIdentity for application/json ContentType.
 type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody

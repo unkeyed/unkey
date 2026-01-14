@@ -3,11 +3,15 @@ post:
     - deploy
   summary: Get deployment
   description: |
+    **INTERNAL** - This endpoint is internal and may change without notice.
+    Not recommended for production use.
+
     Retrieves deployment information including status, error messages, and steps.
 
     **Authentication**: Requires a valid root key with appropriate permissions.
-  operationId: getDeployment
+  operationId: deploy.getDeployment
   x-speakeasy-name-override: getDeployment
+  x-speakeasy-group: internal
   security:
     - rootKey: []
   requestBody:

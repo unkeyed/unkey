@@ -3,11 +3,15 @@ post:
     - deploy
   summary: Create deployment
   description: |
+    **INTERNAL** - This endpoint is internal and may change without notice.
+    Not recommended for production use.
+
     Creates a new deployment for a project using either a pre-built Docker image or build context.
 
     **Authentication**: Requires a valid root key with appropriate permissions.
   operationId: deploy.createDeployment
   x-speakeasy-name-override: createDeployment
+  x-speakeasy-group: internal
   security:
     - rootKey: []
   requestBody:

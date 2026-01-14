@@ -4268,6 +4268,9 @@ paths:
     /v2/deploy.createDeployment:
         post:
             description: |
+                **INTERNAL** - This endpoint is internal and may change without notice.
+                Not recommended for production use.
+
                 Creates a new deployment for a project using either a pre-built Docker image or build context.
 
                 **Authentication**: Requires a valid root key with appropriate permissions.
@@ -4314,10 +4317,14 @@ paths:
             summary: Create deployment
             tags:
                 - deploy
+            x-speakeasy-group: internal
             x-speakeasy-name-override: createDeployment
     /v2/deploy.generateUploadUrl:
         post:
             description: |
+                **INTERNAL** - This endpoint is internal and may change without notice.
+                Not recommended for production use.
+
                 Generates a presigned S3 URL for uploading build context archives.
 
                 **Authentication**: Requires a valid root key with appropriate permissions.
@@ -4364,14 +4371,18 @@ paths:
             summary: Generate upload URL
             tags:
                 - deploy
+            x-speakeasy-group: internal
             x-speakeasy-name-override: generateUploadUrl
     /v2/deploy.getDeployment:
         post:
             description: |
+                **INTERNAL** - This endpoint is internal and may change without notice.
+                Not recommended for production use.
+
                 Retrieves deployment information including status, error messages, and steps.
 
                 **Authentication**: Requires a valid root key with appropriate permissions.
-            operationId: getDeployment
+            operationId: deploy.getDeployment
             requestBody:
                 content:
                     application/json:
@@ -4414,6 +4425,7 @@ paths:
             summary: Get deployment
             tags:
                 - deploy
+            x-speakeasy-group: internal
             x-speakeasy-name-override: getDeployment
     /v2/identities.createIdentity:
         post:
