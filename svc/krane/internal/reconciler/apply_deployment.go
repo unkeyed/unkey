@@ -90,7 +90,7 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 				Spec: corev1.PodSpec{
 					RuntimeClassName: ptr.P(runtimeClassGvisor),
 					RestartPolicy:    corev1.RestartPolicyAlways,
-					Tolerations:      untrustedTolerations,
+					Tolerations:      []corev1.Toleration{untrustedToleration},
 					Containers: []corev1.Container{{
 
 						Image:           req.GetImage(),
