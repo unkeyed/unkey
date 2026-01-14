@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=ctlptl.schema.json
 apiVersion: ctlptl.dev/v1alpha1
 kind: Cluster
 product: minikube

@@ -96,11 +96,13 @@ export type ClickHouseConfig =
       url?: string;
       insertUrl?: never;
       queryUrl?: never;
+      requestTimeoutMs?: number;
     }
   | {
       url?: never;
       insertUrl: string;
       queryUrl: string;
+      requestTimeoutMs?: number;
     };
 
 export class ClickHouse {
@@ -109,12 +111,15 @@ export class ClickHouse {
 
   constructor(config: ClickHouseConfig) {
     if (config.url) {
-      const client = new Client({ url: config.url });
+      const client = new Client({ url: config.url, request_timeout: config.requestTimeoutMs });
       this.querier = client;
       this.inserter = client;
     } else if (config.queryUrl && config.insertUrl) {
-      this.querier = new Client({ url: config.queryUrl });
-      this.inserter = new Client({ url: config.insertUrl });
+      this.querier = new Client({ url: config.queryUrl, request_timeout: config.requestTimeoutMs });
+      this.inserter = new Client({
+        url: config.insertUrl,
+        request_timeout: config.requestTimeoutMs,
+      });
     } else {
       this.querier = new Noop();
       this.inserter = new Noop();
