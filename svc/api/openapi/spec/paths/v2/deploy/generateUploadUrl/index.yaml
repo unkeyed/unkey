@@ -1,13 +1,13 @@
 post:
   tags:
     - deploy
-  summary: Create deployment
+  summary: Generate upload URL
   description: |
-    Creates a new deployment for a project using either a pre-built Docker image or build context.
+    Generates a presigned S3 URL for uploading build context archives.
 
     **Authentication**: Requires a valid root key with appropriate permissions.
-  operationId: deploy.createDeployment
-  x-speakeasy-name-override: createDeployment
+  operationId: deploy.generateUploadUrl
+  x-speakeasy-name-override: generateUploadUrl
   security:
     - rootKey: []
   requestBody:
@@ -15,14 +15,14 @@ post:
     content:
       application/json:
         schema:
-          "$ref": "./V2DeployCreateDeploymentRequestBody.yaml"
+          "$ref": "./V2DeployGenerateUploadUrlRequestBody.yaml"
   responses:
-    "201":
-      description: Deployment created successfully
+    "200":
+      description: Upload URL generated successfully
       content:
         application/json:
           schema:
-            "$ref": "./V2DeployCreateDeploymentResponseBody.yaml"
+            "$ref": "./V2DeployGenerateUploadUrlResponseBody.yaml"
     "400":
       description: Bad request
       content:

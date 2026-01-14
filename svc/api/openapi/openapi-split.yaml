@@ -137,6 +137,8 @@ paths:
   # Deploy Endpoints
   /v2/deploy.createDeployment:
     $ref: "./spec/paths/v2/deploy/createDeployment/index.yaml"
+  /v2/deploy.generateUploadUrl:
+    $ref: "./spec/paths/v2/deploy/generateUploadUrl/index.yaml"
 
   # Identity Endpoints
   /v2/identities.createIdentity:
