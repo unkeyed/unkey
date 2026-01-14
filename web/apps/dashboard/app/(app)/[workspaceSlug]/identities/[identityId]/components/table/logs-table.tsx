@@ -250,11 +250,6 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                 <div className="font-mono text-xs">
                   {shortenId(log.keyId, { startChars: 8, endChars: 4 })}
                 </div>
-                {log.keyName && (
-                  <div className="text-xs text-gray-11 truncate max-w-[120px]" title={log.keyName}>
-                    {log.keyName}
-                  </div>
-                )}
               </div>
             </InfoTooltip>
           </div>
