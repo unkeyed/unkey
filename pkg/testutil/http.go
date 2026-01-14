@@ -5,12 +5,15 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
@@ -25,6 +28,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/vault"
@@ -54,6 +58,8 @@ type Harness struct {
 	Ratelimit                  ratelimit.Service
 	Vault                      *vault.Service
 	AnalyticsConnectionManager analytics.ConnectionManager
+	CtrlDeploymentClient       ctrlv1connect.DeploymentServiceClient
+	CtrlBuildClient            ctrlv1connect.BuildServiceClient
 	seeder                     *seed.Seeder
 }
 
@@ -178,6 +184,26 @@ func NewHarness(t *testing.T) *Harness {
 
 	seeder.Seed(context.Background())
 
+	// Get CTRL service URL and token
+	ctrlURL, ctrlToken := containers.ControlPlane(t)
+
+	// Create CTRL clients
+	ctrlDeploymentClient := ctrlv1connect.NewDeploymentServiceClient(
+		http.DefaultClient,
+		ctrlURL,
+		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+			"Authorization": fmt.Sprintf("Bearer %s", ctrlToken),
+		})),
+	)
+
+	ctrlBuildClient := ctrlv1connect.NewBuildServiceClient(
+		http.DefaultClient,
+		ctrlURL,
+		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+			"Authorization": fmt.Sprintf("Bearer %s", ctrlToken),
+		})),
+	)
+
 	h := Harness{
 		t:                          t,
 		Logger:                     logger,
@@ -192,6 +218,8 @@ func NewHarness(t *testing.T) *Harness {
 		seeder:                     seeder,
 		Clock:                      clk,
 		AnalyticsConnectionManager: analyticsConnManager,
+		CtrlDeploymentClient:       ctrlDeploymentClient,
+		CtrlBuildClient:            ctrlBuildClient,
 		Auditlogs: auditlogs.New(auditlogs.Config{
 			DB:     db,
 			Logger: logger,
