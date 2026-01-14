@@ -10,6 +10,7 @@ allOf:
         minLength: 1
         description: Unkey project ID
         example: "proj_123abc"
+        pattern: "^proj_[a-zA-Z0-9]+$"
       keyspaceId:
         type: string
         description: Optional keyspace ID for authentication context

@@ -399,6 +399,7 @@ components:
                         minLength: 1
                         description: Unkey project ID
                         example: "proj_123abc"
+                        pattern: "^proj_[a-zA-Z0-9]+$"
                     keyspaceId:
                         type: string
                         description: Optional keyspace ID for authentication context
@@ -439,6 +440,7 @@ components:
                     minLength: 1
                     description: Unkey project ID for which to generate the upload URL
                     example: "proj_123abc"
+                    pattern: "^proj_[a-zA-Z0-9]+$"
         V2DeployGenerateUploadUrlResponseBody:
             type: object
             required:
@@ -457,6 +459,7 @@ components:
                 deploymentId:
                     type: string
                     minLength: 1
+                    pattern: "^d_[a-zA-Z0-9]+$"
                     description: Unique deployment identifier to retrieve
                     example: "d_abc123xyz"
         V2DeployGetDeploymentResponseBody:
@@ -2650,7 +2653,7 @@ components:
                 deploymentId:
                     type: string
                     description: Unique deployment identifier
-                    example: "dep_abc123xyz"
+                    example: "d_abc123xyz"
         V2DeployGenerateUploadUrlResponseData:
             type: object
             required:
@@ -2674,7 +2677,7 @@ components:
                 id:
                     type: string
                     description: Unique deployment identifier
-                    example: "dep_abc123xyz"
+                    example: "d_abc123xyz"
                 status:
                     type: string
                     description: Current deployment status
@@ -2687,6 +2690,7 @@ components:
                         - READY
                         - FAILED
                     example: "READY"
+                    x-speakeasy-unknown-values: allow
                 errorMessage:
                     type: string
                     description: Error message if deployment failed

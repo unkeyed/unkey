@@ -7,3 +7,4 @@ properties:
     minLength: 1
     description: Unkey project ID for which to generate the upload URL
     example: "proj_123abc"
+    pattern: "^proj_[a-zA-Z0-9]+$"
