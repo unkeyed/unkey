@@ -30,33 +30,33 @@ local_resource(
 
 # Redis service
 k8s_yaml('k8s/manifests/redis.yaml')
-k8s_resource('redis', port_forwards='6379:6379', resource_deps=[], labels=['database'])
+k8s_resource('redis', port_forwards='6379:6379', resource_deps=['namespace'], labels=['database'])
 
 # MySQL service
 docker_build('unkey/mysql:local', '..', dockerfile='./Dockerfile.mysql')
 k8s_yaml('k8s/manifests/mysql.yaml')
-k8s_resource('mysql', port_forwards='3306:3306', resource_deps=[], labels=['database'])
+k8s_resource('mysql', port_forwards='3306:3306', resource_deps=['namespace'], labels=['database'])
 
 # ClickHouse service
 docker_build('unkey/clickhouse:local', '..', dockerfile='./Dockerfile.clickhouse')
 k8s_yaml('k8s/manifests/clickhouse.yaml')
-k8s_resource('clickhouse', port_forwards='8123:8123', resource_deps=[], labels=['database'])
+k8s_resource('clickhouse', port_forwards='8123:8123', resource_deps=['namespace'], labels=['database'])
 
 # S3 (MinIO) service
 k8s_yaml('k8s/manifests/s3.yaml')
-k8s_resource('s3', port_forwards=['3902:3902', '3903:3903'], resource_deps=[], labels=['database'])
+k8s_resource('s3', port_forwards=['3902:3902', '3903:3903'], resource_deps=['namespace'], labels=['database'])
 
 # PlanetScale HTTP driver
 k8s_yaml('k8s/manifests/planetscale.yaml')
 k8s_resource(
     'planetscale',
-    resource_deps=['mysql'],
+    resource_deps=['namespace', 'mysql'],
     labels=['database']
 )
 
 # Restate service
 k8s_yaml('k8s/manifests/restate.yaml')
-k8s_resource('restate', port_forwards=['8081:8080', '9070:9070'], resource_deps=[], labels=['database'])
+k8s_resource('restate', port_forwards=['8081:8080', '9070:9070'], resource_deps=['namespace'], labels=['database'])
 
 
 # Build Go binaries locally (auto-detect arch from minikube)
@@ -64,6 +64,7 @@ local_resource(
     'build-unkey',
     'cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=$(minikube ssh -- uname -m | sed "s/x86_64/amd64/" | sed "s/aarch64/arm64/" | tr -d "\\r") go build -o bin/unkey .',
     deps=['../main.go', '../pkg', '../cmd', '../svc', '../gen'],
+    allow_parallel=True,
     labels=['build'],
 )
 

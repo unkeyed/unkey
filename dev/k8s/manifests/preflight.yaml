@@ -60,7 +60,7 @@ spec:
       serviceAccountName: preflight
       initContainers:
         - name: cert-gen
-          image: alpine/openssl:latest
+          image: alpine/openssl:3.3
           command:
             - /bin/sh
             - -c
@@ -81,7 +81,8 @@ spec:
               # Sign the cert
               openssl x509 -req -in /tmp/tls.csr -CA /certs/ca.crt -CAkey /certs/ca.key \
                   -CAcreateserial -out /certs/tls.crt -days 365 -sha256 -extfile /tmp/ext.cnf
-              chmod 644 /certs/*.crt /certs/*.key
+              chmod 644 /certs/*.crt
+              chmod 600 /certs/ca.key /certs/tls.key
               echo "Certificates generated successfully"
           volumeMounts:
             - name: tls-certs
@@ -145,7 +146,16 @@ spec:
             - |
               set -e
               echo "Waiting for CA cert..."
-              while [ ! -f /certs/ca.crt ]; do sleep 1; done
+              TIMEOUT=60
+              ELAPSED=0
+              while [ ! -f /certs/ca.crt ]; do
+                sleep 1
+                ELAPSED=$((ELAPSED + 1))
+                if [ $ELAPSED -ge $TIMEOUT ]; then
+                  echo "Timeout waiting for CA cert after ${TIMEOUT}s"
+                  exit 1
+                fi
+              done
               CA_BUNDLE=$(cat /certs/ca.crt | base64 | tr -d '\n')
               echo "Patching MutatingWebhookConfiguration..."
               kubectl patch mutatingwebhookconfiguration preflight \

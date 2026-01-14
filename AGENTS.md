@@ -10,27 +10,29 @@ Unkey is an open-source API authentication and authorization platform. This is a
 
 ## Build, Lint, and Test Commands
 
+We use [`just`](https://github.com/casey/just) as our command runner. Install with `brew install just`.
+
 ### Go (Root Directory)
 
 ```bash
 # Install dependencies
-make install
+just install
 
 # Build all Go artifacts with Bazel
-make build                    # or: bazel build //...
+just build                    # or: bazel build //...
 
 # Run all Go tests
-make test                     # or: bazel test //...
+just test                     # or: bazel test //...
 
 # Run a single Go test
 bazel test //pkg/cache:cache_test --test_filter=TestCacheName
 bazel test //pkg/fault:fault_test --test_output=all
 
 # Format and lint Go code
-make fmt                      # runs: go fmt, buf format, golangci-lint
+just fmt                      # runs: go fmt, buf format, golangci-lint
 
 # Sync BUILD.bazel files
-make bazel                    # runs: bazel mod tidy && bazel run //:gazelle
+just bazel                    # runs: bazel mod tidy && bazel run //:gazelle
 ```
 
 ### TypeScript (web/ Directory)
@@ -58,9 +60,17 @@ pnpm --dir=web fmt            # runs: biome format && biome check
 ### Development Environment
 
 ```bash
-make up                       # Start Docker infrastructure (MySQL, Redis, ClickHouse, etc.)
-make dev                      # Start full dev environment with Tilt/minikube
-make clean                    # Stop and remove all Docker services
+just up                       # Start Docker infrastructure (MySQL, Redis, ClickHouse, etc.)
+just dev                      # Start full dev environment with Tilt/minikube
+just clean                    # Stop and remove all Docker services
+```
+
+### Unkey CLI
+
+```bash
+just unkey dev seed local --slug myproject    # Seed local dev environment
+just unkey run api --http-port 7070           # Run API service
+just unkey --help                             # Show CLI help
 ```
 
 ## Code Style Guidelines
@@ -201,8 +211,8 @@ expect(res.status).toBe(200);
 
 ## Important Notes
 
-- Always run `make bazel` after adding new Go files
-- Use `make fmt` before committing Go changes
+- Always run `just bazel` after adding new Go files
+- Use `just fmt` before committing Go changes
 - Use `pnpm --dir=web fmt` before committing TypeScript changes
-- Integration tests require Docker services running (`make up`)
+- Integration tests require Docker services running (`just up`)
 - The API service deploys to Cloudflare Workers via Wrangler

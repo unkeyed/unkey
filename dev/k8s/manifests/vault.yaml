@@ -45,7 +45,7 @@ spec:
               command:
                 - sh
                 - -c
-                - "wget --header='Content-Type: application/json' --post-data='{}' -qO- http://localhost:8060/vault.v1.VaultService/Liveness"
+                - "wget -T 5 --header='Content-Type: application/json' --post-data='{}' -qO- http://localhost:8060/vault.v1.VaultService/Liveness"
             initialDelaySeconds: 5
             periodSeconds: 10
           readinessProbe:
@@ -53,7 +53,7 @@ spec:
               command:
                 - sh
                 - -c
-                - "wget --header='Content-Type: application/json' --post-data='{}' -qO- http://localhost:8060/vault.v1.VaultService/Liveness"
+                - "wget -T 3 --header='Content-Type: application/json' --post-data='{}' -qO- http://localhost:8060/vault.v1.VaultService/Liveness"
             initialDelaySeconds: 2
             periodSeconds: 5
           resources:
