@@ -2,8 +2,8 @@ package reconciler
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
@@ -11,23 +11,20 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// ApplySentinel creates or updates a Sentinel CRD based on the provided request.
+// ApplySentinel creates or updates a sentinel as a Kubernetes Deployment with a Service.
 //
-// This method validates the request, ensures the namespace exists, and creates
-// or updates the Sentinel custom resource. The controller-runtime reconciler
-// will handle the actual Kubernetes resource creation based on this CRD.
+// Sentinels are infrastructure proxies that route traffic to user deployments within
+// an environment. Each sentinel gets both a Deployment (for the actual pods) and a
+// ClusterIP Service (for stable in-cluster addressing). The Service is owned by the
+// Deployment, so deleting the Deployment automatically cleans up the Service.
 //
-// Parameters:
-//   - ctx: Context for the operation
-//   - req: Sentinel application request with specifications
-//
-// Returns an error if validation fails, namespace creation fails,
-// or CRD creation/update encounters problems.
+// ApplySentinel reports the available replica count back to the control plane after
+// applying, so the platform knows when the sentinel is ready to receive traffic.
 func (r *Reconciler) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentinel) error {
 
 	r.logger.Info("applying sentinel",
@@ -43,7 +40,7 @@ func (r *Reconciler) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 		assert.NotEmpty(req.GetK8SNamespace(), "Namespace is required"),
 		assert.NotEmpty(req.GetK8SName(), "K8s CRD name is required"),
 		assert.NotEmpty(req.GetImage(), "Image is required"),
-
+		assert.GreaterOrEqual(req.GetReplicas(), int32(0), "Replicas must be greater than or equal to 0"),
 		assert.Greater(req.GetCpuMillicores(), int64(0), "CPU millicores must be greater than 0"),
 		assert.Greater(req.GetMemoryMib(), int64(0), "MemoryMib must be greater than 0"),
 	)
@@ -70,18 +67,24 @@ func (r *Reconciler) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 		AvailableReplicas: sentinel.Status.AvailableReplicas,
 	})
 	if err != nil {
-		r.logger.Error("failed to reconcile replicaset", "sentinel_id", req.GetSentinelId(), "error", err)
+		r.logger.Error("failed to reconcile sentinel", "sentinel_id", req.GetSentinelId(), "error", err)
 		return err
 	}
 
 	return nil
 }
 
+// ensureSentinelExists creates or updates the sentinel's Kubernetes Deployment using
+// server-side apply. Returns the resulting Deployment so the caller can extract
+// its UID for setting owner references on related resources.
 func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel) (*appsv1.Deployment, error) {
-
 	client := r.clientSet.AppsV1().Deployments(sentinel.GetK8SNamespace())
 
-	deployment := &appsv1.Deployment{
+	desired := &appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "apps/v1",
+			Kind:       "Deployment",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sentinel.GetK8SName(),
 			Namespace: sentinel.GetK8SNamespace(),
@@ -107,6 +110,14 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 				},
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyAlways,
+					Tolerations: []corev1.Toleration{
+						{
+							Key:      "node-class",
+							Operator: corev1.TolerationOpEqual,
+							Value:    "customer-code",
+							Effect:   corev1.TaintEffectNoSchedule,
+						},
+					},
 					Containers: []corev1.Container{{
 						Image:           sentinel.GetImage(),
 						Name:            "sentinel",
@@ -145,41 +156,28 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 		},
 	}
 
-	// Check if the deployment already exists, if not create a new one
-	found, err := client.Get(ctx, sentinel.GetK8SName(), metav1.GetOptions{})
-
-	if err == nil {
-		foundBytes, err := json.Marshal(found.Spec)
-		if err != nil {
-			return nil, err
-		}
-		wantBytes, err := json.Marshal(deployment.Spec)
-		if err != nil {
-			return nil, err
-		}
-
-		if sha256.Sum256(foundBytes) != sha256.Sum256(wantBytes) {
-			r.logger.Info("sentinel spec has changed, updating", "name", sentinel.GetK8SName())
-			found.Spec = deployment.Spec
-			return client.Update(ctx, found, metav1.UpdateOptions{})
-		}
-
-		// Nothing to do, we're in sync
-		return found, nil
-
-	}
-	if !apierrors.IsNotFound(err) {
-		return nil, err
+	patch, err := json.Marshal(desired)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal deployment: %w", err)
 	}
 
-	return client.Create(ctx, deployment, metav1.CreateOptions{})
-
+	return client.Patch(ctx, sentinel.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
+		FieldManager: "krane",
+	})
 }
 
+// ensureServiceExists creates or updates the ClusterIP Service that provides stable
+// addressing for the sentinel's pods. The Service is owned by the Deployment, which
+// means Kubernetes garbage collection will delete the Service when the Deployment
+// is deleted.
 func (r *Reconciler) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel, deployment *appsv1.Deployment) (*corev1.Service, error) {
 	client := r.clientSet.CoreV1().Services(sentinel.GetK8SNamespace())
 
 	desired := &corev1.Service{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Service",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sentinel.GetK8SName(),
 			Namespace: sentinel.GetK8SNamespace(),
@@ -200,9 +198,8 @@ func (r *Reconciler) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.A
 			},
 		},
 		Spec: corev1.ServiceSpec{
-			Type:     corev1.ServiceTypeClusterIP, // Use ClusterIP for internal communication
+			Type:     corev1.ServiceTypeClusterIP,
 			Selector: labels.New().SentinelID(sentinel.GetSentinelId()),
-			//nolint:exhaustruct
 			Ports: []corev1.ServicePort{
 				{
 					Port:       8040,
@@ -213,20 +210,12 @@ func (r *Reconciler) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.A
 		},
 	}
 
-	found, err := client.Get(ctx, sentinel.GetK8SName(), metav1.GetOptions{})
-	if err == nil {
-
-		if found.Spec.String() != desired.Spec.String() {
-			found.Spec = desired.Spec
-			return client.Update(ctx, found, metav1.UpdateOptions{})
-		}
-
-		return found, nil
-	}
-	if !apierrors.IsNotFound(err) {
-		return nil, err
+	patch, err := json.Marshal(desired)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal service: %w", err)
 	}
 
-	return client.Create(ctx, desired, metav1.CreateOptions{})
-
+	return client.Patch(ctx, sentinel.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
+		FieldManager: "krane",
+	})
 }
