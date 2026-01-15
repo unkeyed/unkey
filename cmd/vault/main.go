@@ -53,7 +53,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Basic configuration
 		HttpPort:          cmd.RequireInt("http-port"),
 		InstanceID:        cmd.RequireString("instance-id"),
-		S3Url:             cmd.RequireString("s3-url"),
+		S3URL:             cmd.RequireString("s3-url"),
 		S3Bucket:          cmd.RequireString("s3-bucket"),
 		S3AccessKeyID:     cmd.RequireString("s3-access-key-id"),
 		S3AccessKeySecret: cmd.RequireString("s3-access-key-secret"),
