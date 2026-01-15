@@ -9,7 +9,11 @@ mode: "wide"
 - Created your [Unkey account](https://app.unkey.com/auth/sign-up)
 - Created an API in the [Unkey dashboard](https://app.unkey.com/apis)
 
-<Card title="Skip the tutorial" icon="link" href="https://github.com/unkeyed/examples/tree/main/express">
+<Card
+  title="Skip the tutorial"
+  icon="link"
+  href="https://github.com/unkeyed/examples/tree/main/express"
+>
   Don't want to read the tutorial? Click this to get an example ready to test.
 </Card>
 
@@ -21,13 +25,13 @@ mode: "wide"
 
 First run the following:
 
-
 ```bash
 mkdir unkey-with-express
 npm init -y
 npm install cors dotenv express ts-node
 npm install -D @types/cors @types/express ts-node-dev typescript
 ```
+
 Then update your package.json to have the following
 
 ```json
@@ -37,6 +41,7 @@ Then update your package.json to have the following
     "serve": "node dist/index.js"
   },
 ```
+
 </Step>
 
 <Step title="Install">
@@ -44,7 +49,7 @@ Then update your package.json to have the following
 Now install the `@unkey/api` package
 
 ```bash
-npm install @unkey/api@0.35
+npm install @unkey/api
 ```
 
 </Step>
@@ -54,44 +59,37 @@ npm install @unkey/api@0.35
 Create a file called `server.ts` and add the following code
 
 ```ts server.ts
-import express, { Request, Response, Application } from 'express';
-import dotenv from 'dotenv';
-import { verifyKey } from '@unkey/api';
+import express, { Request, Response, Application } from "express";
+import dotenv from "dotenv";
+import { Unkey } from "@unkey/api";
 //For env File
 dotenv.config();
 
 const app: Application = express();
 const port = process.env.PORT || 8000;
-const apiId = process.env.UNKEY_API_ID // copy this from the dashboard
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY }); // copy this from the dashboard
 
-app.get('/', (req: Request, res: Response) => {
-  res.send('Welcome to Express & TypeScript Server');
+app.get("/", (req: Request, res: Response) => {
+  res.send("Welcome to Express & TypeScript Server");
 });
 
 // This endpoint is protected by Unkey
-app.get('/secret', async (req: Request, res: Response) => {
-  const authHeader = req.headers["authorization"]
+app.get("/secret", async (req: Request, res: Response) => {
+  const authHeader = req.headers["authorization"];
   const key = authHeader?.toString().replace("Bearer ", "");
   if (!key) {
-    return res.status(401).send("Unauthorized")
+    return res.status(401).send("Unauthorized");
   }
 
-  const { result, error } = await verifyKey({ key, apiId });
-  if (error) {
-    // This may happen on network errors
-    // We already retry the request 5 times, but if it still fails, we return an error
-    console.error(error);
-    res.status(500);
-    return res.status(500).send("Internal Server Error")
-  }
+  const result = await unkey.key.sverifyKey({ key });
 
-  if (!result.valid) {
+  if (!result.data.valid) {
     res.status(401);
-    return res.status(401).send("Unauthorized")
+    return res.status(401).send("Unauthorized");
   }
 
   return res.status(200).send(JSON.stringify(result));
-})
+});
 app.listen(port, () => {
   console.log(`Server is listening at http://localhost:${port}`);
 });
@@ -127,11 +125,14 @@ It should return `{"keyId":"key_id","valid":true,"meta":{},"enabled":true,"permi
 Now that you've seen the power of Unkey, check out some resources below to continue your journey.
 
 <CardGroup cols={3}>
-  <Card title="Discord" icon="discord" href="https://unkey.com/discord">Join our Discord to chat with us and the community</Card>
+  <Card title="Discord" icon="discord" href="https://unkey.com/discord">
+    Join our Discord to chat with us and the community
+  </Card>
   <Card title="Unkey API Reference" icon="database" href="/api-reference">
-     Learn about our API that helps you manage APIs, keys, ratelimits and analytical data.
+    Learn about our API that helps you manage APIs, keys, ratelimits and
+    analytical data.
   </Card>
   <Card title="SDKs" icon="brackets-curly" href="/libraries">
-   Check out our SDKs and how they fit into your Express application.
+    Check out our SDKs and how they fit into your Express application.
   </Card>
 </CardGroup>

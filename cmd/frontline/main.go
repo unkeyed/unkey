@@ -51,8 +51,7 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_OTEL")),
 		cli.Float("otel-trace-sampling-rate", "Sampling rate for OpenTelemetry traces (0.0-1.0). Only used when --otel is provided. Default: 0.25",
 			cli.Default(0.25), cli.EnvVar("UNKEY_OTEL_TRACE_SAMPLING_RATE")),
-		cli.Int("prometheus-port", "Enable Prometheus /metrics endpoint on specified port. Set to 0 to disable.",
-			cli.Default(0), cli.EnvVar("UNKEY_PROMETHEUS_PORT")),
+		cli.Int("prometheus-port", "Enable Prometheus /metrics endpoint on specified port. Set to 0 to disable.", cli.EnvVar("UNKEY_PROMETHEUS_PORT")),
 
 		// Vault Configuration
 		cli.StringSlice("vault-master-keys", "Vault master keys for encryption",

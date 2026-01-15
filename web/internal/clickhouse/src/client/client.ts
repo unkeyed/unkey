@@ -5,6 +5,7 @@ import { InsertError, QueryError } from "./error";
 import type { Inserter, Querier } from "./interface";
 export type Config = {
   url: string;
+  request_timeout?: number;
 };
 
 export class Client implements Querier, Inserter {
@@ -13,7 +14,8 @@ export class Client implements Querier, Inserter {
   constructor(config: Config) {
     this.client = createClient({
       url: config.url,
-
+      // config time out otherwise set it to 30 seconds
+      request_timeout: config.request_timeout ?? 30000,
       clickhouse_settings: {
         output_format_json_quote_64bit_integers: 0,
         output_format_json_quote_64bit_floats: 0,
