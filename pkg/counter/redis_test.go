@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
@@ -59,13 +60,12 @@ func TestRedisCounter(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, int64(1), val)
 
-		// Wait for the key to expire
-		time.Sleep(2 * time.Second)
-
-		// Key should be gone or zero
-		val, err = ctr.Get(ctx, key)
-		require.NoError(t, err)
-		require.Equal(t, int64(0), val)
+		// Wait for the key to expire (poll until Redis reports it as gone/0)
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			val, err := ctr.Get(ctx, key)
+			assert.NoError(c, err)
+			assert.Equal(c, int64(0), val)
+		}, ttl+2*time.Second, 50*time.Millisecond)
 	})
 
 	t.Run("Get", func(t *testing.T) {
