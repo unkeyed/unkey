@@ -225,8 +225,13 @@ func Run(ctx context.Context, cfg Config) error {
 	default:
 		return fmt.Errorf("unknown build backend: %s (must be 'docker' or 'depot')", cfg.BuildBackend)
 	}
+
 	// Restate Client and Server
-	restateClient := restateIngress.NewClient(cfg.Restate.FrontlineURL)
+	restateClientOpts := []restate.IngressClientOption{}
+	if cfg.Restate.APIKey != "" {
+		restateClientOpts = append(restateClientOpts, restate.WithAuthKey(cfg.Restate.APIKey))
+	}
+	restateClient := restateIngress.NewClient(cfg.Restate.URL, restateClientOpts...)
 	restateSrv := restateServer.NewRestate()
 
 	c := cluster.New(cluster.Config{

@@ -120,10 +120,10 @@ type AcmeConfig struct {
 // This configuration enables asynchronous workflow execution through
 // the Restate distributed system for deployment and certificate operations.
 type RestateConfig struct {
-	// FrontlineURL is the Restate frontline endpoint URL for workflow invocation.
+	// URL is the Restate ingress endpoint URL for workflow invocation.
 	// Used by clients to start and interact with workflow executions.
 	// Example: "http://restate:8080".
-	FrontlineURL string
+	URL string
 
 	// AdminURL is the Restate admin endpoint URL for service registration.
 	// Used by the control plane to register its workflow services.
@@ -138,6 +138,10 @@ type RestateConfig struct {
 	// Allows other Restate services to discover and invoke this control plane.
 	// Example: "http://ctrl:9080".
 	RegisterAs string
+
+	// APIKey is the authentication key for Restate ingress requests.
+	// If set, this key will be sent with all requests to the Restate ingress.
+	APIKey string
 }
 
 // DepotConfig holds configuration for Depot.dev build service integration.

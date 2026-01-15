@@ -127,7 +127,7 @@ var Cmd = &cli.Command{
 		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
 
 		// Restate Configuration
-		cli.String("restate-frontline-url", "URL of the Restate frontline endpoint for invoking workflows. Example: http://restate:8080",
+		cli.String("restate-url", "URL of the Restate ingress endpoint for invoking workflows. Example: http://restate:8080",
 			cli.Default("http://restate:8080"), cli.EnvVar("UNKEY_RESTATE_INGRESS_URL")),
 		cli.String("restate-admin-url", "URL of the Restate admin endpoint for service registration. Example: http://restate:9070",
 			cli.Default("http://restate:9070"), cli.EnvVar("UNKEY_RESTATE_ADMIN_URL")),
@@ -135,6 +135,8 @@ var Cmd = &cli.Command{
 			cli.Default(9080), cli.EnvVar("UNKEY_RESTATE_HTTP_PORT")),
 		cli.String("restate-register-as", "URL of this service for self-registration with Restate. Example: http://ctrl:9080",
 			cli.EnvVar("UNKEY_RESTATE_REGISTER_AS")),
+		cli.String("restate-api-key", "API key for Restate ingress requests",
+			cli.EnvVar("UNKEY_RESTATE_API_KEY")),
 		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
 			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
 
@@ -246,10 +248,11 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Restate configuration
 		Restate: ctrl.RestateConfig{
-			FrontlineURL: cmd.String("restate-frontline-url"),
-			AdminURL:     cmd.String("restate-admin-url"),
-			HttpPort:     cmd.Int("restate-http-port"),
-			RegisterAs:   cmd.String("restate-register-as"),
+			URL:        cmd.String("restate-url"),
+			AdminURL:   cmd.String("restate-admin-url"),
+			HttpPort:   cmd.Int("restate-http-port"),
+			RegisterAs: cmd.String("restate-register-as"),
+			APIKey:     cmd.String("restate-api-key"),
 		},
 
 		// Clickhouse Configuration
