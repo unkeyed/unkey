@@ -279,7 +279,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       # Server configuration
-      UNKEY_REGION: "dev:local" # currently required to receive filteres events from ctrl
+      UNKEY_REGION: "local.dev" # currently required to receive filtered events from ctrl
       UNKEY_CONTROL_PLANE_URL: "http://ctrl:7091"
       UNKEY_CONTROL_PLANE_BEARER: "your-local-dev-key"
 

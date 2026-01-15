@@ -77,7 +77,7 @@ Domain to use for fallback TLS certificate when a domain has no cert configured
 </Callout>
 
 <Callout type="info" title="--base-domain">
-Base domain for region routing. Cross-region requests forwarded to region.base-domain. Example: unkey.cloud
+Base domain for region routing. Cross-region requests forwarded to frontline.{region}.{base-domain}. Example: frontline.us-east-1.aws.unkey.cloud
 
 - **Type:** string
 - **Default:** `"unkey.cloud"`

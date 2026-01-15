@@ -36,6 +36,7 @@ type Config struct {
 	Region string
 
 	// BaseDomain is the base domain for remote NLB routing (e.g., "unkey.cloud")
+	// Routes to frontline.{region}.{BaseDomain} (e.g., frontline.us-east-1.aws.unkey.cloud)
 	BaseDomain string
 
 	// Clock for time tracking

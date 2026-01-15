@@ -79,10 +79,19 @@ func (r *Reconciler) getDeploymentState(ctx context.Context, replicaset *appsv1.
 		case corev1.PodPending:
 			instance.Status = ctrlv1.UpdateDeploymentStateRequest_Update_Instance_STATUS_PENDING
 		case corev1.PodRunning:
-			instance.Status = ctrlv1.UpdateDeploymentStateRequest_Update_Instance_STATUS_RUNNING
-
-		case corev1.PodSucceeded, corev1.PodUnknown:
-			instance.Status = ctrlv1.UpdateDeploymentStateRequest_Update_Instance_STATUS_UNSPECIFIED
+			// Check if all containers are ready to determine running vs failed
+			allReady := true
+			for _, cond := range pod.Status.Conditions {
+				if cond.Type == corev1.ContainersReady && cond.Status != corev1.ConditionTrue {
+					allReady = false
+					break
+				}
+			}
+			if allReady {
+				instance.Status = ctrlv1.UpdateDeploymentStateRequest_Update_Instance_STATUS_RUNNING
+			} else {
+				instance.Status = ctrlv1.UpdateDeploymentStateRequest_Update_Instance_STATUS_FAILED
+			}
 		case corev1.PodFailed:
 			instance.Status = ctrlv1.UpdateDeploymentStateRequest_Update_Instance_STATUS_FAILED
 		default:

@@ -25,7 +25,8 @@ type Config struct {
 	EnableTLS bool
 
 	// BaseDomain is the base domain for region routing (e.g., unkey.cloud)
-	// Cross-region requests are forwarded to {region}.{BaseDomain}
+	// Cross-region requests are forwarded to frontline.{region}.{BaseDomain}
+	// Example: frontline.us-east-1.aws.unkey.cloud
 	BaseDomain string
 
 	// MaxHops is the maximum number of frontline hops allowed before rejecting the request

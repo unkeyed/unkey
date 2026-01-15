@@ -114,7 +114,7 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 		}
 	}
 
-	targetURL, err := url.Parse(fmt.Sprintf("https://%s.%s", targetRegion, s.baseDomain))
+	targetURL, err := url.Parse(fmt.Sprintf("https://frontline.%s.%s", targetRegion, s.baseDomain))
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
