@@ -270,7 +270,7 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 
 	wasSet, err := s.counter.SetIfNotExists(ctx, redisKey, initValue, s.ttl)
 	if err != nil {
-		s.logger.Debug("failed to initialize counter with SetIfNotExists, falling back to DB", "error", err, "keyId", req.KeyId)
+		s.logger.Debug("failed to initialize counter with SetIfNotExists, falling back to DB", "error", err, "keyID", req.KeyID)
 		return s.dbFallback.Limit(ctx, req)
 	}
 
@@ -288,7 +288,7 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	// Another node already initialized the key, check if we have enough after decrement
 	remaining, exists, success, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
 	if err != nil || !exists {
-		s.logger.Debug("failed to decrement after initialization attempt", "error", err, "exists", exists, "keyId", req.KeyId)
+		s.logger.Debug("failed to decrement after initialization attempt", "error", err, "exists", exists, "keyID", req.KeyID)
 		return s.dbFallback.Limit(ctx, req)
 	}
 
