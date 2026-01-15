@@ -82,13 +82,15 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
 
+		shutdowns.RegisterCtx(prom.Shutdown)
+		promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+		if listenErr != nil {
+			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, listenErr)
+		}
 		go func() {
-			promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
-			if listenErr != nil {
-				panic(listenErr)
-			}
+			logger.Info("prometheus started", "port", cfg.PrometheusPort)
 			if serveErr := prom.Serve(ctx, promListener); serveErr != nil {
-				panic(serveErr)
+				logger.Error("failed to start prometheus server", "error", serveErr)
 			}
 		}()
 	}
