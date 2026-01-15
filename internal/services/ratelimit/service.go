@@ -53,6 +53,10 @@ type service struct {
 	// replayCircuitBreaker prevents cascading failures during peer communication
 	// Thread-safe internally
 	replayCircuitBreaker circuitbreaker.CircuitBreaker[int64]
+
+	// stopJanitor stops the background cleanup goroutine when called.
+	// Set by expireWindowsAndBuckets, called by Close.
+	stopJanitor func()
 }
 
 // Config holds configuration for creating a new rate limiting service.
@@ -104,9 +108,12 @@ func New(config Config) (*service, error) {
 	return s, nil
 }
 
-// Close stops the replay buffer and releases resources.
+// Close stops the replay buffer and background goroutines, releasing resources.
 // The service must not be used after calling Close.
 func (s *service) Close() error {
+	if s.stopJanitor != nil {
+		s.stopJanitor()
+	}
 	s.replayBuffer.Close()
 	return nil
 }

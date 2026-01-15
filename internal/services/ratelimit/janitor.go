@@ -37,7 +37,7 @@ import (
 //   - Bucket removed when last window expires
 func (s *service) expireWindowsAndBuckets() {
 
-	repeat.Every(time.Minute, func() {
+	s.stopJanitor = repeat.Every(time.Minute, func() {
 		s.bucketsMu.Lock()
 		defer s.bucketsMu.Unlock()
 
