@@ -1,16 +1,23 @@
 "use client";
+import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/table/components/status-badge";
+import {
+  STATUS_STYLES,
+  type StatusStyle,
+  categorizeSeverity,
+} from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/table/logs-table";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
+import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
 import { cn } from "@/lib/utils";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import {
   Ban,
   BookBookmark,
   CircleCheck,
+  Key,
   Lock,
   ShieldKey,
   TimeClock,
@@ -18,9 +25,8 @@ import {
 } from "@unkey/icons";
 import { Badge, Button, CopyButton, Empty, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import { useCallback, useState } from "react";
-import { useKeyDetailsLogsContext } from "../../context/logs";
-import { StatusBadge } from "./components/status-badge";
-import { useKeyDetailsLogsQuery } from "./hooks/use-logs-query";
+import { useIdentityDetailsLogsContext } from "../../context/logs";
+import { useIdentityLogsQuery } from "./hooks/use-logs-query";
 
 type LogOutcomeType = (typeof KEY_VERIFICATION_OUTCOMES)[number];
 type LogOutcomeInfo = {
@@ -81,60 +87,6 @@ const LOG_OUTCOME_DEFINITIONS: Record<LogOutcomeType, LogOutcomeInfo> = {
   },
 };
 
-export type StatusStyle = {
-  base: string;
-  hover: string;
-  selected: string;
-  badge?: {
-    default: string;
-    selected: string;
-  };
-  focusRing: string;
-};
-
-export const STATUS_STYLES = {
-  success: {
-    base: "text-grayA-9",
-    hover: "hover:text-grayA-11 hover:bg-grayA-3 dark:hover:text-grayA-12",
-    selected: "text-grayA-12 bg-grayA-3",
-    badge: {
-      default: "bg-grayA-3 text-grayA-9 group-hover:bg-grayA-4",
-      selected: "bg-grayA-4 text-grayA-11",
-    },
-    focusRing: "focus:ring-accent-7",
-  },
-  warning: {
-    base: "text-warningA-11 bg-warning-2",
-    hover: "hover:text-warningA-11 hover:bg-warningA-3",
-    selected: "text-warningA-11 bg-warningA-3",
-    badge: {
-      default: "bg-warningA-3 text-warningA-11 group-hover:bg-warningA-4",
-      selected: "bg-warningA-4 text-warningA-11",
-    },
-    focusRing: "focus:ring-warning-7",
-  },
-  blocked: {
-    base: "text-orangeA-11 bg-orange-2",
-    hover: "hover:text-orangeA-11 hover:bg-orangeA-3",
-    selected: "text-orangeA-11 bg-orangeA-3",
-    badge: {
-      default: "bg-orangeA-3 text-orangeA-11 group-hover:bg-orangeA-4",
-      selected: "bg-orangeA-4 text-orangeA-11",
-    },
-    focusRing: "focus:ring-orange-7",
-  },
-  error: {
-    base: "text-errorA-11 bg-error-2",
-    hover: "hover:text-errorA-11 hover:bg-errorA-3",
-    selected: "text-errorA-11 bg-errorA-3",
-    badge: {
-      default: "bg-errorA-3 text-errorA-11 group-hover:bg-errorA-4",
-      selected: "bg-errorA-4 text-errorA-11",
-    },
-    focusRing: "focus:ring-error-7",
-  },
-};
-
 const getStatusType = (outcome: LogOutcomeType): keyof typeof STATUS_STYLES => {
   switch (outcome) {
     case "VALID":
@@ -149,47 +101,27 @@ const getStatusType = (outcome: LogOutcomeType): keyof typeof STATUS_STYLES => {
   }
 };
 
-export const categorizeSeverity = (outcome: string): keyof typeof STATUS_STYLES => {
-  switch (outcome) {
-    case "VALID":
-      return "success";
-    case "RATE_LIMITED":
-      return "warning";
-    case "DISABLED":
-    case "EXPIRED":
-      return "blocked";
-    case "INSUFFICIENT_PERMISSIONS":
-    case "FORBIDDEN":
-    case "USAGE_EXCEEDED":
-      return "error";
-    default:
-      return "success";
-  }
-};
-
-export const getStatusStyle = (log: KeyDetailsLog): StatusStyle => {
+export const getStatusStyle = (log: IdentityLog): StatusStyle => {
   const severity = categorizeSeverity(log.outcome);
   return STATUS_STYLES[severity];
 };
 
 type Props = {
-  keyId: string;
-  keyspaceId: string;
-  selectedLog: KeyDetailsLog | null;
-  onLogSelect: (log: KeyDetailsLog | null) => void;
+  identityId: string;
+  selectedLog: IdentityLog | null;
+  onLogSelect: (log: IdentityLog | null) => void;
 };
 
-export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelect }: Props) => {
-  const { isLive } = useKeyDetailsLogsContext();
+export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect }: Props) => {
+  const { isLive } = useIdentityDetailsLogsContext();
   const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore, hasMore, totalCount } =
-    useKeyDetailsLogsQuery({
-      keyId,
-      keyspaceId,
+    useIdentityLogsQuery({
+      identityId,
       startPolling: isLive,
       pollIntervalMs: 2000,
     });
 
-  const getRowClassName = (log: KeyDetailsLog, selected: KeyDetailsLog | null) => {
+  const getRowClassName = (log: IdentityLog, selected: IdentityLog | null) => {
     const style = getStatusStyle(log);
     const isSelected = selected?.request_id === log.request_id;
 
@@ -208,7 +140,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
   const utils = trpc.useUtils();
 
   const handleRowHover = useCallback(
-    (log: KeyDetailsLog) => {
+    (log: IdentityLog) => {
       if (log.request_id !== hoveredLogId) {
         setHoveredLogId(log.request_id);
 
@@ -239,12 +171,12 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
     setHoveredLogId(null);
   }, []);
 
-  const columns = (): Column<KeyDetailsLog>[] => {
+  const columns = (): Column<IdentityLog>[] => {
     return [
       {
         key: "time",
         header: "Time",
-        width: "20%", // Increased from 5% to accommodate timestamp
+        width: "15%", // Increased for timestamp display
         headerClassName: "pl-2",
         render: (log) => (
           <TimestampInfo
@@ -259,7 +191,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
       {
         key: "outcome",
         header: "Status",
-        width: "20%", // Increased from 15% for better status display
+        width: "15%", // Increased for status badges
         render: (log) => {
           const isSelected = selectedLog?.request_id === log.request_id;
           const outcomeType =
@@ -290,9 +222,43 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
         },
       },
       {
+        key: "keyId",
+        header: "Key",
+        width: "25%", // Increased significantly for key display
+        render: (log) => (
+          <div className="flex items-center gap-2">
+            <Key iconSize="sm-regular" className="text-gray-9" />
+            <InfoTooltip
+              variant="inverted"
+              content={
+                <div className="flex flex-col gap-1">
+                  <div className="text-xs font-medium">Key ID:</div>
+                  <div className="font-mono text-xs break-all">{log.keyId}</div>
+                  {log.keyName && (
+                    <>
+                      <div className="text-xs font-medium mt-1">Key Name:</div>
+                      <div className="text-xs">{log.keyName}</div>
+                    </>
+                  )}
+                  <div className="text-xs font-medium mt-1">API:</div>
+                  <div className="text-xs">{log.apiName || log.apiId}</div>
+                </div>
+              }
+              position={{ side: "top", align: "start", sideOffset: 5 }}
+            >
+              <div className="flex flex-col">
+                <div className="font-mono text-xs">
+                  {shortenId(log.keyId, { startChars: 8, endChars: 4 })}
+                </div>
+              </div>
+            </InfoTooltip>
+          </div>
+        ),
+      },
+      {
         key: "region",
         header: "Region",
-        width: "20%", // Increased from 15% for better region display
+        width: "12%", // Restored to reasonable size
         render: (log) => (
           <div className="flex items-center font-mono">
             <div className="w-full whitespace-nowrap" title={log.region}>
@@ -304,7 +270,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
       {
         key: "tags",
         header: "Tags",
-        width: "40%", // Increased from 20% to use remaining space (100% - 20% - 20% - 20% = 40%)
+        width: "33%", // Adjusted to use remaining space (100% - 15% - 15% - 25% - 12% = 33%)
         render: (log) => {
           return (
             <div className="flex flex-wrap gap-1 items-center">
@@ -453,8 +419,8 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
               <span className="text-accent-12">
                 {new Intl.NumberFormat().format(historicalLogs.length)}
               </span>
-              <span>of</span>
-              {new Intl.NumberFormat().format(totalCount)}
+              <span>of</span>{" "}
+              <span>{new Intl.NumberFormat().format(totalCount + realtimeLogs.length)}</span>
               <span>requests</span>
             </div>
           ),
@@ -463,10 +429,10 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
           <div className="w-full flex justify-center items-center h-full">
             <Empty className="w-[400px] flex items-start">
               <Empty.Icon className="w-auto" />
-              <Empty.Title>Key Verification Logs</Empty.Title>
+              <Empty.Title>Identity Verification Logs</Empty.Title>
               <Empty.Description className="text-left">
-                No verification logs found for this key. When this API key is used, details about
-                each verification attempt will appear here.
+                No verification logs found for this identity. When API keys belonging to this
+                identity are used, details about each verification attempt will appear here.
               </Empty.Description>
               <Empty.Actions className="mt-4 justify-center md:justify-start">
                 <a
