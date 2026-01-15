@@ -28,7 +28,7 @@ import (
 func (r *Reconciler) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentinel) error {
 
 	r.logger.Info("applying sentinel",
-		"namespace", req.GetK8SNamespace(),
+		"namespace", NamespaceSentinel,
 		"name", req.GetK8SName(),
 		"sentinel_id", req.GetSentinelId(),
 	)
@@ -37,7 +37,6 @@ func (r *Reconciler) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 		assert.NotEmpty(req.GetProjectId(), "Project ID is required"),
 		assert.NotEmpty(req.GetEnvironmentId(), "Environment ID is required"),
 		assert.NotEmpty(req.GetSentinelId(), "Sentinel ID is required"),
-		assert.NotEmpty(req.GetK8SNamespace(), "Namespace is required"),
 		assert.NotEmpty(req.GetK8SName(), "K8s CRD name is required"),
 		assert.NotEmpty(req.GetImage(), "Image is required"),
 		assert.GreaterOrEqual(req.GetReplicas(), int32(0), "Replicas must be greater than or equal to 0"),
@@ -48,7 +47,7 @@ func (r *Reconciler) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 		return err
 	}
 
-	if err := r.ensureNamespaceExists(ctx, req.GetK8SNamespace()); err != nil {
+	if err := r.ensureNamespaceExists(ctx, NamespaceSentinel); err != nil {
 		return err
 	}
 
@@ -78,7 +77,7 @@ func (r *Reconciler) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 // server-side apply. Returns the resulting Deployment so the caller can extract
 // its UID for setting owner references on related resources.
 func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel) (*appsv1.Deployment, error) {
-	client := r.clientSet.AppsV1().Deployments(sentinel.GetK8SNamespace())
+	client := r.clientSet.AppsV1().Deployments(NamespaceSentinel)
 
 	desired := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -87,7 +86,7 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sentinel.GetK8SName(),
-			Namespace: sentinel.GetK8SNamespace(),
+			Namespace: NamespaceSentinel,
 			Labels: labels.New().
 				WorkspaceID(sentinel.GetWorkspaceId()).
 				ProjectID(sentinel.GetProjectId()).
@@ -110,25 +109,26 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 				},
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyAlways,
-					Tolerations: []corev1.Toleration{
-						{
-							Key:      "node-class",
-							Operator: corev1.TolerationOpEqual,
-							Value:    "customer-code",
-							Effect:   corev1.TaintEffectNoSchedule,
-						},
-					},
+					Tolerations:   []corev1.Toleration{sentinelToleration},
 					Containers: []corev1.Container{{
 						Image:           sentinel.GetImage(),
 						Name:            "sentinel",
 						ImagePullPolicy: corev1.PullIfNotPresent,
 						Args:            []string{"run", "sentinel"},
+						EnvFrom: []corev1.EnvFromSource{
+							{
+								SecretRef: &corev1.SecretEnvSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "database",
+									},
+								},
+							},
+						},
 						Env: []corev1.EnvVar{
 							{Name: "UNKEY_WORKSPACE_ID", Value: sentinel.GetWorkspaceId()},
 							{Name: "UNKEY_PROJECT_ID", Value: sentinel.GetProjectId()},
 							{Name: "UNKEY_ENVIRONMENT_ID", Value: sentinel.GetEnvironmentId()},
 							{Name: "UNKEY_SENTINEL_ID", Value: sentinel.GetSentinelId()},
-							{Name: "UNKEY_DATABASE_PRIMARY", Value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"},
 							{Name: "UNKEY_REGION", Value: r.region},
 						},
 
@@ -186,7 +186,7 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 	}
 
 	return client.Patch(ctx, sentinel.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
-		FieldManager: "krane",
+		FieldManager: fieldManagerKrane,
 	})
 }
 
@@ -195,7 +195,7 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 // means Kubernetes garbage collection will delete the Service when the Deployment
 // is deleted.
 func (r *Reconciler) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel, deployment *appsv1.Deployment) (*corev1.Service, error) {
-	client := r.clientSet.CoreV1().Services(sentinel.GetK8SNamespace())
+	client := r.clientSet.CoreV1().Services(NamespaceSentinel)
 
 	desired := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
@@ -204,7 +204,7 @@ func (r *Reconciler) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.A
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sentinel.GetK8SName(),
-			Namespace: sentinel.GetK8SNamespace(),
+			Namespace: NamespaceSentinel,
 			Labels: labels.New().
 				WorkspaceID(sentinel.GetWorkspaceId()).
 				ProjectID(sentinel.GetProjectId()).
@@ -240,6 +240,6 @@ func (r *Reconciler) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.A
 	}
 
 	return client.Patch(ctx, sentinel.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
-		FieldManager: "krane",
+		FieldManager: fieldManagerKrane,
 	})
 }
