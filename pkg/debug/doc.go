@@ -33,7 +33,7 @@
 //	    status = "FRESH"
 //	}
 //
-//	debug.RecordCacheState(ctx, "ApiByID", status, latency)
+//	debug.RecordCacheHit(ctx, "ApiByID", status, latency)
 //
 //	// Results in HTTP header:
 //	// X-Unkey-Debug-Cache: ApiByID:1.25ms:FRESH
