@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -57,7 +58,9 @@ func NewWithOptions(ctx context.Context, opts Options) (*Client, error) {
 
 	svid, err := source.GetX509SVID()
 	if err != nil {
-		source.Close()
+		if closeErr := source.Close(); closeErr != nil {
+			slog.WarnContext(ctx, "failed to close X509 source during cleanup", slog.String("error", closeErr.Error()))
+		}
 		return nil, fmt.Errorf("get SVID: %w", err)
 	}
 	_ = svidCtx
