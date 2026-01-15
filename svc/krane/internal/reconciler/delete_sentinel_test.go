@@ -16,8 +16,7 @@ import (
 
 func newDeleteSentinelRequest() *ctrlv1.DeleteSentinel {
 	return &ctrlv1.DeleteSentinel{
-		K8SNamespace: NamespaceSentinel,
-		K8SName:      "test-sentinel",
+		K8SName: "test-sentinel",
 	}
 }
 
