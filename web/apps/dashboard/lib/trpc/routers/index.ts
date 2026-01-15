@@ -60,6 +60,8 @@ import { deleteIdentity } from "./identity/delete";
 import { getIdentityById } from "./identity/getById";
 import { identityLastVerificationTime } from "./identity/latestVerification";
 import { queryIdentities } from "./identity/query";
+import { queryIdentityLogs } from "./identity/query-logs";
+import { queryIdentityTimeseries } from "./identity/query-timeseries";
 import { searchIdentities } from "./identity/search";
 import { searchIdentitiesWithRelations } from "./identity/searchWithRelations";
 import { updateIdentityMetadata } from "./identity/updateMetadata";
@@ -348,6 +350,10 @@ export const router = t.router({
     search: searchIdentities,
     getById: getIdentityById,
     latestVerification: identityLastVerificationTime,
+    logs: t.router({
+      query: queryIdentityLogs,
+      timeseries: queryIdentityTimeseries,
+    }),
     update: t.router({
       metadata: updateIdentityMetadata,
       ratelimit: updateIdentityRatelimit,
