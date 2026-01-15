@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -93,12 +94,12 @@ func run(ctx context.Context, cmd *cli.Command) error {
 
 			usedVerifications, err := ch.GetBillableVerifications(ctx, e.Workspace.ID, year, int(month))
 			if err != nil {
-				panic(err)
+				return fault.Wrap(err, fault.Internal(fmt.Sprintf("failed to get billable verifications for workspace %s", e.Workspace.ID)))
 			}
 
 			usedRatelimits, err := ch.GetBillableRatelimits(ctx, e.Workspace.ID, year, int(month))
 			if err != nil {
-				panic(err)
+				return fault.Wrap(err, fault.Internal(fmt.Sprintf("failed to get billable ratelimits for workspace %s", e.Workspace.ID)))
 			}
 
 			usage := usedVerifications + usedRatelimits
@@ -110,7 +111,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 				if slackWebhookURL != "" {
 					err = sendSlackNotification(slackWebhookURL, e, usage)
 					if err != nil {
-						panic(err)
+						return fault.Wrap(err, fault.Internal(fmt.Sprintf("failed to send slack notification for workspace %s", e.Workspace.ID)))
 					}
 				}
 			}
