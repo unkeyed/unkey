@@ -340,10 +340,9 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 
 	var rootKey string
 	if config.Permissions != nil {
-		// Explicitly set permissions (even if empty slice)
+		// Explicitly set permissions
 		rootKey = h.CreateRootKey(workspace.ID, config.Permissions...)
 	} else {
-		// No permissions specified - create root key with full access (backward compatible)
 		rootKey = h.CreateRootKey(workspace.ID)
 	}
 

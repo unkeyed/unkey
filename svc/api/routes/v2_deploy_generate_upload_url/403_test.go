@@ -75,9 +75,7 @@ func TestGenerateUploadUrlCorrectPermissions(t *testing.T) {
 
 			// For specific project test, we need to create project first, then root key with project-specific permission
 			if tc.name == "specific project" {
-				setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-					SkipRootKey: true, // We'll create it manually with project-specific permission
-				})
+				setup := h.CreateTestDeploymentSetup()
 
 				// Now create root key with project-specific permission
 				rootKey := h.CreateRootKey(setup.Workspace.ID, fmt.Sprintf("deploy.%s.generate_upload_url", setup.Project.ID))
