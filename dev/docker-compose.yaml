@@ -347,7 +347,7 @@ services:
       UNKEY_DEFAULT_DOMAIN: "unkey.local"
 
       # Restate configuration
-      RESTATE_INGRESS_URL: "http://restate:8080"
+      UNKEY_RESTATE_INGRESS_URL: "http://restate:8080"
       UNKEY_RESTATE_ADMIN_URL: "http://restate:9070"
       UNKEY_RESTATE_HTTP_PORT: "9080"
       UNKEY_RESTATE_REGISTER_AS: "http://ctrl:9080"
