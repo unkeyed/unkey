@@ -54,9 +54,8 @@ func (s *Service) UpdateDeploymentState(ctx context.Context, req *connect.Reques
 				for _, staleInstance := range staleInstances {
 					if _, ok := wantInstanceNames[staleInstance.K8sName]; !ok {
 						err = db.Query.DeleteInstance(ctx, tx, db.DeleteInstanceParams{
-							K8sName:   staleInstance.K8sName,
-							Region:    region,
-							ClusterID: clusterID,
+							K8sName: staleInstance.K8sName,
+							Region:  region,
 						})
 						if err != nil {
 							return err
@@ -94,7 +93,7 @@ func (s *Service) UpdateDeploymentState(ctx context.Context, req *connect.Reques
 
 				err = db.Query.DeleteDeploymentInstances(ctx, tx, db.DeleteDeploymentInstancesParams{
 					DeploymentID: deployment.ID,
-					ClusterID:    clusterID,
+					Region:       region,
 				})
 				if err != nil {
 					return err

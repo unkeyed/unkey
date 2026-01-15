@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, boolean, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -27,9 +27,7 @@ export const projects = mysqlTable(
     ...deleteProtection,
     ...lifecycleDates,
   },
-  (table) => [
-    uniqueIndex("workspace_slug_idx").on(table.workspaceId, table.slug),
-  ],
+  (table) => [uniqueIndex("workspace_slug_idx").on(table.workspaceId, table.slug)],
 );
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
