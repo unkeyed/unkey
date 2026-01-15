@@ -17,7 +17,6 @@ func newApplySentinelRequest() *ctrlv1.ApplySentinel {
 		ProjectId:     "prj_123",
 		EnvironmentId: "env_123",
 		SentinelId:    "sent_123",
-		K8SNamespace:  "test-namespace",
 		K8SName:       "test-sentinel",
 		Image:         "unkey/sentinel:v1.0",
 		Replicas:      2,
