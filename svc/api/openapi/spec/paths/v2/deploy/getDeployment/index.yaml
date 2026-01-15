@@ -1,16 +1,16 @@
 post:
   tags:
     - deploy
-  summary: Create deployment
+  summary: Get deployment
   description: |
     **INTERNAL** - This endpoint is internal and may change without notice.
     Not recommended for production use.
 
-    Creates a new deployment for a project using either a pre-built Docker image or build context.
+    Retrieves deployment information including status, error messages, and steps.
 
     **Authentication**: Requires a valid root key with appropriate permissions.
-  operationId: deploy.createDeployment
-  x-speakeasy-name-override: createDeployment
+  operationId: deploy.getDeployment
+  x-speakeasy-name-override: getDeployment
   x-speakeasy-group: internal
   security:
     - rootKey: []
@@ -19,14 +19,14 @@ post:
     content:
       application/json:
         schema:
-          "$ref": "./V2DeployCreateDeploymentRequestBody.yaml"
+          "$ref": "./V2DeployGetDeploymentRequestBody.yaml"
   responses:
-    "201":
-      description: Deployment created successfully
+    "200":
+      description: Deployment retrieved successfully
       content:
         application/json:
           schema:
-            "$ref": "./V2DeployCreateDeploymentResponseBody.yaml"
+            "$ref": "./V2DeployGetDeploymentResponseBody.yaml"
     "400":
       description: Bad request
       content:
