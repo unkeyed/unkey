@@ -359,6 +359,8 @@ func TestRefreshCurrentSentinels_HandlesMissingSentinelID(t *testing.T) {
 		return getDesiredCalls.Load() >= 1
 	}, 2*time.Second, 50*time.Millisecond, "expected only deployment with ID to be processed")
 
-	time.Sleep(200 * time.Millisecond)
+	require.Never(t, func() bool {
+		return getDesiredCalls.Load() > 1
+	}, 200*time.Millisecond, 20*time.Millisecond, "only one deployment should be processed (the one with ID)")
 	require.Equal(t, int32(1), getDesiredCalls.Load(), "only one deployment should be processed (the one with ID)")
 }
