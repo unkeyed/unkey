@@ -116,7 +116,6 @@ export const createWorkspaceNavigation = (segments: string[], workspace: Workspa
       href: `${basePath}/identities`,
       label: "Identities",
       active: segments.at(1) === "identities",
-      hidden: !workspace?.betaFeatures.identities,
     },
     {
       icon: Gear,
