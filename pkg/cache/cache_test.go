@@ -95,3 +95,48 @@ func TestNull(t *testing.T) {
 	require.Equal(t, cache.Null, hit)
 
 }
+
+func TestClose(t *testing.T) {
+	c, err := cache.New(cache.Config[string, string]{
+		MaxSize:  10_000,
+		Fresh:    time.Minute,
+		Stale:    time.Minute * 5,
+		Logger:   logging.NewNoop(),
+		Resource: "test",
+		Clock:    clock.New(),
+	})
+	require.NoError(t, err)
+
+	c.Set(context.Background(), "key", "value")
+	value, hit := c.Get(context.Background(), "key")
+	require.Equal(t, cache.Hit, hit)
+	require.Equal(t, "value", value)
+
+	c.Close()
+
+	c.Close()
+}
+
+func TestClose_StopsGoroutinesCleanly(t *testing.T) {
+	c, err := cache.New(cache.Config[string, string]{
+		MaxSize:  10_000,
+		Fresh:    time.Minute,
+		Stale:    time.Minute * 5,
+		Logger:   logging.NewNoop(),
+		Resource: "test",
+		Clock:    clock.New(),
+	})
+	require.NoError(t, err)
+
+	done := make(chan struct{})
+	go func() {
+		c.Close()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Close did not complete within timeout")
+	}
+}

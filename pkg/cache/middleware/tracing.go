@@ -180,3 +180,7 @@ func (mw *tracingMiddleware[K, V]) SWRMany(ctx context.Context, keys []K, refres
 
 	return values, hits, err
 }
+
+func (mw *tracingMiddleware[K, V]) Close() {
+	mw.next.Close()
+}

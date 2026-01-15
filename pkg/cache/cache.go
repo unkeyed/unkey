@@ -29,6 +29,9 @@ type cache[K comparable, V any] struct {
 
 	inflightMu        sync.Mutex
 	inflightRefreshes map[K]bool
+
+	closeOnce sync.Once
+	wg        sync.WaitGroup
 }
 
 type Config[K comparable, V any] struct {
@@ -86,7 +89,9 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 	}
 
 	for range 10 {
+		c.wg.Add(1)
 		go func() {
+			defer c.wg.Done()
 			for revalidate := range c.revalidateC {
 				revalidate()
 			}
@@ -101,6 +106,14 @@ func (c *cache[K, V]) registerMetrics() {
 	repeat.Every(60*time.Second, func() {
 		metrics.CacheSize.WithLabelValues(c.resource).Set(float64(c.otter.Size()))
 		metrics.CacheCapacity.WithLabelValues(c.resource).Set(float64(c.otter.Capacity()))
+	})
+}
+
+func (c *cache[K, V]) Close() {
+	c.closeOnce.Do(func() {
+		close(c.revalidateC)
+		c.wg.Wait()
+		c.otter.Close()
 	})
 }
 
