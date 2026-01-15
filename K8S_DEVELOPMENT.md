@@ -6,60 +6,57 @@ Run Unkey services locally using Kubernetes instead of Docker Compose.
 
 - Docker Desktop with Kubernetes enabled OR OrbStack with Kubernetes enabled
 - kubectl
-
-Check requirements:
-```bash
-make k8s-check
-```
+- [just](https://github.com/casey/just) - Install with `brew install just`
 
 ## Quick Start
 
-Start everything:
+Start everything with Tilt:
 ```bash
-make k8s-up
+just dev
 ```
 
-Start with hot reloading (requires Tilt):
-```bash
-make dev
-```
+This will:
+1. Create a minikube cluster
+2. Enable metrics-server addon
+3. Start Tilt with all services
 
-## Individual Services
+## Docker Compose Alternative
+
+If you prefer Docker Compose over Kubernetes:
 
 ```bash
-make start-mysql
-make start-clickhouse
-make start-redis
-make start-s3
-make start-api
-make start-gw
-make start-ctrl
+# Start infrastructure services
+just up
+
+# Stop and clean up
+just clean
 ```
 
 ## Management
 
 ```bash
-# Stop everything
-make k8s-down
+# Stop Tilt (keeps cluster)
+just down
 
-# Reset environment
-make k8s-reset
+# Delete minikube cluster entirely
+just nuke
 
 # View services
 kubectl get pods -n unkey
 kubectl get services -n unkey
 ```
 
-## Tilt (Optional)
+## Tilt (Advanced)
 
-Start specific services:
+Start specific services manually:
 ```bash
-tilt up -- --services=mysql --services=clickhouse
-tilt up -- --services=api --services=gw --services=ctrl
-tilt up -- --services=all
+tilt up -f ./dev/Tiltfile -- --services=mysql --services=clickhouse
+tilt up -f ./dev/Tiltfile -- --services=api --services=gw --services=ctrl
 ```
 
-Stop Tilt:
+## Seeding Local Environment
+
+After services are running:
 ```bash
-tilt down
+just unkey dev seed local --slug myproject
 ```
