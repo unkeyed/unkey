@@ -45,7 +45,6 @@ export const sentinels = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
-    index("idx_environment_id").on(table.environmentId),
     index("idx_desired_state_region").on(table.desiredState, table.region),
     uniqueIndex("one_env_per_region").on(table.environmentId, table.region),
   ],
