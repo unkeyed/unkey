@@ -4,5 +4,7 @@ required:
 properties:
   deploymentId:
     type: string
-    description: Unique deployment identifier
+    minLength: 1
+    pattern: "^d_[a-zA-Z0-9]+$"
+    description: Unique deployment identifier to retrieve
     example: "d_abc123xyz"

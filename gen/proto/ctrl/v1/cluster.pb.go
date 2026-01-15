@@ -773,22 +773,20 @@ func (*DeploymentState_Delete) isDeploymentState_State() {}
 // it doesn't exist or updating it if it does. All fields except namespace are required.
 // The control plane ensures that sentinel_id is unique within the namespace.
 type ApplySentinel struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// namespace is the Kubernetes namespace in which the sentinel should exist.
-	K8SNamespace string `protobuf:"bytes,1,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
-	K8SName      string `protobuf:"bytes,2,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	K8SName string                 `protobuf:"bytes,1,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
 	// workspace_id identifies the workspace that owns this sentinel.
-	WorkspaceId string `protobuf:"bytes,3,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	WorkspaceId string `protobuf:"bytes,2,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	// project_id identifies the project within the workspace.
-	ProjectId string `protobuf:"bytes,4,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// environment_id in which the sentinel should exist.
-	EnvironmentId string `protobuf:"bytes,5,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
+	EnvironmentId string `protobuf:"bytes,4,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
 	// sentinel_id is the unique identifier for this sentinel globally
-	SentinelId    string `protobuf:"bytes,6,opt,name=sentinel_id,json=sentinelId,proto3" json:"sentinel_id,omitempty"`
-	Image         string `protobuf:"bytes,7,opt,name=image,proto3" json:"image,omitempty"`
-	Replicas      int32  `protobuf:"varint,8,opt,name=replicas,proto3" json:"replicas,omitempty"`
-	CpuMillicores int64  `protobuf:"varint,9,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`
-	MemoryMib     int64  `protobuf:"varint,10,opt,name=memory_mib,json=memoryMib,proto3" json:"memory_mib,omitempty"`
+	SentinelId    string `protobuf:"bytes,5,opt,name=sentinel_id,json=sentinelId,proto3" json:"sentinel_id,omitempty"`
+	Image         string `protobuf:"bytes,6,opt,name=image,proto3" json:"image,omitempty"`
+	Replicas      int32  `protobuf:"varint,7,opt,name=replicas,proto3" json:"replicas,omitempty"`
+	CpuMillicores int64  `protobuf:"varint,8,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`
+	MemoryMib     int64  `protobuf:"varint,9,opt,name=memory_mib,json=memoryMib,proto3" json:"memory_mib,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -821,13 +819,6 @@ func (x *ApplySentinel) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ApplySentinel.ProtoReflect.Descriptor instead.
 func (*ApplySentinel) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *ApplySentinel) GetK8SNamespace() string {
-	if x != nil {
-		return x.K8SNamespace
-	}
-	return ""
 }
 
 func (x *ApplySentinel) GetK8SName() string {
@@ -899,8 +890,7 @@ func (x *ApplySentinel) GetMemoryMib() int64 {
 // In-flight requests may be disrupted unless proper connection draining is configured.
 type DeleteSentinel struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	K8SNamespace  string                 `protobuf:"bytes,1,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
-	K8SName       string                 `protobuf:"bytes,2,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
+	K8SName       string                 `protobuf:"bytes,1,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -933,13 +923,6 @@ func (x *DeleteSentinel) ProtoReflect() protoreflect.Message {
 // Deprecated: Use DeleteSentinel.ProtoReflect.Descriptor instead.
 func (*DeleteSentinel) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *DeleteSentinel) GetK8SNamespace() string {
-	if x != nil {
-		return x.K8SNamespace
-	}
-	return ""
 }
 
 func (x *DeleteSentinel) GetK8SName() string {
@@ -1400,25 +1383,22 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x0fDeploymentState\x120\n" +
 	"\x05apply\x18\x01 \x01(\v2\x18.ctrl.v1.ApplyDeploymentH\x00R\x05apply\x123\n" +
 	"\x06delete\x18\x02 \x01(\v2\x19.ctrl.v1.DeleteDeploymentH\x00R\x06deleteB\a\n" +
-	"\x05state\"\xd1\x02\n" +
-	"\rApplySentinel\x12#\n" +
-	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
-	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
-	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\x12\x1d\n" +
+	"\x05state\"\xac\x02\n" +
+	"\rApplySentinel\x12\x19\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\x12!\n" +
+	"\fworkspace_id\x18\x02 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\x04 \x01(\tR\tprojectId\x12%\n" +
-	"\x0eenvironment_id\x18\x05 \x01(\tR\renvironmentId\x12\x1f\n" +
-	"\vsentinel_id\x18\x06 \x01(\tR\n" +
+	"project_id\x18\x03 \x01(\tR\tprojectId\x12%\n" +
+	"\x0eenvironment_id\x18\x04 \x01(\tR\renvironmentId\x12\x1f\n" +
+	"\vsentinel_id\x18\x05 \x01(\tR\n" +
 	"sentinelId\x12\x14\n" +
-	"\x05image\x18\a \x01(\tR\x05image\x12\x1a\n" +
-	"\breplicas\x18\b \x01(\x05R\breplicas\x12%\n" +
-	"\x0ecpu_millicores\x18\t \x01(\x03R\rcpuMillicores\x12\x1d\n" +
+	"\x05image\x18\x06 \x01(\tR\x05image\x12\x1a\n" +
+	"\breplicas\x18\a \x01(\x05R\breplicas\x12%\n" +
+	"\x0ecpu_millicores\x18\b \x01(\x03R\rcpuMillicores\x12\x1d\n" +
 	"\n" +
-	"memory_mib\x18\n" +
-	" \x01(\x03R\tmemoryMib\"P\n" +
-	"\x0eDeleteSentinel\x12#\n" +
-	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
-	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\"\x85\x04\n" +
+	"memory_mib\x18\t \x01(\x03R\tmemoryMib\"+\n" +
+	"\x0eDeleteSentinel\x12\x19\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\x85\x04\n" +
 	"\x0fApplyDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +

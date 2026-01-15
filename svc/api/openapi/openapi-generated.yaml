@@ -399,6 +399,7 @@ components:
                         minLength: 1
                         description: Unkey project ID
                         example: "proj_123abc"
+                        pattern: "^proj_[a-zA-Z0-9]+$"
                     keyspaceId:
                         type: string
                         description: Optional keyspace ID for authentication context
@@ -439,6 +440,7 @@ components:
                     minLength: 1
                     description: Unkey project ID for which to generate the upload URL
                     example: "proj_123abc"
+                    pattern: "^proj_[a-zA-Z0-9]+$"
         V2DeployGenerateUploadUrlResponseBody:
             type: object
             required:
@@ -449,6 +451,27 @@ components:
                     $ref: "#/components/schemas/Meta"
                 data:
                     $ref: "#/components/schemas/V2DeployGenerateUploadUrlResponseData"
+        V2DeployGetDeploymentRequestBody:
+            type: object
+            required:
+                - deploymentId
+            properties:
+                deploymentId:
+                    type: string
+                    minLength: 1
+                    pattern: "^d_[a-zA-Z0-9]+$"
+                    description: Unique deployment identifier to retrieve
+                    example: "d_abc123xyz"
+        V2DeployGetDeploymentResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2DeployGetDeploymentResponseData"
         V2IdentitiesCreateIdentityRequestBody:
             type: object
             required:
@@ -2630,7 +2653,7 @@ components:
                 deploymentId:
                     type: string
                     description: Unique deployment identifier
-                    example: "dep_abc123xyz"
+                    example: "d_abc123xyz"
         V2DeployGenerateUploadUrlResponseData:
             type: object
             required:
@@ -2645,6 +2668,64 @@ components:
                     type: string
                     description: S3 path to use in the createDeployment request when building from source
                     example: "proj_123abc/ctx_456def.tar.gz"
+        V2DeployGetDeploymentResponseData:
+            type: object
+            required:
+                - id
+                - status
+            properties:
+                id:
+                    type: string
+                    description: Unique deployment identifier
+                    example: "d_abc123xyz"
+                status:
+                    type: string
+                    description: Current deployment status
+                    enum:
+                        - UNSPECIFIED
+                        - PENDING
+                        - BUILDING
+                        - DEPLOYING
+                        - NETWORK
+                        - READY
+                        - FAILED
+                    example: "READY"
+                    x-speakeasy-unknown-values: allow
+                errorMessage:
+                    type: string
+                    description: Error message if deployment failed
+                    example: "Failed to pull image: authentication required"
+                hostnames:
+                    type: array
+                    items:
+                        type: string
+                    description: Hostnames associated with this deployment
+                    example: ["app.example.com", "api.example.com"]
+                steps:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/V2DeployDeploymentStep"
+                    description: Deployment steps with status and messages
+        V2DeployDeploymentStep:
+            type: object
+            properties:
+                status:
+                    type: string
+                    description: Step status
+                    example: "completed"
+                message:
+                    type: string
+                    description: Step message
+                    example: "Image pulled successfully"
+                errorMessage:
+                    type: string
+                    description: Error message if step failed
+                    example: "Connection timeout"
+                createdAt:
+                    type: integer
+                    format: int64
+                    description: Unix timestamp in milliseconds
+                    example: 1704067200000
         RatelimitRequest:
             type: object
             required:
@@ -4191,6 +4272,9 @@ paths:
     /v2/deploy.createDeployment:
         post:
             description: |
+                **INTERNAL** - This endpoint is internal and may change without notice.
+                Not recommended for production use.
+
                 Creates a new deployment for a project using either a pre-built Docker image or build context.
 
                 **Authentication**: Requires a valid root key with appropriate permissions.
@@ -4237,10 +4321,14 @@ paths:
             summary: Create deployment
             tags:
                 - deploy
+            x-speakeasy-group: internal
             x-speakeasy-name-override: createDeployment
     /v2/deploy.generateUploadUrl:
         post:
             description: |
+                **INTERNAL** - This endpoint is internal and may change without notice.
+                Not recommended for production use.
+
                 Generates a presigned S3 URL for uploading build context archives.
 
                 **Authentication**: Requires a valid root key with appropriate permissions.
@@ -4287,7 +4375,62 @@ paths:
             summary: Generate upload URL
             tags:
                 - deploy
+            x-speakeasy-group: internal
             x-speakeasy-name-override: generateUploadUrl
+    /v2/deploy.getDeployment:
+        post:
+            description: |
+                **INTERNAL** - This endpoint is internal and may change without notice.
+                Not recommended for production use.
+
+                Retrieves deployment information including status, error messages, and steps.
+
+                **Authentication**: Requires a valid root key with appropriate permissions.
+            operationId: deploy.getDeployment
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2DeployGetDeploymentRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2DeployGetDeploymentResponseBody'
+                    description: Deployment retrieved successfully
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Get deployment
+            tags:
+                - deploy
+            x-speakeasy-group: internal
+            x-speakeasy-name-override: getDeployment
     /v2/identities.createIdentity:
         post:
             description: |
