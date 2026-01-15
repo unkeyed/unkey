@@ -67,7 +67,7 @@ func TestSession_UnreadableBodyHTTPStatus(t *testing.T) {
 
 	srv.RegisterRoute(
 		[]Middleware{
-			WithErrorHandling(logger),
+			withErrorHandling(logger),
 		},
 		testRoute,
 	)
