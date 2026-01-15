@@ -88,16 +88,9 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 					Labels:       usedLabels,
 				},
 				Spec: corev1.PodSpec{
-					RuntimeClassName: ptr.P("gvisor"),
+					RuntimeClassName: ptr.P(runtimeClassGvisor),
 					RestartPolicy:    corev1.RestartPolicyAlways,
-					Tolerations: []corev1.Toleration{
-						{
-							Key:      "node-class",
-							Operator: corev1.TolerationOpEqual,
-							Value:    "customer-code",
-							Effect:   corev1.TaintEffectNoSchedule,
-						},
-					},
+					Tolerations:      []corev1.Toleration{untrustedToleration},
 					Containers: []corev1.Container{{
 
 						Image:           req.GetImage(),
@@ -144,7 +137,7 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 	}
 
 	applied, err := client.Patch(ctx, req.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
-		FieldManager: "krane",
+		FieldManager: fieldManagerKrane,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to apply replicaset: %w", err)
