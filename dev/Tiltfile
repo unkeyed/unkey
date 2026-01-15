@@ -13,8 +13,8 @@ local_resource(
 )
 
 local_resource(
-  'sentinels',
-  'kubectl apply -f k8s/manifests/sentinels.yaml',
+  'sentinel',
+  'kubectl apply -f k8s/manifests/sentinel.yaml',
   labels=['setup'],
 )
 
@@ -138,7 +138,7 @@ k8s_yaml('k8s/manifests/krane.yaml')
 k8s_resource(
   'krane',
   port_forwards='8070:8070',
-  resource_deps=['ctrl', 'build-unkey', 'rbac', 'namespace', 'sentinels'],
+  resource_deps=['ctrl', 'build-unkey', 'rbac', 'namespace', 'sentinel'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO

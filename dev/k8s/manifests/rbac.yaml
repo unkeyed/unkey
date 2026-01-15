@@ -57,7 +57,7 @@ rules:
 
   # Sentinel CRD management
   - apiGroups: ["kubernetes.unkey.com"]
-    resources: ["sentinels", "sentinels/status"]
+    resources: ["sentinel", "sentinel/status"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
   # Sentinel CRD management
