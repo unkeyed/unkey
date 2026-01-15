@@ -93,7 +93,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Parse ratelimits JSON
 	var ratelimits []db.RatelimitInfo
 	if ratelimitBytes, ok := identity.Ratelimits.([]byte); ok && ratelimitBytes != nil {
-		_ = json.Unmarshal(ratelimitBytes, &ratelimits) // Ignore error, default to empty array
+		if unmarshalErr := json.Unmarshal(ratelimitBytes, &ratelimits); unmarshalErr != nil {
+			return fault.Wrap(unmarshalErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("failed to parse identity ratelimits"),
+				fault.Public("We're unable to process the identity's ratelimits."),
+			)
+		}
 	}
 
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {

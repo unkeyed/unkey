@@ -134,7 +134,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Parse existing ratelimits from JSON
 	var existingRatelimits []db.RatelimitInfo
 	if ratelimitBytes, ok := identityRow.Ratelimits.([]byte); ok && ratelimitBytes != nil {
-		_ = json.Unmarshal(ratelimitBytes, &existingRatelimits) // Ignore error, default to empty array
+		if unmarshalErr := json.Unmarshal(ratelimitBytes, &existingRatelimits); unmarshalErr != nil {
+			return fault.Wrap(unmarshalErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("failed to parse existing ratelimits"),
+				fault.Public("We're unable to process the identity's ratelimits."),
+			)
+		}
 	}
 
 	type txResult struct {
