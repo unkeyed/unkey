@@ -30,16 +30,35 @@ func (h *Handler) Path() string {
 // 1. Local sentinel (if healthy sentinel in current region) - forwards with X-Unkey-Deployment-Id
 // 2. Remote region (if no local sentinel) - forwards to nearest region
 func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
-	ctx = proxy.WithRequestStartTime(ctx, h.Clock.Now())
+	start := h.Clock.Now()
+	ctx = proxy.WithRequestStartTime(ctx, start)
 	hostname := proxy.ExtractHostname(sess.Request().Host)
 
+	lookupStart := h.Clock.Now()
 	route, sentinels, err := h.RouterService.LookupByHostname(ctx, hostname)
+	lookupDuration := h.Clock.Now().Sub(lookupStart)
+
+	h.Logger.Debug("frontline lookup complete",
+		"hostname", hostname,
+		"lookup_duration_ms", lookupDuration.Milliseconds(),
+	)
+
 	if err != nil {
 		return err
 	}
 
 	// Find Local sentinel or nearest NLB
+	selectStart := h.Clock.Now()
 	decision, err := h.RouterService.SelectSentinel(route, sentinels)
+	selectDuration := h.Clock.Now().Sub(selectStart)
+
+	h.Logger.Debug("frontline select sentinel complete",
+		"deployment_id", decision.DeploymentID,
+		"has_local_sentinel", decision.LocalSentinel != nil,
+		"select_duration_ms", selectDuration.Milliseconds(),
+		"total_pre_forward_ms", h.Clock.Now().Sub(start).Milliseconds(),
+	)
+
 	if err != nil {
 		return err
 	}

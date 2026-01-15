@@ -123,7 +123,6 @@ export const auditLogTarget = mysqlTable(
   (table) => [
     unique("unique_id_per_log").on(table.auditLogId, table.id),
     index("bucket").on(table.bucket),
-    index("audit_log_id").on(table.auditLogId),
     index("id_idx").on(table.id),
   ],
 );
