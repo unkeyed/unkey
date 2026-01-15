@@ -32,7 +32,6 @@ type Config struct {
 // The Config.Capacity field determines the maximum number of elements the buffer can hold.
 // The Config.Drop field determines whether new elements should be dropped when the buffer is full.
 // The Config.Name field provides an identifier for metrics and logging.
-// The Config.Logger field is required for panic recovery in background goroutines.
 //
 // Example:
 //
@@ -41,7 +40,6 @@ type Config struct {
 //		Capacity: 1000,
 //		Drop:     false,
 //		Name:     "int_buffer",
-//		Logger:   logger,
 //	})
 //
 //	// Create a buffer for strings with capacity 500 that drops when full
@@ -49,7 +47,6 @@ type Config struct {
 //		Capacity: 500,
 //		Drop:     true,
 //		Name:     "string_buffer",
-//		Logger:   logger,
 //	})
 func New[T any](config Config) *Buffer[T] {
 	b := &Buffer[T]{

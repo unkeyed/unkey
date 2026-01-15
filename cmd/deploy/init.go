@@ -86,6 +86,10 @@ func promptConfirm(message string) bool {
 
 func readLine() string {
 	reader := bufio.NewReader(os.Stdin)
-	line, _ := reader.ReadString('\n')
+	line, err := reader.ReadString('\n')
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: failed to read input: %v\n", err)
+		return ""
+	}
 	return strings.TrimSpace(line)
 }

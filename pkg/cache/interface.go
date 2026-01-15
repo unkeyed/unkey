@@ -4,6 +4,10 @@ import (
 	"context"
 )
 
+// Cache defines the interface for a generic caching layer that supports typed keys and values.
+// Implementations must be safe for concurrent use and handle cache misses gracefully.
+// The interface supports both single and batch operations, as well as stale-while-revalidate
+// patterns for background refresh of cached data.
 type Cache[K comparable, V any] interface {
 	// Get returns the value for the given key.
 	// If the key is not found, found will be false.
@@ -29,6 +33,9 @@ type Cache[K comparable, V any] interface {
 	// Multiple keys can be provided for efficient bulk removal.
 	Remove(ctx context.Context, keys ...K)
 
+	// SWR performs stale-while-revalidate: returns cached data immediately while
+	// optionally refreshing in the background. The op function determines whether
+	// to write the refreshed value, write null, or take no action based on the refresh error.
 	SWR(ctx context.Context, key K, refreshFromOrigin func(ctx context.Context) (V, error), op func(error) Op) (value V, hit CacheHit, err error)
 
 	// SWRMany performs stale-while-revalidate for multiple keys.
@@ -51,6 +58,8 @@ type Cache[K comparable, V any] interface {
 	Close()
 }
 
+// Key represents a cache key that can be serialized to a string representation.
+// Implementations should ensure ToString returns a unique, stable string for each distinct key.
 type Key interface {
 	ToString() string
 }

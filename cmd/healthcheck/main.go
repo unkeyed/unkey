@@ -8,6 +8,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
+// Cmd is the healthcheck command that performs an HTTP GET request to a given URL
+// and exits with code 0 if the server returns 200, otherwise exits with code 1.
 var Cmd = &cli.Command{
 	Aliases:     []string{},
 	Version:     "",
