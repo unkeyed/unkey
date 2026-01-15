@@ -113,8 +113,8 @@ var DeployFlags = []cli.Flag{
 	cli.String("api-key", "API key for ctrl service authentication", cli.EnvVar("API_KEY")),
 }
 
-// WARNING: Changing the "Description" part will also affect generated MDX.
-// Cmd defines the deploy CLI command
+// Cmd is the deploy command that builds and deploys application versions to Unkey infrastructure.
+// It handles Docker image building, registry pushing, and deployment lifecycle management.
 var Cmd = &cli.Command{
 	Version:  "",
 	Commands: []*cli.Command{},

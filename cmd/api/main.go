@@ -10,6 +10,8 @@ import (
 	"github.com/unkeyed/unkey/svc/api"
 )
 
+// Cmd is the api command that runs the Unkey API server for validating and managing
+// API keys, rate limiting, and analytics.
 var Cmd = &cli.Command{
 	Aliases:     []string{},
 	Description: "",
