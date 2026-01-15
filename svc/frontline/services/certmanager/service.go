@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"strings"
+	"time"
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/internal/services/caches"
@@ -39,7 +40,9 @@ func New(cfg Config) *service {
 }
 
 func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certificate, error) {
+	start := time.Now()
 	cert, hit, err := s.cache.SWR(ctx, domain, func(ctx context.Context) (tls.Certificate, error) {
+		s.logger.Debug("certificate cache miss, loading from db+vault", "domain", domain)
 		// Build lookup candidates: exact match + immediate wildcard incase we have a wildcard cert available
 		candidates := []string{domain}
 
@@ -87,6 +90,13 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 
 		return cert, nil
 	}, caches.DefaultFindFirstOp)
+
+	s.logger.Debug("certificate lookup complete",
+		"domain", domain,
+		"cache_hit", hit,
+		"duration_ms", time.Since(start).Milliseconds(),
+	)
+
 	if err != nil && !db.IsNotFound(err) {
 		s.logger.Error("Failed to get certificate", "error", err)
 		return nil, err

@@ -65,7 +65,7 @@ func (r *Reconciler) getDeploymentState(ctx context.Context, replicaset *appsv1.
 
 		instance := &ctrlv1.UpdateDeploymentStateRequest_Update_Instance{
 			K8SName:       pod.GetName(),
-			Address:       fmt.Sprintf("%s.%s.pod.cluster.local", strings.ReplaceAll(pod.Status.PodIP, ".", "-"), pod.Namespace),
+			Address:       fmt.Sprintf("%s.%s.pod.cluster.local:%d", strings.ReplaceAll(pod.Status.PodIP, ".", "-"), pod.Namespace, DeploymentPort),
 			CpuMillicores: 0,
 			MemoryMib:     0,
 			Status:        ctrlv1.UpdateDeploymentStateRequest_Update_Instance_STATUS_UNSPECIFIED,

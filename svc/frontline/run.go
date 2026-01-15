@@ -199,6 +199,12 @@ func Run(ctx context.Context, cfg Config) error {
 				return certManager.GetCertificate(context.Background(), hello.ServerName)
 			},
 			MinVersion: tls.VersionTLS12,
+			// Enable session resumption for faster subsequent connections
+			// Session tickets allow clients to skip the full TLS handshake
+			SessionTicketsDisabled: false,
+			// Let Go's TLS implementation choose optimal cipher suites
+			// This prefers TLS 1.3 when available (1-RTT vs 2-RTT for TLS 1.2)
+			PreferServerCipherSuites: false,
 		}
 	}
 
