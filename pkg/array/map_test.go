@@ -23,7 +23,8 @@ func TestMap(t *testing.T) {
 	t.Run("maps string slice to int slice", func(t *testing.T) {
 		input := []string{"10", "20", "30", "40"}
 		result := Map(input, func(s string) int {
-			n, _ := strconv.Atoi(s)
+			n, err := strconv.Atoi(s)
+			require.NoError(t, err)
 			return n
 		})
 
@@ -261,7 +262,10 @@ func ExampleMap_structTransformation() {
 func ExampleMap_typeConversion() {
 	strings := []string{"10", "20", "30"}
 	numbers := Map(strings, func(s string) int {
-		n, _ := strconv.Atoi(s)
+		n, err := strconv.Atoi(s)
+		if err != nil {
+			panic(err)
+		}
 		return n
 	})
 
