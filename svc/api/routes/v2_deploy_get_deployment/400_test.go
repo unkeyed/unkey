@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_generate_upload_url"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_get_deployment"
 )
 
 func TestBadRequests(t *testing.T) {
@@ -20,7 +20,7 @@ func TestBadRequests(t *testing.T) {
 		Logger:     h.Logger,
 		DB:         h.DB,
 		Keys:       h.Keys,
-		CtrlClient: h.CtrlBuildClient,
+		CtrlClient: h.CtrlDeploymentClient,
 	}
 	h.Register(route)
 
@@ -28,11 +28,10 @@ func TestBadRequests(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID)
 
 	projectID := uid.New(uid.ProjectPrefix)
-	projectName := "test-project"
 
 	h.CreateProject(seed.CreateProjectRequest{
 		WorkspaceID: workspace.ID,
-		Name:        projectName,
+		Name:        "test-project",
 		ID:          projectID,
 		Slug:        "production",
 	})
@@ -42,7 +41,7 @@ func TestBadRequests(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	t.Run("missing projectId", func(t *testing.T) {
+	t.Run("missing deploymentId", func(t *testing.T) {
 		req := handler.Request{}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -53,9 +52,9 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 	})
 
-	t.Run("empty projectId", func(t *testing.T) {
+	t.Run("empty deploymentId", func(t *testing.T) {
 		req := handler.Request{
-			ProjectId: "",
+			DeploymentId: "",
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -74,7 +73,7 @@ func TestBadRequests(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ProjectId: projectID,
+			DeploymentId: "d_123abc",
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -89,7 +88,7 @@ func TestBadRequests(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ProjectId: projectID,
+			DeploymentId: "d_123abc",
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
