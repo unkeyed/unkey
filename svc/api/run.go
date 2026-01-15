@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"golang.org/x/sync/errgroup"
+
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/internal/services/analytics"
@@ -117,6 +119,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	defer db.Close()
 
+	eg, egCtx := errgroup.WithContext(ctx)
+
 	if cfg.PrometheusPort > 0 {
 		prom, promErr := prometheus.New(prometheus.Config{
 			Logger: logger,
@@ -125,17 +129,16 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
 
-		go func() {
-			var promListener net.Listener
-			promListener, err = net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
-			if err != nil {
-				panic(err)
+		eg.Go(func() error {
+			promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+			if listenErr != nil {
+				return fmt.Errorf("unable to listen on prometheus port %d: %w", cfg.PrometheusPort, listenErr)
 			}
-			promListenErr := prom.Serve(ctx, promListener)
-			if promListenErr != nil {
-				panic(promListenErr)
+			if serveErr := prom.Serve(egCtx, promListener); serveErr != nil {
+				return fmt.Errorf("prometheus server error: %w", serveErr)
 			}
-		}()
+			return nil
+		})
 	}
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
@@ -352,16 +355,32 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	go func() {
-		serveErr := srv.Serve(ctx, cfg.Listener)
-		if serveErr != nil {
-			panic(serveErr)
+	eg.Go(func() error {
+		logger.Info("API server starting")
+		if serveErr := srv.Serve(egCtx, cfg.Listener); serveErr != nil {
+			return fmt.Errorf("api server error: %w", serveErr)
 		}
+		return nil
+	})
 
-		logger.Info("API server started successfully")
+	serverErrCh := make(chan error, 1)
+	go func() {
+		serverErrCh <- eg.Wait()
 	}()
 
-	// Wait for either OS signals or context cancellation, then shutdown
+	select {
+	case err := <-serverErrCh:
+		if err != nil {
+			logger.Error("Server error", "error", err)
+			shutdownErrs := shutdowns.Shutdown(ctx)
+			for _, shutdownErr := range shutdownErrs {
+				logger.Error("Shutdown failed after server error", "error", shutdownErr)
+			}
+			return fmt.Errorf("server error: %w", err)
+		}
+	case <-ctx.Done():
+	}
+
 	if err := shutdowns.WaitForSignal(ctx, time.Minute); err != nil {
 		logger.Error("Shutdown failed", "error", err)
 		return fmt.Errorf("shutdown failed: %w", err)
