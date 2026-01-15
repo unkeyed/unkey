@@ -115,7 +115,10 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 			MinReadySeconds: 30,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels.New().SentinelID(sentinel.GetSentinelId()),
+					Labels: labels.New().
+						WorkspaceID(sentinel.GetWorkspaceId()).
+						EnvironmentID(sentinel.GetEnvironmentId()).
+						SentinelID(sentinel.GetSentinelId()),
 				},
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyAlways,
@@ -135,6 +138,7 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 							},
 						},
 						Env: []corev1.EnvVar{
+							{Name: "UNKEY_HTTP_PORT", Value: "8040"},
 							{Name: "UNKEY_WORKSPACE_ID", Value: sentinel.GetWorkspaceId()},
 							{Name: "UNKEY_PROJECT_ID", Value: sentinel.GetProjectId()},
 							{Name: "UNKEY_ENVIRONMENT_ID", Value: sentinel.GetEnvironmentId()},

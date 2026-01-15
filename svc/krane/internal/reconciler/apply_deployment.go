@@ -78,7 +78,6 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels.New().DeploymentID(req.GetDeploymentId()),
 			},
-
 			MinReadySeconds: 30,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
@@ -92,7 +91,6 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 					RestartPolicy:    corev1.RestartPolicyAlways,
 					Tolerations:      []corev1.Toleration{untrustedToleration},
 					Containers: []corev1.Container{{
-
 						Image:           req.GetImage(),
 						Name:            "deployment",
 						ImagePullPolicy: corev1.PullIfNotPresent,
