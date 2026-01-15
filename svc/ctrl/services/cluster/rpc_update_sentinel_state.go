@@ -27,8 +27,15 @@ func (s *Service) UpdateSentinelState(ctx context.Context, req *connect.Request[
 	}
 
 	health := db.SentinelsHealthUnknown
-	if req.Msg.GetAvailableReplicas() > 0 {
+	switch req.Msg.GetHealth() {
+	case ctrlv1.Health_HEALTH_HEALTHY:
 		health = db.SentinelsHealthHealthy
+	case ctrlv1.Health_HEALTH_UNHEALTHY:
+		health = db.SentinelsHealthUnhealthy
+	case ctrlv1.Health_HEALTH_PAUSED:
+		health = db.SentinelsHealthPaused
+	default:
+		health = db.SentinelsHealthUnknown
 	}
 	err = db.Query.UpdateSentinelAvailableReplicasAndHealth(ctx, s.db.RW(), db.UpdateSentinelAvailableReplicasAndHealthParams{
 		K8sName:           req.Msg.GetK8SName(),

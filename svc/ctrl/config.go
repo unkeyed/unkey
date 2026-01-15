@@ -312,7 +312,7 @@ type Config struct {
 	SentinelImage string
 
 	// AvailableRegions is a list of available regions for deployments.
-	// typically in the format "provider:region", ie "aws:us-east-1", "dev:local"
+	// typically in the format "region.provider", ie "us-east-1.aws", "local.dev"
 	AvailableRegions []string
 }
 

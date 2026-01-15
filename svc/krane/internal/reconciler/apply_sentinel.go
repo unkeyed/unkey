@@ -61,9 +61,19 @@ func (r *Reconciler) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 		return err
 	}
 
+	health := ctrlv1.Health_HEALTH_UNSPECIFIED
+	if req.GetReplicas() == 0 {
+		health = ctrlv1.Health_HEALTH_PAUSED
+	} else if sentinel.Status.AvailableReplicas > 0 {
+		health = ctrlv1.Health_HEALTH_HEALTHY
+	} else {
+		health = ctrlv1.Health_HEALTH_UNHEALTHY
+	}
+
 	err = r.updateSentinelState(ctx, &ctrlv1.UpdateSentinelStateRequest{
 		K8SName:           req.GetK8SName(),
 		AvailableReplicas: sentinel.Status.AvailableReplicas,
+		Health:            health,
 	})
 	if err != nil {
 		r.logger.Error("failed to reconcile sentinel", "sentinel_id", req.GetSentinelId(), "error", err)

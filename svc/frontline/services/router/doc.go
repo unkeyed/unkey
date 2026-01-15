@@ -14,11 +14,11 @@
 //
 // # Example Flow
 //
-// Request to hostname in us-east-1, received in eu-west-1 (no local sentinel):
-//  1. eu-west-1 frontline receives request
-//  2. Lookup shows environment has sentinels in us-east-1, ap-south-1
-//  3. eu-west-1 has no local sentinel
-//  4. Select nearest region with healthy sentinel (us-east-1)
-//  5. Forward to us-east-1 NLB
-//  6. us-east-1 frontline routes to local sentinel
+// Request to hostname in us-east-1.aws, received in eu-west-1.aws (no local sentinel):
+//  1. eu-west-1.aws frontline receives request
+//  2. Lookup shows environment has sentinels in us-east-1.aws, ap-south-1.aws
+//  3. eu-west-1.aws has no local sentinel
+//  4. Select nearest region with healthy sentinel (us-east-1.aws)
+//  5. Forward to us-east-1.aws NLB
+//  6. us-east-1.aws frontline routes to local sentinel
 package router

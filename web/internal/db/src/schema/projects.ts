@@ -28,7 +28,6 @@ export const projects = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
-    index("workspace_idx").on(table.workspaceId),
     uniqueIndex("workspace_slug_idx").on(table.workspaceId, table.slug),
   ],
 );

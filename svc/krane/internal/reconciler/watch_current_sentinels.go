@@ -44,9 +44,25 @@ func (r *Reconciler) watchCurrentSentinels(ctx context.Context) error {
 					continue
 				}
 				r.logger.Info("sentinel added/modified", "name", sentinel.Name)
+
+				desiredReplicas := int32(0)
+				if sentinel.Spec.Replicas != nil {
+					desiredReplicas = *sentinel.Spec.Replicas
+				}
+
+				health := ctrlv1.Health_HEALTH_UNSPECIFIED
+				if desiredReplicas == 0 {
+					health = ctrlv1.Health_HEALTH_PAUSED
+				} else if sentinel.Status.AvailableReplicas > 0 {
+					health = ctrlv1.Health_HEALTH_HEALTHY
+				} else {
+					health = ctrlv1.Health_HEALTH_UNHEALTHY
+				}
+
 				err := r.updateSentinelState(ctx, &ctrlv1.UpdateSentinelStateRequest{
 					K8SName:           sentinel.Name,
 					AvailableReplicas: sentinel.Status.AvailableReplicas,
+					Health:            health,
 				})
 				if err != nil {
 					r.logger.Error("error updating sentinel state", "error", err.Error())
@@ -61,6 +77,7 @@ func (r *Reconciler) watchCurrentSentinels(ctx context.Context) error {
 				err := r.updateSentinelState(ctx, &ctrlv1.UpdateSentinelStateRequest{
 					K8SName:           sentinel.Name,
 					AvailableReplicas: 0,
+					Health:            ctrlv1.Health_HEALTH_UNHEALTHY,
 				})
 				if err != nil {
 					r.logger.Error("error updating sentinel state", "error", err.Error())

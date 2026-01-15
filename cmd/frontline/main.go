@@ -36,7 +36,7 @@ var Cmd = &cli.Command{
 		cli.String("default-cert-domain", "Domain to use for fallback TLS certificate when a domain has no cert configured",
 			cli.EnvVar("UNKEY_DEFAULT_CERT_DOMAIN")),
 
-		cli.String("base-domain", "Base domain for region routing. Cross-region requests forwarded to region.base-domain. Example: unkey.cloud",
+		cli.String("base-domain", "Base domain for region routing. Cross-region requests forwarded to frontline.{region}.{base-domain}. Example: unkey.cloud",
 			cli.Default("unkey.cloud"), cli.EnvVar("UNKEY_BASE_DOMAIN")),
 
 		// Database Configuration - Partitioned (for hostname lookups)
