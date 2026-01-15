@@ -9,10 +9,11 @@ import (
 )
 
 const (
-	NamespaceSentinel  = "sentinel"
-	NamespaceUntrusted = "untrusted"
-	SentinelPort       = 8040
-	DeploymentPort     = 8080
+	NamespaceSentinel = "sentinel"
+	SentinelNodeClass = "sentinel"
+	CustomerNodeClass = "untrusted"
+	SentinelPort      = 8040
+	DeploymentPort    = 8080
 )
 
 // ensureNamespaceExists creates the namespace if it doesn't already exist.
