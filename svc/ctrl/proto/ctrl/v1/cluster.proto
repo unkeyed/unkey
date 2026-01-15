@@ -148,26 +148,23 @@ message DeploymentState {
 // it doesn't exist or updating it if it does. All fields except namespace are required.
 // The control plane ensures that sentinel_id is unique within the namespace.
 message ApplySentinel {
-  // namespace is the Kubernetes namespace in which the sentinel should exist.
-  string k8s_namespace = 1;
-
-  string k8s_name = 2;
+  string k8s_name = 1;
   // workspace_id identifies the workspace that owns this sentinel.
-  string workspace_id = 3;
+  string workspace_id = 2;
 
   // project_id identifies the project within the workspace.
-  string project_id = 4;
+  string project_id = 3;
 
   // environment_id in which the sentinel should exist.
-  string environment_id = 5;
+  string environment_id = 4;
 
   // sentinel_id is the unique identifier for this sentinel globally
-  string sentinel_id = 6;
+  string sentinel_id = 5;
 
-  string image = 7;
-  int32 replicas = 8;
-  int64 cpu_millicores = 9;
-  int64 memory_mib = 10;
+  string image = 6;
+  int32 replicas = 7;
+  int64 cpu_millicores = 8;
+  int64 memory_mib = 9;
 }
 
 // DeleteSentinel identifies a sentinel to remove from the cluster.
@@ -175,8 +172,7 @@ message ApplySentinel {
 // The sentinel and all its resources (pods, services, frontline) will be deleted.
 // In-flight requests may be disrupted unless proper connection draining is configured.
 message DeleteSentinel {
-  string k8s_namespace = 1;
-  string k8s_name = 2;
+  string k8s_name = 1;
 }
 
 // ApplyDeployment contains the desired configuration for a deployment.
