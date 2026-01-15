@@ -124,7 +124,7 @@ spec:
               value: "unkey.local"
 
             # Restate Configuration
-            - name: RESTATE_INGRESS_URL
+            - name: UNKEY_RESTATE_INGRESS_URL
               value: "http://restate:8080"
             - name: UNKEY_RESTATE_ADMIN_URL
               value: "http://restate:9070"
