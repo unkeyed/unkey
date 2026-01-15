@@ -538,8 +538,7 @@ CREATE TABLE `instances` (
 	`status` enum('inactive','pending','running','failed') NOT NULL,
 	CONSTRAINT `instances_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `instances_id_unique` UNIQUE(`id`),
-	CONSTRAINT `unique_address_per_cluster` UNIQUE(`address`,`cluster_id`),
-	CONSTRAINT `unique_k8s_name_per_cluster` UNIQUE(`k8s_name`,`cluster_id`)
+	CONSTRAINT `unique_instance_per_region` UNIQUE(`k8s_name`,`region`)
 );
 
 CREATE TABLE `certificates` (
@@ -579,7 +578,6 @@ CREATE INDEX `pending_migration_id_idx` ON `keys` (`pending_migration_id`);
 CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
-CREATE INDEX `name_idx` ON `ratelimits` (`name`);
 CREATE INDEX `workspace_id_idx` ON `audit_log` (`workspace_id`);
 CREATE INDEX `bucket_id_idx` ON `audit_log` (`bucket_id`);
 CREATE INDEX `bucket_idx` ON `audit_log` (`bucket`);
@@ -589,12 +587,10 @@ CREATE INDEX `time_idx` ON `audit_log` (`time`);
 CREATE INDEX `bucket` ON `audit_log_target` (`bucket`);
 CREATE INDEX `audit_log_id` ON `audit_log_target` (`audit_log_id`);
 CREATE INDEX `id_idx` ON `audit_log_target` (`id`);
-CREATE INDEX `workspace_idx` ON `projects` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `deployments` (`workspace_id`);
 CREATE INDEX `project_idx` ON `deployments` (`project_id`);
 CREATE INDEX `status_idx` ON `deployments` (`status`);
 CREATE INDEX `workspace_idx` ON `deployment_topology` (`workspace_id`);
-CREATE INDEX `deployment_idx` ON `deployment_topology` (`deployment_id`);
 CREATE INDEX `region_idx` ON `deployment_topology` (`region`);
 CREATE INDEX `status_idx` ON `deployment_topology` (`desired_status`);
 CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
@@ -602,6 +598,7 @@ CREATE INDEX `workspace_idx` ON `custom_domains` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
 CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
 CREATE INDEX `idx_environment_id` ON `sentinels` (`environment_id`);
+CREATE INDEX `idx_desired_state_region` ON `sentinels` (`desired_state`,`region`);
 CREATE INDEX `idx_deployment_id` ON `instances` (`deployment_id`);
 CREATE INDEX `idx_region` ON `instances` (`region`);
 CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);

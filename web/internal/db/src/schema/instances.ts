@@ -35,8 +35,7 @@ export const instances = mysqlTable(
     status: mysqlEnum("status", ["inactive", "pending", "running", "failed"]).notNull(),
   },
   (table) => [
-    uniqueIndex("unique_address_per_cluster").on(table.address, table.clusterId),
-    uniqueIndex("unique_k8s_name_per_cluster").on(table.k8sName, table.clusterId),
+    uniqueIndex("unique_instance_per_region").on(table.k8sName, table.region),
     index("idx_deployment_id").on(table.deploymentId),
     index("idx_region").on(table.region),
   ],

@@ -49,7 +49,7 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return err
 	}
 
-	if err := r.ensureNamespaceExists(ctx, req.GetK8SNamespace()); err != nil {
+	if err := r.ensureNamespaceExists(ctx, req.GetK8SNamespace(), req.GetWorkspaceId(), req.GetEnvironmentId()); err != nil {
 		return err
 	}
 

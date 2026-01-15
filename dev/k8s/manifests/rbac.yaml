@@ -80,6 +80,11 @@ rules:
     resources: ["tokenreviews"]
     verbs: ["create"]
 
+  # CiliumNetworkPolicy management for network isolation
+  - apiGroups: ["cilium.io"]
+    resources: ["ciliumnetworkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

@@ -378,7 +378,6 @@ services:
       UNKEY_BUILD_BACKEND: "${UNKEY_BUILD_BACKEND:-docker}"
       UNKEY_BUILD_PLATFORM: "linux/amd64"
       UNKEY_DOCKER_SOCKET: "/var/run/docker.sock"
-      UNKEY_DEPLOYMENT_EVICTION_TTL: "10m"
       # Registry configuration (used by both Docker and Depot backends)
       UNKEY_REGISTRY_URL: "${UNKEY_REGISTRY_URL:-registry.depot.dev}"
       UNKEY_REGISTRY_USERNAME: "${UNKEY_REGISTRY_USERNAME:-x-token}"

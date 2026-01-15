@@ -48,7 +48,8 @@ func (r *Reconciler) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 		return err
 	}
 
-	if err := r.ensureNamespaceExists(ctx, NamespaceSentinel); err != nil {
+	// Sentinel namespace is shared across workspaces, no per-namespace policy needed
+	if err := r.ensureNamespaceExists(ctx, NamespaceSentinel, "", ""); err != nil {
 		return err
 	}
 
@@ -119,7 +120,8 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 					Labels: labels.New().
 						WorkspaceID(sentinel.GetWorkspaceId()).
 						EnvironmentID(sentinel.GetEnvironmentId()).
-						SentinelID(sentinel.GetSentinelId()),
+						SentinelID(sentinel.GetSentinelId()).
+						ComponentSentinel(),
 				},
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyAlways,
