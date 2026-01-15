@@ -24,6 +24,7 @@ func TestGenerateUploadUrlSuccessfully(t *testing.T) {
 	t.Run("generate upload URL successfully", func(t *testing.T) {
 		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 			SkipEnvironment: true,
+			Permissions:     []string{"deploy.*.generate_upload_url"},
 		})
 
 		headers := http.Header{

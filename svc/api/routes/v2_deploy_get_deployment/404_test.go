@@ -24,7 +24,7 @@ func TestNotFound(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID)
+	rootKey := h.CreateRootKey(workspace.ID, "deploy.*.read_deployment")
 
 	projectID := uid.New(uid.ProjectPrefix)
 
@@ -42,6 +42,7 @@ func TestNotFound(t *testing.T) {
 		}
 
 		req := handler.Request{
+			ProjectId:    projectID,
 			DeploymentId: "d_nonexistent123",
 		}
 

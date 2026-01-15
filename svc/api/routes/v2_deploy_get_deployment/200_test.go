@@ -26,7 +26,9 @@ func TestGetDeploymentSuccessfully(t *testing.T) {
 	h.Register(route)
 
 	t.Run("get existing deployment successfully", func(t *testing.T) {
-		setup := h.CreateTestDeploymentSetup()
+		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+			Permissions: []string{"deploy.*.create_deployment", "deploy.*.read_deployment"},
+		})
 
 		deploymentID := createTestDeployment(t, h.CtrlDeploymentClient, setup.Project.ID, setup.RootKey)
 
@@ -36,6 +38,7 @@ func TestGetDeploymentSuccessfully(t *testing.T) {
 		}
 
 		req := handler.Request{
+			ProjectId:    setup.Project.ID,
 			DeploymentId: deploymentID,
 		}
 
