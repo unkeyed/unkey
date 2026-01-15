@@ -12,7 +12,7 @@ import (
 //
 //	// Validate rate limit
 //	if err := assert.Less(requestsPerMinute, maxAllowed, "Request rate exceeds limit"); err != nil {
-//	    return fault.Wrap(err)
+//	    return err
 //	}
 func Less[T ~int | ~float64](a, b T, message ...string) error {
 	if a < b {
