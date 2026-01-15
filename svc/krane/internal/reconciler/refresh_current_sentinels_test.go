@@ -234,7 +234,7 @@ func TestRefreshCurrentSentinels_DeletesDesiredState(t *testing.T) {
 			return connect.NewResponse(&ctrlv1.SentinelState{
 				State: &ctrlv1.SentinelState_Delete{
 					Delete: &ctrlv1.DeleteSentinel{
-						K8SName:      "dep-1",
+						K8SName: "dep-1",
 					},
 				},
 			}), nil
