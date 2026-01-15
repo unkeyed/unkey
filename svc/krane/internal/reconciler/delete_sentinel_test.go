@@ -16,7 +16,8 @@ import (
 
 func newDeleteSentinelRequest() *ctrlv1.DeleteSentinel {
 	return &ctrlv1.DeleteSentinel{
-		K8SName: "test-sentinel",
+		K8SNamespace: NamespaceSentinel,
+		K8SName:      "test-sentinel",
 	}
 }
 
@@ -26,13 +27,13 @@ func TestDeleteSentinel_SuccessfullyDeletesServiceAndDeployment(t *testing.T) {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-sentinel",
-			Namespace: SentinelNamespace,
+			Namespace: NamespaceSentinel,
 		},
 	}
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-sentinel",
-			Namespace: SentinelNamespace,
+			Namespace: NamespaceSentinel,
 		},
 	}
 	client := NewFakeClient(t, svc, dep)
@@ -42,10 +43,10 @@ func TestDeleteSentinel_SuccessfullyDeletesServiceAndDeployment(t *testing.T) {
 	err := r.DeleteSentinel(ctx, req)
 	require.NoError(t, err)
 
-	_, err = client.CoreV1().Services(SentinelNamespace).Get(ctx, "test-sentinel", metav1.GetOptions{})
+	_, err = client.CoreV1().Services(NamespaceSentinel).Get(ctx, "test-sentinel", metav1.GetOptions{})
 	require.True(t, apierrors.IsNotFound(err), "Service should be deleted")
 
-	_, err = client.AppsV1().Deployments(SentinelNamespace).Get(ctx, "test-sentinel", metav1.GetOptions{})
+	_, err = client.AppsV1().Deployments(NamespaceSentinel).Get(ctx, "test-sentinel", metav1.GetOptions{})
 	require.True(t, apierrors.IsNotFound(err), "Deployment should be deleted")
 }
 
@@ -55,13 +56,13 @@ func TestDeleteSentinel_DeletesServiceBeforeDeployment(t *testing.T) {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-sentinel",
-			Namespace: SentinelNamespace,
+			Namespace: NamespaceSentinel,
 		},
 	}
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-sentinel",
-			Namespace: SentinelNamespace,
+			Namespace: NamespaceSentinel,
 		},
 	}
 	client := NewFakeClient(t, svc, dep)
@@ -83,7 +84,7 @@ func TestDeleteSentinel_IgnoresNotFoundOnService(t *testing.T) {
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-sentinel",
-			Namespace: SentinelNamespace,
+			Namespace: NamespaceSentinel,
 		},
 	}
 	client := NewFakeClient(t, dep)
@@ -93,7 +94,7 @@ func TestDeleteSentinel_IgnoresNotFoundOnService(t *testing.T) {
 	err := r.DeleteSentinel(ctx, req)
 	require.NoError(t, err, "should not error when Service doesn't exist")
 
-	_, err = client.AppsV1().Deployments(SentinelNamespace).Get(ctx, "test-sentinel", metav1.GetOptions{})
+	_, err = client.AppsV1().Deployments(NamespaceSentinel).Get(ctx, "test-sentinel", metav1.GetOptions{})
 	require.True(t, apierrors.IsNotFound(err), "Deployment should still be deleted")
 }
 
@@ -103,7 +104,7 @@ func TestDeleteSentinel_IgnoresNotFoundOnDeployment(t *testing.T) {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-sentinel",
-			Namespace: SentinelNamespace,
+			Namespace: NamespaceSentinel,
 		},
 	}
 	client := NewFakeClient(t, svc)
@@ -113,7 +114,7 @@ func TestDeleteSentinel_IgnoresNotFoundOnDeployment(t *testing.T) {
 	err := r.DeleteSentinel(ctx, req)
 	require.NoError(t, err, "should not error when Deployment doesn't exist")
 
-	_, err = client.CoreV1().Services(SentinelNamespace).Get(ctx, "test-sentinel", metav1.GetOptions{})
+	_, err = client.CoreV1().Services(NamespaceSentinel).Get(ctx, "test-sentinel", metav1.GetOptions{})
 	require.True(t, apierrors.IsNotFound(err), "Service should still be deleted")
 }
 
@@ -152,7 +153,7 @@ func TestDeleteSentinel_PropagatesDeploymentError(t *testing.T) {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-sentinel",
-			Namespace: SentinelNamespace,
+			Namespace: NamespaceSentinel,
 		},
 	}
 	client := NewFakeClient(t, svc)
@@ -174,13 +175,13 @@ func TestDeleteSentinel_CallsUpdateSentinelStateWithZeroReplicas(t *testing.T) {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-sentinel",
-			Namespace: SentinelNamespace,
+			Namespace: NamespaceSentinel,
 		},
 	}
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-sentinel",
-			Namespace: SentinelNamespace,
+			Namespace: NamespaceSentinel,
 		},
 	}
 	client := NewFakeClient(t, svc, dep)

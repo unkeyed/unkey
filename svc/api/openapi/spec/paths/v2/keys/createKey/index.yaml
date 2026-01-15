@@ -19,7 +19,7 @@ post:
     Your root key needs one of:
     - `api.*.create_key` (create keys in any API)
     - `api.<api_id>.create_key` (create keys in specific API)
-  operationId: createKey
+  operationId: keys.createKey
   x-speakeasy-name-override: createKey
   security:
     - rootKey: []

@@ -196,6 +196,11 @@ type Config struct {
 	// Default: 8080. Cannot be 0.
 	HttpPort int
 
+	// PrometheusPort specifies the port for exposing Prometheus metrics.
+	// Set to 0 to disable metrics exposure. When enabled, metrics are served
+	// on all interfaces (0.0.0.0) on the specified port.
+	PrometheusPort int
+
 	// Region identifies the geographic region where this node is deployed.
 	// Used for observability, compliance, and service routing.
 	Region string

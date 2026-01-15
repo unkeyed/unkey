@@ -9,9 +9,7 @@ import (
 )
 
 const (
-	SentinelNamespace  = "sentinels"
-	UnkeyNamespace     = "unkey"
-	SentinelSecretName = "sentinel-env"
+	NamespaceSentinel = "sentinels"
 )
 
 // ensureNamespaceExists creates the namespace if it doesn't already exist.

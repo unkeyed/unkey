@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "apply_deployment.go",
         "apply_sentinel.go",
+        "consts.go",
         "delete_deployment.go",
         "delete_sentinel.go",
         "doc.go",
