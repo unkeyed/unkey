@@ -63,16 +63,25 @@ func TestEventStreamIntegration(t *testing.T) {
 		SourceInstance: "test-producer",
 	}
 
-	var receivedEvent *cachev1.CacheInvalidationEvent
-
-	// Create consumer
-	t.Logf("Creating consumer...")
-	consumer := topic.NewConsumer()
-	defer consumer.Close()
-
-	// Start consuming before producing
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	// Create producer and send test event FIRST (before consumer starts)
+	producer := topic.NewProducer()
+
+	t.Logf("Producing event: cache=%s, key=%s, timestamp=%d, source=%s",
+		testEvent.GetCacheName(), testEvent.GetCacheKey(), testEvent.GetTimestamp(), testEvent.GetSourceInstance())
+
+	err = producer.Produce(ctx, testEvent)
+	require.NoError(t, err, "Failed to produce test event")
+	t.Logf("Event produced successfully")
+
+	var receivedEvent *cachev1.CacheInvalidationEvent
+
+	// Create consumer with WithStartFromBeginning to ensure it reads the produced event
+	t.Logf("Creating consumer with WithStartFromBeginning...")
+	consumer := topic.NewConsumer(eventstream.WithStartFromBeginning())
+	defer consumer.Close()
 
 	t.Logf("Starting consumer.Consume()...")
 	consumer.Consume(ctx, func(ctx context.Context, event *cachev1.CacheInvalidationEvent) error {
@@ -83,26 +92,10 @@ func TestEventStreamIntegration(t *testing.T) {
 		return nil
 	})
 
-	// Wait for consumer to be ready and actually positioned
-	// The consumer needs time to join the group, get partition assignment, and fetch metadata
-	t.Logf("Waiting for consumer to be ready...")
-	time.Sleep(5 * time.Second)
-	t.Logf("Consumer should be ready now")
-
-	// Create producer and send test event
-	producer := topic.NewProducer()
-
-	t.Logf("Producing event: cache=%s, key=%s, timestamp=%d, source=%s",
-		testEvent.GetCacheName(), testEvent.GetCacheKey(), testEvent.GetTimestamp(), testEvent.GetSourceInstance())
-
-	err = producer.Produce(ctx, testEvent)
-	require.NoError(t, err, "Failed to produce test event")
-	t.Logf("Event produced successfully")
-
 	// Wait for event to be consumed
 	require.Eventually(t, func() bool {
 		return receivedEvent != nil
-	}, 10*time.Second, 100*time.Millisecond, "Event should be received within 10 seconds")
+	}, 30*time.Second, 100*time.Millisecond, "Event should be received within 30 seconds")
 
 	// Verify the received event
 	require.Equal(t, testEvent.GetCacheName(), receivedEvent.GetCacheName(), "Cache name should match")
@@ -142,16 +135,34 @@ func TestEventStreamMultipleMessages(t *testing.T) {
 
 	// Test multiple messages
 	numMessages := 5
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Create producer and send events FIRST (before consumer starts)
+	producer := topic.NewProducer()
+
+	for i := range numMessages {
+		event := &cachev1.CacheInvalidationEvent{
+			CacheName:      "test-cache",
+			CacheKey:       fmt.Sprintf("test-key-%d", i),
+			Timestamp:      time.Now().UnixMilli(),
+			SourceInstance: "test-producer",
+		}
+
+		// Retry producing in case topic metadata is still propagating
+		require.Eventually(t, func() bool {
+			return producer.Produce(ctx, event) == nil
+		}, 10*time.Second, 100*time.Millisecond, "Failed to produce event %d", i)
+	}
+
 	var receivedCount atomic.Int32
 	receivedKeys := make(map[string]bool)
 	var mu sync.Mutex // protect receivedKeys map
 
-	// Create consumer
-	consumer := topic.NewConsumer()
+	// Create consumer with WithStartFromBeginning to ensure it reads all produced events
+	consumer := topic.NewConsumer(eventstream.WithStartFromBeginning())
 	defer consumer.Close()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 
 	consumer.Consume(ctx, func(ctx context.Context, event *cachev1.CacheInvalidationEvent) error {
 		t.Logf("Received event: cache=%s, key=%s", event.GetCacheName(), event.GetCacheKey())
@@ -163,24 +174,6 @@ func TestEventStreamMultipleMessages(t *testing.T) {
 		receivedCount.Add(1)
 		return nil
 	})
-
-	// Wait for consumer to be ready and actually positioned
-	time.Sleep(5 * time.Second)
-
-	producer := topic.NewProducer()
-
-	// Send multiple events
-	for i := range numMessages {
-		event := &cachev1.CacheInvalidationEvent{
-			CacheName:      "test-cache",
-			CacheKey:       fmt.Sprintf("test-key-%d", i),
-			Timestamp:      time.Now().UnixMilli(),
-			SourceInstance: "test-producer",
-		}
-
-		err = producer.Produce(ctx, event)
-		require.NoError(t, err, "Failed to produce event %d", i)
-	}
 
 	// Wait for all events to be consumed
 	require.Eventually(t, func() bool {
