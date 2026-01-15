@@ -13,16 +13,22 @@ jobs:
     uses: ./.github/workflows/job_detect_changes.yaml
   api_local_test:
     name: Test API
+    needs: [detect_changes]
+    if: needs.detect_changes.outputs.api == 'true' || needs.detect_changes.outputs.packages == 'true' || needs.detect_changes.outputs.go == 'true'
     uses: ./.github/workflows/job_test_api_local.yaml
   api_preview_deployment:
     needs:
+      - detect_changes
       - api_local_test
+    if: needs.detect_changes.outputs.api == 'true' || needs.detect_changes.outputs.packages == 'true'
     uses: ./.github/workflows/job_deploy_api_staging.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   api_preview_test:
     needs:
+      - detect_changes
       - api_preview_deployment
+    if: needs.detect_changes.outputs.api == 'true' || needs.detect_changes.outputs.packages == 'true'
     uses: ./.github/workflows/job_test_api_staging.yaml
     with:
       UNKEY_BASE_URL: https://preview-api.unkey.dev
@@ -33,14 +39,22 @@ jobs:
       CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
   api_canary_deployment:
     needs:
+      - detect_changes
       - api_local_test
       - api_preview_test
+    if: |
+      always() &&
+      (needs.detect_changes.outputs.api == 'true' || needs.detect_changes.outputs.packages == 'true') &&
+      needs.api_local_test.result == 'success' &&
+      (needs.api_preview_test.result == 'success' || needs.api_preview_test.result == 'skipped')
     uses: ./.github/workflows/job_deploy_api_canary.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   api_canary_test:
     needs:
+      - detect_changes
       - api_canary_deployment
+    if: needs.detect_changes.outputs.api == 'true' || needs.detect_changes.outputs.packages == 'true'
     uses: ./.github/workflows/job_test_api_canary.yaml
     with:
       UNKEY_BASE_URL: https://canary.unkey.dev
@@ -51,7 +65,12 @@ jobs:
       CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
   api_production_deployment:
     needs:
+      - detect_changes
       - api_canary_test
+    if: |
+      always() &&
+      (needs.detect_changes.outputs.api == 'true' || needs.detect_changes.outputs.packages == 'true') &&
+      (needs.api_canary_test.result == 'success' || needs.api_canary_test.result == 'skipped')
     uses: ./.github/workflows/job_deploy_api_production.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -69,7 +88,13 @@ jobs:
           --url https://api.mintlify.com/v1/project/update/648b83e0e20b94f5a3e41a70 \
           --header 'Authorization: Bearer ${{secrets.MINTLIFY_API_KEY}}'
   deploy-enterprise-worker:
-    needs: api_production_deployment
+    needs:
+      - detect_changes
+      - api_production_deployment
+    if: |
+      always() &&
+      (needs.detect_changes.outputs.api == 'true' || needs.detect_changes.outputs.packages == 'true') &&
+      (needs.api_production_deployment.result == 'success' || needs.api_production_deployment.result == 'skipped')
     uses: ./.github/workflows/job_deploy_api_enterprise.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

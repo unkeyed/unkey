@@ -54,14 +54,21 @@ jobs:
             # API application and its direct dependencies
             api:
               - 'web/apps/api/**'
+              - 'web/internal/clickhouse/**'
               - 'web/internal/db/**'
               - 'web/internal/encoding/**'
               - 'web/internal/encryption/**'
+              - 'web/internal/error/**'
               - 'web/internal/hash/**'
               - 'web/internal/id/**'
               - 'web/internal/keys/**'
+              - 'web/internal/logs/**'
+              - 'web/internal/metrics/**'
+              - 'web/internal/rbac/**'
+              - 'web/internal/schema/**'
               - 'web/internal/validation/**'
               - 'web/internal/vault/**'
+              - 'web/internal/worker-logging/**'
 
             # Dashboard application and its dependencies
             dashboard:
@@ -71,11 +78,13 @@ jobs:
               - 'web/internal/clickhouse/**'
               - 'web/internal/db/**'
               - 'web/internal/encryption/**'
+              - 'web/internal/error/**'
               - 'web/internal/events/**'
               - 'web/internal/hash/**'
               - 'web/internal/icons/**'
               - 'web/internal/id/**'
               - 'web/internal/keys/**'
+              - 'web/internal/rbac/**'
               - 'web/internal/resend/**'
               - 'web/internal/schema/**'
               - 'web/internal/ui/**'
@@ -127,7 +136,16 @@ jobs:
 
             # Internal packages (affect multiple apps)
             packages:
-              - 'web/internal/**'
+              - 'web/internal/clickhouse/**'
+              - 'web/internal/db/**'
+              - 'web/internal/encryption/**'
+              - 'web/internal/error/**'
+              - 'web/internal/hash/**'
+              - 'web/internal/id/**'
+              - 'web/internal/keys/**'
+              - 'web/internal/rbac/**'
+              - 'web/internal/schema/**'
+              - 'web/internal/validation/**'
               - 'web/packages/**'
 
             # Configuration files
