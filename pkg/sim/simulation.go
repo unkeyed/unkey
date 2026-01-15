@@ -34,13 +34,12 @@ type Simulation[State any] struct {
 type apply[S any] func(*Simulation[S]) *Simulation[S]
 
 // New creates a new simulation for property-based testing.
-// It initializes the simulation with the provided testing instance and
+// It initializes the simulation with the provided seed and
 // applies any configuration functions provided.
 //
 // Example:
 //
-//	sim := sim.New[MyState](t,
-//	    sim.WithSeed(12345),
+//	sim := sim.New[MyState](sim.NewSeed(),
 //	    sim.WithSteps(1000000),
 //	    sim.WithState(func(rng *rand.Rand) *MyState {
 //	        // Initialize state with random values
