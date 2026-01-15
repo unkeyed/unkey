@@ -186,7 +186,7 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 	ctx, span := tracing.Start(ctx, "usagelimiter.counter.Limit")
 	defer span.End()
 
-	redisKey := s.redisKey(req.KeyId)
+	redisKey := s.redisKey(req.KeyID)
 
 	// Attempt decrement if key already exists in Redis
 	remaining, exists, success, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
@@ -217,7 +217,7 @@ func (s *counterService) handleResult(req UsageRequest, remaining int64, success
 	if success {
 		// decrement succeeded - buffer the change for async database sync
 		s.replayBuffer.Buffer(CreditChange{
-			KeyID: req.KeyId,
+			KeyID: req.KeyID,
 			Cost:  req.Cost,
 		})
 
@@ -239,7 +239,7 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	defer span.End()
 
 	limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
-		return db.Query.FindKeyCredits(ctx, s.db.RO(), req.KeyId)
+		return db.Query.FindKeyCredits(ctx, s.db.RO(), req.KeyID)
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
