@@ -25,7 +25,7 @@ func HandleValidationError(ctx context.Context, err error) openapi.ValidationErr
 		Errors:    details,
 		Instance:  "https://errors.unkey.com/todo",
 		Status:    http.StatusBadRequest,
-		RequestId: ctxutil.GetRequestId(ctx),
+		RequestId: ctxutil.GetRequestID(ctx),
 		Type:      "TODO docs link",
 	}
 
