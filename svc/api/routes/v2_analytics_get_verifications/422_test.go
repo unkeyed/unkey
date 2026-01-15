@@ -5,7 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
@@ -61,10 +63,9 @@ func Test422_ExceedsMaxMemory(t *testing.T) {
 		Query: "SELECT key_id, region, outcome, COUNT(*) as count FROM key_verifications_v1 GROUP BY key_id, region, outcome",
 	}
 
-	// Wait for data to be buffered and flushed to ClickHouse
-	time.Sleep(10 * time.Second)
-
-	// Query should fail with 422 due to max_memory_usage limit being exceeded
-	res := testutil.CallRoute[Request, Response](h, route, headers, req)
-	require.Equal(t, 422, res.Status)
+	// Wait for data to be buffered and flushed to ClickHouse, then verify query fails with 422
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		res := testutil.CallRoute[Request, Response](h, route, headers, req)
+		require.Equal(c, 422, res.Status)
+	}, 30*time.Second, 500*time.Millisecond)
 }

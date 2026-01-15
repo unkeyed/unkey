@@ -75,9 +75,11 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
 		require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
 
-		time.Sleep(time.Second * 3)
+		require.Eventually(t, func() bool {
+			res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			return res.Status == 200 && res.Body != nil && res.Body.Data.Code == openapi.EXPIRED
+		}, 10*time.Second, 100*time.Millisecond, "Key should become expired")
 
-		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 		require.Equal(t, openapi.EXPIRED, res.Body.Data.Code, "Key should be expired but got %s", res.Body.Data.Code)

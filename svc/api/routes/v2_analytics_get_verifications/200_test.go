@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
@@ -61,13 +62,12 @@ func Test200_Success(t *testing.T) {
 	}
 
 	// Wait for buffered data to be available
-	time.Sleep(5 * time.Second)
-
-	res := testutil.CallRoute[Request, Response](h, route, headers, req)
-	t.Logf("Status: %d, RawBody: %s", res.Status, res.RawBody)
-	require.Equal(t, 200, res.Status)
-	require.NotNil(t, res.Body)
-	require.Len(t, res.Body.Data, 1)
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		res := testutil.CallRoute[Request, Response](h, route, headers, req)
+		require.Equal(c, 200, res.Status)
+		require.NotNil(c, res.Body)
+		require.Len(c, res.Body.Data, 1)
+	}, 30*time.Second, 500*time.Millisecond)
 }
 
 func Test200_PermissionFiltersByApiId(t *testing.T) {
@@ -284,11 +284,12 @@ func Test200_QueryWithin30DaysRetention(t *testing.T) {
 		Query: "SELECT COUNT(*) as count FROM key_verifications_v1 WHERE time >= now() - INTERVAL 7 DAY",
 	}
 
-	time.Sleep(5 * time.Second) // Wait for data
-
-	res := testutil.CallRoute[Request, Response](h, route, headers, req)
-	require.Equal(t, 200, res.Status, "Query within retention should succeed")
-	require.NotNil(t, res.Body)
+	// Wait for buffered data to be available
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		res := testutil.CallRoute[Request, Response](h, route, headers, req)
+		require.Equal(c, 200, res.Status, "Query within retention should succeed")
+		require.NotNil(c, res.Body)
+	}, 30*time.Second, 500*time.Millisecond)
 }
 
 func Test200_QueryAtExact30DayRetentionLimit(t *testing.T) {
@@ -428,17 +429,18 @@ func Test200_RLSWorkspaceIsolation(t *testing.T) {
 		Query: "SELECT COUNT(*) as count FROM key_verifications_v1 WHERE time >= now() - INTERVAL 1 DAY",
 	}
 
-	time.Sleep(10 * time.Second) // Wait for data to be flushed to ClickHouse
+	// Wait for data to be flushed to ClickHouse
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		res := testutil.CallRoute[Request, Response](h, route, headers, req)
+		require.Equal(c, 200, res.Status)
+		require.NotNil(c, res.Body)
+		require.Len(c, res.Body.Data, 1)
 
-	res := testutil.CallRoute[Request, Response](h, route, headers, req)
-	require.Equal(t, 200, res.Status)
-	require.NotNil(t, res.Body)
-	require.Len(t, res.Body.Data, 1)
-
-	// Verify only workspace1's data is returned (5 verifications), not workspace2's (10)
-	count, ok := res.Body.Data[0]["count"]
-	require.True(t, ok)
-	require.Equal(t, float64(5), count, "RLS should filter to only workspace1's data")
+		// Verify only workspace1's data is returned (5 verifications), not workspace2's (10)
+		count, ok := res.Body.Data[0]["count"]
+		require.True(c, ok)
+		require.Equal(c, float64(5), count, "RLS should filter to only workspace1's data")
+	}, 30*time.Second, 500*time.Millisecond)
 }
 
 func Test200_QueryWithoutTimeFilter_AutoAddsFilter(t *testing.T) {

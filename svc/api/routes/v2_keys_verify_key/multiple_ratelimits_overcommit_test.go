@@ -86,11 +86,13 @@ func TestMultipleRatelimitsCounterLeakBug(t *testing.T) {
 			require.True(t, res.Body.Data.Valid, "Request %d should be valid", i+1)
 		}
 
-		// Allow time for async replay buffer to sync with Redis
-		time.Sleep(500 * time.Millisecond)
-
 		// The 13th request should be rate limited by the per-minute limit
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		// Use Eventually to wait for async replay buffer to sync with Redis
+		var res testutil.TestResponse[handler.Response]
+		require.Eventually(t, func() bool {
+			res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			return res.Status == 200 && res.Body != nil && res.Body.Data.Code == openapi.RATELIMITED
+		}, 5*time.Second, 50*time.Millisecond, "Request 13 should be rate limited")
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 		require.Equal(t, openapi.RATELIMITED, res.Body.Data.Code, "Request 13 should be rate limited")
@@ -185,7 +187,6 @@ func TestMultipleRatelimitsCounterLeakBug(t *testing.T) {
 
 			// Advance time by 2 minutes to completely flush both current and previous windows
 			h.Clock.Tick(2 * time.Minute)
-			time.Sleep(100 * time.Millisecond) // Allow for Redis propagation
 		}
 
 		// We should have been able to make exactly 50 valid requests
