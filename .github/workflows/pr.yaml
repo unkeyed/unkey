@@ -36,6 +36,28 @@ jobs:
     needs: [detect_changes]
     uses: ./.github/workflows/job_bazel.yaml
     secrets: inherit
+  # This job ensures branch protection passes even when Bazel is skipped
+  bazel_status:
+    name: Bazel Status Check
+    if: always() && ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request')
+    needs: [detect_changes, bazel]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Bazel Status
+        run: |
+          if [[ "${{ needs.detect_changes.outputs.go }}" != "true" ]]; then
+            echo "Bazel skipped - no Go changes detected"
+            exit 0
+          elif [[ "${{ needs.bazel.result }}" == "success" ]]; then
+            echo "Bazel passed"
+            exit 0
+          elif [[ "${{ needs.bazel.result }}" == "skipped" ]]; then
+            echo "Bazel skipped"
+            exit 0
+          else
+            echo "Bazel failed"
+            exit 1
+          fi
   test_dashboard:
     name: Test Dashboard
     if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && needs.detect_changes.outputs.dashboard == 'true'
