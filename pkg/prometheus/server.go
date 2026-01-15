@@ -50,7 +50,7 @@ type Config struct {
 // Example usage:
 //
 //	// Create a dedicated metrics server
-//	logger := logging.NewLogger()
+//	logger := logging.New()
 //	server, err := prometheus.New(prometheus.Config{
 //	    Logger: logger,
 //	})
