@@ -46,6 +46,20 @@ func TestClusterCache_ProducesInvalidationOnRemoveAndSetNull(t *testing.T) {
 	err = topic.WaitUntilReady(waitCtx)
 	require.NoError(t, err)
 
+	// Warm up the producer by sending a test event until it succeeds
+	// This ensures Kafka metadata is fully propagated before the actual test
+	producer := topic.NewProducer()
+	warmupEvent := &cachev1.CacheInvalidationEvent{
+		CacheName:      "warmup",
+		CacheKey:       "warmup-key",
+		Timestamp:      time.Now().UnixMilli(),
+		SourceInstance: "warmup",
+	}
+	require.Eventually(t, func() bool {
+		err := producer.Produce(ctx, warmupEvent)
+		return err == nil
+	}, 30*time.Second, 100*time.Millisecond, "Kafka producer should become ready within 30 seconds")
+
 	// Create dispatcher with noop - we won't use it to consume, just need it for ClusterCache creation
 	dispatcher := clustering.NewNoopDispatcher()
 	defer dispatcher.Close()
@@ -71,18 +85,32 @@ func TestClusterCache_ProducesInvalidationOnRemoveAndSetNull(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	// Produce invalidation events first by performing cache operations
+	// Test Remove operation produces invalidation event
+	clusterCache.Set(ctx, "key1", "value1") // populate cache first
+	clusterCache.Remove(ctx, "key1")        // then remove it
+
+	// Test SetNull operation produces invalidation event
+	clusterCache.SetNull(ctx, "key2")
+
 	// Track received events
 	var receivedEventCount atomic.Int32
 	var receivedEvents []*cachev1.CacheInvalidationEvent
 	var eventsMutex sync.Mutex
 
-	consumer := topic.NewConsumer()
+	// Create consumer with WithStartFromBeginning to read all messages including those produced above
+	consumer := topic.NewConsumer(eventstream.WithStartFromBeginning())
 	defer consumer.Close()
 
 	consumerCtx, cancelConsumer := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancelConsumer()
 
 	consumer.Consume(consumerCtx, func(ctx context.Context, event *cachev1.CacheInvalidationEvent) error {
+		// Skip warmup events
+		if event.GetCacheName() == "warmup" {
+			return nil
+		}
+
 		eventsMutex.Lock()
 		receivedEvents = append(receivedEvents, event)
 		eventsMutex.Unlock()
@@ -91,26 +119,16 @@ func TestClusterCache_ProducesInvalidationOnRemoveAndSetNull(t *testing.T) {
 		return nil
 	})
 
-	// Wait for consumer to be ready and actually positioned
-	time.Sleep(5 * time.Second)
-
-	// Test Remove operation produces invalidation event
-	clusterCache.Set(ctx, "key1", "value1") // populate cache first
-	clusterCache.Remove(ctx, "key1")        // then remove it
-
-	// Test SetNull operation produces invalidation event
-	clusterCache.SetNull(ctx, "key2")
-
-	// Wait for both events to be received
+	// Wait for both events to be received - consumer starts from beginning so it will find the events
 	require.Eventually(t, func() bool {
 		return receivedEventCount.Load() == 2
-	}, 5*time.Second, 100*time.Millisecond, "ClusterCache should produce invalidation events for Remove and SetNull operations within 5 seconds")
+	}, 30*time.Second, 100*time.Millisecond, "ClusterCache should produce invalidation events for Remove and SetNull operations within 30 seconds")
 
 	// Verify events
 	eventsMutex.Lock()
 	defer eventsMutex.Unlock()
 
-	require.Len(t, receivedEvents, 2, "Should receive exactly 2 events")
+	require.Len(t, receivedEvents, 2, "Should receive exactly 2 events (excluding warmup)")
 
 	// Find events by key
 	var removeEvent, setNullEvent *cachev1.CacheInvalidationEvent
