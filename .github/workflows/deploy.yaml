@@ -66,10 +66,12 @@ jobs:
   api_production_deployment:
     needs:
       - detect_changes
+      - api_canary_deployment
       - api_canary_test
     if: |
       always() &&
       (needs.detect_changes.outputs.api == 'true' || needs.detect_changes.outputs.packages == 'true') &&
+      needs.api_canary_deployment.result == 'success' &&
       (needs.api_canary_test.result == 'success' || needs.api_canary_test.result == 'skipped')
     uses: ./.github/workflows/job_deploy_api_production.yaml
     secrets:
@@ -90,10 +92,14 @@ jobs:
   deploy-enterprise-worker:
     needs:
       - detect_changes
+      - api_canary_deployment
+      - api_canary_test
       - api_production_deployment
     if: |
       always() &&
       (needs.detect_changes.outputs.api == 'true' || needs.detect_changes.outputs.packages == 'true') &&
+      (needs.api_canary_deployment.result == 'success' || needs.api_canary_deployment.result == 'skipped') &&
+      (needs.api_canary_test.result == 'success' || needs.api_canary_test.result == 'skipped') &&
       (needs.api_production_deployment.result == 'success' || needs.api_production_deployment.result == 'skipped')
     uses: ./.github/workflows/job_deploy_api_enterprise.yaml
     secrets:
