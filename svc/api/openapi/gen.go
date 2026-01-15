@@ -2410,17 +2410,17 @@ type ChproxyVerificationsJSONRequestBody = ChproxyVerificationsRequestBody
 // AnalyticsGetVerificationsJSONRequestBody defines body for AnalyticsGetVerifications for application/json ContentType.
 type AnalyticsGetVerificationsJSONRequestBody = V2AnalyticsGetVerificationsRequestBody
 
-// CreateApiJSONRequestBody defines body for CreateApi for application/json ContentType.
-type CreateApiJSONRequestBody = V2ApisCreateApiRequestBody
+// ApisCreateApiJSONRequestBody defines body for ApisCreateApi for application/json ContentType.
+type ApisCreateApiJSONRequestBody = V2ApisCreateApiRequestBody
 
-// DeleteApiJSONRequestBody defines body for DeleteApi for application/json ContentType.
-type DeleteApiJSONRequestBody = V2ApisDeleteApiRequestBody
+// ApisDeleteApiJSONRequestBody defines body for ApisDeleteApi for application/json ContentType.
+type ApisDeleteApiJSONRequestBody = V2ApisDeleteApiRequestBody
 
-// GetApiJSONRequestBody defines body for GetApi for application/json ContentType.
-type GetApiJSONRequestBody = V2ApisGetApiRequestBody
+// ApisGetApiJSONRequestBody defines body for ApisGetApi for application/json ContentType.
+type ApisGetApiJSONRequestBody = V2ApisGetApiRequestBody
 
-// ListKeysJSONRequestBody defines body for ListKeys for application/json ContentType.
-type ListKeysJSONRequestBody = V2ApisListKeysRequestBody
+// ApisListKeysJSONRequestBody defines body for ApisListKeys for application/json ContentType.
+type ApisListKeysJSONRequestBody = V2ApisListKeysRequestBody
 
 // DeployCreateDeploymentJSONRequestBody defines body for DeployCreateDeployment for application/json ContentType.
 type DeployCreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody
@@ -2434,8 +2434,8 @@ type DeployGetDeploymentJSONRequestBody = V2DeployGetDeploymentRequestBody
 // IdentitiesCreateIdentityJSONRequestBody defines body for IdentitiesCreateIdentity for application/json ContentType.
 type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody
 
-// V2IdentitiesDeleteIdentityJSONRequestBody defines body for V2IdentitiesDeleteIdentity for application/json ContentType.
-type V2IdentitiesDeleteIdentityJSONRequestBody = V2IdentitiesDeleteIdentityRequestBody
+// IdentitiesDeleteIdentityJSONRequestBody defines body for IdentitiesDeleteIdentity for application/json ContentType.
+type IdentitiesDeleteIdentityJSONRequestBody = V2IdentitiesDeleteIdentityRequestBody
 
 // IdentitiesGetIdentityJSONRequestBody defines body for IdentitiesGetIdentity for application/json ContentType.
 type IdentitiesGetIdentityJSONRequestBody = V2IdentitiesGetIdentityRequestBody
@@ -2443,77 +2443,77 @@ type IdentitiesGetIdentityJSONRequestBody = V2IdentitiesGetIdentityRequestBody
 // IdentitiesListIdentitiesJSONRequestBody defines body for IdentitiesListIdentities for application/json ContentType.
 type IdentitiesListIdentitiesJSONRequestBody = V2IdentitiesListIdentitiesRequestBody
 
-// V2IdentitiesUpdateIdentityJSONRequestBody defines body for V2IdentitiesUpdateIdentity for application/json ContentType.
-type V2IdentitiesUpdateIdentityJSONRequestBody = V2IdentitiesUpdateIdentityRequestBody
+// IdentitiesUpdateIdentityJSONRequestBody defines body for IdentitiesUpdateIdentity for application/json ContentType.
+type IdentitiesUpdateIdentityJSONRequestBody = V2IdentitiesUpdateIdentityRequestBody
 
-// AddPermissionsJSONRequestBody defines body for AddPermissions for application/json ContentType.
-type AddPermissionsJSONRequestBody = V2KeysAddPermissionsRequestBody
+// KeysAddPermissionsJSONRequestBody defines body for KeysAddPermissions for application/json ContentType.
+type KeysAddPermissionsJSONRequestBody = V2KeysAddPermissionsRequestBody
 
-// AddRolesJSONRequestBody defines body for AddRoles for application/json ContentType.
-type AddRolesJSONRequestBody = V2KeysAddRolesRequestBody
+// KeysAddRolesJSONRequestBody defines body for KeysAddRoles for application/json ContentType.
+type KeysAddRolesJSONRequestBody = V2KeysAddRolesRequestBody
 
-// CreateKeyJSONRequestBody defines body for CreateKey for application/json ContentType.
-type CreateKeyJSONRequestBody = V2KeysCreateKeyRequestBody
+// KeysCreateKeyJSONRequestBody defines body for KeysCreateKey for application/json ContentType.
+type KeysCreateKeyJSONRequestBody = V2KeysCreateKeyRequestBody
 
-// DeleteKeyJSONRequestBody defines body for DeleteKey for application/json ContentType.
-type DeleteKeyJSONRequestBody = V2KeysDeleteKeyRequestBody
+// KeysDeleteKeyJSONRequestBody defines body for KeysDeleteKey for application/json ContentType.
+type KeysDeleteKeyJSONRequestBody = V2KeysDeleteKeyRequestBody
 
-// GetKeyJSONRequestBody defines body for GetKey for application/json ContentType.
-type GetKeyJSONRequestBody = V2KeysGetKeyRequestBody
+// KeysGetKeyJSONRequestBody defines body for KeysGetKey for application/json ContentType.
+type KeysGetKeyJSONRequestBody = V2KeysGetKeyRequestBody
 
-// MigrateKeysJSONRequestBody defines body for MigrateKeys for application/json ContentType.
-type MigrateKeysJSONRequestBody = V2KeysMigrateKeysRequestBody
+// KeysMigrateKeysJSONRequestBody defines body for KeysMigrateKeys for application/json ContentType.
+type KeysMigrateKeysJSONRequestBody = V2KeysMigrateKeysRequestBody
 
-// RemovePermissionsJSONRequestBody defines body for RemovePermissions for application/json ContentType.
-type RemovePermissionsJSONRequestBody = V2KeysRemovePermissionsRequestBody
+// KeysRemovePermissionsJSONRequestBody defines body for KeysRemovePermissions for application/json ContentType.
+type KeysRemovePermissionsJSONRequestBody = V2KeysRemovePermissionsRequestBody
 
-// RemoveRolesJSONRequestBody defines body for RemoveRoles for application/json ContentType.
-type RemoveRolesJSONRequestBody = V2KeysRemoveRolesRequestBody
+// KeysRemoveRolesJSONRequestBody defines body for KeysRemoveRoles for application/json ContentType.
+type KeysRemoveRolesJSONRequestBody = V2KeysRemoveRolesRequestBody
 
-// RerollKeyJSONRequestBody defines body for RerollKey for application/json ContentType.
-type RerollKeyJSONRequestBody = V2KeysRerollKeyRequestBody
+// KeysRerollKeyJSONRequestBody defines body for KeysRerollKey for application/json ContentType.
+type KeysRerollKeyJSONRequestBody = V2KeysRerollKeyRequestBody
 
-// SetPermissionsJSONRequestBody defines body for SetPermissions for application/json ContentType.
-type SetPermissionsJSONRequestBody = V2KeysSetPermissionsRequestBody
+// KeysSetPermissionsJSONRequestBody defines body for KeysSetPermissions for application/json ContentType.
+type KeysSetPermissionsJSONRequestBody = V2KeysSetPermissionsRequestBody
 
-// SetRolesJSONRequestBody defines body for SetRoles for application/json ContentType.
-type SetRolesJSONRequestBody = V2KeysSetRolesRequestBody
+// KeysSetRolesJSONRequestBody defines body for KeysSetRoles for application/json ContentType.
+type KeysSetRolesJSONRequestBody = V2KeysSetRolesRequestBody
 
-// UpdateCreditsJSONRequestBody defines body for UpdateCredits for application/json ContentType.
-type UpdateCreditsJSONRequestBody = V2KeysUpdateCreditsRequestBody
+// KeysUpdateCreditsJSONRequestBody defines body for KeysUpdateCredits for application/json ContentType.
+type KeysUpdateCreditsJSONRequestBody = V2KeysUpdateCreditsRequestBody
 
-// UpdateKeyJSONRequestBody defines body for UpdateKey for application/json ContentType.
-type UpdateKeyJSONRequestBody = V2KeysUpdateKeyRequestBody
+// KeysUpdateKeyJSONRequestBody defines body for KeysUpdateKey for application/json ContentType.
+type KeysUpdateKeyJSONRequestBody = V2KeysUpdateKeyRequestBody
 
-// VerifyKeyJSONRequestBody defines body for VerifyKey for application/json ContentType.
-type VerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody
+// KeysVerifyKeyJSONRequestBody defines body for KeysVerifyKey for application/json ContentType.
+type KeysVerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody
 
-// WhoamiJSONRequestBody defines body for Whoami for application/json ContentType.
-type WhoamiJSONRequestBody = V2KeysWhoamiRequestBody
+// KeysWhoamiJSONRequestBody defines body for KeysWhoami for application/json ContentType.
+type KeysWhoamiJSONRequestBody = V2KeysWhoamiRequestBody
 
-// CreatePermissionJSONRequestBody defines body for CreatePermission for application/json ContentType.
-type CreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody
+// PermissionsCreatePermissionJSONRequestBody defines body for PermissionsCreatePermission for application/json ContentType.
+type PermissionsCreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody
 
-// CreateRoleJSONRequestBody defines body for CreateRole for application/json ContentType.
-type CreateRoleJSONRequestBody = V2PermissionsCreateRoleRequestBody
+// PermissionsCreateRoleJSONRequestBody defines body for PermissionsCreateRole for application/json ContentType.
+type PermissionsCreateRoleJSONRequestBody = V2PermissionsCreateRoleRequestBody
 
-// DeletePermissionJSONRequestBody defines body for DeletePermission for application/json ContentType.
-type DeletePermissionJSONRequestBody = V2PermissionsDeletePermissionRequestBody
+// PermissionsDeletePermissionJSONRequestBody defines body for PermissionsDeletePermission for application/json ContentType.
+type PermissionsDeletePermissionJSONRequestBody = V2PermissionsDeletePermissionRequestBody
 
-// DeleteRoleJSONRequestBody defines body for DeleteRole for application/json ContentType.
-type DeleteRoleJSONRequestBody = V2PermissionsDeleteRoleRequestBody
+// PermissionsDeleteRoleJSONRequestBody defines body for PermissionsDeleteRole for application/json ContentType.
+type PermissionsDeleteRoleJSONRequestBody = V2PermissionsDeleteRoleRequestBody
 
-// GetPermissionJSONRequestBody defines body for GetPermission for application/json ContentType.
-type GetPermissionJSONRequestBody = V2PermissionsGetPermissionRequestBody
+// PermissionsGetPermissionJSONRequestBody defines body for PermissionsGetPermission for application/json ContentType.
+type PermissionsGetPermissionJSONRequestBody = V2PermissionsGetPermissionRequestBody
 
-// GetRoleJSONRequestBody defines body for GetRole for application/json ContentType.
-type GetRoleJSONRequestBody = V2PermissionsGetRoleRequestBody
+// PermissionsGetRoleJSONRequestBody defines body for PermissionsGetRole for application/json ContentType.
+type PermissionsGetRoleJSONRequestBody = V2PermissionsGetRoleRequestBody
 
-// ListPermissionsJSONRequestBody defines body for ListPermissions for application/json ContentType.
-type ListPermissionsJSONRequestBody = V2PermissionsListPermissionsRequestBody
+// PermissionsListPermissionsJSONRequestBody defines body for PermissionsListPermissions for application/json ContentType.
+type PermissionsListPermissionsJSONRequestBody = V2PermissionsListPermissionsRequestBody
 
-// ListRolesJSONRequestBody defines body for ListRoles for application/json ContentType.
-type ListRolesJSONRequestBody = V2PermissionsListRolesRequestBody
+// PermissionsListRolesJSONRequestBody defines body for PermissionsListRoles for application/json ContentType.
+type PermissionsListRolesJSONRequestBody = V2PermissionsListRolesRequestBody
 
 // RatelimitDeleteOverrideJSONRequestBody defines body for RatelimitDeleteOverride for application/json ContentType.
 type RatelimitDeleteOverrideJSONRequestBody = V2RatelimitDeleteOverrideRequestBody

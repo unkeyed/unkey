@@ -31,14 +31,10 @@ go_test(
     ],
     deps = [
         ":v2_deploy_generate_upload_url",
-        "//gen/proto/ctrl/v1/ctrlv1connect",
-        "//pkg/rpc/interceptor",
         "//pkg/testutil",
-        "//pkg/testutil/containers",
         "//pkg/testutil/seed",
         "//pkg/uid",
         "//svc/api/openapi",
-        "@com_connectrpc_connect//:connect",
         "@com_github_stretchr_testify//require",
     ],
 )

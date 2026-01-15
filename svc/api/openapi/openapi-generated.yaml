@@ -399,6 +399,7 @@ components:
                         minLength: 1
                         description: Unkey project ID
                         example: "proj_123abc"
+                        pattern: "^proj_[a-zA-Z0-9]+$"
                     keyspaceId:
                         type: string
                         description: Optional keyspace ID for authentication context
@@ -439,6 +440,7 @@ components:
                     minLength: 1
                     description: Unkey project ID for which to generate the upload URL
                     example: "proj_123abc"
+                    pattern: "^proj_[a-zA-Z0-9]+$"
         V2DeployGenerateUploadUrlResponseBody:
             type: object
             required:
@@ -2656,7 +2658,7 @@ components:
                 deploymentId:
                     type: string
                     description: Unique deployment identifier
-                    example: "dep_abc123xyz"
+                    example: "d_abc123xyz"
         V2DeployGenerateUploadUrlResponseData:
             type: object
             required:
@@ -2680,7 +2682,7 @@ components:
                 id:
                     type: string
                     description: Unique deployment identifier
-                    example: "dep_abc123xyz"
+                    example: "d_abc123xyz"
                 status:
                     type: string
                     description: Current deployment status
@@ -2693,6 +2695,7 @@ components:
                         - READY
                         - FAILED
                     example: "READY"
+                    x-speakeasy-unknown-values: allow
                 errorMessage:
                     type: string
                     description: Error message if deployment failed
@@ -4021,7 +4024,7 @@ paths:
 
                 Your root key must have one of the following permissions:
                 - `api.*.create_api` (to create APIs in any workspace)
-            operationId: createApi
+            operationId: apis.createApi
             requestBody:
                 content:
                     application/json:
@@ -4082,7 +4085,7 @@ paths:
                 Your root key must have one of the following permissions:
                 - `api.*.delete_api` (to delete any API)
                 - `api.<api_id>.delete_api` (to delete a specific API)
-            operationId: deleteApi
+            operationId: apis.deleteApi
             requestBody:
                 content:
                     application/json:
@@ -4150,7 +4153,7 @@ paths:
                 Your root key must have one of the following permissions:
                 - `api.*.read_api` (to read any API)
                 - `api.<api_id>.read_api` (to read a specific API)
-            operationId: getApi
+            operationId: apis.getApi
             requestBody:
                 content:
                     application/json:
@@ -4220,7 +4223,7 @@ paths:
 
                 Additional permission required for decrypt functionality:
                 - `api.*.decrypt_key` or `api.<api_id>.decrypt_key`
-            operationId: listKeys
+            operationId: apis.listKeys
             requestBody:
                 content:
                     application/json:
@@ -4544,7 +4547,7 @@ paths:
     /v2/identities.deleteIdentity:
         post:
             description: "Permanently delete an identity. This operation cannot be undone.\n\nUse this for data cleanup, compliance requirements, or when removing entities from your system.\n\n> **Important**  \n> Requires `identity.*.delete_identity` permission  \n> Associated API keys remain functional but lose shared resources  \n> External ID becomes available for reuse immediately\n"
-            operationId: v2.identities.deleteIdentity
+            operationId: identities.deleteIdentity
             requestBody:
                 content:
                     application/json:
@@ -4838,7 +4841,7 @@ paths:
                 > **Important**
                 > Requires `identity.*.update_identity` permission
                 > Rate limit changes propagate within 30 seconds
-            operationId: v2.identities.updateIdentity
+            operationId: identities.updateIdentity
             requestBody:
                 content:
                     application/json:
@@ -4937,7 +4940,7 @@ paths:
                 **Side Effects**
 
                 Invalidates the key cache for immediate effect, and makes permissions available for verification within 30 seconds across all regions.
-            operationId: addPermissions
+            operationId: keys.addPermissions
             requestBody:
                 content:
                     application/json:
@@ -5005,7 +5008,7 @@ paths:
                 **Side Effects**
 
                 Invalidates the key cache for immediate effect, and makes role assignments available for verification within 30 seconds across all regions.
-            operationId: addRoles
+            operationId: keys.addRoles
             requestBody:
                 content:
                     application/json:
@@ -5074,7 +5077,7 @@ paths:
                 Your root key needs one of:
                 - `api.*.create_key` (create keys in any API)
                 - `api.<api_id>.create_key` (create keys in specific API)
-            operationId: createKey
+            operationId: keys.createKey
             requestBody:
                 content:
                     application/json:
@@ -5138,7 +5141,7 @@ paths:
                 Your root key must have one of the following permissions:
                 - `api.*.delete_key` (to delete keys in any API)
                 - `api.<api_id>.delete_key` (to delete keys in a specific API)
-            operationId: deleteKey
+            operationId: keys.deleteKey
             requestBody:
                 content:
                     application/json:
@@ -5206,7 +5209,7 @@ paths:
 
                 Additional permission required for decrypt functionality:
                 - `api.*.decrypt_key` or `api.<api_id>.decrypt_key`
-            operationId: getKey
+            operationId: keys.getKey
             requestBody:
                 content:
                     application/json:
@@ -5266,7 +5269,7 @@ paths:
                 Your root key must have one of the following permissions for basic key information:
                 - `api.*.create_key` (to migrate keys to any API)
                 - `api.<api_id>.create_key` (to migrate keys to a specific API)
-            operationId: migrateKeys
+            operationId: keys.migrateKeys
             requestBody:
                 content:
                     application/json:
@@ -5334,7 +5337,7 @@ paths:
                 **Side Effects**
 
                 Invalidates the key cache for immediate effect, and makes permission changes available for verification within 30 seconds across all regions.
-            operationId: removePermissions
+            operationId: keys.removePermissions
             requestBody:
                 content:
                     application/json:
@@ -5402,7 +5405,7 @@ paths:
                 **Side Effects**
 
                 Invalidates the key cache for immediate effect, and makes role changes available for verification within 30 seconds across all regions.
-            operationId: removeRoles
+            operationId: keys.removeRoles
             requestBody:
                 content:
                     application/json:
@@ -5487,7 +5490,7 @@ paths:
                  Your root key must have:
                  - `api.*.create_key` or `api.<api_id>.create_key`
                  - `api.*.encrypt_key` or `api.<api_id>.encrypt_key` (only when the original key is recoverable)
-            operationId: rerollKey
+            operationId: keys.rerollKey
             requestBody:
                 content:
                     application/json:
@@ -5555,7 +5558,7 @@ paths:
                 **Side Effects**
 
                 Invalidates the key cache for immediate effect, and makes permission changes available for verification within 30 seconds across all regions.
-            operationId: setPermissions
+            operationId: keys.setPermissions
             requestBody:
                 content:
                     application/json:
@@ -5623,7 +5626,7 @@ paths:
                 **Side Effects**
 
                 Invalidates the key cache for immediate effect, and makes role changes available for verification within 30 seconds across all regions.
-            operationId: setRoles
+            operationId: keys.setRoles
             requestBody:
                 content:
                     application/json:
@@ -5691,7 +5694,7 @@ paths:
                 **Side Effects**
 
                 Credit updates remove the key from cache immediately. Setting credits to unlimited automatically clears any existing refill settings. Changes take effect instantly but may take up to 30 seconds to propagate to all edge regions.
-            operationId: updateCredits
+            operationId: keys.updateCredits
             requestBody:
                 content:
                     application/json:
@@ -5760,7 +5763,7 @@ paths:
                 **Side Effects**
 
                 If you specify an `externalId` that doesn't exist, a new identity will be automatically created and linked to the key. Permission updates will auto-create any permissions that don't exist in your workspace. Changes take effect immediately but may take up to 30 seconds to propagate to all edge regions due to cache invalidation.
-            operationId: updateKey
+            operationId: keys.updateKey
             requestBody:
                 content:
                     application/json:
@@ -5839,7 +5842,7 @@ paths:
                 - `api.<api_id>.verify_key` (verify keys in specific API)
 
                 **Note**: If your root key has no verify permissions at all, you will receive a `403 Forbidden` error. If your root key has verify permissions for a different API than the key you're verifying, you will receive a `200` response with `code: NOT_FOUND` to avoid leaking key existence.
-            operationId: verifyKey
+            operationId: keys.verifyKey
             requestBody:
                 content:
                     application/json:
@@ -5924,7 +5927,7 @@ paths:
                 - `api.<api_id>.read_key` (to read keys from a specific API)
 
                 If your rootkey lacks permissions but the key exists, we may return a 404 status here to prevent leaking the existance of a key to unauthorized clients. If you believe that a key should exist, but receive a 404, please double check your root key has the correct permissions.
-            operationId: whoami
+            operationId: keys.whoami
             requestBody:
                 content:
                     application/json:
@@ -6060,7 +6063,7 @@ paths:
 
                 Your root key must have the following permission:
                 - `rbac.*.create_permission`
-            operationId: createPermission
+            operationId: permissions.createPermission
             requestBody:
                 content:
                     application/json:
@@ -6121,7 +6124,7 @@ paths:
 
                 Your root key must have the following permission:
                 - `rbac.*.create_role`
-            operationId: createRole
+            operationId: permissions.createRole
             requestBody:
                 content:
                     application/json:
@@ -6192,7 +6195,7 @@ paths:
 
                 Your root key must have the following permission:
                 - `rbac.*.delete_permission`
-            operationId: deletePermission
+            operationId: permissions.deletePermission
             requestBody:
                 content:
                     application/json:
@@ -6258,7 +6261,7 @@ paths:
 
                 Your root key must have the following permission:
                 - `rbac.*.delete_role`
-            operationId: deleteRole
+            operationId: permissions.deleteRole
             requestBody:
                 content:
                     application/json:
@@ -6311,7 +6314,7 @@ paths:
 
                 Your root key must have the following permission:
                 - `rbac.*.read_permission`
-            operationId: getPermission
+            operationId: permissions.getPermission
             requestBody:
                 content:
                     application/json:
@@ -6370,7 +6373,7 @@ paths:
 
                 Your root key must have the following permission:
                 - `rbac.*.read_role`
-            operationId: getRole
+            operationId: permissions.getRole
             requestBody:
                 content:
                     application/json:
@@ -6423,7 +6426,7 @@ paths:
     /v2/permissions.listPermissions:
         post:
             description: "Retrieve all permissions in your workspace. \nResults are paginated and sorted by their id.\n\n**Required Permissions**\n\nYour root key must have the following permission:\n- `rbac.*.read_permission`\n"
-            operationId: listPermissions
+            operationId: permissions.listPermissions
             requestBody:
                 content:
                     application/json:
@@ -6470,7 +6473,7 @@ paths:
     /v2/permissions.listRoles:
         post:
             description: "Retrieve all roles in your workspace including their assigned permissions. \nResults are paginated and sorted by their id.\n\n**Required Permissions**\n\nYour root key must have the following permission:\n- `rbac.*.read_role`\n"
-            operationId: listRoles
+            operationId: permissions.listRoles
             requestBody:
                 content:
                     application/json:

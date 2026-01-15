@@ -10,62 +10,29 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
-	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
-	"github.com/unkeyed/unkey/pkg/testutil/seed"
-	"github.com/unkeyed/unkey/pkg/uid"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_get_deployment"
 )
 
 func TestGetDeploymentSuccessfully(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	// Get CTRL service URL and token
-	ctrlURL, ctrlToken := containers.ControlPlane(t)
-
-	ctrlClient := ctrlv1connect.NewDeploymentServiceClient(
-		http.DefaultClient,
-		ctrlURL,
-		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-			"Authorization": fmt.Sprintf("Bearer %s", ctrlToken),
-		})),
-	)
-
 	route := &handler.Handler{
 		Logger:     h.Logger,
 		DB:         h.DB,
 		Keys:       h.Keys,
-		CtrlClient: ctrlClient,
+		CtrlClient: h.CtrlDeploymentClient,
 	}
 	h.Register(route)
 
 	t.Run("get existing deployment successfully", func(t *testing.T) {
-		workspace := h.CreateWorkspace()
-		rootKey := h.CreateRootKey(workspace.ID)
+		setup := h.CreateTestDeploymentSetup()
 
-		projectID := uid.New(uid.ProjectPrefix)
-		project := h.CreateProject(seed.CreateProjectRequest{
-			WorkspaceID: workspace.ID,
-			Name:        "test-project",
-			ID:          projectID,
-			Slug:        "production",
-		})
-
-		h.CreateEnvironment(seed.CreateEnvironmentRequest{
-			ID:               uid.New(uid.EnvironmentPrefix),
-			WorkspaceID:      workspace.ID,
-			ProjectID:        project.ID,
-			Slug:             "production",
-			Description:      "Production environment",
-			DeleteProtection: false,
-		})
-
-		deploymentID := createTestDeployment(t, ctrlClient, project.ID, rootKey)
+		deploymentID := createTestDeployment(t, h.CtrlDeploymentClient, setup.Project.ID, setup.RootKey)
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			"Authorization": {fmt.Sprintf("Bearer %s", setup.RootKey)},
 		}
 
 		req := handler.Request{

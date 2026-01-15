@@ -19,8 +19,8 @@ spec:
     spec:
       containers:
         - name: vault
-          image: unkey/vault:latest
-          command: ["run", "vault"]
+          image: unkey/go:latest
+          args: ["run", "vault"]
           ports:
             - name: http
               containerPort: 8060
@@ -41,21 +41,21 @@ spec:
             - name: UNKEY_BEARER_TOKEN
               value: "vault-test-token-123"
           livenessProbe:
-            httpGet:
-              path: /vault.v1.VaultService/Liveness
-              port: 8060
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
-          readinessProbe:
-            httpGet:
-              path: /vault.v1.VaultService/Liveness
-              port: 8060
+            exec:
+              command:
+                - sh
+                - -c
+                - "wget --header='Content-Type: application/json' --post-data='{}' -qO- http://localhost:8060/vault.v1.VaultService/Liveness"
             initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "wget --header='Content-Type: application/json' --post-data='{}' -qO- http://localhost:8060/vault.v1.VaultService/Liveness"
+            initialDelaySeconds: 2
             periodSeconds: 5
-            timeoutSeconds: 3
-            failureThreshold: 3
           resources:
             requests:
               memory: "64Mi"

@@ -4,6 +4,7 @@ load('ext://secret', 'secret_create_generic')
 
 cfg = config.parse()
 
+update_settings(suppress_unused_image_warnings=["unkey/sentinel:latest"])
 
 local_resource(
   'namespace',
@@ -11,6 +12,11 @@ local_resource(
   labels=['setup'],
 )
 
+local_resource(
+  'sentinels',
+  'kubectl apply -f k8s/manifests/sentinels.yaml',
+  labels=['setup'],
+)
 
 local_resource(
   'rbac',
@@ -58,11 +64,24 @@ k8s_yaml('k8s/manifests/restate.yaml')
 k8s_resource('restate', port_forwards=['8081:8080', '9070:9070'], resource_deps=[], labels=['database'])
 
 
-# Build Unkey binary locally (independent of infrastructure)
-local_resource('build-unkey','cd .. && CGO_ENABLED=0 GOOS=linux ARCH=amd64 go build -o bin/unkey .', deps=['../main.go', '../pkg', '../cmd', '../svc', '../gen'], labels=['build'])
+# Build Go binaries locally (auto-detect arch from minikube)
+local_resource(
+    'build-unkey',
+    'cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=$(minikube ssh -- uname -m | sed "s/x86_64/amd64/" | sed "s/aarch64/arm64/" | tr -d "\\r") go build -o bin/unkey .',
+    deps=['../main.go', '../pkg', '../cmd', '../svc', '../gen'],
+    labels=['build'],
+)
 
 
-
+# Single docker image for all Go services - k8s manifests use `args` to specify which service to run
+docker_build_with_restart(
+    'unkey/go:latest',
+    '..',
+    dockerfile='./Dockerfile.tilt',
+    entrypoint=['/unkey'],
+    only=['./bin'],
+    live_update=[sync('./bin/unkey', '/unkey')]
+)
 
 # Agent service
 docker_build(
@@ -82,16 +101,6 @@ k8s_resource(
 
 
 # Vault service
-docker_build_with_restart(
-        'unkey/vault:latest',
-        '..',
-        dockerfile='./Dockerfile.tilt',
-        entrypoint=['/unkey', 'run', 'vault'],
-        only=['./bin'],
-        live_update=[
-            sync('./bin/unkey', '/unkey'),
-        ]
-    )
 k8s_yaml('k8s/manifests/vault.yaml')
 k8s_resource(
   'vault',
@@ -103,16 +112,6 @@ k8s_resource(
 )
 
 # API service
-docker_build_with_restart(
-        'unkey/api:latest',
-        '..',
-        dockerfile='./Dockerfile.tilt',
-        entrypoint=['/unkey', 'run', 'api'],
-        only=['./bin'],
-        live_update=[
-            sync('./bin/unkey', '/unkey'),
-        ]
-    )
 k8s_yaml('k8s/manifests/api.yaml')
 k8s_resource(
   'api',
@@ -124,16 +123,6 @@ k8s_resource(
 )
 
 # Ctrl service
-docker_build_with_restart(
-        'unkey/ctrl:latest',
-        '..',
-        dockerfile='./Dockerfile.tilt',
-        entrypoint=['/unkey', 'run', 'ctrl'],
-        only=['./bin'],
-        live_update=[
-            sync('./bin/unkey', '/unkey'),
-        ]
-    )
 k8s_yaml('k8s/manifests/ctrl.yaml')
 k8s_resource(
   'ctrl',
@@ -145,21 +134,11 @@ k8s_resource(
 )
 
 # Krane service
-docker_build_with_restart(
-        'unkey/krane:latest',
-        '..',
-        dockerfile='./Dockerfile.tilt',
-        entrypoint=['/unkey', 'run', 'krane'],
-        only=['./bin'],
-        live_update=[
-            sync('./bin/unkey', '/unkey'),
-        ]
-    )
 k8s_yaml('k8s/manifests/krane.yaml')
 k8s_resource(
   'krane',
   port_forwards='8070:8070',
-  resource_deps=['ctrl', 'build-unkey', 'rbac', 'namespace'],
+  resource_deps=['ctrl', 'build-unkey', 'rbac', 'namespace', 'sentinels'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -169,55 +148,32 @@ k8s_resource(
 
 
 # Preflight (mutating admission controller for secrets and credentials injection)
+
+# Build inject binary and image (auto-detect arch from minikube)
 local_resource(
-  'preflight-tls',
-  '''
-  mkcert -cert-file /tmp/preflight-tls.crt -key-file /tmp/preflight-tls.key \
-      preflight.unkey.svc preflight.unkey.svc.cluster.local && \
-  kubectl delete secret preflight-tls -n unkey --ignore-not-found && \
-  kubectl create secret tls preflight-tls -n unkey \
-      --cert=/tmp/preflight-tls.crt --key=/tmp/preflight-tls.key && \
-  rm /tmp/preflight-tls.crt /tmp/preflight-tls.key
-  ''',
-  resource_deps=['namespace'],
-  labels=['setup'],
-)
-# Build inject image for injection into customer pods
-local_resource(
-    'inject',
-    'minikube image build -t inject:latest -f ./cmd/inject/Dockerfile ..',
-    deps=['../cmd/inject', '../pkg/secrets', '../pkg/cli', '../cmd/inject/Dockerfile'],
+    'build-inject',
+    'cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=$(minikube ssh -- uname -m | sed "s/x86_64/amd64/" | sed "s/aarch64/arm64/" | tr -d "\\r") go build -o bin/inject ./cmd/inject && docker build -t inject:latest -f dev/Dockerfile.inject . && minikube image load inject:latest',
+    deps=['../cmd/inject', '../pkg/secrets', '../pkg/cli'],
+    allow_parallel=True,
     labels=['build'],
 )
 
-
-
-docker_build_with_restart(
-        'unkey/preflight:latest',
-        '..',
-        dockerfile='Dockerfile.tilt',
-        entrypoint=['/unkey', 'run', 'preflight'],
-        only=['./bin'],
-        live_update=[
-            sync('./bin/unkey', '/unkey'),
-        ]
-    )
 k8s_yaml('k8s/manifests/preflight.yaml')
 k8s_resource(
   'preflight',
   port_forwards='8090:8080',
-  resource_deps=['preflight-tls', 'inject', 'build-unkey'],
+  resource_deps=['build-unkey', 'build-inject'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
-# Build image for sentinels to use
-local_resource(
-    'sentinel',
-    'minikube image build -t unkey/sentinel:latest -f ./Dockerfile ..',
-    deps=['../main.go', '../pkg', '../cmd', '../svc', '../gen', '../Dockerfile'],
-    labels=['build'],
+# Sentinel image (same Go binary, used by ctrl to spawn sentinels)
+docker_build(
+    'unkey/sentinel:latest',
+    '..',
+    dockerfile='./Dockerfile.tilt',
+    only=['./bin'],
 )
 
 

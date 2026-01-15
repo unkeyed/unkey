@@ -11,7 +11,7 @@ post:
     > Requires `identity.*.delete_identity` permission  
     > Associated API keys remain functional but lose shared resources  
     > External ID becomes available for reuse immediately
-  operationId: v2.identities.deleteIdentity
+  operationId: identities.deleteIdentity
   x-speakeasy-name-override: deleteIdentity
   security:
     - rootKey: []
