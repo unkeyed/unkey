@@ -14,8 +14,7 @@ func TestCachedClock(t *testing.T) {
 		clock := NewCachedClock(resolution)
 		defer clock.Close()
 
-		// Initial time should be set quickly
-		time.Sleep(2 * time.Millisecond)
+		// Initial time should be set synchronously
 		now := clock.Now()
 
 		// Should be within reasonable bounds of current time
@@ -27,27 +26,18 @@ func TestCachedClock(t *testing.T) {
 		clock := NewCachedClock(resolution)
 		defer clock.Close()
 
-		// Get initial time
-		time.Sleep(resolution + 5*time.Millisecond) // Ensure cache is populated
+		// Get initial time (set synchronously in constructor)
 		t1 := clock.Now()
-		realTime1 := time.Now()
 
-		// Wait less than resolution, time should be the same
-		time.Sleep(10 * time.Millisecond)
-		t2 := clock.Now()
-		realTime2 := time.Now()
-
-		// Cached time should be the same (within nanoseconds)
-		require.True(t, t1.Equal(t2), "cached time should not change within resolution")
-
-		// Real time should have advanced
-		require.True(t, realTime2.After(realTime1), "real time should advance")
+		// Verify time doesn't change within resolution
+		require.Never(t, func() bool {
+			return !clock.Now().Equal(t1)
+		}, resolution/2, time.Millisecond, "cached time should not change within resolution")
 
 		// Wait for resolution to pass, cached time should update
-		time.Sleep(resolution + 5*time.Millisecond)
-		t3 := clock.Now()
-
-		require.True(t, t3.After(t2), "cached time should update after resolution")
+		require.Eventually(t, func() bool {
+			return clock.Now().After(t1)
+		}, 3*resolution, time.Millisecond, "cached time should update after resolution")
 	})
 
 	t.Run("Concurrent access is safe", func(t *testing.T) {
@@ -78,20 +68,22 @@ func TestCachedClock(t *testing.T) {
 		resolution := 10 * time.Millisecond
 		clock := NewCachedClock(resolution)
 
-		// Let it run for a bit
-		time.Sleep(resolution + 5*time.Millisecond)
-		t1 := clock.Now()
+		// Wait for time to change at least once to ensure clock is running
+		initialTime := clock.Now()
+		require.Eventually(t, func() bool {
+			return clock.Now().After(initialTime)
+		}, 3*resolution, time.Millisecond, "clock should update")
 
 		// Close the clock
 		clock.Close()
 
-		// Wait longer than resolution
-		time.Sleep(resolution * 3)
+		// Get the time after close
+		t1 := clock.Now()
 
-		t2 := clock.Now()
-
-		// Time should be the same after close (no more updates)
-		require.True(t, t1.Equal(t2), "time should not change after Close()")
+		// Verify time doesn't change after Close()
+		require.Never(t, func() bool {
+			return !clock.Now().Equal(t1)
+		}, resolution*3, time.Millisecond, "time should not change after Close()")
 	})
 
 	t.Run("Very small resolution works", func(t *testing.T) {
@@ -99,7 +91,7 @@ func TestCachedClock(t *testing.T) {
 		clock := NewCachedClock(resolution)
 		defer clock.Close()
 
-		time.Sleep(1 * time.Millisecond)
+		// Time is set synchronously, no sleep needed
 		now := clock.Now()
 
 		require.WithinDuration(t, time.Now(), now, 5*time.Millisecond)
@@ -110,16 +102,13 @@ func TestCachedClock(t *testing.T) {
 		clock := NewCachedClock(resolution)
 		defer clock.Close()
 
-		// Get initial time
-		time.Sleep(resolution + 10*time.Millisecond)
+		// Get initial time (set synchronously in constructor)
 		t1 := clock.Now()
 
-		// Wait less than resolution
-		time.Sleep(10 * time.Millisecond)
-		t2 := clock.Now()
-
-		// Should be the same cached value
-		require.True(t, t1.Equal(t2), "time should not change within large resolution")
+		// Verify time doesn't change within resolution
+		require.Never(t, func() bool {
+			return !clock.Now().Equal(t1)
+		}, resolution/2, time.Millisecond, "time should not change within large resolution")
 	})
 
 	t.Run("CachedClock implements Clock interface", func(t *testing.T) {
