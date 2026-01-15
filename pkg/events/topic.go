@@ -56,16 +56,17 @@ func NewTopic[E any](bufferSize ...int) Topic[E] {
 }
 
 func (t *topic[E]) Emit(ctx context.Context, event E) {
+	t.mu.RLock()
+	listeners := make([]listener[E], len(t.listeners))
+	copy(listeners, t.listeners)
+	t.mu.RUnlock()
 
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	for _, l := range t.listeners {
+	for _, l := range listeners {
 		_, span := tracing.Start(ctx, fmt.Sprintf("topic.Emit:%s", l.id))
 		span.SetAttributes(attribute.Int("channelSize", len(l.ch)))
 		l.ch <- event
 		span.End()
 	}
-
 }
 
 // Subscribe returns a channel that will receive events from the topic.
