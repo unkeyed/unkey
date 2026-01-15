@@ -27,8 +27,10 @@ var Cmd = &cli.Command{
 		cli.Bool("tls-enabled", "Enable TLS termination for the frontline. Default: true",
 			cli.Default(true), cli.EnvVar("UNKEY_TLS_ENABLED")),
 
-		cli.String("region", "Geographic region identifier. Used for logging and routing. Default: unknown",
-			cli.Default("unknown"), cli.EnvVar("UNKEY_REGION"), cli.EnvVar("AWS_REGION")),
+		cli.String("region", "The cloud region with platform, e.g. us-east-1.aws",
+			cli.Required(),
+			cli.EnvVar("UNKEY_REGION"),
+		),
 
 		cli.String("frontline-id", "Unique identifier for this instance. Auto-generated if not provided.",
 			cli.Default(uid.New("frontline", 4)), cli.EnvVar("UNKEY_GATE_ID")),
