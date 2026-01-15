@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	NamespaceSentinel = "sentinels"
+	NamespaceSentinel  = "sentinel"
+	NamespaceUntrusted = "untrusted"
 )
 
 // ensureNamespaceExists creates the namespace if it doesn't already exist.
