@@ -165,26 +165,27 @@ func (s *Shutdowns) RegisterCtx(fns ...ShutdownCtx) {
 // Performance note: This method executes shutdown functions sequentially,
 // not in parallel, which may impact shutdown time for many slow operations.
 func (s *Shutdowns) Shutdown(ctx context.Context) []error {
-	// Take a snapshot of the functions to avoid holding the lock during execution
-	// and to prevent race conditions with new registrations
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	if s.shuttingDown {
-		return []error{} // Shutdown is already in progress
+		s.mu.Unlock()
+		return []error{}
 	}
 
 	s.shuttingDown = true
 
-	// If no functions are registered, return early
 	if len(s.functions) == 0 {
+		s.mu.Unlock()
 		return []error{}
 	}
 
+	functions := make([]ShutdownCtx, len(s.functions))
+	copy(functions, s.functions)
+	s.mu.Unlock()
+
 	var shutdownErrs []error
 
-	// Execute the functions in reverse order
-	for i := len(s.functions) - 1; i >= 0; i-- {
-		f := s.functions[i]
+	for i := len(functions) - 1; i >= 0; i-- {
+		f := functions[i]
 		if err := f(ctx); err != nil {
 			shutdownErrs = append(shutdownErrs, err)
 		}
@@ -195,7 +196,6 @@ func (s *Shutdowns) Shutdown(ctx context.Context) []error {
 	}
 
 	return []error{}
-
 }
 
 // WaitForSignal waits for SIGINT, SIGTERM, or context cancellation and then executes shutdown.
