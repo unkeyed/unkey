@@ -8,6 +8,8 @@ import (
 	"github.com/unkeyed/unkey/svc/vault"
 )
 
+// Cmd is the vault command that runs Unkey's encryption service for secure storage
+// and retrieval of sensitive data using S3-backed storage.
 var Cmd = &cli.Command{
 	Version:     "",
 	Commands:    []*cli.Command{},
