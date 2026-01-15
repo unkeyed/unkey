@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "apply_deployment.go",
         "apply_sentinel.go",
+        "consts.go",
         "delete_deployment.go",
         "delete_sentinel.go",
         "doc.go",
@@ -12,6 +13,7 @@ go_library(
         "reconciler.go",
         "refresh_current_deployments.go",
         "refresh_current_sentinels.go",
+        "tolerations.go",
         "update_state.go",
         "watch_current_deployments.go",
         "watch_current_sentinels.go",
