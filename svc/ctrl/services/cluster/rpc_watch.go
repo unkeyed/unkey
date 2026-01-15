@@ -82,7 +82,7 @@ func (s *Service) getSyntheticSentinels(ctx context.Context, req *connect.Reques
 		if len(sentinels) == 0 {
 			break
 		}
-		cursor = sentinels[len(sentinels)-1].Sentinel.ID
+		cursor = sentinels[len(sentinels)-1].ID
 
 		for _, s := range sentinels {
 			err = stream.Send(&ctrlv1.State{
@@ -91,16 +91,15 @@ func (s *Service) getSyntheticSentinels(ctx context.Context, req *connect.Reques
 					Sentinel: &ctrlv1.SentinelState{
 						State: &ctrlv1.SentinelState_Apply{
 							Apply: &ctrlv1.ApplySentinel{
-								K8SNamespace:  s.Workspace.K8sNamespace.String,
-								K8SName:       s.Sentinel.K8sName,
-								WorkspaceId:   s.Sentinel.WorkspaceID,
-								EnvironmentId: s.Sentinel.EnvironmentID,
-								ProjectId:     s.Sentinel.ProjectID,
-								SentinelId:    s.Sentinel.ID,
-								Image:         s.Sentinel.Image,
-								Replicas:      s.Sentinel.DesiredReplicas,
-								CpuMillicores: int64(s.Sentinel.CpuMillicores),
-								MemoryMib:     int64(s.Sentinel.MemoryMib),
+								K8SName:       s.K8sName,
+								WorkspaceId:   s.WorkspaceID,
+								EnvironmentId: s.EnvironmentID,
+								ProjectId:     s.ProjectID,
+								SentinelId:    s.ID,
+								Image:         s.Image,
+								Replicas:      s.DesiredReplicas,
+								CpuMillicores: int64(s.CpuMillicores),
+								MemoryMib:     int64(s.MemoryMib),
 							},
 						},
 					},
