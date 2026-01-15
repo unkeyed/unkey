@@ -65,20 +65,17 @@ func TestWithTimeout(t *testing.T) {
 	t.Run("client cancellation creates client closed error", func(t *testing.T) {
 		middleware := WithTimeout(200 * time.Millisecond)
 
+		started := make(chan struct{})
 		handler := middleware(func(ctx context.Context, s *Session) error {
-			// Handler that gets canceled by client
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(100 * time.Millisecond):
-				return nil
-			}
+			close(started) // signal we are running
+			<-ctx.Done()   // block until client cancellation
+			return ctx.Err()
 		})
 
-		// Create a context that gets canceled quickly
+		// Create a context that gets canceled when handler starts
 		ctx, cancel := context.WithCancel(context.Background())
 		go func() {
-			time.Sleep(25 * time.Millisecond)
+			<-started // wait until handler is running
 			cancel()
 		}()
 
@@ -193,6 +190,8 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 			t.Fatalf("failed to create server: %v", err)
 		}
 
+		started := make(chan struct{})
+
 		// Register a route that gets canceled by client
 		server.RegisterRoute(
 			[]Middleware{
@@ -200,13 +199,9 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 				WithTimeout(200 * time.Millisecond),
 			},
 			NewRoute(http.MethodGet, "/cancel", func(ctx context.Context, s *Session) error {
-				// Handler that respects cancellation
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				case <-time.After(150 * time.Millisecond):
-					return nil
-				}
+				close(started) // signal we are running
+				<-ctx.Done()   // block until client cancellation
+				return ctx.Err()
 			}),
 		)
 
@@ -216,9 +211,9 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 		req = req.WithContext(ctx)
 		recorder := httptest.NewRecorder()
 
-		// Cancel the context after a short delay to simulate client disconnection
+		// Cancel the context when handler starts
 		go func() {
-			time.Sleep(25 * time.Millisecond)
+			<-started // wait until handler is running
 			cancel()
 		}()
 

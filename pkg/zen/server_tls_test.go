@@ -126,9 +126,6 @@ func TestServerWithTLS(t *testing.T) {
 	// Wait for the server to signal it's starting
 	<-serverReady
 
-	// Give the server a moment to start listening
-	time.Sleep(100 * time.Millisecond)
-
 	// Create a custom HTTP client that skips certificate verification (since we're using a self-signed cert)
 	client := &http.Client{
 		Transport: &http.Transport{
@@ -137,6 +134,16 @@ func TestServerWithTLS(t *testing.T) {
 			},
 		},
 	}
+
+	// Wait for server to be ready to accept connections
+	require.Eventually(t, func() bool {
+		resp, err := client.Get("https://" + addr + "/test")
+		if err != nil {
+			return false
+		}
+		resp.Body.Close()
+		return resp.StatusCode == http.StatusOK
+	}, 2*time.Second, 10*time.Millisecond, "server should be ready")
 
 	// Make a request to the server
 	resp, err := client.Get("https://" + addr + "/test")
@@ -226,9 +233,6 @@ func TestServerWithTLSContextCancellation(t *testing.T) {
 	// Wait for the server to signal it's starting
 	<-serverReady
 
-	// Give the server a moment to start listening
-	time.Sleep(100 * time.Millisecond)
-
 	// Create a custom HTTP client that skips certificate verification
 	client := &http.Client{
 		Transport: &http.Transport{
@@ -237,6 +241,16 @@ func TestServerWithTLSContextCancellation(t *testing.T) {
 			},
 		},
 	}
+
+	// Wait for server to be ready to accept connections
+	require.Eventually(t, func() bool {
+		resp, err := client.Get("https://" + addr + "/test")
+		if err != nil {
+			return false
+		}
+		resp.Body.Close()
+		return resp.StatusCode == http.StatusOK
+	}, 2*time.Second, 10*time.Millisecond, "server should be ready")
 
 	// Make a request to verify the server is running
 	resp, err := client.Get("https://" + addr + "/test")
