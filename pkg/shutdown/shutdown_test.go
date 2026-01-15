@@ -3,6 +3,7 @@ package shutdown
 import (
 	"context"
 	"errors"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -412,9 +413,13 @@ func TestConcurrentRegistrationAndShutdown(t *testing.T) {
 	counter := 0
 	var counterMu sync.Mutex
 
+	// WaitGroup to ensure some registrations have started before shutdown
+	var phase1Done sync.WaitGroup
+
 	// Launch goroutines that will register functions
 	const numRegistrationGoroutines = 5
 	registrationDone.Add(numRegistrationGoroutines)
+	phase1Done.Add(numRegistrationGoroutines)
 
 	for i := 0; i < numRegistrationGoroutines; i++ {
 		go func() {
@@ -431,8 +436,13 @@ func TestConcurrentRegistrationAndShutdown(t *testing.T) {
 					return nil
 				})
 
-				// Small randomization to increase chance of race conditions
-				time.Sleep(time.Millisecond)
+				// Signal after first 5 registrations to indicate phase1 is done
+				if j == 4 {
+					phase1Done.Done()
+				}
+
+				// Non-time-based yield for scheduling variability
+				runtime.Gosched()
 			}
 		}()
 	}
@@ -445,9 +455,11 @@ func TestConcurrentRegistrationAndShutdown(t *testing.T) {
 	go func() {
 		defer shutdownDone.Done()
 
-		// Give registration goroutines a small head start
+		// Signal goroutines to start
 		close(start)
-		time.Sleep(10 * time.Millisecond)
+
+		// Wait for registrations to have started instead of time.Sleep
+		phase1Done.Wait()
 
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
@@ -500,14 +512,21 @@ func TestRegisterDuringShutdown(t *testing.T) {
 	var order []int
 	var orderMu sync.Mutex
 
-	// Add a long-running shutdown function
+	// Channel to signal when to attempt registration
+	attemptRegister := make(chan struct{})
+	registrationDone := make(chan struct{})
+
+	// Add a shutdown function that triggers registration attempt during execution
 	shutdowns.RegisterCtx(func(ctx context.Context) error {
 		orderMu.Lock()
 		order = append(order, 1)
 		orderMu.Unlock()
 
-		// Sleep to give time for the registration to happen
-		time.Sleep(100 * time.Millisecond)
+		// Signal that we're inside the shutdown function (shuttingDown flag is set)
+		close(attemptRegister)
+
+		// Wait for registration attempt to complete before returning
+		<-registrationDone
 		return nil
 	})
 
@@ -519,19 +538,38 @@ func TestRegisterDuringShutdown(t *testing.T) {
 		shutdowns.Shutdown(context.Background())
 	}()
 
-	// Give shutdown a moment to start
-	time.Sleep(20 * time.Millisecond)
+	// Wait for shutdown to signal us
+	<-attemptRegister
 
-	// Try to register a function during shutdown
-	shutdowns.Register(func() error {
-		orderMu.Lock()
-		order = append(order, 2)
-		orderMu.Unlock()
-		return nil
-	})
+	// Try to register a function during shutdown in another goroutine
+	// (since Shutdown holds the lock, Register will block until shutdown completes)
+	var registerWg sync.WaitGroup
+	registerWg.Add(1)
+	go func() {
+		defer registerWg.Done()
+		shutdowns.Register(func() error {
+			orderMu.Lock()
+			order = append(order, 2)
+			orderMu.Unlock()
+			return nil
+		})
+	}()
 
+	// Give the Register goroutine time to start and block on the lock
+	runtime.Gosched()
+
+	// Signal the shutdown function to complete
+	close(registrationDone)
+
+	// Wait for shutdown to complete
 	wg.Wait()
 
-	// The second function should never be called
+	// Wait for registration attempt to complete
+	registerWg.Wait()
+
+	// The second function should never be called because:
+	// 1. shuttingDown was set to true before executing the shutdown function
+	// 2. Register blocks until Shutdown releases the lock
+	// 3. When Register finally acquires the lock, shuttingDown is already true
 	require.Equal(t, []int{1}, order, "Only the first function should be executed")
 }
