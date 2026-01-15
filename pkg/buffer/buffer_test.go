@@ -153,21 +153,25 @@ func TestCustomTypes(t *testing.T) {
 func TestBufferCloseConcurrency(t *testing.T) {
 	b := New[int](Config{Capacity: 10, Drop: true, Name: "test"})
 
-	done := make(chan bool)
+	bufferingStarted := make(chan struct{})
+	bufferingDone := make(chan struct{})
 
 	go func() {
-		defer func() { done <- true }()
 		for i := range 1000 {
+			if i == 0 {
+				close(bufferingStarted)
+			}
 			b.Buffer(i)
 		}
+		close(bufferingDone)
 	}()
 
 	go func() {
-		time.Sleep(10 * time.Millisecond)
+		<-bufferingStarted
 		b.Close()
 	}()
 
-	<-done
+	<-bufferingDone
 
 	// Force close the buffer again (should not panic)
 	b.Close()
