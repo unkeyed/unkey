@@ -87,7 +87,7 @@ export const KeysList = ({
       {
         key: "key",
         header: "Key",
-        width: "10%",
+        width: "20%", // Increased from 10% to accommodate key info
         headerClassName: "pl-[18px]",
         render: (key) => {
           const identity = key.identity?.external_id ?? key.owner_id;
@@ -205,7 +205,7 @@ export const KeysList = ({
       {
         key: "value",
         header: "Value",
-        width: "15%",
+        width: "15%", // Keep at 15%
         render: (key) => (
           <HiddenValueCell value={key.start} title="Value" selected={selectedKey?.id === key.id} />
         ),
@@ -213,7 +213,7 @@ export const KeysList = ({
       {
         key: "usage",
         header: "Usage in last 36h",
-        width: "15%",
+        width: "20%", // Increased from 15% for better chart display
         render: (key) => (
           <VerificationBarChart
             keyAuthId={keyspaceId}
@@ -225,7 +225,7 @@ export const KeysList = ({
       {
         key: "last_used",
         header: "Last Used",
-        width: "15%",
+        width: "15%", // Keep at 15%
         render: (key) => {
           return (
             <LastUsedCell
@@ -239,7 +239,7 @@ export const KeysList = ({
       {
         key: "status",
         header: "Status",
-        width: "15%",
+        width: "15%", // Keep at 15%
         render: (key) => {
           return (
             <StatusDisplay
@@ -253,7 +253,7 @@ export const KeysList = ({
       {
         key: "action",
         header: "",
-        width: "15%",
+        width: "15%", // Keep at 15%
         render: (key) => {
           return <KeysTableActionPopover keyData={key} />;
         },

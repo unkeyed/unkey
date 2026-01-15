@@ -9,14 +9,22 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
+// EventEmitter defines the contract for publishing events to a topic.
+// Implementations must broadcast events to all registered subscribers.
 type EventEmitter[E any] interface {
 	Emit(ctx context.Context, event E)
 }
 
+// EventSubscriber defines the contract for receiving events from a topic.
+// Subscribers receive events via a channel returned by Subscribe.
 type EventSubscriber[E any] interface {
 	Subscribe(id string) <-chan E
 }
 
+// Topic combines EventEmitter and EventSubscriber into a pub/sub messaging primitive.
+// Topics are created with NewTopic and remain active for the lifetime of the application.
+// Events emitted to a topic are broadcast to all current subscribers synchronously,
+// blocking if any subscriber's channel buffer is full.
 type Topic[E any] interface {
 	EventEmitter[E]
 	EventSubscriber[E]
@@ -33,8 +41,8 @@ type topic[E any] struct {
 	listeners  []listener[E]
 }
 
-// NewTopic creates a new topic with an optional buffer size
-// Omiting the buffer size will create an unbuffered topic
+// NewTopic creates a new topic with an optional buffer size.
+// Omitting the buffer size will create an unbuffered topic.
 func NewTopic[E any](bufferSize ...int) Topic[E] {
 	n := 0
 	if len(bufferSize) > 0 {
@@ -60,9 +68,8 @@ func (t *topic[E]) Emit(ctx context.Context, event E) {
 
 }
 
-// Subscribe returns a channel that will receive events from the topic
-// The channel will be closed when the topic is closed
-// The id is used for debugging and tracing, not for uniqueness
+// Subscribe returns a channel that will receive events from the topic.
+// The id is used for debugging and tracing, not for uniqueness.
 func (t *topic[E]) Subscribe(id string) <-chan E {
 	t.mu.Lock()
 	defer t.mu.Unlock()

@@ -10,7 +10,6 @@ import (
 
 const (
 	NamespaceSentinel = "sentinels"
-	NamespaceUnkey    = "unkey"
 )
 
 // ensureNamespaceExists creates the namespace if it doesn't already exist.

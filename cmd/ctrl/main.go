@@ -10,6 +10,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl"
 )
 
+// Cmd is the ctrl command that runs the Unkey control plane service for managing
+// infrastructure, deployments, builds, and service orchestration.
 var Cmd = &cli.Command{
 	Version:     "",
 	Commands:    []*cli.Command{},

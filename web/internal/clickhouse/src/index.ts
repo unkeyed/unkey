@@ -73,20 +73,36 @@ import { insertApiRequest } from "./requests";
 import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";
 import {
+  getDailyIdentityTimeseries,
   getDailyVerificationTimeseries,
+  getFifteenMinutelyIdentityTimeseries,
   getFifteenMinutelyVerificationTimeseries,
+  getFiveMinutelyIdentityTimeseries,
   getFiveMinutelyVerificationTimeseries,
+  getFourHourlyIdentityTimeseries,
   getFourHourlyVerificationTimeseries,
+  getHourlyIdentityTimeseries,
   getHourlyVerificationTimeseries,
+  getIdentityLogs,
   getKeyDetailsLogs,
+  // Identity timeseries functions
+  getMinutelyIdentityTimeseries,
   getMinutelyVerificationTimeseries,
+  getMonthlyIdentityTimeseries,
   getMonthlyVerificationTimeseries,
+  getQuarterlyIdentityTimeseries,
   getQuarterlyVerificationTimeseries,
+  getSixHourlyIdentityTimeseries,
   getSixHourlyVerificationTimeseries,
+  getThirtyMinutelyIdentityTimeseries,
   getThirtyMinutelyVerificationTimeseries,
+  getThreeDayIdentityTimeseries,
   getThreeDayVerificationTimeseries,
+  getTwelveHourlyIdentityTimeseries,
   getTwelveHourlyVerificationTimeseries,
+  getTwoHourlyIdentityTimeseries,
   getTwoHourlyVerificationTimeseries,
+  getWeeklyIdentityTimeseries,
   getWeeklyVerificationTimeseries,
   insertVerification,
 } from "./verifications";
@@ -233,6 +249,29 @@ export class ClickHouse {
       },
       key: {
         logs: getKeyDetailsLogs(this.querier),
+      },
+      identity: {
+        logs: getIdentityLogs(this.querier),
+        timeseries: {
+          // Minute-based granularity
+          perMinute: getMinutelyIdentityTimeseries(this.querier),
+          per5Minutes: getFiveMinutelyIdentityTimeseries(this.querier),
+          per15Minutes: getFifteenMinutelyIdentityTimeseries(this.querier),
+          per30Minutes: getThirtyMinutelyIdentityTimeseries(this.querier),
+          // Hour-based granularity
+          perHour: getHourlyIdentityTimeseries(this.querier),
+          per2Hours: getTwoHourlyIdentityTimeseries(this.querier),
+          per4Hours: getFourHourlyIdentityTimeseries(this.querier),
+          per6Hours: getSixHourlyIdentityTimeseries(this.querier),
+          per12Hours: getTwelveHourlyIdentityTimeseries(this.querier),
+          // Day-based granularity
+          perDay: getDailyIdentityTimeseries(this.querier),
+          per3Days: getThreeDayIdentityTimeseries(this.querier),
+          perWeek: getWeeklyIdentityTimeseries(this.querier),
+          // Month-based granularity
+          perMonth: getMonthlyIdentityTimeseries(this.querier),
+          perQuarter: getQuarterlyIdentityTimeseries(this.querier),
+        },
       },
       timeseries: {
         perMinute: getMinutelyLogsTimeseries(this.querier),

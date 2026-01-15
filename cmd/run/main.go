@@ -14,6 +14,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
+// Cmd is the run command that serves as the parent command for running Unkey services.
+// Use 'unkey run <service>' to start a specific service such as api, ctrl, krane, or vault.
 var Cmd = &cli.Command{
 	Flags:   []cli.Flag{},
 	Version: "",
