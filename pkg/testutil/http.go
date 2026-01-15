@@ -335,10 +335,13 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 	rootKey := h.CreateRootKey(workspace.ID)
 
 	project := h.CreateProject(seed.CreateProjectRequest{
-		WorkspaceID: workspace.ID,
-		Name:        config.ProjectName,
-		ID:          uid.New(uid.ProjectPrefix),
-		Slug:        config.ProjectSlug,
+		WorkspaceID:      workspace.ID,
+		Name:             config.ProjectName,
+		ID:               uid.New(uid.ProjectPrefix),
+		Slug:             config.ProjectSlug,
+		GitRepositoryURL: "",
+		DefaultBranch:    "",
+		DeleteProtection: false,
 	})
 
 	var environment db.Environment
@@ -350,6 +353,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 			Slug:             config.EnvironmentSlug,
 			Description:      config.EnvironmentSlug + " environment",
 			DeleteProtection: false,
+			SentinelConfig:   nil,
 		})
 	}
 
