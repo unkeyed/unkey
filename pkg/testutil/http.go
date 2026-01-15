@@ -305,7 +305,7 @@ type CreateTestDeploymentSetupOptions struct {
 	ProjectSlug     string
 	EnvironmentSlug string
 	SkipEnvironment bool
-	Permissions     []string // Permissions to grant to the root key (only used if SkipRootKey is false)
+	Permissions     []string
 }
 
 // CreateTestDeploymentSetup creates workspace, root key, project, and environment with sensible defaults
