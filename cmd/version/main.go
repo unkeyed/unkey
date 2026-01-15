@@ -8,6 +8,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
+// Cmd is the version command that manages API versions including listing, getting details,
+// and rolling back to previous versions.
 var Cmd = &cli.Command{
 	Version: "",
 	Flags:   []cli.Flag{},
