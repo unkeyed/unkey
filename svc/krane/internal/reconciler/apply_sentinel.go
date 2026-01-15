@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
@@ -138,7 +139,7 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 							},
 						},
 						Env: []corev1.EnvVar{
-							{Name: "UNKEY_HTTP_PORT", Value: "8040"},
+							{Name: "UNKEY_HTTP_PORT", Value: strconv.Itoa(SentinelPort)},
 							{Name: "UNKEY_WORKSPACE_ID", Value: sentinel.GetWorkspaceId()},
 							{Name: "UNKEY_PROJECT_ID", Value: sentinel.GetProjectId()},
 							{Name: "UNKEY_ENVIRONMENT_ID", Value: sentinel.GetEnvironmentId()},
@@ -147,14 +148,14 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 						},
 
 						Ports: []corev1.ContainerPort{{
-							ContainerPort: 8040,
+							ContainerPort: SentinelPort,
 							Name:          "sentinel",
 						}},
 						LivenessProbe: &corev1.Probe{
 							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
 									Path: "/_unkey/internal/health",
-									Port: intstr.FromInt(8040),
+									Port: intstr.FromInt(SentinelPort),
 								},
 							},
 							InitialDelaySeconds: 10,
@@ -166,7 +167,7 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
 									Path: "/_unkey/internal/health",
-									Port: intstr.FromInt(8040),
+									Port: intstr.FromInt(SentinelPort),
 								},
 							},
 							InitialDelaySeconds: 5,
@@ -240,8 +241,8 @@ func (r *Reconciler) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.A
 			Selector: labels.New().SentinelID(sentinel.GetSentinelId()),
 			Ports: []corev1.ServicePort{
 				{
-					Port:       8040,
-					TargetPort: intstr.FromInt(8040),
+					Port:       SentinelPort,
+					TargetPort: intstr.FromInt(SentinelPort),
 					Protocol:   corev1.ProtocolTCP,
 				},
 			},
