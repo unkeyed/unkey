@@ -33,7 +33,7 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 	}
 
 	usage, err := k.usageLimiter.Limit(ctx, usagelimiter.UsageRequest{
-		KeyId: k.Key.ID,
+		KeyID: k.Key.ID,
 		Cost:  cost,
 	})
 	if err != nil {
