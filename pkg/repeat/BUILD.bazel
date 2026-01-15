@@ -13,5 +13,8 @@ go_test(
     size = "small",
     srcs = ["every_test.go"],
     embed = [":repeat"],
-    deps = ["@com_github_stretchr_testify//assert"],
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
 )
