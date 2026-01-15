@@ -46,6 +46,9 @@ type Cache[K comparable, V any] interface {
 
 	// Name returns the name of this cache instance.
 	Name() string
+
+	// Close stops background tasks and releases resources.
+	Close()
 }
 
 type Key interface {

@@ -29,6 +29,8 @@ type cache[K comparable, V any] struct {
 
 	inflightMu        sync.Mutex
 	inflightRefreshes map[K]bool
+
+	stopCleanup func()
 }
 
 type Config[K comparable, V any] struct {
@@ -83,6 +85,7 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		revalidateC:       make(chan func(), 1000),
 		inflightMu:        sync.Mutex{},
 		inflightRefreshes: make(map[K]bool),
+		stopCleanup:       nil,
 	}
 
 	for range 10 {
@@ -98,10 +101,17 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 }
 
 func (c *cache[K, V]) registerMetrics() {
-	repeat.Every(60*time.Second, func() {
+	c.stopCleanup = repeat.Every(60*time.Second, func() {
 		metrics.CacheSize.WithLabelValues(c.resource).Set(float64(c.otter.Size()))
 		metrics.CacheCapacity.WithLabelValues(c.resource).Set(float64(c.otter.Capacity()))
 	})
+}
+
+func (c *cache[K, V]) Close() {
+	if c.stopCleanup != nil {
+		c.stopCleanup()
+	}
+	close(c.revalidateC)
 }
 
 func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
