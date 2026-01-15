@@ -44,13 +44,25 @@ func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 	err = topic.WaitUntilReady(waitCtx)
 	require.NoError(t, err)
 
-	// Create dispatcher (one per process in production)
-	dispatcher, err := clustering.NewInvalidationDispatcher(topic, logger)
+	// Create dispatcher with WithStartFromBeginning to ensure all events are consumed
+	// including those produced before the consumer is fully ready
+	dispatcher, err := clustering.NewInvalidationDispatcher(topic, logger, eventstream.WithStartFromBeginning())
 	require.NoError(t, err)
 	defer dispatcher.Close()
 
-	// Wait for dispatcher's consumer to be ready
-	time.Sleep(5 * time.Second)
+	// Warm up the producer by sending a test event until it succeeds
+	// This ensures Kafka metadata is fully propagated before the actual test
+	producer := topic.NewProducer()
+	warmupEvent := &cachev1.CacheInvalidationEvent{
+		CacheName:      "warmup",
+		CacheKey:       "warmup-key",
+		Timestamp:      time.Now().UnixMilli(),
+		SourceInstance: "warmup",
+	}
+	require.Eventually(t, func() bool {
+		err := producer.Produce(context.Background(), warmupEvent)
+		return err == nil
+	}, 30*time.Second, 100*time.Millisecond, "Kafka producer should become ready within 30 seconds")
 
 	// Create two cache instances (simulating two nodes)
 	createCache := func(nodeID string) (*clustering.ClusterCache[string, string], cache.Cache[string, string], error) {
@@ -111,10 +123,11 @@ func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 	t.Logf("Node 1 Remove() returned")
 
 	// Wait for invalidation to propagate through dispatcher
+	// Use generous timeout to account for consumer startup and event propagation
 	require.Eventually(t, func() bool {
 		_, hit := localCache2.Get(ctx, "shared-key")
 		return hit == cache.Miss
-	}, 10*time.Second, 100*time.Millisecond, "Node 2's cache should be invalidated within 10 seconds")
+	}, 30*time.Second, 100*time.Millisecond, "Node 2's cache should be invalidated within 30 seconds")
 
 	// Verify Node 1 also has the key removed
 	_, hit1After := localCache1.Get(ctx, "shared-key")

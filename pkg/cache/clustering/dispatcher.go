@@ -34,7 +34,7 @@ type InvalidationDispatcher struct {
 // events to registered caches.
 //
 // Returns an error if topic or logger is nil - use NewNoopDispatcher() if clustering is disabled.
-func NewInvalidationDispatcher(topic *eventstream.Topic[*cachev1.CacheInvalidationEvent], logger logging.Logger) (*InvalidationDispatcher, error) {
+func NewInvalidationDispatcher(topic *eventstream.Topic[*cachev1.CacheInvalidationEvent], logger logging.Logger, opts ...eventstream.ConsumerOption) (*InvalidationDispatcher, error) {
 	err := assert.All(
 		assert.NotNil(topic, "topic is required for InvalidationDispatcher - use NewNoopDispatcher() if clustering is disabled"),
 		assert.NotNil(logger, "logger is required for InvalidationDispatcher"),
@@ -50,7 +50,7 @@ func NewInvalidationDispatcher(topic *eventstream.Topic[*cachev1.CacheInvalidati
 		logger:   logger,
 	}
 
-	d.consumer = topic.NewConsumer()
+	d.consumer = topic.NewConsumer(opts...)
 	d.consumer.Consume(context.Background(), d.handleEvent)
 
 	return d, nil

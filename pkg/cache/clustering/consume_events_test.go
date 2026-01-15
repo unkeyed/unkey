@@ -68,8 +68,23 @@ func TestClusterCache_ConsumesInvalidationAndRemovesFromCache(t *testing.T) {
 	require.Equal(t, cache.Hit, hit2, "key2 should be in cache initially")
 	require.Equal(t, "value2", value2, "key2 should have correct value")
 
-	// Set up consumer that will remove data from cache when invalidation event is received
-	consumer := topic.NewConsumer()
+	// Produce invalidation event first, before consumer starts
+	// Use require.Eventually to handle Kafka metadata propagation delay
+	producer := topic.NewProducer()
+	invalidationEvent := &cachev1.CacheInvalidationEvent{
+		CacheName:      "test-cache",
+		CacheKey:       "key1",
+		Timestamp:      time.Now().UnixMilli(),
+		SourceInstance: "other-node",
+	}
+
+	require.Eventually(t, func() bool {
+		err := producer.Produce(ctx, invalidationEvent)
+		return err == nil
+	}, 30*time.Second, 100*time.Millisecond, "Kafka producer should become ready within 30 seconds")
+
+	// Set up consumer with WithStartFromBeginning to read all messages including those produced above
+	consumer := topic.NewConsumer(eventstream.WithStartFromBeginning())
 	defer consumer.Close()
 
 	consumerCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -87,25 +102,10 @@ func TestClusterCache_ConsumesInvalidationAndRemovesFromCache(t *testing.T) {
 		return nil
 	})
 
-	// Wait for consumer to be ready and actually positioned
-	time.Sleep(5 * time.Second)
-
-	// Produce an invalidation event
-	producer := topic.NewProducer()
-	invalidationEvent := &cachev1.CacheInvalidationEvent{
-		CacheName:      "test-cache",
-		CacheKey:       "key1",
-		Timestamp:      time.Now().UnixMilli(),
-		SourceInstance: "other-node",
-	}
-
-	err = producer.Produce(consumerCtx, invalidationEvent)
-	require.NoError(t, err, "Failed to produce invalidation event")
-
-	// Wait for event to be processed
+	// Wait for event to be processed - consumer starts from beginning so it will find the event
 	require.Eventually(t, func() bool {
 		return invalidationProcessed.Load()
-	}, 5*time.Second, 100*time.Millisecond, "Cache invalidation event should be consumed and processed within 5 seconds")
+	}, 30*time.Second, 100*time.Millisecond, "Cache invalidation event should be consumed and processed within 30 seconds")
 
 	// Verify key1 was removed from cache
 	_, hit1After := localCache.Get(ctx, "key1")
