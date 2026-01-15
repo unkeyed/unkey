@@ -126,7 +126,10 @@ func uploadToPresignedURL(ctx context.Context, presignedURL, filePath string) er
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		body, _ := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return fmt.Errorf("upload failed with status %d (failed to read response body: %w)", resp.StatusCode, readErr)
+		}
 		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
