@@ -462,11 +462,13 @@ components:
                     minLength: 1
                     description: Unique deployment identifier to retrieve
                     example: "d_abc123xyz"
+                    pattern: "^d_[a-zA-Z0-9]+$"
                 projectId:
                     type: string
                     minLength: 1
                     description: Project identifier that the deployment belongs to
                     example: "proj_abc123xyz"
+                    pattern: "^proj_[a-zA-Z0-9]+$"
         V2DeployGetDeploymentResponseBody:
             type: object
             required:

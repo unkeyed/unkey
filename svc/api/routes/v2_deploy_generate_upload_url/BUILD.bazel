@@ -27,6 +27,7 @@ go_test(
         "200_test.go",
         "400_test.go",
         "401_test.go",
+        "403_test.go",
         "404_test.go",
     ],
     deps = [
