@@ -1,0 +1,147 @@
+package handler
+
+import (
+	"context"
+	"net/http"
+
+	"connectrpc.com/connect"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
+	"github.com/unkeyed/unkey/svc/api/openapi"
+)
+
+type (
+	Request  = openapi.V2DeployGetDeploymentRequestBody
+	Response = openapi.V2DeployGetDeploymentResponseBody
+)
+
+type Handler struct {
+	Logger     logging.Logger
+	DB         db.Database
+	Keys       keys.KeyService
+	CtrlClient ctrlv1connect.DeploymentServiceClient
+}
+
+func (h *Handler) Path() string {
+	return "/v2/deploy.getDeployment"
+}
+
+func (h *Handler) Method() string {
+	return "POST"
+}
+
+func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	_, emit, err := h.Keys.GetRootKey(ctx, s)
+	defer emit()
+	if err != nil {
+		return err
+	}
+
+	req, err := zen.BindBody[Request](s)
+	if err != nil {
+		return err
+	}
+
+	ctrlReq := &ctrlv1.GetDeploymentRequest{
+		DeploymentId: req.DeploymentId,
+	}
+	connectReq := connect.NewRequest(ctrlReq)
+
+	ctrlResp, err := h.CtrlClient.GetDeployment(ctx, connectReq)
+	if err != nil {
+		return ctrlclient.HandleError(err, "get deployment")
+	}
+
+	deployment := ctrlResp.Msg.GetDeployment()
+
+	// Transform status enum to string
+	statusStr := deploymentStatusToString(deployment.GetStatus())
+
+	// Transform steps
+	var steps *[]openapi.V2DeployDeploymentStep
+	if deployment.GetSteps() != nil {
+		stepsSlice := make([]openapi.V2DeployDeploymentStep, len(deployment.GetSteps()))
+		for i, protoStep := range deployment.GetSteps() {
+			step := openapi.V2DeployDeploymentStep{
+				ErrorMessage: nil,
+				CreatedAt:    nil,
+				Message:      nil,
+				Status:       nil,
+			}
+
+			if protoStep.GetStatus() != "" {
+				status := protoStep.GetStatus()
+				step.Status = &status
+			}
+			if protoStep.GetMessage() != "" {
+				message := protoStep.GetMessage()
+				step.Message = &message
+			}
+			if protoStep.GetErrorMessage() != "" {
+				errMessage := protoStep.GetErrorMessage()
+				step.ErrorMessage = &errMessage
+			}
+			if protoStep.GetCreatedAt() != 0 {
+				createdAt := protoStep.GetCreatedAt()
+				step.CreatedAt = &createdAt
+			}
+			stepsSlice[i] = step
+		}
+		steps = &stepsSlice
+	}
+
+	responseData := openapi.V2DeployGetDeploymentResponseData{
+		Id:           deployment.GetId(),
+		Status:       openapi.V2DeployGetDeploymentResponseDataStatus(statusStr),
+		Steps:        nil,
+		ErrorMessage: nil,
+		Hostnames:    nil,
+	}
+
+	if deployment.GetErrorMessage() != "" {
+		errorMessage := deployment.GetErrorMessage()
+		responseData.ErrorMessage = &errorMessage
+	}
+
+	if len(deployment.GetHostnames()) > 0 {
+		hostnames := deployment.GetHostnames()
+		responseData.Hostnames = &hostnames
+	}
+
+	if steps != nil {
+		responseData.Steps = steps
+	}
+
+	return s.JSON(http.StatusOK, Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		Data: responseData,
+	})
+}
+
+func deploymentStatusToString(status ctrlv1.DeploymentStatus) string {
+	switch status {
+	case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED:
+		return "UNSPECIFIED"
+	case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING:
+		return "PENDING"
+	case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_BUILDING:
+		return "BUILDING"
+	case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_DEPLOYING:
+		return "DEPLOYING"
+	case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_NETWORK:
+		return "NETWORK"
+	case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY:
+		return "READY"
+	case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED:
+		return "FAILED"
+	default:
+		return "UNSPECIFIED"
+	}
+}

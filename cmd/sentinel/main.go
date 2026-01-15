@@ -8,6 +8,8 @@ import (
 	"github.com/unkeyed/unkey/svc/sentinel"
 )
 
+// Cmd is the sentinel command that runs the deployment proxy server for routing
+// requests to deployment instances within a specific environment.
 var Cmd = &cli.Command{
 	Version:     "",
 	Commands:    []*cli.Command{},
