@@ -27,17 +27,12 @@ jobs:
         with:
           install: true
 
-      # Running containers is temporary until we moved them inside of bazel, at that point they are only created if they are actually needed
-      - name: Start containers
-        run: docker compose -f ./dev/docker-compose.yaml up -d s3 clickhouse kafka mysql ctrl restate
-        env:
-          DOCKER_BUILDKIT: 1
-          COMPOSE_DOCKER_CLI_BUILD: 1
-
       - name: Build
         run: bazel build //...
 
-      - name: Wait for containers
+      # Running containers is temporary until we moved them inside of bazel,
+      # at that point they are only created if they are actually needed
+      - name: Start for containers
         run: docker compose -f ./dev/docker-compose.yaml up -d --wait
 
       - name: Run tests
