@@ -307,8 +307,9 @@ func TestDoContext(t *testing.T) {
 		expectedError error
 	}{
 		{
-			name:  "context already cancelled before first attempt",
-			retry: New(),
+			name:        "context already cancelled before first attempt",
+			retry:       New(),
+			cancelAfter: 0,
 			fn: func() error {
 				return errors.New("should not be called")
 			},
@@ -328,6 +329,7 @@ func TestDoContext(t *testing.T) {
 					return time.Duration(n) * 100 * time.Millisecond // 100ms, 200ms, 300ms
 				}),
 			),
+
 			fn: func() error {
 				return errors.New("temporary error")
 			},
@@ -349,6 +351,7 @@ func TestDoContext(t *testing.T) {
 			fn: func() error {
 				return errors.New("temporary error")
 			},
+			cancelAfter: 0,
 			setupContext: func() (context.Context, context.CancelFunc) {
 				// 50ms timeout: enough for attempt1, but deadline exceeded during first sleep(100ms)
 				return context.WithTimeout(context.Background(), 50*time.Millisecond)

@@ -204,7 +204,7 @@ func sendSlackNotification(webhookURL string, e db.ListWorkspacesRow, used int64
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("slack notification failed with status code: %d", resp.StatusCode)

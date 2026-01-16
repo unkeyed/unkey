@@ -148,10 +148,11 @@ func TestMigrateKeysNotFound(t *testing.T) {
 			DefaultBytes:  nil,
 		})
 
-		db.Query.SoftDeleteApi(ctx, h.DB.RW(), db.SoftDeleteApiParams{
+		err := db.Query.SoftDeleteApi(ctx, h.DB.RW(), db.SoftDeleteApiParams{
 			Now:   sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			ApiID: deletedApi.ID,
 		})
+		require.NoError(t, err)
 
 		req := handler.Request{
 			ApiId: deletedApi.ID,

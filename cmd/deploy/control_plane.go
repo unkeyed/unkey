@@ -85,7 +85,7 @@ func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath
 	if err != nil {
 		return "", fmt.Errorf("failed to create tar archive: %w", err)
 	}
-	defer os.Remove(tarPath)
+	defer func() { _ = os.Remove(tarPath) }()
 
 	if err := uploadToPresignedURL(ctx, uploadURL, tarPath); err != nil {
 		return "", fmt.Errorf("failed to upload build context: %w", err)
@@ -100,7 +100,7 @@ func uploadToPresignedURL(ctx context.Context, presignedURL, filePath string) er
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	stat, err := file.Stat()
 	if err != nil {
@@ -123,7 +123,7 @@ func uploadToPresignedURL(ctx context.Context, presignedURL, filePath string) er
 	if err != nil {
 		return fmt.Errorf("upload request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		body, readErr := io.ReadAll(resp.Body)
@@ -161,18 +161,20 @@ func createContextTar(contextPath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
-	tmpFile.Close()
+	if err = tmpFile.Close(); err != nil {
+		return "", fmt.Errorf("failed to close temp file: %w", err)
+	}
 	tarPath := tmpFile.Name()
 
 	if err = os.Chmod(tarPath, 0o666); err != nil {
-		os.Remove(tarPath)
+		_ = os.Remove(tarPath)
 		return "", fmt.Errorf("failed to set file permissions: %w", err)
 	}
 
 	cmd := exec.Command("tar", "-czf", tarPath, "-C", absContextPath, ".")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		os.Remove(tarPath)
+		_ = os.Remove(tarPath)
 		return "", fmt.Errorf("tar command failed: %w\nOutput: %s", err, string(output))
 	}
 

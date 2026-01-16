@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "nolint",
+    srcs = ["nolint.go"],
+    importpath = "github.com/unkeyed/unkey/dev/linters/nolint",
+    visibility = ["//dev/linters:__subpackages__"],
+    deps = ["@org_golang_x_tools//go/analysis"],
+)
