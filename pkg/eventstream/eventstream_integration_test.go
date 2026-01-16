@@ -46,7 +46,7 @@ func TestEventStreamIntegration(t *testing.T) {
 	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err, "Failed to create test topic")
 	t.Logf("Topic created successfully")
-	defer topic.Close()
+	defer func() { require.NoError(t, topic.Close()) }()
 
 	// Wait for topic to be fully propagated before using it
 	waitCtx, waitCancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -68,7 +68,7 @@ func TestEventStreamIntegration(t *testing.T) {
 	// Create consumer
 	t.Logf("Creating consumer...")
 	consumer := topic.NewConsumer()
-	defer consumer.Close()
+	defer func() { require.NoError(t, consumer.Close()) }()
 
 	// Start consuming before producing
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -132,7 +132,7 @@ func TestEventStreamMultipleMessages(t *testing.T) {
 
 	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err)
-	defer topic.Close()
+	defer func() { require.NoError(t, topic.Close()) }()
 
 	// Wait for topic to be fully propagated before using it
 	waitCtx, waitCancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -148,7 +148,7 @@ func TestEventStreamMultipleMessages(t *testing.T) {
 
 	// Create consumer
 	consumer := topic.NewConsumer()
-	defer consumer.Close()
+	defer func() { require.NoError(t, consumer.Close()) }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

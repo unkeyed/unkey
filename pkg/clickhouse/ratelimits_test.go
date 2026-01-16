@@ -24,7 +24,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 
 	conn, err := ch.Open(opts)
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() { require.NoError(t, conn.Close()) }()
 
 	err = conn.Ping(context.Background())
 	require.NoError(t, err)

@@ -70,7 +70,7 @@ func TestContextCancellation(t *testing.T) {
 		if livenessErr != nil {
 			return false
 		}
-		defer res.Body.Close()
+		defer func() { _ = res.Body.Close() }()
 		return res.StatusCode == http.StatusOK
 	}, 10*time.Second, 100*time.Millisecond, "API server failed to start")
 

@@ -14,6 +14,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/pkg/cache",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/assert",
         "//pkg/clock",
         "//pkg/db",
         "//pkg/debug",

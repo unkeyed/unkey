@@ -115,7 +115,11 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
 
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			logger.Error("failed to close db", "error", err)
+		}
+	}()
 
 	if cfg.PrometheusPort > 0 {
 		prom, promErr := prometheus.New(prometheus.Config{
@@ -225,10 +229,13 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	auditlogSvc := auditlogs.New(auditlogs.Config{
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{
 		Logger: logger,
 		DB:     db,
 	})
+	if err != nil {
+		return fmt.Errorf("unable to create auditlogs service: %w", err)
+	}
 
 	// Initialize cache invalidation topic
 	cacheInvalidationTopic := eventstream.NewNoopTopic[*cachev1.CacheInvalidationEvent]()

@@ -13,12 +13,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-// DEFAULT_BUCKET is the default bucket name used for audit logs when no bucket
+// DefaultBucket is the default bucket name used for audit logs when no bucket
 // is specified. All audit logs are categorized into buckets for organization
 // and querying purposes, with "unkey_mutations" serving as the standard bucket
 // for most operational audit events.
 const (
-	DEFAULT_BUCKET = "unkey_mutations"
+	DefaultBucket = "unkey_mutations"
 )
 
 // Insert implements AuditLogService.Insert, persisting audit logs and their
@@ -36,7 +36,7 @@ const (
 //
 // The method handles several important edge cases:
 //   - Empty log slices return immediately without database interaction
-//   - Missing bucket names are automatically set to DEFAULT_BUCKET
+//   - Missing bucket names are automatically set to DefaultBucket
 //   - JSON serialization failures for metadata cause immediate error return
 //   - Transaction rollback is handled gracefully with error logging
 //   - Context cancellation triggers automatic cleanup
@@ -75,7 +75,7 @@ func (s *service) insertLogs(ctx context.Context, tx db.DBTX, logs []auditlog.Au
 			ID:          auditLogID,
 			WorkspaceID: l.WorkspaceID,
 			BucketID:    "dummy",
-			Bucket:      DEFAULT_BUCKET,
+			Bucket:      DefaultBucket,
 			Event:       string(l.Event),
 			Display:     l.Display,
 			ActorMeta:   actorMeta,
@@ -99,7 +99,7 @@ func (s *service) insertLogs(ctx context.Context, tx db.DBTX, logs []auditlog.Au
 				AuditLogID:  auditLogID,
 				WorkspaceID: l.WorkspaceID,
 				BucketID:    "dummy",
-				Bucket:      DEFAULT_BUCKET,
+				Bucket:      DefaultBucket,
 				Type:        string(resource.Type),
 				DisplayName: resource.DisplayName,
 				Name:        sql.NullString{String: resource.DisplayName, Valid: resource.DisplayName != ""},

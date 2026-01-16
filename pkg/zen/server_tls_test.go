@@ -121,7 +121,7 @@ func TestServerWithTLS(t *testing.T) {
 			t.Errorf("server.Serve returned: %v", listenErr)
 		}
 	}()
-	defer server.Shutdown(context.Background())
+	defer func() { require.NoError(t, server.Shutdown(context.Background())) }()
 
 	// Wait for the server to signal it's starting
 	<-serverReady
@@ -141,7 +141,7 @@ func TestServerWithTLS(t *testing.T) {
 	// Make a request to the server
 	resp, err := client.Get("https://" + addr + "/test")
 	require.NoError(t, err, "Failed to make request to HTTPS server")
-	defer resp.Body.Close()
+	defer func() { require.NoError(t, resp.Body.Close()) }()
 
 	// Verify the response
 	assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected status code 200")
@@ -241,7 +241,7 @@ func TestServerWithTLSContextCancellation(t *testing.T) {
 	// Make a request to verify the server is running
 	resp, err := client.Get("https://" + addr + "/test")
 	require.NoError(t, err, "Failed to make request to HTTPS server")
-	resp.Body.Close()
+	require.NoError(t, resp.Body.Close())
 
 	// Cancel the context to trigger server shutdown
 	serverCancel()
