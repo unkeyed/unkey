@@ -24,19 +24,24 @@ func TestGetDeploymentInsufficientPermissions(t *testing.T) {
 	}
 	h.Register(route)
 
-	// Create setup with insufficient permissions
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+	// Create setup with create_deployment permission to create a test deployment
+	setupCreate := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"project.*.create_deployment"},
 	})
 
+	// Create an actual deployment
+	deploymentID := createTestDeployment(t, h.CtrlDeploymentClient, setupCreate.Project.ID, setupCreate.RootKey)
+
+	// Now create a key with insufficient permissions (no read_deployment)
+	rootKeyWithoutRead := h.CreateRootKey(setupCreate.Workspace.ID, "project.*.create_deployment")
+
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", setup.RootKey)},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKeyWithoutRead)},
 	}
 
 	req := handler.Request{
-		ProjectId:    setup.Project.ID,
-		DeploymentId: "d_123abc",
+		DeploymentId: deploymentID,
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)

@@ -27,7 +27,6 @@ func TestUnauthorizedAccess(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ProjectId:    "proj_123abc",
 			DeploymentId: "d_123abc",
 		}
 

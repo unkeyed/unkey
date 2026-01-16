@@ -50,6 +50,30 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	dbDeployment, err := db.Query.FindDeploymentById(ctx, h.DB.RO(), req.DeploymentId)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("deployment not found",
+				fault.Code(codes.Data.Project.NotFound.URN()),
+				fault.Internal("deployment not found"),
+				fault.Public("The requested deployment does not exist or has been deleted."),
+			)
+		}
+		return fault.Wrap(err, fault.Internal("failed to find deployment"))
+	}
+
+	// Verify deployment belongs to the authenticated workspace
+	if dbDeployment.WorkspaceID != auth.AuthorizedWorkspaceID {
+		return fault.New("wrong workspace",
+			fault.Code(codes.Data.Project.NotFound.URN()),
+			fault.Internal("wrong workspace, masking as 404"),
+			fault.Public("The requested deployment does not exist or has been deleted."),
+		)
+	}
+
+	// Extract projectID from deployment
+	projectID := dbDeployment.ProjectID
+
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Project,
@@ -58,32 +82,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Project,
-			ResourceID:   req.ProjectId,
+			ResourceID:   projectID,
 			Action:       rbac.ReadDeployment,
 		}),
 	)))
 	if err != nil {
 		return err
-	}
-
-	// Verify project belongs to the authenticated workspace
-	project, err := db.Query.FindProjectById(ctx, h.DB.RO(), req.ProjectId)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("project not found",
-				fault.Code(codes.Data.Project.NotFound.URN()),
-				fault.Internal("project not found"),
-				fault.Public("The requested project does not exist or has been deleted."),
-			)
-		}
-		return fault.Wrap(err, fault.Internal("failed to find project"))
-	}
-	if project.WorkspaceID != auth.AuthorizedWorkspaceID {
-		return fault.New("wrong workspace",
-			fault.Code(codes.Data.Project.NotFound.URN()),
-			fault.Internal("wrong workspace, masking as 404"),
-			fault.Public("The requested project does not exist or has been deleted."),
-		)
 	}
 
 	ctrlReq := &ctrlv1.GetDeploymentRequest{

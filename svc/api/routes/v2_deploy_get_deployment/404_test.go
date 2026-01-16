@@ -32,7 +32,6 @@ func TestNotFound(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ProjectId:    setup.Project.ID,
 			DeploymentId: "d_nonexistent123",
 		}
 

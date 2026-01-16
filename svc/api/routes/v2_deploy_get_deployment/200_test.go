@@ -38,7 +38,6 @@ func TestGetDeploymentSuccessfully(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ProjectId:    setup.Project.ID,
 			DeploymentId: deploymentID,
 		}
 
@@ -85,7 +84,6 @@ func TestGetDeploymentWithWildcardPermission(t *testing.T) {
 	}
 
 	req := handler.Request{
-		ProjectId:    setupCreate.Project.ID,
 		DeploymentId: deploymentID,
 	}
 
@@ -122,7 +120,6 @@ func TestGetDeploymentWithSpecificProjectPermission(t *testing.T) {
 	}
 
 	req := handler.Request{
-		ProjectId:    setupCreate.Project.ID,
 		DeploymentId: deploymentID,
 	}
 
