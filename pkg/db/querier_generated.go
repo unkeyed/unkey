@@ -29,7 +29,7 @@ type Querier interface {
 	//DeleteDeploymentInstances
 	//
 	//  DELETE FROM instances
-	//  WHERE deployment_id = ? AND region = ?
+	//  WHERE deployment_id = ? AND cluster_id = ?
 	DeleteDeploymentInstances(ctx context.Context, db DBTX, arg DeleteDeploymentInstancesParams) error
 	//DeleteIdentity
 	//
@@ -39,7 +39,7 @@ type Querier interface {
 	DeleteIdentity(ctx context.Context, db DBTX, arg DeleteIdentityParams) error
 	//DeleteInstance
 	//
-	//  DELETE FROM instances WHERE k8s_name = ? AND region = ?
+	//  DELETE FROM instances WHERE k8s_name = ? AND cluster_id = ?
 	DeleteInstance(ctx context.Context, db DBTX, arg DeleteInstanceParams) error
 	//DeleteKeyByID
 	//
@@ -356,7 +356,7 @@ type Querier interface {
 	//  SELECT
 	//   pk, id, deployment_id, workspace_id, project_id, region, cluster_id, k8s_name, address, cpu_millicores, memory_mib, status
 	//  FROM instances
-	//    WHERE k8s_name = ? AND region = ?
+	//    WHERE k8s_name = ? AND cluster_id = ?
 	FindInstanceByPodName(ctx context.Context, db DBTX, arg FindInstanceByPodNameParams) (Instance, error)
 	//FindInstancesByDeploymentId
 	//

@@ -538,7 +538,8 @@ CREATE TABLE `instances` (
 	`status` enum('inactive','pending','running','failed') NOT NULL,
 	CONSTRAINT `instances_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `instances_id_unique` UNIQUE(`id`),
-	CONSTRAINT `unique_instance_per_region` UNIQUE(`k8s_name`,`region`)
+	CONSTRAINT `unique_address_per_cluster` UNIQUE(`address`,`cluster_id`),
+	CONSTRAINT `unique_k8s_name_per_cluster` UNIQUE(`k8s_name`,`cluster_id`)
 );
 
 CREATE TABLE `certificates` (
