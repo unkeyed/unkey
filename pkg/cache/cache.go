@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/maypok86/otter"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/debug"
@@ -54,6 +55,12 @@ var _ Cache[any, any] = (*cache[any, any])(nil)
 
 // New creates a new cache instance
 func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
+	if err := assert.All(
+		assert.NotNil(config.Clock, "clock is required"),
+		assert.NotNil(config.Logger, "logger is required"),
+	); err != nil {
+		return nil, fmt.Errorf("invalid cache config: %w", err)
+	}
 
 	builder, err := otter.NewBuilder[K, swrEntry[V]](config.MaxSize)
 	if err != nil {

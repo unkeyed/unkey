@@ -206,6 +206,12 @@ func NewHarness(t *testing.T) *Harness {
 		})),
 	)
 
+	audit, err := auditlogs.New(auditlogs.Config{
+		DB:     db,
+		Logger: logger,
+	})
+	require.NoError(t, err)
+
 	h := Harness{
 		t:                          t,
 		Logger:                     logger,
@@ -222,11 +228,8 @@ func NewHarness(t *testing.T) *Harness {
 		AnalyticsConnectionManager: analyticsConnManager,
 		CtrlDeploymentClient:       ctrlDeploymentClient,
 		CtrlBuildClient:            ctrlBuildClient,
-		Auditlogs: auditlogs.New(auditlogs.Config{
-			DB:     db,
-			Logger: logger,
-		}),
-		Caches: caches,
+		Auditlogs:                  audit,
+		Caches:                     caches,
 		middleware: []zen.Middleware{
 			zen.WithObservability(),
 			zen.WithLogging(logger),

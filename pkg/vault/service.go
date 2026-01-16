@@ -15,8 +15,15 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// LATEST is a version identifier that refers to the most recent version of an
+// encrypted value. Use this when you want to decrypt using the current key
+// without specifying an explicit version number.
 const LATEST = "LATEST"
 
+// Service provides encryption and decryption operations using a hierarchical
+// key management scheme. It manages data encryption keys (DEKs) which are
+// themselves encrypted by key encryption keys (KEKs/master keys). The service
+// caches DEKs to reduce storage lookups and handles key rotation transparently.
 type Service struct {
 	logger   logging.Logger
 	keyCache cache.Cache[string, *vaultv1.DataEncryptionKey]
@@ -29,12 +36,16 @@ type Service struct {
 	keyring *keyring.Keyring
 }
 
+// Config holds configuration for creating a new vault [Service].
 type Config struct {
 	Logger     logging.Logger
 	Storage    storage.Storage
 	MasterKeys []string
 }
 
+// New creates a new vault [Service] with the provided configuration. The last
+// key in [Config.MasterKeys] is used for encryption, while all keys can be used
+// for decryption, enabling seamless key rotation.
 func New(cfg Config) (*Service, error) {
 
 	encryptionKey, decryptionKeys, err := loadMasterKeys(cfg.MasterKeys)
