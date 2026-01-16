@@ -26,7 +26,7 @@ export const RolesSection: React.FC<RolesSectionProps> = ({ roles }) => {
   return (
     <div className="flex flex-col gap-1 mt-[16px] px-4">
       <div className="border bg-gray-2 border-gray-4 rounded-[10px]">
-        <div className="text-gray-11 text-[12px] leading-6 px-[14px] py-1.5 font-sans">
+        <div className="text-gray-11 text-xs leading-6 px-[14px] py-1.5 font-sans">
           Roles ({roles.length})
         </div>
         <div className="border-gray-4 border-t rounded-[10px] bg-white dark:bg-black px-3.5 py-2 space-y-2">
@@ -84,15 +84,14 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
   return (
     <div className="flex flex-col gap-1 mt-[16px] px-4">
       <div className="border bg-gray-2 border-gray-4 rounded-[10px] relative">
-        <div className="text-gray-11 text-[12px] leading-6 px-[14px] py-1.5 font-sans flex items-center justify-between">
+        <div className="text-gray-11 text-xs leading-6 px-[14px] py-1.5 font-sans flex items-center justify-between">
           <span>Permissions ({permissions.length})</span>
           {permissions.length > 1 && (
             <CopyButton
               value={permissions
                 .map(
                   (permission) =>
-                    `${permission.name}${
-                      permission.description ? `\n${permission.description}` : ""
+                    `${permission.name}${permission.description ? `\n${permission.description}` : ""
                     }`,
                 )
                 .join("\n\n")}
@@ -116,9 +115,8 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
                 <div className="text-gray-11 mt-1 text-xs italic">No description</div>
               )}
               <CopyButton
-                value={`${permission.name}${
-                  permission.description ? `\n${permission.description}` : ""
-                }`}
+                value={`${permission.name}${permission.description ? `\n${permission.description}` : ""
+                  }`}
                 shape="square"
                 variant="outline"
                 className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4 bg-gray-2 hover:bg-gray-2 size-2"

@@ -13,6 +13,11 @@ export const LogSection = ({
     }
 
     return Object.entries(details)
+      .sort((a, b) => {
+        const keyA = a[0].toLowerCase();
+        const keyB = b[0].toLowerCase();
+        return keyA.localeCompare(keyB);
+      })
       .map(([key, value]) => {
         if (value === null || value === undefined) {
           return key;
@@ -32,15 +37,25 @@ export const LogSection = ({
         <div className="border-gray-4 border-t rounded-[10px] bg-white dark:bg-black px-3.5 py-2">
           <pre className="whitespace-pre-wrap break-words leading-relaxed text-xs text-accent-12">
             {typeof details === "object"
-              ? Object.entries(details).map(([key, value]) => (
-                  <div className="flex items-center w-full px-[3px] leading-7" key={key}>
-                    <span className="text-left text-gray-11 whitespace-nowrap">
-                      {key}
-                      {value ? ":" : ""}
-                    </span>
-                    <span className="ml-2 text-accent-12 truncate">{value}</span>
-                  </div>
-                ))
+              ? Object.entries(details)
+                .sort((a, b) => {
+                  const keyA = a[0].toLowerCase();
+                  const keyB = b[0].toLowerCase();
+                  return keyA.localeCompare(keyB);
+                })
+                .map(([key, value], index) => {
+                  const valueStr = String(value || "");
+                  const uniqueKey = `${key}-${valueStr.slice(0, 20)}-${index}`;
+                  return (
+                    <div className="flex items-center w-full px-[3px] leading-7" key={uniqueKey}>
+                      <span className="text-left text-gray-11 whitespace-nowrap">
+                        {key}
+                        {value ? ":" : ""}
+                      </span>
+                      <span className="ml-2 text-accent-12 truncate">{value}</span>
+                    </div>
+                  );
+                })
               : details}
           </pre>
         </div>
