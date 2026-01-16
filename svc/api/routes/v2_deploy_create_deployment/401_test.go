@@ -6,8 +6,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/testutil"
-	"github.com/unkeyed/unkey/pkg/testutil/seed"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment"
 )
@@ -23,26 +21,8 @@ func TestUnauthorizedAccess(t *testing.T) {
 	}
 	h.Register(route)
 
-	workspace := h.CreateWorkspace()
-
-	projectID := uid.New(uid.ProjectPrefix)
-	projectName := "test-project"
-	projectSlug := "production"
-
-	project := h.CreateProject(seed.CreateProjectRequest{
-		WorkspaceID: workspace.ID,
-		Name:        projectName,
-		ID:          projectID,
-		Slug:        projectSlug,
-	})
-
-	h.CreateEnvironment(seed.CreateEnvironmentRequest{
-		ID:               uid.New(uid.EnvironmentPrefix),
-		WorkspaceID:      workspace.ID,
-		ProjectID:        project.ID,
-		Slug:             projectSlug,
-		Description:      "Production environment",
-		DeleteProtection: false,
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"project.*.create_deployment"},
 	})
 
 	t.Run("invalid authorization token", func(t *testing.T) {
@@ -52,7 +32,7 @@ func TestUnauthorizedAccess(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ProjectId:       project.ID,
+			ProjectId:       setup.Project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
 		}

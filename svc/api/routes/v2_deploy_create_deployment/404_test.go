@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/testutil"
-	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment"
@@ -24,12 +23,13 @@ func TestNotFound(t *testing.T) {
 	}
 	h.Register(route)
 
-	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.create_deployment")
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"project.*.create_deployment"},
+	})
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		"Authorization": {fmt.Sprintf("Bearer %s", setup.RootKey)},
 	}
 
 	t.Run("project not found", func(t *testing.T) {
@@ -54,18 +54,8 @@ func TestNotFound(t *testing.T) {
 	})
 
 	t.Run("environment not found", func(t *testing.T) {
-		projectID := uid.New(uid.ProjectPrefix)
-		projectName := "test-project"
-
-		h.CreateProject(seed.CreateProjectRequest{
-			WorkspaceID: workspace.ID,
-			Name:        projectName,
-			ID:          projectID,
-			Slug:        "production",
-		})
-
 		req := handler.Request{
-			ProjectId:       projectID,
+			ProjectId:       setup.Project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "nonexistent-env", // Non-existent environment
 		}
