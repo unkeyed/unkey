@@ -29,7 +29,7 @@ func (r *Reconciler) refreshCurrentSentinels(ctx context.Context) {
 		cursor := ""
 		for {
 
-			deployments, err := r.clientSet.AppsV1().Deployments("").List(ctx, metav1.ListOptions{
+			deployments, err := r.clientSet.AppsV1().Deployments(NamespaceSentinel).List(ctx, metav1.ListOptions{
 				LabelSelector: labels.New().
 					ManagedByKrane().
 					ComponentSentinel().

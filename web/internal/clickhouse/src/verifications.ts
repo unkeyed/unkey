@@ -185,6 +185,177 @@ export function getKeyDetailsLogs(ch: Querier) {
   };
 }
 
+// IDENTITY LOGS - Aggregated logs from multiple keys
+export const identityLogsParams = z.object({
+  workspaceId: z.string(),
+  keyIds: z.array(z.string()),
+  limit: z.number().int(),
+  startTime: z.number().int(),
+  endTime: z.number().int(),
+  tags: z
+    .array(
+      z.object({
+        value: z.string(),
+        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
+      }),
+    )
+    .nullable(),
+  outcomes: z
+    .array(
+      z.object({
+        value: z.enum(KEY_VERIFICATION_OUTCOMES),
+        operator: z.literal("is"),
+      }),
+    )
+    .nullable(),
+  cursorTime: z.number().int().nullable(),
+});
+
+export const identityLog = z.object({
+  request_id: z.string(),
+  time: z.number().int(),
+  region: z.string(),
+  outcome: z.enum(KEY_VERIFICATION_OUTCOMES),
+  tags: z.array(z.string()),
+  keyId: z.string(),
+});
+
+export type IdentityLog = z.infer<typeof identityLog>;
+export type IdentityLogsParams = z.infer<typeof identityLogsParams>;
+
+type ExtendedParamsIdentity = IdentityLogsParams & {
+  [key: string]: unknown;
+};
+
+export function getIdentityLogs(ch: Querier) {
+  return async (args: IdentityLogsParams) => {
+    if (!args.keyIds || args.keyIds.length === 0) {
+      return {
+        logs: { val: [] },
+        totalCount: 0,
+      };
+    }
+
+    const paramSchemaExtension: Record<string, z.ZodType> = {};
+    const parameters: ExtendedParamsIdentity = { ...args };
+
+    const hasTagFilters = args.tags && args.tags.length > 0;
+    const hasOutcomeFilters = args.outcomes && args.outcomes.length > 0;
+
+    // Build keyIds condition
+    const keyIdConditions = args.keyIds
+      .map((keyId, index) => {
+        const paramName = `keyId_${index}`;
+        paramSchemaExtension[paramName] = z.string();
+        parameters[paramName] = keyId;
+        return `key_id = {${paramName}: String}`;
+      })
+      .join(" OR ");
+
+    const tagCondition = hasTagFilters
+      ? args.tags
+          ?.map((filter, index) => {
+            const paramName = `tagValue_${index}`;
+            paramSchemaExtension[paramName] = z.string();
+            parameters[paramName] = filter.value;
+
+            switch (filter.operator) {
+              case "is":
+                return `has(tags, {${paramName}: String})`;
+              case "contains":
+                return `arrayExists(tag -> position(tag, {${paramName}: String}) > 0, tags)`;
+              case "startsWith":
+                return `arrayExists(tag -> startsWith(tag, {${paramName}: String}), tags)`;
+              case "endsWith":
+                return `arrayExists(tag -> endsWith(tag, {${paramName}: String}), tags)`;
+              default:
+                return null;
+            }
+          })
+          .filter(Boolean)
+          .join(" AND ") || "TRUE"
+      : "TRUE";
+
+    const outcomeCondition = hasOutcomeFilters
+      ? args.outcomes
+          ?.map((filter, index) => {
+            if (filter.operator === "is") {
+              const paramName = `outcomeValue_${index}`;
+              paramSchemaExtension[paramName] = z.string();
+              parameters[paramName] = filter.value;
+              return `outcome = {${paramName}: String}`;
+            }
+            return null;
+          })
+          .filter(Boolean)
+          .join(" OR ") || "TRUE"
+      : "TRUE";
+
+    let cursorCondition: string;
+    if (args.cursorTime) {
+      cursorCondition = `
+        AND (time < {cursorTime: Nullable(UInt64)})
+        `;
+    } else {
+      cursorCondition = `
+      AND ({cursorTime: Nullable(UInt64)} IS NULL)
+      `;
+    }
+
+    const extendedParamsSchema = identityLogsParams.extend(paramSchemaExtension);
+
+    const baseConditions = `
+      workspace_id = {workspaceId: String}
+      AND (${keyIdConditions})
+      AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+      AND (${tagCondition})
+      AND (${outcomeCondition})
+    `;
+
+    // Total count query
+    const totalQuery = ch.query({
+      query: `
+        SELECT
+          count(request_id) as total_count
+        FROM default.key_verifications_raw_v2
+        WHERE ${baseConditions}`,
+      params: extendedParamsSchema,
+      schema: z.object({
+        total_count: z.number().int(),
+      }),
+    });
+
+    const query = ch.query({
+      query: `
+      SELECT
+          request_id,
+          time,
+          region,
+          outcome,
+          tags,
+          key_id as keyId
+      FROM default.key_verifications_raw_v2
+      WHERE ${baseConditions}
+          ${cursorCondition}
+      ORDER BY time DESC
+      LIMIT {limit: Int}
+      `,
+      params: extendedParamsSchema,
+      schema: identityLog,
+    });
+
+    const [clickhouseResults, totalResults] = await Promise.all([
+      query(parameters),
+      totalQuery(parameters),
+    ]);
+
+    return {
+      logs: clickhouseResults,
+      totalCount: totalResults.val ? totalResults.val[0].total_count : 0,
+    };
+  };
+}
+
 // TIMESERIES
 export const verificationTimeseriesParams = z.object({
   workspaceId: z.string(),
@@ -658,3 +829,229 @@ export const getMonthlyVerificationTimeseries =
 export const getQuarterlyVerificationTimeseries =
   (ch: Querier) => (args: VerificationTimeseriesParams) =>
     batchVerificationTimeseries(ch, INTERVALS.quarter, args);
+
+// IDENTITY TIMESERIES - Aggregated timeseries from multiple keys across keyspaces
+export const identityTimeseriesParams = z.object({
+  workspaceId: z.string(),
+  keyIds: z.array(z.string()),
+  startTime: z.number().int(),
+  endTime: z.number().int(),
+  tags: z
+    .array(
+      z.object({
+        value: z.string(),
+        operator: z.enum(["is", "contains", "startsWith", "endsWith"]),
+      }),
+    )
+    .nullable(),
+  outcomes: z
+    .array(
+      z.object({
+        value: z.enum(KEY_VERIFICATION_OUTCOMES),
+        operator: z.literal("is"),
+      }),
+    )
+    .nullable(),
+});
+
+export type IdentityTimeseriesParams = z.infer<typeof identityTimeseriesParams>;
+
+type ExtendedParamsIdentityTimeseries = IdentityTimeseriesParams & {
+  [key: string]: unknown;
+};
+
+function createIdentityTimeseriesQuery(interval: TimeInterval, whereClause: string) {
+  const intervalUnit = {
+    MINUTE: "minute",
+    HOUR: "hour",
+    DAY: "day",
+    MONTH: "month",
+  }[interval.step];
+
+  // For millisecond step calculation
+  const msPerUnit = {
+    MINUTE: 60_000,
+    HOUR: 3600_000,
+    DAY: 86400_000,
+    MONTH: 2592000_000,
+  }[interval.step];
+
+  if (!msPerUnit) {
+    throw new Error(
+      `Unsupported interval step: ${interval.step}. Expected one of: MINUTE, HOUR, DAY, MONTH`,
+    );
+  }
+
+  const stepMs = msPerUnit * interval.stepSize;
+
+  return `
+    SELECT
+      toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL ${interval.stepSize} ${intervalUnit}) AS DateTime64(3))) as x,
+    map(
+      'total', SUM(count),
+      'valid', SUM(IF(outcome = 'VALID', count, 0)),
+      'rate_limited_count', SUM(IF(outcome = 'RATE_LIMITED', count, 0)),
+      'insufficient_permissions_count', SUM(IF(outcome = 'INSUFFICIENT_PERMISSIONS', count, 0)),
+      'forbidden_count', SUM(IF(outcome = 'FORBIDDEN', count, 0)),
+      'disabled_count', SUM(IF(outcome = 'DISABLED', count, 0)) ,
+      'expired_count',SUM(IF(outcome = 'EXPIRED', count, 0)) ,
+      'usage_exceeded_count', SUM(IF(outcome = 'USAGE_EXCEEDED', count, 0))
+      ) as y
+    FROM ${interval.table}
+    ${whereClause}
+    GROUP BY x
+    ORDER BY x ASC
+    WITH FILL
+      FROM toUnixTimestamp64Milli(CAST(toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({startTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit}) AS DateTime64(3)))
+      TO toUnixTimestamp64Milli(CAST(toStartOfInterval(toDateTime(fromUnixTimestamp64Milli({endTime: Int64})), INTERVAL ${interval.stepSize} ${intervalUnit}) AS DateTime64(3))) + ${stepMs}
+      STEP ${stepMs}`;
+}
+
+function getIdentityTimeseriesWhereClause(
+  params: IdentityTimeseriesParams,
+  additionalConditions: string[] = [],
+): { whereClause: string; paramSchema: z.ZodType<unknown> } {
+  const conditions = ["workspace_id = {workspaceId: String}", ...additionalConditions];
+
+  // Create parameter schema extension
+  const paramSchemaExtension: Record<string, z.ZodType> = {};
+
+  // Build keyIds condition - this is the key difference from regular verification timeseries
+  if (params.keyIds && params.keyIds.length > 0) {
+    const keyIdConditions = params.keyIds
+      .map((_keyId, index) => {
+        const paramName = `keyId_${index}`;
+        paramSchemaExtension[paramName] = z.string();
+        return `key_id = {${paramName}: String}`;
+      })
+      .join(" OR ");
+
+    if (keyIdConditions.length > 0) {
+      conditions.push(`(${keyIdConditions})`);
+    }
+  }
+
+  // Add outcomes filter conditions
+  if (params.outcomes?.length) {
+    const outcomeConditions = params.outcomes
+      .map((filter, index) => {
+        const paramName = `outcomeValue_${index}`;
+        paramSchemaExtension[paramName] = z.string();
+
+        if (filter.operator === "is") {
+          return `outcome = {${paramName}: String}`;
+        }
+        return null;
+      })
+      .filter(Boolean)
+      .join(" OR ");
+
+    if (outcomeConditions.length > 0) {
+      conditions.push(`(${outcomeConditions})`);
+    }
+  }
+
+  // Handle tags filter
+  if (params.tags && params.tags.length > 0) {
+    const tagConditions = params.tags
+      .map((filter, index) => {
+        const paramName = `tagValue_${index}`;
+        paramSchemaExtension[paramName] = z.string();
+
+        switch (filter.operator) {
+          case "is":
+            return `has(tags, {${paramName}: String})`;
+          case "contains":
+            return `arrayExists(tag -> position(tag, {${paramName}: String}) > 0, tags)`;
+          case "startsWith":
+            return `arrayExists(tag -> startsWith(tag, {${paramName}: String}), tags)`;
+          case "endsWith":
+            return `arrayExists(tag -> endsWith(tag, {${paramName}: String}), tags)`;
+          default:
+            return null;
+        }
+      })
+      .filter(Boolean);
+
+    if (tagConditions.length > 0) {
+      conditions.push(`(${tagConditions.join(" AND ")})`);
+    }
+  }
+
+  return {
+    whereClause: conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
+    paramSchema: identityTimeseriesParams.extend(paramSchemaExtension),
+  };
+}
+
+function createIdentityTimeseriesQuerier(interval: TimeInterval) {
+  return (ch: Querier) => async (args: IdentityTimeseriesParams) => {
+    if (!args.keyIds || args.keyIds.length === 0) {
+      return { val: [] };
+    }
+
+    const { whereClause, paramSchema } = getIdentityTimeseriesWhereClause(args, [
+      "time >= fromUnixTimestamp64Milli({startTime: Int64})",
+      "time <= fromUnixTimestamp64Milli({endTime: Int64})",
+    ]);
+
+    // Create parameters object with filter values
+    const parameters: ExtendedParamsIdentityTimeseries = {
+      ...args,
+      ...args.keyIds.reduce(
+        (acc, keyId, index) => ({
+          // biome-ignore lint/performance/noAccumulatingSpread: We don't care about the spread syntax warning here
+          ...acc,
+          [`keyId_${index}`]: keyId,
+        }),
+        {},
+      ),
+      ...(args.tags?.reduce(
+        (acc, filter, index) => ({
+          // biome-ignore lint/performance/noAccumulatingSpread: We don't care about the spread syntax warning here
+          ...acc,
+          [`tagValue_${index}`]: filter.value,
+        }),
+        {},
+      ) ?? {}),
+      ...(args.outcomes?.reduce(
+        (acc, filter, index) => ({
+          // biome-ignore lint/performance/noAccumulatingSpread: We don't care about the spread syntax warning here
+          ...acc,
+          [`outcomeValue_${index}`]: filter.value,
+        }),
+        {},
+      ) ?? {}),
+    };
+
+    return ch.query({
+      query: createIdentityTimeseriesQuery(interval, whereClause),
+      params: paramSchema,
+      schema: verificationTimeseriesDataPoint,
+    })(parameters);
+  };
+}
+
+// Identity timeseries functions for all granularities
+export const getMinutelyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.minute);
+export const getFiveMinutelyIdentityTimeseries = createIdentityTimeseriesQuerier(
+  INTERVALS.fiveMinutes,
+);
+export const getFifteenMinutelyIdentityTimeseries = createIdentityTimeseriesQuerier(
+  INTERVALS.fifteenMinutes,
+);
+export const getThirtyMinutelyIdentityTimeseries = createIdentityTimeseriesQuerier(
+  INTERVALS.thirtyMinutes,
+);
+export const getHourlyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.hour);
+export const getTwoHourlyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.twoHours);
+export const getFourHourlyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.fourHours);
+export const getSixHourlyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.sixHours);
+export const getTwelveHourlyIdentityTimeseries = createIdentityTimeseriesQuerier(
+  INTERVALS.twelveHours,
+);
+export const getDailyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.day);
+export const getThreeDayIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.threeDays);
+export const getWeeklyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.week);
+export const getMonthlyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.month);
+export const getQuarterlyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.quarter);

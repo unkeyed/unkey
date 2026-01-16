@@ -3,11 +3,15 @@ post:
     - deploy
   summary: Generate upload URL
   description: |
+    **INTERNAL** - This endpoint is internal and may change without notice.
+    Not recommended for production use.
+
     Generates a presigned S3 URL for uploading build context archives.
 
     **Authentication**: Requires a valid root key with appropriate permissions.
   operationId: deploy.generateUploadUrl
   x-speakeasy-name-override: generateUploadUrl
+  x-speakeasy-group: internal
   security:
     - rootKey: []
   requestBody:

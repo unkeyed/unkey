@@ -1,0 +1,19 @@
+type: object
+properties:
+  status:
+    type: string
+    description: Step status
+    example: "completed"
+  message:
+    type: string
+    description: Step message
+    example: "Image pulled successfully"
+  errorMessage:
+    type: string
+    description: Error message if step failed
+    example: "Connection timeout"
+  createdAt:
+    type: integer
+    format: int64
+    description: Unix timestamp in milliseconds
+    example: 1704067200000

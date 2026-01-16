@@ -2,6 +2,7 @@ package logging
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"runtime"
@@ -44,7 +45,9 @@ func (l *logger) logSkip(ctx context.Context, level slog.Level, msg string, args
 	runtime.Callers(l.callDepth, pcs[:]) // skip [runtime.Callers, logSkip, wrapper]
 	r := slog.NewRecord(time.Now(), level, msg, pcs[0])
 	r.Add(args...)
-	_ = l.logger.Handler().Handle(ctx, r)
+	if err := l.logger.Handler().Handle(ctx, r); err != nil {
+		fmt.Fprintf(os.Stderr, "logging handler error: %v\n", err)
+	}
 }
 
 // logger implements the Logger interface using Go's standard slog package.

@@ -31,7 +31,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Create the connect handler
 	mux := http.NewServeMux()
 	s3, err := storage.NewS3(storage.S3Config{
-		S3URL:             cfg.S3Url,
+		S3URL:             cfg.S3URL,
 		S3Bucket:          cfg.S3Bucket,
 		S3AccessKeyID:     cfg.S3AccessKeyID,
 		S3AccessKeySecret: cfg.S3AccessKeySecret,
