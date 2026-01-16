@@ -140,6 +140,14 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 									},
 								},
 							},
+							{
+								SecretRef: &corev1.SecretEnvSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "otel",
+									},
+									Optional: ptr.P(true),
+								},
+							},
 						},
 						Env: []corev1.EnvVar{
 							{Name: "UNKEY_HTTP_PORT", Value: strconv.Itoa(SentinelPort)},
