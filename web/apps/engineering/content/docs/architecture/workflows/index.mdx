@@ -63,10 +63,11 @@ Handles ACME certificate challenges and issuance for custom domains.
 
 Services auto-register with Restate on startup via `go/apps/ctrl/run.go`. Config fields (see `go/apps/ctrl/config.go`):
 
-- `Restate.FrontlineURL`: Restate frontline endpoint for invoking workflows
+- `Restate.URL`: Restate ingress endpoint for invoking workflows
 - `Restate.AdminURL`: Restate admin endpoint for service registration
 - `Restate.HttpPort`: Port where ctrl listens for Restate HTTP requests
 - `Restate.RegisterAs`: Public URL of this service for self-registration
+- `Restate.APIKey`: API key for authenticating with Restate ingress
 
 ## Error Handling
 

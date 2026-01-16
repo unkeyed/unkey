@@ -211,6 +211,16 @@ func (c *ClusterCache[K, V]) SWRMany(
 	return c.localCache.SWRMany(ctx, keys, refreshFromOrigin, op)
 }
 
+// SWRWithFallback performs stale-while-revalidate with fallback candidate keys
+func (c *ClusterCache[K, V]) SWRWithFallback(
+	ctx context.Context,
+	candidates []K,
+	refreshFromOrigin func(context.Context) (V, K, error),
+	op func(error) cache.Op,
+) (V, cache.CacheHit, error) {
+	return c.localCache.SWRWithFallback(ctx, candidates, refreshFromOrigin, op)
+}
+
 // Dump returns a serialized representation of the cache
 func (c *ClusterCache[K, V]) Dump(ctx context.Context) ([]byte, error) {
 	return c.localCache.Dump(ctx)

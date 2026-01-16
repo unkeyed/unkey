@@ -2,7 +2,6 @@ import { relations } from "drizzle-orm";
 import {
   bigint,
   boolean,
-  index,
   int,
   json,
   mysqlTable,
@@ -79,7 +78,6 @@ export const ratelimits = mysqlTable(
     autoApply: boolean("auto_apply").notNull().default(false),
   },
   (table) => [
-    index("name_idx").on(table.name),
     uniqueIndex("unique_name_per_key_idx").on(table.keyId, table.name),
     uniqueIndex("unique_name_per_identity_idx").on(table.identityId, table.name),
   ],

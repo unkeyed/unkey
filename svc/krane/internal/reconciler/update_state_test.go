@@ -2,6 +2,7 @@ package reconciler
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -143,7 +144,7 @@ func TestGetDeploymentState_AddressFormatting(t *testing.T) {
 	update := state.GetUpdate()
 	require.NotNil(t, update)
 	require.Len(t, update.GetInstances(), 1)
-	require.Equal(t, "10-0-0-1.my-namespace.pod.cluster.local", update.GetInstances()[0].GetAddress())
+	require.Equal(t, fmt.Sprintf("10-0-0-1.my-namespace.pod.cluster.local:%d", DeploymentPort), update.GetInstances()[0].GetAddress())
 }
 
 func TestGetDeploymentState_ResourceExtraction(t *testing.T) {
@@ -334,5 +335,5 @@ func TestGetDeploymentState_EmptyPodIP(t *testing.T) {
 	require.NotNil(t, update)
 	require.Len(t, update.GetInstances(), 1, "pods with empty PodIP should be skipped")
 	require.Equal(t, "pod-with-ip", update.GetInstances()[0].GetK8SName())
-	require.Equal(t, "10-0-0-1.test-namespace.pod.cluster.local", update.GetInstances()[0].GetAddress())
+	require.Equal(t, fmt.Sprintf("10-0-0-1.test-namespace.pod.cluster.local:%d", DeploymentPort), update.GetInstances()[0].GetAddress())
 }

@@ -12,14 +12,22 @@ func (s *Service) EmitState(ctx context.Context, region string, event *ctrlv1.St
 	s.clientsMu.RLock()
 	defer s.clientsMu.RUnlock()
 
-	s.logger.Info("clients", "count", len(s.clients))
-
-	for _, krane := range s.clients {
-		s.logger.Info("found krane", "krane", krane)
-		if krane.region == region {
-			return krane.stream.Send(event)
+	sent := false
+	for clusterID, connections := range s.clients {
+		for connID, krane := range connections {
+			if krane.region == region {
+				s.logger.Info("sending to krane", "clusterID", clusterID, "connID", connID)
+				if err := krane.stream.Send(event); err != nil {
+					s.logger.Error("failed to send to krane", "clusterID", clusterID, "connID", connID, "error", err)
+					continue
+				}
+				sent = true
+			}
 		}
 	}
-	return fmt.Errorf("no cluster is listening for events in region %s", region)
+	if !sent {
+		return fmt.Errorf("no cluster is listening for events in region %s", region)
+	}
+	return nil
 
 }

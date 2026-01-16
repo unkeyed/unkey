@@ -51,6 +51,7 @@ const (
 	DeploymentPrefix     Prefix = "d"
 	FrontlineRoutePrefix Prefix = "ir"
 	CertificatePrefix    Prefix = "cert"
+	ConnectionPrefix     Prefix = "conn"
 )
 
 // epoch starts more recently so that the 32-bit number space gives a

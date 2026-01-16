@@ -28,6 +28,7 @@ use_repo(
     "com_github_aws_aws_sdk_go_v2_credentials",
     "com_github_aws_aws_sdk_go_v2_service_s3",
     "com_github_bufbuild_buf",
+    "com_github_cilium_cilium",
     "com_github_clickhouse_clickhouse_go_v2",
     "com_github_depot_depot_go",
     "com_github_docker_cli",

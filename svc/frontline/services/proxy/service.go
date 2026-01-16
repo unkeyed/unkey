@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -38,6 +39,7 @@ func New(cfg Config) (*service, error) {
 	if cfg.Transport != nil {
 		transport = cfg.Transport
 	} else {
+		//nolint:exhaustruct
 		transport = &http.Transport{
 			Proxy:                 http.ProxyFromEnvironment,
 			MaxIdleConns:          200,
@@ -46,6 +48,11 @@ func New(cfg Config) (*service, error) {
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 			ResponseHeaderTimeout: 40 * time.Second, // Longer than sentinel timeout (30s) to receive its error response
+			// Enable TLS session resumption for faster cross-region forwarding
+			TLSClientConfig: &tls.Config{
+				MinVersion:         tls.VersionTLS12,
+				ClientSessionCache: tls.NewLRUClientSessionCache(100),
+			},
 		}
 
 		if cfg.MaxIdleConns > 0 {
@@ -114,7 +121,7 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 		}
 	}
 
-	targetURL, err := url.Parse(fmt.Sprintf("https://%s.%s", targetRegion, s.baseDomain))
+	targetURL, err := url.Parse(fmt.Sprintf("https://frontline.%s.%s", targetRegion, s.baseDomain))
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),

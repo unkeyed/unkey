@@ -54,8 +54,27 @@ func open(dsn string, logger logging.Logger) (db *sql.DB, err error) {
 
 		return err
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	return db, err
+	// Configure connection pool for better performance
+	// These settings prevent cold-start latency by maintaining warm connections
+	db.SetMaxOpenConns(25)                 // Max concurrent connections
+	db.SetMaxIdleConns(10)                 // Keep 10 idle connections ready
+	db.SetConnMaxLifetime(5 * time.Minute) // Refresh connections every 5 min (PlanetScale recommendation)
+	db.SetConnMaxIdleTime(1 * time.Minute) // Close idle connections after 1 min of inactivity
+
+	// Verify connectivity at startup - this establishes at least one connection
+	// so the first request doesn't pay the connection establishment cost
+	if err := db.Ping(); err != nil {
+		logger.Warn("failed to ping database on startup", "error", err.Error())
+		// Don't fail - the connection might succeed later
+	} else {
+		logger.Info("database connection pool initialized successfully")
+	}
+
+	return db, nil
 }
 
 // New creates a new database instance with the provided configuration.

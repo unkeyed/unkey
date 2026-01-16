@@ -12,16 +12,18 @@ import (
 )
 
 type client struct {
-	clientID string
-	region   string
-	stream   *connect.ServerStream[ctrlv1.State]
+	clusterID string
+	connID    string
+	region    string
+	stream    *connect.ServerStream[ctrlv1.State]
 }
 
-func newClient(clientID string, region string, stream *connect.ServerStream[ctrlv1.State]) *client {
+func newClient(clusterID string, connID string, region string, stream *connect.ServerStream[ctrlv1.State]) *client {
 	return &client{
-		clientID: clientID,
-		region:   region,
-		stream:   stream,
+		clusterID: clusterID,
+		connID:    connID,
+		region:    region,
+		stream:    stream,
 	}
 }
 
@@ -32,8 +34,8 @@ type Service struct {
 
 	// Maps regions to open clients
 	clientsMu sync.RWMutex
-	// clientID -> stream
-	clients map[string]*client
+	// clusterID -> connID -> client
+	clients map[string]map[string]*client
 
 	// static bearer token for authentication
 	bearer string
@@ -51,7 +53,7 @@ func New(cfg Config) *Service {
 		db:                                 cfg.Database,
 		logger:                             cfg.Logger,
 		clientsMu:                          sync.RWMutex{},
-		clients:                            make(map[string]*client),
+		clients:                            make(map[string]map[string]*client),
 		bearer:                             cfg.Bearer,
 	}
 

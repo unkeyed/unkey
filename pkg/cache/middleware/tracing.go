@@ -180,3 +180,23 @@ func (mw *tracingMiddleware[K, V]) SWRMany(ctx context.Context, keys []K, refres
 
 	return values, hits, err
 }
+
+func (mw *tracingMiddleware[K, V]) SWRWithFallback(ctx context.Context, candidates []K, refreshFromOrigin func(ctx context.Context) (V, K, error), op func(err error) cache.Op) (V, cache.CacheHit, error) {
+	ctx, span := tracing.Start(ctx, "cache.SWRWithFallback")
+	defer span.End()
+	span.SetAttributes(attribute.Int("candidates", len(candidates)))
+
+	value, hit, err := mw.next.SWRWithFallback(ctx, candidates, func(innerCtx context.Context) (V, K, error) {
+		innerCtx, innerSpan := tracing.Start(innerCtx, "refreshFromOrigin")
+		defer innerSpan.End()
+		return refreshFromOrigin(innerCtx)
+	}, op)
+
+	if err != nil {
+		tracing.RecordError(span, err)
+	}
+
+	span.SetAttributes(attribute.Bool("hit", hit != cache.Miss))
+
+	return value, hit, err
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
@@ -48,7 +49,7 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return err
 	}
 
-	if err := r.ensureNamespaceExists(ctx, req.GetK8SNamespace()); err != nil {
+	if err := r.ensureNamespaceExists(ctx, req.GetK8SNamespace(), req.GetWorkspaceId(), req.GetEnvironmentId()); err != nil {
 		return err
 	}
 
@@ -78,7 +79,6 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels.New().DeploymentID(req.GetDeploymentId()),
 			},
-
 			MinReadySeconds: 30,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
@@ -88,16 +88,18 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 					Labels:       usedLabels,
 				},
 				Spec: corev1.PodSpec{
-					RuntimeClassName: ptr.P(runtimeClassGvisor),
-					RestartPolicy:    corev1.RestartPolicyAlways,
-					Tolerations:      []corev1.Toleration{untrustedToleration},
+					RuntimeClassName:          ptr.P(runtimeClassGvisor),
+					RestartPolicy:             corev1.RestartPolicyAlways,
+					Tolerations:               []corev1.Toleration{untrustedToleration},
+					TopologySpreadConstraints: deploymentTopologySpread(req.GetDeploymentId()),
+					Affinity:                  deploymentAffinity(req.GetEnvironmentId()),
 					Containers: []corev1.Container{{
-
 						Image:           req.GetImage(),
 						Name:            "deployment",
 						ImagePullPolicy: corev1.PullIfNotPresent,
 						Command:         []string{},
 						Env: []corev1.EnvVar{
+							{Name: "PORT", Value: strconv.Itoa(DeploymentPort)},
 							{Name: "UNKEY_WORKSPACE_ID", Value: req.GetWorkspaceId()},
 							{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
 							{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
@@ -105,7 +107,7 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 						},
 
 						Ports: []corev1.ContainerPort{{
-							ContainerPort: 8040,
+							ContainerPort: DeploymentPort,
 							Name:          "deployment",
 						}},
 

@@ -31,7 +31,7 @@ Here’s a much simpler proposal using a single table:
     the actual name of a role, ie: `finance` (or more elaborate, see below)
     This is completely up to the user, the only limitation is a length ≤ 512chars
 
-    for our own roles, we’ll likely do some schema for roles, like `api::{id}::create_key`
+    for our own roles, we'll likely do some schema for roles, like `api::\{id\}::create_key`
 
 
 This single table design is the simplest form of doing roles. By adding indices for these queries, it should scale far enough:

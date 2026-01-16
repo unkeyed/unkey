@@ -28,7 +28,7 @@ spec:
           env:
             # Server configuration
             - name: UNKEY_REGION
-              value: "dev:local"
+              value: "local.dev"
             - name: "UNKEY_CONTROL_PLANE_URL"
               value: "http://ctrl:7091"
             - name: "UNKEY_CONTROL_PLANE_BEARER"

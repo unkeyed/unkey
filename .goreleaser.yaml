@@ -78,14 +78,14 @@ changelog:
 release:
   prerelease: auto
 
-npms:
-  - name: "@unkey/cli"
-    description: "Unkey on the command line"
-    homepage: "https://unkey.com"
-    keywords:
-      - unkey
-      - api
-    license: AGPLv3
-    author: chronark <andreas@unkey.com>
-    bugs: https://github.com/unkeyed/unkey/issues
-    access: public
+# npms:
+#   - name: "@unkey/cli"
+#     description: "Unkey on the command line"
+#     homepage: "https://unkey.com"
+#     keywords:
+#       - unkey
+#       - api
+#     license: AGPLv3
+#     author: chronark <andreas@unkey.com>
+#     bugs: https://github.com/unkeyed/unkey/issues
+#     access: public

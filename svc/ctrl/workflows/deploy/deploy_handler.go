@@ -17,6 +17,11 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+const (
+	sentinelNamespace = "sentinel"
+	sentinelPort      = 8040
+)
+
 func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
 	finishedSuccessfully := false
 
@@ -200,7 +205,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 					WorkspaceID:       workspace.ID,
 					EnvironmentID:     environment.ID,
 					ProjectID:         project.ID,
-					K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local", sentinelK8sName, workspace.K8sNamespace.String),
+					K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local:%d", sentinelK8sName, sentinelNamespace, sentinelPort),
 					K8sName:           sentinelK8sName,
 					Region:            topology.Region,
 					Image:             w.sentinelImage,

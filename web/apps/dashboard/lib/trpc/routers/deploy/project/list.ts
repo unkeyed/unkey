@@ -68,7 +68,7 @@ export const listProjects = workspaceProcedure
         author: row.git_commit_author_handle,
         commitTimestamp: Number(row.git_commit_timestamp),
         authorAvatar: row.git_commit_author_avatar_url,
-        regions: ["dev:local"],
+        regions: ["local.dev"],
         domain: row.domain,
         latestDeploymentId: row.latest_deployment_id,
       }),
