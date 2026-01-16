@@ -1,6 +1,9 @@
 package usagelimiter
 
 import (
+	"fmt"
+
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
@@ -23,6 +26,13 @@ type Config struct {
 // This implementation queries the database on every request.
 // For higher performance, use NewRedisWithCounter instead.
 func New(config Config) (*service, error) {
+	if err := assert.All(
+		assert.NotNil(config.DB, "db is required"),
+		assert.NotNil(config.Logger, "logger is required"),
+	); err != nil {
+		return nil, fmt.Errorf("invalid usagelimiter service config: %w", err)
+	}
+
 	return &service{
 		db:     config.DB,
 		logger: config.Logger,
