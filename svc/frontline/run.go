@@ -74,7 +74,7 @@ func Run(ctx context.Context, cfg Config) error {
 		grafanaErr := otel.InitGrafana(
 			ctx,
 			otel.Config{
-				Application:     "gate",
+				Application:     "frontline",
 				Version:         version.Version,
 				InstanceID:      cfg.FrontlineID,
 				CloudRegion:     cfg.Region,
