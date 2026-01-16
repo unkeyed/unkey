@@ -13,6 +13,7 @@ go_library(
         "reconciler.go",
         "refresh_current_deployments.go",
         "refresh_current_sentinels.go",
+        "scheduling.go",
         "tolerations.go",
         "update_state.go",
         "watch_current_deployments.go",
