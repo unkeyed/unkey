@@ -44,7 +44,6 @@ export const LogSection = ({
                     return keyA.localeCompare(keyB);
                   })
                   .map(([key, value], index) => {
-                    // Create unique key by combining key, value, and position for duplicates
                     const valueStr = String(value || "");
                     const uniqueKey = `${key}-${valueStr.slice(0, 20)}-${index}`;
                     return (

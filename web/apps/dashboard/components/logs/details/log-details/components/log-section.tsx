@@ -17,23 +17,23 @@ export const LogSection = ({
           <pre className="whitespace-pre-wrap break-words leading-relaxed text-xs text-accent-12">
             {Array.isArray(details)
               ? [...details]
-                .sort((a, b) => {
-                  const keyA = a.split(":")[0].toLowerCase();
-                  const keyB = b.split(":")[0].toLowerCase();
-                  return keyA.localeCompare(keyB);
-                })
-                .map((header, index) => {
-                  const [key, ...valueParts] = header.split(":");
-                  const value = valueParts.join(":").trim();
-                  // Create unique key by combining key, value hash, and position for duplicates
-                  const uniqueKey = `${key}-${value.slice(0, 20)}-${header.length}-${index}`;
-                  return (
-                    <div className="flex items-center w-full px-[3px] leading-7" key={uniqueKey}>
-                      <span className="text-left text-gray-11 whitespace-nowrap">{key}:</span>
-                      <span className="ml-2 text-accent-12 truncate">{value}</span>
-                    </div>
-                  );
-                })
+                  .sort((a, b) => {
+                    const keyA = a.split(":")[0].toLowerCase();
+                    const keyB = b.split(":")[0].toLowerCase();
+                    return keyA.localeCompare(keyB);
+                  })
+                  .map((header, index) => {
+                    const [key, ...valueParts] = header.split(":");
+                    const value = valueParts.join(":").trim();
+                    // Create unique key by combining key, value hash, and position for duplicates
+                    const uniqueKey = `${key}-${value.slice(0, 20)}-${header.length}-${index}`;
+                    return (
+                      <div className="flex items-center w-full px-[3px] leading-7" key={uniqueKey}>
+                        <span className="text-left text-gray-11 whitespace-nowrap">{key}:</span>
+                        <span className="ml-2 text-accent-12 truncate">{value}</span>
+                      </div>
+                    );
+                  })
               : details}
           </pre>
         </div>
