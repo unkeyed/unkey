@@ -225,10 +225,13 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	auditlogSvc := auditlogs.New(auditlogs.Config{
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{
 		Logger: logger,
 		DB:     db,
 	})
+	if err != nil {
+		return fmt.Errorf("unable to create auditlogs service: %w", err)
+	}
 
 	// Initialize cache invalidation topic
 	cacheInvalidationTopic := eventstream.NewNoopTopic[*cachev1.CacheInvalidationEvent]()
