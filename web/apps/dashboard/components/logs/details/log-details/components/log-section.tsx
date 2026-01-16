@@ -17,15 +17,15 @@ export const LogSection = ({
           <pre className="whitespace-pre-wrap break-words leading-relaxed text-xs text-accent-12">
             {Array.isArray(details)
               ? details.map((header) => {
-                const [key, ...valueParts] = header.split(":");
-                const value = valueParts.join(":").trim();
-                return (
-                  <div className="flex items-center w-full px-[3px] leading-7" key={key}>
-                    <span className="text-left text-gray-11 whitespace-nowrap">{key}:</span>
-                    <span className="ml-2 text-accent-12 truncate">{value}</span>
-                  </div>
-                );
-              })
+                  const [key, ...valueParts] = header.split(":");
+                  const value = valueParts.join(":").trim();
+                  return (
+                    <div className="flex items-center w-full px-[3px] leading-7" key={key}>
+                      <span className="text-left text-gray-11 whitespace-nowrap">{key}:</span>
+                      <span className="ml-2 text-accent-12 truncate">{value}</span>
+                    </div>
+                  );
+                })
               : details}
           </pre>
         </div>

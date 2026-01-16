@@ -33,14 +33,14 @@ export const LogSection = ({
           <pre className="whitespace-pre-wrap break-words leading-relaxed text-xs">
             {typeof details === "object"
               ? Object.entries(details).map(([key, value]) => (
-                <div className="flex items-center w-full px-[3px] leading-7" key={key}>
-                  <span className="text-left text-gray-11 whitespace-nowrap">
-                    {key}
-                    {value ? ":" : ""}
-                  </span>
-                  <span className="ml-2 text-accent-12 truncate">{value}</span>
-                </div>
-              ))
+                  <div className="flex items-center w-full px-[3px] leading-7" key={key}>
+                    <span className="text-left text-gray-11 whitespace-nowrap">
+                      {key}
+                      {value ? ":" : ""}
+                    </span>
+                    <span className="ml-2 text-accent-12 truncate">{value}</span>
+                  </div>
+                ))
               : details}
           </pre>
         </div>

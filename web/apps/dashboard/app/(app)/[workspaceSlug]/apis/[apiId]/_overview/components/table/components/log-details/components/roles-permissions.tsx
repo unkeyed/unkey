@@ -91,7 +91,8 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
               value={permissions
                 .map(
                   (permission) =>
-                    `${permission.name}${permission.description ? `\n${permission.description}` : ""
+                    `${permission.name}${
+                      permission.description ? `\n${permission.description}` : ""
                     }`,
                 )
                 .join("\n\n")}
@@ -115,8 +116,9 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
                 <div className="text-gray-11 mt-1 text-xs italic">No description</div>
               )}
               <CopyButton
-                value={`${permission.name}${permission.description ? `\n${permission.description}` : ""
-                  }`}
+                value={`${permission.name}${
+                  permission.description ? `\n${permission.description}` : ""
+                }`}
                 shape="square"
                 variant="outline"
                 className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4 bg-gray-2 hover:bg-gray-2 size-2"
