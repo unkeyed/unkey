@@ -48,7 +48,7 @@ func TestS3(t *testing.T) {
 		Key:    aws.String(testKey),
 	})
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { require.NoError(t, resp.Body.Close()) }()
 
 	retrievedData, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
@@ -103,7 +103,7 @@ func TestS3_MultipleContainers(t *testing.T) {
 		Key:    aws.String(testKey),
 	})
 	require.NoError(t, err)
-	defer resp1.Body.Close()
+	defer func() { require.NoError(t, resp1.Body.Close()) }()
 	data1, err := io.ReadAll(resp1.Body)
 	require.NoError(t, err)
 	require.Equal(t, []byte("data from container 1"), data1)
@@ -113,7 +113,7 @@ func TestS3_MultipleContainers(t *testing.T) {
 		Key:    aws.String(testKey),
 	})
 	require.NoError(t, err)
-	defer resp2.Body.Close()
+	defer func() { require.NoError(t, resp2.Body.Close()) }()
 	data2, err := io.ReadAll(resp2.Body)
 	require.NoError(t, err)
 	require.Equal(t, []byte("data from container 2"), data2)

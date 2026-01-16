@@ -1,0 +1,7 @@
+# This file makes dev/linters a Bazel package for go.work support.
+# See go.mod in this directory for linter dependencies.
+
+exports_files([
+    "go.mod",
+    "go.sum",
+])
