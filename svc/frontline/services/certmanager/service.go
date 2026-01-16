@@ -41,25 +41,27 @@ func New(cfg Config) *service {
 
 func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certificate, error) {
 	start := time.Now()
-	cert, hit, err := s.cache.SWR(ctx, domain, func(ctx context.Context) (tls.Certificate, error) {
-		s.logger.Debug("certificate cache miss, loading from db+vault", "domain", domain)
-		// Build lookup candidates: exact match + immediate wildcard incase we have a wildcard cert available
-		candidates := []string{domain}
 
-		// Add wildcard for immediate parent level
-		// e.g., api.my.unkey.local -> *.my.unkey.local
-		parts := strings.SplitN(domain, ".", 2)
-		if len(parts) == 2 {
-			candidates = append(candidates, "*."+parts[1])
-		}
+	// Build lookup candidates: exact match + immediate wildcard
+	// e.g., api.example.com -> [api.example.com, *.example.com]
+	candidates := []string{domain}
+	parts := strings.SplitN(domain, ".", 2)
+	if len(parts) == 2 {
+		candidates = append(candidates, "*."+parts[1])
+	}
+
+	// SWRWithFallback checks all candidates, returns first hit, and on miss
+	// fetches from origin and caches under the canonical key (cert's actual hostname)
+	cert, hit, err := s.cache.SWRWithFallback(ctx, candidates, func(ctx context.Context) (tls.Certificate, string, error) {
+		s.logger.Debug("certificate cache miss, loading from db+vault", "domain", domain)
 
 		rows, err := db.Query.FindCertificatesByHostnames(ctx, s.db.RO(), candidates)
 		if err != nil {
-			return tls.Certificate{}, err
+			return tls.Certificate{}, "", err
 		}
 
 		if len(rows) == 0 {
-			return tls.Certificate{}, sql.ErrNoRows
+			return tls.Certificate{}, domain, sql.ErrNoRows
 		}
 
 		// Prefer exact match over wildcard
@@ -69,7 +71,6 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 				bestRow = row
 				break
 			}
-
 			if bestRow.Hostname == "" {
 				bestRow = row
 			}
@@ -80,15 +81,16 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 			Encrypted: bestRow.EncryptedPrivateKey,
 		})
 		if err != nil {
-			return tls.Certificate{}, err
+			return tls.Certificate{}, "", err
 		}
 
-		cert, err := tls.X509KeyPair([]byte(bestRow.Certificate), []byte(pem.GetPlaintext()))
+		tlsCert, err := tls.X509KeyPair([]byte(bestRow.Certificate), []byte(pem.GetPlaintext()))
 		if err != nil {
-			return tls.Certificate{}, err
+			return tls.Certificate{}, "", err
 		}
 
-		return cert, nil
+		// Return cert and canonical key (cert's actual hostname for proper cache sharing)
+		return tlsCert, bestRow.Hostname, nil
 	}, caches.DefaultFindFirstOp)
 
 	s.logger.Debug("certificate lookup complete",
