@@ -5,15 +5,9 @@ import (
 	"net/http"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/ptr"
-	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
-	"github.com/unkeyed/unkey/pkg/testutil/seed"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment"
 )
@@ -21,56 +15,24 @@ import (
 func TestCreateDeploymentSuccessfully(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	// Get CTRL service URL and token
-	ctrlURL, ctrlToken := containers.ControlPlane(t)
-
-	ctrlClient := ctrlv1connect.NewDeploymentServiceClient(
-		http.DefaultClient,
-		ctrlURL,
-		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-			"Authorization": fmt.Sprintf("Bearer %s", ctrlToken),
-		})),
-	)
-
 	route := &handler.Handler{
 		Logger:     h.Logger,
 		DB:         h.DB,
 		Keys:       h.Keys,
-		CtrlClient: ctrlClient,
+		CtrlClient: h.CtrlDeploymentClient,
 	}
 	h.Register(route)
 
 	t.Run("create deployment with docker image", func(t *testing.T) {
-		workspace := h.CreateWorkspace()
-		rootKey := h.CreateRootKey(workspace.ID)
-
-		projectID := uid.New(uid.ProjectPrefix)
-		projectName := "test-project"
-		projectSlug := "production"
-
-		project := h.CreateProject(seed.CreateProjectRequest{
-			WorkspaceID: workspace.ID,
-			Name:        projectName,
-			ID:          projectID,
-			Slug:        projectSlug,
-		})
-
-		h.CreateEnvironment(seed.CreateEnvironmentRequest{
-			ID:               uid.New(uid.EnvironmentPrefix),
-			WorkspaceID:      workspace.ID,
-			ProjectID:        project.ID,
-			Slug:             projectSlug,
-			Description:      "Production environment",
-			DeleteProtection: false,
-		})
+		setup := h.CreateTestDeploymentSetup()
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			"Authorization": {fmt.Sprintf("Bearer %s", setup.RootKey)},
 		}
 
 		req := handler.Request{
-			ProjectId:       project.ID,
+			ProjectId:       setup.Project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
 		}
@@ -92,36 +54,19 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 	})
 
 	t.Run("create deployment with build context", func(t *testing.T) {
-		workspace := h.CreateWorkspace()
-		rootKey := h.CreateRootKey(workspace.ID)
-
-		projectID := uid.New(uid.ProjectPrefix)
-		projectName := "test-build-project"
-		projectSlug := "staging"
-
-		project := h.CreateProject(seed.CreateProjectRequest{
-			WorkspaceID: workspace.ID,
-			Name:        projectName,
-			ID:          projectID,
-			Slug:        projectSlug,
-		})
-
-		h.CreateEnvironment(seed.CreateEnvironmentRequest{
-			ID:               uid.New(uid.EnvironmentPrefix),
-			WorkspaceID:      workspace.ID,
-			ProjectID:        project.ID,
-			Slug:             projectSlug,
-			Description:      "Staging environment",
-			DeleteProtection: false,
+		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+			ProjectName:     "test-build-project",
+			ProjectSlug:     "staging",
+			EnvironmentSlug: "staging",
 		})
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			"Authorization": {fmt.Sprintf("Bearer %s", setup.RootKey)},
 		}
 
 		req := handler.Request{
-			ProjectId:       project.ID,
+			ProjectId:       setup.Project.ID,
 			Branch:          "develop",
 			EnvironmentSlug: "staging",
 		}
@@ -149,36 +94,17 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 	})
 
 	t.Run("create deployment with git commit info", func(t *testing.T) {
-		workspace := h.CreateWorkspace()
-		rootKey := h.CreateRootKey(workspace.ID)
-
-		projectID := uid.New(uid.ProjectPrefix)
-		projectName := "test-git-project"
-		projectSlug := "production"
-
-		project := h.CreateProject(seed.CreateProjectRequest{
-			WorkspaceID: workspace.ID,
-			Name:        projectName,
-			ID:          projectID,
-			Slug:        projectSlug,
-		})
-
-		h.CreateEnvironment(seed.CreateEnvironmentRequest{
-			ID:               uid.New(uid.EnvironmentPrefix),
-			WorkspaceID:      workspace.ID,
-			ProjectID:        project.ID,
-			Slug:             projectSlug,
-			Description:      "Production environment",
-			DeleteProtection: false,
+		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+			ProjectName: "test-git-project",
 		})
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			"Authorization": {fmt.Sprintf("Bearer %s", setup.RootKey)},
 		}
 
 		req := handler.Request{
-			ProjectId:       project.ID,
+			ProjectId:       setup.Project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
 			GitCommit: &openapi.V2DeployGitCommit{

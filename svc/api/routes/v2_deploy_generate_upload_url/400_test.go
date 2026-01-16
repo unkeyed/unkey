@@ -5,12 +5,8 @@ import (
 	"net/http"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
-	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -20,22 +16,11 @@ import (
 func TestBadRequests(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	// Get CTRL service URL and token
-	ctrlURL, ctrlToken := containers.ControlPlane(t)
-
-	ctrlClient := ctrlv1connect.NewBuildServiceClient(
-		http.DefaultClient,
-		ctrlURL,
-		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-			"Authorization": fmt.Sprintf("Bearer %s", ctrlToken),
-		})),
-	)
-
 	route := &handler.Handler{
 		Logger:     h.Logger,
 		DB:         h.DB,
 		Keys:       h.Keys,
-		CtrlClient: ctrlClient,
+		CtrlClient: h.CtrlBuildClient,
 	}
 	h.Register(route)
 

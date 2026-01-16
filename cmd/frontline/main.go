@@ -9,6 +9,8 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline"
 )
 
+// Cmd is the frontline command that runs the multi-tenant ingress server for TLS
+// termination and request routing to backend services.
 var Cmd = &cli.Command{
 	Version:     "",
 	Commands:    []*cli.Command{},

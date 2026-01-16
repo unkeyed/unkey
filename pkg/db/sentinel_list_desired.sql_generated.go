@@ -10,15 +10,12 @@ import (
 )
 
 const listDesiredSentinels = `-- name: ListDesiredSentinels :many
-SELECT
-    sentinels.pk, sentinels.id, sentinels.workspace_id, sentinels.project_id, sentinels.environment_id, sentinels.k8s_name, sentinels.k8s_address, sentinels.region, sentinels.image, sentinels.desired_state, sentinels.health, sentinels.desired_replicas, sentinels.available_replicas, sentinels.cpu_millicores, sentinels.memory_mib, sentinels.created_at, sentinels.updated_at,
-    workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.partition_id, workspaces.plan, workspaces.tier, workspaces.stripe_customer_id, workspaces.stripe_subscription_id, workspaces.beta_features, workspaces.features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m
+SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at
 FROM ` + "`" + `sentinels` + "`" + `
-INNER JOIN ` + "`" + `workspaces` + "`" + ` ON sentinels.workspace_id = workspaces.id
 WHERE (? = '' OR region = ?)
     AND desired_state = ?
-    AND sentinels.id > ?
-ORDER BY sentinels.id ASC
+    AND id > ?
+ORDER BY id ASC
 LIMIT ?
 `
 
@@ -29,24 +26,16 @@ type ListDesiredSentinelsParams struct {
 	Limit            int32                 `db:"limit"`
 }
 
-type ListDesiredSentinelsRow struct {
-	Sentinel  Sentinel  `db:"sentinel"`
-	Workspace Workspace `db:"workspace"`
-}
-
 // ListDesiredSentinels
 //
-//	SELECT
-//	    sentinels.pk, sentinels.id, sentinels.workspace_id, sentinels.project_id, sentinels.environment_id, sentinels.k8s_name, sentinels.k8s_address, sentinels.region, sentinels.image, sentinels.desired_state, sentinels.health, sentinels.desired_replicas, sentinels.available_replicas, sentinels.cpu_millicores, sentinels.memory_mib, sentinels.created_at, sentinels.updated_at,
-//	    workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.partition_id, workspaces.plan, workspaces.tier, workspaces.stripe_customer_id, workspaces.stripe_subscription_id, workspaces.beta_features, workspaces.features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m
+//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at
 //	FROM `sentinels`
-//	INNER JOIN `workspaces` ON sentinels.workspace_id = workspaces.id
 //	WHERE (? = '' OR region = ?)
 //	    AND desired_state = ?
-//	    AND sentinels.id > ?
-//	ORDER BY sentinels.id ASC
+//	    AND id > ?
+//	ORDER BY id ASC
 //	LIMIT ?
-func (q *Queries) ListDesiredSentinels(ctx context.Context, db DBTX, arg ListDesiredSentinelsParams) ([]ListDesiredSentinelsRow, error) {
+func (q *Queries) ListDesiredSentinels(ctx context.Context, db DBTX, arg ListDesiredSentinelsParams) ([]Sentinel, error) {
 	rows, err := db.QueryContext(ctx, listDesiredSentinels,
 		arg.Region,
 		arg.Region,
@@ -58,45 +47,27 @@ func (q *Queries) ListDesiredSentinels(ctx context.Context, db DBTX, arg ListDes
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListDesiredSentinelsRow
+	var items []Sentinel
 	for rows.Next() {
-		var i ListDesiredSentinelsRow
+		var i Sentinel
 		if err := rows.Scan(
-			&i.Sentinel.Pk,
-			&i.Sentinel.ID,
-			&i.Sentinel.WorkspaceID,
-			&i.Sentinel.ProjectID,
-			&i.Sentinel.EnvironmentID,
-			&i.Sentinel.K8sName,
-			&i.Sentinel.K8sAddress,
-			&i.Sentinel.Region,
-			&i.Sentinel.Image,
-			&i.Sentinel.DesiredState,
-			&i.Sentinel.Health,
-			&i.Sentinel.DesiredReplicas,
-			&i.Sentinel.AvailableReplicas,
-			&i.Sentinel.CpuMillicores,
-			&i.Sentinel.MemoryMib,
-			&i.Sentinel.CreatedAt,
-			&i.Sentinel.UpdatedAt,
-			&i.Workspace.ID,
-			&i.Workspace.OrgID,
-			&i.Workspace.Name,
-			&i.Workspace.Slug,
-			&i.Workspace.K8sNamespace,
-			&i.Workspace.PartitionID,
-			&i.Workspace.Plan,
-			&i.Workspace.Tier,
-			&i.Workspace.StripeCustomerID,
-			&i.Workspace.StripeSubscriptionID,
-			&i.Workspace.BetaFeatures,
-			&i.Workspace.Features,
-			&i.Workspace.Subscriptions,
-			&i.Workspace.Enabled,
-			&i.Workspace.DeleteProtection,
-			&i.Workspace.CreatedAtM,
-			&i.Workspace.UpdatedAtM,
-			&i.Workspace.DeletedAtM,
+			&i.Pk,
+			&i.ID,
+			&i.WorkspaceID,
+			&i.ProjectID,
+			&i.EnvironmentID,
+			&i.K8sName,
+			&i.K8sAddress,
+			&i.Region,
+			&i.Image,
+			&i.DesiredState,
+			&i.Health,
+			&i.DesiredReplicas,
+			&i.AvailableReplicas,
+			&i.CpuMillicores,
+			&i.MemoryMib,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

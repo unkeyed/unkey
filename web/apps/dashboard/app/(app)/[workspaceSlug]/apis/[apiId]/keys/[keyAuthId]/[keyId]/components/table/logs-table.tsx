@@ -244,7 +244,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
       {
         key: "time",
         header: "Time",
-        width: "5%",
+        width: "20%", // Increased from 5% to accommodate timestamp
         headerClassName: "pl-2",
         render: (log) => (
           <TimestampInfo
@@ -259,7 +259,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
       {
         key: "outcome",
         header: "Status",
-        width: "15%",
+        width: "20%", // Increased from 15% for better status display
         render: (log) => {
           const isSelected = selectedLog?.request_id === log.request_id;
           const outcomeType =
@@ -292,7 +292,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
       {
         key: "region",
         header: "Region",
-        width: "15%",
+        width: "20%", // Increased from 15% for better region display
         render: (log) => (
           <div className="flex items-center font-mono">
             <div className="w-full whitespace-nowrap" title={log.region}>
@@ -304,7 +304,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
       {
         key: "tags",
         header: "Tags",
-        width: "20%",
+        width: "40%", // Increased from 20% to use remaining space (100% - 20% - 20% - 20% = 40%)
         render: (log) => {
           return (
             <div className="flex flex-wrap gap-1 items-center">

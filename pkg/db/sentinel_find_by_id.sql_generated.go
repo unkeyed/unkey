@@ -7,47 +7,38 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const findSentinelByID = `-- name: FindSentinelByID :one
-SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, w.k8s_namespace FROM sentinels s
-LEFT JOIN workspaces w ON s.workspace_id = w.id
-WHERE s.id = ? LIMIT 1
+SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
+WHERE id = ? LIMIT 1
 `
-
-type FindSentinelByIDRow struct {
-	Sentinel     Sentinel       `db:"sentinel"`
-	K8sNamespace sql.NullString `db:"k8s_namespace"`
-}
 
 // FindSentinelByID
 //
-//	SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, w.k8s_namespace FROM sentinels s
-//	LEFT JOIN workspaces w ON s.workspace_id = w.id
-//	WHERE s.id = ? LIMIT 1
-func (q *Queries) FindSentinelByID(ctx context.Context, db DBTX, id string) (FindSentinelByIDRow, error) {
+//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
+//	WHERE id = ? LIMIT 1
+func (q *Queries) FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error) {
 	row := db.QueryRowContext(ctx, findSentinelByID, id)
-	var i FindSentinelByIDRow
+	var i Sentinel
 	err := row.Scan(
-		&i.Sentinel.Pk,
-		&i.Sentinel.ID,
-		&i.Sentinel.WorkspaceID,
-		&i.Sentinel.ProjectID,
-		&i.Sentinel.EnvironmentID,
-		&i.Sentinel.K8sName,
-		&i.Sentinel.K8sAddress,
-		&i.Sentinel.Region,
-		&i.Sentinel.Image,
-		&i.Sentinel.DesiredState,
-		&i.Sentinel.Health,
-		&i.Sentinel.DesiredReplicas,
-		&i.Sentinel.AvailableReplicas,
-		&i.Sentinel.CpuMillicores,
-		&i.Sentinel.MemoryMib,
-		&i.Sentinel.CreatedAt,
-		&i.Sentinel.UpdatedAt,
-		&i.K8sNamespace,
+		&i.Pk,
+		&i.ID,
+		&i.WorkspaceID,
+		&i.ProjectID,
+		&i.EnvironmentID,
+		&i.K8sName,
+		&i.K8sAddress,
+		&i.Region,
+		&i.Image,
+		&i.DesiredState,
+		&i.Health,
+		&i.DesiredReplicas,
+		&i.AvailableReplicas,
+		&i.CpuMillicores,
+		&i.MemoryMib,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
