@@ -7,6 +7,8 @@ import (
 	"github.com/unkeyed/unkey/svc/preflight"
 )
 
+// Cmd is the preflight command that runs the Kubernetes mutating admission webhook
+// for secrets and credentials injection into pods.
 var Cmd = &cli.Command{
 	Name:  "preflight",
 	Usage: "Run the pod mutation webhook for secrets and credentials injection",

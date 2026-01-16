@@ -183,7 +183,7 @@ func UserFacingMessage(err error) string {
 		// Try to get the next wrapped error
 		next, ok := current.err.(*wrapped)
 		if !ok {
-			// if it's not a wrapepd error, then we don't have any more public messages
+			// if it's not a wrapped error, then we don't have any more public messages
 			// and can stop looking.
 			break
 		}

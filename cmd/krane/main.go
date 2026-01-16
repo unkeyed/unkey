@@ -8,6 +8,8 @@ import (
 	"github.com/unkeyed/unkey/svc/krane"
 )
 
+// Cmd is the krane command that runs the Kubernetes deployment service for managing
+// container lifecycles and deployments in a Kubernetes cluster.
 var Cmd = &cli.Command{
 	Version:  "",
 	Aliases:  []string{},

@@ -18,8 +18,9 @@ jobs:
           # Share repository cache between workflows.
           repository-cache: true
           bazelrc: |
-            build --remote_cache=https://cache.depot.dev
-            build --remote_header=authorization=${{ secrets.DEPOT_BAZEL_CACHE_AUTHORIZATION }}
+            common --remote_cache=https://cache.depot.dev
+            common --remote_header=authorization=${{ secrets.DEPOT_BAZEL_CACHE_AUTHORIZATION }}
+            common --remote_local_fallback
 
       - name: Build
         run: bazel build //...
@@ -38,8 +39,9 @@ jobs:
           # Share repository cache between workflows.
           repository-cache: true
           bazelrc: |
-            build --remote_cache=https://cache.depot.dev
-            build --remote_header=authorization=${{ secrets.DEPOT_BAZEL_CACHE_AUTHORIZATION }}
+            common --remote_cache=https://cache.depot.dev
+            common --remote_header=authorization=${{ secrets.DEPOT_BAZEL_CACHE_AUTHORIZATION }}
+            common --remote_local_fallback
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1

@@ -8,6 +8,8 @@ import (
 	"github.com/unkeyed/unkey/svc/vault"
 )
 
+// Cmd is the vault command that runs Unkey's encryption service for secure storage
+// and retrieval of sensitive data using S3-backed storage.
 var Cmd = &cli.Command{
 	Version:     "",
 	Commands:    []*cli.Command{},
@@ -53,7 +55,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Basic configuration
 		HttpPort:          cmd.RequireInt("http-port"),
 		InstanceID:        cmd.RequireString("instance-id"),
-		S3Url:             cmd.RequireString("s3-url"),
+		S3URL:             cmd.RequireString("s3-url"),
 		S3Bucket:          cmd.RequireString("s3-bucket"),
 		S3AccessKeyID:     cmd.RequireString("s3-access-key-id"),
 		S3AccessKeySecret: cmd.RequireString("s3-access-key-secret"),
