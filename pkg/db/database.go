@@ -60,8 +60,8 @@ func open(dsn string, logger logging.Logger) (db *sql.DB, err error) {
 
 	// Configure connection pool for better performance
 	// These settings prevent cold-start latency by maintaining warm connections
-	db.SetMaxOpenConns(25)              // Max concurrent connections
-	db.SetMaxIdleConns(10)              // Keep 10 idle connections ready
+	db.SetMaxOpenConns(25)                 // Max concurrent connections
+	db.SetMaxIdleConns(10)                 // Keep 10 idle connections ready
 	db.SetConnMaxLifetime(5 * time.Minute) // Refresh connections every 5 min (PlanetScale recommendation)
 	db.SetConnMaxIdleTime(1 * time.Minute) // Close idle connections after 1 min of inactivity
 

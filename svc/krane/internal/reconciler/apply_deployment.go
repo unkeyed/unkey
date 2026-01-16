@@ -88,11 +88,11 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 					Labels:       usedLabels,
 				},
 				Spec: corev1.PodSpec{
-					RuntimeClassName:         ptr.P(runtimeClassGvisor),
-					RestartPolicy:            corev1.RestartPolicyAlways,
-					Tolerations:              []corev1.Toleration{untrustedToleration},
+					RuntimeClassName:          ptr.P(runtimeClassGvisor),
+					RestartPolicy:             corev1.RestartPolicyAlways,
+					Tolerations:               []corev1.Toleration{untrustedToleration},
 					TopologySpreadConstraints: deploymentTopologySpread(req.GetDeploymentId()),
-					Affinity:                 deploymentAffinity(req.GetEnvironmentId()),
+					Affinity:                  deploymentAffinity(req.GetEnvironmentId()),
 					Containers: []corev1.Container{{
 						Image:           req.GetImage(),
 						Name:            "deployment",
