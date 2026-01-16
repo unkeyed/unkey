@@ -154,6 +154,20 @@ export const workspacePermissions = {
       permission: "identity.*.delete_identity",
     },
   },
+  Projects: {
+    create_deployment: {
+      description: "Create new deployments in this workspace",
+      permission: "project.*.create_deployment",
+    },
+    read_deployment: {
+      description: "Read deployment details and status in this workspace",
+      permission: "project.*.read_deployment",
+    },
+    generate_upload_url: {
+      description: "Generate S3 upload URLs for build contexts",
+      permission: "project.*.generate_upload_url",
+    },
+  },
 } satisfies Record<string, UnkeyPermissions>;
 
 export function apiPermissions(apiId: string): {
