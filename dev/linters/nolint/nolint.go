@@ -1,5 +1,37 @@
 // Package nolint provides utilities to wrap go/analysis analyzers with
 // support for //nolint directives, which nogo does not handle by default.
+//
+// Bazel's nogo framework runs analyzers at compile time but has no awareness of
+// the //nolint comments that golangci-lint users rely on. This package wraps any
+// [analysis.Analyzer] to filter diagnostics based on nolint directives, enabling
+// a smooth migration from golangci-lint to nogo without removing existing suppressions.
+//
+// # Suppression Syntax
+//
+// The package recognizes the following directive formats:
+//
+//	//nolint              - suppresses all linters on the following AST node
+//	//nolint:name         - suppresses a specific linter
+//	//nolint:name1,name2  - suppresses multiple linters
+//	//nolint:all          - equivalent to //nolint
+//
+// Directives apply to the AST node immediately following the comment, matching
+// golangci-lint's behavior. A file-level directive (before the package declaration
+// or in the first two lines) suppresses the entire file.
+//
+// # Wrapper Functions
+//
+// Use [Wrap] for the common case of wrapping an analyzer with its default name.
+// Use [WrapWithName] when the nolint directive name differs from the analyzer name
+// (e.g., composite analyzers). Use [WrapSkipPatterns] to exclude generated or test
+// files entirely. Use [WrapWithOptions] for full control.
+//
+// # Example
+//
+//	var Analyzer = nolint.Wrap(upstream.Analyzer)
+//
+//	// Skip generated files:
+//	var Analyzer = nolint.WrapSkipPatterns(upstream.Analyzer, "_generated.go")
 package nolint
 
 import (

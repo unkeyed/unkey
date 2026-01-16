@@ -1,4 +1,27 @@
 // Package exhaustruct provides an exhaustruct analyzer for use with nogo.
+//
+// Exhaustruct requires all struct fields to be explicitly initialized when
+// creating a struct literal. This prevents bugs where new fields are added
+// to a struct but existing call sites silently use zero values instead of
+// providing meaningful defaults.
+//
+// This wrapper skips test files (_test.go) because test fixtures often use
+// partial initialization intentionally. It also excludes a curated list of
+// external types (protobuf, standard library, AWS SDK, etc.) where exhaustive
+// initialization would be impractical or impossible.
+//
+// # Why This Matters
+//
+// When you add a required Timeout field to a Config struct, every place that
+// creates a Config should specify a timeout. Without exhaustruct, those call
+// sites silently use 0 (meaning "no timeout" or "infinite"). The linter forces
+// explicit decisions about every field, catching these issues at build time.
+//
+// # Excluded Types
+//
+// The [excludePatterns] list exempts types where exhaustive initialization is
+// unreasonable: protobuf messages with dozens of internal fields, http.Request
+// with optional fields, test containers, and similar cases.
 package exhaustruct
 
 import (

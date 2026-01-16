@@ -1,4 +1,18 @@
 // Package unused provides an unused analyzer for use with nogo.
+//
+// Unused identifies code that is never referenced: unexported functions,
+// types, constants, and variables that have no callers. This dead code adds
+// maintenance burden, confuses readers, and bloats binaries.
+//
+// This analyzer comes from the staticcheck suite (honnef.co/go/tools/unused)
+// and performs whole-program analysis to find truly unreachable code, unlike
+// the compiler's basic unused variable checks.
+//
+// # Why This Matters
+//
+// Dead code accumulates during refactoring—a function is replaced but the old
+// version is never deleted. Over time, these remnants make the codebase harder
+// to navigate and understand. Unused catches what the compiler misses.
 package unused
 
 import (

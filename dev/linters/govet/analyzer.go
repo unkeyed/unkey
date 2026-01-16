@@ -1,4 +1,26 @@
 // Package govet provides a composite go vet analyzer for use with nogo.
+//
+// This package bundles all standard go vet checks into a single analyzer that
+// can be referenced by a unified //nolint:govet directive. Without this wrapper,
+// each vet check (printf, atomic, copylock, etc.) would need its own directive.
+//
+// # Included Checks
+//
+// The analyzer includes all default go vet passes except fieldalignment and shadow,
+// which are excluded per project configuration. Notable checks include:
+//
+//   - printf: Validates format string/argument consistency
+//   - atomic: Catches incorrect atomic value usage
+//   - copylock: Detects copying of sync.Mutex and similar types
+//   - loopclosure: Finds loop variable capture bugs
+//   - unreachable: Identifies code after return/panic statements
+//   - structtag: Validates struct field tag syntax
+//
+// # Why a Composite?
+//
+// Running 30+ individual analyzers creates noise in configuration and makes
+// suppression unwieldy. This composite presents them as a single logical unit
+// matching how developers think about "vet checks" while preserving nolint support.
 package govet
 
 import (
