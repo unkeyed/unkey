@@ -17,6 +17,8 @@ import (
 	"golang.org/x/text/number"
 )
 
+// Cmd is the quotacheck command that monitors workspace quota usage by querying
+// ClickHouse and sends Slack notifications when quotas are exceeded.
 var Cmd = &cli.Command{
 	Version:  "",
 	Commands: []*cli.Command{},

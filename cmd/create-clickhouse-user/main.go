@@ -17,6 +17,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/vault/storage"
 )
 
+// Cmd is the create-clickhouse-user command that creates or updates a ClickHouse user
+// for a workspace with resource quotas, table permissions, and row-level security policies.
 var Cmd = &cli.Command{
 	Name:  "create-clickhouse-user",
 	Usage: "Create or update ClickHouse user with quotas and permissions",
