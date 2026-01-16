@@ -47,6 +47,7 @@ type MockService struct {
 // NewMockService creates a new mock builder service
 func NewMockService() *MockService {
 	return &MockService{
+		mu:     sync.RWMutex{},
 		builds: make(map[string]*BuildInfo),
 	}
 }
