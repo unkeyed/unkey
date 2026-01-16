@@ -5,12 +5,15 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
@@ -25,8 +28,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/testutil/seed"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/vault"
 	masterKeys "github.com/unkeyed/unkey/pkg/vault/keys"
 	"github.com/unkeyed/unkey/pkg/vault/storage"
@@ -54,6 +59,8 @@ type Harness struct {
 	Ratelimit                  ratelimit.Service
 	Vault                      *vault.Service
 	AnalyticsConnectionManager analytics.ConnectionManager
+	CtrlDeploymentClient       ctrlv1connect.DeploymentServiceClient
+	CtrlBuildClient            ctrlv1connect.BuildServiceClient
 	seeder                     *seed.Seeder
 }
 
@@ -178,6 +185,26 @@ func NewHarness(t *testing.T) *Harness {
 
 	seeder.Seed(context.Background())
 
+	// Get CTRL service URL and token
+	ctrlURL, ctrlToken := containers.ControlPlane(t)
+
+	// Create CTRL clients
+	ctrlDeploymentClient := ctrlv1connect.NewDeploymentServiceClient(
+		http.DefaultClient,
+		ctrlURL,
+		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+			"Authorization": fmt.Sprintf("Bearer %s", ctrlToken),
+		})),
+	)
+
+	ctrlBuildClient := ctrlv1connect.NewBuildServiceClient(
+		http.DefaultClient,
+		ctrlURL,
+		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+			"Authorization": fmt.Sprintf("Bearer %s", ctrlToken),
+		})),
+	)
+
 	h := Harness{
 		t:                          t,
 		Logger:                     logger,
@@ -192,6 +219,8 @@ func NewHarness(t *testing.T) *Harness {
 		seeder:                     seeder,
 		Clock:                      clk,
 		AnalyticsConnectionManager: analyticsConnManager,
+		CtrlDeploymentClient:       ctrlDeploymentClient,
+		CtrlBuildClient:            ctrlBuildClient,
 		Auditlogs: auditlogs.New(auditlogs.Config{
 			DB:     db,
 			Logger: logger,
@@ -260,6 +289,80 @@ func (h *Harness) CreateProject(req seed.CreateProjectRequest) db.Project {
 
 func (h *Harness) CreateEnvironment(req seed.CreateEnvironmentRequest) db.Environment {
 	return h.seeder.CreateEnvironment(h.t.Context(), req)
+}
+
+// DeploymentTestSetup contains all resources needed for deployment tests
+type DeploymentTestSetup struct {
+	Workspace   db.Workspace
+	RootKey     string
+	Project     db.Project
+	Environment db.Environment
+}
+
+// CreateTestDeploymentSetupOptions allows customization of the test setup
+type CreateTestDeploymentSetupOptions struct {
+	ProjectName     string
+	ProjectSlug     string
+	EnvironmentSlug string
+	SkipEnvironment bool
+}
+
+// CreateTestDeploymentSetup creates workspace, root key, project, and environment with sensible defaults
+func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOptions) DeploymentTestSetup {
+	h.t.Helper()
+
+	config := CreateTestDeploymentSetupOptions{
+		ProjectName:     "test-project",
+		ProjectSlug:     "production",
+		EnvironmentSlug: "production",
+		SkipEnvironment: false,
+	}
+
+	if len(opts) > 0 {
+		if opts[0].ProjectName != "" {
+			config.ProjectName = opts[0].ProjectName
+		}
+		if opts[0].ProjectSlug != "" {
+			config.ProjectSlug = opts[0].ProjectSlug
+		}
+		if opts[0].EnvironmentSlug != "" {
+			config.EnvironmentSlug = opts[0].EnvironmentSlug
+		}
+		config.SkipEnvironment = opts[0].SkipEnvironment
+	}
+
+	workspace := h.CreateWorkspace()
+	rootKey := h.CreateRootKey(workspace.ID)
+
+	project := h.CreateProject(seed.CreateProjectRequest{
+		WorkspaceID:      workspace.ID,
+		Name:             config.ProjectName,
+		ID:               uid.New(uid.ProjectPrefix),
+		Slug:             config.ProjectSlug,
+		GitRepositoryURL: "",
+		DefaultBranch:    "",
+		DeleteProtection: false,
+	})
+
+	var environment db.Environment
+	if !config.SkipEnvironment {
+		environment = h.CreateEnvironment(seed.CreateEnvironmentRequest{
+			ID:               uid.New(uid.EnvironmentPrefix),
+			WorkspaceID:      workspace.ID,
+			ProjectID:        project.ID,
+			Slug:             config.EnvironmentSlug,
+			Description:      config.EnvironmentSlug + " environment",
+			DeleteProtection: false,
+			SentinelConfig:   nil,
+		})
+	}
+
+	return DeploymentTestSetup{
+		Workspace:   workspace,
+		RootKey:     rootKey,
+		Project:     project,
+		Environment: environment,
+	}
 }
 
 type SetupAnalyticsOption func(*setupAnalyticsConfig)

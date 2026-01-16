@@ -1,8 +1,8 @@
 import type { AllOperatorsUrlValue } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/filters.schema";
 import { clickhouse } from "@/lib/clickhouse";
-import { type SQL, db, like, or } from "@/lib/db";
+import { type SQL, and, count, db, eq, isNull, like, or, sql } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { identities } from "@unkey/db/src/schema";
+import { identities, keys as keysSchema } from "@unkey/db/src/schema";
 import { z } from "zod";
 import type { KeyDetails } from "./schema";
 
@@ -138,7 +138,7 @@ export async function getAllKeys({
 
     // Helper function to build the filter conditions (without cursor)
     // biome-ignore lint/suspicious/noExplicitAny: Leave it as is for now
-    const buildFilterConditions = (key: any, { and, isNull, eq, sql }: any) => {
+    const buildFilterConditions = (key: any, { and, isNull, eq, sql }: any): SQL<unknown> => {
       const conditions = [eq(key.keyAuthId, keyspaceId), isNull(key.deletedAtM)];
 
       // Apply tag-based key filtering if we have filtered key IDs
@@ -273,15 +273,13 @@ export async function getAllKeys({
       return and(...conditions);
     };
 
-    // Get the total count of keys matching the filters (without pagination)
-    const countQuery = await db.query.keys.findMany({
-      where: buildFilterConditions,
-      columns: {
-        id: true,
-      },
-    });
+    // Get the total count using a proper COUNT query instead of fetching all rows
+    const [countResult] = await db
+      .select({ count: count() })
+      .from(keysSchema)
+      .where(buildFilterConditions(keysSchema, { and, isNull, eq, sql }));
 
-    const totalCount = countQuery.length;
+    const totalCount = countResult?.count ?? 0;
     const keysQuery = await db.query.keys.findMany({
       where: (key, helpers) => {
         const { and, lt } = helpers;

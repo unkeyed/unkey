@@ -175,7 +175,8 @@ func TestRace(t *testing.T) {
 			defer wg.Done()
 			for j := 0; j < iterations; j++ {
 				buf := make([]byte, 16)
-				_ = batchrand.Read(buf)
+				err := batchrand.Read(buf)
+				require.NoError(t, err)
 			}
 		}()
 	}
@@ -189,7 +190,8 @@ func BenchmarkRead(b *testing.B) {
 		b.ReportAllocs()
 		buf := make([]byte, 12)
 		for i := 0; i < b.N; i++ {
-			_ = batchrand.Read(buf)
+			err := batchrand.Read(buf)
+			require.NoError(b, err)
 		}
 	})
 
@@ -197,7 +199,8 @@ func BenchmarkRead(b *testing.B) {
 		b.ReportAllocs()
 		buf := make([]byte, 12)
 		for i := 0; i < b.N; i++ {
-			_, _ = rand.Read(buf)
+			_, err := rand.Read(buf)
+			require.NoError(b, err)
 		}
 	})
 }
@@ -209,7 +212,10 @@ func BenchmarkReadParallel(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			buf := make([]byte, 12)
 			for pb.Next() {
-				_ = batchrand.Read(buf)
+				err := batchrand.Read(buf)
+				if err != nil {
+					b.Fatal(err)
+				}
 			}
 		})
 	})
@@ -219,7 +225,10 @@ func BenchmarkReadParallel(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			buf := make([]byte, 12)
 			for pb.Next() {
-				_, _ = rand.Read(buf)
+				_, err := rand.Read(buf)
+				if err != nil {
+					b.Fatal(err)
+				}
 			}
 		})
 	})
@@ -234,7 +243,8 @@ func BenchmarkReadSizes(b *testing.B) {
 			b.ReportAllocs()
 			buf := make([]byte, size)
 			for i := 0; i < b.N; i++ {
-				_ = batchrand.Read(buf)
+				err := batchrand.Read(buf)
+				require.NoError(b, err)
 			}
 		})
 	}

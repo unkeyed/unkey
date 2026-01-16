@@ -6,7 +6,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 )
 
-// GetTag examines an error and its chain of wrapped errors to find the first
+// GetCode examines an error and its chain of wrapped errors to find the first
 // ErrorTag. Returns UNTAGGED if no tag is found or if the error is nil.
 // The search traverses the error chain using errors.Unwrap until either a tag
 // is found or the chain is exhausted.

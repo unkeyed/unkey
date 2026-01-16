@@ -12,6 +12,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 )
 
+// CB is the concrete implementation of [CircuitBreaker]. It tracks request
+// success and failure counts to determine when to trip the circuit. CB is
+// safe for concurrent use; all state mutations are protected by an embedded
+// mutex. Use [New] to create a properly initialized instance.
 type CB[Res any] struct {
 	sync.Mutex
 	// This is a pointer to the configuration of the circuit breaker because we
@@ -65,50 +69,71 @@ type config struct {
 	logger logging.Logger
 }
 
+// WithMaxRequests sets the maximum number of requests allowed through during
+// the [HalfOpen] state. If all probe requests succeed, the circuit closes.
+// Defaults to 10.
 func WithMaxRequests(maxRequests int) applyConfig {
 	return func(c *config) {
 		c.maxRequests = maxRequests
 	}
 }
 
+// WithCyclicPeriod sets the interval at which failure counts are reset while
+// the circuit is [Closed]. A shorter period makes the circuit less sensitive
+// to sporadic failures. Defaults to 5 seconds.
 func WithCyclicPeriod(cyclicPeriod time.Duration) applyConfig {
 	return func(c *config) {
 		c.cyclicPeriod = cyclicPeriod
 	}
 }
+
+// WithIsDownstreamError provides a function to classify errors. Only errors
+// where this function returns true count toward the trip threshold. By default,
+// all non-nil errors are considered downstream errors.
 func WithIsDownstreamError(isDownstreamError func(error) bool) applyConfig {
 	return func(c *config) {
 		c.isDownstreamError = isDownstreamError
 	}
 }
+
+// WithTripThreshold sets the number of failures within a cyclic period that
+// will cause the circuit to trip from [Closed] to [Open]. Defaults to 5.
 func WithTripThreshold(tripThreshold int) applyConfig {
 	return func(c *config) {
 		c.tripThreshold = tripThreshold
 	}
 }
 
+// WithTimeout sets how long the circuit remains [Open] before transitioning
+// to [HalfOpen] to probe for recovery. Defaults to 1 minute.
 func WithTimeout(timeout time.Duration) applyConfig {
 	return func(c *config) {
 		c.timeout = timeout
 	}
 }
 
-// for testing
+// WithClock sets a custom clock for timing operations. This is primarily
+// useful for testing to control time progression.
 func WithClock(clock clock.Clock) applyConfig {
 	return func(c *config) {
 		c.clock = clock
 	}
 }
 
+// WithLogger sets the logger for circuit breaker debug output.
 func WithLogger(logger logging.Logger) applyConfig {
 	return func(c *config) {
 		c.logger = logger
 	}
 }
 
-// applyConfig applies a config setting to the circuit breaker
+// applyConfig is a functional option for configuring a circuit breaker.
+// Use the With* functions to create options.
 type applyConfig func(*config)
 
+// New creates a new circuit breaker with the given name and configuration
+// options. The name is used for metrics and tracing identification. The
+// circuit breaker starts in the [Closed] state, allowing all requests through.
 func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 	cfg := &config{
 		name:         name,
@@ -158,6 +183,11 @@ var _ CircuitBreaker[any] = &CB[any]{
 	consecutiveFailures:  0,
 }
 
+// Do executes fn if the circuit allows it. Returns [ErrTripped] immediately
+// if the circuit is [Open], or [ErrTooManyRequests] if in [HalfOpen] state
+// and the probe limit is exceeded. On success or failure, the result is
+// recorded to update the circuit state. The zero value of Res is returned
+// when the circuit rejects the request.
 func (cb *CB[Res]) Do(ctx context.Context, fn func(context.Context) (Res, error)) (res Res, err error) {
 	ctx, span := tracing.Start(ctx, fmt.Sprintf("circuitbreaker.%s.Do", cb.config.name))
 	defer span.End()

@@ -81,7 +81,6 @@ func TestHandleState_SentinelApply(t *testing.T) {
 						ProjectId:     "prj_123",
 						EnvironmentId: "env_123",
 						SentinelId:    "sentinel_123",
-						K8SNamespace:  "test-namespace",
 						K8SName:       "test-sentinel",
 						Image:         "sentinel:1.0",
 						Replicas:      2,
@@ -109,8 +108,7 @@ func TestHandleState_SentinelDelete(t *testing.T) {
 			Sentinel: &ctrlv1.SentinelState{
 				State: &ctrlv1.SentinelState_Delete{
 					Delete: &ctrlv1.DeleteSentinel{
-						K8SNamespace: "test-namespace",
-						K8SName:      "test-sentinel",
+						K8SName: "test-sentinel",
 					},
 				},
 			},
