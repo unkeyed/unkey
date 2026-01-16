@@ -82,7 +82,7 @@ type ApiWithKeyCount = {
   keys: Array<{ count: number }>;
 };
 
-// test comment 
+// test comment
 
 export async function apiItemsWithApproxKeyCounts(
   apiItems: Array<ApiItem>,
