@@ -13,6 +13,7 @@ type Props = {
 export const LogFooter = ({ log }: Props) => {
   return (
     <RequestResponseDetails
+      className="px-4"
       fields={[
         {
           label: "Time",
@@ -44,12 +45,12 @@ export const LogFooter = ({ log }: Props) => {
                 <span className="text-sm text-content whitespace-nowrap">{`${user.username}`}</span>
               </div>
             ) : log.actor.type === "key" ? (
-              <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
+              <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow justify-end">
                 <Key iconSize="sm-thin" />
                 <span className="font-mono text-xs text-content">{log.actor.id}</span>
               </div>
             ) : (
-              <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
+              <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow justify-end">
                 <MathFunction iconSize="sm-thin" />
                 <span className="font-mono text-xs text-content">{log.actor.id}</span>
               </div>
