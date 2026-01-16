@@ -151,10 +151,12 @@ func TestToKeyData_WithIdentity(t *testing.T) {
 func TestToKeyData_WithJSONFields(t *testing.T) {
 	t.Run("with valid JSON arrays", func(t *testing.T) {
 		roles := []RoleInfo{{Name: "admin"}, {Name: "user"}}
-		rolesJSON, _ := json.Marshal(roles)
+		rolesJSON, err := json.Marshal(roles)
+		require.NoError(t, err)
 
 		permissions := []PermissionInfo{{Slug: "read"}, {Slug: "write"}}
-		permissionsJSON, _ := json.Marshal(permissions)
+		permissionsJSON, err := json.Marshal(permissions)
+		require.NoError(t, err)
 
 		ratelimits := []RatelimitInfo{
 			{
@@ -172,7 +174,8 @@ func TestToKeyData_WithJSONFields(t *testing.T) {
 				AutoApply: false,
 			},
 		}
-		ratelimitsJSON, _ := json.Marshal(ratelimits)
+		ratelimitsJSON, err := json.Marshal(ratelimits)
+		require.NoError(t, err)
 
 		row := FindLiveKeyByHashRow{
 			ID:              "key-with-json",

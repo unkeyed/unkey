@@ -1,0 +1,53 @@
+post:
+  tags:
+    - deploy
+  summary: Get deployment
+  description: |
+    **INTERNAL** - This endpoint is internal and may change without notice.
+    Not recommended for production use.
+
+    Retrieves deployment information including status, error messages, and steps.
+
+    **Authentication**: Requires a valid root key with appropriate permissions.
+  operationId: deploy.getDeployment
+  x-speakeasy-name-override: getDeployment
+  x-speakeasy-group: internal
+  security:
+    - rootKey: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DeployGetDeploymentRequestBody.yaml"
+  responses:
+    "200":
+      description: Deployment retrieved successfully
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DeployGetDeploymentResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

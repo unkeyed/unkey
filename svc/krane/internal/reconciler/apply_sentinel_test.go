@@ -17,7 +17,6 @@ func newApplySentinelRequest() *ctrlv1.ApplySentinel {
 		ProjectId:     "prj_123",
 		EnvironmentId: "env_123",
 		SentinelId:    "sent_123",
-		K8SNamespace:  "test-namespace",
 		K8SName:       "test-sentinel",
 		Image:         "unkey/sentinel:v1.0",
 		Replicas:      2,
@@ -307,7 +306,7 @@ func TestApplySentinel_SetsTolerations(t *testing.T) {
 	toleration := depCapture.Applied.Spec.Template.Spec.Tolerations[0]
 	require.Equal(t, "node-class", toleration.Key)
 	require.Equal(t, corev1.TolerationOpEqual, toleration.Operator)
-	require.Equal(t, "customer-code", toleration.Value)
+	require.Equal(t, sentinelToleration.Value, toleration.Value)
 	require.Equal(t, corev1.TaintEffectNoSchedule, toleration.Effect)
 }
 
@@ -331,10 +330,6 @@ func TestApplySentinel_ValidationErrors(t *testing.T) {
 		{
 			name:   "missing sentinel id",
 			mutate: func(req *ctrlv1.ApplySentinel) { req.SentinelId = "" },
-		},
-		{
-			name:   "missing namespace",
-			mutate: func(req *ctrlv1.ApplySentinel) { req.K8SNamespace = "" },
 		},
 		{
 			name:   "missing k8s name",
