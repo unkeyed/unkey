@@ -457,6 +457,89 @@ func (c *cache[K, V]) SWRMany(
 	return values, hits, nil
 }
 
+func (c *cache[K, V]) SWRWithFallback(
+	ctx context.Context,
+	candidates []K,
+	refreshFromOrigin func(context.Context) (V, K, error),
+	op func(error) Op,
+) (V, CacheHit, error) {
+	start := time.Now()
+	now := c.clock.Now()
+
+	// Check all candidate keys for cache hits
+	for _, key := range candidates {
+		e, ok := c.get(ctx, key)
+		if !ok {
+			continue
+		}
+
+		// Found in cache
+		if now.Before(e.Fresh) {
+			// Fresh - return immediately
+			debug.RecordCacheHit(ctx, c.resource, "FRESH", time.Since(start))
+			return e.Value, e.Hit, nil
+		}
+
+		if now.Before(e.Stale) {
+			// Stale - return but queue background revalidation
+			c.revalidateC <- func() {
+				c.revalidateWithCanonicalKey(context.WithoutCancel(ctx), refreshFromOrigin, op)
+			}
+			debug.RecordCacheHit(ctx, c.resource, "STALE", time.Since(start))
+			return e.Value, e.Hit, nil
+		}
+
+		// Expired - delete and continue checking other candidates
+		c.otter.Delete(key)
+	}
+
+	// Cache miss on all candidates - fetch from origin
+	v, canonicalKey, err := refreshFromOrigin(ctx)
+	debug.RecordCacheHit(ctx, c.resource, "MISS", time.Since(start))
+
+	switch op(err) {
+	case WriteValue:
+		c.Set(ctx, canonicalKey, v)
+	case WriteNull:
+		// For null, cache under the first candidate (most specific)
+		if len(candidates) > 0 {
+			c.SetNull(ctx, candidates[0])
+		}
+	case Noop:
+		break
+	}
+
+	if err != nil {
+		var zero V
+		return zero, Miss, err
+	}
+
+	return v, Hit, nil
+}
+
+func (c *cache[K, V]) revalidateWithCanonicalKey(
+	ctx context.Context,
+	refreshFromOrigin func(context.Context) (V, K, error),
+	op func(error) Op,
+) {
+	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
+	v, canonicalKey, err := refreshFromOrigin(ctx)
+
+	if err != nil && !db.IsNotFound(err) {
+		c.logger.Warn("failed to revalidate with canonical key", "error", err.Error())
+		return
+	}
+
+	switch op(err) {
+	case WriteValue:
+		c.Set(ctx, canonicalKey, v)
+	case WriteNull:
+		c.SetNull(ctx, canonicalKey)
+	case Noop:
+		break
+	}
+}
+
 func (c *cache[K, V]) revalidateMany(
 	ctx context.Context,
 	keys []K,

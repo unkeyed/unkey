@@ -56,6 +56,7 @@ func (s *Service) UpdateDeploymentState(ctx context.Context, req *connect.Reques
 						err = db.Query.DeleteInstance(ctx, tx, db.DeleteInstanceParams{
 							K8sName:   staleInstance.K8sName,
 							ClusterID: clusterID,
+							Region:    region,
 						})
 						if err != nil {
 							return err
