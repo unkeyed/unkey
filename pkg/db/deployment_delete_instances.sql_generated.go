@@ -11,19 +11,19 @@ import (
 
 const deleteDeploymentInstances = `-- name: DeleteDeploymentInstances :exec
 DELETE FROM instances
-WHERE deployment_id = ? AND region = ?
+WHERE deployment_id = ? AND cluster_id = ?
 `
 
 type DeleteDeploymentInstancesParams struct {
 	DeploymentID string `db:"deployment_id"`
-	Region       string `db:"region"`
+	ClusterID    string `db:"cluster_id"`
 }
 
 // DeleteDeploymentInstances
 //
 //	DELETE FROM instances
-//	WHERE deployment_id = ? AND region = ?
+//	WHERE deployment_id = ? AND cluster_id = ?
 func (q *Queries) DeleteDeploymentInstances(ctx context.Context, db DBTX, arg DeleteDeploymentInstancesParams) error {
-	_, err := db.ExecContext(ctx, deleteDeploymentInstances, arg.DeploymentID, arg.Region)
+	_, err := db.ExecContext(ctx, deleteDeploymentInstances, arg.DeploymentID, arg.ClusterID)
 	return err
 }

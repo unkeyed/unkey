@@ -82,7 +82,7 @@ unkey run krane                                   # Run with default configurati
 			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 
 		cli.String("cluster-id", "ID of the cluster",
-			cli.Default(uid.Nano("")),
+			cli.Default("local"),
 			cli.EnvVar("UNKEY_CLUSTER_ID")),
 	},
 	Action: action,
