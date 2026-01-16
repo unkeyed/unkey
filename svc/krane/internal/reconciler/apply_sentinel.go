@@ -124,8 +124,9 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 						ComponentSentinel(),
 				},
 				Spec: corev1.PodSpec{
-					RestartPolicy: corev1.RestartPolicyAlways,
-					Tolerations:   []corev1.Toleration{sentinelToleration},
+					RestartPolicy:             corev1.RestartPolicyAlways,
+					Tolerations:               []corev1.Toleration{sentinelToleration},
+					TopologySpreadConstraints: sentinelTopologySpread(sentinel.GetSentinelId()),
 					Containers: []corev1.Container{{
 						Image:           sentinel.GetImage(),
 						Name:            "sentinel",
@@ -147,6 +148,7 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 							{Name: "UNKEY_ENVIRONMENT_ID", Value: sentinel.GetEnvironmentId()},
 							{Name: "UNKEY_SENTINEL_ID", Value: sentinel.GetSentinelId()},
 							{Name: "UNKEY_REGION", Value: r.region},
+							{Name: "DEBUG", Value: "true"},
 						},
 
 						Ports: []corev1.ContainerPort{{
