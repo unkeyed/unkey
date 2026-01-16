@@ -9,7 +9,11 @@ mode: "wide"
 - Created your [Unkey account](https://app.unkey.com/auth/sign-up)
 - Created an API in the [Unkey dashboard](https://app.unkey.com/apis)
 
-<Card title="Skip the tutorial" icon="link" href="https://github.com/unkeyed/examples/tree/main/bun-server">
+<Card
+  title="Skip the tutorial"
+  icon="link"
+  href="https://github.com/unkeyed/examples/tree/main/bun-server"
+>
   Don't want to read the tutorial? Click this to get an example ready to test.
 </Card>
 
@@ -30,7 +34,7 @@ bun init -y
 Now install the `@unkey/api` package
 
 ```bash
-bun install @unkey/api@0.35
+bun install @unkey/api
 ```
 
 </Step>
@@ -40,7 +44,11 @@ bun install @unkey/api@0.35
 Open up the file called `index.ts` and add the following code
 
 ```ts index.ts
-import { verifyKey } from "@unkey/api";
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({
+  rootKey: process.env.UNKEY_ROOT_KEY,
+});
 
 const server = Bun.serve({
   async fetch(req) {
@@ -49,15 +57,9 @@ const server = Bun.serve({
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { result, error } = await verifyKey(key);
-    if (error) {
-      // This may happen on network errors
-      // We already retry the request 5 times, but if it still fails, we return an error
-      console.error(error);
-      return Response.json("Internal Server Error", { status: 500 });
-    }
+    const result = await unkey.keys.verifyKey(key);
 
-    if (!result.valid) {
+    if (!result.data.valid) {
       return new Response("Unauthorized", { status: 401 });
     }
 
@@ -97,11 +99,14 @@ It should return `{"keyId":"key_id","valid":true,"meta":{},"enabled":true,"permi
 Now that you've seen the power of Unkey, check out some resources below to continue your journey.
 
 <CardGroup cols={3}>
-  <Card title="Discord" icon="discord" href="https://unkey.com/discord">Join our Discord to chat with us and the community</Card>
+  <Card title="Discord" icon="discord" href="https://unkey.com/discord">
+    Join our Discord to chat with us and the community
+  </Card>
   <Card title="Unkey API Reference" icon="database" href="/api-reference">
-     Learn about our API that helps you manage APIs, keys, ratelimits and analytical data.
+    Learn about our API that helps you manage APIs, keys, ratelimits and
+    analytical data.
   </Card>
   <Card title="SDKs" icon="brackets-curly" href="/libraries">
-   Check out our SDKs and how they fit into your Bun application.
+    Check out our SDKs and how they fit into your Bun application.
   </Card>
 </CardGroup>

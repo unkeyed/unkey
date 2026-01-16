@@ -28,6 +28,7 @@ import (
 
 	v2DeployCreateDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment"
 	v2DeployGenerateUploadUrl "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_generate_upload_url"
+	v2DeployGetDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_get_deployment"
 
 	v2IdentitiesCreateIdentity "github.com/unkeyed/unkey/svc/api/routes/v2_identities_create_identity"
 	v2IdentitiesDeleteIdentity "github.com/unkeyed/unkey/svc/api/routes/v2_identities_delete_identity"
@@ -330,6 +331,17 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		srv.RegisterRoute(
 			defaultMiddlewares,
 			&v2DeployCreateDeployment.Handler{
+				Logger:     svc.Logger,
+				DB:         svc.Database,
+				Keys:       svc.Keys,
+				CtrlClient: svc.CtrlDeploymentClient,
+			},
+		)
+
+		// v2/deploy.getDeployment
+		srv.RegisterRoute(
+			defaultMiddlewares,
+			&v2DeployGetDeployment.Handler{
 				Logger:     svc.Logger,
 				DB:         svc.Database,
 				Keys:       svc.Keys,

@@ -11,8 +11,8 @@ type Config struct {
 
 	// S3Bucket is the bucket to store secrets in
 	S3Bucket string
-	// S3Url is the url to store secrets in
-	S3Url string
+	// S3URL is the url to store secrets in
+	S3URL string
 	// S3AccessKeyID is the access key id to use for s3
 	S3AccessKeyID string
 	// S3AccessKeySecret is the access key secret to use for s3
@@ -32,7 +32,7 @@ func (c Config) Validate() error {
 		assert.NotEmpty(c.InstanceID, "instanceID must not be empty"),
 		assert.Greater(c.HttpPort, 0, "httpPort must be greater than 0"),
 		assert.NotEmpty(c.S3Bucket, "s3Bucket must not be empty"),
-		assert.NotEmpty(c.S3Url, "s3Url must not be empty"),
+		assert.NotEmpty(c.S3URL, "s3Url must not be empty"),
 		assert.NotEmpty(c.S3AccessKeyID, "s3AccessKeyID must not be empty"),
 		assert.NotEmpty(c.S3AccessKeySecret, "s3AccessKeySecret must not be empty"),
 		assert.NotEmpty(c.MasterKeys, "masterKeys must not be empty"),
