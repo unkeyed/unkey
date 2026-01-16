@@ -22,19 +22,23 @@ jobs:
             common --remote_header=authorization=${{ secrets.DEPOT_BAZEL_CACHE_AUTHORIZATION }}
             common --remote_local_fallback
 
-      - name: Build
-        run: bazel build //...
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
         with:
           install: true
 
-      - name: Run containers
-        run: docker compose -f ./dev/docker-compose.yaml up -d s3 clickhouse kafka mysql ctrl restate --wait
+      # Running containers is temporary until we moved them inside of bazel, at that point they are only created if they are actually needed
+      - name: Start containers
+        run: docker compose -f ./dev/docker-compose.yaml up -d s3 clickhouse kafka mysql ctrl restate
         env:
           DOCKER_BUILDKIT: 1
           COMPOSE_DOCKER_CLI_BUILD: 1
+
+      - name: Build
+        run: bazel build //...
+
+      - name: Wait for containers
+        run: docker compose -f ./dev/docker-compose.yaml up -d --wait
 
       - name: Run tests
         run: bazel test //... --test_output=errors
