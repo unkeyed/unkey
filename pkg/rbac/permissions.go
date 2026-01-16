@@ -30,7 +30,7 @@ const (
 	Identity ResourceType = "identity"
 
 	// Deploy represents deployment resources and operations
-	Deploy ResourceType = "deploy"
+	Project ResourceType = "project"
 )
 
 // Predefined API actions. These constants define operations that can be
@@ -166,8 +166,8 @@ const (
 	DeleteIdentity ActionType = "delete_identity"
 )
 
-// Predefined deployment actions. These constants define operations that can be
-// performed on deployment resources.
+// Predefined project actions. These constants define operations that can be
+// performed on project deployment resources.
 const (
 	// CreateDeployment permits creating new deployments
 	CreateDeployment ActionType = "create_deployment"

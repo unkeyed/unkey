@@ -26,7 +26,7 @@ func TestCreateDeploymentInsufficientPermissions(t *testing.T) {
 
 	// Create setup with insufficient permissions (wrong action)
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"deploy.*.read_deployment"},
+		Permissions: []string{"project.*.read_deployment"},
 	})
 
 	headers := http.Header{
@@ -58,7 +58,7 @@ func TestCreateDeploymentCorrectPermissions(t *testing.T) {
 	}{
 		{
 			name:  "wildcard deploy",
-			roles: []string{"deploy.*.create_deployment"},
+			roles: []string{"project.*.create_deployment"},
 		},
 		{
 			name:  "specific project",
@@ -84,7 +84,7 @@ func TestCreateDeploymentCorrectPermissions(t *testing.T) {
 				setup := h.CreateTestDeploymentSetup()
 
 				// Now create root key with project-specific permission
-				rootKey := h.CreateRootKey(setup.Workspace.ID, fmt.Sprintf("deploy.%s.create_deployment", setup.Project.ID))
+				rootKey := h.CreateRootKey(setup.Workspace.ID, fmt.Sprintf("project.%s.create_deployment", setup.Project.ID))
 
 				headers := http.Header{
 					"Content-Type":  {"application/json"},

@@ -52,12 +52,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Deploy,
+			ResourceType: rbac.Project,
 			ResourceID:   "*",
 			Action:       rbac.ReadDeployment,
 		}),
 		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Deploy,
+			ResourceType: rbac.Project,
 			ResourceID:   req.ProjectId,
 			Action:       rbac.ReadDeployment,
 		}),

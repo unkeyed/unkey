@@ -26,7 +26,7 @@ func TestGenerateUploadUrlInsufficientPermissions(t *testing.T) {
 
 	// Create setup with insufficient permissions (wrong action)
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"deploy.*.create_deployment"},
+		Permissions: []string{"project.*.create_deployment"},
 	})
 
 	headers := http.Header{
@@ -52,7 +52,7 @@ func TestGenerateUploadUrlCorrectPermissions(t *testing.T) {
 	}{
 		{
 			name:  "wildcard deploy",
-			roles: []string{"deploy.*.generate_upload_url"},
+			roles: []string{"project.*.generate_upload_url"},
 		},
 		{
 			name:  "specific project",
@@ -78,7 +78,7 @@ func TestGenerateUploadUrlCorrectPermissions(t *testing.T) {
 				setup := h.CreateTestDeploymentSetup()
 
 				// Now create root key with project-specific permission
-				rootKey := h.CreateRootKey(setup.Workspace.ID, fmt.Sprintf("deploy.%s.generate_upload_url", setup.Project.ID))
+				rootKey := h.CreateRootKey(setup.Workspace.ID, fmt.Sprintf("project.%s.generate_upload_url", setup.Project.ID))
 
 				headers := http.Header{
 					"Content-Type":  {"application/json"},

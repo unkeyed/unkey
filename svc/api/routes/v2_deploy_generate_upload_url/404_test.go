@@ -24,7 +24,7 @@ func TestNotFound(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID, "deploy.*.generate_upload_url")
+	rootKey := h.CreateRootKey(workspace.ID, "project.*.generate_upload_url")
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

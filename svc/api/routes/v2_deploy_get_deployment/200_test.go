@@ -27,7 +27,7 @@ func TestGetDeploymentSuccessfully(t *testing.T) {
 
 	t.Run("get existing deployment successfully", func(t *testing.T) {
 		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-			Permissions: []string{"deploy.*.create_deployment", "deploy.*.read_deployment"},
+			Permissions: []string{"project.*.create_deployment", "project.*.read_deployment"},
 		})
 
 		deploymentID := createTestDeployment(t, h.CtrlDeploymentClient, setup.Project.ID, setup.RootKey)

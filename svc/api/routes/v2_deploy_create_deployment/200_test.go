@@ -25,7 +25,7 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 
 	t.Run("create deployment with docker image", func(t *testing.T) {
 		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-			Permissions: []string{"deploy.*.create_deployment"},
+			Permissions: []string{"project.*.create_deployment"},
 		})
 
 		headers := http.Header{
@@ -60,7 +60,7 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 			ProjectName:     "test-build-project",
 			ProjectSlug:     "staging",
 			EnvironmentSlug: "staging",
-			Permissions:     []string{"deploy.*.create_deployment"},
+			Permissions:     []string{"project.*.create_deployment"},
 		})
 
 		headers := http.Header{
@@ -99,7 +99,7 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 	t.Run("create deployment with git commit info", func(t *testing.T) {
 		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 			ProjectName: "test-git-project",
-			Permissions: []string{"deploy.*.create_deployment"},
+			Permissions: []string{"project.*.create_deployment"},
 		})
 
 		headers := http.Header{
