@@ -26,7 +26,7 @@ type Config struct {
 type service struct {
 	logger       logging.Logger
 	db           db.Database
-	rateLimiter ratelimit.Service
+	rateLimiter  ratelimit.Service
 	usageLimiter usagelimiter.Service
 	rbac         *rbac.RBAC
 	clickhouse   clickhouse.ClickHouse
@@ -42,7 +42,7 @@ func New(config Config) (*service, error) {
 		logger:       config.Logger,
 		db:           config.DB,
 		rbac:         config.RBAC,
-		rateLimiter: config.RateLimiter,
+		rateLimiter:  config.RateLimiter,
 		usageLimiter: config.UsageLimiter,
 		clickhouse:   config.Clickhouse,
 		region:       config.Region,
