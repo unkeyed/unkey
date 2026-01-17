@@ -263,11 +263,11 @@ func (c *ClusterCache[K, V]) HandleInvalidation(ctx context.Context, event *cach
 }
 
 // Close gracefully shuts down the cluster cache and flushes any pending invalidation events.
-func (c *ClusterCache[K, V]) Close() error {
+func (c *ClusterCache[K, V]) Close() {
 	if c.batchProcessor != nil {
 		c.batchProcessor.Close()
 	}
-	return nil
+	c.localCache.Close()
 }
 
 // broadcastInvalidation sends cache invalidation events to other cluster nodes.

@@ -50,6 +50,13 @@ type Caches struct {
 
 // Close shuts down the caches and cleans up resources.
 func (c *Caches) Close() error {
+	c.RatelimitNamespace.Close()
+	c.VerificationKeyByHash.Close()
+	c.LiveApiByID.Close()
+	c.ClickhouseSetting.Close()
+	c.KeyAuthToApiRow.Close()
+	c.ApiToKeyAuthRow.Close()
+
 	// Close the dispatcher to stop consuming invalidation events
 	if c.dispatcher != nil {
 		return c.dispatcher.Close()
