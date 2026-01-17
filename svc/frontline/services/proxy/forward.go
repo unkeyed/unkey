@@ -37,7 +37,8 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
 	// nolint:exhaustruct
 	proxy := &httputil.ReverseProxy{
-		Transport: s.transport,
+		Transport:     s.transport,
+		FlushInterval: -1, // flush immediately for streaming
 		Director: func(req *http.Request) {
 			proxyStartTime = s.clock.Now()
 

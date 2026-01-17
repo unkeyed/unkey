@@ -26,3 +26,15 @@ func (r *statusRecorder) Write(b []byte) (int, error) {
 
 	return r.ResponseWriter.Write(b)
 }
+
+// Flush implements http.Flusher for streaming responses.
+func (r *statusRecorder) Flush() {
+	if flusher, ok := r.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
+// Unwrap returns underlying ResponseWriter for http.ResponseController.
+func (r *statusRecorder) Unwrap() http.ResponseWriter {
+	return r.ResponseWriter
+}

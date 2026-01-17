@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "streaming",
+    srcs = ["backend.go"],
+    importpath = "github.com/unkeyed/unkey/svc/frontline/integration/streaming",
+    visibility = ["//visibility:public"],
+)
+
+# E2E test against docker-compose stack (requires: docker compose up)
+go_test(
+    name = "e2e_test",
+    srcs = ["e2e_test.go"],
+    tags = [
+        "integration",
+        "manual",  # Requires docker-compose to be running
+    ],
+    deps = [
+        "@com_github_stretchr_testify//require",
+    ],
+)

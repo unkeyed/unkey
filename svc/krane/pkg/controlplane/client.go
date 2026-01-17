@@ -6,6 +6,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"golang.org/x/net/http2"
 )
 
 // ClientConfig holds the configuration for creating a control plane client.
@@ -32,7 +33,7 @@ type ClientConfig struct {
 //
 // The returned client is configured with:
 // - No timeout (infinite) for long-running operations
-// - HTTP transport with 1-hour idle connection timeout
+// - HTTP/2 transport with keepalive pings to prevent ALB idle timeout disconnections
 // - Automatic authentication and metadata injection via interceptor
 //
 // All outgoing requests will automatically include the Authorization bearer token
@@ -41,8 +42,12 @@ func NewClient(cfg ClientConfig) ctrlv1connect.ClusterServiceClient {
 	return ctrlv1connect.NewClusterServiceClient(
 		&http.Client{
 			Timeout: 0,
-			Transport: &http.Transport{
-				IdleConnTimeout: time.Hour,
+			Transport: &http2.Transport{
+				// Send HTTP/2 PING frame if no frame is received within this duration.
+				// This keeps the connection alive through AWS ALB's idle timeout (default 60s).
+				ReadIdleTimeout: 10 * time.Second,
+				// Time to wait for a PING response before considering the connection dead.
+				PingTimeout: 5 * time.Second,
 			},
 		},
 		cfg.URL,

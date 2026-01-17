@@ -60,3 +60,19 @@ func (w *ErrorCapturingWriter) Write(b []byte) (int, error) {
 	}
 	return w.ResponseWriter.Write(b)
 }
+
+// Flush implements http.Flusher for streaming responses.
+// No-op when error captured (discarding response anyway).
+func (w *ErrorCapturingWriter) Flush() {
+	if w.capturedError != nil {
+		return
+	}
+	if flusher, ok := w.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
+// Unwrap returns underlying ResponseWriter for http.ResponseController.
+func (w *ErrorCapturingWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
+}
