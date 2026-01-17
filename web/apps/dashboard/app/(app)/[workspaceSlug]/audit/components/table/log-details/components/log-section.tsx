@@ -1,69 +1,72 @@
-import { Card, CardContent, CopyButton } from "@unkey/ui";
+import { CopyButton } from "@unkey/ui";
 
 export const LogSection = ({
   details,
   title,
 }: {
-  details: string | string[];
+  details: Record<string, React.ReactNode> | string;
   title: string;
 }) => {
+  const getTextToCopy = () => {
+    if (typeof details === "string") {
+      return details;
+    }
+
+    return Object.entries(details)
+      .sort((a, b) => {
+        const keyA = a[0].toLowerCase();
+        const keyB = b[0].toLowerCase();
+        return keyA.localeCompare(keyB);
+      })
+      .map(([key, value]) => {
+        if (value === null || value === undefined) {
+          return key;
+        }
+        if (typeof value === "object" && value !== null && "props" in value) {
+          return `${key}: ${value}`;
+        }
+        return `${key}: ${value}`;
+      })
+      .join("\n");
+  };
+
   return (
-    <div className="flex flex-col gap-1 mt-[16px]">
-      <div className="flex justify-between items-center">
-        <span className="text-[13px] text-accent-9 font-sans">{title}</span>
-      </div>
-      <Card className="bg-gray-2 border-gray-4 rounded-lg">
-        <CardContent className="py-2 px-3 text-xs relative group ">
-          <pre className="flex flex-col gap-1 whitespace-pre-wrap leading-relaxed">
-            {Array.isArray(details)
-              ? [...details]
+    <div className="flex flex-col gap-1 mt-[16px] px-4">
+      <div className="border bg-gray-2 border-gray-4 rounded-[10px] relative group">
+        <div className="text-gray-11 text-[12px] leading-6 px-[14px] py-1.5 font-sans">{title}</div>
+        <div className="border-gray-4 border-t rounded-[10px] bg-white dark:bg-black px-3.5 py-2">
+          <pre className="whitespace-pre-wrap break-words leading-relaxed text-xs text-accent-12">
+            {typeof details === "object"
+              ? Object.entries(details)
                   .sort((a, b) => {
-                    const keyA = a.split(":")[0].toLowerCase();
-                    const keyB = b.split(":")[0].toLowerCase();
+                    const keyA = a[0].toLowerCase();
+                    const keyB = b[0].toLowerCase();
                     return keyA.localeCompare(keyB);
                   })
-                  .map((header, index) => {
-                    const [key, ...valueParts] = header.split(":");
-                    const value = valueParts.join(":").trim();
-                    // Create unique key by combining key, value hash, and position for duplicates
-                    const uniqueKey = `${key}-${value.slice(0, 20)}-${header.length}-${index}`;
+                  .map(([key, value], index) => {
+                    const valueStr = String(value || "");
+                    const uniqueKey = `${key}-${valueStr.slice(0, 20)}-${index}`;
                     return (
-                      <div className="group flex items-center w-full p-[3px]" key={uniqueKey}>
-                        <span className="w-28 text-left truncate text-accent-9">{key}:</span>
-                        <span className="ml-2 text-xs text-accent-12 secret">{value}</span>
+                      <div className="flex items-center w-full px-[3px] leading-7" key={uniqueKey}>
+                        <span className="text-left text-gray-11 whitespace-nowrap">
+                          {key}
+                          {value ? ":" : ""}
+                        </span>
+                        <span className="ml-2 text-accent-12 truncate">{value}</span>
                       </div>
                     );
                   })
               : details}
           </pre>
-          <CopyButton
-            value={getFormattedContent(details)}
-            shape="square"
-            variant="primary"
-            size="2xlg"
-            className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4 secret"
-            aria-label="Copy content"
-          />
-        </CardContent>
-      </Card>
+        </div>
+        <CopyButton
+          value={getTextToCopy()}
+          shape="square"
+          variant="outline"
+          className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4 bg-gray-2 hover:bg-gray-2 size-2"
+          aria-label="Copy content"
+        />
+      </div>
     </div>
   );
-};
-
-const getFormattedContent = (details: string | string[]) => {
-  if (Array.isArray(details)) {
-    return [...details]
-      .sort((a, b) => {
-        const keyA = a.split(":")[0].toLowerCase();
-        const keyB = b.split(":")[0].toLowerCase();
-        return keyA.localeCompare(keyB);
-      })
-      .map((header) => {
-        const [key, ...valueParts] = header.split(":");
-        const value = valueParts.join(":").trim();
-        return `${key}: ${value}`;
-      })
-      .join("\n");
-  }
-  return details;
 };

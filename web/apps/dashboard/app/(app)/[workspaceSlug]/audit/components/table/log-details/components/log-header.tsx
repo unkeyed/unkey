@@ -14,18 +14,16 @@ export const LogHeader = ({ onClose, log }: Props) => {
   const styles = AUDIT_STATUS_STYLES[eventType];
 
   return (
-    <div className="border-b-[1px] flex justify-between items-center border-gray-4 pb-3 w-full">
+    <div className="border-b-[1px] flex justify-between items-center border-gray-4 h-[50px] px-4 py-2">
       <div className="flex gap-2 items-center flex-1 min-w-0">
-        <Badge className={cn("px-[6px] rounded-md font-mono ", styles.badge.selected)}>
+        <Badge className={cn("px-[6px] rounded-md font-mono", styles.badge.selected)}>
           {log.auditLog.event}
         </Badge>
       </div>
-      <div className="flex gap-1 items-center">
-        <div className="flex gap-3">
-          <Button size="icon" variant="ghost" onClick={onClose} className="[&_svg]:size-3">
-            <XMark className="text-gray-12 stroke-2" />
-          </Button>
-        </div>
+      <div className="flex gap-1 items-center shrink-0">
+        <Button size="icon" variant="ghost" onClick={onClose} className="[&_svg]:size-3">
+          <XMark className="text-grayA-9 stroke-2" iconSize="sm-regular" />
+        </Button>
       </div>
     </div>
   );

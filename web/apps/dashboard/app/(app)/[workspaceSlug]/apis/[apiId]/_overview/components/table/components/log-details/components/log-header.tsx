@@ -11,7 +11,7 @@ export const LogHeader = ({
   log: KeysOverviewLog;
 }) => {
   return (
-    <div className="border-b-[1px] flex justify-between items-center border-gray-4 pb-3">
+    <div className="border-b-[1px] flex justify-between items-center border-gray-4 h-[50px] px-4 py-2">
       <div className="flex gap-2 items-center flex-1 min-w-0">
         <Badge
           className={cn("uppercase px-[6px] rounded-md font-mono", {
@@ -21,13 +21,15 @@ export const LogHeader = ({
         >
           {log.key_details?.enabled ? "Active" : "Disabled"}
         </Badge>
-        <p className="text-xs text-accent-12 truncate flex-1 mr-4">
-          {log.key_details?.name || log.key_id}{" "}
+        <p className="text-xs text-accent-12 truncate flex-1">
+          {log.key_details?.name || log.key_id}
         </p>
       </div>
-      <Button size="icon" variant="ghost" onClick={onClose} className="[&_svg]:size-3">
-        <XMark className="text-gray-12 stroke-2" />
-      </Button>
+      <div className="flex gap-1 items-center shrink-0">
+        <Button size="icon" variant="ghost" onClick={onClose} className="[&_svg]:size-3">
+          <XMark className="text-grayA-9 stroke-2" iconSize="sm-regular" />
+        </Button>
+      </div>
     </div>
   );
 };
