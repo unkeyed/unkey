@@ -28,9 +28,9 @@ go_test(
     ],
     deps = [
         ":v2_deploy_generate_upload_url",
-        "//pkg/testutil",
-        "//pkg/testutil/seed",
         "//pkg/uid",
+        "//svc/api/internal/testutil",
+        "//svc/api/internal/testutil/seed",
         "//svc/api/openapi",
         "@com_github_stretchr_testify//require",
     ],

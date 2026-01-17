@@ -12,8 +12,8 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
-	"github.com/unkeyed/unkey/pkg/testutil"
-	"github.com/unkeyed/unkey/pkg/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_delete_key"
 )
 

@@ -3,7 +3,7 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "seed",
     srcs = ["seed.go"],
-    importpath = "github.com/unkeyed/unkey/pkg/testutil/seed",
+    importpath = "github.com/unkeyed/unkey/svc/api/internal/testutil/seed",
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/vault/v1:vault",

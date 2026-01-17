@@ -12,8 +12,8 @@ import (
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_list_permissions"
 
-	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
 func TestSuccess(t *testing.T) {

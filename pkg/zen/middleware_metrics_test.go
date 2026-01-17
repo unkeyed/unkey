@@ -377,7 +377,7 @@ func TestWithMetrics_InternalErrorLogging(t *testing.T) {
 		server.RegisterRoute(
 			[]Middleware{
 				WithMetrics(eventBuffer, InstanceInfo{Region: "test-region"}),
-				WithErrorHandling(logger),
+				withErrorHandling(logger),
 			},
 			NewRoute(http.MethodGet, "/error-test", func(ctx context.Context, s *Session) error {
 				return fault.New("something went wrong internally",
@@ -411,7 +411,7 @@ func TestWithMetrics_InternalErrorLogging(t *testing.T) {
 		server.RegisterRoute(
 			[]Middleware{
 				WithMetrics(eventBuffer, InstanceInfo{Region: "test-region"}),
-				WithErrorHandling(logger),
+				withErrorHandling(logger),
 			},
 			NewRoute(http.MethodGet, "/chained-error", func(ctx context.Context, s *Session) error {
 				baseErr := fault.New("database connection failed")
@@ -449,7 +449,7 @@ func TestWithMetrics_InternalErrorLogging(t *testing.T) {
 		server.RegisterRoute(
 			[]Middleware{
 				WithMetrics(eventBuffer, InstanceInfo{Region: "test-region"}),
-				WithErrorHandling(logger),
+				withErrorHandling(logger),
 			},
 			NewRoute(http.MethodGet, "/success", func(ctx context.Context, s *Session) error {
 				return s.JSON(http.StatusOK, map[string]string{"status": "ok"})
@@ -477,7 +477,7 @@ func TestWithMetrics_InternalErrorLogging(t *testing.T) {
 		server.RegisterRoute(
 			[]Middleware{
 				WithMetrics(eventBuffer, InstanceInfo{Region: "test-region"}),
-				WithErrorHandling(logger),
+				withErrorHandling(logger),
 			},
 			NewRoute(http.MethodGet, "/not-found-test", func(ctx context.Context, s *Session) error {
 				return fault.New("key not found in database",

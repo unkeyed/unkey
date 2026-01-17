@@ -34,8 +34,8 @@ go_test(
     deps = [
         ":v2_ratelimit_delete_override",
         "//pkg/db",
-        "//pkg/testutil",
         "//pkg/uid",
+        "//svc/api/internal/testutil",
         "//svc/api/openapi",
         "@com_github_stretchr_testify//require",
     ],

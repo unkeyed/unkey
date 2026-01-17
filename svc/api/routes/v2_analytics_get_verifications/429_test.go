@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/pkg/testutil"
-	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
 
 func Test429_QueryQuotaExceeded(t *testing.T) {

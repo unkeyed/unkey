@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/ptr"
-	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/integration"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
 )

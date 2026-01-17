@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
-	"github.com/unkeyed/unkey/pkg/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_get_deployment"
 )
 

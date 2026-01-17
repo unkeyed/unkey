@@ -15,8 +15,8 @@ go_library(
         "//pkg/dockertest",
         "//pkg/otel/logging",
         "//pkg/testutil/containers",
-        "//pkg/testutil/seed",
         "//svc/api",
+        "//svc/api/internal/testutil/seed",
         "@com_github_stretchr_testify//require",
     ],
 )

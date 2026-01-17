@@ -35,7 +35,7 @@ go_test(
     deps = [
         ":v2_permissions_create_permission",
         "//pkg/db",
-        "//pkg/testutil",
+        "//svc/api/internal/testutil",
         "//svc/api/openapi",
         "@com_github_stretchr_testify//require",
     ],

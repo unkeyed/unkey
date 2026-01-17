@@ -145,7 +145,7 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 		// Register a route that times out with both middlewares
 		server.RegisterRoute(
 			[]Middleware{
-				WithErrorHandling(logger),
+				withErrorHandling(logger),
 				WithTimeout(50 * time.Millisecond),
 			},
 			NewRoute(http.MethodGet, "/timeout", func(ctx context.Context, s *Session) error {
@@ -196,7 +196,7 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 		// Register a route that gets canceled by client
 		server.RegisterRoute(
 			[]Middleware{
-				WithErrorHandling(logger),
+				withErrorHandling(logger),
 				WithTimeout(200 * time.Millisecond),
 			},
 			NewRoute(http.MethodGet, "/cancel", func(ctx context.Context, s *Session) error {
@@ -231,17 +231,18 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 		}
 
 		// Parse the response body to verify the error structure
-		var response openapi.BadRequestErrorResponse
+		var response map[string]any
 		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 			t.Fatalf("failed to parse response: %v", err)
 		}
 
-		if response.Error.Title != "Client Closed Request" {
-			t.Errorf("expected title 'Client Closed Request', got '%s'", response.Error.Title)
+		errorObj := response["error"].(map[string]any)
+		if errorObj["title"] != "Client Closed Request" {
+			t.Errorf("expected title 'Client Closed Request', got '%v'", errorObj["title"])
 		}
 
-		if response.Error.Status != 499 {
-			t.Errorf("expected status 499 in response body, got %d", response.Error.Status)
+		if int(errorObj["status"].(float64)) != 499 {
+			t.Errorf("expected status 499 in response body, got %v", errorObj["status"])
 		}
 	})
 
@@ -255,7 +256,7 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 		// Register a route that completes successfully
 		server.RegisterRoute(
 			[]Middleware{
-				WithErrorHandling(logger),
+				withErrorHandling(logger),
 				WithTimeout(100 * time.Millisecond),
 			},
 			NewRoute(http.MethodGet, "/success", func(ctx context.Context, s *Session) error {

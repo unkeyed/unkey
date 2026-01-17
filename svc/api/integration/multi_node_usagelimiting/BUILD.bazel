@@ -8,8 +8,8 @@ go_library(
     deps = [
         "//pkg/clickhouse",
         "//pkg/ptr",
-        "//pkg/testutil/seed",
         "//svc/api/integration",
+        "//svc/api/internal/testutil/seed",
         "//svc/api/openapi",
         "//svc/api/routes/v2_keys_verify_key",
         "@com_github_stretchr_testify//require",
