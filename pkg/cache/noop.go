@@ -56,6 +56,8 @@ func (c *noopCache[K, V]) SWRMany(ctx context.Context, keys []K, refreshFromOrig
 	return values, hits, nil
 }
 
+func (c *noopCache[K, V]) Close() {}
+
 func NewNoopCache[K comparable, V any]() Cache[K, V] {
 	return &noopCache[K, V]{}
 }

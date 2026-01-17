@@ -53,6 +53,10 @@ type Cache[K comparable, V any] interface {
 
 	// Name returns the name of this cache instance.
 	Name() string
+
+	// Close shuts down the cache gracefully, stopping all background goroutines.
+	// It is safe to call Close multiple times.
+	Close()
 }
 
 // Key represents a cache key that can be serialized to a string representation.
