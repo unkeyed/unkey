@@ -247,11 +247,10 @@ func (c *consumer[T]) consumeLoop(ctx context.Context) {
 			// Call handler
 			if c.handler != nil {
 				handlerCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-				defer cancel()
-
 				if err := c.handler(handlerCtx, t); err != nil {
 					c.logger.Error("Error handling event", "error", err.Error(), "topic", c.topic)
 				}
+				cancel()
 			}
 		}
 	}
