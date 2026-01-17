@@ -61,7 +61,7 @@ func (v *Validator) Body(r *http.Request, dest any) (openapi.ValidationError, bo
 			}},
 			Instance:  "https://errors.unkey.com/todo",
 			Status:    http.StatusBadRequest,
-			RequestId: ctxutil.GetRequestId(r.Context()),
+			RequestId: ctxutil.GetRequestID(r.Context()),
 		}, false
 	}
 	r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
@@ -74,7 +74,7 @@ func (v *Validator) Body(r *http.Request, dest any) (openapi.ValidationError, bo
 			Detail:    "One or more fields failed validation",
 			Instance:  "https://errors.unkey.com/todo",
 			Status:    http.StatusBadRequest,
-			RequestId: ctxutil.GetRequestId(r.Context()),
+			RequestId: ctxutil.GetRequestID(r.Context()),
 			Type:      "TODO docs link",
 			Errors:    []openapi.ValidationErrorDetail{},
 		}
@@ -103,7 +103,7 @@ func (v *Validator) Body(r *http.Request, dest any) (openapi.ValidationError, bo
 			}},
 			Instance:  "https://errors.unkey.com/todo",
 			Status:    http.StatusBadRequest,
-			RequestId: ctxutil.GetRequestId(r.Context()),
+			RequestId: ctxutil.GetRequestID(r.Context()),
 			Type:      "TODO docs link",
 		}, false
 	}

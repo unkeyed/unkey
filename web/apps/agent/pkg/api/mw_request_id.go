@@ -10,7 +10,7 @@ import (
 func withRequestId(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		ctx = ctxutil.SetRequestId(ctx, uid.New(uid.Request()))
+		ctx = ctxutil.SetRequestID(ctx, uid.New(uid.Request()))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

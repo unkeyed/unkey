@@ -18,7 +18,7 @@ func New(svc routes.Services) *routes.Route {
 				Detail:    "This route does not exist",
 				Instance:  "https://errors.unkey.com/todo",
 				Status:    http.StatusNotFound,
-				RequestId: ctxutil.GetRequestId(r.Context()),
+				RequestId: ctxutil.GetRequestID(r.Context()),
 				Type:      "TODO docs link",
 			})
 		},
