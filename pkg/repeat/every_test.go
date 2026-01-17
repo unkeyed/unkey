@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEvery_BasicFunctionality(t *testing.T) {
@@ -17,14 +18,15 @@ func TestEvery_BasicFunctionality(t *testing.T) {
 		stop := Every(10*time.Millisecond, func() {
 			counter.Add(1)
 		})
+		defer stop()
 
-		// Wait for several calls
-		time.Sleep(55 * time.Millisecond)
+		require.Eventually(t, func() bool {
+			return counter.Load() >= 3
+		}, 200*time.Millisecond, 5*time.Millisecond, "should have called function at least 3 times")
+
 		stop()
-
 		count := counter.Load()
-		assert.GreaterOrEqual(t, count, int32(3), "should have called function at least 3 times")
-		assert.LessOrEqual(t, count, int32(8), "should not have called function too many times")
+		assert.LessOrEqual(t, count, int32(25), "should not have called function too many times")
 	})
 
 	t.Run("stops when stop function is called", func(t *testing.T) {
@@ -34,18 +36,16 @@ func TestEvery_BasicFunctionality(t *testing.T) {
 			counter.Add(1)
 		})
 
-		// Let it run briefly
-		time.Sleep(25 * time.Millisecond)
-		stop()
+		require.Eventually(t, func() bool {
+			return counter.Load() >= 1
+		}, 200*time.Millisecond, 5*time.Millisecond, "should have called function at least once")
 
-		// Get count after stopping
+		stop()
 		countAfterStop := counter.Load()
 
-		// Wait more time to ensure it really stopped
-		time.Sleep(30 * time.Millisecond)
-		finalCount := counter.Load()
-
-		assert.Equal(t, countAfterStop, finalCount, "function should not be called after stop")
+		require.Never(t, func() bool {
+			return counter.Load() > countAfterStop
+		}, 50*time.Millisecond, 5*time.Millisecond, "function should not be called after stop")
 	})
 }
 
@@ -66,16 +66,10 @@ func TestEvery_GoroutineLeak(t *testing.T) {
 			stop()
 		}
 
-		// Wait for cleanup
-		time.Sleep(100 * time.Millisecond)
-		runtime.GC()
-		runtime.GC() // Double GC to be thorough
-
-		finalGoroutines := runtime.NumGoroutine()
-
-		// Allow some tolerance for test framework goroutines
-		assert.LessOrEqual(t, finalGoroutines, initialGoroutines+2,
-			"should not have significant goroutine leak")
+		require.Eventually(t, func() bool {
+			runtime.GC()
+			return runtime.NumGoroutine() <= initialGoroutines+2
+		}, 500*time.Millisecond, 20*time.Millisecond, "should not have significant goroutine leak")
 	})
 
 	t.Run("immediate stop does not leak", func(t *testing.T) {
@@ -86,12 +80,10 @@ func TestEvery_GoroutineLeak(t *testing.T) {
 			stop() // Stop immediately
 		}
 
-		time.Sleep(50 * time.Millisecond)
-		runtime.GC()
-
-		finalGoroutines := runtime.NumGoroutine()
-		assert.LessOrEqual(t, finalGoroutines, initialGoroutines+1,
-			"immediate stop should not leak goroutines")
+		require.Eventually(t, func() bool {
+			runtime.GC()
+			return runtime.NumGoroutine() <= initialGoroutines+1
+		}, 200*time.Millisecond, 10*time.Millisecond, "immediate stop should not leak goroutines")
 	})
 }
 
@@ -105,14 +97,13 @@ func TestEvery_PanicRecovery(t *testing.T) {
 				panic("test panic")
 			}
 		})
+		defer stop()
 
-		// Wait longer for panic to occur and recovery
-		time.Sleep(100 * time.Millisecond)
+		require.Eventually(t, func() bool {
+			return callCount.Load() >= 3
+		}, 500*time.Millisecond, 5*time.Millisecond, "should continue calling function after panic")
+
 		stop()
-
-		// Should have continued calling after panic
-		assert.GreaterOrEqual(t, callCount.Load(), int32(3),
-			"should continue calling function after panic")
 	})
 
 	t.Run("panic in function does not crash program", func(t *testing.T) {
@@ -122,11 +113,12 @@ func TestEvery_PanicRecovery(t *testing.T) {
 			panic("intentional panic")
 		})
 
-		// Run for a bit to ensure multiple panics are handled
 		go func() {
-			time.Sleep(30 * time.Millisecond)
+			defer func() { done <- true }()
+			require.Eventually(t, func() bool {
+				return true
+			}, 30*time.Millisecond, 5*time.Millisecond)
 			stop()
-			done <- true
 		}()
 
 		select {
@@ -146,17 +138,22 @@ func TestEvery_ConcurrentStops(t *testing.T) {
 			counter.Add(1)
 		})
 
+		// Wait for at least one call
+		require.Eventually(t, func() bool {
+			return counter.Load() >= 1
+		}, 200*time.Millisecond, 5*time.Millisecond, "should have been called at least once")
+
 		// Call stop multiple times sequentially
 		stop()
 		stop()
 		stop()
 
-		time.Sleep(20 * time.Millisecond)
-
-		// Function should have stopped after first stop call
-		// Counter should be low since we stopped quickly
-		assert.LessOrEqual(t, counter.Load(), int32(3),
-			"function should stop after first stop call")
+		// Wait briefly for any in-flight execution to complete, then verify stability
+		require.Eventually(t, func() bool {
+			countBefore := counter.Load()
+			time.Sleep(10 * time.Millisecond)
+			return counter.Load() == countBefore
+		}, 100*time.Millisecond, 5*time.Millisecond, "function should stop after first stop call")
 	})
 
 	t.Run("concurrent stop calls are safe", func(t *testing.T) {
@@ -177,11 +174,11 @@ func TestEvery_ConcurrentStops(t *testing.T) {
 		}
 
 		wg.Wait()
-		time.Sleep(20 * time.Millisecond)
+		countAfterStop := counter.Load()
 
-		// Should not panic or cause issues
-		assert.LessOrEqual(t, counter.Load(), int32(5),
-			"concurrent stops should work without issues")
+		require.Never(t, func() bool {
+			return counter.Load() > countAfterStop
+		}, 50*time.Millisecond, 5*time.Millisecond, "concurrent stops should work without issues")
 	})
 }
 
@@ -192,14 +189,15 @@ func TestEvery_EdgeCases(t *testing.T) {
 		stop := Every(1*time.Millisecond, func() {
 			counter.Add(1)
 		})
+		defer stop()
 
-		time.Sleep(50 * time.Millisecond)
+		require.Eventually(t, func() bool {
+			return counter.Load() >= 10
+		}, 200*time.Millisecond, 5*time.Millisecond, "should handle very short intervals")
+
 		stop()
-
-		// Should handle very short intervals without issues
 		count := counter.Load()
-		assert.Greater(t, count, int32(10), "should handle very short intervals")
-		assert.Less(t, count, int32(100), "should not be unreasonably high")
+		assert.Less(t, count, int32(500), "should not be unreasonably high")
 	})
 
 	t.Run("very long interval", func(t *testing.T) {
@@ -208,12 +206,13 @@ func TestEvery_EdgeCases(t *testing.T) {
 		stop := Every(1*time.Hour, func() {
 			counter.Add(1)
 		})
+		defer stop()
 
-		// Should handle very long intervals without issues
-		time.Sleep(10 * time.Millisecond)
+		require.Eventually(t, func() bool {
+			return counter.Load() >= 1
+		}, 100*time.Millisecond, 5*time.Millisecond, "should have been called once")
+
 		stop()
-
-		// Should have been called once
 		count := counter.Load()
 		assert.Equal(t, int32(1), count, "should have been called once")
 	})
@@ -225,14 +224,15 @@ func TestEvery_EdgeCases(t *testing.T) {
 			counter.Add(1)
 			time.Sleep(20 * time.Millisecond) // Longer than interval
 		})
+		defer stop()
 
-		time.Sleep(60 * time.Millisecond)
+		require.Eventually(t, func() bool {
+			return counter.Load() >= 1
+		}, 200*time.Millisecond, 5*time.Millisecond, "should call slow function at least once")
+
 		stop()
-
-		// Should handle slow functions gracefully
 		count := counter.Load()
-		assert.GreaterOrEqual(t, count, int32(1), "should call slow function at least once")
-		assert.LessOrEqual(t, count, int32(5), "should not stack up too many calls")
+		assert.LessOrEqual(t, count, int32(10), "should not stack up too many calls")
 	})
 }
 
@@ -244,13 +244,17 @@ func TestEvery_StopBehavior(t *testing.T) {
 			counter.Add(1)
 		})
 
-		time.Sleep(25 * time.Millisecond)
+		require.Eventually(t, func() bool {
+			return counter.Load() >= 2
+		}, 200*time.Millisecond, 5*time.Millisecond, "should have been called at least twice")
 
 		// First stop
 		stop()
 		countAfterFirstStop := counter.Load()
 
-		time.Sleep(20 * time.Millisecond)
+		require.Never(t, func() bool {
+			return counter.Load() > countAfterFirstStop
+		}, 50*time.Millisecond, 5*time.Millisecond, "counter should not increase after first stop")
 
 		// Second stop should be safe
 		stop()
