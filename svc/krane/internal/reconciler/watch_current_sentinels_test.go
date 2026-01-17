@@ -195,8 +195,6 @@ func TestWatchCurrentSentinels_ChannelClosure(t *testing.T) {
 	require.NoError(t, err)
 
 	fakeWatch.Stop()
-
-	time.Sleep(100 * time.Millisecond)
 }
 
 func TestWatchCurrentSentinels_ContextCancellation(t *testing.T) {
@@ -220,8 +218,6 @@ func TestWatchCurrentSentinels_ContextCancellation(t *testing.T) {
 	require.NoError(t, err)
 
 	cancel()
-
-	time.Sleep(100 * time.Millisecond)
 }
 
 func TestWatchCurrentSentinels_MultipleEvents(t *testing.T) {
