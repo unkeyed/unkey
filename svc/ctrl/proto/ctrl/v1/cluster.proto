@@ -23,6 +23,7 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 // When an agent reconnects, it should initiate reconciliation to ensure consistency.
 service ClusterService {
   rpc Watch(WatchRequest) returns (stream State);
+  rpc Sync(SyncRequest) returns (stream State);
   rpc GetDesiredSentinelState(GetDesiredSentinelStateRequest) returns (SentinelState);
   rpc UpdateSentinelState(UpdateSentinelStateRequest) returns (UpdateSentinelStateResponse);
 
@@ -78,6 +79,11 @@ message UpdateSentinelStateRequest {
 
 message UpdateSentinelStateResponse {}
 
+message SyncRequest {
+  string cluster_id = 1;
+  string region = 2;
+}
+
 // WatchRequest identifies the cluster requesting a watch stream.
 message WatchRequest {
   // cluster_id uniquely identifies the client requesting the watch stream.
@@ -85,21 +91,19 @@ message WatchRequest {
 
   string region = 2;
 
-  // live indicates whether the client wants live updates of changes
-  // if true, the stream never ends
-  bool live = 3;
-
-  // synthetic indicates whether the client wants synthetic events
-  // if true, the server generates synthetic events to replay the full current desired state.
-  bool synthetic = 4;
+  // sequence_last_seen indicates the last sequence number the client has processed.
+  // This allows the server to send only new events since that sequence number,
+  // enabling efficient reconnection and resumption of the watch stream.
+  uint64 sequence_last_seen = 3;
 }
 
 message State {
+  uint64 sequence = 1;
+
   oneof kind {
-    DeploymentState deployment = 1;
-    SentinelState sentinel = 2;
+    DeploymentState deployment = 2;
+    SentinelState sentinel = 3;
   }
-  optional string acknowledge_id = 3;
 }
 
 // SentinelState represents a lifecycle event for an API sentinel configuration.

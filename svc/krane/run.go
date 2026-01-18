@@ -70,13 +70,6 @@ func Run(ctx context.Context, cfg Config) error {
 		ClusterID:   cfg.ClusterID,
 	})
 
-	w := controlplane.NewWatcher(controlplane.WatcherConfig{
-		Logger:    logger,
-		ClusterID: cfg.ClusterID,
-		Region:    cfg.Region,
-		Cluster:   cluster,
-	})
-
 	inClusterConfig, err := rest.InClusterConfig()
 	if err != nil {
 		return fmt.Errorf("failed to create in-cluster config: %w", err)
@@ -99,7 +92,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	shutdowns.Register(r.Stop)
-	w.Start(ctx, r.HandleState)
 
 	// Create vault service for secrets decryption
 

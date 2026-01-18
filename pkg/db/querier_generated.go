@@ -944,6 +944,14 @@ type Querier interface {
 	//
 	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels WHERE environment_id = ?
 	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Sentinel, error)
+	//FindStateChangesByClusterAfterSequence
+	//
+	//  SELECT sequence, resource_type, state, cluster_id, created_at
+	//  FROM `state_changes`
+	//  WHERE cluster_id = ?
+	//    AND sequence > ?
+	//  ORDER BY sequence ASC
+	FindStateChangesByClusterAfterSequence(ctx context.Context, db DBTX, arg FindStateChangesByClusterAfterSequenceParams) ([]StateChange, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT id, org_id, name, slug, k8s_namespace, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -1568,6 +1576,20 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertSentinel(ctx context.Context, db DBTX, arg InsertSentinelParams) error
+	//InsertStateChange
+	//
+	//  INSERT INTO `state_changes` (
+	//      resource_type,
+	//      state,
+	//      cluster_id,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertStateChange(ctx context.Context, db DBTX, arg InsertStateChangeParams) (int64, error)
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (

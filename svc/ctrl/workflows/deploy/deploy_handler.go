@@ -232,29 +232,40 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 
 		for _, sentinel := range sentinels {
 			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				return w.cluster.EmitState(runCtx, sentinel.Region,
-					&ctrlv1.State{
-						AcknowledgeId: nil,
-						Kind: &ctrlv1.State_Sentinel{
-							Sentinel: &ctrlv1.SentinelState{
-								State: &ctrlv1.SentinelState_Apply{
-									Apply: &ctrlv1.ApplySentinel{
-										K8SName:       sentinel.K8sName,
-										WorkspaceId:   sentinel.WorkspaceID,
-										ProjectId:     sentinel.ProjectID,
-										EnvironmentId: sentinel.EnvironmentID,
-										SentinelId:    sentinel.ID,
-										Image:         w.sentinelImage,
-										Replicas:      sentinel.DesiredReplicas,
-										CpuMillicores: int64(sentinel.CpuMillicores),
-										MemoryMib:     int64(sentinel.MemoryMib),
-									},
-								},
-							},
-						},
-					})
 
-			}, restate.WithName(fmt.Sprintf("emit sentinel apply for %s in %s", sentinel.ID, sentinel.Region)))
+				s := &ctrlv1.SentinelState{
+					State: &ctrlv1.SentinelState_Apply{
+						Apply: &ctrlv1.ApplySentinel{
+							K8SName:       sentinel.K8sName,
+							WorkspaceId:   sentinel.WorkspaceID,
+							ProjectId:     sentinel.ProjectID,
+							EnvironmentId: sentinel.EnvironmentID,
+							SentinelId:    sentinel.ID,
+							Image:         w.sentinelImage,
+							Replicas:      sentinel.DesiredReplicas,
+							CpuMillicores: int64(sentinel.CpuMillicores),
+							MemoryMib:     int64(sentinel.MemoryMib),
+						},
+					},
+				}
+				state, err := proto.Marshal(s)
+				if err != nil {
+					return restate.TerminalError(err)
+				}
+
+				sequence, err := db.Query.InsertStateChange(ctx, w.db.RW(), db.InsertStateChangeParams{
+					ResourceType: db.StateChangesResourceTypeSentinel,
+					State:        state,
+					ClusterID:    sentinel.Region,
+					CreatedAt:    uint64(time.Now().UnixMilli()),
+				})
+				if err != nil {
+					return err
+				}
+
+				_ = sequence
+				return nil
+			}, restate.WithName(fmt.Sprintf("schedule sentinel for %s in %s", sentinel.ID, sentinel.Region)))
 			if err != nil {
 				return nil, err
 			}
@@ -263,34 +274,47 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 
 	for _, region := range topologies {
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return w.cluster.EmitState(runCtx, region.Region,
-				&ctrlv1.State{
-					AcknowledgeId: nil,
-					Kind: &ctrlv1.State_Deployment{
-						Deployment: &ctrlv1.DeploymentState{
-							State: &ctrlv1.DeploymentState_Apply{
-								Apply: &ctrlv1.ApplyDeployment{
-									K8SNamespace:                  workspace.K8sNamespace.String,
-									K8SName:                       deployment.K8sName,
-									WorkspaceId:                   workspace.ID,
-									ProjectId:                     deployment.ProjectID,
-									EnvironmentId:                 deployment.EnvironmentID,
-									DeploymentId:                  deployment.ID,
-									Image:                         dockerImage,
-									Replicas:                      region.DesiredReplicas,
-									CpuMillicores:                 int64(deployment.CpuMillicores),
-									MemoryMib:                     int64(deployment.MemoryMib),
-									BuildId:                       buildID,
-									EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
-									ReadinessId:                   ptr.P(deployment.ID),
-								},
-							},
-						},
+
+			s := &ctrlv1.DeploymentState{
+				State: &ctrlv1.DeploymentState_Apply{
+					Apply: &ctrlv1.ApplyDeployment{
+						K8SNamespace:                  workspace.K8sNamespace.String,
+						K8SName:                       deployment.K8sName,
+						WorkspaceId:                   workspace.ID,
+						ProjectId:                     deployment.ProjectID,
+						EnvironmentId:                 deployment.EnvironmentID,
+						DeploymentId:                  deployment.ID,
+						Image:                         dockerImage,
+						Replicas:                      region.DesiredReplicas,
+						CpuMillicores:                 int64(deployment.CpuMillicores),
+						MemoryMib:                     int64(deployment.MemoryMib),
+						BuildId:                       buildID,
+						EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
+						ReadinessId:                   ptr.P(deployment.ID),
 					},
 				},
-			)
+			}
 
-		}, restate.WithName(fmt.Sprintf("emit deployment apply %s in %s", deployment.ID, region.Region)))
+			state, err := proto.Marshal(s)
+			if err != nil {
+				return restate.TerminalError(err)
+			}
+
+			sequence, err := db.Query.InsertStateChange(ctx, w.db.RW(), db.InsertStateChangeParams{
+				ResourceType: db.StateChangesResourceTypeDeployment,
+				State:        state,
+				ClusterID:    region.Region,
+				CreatedAt:    uint64(time.Now().UnixMilli()),
+			})
+			if err != nil {
+				return err
+			}
+
+			_ = sequence
+
+			return nil
+
+		}, restate.WithName(fmt.Sprintf("schedule deployment %s in %s", deployment.ID, region.Region)))
 		if err != nil {
 			return nil, err
 		}

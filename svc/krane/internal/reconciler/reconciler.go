@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
@@ -27,7 +28,10 @@ type Reconciler struct {
 	cluster   ctrlv1connect.ClusterServiceClient
 	cb        circuitbreaker.CircuitBreaker[any]
 	done      chan struct{}
+	clusterID string
 	region    string
+	// last seen sequence
+	sequence uint64
 }
 
 // Config holds the configuration required to create a new [Reconciler].
@@ -48,7 +52,9 @@ func New(cfg Config) *Reconciler {
 		cluster:   cfg.Cluster,
 		cb:        circuitbreaker.New[any]("reconciler_state_update"),
 		done:      make(chan struct{}),
+		clusterID: cfg.ClusterID,
 		region:    cfg.Region,
+		sequence:  0,
 	}
 }
 
@@ -67,6 +73,26 @@ func (r *Reconciler) Start(ctx context.Context) error {
 	if err := r.watchCurrentDeployments(ctx); err != nil {
 		return err
 	}
+
+	stream, err := r.cluster.Sync(ctx, connect.NewRequest(&ctrlv1.SyncRequest{
+		ClusterId: r.clusterID,
+		Region:    r.region,
+	}))
+	if err != nil {
+		return err
+	}
+
+	for stream.Receive() {
+		if err := r.HandleState(ctx, stream.Msg()); err != nil {
+			r.logger.Error("error handling state", "error", err)
+		}
+	}
+	err = stream.Close()
+	if err != nil {
+		r.logger.Error("unable to close stream", "error", err)
+	}
+
+	go r.Watch(ctx)
 
 	return nil
 }
@@ -117,6 +143,7 @@ func (r *Reconciler) HandleState(ctx context.Context, state *ctrlv1.State) error
 		return fmt.Errorf("unknown state type: %T", kind)
 	}
 
+	r.sequence = state.GetSequence()
 	return nil
 }
 
