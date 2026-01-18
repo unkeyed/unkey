@@ -1,5 +1,14 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, int, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  index,
+  int,
+  json,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { environments } from "./environments";
 import { instances } from "./instances";
 import { projects } from "./projects";
@@ -51,6 +60,10 @@ export const deployments = mysqlTable(
     // Environment variables snapshot (protobuf: ctrl.v1.SecretsBlob)
     // Encrypted values from environment_variables at deploy time
     encryptedEnvironmentVariables: longblob("encrypted_environment_variables").notNull(),
+
+    // Container command override (e.g., ["./app", "serve"])
+    // If null, the container's default entrypoint/cmd is used
+    command: json("command").$type<string[]>(),
 
     // Deployment status
     status: mysqlEnum("status", ["pending", "building", "deploying", "network", "ready", "failed"])

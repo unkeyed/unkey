@@ -436,6 +436,7 @@ CREATE TABLE `deployments` (
 	`memory_mib` int NOT NULL,
 	`desired_state` enum('running','standby','archived') NOT NULL DEFAULT 'running',
 	`encrypted_environment_variables` longblob NOT NULL,
+	`command` json,
 	`status` enum('pending','building','deploying','network','ready','failed') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,

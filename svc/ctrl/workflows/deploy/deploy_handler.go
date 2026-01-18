@@ -3,6 +3,7 @@ package deploy
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -266,6 +267,14 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}
 	}
 
+	// Parse command from deployment (stored as JSON in DB)
+	var command []string
+	if len(deployment.Command) > 0 {
+		if err := json.Unmarshal(deployment.Command, &command); err != nil {
+			return nil, fmt.Errorf("failed to parse deployment command: %w", err)
+		}
+	}
+
 	for _, region := range topologies {
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return w.cluster.EmitState(runCtx, region.Region,
@@ -288,6 +297,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 									BuildId:                       buildID,
 									EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
 									ReadinessId:                   ptr.P(deployment.ID),
+									Command:                       command,
 								},
 							},
 						},

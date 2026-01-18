@@ -100,7 +100,7 @@ func TestSSEStreamingThroughProxy(t *testing.T) {
 			if strings.HasPrefix(line, "event:") {
 				eventType := strings.TrimPrefix(line, "event: ")
 				events = append(events, sseEvent{
-					eventType: eventType,
+					eventType:  eventType,
 					receivedAt: time.Since(eventStart),
 				})
 			}

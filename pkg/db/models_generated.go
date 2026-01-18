@@ -883,6 +883,7 @@ type Deployment struct {
 	MemoryMib                     int32                   `db:"memory_mib"`
 	DesiredState                  DeploymentsDesiredState `db:"desired_state"`
 	EncryptedEnvironmentVariables []byte                  `db:"encrypted_environment_variables"`
+	Command                       []byte                  `db:"command"`
 	Status                        DeploymentsStatus       `db:"status"`
 	CreatedAt                     int64                   `db:"created_at"`
 	UpdatedAt                     sql.NullInt64           `db:"updated_at"`

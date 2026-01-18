@@ -3,6 +3,7 @@ package deployment
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -154,6 +155,17 @@ func (s *Service) CreateDeployment(
 			"image", *dockerImage)
 	}
 
+	// Serialize command to JSON for DB storage (nil if no command specified)
+	var commandJSON []byte
+	if len(req.Msg.GetCommand()) > 0 {
+		var err error
+		commandJSON, err = json.Marshal(req.Msg.GetCommand())
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal,
+				fmt.Errorf("failed to serialize command: %w", err))
+		}
+	}
+
 	// Insert deployment into database
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
 		ID:                            deploymentID,
@@ -164,6 +176,7 @@ func (s *Service) CreateDeployment(
 		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
 		SentinelConfig:                env.SentinelConfig,
 		EncryptedEnvironmentVariables: secretsBlob,
+		Command:                       commandJSON,
 		Status:                        db.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
@@ -203,6 +216,7 @@ func (s *Service) CreateDeployment(
 		DockerImage:      nil,
 		DeploymentId:     deploymentID,
 		KeyAuthId:        keySpaceID,
+		Command:          req.Msg.GetCommand(),
 	}
 
 	switch source := req.Msg.GetSource().(type) {
