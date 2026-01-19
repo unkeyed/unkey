@@ -35,12 +35,7 @@ type DeployOptions struct {
 }
 
 var DeployFlags = []cli.Flag{
-	// Config directory flag (highest priority)
-	cli.String("config", "Directory containing unkey.json config file"),
-	// Init flag
-	cli.Bool("init", "Initialize configuration file in the specified directory"),
-	cli.Bool("force", "Force overwrite existing configuration file when using --init"),
-	// Required flags (can be provided via config file)
+	// Required flags
 	cli.String("project-id", "Project ID", cli.EnvVar("UNKEY_PROJECT_ID")),
 	cli.String("keyspace-id", "Keyspace ID for API key authentication", cli.EnvVar("UNKEY_KEYSPACE_ID")),
 	// Optional flags with defaults
@@ -63,27 +58,19 @@ var Cmd = &cli.Command{
 	Commands: []*cli.Command{},
 	Aliases:  []string{},
 	Name:     "deploy",
-	Usage:    "Deploy a new version or initialize configuration",
-	Description: `Build and deploy a new version of your application, or initialize configuration.
+	Usage:    "Deploy a new version",
+	Description: `Build and deploy a new version of your application.
 
 The deploy command handles the complete deployment lifecycle: from building Docker images to deploying them on Unkey's infrastructure. It automatically detects your Git context, builds containers, and manages the deployment process with real-time status updates.
 
-INITIALIZATION MODE:
-Use --init to create a configuration template file. This generates an unkey.json file with your project settings, making future deployments simpler and more consistent across environments.
-
 DEPLOYMENT PROCESS:
-1. Load configuration from unkey.json or flags
-2. Build Docker image from your application
-3. Push image to container registry
-4. Create deployment version on Unkey platform
-5. Monitor deployment status until active
+1. Build Docker image from your application
+2. Push image to container registry
+3. Create deployment version on Unkey platform
+4. Monitor deployment status until active
 
 EXAMPLES:
-unkey deploy --init                           # Initialize new project configuration
-unkey deploy --init --config=./my-project    # Initialize with custom location
-unkey deploy --init --force                  # Force overwrite existing configuration
-unkey deploy                                 # Standard deployment (uses ./unkey.json)
-unkey deploy --config=./production           # Deploy from specific config directory
+unkey deploy --project-id=proj_123           # Deploy with project ID
 unkey deploy --context=./api                 # Deploy with custom build context
 unkey deploy --docker-image=ghcr.io/user/app:v1.0.0 # Deploy pre-built image`,
 	Flags:  DeployFlags,
@@ -91,39 +78,22 @@ unkey deploy --docker-image=ghcr.io/user/app:v1.0.0 # Deploy pre-built image`,
 }
 
 func DeployAction(ctx context.Context, cmd *cli.Command) error {
-	// Handle --init flag
-	if cmd.Bool("init") {
-		ui := NewUI()
-		return handleInit(cmd, ui)
+	// Validate required fields
+	projectID := cmd.String("project-id")
+	if projectID == "" {
+		return fmt.Errorf("project ID is required (use --project-id flag or UNKEY_PROJECT_ID env var)")
 	}
 
-	// Load configuration file
-	configPath, err := getConfigPath(cmd.String("config"))
-	if err != nil {
-		return err
-	}
-
-	cfg, err := loadConfig(configPath)
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
-	}
-
-	// Merge config with command flags (flags take precedence)
-	finalConfig := cfg.mergeWithFlags(
-		cmd.String("project-id"),
-		cmd.String("keyspace-id"),
-		cmd.String("context"),
-	)
-
-	// Validate that we have required fields
-	if err := finalConfig.validate(); err != nil {
-		return err // Clean error message already
+	// Build context defaults to current directory if not specified
+	context := cmd.String("context")
+	if context == "" {
+		context = "."
 	}
 
 	opts := DeployOptions{
-		KeyspaceID:  finalConfig.KeyspaceID,
-		ProjectID:   finalConfig.ProjectID,
-		Context:     finalConfig.Context,
+		ProjectID:   projectID,
+		KeyspaceID:  cmd.String("keyspace-id"),
+		Context:     context,
 		DockerImage: cmd.String("docker-image"),
 		Branch:      cmd.String("branch"),
 		Dockerfile:  cmd.String("dockerfile"),

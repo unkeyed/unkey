@@ -3,9 +3,7 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "deploy",
     srcs = [
-        "config.go",
         "control_plane.go",
-        "init.go",
         "main.go",
         "ui.go",
     ],
