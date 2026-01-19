@@ -2,7 +2,6 @@ package deploy
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,14 +11,14 @@ import (
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v2/models/operations"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/git"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 // DeploymentStatusEvent represents a status change event
@@ -39,48 +38,89 @@ type DeploymentStepEvent struct {
 
 // ControlPlaneClient handles API operations with the control plane
 type ControlPlaneClient struct {
-	deploymentClient ctrlv1connect.DeploymentServiceClient
-	buildClient      ctrlv1connect.BuildServiceClient
-	opts             DeployOptions
+	sdk  *unkey.Unkey
+	opts DeployOptions
 }
 
 // NewControlPlaneClient creates a new control plane client
 func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
-	httpClient := &http.Client{}
-	deploymentClient := ctrlv1connect.NewDeploymentServiceClient(httpClient, opts.ControlPlaneURL)
-	buildClient := ctrlv1connect.NewBuildServiceClient(httpClient, opts.ControlPlaneURL)
+	sdkOpts := []unkey.SDKOption{
+		unkey.WithSecurity(opts.RootKey),
+	}
+
+	// If not specified, SDK will use its default prod URL.
+	// This is needed for easier local testing.
+	if opts.APIBaseURL != "" {
+		sdkOpts = append(sdkOpts, unkey.WithServerURL(opts.APIBaseURL))
+	}
+
+	sdk := unkey.New(sdkOpts...)
 
 	return &ControlPlaneClient{
-		deploymentClient: deploymentClient,
-		buildClient:      buildClient,
-		opts:             opts,
+		sdk:  sdk,
+		opts: opts,
 	}
+}
+
+// handleSDKError converts SDK errors to appropriate fault types
+func (c *ControlPlaneClient) handleSDKError(err error, operation string) error {
+	errMsg := err.Error()
+
+	// SDK errors contain HTTP status information
+	if strings.Contains(errMsg, "401") || strings.Contains(errMsg, "Unauthorized") {
+		return fault.Wrap(err,
+			fault.Code(codes.UnkeyAuthErrorsAuthenticationMalformed),
+			fault.Internal(fmt.Sprintf("%s failed: invalid or missing root key", operation)),
+			fault.Public("Authentication failed. Check your UNKEY_ROOT_KEY."),
+		)
+	}
+
+	if strings.Contains(errMsg, "403") || strings.Contains(errMsg, "Forbidden") {
+		return fault.Wrap(err,
+			fault.Code(codes.UnkeyAuthErrorsAuthorizationInsufficientPermissions),
+			fault.Internal(fmt.Sprintf("%s failed: insufficient permissions", operation)),
+			fault.Public("Permission denied. Root key must have project.*.create_deployment, project.*.generate_upload_url, and project.*.read_deployment permissions."),
+		)
+	}
+
+	if strings.Contains(errMsg, "404") || strings.Contains(errMsg, "Not Found") {
+		return fault.Wrap(err,
+			fault.Code(codes.Data.Project.NotFound.URN()),
+			fault.Internal(fmt.Sprintf("%s failed: resource not found", operation)),
+			fault.Public("The requested resource does not exist."),
+		)
+	}
+
+	return fault.Wrap(err,
+		fault.Code(codes.UnkeyAppErrorsInternalUnexpectedError),
+		fault.Internal(fmt.Sprintf("%s failed: %v", operation, err)),
+		fault.Public("An unexpected error occurred. Please try again."),
+	)
 }
 
 // UploadBuildContext uploads the build context to S3 and returns the context key
 func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath string) (string, error) {
-	uploadReq := connect.NewRequest(&ctrlv1.GenerateUploadURLRequest{
-		UnkeyProjectId: c.opts.ProjectID,
+	// Call SDK method with proper parameters
+	res, err := c.sdk.Internal.GenerateUploadURL(ctx, components.V2DeployGenerateUploadURLRequestBody{
+		ProjectID: c.opts.ProjectID,
 	})
-
-	authHeader := c.opts.APIKey
-	if authHeader == "" {
-		authHeader = c.opts.AuthToken
-	}
-	uploadReq.Header().Set("Authorization", "Bearer "+authHeader)
-
-	uploadResp, err := c.buildClient.GenerateUploadURL(ctx, uploadReq)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate upload URL: %w", err)
+		return "", c.handleSDKError(err, "generate upload URL")
 	}
 
-	uploadURL := uploadResp.Msg.GetUploadUrl()
-	buildContextPath := uploadResp.Msg.GetBuildContextPath()
+	// Extract response data
+	if res.V2DeployGenerateUploadURLResponseBody == nil {
+		return "", fmt.Errorf("empty response from generate upload URL")
+	}
+
+	uploadURL := res.V2DeployGenerateUploadURLResponseBody.Data.UploadURL
+	buildContextPath := res.V2DeployGenerateUploadURLResponseBody.Data.Context
 
 	if uploadURL == "" || buildContextPath == "" {
 		return "", fmt.Errorf("empty upload URL or context key returned")
 	}
 
+	// Create and upload tar (existing logic remains unchanged)
 	tarPath, err := createContextTar(contextPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to create tar archive: %w", err)
@@ -185,58 +225,85 @@ func createContextTar(contextPath string) (string, error) {
 // Pass either buildContextPath (for build from source) or dockerImage (for prebuilt image), not both
 func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, buildContextPath, dockerImage string) (string, error) {
 	commitInfo := git.GetInfo()
-
 	dockerfilePath := c.opts.Dockerfile
 	if dockerfilePath == "" {
 		dockerfilePath = "Dockerfile"
 	}
 
-	req := &ctrlv1.CreateDeploymentRequest{
-		Source:          nil,
-		ProjectId:       c.opts.ProjectID,
-		KeyspaceId:      &c.opts.KeyspaceID,
-		Branch:          c.opts.Branch,
-		EnvironmentSlug: c.opts.Environment,
-		GitCommit: &ctrlv1.GitCommitInfo{
-			CommitSha:       commitInfo.CommitSHA,
-			CommitMessage:   commitInfo.Message,
-			AuthorHandle:    commitInfo.AuthorHandle,
-			AuthorAvatarUrl: commitInfo.AuthorAvatarURL,
-			Timestamp:       commitInfo.CommitTimestamp,
-		},
-	}
+	// Build request using SDK operations types
+	var reqBody operations.DeployCreateDeploymentRequest
 
 	if buildContextPath != "" {
-		req.Source = &ctrlv1.CreateDeploymentRequest_BuildContext{
-			BuildContext: &ctrlv1.BuildContext{
-				BuildContextPath: buildContextPath,
-				DockerfilePath:   ptr.P(dockerfilePath),
+		// Build source
+		buildSource := operations.V2DeployBuildSource{
+			ProjectID:       c.opts.ProjectID,
+			Branch:          c.opts.Branch,
+			EnvironmentSlug: c.opts.Environment,
+			Build: operations.Build{
+				Context:    buildContextPath,
+				Dockerfile: &dockerfilePath,
 			},
 		}
-	} else if dockerImage != "" {
-		req.Source = &ctrlv1.CreateDeploymentRequest_DockerImage{
-			DockerImage: dockerImage,
+
+		// Add optional keyspace ID
+		if c.opts.KeyspaceID != "" {
+			buildSource.KeyspaceID = &c.opts.KeyspaceID
 		}
+
+		// Add git commit info
+		if commitInfo.CommitSHA != "" {
+			buildSource.GitCommit = &components.V2DeployGitCommit{
+				CommitSha:       &commitInfo.CommitSHA,
+				CommitMessage:   &commitInfo.Message,
+				AuthorHandle:    &commitInfo.AuthorHandle,
+				AuthorAvatarURL: &commitInfo.AuthorAvatarURL,
+				Timestamp:       &commitInfo.CommitTimestamp,
+			}
+		}
+
+		reqBody = operations.CreateDeployCreateDeploymentRequestV2DeployBuildSource(buildSource)
+	} else if dockerImage != "" {
+		// Image source
+		imageSource := operations.V2DeployImageSource{
+			ProjectID:       c.opts.ProjectID,
+			Branch:          c.opts.Branch,
+			EnvironmentSlug: c.opts.Environment,
+			Image:           dockerImage,
+		}
+
+		// Add optional keyspace ID
+		if c.opts.KeyspaceID != "" {
+			imageSource.KeyspaceID = &c.opts.KeyspaceID
+		}
+
+		// Add git commit info
+		if commitInfo.CommitSHA != "" {
+			imageSource.GitCommit = &components.V2DeployGitCommit{
+				CommitSha:       &commitInfo.CommitSHA,
+				CommitMessage:   &commitInfo.Message,
+				AuthorHandle:    &commitInfo.AuthorHandle,
+				AuthorAvatarURL: &commitInfo.AuthorAvatarURL,
+				Timestamp:       &commitInfo.CommitTimestamp,
+			}
+		}
+
+		reqBody = operations.CreateDeployCreateDeploymentRequestV2DeployImageSource(imageSource)
 	} else {
 		return "", fmt.Errorf("either buildContextPath or dockerImage must be provided")
 	}
 
-	createReq := connect.NewRequest(req)
-
-	authHeader := c.opts.APIKey
-	if authHeader == "" {
-		authHeader = c.opts.AuthToken
-	}
-	createReq.Header().Set("Authorization", "Bearer "+authHeader)
-
-	createResp, err := c.deploymentClient.CreateDeployment(ctx, createReq)
+	res, err := c.sdk.Internal.CreateDeployment(ctx, reqBody)
 	if err != nil {
-		return "", c.handleCreateDeploymentError(err)
+		return "", c.handleCreateDeploymentError(c.handleSDKError(err, "create deployment"))
 	}
 
-	deploymentID := createResp.Msg.GetDeploymentId()
+	if res.V2DeployCreateDeploymentResponseBody == nil {
+		return "", fmt.Errorf("empty response from create deployment")
+	}
+
+	deploymentID := res.V2DeployCreateDeploymentResponseBody.Data.DeploymentID
 	if deploymentID == "" {
-		return "", fmt.Errorf("empty deployment ID returned from control plane")
+		return "", fmt.Errorf("empty deployment ID returned from API")
 	}
 
 	return deploymentID, nil
@@ -244,22 +311,76 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, buildContextP
 
 // GetDeployment retrieves deployment information from the control plane
 func (c *ControlPlaneClient) GetDeployment(ctx context.Context, deploymentID string) (*ctrlv1.Deployment, error) {
-	getReq := connect.NewRequest(&ctrlv1.GetDeploymentRequest{
-		DeploymentId: deploymentID,
+	// Call SDK method
+	res, err := c.sdk.Internal.GetDeployment(ctx, components.V2DeployGetDeploymentRequestBody{
+		DeploymentID: deploymentID,
 	})
-
-	authHeader := c.opts.APIKey
-	if authHeader == "" {
-		authHeader = c.opts.AuthToken
-	}
-	getReq.Header().Set("Authorization", "Bearer "+authHeader)
-
-	getResp, err := c.deploymentClient.GetDeployment(ctx, getReq)
 	if err != nil {
-		return nil, err
+		return nil, c.handleSDKError(err, "get deployment")
 	}
 
-	return getResp.Msg.GetDeployment(), nil
+	if res.V2DeployGetDeploymentResponseBody == nil {
+		return nil, fmt.Errorf("empty response from get deployment")
+	}
+
+	data := res.V2DeployGetDeploymentResponseBody.Data
+
+	// Convert SDK response to ctrlv1.Deployment for compatibility with existing code
+	deployment := &ctrlv1.Deployment{
+		Id:           data.ID,
+		Status:       stringToDeploymentStatus(string(data.Status)),
+		ErrorMessage: "",
+		Hostnames:    []string{},
+		Steps:        []*ctrlv1.DeploymentStep{},
+	}
+
+	if data.ErrorMessage != nil {
+		deployment.ErrorMessage = *data.ErrorMessage
+	}
+
+	if len(data.Hostnames) > 0 {
+		deployment.Hostnames = data.Hostnames
+	}
+
+	if len(data.Steps) > 0 {
+		for _, step := range data.Steps {
+			protoStep := &ctrlv1.DeploymentStep{}
+			if step.Status != nil {
+				protoStep.Status = *step.Status
+			}
+			if step.Message != nil {
+				protoStep.Message = *step.Message
+			}
+			if step.ErrorMessage != nil {
+				protoStep.ErrorMessage = *step.ErrorMessage
+			}
+			if step.CreatedAt != nil {
+				protoStep.CreatedAt = *step.CreatedAt
+			}
+			deployment.Steps = append(deployment.Steps, protoStep)
+		}
+	}
+
+	return deployment, nil
+}
+
+func stringToDeploymentStatus(status string) ctrlv1.DeploymentStatus {
+	switch status {
+	case "PENDING":
+		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING
+	case "BUILDING":
+		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_BUILDING
+	case "DEPLOYING":
+		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_DEPLOYING
+	case "NETWORK":
+		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_NETWORK
+	case "READY":
+		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY
+	case "FAILED":
+		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED
+	default:
+		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
+	}
 }
 
 // PollDeploymentStatus polls for deployment changes and calls event handlers
@@ -333,26 +454,23 @@ func (c *ControlPlaneClient) getFailureMessage(deployment *ctrlv1.Deployment) st
 
 // handleCreateDeploymentError provides specific error handling for deployment creation
 func (c *ControlPlaneClient) handleCreateDeploymentError(err error) error {
-	if strings.Contains(err.Error(), "connection refused") {
+	errMsg := err.Error()
+
+	// Check for common error patterns
+	if strings.Contains(errMsg, "authentication failed") || strings.Contains(errMsg, "401") {
 		return fault.Wrap(err,
-			fault.Code(codes.UnkeyAppErrorsInternalServiceUnavailable),
-			fault.Internal(fmt.Sprintf("Failed to connect to control plane at %s", c.opts.ControlPlaneURL)),
-			fault.Public("Unable to connect to control plane. Is it running?"),
+			fault.Code(codes.UnkeyAuthErrorsAuthenticationMalformed),
+			fault.Internal("Authentication failed with root key"),
+			fault.Public("Authentication failed. Check your UNKEY_ROOT_KEY."),
 		)
 	}
 
-	if connectErr := new(connect.Error); errors.As(err, &connectErr) {
-		if connectErr.Code() == connect.CodeUnauthenticated {
-			authMethod := "API key"
-			if c.opts.APIKey == "" {
-				authMethod = "auth token"
-			}
-			return fault.Wrap(err,
-				fault.Code(codes.UnkeyAuthErrorsAuthenticationMalformed),
-				fault.Internal(fmt.Sprintf("Authentication failed with %s", authMethod)),
-				fault.Public(fmt.Sprintf("Authentication failed. Check your %s.", authMethod)),
-			)
-		}
+	if strings.Contains(errMsg, "permission denied") || strings.Contains(errMsg, "403") {
+		return fault.Wrap(err,
+			fault.Code(codes.UnkeyAuthErrorsAuthorizationInsufficientPermissions),
+			fault.Internal("Insufficient permissions"),
+			fault.Public("Permission denied. Ensure your root key has project.*.create_deployment permission."),
+		)
 	}
 
 	return fault.Wrap(err,
