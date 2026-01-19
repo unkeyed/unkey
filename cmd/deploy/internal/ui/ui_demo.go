@@ -3,18 +3,18 @@
 // This file is a standalone demo to visualize the UI components in isolation.
 // The build tags above prevent it from being compiled with the deploy package.
 //
-// Run with: go run cmd/deploy/ui_demo.go
+// Run with: go run cmd/deploy/internal/ui/ui_demo.go
 
 package main
 
 import (
 	"time"
 
-	"github.com/unkeyed/unkey/cmd/deploy"
+	"github.com/unkeyed/unkey/cmd/deploy/internal/ui"
 )
 
 func main() {
-	ui := deploy.NewUI()
+	ui := ui.NewUI()
 
 	// Test basic prints
 	ui.Print("Starting deployment process...")

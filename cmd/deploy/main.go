@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/unkeyed/unkey/cmd/deploy/internal/ui"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/git"
@@ -107,7 +108,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 }
 
 func executeDeploy(ctx context.Context, opts DeployOptions) error {
-	ui := NewUI()
+	terminal := ui.NewUI()
 	logger := logging.New()
 	gitInfo := git.GetInfo()
 
@@ -132,48 +133,48 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	// Determine deployment source: prebuilt image or build from context
 	if opts.DockerImage != "" {
 		// Use prebuilt Docker image
-		ui.StartSpinner("Creating deployment")
+		terminal.StartSpinner("Creating deployment")
 		deploymentID, err = controlPlane.CreateDeployment(ctx, "", opts.DockerImage)
 		if err != nil {
-			ui.StopSpinner("Failed to create deployment", false)
-			ui.PrintErrorDetails(err.Error())
+			terminal.StopSpinner("Failed to create deployment", false)
+			terminal.PrintErrorDetails(err.Error())
 			return err
 		}
-		ui.StopSpinner(fmt.Sprintf("Deployment created: %s", deploymentID), true)
+		terminal.StopSpinner(fmt.Sprintf("Deployment created: %s", deploymentID), true)
 	} else {
 		// Build from context
-		ui.StartSpinner("Uploading build context")
+		terminal.StartSpinner("Uploading build context")
 		var buildContextPath string
 		buildContextPath, err = controlPlane.UploadBuildContext(ctx, opts.Context)
 		if err != nil {
-			ui.StopSpinner("Failed to upload build context", false)
-			ui.PrintErrorDetails(err.Error())
+			terminal.StopSpinner("Failed to upload build context", false)
+			terminal.PrintErrorDetails(err.Error())
 			return err
 		}
-		ui.StopSpinner(fmt.Sprintf("Build context uploaded: %s", buildContextPath), true)
+		terminal.StopSpinner(fmt.Sprintf("Build context uploaded: %s", buildContextPath), true)
 
-		ui.StartSpinner("Creating deployment")
+		terminal.StartSpinner("Creating deployment")
 		deploymentID, err = controlPlane.CreateDeployment(ctx, buildContextPath, "")
 		if err != nil {
-			ui.StopSpinner("Failed to create deployment", false)
-			ui.PrintErrorDetails(err.Error())
+			terminal.StopSpinner("Failed to create deployment", false)
+			terminal.PrintErrorDetails(err.Error())
 			return err
 		}
-		ui.StopSpinner(fmt.Sprintf("Deployment created: %s", deploymentID), true)
+		terminal.StopSpinner(fmt.Sprintf("Deployment created: %s", deploymentID), true)
 	}
 
 	// Track final deployment for completion info
 	var finalDeployment *ctrlv1.Deployment
 
 	// Start monitoring spinner
-	ui.StartSpinner("Deployment in progress")
+	terminal.StartSpinner("Deployment in progress")
 
 	// Handle deployment status changes
 	onStatusChange := func(event DeploymentStatusEvent) error {
 		// nolint: exhaustive // We just need those two for now
 		switch event.CurrentStatus {
 		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED:
-			return handleDeploymentFailure(controlPlane, event.Deployment, ui)
+			return handleDeploymentFailure(controlPlane, event.Deployment, terminal)
 		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY:
 			// Store deployment but don't print success, wait for polling to complete
 			finalDeployment = event.Deployment
@@ -184,13 +185,13 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	// Poll for deployment completion
 	err = controlPlane.PollDeploymentStatus(ctx, logger, deploymentID, onStatusChange)
 	if err != nil {
-		ui.StopSpinner("Deployment failed", false)
+		terminal.StopSpinner("Deployment failed", false)
 		return err
 	}
 
 	// Print final success message only after all polling is complete
 	if finalDeployment != nil {
-		ui.StopSpinner("Deployment completed successfully", true)
+		terminal.StopSpinner("Deployment completed successfully", true)
 		fmt.Printf("\n")
 		printCompletionInfo(finalDeployment, opts.Environment)
 		fmt.Printf("\n")
@@ -199,10 +200,10 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	return nil
 }
 
-func handleDeploymentFailure(controlPlane *ControlPlaneClient, deployment *ctrlv1.Deployment, ui *UI) error {
+func handleDeploymentFailure(controlPlane *ControlPlaneClient, deployment *ctrlv1.Deployment, terminal *ui.UI) error {
 	errorMsg := controlPlane.getFailureMessage(deployment)
-	ui.StopSpinner("Deployment failed", false)
-	ui.PrintErrorDetails(errorMsg)
+	terminal.StopSpinner("Deployment failed", false)
+	terminal.PrintErrorDetails(errorMsg)
 	return fmt.Errorf("deployment failed: %s", errorMsg)
 }
 

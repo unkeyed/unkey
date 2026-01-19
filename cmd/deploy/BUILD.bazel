@@ -5,11 +5,11 @@ go_library(
     srcs = [
         "control_plane.go",
         "main.go",
-        "ui.go",
     ],
     importpath = "github.com/unkeyed/unkey/cmd/deploy",
     visibility = ["//visibility:public"],
     deps = [
+        "//cmd/deploy/internal/ui",
         "//gen/proto/ctrl/v1:ctrl",
         "//pkg/cli",
         "//pkg/git",
