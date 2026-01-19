@@ -12,10 +12,12 @@ import (
 const insertStateChange = `-- name: InsertStateChange :execlastid
 INSERT INTO ` + "`" + `state_changes` + "`" + ` (
     resource_type,
-    state,
-    cluster_id,
+    resource_id,
+    op,
+    region,
     created_at
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -25,8 +27,9 @@ INSERT INTO ` + "`" + `state_changes` + "`" + ` (
 
 type InsertStateChangeParams struct {
 	ResourceType StateChangesResourceType `db:"resource_type"`
-	State        []byte                   `db:"state"`
-	ClusterID    string                   `db:"cluster_id"`
+	ResourceID   string                   `db:"resource_id"`
+	Op           StateChangesOp           `db:"op"`
+	Region       string                   `db:"region"`
 	CreatedAt    uint64                   `db:"created_at"`
 }
 
@@ -34,10 +37,12 @@ type InsertStateChangeParams struct {
 //
 //	INSERT INTO `state_changes` (
 //	    resource_type,
-//	    state,
-//	    cluster_id,
+//	    resource_id,
+//	    op,
+//	    region,
 //	    created_at
 //	) VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -46,8 +51,9 @@ type InsertStateChangeParams struct {
 func (q *Queries) InsertStateChange(ctx context.Context, db DBTX, arg InsertStateChangeParams) (int64, error) {
 	result, err := db.ExecContext(ctx, insertStateChange,
 		arg.ResourceType,
-		arg.State,
-		arg.ClusterID,
+		arg.ResourceID,
+		arg.Op,
+		arg.Region,
 		arg.CreatedAt,
 	)
 	if err != nil {

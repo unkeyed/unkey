@@ -530,7 +530,6 @@ CREATE TABLE `instances` (
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
 	`region` varchar(64) NOT NULL,
-	`cluster_id` varchar(64) NOT NULL,
 	`k8s_name` varchar(255) NOT NULL,
 	`address` varchar(255) NOT NULL,
 	`cpu_millicores` int NOT NULL,
@@ -538,8 +537,8 @@ CREATE TABLE `instances` (
 	`status` enum('inactive','pending','running','failed') NOT NULL,
 	CONSTRAINT `instances_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `instances_id_unique` UNIQUE(`id`),
-	CONSTRAINT `unique_address_per_cluster` UNIQUE(`address`,`cluster_id`),
-	CONSTRAINT `unique_k8s_name_per_cluster` UNIQUE(`k8s_name`,`cluster_id`)
+	CONSTRAINT `unique_address_per_region` UNIQUE(`address`,`region`),
+	CONSTRAINT `unique_k8s_name_per_region` UNIQUE(`k8s_name`,`region`)
 );
 
 CREATE TABLE `certificates` (
@@ -574,8 +573,9 @@ CREATE TABLE `frontline_routes` (
 CREATE TABLE `state_changes` (
 	`sequence` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`resource_type` enum('sentinel','deployment') NOT NULL,
-	`state` longblob NOT NULL,
-	`cluster_id` varchar(256) NOT NULL,
+	`resource_id` varchar(256) NOT NULL,
+	`op` enum('upsert','delete') NOT NULL,
+	`region` varchar(64) NOT NULL,
 	`created_at` bigint unsigned NOT NULL,
 	CONSTRAINT `state_changes_sequence` PRIMARY KEY(`sequence`)
 );
@@ -615,5 +615,6 @@ CREATE INDEX `idx_deployment_id` ON `instances` (`deployment_id`);
 CREATE INDEX `idx_region` ON `instances` (`region`);
 CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);
 CREATE INDEX `deployment_id_idx` ON `frontline_routes` (`deployment_id`);
-CREATE INDEX `cluster_id_sequence` ON `state_changes` (`cluster_id`,`sequence`);
+CREATE INDEX `region_sequence` ON `state_changes` (`region`,`sequence`);
+CREATE INDEX `created_at` ON `state_changes` (`created_at`);
 

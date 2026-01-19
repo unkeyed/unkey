@@ -67,7 +67,6 @@ func Run(ctx context.Context, cfg Config) error {
 		URL:         cfg.ControlPlaneURL,
 		BearerToken: cfg.ControlPlaneBearer,
 		Region:      cfg.Region,
-		ClusterID:   cfg.ClusterID,
 	})
 
 	inClusterConfig, err := rest.InClusterConfig()
@@ -84,7 +83,6 @@ func Run(ctx context.Context, cfg Config) error {
 		ClientSet: clientset,
 		Logger:    logger,
 		Cluster:   cluster,
-		ClusterID: cfg.ClusterID,
 		Region:    cfg.Region,
 	})
 	if err := r.Start(ctx); err != nil {

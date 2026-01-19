@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -52,13 +51,12 @@ func NewTestReconciler(client *fake.Clientset, controlPlane *MockClusterClient) 
 	if controlPlane == nil {
 		controlPlane = &MockClusterClient{}
 	}
-	return &Reconciler{
-		clientSet: client,
-		cluster:   controlPlane,
-		cb:        circuitbreaker.New[any]("test"),
-		logger:    logging.NewNoop(),
-		region:    "test-region",
-	}
+	return New(Config{
+		ClientSet: client,
+		Logger:    logging.NewNoop(),
+		Cluster:   controlPlane,
+		Region:    "test-region",
+	})
 }
 
 // -----------------------------------------------------------------------------

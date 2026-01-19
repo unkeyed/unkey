@@ -16,7 +16,7 @@ func (r *Reconciler) Watch(ctx context.Context) {
 
 	for {
 
-		interval := intervalMin + time.Duration(rand.Float64()*float64(intervalMax.Milliseconds()-intervalMin.Milliseconds()))
+		interval := intervalMin + time.Millisecond*time.Duration(rand.Float64()*float64(intervalMax.Milliseconds()-intervalMin.Milliseconds()))
 		time.Sleep(interval)
 
 		err := r.watch(ctx)
@@ -30,16 +30,18 @@ func (r *Reconciler) Watch(ctx context.Context) {
 
 func (r *Reconciler) watch(ctx context.Context) error {
 
-	stream, err := r.cluster.Watch(ctx, connect.NewRequest(&ctrlv1.WatchRequest{
-		ClusterId:        r.clusterID,
+	r.logger.Info("starting watch")
+
+	stream, err := r.cluster.Sync(ctx, connect.NewRequest(&ctrlv1.SyncRequest{
 		Region:           r.region,
-		SequenceLastSeen: r.sequence,
+		SequenceLastSeen: r.sequenceLastSeen,
 	}))
 	if err != nil {
 		return err
 	}
 
 	for stream.Receive() {
+		r.logger.Info("received message")
 		if err := r.HandleState(ctx, stream.Msg()); err != nil {
 			r.logger.Error("error handling state", "error", err)
 		}

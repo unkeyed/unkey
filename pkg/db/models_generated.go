@@ -616,6 +616,48 @@ func (ns NullSentinelsHealth) Value() (driver.Value, error) {
 	return string(ns.SentinelsHealth), nil
 }
 
+type StateChangesOp string
+
+const (
+	StateChangesOpUpsert StateChangesOp = "upsert"
+	StateChangesOpDelete StateChangesOp = "delete"
+)
+
+func (e *StateChangesOp) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = StateChangesOp(s)
+	case string:
+		*e = StateChangesOp(s)
+	default:
+		return fmt.Errorf("unsupported scan type for StateChangesOp: %T", src)
+	}
+	return nil
+}
+
+type NullStateChangesOp struct {
+	StateChangesOp StateChangesOp
+	Valid          bool // Valid is true if StateChangesOp is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullStateChangesOp) Scan(value interface{}) error {
+	if value == nil {
+		ns.StateChangesOp, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.StateChangesOp.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullStateChangesOp) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.StateChangesOp), nil
+}
+
 type StateChangesResourceType string
 
 const (
@@ -1009,7 +1051,6 @@ type Instance struct {
 	WorkspaceID   string          `db:"workspace_id"`
 	ProjectID     string          `db:"project_id"`
 	Region        string          `db:"region"`
-	ClusterID     string          `db:"cluster_id"`
 	K8sName       string          `db:"k8s_name"`
 	Address       string          `db:"address"`
 	CpuMillicores int32           `db:"cpu_millicores"`
@@ -1210,8 +1251,9 @@ type Sentinel struct {
 type StateChange struct {
 	Sequence     uint64                   `db:"sequence"`
 	ResourceType StateChangesResourceType `db:"resource_type"`
-	State        []byte                   `db:"state"`
-	ClusterID    string                   `db:"cluster_id"`
+	ResourceID   string                   `db:"resource_id"`
+	Op           StateChangesOp           `db:"op"`
+	Region       string                   `db:"region"`
 	CreatedAt    uint64                   `db:"created_at"`
 }
 

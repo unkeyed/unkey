@@ -22,10 +22,6 @@ type ClientConfig struct {
 	// Region identifies the geographical region of this client instance.
 	// This value is added as the X-Krane-Region header for proper request routing.
 	Region string
-
-	// ClusterID is the identifier of the cluster this client is associated with.
-	// This value is added as the X-Krane-Cluster-Id header for proper request routing.
-	ClusterID string
 }
 
 // NewClient creates a new control plane client with the specified configuration.
@@ -46,6 +42,6 @@ func NewClient(cfg ClientConfig) ctrlv1connect.ClusterServiceClient {
 			},
 		},
 		cfg.URL,
-		connect.WithInterceptors(connectInterceptor(cfg.Region, cfg.ClusterID, cfg.BearerToken)),
+		connect.WithInterceptors(connectInterceptor(cfg.Region, cfg.BearerToken)),
 	)
 }

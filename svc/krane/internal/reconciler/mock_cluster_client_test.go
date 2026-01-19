@@ -17,7 +17,7 @@ var _ ctrlv1connect.ClusterServiceClient = (*MockClusterClient)(nil)
 // default. The mock also records all UpdateDeploymentState and UpdateSentinelState
 // calls so tests can verify the reconciler reported the correct state.
 type MockClusterClient struct {
-	WatchFunc                     func(context.Context, *connect.Request[ctrlv1.WatchRequest]) (*connect.ServerStreamForClient[ctrlv1.State], error)
+	SyncFunc                      func(context.Context, *connect.Request[ctrlv1.SyncRequest]) (*connect.ServerStreamForClient[ctrlv1.State], error)
 	GetDesiredSentinelStateFunc   func(context.Context, *connect.Request[ctrlv1.GetDesiredSentinelStateRequest]) (*connect.Response[ctrlv1.SentinelState], error)
 	UpdateSentinelStateFunc       func(context.Context, *connect.Request[ctrlv1.UpdateSentinelStateRequest]) (*connect.Response[ctrlv1.UpdateSentinelStateResponse], error)
 	GetDesiredDeploymentStateFunc func(context.Context, *connect.Request[ctrlv1.GetDesiredDeploymentStateRequest]) (*connect.Response[ctrlv1.DeploymentState], error)
@@ -26,9 +26,9 @@ type MockClusterClient struct {
 	UpdateSentinelStateCalls      []*ctrlv1.UpdateSentinelStateRequest
 }
 
-func (m *MockClusterClient) Watch(ctx context.Context, req *connect.Request[ctrlv1.WatchRequest]) (*connect.ServerStreamForClient[ctrlv1.State], error) {
-	if m.WatchFunc != nil {
-		return m.WatchFunc(ctx, req)
+func (m *MockClusterClient) Sync(ctx context.Context, req *connect.Request[ctrlv1.SyncRequest]) (*connect.ServerStreamForClient[ctrlv1.State], error) {
+	if m.SyncFunc != nil {
+		return m.SyncFunc(ctx, req)
 	}
 	return nil, nil
 }

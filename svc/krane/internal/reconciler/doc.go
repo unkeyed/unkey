@@ -54,7 +54,6 @@
 //	    ClientSet: kubeClient,
 //	    Logger:    logger,
 //	    Cluster:   clusterClient,
-//	    ClusterID: "cluster-123",
 //	    Region:    "us-east-1",
 //	}
 //	r := reconciler.New(cfg)

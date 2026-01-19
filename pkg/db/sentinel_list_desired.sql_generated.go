@@ -26,7 +26,9 @@ type ListDesiredSentinelsParams struct {
 	Limit            int32                 `db:"limit"`
 }
 
-// ListDesiredSentinels
+// ListDesiredSentinels returns all sentinels matching the desired state for a region.
+// Used during bootstrap to stream all running sentinels to krane.
+// The version parameter is deprecated and ignored (kept for backwards compatibility).
 //
 //	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at
 //	FROM `sentinels`

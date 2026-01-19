@@ -1,7 +1,6 @@
 package reconciler
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -25,7 +24,6 @@ func TestNew_CreatesReconcilerWithCorrectFields(t *testing.T) {
 		ClientSet: client,
 		Logger:    logger,
 		Cluster:   mockCluster,
-		ClusterID: "cluster-123",
 		Region:    "us-east-1",
 	}
 
@@ -44,7 +42,6 @@ func TestNew_CreatesCircuitBreaker(t *testing.T) {
 		ClientSet: client,
 		Logger:    logging.NewNoop(),
 		Cluster:   &MockClusterClient{},
-		ClusterID: "cluster-123",
 		Region:    "us-east-1",
 	}
 
@@ -59,7 +56,6 @@ func TestNew_CreatesDoneChannel(t *testing.T) {
 		ClientSet: client,
 		Logger:    logging.NewNoop(),
 		Cluster:   &MockClusterClient{},
-		ClusterID: "cluster-123",
 		Region:    "us-east-1",
 	}
 
@@ -80,7 +76,6 @@ func TestStop_ClosesDoneChannel(t *testing.T) {
 		ClientSet: client,
 		Logger:    logging.NewNoop(),
 		Cluster:   &MockClusterClient{},
-		ClusterID: "cluster-123",
 		Region:    "us-east-1",
 	}
 
@@ -102,7 +97,6 @@ func TestStop_IsIdempotent(t *testing.T) {
 		ClientSet: client,
 		Logger:    logging.NewNoop(),
 		Cluster:   &MockClusterClient{},
-		ClusterID: "cluster-123",
 		Region:    "us-east-1",
 	}
 
@@ -114,24 +108,4 @@ func TestStop_IsIdempotent(t *testing.T) {
 	require.Panics(t, func() {
 		_ = r.Stop()
 	}, "calling Stop twice should panic when closing already closed channel")
-}
-
-func TestStart_InitiatesGoroutines(t *testing.T) {
-	client := fake.NewSimpleClientset()
-	cfg := Config{
-		ClientSet: client,
-		Logger:    logging.NewNoop(),
-		Cluster:   &MockClusterClient{},
-		ClusterID: "cluster-123",
-		Region:    "us-east-1",
-	}
-
-	r := New(cfg)
-	ctx := context.Background()
-
-	err := r.Start(ctx)
-	require.NoError(t, err, "Start should return without error")
-
-	err = r.Stop()
-	require.NoError(t, err)
 }

@@ -42,8 +42,6 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// ClusterServiceWatchProcedure is the fully-qualified name of the ClusterService's Watch RPC.
-	ClusterServiceWatchProcedure = "/ctrl.v1.ClusterService/Watch"
 	// ClusterServiceSyncProcedure is the fully-qualified name of the ClusterService's Sync RPC.
 	ClusterServiceSyncProcedure = "/ctrl.v1.ClusterService/Sync"
 	// ClusterServiceGetDesiredSentinelStateProcedure is the fully-qualified name of the
@@ -62,7 +60,6 @@ const (
 
 // ClusterServiceClient is a client for the ctrl.v1.ClusterService service.
 type ClusterServiceClient interface {
-	Watch(context.Context, *connect.Request[v1.WatchRequest]) (*connect.ServerStreamForClient[v1.State], error)
 	Sync(context.Context, *connect.Request[v1.SyncRequest]) (*connect.ServerStreamForClient[v1.State], error)
 	GetDesiredSentinelState(context.Context, *connect.Request[v1.GetDesiredSentinelStateRequest]) (*connect.Response[v1.SentinelState], error)
 	UpdateSentinelState(context.Context, *connect.Request[v1.UpdateSentinelStateRequest]) (*connect.Response[v1.UpdateSentinelStateResponse], error)
@@ -81,12 +78,6 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 	baseURL = strings.TrimRight(baseURL, "/")
 	clusterServiceMethods := v1.File_ctrl_v1_cluster_proto.Services().ByName("ClusterService").Methods()
 	return &clusterServiceClient{
-		watch: connect.NewClient[v1.WatchRequest, v1.State](
-			httpClient,
-			baseURL+ClusterServiceWatchProcedure,
-			connect.WithSchema(clusterServiceMethods.ByName("Watch")),
-			connect.WithClientOptions(opts...),
-		),
 		sync: connect.NewClient[v1.SyncRequest, v1.State](
 			httpClient,
 			baseURL+ClusterServiceSyncProcedure,
@@ -122,17 +113,11 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // clusterServiceClient implements ClusterServiceClient.
 type clusterServiceClient struct {
-	watch                     *connect.Client[v1.WatchRequest, v1.State]
 	sync                      *connect.Client[v1.SyncRequest, v1.State]
 	getDesiredSentinelState   *connect.Client[v1.GetDesiredSentinelStateRequest, v1.SentinelState]
 	updateSentinelState       *connect.Client[v1.UpdateSentinelStateRequest, v1.UpdateSentinelStateResponse]
 	getDesiredDeploymentState *connect.Client[v1.GetDesiredDeploymentStateRequest, v1.DeploymentState]
 	updateDeploymentState     *connect.Client[v1.UpdateDeploymentStateRequest, v1.UpdateDeploymentStateResponse]
-}
-
-// Watch calls ctrl.v1.ClusterService.Watch.
-func (c *clusterServiceClient) Watch(ctx context.Context, req *connect.Request[v1.WatchRequest]) (*connect.ServerStreamForClient[v1.State], error) {
-	return c.watch.CallServerStream(ctx, req)
 }
 
 // Sync calls ctrl.v1.ClusterService.Sync.
@@ -162,7 +147,6 @@ func (c *clusterServiceClient) UpdateDeploymentState(ctx context.Context, req *c
 
 // ClusterServiceHandler is an implementation of the ctrl.v1.ClusterService service.
 type ClusterServiceHandler interface {
-	Watch(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.State]) error
 	Sync(context.Context, *connect.Request[v1.SyncRequest], *connect.ServerStream[v1.State]) error
 	GetDesiredSentinelState(context.Context, *connect.Request[v1.GetDesiredSentinelStateRequest]) (*connect.Response[v1.SentinelState], error)
 	UpdateSentinelState(context.Context, *connect.Request[v1.UpdateSentinelStateRequest]) (*connect.Response[v1.UpdateSentinelStateResponse], error)
@@ -177,12 +161,6 @@ type ClusterServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	clusterServiceMethods := v1.File_ctrl_v1_cluster_proto.Services().ByName("ClusterService").Methods()
-	clusterServiceWatchHandler := connect.NewServerStreamHandler(
-		ClusterServiceWatchProcedure,
-		svc.Watch,
-		connect.WithSchema(clusterServiceMethods.ByName("Watch")),
-		connect.WithHandlerOptions(opts...),
-	)
 	clusterServiceSyncHandler := connect.NewServerStreamHandler(
 		ClusterServiceSyncProcedure,
 		svc.Sync,
@@ -215,8 +193,6 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 	)
 	return "/ctrl.v1.ClusterService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case ClusterServiceWatchProcedure:
-			clusterServiceWatchHandler.ServeHTTP(w, r)
 		case ClusterServiceSyncProcedure:
 			clusterServiceSyncHandler.ServeHTTP(w, r)
 		case ClusterServiceGetDesiredSentinelStateProcedure:
@@ -235,10 +211,6 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 
 // UnimplementedClusterServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedClusterServiceHandler struct{}
-
-func (UnimplementedClusterServiceHandler) Watch(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.State]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.Watch is not implemented"))
-}
 
 func (UnimplementedClusterServiceHandler) Sync(context.Context, *connect.Request[v1.SyncRequest], *connect.ServerStream[v1.State]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.Sync is not implemented"))

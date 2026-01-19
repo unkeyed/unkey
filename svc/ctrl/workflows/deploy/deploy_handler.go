@@ -12,7 +12,6 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"google.golang.org/protobuf/proto"
 )
@@ -82,7 +81,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}
 
 	var dockerImage string
-	var buildID *string
 
 	if req.GetBuildContextPath() != "" {
 		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusBuilding); err != nil {
@@ -116,7 +114,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 			return nil, fmt.Errorf("failed to build docker image: %w", err)
 		}
 		dockerImage = result.GetImageName()
-		buildID = ptr.P(result.GetBuildId())
 
 		err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
 			return db.Query.UpdateDeploymentBuildID(stepCtx, w.db.RW(), db.UpdateDeploymentBuildIDParams{
@@ -166,7 +163,25 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.BulkQuery.InsertDeploymentTopologies(runCtx, w.db.RW(), topologies)
+		return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			if err := db.BulkQuery.InsertDeploymentTopologies(txCtx, tx, topologies); err != nil {
+				return err
+			}
+			stateChanges := make([]db.InsertStateChangeParams, len(topologies))
+			for i, t := range topologies {
+				stateChanges[i] = db.InsertStateChangeParams{
+					ResourceType: db.StateChangesResourceTypeDeployment,
+					ResourceID:   deployment.ID,
+					Op:           db.StateChangesOpUpsert,
+					Region:       t.Region,
+					CreatedAt:    uint64(time.Now().UnixMilli()),
+				}
+			}
+			if err := db.BulkQuery.InsertStateChanges(txCtx, tx, stateChanges); err != nil {
+				return err
+			}
+			return nil
+		})
 	}, restate.WithName("insert deployment topologies"))
 
 	// Ensure sentinels exist in each region for this deployment
@@ -190,133 +205,49 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 			}
 
 			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-
 				sentinelID := uid.New(uid.SentinelPrefix)
 				sentinelK8sName := uid.DNS1035()
 
-				// we rely on the unique indess of environmendID + region here to create or noop
-				err = db.Query.InsertSentinel(runCtx, w.db.RW(), db.InsertSentinelParams{
-					ID:                sentinelID,
-					WorkspaceID:       workspace.ID,
-					EnvironmentID:     environment.ID,
-					ProjectID:         project.ID,
-					K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local", sentinelK8sName, workspace.K8sNamespace.String),
-					K8sName:           sentinelK8sName,
-					Region:            topology.Region,
-					Image:             w.sentinelImage,
-					Health:            db.SentinelsHealthUnknown,
-					DesiredReplicas:   desiredReplicas,
-					AvailableReplicas: 0,
-					CpuMillicores:     256,
-					MemoryMib:         256,
-					CreatedAt:         time.Now().UnixMilli(),
+				return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+					// we rely on the unique index of environmentID + region here to create or noop
+					err := db.Query.InsertSentinel(txCtx, tx, db.InsertSentinelParams{
+						ID:                sentinelID,
+						WorkspaceID:       workspace.ID,
+						EnvironmentID:     environment.ID,
+						ProjectID:         project.ID,
+						K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local", sentinelK8sName, workspace.K8sNamespace.String),
+						K8sName:           sentinelK8sName,
+						Region:            topology.Region,
+						Image:             w.sentinelImage,
+						Health:            db.SentinelsHealthUnknown,
+						DesiredReplicas:   desiredReplicas,
+						AvailableReplicas: 0,
+						CpuMillicores:     256,
+						MemoryMib:         256,
+						CreatedAt:         time.Now().UnixMilli(),
+					})
+					if err != nil {
+						if db.IsDuplicateKeyError(err) {
+							return nil
+						}
+						return err
+					}
+					if _, err := db.Query.InsertStateChange(txCtx, tx, db.InsertStateChangeParams{
+						ResourceType: db.StateChangesResourceTypeSentinel,
+						ResourceID:   sentinelID,
+						Op:           db.StateChangesOpUpsert,
+						Region:       topology.Region,
+						CreatedAt:    uint64(time.Now().UnixMilli()),
+					}); err != nil {
+						return err
+					}
+					return nil
 				})
-				if err != nil && !db.IsDuplicateKeyError(err) {
-					return err
-				}
-				return nil
-
 			}, restate.WithName("ensure sentinel exists in db"))
 			if err != nil {
 				return nil, err
 			}
 
-		}
-
-		sentinels, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Sentinel, error) {
-			return db.Query.FindSentinelsByEnvironmentID(runCtx, w.db.RO(), environment.ID)
-		}, restate.WithName("find all sentinels"))
-		if err != nil {
-			return nil, err
-		}
-
-		for _, sentinel := range sentinels {
-			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-
-				s := &ctrlv1.SentinelState{
-					State: &ctrlv1.SentinelState_Apply{
-						Apply: &ctrlv1.ApplySentinel{
-							K8SName:       sentinel.K8sName,
-							WorkspaceId:   sentinel.WorkspaceID,
-							ProjectId:     sentinel.ProjectID,
-							EnvironmentId: sentinel.EnvironmentID,
-							SentinelId:    sentinel.ID,
-							Image:         w.sentinelImage,
-							Replicas:      sentinel.DesiredReplicas,
-							CpuMillicores: int64(sentinel.CpuMillicores),
-							MemoryMib:     int64(sentinel.MemoryMib),
-						},
-					},
-				}
-				state, err := proto.Marshal(s)
-				if err != nil {
-					return restate.TerminalError(err)
-				}
-
-				sequence, err := db.Query.InsertStateChange(ctx, w.db.RW(), db.InsertStateChangeParams{
-					ResourceType: db.StateChangesResourceTypeSentinel,
-					State:        state,
-					ClusterID:    sentinel.Region,
-					CreatedAt:    uint64(time.Now().UnixMilli()),
-				})
-				if err != nil {
-					return err
-				}
-
-				_ = sequence
-				return nil
-			}, restate.WithName(fmt.Sprintf("schedule sentinel for %s in %s", sentinel.ID, sentinel.Region)))
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	for _, region := range topologies {
-		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-
-			s := &ctrlv1.DeploymentState{
-				State: &ctrlv1.DeploymentState_Apply{
-					Apply: &ctrlv1.ApplyDeployment{
-						K8SNamespace:                  workspace.K8sNamespace.String,
-						K8SName:                       deployment.K8sName,
-						WorkspaceId:                   workspace.ID,
-						ProjectId:                     deployment.ProjectID,
-						EnvironmentId:                 deployment.EnvironmentID,
-						DeploymentId:                  deployment.ID,
-						Image:                         dockerImage,
-						Replicas:                      region.DesiredReplicas,
-						CpuMillicores:                 int64(deployment.CpuMillicores),
-						MemoryMib:                     int64(deployment.MemoryMib),
-						BuildId:                       buildID,
-						EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
-						ReadinessId:                   ptr.P(deployment.ID),
-					},
-				},
-			}
-
-			state, err := proto.Marshal(s)
-			if err != nil {
-				return restate.TerminalError(err)
-			}
-
-			sequence, err := db.Query.InsertStateChange(ctx, w.db.RW(), db.InsertStateChangeParams{
-				ResourceType: db.StateChangesResourceTypeDeployment,
-				State:        state,
-				ClusterID:    region.Region,
-				CreatedAt:    uint64(time.Now().UnixMilli()),
-			})
-			if err != nil {
-				return err
-			}
-
-			_ = sequence
-
-			return nil
-
-		}, restate.WithName(fmt.Sprintf("schedule deployment %s in %s", deployment.ID, region.Region)))
-		if err != nil {
-			return nil, err
 		}
 
 	}

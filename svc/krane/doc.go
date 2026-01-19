@@ -14,8 +14,7 @@
 //   - Krane Agents: Node-level agents that expose gRPC APIs for orchestration
 //   - Kubernetes Cluster: Target infrastructure where containers are deployed
 //
-// Each krane instance is identified by a unique InstanceID and operates within
-// a specific ClusterID for distributed coordination. The agent uses in-cluster
+// Each krane instance is identified by a unique InstanceID. The agent uses in-cluster
 // Kubernetes configuration for direct cluster access.
 //
 // # Key Services
@@ -44,7 +43,6 @@
 //
 //	cfg := krane.Config{
 //		InstanceID:    "krane-node-001",
-//		ClusterID:     "production-cluster",
 //		Region:        "us-west-2",
 //		RegistryURL:   "registry.depot.dev",
 //		RegistryUsername: "x-token",

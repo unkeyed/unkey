@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertStateChange is the base query for bulk insert
-const bulkInsertStateChange = `INSERT INTO ` + "`" + `state_changes` + "`" + ` ( resource_type, state, cluster_id, created_at ) VALUES %s`
+const bulkInsertStateChange = `INSERT INTO ` + "`" + `state_changes` + "`" + ` ( resource_type, resource_id, op, region, created_at ) VALUES %s`
 
 // InsertStateChanges performs bulk insert in a single query
 func (q *BulkQueries) InsertStateChanges(ctx context.Context, db DBTX, args []InsertStateChangeParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertStateChanges(ctx context.Context, db DBTX, args []In
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertStateChange, strings.Join(valueClauses, ", "))
@@ -30,12 +30,13 @@ func (q *BulkQueries) InsertStateChanges(ctx context.Context, db DBTX, args []In
 	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ResourceType)
-		allArgs = append(allArgs, arg.State)
-		allArgs = append(allArgs, arg.ClusterID)
+		allArgs = append(allArgs, arg.ResourceID)
+		allArgs = append(allArgs, arg.Op)
+		allArgs = append(allArgs, arg.Region)
 		allArgs = append(allArgs, arg.CreatedAt)
 	}
 
 	// Execute the bulk insert
-	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-	return err
+    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+    return err
 }

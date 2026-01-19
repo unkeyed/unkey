@@ -1,39 +1,16 @@
 package cluster
 
 import (
-	"sync"
-
-	"connectrpc.com/connect"
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/db"
 
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
-type client struct {
-	clientID string
-	region   string
-	stream   *connect.ServerStream[ctrlv1.State]
-}
-
-func newClient(clientID string, region string, stream *connect.ServerStream[ctrlv1.State]) *client {
-	return &client{
-		clientID: clientID,
-		region:   region,
-		stream:   stream,
-	}
-}
-
 type Service struct {
 	ctrlv1connect.UnimplementedClusterServiceHandler
 	db     db.Database
 	logger logging.Logger
-
-	// Maps regions to open clients
-	clientsMu sync.RWMutex
-	// clientID -> stream
-	clients map[string]*client
 
 	// static bearer token for authentication
 	bearer string
@@ -50,8 +27,6 @@ func New(cfg Config) *Service {
 		UnimplementedClusterServiceHandler: ctrlv1connect.UnimplementedClusterServiceHandler{},
 		db:                                 cfg.Database,
 		logger:                             cfg.Logger,
-		clientsMu:                          sync.RWMutex{},
-		clients:                            make(map[string]*client),
 		bearer:                             cfg.Bearer,
 	}
 

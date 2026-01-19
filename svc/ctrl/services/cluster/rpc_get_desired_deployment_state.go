@@ -64,7 +64,6 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 					CpuMillicores:                 int64(deployment.CpuMillicores),
 					MemoryMib:                     int64(deployment.MemoryMib),
 					EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
-					ReadinessId:                   nil,
 					BuildId:                       buildID,
 				},
 			},

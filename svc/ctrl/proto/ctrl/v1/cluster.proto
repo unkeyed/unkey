@@ -22,7 +22,6 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 // The watch connection is designed to be long-lived with automatic reconnection on failure.
 // When an agent reconnects, it should initiate reconciliation to ensure consistency.
 service ClusterService {
-  rpc Watch(WatchRequest) returns (stream State);
   rpc Sync(SyncRequest) returns (stream State);
   rpc GetDesiredSentinelState(GetDesiredSentinelStateRequest) returns (SentinelState);
   rpc UpdateSentinelState(UpdateSentinelStateRequest) returns (UpdateSentinelStateResponse);
@@ -80,29 +79,26 @@ message UpdateSentinelStateRequest {
 message UpdateSentinelStateResponse {}
 
 message SyncRequest {
-  string cluster_id = 1;
-  string region = 2;
+  string region = 1;
+  uint64 sequence_last_seen = 2;
 }
 
-// WatchRequest identifies the cluster requesting a watch stream.
-message WatchRequest {
-  // cluster_id uniquely identifies the client requesting the watch stream.
-  string cluster_id = 1;
-
-  string region = 2;
-
-  // sequence_last_seen indicates the last sequence number the client has processed.
-  // This allows the server to send only new events since that sequence number,
-  // enabling efficient reconnection and resumption of the watch stream.
-  uint64 sequence_last_seen = 3;
+// Bookmark is sent after bootstrap completes to signal the client is caught up.
+// The client should persist this sequence to resume watch on reconnect.
+message Bookmark {
+  uint64 sequence = 1;
 }
 
 message State {
+  // sequence is the state_changes sequence number for this event.
+  // Clients should persist this after successfully processing each event
+  // to resume from the correct position on reconnect.
   uint64 sequence = 1;
 
   oneof kind {
     DeploymentState deployment = 2;
     SentinelState sentinel = 3;
+    Bookmark bookmark = 4;
   }
 }
 
@@ -225,7 +221,6 @@ message ApplyDeployment {
 
   optional string build_id = 11;
   bytes encrypted_environment_variables = 12;
-  optional string readiness_id = 13;
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.

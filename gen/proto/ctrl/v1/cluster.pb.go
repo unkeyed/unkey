@@ -414,11 +414,11 @@ func (*UpdateSentinelStateResponse) Descriptor() ([]byte, []int) {
 }
 
 type SyncRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ClusterId     string                 `protobuf:"bytes,1,opt,name=cluster_id,json=clusterId,proto3" json:"cluster_id,omitempty"`
-	Region        string                 `protobuf:"bytes,2,opt,name=region,proto3" json:"region,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Region           string                 `protobuf:"bytes,1,opt,name=region,proto3" json:"region,omitempty"`
+	SequenceLastSeen uint64                 `protobuf:"varint,2,opt,name=sequence_last_seen,json=sequenceLastSeen,proto3" json:"sequence_last_seen,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *SyncRequest) Reset() {
@@ -451,13 +451,6 @@ func (*SyncRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *SyncRequest) GetClusterId() string {
-	if x != nil {
-		return x.ClusterId
-	}
-	return ""
-}
-
 func (x *SyncRequest) GetRegion() string {
 	if x != nil {
 		return x.Region
@@ -465,34 +458,36 @@ func (x *SyncRequest) GetRegion() string {
 	return ""
 }
 
-// WatchRequest identifies the cluster requesting a watch stream.
-type WatchRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// cluster_id uniquely identifies the client requesting the watch stream.
-	ClusterId string `protobuf:"bytes,1,opt,name=cluster_id,json=clusterId,proto3" json:"cluster_id,omitempty"`
-	Region    string `protobuf:"bytes,2,opt,name=region,proto3" json:"region,omitempty"`
-	// sequence_last_seen indicates the last sequence number the client has processed.
-	// This allows the server to send only new events since that sequence number,
-	// enabling efficient reconnection and resumption of the watch stream.
-	SequenceLastSeen uint64 `protobuf:"varint,3,opt,name=sequence_last_seen,json=sequenceLastSeen,proto3" json:"sequence_last_seen,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+func (x *SyncRequest) GetSequenceLastSeen() uint64 {
+	if x != nil {
+		return x.SequenceLastSeen
+	}
+	return 0
 }
 
-func (x *WatchRequest) Reset() {
-	*x = WatchRequest{}
+// Bookmark is sent after bootstrap completes to signal the client is caught up.
+// The client should persist this sequence to resume watch on reconnect.
+type Bookmark struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Sequence      uint64                 `protobuf:"varint,1,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Bookmark) Reset() {
+	*x = Bookmark{}
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *WatchRequest) String() string {
+func (x *Bookmark) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*WatchRequest) ProtoMessage() {}
+func (*Bookmark) ProtoMessage() {}
 
-func (x *WatchRequest) ProtoReflect() protoreflect.Message {
+func (x *Bookmark) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -504,39 +499,29 @@ func (x *WatchRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use WatchRequest.ProtoReflect.Descriptor instead.
-func (*WatchRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use Bookmark.ProtoReflect.Descriptor instead.
+func (*Bookmark) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *WatchRequest) GetClusterId() string {
+func (x *Bookmark) GetSequence() uint64 {
 	if x != nil {
-		return x.ClusterId
-	}
-	return ""
-}
-
-func (x *WatchRequest) GetRegion() string {
-	if x != nil {
-		return x.Region
-	}
-	return ""
-}
-
-func (x *WatchRequest) GetSequenceLastSeen() uint64 {
-	if x != nil {
-		return x.SequenceLastSeen
+		return x.Sequence
 	}
 	return 0
 }
 
 type State struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	Sequence uint64                 `protobuf:"varint,1,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// sequence is the state_changes sequence number for this event.
+	// Clients should persist this after successfully processing each event
+	// to resume from the correct position on reconnect.
+	Sequence uint64 `protobuf:"varint,1,opt,name=sequence,proto3" json:"sequence,omitempty"`
 	// Types that are valid to be assigned to Kind:
 	//
 	//	*State_Deployment
 	//	*State_Sentinel
+	//	*State_Bookmark
 	Kind          isState_Kind `protobuf_oneof:"kind"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -604,6 +589,15 @@ func (x *State) GetSentinel() *SentinelState {
 	return nil
 }
 
+func (x *State) GetBookmark() *Bookmark {
+	if x != nil {
+		if x, ok := x.Kind.(*State_Bookmark); ok {
+			return x.Bookmark
+		}
+	}
+	return nil
+}
+
 type isState_Kind interface {
 	isState_Kind()
 }
@@ -616,9 +610,15 @@ type State_Sentinel struct {
 	Sentinel *SentinelState `protobuf:"bytes,3,opt,name=sentinel,proto3,oneof"`
 }
 
+type State_Bookmark struct {
+	Bookmark *Bookmark `protobuf:"bytes,4,opt,name=bookmark,proto3,oneof"`
+}
+
 func (*State_Deployment) isState_Kind() {}
 
 func (*State_Sentinel) isState_Kind() {}
+
+func (*State_Bookmark) isState_Kind() {}
 
 // SentinelState represents a lifecycle event for an API sentinel configuration.
 //
@@ -1013,7 +1013,6 @@ type ApplyDeployment struct {
 	MemoryMib                     int64   `protobuf:"varint,10,opt,name=memory_mib,json=memoryMib,proto3" json:"memory_mib,omitempty"`
 	BuildId                       *string `protobuf:"bytes,11,opt,name=build_id,json=buildId,proto3,oneof" json:"build_id,omitempty"`
 	EncryptedEnvironmentVariables []byte  `protobuf:"bytes,12,opt,name=encrypted_environment_variables,json=encryptedEnvironmentVariables,proto3" json:"encrypted_environment_variables,omitempty"`
-	ReadinessId                   *string `protobuf:"bytes,13,opt,name=readiness_id,json=readinessId,proto3,oneof" json:"readiness_id,omitempty"`
 	unknownFields                 protoimpl.UnknownFields
 	sizeCache                     protoimpl.SizeCache
 }
@@ -1130,13 +1129,6 @@ func (x *ApplyDeployment) GetEncryptedEnvironmentVariables() []byte {
 		return x.EncryptedEnvironmentVariables
 	}
 	return nil
-}
-
-func (x *ApplyDeployment) GetReadinessId() string {
-	if x != nil && x.ReadinessId != nil {
-		return *x.ReadinessId
-	}
-	return ""
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.
@@ -1404,22 +1396,19 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x1aUpdateSentinelStateRequest\x12\x19\n" +
 	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\x12-\n" +
 	"\x12available_replicas\x18\x02 \x01(\x05R\x11availableReplicas\"\x1d\n" +
-	"\x1bUpdateSentinelStateResponse\"D\n" +
-	"\vSyncRequest\x12\x1d\n" +
-	"\n" +
-	"cluster_id\x18\x01 \x01(\tR\tclusterId\x12\x16\n" +
-	"\x06region\x18\x02 \x01(\tR\x06region\"s\n" +
-	"\fWatchRequest\x12\x1d\n" +
-	"\n" +
-	"cluster_id\x18\x01 \x01(\tR\tclusterId\x12\x16\n" +
-	"\x06region\x18\x02 \x01(\tR\x06region\x12,\n" +
-	"\x12sequence_last_seen\x18\x03 \x01(\x04R\x10sequenceLastSeen\"\x9d\x01\n" +
+	"\x1bUpdateSentinelStateResponse\"S\n" +
+	"\vSyncRequest\x12\x16\n" +
+	"\x06region\x18\x01 \x01(\tR\x06region\x12,\n" +
+	"\x12sequence_last_seen\x18\x02 \x01(\x04R\x10sequenceLastSeen\"&\n" +
+	"\bBookmark\x12\x1a\n" +
+	"\bsequence\x18\x01 \x01(\x04R\bsequence\"\xce\x01\n" +
 	"\x05State\x12\x1a\n" +
 	"\bsequence\x18\x01 \x01(\x04R\bsequence\x12:\n" +
 	"\n" +
 	"deployment\x18\x02 \x01(\v2\x18.ctrl.v1.DeploymentStateH\x00R\n" +
 	"deployment\x124\n" +
-	"\bsentinel\x18\x03 \x01(\v2\x16.ctrl.v1.SentinelStateH\x00R\bsentinelB\x06\n" +
+	"\bsentinel\x18\x03 \x01(\v2\x16.ctrl.v1.SentinelStateH\x00R\bsentinel\x12/\n" +
+	"\bbookmark\x18\x04 \x01(\v2\x11.ctrl.v1.BookmarkH\x00R\bbookmarkB\x06\n" +
 	"\x04kind\"{\n" +
 	"\rSentinelState\x12.\n" +
 	"\x05apply\x18\x01 \x01(\v2\x16.ctrl.v1.ApplySentinelH\x00R\x05apply\x121\n" +
@@ -1443,7 +1432,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\n" +
 	"memory_mib\x18\t \x01(\x03R\tmemoryMib\"+\n" +
 	"\x0eDeleteSentinel\x12\x19\n" +
-	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\x85\x04\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\xcc\x03\n" +
 	"\x0fApplyDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
@@ -1459,15 +1448,12 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"memory_mib\x18\n" +
 	" \x01(\x03R\tmemoryMib\x12\x1e\n" +
 	"\bbuild_id\x18\v \x01(\tH\x00R\abuildId\x88\x01\x01\x12F\n" +
-	"\x1fencrypted_environment_variables\x18\f \x01(\fR\x1dencryptedEnvironmentVariables\x12&\n" +
-	"\freadiness_id\x18\r \x01(\tH\x01R\vreadinessId\x88\x01\x01B\v\n" +
-	"\t_build_idB\x0f\n" +
-	"\r_readiness_id\"R\n" +
+	"\x1fencrypted_environment_variables\x18\f \x01(\fR\x1dencryptedEnvironmentVariablesB\v\n" +
+	"\t_build_id\"R\n" +
 	"\x10DeleteDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
-	"\bk8s_name\x18\x02 \x01(\tR\ak8sName2\xfa\x03\n" +
-	"\x0eClusterService\x120\n" +
-	"\x05Watch\x12\x15.ctrl.v1.WatchRequest\x1a\x0e.ctrl.v1.State0\x01\x12.\n" +
+	"\bk8s_name\x18\x02 \x01(\tR\ak8sName2\xc8\x03\n" +
+	"\x0eClusterService\x12.\n" +
 	"\x04Sync\x12\x14.ctrl.v1.SyncRequest\x1a\x0e.ctrl.v1.State0\x01\x12Z\n" +
 	"\x17GetDesiredSentinelState\x12'.ctrl.v1.GetDesiredSentinelStateRequest\x1a\x16.ctrl.v1.SentinelState\x12`\n" +
 	"\x13UpdateSentinelState\x12#.ctrl.v1.UpdateSentinelStateRequest\x1a$.ctrl.v1.UpdateSentinelStateResponse\x12`\n" +
@@ -1499,7 +1485,7 @@ var file_ctrl_v1_cluster_proto_goTypes = []any{
 	(*UpdateSentinelStateRequest)(nil),                       // 6: ctrl.v1.UpdateSentinelStateRequest
 	(*UpdateSentinelStateResponse)(nil),                      // 7: ctrl.v1.UpdateSentinelStateResponse
 	(*SyncRequest)(nil),                                      // 8: ctrl.v1.SyncRequest
-	(*WatchRequest)(nil),                                     // 9: ctrl.v1.WatchRequest
+	(*Bookmark)(nil),                                         // 9: ctrl.v1.Bookmark
 	(*State)(nil),                                            // 10: ctrl.v1.State
 	(*SentinelState)(nil),                                    // 11: ctrl.v1.SentinelState
 	(*DeploymentState)(nil),                                  // 12: ctrl.v1.DeploymentState
@@ -1516,29 +1502,28 @@ var file_ctrl_v1_cluster_proto_depIdxs = []int32{
 	18, // 1: ctrl.v1.UpdateDeploymentStateRequest.delete:type_name -> ctrl.v1.UpdateDeploymentStateRequest.Delete
 	12, // 2: ctrl.v1.State.deployment:type_name -> ctrl.v1.DeploymentState
 	11, // 3: ctrl.v1.State.sentinel:type_name -> ctrl.v1.SentinelState
-	13, // 4: ctrl.v1.SentinelState.apply:type_name -> ctrl.v1.ApplySentinel
-	14, // 5: ctrl.v1.SentinelState.delete:type_name -> ctrl.v1.DeleteSentinel
-	15, // 6: ctrl.v1.DeploymentState.apply:type_name -> ctrl.v1.ApplyDeployment
-	16, // 7: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
-	19, // 8: ctrl.v1.UpdateDeploymentStateRequest.Update.instances:type_name -> ctrl.v1.UpdateDeploymentStateRequest.Update.Instance
-	0,  // 9: ctrl.v1.UpdateDeploymentStateRequest.Update.Instance.status:type_name -> ctrl.v1.UpdateDeploymentStateRequest.Update.Instance.Status
-	9,  // 10: ctrl.v1.ClusterService.Watch:input_type -> ctrl.v1.WatchRequest
+	9,  // 4: ctrl.v1.State.bookmark:type_name -> ctrl.v1.Bookmark
+	13, // 5: ctrl.v1.SentinelState.apply:type_name -> ctrl.v1.ApplySentinel
+	14, // 6: ctrl.v1.SentinelState.delete:type_name -> ctrl.v1.DeleteSentinel
+	15, // 7: ctrl.v1.DeploymentState.apply:type_name -> ctrl.v1.ApplyDeployment
+	16, // 8: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
+	19, // 9: ctrl.v1.UpdateDeploymentStateRequest.Update.instances:type_name -> ctrl.v1.UpdateDeploymentStateRequest.Update.Instance
+	0,  // 10: ctrl.v1.UpdateDeploymentStateRequest.Update.Instance.status:type_name -> ctrl.v1.UpdateDeploymentStateRequest.Update.Instance.Status
 	8,  // 11: ctrl.v1.ClusterService.Sync:input_type -> ctrl.v1.SyncRequest
 	1,  // 12: ctrl.v1.ClusterService.GetDesiredSentinelState:input_type -> ctrl.v1.GetDesiredSentinelStateRequest
 	6,  // 13: ctrl.v1.ClusterService.UpdateSentinelState:input_type -> ctrl.v1.UpdateSentinelStateRequest
 	2,  // 14: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
 	3,  // 15: ctrl.v1.ClusterService.UpdateDeploymentState:input_type -> ctrl.v1.UpdateDeploymentStateRequest
-	10, // 16: ctrl.v1.ClusterService.Watch:output_type -> ctrl.v1.State
-	10, // 17: ctrl.v1.ClusterService.Sync:output_type -> ctrl.v1.State
-	11, // 18: ctrl.v1.ClusterService.GetDesiredSentinelState:output_type -> ctrl.v1.SentinelState
-	7,  // 19: ctrl.v1.ClusterService.UpdateSentinelState:output_type -> ctrl.v1.UpdateSentinelStateResponse
-	12, // 20: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
-	4,  // 21: ctrl.v1.ClusterService.UpdateDeploymentState:output_type -> ctrl.v1.UpdateDeploymentStateResponse
-	16, // [16:22] is the sub-list for method output_type
-	10, // [10:16] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	10, // 16: ctrl.v1.ClusterService.Sync:output_type -> ctrl.v1.State
+	11, // 17: ctrl.v1.ClusterService.GetDesiredSentinelState:output_type -> ctrl.v1.SentinelState
+	7,  // 18: ctrl.v1.ClusterService.UpdateSentinelState:output_type -> ctrl.v1.UpdateSentinelStateResponse
+	12, // 19: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
+	4,  // 20: ctrl.v1.ClusterService.UpdateDeploymentState:output_type -> ctrl.v1.UpdateDeploymentStateResponse
+	16, // [16:21] is the sub-list for method output_type
+	11, // [11:16] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_cluster_proto_init() }
@@ -1553,6 +1538,7 @@ func file_ctrl_v1_cluster_proto_init() {
 	file_ctrl_v1_cluster_proto_msgTypes[9].OneofWrappers = []any{
 		(*State_Deployment)(nil),
 		(*State_Sentinel)(nil),
+		(*State_Bookmark)(nil),
 	}
 	file_ctrl_v1_cluster_proto_msgTypes[10].OneofWrappers = []any{
 		(*SentinelState_Apply)(nil),

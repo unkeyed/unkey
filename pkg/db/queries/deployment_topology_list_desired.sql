@@ -1,18 +1,11 @@
 -- name: ListDesiredDeploymentTopology :many
+-- ListDesiredDeploymentTopology returns all deployment topologies matching the desired state for a region.
+-- Used during bootstrap to stream all running deployments to krane.
+-- The version parameter is deprecated and ignored (kept for backwards compatibility).
 SELECT
-    d.id as deployment_id,
-    d.k8s_name as k8s_name,
-    d.workspace_id,
-    d.project_id,
-    d.environment_id,
-    d.image,
-    dt.region,
-    d.cpu_millicores,
-    d.memory_mib,
-    dt.desired_replicas,
-    w.k8s_namespace as k8s_namespace,
-    d.build_id,
-    d.encrypted_environment_variables
+    sqlc.embed(dt),
+    sqlc.embed(d),
+    w.k8s_namespace
 FROM `deployment_topology` dt
 INNER JOIN `deployments` d ON dt.deployment_id = d.id
 INNER JOIN `workspaces` w ON d.workspace_id = w.id
