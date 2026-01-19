@@ -1,7 +1,6 @@
 -- name: ListDesiredDeploymentTopology :many
 -- ListDesiredDeploymentTopology returns all deployment topologies matching the desired state for a region.
 -- Used during bootstrap to stream all running deployments to krane.
--- The version parameter is deprecated and ignored (kept for backwards compatibility).
 SELECT
     sqlc.embed(dt),
     sqlc.embed(d),

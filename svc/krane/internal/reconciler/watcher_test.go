@@ -4,7 +4,7 @@
 // These tests verify the watch/sync behavior of the reconciler, specifically:
 //   - How it forms Sync requests to the control plane
 //   - How it processes State messages via HandleState
-//   - How it tracks sequence numbers for reconnection
+//   - How it tracks version numbers for reconnection
 //
 // # Test Approach
 //
@@ -16,7 +16,8 @@
 //
 // # Key Invariants
 //
-//   - sequenceLastSeen is updated to the highest sequence seen
+//   - versionLastSeen is only updated after clean stream close (atomic bootstrap)
+//   - HandleState returns the version but does not commit it
 //   - Apply messages create/update Kubernetes resources
 //   - Delete messages remove Kubernetes resources
 package reconciler
@@ -102,16 +103,16 @@ func (m *mockServerStream) ResponseTrailer() http.Header {
 // =============================================================================
 
 // TestWatch_SendsCorrectSyncRequest verifies that watch() sends a Sync request
-// with the correct region and sequence number.
+// with the correct region and version number.
 //
-// Scenario: Reconciler has previously processed messages up to sequence 500.
-// It calls watch() which should send a Sync request with that sequence.
+// Scenario: Reconciler has previously processed messages up to version 500.
+// It calls watch() which should send a Sync request with that version.
 //
 // Guarantees:
 //   - SyncRequest.Region matches the reconciler's configured region
-//   - SyncRequest.SequenceLastSeen matches sequenceLastSeen from previous session
+//   - SyncRequest.VersionLastSeen matches versionLastSeen from previous session
 //
-// This is critical for reconnection: the sequence tells the server where to
+// This is critical for reconnection: the version tells the server where to
 // resume streaming from.
 func TestWatch_SendsCorrectSyncRequest(t *testing.T) {
 	client := fake.NewSimpleClientset()
@@ -136,28 +137,28 @@ func TestWatch_SendsCorrectSyncRequest(t *testing.T) {
 		Region:    "us-west-2",
 	})
 
-	r.sequenceLastSeen = 500
+	r.versionLastSeen = 500
 
 	ctx := context.Background()
 	_ = r.watch(ctx)
 
 	require.NotNil(t, capturedRequest)
 	require.Equal(t, "us-west-2", capturedRequest.GetRegion())
-	require.Equal(t, uint64(500), capturedRequest.GetSequenceLastSeen())
+	require.Equal(t, uint64(500), capturedRequest.GetVersionLastSeen())
 }
 
-// TestWatch_InitialSyncWithZeroSequence verifies that a fresh reconciler sends
-// sequence=0 to trigger a full bootstrap from the server.
+// TestWatch_InitialSyncWithZeroVersion verifies that a fresh reconciler sends
+// version=0 to trigger a full bootstrap from the server.
 //
 // Scenario: A newly created reconciler (never received any messages) calls watch().
 //
 // Guarantees:
-//   - SyncRequest.SequenceLastSeen is 0
+//   - SyncRequest.VersionLastSeen is 0
 //   - This triggers the server to perform full bootstrap
 //
-// sequence=0 is the "I have nothing" signal that tells the server to send
+// version=0 is the "I have nothing" signal that tells the server to send
 // all current state before entering the watch loop.
-func TestWatch_InitialSyncWithZeroSequence(t *testing.T) {
+func TestWatch_InitialSyncWithZeroVersion(t *testing.T) {
 	client := fake.NewSimpleClientset()
 	AddReplicaSetPatchReactor(client)
 	AddDeploymentPatchReactor(client)
@@ -185,7 +186,7 @@ func TestWatch_InitialSyncWithZeroSequence(t *testing.T) {
 
 	require.NotNil(t, capturedRequest)
 	require.Equal(t, "eu-central-1", capturedRequest.GetRegion())
-	require.Equal(t, uint64(0), capturedRequest.GetSequenceLastSeen(), "initial sync should have sequence 0")
+	require.Equal(t, uint64(0), capturedRequest.GetVersionLastSeen(), "initial sync should have version 0")
 }
 
 // =============================================================================
@@ -193,19 +194,20 @@ func TestWatch_InitialSyncWithZeroSequence(t *testing.T) {
 // =============================================================================
 //
 // These tests verify that HandleState correctly processes different message
-// types and updates both Kubernetes resources and the sequence tracker.
+// types and updates both Kubernetes resources and the version tracker.
 // =============================================================================
 
 // TestWatch_ProcessesStreamMessages verifies that HandleState correctly
-// processes deployment apply messages.
+// processes deployment apply messages and returns versions.
 //
-// Scenario: A stream contains two deployment apply messages (seq=10, seq=20).
+// Scenario: A stream contains two deployment apply messages (ver=10, ver=20).
 //
 // Guarantees:
 //   - The deployment is applied to Kubernetes (ReplicaSet is created)
-//   - sequenceLastSeen is updated to the highest sequence (20)
+//   - HandleState returns the version from each message
+//   - versionLastSeen is only updated after stream closes cleanly
 //
-// This tests the basic happy path: apply resources and track sequence.
+// This tests the basic happy path: apply resources and track version.
 func TestWatch_ProcessesStreamMessages(t *testing.T) {
 	client := fake.NewSimpleClientset()
 	rsCapture := AddReplicaSetPatchReactor(client)
@@ -215,7 +217,7 @@ func TestWatch_ProcessesStreamMessages(t *testing.T) {
 
 	messages := []*ctrlv1.State{
 		{
-			Sequence: 10,
+			Version: 10,
 			Kind: &ctrlv1.State_Deployment{
 				Deployment: &ctrlv1.DeploymentState{
 					State: &ctrlv1.DeploymentState_Apply{
@@ -237,7 +239,7 @@ func TestWatch_ProcessesStreamMessages(t *testing.T) {
 			},
 		},
 		{
-			Sequence: 20,
+			Version: 20,
 			Kind: &ctrlv1.State_Deployment{
 				Deployment: &ctrlv1.DeploymentState{
 					State: &ctrlv1.DeploymentState_Apply{
@@ -278,13 +280,23 @@ func TestWatch_ProcessesStreamMessages(t *testing.T) {
 
 	// Process messages directly to test HandleState integration
 	ctx := context.Background()
+	var maxVersion uint64
 	for stream.Receive() {
-		err := r.HandleState(ctx, stream.Msg())
+		seq, err := r.HandleState(ctx, stream.Msg())
 		require.NoError(t, err)
+		if seq > maxVersion {
+			maxVersion = seq
+		}
 	}
 
 	require.NotNil(t, rsCapture.Applied, "deployment should have been applied")
-	require.Equal(t, uint64(20), r.sequenceLastSeen, "sequence should be updated to highest value")
+	require.Equal(t, uint64(0), r.versionLastSeen, "sequence should not be updated until CommitSequence")
+
+	// Simulate clean stream close
+	if maxVersion > r.versionLastSeen {
+		r.versionLastSeen = maxVersion
+	}
+	require.Equal(t, uint64(20), r.versionLastSeen, "sequence should be updated after CommitSequence")
 }
 
 // TestWatch_IncrementalUpdates verifies that HandleState correctly processes
@@ -295,7 +307,8 @@ func TestWatch_ProcessesStreamMessages(t *testing.T) {
 // delete sentinel (103).
 //
 // Guarantees:
-//   - sequenceLastSeen is updated to 103 (the highest sequence)
+//   - HandleState returns the sequence from each message
+//   - versionLastSeen is updated to 103 after CommitSequence
 //   - Deployment delete triggers ReplicaSet deletion
 //   - Sentinel delete triggers Deployment deletion (sentinels run as k8s Deployments)
 //
@@ -310,7 +323,7 @@ func TestWatch_IncrementalUpdates(t *testing.T) {
 
 	messages := []*ctrlv1.State{
 		{
-			Sequence: 101,
+			Version: 101,
 			Kind: &ctrlv1.State_Deployment{
 				Deployment: &ctrlv1.DeploymentState{
 					State: &ctrlv1.DeploymentState_Apply{
@@ -331,7 +344,7 @@ func TestWatch_IncrementalUpdates(t *testing.T) {
 			},
 		},
 		{
-			Sequence: 102,
+			Version: 102,
 			Kind: &ctrlv1.State_Deployment{
 				Deployment: &ctrlv1.DeploymentState{
 					State: &ctrlv1.DeploymentState_Delete{
@@ -344,7 +357,7 @@ func TestWatch_IncrementalUpdates(t *testing.T) {
 			},
 		},
 		{
-			Sequence: 103,
+			Version: 103,
 			Kind: &ctrlv1.State_Sentinel{
 				Sentinel: &ctrlv1.SentinelState{
 					State: &ctrlv1.SentinelState_Delete{
@@ -367,16 +380,24 @@ func TestWatch_IncrementalUpdates(t *testing.T) {
 	})
 
 	// Start with sequence 100 (simulating reconnect after bootstrap)
-	r.sequenceLastSeen = 100
+	r.versionLastSeen = 100
 
 	ctx := context.Background()
 	stream := newMockServerStream(messages)
+	var maxVersion uint64
 	for stream.Receive() {
-		err := r.HandleState(ctx, stream.Msg())
+		seq, err := r.HandleState(ctx, stream.Msg())
 		require.NoError(t, err)
+		if seq > maxVersion {
+			maxVersion = seq
+		}
 	}
 
-	require.Equal(t, uint64(103), r.sequenceLastSeen)
+	require.Equal(t, uint64(100), r.versionLastSeen, "sequence should not change until CommitSequence")
+	if maxVersion > r.versionLastSeen {
+		r.versionLastSeen = maxVersion
+	}
+	require.Equal(t, uint64(103), r.versionLastSeen)
 	require.Contains(t, deletes.Actions, "replicasets", "deployment delete should be processed (deletes ReplicaSet)")
 	require.Contains(t, deletes.Actions, "deployments", "sentinel delete should be processed (deletes Deployment)")
 }
@@ -463,7 +484,7 @@ func TestWatch_SyncConnectionError(t *testing.T) {
 //   - Deployment is applied to Kubernetes (ReplicaSet created with correct name)
 //   - Sentinel is applied (as a k8s Deployment - captured separately)
 //   - Deployment delete is processed (ReplicaSet deleted)
-//   - sequenceLastSeen ends at 30 (the highest sequence)
+//   - versionLastSeen ends at 30 (the highest sequence)
 //
 // This is a comprehensive integration test of HandleState covering all major
 // message types in a realistic sequence.
@@ -485,7 +506,7 @@ func TestWatch_FullMessageProcessingFlow(t *testing.T) {
 
 	messages := []*ctrlv1.State{
 		{
-			Sequence: 10,
+			Version: 10,
 			Kind: &ctrlv1.State_Deployment{
 				Deployment: &ctrlv1.DeploymentState{
 					State: &ctrlv1.DeploymentState_Apply{
@@ -506,7 +527,7 @@ func TestWatch_FullMessageProcessingFlow(t *testing.T) {
 			},
 		},
 		{
-			Sequence: 20,
+			Version: 20,
 			Kind: &ctrlv1.State_Sentinel{
 				Sentinel: &ctrlv1.SentinelState{
 					State: &ctrlv1.SentinelState_Apply{
@@ -526,7 +547,7 @@ func TestWatch_FullMessageProcessingFlow(t *testing.T) {
 			},
 		},
 		{
-			Sequence: 30,
+			Version: 30,
 			Kind: &ctrlv1.State_Deployment{
 				Deployment: &ctrlv1.DeploymentState{
 					State: &ctrlv1.DeploymentState_Delete{
@@ -540,9 +561,13 @@ func TestWatch_FullMessageProcessingFlow(t *testing.T) {
 		},
 	}
 
+	var maxVersion uint64
 	for _, msg := range messages {
-		err := r.HandleState(ctx, msg)
+		seq, err := r.HandleState(ctx, msg)
 		require.NoError(t, err)
+		if seq > maxVersion {
+			maxVersion = seq
+		}
 	}
 
 	require.NotNil(t, rsCapture.Applied, "deployment should have been applied")
@@ -550,5 +575,10 @@ func TestWatch_FullMessageProcessingFlow(t *testing.T) {
 
 	require.Contains(t, deletes.Actions, "replicasets", "deployment delete should have been processed")
 
-	require.Equal(t, uint64(30), r.sequenceLastSeen, "sequence should be updated to highest value")
+	require.Equal(t, uint64(0), r.versionLastSeen, "sequence should not be updated until CommitSequence")
+
+	if maxVersion > r.versionLastSeen {
+		r.versionLastSeen = maxVersion
+	}
+	require.Equal(t, uint64(30), r.versionLastSeen, "sequence should be updated after CommitSequence")
 }

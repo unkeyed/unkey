@@ -414,11 +414,11 @@ func (*UpdateSentinelStateResponse) Descriptor() ([]byte, []int) {
 }
 
 type SyncRequest struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Region           string                 `protobuf:"bytes,1,opt,name=region,proto3" json:"region,omitempty"`
-	SequenceLastSeen uint64                 `protobuf:"varint,2,opt,name=sequence_last_seen,json=sequenceLastSeen,proto3" json:"sequence_last_seen,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Region          string                 `protobuf:"bytes,1,opt,name=region,proto3" json:"region,omitempty"`
+	VersionLastSeen uint64                 `protobuf:"varint,2,opt,name=version_last_seen,json=versionLastSeen,proto3" json:"version_last_seen,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *SyncRequest) Reset() {
@@ -458,19 +458,19 @@ func (x *SyncRequest) GetRegion() string {
 	return ""
 }
 
-func (x *SyncRequest) GetSequenceLastSeen() uint64 {
+func (x *SyncRequest) GetVersionLastSeen() uint64 {
 	if x != nil {
-		return x.SequenceLastSeen
+		return x.VersionLastSeen
 	}
 	return 0
 }
 
 type State struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// sequence is the state_changes sequence number for this event.
-	// Clients should persist this after successfully processing each event
-	// to resume from the correct position on reconnect.
-	Sequence uint64 `protobuf:"varint,1,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	// version is the resource version for this state update.
+	// Clients should track the max version seen and persist it after
+	// the stream closes cleanly to resume from the correct position on reconnect.
+	Version uint64 `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
 	// Types that are valid to be assigned to Kind:
 	//
 	//	*State_Deployment
@@ -510,9 +510,9 @@ func (*State) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *State) GetSequence() uint64 {
+func (x *State) GetVersion() uint64 {
 	if x != nil {
-		return x.Sequence
+		return x.Version
 	}
 	return 0
 }
@@ -1334,12 +1334,12 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x1aUpdateSentinelStateRequest\x12\x19\n" +
 	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\x12-\n" +
 	"\x12available_replicas\x18\x02 \x01(\x05R\x11availableReplicas\"\x1d\n" +
-	"\x1bUpdateSentinelStateResponse\"S\n" +
+	"\x1bUpdateSentinelStateResponse\"Q\n" +
 	"\vSyncRequest\x12\x16\n" +
-	"\x06region\x18\x01 \x01(\tR\x06region\x12,\n" +
-	"\x12sequence_last_seen\x18\x02 \x01(\x04R\x10sequenceLastSeen\"\x9d\x01\n" +
-	"\x05State\x12\x1a\n" +
-	"\bsequence\x18\x01 \x01(\x04R\bsequence\x12:\n" +
+	"\x06region\x18\x01 \x01(\tR\x06region\x12*\n" +
+	"\x11version_last_seen\x18\x02 \x01(\x04R\x0fversionLastSeen\"\x9b\x01\n" +
+	"\x05State\x12\x18\n" +
+	"\aversion\x18\x01 \x01(\x04R\aversion\x12:\n" +
 	"\n" +
 	"deployment\x18\x02 \x01(\v2\x18.ctrl.v1.DeploymentStateH\x00R\n" +
 	"deployment\x124\n" +

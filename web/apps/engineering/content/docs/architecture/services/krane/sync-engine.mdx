@@ -1,11 +1,11 @@
 ---
 title: Krane Sync Engine Architecture
-description: Deep dive into Krane's sequence-based synchronization that polls for state changes and ensures eventual consistency
+description: Deep dive into Krane's version-based synchronization that queries resource tables directly and ensures eventual consistency
 ---
 
 import { Mermaid } from "@/app/components/mermaid";
 
-The Krane Sync Engine implements a Kubernetes-style List+Watch pattern for synchronizing desired infrastructure state from the control plane. It uses sequence numbers to track state changes, enabling efficient incremental synchronization and reliable recovery after disconnections.
+The Krane Sync Engine implements a Kubernetes-style List+Watch pattern for synchronizing desired infrastructure state from the control plane. It uses version numbers embedded in resource tables to track state changes, enabling efficient incremental synchronization and reliable recovery after disconnections.
 
 ## Architecture
 
@@ -29,8 +29,12 @@ graph TB
     
     subgraph 'Control Plane'
         CS[ClusterService]
-        SC[(state_changes)]
-        CS -.->|poll| SC
+        VS[VersioningService]
+        DT[(deployment_topology)]
+        ST[(sentinels)]
+        CS -.->|query| DT
+        CS -.->|query| ST
+        VS -.->|nextVersion| CS
     end
     
     subgraph Kubernetes
@@ -53,19 +57,21 @@ graph TB
 
 The sync engine uses a single `Sync` RPC to receive state changes from the control plane. This RPC establishes a server-streaming connection where the control plane sends `State` messages containing deployment or sentinel operations.
 
-### Sequence Tracking
+### Version Tracking
 
-The reconciler maintains a `sequenceLastSeen` field that tracks the highest sequence number successfully processed. On startup, this is zero. After processing each `State` message, the reconciler updates this watermark. When reconnecting after a failure, Krane sends its last-seen sequence in the `SyncRequest`, allowing the control plane to resume from the correct position.
+Each resource (deployment_topology, sentinel) has a `version` column updated on every mutation via the Restate VersioningService singleton. This provides a globally unique, monotonically increasing version across all resources.
+
+The reconciler maintains a `versionLastSeen` field that tracks the highest version successfully processed. On startup, this is zero. After processing each `State` message, the reconciler tracks the max version seen but only commits it after a clean stream close. When reconnecting after a failure, Krane sends its last-seen version in the `SyncRequest`, allowing the control plane to resume from the correct position.
 
 ### Message Types
 
-The `State` message contains a sequence number and one of two payloads:
+The `State` message contains a version number and one of two payloads:
 
 **DeploymentState** contains either an `ApplyDeployment` (create or update a StatefulSet with the specified image, replicas, and resource limits) or `DeleteDeployment` (remove the StatefulSet and its associated Service).
 
 **SentinelState** contains either an `ApplySentinel` (create or update a sentinel deployment) or `DeleteSentinel` (remove the sentinel).
 
-Stream close signals that the current batch (or bootstrap) is complete. The client tracks the highest sequence from received messages and uses it for the next sync request.
+Stream close signals that the current batch (or bootstrap) is complete. The client tracks the highest version from received messages and uses it for the next sync request.
 
 ## Watcher Loop
 
@@ -74,10 +80,14 @@ The Watcher runs a continuous loop with jittered reconnection timing (1-5 second
 ```
 for {
     sleep(random(1s, 5s))
-    stream = cluster.Sync(region, sequenceLastSeen)
+    stream = cluster.Sync(region, versionLastSeen)
+    maxVersion = 0
     for message in stream {
-        reconciler.HandleState(message)
+        ver = reconciler.HandleState(message)
+        maxVersion = max(maxVersion, ver)
     }
+    if stream.closed_cleanly:
+        versionLastSeen = maxVersion
 }
 ```
 
@@ -97,11 +107,16 @@ HandleState(state):
             if Apply: ApplySentinel(state.Apply)
             if Delete: DeleteSentinel(state.Delete)
     
-    if state.Sequence > sequenceLastSeen:
-        sequenceLastSeen = state.Sequence
+    return state.Version
 ```
 
-The sequence watermark is updated after processing, ensuring at-least-once delivery. If Krane crashes mid-processing, it will reprocess the same message on restart, which is safe because apply operations are idempotent.
+The version is returned but NOT committed until stream closes cleanly. This ensures atomic bootstrap: if the stream breaks mid-bootstrap, the client retries from version 0 rather than skipping resources that were never received.
+
+## Soft Deletes
+
+"Deletes" are implemented as soft deletes: setting `desired_replicas=0` or `desired_state='archived'`. The row remains in the table with its version updated, so clients receive the change and can delete the corresponding Kubernetes resource.
+
+This eliminates the need for a separate changelog table. The resource tables themselves are the source of truth, and each row carries its version for efficient incremental sync.
 
 ## Kubernetes Watchers
 
@@ -115,8 +130,8 @@ Status updates to the control plane are buffered in memory before sending. This 
 
 ## Failure Modes
 
-**Stream disconnection**: The watcher reconnects with jittered backoff. If the last-seen sequence is within the 7-day retention window, sync resumes incrementally. Otherwise, Krane performs a full bootstrap.
+**Stream disconnection**: The watcher reconnects with jittered backoff. Since version is not committed until clean close, reconnection resumes from the last committed version.
 
 **Control plane unavailable**: The circuit breaker opens after repeated failures, preventing Krane from overwhelming a struggling control plane. Local Kubernetes state continues to function; only sync with the control plane is paused.
 
-**Sequence too old**: If Krane has been offline longer than the 7-day retention period, the control plane returns `FailedPrecondition`. Krane resets its sequence to zero and performs a full bootstrap, which may result in reprocessing resources that already exist (handled gracefully by idempotent apply operations).
+**Bootstrap + GC**: After a full bootstrap (version=0), Krane garbage-collects any Kubernetes resources not mentioned in the bootstrap stream. This ensures stale resources are cleaned up even if they were hard-deleted from the database.

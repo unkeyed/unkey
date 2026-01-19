@@ -1,11 +1,11 @@
 ---
 title: Pull-Based Provisioning
-description: Sequence-based infrastructure synchronization with autonomous agents, polling-based updates, and eventual consistency
+description: Version-based infrastructure synchronization with autonomous agents, polling-based updates, and eventual consistency
 ---
 
 import { Mermaid } from "@/app/components/mermaid";
 
-Unkey's infrastructure orchestration implements a pull-based model where autonomous Krane instances poll the control plane for state changes and continuously reconcile desired state with actual state. This architecture follows the Kubernetes List+Watch pattern, using a monotonically increasing sequence number to track changes and enable efficient incremental synchronization.
+Unkey's infrastructure orchestration implements a pull-based model where autonomous Krane instances poll the control plane for state changes and continuously reconcile desired state with actual state. This architecture follows the Kubernetes List+Watch pattern, using a globally unique, monotonically increasing version number embedded directly in each resource row to track changes and enable efficient incremental synchronization.
 
 The architecture's core principle is to enable autonomous reconciliation and self-healing without requiring the control plane to track connected clients or push events.
 
@@ -16,23 +16,26 @@ The architecture's core principle is to enable autonomous reconciliation and sel
 sequenceDiagram
     autonumber
     participant U as User
+    participant VS as VersioningService
     participant DB as Database
     participant CP as Control Plane (Ctrl)
     participant K1 as Krane Agent (Region A)
     participant K8s as Kubernetes API
     
-    K1->>CP: Sync(region=a, sequence=0)
+    K1->>CP: Sync(region=a, version=0)
     Note over K1,CP: Bootstrap: stream full state
     CP->>K1: Stream all deployments/sentinels
-    Note over K1: Stream closes, last seq=42
+    Note over K1: Stream closes, max version=42
     
     U->>CP: Create deployment
-    CP->>DB: Store deployment topology
-    CP->>DB: Insert state_change(seq=43)
+    CP->>VS: NextVersion()
+    VS-->>CP: version=43
+    CP->>DB: Store topology (version=43)
     
     Note over K1: Polling every 1-5s
-    K1->>CP: (stream polls for changes)
-    CP->>K1: Stream State(seq=43, deploy)
+    K1->>CP: Sync(region=a, version=42)
+    CP->>DB: SELECT WHERE version > 42
+    CP->>K1: Stream State(version=43, deploy)
     
     K1->>K8s: Apply deployment
     K8s-->>K1: Pod status change
@@ -40,25 +43,55 @@ sequenceDiagram
     CP->>DB: Upsert Instance table"
 />
 
+## VersioningService
+
+The VersioningService is a Restate virtual object that generates globally unique, monotonically increasing version numbers. It is a singleton (keyed by empty string) that maintains a durable counter in Restate's state store.
+
+Before any mutation to a deployment topology or sentinel, the control plane calls `NextVersion()` to obtain the next version. This version is then stored directly on the resource row. The virtual object guarantees:
+
+- **Monotonically increasing values**: Versions always increase, with no gaps under normal operation
+- **Exactly-once semantics**: Retries of the same Restate invocation return the same version
+- **Single-writer**: The singleton virtual object serializes all version generation
+
+This eliminates the need for a separate changelog table—the version embedded in each resource row is the source of truth for synchronization.
+
 ## Sync Protocol
 
 The synchronization protocol uses a single `Sync` RPC that handles both initial bootstrap and incremental updates. This design eliminates the complexity of managing separate "synthetic" and "live" modes, and removes the need for the control plane to track connected clients in memory.
 
-### Sequence Numbers
+### Version-Based Tracking
 
-Every state change (deployment created, sentinel updated, resource deleted) is recorded in the `state_changes` table with a monotonically increasing sequence number per region. Krane tracks its last-seen sequence and resumes from that point on reconnect, enabling efficient incremental sync without missing events.
+Every resource (deployment topology, sentinel) carries a `version` column set at insert/update time via the VersioningService. Krane tracks its last-seen version (`versionLastSeen`) and requests only resources with `version > versionLastSeen`. The version is globally unique across all resource types, enabling a single watermark for all synchronization.
 
 ### Bootstrap Phase
 
-When Krane connects with `sequence=0` (fresh start or after data loss), the control plane streams the complete desired state for the region. Each message contains a sequence number. Krane tracks the highest sequence seen and uses it for subsequent polls. Stream close signals bootstrap completion.
+When Krane connects with `version=0` (fresh start or after data loss), the control plane streams the complete desired state for the region. Resources are ordered by version. Krane tracks the maximum version seen across all received resources. Stream close without error signals bootstrap completion—only then does Krane commit its version watermark.
 
-### Watch Phase
+After receiving the full bootstrap, Krane garbage-collects any Kubernetes resources that were not mentioned in the stream. This ensures consistency even if the control plane's view of desired state has changed significantly.
 
-After bootstrap, the stream enters watch mode. The control plane polls the `state_changes` table every 250ms for new entries after Krane's last-seen sequence. When changes are found, they're streamed to Krane with their sequence numbers. Krane processes each change and updates its sequence watermark.
+### Incremental Sync
+
+After bootstrap, Krane periodically reconnects with its last-seen version. The control plane queries resource tables directly:
+
+```sql
+SELECT * FROM deployment_topology 
+WHERE region = ? AND version > ? 
+ORDER BY version LIMIT 100;
+
+SELECT * FROM sentinels 
+WHERE region = ? AND version > ? 
+ORDER BY version LIMIT 100;
+```
+
+Changes are streamed to Krane, which processes each and tracks the maximum version seen.
+
+### Soft Deletes
+
+Resources are never hard-deleted during sync. Instead, "deletes" are represented as state changes: setting `desired_replicas=0` or `desired_status=stopped`. Krane sees this change (the row still exists with a new version) and deletes the corresponding Kubernetes resource.
 
 ### Reconnection
 
-If the connection drops, Krane reconnects with its last-seen sequence. If this sequence is still within the retention window (changes are kept for 7 days), sync resumes incrementally. If the sequence is too old, the control plane returns `FailedPrecondition` and Krane must perform a full bootstrap by reconnecting with `sequence=0`.
+If the connection drops, Krane reconnects with its last-seen version. Since versions are embedded in resource rows and not in a separate changelog with retention, there's no risk of the version being "too old"—the query simply returns any resources with versions newer than Krane's watermark.
 
 ## Krane Agent
 
@@ -69,7 +102,8 @@ Krane agents act as autonomous controllers that reconcile desired state with act
 graph TB
     subgraph 'Control Plane'
         CP[ClusterService]
-        SC[(state_changes)]
+        DT[(deployment_topology)]
+        S[(sentinels)]
     end
     subgraph 'Krane Agent'
         W[Watcher]
@@ -87,7 +121,8 @@ graph TB
     end
     
     W -.->|Sync stream| CP
-    CP -.->|poll| SC
+    CP -.->|query by version| DT
+    CP -.->|query by version| S
     DC -->|Apply/Delete| K8s
     GC -->|Apply/Delete| K8s
     K8s -->|Watch Events| DC
@@ -95,7 +130,7 @@ graph TB
     GC -->|UpdateSentinel| CP"
 />
 
-The Watcher maintains the Sync stream, reconnecting with jittered backoff (1-5 seconds) on failure. It passes received `State` messages to the Reconciler, which dispatches to the appropriate controller based on resource type. The Reconciler tracks `sequenceLastSeen` and updates it after successfully processing each state change.
+The Watcher maintains the Sync stream, reconnecting with jittered backoff (1-5 seconds) on failure. It passes received `State` messages to the Reconciler, which dispatches to the appropriate controller based on resource type. The Reconciler tracks `versionLastSeen` and updates it only after successfully processing state changes and receiving a clean stream close.
 
 Status updates flow back to the control plane through unary RPCs (`UpdateDeploymentState`, `UpdateSentinelState`) with buffering, retries, and circuit breakers for reliability.
 
@@ -107,6 +142,7 @@ sequenceDiagram
     participant User
     participant API
     participant Workflow as Deploy Workflow
+    participant VS as VersioningService
     participant DB
     participant Krane
     participant K8s as Kubernetes
@@ -115,10 +151,11 @@ sequenceDiagram
     API->>Workflow: Start deployment
     
     Workflow->>DB: Create deployment
-    Workflow->>DB: Create topology entries
-    Workflow->>DB: Insert state_changes
+    Workflow->>VS: NextVersion()
+    VS-->>Workflow: version=N
+    Workflow->>DB: Create topology (version=N)
     
-    Note over Krane: Polls state_changes via Sync
+    Note over Krane: Polls via Sync(version > lastSeen)
     Krane->>Krane: Receive State(Apply)
     
     Krane->>K8s: Apply deployment
@@ -141,7 +178,7 @@ sequenceDiagram
     Krane->>DB: UpdateInstance(running)"
 />
 
-The deploy workflow writes desired state to the database and inserts corresponding `state_change` records. It does not push events directly to Krane. The workflow then polls the `instances` table waiting for Krane to report that pods are running, with a timeout for failure handling.
+The deploy workflow obtains a version from the VersioningService before writing each topology row. It does not push events directly to Krane. The workflow then polls the `instances` table waiting for Krane to report that pods are running, with a timeout for failure handling.
 
 ## Why Polling Over Push
 
@@ -151,16 +188,16 @@ The control plane becomes stateless with respect to connected clients. It doesn'
 
 Polling naturally handles backpressure. If Krane falls behind processing, it simply polls less frequently. With push-based streaming, the control plane would need to implement flow control or risk overwhelming slow clients.
 
-The sequence-based approach provides exactly-once delivery semantics. Each change has a unique sequence number, and Krane's watermark ensures no changes are missed or processed twice, even across restarts.
+The version-based approach provides exactly-once delivery semantics. Each resource has a unique version, and Krane's watermark ensures no changes are missed or processed twice, even across restarts.
 
 The tradeoff is latency. With 1-5 second polling intervals, there's a delay between a state change and Krane receiving it. For our use case (infrastructure provisioning measured in seconds to minutes), this latency is acceptable.
 
 ## Database Schema
 
-The `state_changes` table is the changelog that drives synchronization. Each row represents a create, update, or delete operation on a deployment or sentinel. The `sequence` column is an auto-incrementing primary key that provides ordering. Rows are indexed by `(region, sequence)` for efficient polling and retained for 7 days before cleanup.
+The `deployment_topology` table defines desired state for multi-region deployments. Each row specifies the desired replica count for a deployment in a specific region. The `version` column (unique, indexed with region) is set via VersioningService on insert/update.
 
-The `deployment_topology` table defines desired state for multi-region deployments. Each row specifies the desired replica count for a deployment in a specific region. When this table is modified, a corresponding `state_change` row is inserted.
+The `sentinels` table combines desired and actual state with an embedded version. Desired fields (cpu, memory, replicas, desired_state) are set by the control plane with a new version; actual fields (available_replicas, health) are updated by Krane without version changes.
 
 The `instances` table tracks actual state reported by Krane. We only write to it in response to Kubernetes events. The workflow polls this table to determine when deployments are ready.
 
-The `sentinels` table combines desired and actual state. Desired fields (cpu, memory, replicas) are set by the control plane; actual fields (available_replicas, health) are updated by Krane.
+Both `deployment_topology` and `sentinels` have a composite index on `(region, version)` for efficient sync queries.

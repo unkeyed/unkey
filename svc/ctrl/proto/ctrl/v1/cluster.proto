@@ -80,14 +80,14 @@ message UpdateSentinelStateResponse {}
 
 message SyncRequest {
   string region = 1;
-  uint64 sequence_last_seen = 2;
+  uint64 version_last_seen = 2;
 }
 
 message State {
-  // sequence is the state_changes sequence number for this event.
-  // Clients should persist this after successfully processing each event
-  // to resume from the correct position on reconnect.
-  uint64 sequence = 1;
+  // version is the resource version for this state update.
+  // Clients should track the max version seen and persist it after
+  // the stream closes cleanly to resume from the correct position on reconnect.
+  uint64 version = 1;
 
   oneof kind {
     DeploymentState deployment = 2;

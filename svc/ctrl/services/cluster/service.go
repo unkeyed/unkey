@@ -6,7 +6,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
-// Service implements the ClusterService gRPC interface for state synchronization.
+// Service implements the ClusterService Connect interface for state synchronization.
 type Service struct {
 	ctrlv1connect.UnimplementedClusterServiceHandler
 	db     db.Database

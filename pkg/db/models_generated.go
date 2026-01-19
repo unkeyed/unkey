@@ -978,6 +978,7 @@ type DeploymentTopology struct {
 	DeploymentID    string                          `db:"deployment_id"`
 	Region          string                          `db:"region"`
 	DesiredReplicas int32                           `db:"desired_replicas"`
+	Version         uint64                          `db:"version"`
 	DesiredStatus   DeploymentTopologyDesiredStatus `db:"desired_status"`
 	CreatedAt       int64                           `db:"created_at"`
 	UpdatedAt       sql.NullInt64                   `db:"updated_at"`
@@ -1244,6 +1245,7 @@ type Sentinel struct {
 	AvailableReplicas int32                 `db:"available_replicas"`
 	CpuMillicores     int32                 `db:"cpu_millicores"`
 	MemoryMib         int32                 `db:"memory_mib"`
+	Version           uint64                `db:"version"`
 	CreatedAt         int64                 `db:"created_at"`
 	UpdatedAt         sql.NullInt64         `db:"updated_at"`
 }

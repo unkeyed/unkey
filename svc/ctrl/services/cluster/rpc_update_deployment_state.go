@@ -10,6 +10,16 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
+// UpdateDeploymentState reconciles the observed deployment state reported by a krane agent.
+// This is the feedback loop for convergence: agents report what's actually running so the
+// control plane can track instance health and detect drift.
+//
+// For update requests, instances are upserted and any instances no longer reported by the
+// agent are deleted (garbage collection). For delete requests, all instances for the
+// deployment in that region are removed. The operation runs within a retryable transaction
+// to handle transient database errors.
+//
+// Requires bearer token authentication and the X-Krane-Region header.
 func (s *Service) UpdateDeploymentState(ctx context.Context, req *connect.Request[ctrlv1.UpdateDeploymentStateRequest]) (*connect.Response[ctrlv1.UpdateDeploymentStateResponse], error) {
 	s.logger.Info("updating deployment state", "req", req.Msg)
 	//"update:{k8s_name:\"pgeywtmuengq\" instances:{k8s_name:\"pgeywtmuengq-kdfvj\" address:\"192-168-194-33.uzapavou.pod.cluster.local\" status:STATUS_RUNNING}}"
@@ -105,6 +115,8 @@ func (s *Service) UpdateDeploymentState(ctx context.Context, req *connect.Reques
 
 }
 
+// ctrlDeploymentStatusToDbStatus maps proto instance status to database enum values.
+// Unspecified or unknown statuses are treated as inactive.
 func ctrlDeploymentStatusToDbStatus(status ctrlv1.UpdateDeploymentStateRequest_Update_Instance_Status) db.InstancesStatus {
 	switch status {
 	case ctrlv1.UpdateDeploymentStateRequest_Update_Instance_STATUS_UNSPECIFIED:

@@ -893,7 +893,7 @@ func TestSync_StateChangeQueries(t *testing.T) {
 //
 // Guarantees:
 //   - Returns the sequence of the most recent state change
-//   - Used during bootstrap to set the Bookmark sequence
+//   - Used during bootstrap to set the sequence boundary
 func TestSync_MaxSequenceQuery(t *testing.T) {
 	h := New(t)
 	ctx := h.Context()

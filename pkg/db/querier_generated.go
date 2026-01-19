@@ -233,6 +233,18 @@ type Querier interface {
 	//      AND dt.deployment_id = ?
 	//  LIMIT 1
 	FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DBTX, arg FindDeploymentTopologyByIDAndRegionParams) (FindDeploymentTopologyByIDAndRegionRow, error)
+	// FindDeploymentTopologyByVersions returns deployment topologies for specific versions.
+	// Used after ListClusterStateVersions to hydrate the full deployment data.
+	//
+	//  SELECT
+	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
+	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.openapi_spec, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.status, d.created_at, d.updated_at,
+	//      w.k8s_namespace
+	//  FROM `deployment_topology` dt
+	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
+	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
+	//  WHERE dt.version IN (/*SLICE:versions*/?)
+	FindDeploymentTopologyByVersions(ctx context.Context, db DBTX, versions []uint64) ([]FindDeploymentTopologyByVersionsRow, error)
 	//FindEnvironmentById
 	//
 	//  SELECT id, workspace_id, project_id, slug, description
@@ -944,13 +956,18 @@ type Querier interface {
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
 	//FindSentinelByID
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM sentinels s
 	//  WHERE id = ? LIMIT 1
 	FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error)
 	//FindSentinelsByEnvironmentID
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels WHERE environment_id = ?
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM sentinels WHERE environment_id = ?
 	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Sentinel, error)
+	// FindSentinelsByVersions returns sentinels for specific versions.
+	// Used after ListClusterStateVersions to hydrate the full sentinel data.
+	//
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM `sentinels` WHERE version IN (/*SLICE:versions*/?)
+	FindSentinelsByVersions(ctx context.Context, db DBTX, versions []uint64) ([]Sentinel, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT id, org_id, name, slug, k8s_namespace, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -969,8 +986,8 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND deleted_at_m IS NULL
 	GetKeyAuthByID(ctx context.Context, db DBTX, id string) (GetKeyAuthByIDRow, error)
-	// Returns the highest sequence for a region.
-	// Used during bootstrap to get the watermark before streaming current state.
+	// GetMaxStateChangeSequence returns the highest sequence number for a region.
+	// Used during bootstrap to set the sequence boundary.
 	//
 	//  SELECT CAST(COALESCE(MAX(sequence), 0) AS UNSIGNED) AS max_sequence
 	//  FROM `state_changes`
@@ -1193,8 +1210,10 @@ type Querier interface {
 	//      region,
 	//      desired_replicas,
 	//      desired_status,
+	//      version,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1571,8 +1590,10 @@ type Querier interface {
 	//      available_replicas,
 	//      cpu_millicores,
 	//      memory_mib,
+	//      version,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1632,12 +1653,29 @@ type Querier interface {
 	//      true
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
+	// ListClusterStateVersions returns the next N (version, kind) pairs in global version order.
+	// Used to determine which resources to fetch for sync, without loading full row data.
+	// The 'kind' discriminator is 'deployment' or 'sentinel'.
+	//
+	//  SELECT combined.version, combined.kind FROM (
+	//      SELECT dt.version, 'deployment' AS kind
+	//      FROM `deployment_topology` dt
+	//      WHERE dt.region = ?
+	//          AND dt.version > ?
+	//      UNION ALL
+	//      SELECT s.version, 'sentinel' AS kind
+	//      FROM `sentinels` s
+	//      WHERE s.region = ?
+	//          AND s.version > ?
+	//  ) AS combined
+	//  ORDER BY combined.version ASC
+	//  LIMIT ?
+	ListClusterStateVersions(ctx context.Context, db DBTX, arg ListClusterStateVersionsParams) ([]ListClusterStateVersionsRow, error)
 	// ListDesiredDeploymentTopology returns all deployment topologies matching the desired state for a region.
 	// Used during bootstrap to stream all running deployments to krane.
-	// The version parameter is deprecated and ignored (kept for backwards compatibility).
 	//
 	//  SELECT
-	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region, dt.desired_replicas, dt.desired_status, dt.created_at, dt.updated_at,
+	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
 	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.openapi_spec, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.status, d.created_at, d.updated_at,
 	//      w.k8s_namespace
 	//  FROM `deployment_topology` dt
@@ -1651,9 +1689,8 @@ type Querier interface {
 	ListDesiredDeploymentTopology(ctx context.Context, db DBTX, arg ListDesiredDeploymentTopologyParams) ([]ListDesiredDeploymentTopologyRow, error)
 	// ListDesiredSentinels returns all sentinels matching the desired state for a region.
 	// Used during bootstrap to stream all running sentinels to krane.
-	// The version parameter is deprecated and ignored (kept for backwards compatibility).
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at
 	//  FROM `sentinels`
 	//  WHERE (? = '' OR region = ?)
 	//      AND desired_state = ?

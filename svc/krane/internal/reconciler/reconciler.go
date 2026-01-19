@@ -22,13 +22,13 @@ import (
 // background goroutines for watching and refreshing, so callers must call [Start]
 // before processing state and [Stop] during shutdown.
 type Reconciler struct {
-	clientSet        kubernetes.Interface
-	logger           logging.Logger
-	cluster          ctrlv1connect.ClusterServiceClient
-	cb               circuitbreaker.CircuitBreaker[any]
-	done             chan struct{}
-	region           string
-	sequenceLastSeen uint64
+	clientSet       kubernetes.Interface
+	logger          logging.Logger
+	cluster         ctrlv1connect.ClusterServiceClient
+	cb              circuitbreaker.CircuitBreaker[any]
+	done            chan struct{}
+	region          string
+	versionLastSeen uint64
 }
 
 // Config holds the configuration required to create a new [Reconciler].
@@ -43,13 +43,13 @@ type Config struct {
 // New creates a [Reconciler] ready to be started with [Reconciler.Start].
 func New(cfg Config) *Reconciler {
 	return &Reconciler{
-		clientSet:        cfg.ClientSet,
-		logger:           cfg.Logger,
-		cluster:          cfg.Cluster,
-		cb:               circuitbreaker.New[any]("reconciler_state_update"),
-		done:             make(chan struct{}),
-		region:           cfg.Region,
-		sequenceLastSeen: 0,
+		clientSet:       cfg.ClientSet,
+		logger:          cfg.Logger,
+		cluster:         cfg.Cluster,
+		cb:              circuitbreaker.New[any]("reconciler_state_update"),
+		done:            make(chan struct{}),
+		region:          cfg.Region,
+		versionLastSeen: 0,
 	}
 }
 
@@ -84,45 +84,46 @@ func (r *Reconciler) Start(ctx context.Context) error {
 // HandleState returns immediately after processing the single state update. It does
 // not block waiting for additional updates; use it within a loop that reads from
 // the control plane's state stream.
-func (r *Reconciler) HandleState(ctx context.Context, state *ctrlv1.State) error {
+//
+// The version from the state is returned so the caller can track progress. The caller
+// is responsible for committing the version only after the stream closes cleanly.
+// This ensures atomic bootstrap: if a stream breaks mid-bootstrap, the client retries
+// from version 0 rather than skipping resources that were never received.
+func (r *Reconciler) HandleState(ctx context.Context, state *ctrlv1.State) (uint64, error) {
 	if state == nil {
-		return fmt.Errorf("state is nil")
+		return 0, fmt.Errorf("state is nil")
 	}
 
-	sequence := state.GetSequence()
+	version := state.GetVersion()
 
 	switch kind := state.GetKind().(type) {
 	case *ctrlv1.State_Deployment:
 		switch op := kind.Deployment.GetState().(type) {
 		case *ctrlv1.DeploymentState_Apply:
 			if err := r.ApplyDeployment(ctx, op.Apply); err != nil {
-				return err
+				return 0, err
 			}
 		case *ctrlv1.DeploymentState_Delete:
 			if err := r.DeleteDeployment(ctx, op.Delete); err != nil {
-				return err
+				return 0, err
 			}
 		}
 	case *ctrlv1.State_Sentinel:
 		switch op := kind.Sentinel.GetState().(type) {
 		case *ctrlv1.SentinelState_Apply:
 			if err := r.ApplySentinel(ctx, op.Apply); err != nil {
-				return err
+				return 0, err
 			}
 		case *ctrlv1.SentinelState_Delete:
 			if err := r.DeleteSentinel(ctx, op.Delete); err != nil {
-				return err
+				return 0, err
 			}
 		}
 	default:
-		return fmt.Errorf("unknown state type: %T", kind)
+		return 0, fmt.Errorf("unknown state type: %T", kind)
 	}
 
-	if sequence > r.sequenceLastSeen {
-		r.sequenceLastSeen = sequence
-	}
-
-	return nil
+	return version, nil
 }
 
 // Stop signals all background goroutines to terminate. Safe to call multiple

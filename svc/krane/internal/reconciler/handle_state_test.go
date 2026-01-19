@@ -39,7 +39,7 @@ func TestHandleState_DeploymentApply(t *testing.T) {
 		},
 	}
 
-	err := r.HandleState(ctx, state)
+	_, err := r.HandleState(ctx, state)
 	require.NoError(t, err)
 	require.NotNil(t, h.ReplicaSets.Applied, "should route to ApplyDeployment")
 }
@@ -62,7 +62,7 @@ func TestHandleState_DeploymentDelete(t *testing.T) {
 		},
 	}
 
-	err := r.HandleState(ctx, state)
+	_, err := r.HandleState(ctx, state)
 	require.NoError(t, err)
 	require.Contains(t, h.Deletes.Actions, "replicasets", "should route to DeleteDeployment")
 }
@@ -92,7 +92,7 @@ func TestHandleState_SentinelApply(t *testing.T) {
 		},
 	}
 
-	err := r.HandleState(ctx, state)
+	_, err := r.HandleState(ctx, state)
 	require.NoError(t, err)
 	require.NotNil(t, h.Deployments.Applied, "should route to ApplySentinel (Deployment)")
 	require.NotNil(t, h.Services.Applied, "should route to ApplySentinel (Service)")
@@ -115,7 +115,7 @@ func TestHandleState_SentinelDelete(t *testing.T) {
 		},
 	}
 
-	err := r.HandleState(ctx, state)
+	_, err := r.HandleState(ctx, state)
 	require.NoError(t, err)
 	require.Contains(t, h.Deletes.Actions, "services", "should route to DeleteSentinel (Service)")
 	require.Contains(t, h.Deletes.Actions, "deployments", "should route to DeleteSentinel (Deployment)")
@@ -130,7 +130,7 @@ func TestHandleState_UnknownStateType(t *testing.T) {
 		Kind: nil,
 	}
 
-	err := r.HandleState(ctx, state)
+	_, err := r.HandleState(ctx, state)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unknown state type")
 }
@@ -140,7 +140,7 @@ func TestHandleState_NilState(t *testing.T) {
 	h := NewTestHarness(t)
 	r := h.Reconciler
 
-	err := r.HandleState(ctx, nil)
+	_, err := r.HandleState(ctx, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "state is nil")
 }

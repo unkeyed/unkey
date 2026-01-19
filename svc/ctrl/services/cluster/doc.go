@@ -1,31 +1,32 @@
-// Package cluster implements the gRPC ClusterService for synchronizing desired state to edge nodes.
+// Package cluster implements the Connect ClusterService for synchronizing desired state to krane agents.
 //
 // # Overview
 //
-// Edge nodes (running in different regions) connect to the control plane and request
+// Krane agents (similar to kubelets in Kubernetes) run in each region and act as managers
+// for their respective Kubernetes clusters. They connect to the control plane and request
 // state synchronization via the Sync RPC. The control plane streams the desired state
 // for deployments and sentinels that should run in that region.
 //
 // # State Synchronization Model
 //
-// The synchronization uses a sequence-based approach:
+// The synchronization uses a version-based approach:
 //
-//  1. Each state change (create, update, delete) is recorded in the state_changes table
-//     with an auto-incrementing sequence number per region.
+//  1. Each resource (deployment_topology, sentinel) has a version column that is updated
+//     on every mutation via the Restate VersioningService singleton.
 //
-//  2. Edge nodes track the last sequence they've seen. On reconnect, they request changes
-//     after that sequence.
+//  2. Krane agents track the last version they've seen. On reconnect, they request changes
+//     after that version.
 //
-//  3. If sequence is 0 (new node or reset), a full bootstrap is performed: all running
-//     deployments and sentinels are streamed. Stream close signals completion.
+//  3. If version is 0 (new agent or reset), a full bootstrap is performed: all resources
+//     are streamed ordered by version. Stream close signals completion.
 //
 // # Convergence Guarantees
 //
 // The system guarantees eventual consistency through:
 //   - Idempotent apply/delete operations: applying the same state multiple times is safe
-//   - Delete-if-uncertain semantics: if we cannot prove a resource should run in a region,
-//     we instruct deletion to prevent stale resources
-//   - Reconnection with last-seen sequence: clients catch up on missed changes
+//   - Soft-delete semantics: "deletes" set desired_replicas=0, keeping the row with its version
+//   - Bootstrap + GC: after bootstrap, agents delete any k8s resources not in the stream
+//   - Reconnection with last-seen version: agents catch up on missed changes
 //
 // # Key Types
 //

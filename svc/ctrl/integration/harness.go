@@ -17,18 +17,18 @@ import (
 // Harness provides a test environment for ctrl service integration tests.
 // It sets up MySQL connection and seeded data for testing the sync functionality.
 type Harness struct {
-	t      *testing.T
-	ctx    context.Context
-	cancel context.CancelFunc
-	Seed   *seed.Seeder
-	DB     db.Database
+	t              *testing.T
+	ctx            context.Context
+	Seed           *seed.Seeder
+	DB             db.Database
+	versionCounter uint64
 }
 
 // New creates a new integration test harness.
 func New(t *testing.T) *Harness {
 	t.Helper()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
 
 	mysqlHostCfg := containers.MySQL(t)
 	mysqlHostCfg.DBName = "unkey"
@@ -42,17 +42,16 @@ func New(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	h := &Harness{
-		t:      t,
-		ctx:    ctx,
-		cancel: cancel,
-		Seed:   seed.New(t, database, nil),
-		DB:     database,
+		t:              t,
+		ctx:            ctx,
+		Seed:           seed.New(t, database, nil),
+		DB:             database,
+		versionCounter: 0,
 	}
 
 	h.Seed.Seed(ctx)
 
 	t.Cleanup(func() {
-		cancel()
 		database.Close()
 	})
 
@@ -154,12 +153,14 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	_, err = h.DB.RW().ExecContext(ctx, "UPDATE deployments SET image = ? WHERE id = ?", "nginx:1.19", deploymentID)
 	require.NoError(h.t, err)
 
+	h.versionCounter++
 	err = db.Query.InsertDeploymentTopology(ctx, h.DB.RW(), db.InsertDeploymentTopologyParams{
 		WorkspaceID:     workspaceID,
 		DeploymentID:    deploymentID,
 		Region:          req.Region,
 		DesiredReplicas: 1,
 		DesiredStatus:   db.DeploymentTopologyDesiredStatusStarted,
+		Version:         h.versionCounter,
 		CreatedAt:       h.Now(),
 	})
 	require.NoError(h.t, err)
@@ -176,6 +177,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 			Region:          req.Region,
 			DesiredReplicas: 1,
 			DesiredStatus:   db.DeploymentTopologyDesiredStatusStarted,
+			Version:         h.versionCounter,
 			CreatedAt:       h.Now(),
 			UpdatedAt:       sql.NullInt64{Valid: false},
 		},
@@ -220,6 +222,7 @@ func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest)
 		desiredState = db.SentinelsDesiredStateRunning
 	}
 
+	h.versionCounter++
 	err := db.Query.InsertSentinel(ctx, h.DB.RW(), db.InsertSentinelParams{
 		ID:                sentinelID,
 		WorkspaceID:       workspaceID,
@@ -234,6 +237,7 @@ func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest)
 		AvailableReplicas: 1,
 		CpuMillicores:     100,
 		MemoryMib:         128,
+		Version:           h.versionCounter,
 		CreatedAt:         h.Now(),
 	})
 	require.NoError(h.t, err)

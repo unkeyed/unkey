@@ -16,6 +16,33 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// Deploy executes a full deployment workflow for a new application version.
+//
+// This durable workflow orchestrates the complete deployment lifecycle: building
+// Docker images (if source is provided), provisioning containers across regions,
+// waiting for instances to become healthy, and configuring domain routing. The
+// workflow is idempotent and can safely resume from any step after a crash.
+//
+// The deployment request must specify either a build context path (to build from
+// source) or a pre-built Docker image. If BuildContextPath is set, the workflow
+// triggers a Docker build through the build service before deployment. Otherwise,
+// the provided DockerImage is deployed directly.
+//
+// The workflow creates deployment topologies for all configured regions, each with
+// its own version number for independent scaling and rollback. Sentinel containers
+// are automatically provisioned for environments that don't already have them,
+// with production environments getting 3 replicas and others getting 1.
+//
+// Domain routing is configured through frontline routes, with sticky domains
+// (branch and environment) automatically updating to point to the new deployment.
+// For production deployments, the project's live deployment pointer is updated
+// unless the project is in a rolled-back state.
+//
+// If any step fails, the deployment status is automatically set to failed via a
+// deferred cleanup handler, ensuring the database reflects the true deployment state.
+//
+// Returns terminal errors for validation failures (missing image/context) and
+// retryable errors for transient system failures.
 func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
 	finishedSuccessfully := false
 
@@ -151,36 +178,28 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}
 
 	topologies := make([]db.InsertDeploymentTopologyParams, len(w.availableRegions))
+	versioningClient := hydrav1.NewVersioningServiceClient(ctx, "")
+
 	for i, region := range w.availableRegions {
+		versionResp, versionErr := versioningClient.NextVersion().Request(&hydrav1.NextVersionRequest{})
+		if versionErr != nil {
+			return nil, fmt.Errorf("failed to get next version: %w", versionErr)
+		}
+
 		topologies[i] = db.InsertDeploymentTopologyParams{
 			WorkspaceID:     workspace.ID,
 			DeploymentID:    deployment.ID,
 			Region:          region,
 			DesiredReplicas: 1,
 			DesiredStatus:   db.DeploymentTopologyDesiredStatusStarting,
+			Version:         versionResp.GetVersion(),
 			CreatedAt:       time.Now().UnixMilli(),
 		}
 	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-			if err := db.BulkQuery.InsertDeploymentTopologies(txCtx, tx, topologies); err != nil {
-				return err
-			}
-			stateChanges := make([]db.InsertStateChangeParams, len(topologies))
-			for i, t := range topologies {
-				stateChanges[i] = db.InsertStateChangeParams{
-					ResourceType: db.StateChangesResourceTypeDeployment,
-					ResourceID:   deployment.ID,
-					Op:           db.StateChangesOpUpsert,
-					Region:       t.Region,
-					CreatedAt:    uint64(time.Now().UnixMilli()),
-				}
-			}
-			if err := db.BulkQuery.InsertStateChanges(txCtx, tx, stateChanges); err != nil {
-				return err
-			}
-			return nil
+			return db.BulkQuery.InsertDeploymentTopologies(txCtx, tx, topologies)
 		})
 	}, restate.WithName("insert deployment topologies"))
 
@@ -204,6 +223,11 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 				desiredReplicas = 3
 			}
 
+			sentinelVersionResp, sentinelVersionErr := versioningClient.NextVersion().Request(&hydrav1.NextVersionRequest{})
+			if sentinelVersionErr != nil {
+				return nil, fmt.Errorf("failed to get next version for sentinel: %w", sentinelVersionErr)
+			}
+
 			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 				sentinelID := uid.New(uid.SentinelPrefix)
 				sentinelK8sName := uid.DNS1035()
@@ -224,21 +248,13 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 						AvailableReplicas: 0,
 						CpuMillicores:     256,
 						MemoryMib:         256,
+						Version:           sentinelVersionResp.GetVersion(),
 						CreatedAt:         time.Now().UnixMilli(),
 					})
 					if err != nil {
 						if db.IsDuplicateKeyError(err) {
 							return nil
 						}
-						return err
-					}
-					if _, err := db.Query.InsertStateChange(txCtx, tx, db.InsertStateChangeParams{
-						ResourceType: db.StateChangesResourceTypeSentinel,
-						ResourceID:   sentinelID,
-						Op:           db.StateChangesOpUpsert,
-						Region:       topology.Region,
-						CreatedAt:    uint64(time.Now().UnixMilli()),
-					}); err != nil {
 						return err
 					}
 					return nil
