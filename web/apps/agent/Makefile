@@ -29,8 +29,6 @@ race:
 	go install github.com/amit-davidson/Chronos/cmd/chronos
 	~/go/bin/chronos --file=./cmd/main.go --mod=$$(pwd)
 
-lint:
-	golangci-lint run
 
 generate:
 	go get github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen

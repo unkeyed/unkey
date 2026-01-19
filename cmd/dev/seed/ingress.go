@@ -198,7 +198,7 @@ func generateMkcertCertificate(hostname string) (certPEM []byte, keyPEM []byte, 
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create temp directory: %w", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	certFile := fmt.Sprintf("%s/%s.pem", tempDir, hostname)
 	keyFile := fmt.Sprintf("%s/%s-key.pem", tempDir, hostname)

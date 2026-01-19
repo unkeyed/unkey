@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -99,7 +100,10 @@ func TestSuccess(t *testing.T) {
 
 		tx, err := h.DB.RW().Begin(ctx)
 		require.NoError(t, err)
-		defer tx.Rollback()
+		defer func() {
+			err := tx.Rollback()
+			require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
+		}()
 
 		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 			ID:          identityWithoutMetaID,
@@ -134,7 +138,10 @@ func TestSuccess(t *testing.T) {
 
 		tx, err := h.DB.RW().Begin(ctx)
 		require.NoError(t, err)
-		defer tx.Rollback()
+		defer func() {
+			err := tx.Rollback()
+			require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
+		}()
 
 		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 			ID:          identityWithoutRatelimitsID,
@@ -220,7 +227,10 @@ func TestSuccess(t *testing.T) {
 
 		tx, err := h.DB.RW().Begin(ctx)
 		require.NoError(t, err)
-		defer tx.Rollback()
+		defer func() {
+			err := tx.Rollback()
+			require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
+		}()
 
 		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 			ID:          largeMetaIdentityID,
@@ -268,7 +278,10 @@ func TestSuccess(t *testing.T) {
 
 		tx, err := h.DB.RW().Begin(ctx)
 		require.NoError(t, err)
-		defer tx.Rollback()
+		defer func() {
+			err := tx.Rollback()
+			require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
+		}()
 
 		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 			ID:          manyRateLimitsIdentityID,
@@ -349,7 +362,10 @@ func TestSuccess(t *testing.T) {
 
 		tx, err := h.DB.RW().Begin(ctx)
 		require.NoError(t, err)
-		defer tx.Rollback()
+		defer func() {
+			err := tx.Rollback()
+			require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
+		}()
 
 		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 			ID:          recentIdentityID,

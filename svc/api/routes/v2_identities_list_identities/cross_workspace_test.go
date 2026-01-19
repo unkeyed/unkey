@@ -2,6 +2,8 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -40,7 +42,10 @@ func TestCrossWorkspaceForbidden(t *testing.T) {
 	// Create a test identity in workspace B
 	tx, err := h.DB.RW().Begin(ctx)
 	require.NoError(t, err)
-	defer tx.Rollback()
+	defer func() {
+		err := tx.Rollback()
+		require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
+	}()
 
 	// First, create the workspace B
 	err = db.Query.InsertWorkspace(ctx, tx, db.InsertWorkspaceParams{
