@@ -34,8 +34,8 @@ func New(cfg Config) (*service, error) {
 		Resource: "deployment",
 		Clock:    cfg.Clock,
 		MaxSize:  1000,
-		Fresh:    10 * time.Second,
-		Stale:    60 * time.Second,
+		Fresh:    30 * time.Second,
+		Stale:    5 * time.Minute,
 	})
 	if err != nil {
 		return nil, err
@@ -46,8 +46,8 @@ func New(cfg Config) (*service, error) {
 		Logger:   cfg.Logger,
 		Resource: "instance",
 		MaxSize:  1000,
-		Fresh:    5 * time.Second,
-		Stale:    30 * time.Second,
+		Fresh:    10 * time.Second,
+		Stale:    60 * time.Second,
 	})
 	if err != nil {
 		return nil, err
