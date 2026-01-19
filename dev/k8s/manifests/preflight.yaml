@@ -103,7 +103,7 @@ spec:
             - name: UNKEY_INJECT_IMAGE_PULL_POLICY
               value: "Never" # Local dev uses pre-loaded images; use IfNotPresent in prod
             - name: UNKEY_KRANE_ENDPOINT
-              value: "http://krane.unkey.svc.cluster.local:8080"
+              value: "http://krane.unkey.svc.cluster.local:8070"
             - name: UNKEY_DEPOT_TOKEN
               valueFrom:
                 secretKeyRef:
