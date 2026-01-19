@@ -53,6 +53,7 @@ go_test(
         "session_bind_query_test.go",
         "session_body_limit_test.go",
         "session_body_read_error_test.go",
+        "writer_test.go",
     ],
     embed = [":zen"],
     deps = [

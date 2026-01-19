@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -41,7 +42,13 @@ func New(cfg Config) (*service, error) {
 	} else {
 		//nolint:exhaustruct
 		transport = &http.Transport{
-			Proxy:                 http.ProxyFromEnvironment,
+			Proxy:             http.ProxyFromEnvironment,
+			ForceAttemptHTTP2: true,
+			// TCP KeepAlive for detecting dead connections and keeping connections alive through NAT/firewalls
+			DialContext: (&net.Dialer{
+				Timeout:   10 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
 			MaxIdleConns:          200,
 			MaxIdleConnsPerHost:   100,
 			IdleConnTimeout:       90 * time.Second,

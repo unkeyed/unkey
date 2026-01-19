@@ -139,6 +139,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
 	// nolint:exhaustruct
 	proxy := &httputil.ReverseProxy{
+		FlushInterval: -1, // flush immediately for streaming
 		Director: func(outReq *http.Request) {
 			instanceStart = h.Clock.Now()
 			outReq.URL.Scheme = targetURL.Scheme

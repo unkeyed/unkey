@@ -112,6 +112,7 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 			GitCommitTimestamp:            sql.NullInt64{Int64: now, Valid: true},
 			OpenapiSpec:                   sql.NullString{},
 			EncryptedEnvironmentVariables: []byte("{}"),
+			Command:                       []byte("[]"),
 			Status:                        db.DeploymentsStatusReady,
 			CpuMillicores:                 256,
 			MemoryMib:                     256,
