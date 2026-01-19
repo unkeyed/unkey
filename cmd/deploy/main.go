@@ -14,56 +14,11 @@ import (
 )
 
 const (
-	// Default values
-	DefaultBranch          = "main"
-	DefaultDockerfile      = "Dockerfile"
-	DefaultRegistry        = "ghcr.io/unkeyed/deploy"
-	DefaultControlPlaneURL = "https://ctrl.unkey.cloud"
-	DefaultAuthToken       = "ctrl-secret-token"
-	DefaultEnvironment     = "preview"
-
-	// Environment variables
-	EnvKeyspaceID = "UNKEY_KEYSPACE_ID"
-	EnvRegistry   = "UNKEY_REGISTRY"
-
-	// URL prefixes
-	HTTPSPrefix     = "https://"
-	HTTPPrefix      = "http://"
-	LocalhostPrefix = "localhost:"
-
-	// UI Messages
-	HeaderTitle     = "Unkey Deploy Progress"
-	HeaderSeparator = "──────────────────────────────────────────────────"
-
-	// Step messages
-	MsgPreparingDeployment      = "Preparing deployment"
-	MsgUploadingBuildContext    = "Uploading build context"
-	MsgBuildContextUploaded     = "Build context uploaded"
-	MsgCreatingDeployment       = "Creating deployment"
-	MsgDeploymentCreated        = "Deployment created"
-	MsgFailedToUploadContext    = "Failed to upload build context"
-	MsgFailedToCreateDeployment = "Failed to create deployment"
-	MsgDeploymentFailed         = "Deployment failed"
-	MsgDeploymentCompleted      = "Deployment completed successfully"
-	MsgDeploymentStepCompleted  = "Deployment step completed successfully"
-
-	// Source info labels
-	LabelBranch  = "Branch"
-	LabelCommit  = "Commit"
-	LabelContext = "Context"
-	LabelImage   = "Image"
-
-	// Completion info labels
-	CompletionTitle        = "Deployment Complete"
-	CompletionDeploymentID = "Deployment ID"
-	CompletionStatus       = "Status"
-	CompletionEnvironment  = "Environment"
-	CompletionDomains      = "Domains"
-	CompletionReady        = "Ready"
-	CompletionNoHostnames  = "No hostnames assigned"
-
-	// Git status
-	GitDirtyMarker = " (dirty)"
+	// Default configuration values
+	DefaultBranch      = "main"
+	DefaultDockerfile  = "Dockerfile"
+	DefaultRegistry    = "ghcr.io/unkeyed/deploy"
+	DefaultEnvironment = "preview"
 )
 
 // DeployOptions contains all configuration for deployment
@@ -92,7 +47,7 @@ var DeployFlags = []cli.Flag{
 	cli.Bool("force", "Force overwrite existing configuration file when using --init"),
 	// Required flags (can be provided via config file)
 	cli.String("project-id", "Project ID", cli.EnvVar("UNKEY_PROJECT_ID")),
-	cli.String("keyspace-id", "Keyspace ID for API key authentication", cli.EnvVar(EnvKeyspaceID)),
+	cli.String("keyspace-id", "Keyspace ID for API key authentication", cli.EnvVar("UNKEY_KEYSPACE_ID")),
 	// Optional flags with defaults
 	cli.String("context", "Build context path", cli.Default(".")),
 	cli.String("branch", "Git branch", cli.Default(DefaultBranch)),
@@ -101,7 +56,7 @@ var DeployFlags = []cli.Flag{
 	cli.String("commit", "Git commit SHA"),
 	cli.String("registry", "Container registry",
 		cli.Default(DefaultRegistry),
-		cli.EnvVar(EnvRegistry)),
+		cli.EnvVar("UNKEY_REGISTRY")),
 	cli.String("env", "Environment slug to deploy to", cli.Default(DefaultEnvironment)),
 	cli.Bool("skip-push", "Skip pushing to registry (for local testing)"),
 	cli.Bool("verbose", "Show detailed output for build and deployment operations"),
@@ -212,11 +167,9 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	}
 
 	// Print header
-	fmt.Printf("%s\n", HeaderTitle)
-	fmt.Printf("%s\n", HeaderSeparator)
+	fmt.Printf("Unkey Deploy Progress\n")
+	fmt.Printf("──────────────────────────────────────────────────\n")
 	printSourceInfo(opts, gitInfo)
-
-	ui.Print(MsgPreparingDeployment)
 
 	controlPlane := NewControlPlaneClient(opts)
 
@@ -226,38 +179,41 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	// Determine deployment source: prebuilt image or build from context
 	if opts.DockerImage != "" {
 		// Use prebuilt Docker image
-		ui.Print(MsgCreatingDeployment)
+		ui.StartSpinner("Creating deployment")
 		deploymentID, err = controlPlane.CreateDeployment(ctx, "", opts.DockerImage)
 		if err != nil {
-			ui.PrintError(MsgFailedToCreateDeployment)
+			ui.StopSpinner("Failed to create deployment", false)
 			ui.PrintErrorDetails(err.Error())
 			return err
 		}
-		ui.PrintSuccess(fmt.Sprintf("%s: %s", MsgDeploymentCreated, deploymentID))
+		ui.StopSpinner(fmt.Sprintf("Deployment created: %s", deploymentID), true)
 	} else {
 		// Build from context
-		ui.Print(MsgUploadingBuildContext)
+		ui.StartSpinner("Uploading build context")
 		var buildContextPath string
 		buildContextPath, err = controlPlane.UploadBuildContext(ctx, opts.Context)
 		if err != nil {
-			ui.PrintError(MsgFailedToUploadContext)
+			ui.StopSpinner("Failed to upload build context", false)
 			ui.PrintErrorDetails(err.Error())
 			return err
 		}
-		ui.PrintSuccess(fmt.Sprintf("%s: %s", MsgBuildContextUploaded, buildContextPath))
+		ui.StopSpinner(fmt.Sprintf("Build context uploaded: %s", buildContextPath), true)
 
-		ui.Print(MsgCreatingDeployment)
+		ui.StartSpinner("Creating deployment")
 		deploymentID, err = controlPlane.CreateDeployment(ctx, buildContextPath, "")
 		if err != nil {
-			ui.PrintError(MsgFailedToCreateDeployment)
+			ui.StopSpinner("Failed to create deployment", false)
 			ui.PrintErrorDetails(err.Error())
 			return err
 		}
-		ui.PrintSuccess(fmt.Sprintf("%s: %s", MsgDeploymentCreated, deploymentID))
+		ui.StopSpinner(fmt.Sprintf("Deployment created: %s", deploymentID), true)
 	}
 
 	// Track final deployment for completion info
 	var finalDeployment *ctrlv1.Deployment
+
+	// Start monitoring spinner
+	ui.StartSpinner("Deployment in progress")
 
 	// Handle deployment status changes
 	onStatusChange := func(event DeploymentStatusEvent) error {
@@ -275,14 +231,13 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	// Poll for deployment completion
 	err = controlPlane.PollDeploymentStatus(ctx, logger, deploymentID, onStatusChange)
 	if err != nil {
-		ui.CompleteCurrentStep(MsgDeploymentFailed, false)
+		ui.StopSpinner("Deployment failed", false)
 		return err
 	}
 
 	// Print final success message only after all polling is complete
 	if finalDeployment != nil {
-		ui.CompleteCurrentStep(MsgDeploymentStepCompleted, true)
-		ui.PrintSuccess(MsgDeploymentCompleted)
+		ui.StopSpinner("Deployment completed successfully", true)
 		fmt.Printf("\n")
 		printCompletionInfo(finalDeployment, opts.Environment)
 		fmt.Printf("\n")
@@ -293,28 +248,27 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 
 func handleDeploymentFailure(controlPlane *ControlPlaneClient, deployment *ctrlv1.Deployment, ui *UI) error {
 	errorMsg := controlPlane.getFailureMessage(deployment)
-	ui.CompleteCurrentStep(MsgDeploymentFailed, false)
-	ui.PrintError(MsgDeploymentFailed)
+	ui.StopSpinner("Deployment failed", false)
 	ui.PrintErrorDetails(errorMsg)
 	return fmt.Errorf("deployment failed: %s", errorMsg)
 }
 
 func printSourceInfo(opts DeployOptions, gitInfo git.Info) {
 	fmt.Printf("Source Information:\n")
-	fmt.Printf("    %s: %s\n", LabelBranch, opts.Branch)
+	fmt.Printf("    Branch: %s\n", opts.Branch)
 
 	if gitInfo.IsRepo && gitInfo.CommitSHA != "" {
 		commitInfo := gitInfo.ShortSHA
 		if gitInfo.IsDirty {
-			commitInfo += GitDirtyMarker
+			commitInfo += " (dirty)"
 		}
-		fmt.Printf("    %s: %s\n", LabelCommit, commitInfo)
+		fmt.Printf("    Commit: %s\n", commitInfo)
 	}
 
 	if opts.DockerImage != "" {
-		fmt.Printf("    %s: %s\n", LabelImage, opts.DockerImage)
+		fmt.Printf("    Image: %s\n", opts.DockerImage)
 	} else {
-		fmt.Printf("    %s: %s\n", LabelContext, opts.Context)
+		fmt.Printf("    Context: %s\n", opts.Context)
 	}
 
 	fmt.Printf("\n")
@@ -329,24 +283,24 @@ func printCompletionInfo(deployment *ctrlv1.Deployment, env string) {
 	caser := cases.Title(language.English)
 
 	fmt.Println()
-	fmt.Println(CompletionTitle)
-	fmt.Printf("  %s: %s\n", CompletionDeploymentID, deployment.GetId())
-	fmt.Printf("  %s: %s\n", CompletionStatus, CompletionReady)
-	fmt.Printf("  %s: %s\n", CompletionEnvironment, caser.String(env))
+	fmt.Println("Deployment Complete")
+	fmt.Printf("  Deployment ID: %s\n", deployment.GetId())
+	fmt.Printf("  Status: Ready\n")
+	fmt.Printf("  Environment: %s\n", caser.String(env))
 
 	fmt.Println()
-	fmt.Println(CompletionDomains)
+	fmt.Println("Domains")
 
 	hostnames := deployment.GetHostnames()
 	if len(hostnames) > 0 {
 		for _, hostname := range hostnames {
-			if strings.HasPrefix(hostname, LocalhostPrefix) {
-				fmt.Printf("  %s%s\n", HTTPPrefix, hostname)
+			if strings.HasPrefix(hostname, "localhost:") {
+				fmt.Printf("  http://%s\n", hostname)
 			} else {
-				fmt.Printf("  %s%s\n", HTTPSPrefix, hostname)
+				fmt.Printf("  https://%s\n", hostname)
 			}
 		}
 	} else {
-		fmt.Printf("  %s\n", CompletionNoHostnames)
+		fmt.Printf("  No hostnames assigned\n")
 	}
 }

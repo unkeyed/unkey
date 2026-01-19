@@ -119,27 +119,26 @@ func writeConfig(configPath string, config *Config) error {
 	return nil
 }
 
+// mergeField returns override if non-empty, otherwise base
+func mergeField(base, override string) string {
+	if override != "" {
+		return override
+	}
+	return base
+}
+
 // mergeWithFlags merges config values with command flags, with flags taking precedence
 func (c *Config) mergeWithFlags(projectID, keyspaceID, context string) *Config {
 	merged := &Config{
-		KeyspaceID: c.KeyspaceID,
-		ProjectID:  c.ProjectID,
-		Context:    c.Context,
+		KeyspaceID: mergeField(c.KeyspaceID, keyspaceID),
+		ProjectID:  mergeField(c.ProjectID, projectID),
+		Context:    mergeField(c.Context, context),
 	}
-	// Flags override config values
-	if projectID != "" {
-		merged.ProjectID = projectID
-	}
-	if keyspaceID != "" {
-		merged.KeyspaceID = keyspaceID
-	}
-	if context != "" {
-		merged.Context = context
-	}
-	// Set default context if empty
+
 	if merged.Context == "" {
 		merged.Context = "."
 	}
+
 	return merged
 }
 

@@ -1,21 +1,19 @@
 package deploy
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
 )
 
-// Colors
+// Colors and Symbols
 const (
 	ColorReset  = "\033[0m"
 	ColorRed    = "\033[31m"
 	ColorGreen  = "\033[32m"
 	ColorYellow = "\033[33m"
-)
 
-// Symbols
-const (
 	SymbolTick   = "✔"
 	SymbolCross  = "✘"
 	SymbolBullet = "●"
@@ -25,147 +23,100 @@ const (
 var spinnerChars = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
 type UI struct {
-	mu           sync.Mutex
-	spinning     bool
-	currentStep  string
-	stepSpinning bool
+	mu            sync.Mutex
+	spinnerCancel context.CancelFunc
 }
 
 func NewUI() *UI {
 	return &UI{
-		mu:           sync.Mutex{},
-		spinning:     false,
-		currentStep:  "",
-		stepSpinning: false,
+		mu:            sync.Mutex{},
+		spinnerCancel: nil,
 	}
 }
 
-func (ui *UI) Print(message string) {
+func (ui *UI) print(color, symbol, indent, message string) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
-	fmt.Printf("%s%s%s %s\n", ColorYellow, SymbolBullet, ColorReset, message)
+	fmt.Printf("%s%s%s%s %s\n", indent, color, symbol, ColorReset, message)
 }
 
-func (ui *UI) PrintSuccess(message string) {
+func (ui *UI) Print(message string)             { ui.print(ColorYellow, SymbolBullet, "", message) }
+func (ui *UI) PrintSuccess(message string)      { ui.print(ColorGreen, SymbolTick, "", message) }
+func (ui *UI) PrintError(message string)        { ui.print(ColorRed, SymbolCross, "", message) }
+func (ui *UI) PrintErrorDetails(message string) { ui.print(ColorRed, SymbolArrow, "  ", message) }
+func (ui *UI) PrintStepSuccess(message string)  { ui.print(ColorGreen, SymbolTick, "  ", message) }
+func (ui *UI) PrintStepError(message string)    { ui.print(ColorRed, SymbolCross, "  ", message) }
+
+// StartSpinner starts a spinner with the given message and indentation
+func (ui *UI) StartSpinner(message string) {
+	ui.startSpinner(message, "")
+}
+
+func (ui *UI) StartStepSpinner(message string) {
+	ui.startSpinner(message, "  ")
+}
+
+func (ui *UI) startSpinner(message, indent string) {
 	ui.mu.Lock()
-	defer ui.mu.Unlock()
-	fmt.Printf("%s%s%s %s\n", ColorGreen, SymbolTick, ColorReset, message)
-}
+	// Stop any existing spinner first
+	if ui.spinnerCancel != nil {
+		ui.spinnerCancel()
+		fmt.Print("\r\033[K")
+	}
 
-func (ui *UI) PrintError(message string) {
-	ui.mu.Lock()
-	defer ui.mu.Unlock()
-	fmt.Printf("%s%s%s %s\n", ColorRed, SymbolCross, ColorReset, message)
-}
+	ctx, cancel := context.WithCancel(context.Background())
+	ui.spinnerCancel = cancel
+	ui.mu.Unlock()
 
-func (ui *UI) PrintErrorDetails(message string) {
-	ui.mu.Lock()
-	defer ui.mu.Unlock()
-	fmt.Printf("  %s%s%s %s\n", ColorRed, SymbolArrow, ColorReset, message)
-}
-
-func (ui *UI) PrintStepSuccess(message string) {
-	ui.mu.Lock()
-	defer ui.mu.Unlock()
-	fmt.Printf("  %s%s%s %s\n", ColorGreen, SymbolTick, ColorReset, message)
-}
-
-func (ui *UI) PrintStepError(message string) {
-	ui.mu.Lock()
-	defer ui.mu.Unlock()
-	fmt.Printf("  %s%s%s %s\n", ColorRed, SymbolCross, ColorReset, message)
-}
-
-func (ui *UI) spinnerLoop(prefix string, messageGetter func() string, isActive func() bool) {
 	go func() {
 		frame := 0
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
+
 		for {
-			ui.mu.Lock()
-			if !isActive() {
-				ui.mu.Unlock()
+			select {
+			case <-ctx.Done():
 				return
+			case <-ticker.C:
+				fmt.Printf("\r%s%s %s", indent, spinnerChars[frame%len(spinnerChars)], message)
+				frame++
 			}
-			message := messageGetter()
-			fmt.Printf("\r%s%s %s", prefix, spinnerChars[frame%len(spinnerChars)], message)
-			ui.mu.Unlock()
-			frame++
-			time.Sleep(100 * time.Millisecond)
 		}
 	}()
 }
 
-func (ui *UI) StartSpinner(message string) {
-	ui.mu.Lock()
-	if ui.spinning {
-		ui.mu.Unlock()
-		return
-	}
-	ui.spinning = true
-	spinnerMessage := message
-	ui.mu.Unlock()
-
-	ui.spinnerLoop("", func() string { return spinnerMessage }, func() bool { return ui.spinning })
-}
-
+// StopSpinner stops the current spinner and shows final message
 func (ui *UI) StopSpinner(finalMessage string, success bool) {
-	ui.mu.Lock()
-	defer ui.mu.Unlock()
-	if !ui.spinning {
-		return
-	}
-	ui.spinning = false
-	fmt.Print("\r\033[K")
-	if success {
-		fmt.Printf("%s%s%s %s\n", ColorGreen, SymbolTick, ColorReset, finalMessage)
-	} else {
-		fmt.Printf("%s%s%s %s\n", ColorRed, SymbolCross, ColorReset, finalMessage)
-	}
-}
-
-// Step spinner methods - indented with 2 spaces to show as sub-steps
-func (ui *UI) StartStepSpinner(message string) {
-	ui.mu.Lock()
-	if ui.stepSpinning {
-		fmt.Print("\r\033[K")
-	}
-	ui.currentStep = message
-	ui.stepSpinning = true
-	ui.mu.Unlock()
-	ui.spinnerLoop("  ", func() string { return ui.currentStep }, func() bool { return ui.stepSpinning })
-}
-
-func (ui *UI) CompleteStepAndStartNext(completedMessage, nextMessage string) {
-	ui.mu.Lock()
-	// Stop current spinner and show completion
-	if ui.stepSpinning {
-		ui.stepSpinning = false
-		fmt.Print("\r\033[K")
-		fmt.Printf("  %s%s%s %s\n", ColorGreen, SymbolTick, ColorReset, completedMessage)
-	}
-
-	// Start next step if provided
-	if nextMessage != "" {
-		ui.currentStep = nextMessage
-		ui.stepSpinning = true
-		ui.mu.Unlock()
-
-		ui.spinnerLoop("  ", func() string { return ui.currentStep }, func() bool { return ui.stepSpinning })
-	} else {
-		ui.mu.Unlock()
-	}
+	ui.stopSpinner(finalMessage, success, "")
 }
 
 func (ui *UI) CompleteCurrentStep(message string, success bool) {
+	ui.stopSpinner(message, success, "  ")
+}
+
+func (ui *UI) stopSpinner(message string, success bool, indent string) {
 	ui.mu.Lock()
-	defer ui.mu.Unlock()
-	if !ui.stepSpinning {
-		return
+	if ui.spinnerCancel != nil {
+		ui.spinnerCancel()
+		ui.spinnerCancel = nil
 	}
-	ui.stepSpinning = false
+	ui.mu.Unlock()
+
+	// Clear spinner line
 	fmt.Print("\r\033[K")
+
+	// Show final message
 	if success {
-		fmt.Printf("  %s%s%s %s\n", ColorGreen, SymbolTick, ColorReset, message)
+		ui.print(ColorGreen, SymbolTick, indent, message)
 	} else {
-		fmt.Printf("  %s%s%s %s\n", ColorRed, SymbolCross, ColorReset, message)
+		ui.print(ColorRed, SymbolCross, indent, message)
+	}
+}
+
+// CompleteStepAndStartNext completes current step and starts next one
+func (ui *UI) CompleteStepAndStartNext(completedMessage, nextMessage string) {
+	ui.CompleteCurrentStep(completedMessage, true)
+	if nextMessage != "" {
+		ui.StartStepSpinner(nextMessage)
 	}
 }

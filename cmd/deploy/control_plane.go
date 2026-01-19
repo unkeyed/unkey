@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/git"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 // DeploymentStatusEvent represents a status change event
@@ -62,42 +63,6 @@ func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
 	}
 }
 
-// handleSDKError converts SDK errors to appropriate fault types
-func (c *ControlPlaneClient) handleSDKError(err error, operation string) error {
-	errMsg := err.Error()
-
-	// SDK errors contain HTTP status information
-	if strings.Contains(errMsg, "401") || strings.Contains(errMsg, "Unauthorized") {
-		return fault.Wrap(err,
-			fault.Code(codes.UnkeyAuthErrorsAuthenticationMalformed),
-			fault.Internal(fmt.Sprintf("%s failed: invalid or missing root key", operation)),
-			fault.Public("Authentication failed. Check your UNKEY_ROOT_KEY."),
-		)
-	}
-
-	if strings.Contains(errMsg, "403") || strings.Contains(errMsg, "Forbidden") {
-		return fault.Wrap(err,
-			fault.Code(codes.UnkeyAuthErrorsAuthorizationInsufficientPermissions),
-			fault.Internal(fmt.Sprintf("%s failed: insufficient permissions", operation)),
-			fault.Public("Permission denied. Root key must have project.*.create_deployment, project.*.generate_upload_url, and project.*.read_deployment permissions."),
-		)
-	}
-
-	if strings.Contains(errMsg, "404") || strings.Contains(errMsg, "Not Found") {
-		return fault.Wrap(err,
-			fault.Code(codes.Data.Project.NotFound.URN()),
-			fault.Internal(fmt.Sprintf("%s failed: resource not found", operation)),
-			fault.Public("The requested resource does not exist."),
-		)
-	}
-
-	return fault.Wrap(err,
-		fault.Code(codes.UnkeyAppErrorsInternalUnexpectedError),
-		fault.Internal(fmt.Sprintf("%s failed: %v", operation, err)),
-		fault.Public("An unexpected error occurred. Please try again."),
-	)
-}
-
 // UploadBuildContext uploads the build context to S3 and returns the context key
 func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath string) (string, error) {
 	// Call SDK method with proper parameters
@@ -105,7 +70,7 @@ func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath
 		ProjectID: c.opts.ProjectID,
 	})
 	if err != nil {
-		return "", c.handleSDKError(err, "generate upload URL")
+		return "", c.wrapAPIError(err, "generate upload URL")
 	}
 
 	// Extract response data
@@ -221,80 +186,74 @@ func createContextTar(contextPath string) (string, error) {
 	return tarPath, nil
 }
 
+// buildCommonFields extracts common deployment fields
+func (c *ControlPlaneClient) buildCommonFields() (projectID, branch, env string, keyspaceID *string, gitCommit *components.V2DeployGitCommit) {
+	commitInfo := git.GetInfo()
+
+	projectID = c.opts.ProjectID
+	branch = c.opts.Branch
+	env = c.opts.Environment
+
+	if c.opts.KeyspaceID != "" {
+		keyspaceID = &c.opts.KeyspaceID
+	}
+
+	if commitInfo.CommitSHA != "" {
+		gitCommit = &components.V2DeployGitCommit{
+			CommitSha:       &commitInfo.CommitSHA,
+			CommitMessage:   &commitInfo.Message,
+			AuthorHandle:    &commitInfo.AuthorHandle,
+			AuthorAvatarURL: &commitInfo.AuthorAvatarURL,
+			Timestamp:       &commitInfo.CommitTimestamp,
+		}
+	}
+
+	return
+}
+
 // CreateDeployment creates a new deployment in the control plane
 // Pass either buildContextPath (for build from source) or dockerImage (for prebuilt image), not both
 func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, buildContextPath, dockerImage string) (string, error) {
-	commitInfo := git.GetInfo()
-	dockerfilePath := c.opts.Dockerfile
-	if dockerfilePath == "" {
-		dockerfilePath = "Dockerfile"
-	}
+	projectID, branch, env, keyspaceID, gitCommit := c.buildCommonFields()
 
-	// Build request using SDK operations types
 	var reqBody operations.DeployCreateDeploymentRequest
 
 	if buildContextPath != "" {
-		// Build source
-		buildSource := operations.V2DeployBuildSource{
-			ProjectID:       c.opts.ProjectID,
-			Branch:          c.opts.Branch,
-			EnvironmentSlug: c.opts.Environment,
-			Build: operations.Build{
-				Context:    buildContextPath,
-				Dockerfile: &dockerfilePath,
+		dockerfilePath := c.opts.Dockerfile
+		if dockerfilePath == "" {
+			dockerfilePath = "Dockerfile"
+		}
+		reqBody = operations.CreateDeployCreateDeploymentRequestV2DeployBuildSource(
+			operations.V2DeployBuildSource{
+				ProjectID:       projectID,
+				Branch:          branch,
+				EnvironmentSlug: env,
+				KeyspaceID:      keyspaceID,
+				GitCommit:       gitCommit,
+				Build: operations.Build{
+					Context:    buildContextPath,
+					Dockerfile: &dockerfilePath,
+				},
 			},
-		}
-
-		// Add optional keyspace ID
-		if c.opts.KeyspaceID != "" {
-			buildSource.KeyspaceID = &c.opts.KeyspaceID
-		}
-
-		// Add git commit info
-		if commitInfo.CommitSHA != "" {
-			buildSource.GitCommit = &components.V2DeployGitCommit{
-				CommitSha:       &commitInfo.CommitSHA,
-				CommitMessage:   &commitInfo.Message,
-				AuthorHandle:    &commitInfo.AuthorHandle,
-				AuthorAvatarURL: &commitInfo.AuthorAvatarURL,
-				Timestamp:       &commitInfo.CommitTimestamp,
-			}
-		}
-
-		reqBody = operations.CreateDeployCreateDeploymentRequestV2DeployBuildSource(buildSource)
+		)
 	} else if dockerImage != "" {
-		// Image source
-		imageSource := operations.V2DeployImageSource{
-			ProjectID:       c.opts.ProjectID,
-			Branch:          c.opts.Branch,
-			EnvironmentSlug: c.opts.Environment,
-			Image:           dockerImage,
-		}
-
-		// Add optional keyspace ID
-		if c.opts.KeyspaceID != "" {
-			imageSource.KeyspaceID = &c.opts.KeyspaceID
-		}
-
-		// Add git commit info
-		if commitInfo.CommitSHA != "" {
-			imageSource.GitCommit = &components.V2DeployGitCommit{
-				CommitSha:       &commitInfo.CommitSHA,
-				CommitMessage:   &commitInfo.Message,
-				AuthorHandle:    &commitInfo.AuthorHandle,
-				AuthorAvatarURL: &commitInfo.AuthorAvatarURL,
-				Timestamp:       &commitInfo.CommitTimestamp,
-			}
-		}
-
-		reqBody = operations.CreateDeployCreateDeploymentRequestV2DeployImageSource(imageSource)
+		reqBody = operations.CreateDeployCreateDeploymentRequestV2DeployImageSource(
+			operations.V2DeployImageSource{
+				ProjectID:       projectID,
+				Branch:          branch,
+				EnvironmentSlug: env,
+				KeyspaceID:      keyspaceID,
+				GitCommit:       gitCommit,
+				Image:           dockerImage,
+			},
+		)
 	} else {
 		return "", fmt.Errorf("either buildContextPath or dockerImage must be provided")
 	}
 
 	res, err := c.sdk.Internal.CreateDeployment(ctx, reqBody)
 	if err != nil {
-		return "", c.handleCreateDeploymentError(c.handleSDKError(err, "create deployment"))
+		return "", c.wrapAPIError(err, "create deployment")
 	}
 
 	if res.V2DeployCreateDeploymentResponseBody == nil {
@@ -311,57 +270,40 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, buildContextP
 
 // GetDeployment retrieves deployment information from the control plane
 func (c *ControlPlaneClient) GetDeployment(ctx context.Context, deploymentID string) (*ctrlv1.Deployment, error) {
-	// Call SDK method
 	res, err := c.sdk.Internal.GetDeployment(ctx, components.V2DeployGetDeploymentRequestBody{
 		DeploymentID: deploymentID,
 	})
 	if err != nil {
-		return nil, c.handleSDKError(err, "get deployment")
+		return nil, c.wrapAPIError(err, "get deployment")
 	}
 
 	if res.V2DeployGetDeploymentResponseBody == nil {
 		return nil, fmt.Errorf("empty response from get deployment")
 	}
 
-	data := res.V2DeployGetDeploymentResponseBody.Data
+	return convertSDKDeploymentToProto(res.V2DeployGetDeploymentResponseBody.Data), nil
+}
 
-	// Convert SDK response to ctrlv1.Deployment for compatibility with existing code
+// convertSDKDeploymentToProto converts SDK deployment data to protobuf format
+func convertSDKDeploymentToProto(data components.V2DeployGetDeploymentResponseData) *ctrlv1.Deployment {
 	deployment := &ctrlv1.Deployment{
 		Id:           data.ID,
 		Status:       stringToDeploymentStatus(string(data.Status)),
-		ErrorMessage: "",
-		Hostnames:    []string{},
-		Steps:        []*ctrlv1.DeploymentStep{},
+		ErrorMessage: ptr.SafeDeref(data.ErrorMessage),
+		Hostnames:    data.Hostnames,
+		Steps:        make([]*ctrlv1.DeploymentStep, 0, len(data.Steps)),
 	}
 
-	if data.ErrorMessage != nil {
-		deployment.ErrorMessage = *data.ErrorMessage
+	for _, step := range data.Steps {
+		deployment.Steps = append(deployment.Steps, &ctrlv1.DeploymentStep{
+			Status:       ptr.SafeDeref(step.Status),
+			Message:      ptr.SafeDeref(step.Message),
+			ErrorMessage: ptr.SafeDeref(step.ErrorMessage),
+			CreatedAt:    ptr.SafeDeref(step.CreatedAt),
+		})
 	}
 
-	if len(data.Hostnames) > 0 {
-		deployment.Hostnames = data.Hostnames
-	}
-
-	if len(data.Steps) > 0 {
-		for _, step := range data.Steps {
-			protoStep := &ctrlv1.DeploymentStep{}
-			if step.Status != nil {
-				protoStep.Status = *step.Status
-			}
-			if step.Message != nil {
-				protoStep.Message = *step.Message
-			}
-			if step.ErrorMessage != nil {
-				protoStep.ErrorMessage = *step.ErrorMessage
-			}
-			if step.CreatedAt != nil {
-				protoStep.CreatedAt = *step.CreatedAt
-			}
-			deployment.Steps = append(deployment.Steps, protoStep)
-		}
-	}
-
-	return deployment, nil
+	return deployment
 }
 
 func stringToDeploymentStatus(status string) ctrlv1.DeploymentStatus {
@@ -452,30 +394,37 @@ func (c *ControlPlaneClient) getFailureMessage(deployment *ctrlv1.Deployment) st
 	return "Unknown deployment error"
 }
 
-// handleCreateDeploymentError provides specific error handling for deployment creation
-func (c *ControlPlaneClient) handleCreateDeploymentError(err error) error {
+func (c *ControlPlaneClient) wrapAPIError(err error, operation string) error {
 	errMsg := err.Error()
 
-	// Check for common error patterns
-	if strings.Contains(errMsg, "authentication failed") || strings.Contains(errMsg, "401") {
+	if strings.Contains(errMsg, "401") || strings.Contains(errMsg, "Unauthorized") {
 		return fault.Wrap(err,
 			fault.Code(codes.UnkeyAuthErrorsAuthenticationMalformed),
-			fault.Internal("Authentication failed with root key"),
+			fault.Internal(fmt.Sprintf("%s failed: invalid or missing root key", operation)),
 			fault.Public("Authentication failed. Check your UNKEY_ROOT_KEY."),
 		)
 	}
 
-	if strings.Contains(errMsg, "permission denied") || strings.Contains(errMsg, "403") {
+	if strings.Contains(errMsg, "403") || strings.Contains(errMsg, "Forbidden") {
 		return fault.Wrap(err,
 			fault.Code(codes.UnkeyAuthErrorsAuthorizationInsufficientPermissions),
-			fault.Internal("Insufficient permissions"),
-			fault.Public("Permission denied. Ensure your root key has project.*.create_deployment permission."),
+			fault.Internal(fmt.Sprintf("%s failed: insufficient permissions", operation)),
+			fault.Public("Permission denied. Root key must have project.*.create_deployment, project.*.generate_upload_url, and project.*.read_deployment permissions."),
 		)
 	}
 
+	if strings.Contains(errMsg, "404") || strings.Contains(errMsg, "Not Found") {
+		return fault.Wrap(err,
+			fault.Code(codes.Data.Project.NotFound.URN()),
+			fault.Internal(fmt.Sprintf("%s failed: resource not found", operation)),
+			fault.Public("The requested resource does not exist."),
+		)
+	}
+
+	// Generic fallback
 	return fault.Wrap(err,
 		fault.Code(codes.UnkeyAppErrorsInternalUnexpectedError),
-		fault.Internal(fmt.Sprintf("CreateDeployment API call failed: %v", err)),
-		fault.Public("Failed to create deployment. Please try again."),
+		fault.Internal(fmt.Sprintf("%s failed: %v", operation, err)),
+		fault.Public("An unexpected error occurred. Please try again."),
 	)
 }
