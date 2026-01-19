@@ -92,17 +92,17 @@ spec:
           args: ["run", "preflight"]
           imagePullPolicy: IfNotPresent
           env:
-            - name: WEBHOOK_PORT
+            - name: UNKEY_HTTP_PORT
               value: "8443"
-            - name: WEBHOOK_TLS_CERT_FILE
+            - name: UNKEY_TLS_CERT_FILE
               value: "/certs/tls.crt"
-            - name: WEBHOOK_TLS_KEY_FILE
+            - name: UNKEY_TLS_KEY_FILE
               value: "/certs/tls.key"
-            - name: INJECT_IMAGE
+            - name: UNKEY_INJECT_IMAGE
               value: "inject:latest"
-            - name: INJECT_IMAGE_PULL_POLICY
+            - name: UNKEY_INJECT_IMAGE_PULL_POLICY
               value: "Never" # Local dev uses pre-loaded images; use IfNotPresent in prod
-            - name: KRANE_ENDPOINT
+            - name: UNKEY_KRANE_ENDPOINT
               value: "http://krane.unkey.svc.cluster.local:8080"
             - name: UNKEY_DEPOT_TOKEN
               valueFrom:
