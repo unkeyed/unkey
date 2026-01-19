@@ -8,6 +8,3 @@ COPY pkg/db/schema.sql /docker-entrypoint-initdb.d/01-main-schema.sql
 
 # Copy seed data for local development
 COPY dev/04-seed-workspace.sql /docker-entrypoint-initdb.d/04-seed-workspace.sql
-
-# Seed data for streaming integration test (frontline -> sentinel -> backend)
-COPY dev/05-seed-streaming-test.sql /docker-entrypoint-initdb.d/05-seed-streaming-test.sql
