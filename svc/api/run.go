@@ -160,6 +160,7 @@ func Run(ctx context.Context, cfg Config) error {
 			TestMode: cfg.TestMode,
 		},
 		TLS:                cfg.TLSConfig,
+		EnableH2C:          false,
 		MaxRequestBodySize: cfg.MaxRequestBodySize,
 		ReadTimeout:        0,
 		WriteTimeout:       0,

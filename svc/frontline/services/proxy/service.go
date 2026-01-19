@@ -16,16 +16,18 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"golang.org/x/net/http2"
 )
 
 type service struct {
-	logger      logging.Logger
-	frontlineID string
-	region      string
-	baseDomain  string
-	clock       clock.Clock
-	transport   *http.Transport
-	maxHops     int
+	logger       logging.Logger
+	frontlineID  string
+	region       string
+	baseDomain   string
+	clock        clock.Clock
+	transport    *http.Transport
+	h2cTransport *http2.Transport
+	maxHops      int
 }
 
 var _ Service = (*service)(nil)
@@ -79,14 +81,26 @@ func New(cfg Config) (*service, error) {
 		}
 	}
 
+	// Create h2c transport for HTTP/2 cleartext connections to sentinel
+	//nolint:exhaustruct
+	h2cTransport := &http2.Transport{
+		AllowHTTP: true,
+		DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
+			// For h2c, we dial plain TCP (not TLS)
+			var d net.Dialer
+			return d.DialContext(ctx, network, addr)
+		},
+	}
+
 	return &service{
-		logger:      cfg.Logger,
-		frontlineID: cfg.FrontlineID,
-		region:      cfg.Region,
-		baseDomain:  cfg.BaseDomain,
-		clock:       cfg.Clock,
-		transport:   transport,
-		maxHops:     maxHops,
+		logger:       cfg.Logger,
+		frontlineID:  cfg.FrontlineID,
+		region:       cfg.Region,
+		baseDomain:   cfg.BaseDomain,
+		clock:        cfg.Clock,
+		transport:    transport,
+		h2cTransport: h2cTransport,
+		maxHops:      maxHops,
 	}, nil
 }
 
@@ -106,6 +120,7 @@ func (s *service) ForwardToSentinel(ctx context.Context, sess *zen.Session, sent
 		startTime:    startTime,
 		directorFunc: s.makeSentinelDirector(sess, deploymentID, startTime),
 		logTarget:    "sentinel",
+		transport:    s.h2cTransport,
 	})
 }
 
@@ -141,5 +156,6 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 		startTime:    startTime,
 		directorFunc: s.makeRegionDirector(sess, startTime),
 		logTarget:    "region",
+		transport:    s.transport,
 	})
 }

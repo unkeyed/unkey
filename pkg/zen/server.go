@@ -11,6 +11,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/tls"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
 // Server manages HTTP server configuration, route registration, and lifecycle.
@@ -48,6 +50,10 @@ type Config struct {
 	TLS *tls.Config
 
 	Flags *Flags
+
+	// EnableH2C enables HTTP/2 cleartext (h2c) support.
+	// This allows HTTP/2 connections without TLS, useful for internal services.
+	EnableH2C bool
 
 	// MaxRequestBodySize sets the maximum allowed request body size in bytes.
 	// If 0 or negative, no limit is enforced. Default is 0 (no limit).
@@ -94,8 +100,16 @@ func New(config Config) (*Server, error) {
 		writeTimeout = 20 * time.Second
 	}
 
+	// Wrap handler with h2c if enabled for HTTP/2 cleartext support
+	var handler http.Handler = mux
+	if config.EnableH2C {
+		//nolint:exhaustruct
+		h2s := &http2.Server{}
+		handler = h2c.NewHandler(mux, h2s)
+	}
+
 	srv := &http.Server{
-		Handler: mux,
+		Handler: handler,
 		// See https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/
 		//
 		// > # http.ListenAndServe is doing it wrong

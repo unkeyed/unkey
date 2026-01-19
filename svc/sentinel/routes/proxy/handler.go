@@ -99,29 +99,12 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		)
 	}
 
-	getDeploymentStart := h.Clock.Now()
 	_, err := h.RouterService.GetDeployment(ctx, deploymentID)
-	getDeploymentDuration := h.Clock.Now().Sub(getDeploymentStart)
-
-	h.Logger.Debug("sentinel GetDeployment complete",
-		"deployment_id", deploymentID,
-		"duration_ms", getDeploymentDuration.Milliseconds(),
-	)
-
 	if err != nil {
 		return err
 	}
 
-	selectInstanceStart := h.Clock.Now()
 	instance, err := h.RouterService.SelectInstance(ctx, deploymentID)
-	selectInstanceDuration := h.Clock.Now().Sub(selectInstanceStart)
-
-	h.Logger.Debug("sentinel SelectInstance complete",
-		"deployment_id", deploymentID,
-		"duration_ms", selectInstanceDuration.Milliseconds(),
-		"total_pre_proxy_ms", h.Clock.Now().Sub(startTime).Milliseconds(),
-	)
-
 	if err != nil {
 		return err
 	}
@@ -193,15 +176,6 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 			}
 		},
 	}
-
-	h.Logger.Debug("proxying request to instance",
-		"method", req.Method,
-		"path", req.URL.Path,
-		"deploymentID", deploymentID,
-		"instanceID", instance.ID,
-		"target", instance.Address,
-		"pre_proxy_overhead_ms", h.Clock.Now().Sub(startTime).Milliseconds(),
-	)
 
 	proxy.ServeHTTP(wrapper, req)
 

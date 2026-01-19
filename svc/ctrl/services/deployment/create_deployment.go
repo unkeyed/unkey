@@ -65,7 +65,7 @@ func (s *Service) CreateDeployment(
 			fmt.Errorf("failed to fetch environment variables: %w", err))
 	}
 
-	var secretsBlob []byte
+	secretsBlob := []byte{}
 	if len(envVars) > 0 {
 		secretsConfig := &ctrlv1.SecretsConfig{
 			Secrets: make(map[string]string, len(envVars)),

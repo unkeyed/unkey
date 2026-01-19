@@ -229,6 +229,7 @@ func Run(ctx context.Context, cfg Config) error {
 			ReadTimeout:        30 * time.Second,
 			WriteTimeout:       60 * time.Second,
 			Flags:              nil,
+			EnableH2C:          false,
 			MaxRequestBodySize: 0,
 		})
 		if httpsErr != nil {
@@ -259,6 +260,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Logger:             logger,
 			TLS:                nil,
 			Flags:              nil,
+			EnableH2C:          false,
 			MaxRequestBodySize: 0,
 			ReadTimeout:        0,
 			WriteTimeout:       0,

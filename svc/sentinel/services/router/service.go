@@ -17,19 +17,6 @@ import (
 
 var _ Service = (*service)(nil)
 
-func cacheHitString(hit cache.CacheHit) string {
-	switch hit {
-	case cache.Null:
-		return "NULL"
-	case cache.Hit:
-		return "HIT"
-	case cache.Miss:
-		return "MISS"
-	default:
-		return "UNKNOWN"
-	}
-}
-
 type service struct {
 	logger        logging.Logger
 	db            db.Database
@@ -78,17 +65,9 @@ func New(cfg Config) (*service, error) {
 }
 
 func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.Deployment, error) {
-	start := time.Now()
 	deployment, hit, err := s.deploymentCache.SWR(ctx, deploymentID, func(ctx context.Context) (db.Deployment, error) {
 		return db.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
 	}, caches.DefaultFindFirstOp)
-	duration := time.Since(start)
-
-	s.logger.Debug("deployment cache lookup",
-		"deployment_id", deploymentID,
-		"cache_hit", cacheHitString(hit),
-		"duration_ms", duration.Milliseconds(),
-	)
 
 	if err != nil && !db.IsNotFound(err) {
 		return db.Deployment{}, fault.Wrap(err,
@@ -124,7 +103,6 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 }
 
 func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.Instance, error) {
-	start := time.Now()
 	instances, hit, err := s.instancesCache.SWR(ctx, deploymentID, func(ctx context.Context) ([]db.Instance, error) {
 		return db.Query.FindInstancesByDeploymentIdAndRegion(
 			ctx,
@@ -135,15 +113,6 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 			},
 		)
 	}, caches.DefaultFindFirstOp)
-	duration := time.Since(start)
-
-	s.logger.Debug("instances cache lookup",
-		"deployment_id", deploymentID,
-		"region", s.region,
-		"cache_hit", cacheHitString(hit),
-		"duration_ms", duration.Milliseconds(),
-		"instance_count", len(instances),
-	)
 
 	if err != nil {
 		return db.Instance{}, fault.Wrap(err,
@@ -176,12 +145,5 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 	}
 
 	selected := array.Random(runningInstances)
-	s.logger.Debug("instance selected",
-		"deployment_id", deploymentID,
-		"instance_id", selected.ID,
-		"instance_address", selected.Address,
-		"running_count", len(runningInstances),
-	)
-
 	return selected, nil
 }

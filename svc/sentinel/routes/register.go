@@ -33,7 +33,6 @@ func Register(srv *zen.Server, svc *Services) {
 
 	//nolint:exhaustruct
 	transport := &http.Transport{
-		ForceAttemptHTTP2: true,
 		DialContext: (&net.Dialer{
 			Timeout:   10 * time.Second,
 			KeepAlive: 30 * time.Second,

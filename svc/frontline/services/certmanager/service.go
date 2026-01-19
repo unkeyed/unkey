@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"errors"
 	"strings"
-	"time"
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/internal/services/caches"
@@ -40,8 +39,6 @@ func New(cfg Config) *service {
 }
 
 func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certificate, error) {
-	start := time.Now()
-
 	// Build lookup candidates: exact match + immediate wildcard
 	// e.g., api.example.com -> [api.example.com, *.example.com]
 	candidates := []string{domain}
@@ -53,7 +50,6 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 	// SWRWithFallback checks all candidates, returns first hit, and on miss
 	// fetches from origin and caches under the canonical key (cert's actual hostname)
 	cert, hit, err := s.cache.SWRWithFallback(ctx, candidates, func(ctx context.Context) (tls.Certificate, string, error) {
-		s.logger.Debug("certificate cache miss, loading from db+vault", "domain", domain)
 
 		rows, err := db.Query.FindCertificatesByHostnames(ctx, s.db.RO(), candidates)
 		if err != nil {
@@ -92,12 +88,6 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 		// Return cert and canonical key (cert's actual hostname for proper cache sharing)
 		return tlsCert, bestRow.Hostname, nil
 	}, caches.DefaultFindFirstOp)
-
-	s.logger.Debug("certificate lookup complete",
-		"domain", domain,
-		"cache_hit", hit,
-		"duration_ms", time.Since(start).Milliseconds(),
-	)
 
 	if err != nil && !db.IsNotFound(err) {
 		s.logger.Error("Failed to get certificate", "error", err)

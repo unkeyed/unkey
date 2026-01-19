@@ -2,7 +2,6 @@ package router
 
 import (
 	"context"
-	"time"
 
 	internalCaches "github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -52,19 +51,6 @@ type service struct {
 
 var _ Service = (*service)(nil)
 
-func cacheHitString(hit cache.CacheHit) string {
-	switch hit {
-	case cache.Null:
-		return "NULL"
-	case cache.Hit:
-		return "HIT"
-	case cache.Miss:
-		return "MISS"
-	default:
-		return "UNKNOWN"
-	}
-}
-
 func New(cfg Config) (*service, error) {
 	return &service{
 		logger:                      cfg.Logger,
@@ -76,19 +62,9 @@ func New(cfg Config) (*service, error) {
 }
 
 func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.FrontlineRoute, []db.Sentinel, error) {
-	start := time.Now()
-
-	routeStart := time.Now()
 	route, routeHit, err := s.frontlineRouteCache.SWR(ctx, hostname, func(ctx context.Context) (db.FrontlineRoute, error) {
 		return db.Query.FindFrontlineRouteByFQDN(ctx, s.db.RO(), hostname)
 	}, internalCaches.DefaultFindFirstOp)
-	routeDuration := time.Since(routeStart)
-
-	s.logger.Debug("frontline route cache lookup",
-		"hostname", hostname,
-		"cache_hit", cacheHitString(routeHit),
-		"duration_ms", routeDuration.Milliseconds(),
-	)
 
 	if err != nil && !db.IsNotFound(err) {
 		return nil, nil, fault.Wrap(err,
@@ -105,18 +81,9 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.Fr
 		)
 	}
 
-	sentinelsStart := time.Now()
-	sentinels, sentinelsHit, err := s.sentinelsByEnvironmentCache.SWR(ctx, route.EnvironmentID, func(ctx context.Context) ([]db.Sentinel, error) {
+	sentinels, _, err := s.sentinelsByEnvironmentCache.SWR(ctx, route.EnvironmentID, func(ctx context.Context) ([]db.Sentinel, error) {
 		return db.Query.FindSentinelsByEnvironmentID(ctx, s.db.RO(), route.EnvironmentID)
 	}, internalCaches.DefaultFindFirstOp)
-	sentinelsDuration := time.Since(sentinelsStart)
-
-	s.logger.Debug("sentinels cache lookup",
-		"environment_id", route.EnvironmentID,
-		"cache_hit", cacheHitString(sentinelsHit),
-		"duration_ms", sentinelsDuration.Milliseconds(),
-		"sentinel_count", len(sentinels),
-	)
 
 	if err != nil && !db.IsNotFound(err) {
 		return nil, nil, fault.Wrap(err,
@@ -125,13 +92,6 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.Fr
 			fault.Public("Failed to load sentinel configuration"),
 		)
 	}
-
-	s.logger.Debug("LookupByHostname complete",
-		"hostname", hostname,
-		"total_duration_ms", time.Since(start).Milliseconds(),
-		"route_duration_ms", routeDuration.Milliseconds(),
-		"sentinels_duration_ms", sentinelsDuration.Milliseconds(),
-	)
 
 	return &route, sentinels, nil
 }
