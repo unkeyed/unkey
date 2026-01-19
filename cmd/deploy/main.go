@@ -17,7 +17,6 @@ const (
 	// Default configuration values
 	DefaultBranch      = "main"
 	DefaultDockerfile  = "Dockerfile"
-	DefaultRegistry    = "ghcr.io/unkeyed/deploy"
 	DefaultEnvironment = "preview"
 )
 
@@ -30,12 +29,8 @@ type DeployOptions struct {
 	Branch      string
 	Dockerfile  string
 	Commit      string
-	Registry    string
 	Environment string
-	SkipPush    bool
-	Verbose     bool
 	RootKey     string
-	Linux       bool
 	APIBaseURL  string
 }
 
@@ -54,13 +49,7 @@ var DeployFlags = []cli.Flag{
 	cli.String("docker-image", "Pre-built docker image"),
 	cli.String("dockerfile", "Path to Dockerfile", cli.Default(DefaultDockerfile)),
 	cli.String("commit", "Git commit SHA"),
-	cli.String("registry", "Container registry",
-		cli.Default(DefaultRegistry),
-		cli.EnvVar("UNKEY_REGISTRY")),
 	cli.String("env", "Environment slug to deploy to", cli.Default(DefaultEnvironment)),
-	cli.Bool("skip-push", "Skip pushing to registry (for local testing)"),
-	cli.Bool("verbose", "Show detailed output for build and deployment operations"),
-	cli.Bool("linux", "Build Docker image for linux/amd64 platform (for deployment to cloud clusters)", cli.Default(true)),
 	// Authentication flag
 	cli.String("root-key", "Root key for authentication", cli.EnvVar("UNKEY_ROOT_KEY")),
 	// API configuration
@@ -96,9 +85,7 @@ unkey deploy --init --force                  # Force overwrite existing configur
 unkey deploy                                 # Standard deployment (uses ./unkey.json)
 unkey deploy --config=./production           # Deploy from specific config directory
 unkey deploy --context=./api                 # Deploy with custom build context
-unkey deploy --skip-push                     # Local development (build only, no push)
-unkey deploy --docker-image=ghcr.io/user/app:v1.0.0 # Deploy pre-built image
-unkey deploy --verbose                       # Verbose output for debugging`,
+unkey deploy --docker-image=ghcr.io/user/app:v1.0.0 # Deploy pre-built image`,
 	Flags:  DeployFlags,
 	Action: DeployAction,
 }
@@ -141,12 +128,8 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 		Branch:      cmd.String("branch"),
 		Dockerfile:  cmd.String("dockerfile"),
 		Commit:      cmd.String("commit"),
-		Registry:    cmd.String("registry"),
 		Environment: cmd.String("env"),
-		SkipPush:    cmd.Bool("skip-push"),
-		Verbose:     cmd.Bool("verbose"),
 		RootKey:     cmd.String("root-key"),
-		Linux:       cmd.Bool("linux"),
 		APIBaseURL:  cmd.String("api-base-url"),
 	}
 
