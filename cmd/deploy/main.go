@@ -64,7 +64,7 @@ var DeployFlags = []cli.Flag{
 	// Authentication flag
 	cli.String("root-key", "Root key for authentication", cli.EnvVar("UNKEY_ROOT_KEY")),
 	// API configuration
-	cli.String("api-base-url", "API base URL for Unkey control plane for local testing", cli.EnvVar("UNKEY_API_BASE_URL")),
+	cli.String("api-base-url", "API base URL for local testing", cli.EnvVar("UNKEY_API_BASE_URL")),
 }
 
 // Cmd is the deploy command that builds and deploys application versions to Unkey infrastructure.
