@@ -10,11 +10,9 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//cmd/deploy/internal/ui",
-        "//gen/proto/ctrl/v1:ctrl",
         "//pkg/cli",
         "//pkg/git",
         "//pkg/otel/logging",
-        "//pkg/ptr",
         "@com_github_unkeyed_sdks_api_go_v2//:go",
         "@com_github_unkeyed_sdks_api_go_v2//models/components",
         "@com_github_unkeyed_sdks_api_go_v2//models/operations",

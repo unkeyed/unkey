@@ -13,25 +13,23 @@ import (
 	unkey "github.com/unkeyed/sdks/api/go/v2"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"github.com/unkeyed/sdks/api/go/v2/models/operations"
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/git"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 // DeploymentStatusEvent represents a status change event
 type DeploymentStatusEvent struct {
 	DeploymentID   string
-	PreviousStatus ctrlv1.DeploymentStatus
-	CurrentStatus  ctrlv1.DeploymentStatus
-	Deployment     *ctrlv1.Deployment
+	PreviousStatus components.Status
+	CurrentStatus  components.Status
+	Deployment     *components.V2DeployGetDeploymentResponseData
 }
 
 // DeploymentStepEvent represents a step update event
 type DeploymentStepEvent struct {
 	DeploymentID string
-	Step         *ctrlv1.DeploymentStep
-	Status       ctrlv1.DeploymentStatus
+	Step         *components.V2DeployDeploymentStep
+	Status       components.Status
 }
 
 // ControlPlaneClient handles API operations with the control plane
@@ -265,7 +263,7 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, buildContextP
 }
 
 // GetDeployment retrieves deployment information from the control plane
-func (c *ControlPlaneClient) GetDeployment(ctx context.Context, deploymentID string) (*ctrlv1.Deployment, error) {
+func (c *ControlPlaneClient) GetDeployment(ctx context.Context, deploymentID string) (*components.V2DeployGetDeploymentResponseData, error) {
 	res, err := c.sdk.Internal.GetDeployment(ctx, components.V2DeployGetDeploymentRequestBody{
 		DeploymentID: deploymentID,
 	})
@@ -277,48 +275,7 @@ func (c *ControlPlaneClient) GetDeployment(ctx context.Context, deploymentID str
 		return nil, fmt.Errorf("empty response from get deployment")
 	}
 
-	return convertSDKDeploymentToProto(res.V2DeployGetDeploymentResponseBody.Data), nil
-}
-
-// convertSDKDeploymentToProto converts SDK deployment data to protobuf format
-func convertSDKDeploymentToProto(data components.V2DeployGetDeploymentResponseData) *ctrlv1.Deployment {
-	deployment := &ctrlv1.Deployment{
-		Id:           data.ID,
-		Status:       stringToDeploymentStatus(string(data.Status)),
-		ErrorMessage: ptr.SafeDeref(data.ErrorMessage),
-		Hostnames:    data.Hostnames,
-		Steps:        make([]*ctrlv1.DeploymentStep, 0, len(data.Steps)),
-	}
-
-	for _, step := range data.Steps {
-		deployment.Steps = append(deployment.Steps, &ctrlv1.DeploymentStep{
-			Status:       ptr.SafeDeref(step.Status),
-			Message:      ptr.SafeDeref(step.Message),
-			ErrorMessage: ptr.SafeDeref(step.ErrorMessage),
-			CreatedAt:    ptr.SafeDeref(step.CreatedAt),
-		})
-	}
-
-	return deployment
-}
-
-func stringToDeploymentStatus(status string) ctrlv1.DeploymentStatus {
-	switch status {
-	case "PENDING":
-		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING
-	case "BUILDING":
-		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_BUILDING
-	case "DEPLOYING":
-		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_DEPLOYING
-	case "NETWORK":
-		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_NETWORK
-	case "READY":
-		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY
-	case "FAILED":
-		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED
-	default:
-		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
-	}
+	return &res.V2DeployGetDeploymentResponseBody.Data, nil
 }
 
 // PollDeploymentStatus polls for deployment changes and calls event handlers
@@ -334,7 +291,7 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 	defer timeout.Stop()
 
 	// Track processed steps by creation time to avoid duplicates
-	lastStatus := ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
+	lastStatus := components.StatusUnspecified
 
 	for {
 		select {
@@ -368,22 +325,22 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 			}
 
 			// Check for completion
-			if currentStatus == ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY {
+			if currentStatus == components.StatusReady {
 				return nil
 			}
 		}
 	}
 }
 
-// getFailureMessage extracts failure message from version
-func (c *ControlPlaneClient) getFailureMessage(deployment *ctrlv1.Deployment) string {
-	if deployment.GetErrorMessage() != "" {
-		return deployment.GetErrorMessage()
+// getFailureMessage extracts failure message from deployment
+func (c *ControlPlaneClient) getFailureMessage(deployment *components.V2DeployGetDeploymentResponseData) string {
+	if deployment.GetErrorMessage() != nil && *deployment.GetErrorMessage() != "" {
+		return *deployment.GetErrorMessage()
 	}
 
 	for _, step := range deployment.GetSteps() {
-		if step.GetErrorMessage() != "" {
-			return step.GetErrorMessage()
+		if step.GetErrorMessage() != nil && *step.GetErrorMessage() != "" {
+			return *step.GetErrorMessage()
 		}
 	}
 

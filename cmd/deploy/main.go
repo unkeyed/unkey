@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"github.com/unkeyed/unkey/cmd/deploy/internal/ui"
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/git"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
@@ -164,7 +164,7 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	}
 
 	// Track final deployment for completion info
-	var finalDeployment *ctrlv1.Deployment
+	var finalDeployment *components.V2DeployGetDeploymentResponseData
 
 	// Start monitoring spinner
 	terminal.StartSpinner("Deployment in progress")
@@ -173,9 +173,9 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	onStatusChange := func(event DeploymentStatusEvent) error {
 		// nolint: exhaustive // We just need those two for now
 		switch event.CurrentStatus {
-		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED:
+		case components.StatusFailed:
 			return handleDeploymentFailure(controlPlane, event.Deployment, terminal)
-		case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY:
+		case components.StatusReady:
 			// Store deployment but don't print success, wait for polling to complete
 			finalDeployment = event.Deployment
 		}
@@ -200,7 +200,7 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	return nil
 }
 
-func handleDeploymentFailure(controlPlane *ControlPlaneClient, deployment *ctrlv1.Deployment, terminal *ui.UI) error {
+func handleDeploymentFailure(controlPlane *ControlPlaneClient, deployment *components.V2DeployGetDeploymentResponseData, terminal *ui.UI) error {
 	errorMsg := controlPlane.getFailureMessage(deployment)
 	terminal.StopSpinner("Deployment failed", false)
 	terminal.PrintErrorDetails(errorMsg)
@@ -228,8 +228,8 @@ func printSourceInfo(opts DeployOptions, gitInfo git.Info) {
 	fmt.Printf("\n")
 }
 
-func printCompletionInfo(deployment *ctrlv1.Deployment, env string) {
-	if deployment == nil || deployment.GetId() == "" {
+func printCompletionInfo(deployment *components.V2DeployGetDeploymentResponseData, env string) {
+	if deployment == nil || deployment.GetID() == "" {
 		fmt.Printf("✓ Deployment completed\n")
 		return
 	}
@@ -238,7 +238,7 @@ func printCompletionInfo(deployment *ctrlv1.Deployment, env string) {
 
 	fmt.Println()
 	fmt.Println("Deployment Complete")
-	fmt.Printf("  Deployment ID: %s\n", deployment.GetId())
+	fmt.Printf("  Deployment ID: %s\n", deployment.GetID())
 	fmt.Printf("  Status: Ready\n")
 	fmt.Printf("  Environment: %s\n", caser.String(env))
 
