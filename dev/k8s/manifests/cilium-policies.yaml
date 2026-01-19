@@ -52,7 +52,7 @@ spec:
             app: krane
       toPorts:
         - ports:
-            - port: "8080"
+            - port: "8070"
               protocol: TCP
     # External internet access
     - toEntities:
@@ -121,5 +121,5 @@ spec:
             app.kubernetes.io/component: deployment
       toPorts:
         - ports:
-            - port: "8080"
+            - port: "8070"
               protocol: TCP
