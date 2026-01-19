@@ -83,12 +83,6 @@ message SyncRequest {
   uint64 sequence_last_seen = 2;
 }
 
-// Bookmark is sent after bootstrap completes to signal the client is caught up.
-// The client should persist this sequence to resume watch on reconnect.
-message Bookmark {
-  uint64 sequence = 1;
-}
-
 message State {
   // sequence is the state_changes sequence number for this event.
   // Clients should persist this after successfully processing each event
@@ -98,7 +92,6 @@ message State {
   oneof kind {
     DeploymentState deployment = 2;
     SentinelState sentinel = 3;
-    Bookmark bookmark = 4;
   }
 }
 

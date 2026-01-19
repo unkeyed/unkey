@@ -236,7 +236,6 @@ go_library(
         "sentinel_insert.sql_generated.go",
         "sentinel_list_desired.sql_generated.go",
         "sentinel_update_available_replicas_and_health.sql_generated.go",
-        "state_change_delete_old.sql_generated.go",
         "state_change_find_by_region_after_sequence.sql_generated.go",
         "state_change_get_max_sequence.sql_generated.go",
         "state_change_get_min_sequence.sql_generated.go",

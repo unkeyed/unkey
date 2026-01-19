@@ -1,12 +1,11 @@
 ---
 title: Krane Sync Engine Architecture
-description: Deep dive into Krane's event processing engine that maintains persistent connections, handles reconciliation, and ensures eventual consistency
+description: Deep dive into Krane's sequence-based synchronization that polls for state changes and ensures eventual consistency
 ---
 
 import { Mermaid } from "@/app/components/mermaid";
 
-
-The Krane Sync Engine is the core component that implements the pull-based infrastructure model. It maintains a persistent connection to the control plane, processes infrastructure events, and ensures eventual consistency through periodic reconciliation.
+The Krane Sync Engine implements a Kubernetes-style List+Watch pattern for synchronizing desired infrastructure state from the control plane. It uses sequence numbers to track state changes, enabling efficient incremental synchronization and reliable recovery after disconnections.
 
 ## Architecture
 
@@ -14,24 +13,24 @@ The Krane Sync Engine is the core component that implements the pull-based infra
   chart="
 graph TB
     subgraph 'Krane Agent'
-        SE[Sync Engine]
+        W[Watcher]
+        R[Reconciler]
         DC[Deployment Controller]
         GC[Sentinel Controller]
-        EB[Event Buffer]
         IUB[Instance Update Buffer]
         GUB[Sentinel Update Buffer]
         
-        SE --> EB
-        EB --> DC
-        EB --> GC
+        W -->|HandleState| R
+        R --> DC
+        R --> GC
         DC --> IUB
         GC --> GUB
-        IUB --> SE
-        GUB --> SE
     end
     
     subgraph 'Control Plane'
         CS[ClusterService]
+        SC[(state_changes)]
+        CS -.->|poll| SC
     end
     
     subgraph Kubernetes
@@ -40,13 +39,84 @@ graph TB
         W2[StatefulSet Watcher]
     end
     
-    SE -.->|Watch Stream| CS
-    SE -->|GetDesiredState| CS
-    SE -->|UpdateInstance| CS
-    SE -->|UpdateSentinel| CS
+    W -.->|Sync stream| CS
+    IUB -->|UpdateDeploymentState| CS
+    GUB -->|UpdateSentinelState| CS
     
     DC -->|Apply/Delete| API
     GC -->|Apply/Delete| API
     W1 -->|Events| DC
     W2 -->|Events| DC"
 />
+
+## Sync Protocol
+
+The sync engine uses a single `Sync` RPC to receive state changes from the control plane. This RPC establishes a server-streaming connection where the control plane sends `State` messages containing deployment or sentinel operations.
+
+### Sequence Tracking
+
+The reconciler maintains a `sequenceLastSeen` field that tracks the highest sequence number successfully processed. On startup, this is zero. After processing each `State` message, the reconciler updates this watermark. When reconnecting after a failure, Krane sends its last-seen sequence in the `SyncRequest`, allowing the control plane to resume from the correct position.
+
+### Message Types
+
+The `State` message contains a sequence number and one of two payloads:
+
+**DeploymentState** contains either an `ApplyDeployment` (create or update a StatefulSet with the specified image, replicas, and resource limits) or `DeleteDeployment` (remove the StatefulSet and its associated Service).
+
+**SentinelState** contains either an `ApplySentinel` (create or update a sentinel deployment) or `DeleteSentinel` (remove the sentinel).
+
+Stream close signals that the current batch (or bootstrap) is complete. The client tracks the highest sequence from received messages and uses it for the next sync request.
+
+## Watcher Loop
+
+The Watcher runs a continuous loop with jittered reconnection timing (1-5 seconds between attempts). Each iteration establishes a Sync stream and processes messages until the stream closes or an error occurs.
+
+```
+for {
+    sleep(random(1s, 5s))
+    stream = cluster.Sync(region, sequenceLastSeen)
+    for message in stream {
+        reconciler.HandleState(message)
+    }
+}
+```
+
+This design prioritizes simplicity and reliability over latency. The jittered timing prevents thundering herd problems when multiple Krane instances reconnect simultaneously after a control plane restart.
+
+## State Handling
+
+The `HandleState` method on the Reconciler dispatches each state message to the appropriate controller:
+
+```
+HandleState(state):
+    switch state.Kind:
+        case Deployment:
+            if Apply: ApplyDeployment(state.Apply)
+            if Delete: DeleteDeployment(state.Delete)
+        case Sentinel:
+            if Apply: ApplySentinel(state.Apply)
+            if Delete: DeleteSentinel(state.Delete)
+    
+    if state.Sequence > sequenceLastSeen:
+        sequenceLastSeen = state.Sequence
+```
+
+The sequence watermark is updated after processing, ensuring at-least-once delivery. If Krane crashes mid-processing, it will reprocess the same message on restart, which is safe because apply operations are idempotent.
+
+## Kubernetes Watchers
+
+In addition to receiving desired state from the control plane, Krane watches Kubernetes for actual state changes. Pod and StatefulSet watchers notify the controllers when resources change (pod becomes ready, pod fails, etc.). The controllers then report these changes back to the control plane through `UpdateDeploymentState` and `UpdateSentinelState` RPCs.
+
+This bidirectional flow ensures the control plane always knows the actual state of resources, enabling the UI to show accurate deployment status and the workflow to detect when deployments are ready.
+
+## Buffered Updates
+
+Status updates to the control plane are buffered in memory before sending. This smooths over traffic spikes and reduces load on the control plane during high-churn scenarios (like rolling updates affecting many pods). The buffers use retries with exponential backoff and circuit breakers to handle transient failures without overwhelming a recovering control plane.
+
+## Failure Modes
+
+**Stream disconnection**: The watcher reconnects with jittered backoff. If the last-seen sequence is within the 7-day retention window, sync resumes incrementally. Otherwise, Krane performs a full bootstrap.
+
+**Control plane unavailable**: The circuit breaker opens after repeated failures, preventing Krane from overwhelming a struggling control plane. Local Kubernetes state continues to function; only sync with the control plane is paused.
+
+**Sequence too old**: If Krane has been offline longer than the 7-day retention period, the control plane returns `FailedPrecondition`. Krane resets its sequence to zero and performs a full bootstrap, which may result in reprocessing resources that already exist (handled gracefully by idempotent apply operations).

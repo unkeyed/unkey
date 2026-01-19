@@ -37,6 +37,6 @@ func (q *BulkQueries) InsertStateChanges(ctx context.Context, db DBTX, args []In
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

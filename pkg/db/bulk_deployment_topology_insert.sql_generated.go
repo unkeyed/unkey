@@ -38,6 +38,6 @@ func (q *BulkQueries) InsertDeploymentTopologies(ctx context.Context, db DBTX, a
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

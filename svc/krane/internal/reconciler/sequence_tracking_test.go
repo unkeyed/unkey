@@ -125,25 +125,6 @@ func TestHandleState_UpdatesSequenceAfterSentinelDelete(t *testing.T) {
 	require.Equal(t, uint64(300), r.sequenceLastSeen)
 }
 
-func TestHandleState_UpdatesSequenceFromBookmark(t *testing.T) {
-	ctx := context.Background()
-	h := NewTestHarness(t)
-	r := h.Reconciler
-
-	state := &ctrlv1.State{
-		Sequence: 500, // State-level sequence
-		Kind: &ctrlv1.State_Bookmark{
-			Bookmark: &ctrlv1.Bookmark{
-				Sequence: 999, // Bookmark-specific sequence takes precedence
-			},
-		},
-	}
-
-	err := r.HandleState(ctx, state)
-	require.NoError(t, err)
-	require.Equal(t, uint64(999), r.sequenceLastSeen, "bookmark sequence should override state sequence")
-}
-
 func TestHandleState_SequenceOnlyIncreases(t *testing.T) {
 	ctx := context.Background()
 	h := NewTestHarness(t)
@@ -319,15 +300,6 @@ func TestHandleState_BootstrapSequence(t *testing.T) {
 							MemoryMib:     64,
 						},
 					},
-				},
-			},
-		},
-		// Bookmark signals end of bootstrap
-		{
-			Sequence: bootstrapSequence,
-			Kind: &ctrlv1.State_Bookmark{
-				Bookmark: &ctrlv1.Bookmark{
-					Sequence: bootstrapSequence,
 				},
 			},
 		},

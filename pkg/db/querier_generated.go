@@ -118,13 +118,6 @@ type Querier interface {
 	//    AND (i.id = ? OR i.external_id = ?)
 	//    AND i.deleted = true
 	DeleteOldIdentityWithRatelimits(ctx context.Context, db DBTX, arg DeleteOldIdentityWithRatelimitsParams) error
-	// Retention cleanup: deletes state changes older than the cutoff timestamp.
-	// Uses LIMIT to avoid long-running transactions; call repeatedly until 0 rows affected.
-	//
-	//  DELETE FROM `state_changes`
-	//  WHERE created_at < ?
-	//  LIMIT 10000
-	DeleteOldStateChanges(ctx context.Context, db DBTX, cutoffMs uint64) (int64, error)
 	//DeletePermission
 	//
 	//  DELETE FROM permissions

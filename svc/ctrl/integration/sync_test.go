@@ -9,8 +9,8 @@
 //
 // The sync protocol follows a two-phase approach:
 //  1. Bootstrap: When a client connects with sequence=0, the server streams all current
-//     running deployments and sentinels for the requested region, then sends a Bookmark
-//     message containing the current max sequence number.
+//     running deployments and sentinels for the requested region. Stream close signals
+//     bootstrap completion.
 //  2. Watch: After bootstrap (or when reconnecting with sequence>0), the server polls
 //     the state_changes table and streams incremental updates to the client.
 //
@@ -137,16 +137,6 @@ func findSentinelDelete(messages []*ctrlv1.State, k8sName string) *ctrlv1.Delete
 	return nil
 }
 
-// findBookmark finds the bookmark message in the stream.
-func findBookmark(messages []*ctrlv1.State) *ctrlv1.Bookmark {
-	for _, msg := range messages {
-		if bookmark := msg.GetBookmark(); bookmark != nil {
-			return bookmark
-		}
-	}
-	return nil
-}
-
 // countDeploymentApplies counts deployment apply messages.
 func countDeploymentApplies(messages []*ctrlv1.State) int {
 	count := 0
@@ -179,15 +169,14 @@ func countSentinelApplies(messages []*ctrlv1.State) int {
 //
 // Bootstrap tests verify the initial full state synchronization that occurs when
 // a krane agent first connects (with sequence=0). During bootstrap, the server
-// must stream ALL currently running resources for the requested region, then
-// send a Bookmark message with the current max sequence number.
+// streams ALL currently running resources for the requested region. Stream close
+// signals bootstrap completion.
 //
 // Guarantees tested:
 //   - All running deployments in the region are streamed
 //   - All running sentinels in the region are streamed
 //   - Archived/stopped resources are NOT streamed
-//   - A Bookmark is always sent after streaming all resources
-//   - Empty regions receive only a Bookmark (no resources)
+//   - Stream close signals completion
 // =============================================================================
 
 // TestSync_BootstrapStreamsDeploymentsAndVerifiesContent verifies that bootstrap
@@ -198,7 +187,6 @@ func countSentinelApplies(messages []*ctrlv1.State) int {
 // Guarantees:
 //   - The deployment is included in the bootstrap stream
 //   - The K8sName and Image fields are correctly populated
-//   - A Bookmark with a non-zero sequence is sent after the deployment
 //
 // This test validates the core bootstrap contract: all running resources must be
 // streamed to new clients so they can reconcile their local state.
@@ -243,11 +231,6 @@ func TestSync_BootstrapStreamsDeploymentsAndVerifiesContent(t *testing.T) {
 	require.NotNil(t, apply, "bootstrap should stream deployment apply")
 	require.Equal(t, dep.Deployment.K8sName, apply.GetK8SName())
 	require.Equal(t, "nginx:1.19", apply.GetImage())
-
-	// Verify bookmark was sent
-	bookmark := findBookmark(messages)
-	require.NotNil(t, bookmark, "bootstrap should send bookmark")
-	require.Greater(t, bookmark.GetSequence(), uint64(0), "bookmark should have non-zero sequence")
 }
 
 // TestSync_BootstrapStreamsSentinelsAndVerifiesContent verifies that bootstrap
@@ -258,7 +241,6 @@ func TestSync_BootstrapStreamsDeploymentsAndVerifiesContent(t *testing.T) {
 // Guarantees:
 //   - The sentinel is included in the bootstrap stream
 //   - The K8sName and Image fields are correctly populated
-//   - A Bookmark is sent after the sentinel
 //
 // This test mirrors the deployment test but for sentinels, ensuring both resource
 // types are handled correctly during bootstrap.
@@ -301,25 +283,20 @@ func TestSync_BootstrapStreamsSentinelsAndVerifiesContent(t *testing.T) {
 	require.NotNil(t, apply, "bootstrap should stream sentinel apply")
 	require.Equal(t, sentinel.K8sName, apply.GetK8SName())
 	require.Equal(t, "sentinel:1.0", apply.GetImage())
-
-	// Verify bookmark was sent
-	bookmark := findBookmark(messages)
-	require.NotNil(t, bookmark, "bootstrap should send bookmark")
 }
 
-// TestSync_BootstrapWithEmptyRegionSendsOnlyBookmark verifies that bootstrap
-// handles empty regions gracefully by sending only a Bookmark.
+// TestSync_BootstrapWithEmptyRegionSendsNothing verifies that bootstrap
+// handles empty regions gracefully by sending no messages.
 //
 // Scenario: A krane agent connects to sync a region with no deployments or sentinels.
 //
 // Guarantees:
-//   - Exactly one message is sent (the Bookmark)
-//   - The Bookmark sequence is 0 (no state changes exist for this region)
+//   - No messages are sent (stream closes immediately)
 //   - No deployment or sentinel apply messages are sent
 //
-// This edge case is critical for new regions or regions where all resources have
-// been deleted. The client must still receive a Bookmark to know bootstrap completed.
-func TestSync_BootstrapWithEmptyRegionSendsOnlyBookmark(t *testing.T) {
+// Empty regions result in an empty stream. The client stays at sequence=0 and
+// will poll again. In production, regions are never empty.
+func TestSync_BootstrapWithEmptyRegionSendsNothing(t *testing.T) {
 	h := New(t)
 	ctx := h.Context()
 
@@ -340,15 +317,8 @@ func TestSync_BootstrapWithEmptyRegionSendsOnlyBookmark(t *testing.T) {
 
 	messages := stream.Messages()
 
-	// Empty region should have exactly one message: the bookmark
-	require.Len(t, messages, 1, "empty region bootstrap should send exactly one message (bookmark)")
-
-	// The single message should be a bookmark
-	bookmark := findBookmark(messages)
-	require.NotNil(t, bookmark, "the only message should be a bookmark")
-
-	// Sequence is 0 since no state changes exist for this region
-	require.Equal(t, uint64(0), bookmark.GetSequence(), "empty region bookmark should have sequence 0")
+	// Empty region should have no messages
+	require.Len(t, messages, 0, "empty region bootstrap should send no messages")
 }
 
 // TestSync_BootstrapOnlyStreamsRunningResources verifies that bootstrap filters

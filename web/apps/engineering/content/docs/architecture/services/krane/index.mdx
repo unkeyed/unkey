@@ -7,38 +7,25 @@ import { Mermaid } from "@/app/components/mermaid";
 
 
 
-Krane is a Kubernetes cluster agent that follows a pull-based model similar to the Kubernetes kubelet. It connects to the control plane (ctrl) and maintains a long-lived streaming connection to receive deployment and sentinel configuration events. This architecture enables multi-cluster orchestration without the control plane needing direct access to individual clusters.
+Krane is a Kubernetes cluster agent that follows a pull-based model similar to the Kubernetes kubelet. It polls the control plane for state changes using a sequence-based synchronization protocol, applying changes to local Kubernetes resources. This architecture enables multi-cluster orchestration without requiring the control plane to track connected clients or push events.
 
-Krane pulls desired state from ctrl and ensures the actual cluster state matches. It handles deployment and sentinel lifecycle operations (create, update, delete) by translating high-level events into Kubernetes resources.
+Krane pulls desired state from ctrl and ensures the actual cluster state matches. It handles deployment and sentinel lifecycle operations (create, update, delete) by translating high-level state messages into Kubernetes resources.
 
 ## Architecture
 
 ### Pull-Based Model
 
-Krane implements a pull-based architecture where agents in each cluster:
+Krane implements a polling-based architecture where agents in each cluster connect to ctrl's ClusterService via the `Sync` RPC, which establishes a server-streaming connection. The control plane polls its `state_changes` table and streams new entries to connected agents. Krane processes each state change, applies it to Kubernetes, and updates its sequence watermark. On reconnection, Krane sends its last-seen sequence to resume incrementally without missing events.
 
-1. **Establish a Watch Stream**: Connect to ctrl's ClusterService and maintain a long-lived streaming connection
-2. **Pull Desired State**: Periodically sync the full desired state to ensure consistency
-3. **Receive Real-Time Events**: Get deployment and sentinel events pushed through the watch stream
-4. **Apply Changes Locally**: Translate events into Kubernetes resources
+This model eliminates the need for the control plane to track connected clients in memory, simplifying horizontal scaling and removing a class of connection state bugs.
 
-This model eliminates the need for the control plane to know about individual clusters, improving security and scalability.
+### Sequence-Based Synchronization
 
+The sync engine uses sequence numbers to track state changes. Every modification to deployments or sentinels is recorded in the `state_changes` table with a monotonically increasing sequence number per region. Krane maintains a `sequenceLastSeen` watermark and polls for changes after that sequence.
 
-### Event-Driven Synchronization
+On fresh start (sequence=0), Krane receives the complete desired state followed by a `Bookmark` message containing the current maximum sequence. After bootstrap, the stream switches to incremental mode, receiving only new changes as they occur.
 
-The sync engine (`sync/`) manages the connection to the control plane:
-
-1. **Watch Stream**: Maintains a persistent connection to receive real-time events
-2. **Pull Sync**: Periodically, pulls the complete desired state as a safety net
-3. **Event Buffer**: Queues events for processing with configurable capacity
-4. **Automatic Reconnection**: Handles connection failures with exponential backoff
-
-Events flow through the system:
-- Control plane emits `InfraEvent` messages containing `ApplyDeployment` or `DeleteDeployment`
-- Krane's sync engine receives and buffers these events
-- The deployment manager processes events and calls the appropriate backend
-- The backend translates events into platform-specific resources
+State changes are retained for 7 days. If Krane's last-seen sequence falls behind the retention window, it must perform a full bootstrap. This handles long disconnections gracefully while keeping storage bounded.
 
 ### Why StatefulSets Instead of Deployments?
 
@@ -63,12 +50,13 @@ This is a known design compromise. Future versions might move instance addressin
 
     User->>Ctrl: Create deployment request
     Ctrl->>DB: Store desired state
-    DB->>Ctrl: Acknowledged
+    Ctrl->>DB: Insert state_change(seq=N)
 
-    Note over Krane: Watch Stream Active
+    Note over Krane: Sync stream polling
 
-    Ctrl->>Krane: InfraEvent: ApplyDeployment
-    Note right of Krane: Event pushed through watch stream
+    Krane->>Ctrl: (poll for changes > seq)
+    Ctrl->>DB: Query state_changes
+    Ctrl->>Krane: State(seq=N, ApplyDeployment)
 
     Krane->>K8s: Create/Update Service
     K8s->>Krane: Service ready
@@ -79,13 +67,7 @@ This is a known design compromise. Future versions might move instance addressin
     K8s->>Pod: Pull image & start container
     Pod->>Pod: Container running
 
-    Note over Krane: Periodic sync (15 min)
-    
-    Krane->>Ctrl: GetDesiredState()
-    Ctrl->>DB: Query desired deployments
-    DB->>Ctrl: Return configurations
-    Ctrl->>Krane: Stream all ApplyDeployment events
-    Krane->>Krane: Reconcile actual vs desired
+    Note over Krane: sequenceLastSeen = N
 
 `} />
 
@@ -155,21 +137,18 @@ When querying deployments, Krane verifies the `unkey.managed.by` label matches `
 
 ### ClusterService API
 
-The control plane exposes a `ClusterService` with two key RPCs:
+The control plane exposes a `ClusterService` with these key RPCs:
 
-- **Watch**: Long-lived stream for real-time event delivery
-- **GetDesiredState**: Returns all current desired infrastructure configurations
+**Sync** establishes a server-streaming connection for receiving state changes. Krane sends its region and last-seen sequence number; the control plane streams bootstrap state (if sequence=0) followed by incremental changes. The control plane polls its `state_changes` table and streams new entries as they appear.
 
-### Event Distribution
+**GetDesiredDeploymentState** and **GetDesiredSentinelState** return the current desired state for a specific resource. Used for on-demand reconciliation when Kubernetes reports unexpected state.
 
-When deployment changes occur:
-1. Control plane stores the desired state in the database
-2. Emits events to all connected Krane agents matching the region selector
-3. Each Krane agent applies changes to its local cluster
+**UpdateDeploymentState** and **UpdateSentinelState** receive status updates from Krane about actual Kubernetes state (pod running, pod failed, etc.).
+
+### State Change Distribution
+
+When deployment changes occur, the control plane stores the desired state in the database and inserts a row into `state_changes` with the resource ID, operation type (upsert/delete), and region. Krane instances polling for that region receive the change on their next poll cycle. Each Krane instance independently applies changes to its local cluster.
 
 ### Multi-Region Support
 
-Krane agents connect with selectors (typically `region: aws-us-east-1`) to receive only relevant events. This enables:
-- Region-specific deployments
-- Cross-region failover capabilities
-- Isolated development environments
+The `state_changes` table is partitioned by region, so each Krane instance only receives changes relevant to its cluster. The control plane doesn't need to know which Krane instances exist or are connected; it simply writes changes to the database, and any Krane polling that region will receive them.

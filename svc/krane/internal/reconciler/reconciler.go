@@ -114,9 +114,6 @@ func (r *Reconciler) HandleState(ctx context.Context, state *ctrlv1.State) error
 				return err
 			}
 		}
-	case *ctrlv1.State_Bookmark:
-		sequence = kind.Bookmark.GetSequence()
-		r.logger.Info("received bookmark", "sequence", sequence)
 	default:
 		return fmt.Errorf("unknown state type: %T", kind)
 	}

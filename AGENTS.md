@@ -199,6 +199,21 @@ expect(res.status).toBe(200);
 
 **TypeScript** (`web/biome.json`): Enforces no unused variables/imports, strict equality, proper React hooks usage, and consistent code style.
 
+## Detailed Guidelines
+
+For comprehensive guidance, read these internal docs in `web/apps/engineering/content/docs/contributing/`:
+
+- **Code Style** (`code-style.mdx`): Design philosophy (safety > performance > DX), zero technical debt policy, assertions, error handling with `fault`, scope minimization, failure handling (circuit breakers, retry with backoff, idempotency)
+- **Documentation** (`documentation.mdx`): Document the "why" not the "what", use prose over bullets, match depth to complexity, verify behavior before documenting
+- **Testing** (`testing/`):
+  - `index.mdx` - What to test, test organization, resource cleanup
+  - `unit-tests.mdx` - Table-driven tests, naming, parallel execution, test clocks
+  - `integration-tests.mdx` - Docker containers, test harness, real dependencies
+  - `http-handler-tests.mdx` - API endpoint testing patterns
+  - `fuzz-tests.mdx` - Randomized input testing for parsers/validators
+  - `simulation-tests.mdx` - Property-based testing for stateful systems
+  - `anti-patterns.mdx` - Common mistakes (sleeping, over-mocking, shared state)
+
 ## Important Notes
 
 - Always run `make bazel` after adding new Go files

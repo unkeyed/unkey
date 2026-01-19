@@ -17,7 +17,6 @@
 // # Key Invariants
 //
 //   - sequenceLastSeen is updated to the highest sequence seen
-//   - Bookmark messages update sequenceLastSeen to their sequence value
 //   - Apply messages create/update Kubernetes resources
 //   - Delete messages remove Kubernetes resources
 package reconciler
@@ -198,17 +197,15 @@ func TestWatch_InitialSyncWithZeroSequence(t *testing.T) {
 // =============================================================================
 
 // TestWatch_ProcessesStreamMessages verifies that HandleState correctly
-// processes a deployment apply message and a bookmark.
+// processes deployment apply messages.
 //
-// Scenario: A stream contains a deployment apply (seq=10) followed by a
-// bookmark (seq=20).
+// Scenario: A stream contains two deployment apply messages (seq=10, seq=20).
 //
 // Guarantees:
 //   - The deployment is applied to Kubernetes (ReplicaSet is created)
-//   - sequenceLastSeen is updated to the bookmark's sequence (20)
+//   - sequenceLastSeen is updated to the highest sequence (20)
 //
-// This tests the basic happy path: apply a resource, then receive a bookmark
-// that marks the end of bootstrap.
+// This tests the basic happy path: apply resources and track sequence.
 func TestWatch_ProcessesStreamMessages(t *testing.T) {
 	client := fake.NewSimpleClientset()
 	rsCapture := AddReplicaSetPatchReactor(client)
@@ -241,9 +238,23 @@ func TestWatch_ProcessesStreamMessages(t *testing.T) {
 		},
 		{
 			Sequence: 20,
-			Kind: &ctrlv1.State_Bookmark{
-				Bookmark: &ctrlv1.Bookmark{
-					Sequence: 20,
+			Kind: &ctrlv1.State_Deployment{
+				Deployment: &ctrlv1.DeploymentState{
+					State: &ctrlv1.DeploymentState_Apply{
+						Apply: &ctrlv1.ApplyDeployment{
+							WorkspaceId:   "ws_1",
+							ProjectId:     "prj_1",
+							EnvironmentId: "env_1",
+							DeploymentId:  "dep_2",
+							K8SNamespace:  "test-ns",
+							K8SName:       "dep-2",
+							Image:         "nginx:1.20",
+							Replicas:      1,
+							CpuMillicores: 100,
+							MemoryMib:     128,
+							BuildId:       ptr.P("build_2"),
+						},
+					},
 				},
 			},
 		},
@@ -273,7 +284,7 @@ func TestWatch_ProcessesStreamMessages(t *testing.T) {
 	}
 
 	require.NotNil(t, rsCapture.Applied, "deployment should have been applied")
-	require.Equal(t, uint64(20), r.sequenceLastSeen, "sequence should be updated to bookmark value")
+	require.Equal(t, uint64(20), r.sequenceLastSeen, "sequence should be updated to highest value")
 }
 
 // TestWatch_IncrementalUpdates verifies that HandleState correctly processes
@@ -447,13 +458,12 @@ func TestWatch_SyncConnectionError(t *testing.T) {
 //   - Apply deployment (seq=10)
 //   - Apply sentinel (seq=20)
 //   - Delete deployment (seq=30)
-//   - Bookmark (seq=40)
 //
 // Guarantees:
 //   - Deployment is applied to Kubernetes (ReplicaSet created with correct name)
 //   - Sentinel is applied (as a k8s Deployment - captured separately)
 //   - Deployment delete is processed (ReplicaSet deleted)
-//   - sequenceLastSeen ends at 40 (the bookmark value)
+//   - sequenceLastSeen ends at 30 (the highest sequence)
 //
 // This is a comprehensive integration test of HandleState covering all major
 // message types in a realistic sequence.
@@ -528,14 +538,6 @@ func TestWatch_FullMessageProcessingFlow(t *testing.T) {
 				},
 			},
 		},
-		{
-			Sequence: 40,
-			Kind: &ctrlv1.State_Bookmark{
-				Bookmark: &ctrlv1.Bookmark{
-					Sequence: 40,
-				},
-			},
-		},
 	}
 
 	for _, msg := range messages {
@@ -548,5 +550,5 @@ func TestWatch_FullMessageProcessingFlow(t *testing.T) {
 
 	require.Contains(t, deletes.Actions, "replicasets", "deployment delete should have been processed")
 
-	require.Equal(t, uint64(40), r.sequenceLastSeen, "sequence should be updated to bookmark value")
+	require.Equal(t, uint64(30), r.sequenceLastSeen, "sequence should be updated to highest value")
 }
