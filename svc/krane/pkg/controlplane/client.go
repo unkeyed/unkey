@@ -48,6 +48,7 @@ func NewClient(cfg ClientConfig) ctrlv1connect.ClusterServiceClient {
 
 	// Use h2c (HTTP/2 cleartext) for non-TLS URLs, regular HTTP/2 for TLS
 	if strings.HasPrefix(cfg.URL, "http://") {
+		//nolint:exhaustruct
 		transport = &http2.Transport{
 			AllowHTTP: true,
 			DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
@@ -59,6 +60,7 @@ func NewClient(cfg ClientConfig) ctrlv1connect.ClusterServiceClient {
 			PingTimeout:     5 * time.Second,
 		}
 	} else {
+		//nolint:exhaustruct
 		transport = &http2.Transport{
 			ReadIdleTimeout: 10 * time.Second,
 			PingTimeout:     5 * time.Second,

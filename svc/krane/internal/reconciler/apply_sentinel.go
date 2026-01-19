@@ -63,7 +63,7 @@ func (r *Reconciler) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 		return err
 	}
 
-	health := ctrlv1.Health_HEALTH_UNSPECIFIED
+	var health ctrlv1.Health
 	if req.GetReplicas() == 0 {
 		health = ctrlv1.Health_HEALTH_PAUSED
 	} else if sentinel.Status.AvailableReplicas > 0 {

@@ -94,7 +94,9 @@ func (r *Reconciler) getDeploymentState(ctx context.Context, replicaset *appsv1.
 			}
 		case corev1.PodFailed:
 			instance.Status = ctrlv1.UpdateDeploymentStateRequest_Update_Instance_STATUS_FAILED
-		default:
+		case corev1.PodSucceeded:
+			instance.Status = ctrlv1.UpdateDeploymentStateRequest_Update_Instance_STATUS_RUNNING
+		case corev1.PodUnknown:
 			instance.Status = ctrlv1.UpdateDeploymentStateRequest_Update_Instance_STATUS_UNSPECIFIED
 		}
 

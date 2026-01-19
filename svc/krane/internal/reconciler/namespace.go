@@ -50,6 +50,8 @@ func (r *Reconciler) ensureNamespaceExists(ctx context.Context, namespace, works
 
 // applyCiliumPolicyForNamespace creates a CiliumNetworkPolicy that allows ingress
 // only from sentinels with matching workspace and environment IDs.
+//
+//nolint:exhaustruct
 func (r *Reconciler) applyCiliumPolicyForNamespace(ctx context.Context, namespace, workspaceID, environmentID string) error {
 	policy := &ciliumv2.CiliumNetworkPolicy{
 		TypeMeta: metav1.TypeMeta{

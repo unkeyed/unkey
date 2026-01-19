@@ -26,7 +26,7 @@ func (s *Service) UpdateSentinelState(ctx context.Context, req *connect.Request[
 		return nil, err
 	}
 
-	health := db.SentinelsHealthUnknown
+	var health db.SentinelsHealth
 	switch req.Msg.GetHealth() {
 	case ctrlv1.Health_HEALTH_HEALTHY:
 		health = db.SentinelsHealthHealthy
@@ -34,7 +34,7 @@ func (s *Service) UpdateSentinelState(ctx context.Context, req *connect.Request[
 		health = db.SentinelsHealthUnhealthy
 	case ctrlv1.Health_HEALTH_PAUSED:
 		health = db.SentinelsHealthPaused
-	default:
+	case ctrlv1.Health_HEALTH_UNSPECIFIED:
 		health = db.SentinelsHealthUnknown
 	}
 	err = db.Query.UpdateSentinelAvailableReplicasAndHealth(ctx, s.db.RW(), db.UpdateSentinelAvailableReplicasAndHealthParams{

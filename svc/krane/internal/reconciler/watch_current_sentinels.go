@@ -50,7 +50,7 @@ func (r *Reconciler) watchCurrentSentinels(ctx context.Context) error {
 					desiredReplicas = *sentinel.Spec.Replicas
 				}
 
-				health := ctrlv1.Health_HEALTH_UNSPECIFIED
+				var health ctrlv1.Health
 				if desiredReplicas == 0 {
 					health = ctrlv1.Health_HEALTH_PAUSED
 				} else if sentinel.Status.AvailableReplicas > 0 {
