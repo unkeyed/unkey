@@ -35,7 +35,6 @@ go_test(
         "//pkg/ptr",
         "//pkg/uid",
         "//svc/api/internal/testutil",
-        "//svc/api/internal/testutil/seed",
         "//svc/api/openapi",
         "@com_github_stretchr_testify//require",
     ],
