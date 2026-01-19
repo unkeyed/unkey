@@ -3,6 +3,7 @@ package deployment
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -154,6 +155,23 @@ func (s *Service) CreateDeployment(
 			"image", *dockerImage)
 	}
 
+	// Determine command: CLI override > project default > empty array
+	var commandJSON []byte
+	if len(req.Msg.GetCommand()) > 0 {
+		// CLI provided command override
+		commandJSON, err = json.Marshal(req.Msg.GetCommand())
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal,
+				fmt.Errorf("failed to serialize command: %w", err))
+		}
+	} else if len(project.Command) > 0 && string(project.Command) != "[]" {
+		// Use project's default command
+		commandJSON = project.Command
+	} else {
+		// No command specified, use empty array
+		commandJSON = []byte("[]")
+	}
+
 	// Insert deployment into database
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
 		ID:                            deploymentID,
@@ -164,6 +182,7 @@ func (s *Service) CreateDeployment(
 		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
 		SentinelConfig:                env.SentinelConfig,
 		EncryptedEnvironmentVariables: secretsBlob,
+		Command:                       commandJSON,
 		Status:                        db.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
@@ -203,6 +222,7 @@ func (s *Service) CreateDeployment(
 		DockerImage:      nil,
 		DeploymentId:     deploymentID,
 		KeyAuthId:        keySpaceID,
+		Command:          req.Msg.GetCommand(),
 	}
 
 	switch source := req.Msg.GetSource().(type) {

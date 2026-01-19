@@ -192,6 +192,7 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, buildContextP
 		KeyspaceId:      &c.opts.KeyspaceID,
 		Branch:          c.opts.Branch,
 		EnvironmentSlug: c.opts.Environment,
+		Command:         c.opts.Command,
 		GitCommit: &ctrlv1.GitCommitInfo{
 			CommitSha:       commitInfo.CommitSHA,
 			CommitMessage:   commitInfo.Message,

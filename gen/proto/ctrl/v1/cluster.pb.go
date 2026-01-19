@@ -1032,8 +1032,11 @@ type ApplyDeployment struct {
 	BuildId                       *string `protobuf:"bytes,11,opt,name=build_id,json=buildId,proto3,oneof" json:"build_id,omitempty"`
 	EncryptedEnvironmentVariables []byte  `protobuf:"bytes,12,opt,name=encrypted_environment_variables,json=encryptedEnvironmentVariables,proto3" json:"encrypted_environment_variables,omitempty"`
 	ReadinessId                   *string `protobuf:"bytes,13,opt,name=readiness_id,json=readinessId,proto3,oneof" json:"readiness_id,omitempty"`
-	unknownFields                 protoimpl.UnknownFields
-	sizeCache                     protoimpl.SizeCache
+	// command is the container command override (e.g., ["./app", "serve"]).
+	// If empty, the container's default entrypoint/cmd from the Dockerfile is used.
+	Command       []string `protobuf:"bytes,14,rep,name=command,proto3" json:"command,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ApplyDeployment) Reset() {
@@ -1155,6 +1158,13 @@ func (x *ApplyDeployment) GetReadinessId() string {
 		return *x.ReadinessId
 	}
 	return ""
+}
+
+func (x *ApplyDeployment) GetCommand() []string {
+	if x != nil {
+		return x.Command
+	}
+	return nil
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.
@@ -1460,7 +1470,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\n" +
 	"memory_mib\x18\t \x01(\x03R\tmemoryMib\"+\n" +
 	"\x0eDeleteSentinel\x12\x19\n" +
-	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\x85\x04\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\x9f\x04\n" +
 	"\x0fApplyDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
@@ -1477,7 +1487,8 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	" \x01(\x03R\tmemoryMib\x12\x1e\n" +
 	"\bbuild_id\x18\v \x01(\tH\x00R\abuildId\x88\x01\x01\x12F\n" +
 	"\x1fencrypted_environment_variables\x18\f \x01(\fR\x1dencryptedEnvironmentVariables\x12&\n" +
-	"\freadiness_id\x18\r \x01(\tH\x01R\vreadinessId\x88\x01\x01B\v\n" +
+	"\freadiness_id\x18\r \x01(\tH\x01R\vreadinessId\x88\x01\x01\x12\x18\n" +
+	"\acommand\x18\x0e \x03(\tR\acommandB\v\n" +
 	"\t_build_idB\x0f\n" +
 	"\r_readiness_id\"R\n" +
 	"\x10DeleteDeployment\x12#\n" +

@@ -231,6 +231,10 @@ message ApplyDeployment {
   optional string build_id = 11;
   bytes encrypted_environment_variables = 12;
   optional string readiness_id = 13;
+
+  // command is the container command override (e.g., ["./app", "serve"]).
+  // If empty, the container's default entrypoint/cmd from the Dockerfile is used.
+  repeated string command = 14;
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.

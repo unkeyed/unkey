@@ -97,7 +97,7 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 						Image:           req.GetImage(),
 						Name:            "deployment",
 						ImagePullPolicy: corev1.PullIfNotPresent,
-						Command:         []string{},
+						Command:         req.GetCommand(),
 						Env: []corev1.EnvVar{
 							{Name: "PORT", Value: strconv.Itoa(DeploymentPort)},
 							{Name: "UNKEY_WORKSPACE_ID", Value: req.GetWorkspaceId()},

@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 )
 
 const findProjectById = `-- name: FindProjectById :one
@@ -23,24 +24,26 @@ SELECT
     is_rolled_back,
     created_at,
     updated_at,
-    depot_project_id
+    depot_project_id,
+    command
 FROM projects
 WHERE id = ?
 `
 
 type FindProjectByIdRow struct {
-	ID               string         `db:"id"`
-	WorkspaceID      string         `db:"workspace_id"`
-	Name             string         `db:"name"`
-	Slug             string         `db:"slug"`
-	GitRepositoryUrl sql.NullString `db:"git_repository_url"`
-	DefaultBranch    sql.NullString `db:"default_branch"`
-	DeleteProtection sql.NullBool   `db:"delete_protection"`
-	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
-	IsRolledBack     bool           `db:"is_rolled_back"`
-	CreatedAt        int64          `db:"created_at"`
-	UpdatedAt        sql.NullInt64  `db:"updated_at"`
-	DepotProjectID   sql.NullString `db:"depot_project_id"`
+	ID               string          `db:"id"`
+	WorkspaceID      string          `db:"workspace_id"`
+	Name             string          `db:"name"`
+	Slug             string          `db:"slug"`
+	GitRepositoryUrl sql.NullString  `db:"git_repository_url"`
+	DefaultBranch    sql.NullString  `db:"default_branch"`
+	DeleteProtection sql.NullBool    `db:"delete_protection"`
+	LiveDeploymentID sql.NullString  `db:"live_deployment_id"`
+	IsRolledBack     bool            `db:"is_rolled_back"`
+	CreatedAt        int64           `db:"created_at"`
+	UpdatedAt        sql.NullInt64   `db:"updated_at"`
+	DepotProjectID   sql.NullString  `db:"depot_project_id"`
+	Command          json.RawMessage `db:"command"`
 }
 
 // FindProjectById
@@ -57,7 +60,8 @@ type FindProjectByIdRow struct {
 //	    is_rolled_back,
 //	    created_at,
 //	    updated_at,
-//	    depot_project_id
+//	    depot_project_id,
+//	    command
 //	FROM projects
 //	WHERE id = ?
 func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (FindProjectByIdRow, error) {
@@ -76,6 +80,7 @@ func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (Find
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DepotProjectID,
+		&i.Command,
 	)
 	return i, err
 }
