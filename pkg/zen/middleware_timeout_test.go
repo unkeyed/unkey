@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
@@ -26,9 +27,7 @@ func TestWithTimeout(t *testing.T) {
 
 		ctx := context.Background()
 		err := handler(ctx, &Session{})
-		if err != nil {
-			t.Errorf("expected no error, got: %v", err)
-		}
+		require.Equal(t, nil, err)
 	})
 
 	t.Run("server timeout creates timeout error", func(t *testing.T) {
@@ -57,9 +56,7 @@ func TestWithTimeout(t *testing.T) {
 			t.Fatal("expected error to have a code")
 		}
 
-		if urn != codes.User.BadRequest.RequestTimeout.URN() {
-			t.Errorf("expected RequestTimeout error, got: %s", urn)
-		}
+		require.Equal(t, codes.User.BadRequest.RequestTimeout.URN(), urn)
 	})
 
 	t.Run("client cancellation creates client closed error", func(t *testing.T) {
@@ -94,9 +91,7 @@ func TestWithTimeout(t *testing.T) {
 			t.Fatal("expected error to have a code")
 		}
 
-		if urn != codes.User.BadRequest.ClientClosedRequest.URN() {
-			t.Errorf("expected ClientClosedRequest error, got: %s", urn)
-		}
+		require.Equal(t, codes.User.BadRequest.ClientClosedRequest.URN(), urn)
 	})
 
 	t.Run("non-timeout errors pass through unchanged", func(t *testing.T) {
@@ -110,9 +105,7 @@ func TestWithTimeout(t *testing.T) {
 		ctx := context.Background()
 		err := handler(ctx, &Session{})
 
-		if err != originalErr {
-			t.Errorf("expected original error to pass through, got: %v", err)
-		}
+		require.Equal(t, originalErr, err)
 	})
 
 	t.Run("uses default timeout when zero timeout provided", func(t *testing.T) {
@@ -125,9 +118,7 @@ func TestWithTimeout(t *testing.T) {
 
 		ctx := context.Background()
 		err := handler(ctx, &Session{})
-		if err != nil {
-			t.Errorf("expected no error, got: %v", err)
-		}
+		require.Equal(t, nil, err)
 	})
 }
 
@@ -167,9 +158,7 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 		server.Mux().ServeHTTP(recorder, req)
 
 		// Check the response
-		if recorder.Code != http.StatusRequestTimeout {
-			t.Errorf("expected status 408, got %d", recorder.Code)
-		}
+		require.Equal(t, http.StatusRequestTimeout, recorder.Code)
 
 		// Parse the response body to verify the error structure
 		var response openapi.BadRequestErrorResponse
@@ -177,13 +166,8 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 			t.Fatalf("failed to parse response: %v", err)
 		}
 
-		if response.Error.Title != "Request Timeout" {
-			t.Errorf("expected title 'Request Timeout', got '%s'", response.Error.Title)
-		}
-
-		if response.Error.Status != http.StatusRequestTimeout {
-			t.Errorf("expected status 408 in response body, got %d", response.Error.Status)
-		}
+		require.Equal(t, "Request Timeout", response.Error.Title)
+		require.Equal(t, http.StatusRequestTimeout, response.Error.Status)
 	})
 
 	t.Run("client cancellation returns proper HTTP 499 response", func(t *testing.T) {
@@ -226,9 +210,7 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 		server.Mux().ServeHTTP(recorder, req)
 
 		// Check the response - should be 499 (Client Closed Request)
-		if recorder.Code != 499 {
-			t.Errorf("expected status 499, got %d", recorder.Code)
-		}
+		require.Equal(t, 499, recorder.Code)
 
 		// Parse the response body to verify the error structure
 		var response map[string]any
@@ -237,13 +219,8 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 		}
 
 		errorObj := response["error"].(map[string]any)
-		if errorObj["title"] != "Client Closed Request" {
-			t.Errorf("expected title 'Client Closed Request', got '%v'", errorObj["title"])
-		}
-
-		if int(errorObj["status"].(float64)) != 499 {
-			t.Errorf("expected status 499 in response body, got %v", errorObj["status"])
-		}
+		require.Equal(t, "Client Closed Request", errorObj["title"])
+		require.Equal(t, 499, int(errorObj["status"].(float64)))
 	})
 
 	t.Run("successful request works normally with both middlewares", func(t *testing.T) {
@@ -272,9 +249,7 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 		server.Mux().ServeHTTP(recorder, req)
 
 		// Check the response
-		if recorder.Code != http.StatusOK {
-			t.Errorf("expected status 200, got %d", recorder.Code)
-		}
+		require.Equal(t, http.StatusOK, recorder.Code)
 
 		// Verify the response body
 		var response map[string]string
@@ -282,8 +257,6 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 			t.Fatalf("failed to parse response: %v", err)
 		}
 
-		if response["message"] != "success" {
-			t.Errorf("expected message 'success', got '%s'", response["message"])
-		}
+		require.Equal(t, "success", response["message"])
 	})
 }
