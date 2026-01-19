@@ -6,9 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_get_deployment"
 )
 
@@ -23,22 +21,14 @@ func TestNotFound(t *testing.T) {
 	}
 	h.Register(route)
 
-	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID)
-
-	projectID := uid.New(uid.ProjectPrefix)
-
-	h.CreateProject(seed.CreateProjectRequest{
-		WorkspaceID: workspace.ID,
-		Name:        "test-project",
-		ID:          projectID,
-		Slug:        "production",
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"project.*.read_deployment"},
 	})
 
 	t.Run("deployment not found", func(t *testing.T) {
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			"Authorization": {fmt.Sprintf("Bearer %s", setup.RootKey)},
 		}
 
 		req := handler.Request{

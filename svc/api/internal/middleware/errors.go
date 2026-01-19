@@ -45,6 +45,7 @@ func WithErrorHandling(logger logging.Logger) zen.Middleware {
 				codes.UnkeyDataErrorsMigrationNotFound,
 				codes.UnkeyDataErrorsKeySpaceNotFound,
 				codes.UnkeyDataErrorsPermissionNotFound,
+				codes.UnkeyDataErrorsProjectNotFound,
 				codes.UnkeyDataErrorsRoleNotFound,
 				codes.UnkeyDataErrorsKeyAuthNotFound,
 				codes.UnkeyDataErrorsRatelimitNamespaceNotFound,
