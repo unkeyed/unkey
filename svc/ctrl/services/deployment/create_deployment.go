@@ -65,17 +65,21 @@ func (s *Service) CreateDeployment(
 			fmt.Errorf("failed to fetch environment variables: %w", err))
 	}
 
-	secretsConfig := &ctrlv1.SecretsConfig{
-		Secrets: make(map[string]string, len(envVars)),
-	}
-	for _, ev := range envVars {
-		secretsConfig.Secrets[ev.Key] = ev.Value
-	}
+	var secretsBlob []byte
+	if len(envVars) > 0 {
+		secretsConfig := &ctrlv1.SecretsConfig{
+			Secrets: make(map[string]string, len(envVars)),
+		}
+		for _, ev := range envVars {
+			secretsConfig.Secrets[ev.Key] = ev.Value
+		}
 
-	secretsBlob, err := protojson.Marshal(secretsConfig)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to marshal secrets config: %w", err))
+		var err error
+		secretsBlob, err = protojson.Marshal(secretsConfig)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal,
+				fmt.Errorf("failed to marshal secrets config: %w", err))
+		}
 	}
 	// Get git branch name for the deployment
 	gitBranch := req.Msg.GetBranch()
