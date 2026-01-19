@@ -89,7 +89,7 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	encryptResp, err := vaultService.Encrypt(ctx, &vaultv1.EncryptRequest{
-		Keyring: "unkey",
+		Keyring: "unkey_internal",
 		Data:    string(keyPEM),
 	})
 	if err != nil {
