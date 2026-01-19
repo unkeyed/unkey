@@ -24,8 +24,10 @@ func run(ctx context.Context, cfg config) error {
 	// Clear sensitive UNKEY_* env vars first, before setting user secrets.
 	// This prevents leaking config like UNKEY_TOKEN to the child process,
 	// while allowing users to have secrets named UNKEY_* if they want.
-	clearSensitiveEnvVars()
-
+	err := clearSensitiveEnvVars()
+	if err != nil {
+		return fmt.Errorf("failed to clear env vars: %w", err)
+	}
 	if cfg.hasSecrets() {
 		secrets, err := fetchSecrets(ctx, cfg)
 		if err != nil {
@@ -78,13 +80,17 @@ func fetchSecrets(ctx context.Context, cfg config) (map[string]string, error) {
 	return secrets, nil
 }
 
-func clearSensitiveEnvVars() {
+func clearSensitiveEnvVars() error {
 	for _, env := range os.Environ() {
 		name, _, _ := strings.Cut(env, "=")
 		if strings.HasPrefix(name, "UNKEY_") && !allowedUnkeyVars[name] {
-			os.Unsetenv(name)
+			err := os.Unsetenv(name)
+			if err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 func execCommand(args []string, logger logging.Logger) error {

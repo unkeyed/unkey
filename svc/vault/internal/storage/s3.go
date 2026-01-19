@@ -101,7 +101,7 @@ func (s *s3) GetObject(ctx context.Context, key string) ([]byte, bool, error) {
 		}
 		return nil, false, fmt.Errorf("failed to get object: %w", err)
 	}
-	defer o.Body.Close()
+	defer func() { _ = o.Body.Close() }()
 	b, err := io.ReadAll(o.Body)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to read object: %w", err)

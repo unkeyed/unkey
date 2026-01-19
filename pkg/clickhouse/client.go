@@ -311,7 +311,7 @@ func (c *clickhouse) QueryToMaps(ctx context.Context, query string, args ...any)
 	if err != nil {
 		return nil, WrapClickHouseError(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	columns := rows.Columns()
 	results := make([]map[string]any, 0)

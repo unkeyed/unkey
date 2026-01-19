@@ -36,7 +36,7 @@ func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 
 	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err)
-	defer topic.Close()
+	defer func() { require.NoError(t, topic.Close()) }()
 
 	// Wait for topic to be fully created in Kafka
 	waitCtx, waitCancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -47,7 +47,7 @@ func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 	// Create dispatcher (one per process in production)
 	dispatcher, err := clustering.NewInvalidationDispatcher(topic, logger)
 	require.NoError(t, err)
-	defer dispatcher.Close()
+	defer func() { require.NoError(t, dispatcher.Close()) }()
 
 	// Wait for dispatcher's consumer to be ready
 	time.Sleep(5 * time.Second)

@@ -178,7 +178,7 @@ The question is not "is this useful?" but "is the value worth the cost?"
 
 These rules are enforced through multiple layers.
 
-Automated checks catch many issues. We use golangci-lint with strict configuration for Go, Biome for TypeScript, and CI checks run on every PR.
+Automated checks catch many issues. We use linters with strict configuration for Go, Biome for TypeScript, and CI checks run on every PR.
 
 Code reviewers should verify that loops are bounded or justified, timeouts are explicit on external calls, errors are handled not ignored, invariants are asserted at boundaries, variable names are clear with units where applicable, and new dependencies are truly necessary.
 
