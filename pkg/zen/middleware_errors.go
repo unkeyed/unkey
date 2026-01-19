@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-// withTestErrorHandling returns a lightweight error handler exclusively for testing.
+// withErrorHandling returns a lightweight error handler exclusively for testing.
 // only handles the specific error codes that zen package tests need to verify.
 func withErrorHandling(logger logging.Logger) Middleware {
 	return func(next HandleFunc) HandleFunc {
