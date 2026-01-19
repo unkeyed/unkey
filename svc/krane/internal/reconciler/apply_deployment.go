@@ -2,6 +2,7 @@ package reconciler
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -98,14 +99,7 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 						Name:            "deployment",
 						ImagePullPolicy: corev1.PullIfNotPresent,
 						Command:         req.GetCommand(),
-						Env: []corev1.EnvVar{
-							{Name: "PORT", Value: strconv.Itoa(DeploymentPort)},
-							{Name: "UNKEY_WORKSPACE_ID", Value: req.GetWorkspaceId()},
-							{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
-							{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
-							{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
-							{Name: "UNKEY_ENCRYPTED_ENV", Value: string(req.GetEncryptedEnvironmentVariables())},
-						},
+						Env:             buildDeploymentEnv(req),
 
 						Ports: []corev1.ContainerPort{{
 							ContainerPort: DeploymentPort,
@@ -158,4 +152,23 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 	}
 
 	return nil
+}
+
+func buildDeploymentEnv(req *ctrlv1.ApplyDeploymentRequest) []corev1.EnvVar {
+	env := []corev1.EnvVar{
+		{Name: "PORT", Value: strconv.Itoa(DeploymentPort)},
+		{Name: "UNKEY_WORKSPACE_ID", Value: req.GetWorkspaceId()},
+		{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
+		{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
+		{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
+	}
+
+	if len(req.GetEncryptedEnvironmentVariables()) > 0 {
+		env = append(env, corev1.EnvVar{
+			Name:  "UNKEY_ENCRYPTED_ENV",
+			Value: base64.StdEncoding.EncodeToString(req.GetEncryptedEnvironmentVariables()),
+		})
+	}
+
+	return env
 }

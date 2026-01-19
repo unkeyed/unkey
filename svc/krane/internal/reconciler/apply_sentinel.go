@@ -156,13 +156,13 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 							{Name: "UNKEY_ENVIRONMENT_ID", Value: sentinel.GetEnvironmentId()},
 							{Name: "UNKEY_SENTINEL_ID", Value: sentinel.GetSentinelId()},
 							{Name: "UNKEY_REGION", Value: r.region},
-							{Name: "DEBUG", Value: "true"},
 						},
 
 						Ports: []corev1.ContainerPort{{
 							ContainerPort: SentinelPort,
 							Name:          "sentinel",
 						}},
+
 						LivenessProbe: &corev1.Probe{
 							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
@@ -175,6 +175,7 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 							TimeoutSeconds:      5,
 							FailureThreshold:    3,
 						},
+
 						ReadinessProbe: &corev1.Probe{
 							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
@@ -187,6 +188,7 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 							TimeoutSeconds:      3,
 							FailureThreshold:    2,
 						},
+
 						Resources: corev1.ResourceRequirements{
 							// nolint:exhaustive
 							//	Limits: corev1.ResourceList{
