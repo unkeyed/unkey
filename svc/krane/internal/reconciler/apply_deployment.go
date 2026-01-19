@@ -104,6 +104,7 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 							{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
 							{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
 							{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
+							{Name: "UNKEY_ENCRYPTED_ENV", Value: string(req.GetEncryptedEnvironmentVariables())},
 						},
 
 						Ports: []corev1.ContainerPort{{
