@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 )
 
 const insertDeployment = `-- name: InsertDeployment :exec
@@ -72,7 +73,7 @@ type InsertDeploymentParams struct {
 	GitCommitTimestamp            sql.NullInt64     `db:"git_commit_timestamp"`
 	OpenapiSpec                   sql.NullString    `db:"openapi_spec"`
 	EncryptedEnvironmentVariables []byte            `db:"encrypted_environment_variables"`
-	Command                       []byte            `db:"command"`
+	Command                       json.RawMessage   `db:"command"`
 	Status                        DeploymentsStatus `db:"status"`
 	CpuMillicores                 int32             `db:"cpu_millicores"`
 	MemoryMib                     int32             `db:"memory_mib"`

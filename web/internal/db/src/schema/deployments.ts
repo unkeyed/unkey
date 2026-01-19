@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   bigint,
   index,
@@ -62,8 +62,8 @@ export const deployments = mysqlTable(
     encryptedEnvironmentVariables: longblob("encrypted_environment_variables").notNull(),
 
     // Container command override (e.g., ["./app", "serve"])
-    // If null, the container's default entrypoint/cmd is used
-    command: json("command").$type<string[]>(),
+    // If empty, the container's default entrypoint/cmd is used
+    command: json("command").$type<string[]>().notNull().default(sql`('[]')`),
 
     // Deployment status
     status: mysqlEnum("status", ["pending", "building", "deploying", "network", "ready", "failed"])

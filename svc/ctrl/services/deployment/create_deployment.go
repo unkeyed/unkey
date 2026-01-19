@@ -155,15 +155,21 @@ func (s *Service) CreateDeployment(
 			"image", *dockerImage)
 	}
 
-	// Serialize command to JSON for DB storage (nil if no command specified)
+	// Determine command: CLI override > project default > empty array
 	var commandJSON []byte
 	if len(req.Msg.GetCommand()) > 0 {
-		var err error
+		// CLI provided command override
 		commandJSON, err = json.Marshal(req.Msg.GetCommand())
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal,
 				fmt.Errorf("failed to serialize command: %w", err))
 		}
+	} else if len(project.Command) > 0 && string(project.Command) != "[]" {
+		// Use project's default command
+		commandJSON = project.Command
+	} else {
+		// No command specified, use empty array
+		commandJSON = []byte("[]")
 	}
 
 	// Insert deployment into database

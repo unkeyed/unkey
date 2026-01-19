@@ -813,7 +813,8 @@ type Querier interface {
 	//      is_rolled_back,
 	//      created_at,
 	//      updated_at,
-	//      depot_project_id
+	//      depot_project_id,
+	//      command
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (FindProjectByIdRow, error)
