@@ -88,10 +88,11 @@ func (s *Service) DecryptSecretsBlob(
 		"environment_id", environmentID,
 	)
 
-	_, err := s.tokenValidator.Validate(ctx, requestToken, deploymentID)
+	_, err := s.tokenValidator.Validate(ctx, requestToken, deploymentID, environmentID)
 	if err != nil {
 		s.logger.Warn("token validation failed",
 			"deployment_id", deploymentID,
+			"environment_id", environmentID,
 			"error", err,
 		)
 		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("invalid or expired token: %w", err))

@@ -30,7 +30,7 @@ kind: CiliumClusterwideNetworkPolicy
 metadata:
   name: customer-allow-egress
 spec:
-  description: "Allow customer pods to reach DNS and external internet"
+  description: "Allow customer pods to reach DNS, external internet, and Krane for secret decryption"
   endpointSelector:
     matchLabels:
       app.kubernetes.io/managed-by: krane
@@ -45,6 +45,15 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
+    # Krane for secret decryption (DecryptSecretsBlob RPC)
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: unkey
+            app: krane
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
     # External internet access
     - toEntities:
         - world
@@ -85,6 +94,28 @@ spec:
       app.kubernetes.io/component: sentinel
   egress:
     - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/managed-by: krane
+            app.kubernetes.io/component: deployment
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
+# 6. Allow customer pods to reach Krane for secret decryption
+# Customer pods need to call Krane's DecryptSecretsBlob RPC during init (inject container)
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: allow-customer-to-krane-decrypt
+spec:
+  description: "Allow customer pods to reach Krane for secret decryption"
+  endpointSelector:
+    matchLabels:
+      io.kubernetes.pod.namespace: unkey
+      app: krane
+  ingress:
+    - fromEndpoints:
         - matchLabels:
             app.kubernetes.io/managed-by: krane
             app.kubernetes.io/component: deployment
