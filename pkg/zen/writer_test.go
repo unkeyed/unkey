@@ -12,13 +12,13 @@ import (
 // mockResponseWriter implements http.ResponseWriter with optional Flusher, Hijacker, and Pusher support.
 type mockResponseWriter struct {
 	http.ResponseWriter
-	flushed      bool
-	hijacked     bool
-	pushed       bool
-	pushTarget   string
-	supportFlush bool
+	flushed       bool
+	hijacked      bool
+	pushed        bool
+	pushTarget    string
+	supportFlush  bool
 	supportHijack bool
-	supportPush  bool
+	supportPush   bool
 }
 
 func (m *mockResponseWriter) Flush() {
