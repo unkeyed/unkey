@@ -35,9 +35,9 @@ type Config struct {
 	// Region is the current frontline region
 	Region string
 
-	// BaseDomain is the base domain for remote NLB routing (e.g., "unkey.cloud")
-	// Routes to frontline.{region}.{BaseDomain} (e.g., frontline.us-east-1.aws.unkey.cloud)
-	BaseDomain string
+	// ApexDomain is the apex domain for remote NLB routing (e.g., "unkey.cloud")
+	// Routes to frontline.{region}.{ApexDomain} (e.g., frontline.us-east-1.aws.unkey.cloud)
+	ApexDomain string
 
 	// Clock for time tracking
 	Clock clock.Clock

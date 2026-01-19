@@ -181,7 +181,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:      logger,
 		FrontlineID: cfg.FrontlineID,
 		Region:      cfg.Region,
-		BaseDomain:  cfg.BaseDomain,
+		ApexDomain:  cfg.ApexDomain,
 		Clock:       clk,
 		MaxHops:     cfg.MaxHops,
 		// Use defaults for transport settings (200 max idle conns, 90s timeout, etc.)
@@ -287,7 +287,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}()
 	}
 
-	logger.Info("Frontline server initialized", "region", cfg.Region, "baseDomain", cfg.BaseDomain)
+	logger.Info("Frontline server initialized", "region", cfg.Region, "apexDomain", cfg.ApexDomain)
 
 	// Wait for either OS signals or context cancellation, then shutdown
 	if err := shutdowns.WaitForSignal(ctx, 0); err != nil {

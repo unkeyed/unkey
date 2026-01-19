@@ -76,12 +76,12 @@ Domain to use for fallback TLS certificate when a domain has no cert configured
 - **Environment:** `UNKEY_DEFAULT_CERT_DOMAIN`
 </Callout>
 
-<Callout type="info" title="--base-domain">
-Base domain for region routing. Cross-region requests forwarded to `frontline.\{region\}.\{base-domain\}`. Example: `frontline.us-east-1.aws.unkey.cloud`
+<Callout type="info" title="--apex-domain">
+Apex domain for region routing. Cross-region requests forwarded to `frontline.\{region\}.\{apex-domain\}`. Example: `frontline.us-east-1.aws.unkey.cloud`
 
 - **Type:** string
 - **Default:** `"unkey.cloud"`
-- **Environment:** `UNKEY_BASE_DOMAIN`
+- **Environment:** `UNKEY_APEX_DOMAIN`
 </Callout>
 
 <Callout type="info" title="--database-primary (required)">
@@ -188,7 +188,7 @@ Generate and use self-signed certificate for *.unkey.local if it doesn't exist
 ```bash
 unkey run frontline \
   --region=us-east-1 \
-  --base-domain=unkey.cloud \
+  --apex-domain=unkey.cloud \
   --database-primary="user:pass@db.us-east-1:3306/partition_001?parseTime=true" \
   --spire-enabled=true \
   --otel=true \

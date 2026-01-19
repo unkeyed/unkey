@@ -40,8 +40,8 @@ var Cmd = &cli.Command{
 		cli.String("default-cert-domain", "Domain to use for fallback TLS certificate when a domain has no cert configured",
 			cli.EnvVar("UNKEY_DEFAULT_CERT_DOMAIN")),
 
-		cli.String("base-domain", "Base domain for region routing. Cross-region requests forwarded to frontline.{region}.{base-domain}. Example: unkey.cloud",
-			cli.Default("unkey.cloud"), cli.EnvVar("UNKEY_BASE_DOMAIN")),
+		cli.String("apex-domain", "Apex domain for region routing. Cross-region requests forwarded to frontline.{region}.{apex-domain}. Example: unkey.cloud",
+			cli.Default("unkey.cloud"), cli.EnvVar("UNKEY_APEX_DOMAIN")),
 
 		// Database Configuration - Partitioned (for hostname lookups)
 		cli.String("database-primary", "MySQL connection string for partitioned primary database (frontline operations). Required. Example: user:pass@host:3306/unkey?parseTime=true",
@@ -102,7 +102,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// TLS configuration
 		EnableTLS:  cmd.Bool("tls-enabled"),
-		BaseDomain: cmd.String("base-domain"),
+		ApexDomain: cmd.String("apex-domain"),
 		MaxHops:    cmd.Int("max-hops"),
 
 		// Control Plane Configuration

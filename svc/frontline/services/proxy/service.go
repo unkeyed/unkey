@@ -23,7 +23,7 @@ type service struct {
 	logger       logging.Logger
 	frontlineID  string
 	region       string
-	baseDomain   string
+	apexDomain   string
 	clock        clock.Clock
 	transport    *http.Transport
 	h2cTransport *http2.Transport
@@ -96,7 +96,7 @@ func New(cfg Config) (*service, error) {
 		logger:       cfg.Logger,
 		frontlineID:  cfg.FrontlineID,
 		region:       cfg.Region,
-		baseDomain:   cfg.BaseDomain,
+		apexDomain:   cfg.ApexDomain,
 		clock:        cfg.Clock,
 		transport:    transport,
 		h2cTransport: h2cTransport,
@@ -143,7 +143,7 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 		}
 	}
 
-	targetURL, err := url.Parse(fmt.Sprintf("https://frontline.%s.%s", targetRegion, s.baseDomain))
+	targetURL, err := url.Parse(fmt.Sprintf("https://frontline.%s.%s", targetRegion, s.apexDomain))
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
