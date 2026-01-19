@@ -37,10 +37,10 @@ func TestNotFound(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusInternalServerError, res.Status, "expected 500, received: %s", res.RawBody)
+		require.Equal(t, http.StatusNotFound, res.Status, "expected 400, received: %s", res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/project_not_found", res.Body.Error.Type)
-		require.Equal(t, http.StatusInternalServerError, res.Body.Error.Status)
+		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "The requested project does not exist or has been deleted.", res.Body.Error.Detail)
 	})
 }
