@@ -154,7 +154,7 @@ func (r *Reconciler) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 	return nil
 }
 
-func buildDeploymentEnv(req *ctrlv1.ApplyDeploymentRequest) []corev1.EnvVar {
+func buildDeploymentEnv(req *ctrlv1.ApplyDeployment) []corev1.EnvVar {
 	env := []corev1.EnvVar{
 		{Name: "PORT", Value: strconv.Itoa(DeploymentPort)},
 		{Name: "UNKEY_WORKSPACE_ID", Value: req.GetWorkspaceId()},

@@ -132,6 +132,7 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 						Name:            "sentinel",
 						ImagePullPolicy: corev1.PullIfNotPresent,
 						Args:            []string{"run", "sentinel"},
+
 						EnvFrom: []corev1.EnvFromSource{
 							{
 								SecretRef: &corev1.SecretEnvSource{
@@ -149,6 +150,7 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 								},
 							},
 						},
+
 						Env: []corev1.EnvVar{
 							{Name: "UNKEY_HTTP_PORT", Value: strconv.Itoa(SentinelPort)},
 							{Name: "UNKEY_WORKSPACE_ID", Value: sentinel.GetWorkspaceId()},
