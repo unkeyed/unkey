@@ -15,8 +15,6 @@ import (
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"github.com/unkeyed/sdks/api/go/v2/models/operations"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/git"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -65,12 +63,11 @@ func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
 
 // UploadBuildContext uploads the build context to S3 and returns the context key
 func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath string) (string, error) {
-	// Call SDK method with proper parameters
 	res, err := c.sdk.Internal.GenerateUploadURL(ctx, components.V2DeployGenerateUploadURLRequestBody{
 		ProjectID: c.opts.ProjectID,
 	})
 	if err != nil {
-		return "", c.wrapAPIError(err, "generate upload URL")
+		return "", err
 	}
 
 	// Extract response data
@@ -85,7 +82,7 @@ func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath
 		return "", fmt.Errorf("empty upload URL or context key returned")
 	}
 
-	// Create and upload tar (existing logic remains unchanged)
+	// Create and upload tar
 	tarPath, err := createContextTar(contextPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to create tar archive: %w", err)
@@ -253,7 +250,7 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, buildContextP
 
 	res, err := c.sdk.Internal.CreateDeployment(ctx, reqBody)
 	if err != nil {
-		return "", c.wrapAPIError(err, "create deployment")
+		return "", err
 	}
 
 	if res.V2DeployCreateDeploymentResponseBody == nil {
@@ -274,7 +271,7 @@ func (c *ControlPlaneClient) GetDeployment(ctx context.Context, deploymentID str
 		DeploymentID: deploymentID,
 	})
 	if err != nil {
-		return nil, c.wrapAPIError(err, "get deployment")
+		return nil, err
 	}
 
 	if res.V2DeployGetDeploymentResponseBody == nil {
@@ -392,39 +389,4 @@ func (c *ControlPlaneClient) getFailureMessage(deployment *ctrlv1.Deployment) st
 	}
 
 	return "Unknown deployment error"
-}
-
-func (c *ControlPlaneClient) wrapAPIError(err error, operation string) error {
-	errMsg := err.Error()
-
-	if strings.Contains(errMsg, "401") || strings.Contains(errMsg, "Unauthorized") {
-		return fault.Wrap(err,
-			fault.Code(codes.UnkeyAuthErrorsAuthenticationMalformed),
-			fault.Internal(fmt.Sprintf("%s failed: invalid or missing root key", operation)),
-			fault.Public("Authentication failed. Check your UNKEY_ROOT_KEY."),
-		)
-	}
-
-	if strings.Contains(errMsg, "403") || strings.Contains(errMsg, "Forbidden") {
-		return fault.Wrap(err,
-			fault.Code(codes.UnkeyAuthErrorsAuthorizationInsufficientPermissions),
-			fault.Internal(fmt.Sprintf("%s failed: insufficient permissions", operation)),
-			fault.Public("Permission denied. Root key must have project.*.create_deployment, project.*.generate_upload_url, and project.*.read_deployment permissions."),
-		)
-	}
-
-	if strings.Contains(errMsg, "404") || strings.Contains(errMsg, "Not Found") {
-		return fault.Wrap(err,
-			fault.Code(codes.Data.Project.NotFound.URN()),
-			fault.Internal(fmt.Sprintf("%s failed: resource not found", operation)),
-			fault.Public("The requested resource does not exist."),
-		)
-	}
-
-	// Generic fallback
-	return fault.Wrap(err,
-		fault.Code(codes.UnkeyAppErrorsInternalUnexpectedError),
-		fault.Internal(fmt.Sprintf("%s failed: %v", operation, err)),
-		fault.Public("An unexpected error occurred. Please try again."),
-	)
 }
