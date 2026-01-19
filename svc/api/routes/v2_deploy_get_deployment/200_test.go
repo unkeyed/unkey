@@ -26,7 +26,9 @@ func TestGetDeploymentSuccessfully(t *testing.T) {
 	h.Register(route)
 
 	t.Run("get existing deployment successfully", func(t *testing.T) {
-		setup := h.CreateTestDeploymentSetup()
+		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+			Permissions: []string{"project.*.create_deployment", "project.*.read_deployment"},
+		})
 
 		deploymentID := createTestDeployment(t, h.CtrlDeploymentClient, setup.Project.ID, setup.RootKey)
 
@@ -52,6 +54,78 @@ func TestGetDeploymentSuccessfully(t *testing.T) {
 		require.NotEmpty(t, res.Body.Data.Status)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
+}
+
+func TestGetDeploymentWithWildcardPermission(t *testing.T) {
+	t.Parallel()
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		Logger:     h.Logger,
+		DB:         h.DB,
+		Keys:       h.Keys,
+		CtrlClient: h.CtrlDeploymentClient,
+	}
+	h.Register(route)
+
+	// Create setup with create_deployment permission to create a test deployment
+	setupCreate := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"project.*.create_deployment"},
+	})
+
+	deploymentID := createTestDeployment(t, h.CtrlDeploymentClient, setupCreate.Project.ID, setupCreate.RootKey)
+
+	// Now create a separate key with wildcard read_deployment permission for the actual test
+	rootKey := h.CreateRootKey(setupCreate.Workspace.ID, "project.*.read_deployment")
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	req := handler.Request{
+		DeploymentId: deploymentID,
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	require.Equal(t, http.StatusOK, res.Status, "Expected 200, got: %d", res.Status)
+	require.NotNil(t, res.Body)
+}
+
+func TestGetDeploymentWithSpecificProjectPermission(t *testing.T) {
+	t.Parallel()
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		Logger:     h.Logger,
+		DB:         h.DB,
+		Keys:       h.Keys,
+		CtrlClient: h.CtrlDeploymentClient,
+	}
+	h.Register(route)
+
+	// Create setup with create_deployment permission to create a test deployment
+	setupCreate := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"project.*.create_deployment"},
+	})
+
+	deploymentID := createTestDeployment(t, h.CtrlDeploymentClient, setupCreate.Project.ID, setupCreate.RootKey)
+
+	// Now create a separate key with project-specific read_deployment permission for the actual test
+	rootKey := h.CreateRootKey(setupCreate.Workspace.ID, fmt.Sprintf("project.%s.read_deployment", setupCreate.Project.ID))
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	req := handler.Request{
+		DeploymentId: deploymentID,
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	require.Equal(t, http.StatusOK, res.Status, "Expected 200, got: %d", res.Status)
+	require.NotNil(t, res.Body)
 }
 
 func createTestDeployment(t *testing.T, client ctrlv1connect.DeploymentServiceClient, projectID, rootKey string) string {

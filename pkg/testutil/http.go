@@ -308,6 +308,7 @@ type CreateTestDeploymentSetupOptions struct {
 	ProjectSlug     string
 	EnvironmentSlug string
 	SkipEnvironment bool
+	Permissions     []string
 }
 
 // CreateTestDeploymentSetup creates workspace, root key, project, and environment with sensible defaults
@@ -319,6 +320,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		ProjectSlug:     "production",
 		EnvironmentSlug: "production",
 		SkipEnvironment: false,
+		Permissions:     nil,
 	}
 
 	if len(opts) > 0 {
@@ -332,10 +334,19 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 			config.EnvironmentSlug = opts[0].EnvironmentSlug
 		}
 		config.SkipEnvironment = opts[0].SkipEnvironment
+		if opts[0].Permissions != nil {
+			config.Permissions = opts[0].Permissions
+		}
 	}
 
 	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID)
+
+	var rootKey string
+	if config.Permissions != nil {
+		rootKey = h.CreateRootKey(workspace.ID, config.Permissions...)
+	} else {
+		rootKey = h.CreateRootKey(workspace.ID)
+	}
 
 	project := h.CreateProject(seed.CreateProjectRequest{
 		WorkspaceID:      workspace.ID,

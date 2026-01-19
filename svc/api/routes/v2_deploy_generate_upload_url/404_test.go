@@ -24,7 +24,7 @@ func TestNotFound(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID)
+	rootKey := h.CreateRootKey(workspace.ID, "project.*.generate_upload_url")
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -41,6 +41,6 @@ func TestNotFound(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/project_not_found", res.Body.Error.Type)
 		require.Equal(t, http.StatusInternalServerError, res.Body.Error.Status)
-		require.Equal(t, "Project not found.", res.Body.Error.Detail)
+		require.Equal(t, "The requested project does not exist or has been deleted.", res.Body.Error.Detail)
 	})
 }
