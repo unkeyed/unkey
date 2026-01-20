@@ -14,7 +14,7 @@ import (
 func Register(srv *zen.Server, svc *Services) {
 	withLogging := zen.WithLogging(svc.Logger)
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
-	withObservability := middleware.WithObservability(svc.Logger, svc.EnvironmentID, svc.Region)
+	withObservability := middleware.WithObservability(svc.Logger, svc.EnvironmentID, svc.Region, svc.SentinelID)
 	withTimeout := zen.WithTimeout(5 * time.Minute)
 
 	defaultMiddlewares := []zen.Middleware{

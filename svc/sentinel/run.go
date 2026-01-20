@@ -120,6 +120,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clock:         clk,
 		EnvironmentID: cfg.EnvironmentID,
 		Region:        cfg.Region,
+		SentinelID:    cfg.SentinelID,
 	}
 
 	srv, err := zen.New(zen.Config{

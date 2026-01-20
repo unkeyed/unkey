@@ -32,6 +32,7 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	start := h.Clock.Now()
 	ctx = proxy.WithRequestStartTime(ctx, start)
+	ctx = h.ProxyService.InitTrace(ctx, sess)
 	hostname := proxy.ExtractHostname(sess.Request().Host)
 
 	route, sentinels, err := h.RouterService.LookupByHostname(ctx, hostname)

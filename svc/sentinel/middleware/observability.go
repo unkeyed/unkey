@@ -174,10 +174,14 @@ func categorizeErrorType(urn codes.URN, statusCode int, hasError bool) string {
 	return "none"
 }
 
-func WithObservability(logger logging.Logger, environmentID, region string) zen.Middleware {
+func WithObservability(logger logging.Logger, environmentID, region, sentinelID string) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
 			startTime := time.Now()
+
+			// Parse trace from incoming request (from frontline)
+			trace := hoptracing.ParseFromRequest(s.Request())
+			trace.AppendHop(hoptracing.HopSentinel, region, sentinelID)
 
 			// Start trace span for the request
 			ctx, span := oteltracing.Start(ctx, "sentinel.proxy")
@@ -237,6 +241,9 @@ func WithObservability(logger logging.Logger, environmentID, region string) zen.
 					)
 				}
 
+				// Inject trace headers on error responses
+				trace.AddTiming(hoptracing.HopSentinel, region, sentinelID, time.Since(startTime).Milliseconds())
+				trace.InjectResponse(s.ResponseWriter().Header(), time.Since(startTime).Milliseconds())
 				s.ResponseWriter().Header().Set(hoptracing.HeaderErrorSource, "sentinel")
 
 				writeErr := s.JSON(pageInfo.Status, ErrorResponse{

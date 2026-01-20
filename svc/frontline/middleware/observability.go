@@ -13,9 +13,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/hoptracing"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/services/proxy"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -164,6 +166,13 @@ func WithObservability(logger logging.Logger, region string) zen.Middleware {
 						"path", s.Request().URL.Path,
 						"host", s.Request().Host,
 					)
+				}
+
+				// Inject trace headers on error responses
+				if trace, ok := proxy.TraceFromContext(ctx); ok {
+					trace.AddTiming(hoptracing.HopFrontline, region, "", time.Since(startTime).Milliseconds())
+					trace.InjectResponse(s.ResponseWriter().Header(), time.Since(startTime).Milliseconds())
+					s.ResponseWriter().Header().Set(hoptracing.HeaderErrorSource, "frontline")
 				}
 
 				acceptHeader := s.Request().Header.Get("Accept")

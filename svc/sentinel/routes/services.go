@@ -13,4 +13,5 @@ type Services struct {
 	Clock         clock.Clock
 	EnvironmentID string
 	Region        string
+	SentinelID    string
 }

@@ -186,3 +186,11 @@ func (s *service) initTrace(sess *zen.Session) *hoptracing.Trace {
 
 	return &trace
 }
+
+// InitTrace initializes a hop trace for this request and stores it in context.
+// Should be called at the start of request handling to ensure trace headers
+// are available even if the request fails before forwarding.
+func (s *service) InitTrace(ctx context.Context, sess *zen.Session) context.Context {
+	trace := s.initTrace(sess)
+	return WithTrace(ctx, trace)
+}

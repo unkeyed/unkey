@@ -14,6 +14,11 @@ import (
 
 // Service defines the interface for proxying requests to sentinels or remote NLBs.
 type Service interface {
+	// InitTrace initializes a hop trace for this request and stores it in context.
+	// Should be called at the start of request handling to ensure trace headers
+	// are available even if the request fails before forwarding.
+	InitTrace(ctx context.Context, sess *zen.Session) context.Context
+
 	// ForwardToSentinel forwards a request to a local sentinel service (HTTP)
 	// Adds X-Unkey-Deployment-Id header for the sentinel to route to the correct deployment
 	// Request start time is retrieved from context
