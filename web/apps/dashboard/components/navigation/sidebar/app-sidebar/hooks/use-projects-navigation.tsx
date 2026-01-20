@@ -3,6 +3,7 @@ import type { NavItem } from "@/components/navigation/sidebar/workspace-navigati
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { useLiveQuery } from "@tanstack/react-db";
+import { Cloud, Connections, GridCircle, Layers3 } from "@unkey/icons";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 
@@ -23,12 +24,41 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
       const pIndex = segments.findIndex((s) => s === "projects");
       const currentProjectActive = pIndex !== -1 && segments.at(pIndex + 1) === project.id;
 
+      // Create sub-items
+      const subItems: NavItem[] = [
+        {
+          icon: GridCircle,
+          href: `${basePath}/${project.id}`,
+          label: "Overview",
+          active: currentProjectActive && !segments.at(pIndex + 2),
+        },
+        {
+          icon: Cloud,
+          href: `${basePath}/${project.id}/deployments`,
+          label: "Deployments",
+          active: currentProjectActive && segments.at(pIndex + 2) === "deployments",
+        },
+        {
+          icon: Layers3,
+          href: `${basePath}/${project.id}/sentinel-logs`,
+          label: "Sentinel Logs",
+          active: currentProjectActive && segments.at(pIndex + 2) === "sentinel-logs",
+        },
+        {
+          icon: Connections,
+          href: `${basePath}/${project.id}/openapi-diff`,
+          label: "Open API Diff",
+          active: currentProjectActive && segments.at(pIndex + 2) === "openapi-diff",
+        },
+      ];
+
       const projectNavItem: NavItem = {
         href: `${basePath}/${project.id}`,
         icon: null,
         label: project.name,
         active: currentProjectActive,
         showSubItems: true,
+        items: subItems,
       };
 
       return projectNavItem;
