@@ -30,8 +30,10 @@ type DeployRequest struct {
 	BuildContextPath *string `protobuf:"bytes,3,opt,name=build_context_path,json=buildContextPath,proto3,oneof" json:"build_context_path,omitempty"`
 	DockerfilePath   *string `protobuf:"bytes,4,opt,name=dockerfile_path,json=dockerfilePath,proto3,oneof" json:"dockerfile_path,omitempty"`
 	DockerImage      *string `protobuf:"bytes,5,opt,name=docker_image,json=dockerImage,proto3,oneof" json:"docker_image,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Container command override (e.g., ["./app", "serve"])
+	Command       []string `protobuf:"bytes,6,rep,name=command,proto3" json:"command,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DeployRequest) Reset() {
@@ -97,6 +99,13 @@ func (x *DeployRequest) GetDockerImage() string {
 		return *x.DockerImage
 	}
 	return ""
+}
+
+func (x *DeployRequest) GetCommand() []string {
+	if x != nil {
+		return x.Command
+	}
+	return nil
 }
 
 type DeployResponse struct {
@@ -307,13 +316,14 @@ var File_hydra_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x19hydra/v1/deployment.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xae\x02\n" +
+	"\x19hydra/v1/deployment.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xc8\x02\n" +
 	"\rDeployRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12#\n" +
 	"\vkey_auth_id\x18\x02 \x01(\tH\x00R\tkeyAuthId\x88\x01\x01\x121\n" +
 	"\x12build_context_path\x18\x03 \x01(\tH\x01R\x10buildContextPath\x88\x01\x01\x12,\n" +
 	"\x0fdockerfile_path\x18\x04 \x01(\tH\x02R\x0edockerfilePath\x88\x01\x01\x12&\n" +
-	"\fdocker_image\x18\x05 \x01(\tH\x03R\vdockerImage\x88\x01\x01B\x0e\n" +
+	"\fdocker_image\x18\x05 \x01(\tH\x03R\vdockerImage\x88\x01\x01\x12\x18\n" +
+	"\acommand\x18\x06 \x03(\tR\acommandB\x0e\n" +
 	"\f_key_auth_idB\x15\n" +
 	"\x13_build_context_pathB\x12\n" +
 	"\x10_dockerfile_pathB\x0f\n" +

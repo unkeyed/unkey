@@ -30,7 +30,8 @@ func (h *Handler) Path() string {
 // 1. Local sentinel (if healthy sentinel in current region) - forwards with X-Unkey-Deployment-Id
 // 2. Remote region (if no local sentinel) - forwards to nearest region
 func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
-	ctx = proxy.WithRequestStartTime(ctx, h.Clock.Now())
+	start := h.Clock.Now()
+	ctx = proxy.WithRequestStartTime(ctx, start)
 	hostname := proxy.ExtractHostname(sess.Request().Host)
 
 	route, sentinels, err := h.RouterService.LookupByHostname(ctx, hostname)

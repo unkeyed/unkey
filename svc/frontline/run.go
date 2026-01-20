@@ -74,7 +74,7 @@ func Run(ctx context.Context, cfg Config) error {
 		grafanaErr := otel.InitGrafana(
 			ctx,
 			otel.Config{
-				Application:     "gate",
+				Application:     "frontline",
 				Version:         version.Version,
 				InstanceID:      cfg.FrontlineID,
 				CloudRegion:     cfg.Region,
@@ -181,7 +181,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:      logger,
 		FrontlineID: cfg.FrontlineID,
 		Region:      cfg.Region,
-		BaseDomain:  cfg.BaseDomain,
+		ApexDomain:  cfg.ApexDomain,
 		Clock:       clk,
 		MaxHops:     cfg.MaxHops,
 		// Use defaults for transport settings (200 max idle conns, 90s timeout, etc.)
@@ -199,6 +199,12 @@ func Run(ctx context.Context, cfg Config) error {
 				return certManager.GetCertificate(context.Background(), hello.ServerName)
 			},
 			MinVersion: tls.VersionTLS12,
+			// Enable session resumption for faster subsequent connections
+			// Session tickets allow clients to skip the full TLS handshake
+			SessionTicketsDisabled: false,
+			// Let Go's TLS implementation choose optimal cipher suites
+			// This prefers TLS 1.3 when available (1-RTT vs 2-RTT for TLS 1.2)
+			PreferServerCipherSuites: false,
 		}
 	}
 
@@ -223,6 +229,7 @@ func Run(ctx context.Context, cfg Config) error {
 			ReadTimeout:        30 * time.Second,
 			WriteTimeout:       60 * time.Second,
 			Flags:              nil,
+			EnableH2C:          false,
 			MaxRequestBodySize: 0,
 		})
 		if httpsErr != nil {
@@ -253,6 +260,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Logger:             logger,
 			TLS:                nil,
 			Flags:              nil,
+			EnableH2C:          false,
 			MaxRequestBodySize: 0,
 			ReadTimeout:        0,
 			WriteTimeout:       0,
@@ -279,7 +287,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}()
 	}
 
-	logger.Info("Frontline server initialized", "region", cfg.Region, "baseDomain", cfg.BaseDomain)
+	logger.Info("Frontline server initialized", "region", cfg.Region, "apexDomain", cfg.ApexDomain)
 
 	// Wait for either OS signals or context cancellation, then shutdown
 	if err := shutdowns.WaitForSignal(ctx, 0); err != nil {

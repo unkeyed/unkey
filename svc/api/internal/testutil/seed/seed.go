@@ -162,6 +162,7 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 		LiveDeploymentID: sql.NullString{String: "", Valid: false},
 		IsRolledBack:     false,
 		DepotProjectID:   sql.NullString{String: "", Valid: false},
+		Command:          nil,
 	}
 }
 

@@ -99,6 +99,7 @@ func NewHarness(t *testing.T) *Harness {
 			TestMode: true,
 		},
 		TLS:          nil,
+		EnableH2C:    false,
 		ReadTimeout:  0,
 		WriteTimeout: 0,
 	})

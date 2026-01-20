@@ -29,7 +29,7 @@ type Querier interface {
 	//DeleteDeploymentInstances
 	//
 	//  DELETE FROM instances
-	//  WHERE deployment_id = ?  and cluster_id = ?
+	//  WHERE deployment_id = ? AND cluster_id = ?
 	DeleteDeploymentInstances(ctx context.Context, db DBTX, arg DeleteDeploymentInstancesParams) error
 	//DeleteIdentity
 	//
@@ -196,11 +196,11 @@ type Querier interface {
 	FindCustomDomainById(ctx context.Context, db DBTX, id string) (CustomDomain, error)
 	//FindDeploymentById
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, status, created_at, updated_at FROM `deployments` WHERE id = ?
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, status, created_at, updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentByK8sName
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, status, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, status, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, db DBTX, k8sName string) (Deployment, error)
 	//FindDeploymentTopologyByIDAndRegion
 	//
@@ -813,7 +813,8 @@ type Querier interface {
 	//      is_rolled_back,
 	//      created_at,
 	//      updated_at,
-	//      depot_project_id
+	//      depot_project_id,
+	//      command
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (FindProjectByIdRow, error)
@@ -1136,9 +1137,10 @@ type Querier interface {
 	//      git_commit_timestamp,
 	//      openapi_spec,
 	//      encrypted_environment_variables,
+	//      command,
 	//      status,
 	//      cpu_millicores,
-	//  		memory_mib,
+	//      memory_mib,
 	//      created_at,
 	//      updated_at
 	//  )
@@ -1159,7 +1161,8 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//  		?,
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?
 	//  )
