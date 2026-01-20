@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	restateIngress "github.com/restatedev/sdk-go/ingress"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -27,8 +28,8 @@ type BootstrapConfig struct {
 	// Combined with RegionalApexDomain to create certs like "*.us-west-2.aws.unkey.cloud".
 	Regions []string
 
-	// RestateClient is used to invoke the ProcessChallenge workflow.
-	RestateClient hydrav1.CertificateServiceIngressClient
+	// Restate is the raw Restate ingress client.
+	Restate *restateIngress.Client
 }
 
 // BootstrapInfraCerts ensures infrastructure wildcard certificates are provisioned.
@@ -68,7 +69,7 @@ func (s *Service) BootstrapInfraCerts(ctx context.Context, cfg BootstrapConfig) 
 	}
 
 	for _, domain := range domains {
-		if err := s.ensureInfraDomain(ctx, domain, cfg.RestateClient); err != nil {
+		if err := s.ensureInfraDomain(ctx, domain, cfg.Restate); err != nil {
 			return fmt.Errorf("failed to bootstrap cert for %s: %w", domain, err)
 		}
 	}
@@ -76,7 +77,7 @@ func (s *Service) BootstrapInfraCerts(ctx context.Context, cfg BootstrapConfig) 
 	return nil
 }
 
-func (s *Service) ensureInfraDomain(ctx context.Context, domain string, restateClient hydrav1.CertificateServiceIngressClient) error {
+func (s *Service) ensureInfraDomain(ctx context.Context, domain string, restate *restateIngress.Client) error {
 	// Check if domain already has a cert via JOIN
 	existingDomain, err := db.Query.FindCustomDomainWithCertByDomain(ctx, s.db.RO(), domain)
 	if err != nil && !db.IsNotFound(err) {
@@ -125,9 +126,11 @@ func (s *Service) ensureInfraDomain(ctx context.Context, domain string, restateC
 	}
 
 	// Trigger the ProcessChallenge workflow via Restate
+	// Use domain as key so multiple domains can be processed in parallel
 	s.logger.Info("triggering certificate challenge workflow", "domain", domain)
 
-	_, err = restateClient.ProcessChallenge().Send(ctx, &hydrav1.ProcessChallengeRequest{
+	certClient := hydrav1.NewCertificateServiceIngressClient(restate, domain)
+	_, err = certClient.ProcessChallenge().Send(ctx, &hydrav1.ProcessChallengeRequest{
 		WorkspaceId: InfraWorkspaceID,
 		Domain:      domain,
 	})

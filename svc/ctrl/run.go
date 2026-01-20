@@ -333,7 +333,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}()
 
-	// Create Restate ingress client for certificate workflows
+	// Create Restate ingress client for certificate renewal cron (uses "global" key for single instance)
 	certClient := hydrav1.NewCertificateServiceIngressClient(restateClient, "global")
 
 	// Register with Restate admin API if RegisterAs is configured
@@ -395,7 +395,7 @@ func Run(ctx context.Context, cfg Config) error {
 				DefaultDomain:      cfg.DefaultDomain,
 				RegionalApexDomain: cfg.RegionalApexDomain,
 				Regions:            cfg.AvailableRegions,
-				RestateClient:      certClient,
+				Restate:            restateClient,
 			}); err != nil {
 				logger.Error("failed to bootstrap infrastructure certs", "error", err)
 			}
