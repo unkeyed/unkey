@@ -71,6 +71,7 @@ require (
 	github.com/spiffe/go-spiffe/v2 v2.6.0
 	github.com/sqlc-dev/plugin-sdk-go v1.23.0
 	github.com/stretchr/testify v1.11.1
+	github.com/unkeyed/sdks/api/go/v2 v2.5.0
 	go.opentelemetry.io/contrib/bridges/otelslog v0.14.0
 	go.opentelemetry.io/contrib/bridges/prometheus v0.64.0
 	go.opentelemetry.io/contrib/processors/minsev v0.12.0
@@ -286,6 +287,7 @@ require (
 	github.com/speakeasy-api/openapi-overlay v0.10.2 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
+	github.com/spyzhov/ajson v0.8.0 // indirect
 	github.com/sqlc-dev/sqlc v1.30.0 // indirect
 	github.com/stoewer/go-strcase v1.3.1 // indirect
 	github.com/tetratelabs/wazero v1.11.0 // indirect
