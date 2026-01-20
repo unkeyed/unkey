@@ -14,6 +14,7 @@ import {
   Refresh3,
 } from "@unkey/icons";
 import { Button, Separator } from "@unkey/ui";
+import { useSelectedLayoutSegments } from "next/navigation";
 import { RepoDisplay } from "../../_components/list/repo-display";
 
 type ProjectNavigationProps = {
@@ -41,6 +42,34 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
   ).data.at(0);
 
   const basePath = `/${workspace.slug}/projects`;
+
+  const segments = useSelectedLayoutSegments() ?? [];
+  const activeSubPage = segments[0]; // undefined, "deployments", "sentinel-logs", or "openapi-diff"
+
+  const subPages = [
+    { id: "overview", label: "Overview", href: `${basePath}/${projectId}`, segment: undefined },
+    {
+      id: "deployments",
+      label: "Deployments",
+      href: `${basePath}/${projectId}/deployments`,
+      segment: "deployments",
+    },
+    {
+      id: "sentinel-logs",
+      label: "Sentinel Logs",
+      href: `${basePath}/${projectId}/sentinel-logs`,
+      segment: "sentinel-logs",
+    },
+    {
+      id: "openapi-diff",
+      label: "OpenAPI Diff",
+      href: `${basePath}/${projectId}/openapi-diff`,
+      segment: "openapi-diff",
+    },
+  ];
+
+  const currentSubPage = subPages.find((page) => page.segment === activeSubPage) || subPages[0];
+
   if (projects.isLoading) {
     return (
       <Navbar>
@@ -48,6 +77,9 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
           <Navbar.Breadcrumbs.Link href={basePath}>Projects</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group max-md:hidden" noop>
             <div className="h-6 w-24 bg-grayA-3 rounded animate-pulse transition-all" />
+          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="#" noop active isLast>
+            <div className="h-6 w-20 bg-grayA-3 rounded animate-pulse transition-all" />
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
       </Navbar>
@@ -64,8 +96,6 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
         <Navbar.Breadcrumbs.Link
           href={`${basePath}/${activeProject.id}`}
           isIdentifier
-          isLast
-          active
           className="flex"
           noop
         >
@@ -79,6 +109,21 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
           >
             <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
               {activeProject.name}
+              <ChevronExpandY className="size-4" />
+            </div>
+          </QuickNavPopover>
+        </Navbar.Breadcrumbs.Link>
+        <Navbar.Breadcrumbs.Link href={currentSubPage.href} noop active isLast>
+          <QuickNavPopover
+            items={subPages.map((page) => ({
+              id: page.id,
+              label: page.label,
+              href: page.href,
+            }))}
+            shortcutKey="M"
+          >
+            <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
+              {currentSubPage.label}
               <ChevronExpandY className="size-4" />
             </div>
           </QuickNavPopover>
