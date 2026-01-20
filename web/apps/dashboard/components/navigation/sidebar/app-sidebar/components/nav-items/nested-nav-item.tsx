@@ -22,11 +22,9 @@ import { getButtonStyles } from "./utils";
 export const NestedNavItem = ({
   item,
   onLoadMore,
-  onToggleCollapse,
   depth = 0,
   maxDepth = 1,
   isSubItem = false,
-  forceCollapsed = false,
   className,
 }: NavProps & {
   depth?: number;
@@ -48,14 +46,6 @@ export const NestedNavItem = ({
   const Icon = item.icon;
   const hasChildren = item.items && item.items.length > 0;
 
-  // Force collapse when forceCollapsed prop changes
-  useLayoutEffect(() => {
-    if (forceCollapsed && isOpen) {
-      setIsOpen(false);
-      setUserManuallyCollapsed(true);
-    }
-  }, [forceCollapsed, isOpen]);
-
   useLayoutEffect(() => {
     if (!hasChildren || !pathname) {
       return;
@@ -74,8 +64,8 @@ export const NestedNavItem = ({
     // Check if current pathname matches this item's href path
     // item.href is already workspace-aware (e.g., "/workspace-slug/projects")
     if (item.href && pathname.startsWith(item.href)) {
-      // Only auto-open parent if user hasn't manually collapsed it AND not force collapsed
-      if (!userManuallyCollapsed && !forceCollapsed) {
+      // Only auto-open parent if user hasn't manually collapsed it
+      if (!userManuallyCollapsed) {
         setIsOpen(true);
       }
     }
@@ -86,7 +76,6 @@ export const NestedNavItem = ({
     hasChildren,
     userManuallyCollapsed,
     childrenUserManuallyCollapsed,
-    forceCollapsed,
   ]);
 
   const handleMenuItemClick = (e: React.MouseEvent) => {
@@ -98,10 +87,6 @@ export const NestedNavItem = ({
       setIsOpen(newOpenState);
       // Track user preference - if they're closing it, mark as manually collapsed
       setUserManuallyCollapsed(!newOpenState);
-      // Call the toggle collapse callback
-      if (onToggleCollapse) {
-        onToggleCollapse(item, newOpenState);
-      }
       // If we're closing, don't navigate
       if (isOpen) {
         return;
@@ -124,10 +109,6 @@ export const NestedNavItem = ({
       setIsOpen(open);
       // Track user preference for parent
       setUserManuallyCollapsed(!open);
-      // Call the toggle collapse callback when state changes
-      if (onToggleCollapse) {
-        onToggleCollapse(item, open);
-      }
     }
   };
 
@@ -160,11 +141,9 @@ export const NestedNavItem = ({
           key={subItem.label?.toString() ?? index}
           item={subItem}
           onLoadMore={onLoadMore}
-          onToggleCollapse={onToggleCollapse}
           depth={depth + 1}
           maxDepth={maxDepth}
           isSubItem={true}
-          forceCollapsed={forceCollapsed}
         />
       );
     }
