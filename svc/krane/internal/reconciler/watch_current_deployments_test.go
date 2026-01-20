@@ -203,8 +203,6 @@ func TestWatchCurrentDeployments_ChannelClosure(t *testing.T) {
 	require.NoError(t, err)
 
 	fakeWatch.Stop()
-
-	time.Sleep(100 * time.Millisecond)
 }
 
 func TestWatchCurrentDeployments_ContextCancellation(t *testing.T) {
@@ -228,8 +226,6 @@ func TestWatchCurrentDeployments_ContextCancellation(t *testing.T) {
 	require.NoError(t, err)
 
 	cancel()
-
-	time.Sleep(100 * time.Millisecond)
 }
 
 func TestWatchCurrentDeployments_WithPods(t *testing.T) {

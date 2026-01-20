@@ -359,6 +359,8 @@ func TestRefreshCurrentDeployments_HandlesMissingDeploymentID(t *testing.T) {
 		return getDesiredCalls.Load() >= 1
 	}, 2*time.Second, 50*time.Millisecond, "expected only replicaset with ID to be processed")
 
-	time.Sleep(200 * time.Millisecond)
+	require.Never(t, func() bool {
+		return getDesiredCalls.Load() > 1
+	}, 200*time.Millisecond, 20*time.Millisecond, "only one replicaset should be processed (the one with ID)")
 	require.Equal(t, int32(1), getDesiredCalls.Load(), "only one replicaset should be processed (the one with ID)")
 }
