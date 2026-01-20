@@ -9,9 +9,22 @@
 //
 // # Architecture
 //
-// The system consists of three main components:
-//   - Control Plane: External service that makes gRPC calls to krane agents
-//   - Krane Agents: Node-level agents that expose gRPC APIs for orchestration
+// Krane uses a split control loop architecture with two independent controllers:
+//
+//   - [deployment.Controller]: Manages user workload ReplicaSets via the
+//     SyncDeployments stream. Has its own version cursor and circuit breaker.
+//
+//   - [sentinel.Controller]: Manages sentinel Deployments and Services via the
+//     SyncSentinels stream. Has its own version cursor and circuit breaker.
+//
+// This separation provides failure isolation: if one controller experiences errors,
+// the other continues operating independently. Each controller maintains its own
+// connection to the control plane with separate version cursors for resumable
+// streaming.
+//
+// The system consists of these main components:
+//   - Control Plane: External service that streams state to krane agents
+//   - Krane Agents: Node-level agents with independent deployment/sentinel controllers
 //   - Kubernetes Cluster: Target infrastructure where containers are deployed
 //
 // Each krane instance is identified by a unique InstanceID. The agent uses in-cluster

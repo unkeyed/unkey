@@ -7,29 +7,30 @@ package db
 
 import (
 	"context"
-	"strings"
 )
 
-const findSentinelsByVersions = `-- name: FindSentinelsByVersions :many
-SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM ` + "`" + `sentinels` + "`" + ` WHERE version IN (/*SLICE:versions*/?)
+const listSentinelsByRegion = `-- name: ListSentinelsByRegion :many
+SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM ` + "`" + `sentinels` + "`" + `
+WHERE region = ? AND version > ?
+ORDER BY version ASC
+LIMIT ?
 `
 
-// FindSentinelsByVersions returns sentinels for specific versions.
-// Used after ListClusterStateVersions to hydrate the full sentinel data.
+type ListSentinelsByRegionParams struct {
+	Region       string `db:"region"`
+	Afterversion uint64 `db:"afterversion"`
+	Limit        int32  `db:"limit"`
+}
+
+// ListSentinelsByRegion returns sentinels for a region with version > after_version.
+// Used by WatchSentinels to stream sentinel state changes to krane agents.
 //
-//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM `sentinels` WHERE version IN (/*SLICE:versions*/?)
-func (q *Queries) FindSentinelsByVersions(ctx context.Context, db DBTX, versions []uint64) ([]Sentinel, error) {
-	query := findSentinelsByVersions
-	var queryParams []interface{}
-	if len(versions) > 0 {
-		for _, v := range versions {
-			queryParams = append(queryParams, v)
-		}
-		query = strings.Replace(query, "/*SLICE:versions*/?", strings.Repeat(",?", len(versions))[1:], 1)
-	} else {
-		query = strings.Replace(query, "/*SLICE:versions*/?", "NULL", 1)
-	}
-	rows, err := db.QueryContext(ctx, query, queryParams...)
+//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM `sentinels`
+//	WHERE region = ? AND version > ?
+//	ORDER BY version ASC
+//	LIMIT ?
+func (q *Queries) ListSentinelsByRegion(ctx context.Context, db DBTX, arg ListSentinelsByRegionParams) ([]Sentinel, error) {
+	rows, err := db.QueryContext(ctx, listSentinelsByRegion, arg.Region, arg.Afterversion, arg.Limit)
 	if err != nil {
 		return nil, err
 	}

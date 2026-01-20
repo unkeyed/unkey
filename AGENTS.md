@@ -2,9 +2,39 @@
 
 This document provides essential information for AI coding agents working in this repository.
 
+## Communication
+
+- Be extremely concise; sacrifice grammar for brevity
+- At the end of each plan, list unresolved questions (if any)
+
+## Code Quality Standards
+
+- Make minimal, surgical changes
+- **Never compromise type safety**: No `any`, no `!` (non-null assertion), no `as Type`
+- **Make illegal states unrepresentable**: Model domain with ADTs/discriminated unions; parse inputs at boundaries into typed structures
+- Leave the codebase better than you found it
+
+### Entropy
+
+This codebase will outlive you. Every shortcut you take becomes
+someone else's burden. Every hack compounds into technical debt
+that slows the whole team down.
+
+You are not just writing code. You are shaping the future of this
+project. The patterns you establish will be copied. The corners
+you cut will be cut again.
+
+**Fight entropy. Leave the codebase better than you found it.**
+
+## Specialized Subagents
+
+- **Oracle**: code review, architecture decisions, debugging, refactor planning
+- **Librarian**: understanding 3rd party libs, exploring remote repos, discovering patterns
+
 ## Project Overview
 
 Unkey is an open-source API authentication and authorization platform. This is a **polyglot monorepo** containing:
+
 - **Go backend** (root): Services, APIs, and shared libraries built with Bazel
 - **TypeScript frontend** (`/web`): Dashboard and API workers built with pnpm/Turborepo
 
@@ -67,31 +97,8 @@ make clean                    # Stop and remove all Docker services
 
 ### Go Conventions
 
-**Imports** - Organize in groups separated by blank lines:
-1. Standard library
-2. External/third-party packages
-3. Internal packages (`github.com/unkeyed/unkey/internal/...`)
-4. Package-level (`github.com/unkeyed/unkey/pkg/...`)
-5. Service-level (`github.com/unkeyed/unkey/svc/...`)
-6. Generated code (`github.com/unkeyed/unkey/gen/...`)
-
-**Error Handling** - Use the `fault` package for structured errors:
-```go
-return fault.Wrap(err,
-    fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-    fault.Internal("debug message for logs"),
-    fault.Public("user-facing message"),
-)
-```
-
-**Naming Conventions:**
-- Files: `snake_case.go`, tests: `*_test.go`
-- Exported functions/types: `PascalCase`
-- Unexported: `camelCase`
-- Receivers: short names `(s *Service)`, `(h *Handler)`
-- Constants: `SCREAMING_SNAKE_CASE`
-
 **Testing** - Use `testify/require` for assertions:
+
 ```go
 func TestFeature(t *testing.T) {
     t.Run("scenario", func(t *testing.T) {
@@ -100,104 +107,6 @@ func TestFeature(t *testing.T) {
     })
 }
 ```
-
-### TypeScript Conventions
-
-**Formatting** (enforced by Biome):
-- 2 spaces indentation
-- 100 character line width
-- Use `const` over `let`
-- Use template literals over string concatenation
-- Use `import type` for type-only imports
-
-**Style Rules:**
-- No default exports (except Next.js pages/layouts/configs)
-- No `var` declarations
-- No `any` types (use `unknown` or proper types)
-- No non-null assertions in production code
-- Use block statements for all control flow
-- Use optional chaining (`?.`) over manual checks
-
-**Testing** - Use Vitest with descriptive assertions:
-```typescript
-import { describe, expect, test } from "vitest";
-
-test("creates key", async (t) => {
-  const h = await IntegrationHarness.init(t);
-  const res = await h.post<Request, Response>({ ... });
-  expect(res.status).toBe(200);
-});
-```
-
-## Project Structure
-
-```
-/                           # Go root
-├── cmd/                    # CLI entrypoints
-├── svc/                    # Backend services (api, ctrl, vault, etc.)
-├── pkg/                    # Shared Go libraries
-├── proto/                  # Protocol buffer definitions
-├── gen/                    # Generated code (proto, sqlc)
-└── web/                    # TypeScript monorepo
-    ├── apps/
-    │   ├── api/            # Cloudflare Workers API (Hono)
-    │   ├── dashboard/      # Next.js dashboard
-    │   └── docs/           # Documentation site
-    └── internal/           # Shared TS packages (db, ui, rbac, etc.)
-```
-
-## Key Technologies
-
-**Go Backend:**
-- Bazel for builds, Gazelle for BUILD file generation
-- `pkg/zen` - Custom HTTP framework
-- `pkg/fault` - Structured error handling
-- `pkg/codes` - Error code URNs
-- golangci-lint v2 for linting
-
-**TypeScript Frontend:**
-- pnpm workspaces + Turborepo
-- Next.js 14 (dashboard)
-- Hono (API workers)
-- Drizzle ORM (database)
-- Biome for formatting/linting
-- Vitest for testing
-
-## Common Patterns
-
-### Go HTTP Handlers (zen framework)
-```go
-func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-    auth, emit, err := h.Keys.GetRootKey(ctx, s)
-    defer emit()
-    if err != nil { return err }
-
-    req, err := zen.BindBody[Request](s)
-    if err != nil { return err }
-
-    // Business logic...
-
-    return s.JSON(http.StatusOK, Response{...})
-}
-```
-
-### TypeScript API Tests
-```typescript
-const h = await IntegrationHarness.init(t);
-const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
-const res = await h.post<Req, Res>({
-  url: "/v1/keys.createKey",
-  headers: { Authorization: `Bearer ${root.key}` },
-  body: { ... },
-});
-expect(res.status).toBe(200);
-```
-
-## Linting Configuration
-
-**Go** (`.golangci.yaml`): Strict linting including exhaustive switch/map checks, struct initialization (`exhaustruct`), and security checks (`gosec`).
-
-**TypeScript** (`web/biome.json`): Enforces no unused variables/imports, strict equality, proper React hooks usage, and consistent code style.
 
 ## Detailed Guidelines
 

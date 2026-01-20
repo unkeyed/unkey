@@ -15,17 +15,15 @@ Krane pulls desired state from ctrl and ensures the actual cluster state matches
 
 ### Pull-Based Model
 
-Krane implements a polling-based architecture where agents in each cluster connect to ctrl's ClusterService via the `Sync` RPC, which establishes a server-streaming connection. The control plane polls its `state_changes` table and streams new entries to connected agents. Krane processes each state change, applies it to Kubernetes, and updates its sequence watermark. On reconnection, Krane sends its last-seen sequence to resume incrementally without missing events.
+Krane implements a streaming architecture where agents in each cluster connect to ctrl's ClusterService via `WatchDeployments` and `WatchSentinels` RPCs. These establish server-streaming connections where the control plane queries resource tables directly and streams state changes. Krane processes each state change, applies it to Kubernetes, and updates its version watermark. On reconnection, Krane sends its last-seen version to resume incrementally without missing events.
 
 This model eliminates the need for the control plane to track connected clients in memory, simplifying horizontal scaling and removing a class of connection state bugs.
 
-### Sequence-Based Synchronization
+### Version-Based Synchronization
 
-The sync engine uses sequence numbers to track state changes. Every modification to deployments or sentinels is recorded in the `state_changes` table with a monotonically increasing sequence number per region. Krane maintains a `sequenceLastSeen` watermark and polls for changes after that sequence.
+The sync engine uses version numbers embedded in resource tables to track state changes. Every modification to deployments or sentinels updates a `version` column via the Restate VersioningService singleton, providing a globally unique, monotonically increasing version across all resources. Krane maintains a `versionLastSeen` watermark and requests changes after that version.
 
-On fresh start (sequence=0), Krane receives the complete desired state followed by a `Bookmark` message containing the current maximum sequence. After bootstrap, the stream switches to incremental mode, receiving only new changes as they occur.
-
-State changes are retained for 7 days. If Krane's last-seen sequence falls behind the retention window, it must perform a full bootstrap. This handles long disconnections gracefully while keeping storage bounded.
+On fresh start (version=0), Krane receives the complete desired state as a bootstrap. After bootstrap, the stream switches to incremental mode, receiving only new changes as they occur.
 
 ### Why StatefulSets Instead of Deployments?
 
@@ -49,14 +47,13 @@ This is a known design compromise. Future versions might move instance addressin
     participant Pod
 
     User->>Ctrl: Create deployment request
-    Ctrl->>DB: Store desired state
-    Ctrl->>DB: Insert state_change(seq=N)
+    Ctrl->>DB: Store desired state with version=N
 
-    Note over Krane: Sync stream polling
+    Note over Krane: WatchDeployments stream
 
-    Krane->>Ctrl: (poll for changes > seq)
-    Ctrl->>DB: Query state_changes
-    Ctrl->>Krane: State(seq=N, ApplyDeployment)
+    Krane->>Ctrl: WatchDeployments(version > lastSeen)
+    Ctrl->>DB: Query deployment_topology
+    Ctrl->>Krane: DeploymentState(version=N, ApplyDeployment)
 
     Krane->>K8s: Create/Update Service
     K8s->>Krane: Service ready
@@ -67,7 +64,7 @@ This is a known design compromise. Future versions might move instance addressin
     K8s->>Pod: Pull image & start container
     Pod->>Pod: Container running
 
-    Note over Krane: sequenceLastSeen = N
+    Note over Krane: versionLastSeen = N
 
 `} />
 
@@ -139,16 +136,16 @@ When querying deployments, Krane verifies the `unkey.managed.by` label matches `
 
 The control plane exposes a `ClusterService` with these key RPCs:
 
-**Sync** establishes a server-streaming connection for receiving state changes. Krane sends its region and last-seen sequence number; the control plane streams bootstrap state (if sequence=0) followed by incremental changes. The control plane polls its `state_changes` table and streams new entries as they appear.
+**WatchDeployments** and **WatchSentinels** establish server-streaming connections for receiving state changes. Krane sends its region and last-seen version; the control plane streams bootstrap state (if version=0) followed by incremental changes by querying resource tables directly.
 
 **GetDesiredDeploymentState** and **GetDesiredSentinelState** return the current desired state for a specific resource. Used for on-demand reconciliation when Kubernetes reports unexpected state.
 
-**UpdateDeploymentState** and **UpdateSentinelState** receive status updates from Krane about actual Kubernetes state (pod running, pod failed, etc.).
+**ReportDeploymentStatus** and **ReportSentinelStatus** receive status updates from Krane about actual Kubernetes state (pod running, pod failed, etc.).
 
 ### State Change Distribution
 
-When deployment changes occur, the control plane stores the desired state in the database and inserts a row into `state_changes` with the resource ID, operation type (upsert/delete), and region. Krane instances polling for that region receive the change on their next poll cycle. Each Krane instance independently applies changes to its local cluster.
+When deployment changes occur, the control plane stores the desired state in the database with an updated version number. Krane instances watching that region receive the change on their stream. Each Krane instance independently applies changes to its local cluster.
 
 ### Multi-Region Support
 
-The `state_changes` table is partitioned by region, so each Krane instance only receives changes relevant to its cluster. The control plane doesn't need to know which Krane instances exist or are connected; it simply writes changes to the database, and any Krane polling that region will receive them.
+Resource tables include a region column, so each Krane instance only receives changes relevant to its cluster. The control plane doesn't need to know which Krane instances exist or are connected; it simply writes changes to the database, and any Krane watching that region will receive them.

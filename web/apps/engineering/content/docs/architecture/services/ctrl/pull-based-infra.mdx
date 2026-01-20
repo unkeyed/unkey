@@ -22,9 +22,9 @@ sequenceDiagram
     participant K1 as Krane Agent (Region A)
     participant K8s as Kubernetes API
     
-    K1->>CP: Sync(region=a, version=0)
+    K1->>CP: WatchDeployments(region=a, version=0)
     Note over K1,CP: Bootstrap: stream full state
-    CP->>K1: Stream all deployments/sentinels
+    CP->>K1: Stream all deployments
     Note over K1: Stream closes, max version=42
     
     U->>CP: Create deployment
@@ -32,14 +32,14 @@ sequenceDiagram
     VS-->>CP: version=43
     CP->>DB: Store topology (version=43)
     
-    Note over K1: Polling every 1-5s
-    K1->>CP: Sync(region=a, version=42)
+    Note over K1: Reconnects with last version
+    K1->>CP: WatchDeployments(region=a, version=42)
     CP->>DB: SELECT WHERE version > 42
-    CP->>K1: Stream State(version=43, deploy)
+    CP->>K1: Stream DeploymentState(version=43)
     
     K1->>K8s: Apply deployment
     K8s-->>K1: Pod status change
-    K1->>CP: UpdateInstance(status=running)
+    K1->>CP: ReportDeploymentStatus(running)
     CP->>DB: Upsert Instance table"
 />
 
@@ -55,9 +55,9 @@ Before any mutation to a deployment topology or sentinel, the control plane call
 
 This eliminates the need for a separate changelog table—the version embedded in each resource row is the source of truth for synchronization.
 
-## Sync Protocol
+## Watch Protocol
 
-The synchronization protocol uses a single `Sync` RPC that handles both initial bootstrap and incremental updates. This design eliminates the complexity of managing separate "synthetic" and "live" modes, and removes the need for the control plane to track connected clients in memory.
+The synchronization protocol uses `WatchDeployments` and `WatchSentinels` RPCs that handle both initial bootstrap and incremental updates. This design eliminates the complexity of managing separate "synthetic" and "live" modes, and removes the need for the control plane to track connected clients in memory.
 
 ### Version-Based Tracking
 
@@ -106,33 +106,28 @@ graph TB
         S[(sentinels)]
     end
     subgraph 'Krane Agent'
-        W[Watcher]
-        R[Reconciler]
         DC[Deployment Controller]
         GC[Sentinel Controller]
-        
-        W -->|HandleState| R
-        R --> DC
-        R --> GC
     end
     
     subgraph Kubernetes
         K8s[K8s API Server]
     end
     
-    W -.->|Sync stream| CP
+    DC -.->|WatchDeployments| CP
+    GC -.->|WatchSentinels| CP
     CP -.->|query by version| DT
     CP -.->|query by version| S
     DC -->|Apply/Delete| K8s
     GC -->|Apply/Delete| K8s
     K8s -->|Watch Events| DC
-    DC -->|UpdateInstance| CP
-    GC -->|UpdateSentinel| CP"
+    DC -->|ReportDeploymentStatus| CP
+    GC -->|ReportSentinelStatus| CP"
 />
 
-The Watcher maintains the Sync stream, reconnecting with jittered backoff (1-5 seconds) on failure. It passes received `State` messages to the Reconciler, which dispatches to the appropriate controller based on resource type. The Reconciler tracks `versionLastSeen` and updates it only after successfully processing state changes and receiving a clean stream close.
+Each controller maintains its watch stream, reconnecting with jittered backoff (1-5 seconds) on failure. Controllers process received state messages and track `versionLastSeen`, updating it only after successfully processing state changes and receiving a clean stream close.
 
-Status updates flow back to the control plane through unary RPCs (`UpdateDeploymentState`, `UpdateSentinelState`) with buffering, retries, and circuit breakers for reliability.
+Status updates flow back to the control plane through unary RPCs (`ReportDeploymentStatus`, `ReportSentinelStatus`) with buffering, retries, and circuit breakers for reliability.
 
 ## Deployment Workflow
 
@@ -155,8 +150,8 @@ sequenceDiagram
     VS-->>Workflow: version=N
     Workflow->>DB: Create topology (version=N)
     
-    Note over Krane: Polls via Sync(version > lastSeen)
-    Krane->>Krane: Receive State(Apply)
+    Note over Krane: Receives via WatchDeployments
+    Krane->>Krane: Receive DeploymentState(Apply)
     
     Krane->>K8s: Apply deployment
     K8s-->>Krane: Pod created

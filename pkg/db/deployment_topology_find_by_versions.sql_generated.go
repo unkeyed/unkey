@@ -8,10 +8,9 @@ package db
 import (
 	"context"
 	"database/sql"
-	"strings"
 )
 
-const findDeploymentTopologyByVersions = `-- name: FindDeploymentTopologyByVersions :many
+const listDeploymentTopologyByRegion = `-- name: ListDeploymentTopologyByRegion :many
 SELECT
     dt.pk, dt.workspace_id, dt.deployment_id, dt.region, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
     d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.openapi_spec, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.status, d.created_at, d.updated_at,
@@ -19,17 +18,25 @@ SELECT
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `deployments` + "`" + ` d ON dt.deployment_id = d.id
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
-WHERE dt.version IN (/*SLICE:versions*/?)
+WHERE dt.region = ? AND dt.version > ?
+ORDER BY dt.version ASC
+LIMIT ?
 `
 
-type FindDeploymentTopologyByVersionsRow struct {
+type ListDeploymentTopologyByRegionParams struct {
+	Region       string `db:"region"`
+	Afterversion uint64 `db:"afterversion"`
+	Limit        int32  `db:"limit"`
+}
+
+type ListDeploymentTopologyByRegionRow struct {
 	DeploymentTopology DeploymentTopology `db:"deployment_topology"`
 	Deployment         Deployment         `db:"deployment"`
 	K8sNamespace       sql.NullString     `db:"k8s_namespace"`
 }
 
-// FindDeploymentTopologyByVersions returns deployment topologies for specific versions.
-// Used after ListClusterStateVersions to hydrate the full deployment data.
+// ListDeploymentTopologyByRegion returns deployment topologies for a region with version > after_version.
+// Used by WatchDeployments to stream deployment state changes to krane agents.
 //
 //	SELECT
 //	    dt.pk, dt.workspace_id, dt.deployment_id, dt.region, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
@@ -38,26 +45,18 @@ type FindDeploymentTopologyByVersionsRow struct {
 //	FROM `deployment_topology` dt
 //	INNER JOIN `deployments` d ON dt.deployment_id = d.id
 //	INNER JOIN `workspaces` w ON d.workspace_id = w.id
-//	WHERE dt.version IN (/*SLICE:versions*/?)
-func (q *Queries) FindDeploymentTopologyByVersions(ctx context.Context, db DBTX, versions []uint64) ([]FindDeploymentTopologyByVersionsRow, error) {
-	query := findDeploymentTopologyByVersions
-	var queryParams []interface{}
-	if len(versions) > 0 {
-		for _, v := range versions {
-			queryParams = append(queryParams, v)
-		}
-		query = strings.Replace(query, "/*SLICE:versions*/?", strings.Repeat(",?", len(versions))[1:], 1)
-	} else {
-		query = strings.Replace(query, "/*SLICE:versions*/?", "NULL", 1)
-	}
-	rows, err := db.QueryContext(ctx, query, queryParams...)
+//	WHERE dt.region = ? AND dt.version > ?
+//	ORDER BY dt.version ASC
+//	LIMIT ?
+func (q *Queries) ListDeploymentTopologyByRegion(ctx context.Context, db DBTX, arg ListDeploymentTopologyByRegionParams) ([]ListDeploymentTopologyByRegionRow, error) {
+	rows, err := db.QueryContext(ctx, listDeploymentTopologyByRegion, arg.Region, arg.Afterversion, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []FindDeploymentTopologyByVersionsRow
+	var items []ListDeploymentTopologyByRegionRow
 	for rows.Next() {
-		var i FindDeploymentTopologyByVersionsRow
+		var i ListDeploymentTopologyByRegionRow
 		if err := rows.Scan(
 			&i.DeploymentTopology.Pk,
 			&i.DeploymentTopology.WorkspaceID,

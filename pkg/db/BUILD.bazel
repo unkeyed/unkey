@@ -71,7 +71,6 @@ go_library(
         "clickhouse_workspace_settings_find_by_workspace_id.sql_generated.go",
         "clickhouse_workspace_settings_insert.sql_generated.go",
         "clickhouse_workspace_settings_update_limits.sql_generated.go",
-        "cluster_state_versions.sql_generated.go",
         "custom_domain_find_by_domain.sql_generated.go",
         "custom_domain_find_by_domain_or_wildcard.sql_generated.go",
         "custom_domain_find_by_id.sql_generated.go",

@@ -33,11 +33,11 @@ The ctrl service is built on Connect RPC for service-to-service communication us
 
 ### Cluster Service
 
-The cluster service implements sequence-based synchronization for coordinating deployments across multiple regions. Rather than pushing events to connected agents, it exposes a `Sync` RPC that Krane instances poll for state changes. This design makes the control plane stateless with respect to connected clients.
+The cluster service implements version-based synchronization for coordinating deployments across multiple regions. Rather than pushing events to connected agents, it exposes `WatchDeployments` and `WatchSentinels` RPCs that Krane instances use to stream state changes. This design makes the control plane stateless with respect to connected clients.
 
-The service provides these key RPCs. `Sync` establishes a server-streaming connection where the control plane polls the `state_changes` table and streams new entries to Krane. For fresh connections (sequence=0), it first streams the complete desired state as a bootstrap, then switches to incremental mode. `GetDesiredDeploymentState` and `GetDesiredSentinelState` return current desired state for individual resources. `UpdateDeploymentState` and `UpdateSentinelState` receive pod status updates from agents.
+The service provides these key RPCs. `WatchDeployments` and `WatchSentinels` establish server-streaming connections for receiving deployment and sentinel state changes respectively. For fresh connections (version=0), they first stream the complete desired state as a bootstrap, then switch to incremental mode. `GetDesiredDeploymentState` and `GetDesiredSentinelState` return current desired state for individual resources. `ReportDeploymentStatus` and `ReportSentinelStatus` receive pod status updates from agents.
 
-When resources are created, updated, or deleted, the deploy workflow inserts a row into `state_changes` with a monotonically increasing sequence number. Krane instances polling for that region receive the change and apply it locally. This decouples the control plane from connection management and enables reliable at-least-once delivery through sequence-based resumption.
+When resources are created, updated, or deleted, the deploy workflow updates the resource with a monotonically increasing version number. Krane instances watching that region receive the change and apply it locally. This decouples the control plane from connection management and enables reliable at-least-once delivery through version-based resumption.
 
 [Read detailed Pull-Based Provisioning docs →](./pull-based-infra)
 
@@ -85,7 +85,7 @@ Workflows are implemented as Restate services for durable execution. The Deploym
 
 The ctrl service uses a single MySQL database (`unkey`) that stores all data: projects, environments, and workspaces, along with deployments and deployment history, deployment topology for regional distribution, instances tracking individual pods, domains and SSL certificates, ACME users and challenges, sentinel configurations, and certificate storage in PEM format.
 
-The `state_changes` table is the changelog that drives Krane synchronization. Each row represents a create, update, or delete operation on a deployment or sentinel, with a monotonically increasing sequence number per region. Krane instances poll this table via the `Sync` RPC to receive incremental updates. Rows are indexed by `(region, sequence)` for efficient polling and retained for 7 days before cleanup.
+Resource tables (deployment_topology, sentinels) include a `version` column that drives Krane synchronization. Each mutation updates the version via the VersioningService singleton, providing a monotonically increasing version across all resources. Krane instances stream changes via `WatchDeployments` and `WatchSentinels` RPCs to receive incremental updates. Rows are indexed by `(region, version)` for efficient streaming.
 
 ## Monitoring
 

@@ -2,10 +2,7 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "krane",
-    srcs = [
-        "scheduler.pb.go",
-        "secrets.pb.go",
-    ],
+    srcs = ["secrets.pb.go"],
     importpath = "github.com/unkeyed/unkey/gen/proto/krane/v1",
     visibility = ["//visibility:public"],
     deps = [

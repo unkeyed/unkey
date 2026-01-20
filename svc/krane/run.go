@@ -15,7 +15,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/vault"
 	"github.com/unkeyed/unkey/pkg/vault/storage"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
-	"github.com/unkeyed/unkey/svc/krane/internal/reconciler"
+	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
+	"github.com/unkeyed/unkey/svc/krane/internal/sentinel"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
 	"github.com/unkeyed/unkey/svc/krane/secrets"
 	"github.com/unkeyed/unkey/svc/krane/secrets/token"
@@ -85,18 +86,30 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create k8s dynamic client: %w", err)
 	}
 
-	r := reconciler.New(reconciler.Config{
+	// Start the deployment controller (independent control loop)
+	deploymentCtrl := deployment.New(deployment.Config{
 		ClientSet:     clientset,
 		DynamicClient: dynamicClient,
 		Logger:        logger,
 		Cluster:       cluster,
 		Region:        cfg.Region,
 	})
-	if err := r.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start reconciler: %w", err)
+	if err := deploymentCtrl.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start deployment controller: %w", err)
 	}
+	shutdowns.Register(deploymentCtrl.Stop)
 
-	shutdowns.Register(r.Stop)
+	// Start the sentinel controller (independent control loop)
+	sentinelCtrl := sentinel.New(sentinel.Config{
+		ClientSet: clientset,
+		Logger:    logger,
+		Cluster:   cluster,
+		Region:    cfg.Region,
+	})
+	if err := sentinelCtrl.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start sentinel controller: %w", err)
+	}
+	shutdowns.Register(sentinelCtrl.Stop)
 
 	// Create vault service for secrets decryption
 

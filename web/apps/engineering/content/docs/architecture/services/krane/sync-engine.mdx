@@ -13,16 +13,11 @@ The Krane Sync Engine implements a Kubernetes-style List+Watch pattern for synch
   chart="
 graph TB
     subgraph 'Krane Agent'
-        W[Watcher]
-        R[Reconciler]
         DC[Deployment Controller]
         GC[Sentinel Controller]
         IUB[Instance Update Buffer]
         GUB[Sentinel Update Buffer]
         
-        W -->|HandleState| R
-        R --> DC
-        R --> GC
         DC --> IUB
         GC --> GUB
     end
@@ -43,9 +38,10 @@ graph TB
         W2[StatefulSet Watcher]
     end
     
-    W -.->|Sync stream| CS
-    IUB -->|UpdateDeploymentState| CS
-    GUB -->|UpdateSentinelState| CS
+    DC -.->|WatchDeployments| CS
+    GC -.->|WatchSentinels| CS
+    IUB -->|ReportDeploymentStatus| CS
+    GUB -->|ReportSentinelStatus| CS
     
     DC -->|Apply/Delete| API
     GC -->|Apply/Delete| API
@@ -55,35 +51,35 @@ graph TB
 
 ## Sync Protocol
 
-The sync engine uses a single `Sync` RPC to receive state changes from the control plane. This RPC establishes a server-streaming connection where the control plane sends `State` messages containing deployment or sentinel operations.
+The sync engine uses `WatchDeployments` and `WatchSentinels` RPCs to receive state changes from the control plane. These RPCs establish server-streaming connections where the control plane sends `DeploymentState` and `SentinelState` messages containing deployment or sentinel operations.
 
 ### Version Tracking
 
 Each resource (deployment_topology, sentinel) has a `version` column updated on every mutation via the Restate VersioningService singleton. This provides a globally unique, monotonically increasing version across all resources.
 
-The reconciler maintains a `versionLastSeen` field that tracks the highest version successfully processed. On startup, this is zero. After processing each `State` message, the reconciler tracks the max version seen but only commits it after a clean stream close. When reconnecting after a failure, Krane sends its last-seen version in the `SyncRequest`, allowing the control plane to resume from the correct position.
+Each controller maintains a `versionLastSeen` field that tracks the highest version successfully processed. On startup, this is zero. After processing each state message, the controller tracks the max version seen but only commits it after a clean stream close. When reconnecting after a failure, Krane sends its last-seen version in the watch request, allowing the control plane to resume from the correct position.
 
 ### Message Types
 
-The `State` message contains a version number and one of two payloads:
+Each state message contains a version number and one of two payloads:
 
 **DeploymentState** contains either an `ApplyDeployment` (create or update a StatefulSet with the specified image, replicas, and resource limits) or `DeleteDeployment` (remove the StatefulSet and its associated Service).
 
 **SentinelState** contains either an `ApplySentinel` (create or update a sentinel deployment) or `DeleteSentinel` (remove the sentinel).
 
-Stream close signals that the current batch (or bootstrap) is complete. The client tracks the highest version from received messages and uses it for the next sync request.
+Stream close signals that the current batch (or bootstrap) is complete. The client tracks the highest version from received messages and uses it for the next watch request.
 
-## Watcher Loop
+## Controller Loops
 
-The Watcher runs a continuous loop with jittered reconnection timing (1-5 seconds between attempts). Each iteration establishes a Sync stream and processes messages until the stream closes or an error occurs.
+Each controller (deployment and sentinel) runs a continuous loop with jittered reconnection timing (1-5 seconds between attempts). Each iteration establishes a watch stream and processes messages until the stream closes or an error occurs.
 
 ```
 for {
     sleep(random(1s, 5s))
-    stream = cluster.Sync(region, versionLastSeen)
+    stream = cluster.WatchDeployments(region, versionLastSeen)
     maxVersion = 0
     for message in stream {
-        ver = reconciler.HandleState(message)
+        ver = controller.HandleState(message)
         maxVersion = max(maxVersion, ver)
     }
     if stream.closed_cleanly:
@@ -95,17 +91,13 @@ This design prioritizes simplicity and reliability over latency. The jittered ti
 
 ## State Handling
 
-The `HandleState` method on the Reconciler dispatches each state message to the appropriate controller:
+Each controller handles its own state messages:
 
 ```
 HandleState(state):
-    switch state.Kind:
-        case Deployment:
-            if Apply: ApplyDeployment(state.Apply)
-            if Delete: DeleteDeployment(state.Delete)
-        case Sentinel:
-            if Apply: ApplySentinel(state.Apply)
-            if Delete: DeleteSentinel(state.Delete)
+    switch state.Type:
+        case Apply: ApplyDeployment(state.Apply)
+        case Delete: DeleteDeployment(state.Delete)
     
     return state.Version
 ```
@@ -120,7 +112,7 @@ This eliminates the need for a separate changelog table. The resource tables the
 
 ## Kubernetes Watchers
 
-In addition to receiving desired state from the control plane, Krane watches Kubernetes for actual state changes. Pod and StatefulSet watchers notify the controllers when resources change (pod becomes ready, pod fails, etc.). The controllers then report these changes back to the control plane through `UpdateDeploymentState` and `UpdateSentinelState` RPCs.
+In addition to receiving desired state from the control plane, Krane watches Kubernetes for actual state changes. Pod and StatefulSet watchers notify the controllers when resources change (pod becomes ready, pod fails, etc.). The controllers then report these changes back to the control plane through `ReportDeploymentStatus` and `ReportSentinelStatus` RPCs.
 
 This bidirectional flow ensures the control plane always knows the actual state of resources, enabling the UI to show accurate deployment status and the workflow to detect when deployments are ready.
 
