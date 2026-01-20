@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
+
 	authv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -41,20 +43,20 @@ func NewK8sValidator(cfg K8sValidatorConfig) *K8sValidator {
 	return &K8sValidator{clientset: cfg.Clientset}
 }
 
-// Validate validates Kubernetes service account token against expected deployment.
+// Validate validates Kubernetes service account token against expected deployment and environment.
 //
 // This method implements token validation using Kubernetes TokenReview API. It
 // verifies that the token is valid, extracts pod information from token review,
 // retrieves the pod, and validates that the pod belongs to the expected
-// deployment by checking the "unkey.com/deployment-id" annotation.
+// deployment and environment by checking pod labels.
 //
 // Returns ValidationResult on successful validation or error if:
 // - Token is invalid or expired
 // - Token doesn't represent a service account
 // - Pod information cannot be extracted
-// - Pod doesn't have required deployment annotation
-// - Pod deployment annotation doesn't match expected deploymentID
-func (v *K8sValidator) Validate(ctx context.Context, token string, deploymentID string) (*ValidationResult, error) {
+// - Pod doesn't have required deployment or environment labels
+// - Pod labels don't match expected deploymentID or environmentID
+func (v *K8sValidator) Validate(ctx context.Context, token string, deploymentID string, environmentID string) (*ValidationResult, error) {
 	//nolint:exhaustruct // k8s API types have many optional fields
 	tokenReview := &authv1.TokenReview{
 		Spec: authv1.TokenReviewSpec{Token: token},
@@ -94,14 +96,28 @@ func (v *K8sValidator) Validate(ctx context.Context, token string, deploymentID 
 		return nil, fmt.Errorf("failed to get pod %s: %w", podName, err)
 	}
 
-	podDeploymentID := pod.Annotations["unkey.com/deployment-id"]
-	if podDeploymentID == "" {
-		return nil, fmt.Errorf("pod %s missing unkey.com/deployment-id annotation", podName)
+	// Validate deployment ID from pod labels
+	podDeploymentID, ok := labels.GetDeploymentID(pod.Labels)
+	if !ok || podDeploymentID == "" {
+		return nil, fmt.Errorf("pod %s missing %s label", podName, labels.LabelKeyDeploymentID)
 	}
 
 	if podDeploymentID != deploymentID {
 		return nil, fmt.Errorf("pod %s belongs to deployment %s, not %s", podName, podDeploymentID, deploymentID)
 	}
 
-	return &ValidationResult{DeploymentID: deploymentID}, nil
+	// Validate environment ID from pod labels
+	podEnvironmentID, ok := labels.GetEnvironmentID(pod.Labels)
+	if !ok || podEnvironmentID == "" {
+		return nil, fmt.Errorf("pod %s missing %s label", podName, labels.LabelKeyEnvironmentID)
+	}
+
+	if podEnvironmentID != environmentID {
+		return nil, fmt.Errorf("pod %s belongs to environment %s, not %s", podName, podEnvironmentID, environmentID)
+	}
+
+	return &ValidationResult{
+		DeploymentID:  deploymentID,
+		EnvironmentID: environmentID,
+	}, nil
 }

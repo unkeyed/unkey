@@ -9,7 +9,8 @@ const versionStateKey = "version"
 
 // NextVersion atomically increments and returns the next version number.
 //
-// The version is durably stored in Restate's virtual object state, guaranteeing monotonically increasing values
+// The version is durably stored in Restate's virtual object state per region,
+// guaranteeing monotonically increasing values within each region.
 func (s *Service) NextVersion(ctx restate.ObjectContext, _ *hydrav1.NextVersionRequest) (*hydrav1.NextVersionResponse, error) {
 	current, err := restate.Get[uint64](ctx, versionStateKey)
 	if err != nil {

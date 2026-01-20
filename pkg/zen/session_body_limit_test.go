@@ -174,7 +174,7 @@ func TestSession_BodySizeLimitHTTPStatus(t *testing.T) {
 
 	srv.RegisterRoute(
 		[]Middleware{
-			WithErrorHandling(logger),
+			withErrorHandling(logger),
 		},
 		testRoute,
 	)

@@ -14,9 +14,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/eventstream"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
-	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/integration"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -40,7 +40,7 @@ func TestAPI_ProducesInvalidationEvents(t *testing.T) {
 	// Ensure topic exists
 	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err, "Should be able to create topic")
-	defer topic.Close()
+	defer func() { require.NoError(t, topic.Close()) }()
 
 	// Wait for topic to be fully propagated before using it
 	waitCtx, waitCancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -54,7 +54,7 @@ func TestAPI_ProducesInvalidationEvents(t *testing.T) {
 
 	// Start consumer from latest offset to avoid old test events
 	consumer := topic.NewConsumer()
-	defer consumer.Close()
+	defer func() { require.NoError(t, consumer.Close()) }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

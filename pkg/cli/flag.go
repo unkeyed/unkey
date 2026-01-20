@@ -269,7 +269,8 @@ func (f *StringSliceFlag) parseCommaSeparated(value string) []string {
 	return result
 }
 
-// Parse sets the flag value from a string (comma-separated values)
+// Parse appends the flag value from a string (comma-separated values)
+// Multiple --flag invocations accumulate values
 func (f *StringSliceFlag) Parse(value string) error {
 	parsed := f.parseCommaSeparated(value)
 
@@ -280,7 +281,7 @@ func (f *StringSliceFlag) Parse(value string) error {
 		}
 	}
 
-	f.value = parsed
+	f.value = append(f.value, parsed...)
 	f.set = true
 	return nil
 }

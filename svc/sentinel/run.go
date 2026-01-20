@@ -126,6 +126,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:             logger,
 		TLS:                nil,
 		Flags:              nil,
+		EnableH2C:          true,
 		MaxRequestBodySize: 0,
 		ReadTimeout:        0,
 		WriteTimeout:       0,

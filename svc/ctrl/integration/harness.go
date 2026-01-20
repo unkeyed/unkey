@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -10,8 +11,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
-	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 )
 
 // Harness provides a test environment for ctrl service integration tests.
@@ -52,7 +53,7 @@ func New(t *testing.T) *Harness {
 	h.Seed.Seed(ctx)
 
 	t.Cleanup(func() {
-		database.Close()
+		require.NoError(t, database.Close())
 	})
 
 	return h
@@ -140,6 +141,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		MemoryMib:                     128,
 		CreatedAt:                     h.Now(),
 		UpdatedAt:                     sql.NullInt64{Valid: false},
+		Command:                       json.RawMessage([]byte("[]")),
 	})
 	require.NoError(h.t, err)
 

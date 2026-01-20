@@ -1,4 +1,4 @@
-// Package versioning provides a global version counter for state synchronization.
+// Package versioning provides per-region version counters for state synchronization.
 //
 // The VersioningService is a Restate virtual object that generates monotonically
 // increasing version numbers. These versions are used to track state changes in
@@ -7,9 +7,9 @@
 //
 // # Usage
 //
-// Before mutating a deployment or sentinel:
+// Before mutating a deployment or sentinel, pass the region as the virtual object key:
 //
-//	client := hydrav1.NewVersioningServiceClient(ctx, "")
+//	client := hydrav1.NewVersioningServiceClient(ctx, region)
 //	resp, err := client.NextVersion(ctx, &hydrav1.NextVersionRequest{})
 //	// Use resp.Version when updating the resource row
 //
@@ -17,9 +17,9 @@
 //
 //	SELECT * FROM deployments WHERE region = ? AND version > ? ORDER BY version
 //
-// # Singleton Pattern
+// # Per-Region Pattern
 //
-// This service uses an empty string as the virtual object key, making it a
-// singleton. All version requests are serialized through a single instance,
-// guaranteeing global ordering.
+// This service uses the region name as the virtual object key, creating one
+// version counter per region. This allows version requests for different regions
+// to be processed in parallel while maintaining ordering within each region.
 package versioning

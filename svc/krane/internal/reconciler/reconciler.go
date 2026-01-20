@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -23,6 +24,7 @@ import (
 // before processing state and [Stop] during shutdown.
 type Reconciler struct {
 	clientSet       kubernetes.Interface
+	dynamicClient   dynamic.Interface
 	logger          logging.Logger
 	cluster         ctrlv1connect.ClusterServiceClient
 	cb              circuitbreaker.CircuitBreaker[any]
@@ -34,16 +36,18 @@ type Reconciler struct {
 // Config holds the configuration required to create a new [Reconciler].
 // All fields are required.
 type Config struct {
-	ClientSet kubernetes.Interface
-	Logger    logging.Logger
-	Cluster   ctrlv1connect.ClusterServiceClient
-	Region    string
+	ClientSet     kubernetes.Interface
+	DynamicClient dynamic.Interface
+	Logger        logging.Logger
+	Cluster       ctrlv1connect.ClusterServiceClient
+	Region        string
 }
 
 // New creates a [Reconciler] ready to be started with [Reconciler.Start].
 func New(cfg Config) *Reconciler {
 	return &Reconciler{
 		clientSet:       cfg.ClientSet,
+		dynamicClient:   cfg.DynamicClient,
 		logger:          cfg.Logger,
 		cluster:         cfg.Cluster,
 		cb:              circuitbreaker.New[any]("reconciler_state_update"),

@@ -76,7 +76,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Disable CNAME following in lego to prevent it from following wildcard CNAMEs
 	// (e.g., *.example.com -> loadbalancer.aws.com) and failing Route53 zone lookup.
 	// Must be set before creating any ACME DNS providers.
-	os.Setenv("LEGO_DISABLE_CNAME_SUPPORT", "true")
+	_ = os.Setenv("LEGO_DISABLE_CNAME_SUPPORT", "true")
 
 	shutdowns := shutdown.New()
 
@@ -226,8 +226,13 @@ func Run(ctx context.Context, cfg Config) error {
 	default:
 		return fmt.Errorf("unknown build backend: %s (must be 'docker' or 'depot')", cfg.BuildBackend)
 	}
+
 	// Restate Client and Server
-	restateClient := restateIngress.NewClient(cfg.Restate.FrontlineURL)
+	restateClientOpts := []restate.IngressClientOption{}
+	if cfg.Restate.APIKey != "" {
+		restateClientOpts = append(restateClientOpts, restate.WithAuthKey(cfg.Restate.APIKey))
+	}
+	restateClient := restateIngress.NewClient(cfg.Restate.URL, restateClientOpts...)
 	restateSrv := restateServer.NewRestate()
 
 	c := cluster.New(cluster.Config{
@@ -362,7 +367,7 @@ func Run(ctx context.Context, cfg Config) error {
 				if err != nil {
 					return fmt.Errorf("failed to register with Restate: %w", err)
 				}
-				defer resp.Body.Close()
+				defer func() { _ = resp.Body.Close() }()
 
 				if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 					return nil
@@ -543,7 +548,6 @@ func bootstrapWildcardDomain(ctx context.Context, database db.Database, logger l
 
 	// Use "unkey_internal" as the workspace for platform-managed resources
 	workspaceID := "unkey_internal"
-
 	err = db.Query.UpsertCustomDomain(ctx, database.RW(), db.UpsertCustomDomainParams{
 		ID:            domainID,
 		WorkspaceID:   workspaceID,

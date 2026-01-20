@@ -8,8 +8,11 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
 	k8stesting "k8s.io/client-go/testing"
 )
@@ -45,6 +48,27 @@ func newTestNamespace() *corev1.Namespace {
 // Reconciler Setup
 // -----------------------------------------------------------------------------
 
+// NewFakeDynamicClient creates a fake dynamic client for testing CiliumNetworkPolicy operations.
+// It includes a reactor that handles server-side apply (patch) operations for CiliumNetworkPolicy.
+func NewFakeDynamicClient() *dynamicfake.FakeDynamicClient {
+	scheme := runtime.NewScheme()
+	gvrToListKind := map[schema.GroupVersionResource]string{
+		{Group: "cilium.io", Version: "v2", Resource: "ciliumnetworkpolicies"}: "CiliumNetworkPolicyList",
+	}
+	client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, gvrToListKind)
+	// Add a reactor to handle server-side apply (patch) operations
+	client.PrependReactor("patch", "ciliumnetworkpolicies", func(action k8stesting.Action) (handled bool, ret runtime.Object, err error) {
+		patchAction := action.(k8stesting.PatchAction)
+		obj := &unstructured.Unstructured{}
+		obj.SetAPIVersion("cilium.io/v2")
+		obj.SetKind("CiliumNetworkPolicy")
+		obj.SetName(patchAction.GetName())
+		obj.SetNamespace(patchAction.GetNamespace())
+		return true, obj, nil
+	})
+	return client
+}
+
 // NewTestReconciler creates a Reconciler with the provided fake client and mock
 // control plane client. If controlPlane is nil, a new MockClusterClient is used.
 func NewTestReconciler(client *fake.Clientset, controlPlane *MockClusterClient) *Reconciler {
@@ -52,10 +76,11 @@ func NewTestReconciler(client *fake.Clientset, controlPlane *MockClusterClient) 
 		controlPlane = &MockClusterClient{}
 	}
 	return New(Config{
-		ClientSet: client,
-		Logger:    logging.NewNoop(),
-		Cluster:   controlPlane,
-		Region:    "test-region",
+		ClientSet:     client,
+		DynamicClient: NewFakeDynamicClient(),
+		Logger:        logging.NewNoop(),
+		Cluster:       controlPlane,
+		Region:        "test-region",
 	})
 }
 

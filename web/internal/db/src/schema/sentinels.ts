@@ -54,7 +54,6 @@ export const sentinels = mysqlTable(
   (table) => [
     index("idx_environment_id").on(table.environmentId),
     index("region_version_idx").on(table.region, table.version),
-
     uniqueIndex("one_env_per_region").on(table.environmentId, table.region),
   ],
 );

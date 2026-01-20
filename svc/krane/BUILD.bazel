@@ -22,6 +22,7 @@ go_library(
         "//svc/krane/pkg/controlplane",
         "//svc/krane/secrets",
         "//svc/krane/secrets/token",
+        "@io_k8s_client_go//dynamic",
         "@io_k8s_client_go//kubernetes",
         "@io_k8s_client_go//rest",
     ],

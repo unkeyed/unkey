@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
 	"github.com/unkeyed/unkey/svc/krane/secrets"
 	"github.com/unkeyed/unkey/svc/krane/secrets/token"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -79,11 +80,17 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create k8s clientset: %w", err)
 	}
 
+	dynamicClient, err := dynamic.NewForConfig(inClusterConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create k8s dynamic client: %w", err)
+	}
+
 	r := reconciler.New(reconciler.Config{
-		ClientSet: clientset,
-		Logger:    logger,
-		Cluster:   cluster,
-		Region:    cfg.Region,
+		ClientSet:     clientset,
+		DynamicClient: dynamicClient,
+		Logger:        logger,
+		Cluster:       cluster,
+		Region:        cfg.Region,
 	})
 	if err := r.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start reconciler: %w", err)

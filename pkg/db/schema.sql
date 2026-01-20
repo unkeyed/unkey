@@ -407,6 +407,7 @@ CREATE TABLE `projects` (
 	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`default_branch` varchar(256) DEFAULT 'main',
 	`depot_project_id` varchar(255),
+	`command` json NOT NULL DEFAULT ('[]'),
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -436,6 +437,7 @@ CREATE TABLE `deployments` (
 	`memory_mib` int NOT NULL,
 	`desired_state` enum('running','standby','archived') NOT NULL DEFAULT 'running',
 	`encrypted_environment_variables` longblob NOT NULL,
+	`command` json NOT NULL DEFAULT ('[]'),
 	`status` enum('pending','building','deploying','network','ready','failed') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -592,7 +594,6 @@ CREATE INDEX `pending_migration_id_idx` ON `keys` (`pending_migration_id`);
 CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
-CREATE INDEX `name_idx` ON `ratelimits` (`name`);
 CREATE INDEX `workspace_id_idx` ON `audit_log` (`workspace_id`);
 CREATE INDEX `bucket_id_idx` ON `audit_log` (`bucket_id`);
 CREATE INDEX `bucket_idx` ON `audit_log` (`bucket`);
@@ -600,14 +601,11 @@ CREATE INDEX `event_idx` ON `audit_log` (`event`);
 CREATE INDEX `actor_id_idx` ON `audit_log` (`actor_id`);
 CREATE INDEX `time_idx` ON `audit_log` (`time`);
 CREATE INDEX `bucket` ON `audit_log_target` (`bucket`);
-CREATE INDEX `audit_log_id` ON `audit_log_target` (`audit_log_id`);
 CREATE INDEX `id_idx` ON `audit_log_target` (`id`);
-CREATE INDEX `workspace_idx` ON `projects` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `deployments` (`workspace_id`);
 CREATE INDEX `project_idx` ON `deployments` (`project_id`);
 CREATE INDEX `status_idx` ON `deployments` (`status`);
 CREATE INDEX `workspace_idx` ON `deployment_topology` (`workspace_id`);
-CREATE INDEX `deployment_idx` ON `deployment_topology` (`deployment_id`);
 CREATE INDEX `region_idx` ON `deployment_topology` (`region`);
 CREATE INDEX `status_idx` ON `deployment_topology` (`desired_status`);
 CREATE INDEX `region_version_idx` ON `deployment_topology` (`region`,`version`);

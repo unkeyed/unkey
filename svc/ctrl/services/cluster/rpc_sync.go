@@ -45,6 +45,9 @@ func (s *Service) Sync(ctx context.Context, req *connect.Request[ctrlv1.SyncRequ
 // 1. Query the next batch of (version, kind) pairs in global order (lightweight UNION ALL)
 // 2. Partition versions by kind and hydrate full data with targeted queries
 // 3. Merge results by version and stream to the client
+//
+// As you can see, this is not terribly efficient, but it's easy and will do just fine for now.
+// Later we can probably split it up and do 2 separete streams, one for deployments and one for sentinels
 func (s *Service) streamStateAfterVersion(ctx context.Context, region string, afterVersion uint64, stream *connect.ServerStream[ctrlv1.State]) error {
 	for {
 		// Step 1: Get next batch of versions in global order

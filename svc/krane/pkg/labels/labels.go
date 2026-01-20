@@ -5,6 +5,20 @@ import (
 	"strings"
 )
 
+// Label key constants for krane resources.
+// These are the single source of truth for label keys used across the codebase.
+const (
+	LabelKeyWorkspaceID   = "unkey.com/workspace.id"
+	LabelKeyProjectID     = "unkey.com/project.id"
+	LabelKeyEnvironmentID = "unkey.com/environment.id"
+	LabelKeyDeploymentID  = "unkey.com/deployment.id"
+	LabelKeyBuildID       = "unkey.com/build.id"
+	LabelKeySentinelID    = "unkey.com/sentinel.id"
+	LabelKeyInject        = "unkey.com/inject"
+	LabelKeyManagedBy     = "app.kubernetes.io/managed-by"
+	LabelKeyComponent     = "app.kubernetes.io/component"
+)
+
 // Labels represents a map of Kubernetes labels for krane resources.
 //
 // This type provides fluent methods for building standardized label sets
@@ -27,7 +41,7 @@ func New() Labels {
 // the workspace that owns the resource. Returns the same Labels instance
 // for method chaining.
 func (l Labels) WorkspaceID(id string) Labels {
-	(l)["unkey.com/workspace.id"] = id
+	l[LabelKeyWorkspaceID] = id
 	return l
 }
 
@@ -37,7 +51,7 @@ func (l Labels) WorkspaceID(id string) Labels {
 // the specific deployment that owns this resource. Returns the same
 // Labels instance for method chaining.
 func (l Labels) DeploymentID(id string) Labels {
-	(l)["unkey.com/deployment.id"] = id
+	l[LabelKeyDeploymentID] = id
 	return l
 }
 
@@ -47,7 +61,7 @@ func (l Labels) DeploymentID(id string) Labels {
 // to indicate that the resource is managed by the krane system.
 // Returns the same Labels instance for method chaining.
 func (l Labels) ManagedByKrane() Labels {
-	(l)["app.kubernetes.io/managed-by"] = "krane"
+	l[LabelKeyManagedBy] = "krane"
 	return l
 }
 
@@ -57,7 +71,7 @@ func (l Labels) ManagedByKrane() Labels {
 // the specific sentinel that owns this resource. Returns the same
 // Labels instance for method chaining.
 func (l Labels) SentinelID(id string) Labels {
-	(l)["unkey.com/sentinel.id"] = id
+	l[LabelKeySentinelID] = id
 	return l
 }
 
@@ -67,7 +81,7 @@ func (l Labels) SentinelID(id string) Labels {
 // to identify resource as a sentinel component. Returns the same
 // Labels instance for method chaining.
 func (l Labels) ComponentSentinel() Labels {
-	(l)["app.kubernetes.io/component"] = "sentinel"
+	l[LabelKeyComponent] = "sentinel"
 	return l
 }
 
@@ -77,7 +91,7 @@ func (l Labels) ComponentSentinel() Labels {
 // to identify resource as a deployment component. Returns the same
 // Labels instance for method chaining.
 func (l Labels) ComponentDeployment() Labels {
-	(l)["app.kubernetes.io/component"] = "deployment"
+	l[LabelKeyComponent] = "deployment"
 	return l
 }
 
@@ -87,7 +101,7 @@ func (l Labels) ComponentDeployment() Labels {
 // the project that owns the resource. Returns the same Labels
 // instance for method chaining.
 func (l Labels) ProjectID(id string) Labels {
-	(l)["unkey.com/project.id"] = id
+	l[LabelKeyProjectID] = id
 	return l
 }
 
@@ -97,7 +111,7 @@ func (l Labels) ProjectID(id string) Labels {
 // environment that owns the resource. Returns the same Labels instance
 // for method chaining.
 func (l Labels) EnvironmentID(id string) Labels {
-	(l)["unkey.com/environment.id"] = id
+	l[LabelKeyEnvironmentID] = id
 	return l
 }
 
@@ -107,7 +121,7 @@ func (l Labels) EnvironmentID(id string) Labels {
 // that the resource should be injected. Returns the same Labels instance
 // for method chaining.
 func (l Labels) Inject() Labels {
-	(l)["unkey.com/inject"] = "true"
+	l[LabelKeyInject] = "true"
 	return l
 }
 
@@ -117,7 +131,7 @@ func (l Labels) Inject() Labels {
 // the build that produced the container image. Returns the same Labels
 // instance for method chaining.
 func (l Labels) BuildID(id string) Labels {
-	(l)["unkey.com/build.id"] = id
+	l[LabelKeyBuildID] = id
 	return l
 }
 
@@ -142,7 +156,7 @@ func (l Labels) ToString() string {
 // a Kubernetes resource's labels. Returns the ID and a boolean indicating
 // whether the label was found.
 func GetSentinelID(l map[string]string) (string, bool) {
-	v, ok := l["unkey.com/sentinel.id"]
+	v, ok := l[LabelKeySentinelID]
 	return v, ok
 }
 
@@ -152,6 +166,16 @@ func GetSentinelID(l map[string]string) (string, bool) {
 // a Kubernetes resource's labels. Returns ID and a boolean indicating
 // whether the label was found.
 func GetDeploymentID(l map[string]string) (string, bool) {
-	v, ok := l["unkey.com/deployment.id"]
+	v, ok := l[LabelKeyDeploymentID]
+	return v, ok
+}
+
+// GetEnvironmentID extracts environment ID from Kubernetes label map.
+//
+// This helper function retrieves the "unkey.com/environment.id" label from
+// a Kubernetes resource's labels. Returns ID and a boolean indicating
+// whether the label was found.
+func GetEnvironmentID(l map[string]string) (string, bool) {
+	v, ok := l[LabelKeyEnvironmentID]
 	return v, ok
 }

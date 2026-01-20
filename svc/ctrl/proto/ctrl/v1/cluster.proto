@@ -13,6 +13,14 @@ package ctrl.v1;
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
+// Health represents the health state of a resource (sentinel, deployment instance, etc.)
+enum Health {
+  HEALTH_UNSPECIFIED = 0;
+  HEALTH_HEALTHY = 1;
+  HEALTH_UNHEALTHY = 2;
+  HEALTH_PAUSED = 3;
+}
+
 // ClusterService coordinates deployment and sentinel configurations across multiple clusters.
 //
 // Agents in each cluster establish a watch stream to receive configuration events
@@ -74,6 +82,7 @@ message UpdateInstanceStateResponse {}
 message UpdateSentinelStateRequest {
   string k8s_name = 1;
   int32 available_replicas = 2;
+  Health health = 3;
 }
 
 message UpdateSentinelStateResponse {}
@@ -214,6 +223,10 @@ message ApplyDeployment {
 
   optional string build_id = 11;
   bytes encrypted_environment_variables = 12;
+
+  // command is the container command override (e.g., ["./app", "serve"]).
+  // If empty, the container's default entrypoint/cmd from the Dockerfile is used.
+  repeated string command = 13;
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.

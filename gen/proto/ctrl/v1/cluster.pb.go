@@ -31,6 +31,59 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Health represents the health state of a resource (sentinel, deployment instance, etc.)
+type Health int32
+
+const (
+	Health_HEALTH_UNSPECIFIED Health = 0
+	Health_HEALTH_HEALTHY     Health = 1
+	Health_HEALTH_UNHEALTHY   Health = 2
+	Health_HEALTH_PAUSED      Health = 3
+)
+
+// Enum value maps for Health.
+var (
+	Health_name = map[int32]string{
+		0: "HEALTH_UNSPECIFIED",
+		1: "HEALTH_HEALTHY",
+		2: "HEALTH_UNHEALTHY",
+		3: "HEALTH_PAUSED",
+	}
+	Health_value = map[string]int32{
+		"HEALTH_UNSPECIFIED": 0,
+		"HEALTH_HEALTHY":     1,
+		"HEALTH_UNHEALTHY":   2,
+		"HEALTH_PAUSED":      3,
+	}
+)
+
+func (x Health) Enum() *Health {
+	p := new(Health)
+	*p = x
+	return p
+}
+
+func (x Health) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Health) Descriptor() protoreflect.EnumDescriptor {
+	return file_ctrl_v1_cluster_proto_enumTypes[0].Descriptor()
+}
+
+func (Health) Type() protoreflect.EnumType {
+	return &file_ctrl_v1_cluster_proto_enumTypes[0]
+}
+
+func (x Health) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Health.Descriptor instead.
+func (Health) EnumDescriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{0}
+}
+
 type UpdateDeploymentStateRequest_Update_Instance_Status int32
 
 const (
@@ -67,11 +120,11 @@ func (x UpdateDeploymentStateRequest_Update_Instance_Status) String() string {
 }
 
 func (UpdateDeploymentStateRequest_Update_Instance_Status) Descriptor() protoreflect.EnumDescriptor {
-	return file_ctrl_v1_cluster_proto_enumTypes[0].Descriptor()
+	return file_ctrl_v1_cluster_proto_enumTypes[1].Descriptor()
 }
 
 func (UpdateDeploymentStateRequest_Update_Instance_Status) Type() protoreflect.EnumType {
-	return &file_ctrl_v1_cluster_proto_enumTypes[0]
+	return &file_ctrl_v1_cluster_proto_enumTypes[1]
 }
 
 func (x UpdateDeploymentStateRequest_Update_Instance_Status) Number() protoreflect.EnumNumber {
@@ -329,6 +382,7 @@ type UpdateSentinelStateRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	K8SName           string                 `protobuf:"bytes,1,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
 	AvailableReplicas int32                  `protobuf:"varint,2,opt,name=available_replicas,json=availableReplicas,proto3" json:"available_replicas,omitempty"`
+	Health            Health                 `protobuf:"varint,3,opt,name=health,proto3,enum=ctrl.v1.Health" json:"health,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -375,6 +429,13 @@ func (x *UpdateSentinelStateRequest) GetAvailableReplicas() int32 {
 		return x.AvailableReplicas
 	}
 	return 0
+}
+
+func (x *UpdateSentinelStateRequest) GetHealth() Health {
+	if x != nil {
+		return x.Health
+	}
+	return Health_HEALTH_UNSPECIFIED
 }
 
 type UpdateSentinelStateResponse struct {
@@ -951,8 +1012,11 @@ type ApplyDeployment struct {
 	MemoryMib                     int64   `protobuf:"varint,10,opt,name=memory_mib,json=memoryMib,proto3" json:"memory_mib,omitempty"`
 	BuildId                       *string `protobuf:"bytes,11,opt,name=build_id,json=buildId,proto3,oneof" json:"build_id,omitempty"`
 	EncryptedEnvironmentVariables []byte  `protobuf:"bytes,12,opt,name=encrypted_environment_variables,json=encryptedEnvironmentVariables,proto3" json:"encrypted_environment_variables,omitempty"`
-	unknownFields                 protoimpl.UnknownFields
-	sizeCache                     protoimpl.SizeCache
+	// command is the container command override (e.g., ["./app", "serve"]).
+	// If empty, the container's default entrypoint/cmd from the Dockerfile is used.
+	Command       []string `protobuf:"bytes,13,rep,name=command,proto3" json:"command,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ApplyDeployment) Reset() {
@@ -1065,6 +1129,13 @@ func (x *ApplyDeployment) GetBuildId() string {
 func (x *ApplyDeployment) GetEncryptedEnvironmentVariables() []byte {
 	if x != nil {
 		return x.EncryptedEnvironmentVariables
+	}
+	return nil
+}
+
+func (x *ApplyDeployment) GetCommand() []string {
+	if x != nil {
+		return x.Command
 	}
 	return nil
 }
@@ -1330,10 +1401,11 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\bk8s_name\x18\x01 \x01(\tR\ak8sNameB\b\n" +
 	"\x06change\"\x1f\n" +
 	"\x1dUpdateDeploymentStateResponse\"\x1d\n" +
-	"\x1bUpdateInstanceStateResponse\"f\n" +
+	"\x1bUpdateInstanceStateResponse\"\x8f\x01\n" +
 	"\x1aUpdateSentinelStateRequest\x12\x19\n" +
 	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\x12-\n" +
-	"\x12available_replicas\x18\x02 \x01(\x05R\x11availableReplicas\"\x1d\n" +
+	"\x12available_replicas\x18\x02 \x01(\x05R\x11availableReplicas\x12'\n" +
+	"\x06health\x18\x03 \x01(\x0e2\x0f.ctrl.v1.HealthR\x06health\"\x1d\n" +
 	"\x1bUpdateSentinelStateResponse\"Q\n" +
 	"\vSyncRequest\x12\x16\n" +
 	"\x06region\x18\x01 \x01(\tR\x06region\x12*\n" +
@@ -1367,7 +1439,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\n" +
 	"memory_mib\x18\t \x01(\x03R\tmemoryMib\"+\n" +
 	"\x0eDeleteSentinel\x12\x19\n" +
-	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\xcc\x03\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\xe6\x03\n" +
 	"\x0fApplyDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
@@ -1383,11 +1455,17 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"memory_mib\x18\n" +
 	" \x01(\x03R\tmemoryMib\x12\x1e\n" +
 	"\bbuild_id\x18\v \x01(\tH\x00R\abuildId\x88\x01\x01\x12F\n" +
-	"\x1fencrypted_environment_variables\x18\f \x01(\fR\x1dencryptedEnvironmentVariablesB\v\n" +
+	"\x1fencrypted_environment_variables\x18\f \x01(\fR\x1dencryptedEnvironmentVariables\x12\x18\n" +
+	"\acommand\x18\r \x03(\tR\acommandB\v\n" +
 	"\t_build_id\"R\n" +
 	"\x10DeleteDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
-	"\bk8s_name\x18\x02 \x01(\tR\ak8sName2\xc8\x03\n" +
+	"\bk8s_name\x18\x02 \x01(\tR\ak8sName*]\n" +
+	"\x06Health\x12\x16\n" +
+	"\x12HEALTH_UNSPECIFIED\x10\x00\x12\x12\n" +
+	"\x0eHEALTH_HEALTHY\x10\x01\x12\x14\n" +
+	"\x10HEALTH_UNHEALTHY\x10\x02\x12\x11\n" +
+	"\rHEALTH_PAUSED\x10\x032\xc8\x03\n" +
 	"\x0eClusterService\x12.\n" +
 	"\x04Sync\x12\x14.ctrl.v1.SyncRequest\x1a\x0e.ctrl.v1.State0\x01\x12Z\n" +
 	"\x17GetDesiredSentinelState\x12'.ctrl.v1.GetDesiredSentinelStateRequest\x1a\x16.ctrl.v1.SentinelState\x12`\n" +
@@ -1408,55 +1486,57 @@ func file_ctrl_v1_cluster_proto_rawDescGZIP() []byte {
 	return file_ctrl_v1_cluster_proto_rawDescData
 }
 
-var file_ctrl_v1_cluster_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_ctrl_v1_cluster_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_ctrl_v1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_ctrl_v1_cluster_proto_goTypes = []any{
-	(UpdateDeploymentStateRequest_Update_Instance_Status)(0), // 0: ctrl.v1.UpdateDeploymentStateRequest.Update.Instance.Status
-	(*GetDesiredSentinelStateRequest)(nil),                   // 1: ctrl.v1.GetDesiredSentinelStateRequest
-	(*GetDesiredDeploymentStateRequest)(nil),                 // 2: ctrl.v1.GetDesiredDeploymentStateRequest
-	(*UpdateDeploymentStateRequest)(nil),                     // 3: ctrl.v1.UpdateDeploymentStateRequest
-	(*UpdateDeploymentStateResponse)(nil),                    // 4: ctrl.v1.UpdateDeploymentStateResponse
-	(*UpdateInstanceStateResponse)(nil),                      // 5: ctrl.v1.UpdateInstanceStateResponse
-	(*UpdateSentinelStateRequest)(nil),                       // 6: ctrl.v1.UpdateSentinelStateRequest
-	(*UpdateSentinelStateResponse)(nil),                      // 7: ctrl.v1.UpdateSentinelStateResponse
-	(*SyncRequest)(nil),                                      // 8: ctrl.v1.SyncRequest
-	(*State)(nil),                                            // 9: ctrl.v1.State
-	(*SentinelState)(nil),                                    // 10: ctrl.v1.SentinelState
-	(*DeploymentState)(nil),                                  // 11: ctrl.v1.DeploymentState
-	(*ApplySentinel)(nil),                                    // 12: ctrl.v1.ApplySentinel
-	(*DeleteSentinel)(nil),                                   // 13: ctrl.v1.DeleteSentinel
-	(*ApplyDeployment)(nil),                                  // 14: ctrl.v1.ApplyDeployment
-	(*DeleteDeployment)(nil),                                 // 15: ctrl.v1.DeleteDeployment
-	(*UpdateDeploymentStateRequest_Update)(nil),              // 16: ctrl.v1.UpdateDeploymentStateRequest.Update
-	(*UpdateDeploymentStateRequest_Delete)(nil),              // 17: ctrl.v1.UpdateDeploymentStateRequest.Delete
-	(*UpdateDeploymentStateRequest_Update_Instance)(nil),     // 18: ctrl.v1.UpdateDeploymentStateRequest.Update.Instance
+	(Health)(0), // 0: ctrl.v1.Health
+	(UpdateDeploymentStateRequest_Update_Instance_Status)(0), // 1: ctrl.v1.UpdateDeploymentStateRequest.Update.Instance.Status
+	(*GetDesiredSentinelStateRequest)(nil),                   // 2: ctrl.v1.GetDesiredSentinelStateRequest
+	(*GetDesiredDeploymentStateRequest)(nil),                 // 3: ctrl.v1.GetDesiredDeploymentStateRequest
+	(*UpdateDeploymentStateRequest)(nil),                     // 4: ctrl.v1.UpdateDeploymentStateRequest
+	(*UpdateDeploymentStateResponse)(nil),                    // 5: ctrl.v1.UpdateDeploymentStateResponse
+	(*UpdateInstanceStateResponse)(nil),                      // 6: ctrl.v1.UpdateInstanceStateResponse
+	(*UpdateSentinelStateRequest)(nil),                       // 7: ctrl.v1.UpdateSentinelStateRequest
+	(*UpdateSentinelStateResponse)(nil),                      // 8: ctrl.v1.UpdateSentinelStateResponse
+	(*SyncRequest)(nil),                                      // 9: ctrl.v1.SyncRequest
+	(*State)(nil),                                            // 10: ctrl.v1.State
+	(*SentinelState)(nil),                                    // 11: ctrl.v1.SentinelState
+	(*DeploymentState)(nil),                                  // 12: ctrl.v1.DeploymentState
+	(*ApplySentinel)(nil),                                    // 13: ctrl.v1.ApplySentinel
+	(*DeleteSentinel)(nil),                                   // 14: ctrl.v1.DeleteSentinel
+	(*ApplyDeployment)(nil),                                  // 15: ctrl.v1.ApplyDeployment
+	(*DeleteDeployment)(nil),                                 // 16: ctrl.v1.DeleteDeployment
+	(*UpdateDeploymentStateRequest_Update)(nil),              // 17: ctrl.v1.UpdateDeploymentStateRequest.Update
+	(*UpdateDeploymentStateRequest_Delete)(nil),              // 18: ctrl.v1.UpdateDeploymentStateRequest.Delete
+	(*UpdateDeploymentStateRequest_Update_Instance)(nil),     // 19: ctrl.v1.UpdateDeploymentStateRequest.Update.Instance
 }
 var file_ctrl_v1_cluster_proto_depIdxs = []int32{
-	16, // 0: ctrl.v1.UpdateDeploymentStateRequest.update:type_name -> ctrl.v1.UpdateDeploymentStateRequest.Update
-	17, // 1: ctrl.v1.UpdateDeploymentStateRequest.delete:type_name -> ctrl.v1.UpdateDeploymentStateRequest.Delete
-	11, // 2: ctrl.v1.State.deployment:type_name -> ctrl.v1.DeploymentState
-	10, // 3: ctrl.v1.State.sentinel:type_name -> ctrl.v1.SentinelState
-	12, // 4: ctrl.v1.SentinelState.apply:type_name -> ctrl.v1.ApplySentinel
-	13, // 5: ctrl.v1.SentinelState.delete:type_name -> ctrl.v1.DeleteSentinel
-	14, // 6: ctrl.v1.DeploymentState.apply:type_name -> ctrl.v1.ApplyDeployment
-	15, // 7: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
-	18, // 8: ctrl.v1.UpdateDeploymentStateRequest.Update.instances:type_name -> ctrl.v1.UpdateDeploymentStateRequest.Update.Instance
-	0,  // 9: ctrl.v1.UpdateDeploymentStateRequest.Update.Instance.status:type_name -> ctrl.v1.UpdateDeploymentStateRequest.Update.Instance.Status
-	8,  // 10: ctrl.v1.ClusterService.Sync:input_type -> ctrl.v1.SyncRequest
-	1,  // 11: ctrl.v1.ClusterService.GetDesiredSentinelState:input_type -> ctrl.v1.GetDesiredSentinelStateRequest
-	6,  // 12: ctrl.v1.ClusterService.UpdateSentinelState:input_type -> ctrl.v1.UpdateSentinelStateRequest
-	2,  // 13: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
-	3,  // 14: ctrl.v1.ClusterService.UpdateDeploymentState:input_type -> ctrl.v1.UpdateDeploymentStateRequest
-	9,  // 15: ctrl.v1.ClusterService.Sync:output_type -> ctrl.v1.State
-	10, // 16: ctrl.v1.ClusterService.GetDesiredSentinelState:output_type -> ctrl.v1.SentinelState
-	7,  // 17: ctrl.v1.ClusterService.UpdateSentinelState:output_type -> ctrl.v1.UpdateSentinelStateResponse
-	11, // 18: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
-	4,  // 19: ctrl.v1.ClusterService.UpdateDeploymentState:output_type -> ctrl.v1.UpdateDeploymentStateResponse
-	15, // [15:20] is the sub-list for method output_type
-	10, // [10:15] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	17, // 0: ctrl.v1.UpdateDeploymentStateRequest.update:type_name -> ctrl.v1.UpdateDeploymentStateRequest.Update
+	18, // 1: ctrl.v1.UpdateDeploymentStateRequest.delete:type_name -> ctrl.v1.UpdateDeploymentStateRequest.Delete
+	0,  // 2: ctrl.v1.UpdateSentinelStateRequest.health:type_name -> ctrl.v1.Health
+	12, // 3: ctrl.v1.State.deployment:type_name -> ctrl.v1.DeploymentState
+	11, // 4: ctrl.v1.State.sentinel:type_name -> ctrl.v1.SentinelState
+	13, // 5: ctrl.v1.SentinelState.apply:type_name -> ctrl.v1.ApplySentinel
+	14, // 6: ctrl.v1.SentinelState.delete:type_name -> ctrl.v1.DeleteSentinel
+	15, // 7: ctrl.v1.DeploymentState.apply:type_name -> ctrl.v1.ApplyDeployment
+	16, // 8: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
+	19, // 9: ctrl.v1.UpdateDeploymentStateRequest.Update.instances:type_name -> ctrl.v1.UpdateDeploymentStateRequest.Update.Instance
+	1,  // 10: ctrl.v1.UpdateDeploymentStateRequest.Update.Instance.status:type_name -> ctrl.v1.UpdateDeploymentStateRequest.Update.Instance.Status
+	9,  // 11: ctrl.v1.ClusterService.Sync:input_type -> ctrl.v1.SyncRequest
+	2,  // 12: ctrl.v1.ClusterService.GetDesiredSentinelState:input_type -> ctrl.v1.GetDesiredSentinelStateRequest
+	7,  // 13: ctrl.v1.ClusterService.UpdateSentinelState:input_type -> ctrl.v1.UpdateSentinelStateRequest
+	3,  // 14: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
+	4,  // 15: ctrl.v1.ClusterService.UpdateDeploymentState:input_type -> ctrl.v1.UpdateDeploymentStateRequest
+	10, // 16: ctrl.v1.ClusterService.Sync:output_type -> ctrl.v1.State
+	11, // 17: ctrl.v1.ClusterService.GetDesiredSentinelState:output_type -> ctrl.v1.SentinelState
+	8,  // 18: ctrl.v1.ClusterService.UpdateSentinelState:output_type -> ctrl.v1.UpdateSentinelStateResponse
+	12, // 19: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
+	5,  // 20: ctrl.v1.ClusterService.UpdateDeploymentState:output_type -> ctrl.v1.UpdateDeploymentStateResponse
+	16, // [16:21] is the sub-list for method output_type
+	11, // [11:16] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_cluster_proto_init() }
@@ -1486,7 +1566,7 @@ func file_ctrl_v1_cluster_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_cluster_proto_rawDesc), len(file_ctrl_v1_cluster_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,

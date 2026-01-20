@@ -130,7 +130,7 @@ Without these permissions, Krane cannot manage deployments and will return permi
 
 ## Labels and Management
 
-All resources created by Krane are labeled with `unkey.managed.by=krane` and `unkey.deployment.id={deployment_id}`. These labels serve multiple purposes: they identify resources managed by Krane for filtering and querying, they enable automatic cleanup during eviction scans, and they prevent Krane from interfering with non-Krane resources in shared namespaces.
+All resources created by Krane are labeled with `unkey.managed.by=krane` and `unkey.deployment.id=\{deployment_id\}`. These labels serve multiple purposes: they identify resources managed by Krane for filtering and querying, they enable automatic cleanup during eviction scans, and they prevent Krane from interfering with non-Krane resources in shared namespaces.
 
 When querying deployments, Krane verifies the `unkey.managed.by` label matches `krane`. This prevents it from returning information about deployments created by other tools or controllers in the same namespace.
 

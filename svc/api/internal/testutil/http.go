@@ -30,13 +30,14 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
-	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/vault"
 	masterKeys "github.com/unkeyed/unkey/pkg/vault/keys"
 	"github.com/unkeyed/unkey/pkg/vault/storage"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
+	"github.com/unkeyed/unkey/svc/api/internal/middleware"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
 
 type Harness struct {
@@ -98,6 +99,7 @@ func NewHarness(t *testing.T) *Harness {
 			TestMode: true,
 		},
 		TLS:          nil,
+		EnableH2C:    false,
 		ReadTimeout:  0,
 		WriteTimeout: 0,
 	})
@@ -232,7 +234,7 @@ func NewHarness(t *testing.T) *Harness {
 		middleware: []zen.Middleware{
 			zen.WithObservability(),
 			zen.WithLogging(logger),
-			zen.WithErrorHandling(logger),
+			middleware.WithErrorHandling(logger),
 			zen.WithValidation(validator),
 		},
 	}
@@ -308,6 +310,7 @@ type CreateTestDeploymentSetupOptions struct {
 	ProjectSlug     string
 	EnvironmentSlug string
 	SkipEnvironment bool
+	Permissions     []string
 }
 
 // CreateTestDeploymentSetup creates workspace, root key, project, and environment with sensible defaults
@@ -319,6 +322,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		ProjectSlug:     "production",
 		EnvironmentSlug: "production",
 		SkipEnvironment: false,
+		Permissions:     nil,
 	}
 
 	if len(opts) > 0 {
@@ -332,10 +336,19 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 			config.EnvironmentSlug = opts[0].EnvironmentSlug
 		}
 		config.SkipEnvironment = opts[0].SkipEnvironment
+		if opts[0].Permissions != nil {
+			config.Permissions = opts[0].Permissions
+		}
 	}
 
 	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID)
+
+	var rootKey string
+	if config.Permissions != nil {
+		rootKey = h.CreateRootKey(workspace.ID, config.Permissions...)
+	} else {
+		rootKey = h.CreateRootKey(workspace.ID)
+	}
 
 	project := h.CreateProject(seed.CreateProjectRequest{
 		WorkspaceID:      workspace.ID,

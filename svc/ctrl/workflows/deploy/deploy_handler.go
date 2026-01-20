@@ -16,6 +16,11 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+const (
+	sentinelNamespace = "sentinel"
+	sentinelPort      = 8040
+)
+
 // Deploy executes a full deployment workflow for a new application version.
 //
 // This durable workflow orchestrates the complete deployment lifecycle: building
@@ -178,9 +183,9 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}
 
 	topologies := make([]db.InsertDeploymentTopologyParams, len(w.availableRegions))
-	versioningClient := hydrav1.NewVersioningServiceClient(ctx, "")
 
 	for i, region := range w.availableRegions {
+		versioningClient := hydrav1.NewVersioningServiceClient(ctx, region)
 		versionResp, versionErr := versioningClient.NextVersion().Request(&hydrav1.NextVersionRequest{})
 		if versionErr != nil {
 			return nil, fmt.Errorf("failed to get next version: %w", versionErr)
@@ -223,7 +228,8 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 				desiredReplicas = 3
 			}
 
-			sentinelVersionResp, sentinelVersionErr := versioningClient.NextVersion().Request(&hydrav1.NextVersionRequest{})
+			sentinelVersioningClient := hydrav1.NewVersioningServiceClient(ctx, topology.Region)
+			sentinelVersionResp, sentinelVersionErr := sentinelVersioningClient.NextVersion().Request(&hydrav1.NextVersionRequest{})
 			if sentinelVersionErr != nil {
 				return nil, fmt.Errorf("failed to get next version for sentinel: %w", sentinelVersionErr)
 			}
@@ -239,7 +245,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 						WorkspaceID:       workspace.ID,
 						EnvironmentID:     environment.ID,
 						ProjectID:         project.ID,
-						K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local", sentinelK8sName, workspace.K8sNamespace.String),
+						K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local:%d", sentinelK8sName, sentinelNamespace, sentinelPort),
 						K8sName:           sentinelK8sName,
 						Region:            topology.Region,
 						Image:             w.sentinelImage,

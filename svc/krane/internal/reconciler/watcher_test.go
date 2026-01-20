@@ -131,10 +131,11 @@ func TestWatch_SendsCorrectSyncRequest(t *testing.T) {
 	}
 
 	r := New(Config{
-		ClientSet: client,
-		Logger:    logging.NewNoop(),
-		Cluster:   mockCluster,
-		Region:    "us-west-2",
+		ClientSet:     client,
+		DynamicClient: NewFakeDynamicClient(),
+		Logger:        logging.NewNoop(),
+		Cluster:       mockCluster,
+		Region:        "us-west-2",
 	})
 
 	r.versionLastSeen = 500
@@ -175,10 +176,11 @@ func TestWatch_InitialSyncWithZeroVersion(t *testing.T) {
 	}
 
 	r := New(Config{
-		ClientSet: client,
-		Logger:    logging.NewNoop(),
-		Cluster:   mockCluster,
-		Region:    "eu-central-1",
+		ClientSet:     client,
+		DynamicClient: NewFakeDynamicClient(),
+		Logger:        logging.NewNoop(),
+		Cluster:       mockCluster,
+		Region:        "eu-central-1",
 	})
 
 	ctx := context.Background()
@@ -272,10 +274,11 @@ func TestWatch_ProcessesStreamMessages(t *testing.T) {
 	}
 
 	r := New(Config{
-		ClientSet: client,
-		Logger:    logging.NewNoop(),
-		Cluster:   mockCluster,
-		Region:    "test-region",
+		ClientSet:     client,
+		DynamicClient: NewFakeDynamicClient(),
+		Logger:        logging.NewNoop(),
+		Cluster:       mockCluster,
+		Region:        "test-region",
 	})
 
 	// Process messages directly to test HandleState integration
@@ -373,10 +376,11 @@ func TestWatch_IncrementalUpdates(t *testing.T) {
 	mockCluster := &MockClusterClient{}
 
 	r := New(Config{
-		ClientSet: client,
-		Logger:    logging.NewNoop(),
-		Cluster:   mockCluster,
-		Region:    "test-region",
+		ClientSet:     client,
+		DynamicClient: NewFakeDynamicClient(),
+		Logger:        logging.NewNoop(),
+		Cluster:       mockCluster,
+		Region:        "test-region",
 	})
 
 	// Start with sequence 100 (simulating reconnect after bootstrap)
@@ -455,10 +459,11 @@ func TestWatch_SyncConnectionError(t *testing.T) {
 	}
 
 	r := New(Config{
-		ClientSet: client,
-		Logger:    logging.NewNoop(),
-		Cluster:   mockCluster,
-		Region:    "error-test-region",
+		ClientSet:     client,
+		DynamicClient: NewFakeDynamicClient(),
+		Logger:        logging.NewNoop(),
+		Cluster:       mockCluster,
+		Region:        "error-test-region",
 	})
 
 	ctx := context.Background()
@@ -496,10 +501,11 @@ func TestWatch_FullMessageProcessingFlow(t *testing.T) {
 	deletes := AddDeleteTracker(client)
 
 	r := New(Config{
-		ClientSet: client,
-		Logger:    logging.NewNoop(),
-		Cluster:   &MockClusterClient{},
-		Region:    "full-flow-region",
+		ClientSet:     client,
+		DynamicClient: NewFakeDynamicClient(),
+		Logger:        logging.NewNoop(),
+		Cluster:       &MockClusterClient{},
+		Region:        "full-flow-region",
 	})
 
 	ctx := context.Background()
