@@ -5,7 +5,7 @@ import { Button, CopyButton, Empty } from "@unkey/ui";
 import { useNamespaceListFilters } from "../hooks/use-namespace-list-filters";
 import { NamespaceCard } from "./namespace-card";
 
-const EXAMPLE_SNIPPET = `curl -XPOST 'https://api.unkey.dev/v2/ratelimits.limit' \\
+const EXAMPLE_SNIPPET = `curl -XPOST 'https://api.unkey.dev/v2/ratelimit.limit' \\
   -H 'Content-Type: application/json' \\
   -H 'Authorization: Bearer <UNKEY_ROOT_KEY>' \\
   -d '{
