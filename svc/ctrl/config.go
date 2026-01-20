@@ -113,6 +113,14 @@ type AcmeConfig struct {
 	// Route53 configures DNS-01 challenges through AWS Route53 API.
 	// Enables wildcard certificates for domains hosted on Route53.
 	Route53 Route53Config
+
+	// DefaultDomainProvider specifies which DNS provider handles the DefaultDomain.
+	// Values: "cloudflare" or "route53". Required when both providers are enabled.
+	DefaultDomainProvider string
+
+	// RegionalApexProvider specifies which DNS provider handles the RegionalApexDomain.
+	// Values: "cloudflare" or "route53". Required when both providers are enabled.
+	RegionalApexProvider string
 }
 
 // RestateConfig holds configuration for Restate workflow engine integration.

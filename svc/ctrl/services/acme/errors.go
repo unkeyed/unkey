@@ -52,6 +52,7 @@ func ParseACMEError(err error) *ParsedACMEError {
 	parsed := &ParsedACMEError{
 		Type:          ACMEErrorUnknown,
 		Message:       err.Error(),
+		RetryAfter:    time.Time{},
 		IsRetryable:   true,
 		OriginalError: err,
 	}

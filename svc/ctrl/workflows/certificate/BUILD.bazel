@@ -16,7 +16,6 @@ go_library(
         "//gen/proto/vault/v1:vault",
         "//pkg/db",
         "//pkg/otel/logging",
-        "//pkg/retry",
         "//pkg/uid",
         "//pkg/vault",
         "//svc/ctrl/services/acme",
@@ -24,5 +23,6 @@ go_library(
         "@com_github_go_acme_lego_v4//challenge",
         "@com_github_go_acme_lego_v4//lego",
         "@com_github_restatedev_sdk_go//:sdk-go",
+        "@com_github_restatedev_sdk_go//ingress",
     ],
 )

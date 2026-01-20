@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "certificate_verification.go",
         "doc.go",
+        "errors.go",
         "pem.go",
         "service.go",
         "user.go",
@@ -22,6 +23,7 @@ go_library(
         "//pkg/uid",
         "//pkg/vault",
         "@com_connectrpc_connect//:connect",
+        "@com_github_go_acme_lego_v4//acme",
         "@com_github_go_acme_lego_v4//lego",
         "@com_github_go_acme_lego_v4//registration",
     ],
