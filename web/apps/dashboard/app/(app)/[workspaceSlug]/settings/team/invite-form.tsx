@@ -1,6 +1,6 @@
 "use client";
 
-import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
+import type { Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, XMark } from "@unkey/icons";
@@ -30,11 +30,10 @@ const inviteSchema = z.object({
 });
 
 type InviteFormProps = {
-  user: AuthenticatedUser;
   organization: Organization;
 };
 
-export const InviteForm = ({ user }: InviteFormProps) => {
+export const InviteForm = ({ organization }: InviteFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const utils = trpc.useUtils();
 
@@ -59,11 +58,6 @@ export const InviteForm = ({ user }: InviteFormProps) => {
   const createInvitation = trpc.org.invitations.create.useMutation();
 
   async function onSubmit(values: z.infer<typeof inviteSchema>) {
-    if (!user?.orgId) {
-      toast.error("Unable to create invitation. Please refresh and try again.");
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
@@ -72,7 +66,7 @@ export const InviteForm = ({ user }: InviteFormProps) => {
           createInvitation.mutateAsync({
             email: invite.email,
             role: invite.role,
-            orgId: user.orgId,
+            orgId: organization.id,
           }),
         ),
       );

@@ -5,7 +5,7 @@ import { getGradientForUser } from "@/lib/avatar-gradient";
 import { trpc } from "@/lib/trpc/client";
 import { Card, CardContent } from "@unkey/ui";
 import { Button, Empty, Loading, toast } from "@unkey/ui";
-import { memo } from "react";
+import { memo, useState } from "react";
 import { StatusBadge } from "./status-badge";
 
 type InvitationsProps = {
@@ -16,6 +16,8 @@ export const Invitations = memo<InvitationsProps>(({ organization }) => {
   const { data: invitationsList, isLoading } = trpc.org.invitations.list.useQuery(organization.id);
   const invitations = invitationsList?.data;
   const utils = trpc.useUtils();
+  const [revokingInvitationId, setRevokingInvitationId] = useState<string | null>(null);
+
   const revokeInvitation = trpc.org.invitations.remove.useMutation({
     onSuccess: () => {
       // Invalidate the invitation list query to trigger a refetch
@@ -70,7 +72,10 @@ export const Invitations = memo<InvitationsProps>(({ organization }) => {
                   <Button
                     variant="ghost"
                     size="sm"
+                    disabled={revokingInvitationId === invitation.id}
+                    loading={revokingInvitationId === invitation.id}
                     onClick={async () => {
+                      setRevokingInvitationId(invitation.id);
                       try {
                         await revokeInvitation.mutateAsync({
                           orgId: organization.id,
@@ -78,6 +83,8 @@ export const Invitations = memo<InvitationsProps>(({ organization }) => {
                         });
                       } catch (error) {
                         console.error("Error revoking invitation:", error);
+                      } finally {
+                        setRevokingInvitationId(null);
                       }
                     }}
                   >

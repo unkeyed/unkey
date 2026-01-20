@@ -78,7 +78,7 @@ export function TeamPageClient({ team }: { team: boolean }) {
         <p className="text-sm text-content-subtle">Manage team members and invitations</p>
       </div>
 
-      {isAdmin && <InviteForm user={user} organization={organization} />}
+      {isAdmin && <InviteForm organization={organization} />}
 
       <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)} className="w-full">
         <TabsList className="inline-flex h-auto items-center justify-start bg-transparent p-0 border-b border-border w-full">
