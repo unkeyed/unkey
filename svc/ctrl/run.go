@@ -333,7 +333,11 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}()
 
+	// Create Restate ingress client for certificate workflows
+	certClient := hydrav1.NewCertificateServiceIngressClient(restateClient, "global")
+
 	// Register with Restate admin API if RegisterAs is configured
+	// (not needed when using Restate operator which handles registration)
 	if cfg.Restate.RegisterAs != "" {
 		go func() {
 			// Wait a moment for the restate server to be ready
@@ -376,37 +380,39 @@ func Run(ctx context.Context, cfg Config) error {
 				logger.Error("failed to register with Restate after retries", "error", err.Error())
 			} else {
 				logger.Info("Successfully registered with Restate")
+			}
+		}()
+	}
 
-				certClient := hydrav1.NewCertificateServiceIngressClient(restateClient, "global")
+	// Bootstrap infrastructure wildcard certificates if ACME is enabled
+	// This runs in a goroutine to not block startup, and will retry via Restate if it fails
+	if cfg.Acme.Enabled && dnsProvider != nil {
+		go func() {
+			// Give Restate a moment to be ready (either via operator or manual registration)
+			time.Sleep(5 * time.Second)
 
-				// Bootstrap infrastructure wildcard certificates if ACME is enabled
-				if cfg.Acme.Enabled && dnsProvider != nil {
-					if err := certSvc.BootstrapInfraCerts(ctx, certificate.BootstrapConfig{
-						DefaultDomain:      cfg.DefaultDomain,
-						RegionalApexDomain: cfg.RegionalApexDomain,
-						Regions:            cfg.AvailableRegions,
-						RestateClient:      certClient,
-					}); err != nil {
-						logger.Error("failed to bootstrap infrastructure certs", "error", err)
-					}
-				}
+			if err := certSvc.BootstrapInfraCerts(ctx, certificate.BootstrapConfig{
+				DefaultDomain:      cfg.DefaultDomain,
+				RegionalApexDomain: cfg.RegionalApexDomain,
+				Regions:            cfg.AvailableRegions,
+				RestateClient:      certClient,
+			}); err != nil {
+				logger.Error("failed to bootstrap infrastructure certs", "error", err)
+			}
 
-				// Start the certificate renewal cron job if ACME is enabled
-				// Use Send with idempotency key so multiple restarts don't create duplicate crons
-				if cfg.Acme.Enabled && dnsProvider != nil {
-					_, startErr := certClient.RenewExpiringCertificates().Send(
-						ctx,
-						&hydrav1.RenewExpiringCertificatesRequest{
-							DaysBeforeExpiry: 30,
-						},
-						restate.WithIdempotencyKey("cert-renewal-cron-startup"),
-					)
-					if startErr != nil {
-						logger.Warn("failed to start certificate renewal cron", "error", startErr)
-					} else {
-						logger.Info("Certificate renewal cron job started")
-					}
-				}
+			// Start the certificate renewal cron job
+			// Use Send with idempotency key so multiple restarts don't create duplicate crons
+			_, startErr := certClient.RenewExpiringCertificates().Send(
+				ctx,
+				&hydrav1.RenewExpiringCertificatesRequest{
+					DaysBeforeExpiry: 30,
+				},
+				restate.WithIdempotencyKey("cert-renewal-cron-startup"),
+			)
+			if startErr != nil {
+				logger.Warn("failed to start certificate renewal cron", "error", startErr)
+			} else {
+				logger.Info("Certificate renewal cron job started")
 			}
 		}()
 	}
