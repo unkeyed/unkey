@@ -208,7 +208,7 @@ func (s *Service) CreateDeployment(
 		DockerImage:      nil,
 		DeploymentId:     deploymentID,
 		KeyAuthId:        keySpaceID,
-		Command:          req.Msg.GetCommand(),
+		Command:          project.Command,
 	}
 
 	switch source := req.Msg.GetSource().(type) {
