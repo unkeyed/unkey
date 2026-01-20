@@ -2,8 +2,8 @@
 import type { NavItem } from "@/components/navigation/sidebar/workspace-navigations";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import { Cloud, Connections, GridCircle, Layers3 } from "@unkey/icons";
 import { useLiveQuery } from "@tanstack/react-db";
+import { Cloud, Connections, GridCircle, Layers3 } from "@unkey/icons";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 
@@ -24,7 +24,7 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
       const pIndex = segments.findIndex((s) => s === "projects");
       const currentProjectActive = pIndex !== -1 && segments.at(pIndex + 1) === project.id;
 
-      // Create sub-items 
+      // Create sub-items
       const subItems: NavItem[] = [
         {
           icon: GridCircle,
