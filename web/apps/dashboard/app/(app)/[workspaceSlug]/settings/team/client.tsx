@@ -13,10 +13,6 @@ import { Members } from "./members";
 export function TeamPageClient({ team }: { team: boolean }) {
   const workspace = useWorkspaceNavigation();
 
-  if (!workspace) {
-    return null;
-  }
-
   const { data: user } = trpc.user.getCurrentUser.useQuery();
 
   const { data: memberships, isLoading: isUserMembershipsLoading } =
