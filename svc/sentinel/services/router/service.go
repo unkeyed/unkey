@@ -8,11 +8,14 @@ import (
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 var _ Service = (*service)(nil)
@@ -59,12 +62,16 @@ func New(cfg Config) (*service, error) {
 		clock:           cfg.Clock,
 		environmentID:   cfg.EnvironmentID,
 		region:          cfg.Region,
-		deploymentCache: deploymentCache,
-		instancesCache:  instancesCache,
+		deploymentCache: middleware.WithTracing(deploymentCache),
+		instancesCache:  middleware.WithTracing(instancesCache),
 	}, nil
 }
 
 func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.Deployment, error) {
+	ctx, span := tracing.Start(ctx, "router.get_deployment")
+	defer span.End()
+	span.SetAttributes(attribute.String("deployment_id", deploymentID))
+
 	deployment, hit, err := s.deploymentCache.SWR(ctx, deploymentID, func(ctx context.Context) (db.Deployment, error) {
 		return db.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
 	}, caches.DefaultFindFirstOp)
@@ -103,6 +110,13 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 }
 
 func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.Instance, error) {
+	ctx, span := tracing.Start(ctx, "router.select_instance")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("deployment_id", deploymentID),
+		attribute.String("region", s.region),
+	)
+
 	instances, hit, err := s.instancesCache.SWR(ctx, deploymentID, func(ctx context.Context) ([]db.Instance, error) {
 		return db.Query.FindInstancesByDeploymentIdAndRegion(
 			ctx,
@@ -145,5 +159,10 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 	}
 
 	selected := array.Random(runningInstances)
+	span.SetAttributes(
+		attribute.Int("total_instances", len(instances)),
+		attribute.Int("running_instances", len(runningInstances)),
+		attribute.String("selected_instance_id", selected.ID),
+	)
 	return selected, nil
 }

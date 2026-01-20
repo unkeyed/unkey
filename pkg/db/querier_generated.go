@@ -936,6 +936,13 @@ type Querier interface {
 	//
 	//  SELECT id, name FROM roles WHERE workspace_id = ? AND name IN (/*SLICE:names*/?)
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
+	//FindRunningInstanceRegionsByDeploymentID
+	//
+	//  SELECT DISTINCT region
+	//  FROM instances
+	//  WHERE deployment_id = ?
+	//    AND status = 'running'
+	FindRunningInstanceRegionsByDeploymentID(ctx context.Context, db DBTX, deploymentid string) ([]string, error)
 	//FindSentinelByID
 	//
 	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s

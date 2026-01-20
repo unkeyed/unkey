@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/services/resilience"
 )
 
 // Service defines the interface for proxying requests to sentinels or remote NLBs.
@@ -61,4 +62,7 @@ type Config struct {
 	// Transport allows passing a shared HTTP transport for connection pooling
 	// If nil, a new transport will be created with the other config values
 	Transport *http.Transport
+
+	// ResilienceTracker tracks forwarding outcomes for circuit breaker logic
+	ResilienceTracker resilience.Tracker
 }

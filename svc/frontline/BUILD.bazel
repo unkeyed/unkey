@@ -27,6 +27,7 @@ go_library(
         "//svc/frontline/services/caches",
         "//svc/frontline/services/certmanager",
         "//svc/frontline/services/proxy",
+        "//svc/frontline/services/resilience",
         "//svc/frontline/services/router",
     ],
 )

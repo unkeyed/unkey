@@ -127,6 +127,7 @@ go_library(
         "instances_find_by_deployment_id.sql_generated.go",
         "instances_find_by_deployment_id_and_region.sql_generated.go",
         "instances_find_by_pod_name.sql_generated.go",
+        "instances_find_running_regions_by_deployment_id.sql_generated.go",
         "interface.go",
         "key_auth_get_by_id.sql_generated.go",
         "key_auth_insert.sql_generated.go",

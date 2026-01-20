@@ -16,8 +16,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/sentinel/services/router"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type Handler struct {
@@ -119,6 +121,14 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		)
 	}
 
+	ctx, span := tracing.Start(ctx, "proxy.forward_to_instance")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("deployment_id", deploymentID),
+		attribute.String("instance_id", instance.ID),
+		attribute.String("instance_address", instance.Address),
+	)
+
 	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
 	// nolint:exhaustruct
 	proxy := &httputil.ReverseProxy{
@@ -177,9 +187,10 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		},
 	}
 
-	proxy.ServeHTTP(wrapper, req)
+	proxy.ServeHTTP(wrapper, req.WithContext(ctx))
 
 	if err := wrapper.Error(); err != nil {
+		tracing.RecordError(span, err)
 		urn, message := categorizeProxyError(err)
 		return fault.Wrap(err,
 			fault.Code(urn),

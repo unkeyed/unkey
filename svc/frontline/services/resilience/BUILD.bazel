@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "resilience",
+    srcs = [
+        "tracker.go",
+        "transport.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/frontline/services/resilience",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/clock",
+        "//pkg/hoptracing",
+        "//pkg/otel/logging",
+    ],
+)
+
+go_test(
+    name = "resilience_test",
+    srcs = ["tracker_test.go"],
+    embed = [":resilience"],
+    deps = [
+        "//pkg/otel/logging",
+        "@com_github_stretchr_testify//require",
+    ],
+)

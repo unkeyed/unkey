@@ -27,6 +27,7 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/services/caches"
 	"github.com/unkeyed/unkey/svc/frontline/services/certmanager"
 	"github.com/unkeyed/unkey/svc/frontline/services/proxy"
+	"github.com/unkeyed/unkey/svc/frontline/services/resilience"
 	"github.com/unkeyed/unkey/svc/frontline/services/router"
 )
 
@@ -163,13 +164,19 @@ func Run(ctx context.Context, cfg Config) error {
 		})
 	}
 
+	// Initialize resilience tracker for circuit breaker behavior
+	resilienceTracker := resilience.NewTracker(resilience.DefaultConfig(logger))
+
 	// Initialize router service
 	routerSvc, err := router.New(router.Config{
-		Logger:                 logger,
-		Region:                 cfg.Region,
-		DB:                     db,
-		FrontlineRouteCache:    cache.FrontlineRoutes,
-		SentinelsByEnvironment: cache.SentinelsByEnvironment,
+		Logger:                         logger,
+		Region:                         cfg.Region,
+		DB:                             db,
+		Clock:                          clk,
+		FrontlineRouteCache:            cache.FrontlineRoutes,
+		SentinelsByEnvironment:         cache.SentinelsByEnvironment,
+		RunningInstanceRegionsByDeploy: cache.RunningInstanceRegionsByDeploy,
+		ResilienceTracker:              resilienceTracker,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create router service: %w", err)
@@ -178,12 +185,13 @@ func Run(ctx context.Context, cfg Config) error {
 	// Initialize proxy service with shared transport for connection pooling
 	// nolint:exhaustruct
 	proxySvc, err := proxy.New(proxy.Config{
-		Logger:      logger,
-		FrontlineID: cfg.FrontlineID,
-		Region:      cfg.Region,
-		ApexDomain:  cfg.ApexDomain,
-		Clock:       clk,
-		MaxHops:     cfg.MaxHops,
+		Logger:            logger,
+		FrontlineID:       cfg.FrontlineID,
+		Region:            cfg.Region,
+		ApexDomain:        cfg.ApexDomain,
+		Clock:             clk,
+		MaxHops:           cfg.MaxHops,
+		ResilienceTracker: resilienceTracker,
 		// Use defaults for transport settings (200 max idle conns, 90s timeout, etc.)
 	})
 	if err != nil {

@@ -37,8 +37,8 @@ export const instances = mysqlTable(
   (table) => [
     uniqueIndex("unique_address_per_cluster").on(table.address, table.clusterId),
     uniqueIndex("unique_k8s_name_per_cluster").on(table.k8sName, table.clusterId),
-    index("idx_deployment_id").on(table.deploymentId),
     index("idx_region").on(table.region),
+    index("idx_deployment_status_region").on(table.deploymentId, table.status, table.region),
   ],
 );
 

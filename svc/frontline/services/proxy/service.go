@@ -7,15 +7,16 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/hoptracing"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/services/resilience"
 	"golang.org/x/net/http2"
 )
 
@@ -25,8 +26,8 @@ type service struct {
 	region       string
 	apexDomain   string
 	clock        clock.Clock
-	transport    *http.Transport
-	h2cTransport *http2.Transport
+	transport    http.RoundTripper
+	h2cTransport http.RoundTripper
 	maxHops      int
 }
 
@@ -95,20 +96,28 @@ func New(cfg Config) (*service, error) {
 		},
 	}
 
+	var instrumentedTransport http.RoundTripper = transport
+	var instrumentedH2C http.RoundTripper = h2cTransport
+	if cfg.ResilienceTracker != nil {
+		instrumentedTransport = resilience.NewInstrumentedTransport(transport, cfg.ResilienceTracker, cfg.Clock)
+		instrumentedH2C = resilience.NewInstrumentedTransport(h2cTransport, cfg.ResilienceTracker, cfg.Clock)
+	}
+
 	return &service{
 		logger:       cfg.Logger,
 		frontlineID:  cfg.FrontlineID,
 		region:       cfg.Region,
 		apexDomain:   cfg.ApexDomain,
 		clock:        cfg.Clock,
-		transport:    transport,
-		h2cTransport: h2cTransport,
+		transport:    instrumentedTransport,
+		h2cTransport: instrumentedH2C,
 		maxHops:      maxHops,
 	}, nil
 }
 
 func (s *service) ForwardToSentinel(ctx context.Context, sess *zen.Session, sentinel *db.Sentinel, deploymentID string) error {
 	startTime, _ := RequestStartTimeFromContext(ctx)
+	trace := s.initTrace(sess)
 
 	targetURL, err := url.Parse(fmt.Sprintf("http://%s", sentinel.K8sAddress))
 	if err != nil {
@@ -121,29 +130,30 @@ func (s *service) ForwardToSentinel(ctx context.Context, sess *zen.Session, sent
 	return s.forward(sess, forwardConfig{
 		targetURL:    targetURL,
 		startTime:    startTime,
-		directorFunc: s.makeSentinelDirector(sess, deploymentID, startTime),
+		trace:        trace,
+		directorFunc: s.makeSentinelDirector(sess, trace, deploymentID, startTime),
 		logTarget:    "sentinel",
 		transport:    s.h2cTransport,
+		targetRegion: sentinel.Region,
 	})
 }
 
 func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, targetRegion string) error {
 	startTime, _ := RequestStartTimeFromContext(ctx)
+	trace := s.initTrace(sess)
 
-	if hopCountStr := sess.Request().Header.Get(HeaderFrontlineHops); hopCountStr != "" {
-		if hops, err := strconv.Atoi(hopCountStr); err == nil && hops >= s.maxHops {
-			s.logger.Error("too many frontline hops - rejecting request",
-				"hops", hops,
-				"maxHops", s.maxHops,
-				"hostname", sess.Request().Host,
-				"requestID", sess.RequestID(),
-			)
-			return fault.New("too many frontline hops",
-				fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
-				fault.Internal(fmt.Sprintf("request exceeded maximum hop count: %d", hops)),
-				fault.Public("Request routing limit exceeded"),
-			)
-		}
+	if err := trace.IncrementHopCount(); err != nil {
+		s.logger.Error("too many frontline hops - rejecting request",
+			"hops", trace.HopCount,
+			"maxHops", s.maxHops,
+			"hostname", sess.Request().Host,
+			"traceId", trace.TraceID,
+		)
+		return fault.New("too many frontline hops",
+			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
+			fault.Internal(fmt.Sprintf("request exceeded maximum hop count: %d", trace.HopCount)),
+			fault.Public("Request routing limit exceeded"),
+		)
 	}
 
 	targetURL, err := url.Parse(fmt.Sprintf("https://frontline.%s.%s", targetRegion, s.apexDomain))
@@ -157,8 +167,22 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 	return s.forward(sess, forwardConfig{
 		targetURL:    targetURL,
 		startTime:    startTime,
-		directorFunc: s.makeRegionDirector(sess, startTime),
+		trace:        trace,
+		directorFunc: s.makeRegionDirector(sess, trace, startTime),
 		logTarget:    "region",
 		transport:    s.transport,
+		targetRegion: targetRegion,
 	})
+}
+
+func (s *service) initTrace(sess *zen.Session) *hoptracing.Trace {
+	trace := hoptracing.ParseFromRequest(sess.Request())
+
+	if trace.TraceID == "" {
+		trace.TraceID = sess.RequestID()
+	}
+
+	trace.AppendHop(hoptracing.HopFrontline, s.region, s.frontlineID)
+
+	return &trace
 }

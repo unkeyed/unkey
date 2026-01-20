@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "router",
@@ -12,9 +12,26 @@ go_library(
     deps = [
         "//internal/services/caches",
         "//pkg/cache",
+        "//pkg/clock",
         "//pkg/codes",
         "//pkg/db",
         "//pkg/fault",
         "//pkg/otel/logging",
+        "//pkg/otel/tracing",
+        "//svc/frontline/services/resilience",
+        "@io_opentelemetry_go_otel//attribute",
+    ],
+)
+
+go_test(
+    name = "router_test",
+    srcs = ["service_test.go"],
+    embed = [":router"],
+    deps = [
+        "//pkg/cache",
+        "//pkg/clock",
+        "//pkg/db",
+        "//pkg/otel/logging",
+        "@com_github_stretchr_testify//require",
     ],
 )

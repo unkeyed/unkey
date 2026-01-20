@@ -40,7 +40,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	}
 
 	// Find Local sentinel or nearest NLB
-	decision, err := h.RouterService.SelectSentinel(route, sentinels)
+	decision, err := h.RouterService.SelectSentinel(ctx, route, sentinels)
 	if err != nil {
 		return err
 	}

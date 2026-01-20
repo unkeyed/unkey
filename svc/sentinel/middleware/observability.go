@@ -10,8 +10,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/hoptracing"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/otel/tracing"
+	oteltracing "github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -179,7 +180,7 @@ func WithObservability(logger logging.Logger, environmentID, region string) zen.
 			startTime := time.Now()
 
 			// Start trace span for the request
-			ctx, span := tracing.Start(ctx, "sentinel.proxy")
+			ctx, span := oteltracing.Start(ctx, "sentinel.proxy")
 			span.SetAttributes(
 				attribute.String("request_id", s.RequestID()),
 				attribute.String("host", s.Request().Host),
@@ -201,7 +202,7 @@ func WithObservability(logger logging.Logger, environmentID, region string) zen.
 			hasError := err != nil
 
 			if hasError {
-				tracing.RecordError(span, err)
+				oteltracing.RecordError(span, err)
 
 				var ok bool
 				urn, ok = fault.GetCode(err)
@@ -236,7 +237,7 @@ func WithObservability(logger logging.Logger, environmentID, region string) zen.
 					)
 				}
 
-				s.ResponseWriter().Header().Set("X-Unkey-Error-Source", "sentinel")
+				s.ResponseWriter().Header().Set(hoptracing.HeaderErrorSource, "sentinel")
 
 				writeErr := s.JSON(pageInfo.Status, ErrorResponse{
 					Error: ErrorDetail{

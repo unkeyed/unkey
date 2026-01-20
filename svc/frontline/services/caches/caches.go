@@ -22,6 +22,9 @@ type Caches struct {
 
 	// HostName -> Certificate
 	TLSCertificates cache.Cache[string, tls.Certificate]
+
+	// DeploymentID -> List of regions with running instances
+	RunningInstanceRegionsByDeploy cache.Cache[string, []string]
 }
 
 // Config defines the configuration options for initializing caches.
@@ -67,9 +70,22 @@ func New(config Config) (Caches, error) {
 		return Caches{}, fmt.Errorf("failed to create certificate cache: %w", err)
 	}
 
+	runningInstanceRegionsByDeploy, err := cache.New(cache.Config[string, []string]{
+		Fresh:    2 * time.Second,
+		Stale:    5 * time.Second,
+		Logger:   config.Logger,
+		MaxSize:  50_000,
+		Resource: "running_instance_regions_by_deploy",
+		Clock:    config.Clock,
+	})
+	if err != nil {
+		return Caches{}, fmt.Errorf("failed to create running instance regions cache: %w", err)
+	}
+
 	return Caches{
-		FrontlineRoutes:        middleware.WithTracing(frontlineRoute),
-		SentinelsByEnvironment: middleware.WithTracing(sentinelsByEnvironment),
-		TLSCertificates:        middleware.WithTracing(tlsCertificate),
+		FrontlineRoutes:                middleware.WithTracing(frontlineRoute),
+		SentinelsByEnvironment:         middleware.WithTracing(sentinelsByEnvironment),
+		TLSCertificates:                middleware.WithTracing(tlsCertificate),
+		RunningInstanceRegionsByDeploy: middleware.WithTracing(runningInstanceRegionsByDeploy),
 	}, nil
 }

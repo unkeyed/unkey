@@ -10,7 +10,9 @@ go_library(
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/otel/logging",
+        "//pkg/otel/tracing",
         "//pkg/zen",
         "//svc/sentinel/services/router",
+        "@io_opentelemetry_go_otel//attribute",
     ],
 )

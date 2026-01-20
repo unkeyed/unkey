@@ -4,8 +4,10 @@ import (
 	"context"
 
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/svc/frontline/services/resilience"
 )
 
 type RouteDecision struct {
@@ -21,13 +23,16 @@ type RouteDecision struct {
 
 type Service interface {
 	LookupByHostname(ctx context.Context, hostname string) (*db.FrontlineRoute, []db.Sentinel, error)
-	SelectSentinel(route *db.FrontlineRoute, sentinels []db.Sentinel) (*RouteDecision, error)
+	SelectSentinel(ctx context.Context, route *db.FrontlineRoute, sentinels []db.Sentinel) (*RouteDecision, error)
 }
 
 type Config struct {
-	Logger                 logging.Logger
-	Region                 string
-	DB                     db.Database
-	FrontlineRouteCache    cache.Cache[string, db.FrontlineRoute]
-	SentinelsByEnvironment cache.Cache[string, []db.Sentinel]
+	Logger                         logging.Logger
+	Region                         string
+	DB                             db.Database
+	Clock                          clock.Clock
+	FrontlineRouteCache            cache.Cache[string, db.FrontlineRoute]
+	SentinelsByEnvironment         cache.Cache[string, []db.Sentinel]
+	RunningInstanceRegionsByDeploy cache.Cache[string, []string]
+	ResilienceTracker              resilience.Tracker
 }

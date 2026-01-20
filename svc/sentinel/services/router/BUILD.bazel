@@ -12,10 +12,13 @@ go_library(
         "//internal/services/caches",
         "//pkg/array",
         "//pkg/cache",
+        "//pkg/cache/middleware",
         "//pkg/clock",
         "//pkg/codes",
         "//pkg/db",
         "//pkg/fault",
         "//pkg/otel/logging",
+        "//pkg/otel/tracing",
+        "@io_opentelemetry_go_otel//attribute",
     ],
 )
