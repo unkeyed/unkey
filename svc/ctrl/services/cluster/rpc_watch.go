@@ -7,10 +7,10 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func (s *Service) Watch(ctx context.Context, req *connect.Request[ctrlv1.WatchRequest], stream *connect.ServerStream[ctrlv1.State]) error {
-
 	region := req.Msg.GetRegion()
 	clusterID := req.Msg.GetClusterId()
 
@@ -20,43 +20,49 @@ func (s *Service) Watch(ctx context.Context, req *connect.Request[ctrlv1.WatchRe
 	)
 
 	wg := sync.WaitGroup{}
-
 	if req.Msg.GetSynthetic() {
-
 		wg.Go(func() {
 			if err := s.getSyntheticDeployments(ctx, req, stream); err != nil {
 				s.logger.Error("failed to get synthetic deployments", "error", err)
 			}
 		})
+
 		wg.Go(func() {
 			if err := s.getSyntheticSentinels(ctx, req, stream); err != nil {
 				s.logger.Error("failed to get synthetic sentinels", "error", err)
 			}
 		})
-
 	}
+
 	if req.Msg.GetLive() {
+		connID := uid.New(uid.ConnectionPrefix)
 
 		s.clientsMu.Lock()
-		s.clients[clusterID] = newClient(clusterID, region, stream)
-		s.logger.Info("creating new client", "len", len(s.clients), "clients", s.clients)
+		if s.clients[clusterID] == nil {
+			s.clients[clusterID] = make(map[string]*client)
+		}
+
+		s.clients[clusterID][connID] = newClient(clusterID, connID, region, stream)
+		s.logger.Info("creating new client", "clusterID", clusterID, "connID", connID, "totalConnections", len(s.clients[clusterID]))
 		s.clientsMu.Unlock()
+
 		defer func() {
 			s.clientsMu.Lock()
-			delete(s.clients, clusterID)
-			s.logger.Info("deleted client", "len", len(s.clients), "clients", s.clients)
+			delete(s.clients[clusterID], connID)
+			if len(s.clients[clusterID]) == 0 {
+				delete(s.clients, clusterID)
+			}
+			s.logger.Info("deleted client", "clusterID", clusterID, "connID", connID)
 			s.clientsMu.Unlock()
 		}()
-
 	}
+
 	wg.Wait()
 	<-ctx.Done()
 	return ctx.Err()
-
 }
 
 func (s *Service) getSyntheticSentinels(ctx context.Context, req *connect.Request[ctrlv1.WatchRequest], stream *connect.ServerStream[ctrlv1.State]) error {
-
 	clusterID := req.Msg.GetClusterId()
 	region := req.Msg.GetRegion()
 
@@ -105,18 +111,17 @@ func (s *Service) getSyntheticSentinels(ctx context.Context, req *connect.Reques
 					},
 				},
 			})
+
 			if err != nil {
 				return err
 			}
-
 		}
 	}
-	return nil
 
+	return nil
 }
 
 func (s *Service) getSyntheticDeployments(ctx context.Context, req *connect.Request[ctrlv1.WatchRequest], stream *connect.ServerStream[ctrlv1.State]) error {
-
 	clusterID := req.Msg.GetClusterId()
 	region := req.Msg.GetRegion()
 
@@ -148,6 +153,7 @@ func (s *Service) getSyntheticDeployments(ctx context.Context, req *connect.Requ
 			if t.BuildID.Valid {
 				buildID = &t.BuildID.String
 			}
+
 			err = stream.Send(&ctrlv1.State{
 				AcknowledgeId: nil,
 				Kind: &ctrlv1.State_Deployment{
@@ -172,12 +178,12 @@ func (s *Service) getSyntheticDeployments(ctx context.Context, req *connect.Requ
 					},
 				},
 			})
+
 			if err != nil {
 				return err
 			}
-
 		}
 	}
-	return nil
 
+	return nil
 }

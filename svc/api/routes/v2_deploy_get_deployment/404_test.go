@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_get_deployment"
 )
 
@@ -38,7 +38,7 @@ func TestNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 
 		// CTRL service returns 500 for not found errors, not 404
-		require.Equal(t, http.StatusInternalServerError, res.Status, "expected 500, received: %#v", res)
+		require.Equal(t, http.StatusNotFound, res.Status, "expected 504, received: %s", res)
 		require.NotNil(t, res.Body)
 	})
 }

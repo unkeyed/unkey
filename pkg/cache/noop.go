@@ -56,6 +56,11 @@ func (c *noopCache[K, V]) SWRMany(ctx context.Context, keys []K, refreshFromOrig
 	return values, hits, nil
 }
 
+func (c *noopCache[K, V]) SWRWithFallback(ctx context.Context, candidates []K, refreshFromOrigin func(context.Context) (V, K, error), op func(err error) Op) (V, CacheHit, error) {
+	var v V
+	return v, Miss, nil
+}
+
 func NewNoopCache[K comparable, V any]() Cache[K, V] {
 	return &noopCache[K, V]{}
 }

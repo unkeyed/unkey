@@ -225,8 +225,13 @@ func Run(ctx context.Context, cfg Config) error {
 	default:
 		return fmt.Errorf("unknown build backend: %s (must be 'docker' or 'depot')", cfg.BuildBackend)
 	}
+
 	// Restate Client and Server
-	restateClient := restateIngress.NewClient(cfg.Restate.FrontlineURL)
+	restateClientOpts := []restate.IngressClientOption{}
+	if cfg.Restate.APIKey != "" {
+		restateClientOpts = append(restateClientOpts, restate.WithAuthKey(cfg.Restate.APIKey))
+	}
+	restateClient := restateIngress.NewClient(cfg.Restate.URL, restateClientOpts...)
 	restateSrv := restateServer.NewRestate()
 
 	c := cluster.New(cluster.Config{
@@ -540,7 +545,6 @@ func bootstrapWildcardDomain(ctx context.Context, database db.Database, logger l
 
 	// Use "unkey_internal" as the workspace for platform-managed resources
 	workspaceID := "unkey_internal"
-
 	err = db.Query.UpsertCustomDomain(ctx, database.RW(), db.UpsertCustomDomainParams{
 		ID:            domainID,
 		WorkspaceID:   workspaceID,

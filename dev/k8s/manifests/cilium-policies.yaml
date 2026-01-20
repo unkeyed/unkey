@@ -1,0 +1,125 @@
+# Cilium Cluster-Wide Network Policies
+# These policies enforce network isolation for customer workloads
+# Customer pods are identified by labels (managed-by: krane, component: deployment)
+# and spawn in custom namespaces on nodes with node-class: untrusted
+#
+# NOTE: Default deny for customer pods is handled implicitly - when krane creates
+# a CiliumNetworkPolicy in the customer namespace, Cilium automatically enables
+# default deny for the selected endpoints. We don't need an explicit deny-all policy.
+---
+# 2. Block K8s API server access from customer pods
+# Prevents customer workloads from accessing the Kubernetes API
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: customer-deny-kube-apiserver
+spec:
+  description: "Prevent customer pods from reaching K8s API server"
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/managed-by: krane
+      app.kubernetes.io/component: deployment
+  egressDeny:
+    - toEntities:
+        - kube-apiserver
+---
+# 3. Allow DNS and internet egress from customer pods
+# Customer pods can resolve DNS and reach external internet
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: customer-allow-egress
+spec:
+  description: "Allow customer pods to reach DNS, external internet, and Krane for secret decryption"
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/managed-by: krane
+      app.kubernetes.io/component: deployment
+  egress:
+    # DNS resolution via kube-dns
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    # Krane for secret decryption (DecryptSecretsBlob RPC)
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: unkey
+            app: krane
+      toPorts:
+        - ports:
+            - port: "8070"
+              protocol: TCP
+    # External internet access
+    - toEntities:
+        - world
+---
+# 4. Allow traffic to reach sentinels
+# In dev: allow from unkey namespace (no frontline)
+# In prod: allow from frontline namespace
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: allow-frontline-to-sentinel
+spec:
+  description: "Allow frontline/unkey namespace to reach any sentinel pod"
+  endpointSelector:
+    matchLabels:
+      io.kubernetes.pod.namespace: sentinel
+      app.kubernetes.io/component: sentinel
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: unkey
+      toPorts:
+        - ports:
+            - port: "8040"
+              protocol: TCP
+---
+# 5. Allow sentinel egress to customer pods
+# Fine-grained workspace/environment matching is done via per-workload policies created by Krane
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: allow-sentinel-to-customer
+spec:
+  description: "Allow sentinel pods to reach customer pods (fine-grained matching via Krane-created policies)"
+  endpointSelector:
+    matchLabels:
+      io.kubernetes.pod.namespace: sentinel
+      app.kubernetes.io/component: sentinel
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/managed-by: krane
+            app.kubernetes.io/component: deployment
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
+# 6. Allow customer pods to reach Krane for secret decryption
+# Customer pods need to call Krane's DecryptSecretsBlob RPC during init (inject container)
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: allow-customer-to-krane-decrypt
+spec:
+  description: "Allow customer pods to reach Krane for secret decryption"
+  endpointSelector:
+    matchLabels:
+      io.kubernetes.pod.namespace: unkey
+      app: krane
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/managed-by: krane
+            app.kubernetes.io/component: deployment
+      toPorts:
+        - ports:
+            - port: "8070"
+              protocol: TCP

@@ -18,15 +18,19 @@ type Config struct {
 	// HttpsPort defines the HTTPS port for the Gate server to listen on (default: 7443)
 	HttpsPort int
 
-	// Region identifies the geographic region where this node is deployed
+	// Region identifies the geographic region where this node is deployed.
+	// Used for observability, latency optimization, and compliance requirements.
+	// Must match the region identifier used by the underlying cloud platform
+	// and control plane configuration.
 	Region string
 
 	// EnableTLS specifies whether TLS should be enabled for the Frontline server
 	EnableTLS bool
 
-	// BaseDomain is the base domain for region routing (e.g., unkey.cloud)
-	// Cross-region requests are forwarded to {region}.{BaseDomain}
-	BaseDomain string
+	// ApexDomain is the apex domain for region routing (e.g., unkey.cloud)
+	// Cross-region requests are forwarded to frontline.{region}.{ApexDomain}
+	// Example: frontline.us-east-1.aws.unkey.cloud
+	ApexDomain string
 
 	// MaxHops is the maximum number of frontline hops allowed before rejecting the request
 	// This prevents infinite routing loops. Default: 3

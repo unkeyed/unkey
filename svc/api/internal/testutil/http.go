@@ -30,13 +30,14 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
-	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/vault"
 	masterKeys "github.com/unkeyed/unkey/pkg/vault/keys"
 	"github.com/unkeyed/unkey/pkg/vault/storage"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
+	"github.com/unkeyed/unkey/svc/api/internal/middleware"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
 
 type Harness struct {
@@ -98,6 +99,7 @@ func NewHarness(t *testing.T) *Harness {
 			TestMode: true,
 		},
 		TLS:          nil,
+		EnableH2C:    false,
 		ReadTimeout:  0,
 		WriteTimeout: 0,
 	})
@@ -232,7 +234,7 @@ func NewHarness(t *testing.T) *Harness {
 		middleware: []zen.Middleware{
 			zen.WithObservability(),
 			zen.WithLogging(logger),
-			zen.WithErrorHandling(logger),
+			middleware.WithErrorHandling(logger),
 			zen.WithValidation(validator),
 		},
 	}

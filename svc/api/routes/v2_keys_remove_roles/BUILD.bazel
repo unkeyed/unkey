@@ -33,9 +33,9 @@ go_test(
     deps = [
         ":v2_keys_remove_roles",
         "//pkg/db",
-        "//pkg/testutil",
-        "//pkg/testutil/seed",
         "//pkg/uid",
+        "//svc/api/internal/testutil",
+        "//svc/api/internal/testutil/seed",
         "//svc/api/openapi",
         "@com_github_stretchr_testify//require",
     ],
