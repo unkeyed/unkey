@@ -218,7 +218,8 @@ type Querier interface {
 	//      d.memory_mib,
 	//      dt.desired_replicas,
 	//      d.desired_state,
-	//      d.encrypted_environment_variables
+	//      d.encrypted_environment_variables,
+	//      d.command
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
 	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id

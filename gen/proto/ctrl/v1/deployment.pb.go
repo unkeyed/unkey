@@ -148,10 +148,7 @@ type CreateDeploymentRequest struct {
 	// Git information
 	GitCommit *GitCommitInfo `protobuf:"bytes,7,opt,name=git_commit,json=gitCommit,proto3,oneof" json:"git_commit,omitempty"`
 	// Authentication
-	KeyspaceId *string `protobuf:"bytes,8,opt,name=keyspace_id,json=keyspaceId,proto3,oneof" json:"keyspace_id,omitempty"`
-	// Container command override (e.g., ["./app", "serve"])
-	// If not specified, the container's default entrypoint/cmd is used
-	Command       []string `protobuf:"bytes,9,rep,name=command,proto3" json:"command,omitempty"`
+	KeyspaceId    *string `protobuf:"bytes,8,opt,name=keyspace_id,json=keyspaceId,proto3,oneof" json:"keyspace_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -244,13 +241,6 @@ func (x *CreateDeploymentRequest) GetKeyspaceId() string {
 		return *x.KeyspaceId
 	}
 	return ""
-}
-
-func (x *CreateDeploymentRequest) GetCommand() []string {
-	if x != nil {
-		return x.Command
-	}
-	return nil
 }
 
 type isCreateDeploymentRequest_Source interface {
@@ -1129,7 +1119,7 @@ var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\x89\x03\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xef\x02\n" +
 	"\x17CreateDeploymentRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x16\n" +
@@ -1140,8 +1130,7 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
 	"git_commit\x18\a \x01(\v2\x16.ctrl.v1.GitCommitInfoH\x01R\tgitCommit\x88\x01\x01\x12$\n" +
 	"\vkeyspace_id\x18\b \x01(\tH\x02R\n" +
-	"keyspaceId\x88\x01\x01\x12\x18\n" +
-	"\acommand\x18\t \x03(\tR\acommandB\b\n" +
+	"keyspaceId\x88\x01\x01B\b\n" +
 	"\x06sourceB\r\n" +
 	"\v_git_commitB\x0e\n" +
 	"\f_keyspace_idJ\x04\b\x01\x10\x02\"~\n" +

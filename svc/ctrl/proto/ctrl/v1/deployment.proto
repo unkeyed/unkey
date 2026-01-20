@@ -38,10 +38,6 @@ message CreateDeploymentRequest {
 
   // Authentication
   optional string keyspace_id = 8;
-
-  // Container command override (e.g., ["./app", "serve"])
-  // If not specified, the container's default entrypoint/cmd is used
-  repeated string command = 9;
 }
 
 message BuildContext {

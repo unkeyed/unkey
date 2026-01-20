@@ -66,6 +66,7 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 					EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
 					ReadinessId:                   nil,
 					BuildId:                       buildID,
+					Command:                       deployment.Command,
 				},
 			},
 		}), nil

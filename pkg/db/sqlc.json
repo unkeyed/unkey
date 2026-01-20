@@ -49,6 +49,22 @@
                 "import": "github.com/unkeyed/unkey/pkg/db/types"
               },
               "nullable": true
+            },
+            {
+              "column": "deployments.command",
+              "go_type": {
+                "type": "StringSlice",
+                "package": "dbtype",
+                "import": "github.com/unkeyed/unkey/pkg/db/types"
+              }
+            },
+            {
+              "column": "projects.command",
+              "go_type": {
+                "type": "StringSlice",
+                "package": "dbtype",
+                "import": "github.com/unkeyed/unkey/pkg/db/types"
+              }
             }
           ]
         }

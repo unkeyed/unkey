@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "types",
-    srcs = ["null_string.go"],
+    srcs = [
+        "null_string.go",
+        "string_slice.go",
+    ],
     importpath = "github.com/unkeyed/unkey/pkg/db/types",
     visibility = ["//visibility:public"],
 )

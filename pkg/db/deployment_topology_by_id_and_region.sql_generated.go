@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 const findDeploymentTopologyByIDAndRegion = `-- name: FindDeploymentTopologyByIDAndRegion :one
@@ -25,7 +27,8 @@ SELECT
     d.memory_mib,
     dt.desired_replicas,
     d.desired_state,
-    d.encrypted_environment_variables
+    d.encrypted_environment_variables,
+    d.command
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `deployments` + "`" + ` d ON dt.deployment_id = d.id
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
@@ -54,6 +57,7 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 	DesiredReplicas               int32                   `db:"desired_replicas"`
 	DesiredState                  DeploymentsDesiredState `db:"desired_state"`
 	EncryptedEnvironmentVariables []byte                  `db:"encrypted_environment_variables"`
+	Command                       dbtype.StringSlice      `db:"command"`
 }
 
 // FindDeploymentTopologyByIDAndRegion
@@ -72,7 +76,8 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 //	    d.memory_mib,
 //	    dt.desired_replicas,
 //	    d.desired_state,
-//	    d.encrypted_environment_variables
+//	    d.encrypted_environment_variables,
+//	    d.command
 //	FROM `deployment_topology` dt
 //	INNER JOIN `deployments` d ON dt.deployment_id = d.id
 //	INNER JOIN `workspaces` w ON d.workspace_id = w.id
@@ -97,6 +102,7 @@ func (q *Queries) FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DB
 		&i.DesiredReplicas,
 		&i.DesiredState,
 		&i.EncryptedEnvironmentVariables,
+		&i.Command,
 	)
 	return i, err
 }
