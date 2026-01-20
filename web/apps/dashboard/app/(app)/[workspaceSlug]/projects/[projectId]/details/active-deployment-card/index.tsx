@@ -64,8 +64,6 @@ export const statusIndicator = (
     case "failed":
       return { variant: "error" as const, icon: CircleWarning, text: "Error" };
   }
-
-  return { variant: "error" as const, icon: CircleWarning, text: "Unknown" };
 };
 
 type Props = {
@@ -250,9 +248,8 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
                 <div className="text-center text-gray-9 text-sm py-4 flex items-center justify-center h-full">
                   {searchTerm
                     ? `No logs match "${searchTerm}"`
-                    : `No ${
-                        logFilter === "all" ? (showBuildSteps ? "build" : "sentinel") : logFilter
-                      } logs available`}
+                    : `No ${logFilter === "all" ? (showBuildSteps ? "build" : "sentinel") : logFilter
+                    } logs available`}
                 </div>
               ) : (
                 <div className="flex flex-col gap-px">
