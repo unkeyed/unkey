@@ -12,7 +12,6 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/retry"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 )
@@ -72,9 +71,19 @@ func (s *Service) ProcessChallenge(
 	// Step 3: Obtain certificate via DNS-01 challenge
 	// Note: ACME client creation happens inside obtainCertificate because lego.Client
 	// cannot be serialized through Restate (has internal pointers)
+	//
+	// Retry policy: exponential backoff starting at 30s, max 5min between retries,
+	// give up after 5 attempts total. Non-retryable errors (rate limits, bad credentials)
+	// return TerminalError immediately.
 	cert, err := restate.Run(ctx, func(stepCtx restate.RunContext) (EncryptedCertificate, error) {
 		return s.obtainCertificate(stepCtx, req.GetWorkspaceId(), dom, req.GetDomain())
-	}, restate.WithName("obtain certificate"))
+	},
+		restate.WithName("obtain certificate"),
+		restate.WithMaxRetryAttempts(5),
+		restate.WithInitialRetryInterval(30*time.Second),
+		restate.WithMaxRetryInterval(5*time.Minute),
+		restate.WithRetryIntervalFactor(2.0),
+	)
 	if err != nil {
 		return &hydrav1.ProcessChallengeResponse{
 			CertificateId: "",
@@ -167,29 +176,35 @@ func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.Custom
 	}
 	s.logger.Info("ACME client created, requesting certificate", "domain", domain)
 
-	// Request certificate from Let's Encrypt with retry and exponential backoff
+	// Request certificate from Let's Encrypt
+	// Restate handles retries - we return TerminalError for non-retryable errors
 	//nolint:exhaustruct // external library type
 	request := certificate.ObtainRequest{
 		Domains: []string{domain},
 		Bundle:  true,
 	}
 
-	var certificates *certificate.Resource
-	retrier := retry.New(
-		retry.Attempts(3),
-		retry.Backoff(func(attempt int) time.Duration {
-			// Exponential backoff: 30s, 60s, 120s (capped at 5min)
-			return min(time.Duration(30<<(attempt-1))*time.Second, 5*time.Minute)
-		}),
-	)
-
-	err = retrier.Do(func() error {
-		var obtainErr error
-		certificates, obtainErr = client.Certificate.Obtain(request)
-		return obtainErr
-	})
+	certificates, err := client.Certificate.Obtain(request)
 	if err != nil {
-		return EncryptedCertificate{}, fmt.Errorf("failed to obtain certificate after retries: %w", err)
+		parsed := acme.ParseACMEError(err)
+		s.logger.Error("certificate obtain failed",
+			"domain", domain,
+			"error_type", parsed.Type,
+			"message", parsed.Message,
+			"is_retryable", parsed.IsRetryable,
+			"retry_after", parsed.RetryAfter,
+		)
+
+		// Return terminal error for non-retryable errors (rate limits, bad credentials)
+		// Restate will NOT retry terminal errors
+		if !parsed.IsRetryable {
+			return EncryptedCertificate{}, restate.TerminalError(
+				fmt.Errorf("[%s] %s", parsed.Type, parsed.Message),
+			)
+		}
+
+		// Return regular error - Restate will retry
+		return EncryptedCertificate{}, fmt.Errorf("failed to obtain certificate: %w", err)
 	}
 
 	// Parse certificate to get expiration
