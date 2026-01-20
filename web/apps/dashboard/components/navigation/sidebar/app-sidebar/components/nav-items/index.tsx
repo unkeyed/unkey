@@ -9,28 +9,12 @@ export type NavProps = {
     loadMoreAction?: boolean;
   };
   onLoadMore?: (item: NavItem) => void;
-  onToggleCollapse?: (item: NavItem, isOpen: boolean) => void;
-  forceCollapsed?: boolean;
   className?: string;
 };
 
-export const NavItems = ({
-  item,
-  forceCollapsed,
-  onLoadMore,
-  onToggleCollapse,
-  className,
-}: NavProps) => {
+export const NavItems = ({ item, onLoadMore, className }: NavProps) => {
   if (!item.items || item.items.length === 0) {
     return <FlatNavItem item={item} onLoadMore={onLoadMore} className={className} />;
   }
-  return (
-    <NestedNavItem
-      item={item}
-      onLoadMore={onLoadMore}
-      forceCollapsed={forceCollapsed}
-      onToggleCollapse={onToggleCollapse}
-      className={className}
-    />
-  );
+  return <NestedNavItem item={item} onLoadMore={onLoadMore} className={className} />;
 };
