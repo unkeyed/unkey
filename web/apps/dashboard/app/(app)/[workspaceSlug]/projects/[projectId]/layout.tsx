@@ -1,13 +1,10 @@
 "use client";
 import { collection, collectionManager } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { DoubleChevronLeft } from "@unkey/icons";
-import { Button, InfoTooltip } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { ProjectDetailsExpandable } from "./details/project-details-expandables";
 import { ProjectLayoutContext } from "./layout-provider";
 import { ProjectNavigation } from "./navigations/project-navigation";
-import { ProjectSubNavigation } from "./navigations/project-sub-navigation";
 
 export default function ProjectLayoutWrapper({
   children,
@@ -66,30 +63,6 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
     >
       <div className="h-screen flex flex-col overflow-hidden">
         <ProjectNavigation projectId={projectId} />
-        <div className="flex items-center flex-shrink-0">
-          <ProjectSubNavigation
-            onMount={setTableDistanceToTop}
-            detailsExpandableTrigger={
-              <InfoTooltip
-                asChild
-                content={getTooltipContent()}
-                position={{
-                  side: "bottom",
-                  align: "end",
-                }}
-              >
-                <Button
-                  variant="ghost"
-                  className="size-7"
-                  disabled={!liveDeploymentId}
-                  onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-                >
-                  <DoubleChevronLeft iconSize="lg-medium" className="text-gray-13" />
-                </Button>
-              </InfoTooltip>
-            }
-          />
-        </div>
         <div className="flex flex-1 min-h-0">
           <div className="flex-1 overflow-auto">{children}</div>
           <ProjectDetailsExpandable
