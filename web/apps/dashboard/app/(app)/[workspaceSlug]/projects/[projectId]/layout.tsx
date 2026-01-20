@@ -44,13 +44,6 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
     collections.domains.utils.refetch();
   }, [lastestDeploymentId]);
 
-  const getTooltipContent = () => {
-    if (!liveDeploymentId) {
-      return "No deployments available. Deploy your project to view details.";
-    }
-    return isDetailsOpen ? "Hide deployment details" : "Show deployment details";
-  };
-
   return (
     <ProjectLayoutContext.Provider
       value={{
@@ -62,7 +55,13 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
       }}
     >
       <div className="h-screen flex flex-col overflow-hidden">
-        <ProjectNavigation projectId={projectId} />
+        <ProjectNavigation
+          projectId={projectId}
+          onClick={() => setIsDetailsOpen(!isDetailsOpen)}
+          isDetailsOpen={isDetailsOpen}
+          liveDeploymentId={liveDeploymentId}
+          onMount={setTableDistanceToTop}
+        />
         <div className="flex flex-1 min-h-0">
           <div className="flex-1 overflow-auto">{children}</div>
           <ProjectDetailsExpandable

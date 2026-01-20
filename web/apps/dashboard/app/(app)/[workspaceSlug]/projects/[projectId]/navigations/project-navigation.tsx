@@ -10,18 +10,31 @@ import {
   ChevronExpandY,
   Cube,
   Dots,
+  DoubleChevronLeft,
   ListRadio,
   Refresh3,
 } from "@unkey/icons";
-import { Button, Separator } from "@unkey/ui";
+import { Button, InfoTooltip, Separator } from "@unkey/ui";
 import { useSelectedLayoutSegments } from "next/navigation";
+import { useRef } from "react";
 import { RepoDisplay } from "../../_components/list/repo-display";
 
+const BORDER_OFFSET = 1;
 type ProjectNavigationProps = {
   projectId: string;
+  onMount: (distanceToTop: number) => void;
+  onClick: () => void;
+  isDetailsOpen: boolean;
+  liveDeploymentId?: string | null;
 };
 
-export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
+export const ProjectNavigation = ({
+  projectId,
+  onMount,
+  isDetailsOpen,
+  liveDeploymentId,
+  onClick,
+}: ProjectNavigationProps) => {
   const workspace = useWorkspaceNavigation();
   const projects = useLiveQuery((q) =>
     q.from({ project: collection.projects }).select(({ project }) => ({
@@ -68,6 +81,23 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
     },
   ];
 
+  const anchorRef = useRef<HTMLDivElement | null>(null);
+
+  const handleRef = (node: HTMLDivElement | null) => {
+    anchorRef.current = node;
+    if (node && onMount) {
+      const distanceToTop = node.getBoundingClientRect().bottom + BORDER_OFFSET;
+      onMount(distanceToTop);
+    }
+  };
+
+  const getTooltipContent = () => {
+    if (!liveDeploymentId) {
+      return "No deployments available. Deploy your project to view details.";
+    }
+    return isDetailsOpen ? "Hide deployment details" : "Show deployment details";
+  };
+
   const currentSubPage = subPages.find((page) => page.segment === activeSubPage) || subPages[0];
 
   if (projects.isLoading) {
@@ -90,7 +120,7 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
     return <div className="h-full w-full flex items-center justify-center">Project not found</div>;
   }
   return (
-    <Navbar>
+    <Navbar ref={handleRef}>
       <Navbar.Breadcrumbs icon={<Cube />}>
         <Navbar.Breadcrumbs.Link href={basePath}>Projects</Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link
@@ -154,6 +184,23 @@ export const ProjectNavigation = ({ projectId }: ProjectNavigationProps) => {
           <Button className="size-7" variant="outline">
             <Dots iconSize="sm-regular" />
           </Button>
+          <InfoTooltip
+            asChild
+            content={getTooltipContent()}
+            position={{
+              side: "bottom",
+              align: "end",
+            }}
+          >
+            <Button
+              variant="ghost"
+              className="size-7"
+              disabled={!liveDeploymentId}
+              onClick={onClick}
+            >
+              <DoubleChevronLeft iconSize="lg-medium" className="text-gray-13" />
+            </Button>
+          </InfoTooltip>
         </div>
       </div>
     </Navbar>
