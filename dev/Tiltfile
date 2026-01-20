@@ -139,6 +139,17 @@ k8s_resource(
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
+# Worker service (Restate workflow handlers)
+k8s_yaml('k8s/manifests/worker.yaml')
+k8s_resource(
+  'worker',
+  port_forwards=['7092:7092', '9080:9080'],
+  resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey', 'depot-credentials'],
+  labels=['unkey'],
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_AUTO
+)
+
 # Krane service
 k8s_yaml('k8s/manifests/krane.yaml')
 k8s_resource(

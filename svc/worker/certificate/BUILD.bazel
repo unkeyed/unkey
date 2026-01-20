@@ -8,7 +8,7 @@ go_library(
         "renew_handler.go",
         "service.go",
     ],
-    importpath = "github.com/unkeyed/unkey/svc/ctrl/workflows/certificate",
+    importpath = "github.com/unkeyed/unkey/svc/worker/certificate",
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/hydra/v1:hydra",

@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/cmd/preflight"
 	"github.com/unkeyed/unkey/cmd/sentinel"
 	"github.com/unkeyed/unkey/cmd/vault"
+	"github.com/unkeyed/unkey/cmd/worker"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
@@ -33,6 +34,7 @@ AVAILABLE SERVICES:
 - frontline: Multi-tenant frontline service for TLS termination and routing
 - sentinel: Environment tenant sentinel service for routing requests to the actual instances
 - vault: Secret management service for encryption
+- worker: Restate worker service for background jobs and workflows
 
 EXAMPLES:
 unkey run api                                    # Run the API server
@@ -49,6 +51,7 @@ unkey run api --port 8080 --env production      # Run API server with custom con
 		sentinel.Cmd,
 		preflight.Cmd,
 		vault.Cmd,
+		worker.Cmd,
 	},
 	Action: runAction,
 }
@@ -62,6 +65,7 @@ func runAction(ctx context.Context, cmd *cli.Command) error {
 	fmt.Println("  sentinel        - Environment tenant gateway service for routing requests to the actual instances")
 	fmt.Println("  preflight       - Kubernetes mutating webhook for secrets and credentials injection")
 	fmt.Println("  vault           - Encryption service for sensitive data")
+	fmt.Println("  worker          - Restate worker service for background jobs and workflows")
 	fmt.Println()
 	fmt.Println("Use 'unkey run <service>' to start a specific service")
 	fmt.Println("Use 'unkey run <service> --help' for service-specific options")

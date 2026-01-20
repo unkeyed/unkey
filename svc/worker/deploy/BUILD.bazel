@@ -11,7 +11,7 @@ go_library(
         "rollback_handler.go",
         "service.go",
     ],
-    importpath = "github.com/unkeyed/unkey/svc/ctrl/workflows/deploy",
+    importpath = "github.com/unkeyed/unkey/svc/worker/deploy",
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/ctrl/v1:ctrl",

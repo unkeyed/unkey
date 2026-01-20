@@ -2,19 +2,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ctrl
+  name: worker
   namespace: unkey
   labels:
-    app: ctrl
+    app: worker
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ctrl
+      app: worker
   template:
     metadata:
       labels:
-        app: ctrl
+        app: worker
     spec:
       serviceAccountName: unkey-serviceaccount
       volumes:
@@ -23,16 +23,17 @@ spec:
             path: /var/run/docker.sock
             type: Socket
       containers:
-        - name: ctrl
+        - name: worker
           image: unkey/go:latest
-          args: ["run", "ctrl"]
+          args: ["run", "worker"]
           imagePullPolicy: Never # Use local images
           ports:
-            - containerPort: 7091
+            - containerPort: 7092
+            - containerPort: 9080
           env:
             # Server Configuration
-            - name: UNKEY_HTTP_PORT
-              value: "7091"
+            - name: UNKEY_WORKER_HTTP_PORT
+              value: "7092"
             - name: UNKEY_LOGS_COLOR
               value: "true"
             # Instance Identification
@@ -41,7 +42,7 @@ spec:
             - name: UNKEY_REGION
               value: "local"
             - name: UNKEY_INSTANCE_ID
-              value: "ctrl-dev"
+              value: "worker-dev"
             # Database Configuration
             - name: UNKEY_DATABASE_PRIMARY
               value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
@@ -49,7 +50,7 @@ spec:
             # Observability - DISABLED for development
             - name: UNKEY_OTEL
               value: "false"
-            # Control Plane Specific
+
             # Vault Configuration (required)
             - name: UNKEY_VAULT_MASTER_KEYS
               value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
@@ -61,24 +62,14 @@ spec:
               value: "minio_root_user"
             - name: UNKEY_VAULT_S3_ACCESS_KEY_SECRET
               value: "minio_root_password"
+
             # Build Configuration
             - name: UNKEY_BUILD_BACKEND
-              value: "depot" # Changed to docker as default for local k8s
+              value: "depot"
             - name: UNKEY_BUILD_PLATFORM
               value: "linux/arm64"
             # Build S3 Storage (from depot-credentials secret)
-            #kubectl create secret generic depot-credentials \
-            # --from-literal=token=xxxx \
-            # --from-literal=s3-url=xxx \
-            # --from-literal=s3-access-key-id=xxx \
-            # --from-literal=s3-access-key-secret=xxx \
-            #   --namespace=unkey
             - name: UNKEY_BUILD_S3_URL
-              valueFrom:
-                secretKeyRef:
-                  name: depot-credentials
-                  key: s3-url
-            - name: UNKEY_BUILD_S3_EXTERNAL_URL
               valueFrom:
                 secretKeyRef:
                   name: depot-credentials
@@ -95,12 +86,8 @@ spec:
                 secretKeyRef:
                   name: depot-credentials
                   key: s3-access-key-secret
-            # Registry Configuration (used by both Docker and Depot backends)
-            #kubectl create secret docker-registry depot-registry \
-            # --docker-server=registry.depot.dev \
-            # --docker-username=x-token \
-            # --docker-password=xxx \
-            # --namespace=unkey
+
+            # Registry Configuration
             - name: UNKEY_REGISTRY_URL
               value: "registry.depot.dev"
             - name: UNKEY_REGISTRY_USERNAME
@@ -110,11 +97,13 @@ spec:
                 secretKeyRef:
                   name: depot-credentials
                   key: token
-            # Depot-Specific Configuration (only used when UNKEY_BUILD_BACKEND=depot)
+
+            # Depot-Specific Configuration
             - name: UNKEY_DEPOT_API_URL
               value: "https://api.depot.dev"
             - name: UNKEY_DEPOT_PROJECT_REGION
               value: "us-east-1"
+
             # ACME Configuration
             - name: UNKEY_ACME_ENABLED
               value: "false"
@@ -122,15 +111,19 @@ spec:
             - name: UNKEY_DEFAULT_DOMAIN
               value: "unkey.local"
 
-            # Restate Configuration (ctrl only needs ingress client)
+            # Restate Configuration
             - name: UNKEY_RESTATE_INGRESS_URL
               value: "http://restate:8080"
             - name: UNKEY_RESTATE_ADMIN_URL
               value: "http://restate:9070"
+            - name: UNKEY_RESTATE_HTTP_PORT
+              value: "9080"
+            - name: UNKEY_RESTATE_REGISTER_AS
+              value: "http://worker:9080"
             - name: UNKEY_RESTATE_API_KEY
               value: ""
 
-            # API Key
+            # API Key for cluster service
             - name: UNKEY_AUTH_TOKEN
               value: "your-local-dev-key"
 
@@ -157,16 +150,20 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ctrl
+  name: worker
   namespace: unkey
   labels:
-    app: ctrl
+    app: worker
 spec:
   selector:
-    app: ctrl
+    app: worker
   ports:
-    - name: http
-      port: 7091
-      targetPort: 7091
+    - name: health
+      port: 7092
+      targetPort: 7092
       protocol: TCP
-  type: LoadBalancer
+    - name: restate
+      port: 9080
+      targetPort: 9080
+      protocol: TCP
+  type: ClusterIP

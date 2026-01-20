@@ -7,7 +7,7 @@ go_library(
         "doc.go",
         "service.go",
     ],
-    importpath = "github.com/unkeyed/unkey/svc/ctrl/workflows/routing",
+    importpath = "github.com/unkeyed/unkey/svc/worker/routing",
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/hydra/v1:hydra",

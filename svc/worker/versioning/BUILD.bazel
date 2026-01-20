@@ -7,7 +7,7 @@ go_library(
         "next_version_handler.go",
         "service.go",
     ],
-    importpath = "github.com/unkeyed/unkey/svc/ctrl/workflows/versioning",
+    importpath = "github.com/unkeyed/unkey/svc/worker/versioning",
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/hydra/v1:hydra",

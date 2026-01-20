@@ -13,6 +13,7 @@ go_library(
         "//cmd/preflight",
         "//cmd/sentinel",
         "//cmd/vault",
+        "//cmd/worker",
         "//pkg/cli",
     ],
 )
