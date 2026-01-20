@@ -3,7 +3,6 @@ package ctrl
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"net"
@@ -25,7 +24,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/retry"
 	"github.com/unkeyed/unkey/pkg/shutdown"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/vault"
 	"github.com/unkeyed/unkey/pkg/vault/storage"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
@@ -316,7 +314,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Certificate service needs a longer timeout for ACME DNS-01 challenges
 	// which can take 5-10 minutes for DNS propagation
-	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
+	certSvc := certificate.New(certificate.Config{
 		Logger:        logger,
 		DB:            database,
 		Vault:         acmeVaultSvc,
@@ -324,7 +322,8 @@ func Run(ctx context.Context, cfg Config) error {
 		DefaultDomain: cfg.DefaultDomain,
 		DNSProvider:   dnsProvider,
 		HTTPProvider:  httpProvider,
-	}), restate.WithInactivityTimeout(15*time.Minute)))
+	})
+	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certSvc, restate.WithInactivityTimeout(15*time.Minute)))
 
 	go func() {
 		addr := fmt.Sprintf(":%d", cfg.Restate.HttpPort)
@@ -378,15 +377,23 @@ func Run(ctx context.Context, cfg Config) error {
 			} else {
 				logger.Info("Successfully registered with Restate")
 
-				// Bootstrap wildcard certificate for default domain if ACME is enabled
-				if cfg.Acme.Enabled && dnsProvider != nil && cfg.DefaultDomain != "" {
-					bootstrapWildcardDomain(ctx, database, logger, cfg.DefaultDomain)
+				certClient := hydrav1.NewCertificateServiceIngressClient(restateClient, "global")
+
+				// Bootstrap infrastructure wildcard certificates if ACME is enabled
+				if cfg.Acme.Enabled && dnsProvider != nil {
+					if err := certSvc.BootstrapInfraCerts(ctx, certificate.BootstrapConfig{
+						DefaultDomain: cfg.DefaultDomain,
+						ApexDomain:    cfg.ApexDomain,
+						Regions:       cfg.AvailableRegions,
+						RestateClient: certClient,
+					}); err != nil {
+						logger.Error("failed to bootstrap infrastructure certs", "error", err)
+					}
 				}
 
 				// Start the certificate renewal cron job if ACME is enabled
 				// Use Send with idempotency key so multiple restarts don't create duplicate crons
 				if cfg.Acme.Enabled && dnsProvider != nil {
-					certClient := hydrav1.NewCertificateServiceIngressClient(restateClient, "global")
 					_, startErr := certClient.RenewExpiringCertificates().Send(
 						ctx,
 						&hydrav1.RenewExpiringCertificatesRequest{
@@ -510,70 +517,4 @@ func Run(ctx context.Context, cfg Config) error {
 
 	logger.Info("Ctrl server shut down successfully")
 	return nil
-}
-
-// bootstrapWildcardDomain ensures a wildcard domain and ACME challenge exist for the default domain.
-//
-// This helper function creates the necessary database records for automatic
-// wildcard certificate issuance during startup. It checks if the wildcard
-// domain already exists and creates both the custom domain record and
-// ACME challenge record if needed.
-//
-// The function uses "unkey_internal" as the workspace ID for
-// platform-managed resources, ensuring separation from user workspaces.
-//
-// This is called during control plane startup when ACME is enabled and
-// a default domain is configured, allowing the renewal cron job to
-// automatically issue wildcard certificates without manual intervention.
-func bootstrapWildcardDomain(ctx context.Context, database db.Database, logger logging.Logger, defaultDomain string) {
-	wildcardDomain := "*." + defaultDomain
-
-	// Check if the wildcard domain already exists
-	_, err := db.Query.FindCustomDomainByDomain(ctx, database.RO(), wildcardDomain)
-	if err == nil {
-		logger.Info("Wildcard domain already exists", "domain", wildcardDomain)
-		return
-	}
-	if !db.IsNotFound(err) {
-		logger.Error("Failed to check for existing wildcard domain", "error", err, "domain", wildcardDomain)
-		return
-	}
-
-	// Create the custom domain record
-	domainID := uid.New(uid.DomainPrefix)
-	now := time.Now().UnixMilli()
-
-	// Use "unkey_internal" as the workspace for platform-managed resources
-	workspaceID := "unkey_internal"
-	err = db.Query.UpsertCustomDomain(ctx, database.RW(), db.UpsertCustomDomainParams{
-		ID:            domainID,
-		WorkspaceID:   workspaceID,
-		Domain:        wildcardDomain,
-		ChallengeType: db.CustomDomainsChallengeTypeDNS01,
-		CreatedAt:     now,
-		UpdatedAt:     sql.NullInt64{Int64: now, Valid: true},
-	})
-	if err != nil {
-		logger.Error("Failed to create wildcard domain", "error", err, "domain", wildcardDomain)
-		return
-	}
-
-	// Create the ACME challenge record with status 'waiting' so the renewal cron picks it up
-	err = db.Query.InsertAcmeChallenge(ctx, database.RW(), db.InsertAcmeChallengeParams{
-		WorkspaceID:   workspaceID,
-		DomainID:      domainID,
-		Token:         "",
-		Authorization: "",
-		Status:        db.AcmeChallengesStatusWaiting,
-		ChallengeType: db.AcmeChallengesChallengeTypeDNS01,
-		CreatedAt:     now,
-		UpdatedAt:     sql.NullInt64{Int64: now, Valid: true},
-		ExpiresAt:     0, // Will be set when certificate is issued
-	})
-	if err != nil {
-		logger.Error("Failed to create ACME challenge for wildcard domain", "error", err, "domain", wildcardDomain)
-		return
-	}
-
-	logger.Info("Bootstrapped wildcard domain for certificate issuance", "domain", wildcardDomain)
 }

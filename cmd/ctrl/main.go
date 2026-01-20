@@ -125,6 +125,7 @@ var Cmd = &cli.Command{
 		cli.String("acme-route53-hosted-zone-id", "Route53 hosted zone ID (bypasses auto-discovery, required when wildcard CNAMEs exist)", cli.EnvVar("UNKEY_ACME_ROUTE53_HOSTED_ZONE_ID")),
 
 		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
+		cli.String("apex-domain", "Apex domain for cross-region frontline communication (e.g., unkey.cloud). Certs are provisioned for *.{region}.{apex-domain}", cli.EnvVar("UNKEY_APEX_DOMAIN")),
 
 		// Restate Configuration
 		cli.String("restate-url", "URL of the Restate ingress endpoint for invoking workflows. Example: http://restate:8080",
@@ -245,6 +246,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		},
 
 		DefaultDomain: cmd.String("default-domain"),
+		ApexDomain:    cmd.String("apex-domain"),
 
 		// Restate configuration
 		Restate: ctrl.RestateConfig{

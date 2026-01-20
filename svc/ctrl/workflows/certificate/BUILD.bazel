@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "certificate",
     srcs = [
+        "bootstrap_infra_certs.go",
         "doc.go",
         "process_challenge_handler.go",
         "renew_handler.go",

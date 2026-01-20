@@ -73,6 +73,7 @@ go_library(
         "custom_domain_find_by_domain.sql_generated.go",
         "custom_domain_find_by_domain_or_wildcard.sql_generated.go",
         "custom_domain_find_by_id.sql_generated.go",
+        "custom_domain_find_with_cert_by_domain.sql_generated.go",
         "custom_domain_upsert.sql_generated.go",
         "custom_types.go",
         "database.go",
