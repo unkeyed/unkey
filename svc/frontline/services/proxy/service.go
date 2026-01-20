@@ -87,7 +87,10 @@ func New(cfg Config) (*service, error) {
 		AllowHTTP: true,
 		DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
 			// For h2c, we dial plain TCP (not TLS)
-			var d net.Dialer
+			d := net.Dialer{
+				Timeout:   10 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}
 			return d.DialContext(ctx, network, addr)
 		},
 	}
