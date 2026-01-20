@@ -113,14 +113,20 @@ func ParseACMEError(err error) *ParsedACMEError {
 		parsed.IsRetryable = false
 
 		// Try to extract retry-after from the error message
-		if idx := strings.Index(errStr, "retry after"); idx != -1 {
-			timeStr := errStr[idx+12:]
-			if endIdx := strings.Index(timeStr, ":"); endIdx != -1 {
+		// Format: "retry after 2026-01-20 16:31:22 UTC"
+		originalErr := err.Error() // use original case for time parsing
+		if idx := strings.Index(strings.ToLower(originalErr), "retry after"); idx != -1 {
+			timeStr := originalErr[idx+12:] // skip "retry after "
+			// Find the end - usually followed by ":" or end of useful content
+			if endIdx := strings.Index(timeStr, ": see"); endIdx != -1 {
+				timeStr = strings.TrimSpace(timeStr[:endIdx])
+			} else if endIdx := strings.Index(timeStr, ":"); endIdx != -1 && endIdx < 30 {
 				timeStr = strings.TrimSpace(timeStr[:endIdx])
 			}
 			// Try parsing various time formats
 			for _, layout := range []string{
 				"2006-01-02 15:04:05 MST",
+				"2006-01-02 15:04:05 UTC",
 				time.RFC3339,
 				time.RFC1123,
 			} {
@@ -151,6 +157,34 @@ func ParseACMEError(err error) *ParsedACMEError {
 	}
 
 	return parsed
+}
+
+// RateLimitError is a special error type for rate limits that includes retry timing.
+// This is NOT a terminal error - the handler should sleep and retry.
+type RateLimitError struct {
+	Message    string
+	RetryAfter time.Time
+}
+
+func (e *RateLimitError) Error() string {
+	return e.Message
+}
+
+// NewRateLimitError creates a RateLimitError from a parsed ACME error.
+func NewRateLimitError(parsed *ParsedACMEError) *RateLimitError {
+	return &RateLimitError{
+		Message:    parsed.Message,
+		RetryAfter: parsed.RetryAfter,
+	}
+}
+
+// AsRateLimitError checks if err is a RateLimitError and returns it.
+func AsRateLimitError(err error) (*RateLimitError, bool) {
+	var rle *RateLimitError
+	if errors.As(err, &rle) {
+		return rle, true
+	}
+	return nil, false
 }
 
 // ShouldRetry returns true if the error is transient and the operation should be retried.

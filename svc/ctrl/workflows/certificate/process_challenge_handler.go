@@ -72,19 +72,66 @@ func (s *Service) ProcessChallenge(
 	// Note: ACME client creation happens inside obtainCertificate because lego.Client
 	// cannot be serialized through Restate (has internal pointers)
 	//
-	// Retry policy: exponential backoff starting at 30s, max 5min between retries,
-	// give up after 5 attempts total. Non-retryable errors (rate limits, bad credentials)
-	// return TerminalError immediately.
-	cert, err := restate.Run(ctx, func(stepCtx restate.RunContext) (EncryptedCertificate, error) {
-		return s.obtainCertificate(stepCtx, req.GetWorkspaceId(), dom, req.GetDomain())
-	},
-		restate.WithName("obtain certificate"),
-		restate.WithMaxRetryAttempts(5),
-		restate.WithInitialRetryInterval(30*time.Second),
-		restate.WithMaxRetryInterval(5*time.Minute),
-		restate.WithRetryIntervalFactor(2.0),
-	)
-	if err != nil {
+	// Retry policy:
+	// - Transient errors: exponential backoff (30s → 60s → 2m → 4m → 5m), max 5 attempts
+	// - Rate limits: sleep until retry-after time, then retry (max 3 rate limit retries)
+	// - Bad credentials: fail immediately (terminal error)
+	var cert EncryptedCertificate
+	maxRateLimitRetries := 3
+	for rateLimitRetry := 0; rateLimitRetry <= maxRateLimitRetries; rateLimitRetry++ {
+		var obtainErr error
+		cert, obtainErr = restate.Run(ctx, func(stepCtx restate.RunContext) (EncryptedCertificate, error) {
+			return s.obtainCertificate(stepCtx, req.GetWorkspaceId(), dom, req.GetDomain())
+		},
+			restate.WithName("obtain certificate"),
+			restate.WithMaxRetryAttempts(5),
+			restate.WithInitialRetryInterval(30*time.Second),
+			restate.WithMaxRetryInterval(5*time.Minute),
+			restate.WithRetryIntervalFactor(2.0),
+		)
+
+		if obtainErr == nil {
+			break // Success!
+		}
+
+		// Check if it's a rate limit error
+		if rle, ok := acme.AsRateLimitError(obtainErr); ok {
+			if rateLimitRetry >= maxRateLimitRetries {
+				s.logger.Error("max rate limit retries exceeded",
+					"domain", req.GetDomain(),
+					"retries", rateLimitRetry,
+				)
+				return &hydrav1.ProcessChallengeResponse{
+					CertificateId: "",
+					Status:        "failed",
+				}, nil
+			}
+
+			// Calculate sleep duration until retry-after (with 1 min buffer)
+			sleepDuration := time.Until(rle.RetryAfter) + time.Minute
+			if sleepDuration < time.Minute {
+				sleepDuration = time.Minute // minimum 1 minute
+			}
+			if sleepDuration > 2*time.Hour {
+				sleepDuration = 2 * time.Hour // cap at 2 hours
+			}
+
+			s.logger.Info("rate limited, sleeping until retry-after",
+				"domain", req.GetDomain(),
+				"retry_after", rle.RetryAfter,
+				"sleep_duration", sleepDuration,
+				"rate_limit_retry", rateLimitRetry+1,
+			)
+
+			// Durable sleep - Restate will wake us up
+			if err := restate.Sleep(ctx, sleepDuration); err != nil {
+				return nil, err
+			}
+
+			continue // Retry after sleep
+		}
+
+		// Not a rate limit error - fail
 		return &hydrav1.ProcessChallengeResponse{
 			CertificateId: "",
 			Status:        "failed",
@@ -195,15 +242,19 @@ func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.Custom
 			"retry_after", parsed.RetryAfter,
 		)
 
-		// Return terminal error for non-retryable errors (rate limits, bad credentials)
-		// Restate will NOT retry terminal errors
+		// Rate limits: return RateLimitError so the handler can sleep and retry
+		if parsed.Type == acme.ACMEErrorRateLimited {
+			return EncryptedCertificate{}, acme.NewRateLimitError(parsed)
+		}
+
+		// Other non-retryable errors (bad credentials): terminal error, no retry
 		if !parsed.IsRetryable {
 			return EncryptedCertificate{}, restate.TerminalError(
 				fmt.Errorf("[%s] %s", parsed.Type, parsed.Message),
 			)
 		}
 
-		// Return regular error - Restate will retry
+		// Retryable error - Restate will retry with backoff
 		return EncryptedCertificate{}, fmt.Errorf("failed to obtain certificate: %w", err)
 	}
 
