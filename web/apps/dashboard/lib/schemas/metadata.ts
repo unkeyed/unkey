@@ -3,20 +3,16 @@ import { z } from "zod";
 // Helper function for creating conditional schemas based on the "enabled" flag
 export const createConditionalSchema = <
   T extends z.ZodRawShape,
-  U extends z.UnknownKeysParam = z.UnknownKeysParam,
-  V extends z.ZodTypeAny = z.ZodTypeAny,
   EnabledPath extends string = "enabled",
 >(
   enabledPath: EnabledPath,
-  schema: z.ZodObject<T, U, V>,
+  schema: z.ZodObject<T>,
 ) => {
   return z.union([
     // When enabled is false, don't validate other fields
-    z
-      .object({
-        [enabledPath]: z.literal(false),
-      } as { [K in EnabledPath]: z.ZodLiteral<false> })
-      .passthrough(),
+    z.looseObject({
+      [enabledPath]: z.literal(false),
+    } as { [K in EnabledPath]: z.ZodLiteral<false> }),
     // When enabled is true, apply all validations
     schema,
   ]);
@@ -26,13 +22,15 @@ export const metadataValidationSchema = z.object({
   enabled: z.literal(true),
   data: z
     .string({
-      required_error: "Metadata is required",
-      invalid_type_error: "Metadata must be a JSON",
+      error: (issue) =>
+        issue.input === undefined ? "Metadata is required" : "Metadata must be a JSON",
     })
     .trim()
-    .min(2, { message: "Metadata must contain valid JSON" })
+    .min(2, {
+      error: "Metadata must contain valid JSON",
+    })
     .max(65534, {
-      message: "Metadata cannot exceed 65535 characters (text field limit)",
+      error: "Metadata cannot exceed 65535 characters (text field limit)",
     })
     .refine(
       (s) => {
@@ -44,13 +42,13 @@ export const metadataValidationSchema = z.object({
         }
       },
       {
-        message: "Must be valid JSON",
+        error: "Must be valid JSON",
       },
     ),
 });
 
 export const metadataSchema = z.object({
-  metadata: createConditionalSchema("enabled", metadataValidationSchema).default({
+  metadata: createConditionalSchema("enabled", metadataValidationSchema).prefault({
     enabled: false,
   }),
 });

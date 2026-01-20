@@ -3,10 +3,18 @@ import type { FieldConfig } from "../filter.types";
 import { isNumberConfig, isStringConfig } from "./type-guards";
 
 export function createFilterOutputSchema<
-  TFieldEnum extends z.ZodEnum<[string, ...string[]]>,
-  TOperatorEnum extends z.ZodEnum<[string, ...string[]]>,
+  TFieldEnum extends z.ZodEnum<any>,
+  TOperatorEnum extends z.ZodEnum<any>,
   TConfig extends Record<z.infer<TFieldEnum>, FieldConfig<z.infer<TOperatorEnum>>>,
 >(fieldEnum: TFieldEnum, operatorEnum: TOperatorEnum, filterFieldConfig: TConfig) {
+  type FilterData = {
+    field: z.infer<TFieldEnum>;
+    filters: Array<{
+      operator: z.infer<TOperatorEnum>;
+      value: string | number;
+    }>;
+  };
+
   return z.object({
     filters: z.array(
       z
@@ -19,21 +27,35 @@ export function createFilterOutputSchema<
             }),
           ),
         })
-        .refine(
-          (data) => {
-            const config = filterFieldConfig[data.field as keyof TConfig];
-            return data.filters.every((filter) => {
-              const isOperatorValid = config.operators.includes(
-                filter.operator as z.infer<TOperatorEnum>,
-              );
-              return (
-                isOperatorValid &&
-                validateFieldValue(data.field as keyof TConfig, filter.value, filterFieldConfig)
-              );
-            });
-          },
-          { message: "Invalid field/operator/value combination" },
-        ),
+        .superRefine((data: any, ctx) => {
+          const typedData = data as FilterData;
+          const config = filterFieldConfig[typedData.field as keyof TConfig];
+          typedData.filters.forEach((filter, index) => {
+            const isOperatorValid = config.operators.includes(
+              filter.operator as z.infer<TOperatorEnum>,
+            );
+            if (!isOperatorValid) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Invalid operator "${filter.operator}" for field "${String(typedData.field)}"`,
+                path: ["filters", index, "operator"],
+              });
+            }
+
+            const isValueValid = validateFieldValue(
+              typedData.field as keyof TConfig,
+              filter.value,
+              filterFieldConfig,
+            );
+            if (!isValueValid) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Invalid value "${filter.value}" for field "${String(typedData.field)}"`,
+                path: ["filters", index, "value"],
+              });
+            }
+          });
+        }),
     ),
   });
 }

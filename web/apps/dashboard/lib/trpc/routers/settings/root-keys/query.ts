@@ -17,7 +17,7 @@ const RootKeyResponse = z.object({
   name: z.string().nullable(),
   permissionSummary: z.object({
     total: z.number(),
-    categories: z.record(z.number()),
+    categories: z.record(z.string(), z.number()),
     hasCriticalPerm: z.boolean(),
   }),
   permissions: z.array(PermissionResponse),
@@ -27,7 +27,7 @@ const RootKeysResponse = z.object({
   keys: z.array(RootKeyResponse),
   hasMore: z.boolean(),
   total: z.number(),
-  nextCursor: z.number().int().optional(),
+  nextCursor: z.int().optional(),
 });
 
 type PermissionResponse = z.infer<typeof PermissionResponse>;

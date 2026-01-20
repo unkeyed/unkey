@@ -6,7 +6,7 @@ import { escapeLike } from "../utils/sql";
 
 const identitiesQueryPayload = z.object({
   cursor: z.string().optional(),
-  limit: z.number().optional().default(50),
+  limit: z.number().optional().prefault(50),
   search: z.string().optional(),
 });
 
@@ -15,7 +15,7 @@ export const IdentityResponseSchema = z.object({
   externalId: z.string(),
   workspaceId: z.string(),
   environment: z.string(),
-  meta: z.record(z.unknown()).nullable(),
+  meta: z.record(z.string(), z.unknown()).nullable(),
   createdAt: z.number(),
   updatedAt: z.number().nullable(),
   keys: z.array(z.object({ id: z.string() })),

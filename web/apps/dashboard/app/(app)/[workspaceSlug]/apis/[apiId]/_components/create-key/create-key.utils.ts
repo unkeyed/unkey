@@ -104,6 +104,8 @@ export const getDefaultValues = (
   const defaults = {
     bytes: 16,
     prefix: "",
+    externalId: undefined,
+    identityId: undefined,
     metadata: {
       enabled: false,
     },

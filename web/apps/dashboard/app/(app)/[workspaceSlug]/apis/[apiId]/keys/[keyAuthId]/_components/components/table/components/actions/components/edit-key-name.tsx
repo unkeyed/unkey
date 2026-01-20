@@ -14,7 +14,7 @@ const editNameFormSchema = z
   .object({
     name: nameSchema,
     //Hidden field. Required for comparison
-    originalName: z.string().optional().default(""),
+    originalName: z.string().optional().prefault(""),
   })
   .superRefine((data, ctx) => {
     const normalizedNewName = (data.name || "").trim();
@@ -22,7 +22,7 @@ const editNameFormSchema = z
 
     if (normalizedNewName === normalizedOriginalName && normalizedNewName !== "") {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "New name must be different from the current name",
         path: ["name"],
       });

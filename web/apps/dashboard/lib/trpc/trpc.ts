@@ -497,12 +497,12 @@ export const withLlmAccess = () =>
         user_id: userId,
         workspace_id: ctx.workspace?.id as string | undefined,
         validation_error:
-          error instanceof z.ZodError ? error.errors[0]?.message : "Unknown validation error",
+          error instanceof z.ZodError ? error.issues[0]?.message : "Unknown validation error",
         raw_input_type: typeof rawInput,
       });
 
       if (error instanceof z.ZodError) {
-        const firstError = error.errors[0];
+        const firstError = error.issues[0];
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: firstError?.message || "Invalid query format",

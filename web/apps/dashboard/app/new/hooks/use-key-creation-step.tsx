@@ -155,7 +155,13 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
                   description="Set request limits per time window to control API usage frequency"
                   defaultChecked={methods.watch("ratelimit.enabled")}
                   onCheckedChange={(checked) => {
-                    methods.setValue("ratelimit.enabled", checked);
+                    const currentData = methods.getValues("ratelimit.data");
+                    methods.setValue(
+                      "ratelimit",
+                      checked
+                        ? { enabled: true, data: currentData as any }
+                        : ({ enabled: false } as any),
+                    );
                     methods.trigger("ratelimit");
                   }}
                 >
@@ -170,7 +176,13 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
                   description="Set usage limits based on credits or quota to control consumption"
                   defaultChecked={methods.watch("limit.enabled")}
                   onCheckedChange={(checked) => {
-                    methods.setValue("limit.enabled", checked);
+                    const currentData = methods.getValues("limit.data");
+                    methods.setValue(
+                      "limit",
+                      checked
+                        ? { enabled: true, data: currentData as any }
+                        : ({ enabled: false } as any),
+                    );
                     methods.trigger("limit");
                   }}
                 >
@@ -187,10 +199,14 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
                   description="Set when this API key should automatically expire and become invalid"
                   defaultChecked={methods.watch("expiration.enabled")}
                   onCheckedChange={(checked) => {
-                    methods.setValue("expiration.enabled", checked);
-                    const currentExpiryDate = methods.getValues("expiration.data");
-                    if (checked && !currentExpiryDate) {
-                      methods.setValue("expiration.data", addDays(new Date(), 1));
+                    if (checked) {
+                      const currentExpiryDate = methods.getValues("expiration.data");
+                      methods.setValue("expiration", {
+                        enabled: true,
+                        data: currentExpiryDate || addDays(new Date(), 1),
+                      } as any);
+                    } else {
+                      methods.setValue("expiration", { enabled: false } as any);
                     }
                     methods.trigger("expiration");
                   }}
@@ -206,10 +222,14 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
                   description="Add custom key-value pairs to store additional information with your API key"
                   defaultChecked={methods.watch("metadata.enabled")}
                   onCheckedChange={(checked) => {
-                    methods.setValue("metadata.enabled", checked);
-                    const currentMetadata = methods.getValues("metadata.data");
-                    if (checked && !currentMetadata) {
-                      methods.setValue("metadata.data", JSON.stringify(EXAMPLE_JSON, null, 2));
+                    if (checked) {
+                      const currentMetadata = methods.getValues("metadata.data");
+                      methods.setValue("metadata", {
+                        enabled: true,
+                        data: currentMetadata || JSON.stringify(EXAMPLE_JSON, null, 2),
+                      } as any);
+                    } else {
+                      methods.setValue("metadata", { enabled: false } as any);
                     }
                     methods.trigger("metadata");
                   }}

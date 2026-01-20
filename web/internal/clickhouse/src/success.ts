@@ -17,7 +17,7 @@ export function getActiveWorkspacesPerMonth(ch: Querier) {
     ;`,
       schema: z.object({
         time: dateTimeToUnix,
-        workspaces: z.number().int(),
+        workspaces: z.int(),
       }),
     });
 

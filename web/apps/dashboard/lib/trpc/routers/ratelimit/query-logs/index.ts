@@ -11,7 +11,7 @@ const RatelimitLogsResponse = z.object({
   ratelimitLogs: z.array(ratelimitLogs),
   hasMore: z.boolean(),
   total: z.number(),
-  nextCursor: z.number().int().optional(),
+  nextCursor: z.int().optional(),
 });
 
 type RatelimitLogsResponse = z.infer<typeof RatelimitLogsResponse>;
