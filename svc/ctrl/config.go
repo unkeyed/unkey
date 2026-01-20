@@ -281,10 +281,10 @@ type Config struct {
 	// Used for sentinel deployment and automatic certificate bootstrapping.
 	DefaultDomain string
 
-	// ApexDomain is the base domain for cross-region frontline communication.
-	// Certs are provisioned for *.{region}.{ApexDomain} for each available region.
+	// RegionalApexDomain is the base domain for cross-region frontline communication.
+	// Certs are provisioned for *.{region}.{RegionalApexDomain} for each available region.
 	// Example: "unkey.cloud" results in certs for "*.us-west-2.aws.unkey.cloud", etc.
-	ApexDomain string
+	RegionalApexDomain string
 
 	// Restate configures workflow engine integration.
 	// Enables asynchronous deployment and certificate renewal workflows.

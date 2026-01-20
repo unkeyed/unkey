@@ -382,10 +382,10 @@ func Run(ctx context.Context, cfg Config) error {
 				// Bootstrap infrastructure wildcard certificates if ACME is enabled
 				if cfg.Acme.Enabled && dnsProvider != nil {
 					if err := certSvc.BootstrapInfraCerts(ctx, certificate.BootstrapConfig{
-						DefaultDomain: cfg.DefaultDomain,
-						ApexDomain:    cfg.ApexDomain,
-						Regions:       cfg.AvailableRegions,
-						RestateClient: certClient,
+						DefaultDomain:      cfg.DefaultDomain,
+						RegionalApexDomain: cfg.RegionalApexDomain,
+						Regions:            cfg.AvailableRegions,
+						RestateClient:      certClient,
 					}); err != nil {
 						logger.Error("failed to bootstrap infrastructure certs", "error", err)
 					}

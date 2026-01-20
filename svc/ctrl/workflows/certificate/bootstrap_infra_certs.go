@@ -20,11 +20,11 @@ type BootstrapConfig struct {
 	// Results in a wildcard cert for "*.unkey.app".
 	DefaultDomain string
 
-	// ApexDomain is the base domain for cross-region frontline communication (e.g., "unkey.cloud").
-	ApexDomain string
+	// RegionalApexDomain is the base domain for cross-region frontline communication (e.g., "unkey.cloud").
+	RegionalApexDomain string
 
 	// Regions is the list of available regions (e.g., ["us-west-2.aws", "eu-central-1.aws"]).
-	// Combined with ApexDomain to create certs like "*.us-west-2.aws.unkey.cloud".
+	// Combined with RegionalApexDomain to create certs like "*.us-west-2.aws.unkey.cloud".
 	Regions []string
 
 	// RestateClient is used to invoke the ProcessChallenge workflow.
@@ -56,9 +56,9 @@ func (s *Service) BootstrapInfraCerts(ctx context.Context, cfg BootstrapConfig) 
 	}
 
 	// Per-region wildcards (e.g., *.us-west-2.aws.unkey.cloud)
-	if cfg.ApexDomain != "" {
+	if cfg.RegionalApexDomain != "" {
 		for _, region := range cfg.Regions {
-			domains = append(domains, fmt.Sprintf("*.%s.%s", region, cfg.ApexDomain))
+			domains = append(domains, fmt.Sprintf("*.%s.%s", region, cfg.RegionalApexDomain))
 		}
 	}
 
