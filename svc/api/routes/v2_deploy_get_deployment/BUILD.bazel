@@ -34,7 +34,7 @@ go_test(
         ":v2_deploy_get_deployment",
         "//gen/proto/ctrl/v1:ctrl",
         "//gen/proto/ctrl/v1/ctrlv1connect",
-        "//pkg/testutil",
+        "//svc/api/internal/testutil",
         "//svc/api/openapi",
         "@com_connectrpc_connect//:connect",
         "@com_github_stretchr_testify//require",
