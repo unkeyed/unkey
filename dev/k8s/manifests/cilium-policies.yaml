@@ -102,7 +102,7 @@ spec:
             - port: "8080"
               protocol: TCP
 ---
-# 5b. Allow sentinel egress to MySQL and DNS
+# 5b. Allow sentinel egress to MySQL and ClickHouse
 # Sentinels need database access for routing and state management
 apiVersion: cilium.io/v2
 kind: CiliumClusterwideNetworkPolicy
