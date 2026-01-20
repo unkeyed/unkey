@@ -34,6 +34,7 @@ upx:
 
 kos:
   - build: inject
+    base_image: cgr.dev/chainguard/busybox:latest
     repositories:
       - ghcr.io/unkeyed/inject
     tags:

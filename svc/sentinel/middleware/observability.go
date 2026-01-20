@@ -11,7 +11,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 var (
@@ -176,6 +178,18 @@ func WithObservability(logger logging.Logger, environmentID, region string) zen.
 		return func(ctx context.Context, s *zen.Session) error {
 			startTime := time.Now()
 
+			// Start trace span for the request
+			ctx, span := tracing.Start(ctx, "sentinel.proxy")
+			span.SetAttributes(
+				attribute.String("request_id", s.RequestID()),
+				attribute.String("host", s.Request().Host),
+				attribute.String("method", s.Request().Method),
+				attribute.String("path", s.Request().URL.Path),
+				attribute.String("environment_id", environmentID),
+				attribute.String("region", region),
+			)
+			defer span.End()
+
 			sentinelActiveRequests.WithLabelValues(environmentID, region).Inc()
 			defer sentinelActiveRequests.WithLabelValues(environmentID, region).Dec()
 
@@ -187,6 +201,8 @@ func WithObservability(logger logging.Logger, environmentID, region string) zen.
 			hasError := err != nil
 
 			if hasError {
+				tracing.RecordError(span, err)
+
 				var ok bool
 				urn, ok = fault.GetCode(err)
 				if !ok {
@@ -237,6 +253,12 @@ func WithObservability(logger logging.Logger, environmentID, region string) zen.
 
 			duration := time.Since(startTime).Seconds()
 			statusStr := strconv.Itoa(statusCode)
+
+			// Add final status to span
+			span.SetAttributes(
+				attribute.Int("status_code", statusCode),
+				attribute.String("error_type", errorType),
+			)
 
 			logger.Info("sentinel request",
 				"status_code", statusStr,

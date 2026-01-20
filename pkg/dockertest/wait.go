@@ -54,7 +54,10 @@ func (w *TCPWait) Wait(t *testing.T, c *Container, timeout time.Duration) {
 		if err != nil {
 			return false
 		}
-		conn.Close()
+		err = conn.Close()
+		if err != nil {
+			return false
+		}
 		return true
 	}, timeout, pollInterval, "container port %s did not become ready", address)
 }
@@ -118,7 +121,10 @@ func (w *HTTPWait) Wait(t *testing.T, c *Container, timeout time.Duration) {
 		if err != nil {
 			return false
 		}
-		defer resp.Body.Close()
+		err = resp.Body.Close()
+		if err != nil {
+			return false
+		}
 		return resp.StatusCode == expectedStatus
 	}, timeout, pollInterval, "HTTP endpoint %s did not return status %d", url, expectedStatus)
 }

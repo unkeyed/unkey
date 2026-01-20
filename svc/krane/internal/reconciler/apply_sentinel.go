@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
@@ -47,7 +48,8 @@ func (r *Reconciler) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 		return err
 	}
 
-	if err := r.ensureNamespaceExists(ctx, NamespaceSentinel); err != nil {
+	// Sentinel namespace is shared across workspaces, no per-namespace policy needed
+	if err := r.ensureNamespaceExists(ctx, NamespaceSentinel, "", ""); err != nil {
 		return err
 	}
 
@@ -61,9 +63,19 @@ func (r *Reconciler) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 		return err
 	}
 
+	var health ctrlv1.Health
+	if req.GetReplicas() == 0 {
+		health = ctrlv1.Health_HEALTH_PAUSED
+	} else if sentinel.Status.AvailableReplicas > 0 {
+		health = ctrlv1.Health_HEALTH_HEALTHY
+	} else {
+		health = ctrlv1.Health_HEALTH_UNHEALTHY
+	}
+
 	err = r.updateSentinelState(ctx, &ctrlv1.UpdateSentinelStateRequest{
 		K8SName:           req.GetK8SName(),
 		AvailableReplicas: sentinel.Status.AvailableReplicas,
+		Health:            health,
 	})
 	if err != nil {
 		r.logger.Error("failed to reconcile sentinel", "sentinel_id", req.GetSentinelId(), "error", err)
@@ -105,16 +117,22 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 			MinReadySeconds: 30,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels.New().SentinelID(sentinel.GetSentinelId()),
+					Labels: labels.New().
+						WorkspaceID(sentinel.GetWorkspaceId()).
+						EnvironmentID(sentinel.GetEnvironmentId()).
+						SentinelID(sentinel.GetSentinelId()).
+						ComponentSentinel(),
 				},
 				Spec: corev1.PodSpec{
-					RestartPolicy: corev1.RestartPolicyAlways,
-					Tolerations:   []corev1.Toleration{sentinelToleration},
+					RestartPolicy:             corev1.RestartPolicyAlways,
+					Tolerations:               []corev1.Toleration{sentinelToleration},
+					TopologySpreadConstraints: sentinelTopologySpread(sentinel.GetSentinelId()),
 					Containers: []corev1.Container{{
 						Image:           sentinel.GetImage(),
 						Name:            "sentinel",
 						ImagePullPolicy: corev1.PullIfNotPresent,
 						Args:            []string{"run", "sentinel"},
+
 						EnvFrom: []corev1.EnvFromSource{
 							{
 								SecretRef: &corev1.SecretEnvSource{
@@ -123,8 +141,18 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 									},
 								},
 							},
+							{
+								SecretRef: &corev1.SecretEnvSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "otel",
+									},
+									Optional: ptr.P(true),
+								},
+							},
 						},
+
 						Env: []corev1.EnvVar{
+							{Name: "UNKEY_HTTP_PORT", Value: strconv.Itoa(SentinelPort)},
 							{Name: "UNKEY_WORKSPACE_ID", Value: sentinel.GetWorkspaceId()},
 							{Name: "UNKEY_PROJECT_ID", Value: sentinel.GetProjectId()},
 							{Name: "UNKEY_ENVIRONMENT_ID", Value: sentinel.GetEnvironmentId()},
@@ -133,14 +161,15 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 						},
 
 						Ports: []corev1.ContainerPort{{
-							ContainerPort: 8040,
+							ContainerPort: SentinelPort,
 							Name:          "sentinel",
 						}},
+
 						LivenessProbe: &corev1.Probe{
 							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
 									Path: "/_unkey/internal/health",
-									Port: intstr.FromInt(8040),
+									Port: intstr.FromInt(SentinelPort),
 								},
 							},
 							InitialDelaySeconds: 10,
@@ -148,11 +177,12 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 							TimeoutSeconds:      5,
 							FailureThreshold:    3,
 						},
+
 						ReadinessProbe: &corev1.Probe{
 							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
 									Path: "/_unkey/internal/health",
-									Port: intstr.FromInt(8040),
+									Port: intstr.FromInt(SentinelPort),
 								},
 							},
 							InitialDelaySeconds: 5,
@@ -160,6 +190,7 @@ func (r *Reconciler) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 							TimeoutSeconds:      3,
 							FailureThreshold:    2,
 						},
+
 						Resources: corev1.ResourceRequirements{
 							// nolint:exhaustive
 							//	Limits: corev1.ResourceList{
@@ -226,8 +257,8 @@ func (r *Reconciler) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.A
 			Selector: labels.New().SentinelID(sentinel.GetSentinelId()),
 			Ports: []corev1.ServicePort{
 				{
-					Port:       8040,
-					TargetPort: intstr.FromInt(8040),
+					Port:       SentinelPort,
+					TargetPort: intstr.FromInt(SentinelPort),
 					Protocol:   corev1.ProtocolTCP,
 				},
 			},

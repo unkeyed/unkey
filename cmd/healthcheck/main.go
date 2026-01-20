@@ -25,7 +25,7 @@ This is useful for health monitoring in CI/CD pipelines, service availability ch
 
 EXAMPLES:
 unkey healthcheck https://api.unkey.dev/health    # Check if a service is healthy
-unkey healthcheck http://localhost:8080/health    # Check local service  
+unkey healthcheck http://localhost:8080/health    # Check local service
 unkey healthcheck https://example.com/api/status || echo 'Service is down!'  # Use in monitoring script`,
 	Action: runAction,
 }
@@ -45,7 +45,9 @@ func runAction(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return fmt.Errorf("failed to perform healthcheck: %w", err)
 	}
-	defer res.Body.Close()
+	if err := res.Body.Close(); err != nil {
+		return fmt.Errorf("failed to close response body: %w", err)
+	}
 
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("healthcheck failed with status code %d", res.StatusCode)

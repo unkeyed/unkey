@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "reassign",
+    srcs = ["analyzer.go"],
+    importpath = "github.com/unkeyed/unkey/dev/linters/reassign",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//dev/linters/nolint",
+        "@com_github_curioswitch_go_reassign//:go-reassign",
+        "@org_golang_x_tools//go/analysis",
+    ],
+)

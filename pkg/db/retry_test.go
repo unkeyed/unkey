@@ -212,7 +212,7 @@ func TestWithRetryContext_Integration(t *testing.T) {
 		Logger:     logging.NewNoop(),
 	})
 	require.NoError(t, err)
-	defer dbInstance.Close()
+	defer func() { require.NoError(t, dbInstance.Close()) }()
 
 	// Create test data using sqlc statements
 	workspaceID := uid.New(uid.WorkspacePrefix)

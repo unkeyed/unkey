@@ -41,7 +41,7 @@ unkey run krane                                   # Run with default configurati
 			cli.EnvVar("UNKEY_INSTANCE_ID"),
 		),
 		cli.String("region",
-			"The cloud region with platform, e.g. aws:us-east-1",
+			"The cloud region with platform, e.g. us-east-1.aws",
 			cli.Required(),
 			cli.EnvVar("UNKEY_REGION"),
 		),
@@ -84,7 +84,7 @@ unkey run krane                                   # Run with default configurati
 			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
 
 		cli.String("cluster-id", "ID of the cluster",
-			cli.Default(uid.Nano("")),
+			cli.Default("local"),
 			cli.EnvVar("UNKEY_CLUSTER_ID")),
 	},
 	Action: action,
