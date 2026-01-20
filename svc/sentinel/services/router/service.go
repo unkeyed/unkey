@@ -34,8 +34,8 @@ func New(cfg Config) (*service, error) {
 		Resource: "deployment",
 		Clock:    cfg.Clock,
 		MaxSize:  1000,
-		Fresh:    10 * time.Second,
-		Stale:    60 * time.Second,
+		Fresh:    30 * time.Second,
+		Stale:    5 * time.Minute,
 	})
 	if err != nil {
 		return nil, err
@@ -46,8 +46,8 @@ func New(cfg Config) (*service, error) {
 		Logger:   cfg.Logger,
 		Resource: "instance",
 		MaxSize:  1000,
-		Fresh:    5 * time.Second,
-		Stale:    30 * time.Second,
+		Fresh:    10 * time.Second,
+		Stale:    60 * time.Second,
 	})
 	if err != nil {
 		return nil, err
@@ -68,6 +68,7 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 	deployment, hit, err := s.deploymentCache.SWR(ctx, deploymentID, func(ctx context.Context) (db.Deployment, error) {
 		return db.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
 	}, caches.DefaultFindFirstOp)
+
 	if err != nil && !db.IsNotFound(err) {
 		return db.Deployment{}, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
@@ -112,6 +113,7 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 			},
 		)
 	}, caches.DefaultFindFirstOp)
+
 	if err != nil {
 		return db.Instance{}, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
@@ -142,5 +144,6 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 		)
 	}
 
-	return array.Random(runningInstances), nil
+	selected := array.Random(runningInstances)
+	return selected, nil
 }

@@ -32,8 +32,8 @@ type Config struct {
 
 func New(config Config) (Caches, error) {
 	frontlineRoute, err := cache.New(cache.Config[string, db.FrontlineRoute]{
-		Fresh:    time.Second * 5,
-		Stale:    time.Second * 30,
+		Fresh:    30 * time.Second,
+		Stale:    5 * time.Minute,
 		Logger:   config.Logger,
 		MaxSize:  10_000,
 		Resource: "frontline_route",
@@ -44,8 +44,8 @@ func New(config Config) (Caches, error) {
 	}
 
 	sentinelsByEnvironment, err := cache.New(cache.Config[string, []db.Sentinel]{
-		Fresh:    time.Second * 10,
-		Stale:    time.Minute,
+		Fresh:    30 * time.Second,
+		Stale:    2 * time.Minute,
 		Logger:   config.Logger,
 		MaxSize:  10_000,
 		Resource: "sentinels_by_environment",

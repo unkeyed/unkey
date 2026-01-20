@@ -147,7 +147,11 @@ func (s *Depot) CreateBuild(
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to connect to buildkit: %w", buildErr))
 	}
-	defer buildkitClient.Close()
+	defer func() {
+		if err := buildkitClient.Close(); err != nil {
+			s.logger.Error("failed to close buildkit client", "error", err)
+		}
+	}()
 
 	imageName := fmt.Sprintf("%s/%s:%s-%s", s.registryConfig.URL, depotProjectID, unkeyProjectID, deploymentID)
 

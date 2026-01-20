@@ -57,7 +57,7 @@ func NewWithOptions(ctx context.Context, opts Options) (*Client, error) {
 
 	svid, err := source.GetX509SVID()
 	if err != nil {
-		source.Close()
+		_ = source.Close()
 		return nil, fmt.Errorf("get SVID: %w", err)
 	}
 	_ = svidCtx

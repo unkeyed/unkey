@@ -24,6 +24,7 @@ const apiId = buildIdSchema("api");
 const ratelimitNamespaceId = buildIdSchema("rl");
 const rbacId = buildIdSchema("rbac");
 const identityEnvId = z.string();
+const projectId = buildIdSchema("proj");
 export const apiActions = z.enum([
   "read_api",
   "create_api",
@@ -70,6 +71,11 @@ export const identityActions = z.enum([
   "update_identity",
   "delete_identity",
 ]);
+export const projectActions = z.enum([
+  "create_deployment",
+  "read_deployment",
+  "generate_upload_url",
+]);
 
 // Resources that require an ID (resource.id.action format)
 const scopedResources = {
@@ -77,6 +83,7 @@ const scopedResources = {
   ratelimit: { idSchema: ratelimitNamespaceId, actionsSchema: ratelimitActions },
   rbac: { idSchema: rbacId, actionsSchema: rbacActions },
   identity: { idSchema: identityEnvId, actionsSchema: identityActions },
+  project: { idSchema: projectId, actionsSchema: projectActions },
 } as const;
 
 export type Resources = {
@@ -89,6 +96,8 @@ export type Resources = {
   [resourceId in `rbac.${z.infer<typeof rbacId>}`]: z.infer<typeof rbacActions>;
 } & {
   [resourceId in `identity.${z.infer<typeof identityEnvId>}`]: z.infer<typeof identityActions>;
+} & {
+  [resourceId in `project.${z.infer<typeof projectId>}`]: z.infer<typeof projectActions>;
 };
 
 export type UnkeyPermission = Flatten<Resources> | "*";

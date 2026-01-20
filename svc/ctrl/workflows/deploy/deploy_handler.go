@@ -3,6 +3,7 @@ package deploy
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -15,6 +16,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"google.golang.org/protobuf/proto"
+)
+
+const (
+	sentinelNamespace = "sentinel"
+	sentinelPort      = 8040
 )
 
 func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
@@ -200,7 +206,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 					WorkspaceID:       workspace.ID,
 					EnvironmentID:     environment.ID,
 					ProjectID:         project.ID,
-					K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local", sentinelK8sName, workspace.K8sNamespace.String),
+					K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local:%d", sentinelK8sName, sentinelNamespace, sentinelPort),
 					K8sName:           sentinelK8sName,
 					Region:            topology.Region,
 					Image:             w.sentinelImage,
@@ -261,6 +267,14 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}
 	}
 
+	// Parse command from deployment (stored as JSON in DB)
+	var command []string
+	if len(deployment.Command) > 0 {
+		if err := json.Unmarshal(deployment.Command, &command); err != nil {
+			return nil, fmt.Errorf("failed to parse deployment command: %w", err)
+		}
+	}
+
 	for _, region := range topologies {
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return w.cluster.EmitState(runCtx, region.Region,
@@ -283,6 +297,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 									BuildId:                       buildID,
 									EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
 									ReadinessId:                   ptr.P(deployment.ID),
+									Command:                       command,
 								},
 							},
 						},

@@ -20,7 +20,7 @@ func TestRedis(t *testing.T) {
 	require.NoError(t, err)
 
 	client := redis.NewClient(opts)
-	defer client.Close()
+	defer func() { require.NoError(t, client.Close()) }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -51,12 +51,12 @@ func TestRedis_MultipleContainers(t *testing.T) {
 	opts1, err := redis.ParseURL(url1)
 	require.NoError(t, err)
 	client1 := redis.NewClient(opts1)
-	defer client1.Close()
+	defer func() { require.NoError(t, client1.Close()) }()
 
 	opts2, err := redis.ParseURL(url2)
 	require.NoError(t, err)
 	client2 := redis.NewClient(opts2)
-	defer client2.Close()
+	defer func() { require.NoError(t, client2.Close()) }()
 
 	ctx := context.Background()
 

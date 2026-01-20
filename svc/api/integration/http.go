@@ -80,7 +80,7 @@ func CallNode[Req any, Res any](t *testing.T, addr, method string, path string, 
 	if err != nil {
 		return TestResponse[Res]{}, err
 	}
-	defer httpRes.Body.Close()
+	defer func() { _ = httpRes.Body.Close() }()
 
 	resBody, err := io.ReadAll(httpRes.Body)
 	if err != nil {

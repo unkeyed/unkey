@@ -39,6 +39,12 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
       description: Not found
       content:
