@@ -281,23 +281,7 @@ func Run(ctx context.Context, cfg Config) error {
 		httpProvider = httpProv
 		logger.Info("ACME HTTP-01 provider enabled")
 
-		// DNS-01 provider for wildcard domains (requires DNS provider config)
-		var cfProvider, r53Provider challenge.Provider
-
-		if cfg.Acme.Cloudflare.Enabled {
-			prov, err := providers.NewCloudflareProvider(providers.CloudflareConfig{
-				DB:          database,
-				Logger:      logger,
-				APIToken:    cfg.Acme.Cloudflare.ApiToken,
-				DomainCache: caches.Domains,
-			})
-			if err != nil {
-				return fmt.Errorf("failed to create Cloudflare DNS provider: %w", err)
-			}
-			cfProvider = prov
-			logger.Info("ACME Cloudflare DNS-01 provider initialized")
-		}
-
+		// DNS-01 provider for wildcard domains (Route53)
 		if cfg.Acme.Route53.Enabled {
 			prov, err := providers.NewRoute53Provider(providers.Route53Config{
 				DB:              database,
@@ -311,49 +295,7 @@ func Run(ctx context.Context, cfg Config) error {
 			if err != nil {
 				return fmt.Errorf("failed to create Route53 DNS provider: %w", err)
 			}
-			r53Provider = prov
-			logger.Info("ACME Route53 DNS-01 provider initialized")
-		}
-
-		// Build zone routes or use single provider
-		if cfProvider != nil && r53Provider != nil {
-			// Both providers enabled - build multi-provider with zone routing
-			routes := []providers.ZoneRoute{}
-
-			if cfg.DefaultDomain != "" {
-				prov, err := resolveProvider(cfg.Acme.DefaultDomainProvider, cfProvider, r53Provider, "default-domain")
-				if err != nil {
-					return err
-				}
-				routes = append(routes, providers.ZoneRoute{Zone: cfg.DefaultDomain, Provider: prov})
-				logger.Info("DNS zone configured", "zone", cfg.DefaultDomain, "provider", cfg.Acme.DefaultDomainProvider)
-			}
-
-			if cfg.RegionalApexDomain != "" {
-				prov, err := resolveProvider(cfg.Acme.RegionalApexProvider, cfProvider, r53Provider, "regional-apex-domain")
-				if err != nil {
-					return err
-				}
-				routes = append(routes, providers.ZoneRoute{Zone: cfg.RegionalApexDomain, Provider: prov})
-				logger.Info("DNS zone configured", "zone", cfg.RegionalApexDomain, "provider", cfg.Acme.RegionalApexProvider)
-			}
-
-			if len(routes) == 0 {
-				return fmt.Errorf("multiple DNS providers enabled but no domains configured")
-			}
-
-			multiProv, err := providers.NewMultiProvider(routes)
-			if err != nil {
-				return fmt.Errorf("failed to create multi-provider: %w", err)
-			}
-			dnsProvider = multiProv
-			logger.Info("ACME multi-provider DNS-01 routing enabled")
-		} else if cfProvider != nil {
-			dnsProvider = cfProvider
-			logger.Info("ACME Cloudflare DNS-01 provider enabled for wildcard certs")
-		} else if r53Provider != nil {
-			dnsProvider = r53Provider
-			logger.Info("ACME Route53 DNS-01 provider enabled for wildcard certs")
+			dnsProvider = prov
 		}
 	}
 
@@ -568,17 +510,4 @@ func Run(ctx context.Context, cfg Config) error {
 
 	logger.Info("Ctrl server shut down successfully")
 	return nil
-}
-
-func resolveProvider(providerName string, cfProvider, r53Provider challenge.Provider, flagName string) (challenge.Provider, error) {
-	switch providerName {
-	case "cloudflare":
-		return cfProvider, nil
-	case "route53":
-		return r53Provider, nil
-	case "":
-		return nil, fmt.Errorf("--%s-provider is required when both cloudflare and route53 are enabled", flagName)
-	default:
-		return nil, fmt.Errorf("unknown provider %q for --%s-provider (expected cloudflare or route53)", providerName, flagName)
-	}
 }

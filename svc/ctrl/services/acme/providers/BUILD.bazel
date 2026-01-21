@@ -1,11 +1,9 @@
-load("@rules_go//go:def.bzl", "go_library", "go_test")
+load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "providers",
     srcs = [
-        "cloudflare_provider.go",
         "http_provider.go",
-        "multi_provider.go",
         "provider.go",
         "route53_provider.go",
     ],
@@ -18,14 +16,6 @@ go_library(
         "//pkg/db",
         "//pkg/otel/logging",
         "@com_github_go_acme_lego_v4//challenge",
-        "@com_github_go_acme_lego_v4//providers/dns/cloudflare",
         "@com_github_go_acme_lego_v4//providers/dns/route53",
     ],
-)
-
-go_test(
-    name = "providers_test",
-    srcs = ["multi_provider_test.go"],
-    embed = [":providers"],
-    deps = ["@com_github_stretchr_testify//require"],
 )

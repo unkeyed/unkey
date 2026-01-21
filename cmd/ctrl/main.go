@@ -113,10 +113,6 @@ var Cmd = &cli.Command{
 		cli.Bool("acme-enabled", "Enable Let's Encrypt for acme challenges", cli.EnvVar("UNKEY_ACME_ENABLED")),
 		cli.String("acme-email-domain", "Domain for ACME registration emails (workspace_id@domain)", cli.Default("unkey.com"), cli.EnvVar("UNKEY_ACME_EMAIL_DOMAIN")),
 
-		// Cloudflare DNS provider
-		cli.Bool("acme-cloudflare-enabled", "Enable Cloudflare for wildcard certificates", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_ENABLED")),
-		cli.String("acme-cloudflare-api-token", "Cloudflare API token for Let's Encrypt", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_API_TOKEN")),
-
 		// Route53 DNS provider
 		cli.Bool("acme-route53-enabled", "Enable Route53 for DNS-01 challenges", cli.EnvVar("UNKEY_ACME_ROUTE53_ENABLED")),
 		cli.String("acme-route53-access-key-id", "AWS access key ID for Route53", cli.EnvVar("UNKEY_ACME_ROUTE53_ACCESS_KEY_ID")),
@@ -125,9 +121,7 @@ var Cmd = &cli.Command{
 		cli.String("acme-route53-hosted-zone-id", "Route53 hosted zone ID (bypasses auto-discovery, required when wildcard CNAMEs exist)", cli.EnvVar("UNKEY_ACME_ROUTE53_HOSTED_ZONE_ID")),
 
 		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
-		cli.String("default-domain-provider", "DNS provider for default-domain (cloudflare or route53)", cli.EnvVar("UNKEY_DEFAULT_DOMAIN_PROVIDER")),
 		cli.String("regional-apex-domain", "Apex domain for cross-region frontline communication (e.g., unkey.cloud). Certs are provisioned for *.{region}.{regional-apex-domain}", cli.EnvVar("UNKEY_REGIONAL_APEX_DOMAIN")),
-		cli.String("regional-apex-provider", "DNS provider for regional-apex-domain (cloudflare or route53)", cli.EnvVar("UNKEY_REGIONAL_APEX_PROVIDER")),
 
 		// Restate Configuration
 		cli.String("restate-url", "URL of the Restate ingress endpoint for invoking workflows. Example: http://restate:8080",
@@ -234,10 +228,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		Acme: ctrl.AcmeConfig{
 			Enabled:     cmd.Bool("acme-enabled"),
 			EmailDomain: cmd.String("acme-email-domain"),
-			Cloudflare: ctrl.CloudflareConfig{
-				Enabled:  cmd.Bool("acme-cloudflare-enabled"),
-				ApiToken: cmd.String("acme-cloudflare-api-token"),
-			},
 			Route53: ctrl.Route53Config{
 				Enabled:         cmd.Bool("acme-route53-enabled"),
 				AccessKeyID:     cmd.String("acme-route53-access-key-id"),
@@ -245,8 +235,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 				Region:          cmd.String("acme-route53-region"),
 				HostedZoneID:    cmd.String("acme-route53-hosted-zone-id"),
 			},
-			DefaultDomainProvider: cmd.String("default-domain-provider"),
-			RegionalApexProvider:  cmd.String("regional-apex-provider"),
 		},
 
 		DefaultDomain:      cmd.String("default-domain"),
