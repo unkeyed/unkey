@@ -55,7 +55,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
       ? new UnkeyRatelimiter({
           rootKey: c.env.UNKEY_ROOT_KEY,
           namespace: "v1_deprecation",
-          limit: 7,
+          limit: 5,
           duration: 60_000,
           timeout: {
             ms: 5000,
