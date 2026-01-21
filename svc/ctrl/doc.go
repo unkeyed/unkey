@@ -28,9 +28,8 @@
 //
 // # ACME Integration
 //
-// The system supports multiple ACME challenge providers:
+// The system supports ACME challenge providers:
 //   - HTTP-01 challenges for regular domains
-//   - DNS-01 challenges through Cloudflare for wildcard certificates
 //   - DNS-01 challenges through AWS Route53 for wildcard certificates
 //
 // # Configuration
@@ -67,9 +66,11 @@
 //		Acme: ctrl.AcmeConfig{
 //			Enabled: true,
 //			EmailDomain: "unkey.com",
-//			Cloudflare: ctrl.CloudflareConfig{
-//				Enabled:  true,
-//				ApiToken: "cf-token",
+//			Route53: ctrl.Route53Config{
+//				Enabled:         true,
+//				AccessKeyID:     "aws-key",
+//				SecretAccessKey: "aws-secret",
+//				Region:          "us-east-1",
 //			},
 //		},
 //	}
