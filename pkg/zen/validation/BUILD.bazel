@@ -11,6 +11,7 @@ go_library(
         "//pkg/otel/tracing",
         "//svc/api/openapi",
         "@com_github_pb33f_libopenapi//:libopenapi",
+        "@com_github_pb33f_libopenapi//datamodel",
         "@com_github_pb33f_libopenapi_validator//:libopenapi-validator",
     ],
 )
