@@ -8,7 +8,7 @@ import { Loading } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ProjectContentWrapper } from "../../components/project-content-wrapper";
-import { Card } from "../../components/card";
+import { Card } from "../components/card";
 import { useProject } from "../../layout-provider";
 import { DiffViewerContent } from "./components/client";
 import { DeploymentSelect } from "./components/deployment-select";

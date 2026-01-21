@@ -9,7 +9,7 @@ import { Avatar } from "../../components/git-avatar";
 import { InfoChip } from "../../components/info-chip";
 import { ActiveDeploymentCardSkeleton } from "./components/skeleton";
 import { StatusIndicator } from "../../components/status-indicator";
-import { Card } from "../card";
+import { Card } from "../../(overview)/components/card";
 
 type Props = {
   deploymentId: string | null;
