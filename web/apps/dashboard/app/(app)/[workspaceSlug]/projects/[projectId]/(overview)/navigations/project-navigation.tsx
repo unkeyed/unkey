@@ -4,7 +4,6 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import { shortenId } from "@/lib/shorten-id";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import {
   ArrowDottedRotateAnticlockwise,
@@ -16,9 +15,9 @@ import {
   Refresh3,
 } from "@unkey/icons";
 import { Button, InfoTooltip, Separator } from "@unkey/ui";
-import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import { useRef } from "react";
 import { RepoDisplay } from "../../../_components/list/repo-display";
+import { useBreadcrumbConfig } from "./use-breadcrumb-config";
 
 const BORDER_OFFSET = 1;
 type ProjectNavigationProps = {
@@ -56,36 +55,13 @@ export const ProjectNavigation = ({
   ).data.at(0);
 
   const basePath = `/${workspace.slug}/projects`;
-  const params = useParams();
 
-  // Get deploymentId from params if we're on a deployment detail page
-  const deploymentId = params?.deploymentId as string | undefined;
-  const isDeploymentDetailPage = Boolean(deploymentId);
-
-  const segments = useSelectedLayoutSegments() ?? [];
-  const activeSubPage = segments.at(-1); // undefined, "deployments", "sentinel-logs", or "openapi-diff"
-
-  const subPages = [
-    { id: "overview", label: "Overview", href: `${basePath}/${projectId}`, segment: undefined },
-    {
-      id: "deployments",
-      label: "Deployments",
-      href: `${basePath}/${projectId}/deployments`,
-      segment: "deployments",
-    },
-    {
-      id: "sentinel-logs",
-      label: "Sentinel Logs",
-      href: `${basePath}/${projectId}/sentinel-logs`,
-      segment: "sentinel-logs",
-    },
-    {
-      id: "openapi-diff",
-      label: "OpenAPI Diff",
-      href: `${basePath}/${projectId}/openapi-diff`,
-      segment: "openapi-diff",
-    },
-  ];
+  const breadcrumbs = useBreadcrumbConfig({
+    projectId,
+    basePath,
+    projects: projects.data || [],
+    activeProject,
+  });
 
   const anchorRef = useRef<HTMLDivElement | null>(null);
 
@@ -104,82 +80,92 @@ export const ProjectNavigation = ({
     return isDetailsOpen ? "Hide deployment details" : "Show deployment details";
   };
 
-  const currentSubPage = subPages.find((page) => page.segment === activeSubPage) || subPages[0];
-
   if (projects.isLoading) {
+    const loadingBreadcrumbs = [
+      {
+        id: "projects",
+        children: "Projects",
+        href: basePath,
+        isIdentifier: false,
+        noop: false,
+        active: false,
+        isLast: false,
+      },
+      {
+        id: "project",
+        children: <div className="h-6 w-24 bg-grayA-3 rounded animate-pulse transition-all" />,
+        href: "#",
+        isIdentifier: true,
+        className: "group max-md:hidden",
+        noop: true,
+        active: false,
+        isLast: false,
+      },
+      {
+        id: "subpage",
+        children: <div className="h-6 w-20 bg-grayA-3 rounded animate-pulse transition-all" />,
+        href: "#",
+        noop: true,
+        active: true,
+        isLast: true,
+      },
+    ];
+
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Cube />}>
-          <Navbar.Breadcrumbs.Link href={basePath}>Projects</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group max-md:hidden" noop>
-            <div className="h-6 w-24 bg-grayA-3 rounded animate-pulse transition-all" />
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href="#" noop active isLast>
-            <div className="h-6 w-20 bg-grayA-3 rounded animate-pulse transition-all" />
-          </Navbar.Breadcrumbs.Link>
+          {loadingBreadcrumbs.map((crumb) => (
+            <Navbar.Breadcrumbs.Link
+              key={crumb.id}
+              href={crumb.href}
+              isIdentifier={crumb.isIdentifier}
+              className={crumb.className}
+              noop={crumb.noop}
+              active={crumb.active}
+              isLast={crumb.isLast}
+            >
+              {crumb.children}
+            </Navbar.Breadcrumbs.Link>
+          ))}
         </Navbar.Breadcrumbs>
       </Navbar>
     );
   }
 
+  //TODO: Add a proper view here
   if (!activeProject) {
     return <div className="h-full w-full flex items-center justify-center">Project not found</div>;
   }
+
   return (
     <Navbar ref={handleRef}>
       <Navbar.Breadcrumbs icon={<Cube />}>
-        <Navbar.Breadcrumbs.Link href={basePath}>Projects</Navbar.Breadcrumbs.Link>
-        <Navbar.Breadcrumbs.Link
-          href={`${basePath}/${activeProject.id}`}
-          isIdentifier
-          className="flex"
-          noop
-        >
-          <QuickNavPopover
-            items={projects.data.map((project) => ({
-              id: project.id,
-              label: project.name,
-              href: `${basePath}/${project.id}`,
-            }))}
-            shortcutKey="N"
-          >
-            <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
-              {activeProject.name}
-              <ChevronExpandY className="size-4" />
-            </div>
-          </QuickNavPopover>
-        </Navbar.Breadcrumbs.Link>
-        <Navbar.Breadcrumbs.Link
-          href={isDeploymentDetailPage ? `${basePath}/${projectId}/deployments` : currentSubPage.href}
-          noop
-          active={!isDeploymentDetailPage}
-          isLast={!isDeploymentDetailPage}
-        >
-          <QuickNavPopover
-            items={subPages.map((page) => ({
-              id: page.id,
-              label: page.label,
-              href: page.href,
-            }))}
-            shortcutKey="M"
-            activeItemId={isDeploymentDetailPage ? "deployments" : undefined}
-          >
-            <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
-              {isDeploymentDetailPage ? "Deployments" : currentSubPage.label}
-              <ChevronExpandY className="size-4" />
-            </div>
-          </QuickNavPopover>
-        </Navbar.Breadcrumbs.Link>
-        {isDeploymentDetailPage && deploymentId && (
+        {breadcrumbs.map((breadcrumb) => (
           <Navbar.Breadcrumbs.Link
-            href={`${basePath}/${projectId}/${deploymentId}`}
-            active
-            isLast
-            className="font-mono"
+            key={breadcrumb.id}
+            href={breadcrumb.href}
+            isIdentifier={breadcrumb.isIdentifier}
+            active={breadcrumb.active}
+            isLast={breadcrumb.isLast}
+            noop={breadcrumb.noop}
+            className={breadcrumb.className}
           >
-            {shortenId(deploymentId)}
+            {breadcrumb.quickNavConfig ? (
+              <QuickNavPopover
+                items={breadcrumb.quickNavConfig.items}
+                shortcutKey={breadcrumb.quickNavConfig.shortcutKey}
+                activeItemId={breadcrumb.quickNavConfig.activeItemId}
+              >
+                <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
+                  {breadcrumb.children}
+                  <ChevronExpandY className="size-4" />
+                </div>
+              </QuickNavPopover>
+            ) : (
+              breadcrumb.children
+            )}
           </Navbar.Breadcrumbs.Link>
-        )}
+        ))}
       </Navbar.Breadcrumbs>
       <div className="flex gap-4 items-center">
         {activeProject.gitRepositoryUrl && (
