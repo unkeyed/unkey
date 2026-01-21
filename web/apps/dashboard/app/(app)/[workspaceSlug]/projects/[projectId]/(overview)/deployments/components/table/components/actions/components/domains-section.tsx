@@ -1,4 +1,4 @@
-import { DomainRow } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/details/domain-row";
+import { DomainRow } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/details/domain-row";
 import { CircleInfo } from "@unkey/icons";
 
 type DomainsSectionProps = {

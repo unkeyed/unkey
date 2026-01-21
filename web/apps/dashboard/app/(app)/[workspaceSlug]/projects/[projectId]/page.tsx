@@ -4,14 +4,14 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Cloud, Earth, FolderCloud, Page2 } from "@unkey/icons";
 import type { ReactNode } from "react";
 import { ProjectContentWrapper } from "./components/project-content-wrapper";
-import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "./(project)/details/domain-row";
+import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "./(overview)/details/domain-row";
 import { useProject } from "./layout-provider";
 import { ActiveDeploymentCard } from "./components/active-deployment-card";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
-import { EnvironmentVariablesSection } from "./(project)/details/env-variables-section";
-import { DeploymentLogsProvider } from "./(project)/details/active-deployment-card-logs/providers/deployment-logs-provider";
-import { DeploymentLogsTrigger } from "./(project)/details/active-deployment-card-logs/components/deployment-logs-trigger";
-import { DeploymentLogsContent } from "./(project)/details/active-deployment-card-logs/components/deployment-logs-content";
+import { EnvironmentVariablesSection } from "./(overview)/details/env-variables-section";
+import { DeploymentLogsProvider } from "./(overview)/details/active-deployment-card-logs/providers/deployment-logs-provider";
+import { DeploymentLogsTrigger } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-trigger";
+import { DeploymentLogsContent } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-content";
 
 export default function ProjectDetails() {
   const { projectId, collections } = useProject();
