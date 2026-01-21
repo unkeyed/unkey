@@ -1,4 +1,6 @@
 -- name: ListDesiredSentinels :many
+-- ListDesiredSentinels returns all sentinels matching the desired state for a region.
+-- Used during bootstrap to stream all running sentinels to krane.
 SELECT *
 FROM `sentinels`
 WHERE (sqlc.arg(region) = '' OR region = sqlc.arg(region))

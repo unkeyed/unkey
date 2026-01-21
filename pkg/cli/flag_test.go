@@ -30,8 +30,8 @@ func TestStringFlag_WithValidation_Failure(t *testing.T) {
 }
 
 func TestStringFlag_WithEnvVar(t *testing.T) {
-	os.Setenv("TEST_STRING", "env-value")
-	defer os.Unsetenv("TEST_STRING")
+	require.NoError(t, os.Setenv("TEST_STRING", "env-value"))
+	t.Cleanup(func() { require.NoError(t, os.Unsetenv("TEST_STRING")) })
 
 	flag := String("test", "test flag", EnvVar("TEST_STRING"))
 	require.Equal(t, "env-value", flag.Value())
@@ -40,8 +40,8 @@ func TestStringFlag_WithEnvVar(t *testing.T) {
 }
 
 func TestStringFlag_ValidationOnEnvVar(t *testing.T) {
-	os.Setenv("INVALID_URL", "not-a-url")
-	defer os.Unsetenv("INVALID_URL")
+	require.NoError(t, os.Setenv("INVALID_URL", "not-a-url"))
+	t.Cleanup(func() { require.NoError(t, os.Unsetenv("INVALID_URL")) })
 
 	exitCode, exitCalled, cleanup := mockExit()
 	defer cleanup()
@@ -68,8 +68,8 @@ func TestBoolFlag_EmptyValue(t *testing.T) {
 }
 
 func TestBoolFlag_WithEnvVar_InvalidValue(t *testing.T) {
-	os.Setenv("INVALID_BOOL", "maybe")
-	defer os.Unsetenv("INVALID_BOOL")
+	require.NoError(t, os.Setenv("INVALID_BOOL", "maybe"))
+	t.Cleanup(func() { require.NoError(t, os.Unsetenv("INVALID_BOOL")) })
 
 	exitCode, exitCalled, cleanup := mockExit()
 	defer cleanup()
@@ -129,8 +129,8 @@ func TestIntFlag_WithValidation_Failure(t *testing.T) {
 }
 
 func TestIntFlag_ZeroValueWithEnv(t *testing.T) {
-	os.Setenv("COUNT", "0")
-	defer os.Unsetenv("COUNT")
+	require.NoError(t, os.Setenv("COUNT", "0"))
+	t.Cleanup(func() { require.NoError(t, os.Unsetenv("COUNT")) })
 
 	flag := Int("count", "count flag", EnvVar("COUNT"))
 	require.Equal(t, 0, flag.Value())
@@ -152,8 +152,8 @@ func TestFloatFlag_InvalidFloat(t *testing.T) {
 }
 
 func TestFloatFlag_ZeroValueWithEnv(t *testing.T) {
-	os.Setenv("ZERO_RATE", "0.0")
-	defer os.Unsetenv("ZERO_RATE")
+	require.NoError(t, os.Setenv("ZERO_RATE", "0.0"))
+	t.Cleanup(func() { require.NoError(t, os.Unsetenv("ZERO_RATE")) })
 
 	flag := Float("rate", "rate flag", EnvVar("ZERO_RATE"))
 	require.Equal(t, 0.0, flag.Value())
@@ -161,8 +161,8 @@ func TestFloatFlag_ZeroValueWithEnv(t *testing.T) {
 }
 
 func TestFloatFlag_ValidationOnEnvVar(t *testing.T) {
-	os.Setenv("INVALID_RANGE", "2.5")
-	defer os.Unsetenv("INVALID_RANGE")
+	require.NoError(t, os.Setenv("INVALID_RANGE", "2.5"))
+	t.Cleanup(func() { require.NoError(t, os.Unsetenv("INVALID_RANGE")) })
 
 	validateRange := func(s string) error {
 		if val, err := strconv.ParseFloat(s, 64); err != nil || val < 0 || val > 1 {
@@ -217,8 +217,8 @@ func TestDurationFlag_ZeroValue(t *testing.T) {
 }
 
 func TestDurationFlag_WithEnvVar(t *testing.T) {
-	os.Setenv("TEST_DURATION", "2h30m")
-	defer os.Unsetenv("TEST_DURATION")
+	require.NoError(t, os.Setenv("TEST_DURATION", "2h30m"))
+	t.Cleanup(func() { require.NoError(t, os.Unsetenv("TEST_DURATION")) })
 
 	flag := Duration("timeout", "timeout flag", EnvVar("TEST_DURATION"))
 	require.Equal(t, 2*time.Hour+30*time.Minute, flag.Value())
@@ -227,8 +227,8 @@ func TestDurationFlag_WithEnvVar(t *testing.T) {
 }
 
 func TestDurationFlag_CommandOverridesEnv(t *testing.T) {
-	os.Setenv("TEST_DURATION", "1h")
-	defer os.Unsetenv("TEST_DURATION")
+	require.NoError(t, os.Setenv("TEST_DURATION", "1h"))
+	t.Cleanup(func() { require.NoError(t, os.Unsetenv("TEST_DURATION")) })
 
 	flag := Duration("timeout", "timeout flag", EnvVar("TEST_DURATION"))
 	err := flag.Parse("30m")
@@ -238,8 +238,8 @@ func TestDurationFlag_CommandOverridesEnv(t *testing.T) {
 }
 
 func TestDurationFlag_ValidationOnEnvVar(t *testing.T) {
-	os.Setenv("INVALID_DURATION", "not-a-duration")
-	defer os.Unsetenv("INVALID_DURATION")
+	require.NoError(t, os.Setenv("INVALID_DURATION", "not-a-duration"))
+	t.Cleanup(func() { require.NoError(t, os.Unsetenv("INVALID_DURATION")) })
 
 	exitCode, exitCalled, cleanup := mockExit()
 	defer cleanup()
@@ -285,8 +285,8 @@ func TestStringSliceFlag_FilterEmptyValues(t *testing.T) {
 }
 
 func TestStringSliceFlag_WithEnvVar(t *testing.T) {
-	os.Setenv("TAGS", "web,api,service")
-	defer os.Unsetenv("TAGS")
+	require.NoError(t, os.Setenv("TAGS", "web,api,service"))
+	t.Cleanup(func() { require.NoError(t, os.Unsetenv("TAGS")) })
 
 	flag := StringSlice("tags", "tags flag", EnvVar("TAGS"))
 	require.Equal(t, []string{"web", "api", "service"}, flag.Value())
@@ -295,8 +295,8 @@ func TestStringSliceFlag_WithEnvVar(t *testing.T) {
 }
 
 func TestStringSliceFlag_ValidationOnEnvVar(t *testing.T) {
-	os.Setenv("INVALID_TAGS", "valid,invalid;;tag")
-	defer os.Unsetenv("INVALID_TAGS")
+	require.NoError(t, os.Setenv("INVALID_TAGS", "valid,invalid;;tag"))
+	t.Cleanup(func() { require.NoError(t, os.Unsetenv("INVALID_TAGS")) })
 
 	validateNoSemicolons := func(s string) error {
 		if strings.Contains(s, ";;") {
@@ -321,8 +321,8 @@ func TestStringSliceFlag_ValidationOnEnvVar(t *testing.T) {
 }
 
 func TestCommandLineOverrideEnvironment(t *testing.T) {
-	os.Setenv("PORT", "3000")
-	defer os.Unsetenv("PORT")
+	require.NoError(t, os.Setenv("PORT", "3000"))
+	t.Cleanup(func() { require.NoError(t, os.Unsetenv("PORT")) })
 
 	portFlag := Int("port", "Server port", EnvVar("PORT"), Default(8080))
 	cmd := &Command{
@@ -526,8 +526,8 @@ func TestRequireStringSlice_WrongType(t *testing.T) {
 }
 
 func TestBoolFlag_WithEnvVar(t *testing.T) {
-	os.Setenv("VERBOSE", "true")
-	defer os.Unsetenv("VERBOSE")
+	require.NoError(t, os.Setenv("VERBOSE", "true"))
+	t.Cleanup(func() { require.NoError(t, os.Unsetenv("VERBOSE")) })
 
 	flag := Bool("verbose", "verbose flag", EnvVar("VERBOSE"))
 	require.True(t, flag.Value())
@@ -536,8 +536,8 @@ func TestBoolFlag_WithEnvVar(t *testing.T) {
 }
 
 func TestBoolFlag_WithEnvVar_False(t *testing.T) {
-	os.Setenv("QUIET", "false")
-	defer os.Unsetenv("QUIET")
+	require.NoError(t, os.Setenv("QUIET", "false"))
+	t.Cleanup(func() { require.NoError(t, os.Unsetenv("QUIET")) })
 
 	flag := Bool("quiet", "quiet flag", EnvVar("QUIET"))
 	require.False(t, flag.Value())

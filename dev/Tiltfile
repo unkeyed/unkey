@@ -13,14 +13,20 @@ local_resource(
 )
 
 local_resource(
-  'sentinels',
-  'kubectl apply -f k8s/manifests/sentinels.yaml',
+  'sentinel',
+  'kubectl apply -f k8s/manifests/sentinel.yaml',
   labels=['setup'],
 )
 
 local_resource(
   'rbac',
   'kubectl apply -f k8s/manifests/rbac.yaml',
+  labels=['setup'],
+)
+
+local_resource(
+  'cilium-policies',
+  'kubectl apply -f k8s/manifests/cilium-policies.yaml',
   labels=['setup'],
 )
 
@@ -138,7 +144,7 @@ k8s_yaml('k8s/manifests/krane.yaml')
 k8s_resource(
   'krane',
   port_forwards='8070:8070',
-  resource_deps=['ctrl', 'build-unkey', 'rbac', 'namespace', 'sentinels'],
+  resource_deps=['ctrl', 'build-unkey', 'rbac', 'namespace', 'sentinel', 'cilium-policies', 'build-sentinel-image'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -169,11 +175,13 @@ k8s_resource(
 )
 
 # Sentinel image (same Go binary, used by ctrl to spawn sentinels)
-docker_build(
-    'unkey/sentinel:latest',
-    '..',
-    dockerfile='./Dockerfile.tilt',
-    only=['./bin'],
+# Build locally and load into minikube
+local_resource(
+    'build-sentinel-image',
+    'docker build -t unkey/sentinel:latest -f Dockerfile.tilt .. && minikube image load unkey/sentinel:latest',
+    deps=['../bin'],
+    resource_deps=['build-unkey'],
+    labels=['build'],
 )
 
 

@@ -117,7 +117,7 @@ func pullImage(t *testing.T, cli *client.Client, imageName string) {
 	if err != nil {
 		t.Fatalf("failed to pull image %s: %v", imageName, err)
 	}
-	defer reader.Close()
+	defer func() { require.NoError(t, reader.Close()) }()
 
 	// Consume the pull output to ensure the pull completes
 	_, err = io.Copy(io.Discard, reader)

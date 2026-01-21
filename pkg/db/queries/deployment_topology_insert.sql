@@ -5,6 +5,7 @@ INSERT INTO `deployment_topology` (
     region,
     desired_replicas,
     desired_status,
+    version,
     created_at
 ) VALUES (
     sqlc.arg(workspace_id),
@@ -12,5 +13,6 @@ INSERT INTO `deployment_topology` (
     sqlc.arg(region),
     sqlc.arg(desired_replicas),
     sqlc.arg(desired_status),
+    sqlc.arg(version),
     sqlc.arg(created_at)
 );

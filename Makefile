@@ -44,10 +44,9 @@ nuke-docker: ## Stop all containers and clean up Docker system
 
 
 .PHONY: fmt
-fmt: ## Format code and run linters
+fmt: ## Format code
 	go fmt ./...
 	go tool buf format -w
-	go tool golangci-lint run
 
 	pnpm --dir=web fmt
 

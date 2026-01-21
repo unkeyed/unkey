@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// VersioningService provides globally unique, monotonically increasing versions
+// for state synchronization between the control plane and edge agents.
+//
+// This is a singleton virtual object (use empty string as key). The version is
+// used to track state changes in deployments and sentinels tables, enabling
+// efficient incremental synchronization.
+//
+// Usage:
+//   1. Before mutating a deployment or sentinel, call NextVersion to get a new version
+//   2. Update the resource row with this version
+//   3. Edge agents track their last-seen version and request changes after it
+//   4. Sync queries filter by region: WHERE region = ? AND version > ?
+service VersioningService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // NextVersion atomically increments and returns the next version number.
+  //
+  // The version is durably stored in Restate's virtual object state, guaranteeing:
+  //   - Monotonically increasing values (no gaps under normal operation)
+  //   - Exactly-once semantics (retries return the same version)
+  //   - Single-writer (singleton virtual object)
+  rpc NextVersion(NextVersionRequest) returns (NextVersionResponse) {}
+
+  // GetVersion returns the current version without incrementing.
+  // Useful for stale cursor detection: if client's version < min retained, force bootstrap.
+  rpc GetVersion(GetVersionRequest) returns (GetVersionResponse) {}
+}
+
+message NextVersionRequest {}
+
+message NextVersionResponse {
+  uint64 version = 1;
+}
+
+message GetVersionRequest {}
+
+message GetVersionResponse {
+  uint64 version = 1;
+}

@@ -5,9 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/testutil"
-	"github.com/unkeyed/unkey/pkg/testutil/seed"
-	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_generate_upload_url"
 )
 
@@ -22,16 +20,9 @@ func TestUnauthorizedAccess(t *testing.T) {
 	}
 	h.Register(route)
 
-	workspace := h.CreateWorkspace()
-
-	projectID := uid.New(uid.ProjectPrefix)
-	projectName := "test-project"
-
-	h.CreateProject(seed.CreateProjectRequest{
-		WorkspaceID: workspace.ID,
-		Name:        projectName,
-		ID:          projectID,
-		Slug:        "production",
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		SkipEnvironment: true,
+		Permissions:     []string{"project.*.generate_upload_url"},
 	})
 
 	t.Run("invalid authorization token", func(t *testing.T) {
@@ -41,7 +32,7 @@ func TestUnauthorizedAccess(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ProjectId: projectID,
+			ProjectId: setup.Project.ID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

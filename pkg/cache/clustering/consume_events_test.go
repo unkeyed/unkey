@@ -35,7 +35,7 @@ func TestClusterCache_ConsumesInvalidationAndRemovesFromCache(t *testing.T) {
 
 	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err)
-	defer topic.Close()
+	defer func() { require.NoError(t, topic.Close()) }()
 
 	// Wait for topic to be fully created in Kafka
 	ctx := context.Background()
@@ -70,7 +70,7 @@ func TestClusterCache_ConsumesInvalidationAndRemovesFromCache(t *testing.T) {
 
 	// Set up consumer that will remove data from cache when invalidation event is received
 	consumer := topic.NewConsumer()
-	defer consumer.Close()
+	defer func() { require.NoError(t, consumer.Close()) }()
 
 	consumerCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

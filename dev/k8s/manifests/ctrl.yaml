@@ -132,6 +132,8 @@ spec:
               value: "9080"
             - name: UNKEY_RESTATE_REGISTER_AS
               value: "http://ctrl:9080"
+            - name: UNKEY_RESTATE_API_KEY
+              value: ""
 
             # API Key
             - name: UNKEY_AUTH_TOKEN

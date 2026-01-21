@@ -19,7 +19,6 @@ go_library(
         "//gen/proto/hydra/v1:hydra",
         "//pkg/db",
         "//pkg/otel/logging",
-        "//pkg/ptr",
         "//pkg/uid",
         "//pkg/vault",
         "//svc/ctrl/services/cluster",

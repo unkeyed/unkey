@@ -89,7 +89,7 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	encryptResp, err := vaultService.Encrypt(ctx, &vaultv1.EncryptRequest{
-		Keyring: "unkey",
+		Keyring: "unkey_internal",
 		Data:    string(keyPEM),
 	})
 	if err != nil {
@@ -112,6 +112,7 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 			GitCommitTimestamp:            sql.NullInt64{Int64: now, Valid: true},
 			OpenapiSpec:                   sql.NullString{},
 			EncryptedEnvironmentVariables: []byte("{}"),
+			Command:                       []byte("[]"),
 			Status:                        db.DeploymentsStatusReady,
 			CpuMillicores:                 256,
 			MemoryMib:                     256,
@@ -137,6 +138,7 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 			ProjectID:         projectID,
 			CpuMillicores:     512,
 			MemoryMib:         512,
+			Version:           uint64(now),
 			CreatedAt:         now,
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {
@@ -198,7 +200,7 @@ func generateMkcertCertificate(hostname string) (certPEM []byte, keyPEM []byte, 
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create temp directory: %w", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	certFile := fmt.Sprintf("%s/%s.pem", tempDir, hostname)
 	keyFile := fmt.Sprintf("%s/%s-key.pem", tempDir, hostname)

@@ -13,6 +13,7 @@ INSERT INTO sentinels (
     available_replicas,
     cpu_millicores,
     memory_mib,
+    version,
     created_at
 ) VALUES (
     sqlc.arg(id),
@@ -28,5 +29,6 @@ INSERT INTO sentinels (
     sqlc.arg(available_replicas),
     sqlc.arg(cpu_millicores),
     sqlc.arg(memory_mib),
+    sqlc.arg(version),
     sqlc.arg(created_at)
 );

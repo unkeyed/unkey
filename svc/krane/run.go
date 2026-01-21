@@ -15,10 +15,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/vault"
 	"github.com/unkeyed/unkey/pkg/vault/storage"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
-	"github.com/unkeyed/unkey/svc/krane/internal/reconciler"
+	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
+	"github.com/unkeyed/unkey/svc/krane/internal/sentinel"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
 	"github.com/unkeyed/unkey/svc/krane/secrets"
 	"github.com/unkeyed/unkey/svc/krane/secrets/token"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -67,14 +69,6 @@ func Run(ctx context.Context, cfg Config) error {
 		URL:         cfg.ControlPlaneURL,
 		BearerToken: cfg.ControlPlaneBearer,
 		Region:      cfg.Region,
-		ClusterID:   cfg.ClusterID,
-	})
-
-	w := controlplane.NewWatcher(controlplane.WatcherConfig{
-		Logger:    logger,
-		ClusterID: cfg.ClusterID,
-		Region:    cfg.Region,
-		Cluster:   cluster,
 	})
 
 	inClusterConfig, err := rest.InClusterConfig()
@@ -87,19 +81,35 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create k8s clientset: %w", err)
 	}
 
-	r := reconciler.New(reconciler.Config{
+	dynamicClient, err := dynamic.NewForConfig(inClusterConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create k8s dynamic client: %w", err)
+	}
+
+	// Start the deployment controller (independent control loop)
+	deploymentCtrl := deployment.New(deployment.Config{
+		ClientSet:     clientset,
+		DynamicClient: dynamicClient,
+		Logger:        logger,
+		Cluster:       cluster,
+		Region:        cfg.Region,
+	})
+	if err := deploymentCtrl.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start deployment controller: %w", err)
+	}
+	shutdowns.Register(deploymentCtrl.Stop)
+
+	// Start the sentinel controller (independent control loop)
+	sentinelCtrl := sentinel.New(sentinel.Config{
 		ClientSet: clientset,
 		Logger:    logger,
 		Cluster:   cluster,
-		ClusterID: cfg.ClusterID,
 		Region:    cfg.Region,
 	})
-	if err := r.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start reconciler: %w", err)
+	if err := sentinelCtrl.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start sentinel controller: %w", err)
 	}
-
-	shutdowns.Register(r.Stop)
-	w.Start(ctx, r.HandleState)
+	shutdowns.Register(sentinelCtrl.Stop)
 
 	// Create vault service for secrets decryption
 

@@ -89,7 +89,8 @@ func TestBasicSimulation(t *testing.T) {
 	}
 
 	// Run the simulation
-	simulation.Run(events)
+	err := simulation.Run(events)
+	require.NoError(t, err)
 
 	// Verify final state
 	require.NotNil(t, simulation.State())
@@ -137,7 +138,8 @@ func TestManySimulations(t *testing.T) {
 		}
 
 		// Run the simulation
-		simulation.Run(events)
+		err := simulation.Run(events)
+		require.NoError(t, err)
 
 		// Verify final state
 		require.GreaterOrEqual(t, simulation.State().Counter, 0)

@@ -19,6 +19,8 @@ message DeployRequest {
   optional string build_context_path = 3;
   optional string dockerfile_path = 4;
   optional string docker_image = 5;
+  // Container command override (e.g., ["./app", "serve"])
+  repeated string command = 6;
 }
 
 message DeployResponse {}

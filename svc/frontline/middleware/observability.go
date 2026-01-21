@@ -14,7 +14,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 var (
@@ -105,6 +107,17 @@ func WithObservability(logger logging.Logger, region string) zen.Middleware {
 		return func(ctx context.Context, s *zen.Session) error {
 			startTime := time.Now()
 
+			// Start trace span for the request
+			ctx, span := tracing.Start(ctx, "frontline.proxy")
+			span.SetAttributes(
+				attribute.String("request_id", s.RequestID()),
+				attribute.String("host", s.Request().Host),
+				attribute.String("method", s.Request().Method),
+				attribute.String("path", s.Request().URL.Path),
+				attribute.String("region", region),
+			)
+			defer span.End()
+
 			frontlineActiveRequests.WithLabelValues(region).Inc()
 			defer frontlineActiveRequests.WithLabelValues(region).Dec()
 
@@ -116,6 +129,8 @@ func WithObservability(logger logging.Logger, region string) zen.Middleware {
 			hasError := err != nil
 
 			if hasError {
+				tracing.RecordError(span, err)
+
 				var ok bool
 				urn, ok = fault.GetCode(err)
 				if !ok {
@@ -177,6 +192,12 @@ func WithObservability(logger logging.Logger, region string) zen.Middleware {
 
 			duration := time.Since(startTime).Seconds()
 			statusStr := strconv.Itoa(statusCode)
+
+			// Add final status to span
+			span.SetAttributes(
+				attribute.Int("status_code", statusCode),
+				attribute.String("error_type", errorType),
+			)
 
 			logger.Info("frontline request",
 				"status_code", statusStr,

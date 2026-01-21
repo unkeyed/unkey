@@ -15,8 +15,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
-	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
 
 // ApiConfig holds configuration for dynamic API container creation
@@ -219,7 +219,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			//nolint:gosec // Health check URL is constructed from controlled Docker container address
 			resp, err := http.Get(healthURL)
 			if err == nil {
-				resp.Body.Close()
+				_ = resp.Body.Close()
 				if resp.StatusCode == http.StatusOK {
 					h.t.Logf("API server %d started on %s", i, ln.Addr().String())
 					break

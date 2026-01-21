@@ -8,7 +8,7 @@ date: 2025-01-02
 
 [https://unkey.slack.com/archives/C05SYU6P2DC/p1705420411688469](https://unkey.slack.com/archives/C05SYU6P2DC/p1705420411688469)
 
-This is the current shape of our keys:`{prefix?}_{version}{length}{base58_randomness}`
+This is the current shape of our keys:`\{prefix?\}_\{version\}\{length\}\{base58_randomness\}`
 I chose this for backwards compatibility if we ever wanted to encode something into the key, for example a semi-public identifier, think `client_id` and `client_secret` in OAuth or other implementations. If the version would match, we knew it was a key with separate client_id and client_secret and could split and parse it correctly.
 
 However there is a problem with this.
@@ -19,7 +19,7 @@ Other complications come from the fact that we want to be able to onboard other 
 
 Example:
 
-Resend have keys in the shape of `re_{user_id}_{secret}_{checksum}`
+Resend have keys in the shape of `re_\{user_id\}_\{secret\}_\{checksum\}`
 
 When we want to win them as a customer, we do not want to ask all of their users to create new keys, existing keys must keep working without our customer having to maintain their own system as well as unkey.
 

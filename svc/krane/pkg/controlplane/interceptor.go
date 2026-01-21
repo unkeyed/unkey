@@ -14,14 +14,12 @@ import (
 // The interceptor automatically injects:
 // - Authorization header with Bearer token
 // - X-Krane-Region header for routing
-// - X-Krane-Cluster-Id header for routing
 //
 // This is the recommended way to create interceptors for control plane clients.
-func connectInterceptor(region, clusterID, bearer string) connect.Interceptor {
+func connectInterceptor(region, bearer string) connect.Interceptor {
 	return &authInterceptor{
-		region:    region,
-		clusterID: clusterID,
-		bearer:    bearer,
+		region: region,
+		bearer: bearer,
 	}
 }
 
@@ -30,9 +28,8 @@ func connectInterceptor(region, clusterID, bearer string) connect.Interceptor {
 // It automatically adds authentication and routing metadata to all outgoing requests.
 // The interceptor is stateless and safe for concurrent use.
 type authInterceptor struct {
-	region    string
-	clusterID string
-	bearer    string
+	region string
+	bearer string
 }
 
 // WrapUnary intercepts unary RPC calls by adding required headers before forwarding
@@ -130,6 +127,5 @@ func (s *streamingClientInterceptor) RequestHeader() http.Header {
 // All headers use Set() to overwrite any existing values.
 func (i *authInterceptor) setHeaders(header http.Header) {
 	header.Set("X-Krane-Region", i.region)
-	header.Set("X-Krane-Cluster-Id", i.clusterID)
 	header.Set("Authorization", fmt.Sprintf("Bearer %s", i.bearer))
 }

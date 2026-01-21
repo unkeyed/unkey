@@ -115,7 +115,11 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
 
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			logger.Error("failed to close db", "error", err)
+		}
+	}()
 
 	if cfg.PrometheusPort > 0 {
 		prom, promErr := prometheus.New(prometheus.Config{
@@ -126,14 +130,13 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		go func() {
-			var promListener net.Listener
-			promListener, err = net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
-			if err != nil {
-				panic(err)
+			promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+			if listenErr != nil {
+				panic(listenErr)
 			}
-			promListenErr := prom.Serve(ctx, promListener)
-			if promListenErr != nil {
-				panic(promListenErr)
+			serveErr := prom.Serve(ctx, promListener)
+			if serveErr != nil {
+				panic(serveErr)
 			}
 		}()
 	}
@@ -156,6 +159,7 @@ func Run(ctx context.Context, cfg Config) error {
 			TestMode: cfg.TestMode,
 		},
 		TLS:                cfg.TLSConfig,
+		EnableH2C:          false,
 		MaxRequestBodySize: cfg.MaxRequestBodySize,
 		ReadTimeout:        0,
 		WriteTimeout:       0,
@@ -225,10 +229,13 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	auditlogSvc := auditlogs.New(auditlogs.Config{
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{
 		Logger: logger,
 		DB:     db,
 	})
+	if err != nil {
+		return fmt.Errorf("unable to create auditlogs service: %w", err)
+	}
 
 	// Initialize cache invalidation topic
 	cacheInvalidationTopic := eventstream.NewNoopTopic[*cachev1.CacheInvalidationEvent]()

@@ -1,5 +1,5 @@
-import { relations } from "drizzle-orm";
-import { bigint, boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { relations, sql } from "drizzle-orm";
+import { bigint, boolean, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -24,13 +24,15 @@ export const projects = mysqlTable(
     isRolledBack: boolean("is_rolled_back").notNull().default(false),
     defaultBranch: varchar("default_branch", { length: 256 }).default("main"),
     depotProjectId: varchar("depot_project_id", { length: 255 }),
+
+    // Default container command override for deployments (e.g., ["./app", "serve"])
+    // If empty, the container's default entrypoint/cmd is used
+    command: json("command").$type<string[]>().notNull().default(sql`('[]')`),
+
     ...deleteProtection,
     ...lifecycleDates,
   },
-  (table) => [
-    index("workspace_idx").on(table.workspaceId),
-    uniqueIndex("workspace_slug_idx").on(table.workspaceId, table.slug),
-  ],
+  (table) => [uniqueIndex("workspace_slug_idx").on(table.workspaceId, table.slug)],
 );
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({

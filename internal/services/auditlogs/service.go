@@ -1,6 +1,9 @@
 package auditlogs
 
 import (
+	"fmt"
+
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
@@ -25,9 +28,16 @@ type Config struct {
 // New creates a new audit log service instance with the provided configuration.
 // The returned service implements AuditLogService and is ready for immediate use.
 // Both database and logger dependencies must be provided in the config.
-func New(cfg Config) *service {
+func New(cfg Config) (*service, error) {
+	if err := assert.All(
+		assert.NotNil(cfg.DB, "db is required"),
+		assert.NotNil(cfg.Logger, "logger is required"),
+	); err != nil {
+		return nil, fmt.Errorf("invalid auditlogs service config: %w", err)
+	}
+
 	return &service{
 		db:     cfg.DB,
 		logger: cfg.Logger,
-	}
+	}, nil
 }

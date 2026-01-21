@@ -3,7 +3,6 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "providers",
     srcs = [
-        "cloudflare_provider.go",
         "http_provider.go",
         "provider.go",
         "route53_provider.go",
@@ -17,7 +16,6 @@ go_library(
         "//pkg/db",
         "//pkg/otel/logging",
         "@com_github_go_acme_lego_v4//challenge",
-        "@com_github_go_acme_lego_v4//providers/dns/cloudflare",
         "@com_github_go_acme_lego_v4//providers/dns/route53",
     ],
 )

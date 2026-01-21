@@ -242,7 +242,10 @@ func TestGenerateAPIKey(t *testing.T) {
 		{
 			name: "minimal options",
 			opts: &GenerateAPIKeyOptions{
-				KeyPrefix: "min",
+				KeyPrefix:        "min",
+				ShortTokenPrefix: "",
+				ShortTokenLength: 0,
+				LongTokenLength:  0,
 			},
 			hasError: false,
 		},
@@ -254,7 +257,10 @@ func TestGenerateAPIKey(t *testing.T) {
 		{
 			name: "empty key prefix returns error",
 			opts: &GenerateAPIKeyOptions{
-				KeyPrefix: "",
+				KeyPrefix:        "",
+				ShortTokenPrefix: "",
+				ShortTokenLength: 0,
+				LongTokenLength:  0,
 			},
 			hasError: true,
 		},

@@ -2,6 +2,8 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -9,8 +11,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/testutil"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_update_identity"
 )
@@ -75,7 +77,10 @@ func TestForbidden(t *testing.T) {
 		ctx := context.Background()
 		tx, err := h.DB.RW().Begin(ctx)
 		require.NoError(t, err)
-		defer tx.Rollback()
+		defer func() {
+			err := tx.Rollback()
+			require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
+		}()
 
 		workspaceID := h.Resources().UserWorkspace.ID
 		identityID := uid.New(uid.IdentityPrefix)

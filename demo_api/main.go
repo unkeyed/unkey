@@ -176,20 +176,20 @@ var (
 
 func generateAccountID() string {
 	bytes := make([]byte, 10)
-	rand.Read(bytes)
+	_, _ = rand.Read(bytes)
 	return "acc_" + hex.EncodeToString(bytes)
 }
 
 func generateRequestID() string {
 	bytes := make([]byte, 8)
-	rand.Read(bytes)
+	_, _ = rand.Read(bytes)
 	return "req_" + hex.EncodeToString(bytes)
 }
 
 func respondWithError(w http.ResponseWriter, statusCode int, errorCode, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(Error{
+	_ = json.NewEncoder(w).Encode(Error{
 		Message:   message,
 		ErrorCode: errorCode,
 		RequestID: generateRequestID(),
@@ -200,7 +200,7 @@ func respondWithError(w http.ResponseWriter, statusCode int, errorCode, message 
 func respondWithValidationError(w http.ResponseWriter, message string, details []ValidationDetail) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadRequest)
-	json.NewEncoder(w).Encode(ValidationError{
+	_ = json.NewEncoder(w).Encode(ValidationError{
 		Message:   message,
 		Details:   details,
 		RequestID: generateRequestID(),
@@ -224,7 +224,7 @@ func main() {
 		seed := now.UnixNano()
 
 		hashBytes := make([]byte, 6)
-		rand.Read(hashBytes)
+		_, _ = rand.Read(hashBytes)
 
 		timeFloat := float64(now.Unix())
 		temp := 22.5 + 8.0*math.Sin(timeFloat/3600.0)
@@ -287,20 +287,20 @@ func main() {
 
 		encoder := json.NewEncoder(w)
 		encoder.SetIndent("", "  ")
-		encoder.Encode(response)
+		_ = encoder.Encode(response)
 	})
 
 	// Health check endpoint
 	mux.HandleFunc("/v1/liveness", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, "OK")
+		_, _ = fmt.Fprint(w, "OK")
 	})
 
 	mux.HandleFunc("/env", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, os.Environ())
+		_, _ = fmt.Fprint(w, os.Environ())
 	})
 
 	mux.HandleFunc("/error", func(w http.ResponseWriter, r *http.Request) {
@@ -313,7 +313,7 @@ func main() {
 	mux.HandleFunc("/clean-shutdown", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{
+		_ = json.NewEncoder(w).Encode(map[string]string{
 			"message": "Server shutting down gracefully",
 			"status":  "ok",
 		})
@@ -329,7 +329,7 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 
 		// Start writing response but don't finish
-		w.Write([]byte(`{"message": "Server is shutting down`))
+		_, _ = w.Write([]byte(`{"message": "Server is shutting down`))
 
 		// Die mid-request
 		os.Exit(1)
@@ -343,7 +343,7 @@ func main() {
 			http.Error(w, "Failed to read request body", http.StatusInternalServerError)
 			return
 		}
-		defer r.Body.Close()
+		defer func() { _ = r.Body.Close() }()
 
 		// Convert headers to map
 		headers := make(map[string]string)
@@ -368,7 +368,7 @@ func main() {
 		w.Header().Set("X-Custom-Header", "CustomValue")
 		w.Header().Set("X-Custom-Header", "CustomValue")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 	})
 
 	// Hello endpoint
@@ -380,7 +380,7 @@ func main() {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 	})
 
 	mux.HandleFunc("/v1/timeout", func(w http.ResponseWriter, r *http.Request) {
@@ -414,7 +414,7 @@ func main() {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 	})
 
 	// Greeting endpoint
@@ -439,7 +439,7 @@ func main() {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 	})
 
 	// Accounts endpoints
@@ -493,7 +493,7 @@ func main() {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(response)
+			_ = json.NewEncoder(w).Encode(response)
 
 		case http.MethodPost:
 			// Create account
@@ -585,7 +585,7 @@ func main() {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(account)
+			_ = json.NewEncoder(w).Encode(account)
 
 		default:
 			respondWithError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method not allowed")
@@ -652,7 +652,7 @@ func main() {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(response)
+			_ = json.NewEncoder(w).Encode(response)
 			return
 		}
 
@@ -670,7 +670,7 @@ func main() {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(account)
+			_ = json.NewEncoder(w).Encode(account)
 
 		case http.MethodPatch:
 			var req UpdateAccountRequest
@@ -726,7 +726,7 @@ func main() {
 				accountMutex.Unlock()
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusUnprocessableEntity)
-				json.NewEncoder(w).Encode(ValidationError{
+				_ = json.NewEncoder(w).Encode(ValidationError{
 					Message:   "Invalid update data",
 					Details:   validationErrors,
 					RequestID: generateRequestID(),
@@ -762,7 +762,7 @@ func main() {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(account)
+			_ = json.NewEncoder(w).Encode(account)
 
 		case http.MethodDelete:
 			accountMutex.Lock()
@@ -1265,7 +1265,7 @@ components:
 
 		w.Header().Set("Content-Type", "application/yaml")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, spec)
+		_, _ = fmt.Fprint(w, spec)
 	})
 
 	log.Printf("Demo API starting on port %s", port)
