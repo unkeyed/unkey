@@ -14,7 +14,7 @@ common --experimental_repository_cache_hardlinks
 # Persist build artifacts across clean/workspaces
 common --disk_cache=~/.cache/bazel-disk
 
- ============================================================
+# ============================================================
 # Build & Test performance
 # ============================================================
 # Increase action parallelism

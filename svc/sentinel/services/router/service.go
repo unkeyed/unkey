@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	sentineldb "github.com/unkeyed/unkey/svc/sentinel/db"
 )
 
 var _ Service = (*service)(nil)
@@ -24,12 +25,12 @@ type service struct {
 	environmentID string
 	region        string
 
-	deploymentCache cache.Cache[string, db.Deployment]
-	instancesCache  cache.Cache[string, []db.Instance]
+	deploymentCache cache.Cache[string, sentineldb.Deployment]
+	instancesCache  cache.Cache[string, []sentineldb.Instance]
 }
 
 func New(cfg Config) (*service, error) {
-	deploymentCache, err := cache.New[string, db.Deployment](cache.Config[string, db.Deployment]{
+	deploymentCache, err := cache.New[string, sentineldb.Deployment](cache.Config[string, sentineldb.Deployment]{
 		Logger:   cfg.Logger,
 		Resource: "deployment",
 		Clock:    cfg.Clock,
@@ -41,7 +42,7 @@ func New(cfg Config) (*service, error) {
 		return nil, err
 	}
 
-	instancesCache, err := cache.New[string, []db.Instance](cache.Config[string, []db.Instance]{
+	instancesCache, err := cache.New[string, []sentineldb.Instance](cache.Config[string, []sentineldb.Instance]{
 		Clock:    cfg.Clock,
 		Logger:   cfg.Logger,
 		Resource: "instance",
@@ -64,20 +65,20 @@ func New(cfg Config) (*service, error) {
 	}, nil
 }
 
-func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.Deployment, error) {
-	deployment, hit, err := s.deploymentCache.SWR(ctx, deploymentID, func(ctx context.Context) (db.Deployment, error) {
-		return db.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
+func (s *service) GetDeployment(ctx context.Context, deploymentID string) (sentineldb.Deployment, error) {
+	deployment, hit, err := s.deploymentCache.SWR(ctx, deploymentID, func(ctx context.Context) (sentineldb.Deployment, error) {
+		return sentineldb.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
 	}, caches.DefaultFindFirstOp)
 
 	if err != nil && !db.IsNotFound(err) {
-		return db.Deployment{}, fault.Wrap(err,
+		return sentineldb.Deployment{}, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
 			fault.Internal("failed to get deployment"),
 		)
 	}
 
 	if hit == cache.Null || db.IsNotFound(err) {
-		return db.Deployment{}, fault.New("deployment not found",
+		return sentineldb.Deployment{}, fault.New("deployment not found",
 			fault.Code(codes.Sentinel.Routing.DeploymentNotFound.URN()),
 			fault.Internal("no deployment found for ID or wrong environment"),
 			fault.Public("Deployment not found"),
@@ -92,7 +93,7 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 		)
 
 		// Return as not found to avoid leaking information about deployments in other environments
-		return db.Deployment{}, fault.New("deployment not found",
+		return sentineldb.Deployment{}, fault.New("deployment not found",
 			fault.Code(codes.Sentinel.Routing.DeploymentNotFound.URN()),
 			fault.Internal(fmt.Sprintf("deployment %s belongs to environment %s, but sentinel serves %s", deploymentID, deployment.EnvironmentID, s.environmentID)),
 			fault.Public("Deployment not found"),
@@ -102,12 +103,12 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 	return deployment, nil
 }
 
-func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.Instance, error) {
-	instances, hit, err := s.instancesCache.SWR(ctx, deploymentID, func(ctx context.Context) ([]db.Instance, error) {
-		return db.Query.FindInstancesByDeploymentIdAndRegion(
+func (s *service) SelectInstance(ctx context.Context, deploymentID string) (sentineldb.Instance, error) {
+	instances, hit, err := s.instancesCache.SWR(ctx, deploymentID, func(ctx context.Context) ([]sentineldb.Instance, error) {
+		return sentineldb.Query.FindInstancesByDeploymentIdAndRegion(
 			ctx,
 			s.db.RO(),
-			db.FindInstancesByDeploymentIdAndRegionParams{
+			sentineldb.FindInstancesByDeploymentIdAndRegionParams{
 				Deploymentid: deploymentID,
 				Region:       s.region,
 			},
@@ -115,29 +116,29 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 	}, caches.DefaultFindFirstOp)
 
 	if err != nil {
-		return db.Instance{}, fault.Wrap(err,
+		return sentineldb.Instance{}, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
 			fault.Internal("failed to get instances"),
 		)
 	}
 
 	if hit == cache.Null || len(instances) == 0 {
-		return db.Instance{}, fault.New("no instances found",
+		return sentineldb.Instance{}, fault.New("no instances found",
 			fault.Code(codes.Sentinel.Routing.NoRunningInstances.URN()),
 			fault.Internal(fmt.Sprintf("no instances for deployment %s in region %s", deploymentID, s.region)),
 			fault.Public("Service temporarily unavailable"),
 		)
 	}
 
-	var runningInstances []db.Instance
+	var runningInstances []sentineldb.Instance
 	for _, instance := range instances {
-		if instance.Status == db.InstancesStatusRunning {
+		if instance.Status == sentineldb.InstancesStatusRunning {
 			runningInstances = append(runningInstances, instance)
 		}
 	}
 
 	if len(runningInstances) == 0 {
-		return db.Instance{}, fault.New("no running instances",
+		return sentineldb.Instance{}, fault.New("no running instances",
 			fault.Code(codes.Sentinel.Routing.NoRunningInstances.URN()),
 			fault.Internal(fmt.Sprintf("no running instances for deployment %s in region %s (found %d total)", deploymentID, s.region, len(instances))),
 			fault.Public("Service temporarily unavailable"),

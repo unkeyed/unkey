@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "db",
+    srcs = [
+        "db.go",
+        "deployment.sql_generated.go",
+        "generate.go",
+        "instances.sql_generated.go",
+        "models_generated.go",
+        "querier_generated.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/sentinel/db",
+    visibility = ["//svc/sentinel:__subpackages__"],
+)
