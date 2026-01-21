@@ -69,7 +69,7 @@ export function InfiniteCanvas({
     const rect = svg.getBoundingClientRect();
     setCanvas((prev) => ({
       ...prev,
-      offset: { x: rect.width / 2, y: rect.height / 4 },
+      offset: { x: rect.width / 2, y: rect.height / 6 },
     }));
   }, []);
 
