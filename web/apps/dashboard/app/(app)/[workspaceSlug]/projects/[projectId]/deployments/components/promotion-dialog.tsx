@@ -6,7 +6,7 @@ import { trpc } from "@/lib/trpc/client";
 import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { CircleInfo, CodeBranch, CodeCommit, Link4 } from "@unkey/icons";
 import { Badge, Button, DialogContainer, toast } from "@unkey/ui";
-import { StatusIndicator } from "../../details/active-deployment-card/status-indicator";
+import { StatusIndicator } from "../../components/status-indicator";
 
 type DeploymentSectionProps = {
   title: string;

@@ -1,7 +1,7 @@
 import { ChevronDown, CircleCheck, CodeBranch, CodeCommit, FolderCloud } from "@unkey/icons";
 import { Badge, Button, Card } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { StatusIndicator } from "./status-indicator";
+import { StatusIndicator } from "../../../components/status-indicator";
 
 export const ActiveDeploymentCardSkeleton = () => (
   <Card className="rounded-[14px] pt-[14px] flex justify-between flex-col overflow-hidden border-gray-4">

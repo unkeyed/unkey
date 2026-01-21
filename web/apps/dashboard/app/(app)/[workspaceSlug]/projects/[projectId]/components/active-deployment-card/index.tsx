@@ -4,8 +4,6 @@ import { formatNumber } from "@/lib/fmt";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import {
   ChevronDown,
-  CircleCheck,
-  CircleWarning,
   CircleXMark,
   CodeBranch,
   CodeCommit,
@@ -13,64 +11,34 @@ import {
   Magnifier,
   TriangleWarning2,
 } from "@unkey/icons";
-import { Badge, Button, CopyButton, Input, TimestampInfo } from "@unkey/ui";
+import { Button, CopyButton, Input, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { format } from "date-fns";
 import { useProject } from "../../layout-provider";
-import { Card } from "../card";
-import { ActiveDeploymentCardEmpty } from "./active-deployment-card-empty";
-import { FilterButton } from "./filter-button";
-import { Avatar } from "./git-avatar";
+import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card-empty";
+import { FilterButton } from "./components/filter-button";
+import { Avatar } from "../../components/git-avatar";
 import { useDeploymentLogs } from "./hooks/use-deployment-logs";
-import { InfoChip } from "./info-chip";
-import { ActiveDeploymentCardSkeleton } from "./skeleton";
-import { StatusIndicator } from "./status-indicator";
+import { InfoChip } from "../../components/info-chip";
+import { ActiveDeploymentCardSkeleton } from "./components/skeleton";
+import { StatusIndicator } from "../../components/status-indicator";
+import { Card } from "../card";
 
 const ANIMATION_STYLES = {
   expand: "transition-all duration-400 ease-in",
   slideIn: "transition-all duration-500 ease-out",
 } as const;
 
-export const statusIndicator = (
-  status: "pending" | "building" | "deploying" | "network" | "ready" | "failed",
-) => {
-  switch (status) {
-    case "pending":
-      return {
-        variant: "warning" as const,
-        icon: CircleWarning,
-        text: "Queued",
-      };
-    case "building":
-      return {
-        variant: "warning" as const,
-        icon: CircleWarning,
-        text: "Building",
-      };
-    case "deploying":
-      return {
-        variant: "warning" as const,
-        icon: CircleWarning,
-        text: "Deploying",
-      };
-    case "network":
-      return {
-        variant: "warning" as const,
-        icon: CircleWarning,
-        text: "Assigning Domains",
-      };
-    case "ready":
-      return { variant: "success" as const, icon: CircleCheck, text: "Ready" };
-    case "failed":
-      return { variant: "error" as const, icon: CircleWarning, text: "Error" };
-  }
-};
+
 
 type Props = {
   deploymentId: string | null;
+  statusBadge?: React.ReactNode;
+  trailingContent?: React.ReactNode;
+  expandableContent?: React.ReactNode;
 };
 
-export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
+export const ActiveDeploymentCard = ({ deploymentId, statusBadge }: Props) => {
   const { collections } = useProject();
   const { data, isLoading } = useLiveQuery(
     (q) =>
@@ -109,7 +77,6 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
     return <ActiveDeploymentCardEmpty />;
   }
 
-  const statusConfig = statusIndicator(deployment.status);
 
   return (
     <Card className="rounded-[14px] pt-[14px] flex justify-between flex-col overflow-hidden border-gray-4">
@@ -122,12 +89,7 @@ export const ActiveDeploymentCard = ({ deploymentId }: Props) => {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <Badge variant={statusConfig.variant} className="text-successA-11 font-medium">
-            <div className="flex items-center gap-2">
-              <statusConfig.icon />
-              {statusConfig.text}
-            </div>
-          </Badge>
+          {statusBadge}
           <div className="items-center flex gap-2">
             <div className="flex gap-2 items-center">
               <span className="text-gray-9 text-xs">Created by</span>

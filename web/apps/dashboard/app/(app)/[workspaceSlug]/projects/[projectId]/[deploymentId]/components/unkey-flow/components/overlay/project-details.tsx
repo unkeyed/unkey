@@ -2,9 +2,10 @@ import { shortenId } from "@/lib/shorten-id";
 import { ChevronDown, CodeBranch, CodeCommit } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
-import { InfoChip } from "../../../../../details/active-deployment-card/info-chip";
-import { StatusIndicator } from "../../../../../details/active-deployment-card/status-indicator";
-import { ProjectDetailsContent } from "../../../../../details/project-details-expandables/project-details-content";
+import { StatusIndicator } from "../../../../../components/status-indicator";
+import { InfoChip } from "../../../../../components/info-chip";
+import { ProjectDetailsContent } from "../../../../../details/components/project-details-expandables/project-details-content";
+
 
 type ProjectDetailsProps = {
   projectId: string;

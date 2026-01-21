@@ -16,9 +16,10 @@ import {
 } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
-import { RepoDisplay } from "../../../_components/list/repo-display";
-import { Avatar } from "../active-deployment-card/git-avatar";
 import { OpenApiDiff } from "./sections/open-api-diff";
+import { RepoDisplay } from "../../../_components/list/repo-display";
+import { Avatar } from "../../components/git-avatar";
+
 
 export type DetailItem = {
   icon: ReactNode | null;

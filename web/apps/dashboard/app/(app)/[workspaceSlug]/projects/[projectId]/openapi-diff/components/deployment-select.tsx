@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { format } from "date-fns";
-import { PulseIndicator } from "../../details/active-deployment-card/status-indicator";
+import { PulseIndicator } from "../../components/status-indicator";
 import { useProject } from "../../layout-provider";
 
 type DeploymentSelectProps = {

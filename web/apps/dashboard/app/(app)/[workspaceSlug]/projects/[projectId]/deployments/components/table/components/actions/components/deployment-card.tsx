@@ -1,4 +1,4 @@
-import { StatusIndicator } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/details/active-deployment-card/status-indicator";
+import { StatusIndicator } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/status-indicator";
 import type { Deployment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { CodeBranch, CodeCommit } from "@unkey/icons";

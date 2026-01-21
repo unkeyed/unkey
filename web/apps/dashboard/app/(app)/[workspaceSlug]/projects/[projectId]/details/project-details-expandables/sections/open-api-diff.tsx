@@ -6,8 +6,8 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { ArrowRight } from "@unkey/icons";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { DiffStatus, StatusIndicator } from "../../../components/status-indicator";
 import { useProject } from "../../../layout-provider";
-import { type DiffStatus, StatusIndicator } from "../../active-deployment-card/status-indicator";
 
 const getDiffStatus = (data?: GetOpenApiDiffResponse): DiffStatus => {
   if (!data) {
