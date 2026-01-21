@@ -1,3 +1,41 @@
-build --color=yes
-build --show_timestamps
+# ============================================================
+# Common settings
+# ============================================================
+common --color=yes
+common --show_timestamps
+
+# ============================================================
+# Caching - Critical for performance
+# ============================================================
+# Persist external repository downloads (Go modules, etc.)
+common --repository_cache=~/.cache/bazel-repo
+common --experimental_repository_cache_hardlinks
+
+# Persist build artifacts across clean/workspaces
+common --disk_cache=~/.cache/bazel-disk
+
+# ============================================================
+# Build & Test performance
+# ============================================================
+# Increase action parallelism
+build --jobs=auto
+test --jobs=auto
+
+# Keep going on errors to maximize cache population
+build --keep_going
+test --keep_going
+
+# Reduce sandbox overhead for trusted builds (comment out for hermetic CI)
+build --spawn_strategy=local
+build --strategy=GoCompilePkg=local
+test --spawn_strategy=local
+test --strategy=GoCompilePkg=local
+
+# ============================================================
+# Test settings
+# ============================================================
 test --test_output=errors
+test --test_summary=terse
+test --local_test_jobs=auto
+
+

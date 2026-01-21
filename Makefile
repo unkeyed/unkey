@@ -87,7 +87,7 @@ generate: generate-sql ## Generate code from protobuf and other sources
 .PHONY: test
 test: ## Run tests with bazel
 	docker compose -f ./dev/docker-compose.yaml up -d mysql clickhouse s3 kafka restate ctrl --wait
-	bazel test //... --test_output=errors
+	bazel test //...
 	make clean-docker-test
 
 .PHONY: clean-docker-test
