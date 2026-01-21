@@ -4,6 +4,7 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { shortenId } from "@/lib/shorten-id";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import {
   ArrowDottedRotateAnticlockwise,
@@ -15,7 +16,7 @@ import {
   Refresh3,
 } from "@unkey/icons";
 import { Button, InfoTooltip, Separator } from "@unkey/ui";
-import { useSelectedLayoutSegments } from "next/navigation";
+import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import { useRef } from "react";
 import { RepoDisplay } from "../../../_components/list/repo-display";
 
@@ -55,9 +56,14 @@ export const ProjectNavigation = ({
   ).data.at(0);
 
   const basePath = `/${workspace.slug}/projects`;
+  const params = useParams();
+
+  // Get deploymentId from params if we're on a deployment detail page
+  const deploymentId = params?.deploymentId as string | undefined;
+  const isDeploymentDetailPage = Boolean(deploymentId);
 
   const segments = useSelectedLayoutSegments() ?? [];
-  const activeSubPage = segments[0]; // undefined, "deployments", "sentinel-logs", or "openapi-diff"
+  const activeSubPage = segments.at(-1); // undefined, "deployments", "sentinel-logs", or "openapi-diff"
 
   const subPages = [
     { id: "overview", label: "Overview", href: `${basePath}/${projectId}`, segment: undefined },
@@ -143,7 +149,12 @@ export const ProjectNavigation = ({
             </div>
           </QuickNavPopover>
         </Navbar.Breadcrumbs.Link>
-        <Navbar.Breadcrumbs.Link href={currentSubPage.href} noop active isLast>
+        <Navbar.Breadcrumbs.Link
+          href={isDeploymentDetailPage ? `${basePath}/${projectId}/deployments` : currentSubPage.href}
+          noop
+          active={!isDeploymentDetailPage}
+          isLast={!isDeploymentDetailPage}
+        >
           <QuickNavPopover
             items={subPages.map((page) => ({
               id: page.id,
@@ -151,13 +162,24 @@ export const ProjectNavigation = ({
               href: page.href,
             }))}
             shortcutKey="M"
+            activeItemId={isDeploymentDetailPage ? "deployments" : undefined}
           >
             <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
-              {currentSubPage.label}
+              {isDeploymentDetailPage ? "Deployments" : currentSubPage.label}
               <ChevronExpandY className="size-4" />
             </div>
           </QuickNavPopover>
         </Navbar.Breadcrumbs.Link>
+        {isDeploymentDetailPage && deploymentId && (
+          <Navbar.Breadcrumbs.Link
+            href={`${basePath}/${projectId}/${deploymentId}`}
+            active
+            isLast
+            className="font-mono"
+          >
+            {shortenId(deploymentId)}
+          </Navbar.Breadcrumbs.Link>
+        )}
       </Navbar.Breadcrumbs>
       <div className="flex gap-4 items-center">
         {activeProject.gitRepositoryUrl && (

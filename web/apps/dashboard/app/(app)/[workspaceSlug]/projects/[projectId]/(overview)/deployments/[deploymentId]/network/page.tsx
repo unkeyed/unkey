@@ -1,7 +1,7 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
 import { useState } from "react";
-import { useProject } from "../../(overview)/layout-provider";
+import { useProject } from "../../../layout-provider";
 import {
   type DeploymentNode,
   InfiniteCanvas,

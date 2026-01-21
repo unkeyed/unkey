@@ -3,7 +3,7 @@ import type {
   HealthStatus,
   RegionNode,
   SentinelNode,
-} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/[deploymentId]/network/unkey-flow/components/nodes/types";
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/deployments/[deploymentId]/network/unkey-flow/components/nodes/types";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
