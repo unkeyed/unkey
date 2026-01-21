@@ -1,4 +1,4 @@
-import type { DeploymentNode } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/[deploymentId]/components/unkey-flow/components/nodes";
+import type { DeploymentNode } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/[deploymentId]/network/unkey-flow/components/nodes";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 

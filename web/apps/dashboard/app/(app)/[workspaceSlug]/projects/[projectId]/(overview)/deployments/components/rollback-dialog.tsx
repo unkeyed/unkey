@@ -7,7 +7,7 @@ import { inArray, useLiveQuery } from "@tanstack/react-db";
 import { CircleInfo, CodeBranch, CodeCommit, Link4 } from "@unkey/icons";
 import { Badge, Button, DialogContainer, toast } from "@unkey/ui";
 import { StatusIndicator } from "../../../components/status-indicator";
-import { useProject } from "../../../layout-provider";
+import { useProject } from "../../layout-provider";
 
 type DeploymentSectionProps = {
   title: string;

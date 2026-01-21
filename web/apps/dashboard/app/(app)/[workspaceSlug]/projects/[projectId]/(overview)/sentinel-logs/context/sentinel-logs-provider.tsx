@@ -1,7 +1,7 @@
 "use client";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { type PropsWithChildren, createContext, useContext, useState } from "react";
-import { useProject } from "../../../layout-provider";
+import { useProject } from "../../layout-provider";
 
 type SentinelLogsContextType = {
   isLive: boolean;

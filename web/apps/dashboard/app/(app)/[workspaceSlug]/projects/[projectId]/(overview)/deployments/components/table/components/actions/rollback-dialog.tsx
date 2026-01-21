@@ -4,7 +4,7 @@ import { type Deployment, collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { inArray, useLiveQuery } from "@tanstack/react-db";
 import { Button, DialogContainer, toast } from "@unkey/ui";
-import { useProject } from "../../../../../../layout-provider";
+import { useProject } from "../../../../../layout-provider";
 import { DeploymentSection } from "./components/deployment-section";
 import { DomainsSection } from "./components/domains-section";
 

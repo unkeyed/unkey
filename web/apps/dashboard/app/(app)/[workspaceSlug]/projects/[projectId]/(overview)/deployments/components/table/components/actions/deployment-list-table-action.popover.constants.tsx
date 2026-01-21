@@ -1,5 +1,5 @@
 "use client";
-import { useProject } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/layout-provider";
+import { useProject } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/layout-provider";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
@@ -48,12 +48,12 @@ export const DeploymentListTableActions = ({
         ActionComponent:
           liveDeployment && canRollbackAndRollback
             ? (props) => (
-                <RollbackDialog
-                  {...props}
-                  liveDeployment={liveDeployment}
-                  targetDeployment={selectedDeployment}
-                />
-              )
+              <RollbackDialog
+                {...props}
+                liveDeployment={liveDeployment}
+                targetDeployment={selectedDeployment}
+              />
+            )
             : undefined,
       },
       {
@@ -64,12 +64,12 @@ export const DeploymentListTableActions = ({
         ActionComponent:
           liveDeployment && canRollbackAndRollback
             ? (props) => (
-                <PromotionDialog
-                  {...props}
-                  liveDeployment={liveDeployment}
-                  targetDeployment={selectedDeployment}
-                />
-              )
+              <PromotionDialog
+                {...props}
+                liveDeployment={liveDeployment}
+                targetDeployment={selectedDeployment}
+              />
+            )
             : undefined,
       },
 

@@ -5,7 +5,7 @@ import { Cloud, Earth, FolderCloud, Page2 } from "@unkey/icons";
 import type { ReactNode } from "react";
 import { ProjectContentWrapper } from "./components/project-content-wrapper";
 import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "./(overview)/details/domain-row";
-import { useProject } from "./layout-provider";
+import { useProject } from "./(overview)/layout-provider";
 import { ActiveDeploymentCard } from "./components/active-deployment-card";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import { EnvironmentVariablesSection } from "./(overview)/details/env-variables-section";

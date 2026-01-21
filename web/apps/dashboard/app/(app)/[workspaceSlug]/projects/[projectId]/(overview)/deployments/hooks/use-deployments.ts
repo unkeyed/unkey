@@ -1,7 +1,7 @@
 import { collection } from "@/lib/collections";
 import { eq, gt, gte, lte, or, useLiveQuery } from "@tanstack/react-db";
 import ms from "ms";
-import { useProject } from "../../../layout-provider";
+import { useProject } from "../../layout-provider";
 import type { DeploymentListFilterField } from "../filters.schema";
 import { useFilters } from "./use-filters";
 

@@ -1,6 +1,6 @@
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { InfoTooltip } from "@unkey/ui";
-import { useProject } from "../../../../../layout-provider";
+import { useProject } from "../../../../layout-provider";
 import { DomainListSkeleton } from "./skeletons";
 
 type Props = {

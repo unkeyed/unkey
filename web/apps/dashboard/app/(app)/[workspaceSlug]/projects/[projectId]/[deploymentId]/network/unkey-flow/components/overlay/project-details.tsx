@@ -1,10 +1,11 @@
+import { ProjectDetailsContent } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/details/project-details-expandables/project-details-content";
+import { InfoChip } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/info-chip";
+import { StatusIndicator } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/status-indicator";
 import { shortenId } from "@/lib/shorten-id";
 import { ChevronDown, CodeBranch, CodeCommit } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
-import { StatusIndicator } from "../../../../../components/status-indicator";
-import { InfoChip } from "../../../../../components/info-chip";
-import { ProjectDetailsContent } from "../../../../../(overview)/details/project-details-expandables/project-details-content";
+
 
 
 type ProjectDetailsProps = {

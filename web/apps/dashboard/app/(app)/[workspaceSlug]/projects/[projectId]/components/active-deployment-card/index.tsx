@@ -3,7 +3,7 @@
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { CodeBranch, CodeCommit } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
-import { useProject } from "../../layout-provider";
+import { useProject } from "../../(overview)/layout-provider";
 import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card-empty";
 import { Avatar } from "../../components/git-avatar";
 import { InfoChip } from "../../components/info-chip";

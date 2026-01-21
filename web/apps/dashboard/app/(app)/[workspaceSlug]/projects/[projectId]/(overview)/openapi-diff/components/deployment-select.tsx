@@ -11,7 +11,7 @@ import {
 } from "@unkey/ui";
 import { format } from "date-fns";
 import { PulseIndicator } from "../../../components/status-indicator";
-import { useProject } from "../../../layout-provider";
+import { useProject } from "../../layout-provider";
 
 type DeploymentSelectProps = {
   value: string;
