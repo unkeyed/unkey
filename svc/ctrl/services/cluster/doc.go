@@ -30,6 +30,10 @@
 //
 // # Key Types
 //
+// # Key Types
+//
 // The main service type is [Service], which implements [ctrlv1connect.ClusterServiceHandler].
-// The primary RPC is [Service.Sync] which handles state synchronization.
+// The primary RPCs are [Service.WatchDeployments] and [Service.WatchSentinels] for streaming
+// state changes, and [Service.ReportDeploymentStatus] and [Service.ReportSentinelStatus] for
+// receiving agent status updates.
 package cluster
