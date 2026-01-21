@@ -4,11 +4,11 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Bolt, Cloud, Grid, Harddrive, LayoutRight } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import type { ReactNode } from "react";
-import { useProject } from "../../layout-provider";
 import { ActiveDeploymentCard } from "../../../components/active-deployment-card";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
 import { InfoChip } from "../../../components/info-chip";
 import { ProjectContentWrapper } from "../../../components/project-content-wrapper";
+import { useProject } from "../../layout-provider";
 
 const DEPLOYMENT_ID = "d_5VmWaBhBEn5jmAcZ";
 

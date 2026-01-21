@@ -1,14 +1,17 @@
 "use client";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { BookBookmark, CodeBranch, Cube } from "@unkey/icons";
-import { useIsMobile } from "@unkey/ui";
+import { Loading, useIsMobile } from "@unkey/ui";
 import { Button, Empty, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useMemo, useState } from "react";
 import { Avatar } from "../../../../components/git-avatar";
 import { StatusIndicator } from "../../../../components/status-indicator";
 import { useDeployments } from "../../hooks/use-deployments";
@@ -53,6 +56,16 @@ export const DeploymentsList = () => {
 
   const selectedDeploymentId = selectedDeployment?.deployment.id;
 
+  const workspace = useWorkspaceNavigation();
+  const router = useRouter();
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  const handleLinkClick = useCallback((e: React.MouseEvent, deploymentId: string) => {
+    e.preventDefault();
+    setIsNavigating(true);
+    router.push(`/${workspace.slug}/projects/${project?.id}/deployments/${deploymentId}`);
+  }, []);
+
   const columns: Column<{
     deployment: Deployment;
     environment?: Environment;
@@ -70,25 +83,42 @@ export const DeploymentsList = () => {
           return (
             <div className="flex flex-col items-start px-[18px] py-1.5">
               <div className="flex gap-3 items-center w-full">
-                {iconContainer}
-                <div className="w-[200px]">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={cn(
-                        "font-normal font-mono truncate leading-5 text-[13px]",
-                        "text-accent-12",
-                      )}
-                    >
-                      {shortenId(deployment.id)}
+                {isNavigating ? (
+                  <div className="relative">
+                    <div className="size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3">
+                      <div className="size-[12px] items-center justify-center flex">
+                        <Loading size={18} />
+                      </div>
                     </div>
-                    {isLive ? (
-                      project?.isRolledBack ? (
-                        <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
-                      ) : (
-                        <EnvStatusBadge variant="live" text="Live" />
-                      )
-                    ) : null}
                   </div>
+                ) : (
+                  iconContainer
+                )}
+                <div className="w-[200px]">
+                  <Link
+                    title={`View details for ${deployment.id}`}
+                    className="font-mono group-hover:underline decoration-dotted"
+                    href={`/${workspace.slug}/projects/${project?.id}/deployments/${deployment.id}`}
+                    onClick={(e) => handleLinkClick(e, deployment.id)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={cn(
+                          "font-normal font-mono truncate leading-5 text-[13px]",
+                          "text-accent-12",
+                        )}
+                      >
+                        {shortenId(deployment.id)}
+                      </div>
+                      {isLive ? (
+                        project?.isRolledBack ? (
+                          <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
+                        ) : (
+                          <EnvStatusBadge variant="live" text="Live" />
+                        )
+                      ) : null}
+                    </div>
+                  </Link>
                   <div
                     className={cn(
                       "font-normal font-mono truncate text-xs mt-1 capitalize",

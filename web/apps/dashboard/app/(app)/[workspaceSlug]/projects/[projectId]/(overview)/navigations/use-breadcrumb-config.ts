@@ -1,16 +1,15 @@
 "use client";
 
-import { Navbar } from "@/components/navigation/navbar";
+import type { Navbar } from "@/components/navigation/navbar";
 import { shortenId } from "@/lib/shorten-id";
-import type { ComponentPropsWithoutRef } from "react";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
+import type { ComponentPropsWithoutRef } from "react";
 
 export type QuickNavItem = {
   id: string;
   label: string;
   href: string;
 };
-
 
 export type BreadcrumbItem = ComponentPropsWithoutRef<typeof Navbar.Breadcrumbs.Link> & {
   /** Unique identifier for the breadcrumb item */
@@ -120,9 +119,7 @@ export const useBreadcrumbConfig = ({
     {
       id: "subpage",
       children: isOnDeploymentDetail ? "Deployments" : activeSubPage.label,
-      href: isOnDeploymentDetail
-        ? `${basePath}/${projectId}/deployments`
-        : activeSubPage.href,
+      href: isOnDeploymentDetail ? `${basePath}/${projectId}/deployments` : activeSubPage.href,
       shouldRender: true,
       active: !isOnDeploymentDetail, // Active if not on detail page
       isLast: !isOnDeploymentDetail, // Last if not on detail page
