@@ -1,6 +1,7 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
 import { useState } from "react";
+import { useProject } from "../../(overview)/layout-provider";
 import {
   type DeploymentNode,
   InfiniteCanvas,
@@ -20,7 +21,6 @@ import {
   isSentinelNode,
   isSkeletonNode,
 } from "./unkey-flow";
-import { useProject } from "../../(overview)/layout-provider";
 
 export default function DeploymentDetailsPage() {
   const { projectId, liveDeploymentId } = useProject();

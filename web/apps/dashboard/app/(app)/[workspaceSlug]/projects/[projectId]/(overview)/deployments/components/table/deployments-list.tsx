@@ -126,52 +126,52 @@ export const DeploymentsList = () => {
       ...(isCompactView
         ? []
         : [
-          {
-            key: "instances" as const,
-            header: "Instances",
-            width: "10%",
-            render: ({ deployment }: { deployment: Deployment }) => {
-              return (
-                <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-                  <Cube className="text-gray-12" iconSize="sm-regular" />
-                  <div className="flex gap-0.5">
-                    <span className="font-semibold text-grayA-12 tabular-nums">
-                      {deployment.instances.length}
-                    </span>
-                    <span>VMs</span>
-                  </div>
-                </div>
-              );
-            },
-          },
-          {
-            key: "size" as const,
-            header: "Size",
-            width: "10%",
-            render: ({ deployment }: { deployment: Deployment }) => {
-              return (
-                <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-                  <Cube className="text-gray-12" iconSize="sm-regular" />
-                  <div className="flex gap-1">
+            {
+              key: "instances" as const,
+              header: "Instances",
+              width: "10%",
+              render: ({ deployment }: { deployment: Deployment }) => {
+                return (
+                  <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
+                    <Cube className="text-gray-12" iconSize="sm-regular" />
                     <div className="flex gap-0.5">
                       <span className="font-semibold text-grayA-12 tabular-nums">
-                        {deployment.cpuMillicores / 1024}
+                        {deployment.instances.length}
                       </span>
-                      <span>vCPU</span>
-                    </div>
-                    <span> / </span>
-                    <div className="flex gap-0.5">
-                      <span className="font-semibold text-grayA-12 tabular-nums">
-                        {deployment.memoryMib}
-                      </span>
-                      <span>MiB</span>
+                      <span>VMs</span>
                     </div>
                   </div>
-                </div>
-              );
+                );
+              },
             },
-          },
-        ]),
+            {
+              key: "size" as const,
+              header: "Size",
+              width: "10%",
+              render: ({ deployment }: { deployment: Deployment }) => {
+                return (
+                  <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
+                    <Cube className="text-gray-12" iconSize="sm-regular" />
+                    <div className="flex gap-1">
+                      <div className="flex gap-0.5">
+                        <span className="font-semibold text-grayA-12 tabular-nums">
+                          {deployment.cpuMillicores / 1024}
+                        </span>
+                        <span>vCPU</span>
+                      </div>
+                      <span> / </span>
+                      <div className="flex gap-0.5">
+                        <span className="font-semibold text-grayA-12 tabular-nums">
+                          {deployment.memoryMib}
+                        </span>
+                        <span>MiB</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              },
+            },
+          ]),
       {
         key: "source",
         header: "Source",
@@ -216,72 +216,72 @@ export const DeploymentsList = () => {
       },
       ...(isCompactView
         ? [
-          {
-            key: "author_created" as const,
-            header: "Author / Created",
-            width: "10%",
-            render: ({ deployment }: { deployment: Deployment }) => {
-              return (
-                <div className="flex flex-col items-start pr-[18px] py-1.5">
-                  <div className="flex gap-3 items-center w-full">
+            {
+              key: "author_created" as const,
+              header: "Author / Created",
+              width: "10%",
+              render: ({ deployment }: { deployment: Deployment }) => {
+                return (
+                  <div className="flex flex-col items-start pr-[18px] py-1.5">
+                    <div className="flex gap-3 items-center w-full">
+                      <Avatar
+                        src={deployment.gitCommitAuthorAvatarUrl}
+                        alt={deployment.gitCommitAuthorHandle ?? "Author"}
+                      />
+
+                      <div className="w-[200px]">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-grayA-12 text-xs">
+                            {deployment.gitCommitAuthorHandle || "—"}
+                          </span>
+                        </div>
+                        <div className={cn("font-mono text-xs mt-1", "text-gray-9")}>
+                          <TimestampInfo
+                            value={deployment.createdAt}
+                            className="font-mono text-xs text-gray-9"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              },
+            },
+          ]
+        : [
+            {
+              key: "created_at" as const,
+              header: "Created",
+              width: "10%",
+              render: ({ deployment }: { deployment: Deployment }) => {
+                return (
+                  <TimestampInfo
+                    value={deployment.createdAt}
+                    displayType="relative"
+                    className="font-mono group-hover:underline decoration-dotted"
+                  />
+                );
+              },
+            },
+            {
+              key: "author" as const,
+              header: "Author",
+              width: "10%",
+              render: ({ deployment }: { deployment: Deployment }) => {
+                return (
+                  <div className="flex items-center gap-2">
                     <Avatar
                       src={deployment.gitCommitAuthorAvatarUrl}
                       alt={deployment.gitCommitAuthorHandle ?? "Author"}
                     />
-
-                    <div className="w-[200px]">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-grayA-12 text-xs">
-                          {deployment.gitCommitAuthorHandle || "—"}
-                        </span>
-                      </div>
-                      <div className={cn("font-mono text-xs mt-1", "text-gray-9")}>
-                        <TimestampInfo
-                          value={deployment.createdAt}
-                          className="font-mono text-xs text-gray-9"
-                        />
-                      </div>
-                    </div>
+                    <span className="font-medium text-grayA-12 text-xs">
+                      {deployment.gitCommitAuthorHandle || "—"}
+                    </span>
                   </div>
-                </div>
-              );
+                );
+              },
             },
-          },
-        ]
-        : [
-          {
-            key: "created_at" as const,
-            header: "Created",
-            width: "10%",
-            render: ({ deployment }: { deployment: Deployment }) => {
-              return (
-                <TimestampInfo
-                  value={deployment.createdAt}
-                  displayType="relative"
-                  className="font-mono group-hover:underline decoration-dotted"
-                />
-              );
-            },
-          },
-          {
-            key: "author" as const,
-            header: "Author",
-            width: "10%",
-            render: ({ deployment }: { deployment: Deployment }) => {
-              return (
-                <div className="flex items-center gap-2">
-                  <Avatar
-                    src={deployment.gitCommitAuthorAvatarUrl}
-                    alt={deployment.gitCommitAuthorHandle ?? "Author"}
-                  />
-                  <span className="font-medium text-grayA-12 text-xs">
-                    {deployment.gitCommitAuthorHandle || "—"}
-                  </span>
-                </div>
-              );
-            },
-          },
-        ]),
+          ]),
       {
         key: "action",
         header: "",

@@ -1,7 +1,7 @@
 import { CircleCheck, CircleWarning } from "@unkey/icons";
 import { Badge } from "@unkey/ui";
 
-type DeploymentStatus = "pending" | "building" | "deploying" | "network" | "ready" | "failed"
+type DeploymentStatus = "pending" | "building" | "deploying" | "network" | "ready" | "failed";
 
 type StatusConfig = {
   variant: "warning" | "success" | "error";

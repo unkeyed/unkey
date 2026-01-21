@@ -1,7 +1,7 @@
 // deployment-logs-context.tsx
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { type ReactNode, createContext, useContext, useState } from "react";
 
 type DeploymentLogsContextValue = {
   isExpanded: boolean;

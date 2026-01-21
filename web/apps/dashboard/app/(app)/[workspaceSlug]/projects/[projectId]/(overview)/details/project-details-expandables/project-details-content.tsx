@@ -2,9 +2,9 @@ import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Cube } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
+import { useProject } from "../../layout-provider";
 import { DetailSection } from "./detail-section";
 import { createDetailSections } from "./sections";
-import { useProject } from "../../layout-provider";
 
 type ProjectDetailsContentProps = {
   projectId: string;

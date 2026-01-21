@@ -1,19 +1,13 @@
 "use client";
 
 import { formatNumber } from "@/lib/fmt";
-import {
-  CircleXMark,
-  Layers3,
-  Magnifier,
-  TriangleWarning2,
-} from "@unkey/icons";
+import { CircleXMark, Layers3, Magnifier, TriangleWarning2 } from "@unkey/icons";
 import { CopyButton, Input } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { format } from "date-fns";
-import { useDeploymentLogsContext } from "../providers/deployment-logs-provider";
 import { useDeploymentLogs } from "../hooks/use-deployment-logs";
+import { useDeploymentLogsContext } from "../providers/deployment-logs-provider";
 import { FilterButton } from "./filter-button";
-
 
 const ANIMATION_STYLES = {
   expand: "transition-all duration-400 ease-in",
@@ -106,8 +100,9 @@ export function DeploymentLogsContent({ deploymentId, showBuildSteps }: Props) {
             <div className="text-center text-gray-9 text-sm py-4 flex items-center justify-center h-full">
               {searchTerm
                 ? `No logs match "${searchTerm}"`
-                : `No ${logFilter === "all" ? (showBuildSteps ? "build" : "sentinel") : logFilter
-                } logs available`}
+                : `No ${
+                    logFilter === "all" ? (showBuildSteps ? "build" : "sentinel") : logFilter
+                  } logs available`}
             </div>
           ) : (
             <div className="flex flex-col gap-px">

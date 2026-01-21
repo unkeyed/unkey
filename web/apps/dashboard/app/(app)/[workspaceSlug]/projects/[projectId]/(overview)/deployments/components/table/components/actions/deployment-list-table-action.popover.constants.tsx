@@ -48,12 +48,12 @@ export const DeploymentListTableActions = ({
         ActionComponent:
           liveDeployment && canRollbackAndRollback
             ? (props) => (
-              <RollbackDialog
-                {...props}
-                liveDeployment={liveDeployment}
-                targetDeployment={selectedDeployment}
-              />
-            )
+                <RollbackDialog
+                  {...props}
+                  liveDeployment={liveDeployment}
+                  targetDeployment={selectedDeployment}
+                />
+              )
             : undefined,
       },
       {
@@ -64,12 +64,12 @@ export const DeploymentListTableActions = ({
         ActionComponent:
           liveDeployment && canRollbackAndRollback
             ? (props) => (
-              <PromotionDialog
-                {...props}
-                liveDeployment={liveDeployment}
-                targetDeployment={selectedDeployment}
-              />
-            )
+                <PromotionDialog
+                  {...props}
+                  liveDeployment={liveDeployment}
+                  targetDeployment={selectedDeployment}
+                />
+              )
             : undefined,
       },
 

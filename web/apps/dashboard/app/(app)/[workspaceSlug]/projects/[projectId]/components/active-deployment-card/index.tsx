@@ -3,13 +3,13 @@
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { CodeBranch, CodeCommit } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
+import { Card } from "../../(overview)/components/card";
 import { useProject } from "../../(overview)/layout-provider";
-import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card-empty";
 import { Avatar } from "../../components/git-avatar";
 import { InfoChip } from "../../components/info-chip";
-import { ActiveDeploymentCardSkeleton } from "./components/skeleton";
 import { StatusIndicator } from "../../components/status-indicator";
-import { Card } from "../../(overview)/components/card";
+import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card-empty";
+import { ActiveDeploymentCardSkeleton } from "./components/skeleton";
 
 type Props = {
   deploymentId: string | null;

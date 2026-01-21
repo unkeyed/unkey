@@ -3,15 +3,15 @@ import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Cloud, Earth, FolderCloud, Page2 } from "@unkey/icons";
 import type { ReactNode } from "react";
-import { ProjectContentWrapper } from "./components/project-content-wrapper";
+import { DeploymentLogsContent } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-content";
+import { DeploymentLogsTrigger } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-trigger";
+import { DeploymentLogsProvider } from "./(overview)/details/active-deployment-card-logs/providers/deployment-logs-provider";
 import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "./(overview)/details/domain-row";
+import { EnvironmentVariablesSection } from "./(overview)/details/env-variables-section";
 import { useProject } from "./(overview)/layout-provider";
 import { ActiveDeploymentCard } from "./components/active-deployment-card";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
-import { EnvironmentVariablesSection } from "./(overview)/details/env-variables-section";
-import { DeploymentLogsProvider } from "./(overview)/details/active-deployment-card-logs/providers/deployment-logs-provider";
-import { DeploymentLogsTrigger } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-trigger";
-import { DeploymentLogsContent } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-content";
+import { ProjectContentWrapper } from "./components/project-content-wrapper";
 
 export default function ProjectDetails() {
   const { projectId, collections } = useProject();
@@ -44,7 +44,6 @@ export default function ProjectDetails() {
   // Then, user can switch between runtime(not implemented yet) and sentinel logs
   const showBuildSteps = deploymentStatus !== "ready";
 
-
   return (
     <ProjectContentWrapper centered>
       <Section>
@@ -59,11 +58,15 @@ export default function ProjectDetails() {
             trailingContent={<DeploymentLogsTrigger showBuildSteps={showBuildSteps} />}
             expandableContent={
               project?.liveDeploymentId ? (
-                <DeploymentLogsContent deploymentId={project?.liveDeploymentId} showBuildSteps={showBuildSteps} />
+                <DeploymentLogsContent
+                  deploymentId={project?.liveDeploymentId}
+                  showBuildSteps={showBuildSteps}
+                />
               ) : null
             }
           />
-        </DeploymentLogsProvider>      </Section>
+        </DeploymentLogsProvider>{" "}
+      </Section>
       <Section>
         <SectionHeader
           icon={<Earth iconSize="md-regular" className="text-gray-9" />}

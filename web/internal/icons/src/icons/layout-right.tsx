@@ -24,11 +24,32 @@ export const LayoutRight: React.FC<IconProps> = ({ iconSize = "xl-thin", ...prop
       xmlns="http://www.w3.org/2000/svg"
     >
       <g fill="currentColor">
-        <rect height="12.5" width="14.5" fill="none" rx="2" ry="2" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} transform="translate(18 18) rotate(180)" x="1.75" y="2.75" />
-        <line fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} x1="13.25" x2="13.25" y1="5.75" y2="12.25" />
+        <rect
+          height="12.5"
+          width="14.5"
+          fill="none"
+          rx="2"
+          ry="2"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+          transform="translate(18 18) rotate(180)"
+          x="1.75"
+          y="2.75"
+        />
+        <line
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+          x1="13.25"
+          x2="13.25"
+          y1="5.75"
+          y2="12.25"
+        />
       </g>
     </svg>
   );
 };
-
-
