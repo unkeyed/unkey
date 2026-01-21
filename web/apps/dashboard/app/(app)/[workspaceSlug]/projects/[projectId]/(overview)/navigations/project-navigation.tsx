@@ -63,6 +63,10 @@ export const ProjectNavigation = ({
     activeProject,
   });
 
+  const isOnDeploymentDetail = Boolean(
+    breadcrumbs.find((p) => p.id === "deployment-detail")?.active,
+  );
+
   const anchorRef = useRef<HTMLDivElement | null>(null);
 
   const handleRef = (node: HTMLDivElement | null) => {
@@ -192,23 +196,25 @@ export const ProjectNavigation = ({
           <Button className="size-7" variant="outline">
             <Dots iconSize="sm-regular" />
           </Button>
-          <InfoTooltip
-            asChild
-            content={getTooltipContent()}
-            position={{
-              side: "bottom",
-              align: "end",
-            }}
-          >
-            <Button
-              variant="ghost"
-              className="size-7"
-              disabled={!liveDeploymentId}
-              onClick={onClick}
+          {!isOnDeploymentDetail && (
+            <InfoTooltip
+              asChild
+              content={getTooltipContent()}
+              position={{
+                side: "bottom",
+                align: "end",
+              }}
             >
-              <DoubleChevronLeft iconSize="lg-medium" className="text-gray-13" />
-            </Button>
-          </InfoTooltip>
+              <Button
+                variant="outline"
+                className="size-7"
+                disabled={!liveDeploymentId}
+                onClick={onClick}
+              >
+                <DoubleChevronLeft iconSize="lg-medium" className="text-gray-13" />
+              </Button>
+            </InfoTooltip>
+          )}
         </div>
       </div>
     </Navbar>

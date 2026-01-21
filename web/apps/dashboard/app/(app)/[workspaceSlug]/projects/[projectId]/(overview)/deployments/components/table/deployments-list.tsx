@@ -60,11 +60,14 @@ export const DeploymentsList = () => {
   const router = useRouter();
   const [isNavigating, setIsNavigating] = useState(false);
 
-  const handleLinkClick = useCallback((e: React.MouseEvent, deploymentId: string) => {
-    e.preventDefault();
-    setIsNavigating(true);
-    router.push(`/${workspace.slug}/projects/${project?.id}/deployments/${deploymentId}`);
-  }, []);
+  const handleLinkClick = useCallback(
+    (e: React.MouseEvent, deploymentId: string) => {
+      e.preventDefault();
+      setIsNavigating(true);
+      router.push(`/${workspace.slug}/projects/${project?.id}/deployments/${deploymentId}`);
+    },
+    [router, workspace.slug, project?.id],
+  );
 
   const columns: Column<{
     deployment: Deployment;
