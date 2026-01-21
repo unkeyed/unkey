@@ -458,8 +458,8 @@ CREATE TABLE `deployment_topology` (
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployment_topology_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `deployment_topology_version_unique` UNIQUE(`version`),
-	CONSTRAINT `unique_region_per_deployment` UNIQUE(`deployment_id`,`region`)
+	CONSTRAINT `unique_region_per_deployment` UNIQUE(`deployment_id`,`region`),
+	CONSTRAINT `unique_version_per_region` UNIQUE(`region`,`version`)
 );
 
 CREATE TABLE `acme_users` (

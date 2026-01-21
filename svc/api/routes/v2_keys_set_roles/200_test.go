@@ -413,7 +413,7 @@ func TestSetRolesConcurrent(t *testing.T) {
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			if res.Status != 200 {
-				return fmt.Errorf("request %d: unexpected status %d", i, res.Status)
+				return fmt.Errorf("request %d: unexpected status %d, body: %s", i, res.Status, res.RawBody)
 			}
 			return nil
 		})
