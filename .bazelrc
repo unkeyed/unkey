@@ -9,7 +9,6 @@ common --show_timestamps
 # ============================================================
 # Persist external repository downloads (Go modules, etc.)
 common --repository_cache=~/.cache/bazel-repo
-common --experimental_repository_cache_hardlinks
 
 # Persist build artifacts across clean/workspaces
 common --disk_cache=~/.cache/bazel-disk
