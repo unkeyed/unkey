@@ -1,11 +1,8 @@
 package keys
 
 import (
-	"fmt"
-
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
-	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -41,17 +38,6 @@ type service struct {
 
 // New creates a new keys service instance with the provided configuration.
 func New(config Config) (*service, error) {
-	if err := assert.All(
-		assert.NotNil(config.Logger, "logger is required"),
-		assert.NotNil(config.DB, "db is required"),
-		assert.NotNil(config.RateLimiter, "rate limiter is required"),
-		assert.NotNil(config.RBAC, "rbac is required"),
-		assert.NotNil(config.Clickhouse, "clickhouse is required"),
-		assert.NotNil(config.UsageLimiter, "usage limiter is required"),
-		assert.NotNil(config.KeyCache, "key cache is required"),
-	); err != nil {
-		return nil, fmt.Errorf("invalid keys service config: %w", err)
-	}
 
 	return &service{
 		logger:       config.Logger,

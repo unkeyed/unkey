@@ -40,13 +40,14 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/workflows/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/workflows/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/workflows/routing"
+	"github.com/unkeyed/unkey/svc/ctrl/workflows/versioning"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
 
 // Run starts the control plane server with the provided configuration.
 //
-// This function initializes all required services and starts the HTTP/2 gRPC server.
+// This function initializes all required services and starts the HTTP/2 Connect server.
 // It performs these major initialization steps:
 // 1. Validates configuration and initializes structured logging
 // 2. Sets up OpenTelemetry if enabled
@@ -55,7 +56,7 @@ import (
 // 5. Starts Restate workflow engine with service bindings
 // 6. Configures ACME challenge providers (HTTP-01, DNS-01)
 // 7. Registers with Restate admin API for service discovery
-// 8. Starts HTTP/2 server with all gRPC handlers
+// 8. Starts HTTP/2 server with all Connect handlers
 // 9. Boots up cluster management and starts certificate renewal
 //
 // The server handles graceful shutdown when context is cancelled, properly
@@ -255,6 +256,8 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:            database,
 		DefaultDomain: cfg.DefaultDomain,
 	}), restate.WithIngressPrivate(true)))
+
+	restateSrv.Bind(hydrav1.NewVersioningServiceServer(versioning.New(), restate.WithIngressPrivate(true)))
 
 	// Initialize shared caches for ACME (needed for verification endpoint regardless of provider config)
 	caches, cacheErr := ctrlCaches.New(ctrlCaches.Config{

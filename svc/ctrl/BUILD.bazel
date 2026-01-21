@@ -38,6 +38,7 @@ go_library(
         "//svc/ctrl/workflows/certificate",
         "//svc/ctrl/workflows/deploy",
         "//svc/ctrl/workflows/routing",
+        "//svc/ctrl/workflows/versioning",
         "@com_github_go_acme_lego_v4//challenge",
         "@com_github_restatedev_sdk_go//:sdk-go",
         "@com_github_restatedev_sdk_go//ingress",

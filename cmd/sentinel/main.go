@@ -24,7 +24,7 @@ var Cmd = &cli.Command{
 
 		// Instance Identification
 		cli.String("sentinel-id", "Unique identifier for this sentinel instance. Auto-generated if not provided.",
-			cli.Default(uid.New("sentinel", 4)), cli.EnvVar("UNKEY_GATEWAY_ID")),
+			cli.Default(uid.New("sentinel", 4)), cli.EnvVar("UNKEY_SENTINEL_ID")),
 
 		cli.String("workspace-id", "Workspace ID this sentinel serves. Required.",
 			cli.Required(), cli.EnvVar("UNKEY_WORKSPACE_ID")),
