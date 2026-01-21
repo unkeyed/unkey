@@ -43,6 +43,11 @@ func (c *Controller) streamDesiredStateOnce(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if err := stream.Close(); err != nil {
+			c.logger.Error("unable to close control plane stream", "error", err)
+		}
+	}()
 
 	for stream.Receive() {
 		c.logger.Info("received desired state from control plane")
@@ -62,11 +67,6 @@ func (c *Controller) streamDesiredStateOnce(ctx context.Context) error {
 		if state.GetVersion() > c.versionLastSeen {
 			c.versionLastSeen = state.GetVersion()
 		}
-	}
-
-	if err := stream.Close(); err != nil {
-		c.logger.Error("unable to close control plane stream", "error", err)
-		return err
 	}
 
 	return nil
