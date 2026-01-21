@@ -64,7 +64,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
     city: z.string().optional(),
     userAgent: z.string().optional(),
     fromAgent: z.string().optional(),
-    context: z.record(z.unknown()),
+    context: z.record(z.string(), z.unknown()),
   }),
   z.object({
     metric: z.literal("metric.db.read"),
