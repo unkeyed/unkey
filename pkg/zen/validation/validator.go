@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/pb33f/libopenapi"
+	"github.com/pb33f/libopenapi/datamodel"
 	validator "github.com/pb33f/libopenapi-validator"
 	"github.com/unkeyed/unkey/pkg/ctxutil"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -26,7 +27,15 @@ type Validator struct {
 }
 
 func New() (*Validator, error) {
-	document, err := libopenapi.NewDocument(openapi.Spec)
+	// Configure the document to ignore array-based circular references
+	// This is needed because Role -> Permission schemas create a valid
+	// reference chain that the validator incorrectly detects as circular
+	// during inline schema rendering for validation.
+	config := datamodel.NewDocumentConfiguration()
+	config.IgnoreArrayCircularReferences = true
+	config.IgnorePolymorphicCircularReferences = true
+
+	document, err := libopenapi.NewDocumentWithConfiguration(openapi.Spec, config)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to create OpenAPI document"))
 	}
