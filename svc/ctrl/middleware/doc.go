@@ -1,7 +1,7 @@
 // Package middleware provides authentication and authorization for control plane APIs.
 //
 // This package implements simple API key authentication middleware for
-// protecting gRPC endpoints. It validates Bearer tokens against
+// protecting Connect endpoints. It validates Bearer tokens against
 // expected API key and provides error responses for failed authentication.
 //
 // # Authentication Flow
@@ -39,5 +39,5 @@
 //   - ErrInvalidAPIKey: API key doesn't match expected value
 //
 // These errors are wrapped with appropriate Connect error codes
-// for gRPC transmission.
+// for Connect transmission.
 package middleware

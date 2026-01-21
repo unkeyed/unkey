@@ -138,6 +138,7 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 			ProjectID:         projectID,
 			CpuMillicores:     512,
 			MemoryMib:         512,
+			Version:           uint64(now),
 			CreatedAt:         now,
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {

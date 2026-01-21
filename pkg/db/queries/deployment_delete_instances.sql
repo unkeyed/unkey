@@ -1,3 +1,3 @@
 -- name: DeleteDeploymentInstances :exec
 DELETE FROM instances
-WHERE deployment_id = ? AND cluster_id = ?;
+WHERE deployment_id = ? AND region = ?;
