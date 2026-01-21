@@ -54,6 +54,6 @@
 // # Error Handling
 //
 // All backends provide comprehensive error handling with proper
-// gRPC error codes for client communication and detailed
+// Connect error codes for client communication and detailed
 // logging of build failures and progress.
 package build

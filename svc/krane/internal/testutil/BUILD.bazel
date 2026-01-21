@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "testutil",
+    srcs = ["mock_cluster_client.go"],
+    importpath = "github.com/unkeyed/unkey/svc/krane/internal/testutil",
+    visibility = ["//svc/krane:__subpackages__"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "@com_connectrpc_connect//:connect",
+    ],
+)
