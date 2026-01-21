@@ -94,7 +94,7 @@ func ParseACMEError(err error) *ParsedACMEError {
 	errStr := strings.ToLower(err.Error())
 
 	// AWS credential errors
-	if strings.Contains(errStr, "signaturadoesnotmatch") ||
+	if strings.Contains(errStr, "signaturedoesnotmatch") ||
 		strings.Contains(errStr, "signature") && strings.Contains(errStr, "does not match") ||
 		strings.Contains(errStr, "invalidclienttokenid") ||
 		strings.Contains(errStr, "invalid security token") ||
