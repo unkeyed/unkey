@@ -4,11 +4,14 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Cloud, Earth, FolderCloud, Page2 } from "@unkey/icons";
 import type { ReactNode } from "react";
 import { ProjectContentWrapper } from "./components/project-content-wrapper";
-import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "./details/domain-row";
+import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "./(project)/details/domain-row";
 import { useProject } from "./layout-provider";
 import { ActiveDeploymentCard } from "./components/active-deployment-card";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
-import { EnvironmentVariablesSection } from "./details/env-variables-section";
+import { EnvironmentVariablesSection } from "./(project)/details/env-variables-section";
+import { DeploymentLogsProvider } from "./(project)/details/active-deployment-card-logs/providers/deployment-logs-provider";
+import { DeploymentLogsTrigger } from "./(project)/details/active-deployment-card-logs/components/deployment-logs-trigger";
+import { DeploymentLogsContent } from "./(project)/details/active-deployment-card-logs/components/deployment-logs-content";
 
 export default function ProjectDetails() {
   const { projectId, collections } = useProject();
@@ -37,6 +40,10 @@ export default function ProjectDetails() {
   );
   const deploymentStatus = deployment.data.at(0)?.status;
 
+  // If deployment status is not ready it means we gotta keep showing build steps.
+  // Then, user can switch between runtime(not implemented yet) and sentinel logs
+  const showBuildSteps = deploymentStatus !== "ready";
+
 
   return (
     <ProjectContentWrapper centered>
@@ -45,15 +52,18 @@ export default function ProjectDetails() {
           icon={<Cloud iconSize="md-regular" className="text-gray-9" />}
           title="Live Deployment"
         />
-        <ActiveDeploymentCard deploymentId={project?.liveDeploymentId ?? null}
-          statusBadge={
-            <DeploymentStatusBadge
-              status={deploymentStatus}
-              className="text-successA-11 font-medium"
-            />
-          }
-        />
-      </Section>
+        <DeploymentLogsProvider>
+          <ActiveDeploymentCard
+            deploymentId={project?.liveDeploymentId ?? null}
+            statusBadge={<DeploymentStatusBadge status={deploymentStatus} />}
+            trailingContent={<DeploymentLogsTrigger showBuildSteps={showBuildSteps} />}
+            expandableContent={
+              project?.liveDeploymentId ? (
+                <DeploymentLogsContent deploymentId={project?.liveDeploymentId} showBuildSteps={showBuildSteps} />
+              ) : null
+            }
+          />
+        </DeploymentLogsProvider>      </Section>
       <Section>
         <SectionHeader
           icon={<Earth iconSize="md-regular" className="text-gray-9" />}

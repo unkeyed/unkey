@@ -3,8 +3,8 @@ import { collection, collectionManager } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useState } from "react";
 import { ProjectLayoutContext } from "./layout-provider";
-import { ProjectNavigation } from "./navigations/project-navigation";
-import { ProjectDetailsExpandable } from "./details/project-details-expandables";
+import { ProjectNavigation } from "./(project)/navigations/project-navigation";
+import { ProjectDetailsExpandable } from "./(project)/details/project-details-expandables";
 
 export default function ProjectLayoutWrapper({
   children,

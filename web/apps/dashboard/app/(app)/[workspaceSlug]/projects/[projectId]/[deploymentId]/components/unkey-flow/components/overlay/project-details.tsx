@@ -4,7 +4,7 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
 import { StatusIndicator } from "../../../../../components/status-indicator";
 import { InfoChip } from "../../../../../components/info-chip";
-import { ProjectDetailsContent } from "../../../../../details/components/project-details-expandables/project-details-content";
+import { ProjectDetailsContent } from "../../../../../(project)/details/project-details-expandables/project-details-content";
 
 
 type ProjectDetailsProps = {
