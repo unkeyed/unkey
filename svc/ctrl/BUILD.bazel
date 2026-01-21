@@ -22,7 +22,6 @@ go_library(
         "//pkg/retry",
         "//pkg/shutdown",
         "//pkg/tls",
-        "//pkg/uid",
         "//pkg/vault",
         "//pkg/vault/storage",
         "//pkg/version",

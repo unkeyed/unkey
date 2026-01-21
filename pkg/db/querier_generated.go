@@ -194,6 +194,15 @@ type Querier interface {
 	//  FROM custom_domains
 	//  WHERE id = ?
 	FindCustomDomainById(ctx context.Context, db DBTX, id string) (CustomDomain, error)
+	//FindCustomDomainWithCertByDomain
+	//
+	//  SELECT
+	//      cd.pk, cd.id, cd.workspace_id, cd.domain, cd.challenge_type, cd.created_at, cd.updated_at,
+	//      c.id AS certificate_id
+	//  FROM custom_domains cd
+	//  LEFT JOIN certificates c ON c.hostname = cd.domain
+	//  WHERE cd.domain = ?
+	FindCustomDomainWithCertByDomain(ctx context.Context, db DBTX, domain string) (FindCustomDomainWithCertByDomainRow, error)
 	//FindDeploymentById
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, status, created_at, updated_at FROM `deployments` WHERE id = ?
