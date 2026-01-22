@@ -6,8 +6,6 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_get_deployment",
     visibility = ["//visibility:public"],
     deps = [
-        "//gen/proto/ctrl/v1:ctrl",
-        "//gen/proto/ctrl/v1/ctrlv1connect",
         "//internal/services/keys",
         "//pkg/codes",
         "//pkg/db",
@@ -15,9 +13,7 @@ go_library(
         "//pkg/otel/logging",
         "//pkg/rbac",
         "//pkg/zen",
-        "//svc/api/internal/ctrlclient",
         "//svc/api/openapi",
-        "@com_connectrpc_connect//:connect",
     ],
 )
 
@@ -32,11 +28,10 @@ go_test(
     ],
     deps = [
         ":v2_deploy_get_deployment",
-        "//gen/proto/ctrl/v1:ctrl",
-        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//pkg/uid",
         "//svc/api/internal/testutil",
+        "//svc/api/internal/testutil/seed",
         "//svc/api/openapi",
-        "@com_connectrpc_connect//:connect",
         "@com_github_stretchr_testify//require",
     ],
 )

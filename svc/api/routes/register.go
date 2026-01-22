@@ -352,10 +352,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2DeployGetDeployment.Handler{
-			Logger:     svc.Logger,
-			DB:         svc.Database,
-			Keys:       svc.Keys,
-			CtrlClient: svc.CtrlDeploymentClient,
+			Logger: svc.Logger,
+			DB:     svc.Database,
+			Keys:   svc.Keys,
 		},
 	)
 

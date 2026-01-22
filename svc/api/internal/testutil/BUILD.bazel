@@ -5,10 +5,12 @@ go_library(
     srcs = [
         "doc.go",
         "http.go",
+        "mock_deployment_client.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/api/internal/testutil",
     visibility = ["//svc/api:__subpackages__"],
     deps = [
+        "//gen/proto/ctrl/v1:ctrl",
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//gen/proto/vault/v1:vault",
         "//internal/services/analytics",
@@ -24,7 +26,6 @@ go_library(
         "//pkg/dockertest",
         "//pkg/otel/logging",
         "//pkg/rbac",
-        "//pkg/rpc/interceptor",
         "//pkg/testutil/containers",
         "//pkg/uid",
         "//pkg/vault",

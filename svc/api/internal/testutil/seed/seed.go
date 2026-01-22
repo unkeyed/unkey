@@ -600,6 +600,53 @@ type CreatePermissionRequest struct {
 	WorkspaceID string
 }
 
+// CreateDeploymentRequest configures the deployment to create.
+type CreateDeploymentRequest struct {
+	ID            string
+	WorkspaceID   string
+	ProjectID     string
+	EnvironmentID string
+	GitBranch     string
+}
+
+// CreateDeployment creates a deployment within a project and environment.
+func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) db.Deployment {
+	require.NoError(s.t, assert.NotEmpty(req.ID, "Deployment ID must be set"))
+	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Deployment WorkspaceID must be set"))
+	require.NoError(s.t, assert.NotEmpty(req.ProjectID, "Deployment ProjectID must be set"))
+	require.NoError(s.t, assert.NotEmpty(req.EnvironmentID, "Deployment EnvironmentID must be set"))
+
+	createdAt := time.Now().UnixMilli()
+	err := db.Query.InsertDeployment(ctx, s.DB.RW(), db.InsertDeploymentParams{
+		ID:                            req.ID,
+		K8sName:                       "test-" + req.ID,
+		WorkspaceID:                   req.WorkspaceID,
+		ProjectID:                     req.ProjectID,
+		EnvironmentID:                 req.EnvironmentID,
+		GitCommitSha:                  sql.NullString{Valid: false},
+		GitBranch:                     sql.NullString{String: req.GitBranch, Valid: req.GitBranch != ""},
+		SentinelConfig:                []byte("{}"),
+		GitCommitMessage:              sql.NullString{Valid: false},
+		GitCommitAuthorHandle:         sql.NullString{Valid: false},
+		GitCommitAuthorAvatarUrl:      sql.NullString{Valid: false},
+		GitCommitTimestamp:            sql.NullInt64{Valid: false},
+		OpenapiSpec:                   sql.NullString{Valid: false},
+		EncryptedEnvironmentVariables: []byte{},
+		Command:                       []byte("[]"),
+		Status:                        db.DeploymentsStatusPending,
+		CpuMillicores:                 100,
+		MemoryMib:                     128,
+		CreatedAt:                     createdAt,
+		UpdatedAt:                     sql.NullInt64{Valid: false},
+	})
+	require.NoError(s.t, err)
+
+	deployment, err := db.Query.FindDeploymentById(ctx, s.DB.RO(), req.ID)
+	require.NoError(s.t, err)
+
+	return deployment
+}
+
 // CreatePermission creates a permission that can be attached to keys or roles.
 func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionRequest) db.Permission {
 	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Permission WorkspaceID must be set"))
