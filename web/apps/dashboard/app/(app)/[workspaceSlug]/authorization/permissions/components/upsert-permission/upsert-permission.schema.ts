@@ -20,7 +20,7 @@ export const permissionSlugSchema = z
 export const permissionDescriptionSchema = z
   .string()
   .trim()
-  .max(512, { message: "Permission description cannot exceed 128 characters" })
+  .max(512, { message: "Permission description cannot exceed 512 characters" })
   .optional();
 
 export const permissionSchema = z
