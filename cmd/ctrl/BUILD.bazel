@@ -4,6 +4,7 @@ go_library(
     name = "ctrl",
     srcs = [
         "api.go",
+        "doc.go",
         "main.go",
         "worker.go",
     ],

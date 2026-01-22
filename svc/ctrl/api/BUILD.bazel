@@ -4,6 +4,7 @@ go_library(
     name = "api",
     srcs = [
         "config.go",
+        "doc.go",
         "run.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/api",

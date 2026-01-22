@@ -9,8 +9,10 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker"
 )
 
-// Cmd is the worker command that runs the Unkey Restate worker service for
-// handling background jobs, deployments, builds, and certificate management.
+// workerCmd defines the "worker" subcommand for running the background job
+// processor. The worker handles durable workflows via Restate including container
+// builds, deployments, and ACME certificate provisioning. It supports two build
+// backends: "docker" for local development and "depot" for production.
 var workerCmd = &cli.Command{
 	Version:     "",
 	Commands:    []*cli.Command{},
@@ -111,6 +113,9 @@ var workerCmd = &cli.Command{
 	Action: workerAction,
 }
 
+// workerAction validates configuration and starts the background worker service.
+// It returns an error if required configuration is missing or if the worker fails
+// to start. The function blocks until the context is cancelled or the worker exits.
 func workerAction(ctx context.Context, cmd *cli.Command) error {
 	config := worker.Config{
 		// Basic configuration

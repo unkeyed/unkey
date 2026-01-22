@@ -6,15 +6,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
-// Service handles routing operations - domain assignment and sentinel configuration.
+// Service implements the routing service for frontline route management.
 //
-// This service manages the relationship between domains, deployments, and sentinel
-// configurations. It handles creating new domain assignments during deployments and
-// switching existing domains between deployments during rollback/promote operations.
-//
-// The service uses Restate virtual objects keyed by project ID to ensure that domain
-// operations are serialized, preventing race conditions that could create inconsistent
-// routing state.
+// Service embeds [hydrav1.UnimplementedRoutingServiceServer] to satisfy the gRPC
+// interface. It uses Restate virtual objects to serialize route reassignment
+// operations, preventing concurrent modifications to the same routes.
 type Service struct {
 	hydrav1.UnimplementedRoutingServiceServer
 	db            db.Database
@@ -24,19 +20,14 @@ type Service struct {
 
 var _ hydrav1.RoutingServiceServer = (*Service)(nil)
 
-// Config holds the configuration for creating a routing service.
+// Config holds the configuration for creating a [Service].
 type Config struct {
-	// Logger for structured logging.
-	Logger logging.Logger
-
-	// DB is the main database connection for domain data.
-	DB db.Database
-
-	// DefaultDomain is the apex domain used to identify production domains (e.g., "unkey.app").
+	Logger        logging.Logger
+	DB            db.Database
 	DefaultDomain string
 }
 
-// New creates a new routing service instance.
+// New creates a new [Service] with the provided configuration.
 func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedRoutingServiceServer: hydrav1.UnimplementedRoutingServiceServer{},

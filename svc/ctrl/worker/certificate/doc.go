@@ -1,78 +1,62 @@
-// Package certificate implements ACME certificate challenge workflows for SSL/TLS provisioning.
+// Package certificate implements ACME certificate workflows for SSL/TLS provisioning.
 //
-// This package handles the complete lifecycle of certificate provisioning using the ACME
-// (Automatic Certificate Management Environment) protocol. It coordinates with certificate
-// authorities to validate domain ownership and obtain SSL/TLS certificates.
+// This package orchestrates the complete certificate lifecycle using the ACME protocol,
+// coordinating with certificate authorities like Let's Encrypt to validate domain
+// ownership and obtain certificates. It supports both HTTP-01 challenges for regular
+// domains and DNS-01 challenges for wildcard certificates.
 //
-// # Built on Restate
+// # Why Restate
 //
-// All workflows in this package are built on top of Restate (restate.dev) for durable
-// execution. This provides critical guarantees:
+// Certificate issuance involves multiple external dependencies (ACME servers, DNS
+// propagation, database writes) that can fail independently. We use Restate for durable
+// execution because ACME challenges have strict timing requirements and rate limits.
+// If a challenge fails partway through, we cannot simply restart from the beginning
+// without risking Let's Encrypt rate limits. Restate's exactly-once execution semantics
+// allow the workflow to resume from the last completed step after crashes or network
+// failures.
 //
-// - Automatic retries on transient failures
-// - Exactly-once execution semantics for each workflow step
-// - Durable state that survives process crashes and restarts
-// - Virtual object concurrency control keyed by domain name
-//
-// The virtual object model ensures that only one certificate challenge runs per domain
-// at any given time, preventing race conditions and duplicate certificate requests that
-// could trigger rate limits from certificate authorities.
+// The virtual object model keys workflows by domain name. This prevents race conditions
+// where two processes might simultaneously request certificates for the same domain,
+// which would trigger ACME duplicate certificate rate limits.
 //
 // # Key Types
 //
-// [Service] is the main entry point that implements the ACME certificate workflow.
-// It handles the [Service.ProcessChallenge] method which orchestrates the entire
-// certificate issuance process.
+// [Service] is the main entry point implementing hydrav1.CertificateServiceServer.
+// Configure it via [Config] and create instances with [New]. The service exposes two
+// primary handlers: [Service.ProcessChallenge] for obtaining certificates and
+// [Service.RenewExpiringCertificates] as a self-scheduling renewal cron job.
 //
-// # Usage
+// [EncryptedCertificate] holds certificate data with the private key encrypted via
+// the vault service before database storage.
 //
-// The service is typically initialized with database connections and a vault service
-// for secure storage of private keys:
+// [BootstrapConfig] configures infrastructure certificate bootstrapping for wildcard
+// certificates needed by the platform itself.
 //
-//	svc := certificate.New(certificate.Config{
-//	    DB:          mainDB,
-//	    Vault:       vaultService,
-//	    Logger:      logger,
-//	})
+// # Challenge Types
 //
-// Certificate challenges are processed through the ProcessChallenge RPC:
+// The service automatically selects the appropriate ACME challenge type based on the
+// domain. Wildcard domains (e.g., "*.example.com") require DNS-01 challenges because
+// HTTP-01 cannot prove control over all possible subdomains. Regular domains use
+// HTTP-01 which is faster since it avoids DNS propagation delays.
 //
-//	resp, err := svc.ProcessChallenge(ctx, &hydrav1.ProcessChallengeRequest{
-//	    WorkspaceId: "ws_123",
-//	    Domain:      "api.example.com",
-//	})
-//	if err != nil {
-//	    // Handle error
-//	}
-//	if resp.Status == "success" {
-//	    // Certificate issued successfully
-//	}
+// # Rate Limit Handling
 //
-// # ACME Challenge Flow
+// Let's Encrypt enforces rate limits that cannot be bypassed. When rate limited,
+// [Service.ProcessChallenge] uses Restate's durable sleep to wait until the retry-after
+// time, then automatically retries. This prevents the workflow from consuming retry
+// budget while waiting. Sleep duration is capped at 2 hours with a 1 minute buffer
+// added to the retry-after time.
 //
-// The certificate challenge process follows these steps:
+// # Security
 //
-// 1. Domain validation - Verify the domain exists and belongs to the workspace
-// 2. Challenge claiming - Acquire exclusive lock on the domain challenge
-// 3. ACME client setup - Get or create an ACME account for the workspace
-// 4. Certificate obtain/renew - Request certificate from the CA
-// 5. Certificate persistence - Store certificate and encrypted private key
-// 6. Challenge completion - Mark the challenge as verified with expiry time
-//
-// Each step is wrapped in a restate.Run call, making it durable and retryable. If the
-// workflow crashes at any point, Restate will resume from the last completed step rather
-// than restarting from the beginning. This ensures that ACME challenges can complete
-// reliably even in the face of system failures, network partitions, or process restarts.
-//
-// # Security Considerations
-//
-// Private keys are encrypted before storage using the vault service. Certificates
-// are stored in the database for fast access by sentinels. ACME account
-// credentials are workspace-scoped to prevent cross-workspace access.
+// Private keys are encrypted using the vault service before storage. The encryption
+// is workspace-scoped via keyring isolation. Certificates themselves are stored
+// unencrypted for fast retrieval by sentinels that terminate TLS.
 //
 // # Error Handling
 //
-// The package uses Restate's error handling model. Terminal errors with appropriate
-// HTTP status codes are returned for client errors (invalid input, not found, etc.).
-// System errors are returned for unexpected failures that may be retried.
+// The package distinguishes between retryable errors (network timeouts, temporary
+// ACME server issues) and terminal errors (invalid credentials, unauthorized domains).
+// Terminal errors use restate.TerminalError to prevent infinite retry loops.
+// Rate limit errors are handled specially with durable sleeps rather than retries.
 package certificate

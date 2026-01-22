@@ -8,15 +8,21 @@ import (
 	"github.com/unkeyed/unkey/pkg/vault"
 )
 
-// Service handles ACME certificate challenge workflows.
+// Service orchestrates ACME certificate issuance and renewal.
 //
-// This service orchestrates the complete certificate issuance process including
-// domain validation, challenge claiming, ACME protocol communication, and certificate
-// storage. It implements the hydrav1.CertificateServiceServer interface.
+// Service implements hydrav1.CertificateServiceServer with two main handlers:
+// [Service.ProcessChallenge] for obtaining/renewing individual certificates, and
+// [Service.RenewExpiringCertificates] as a self-scheduling cron job. It also provides
+// [Service.BootstrapInfraCerts] for provisioning infrastructure wildcard certificates
+// at startup.
 //
-// The service uses Restate virtual objects keyed by domain name to ensure that only
-// one certificate challenge runs per domain at any time, preventing duplicate requests
-// and rate limit violations.
+// The service uses a single global ACME account (not per-workspace) to simplify
+// key management and avoid hitting Let's Encrypt's account rate limits. Challenge
+// type selection is automatic: wildcard domains use DNS-01, regular domains use
+// HTTP-01 for faster issuance.
+//
+// Not safe for concurrent use on the same domain. Concurrency control is handled
+// by Restate's virtual object model which keys handlers by domain name.
 type Service struct {
 	hydrav1.UnimplementedCertificateServiceServer
 	db            db.Database
@@ -24,37 +30,45 @@ type Service struct {
 	logger        logging.Logger
 	emailDomain   string
 	defaultDomain string
-	dnsProvider   challenge.Provider // For DNS-01 challenges (wildcard certs)
-	httpProvider  challenge.Provider // For HTTP-01 challenges (regular certs)
+	dnsProvider   challenge.Provider
+	httpProvider  challenge.Provider
 }
 
 var _ hydrav1.CertificateServiceServer = (*Service)(nil)
 
-// Config holds the configuration for creating a certificate service.
+// Config holds configuration for creating a [Service] instance.
 type Config struct {
-	// DB is the main database connection for workspace and domain data.
+	// DB provides database access for domain, certificate, and ACME challenge records.
 	DB db.Database
 
-	// Vault provides encryption services for private key storage.
+	// Vault encrypts private keys before database storage. Keys are encrypted using
+	// the workspace ID as the keyring identifier.
 	Vault *vault.Service
 
-	// Logger for structured logging.
+	// Logger receives structured log output from certificate operations.
 	Logger logging.Logger
 
-	// EmailDomain is the domain used for ACME account emails (workspace_id@domain)
+	// EmailDomain forms the email address for ACME account registration. The service
+	// constructs emails as "acme@{EmailDomain}" for the global ACME account.
 	EmailDomain string
 
-	// DefaultDomain is the base domain for wildcard certificates
+	// DefaultDomain is the base domain for infrastructure wildcard certificates,
+	// used by [Service.BootstrapInfraCerts] to provision platform TLS.
 	DefaultDomain string
 
-	// DNSProvider is the challenge provider for DNS-01 challenges (wildcard certs)
+	// DNSProvider handles DNS-01 challenges required for wildcard certificates.
+	// Must be set to issue wildcard certs; ignored for regular domain certificates.
 	DNSProvider challenge.Provider
 
-	// HTTPProvider is the challenge provider for HTTP-01 challenges (regular certs)
+	// HTTPProvider handles HTTP-01 challenges for regular (non-wildcard) certificates.
+	// Must be set to issue regular certs; ignored for wildcard certificates.
 	HTTPProvider challenge.Provider
 }
 
-// New creates a new certificate service instance.
+// New creates a [Service] with the given configuration. The returned service is
+// ready to handle certificate requests but does not start any background processes.
+// Call [Service.BootstrapInfraCerts] at startup to provision infrastructure certs,
+// and trigger [Service.RenewExpiringCertificates] once to start the renewal cron.
 func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedCertificateServiceServer: hydrav1.UnimplementedCertificateServiceServer{},

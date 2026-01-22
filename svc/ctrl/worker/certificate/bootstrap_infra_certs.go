@@ -12,36 +12,45 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-// InfraWorkspaceID is the workspace ID used for infrastructure certificates.
+// InfraWorkspaceID is the workspace ID for infrastructure certificates. Infrastructure
+// certs are owned by this synthetic workspace rather than a customer workspace, allowing
+// them to be managed separately and avoiding conflicts with customer domain records.
 const InfraWorkspaceID = "unkey_internal"
 
-// BootstrapConfig holds configuration for infrastructure certificate bootstrapping.
+// BootstrapConfig holds configuration for [Service.BootstrapInfraCerts].
 type BootstrapConfig struct {
-	// DefaultDomain is the base domain for deployments (e.g., "unkey.app", "unkey.fun").
-	// Results in a wildcard cert for "*.unkey.app".
+	// DefaultDomain is the base domain for customer deployments. If set, a wildcard
+	// certificate for "*.{DefaultDomain}" is provisioned to terminate TLS for all
+	// customer subdomains.
 	DefaultDomain string
 
-	// RegionalApexDomain is the base domain for cross-region frontline communication (e.g., "unkey.cloud").
+	// RegionalApexDomain is the base domain for cross-region communication between
+	// frontline instances. Combined with each entry in Regions to create per-region
+	// wildcard certificates.
 	RegionalApexDomain string
 
-	// Regions is the list of available regions (e.g., ["us-west-2.aws", "eu-central-1.aws"]).
-	// Combined with RegionalApexDomain to create certs like "*.us-west-2.aws.unkey.cloud".
+	// Regions lists all deployment regions. For each region, a wildcard certificate
+	// is created as "*.{region}.{RegionalApexDomain}" to secure inter-region traffic.
 	Regions []string
 
-	// Restate is the raw Restate ingress client.
+	// Restate is the ingress client used to trigger [Service.ProcessChallenge] workflows.
+	// Infrastructure cert bootstrapping delegates to the standard challenge flow rather
+	// than implementing separate certificate logic.
 	Restate *restateIngress.Client
 }
 
-// BootstrapInfraCerts ensures infrastructure wildcard certificates are provisioned.
+// BootstrapInfraCerts provisions wildcard certificates for platform infrastructure.
 //
-// This creates custom_domain and acme_challenge records for each infrastructure domain,
-// then triggers the existing ProcessChallenge Restate workflow to obtain the certs.
+// This method ensures the platform has valid TLS certificates for its own domains
+// before serving customer traffic. It creates database records for each infrastructure
+// domain and triggers [Service.ProcessChallenge] via Restate to obtain certificates.
 //
-// Handles:
-//   - Default domain wildcard (e.g., "*.unkey.app") for deployment TLS
-//   - Per-region wildcards (e.g., "*.us-west-2.aws.unkey.cloud") for cross-region frontline
+// The method is idempotent: domains with existing valid certificates are skipped,
+// and domains with pending challenges are not re-triggered. This makes it safe to
+// call on every service startup without risking duplicate certificate requests.
 //
-// Idempotent - skips domains that already have certs or pending challenges.
+// Returns nil without error if DNSProvider is not configured, since infrastructure
+// certs require DNS-01 challenges for wildcards. Logs a warning in this case.
 func (s *Service) BootstrapInfraCerts(ctx context.Context, cfg BootstrapConfig) error {
 	if s.dnsProvider == nil {
 		s.logger.Warn("DNS provider not configured, skipping infrastructure cert bootstrap")

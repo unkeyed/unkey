@@ -15,8 +15,11 @@ import (
 )
 
 const (
+	// sentinelNamespace is the Kubernetes namespace where sentinel containers are deployed.
 	sentinelNamespace = "sentinel"
-	sentinelPort      = 8040
+
+	// sentinelPort is the port that sentinel containers listen on for traffic routing.
+	sentinelPort = 8040
 )
 
 // Deploy executes a full deployment workflow for a new application version.

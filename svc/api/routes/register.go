@@ -66,8 +66,19 @@ import (
 	zen "github.com/unkeyed/unkey/pkg/zen"
 )
 
-// here we register all of the routes.
-// this function runs during startup.
+// Register wires up all API route handlers with their dependencies and middleware
+// chains. This function runs once during server startup; routes cannot be added
+// or removed after initialization.
+//
+// The function applies a default middleware stack to most routes: panic recovery,
+// observability (tracing), metrics collection to ClickHouse, structured logging,
+// error handling, a one-minute request timeout, and request validation. Internal
+// endpoints (chproxy, pprof) use reduced middleware stacks appropriate to their
+// needs.
+//
+// Conditional routes are registered based on [Services] configuration. Chproxy
+// endpoints require a non-empty ChproxyToken, and pprof endpoints require
+// PprofEnabled to be true.
 func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	withObservability := zen.WithObservability()
 	withMetrics := zen.WithMetrics(svc.ClickHouse, info)

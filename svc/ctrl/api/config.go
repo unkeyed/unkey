@@ -155,8 +155,18 @@ type RegistryConfig struct {
 	Password string
 }
 
+// VaultConfig holds configuration for HashiCorp Vault integration.
+//
+// Vault is used for secret management and encryption key storage.
+// The control plane uses Vault to securely store and retrieve
+// sensitive configuration data for deployed applications.
 type VaultConfig struct {
-	Url   string
+	// Url is the Vault server address including protocol.
+	// Example: "https://vault.example.com:8200".
+	Url string
+
+	// Token is the Vault authentication token.
+	// Must have appropriate policies for secret operations.
 	Token string
 }
 
@@ -174,6 +184,8 @@ type Config struct {
 	// Used for control plane deployment and sentinel image configuration.
 	Image string
 
+	// Region is the geographic region where this control plane instance runs.
+	// Used for logging, tracing, and region-aware routing decisions.
 	Region string
 
 	// HttpPort defines the HTTP port for the control plane server.
@@ -185,13 +197,9 @@ type Config struct {
 	// on all interfaces (0.0.0.0) on the specified port.
 	PrometheusPort int
 
-	// --- Database configuration ---
-
 	// DatabasePrimary is the primary database connection string.
 	// Used for both read and write operations to persistent storage.
 	DatabasePrimary string
-
-	// --- OpenTelemetry configuration ---
 
 	// OtelEnabled enables sending telemetry data to collector endpoint.
 	// When true, enables metrics, traces, and structured logs.
@@ -213,10 +221,8 @@ type Config struct {
 	// Use clock.RealClock{} for production deployments.
 	Clock clock.Clock
 
-	// --- Vault Configuration ---
-
+	// Vault configures HashiCorp Vault integration for secret management.
 	Vault VaultConfig
-	// --- ACME Configuration ---
 
 	// Restate configures workflow engine integration.
 	// Enables asynchronous deployment and certificate renewal workflows.
@@ -225,8 +231,6 @@ type Config struct {
 	// BuildS3 configures storage for build artifacts and outputs.
 	// Used by both Depot and Docker build backends.
 	BuildS3 S3Config
-
-	// --- Sentinel Configuration ---
 
 	// SentinelImage is the container image used for new sentinel deployments.
 	// Overrides default sentinel image with custom build or registry.
@@ -239,13 +243,9 @@ type Config struct {
 
 // Validate checks the configuration for required fields and logical consistency.
 //
-// This method performs comprehensive validation of all configuration sections
-// including build backend, ACME providers, database connections, and
-// required credentials. It ensures that conditional configuration
-// (like ACME providers) has all necessary dependencies.
-//
-// Returns an error if required fields are missing, invalid, or inconsistent.
-// Provides detailed error messages to help identify configuration issues.
+// Currently this method performs no validation and always returns nil. Future
+// implementations should validate required fields like DatabasePrimary, HttpPort,
+// and conditional dependencies between configuration sections.
 func (c Config) Validate() error {
 	return nil
 }

@@ -52,6 +52,7 @@ type Config struct {
 	// AvailableRegions is the list of available regions for deployments.
 	AvailableRegions []string
 
+	// BuildStorage provides access to S3-compatible storage for build context archives.
 	BuildStorage s3.Storage
 }
 

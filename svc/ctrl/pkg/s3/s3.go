@@ -15,21 +15,45 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
+// S3 generates pre-signed URLs for S3-compatible object storage. It implements
+// the [Storage] interface and is safe for concurrent use.
 type S3 struct {
 	presigner *awsS3.PresignClient
 	config    S3Config
 	logger    logging.Logger
 }
 
+// S3Config holds configuration for connecting to an S3-compatible storage backend.
 type S3Config struct {
-	S3URL             string // Internal URL for S3 operations (e.g., http://s3:3902)
-	S3PresignURL      string // Optional: External URL for presigned URLs when clients are outside Docker network. Defaults to S3URL.
-	S3Bucket          string
-	S3AccessKeyID     string
+	// S3URL is the endpoint URL used for S3 operations like bucket creation.
+	// This should be the internal network address when running in Docker.
+	S3URL string
+
+	// S3PresignURL is the endpoint URL embedded in pre-signed URLs. Clients use
+	// this URL to access objects, so it must be reachable from outside the
+	// Docker network. Defaults to S3URL if empty.
+	S3PresignURL string
+
+	// S3Bucket is the name of the bucket to use. The bucket is created
+	// automatically by [NewS3] if it does not exist.
+	S3Bucket string
+
+	// S3AccessKeyID is the access key for S3 authentication.
+	S3AccessKeyID string
+
+	// S3AccessKeySecret is the secret key for S3 authentication.
 	S3AccessKeySecret string
-	Logger            logging.Logger
+
+	// Logger is used for logging storage operations.
+	Logger logging.Logger
 }
 
+// NewS3 creates an S3 client configured for pre-signed URL generation. It
+// creates the configured bucket if it does not already exist, ignoring the
+// "BucketAlreadyOwnedByYou" error.
+//
+// Returns an error if the AWS configuration cannot be loaded or if bucket
+// creation fails for reasons other than the bucket already existing.
 func NewS3(config S3Config) (*S3, error) {
 	logger := config.Logger.With("service", "storage")
 
@@ -110,10 +134,16 @@ func NewS3(config S3Config) (*S3, error) {
 	}, nil
 }
 
+// GenerateDownloadURL returns a pre-signed URL for downloading the object at
+// key. The URL is valid for expiresIn duration and uses the S3PresignURL
+// endpoint configured in [S3Config].
 func (s *S3) GenerateDownloadURL(ctx context.Context, key string, expiresIn time.Duration) (string, error) {
 	return s.presign(ctx, key, expiresIn, "GET")
 }
 
+// GenerateUploadURL returns a pre-signed URL for uploading an object to key
+// using HTTP PUT. The URL is valid for expiresIn duration and uses the
+// S3PresignURL endpoint configured in [S3Config].
 func (s *S3) GenerateUploadURL(ctx context.Context, key string, expiresIn time.Duration) (string, error) {
 	return s.presign(ctx, key, expiresIn, "PUT")
 }

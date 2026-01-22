@@ -40,9 +40,17 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
 
+// Harness provides a complete integration test environment with real dependencies.
+// It manages Docker containers for MySQL, Redis, ClickHouse, and S3, seeds baseline
+// test data, and exposes all services needed to test API endpoints.
+//
+// The exported fields provide direct access to services when tests need to verify
+// side effects or set up complex scenarios beyond what the helper methods offer.
 type Harness struct {
 	t *testing.T
 
+	// Clock is a controllable clock for time-dependent tests. Advancing the clock
+	// affects rate limiting windows, token expiration, and other time-based behavior.
 	Clock *clock.TestClock
 
 	srv       *zen.Server
@@ -50,6 +58,8 @@ type Harness struct {
 
 	middleware []zen.Middleware
 
+	// DB provides direct database access for verifying side effects or setting up
+	// test data that the seeder methods don't cover.
 	DB                         db.Database
 	Caches                     caches.Caches
 	Logger                     logging.Logger
@@ -64,6 +74,10 @@ type Harness struct {
 	seeder                     *seed.Seeder
 }
 
+// NewHarness creates a fully initialized test harness with all dependencies started.
+// Container startup is parallelized, and the database is seeded with baseline data
+// including a root workspace and key space. The harness is tied to the test lifecycle
+// and containers are cleaned up when the test completes.
 func NewHarness(t *testing.T) *Harness {
 	clk := clock.NewTestClock()
 	logger := logging.New()
@@ -232,8 +246,9 @@ func NewHarness(t *testing.T) *Harness {
 	return &h
 }
 
-// Register registers a route with the harness.
-// You can override the middleware by passing a list of middleware.
+// Register adds a route to the test server with the standard middleware stack.
+// Pass custom middleware to override the defaults, which include observability,
+// logging, error handling, and validation. Passing no middleware uses the defaults.
 func (h *Harness) Register(route zen.Route, middleware ...zen.Middleware) {
 	if len(middleware) == 0 {
 		middleware = h.middleware
@@ -245,48 +260,63 @@ func (h *Harness) Register(route zen.Route, middleware ...zen.Middleware) {
 	)
 }
 
-// CreateRootKey creates a root key with the specified permissions
+// CreateRootKey creates a root key that authorizes operations on the given workspace.
+// The returned string is the raw key value for use in Authorization headers. Pass
+// permission names to restrict what the key can do; omitting permissions grants no
+// permissions (the key can authenticate but not authorize any operations).
 func (h *Harness) CreateRootKey(workspaceID string, permissions ...string) string {
 	return h.seeder.CreateRootKey(context.Background(), workspaceID, permissions...)
 }
 
+// CreateWorkspace creates a new workspace with auto-generated IDs and names.
 func (h *Harness) CreateWorkspace() db.Workspace {
 	return h.seeder.CreateWorkspace(context.Background())
 }
 
+// CreateApi creates an API with the specified configuration. The API's key space
+// is created automatically. See [seed.CreateApiRequest] for available options.
 func (h *Harness) CreateApi(req seed.CreateApiRequest) db.Api {
 	return h.seeder.CreateAPI(context.Background(), req)
 }
 
+// CreateKey creates a key in the specified key space with optional permissions,
+// roles, rate limits, and other configuration. Returns both the key ID (for database
+// lookups) and the raw key value (for authentication). See [seed.CreateKeyRequest].
 func (h *Harness) CreateKey(req seed.CreateKeyRequest) seed.CreateKeyResponse {
 	return h.seeder.CreateKey(context.Background(), req)
 }
 
+// CreateIdentity creates an identity with optional rate limits attached.
 func (h *Harness) CreateIdentity(req seed.CreateIdentityRequest) db.Identity {
 	return h.seeder.CreateIdentity(context.Background(), req)
 }
 
+// CreateRatelimit creates a rate limit configuration attached to either a key or identity.
 func (h *Harness) CreateRatelimit(req seed.CreateRatelimitRequest) db.Ratelimit {
 	return h.seeder.CreateRatelimit(context.Background(), req)
 }
 
+// CreateRole creates a role with optional permissions attached.
 func (h *Harness) CreateRole(req seed.CreateRoleRequest) db.Role {
 	return h.seeder.CreateRole(context.Background(), req)
 }
 
+// CreatePermission creates a permission that can be attached to keys or roles.
 func (h *Harness) CreatePermission(req seed.CreatePermissionRequest) db.Permission {
 	return h.seeder.CreatePermission(context.Background(), req)
 }
 
+// CreateProject creates a project within a workspace.
 func (h *Harness) CreateProject(req seed.CreateProjectRequest) db.Project {
 	return h.seeder.CreateProject(context.Background(), req)
 }
 
+// CreateEnvironment creates an environment within a project.
 func (h *Harness) CreateEnvironment(req seed.CreateEnvironmentRequest) db.Environment {
 	return h.seeder.CreateEnvironment(h.t.Context(), req)
 }
 
-// DeploymentTestSetup contains all resources needed for deployment tests
+// DeploymentTestSetup contains all resources needed for deployment tests.
 type DeploymentTestSetup struct {
 	Workspace   db.Workspace
 	RootKey     string
@@ -294,7 +324,8 @@ type DeploymentTestSetup struct {
 	Environment db.Environment
 }
 
-// CreateTestDeploymentSetupOptions allows customization of the test setup
+// CreateTestDeploymentSetupOptions configures the resources created by
+// [Harness.CreateTestDeploymentSetup].
 type CreateTestDeploymentSetupOptions struct {
 	ProjectName     string
 	ProjectSlug     string
@@ -303,7 +334,11 @@ type CreateTestDeploymentSetupOptions struct {
 	Permissions     []string
 }
 
-// CreateTestDeploymentSetup creates workspace, root key, project, and environment with sensible defaults
+// CreateTestDeploymentSetup creates a complete deployment test environment with a
+// workspace, root key, project, and environment. This is a convenience method for
+// tests that need all these resources together. Pass [CreateTestDeploymentSetupOptions]
+// to customize names, slugs, or skip environment creation. Defaults to project name
+// "test-project", slugs "production", and full permissions unless specified.
 func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOptions) DeploymentTestSetup {
 	h.t.Helper()
 
@@ -371,6 +406,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 	}
 }
 
+// SetupAnalyticsOption configures analytics settings for [Harness.SetupAnalytics].
 type SetupAnalyticsOption func(*setupAnalyticsConfig)
 
 type setupAnalyticsConfig struct {
@@ -383,36 +419,49 @@ type setupAnalyticsConfig struct {
 	RetentionDays             int32
 }
 
+// WithMaxQueryResultRows sets the maximum number of rows a query can return.
+// Default is 10,000,000.
 func WithMaxQueryResultRows(rows int32) SetupAnalyticsOption {
 	return func(c *setupAnalyticsConfig) {
 		c.MaxQueryResultRows = rows
 	}
 }
 
+// WithMaxQueryMemoryBytes sets the maximum memory a query can use.
+// Default is 1,000,000,000 (1GB).
 func WithMaxQueryMemoryBytes(bytes int64) SetupAnalyticsOption {
 	return func(c *setupAnalyticsConfig) {
 		c.MaxQueryMemoryBytes = bytes
 	}
 }
 
+// WithMaxQueriesPerWindow sets the maximum queries allowed per quota window.
+// Default is 1,000.
 func WithMaxQueriesPerWindow(queries int32) SetupAnalyticsOption {
 	return func(c *setupAnalyticsConfig) {
 		c.MaxQueriesPerWindow = queries
 	}
 }
 
+// WithMaxExecutionTimePerWindow sets the maximum total execution time per quota window.
+// Default is 1,800 seconds (30 minutes).
 func WithMaxExecutionTimePerWindow(seconds int32) SetupAnalyticsOption {
 	return func(c *setupAnalyticsConfig) {
 		c.MaxExecutionTimePerWindow = seconds
 	}
 }
 
+// WithRetentionDays sets how long analytics data is retained. Default is 30 days.
 func WithRetentionDays(days int32) SetupAnalyticsOption {
 	return func(c *setupAnalyticsConfig) {
 		c.RetentionDays = days
 	}
 }
 
+// SetupAnalytics configures a ClickHouse user and analytics settings for a workspace.
+// This creates the user in ClickHouse, encrypts the password in the vault, and stores
+// the settings in the database. Use the With* options to customize query limits and
+// retention. Tests that query analytics data must call this before making requests.
 func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOption) {
 	ctx := context.Background()
 
@@ -486,10 +535,14 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 	require.NoError(h.t, err)
 }
 
+// Resources returns the baseline seed data created during harness initialization.
+// This includes the root workspace, root key space, and user workspace that exist
+// before any test-specific data is created.
 func (h *Harness) Resources() seed.Resources {
 	return h.seeder.Resources
 }
 
+// TestResponse wraps an HTTP response with typed body parsing for test assertions.
 type TestResponse[TBody any] struct {
 	Status  int
 	Headers http.Header
@@ -497,6 +550,10 @@ type TestResponse[TBody any] struct {
 	RawBody string
 }
 
+// CallRaw executes an HTTP request against the test server and returns the parsed
+// response. Use this when you need full control over the request, such as setting
+// path parameters or custom headers. The response body is JSON-unmarshaled into the
+// type parameter.
 func CallRaw[Res any](h *Harness, req *http.Request) TestResponse[Res] {
 	rr := httptest.NewRecorder()
 
@@ -519,6 +576,10 @@ func CallRaw[Res any](h *Harness, req *http.Request) TestResponse[Res] {
 	return res
 }
 
+// CallRoute executes a request against a registered route and returns the typed
+// response. The request body is JSON-encoded from req, and the response is unmarshaled
+// into Res. This is the primary way to test API endpoints. Pass nil headers to use
+// an empty header set.
 func CallRoute[Req any, Res any](h *Harness, route zen.Route, headers http.Header, req Req) TestResponse[Res] {
 	h.t.Helper()
 
@@ -555,7 +616,9 @@ func CallRoute[Req any, Res any](h *Harness, route zen.Route, headers http.Heade
 	return res
 }
 
-// UnmarshalBody is a helper function to unmarshal the response body
+// UnmarshalBody decodes a JSON response body into the provided pointer. This is
+// useful when working directly with httptest.ResponseRecorder rather than using
+// [CallRoute] or [CallRaw].
 func UnmarshalBody[Body any](t *testing.T, r *httptest.ResponseRecorder, body *Body) {
 	err := json.Unmarshal(r.Body.Bytes(), &body)
 	require.NoError(t, err)

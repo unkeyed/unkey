@@ -19,10 +19,18 @@ import (
 )
 
 type (
-	Request  = openapi.V2DeployGenerateUploadUrlRequestBody
+	// Request is the request body for generating an upload URL, containing the
+	// target project ID. Aliased from [openapi.V2DeployGenerateUploadUrlRequestBody].
+	Request = openapi.V2DeployGenerateUploadUrlRequestBody
+
+	// Response is the response body containing the pre-signed upload URL and
+	// build context path. Aliased from [openapi.V2DeployGenerateUploadUrlResponseBody].
 	Response = openapi.V2DeployGenerateUploadUrlResponseBody
 )
 
+// Handler generates pre-signed S3 upload URLs for deployment build contexts.
+// It validates authentication, checks RBAC permissions, verifies project ownership,
+// and delegates URL generation to the control plane service.
 type Handler struct {
 	Logger     logging.Logger
 	DB         db.Database
@@ -30,14 +38,22 @@ type Handler struct {
 	CtrlClient ctrlv1connect.DeploymentServiceClient
 }
 
+// Path returns the URL path for this endpoint.
 func (h *Handler) Path() string {
 	return "/v2/deploy.generateUploadUrl"
 }
 
+// Method returns the HTTP method for this endpoint.
 func (h *Handler) Method() string {
 	return "POST"
 }
 
+// Handle processes a request to generate a pre-signed S3 upload URL. It
+// authenticates via root key, verifies the caller has generate_upload_url
+// permission on the project, confirms the project belongs to the caller's
+// workspace, then returns an upload URL from the control plane. Returns 400
+// for invalid input, 401 for invalid root key, 403 for missing permissions,
+// or 404 if the project does not exist in the caller's workspace.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()

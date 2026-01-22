@@ -16,22 +16,45 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 )
 
-// EncryptedCertificate holds a certificate and its encrypted private key.
+// EncryptedCertificate holds a certificate with its private key encrypted for storage.
+// The private key is encrypted using the vault service with the workspace ID as the
+// keyring, ensuring keys can only be decrypted by the owning workspace.
 type EncryptedCertificate struct {
-	CertificateID       string
-	Certificate         string
+	// CertificateID is the unique identifier for this certificate, generated using
+	// uid.New with the certificate prefix.
+	CertificateID string
+
+	// Certificate contains the PEM-encoded certificate chain including intermediates.
+	Certificate string
+
+	// EncryptedPrivateKey is the vault-encrypted PEM-encoded private key.
 	EncryptedPrivateKey string
-	ExpiresAt           int64
+
+	// ExpiresAt is the certificate expiration time as Unix milliseconds. Parsed from
+	// the certificate's NotAfter field; defaults to 90 days from issuance if parsing
+	// fails.
+	ExpiresAt int64
 }
 
-// ProcessChallenge handles the complete ACME certificate challenge flow.
+// ProcessChallenge obtains or renews an SSL/TLS certificate for a domain.
 //
-// This method implements a multi-step durable workflow using Restate to obtain or renew
-// an SSL/TLS certificate for a domain. Each step is wrapped in restate.Run for durability,
-// allowing the workflow to resume from the last completed step if interrupted.
+// This is a Restate virtual object handler keyed by domain name, ensuring only one
+// certificate challenge runs per domain at any time. The workflow consists of durable
+// steps that survive process restarts: domain resolution, challenge claiming, certificate
+// obtainment, persistence, and verification marking.
 //
-// Uses the saga pattern: if any step fails after claiming the challenge, the deferred
-// compensation marks the challenge as failed.
+// The method uses the saga pattern for error handling. If any step fails after claiming
+// the challenge, a deferred compensation function marks the challenge as failed in the
+// database. This prevents the challenge from being stuck in "pending" state indefinitely.
+//
+// Rate limit handling is special: when Let's Encrypt returns a rate limit error with a
+// retry-after time, the workflow performs a Restate durable sleep until that time plus
+// a 1-minute buffer (capped at 2 hours), then retries. This uses at most 3 rate limit
+// retries before failing. For transient errors, Restate's standard retry with exponential
+// backoff applies (30s initial, 2x factor, 5m max, 5 attempts).
+//
+// Returns a response with Status "success" and the certificate ID on success, or Status
+// "failed" with empty certificate ID on failure. System errors return (nil, error).
 func (s *Service) ProcessChallenge(
 	ctx restate.ObjectContext,
 	req *hydrav1.ProcessChallengeRequest,
@@ -171,10 +194,14 @@ func (s *Service) ProcessChallenge(
 	}, nil
 }
 
-// globalAcmeUserID is the fixed user ID for the single global ACME account
+// globalAcmeUserID identifies the single shared ACME account used for all certificate
+// requests. Using one account avoids per-workspace ACME account registration and
+// simplifies key management, while staying well under Let's Encrypt's account limits.
 const globalAcmeUserID = "acme"
 
-// isWildcard returns true if the domain starts with "*."
+// isWildcard reports whether domain is a wildcard domain pattern. Wildcard domains
+// start with "*." and require DNS-01 challenges since HTTP-01 cannot validate control
+// over arbitrary subdomains.
 func isWildcard(domain string) bool {
 	return len(domain) > 2 && domain[0] == '*' && domain[1] == '.'
 }

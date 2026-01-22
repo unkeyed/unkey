@@ -10,6 +10,15 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
+// AssignFrontlineRoutes reassigns a set of frontline routes to a new deployment.
+//
+// Each route in FrontlineRouteIds is updated to point at DeploymentId. The updates
+// are executed sequentially, with each wrapped in [restate.Run] for durability. If
+// any update fails, the operation returns an error and Restate will retry the
+// entire handler from the last successful checkpoint.
+//
+// Returns an empty response on success. Database errors from the route updates
+// propagate directly to the caller.
 func (s *Service) AssignFrontlineRoutes(ctx restate.ObjectContext, req *hydrav1.AssignFrontlineRoutesRequest) (*hydrav1.AssignFrontlineRoutesResponse, error) {
 	s.logger.Info("assigning domains",
 		"deployment_id", req.GetDeploymentId(),

@@ -1,63 +1,54 @@
-// Package depot provides Depot.dev build backend integration.
+// Package build provides container image building via [Depot.dev].
 //
-// This package implements cloud-native container builds through
-// the Depot.dev platform. It provides optimized builds with
-// automatic caching, parallel execution, and direct registry
-// integration for production workflows.
+// Unkey uses Depot for container builds because it provides isolated build
+// environments with automatic caching, eliminating the need to manage buildkit
+// infrastructure. Each Unkey project gets a dedicated Depot project, ensuring
+// cache isolation between tenants while sharing cache within a project.
 //
 // # Architecture
 //
-// The Depot backend integrates with:
-//   - Depot.dev API for build orchestration
-//   - ClickHouse for build telemetry and analytics
-//   - S3 storage for build artifact persistence
-//   - Registry integration for container image management
+// The build service operates as a Restate workflow step within the deployment
+// pipeline. When a deployment requires building from source, the deploy worker
+// calls [Depot.BuildDockerImage] which:
 //
-// # Key Features
-//
-// - Cloud-native builds with automatic scaling
-// - Build caching for faster repeated builds
-// - Parallel build execution
-// - Direct registry pushing and management
-// - Build artifact storage and sharing
-// - Real-time build progress tracking
-// - Integration with unkey platform deployment workflows
+//  1. Creates or retrieves a Depot project for the Unkey project
+//  2. Acquires a build machine from Depot's infrastructure
+//  3. Connects to the buildkit instance on that machine
+//  4. Streams build context from S3 and executes the build
+//  5. Pushes the resulting image to the configured registry
+//  6. Records build step telemetry to ClickHouse
 //
 // # Usage
 //
-// Creating Depot build backend:
+// Create a Depot backend and register it with Restate:
 //
-//	depotBackend := depot.New(depot.Config{
-//		InstanceID:     "build-instance-001",
-//		DB:             database,
-//		RegistryConfig:  depot.RegistryConfig{
-//			URL:      "https://registry.depot.dev",
-//			Username: "x-token",
-//			Password: "depot-api-token",
-//		},
-//		BuildPlatform:  depot.BuildPlatform{
-//			Platform:     "linux/amd64",
-//			Architecture: "amd64",
-//		},
-//		DepotConfig: depot.DepotConfig{
-//			APIUrl:        "https://api.depot.dev",
-//			ProjectRegion:  "us-east-1",
-//		},
-//		Clickhouse:     clickhouseClient,
-//		Storage:        buildStorage,
-//		Logger:         logger,
+//	backend := build.New(build.Config{
+//	    InstanceID: "build-instance-001",
+//	    DB:         database,
+//	    DepotConfig: build.DepotConfig{
+//	        APIUrl:        "https://api.depot.dev",
+//	        ProjectRegion: "us-east-1",
+//	    },
+//	    RegistryConfig: build.RegistryConfig{
+//	        URL:      "registry.depot.dev",
+//	        Username: "x-token",
+//	        Password: depotToken,
+//	    },
+//	    BuildPlatform: build.BuildPlatform{
+//	        Platform:     "linux/amd64",
+//	        Architecture: "amd64",
+//	    },
+//	    Clickhouse: clickhouseClient,
+//	    Logger:     logger,
 //	})
 //
-// # Build Operations
+// The backend implements [hydrav1.BuildServiceServer] and exposes
+// [Depot.BuildDockerImage] as an RPC endpoint.
 //
-// The backend implements standard BuildService interface methods:
-//   - CreateBuild: Start new container build
-//   - GenerateUploadUrl: Generate pre-signed URLs for build artifacts
-//   - GetBuild: Get build status and metadata
-//   - GetBuildLogs: Stream real-time build logs
+// # Cache Policy
 //
-// # Error Handling
+// New Depot projects are created with a cache policy of 50GB retained for 14
+// days. This balances build speed (cache hits) against storage costs.
 //
-// Provides comprehensive error handling with proper HTTP status
-// codes for API communication failures and build errors.
+// [Depot.dev]: https://depot.dev
 package build

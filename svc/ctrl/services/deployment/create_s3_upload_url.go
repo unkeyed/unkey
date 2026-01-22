@@ -10,6 +10,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
+// CreateS3UploadURL generates a presigned S3 URL for uploading a build context
+// archive. The URL is valid for 15 minutes. The build context path is generated
+// using the project ID and a unique build ID, formatted as
+// "{project_id}/{build_id}.tar.gz". Clients should upload a tar.gz archive
+// containing the application source code to this URL, then pass the returned
+// BuildContextPath to [CreateDeployment].
 func (s *Service) CreateS3UploadURL(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateS3UploadURLRequest],

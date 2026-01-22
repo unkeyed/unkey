@@ -10,8 +10,15 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
+// newDomain represents a domain to be created for a deployment, including its
+// stickiness behavior for routing updates.
 type newDomain struct {
+	// domain is the fully qualified domain name (e.g., "myapp-production-acme.unkey.app").
 	domain string
+
+	// sticky determines how this domain behaves across deployments. Non-sticky domains
+	// remain pinned to their original deployment, while sticky domains automatically
+	// update to point to new deployments matching their criteria.
 	sticky db.FrontlineRoutesSticky
 }
 
@@ -80,8 +87,11 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 }
 
 var (
+	// nonAlphanumericRegex matches any character that is not a letter, digit, or whitespace.
 	nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9\s]`)
-	multipleSpacesRegex  = regexp.MustCompile(`\s+`)
+
+	// multipleSpacesRegex matches one or more consecutive whitespace characters.
+	multipleSpacesRegex = regexp.MustCompile(`\s+`)
 )
 
 // sluggify converts a string into a URL-safe slug.

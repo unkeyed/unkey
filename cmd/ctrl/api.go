@@ -10,8 +10,11 @@ import (
 	ctrlapi "github.com/unkeyed/unkey/svc/ctrl/api"
 )
 
-// Cmd is the ctrl command that runs the Unkey control plane service for managing
-// infrastructure, deployments, builds, and service orchestration.
+// apiCmd defines the "api" subcommand for running the control plane HTTP server.
+// The server handles infrastructure management, build orchestration, and service
+// coordination. It requires a MySQL database (--database-primary) and S3 storage
+// for build artifacts. Optional integrations include Vault for secrets, Restate
+// for workflows, and ACME for automatic TLS certificates.
 var apiCmd = &cli.Command{
 	Version:     "",
 	Commands:    []*cli.Command{},
@@ -110,6 +113,10 @@ var apiCmd = &cli.Command{
 	Action: apiAction,
 }
 
+// apiAction validates configuration and starts the control plane API server.
+// It returns an error if TLS is partially configured (only cert or only key),
+// if required configuration is missing, or if the server fails to start.
+// The function blocks until the context is cancelled or the server exits.
 func apiAction(ctx context.Context, cmd *cli.Command) error {
 	// Check if TLS flags are properly set (both or none)
 	tlsCertFile := cmd.String("tls-cert-file")

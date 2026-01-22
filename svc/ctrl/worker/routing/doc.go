@@ -1,49 +1,32 @@
-// Package routing manages domain assignment and traffic routing workflows.
+// Package routing manages frontline route assignment for deployments.
 //
-// This package orchestrates the relationship between domains,
-// deployments, and sentinel configurations. It handles creating
-// new domain assignments during deployments and switching
-// domains during rollback or promotion operations.
+// This package provides a Restate-based service for reassigning frontline routes
+// (the edge routing layer) to point at different deployments. When a deployment
+// is promoted or traffic needs to shift, this service updates the database records
+// that control which deployment receives traffic for each route.
 //
 // # Architecture
 //
-// The routing service manages domain lifecycle and ensures
-// traffic is routed to the correct deployments. It provides:
-//   - Domain assignment during deployment creation
-//   - Sticky domain behavior for different deployment types
-//   - Atomic domain switching during operations
-//   - Integration with sentinel configurations
+// The routing service implements [hydrav1.RoutingServiceServer] and runs as a
+// Restate virtual object. Virtual objects provide serialized access per key,
+// preventing race conditions when multiple operations target the same routes.
 //
-// # Built on Restate
+// # Restate Integration
 //
-// All routing workflows use Restate for durable execution:
-//   - Automatic retries on transient failures
-//   - Exactly-once guarantees for each workflow step
-//   - Durable state that survives process crashes
-//   - Virtual object concurrency control keyed by project ID
+// All route reassignment operations use Restate's durable execution model.
+// Each route update is wrapped in [restate.Run], which provides automatic retries
+// on transient failures and exactly-once execution guarantees. If the service
+// crashes mid-operation, Restate replays completed steps and resumes from where
+// it left off.
 //
 // # Key Operations
 //
-// [AssignDomains]: Create domain assignments for new deployments
-// [SwitchDomains]: Reassign domains during rollback/promote operations
-//
-// # Domain Behavior Types
-//
-// - UNSPECIFIED: Per-commit domains (immutable, never reassigned)
-// - BRANCH: Per-branch domains (follows latest deployment for branch)
-// - ENVIRONMENT: Per-environment domains (follows latest deployment for environment)
-// - LIVE: Per-live domains (follows current production deployment)
-//
-// # Sentinel Configuration
-//
-// Sentinel configs are automatically created for all domains
-// (except local development hostnames) and stored as JSON
-// in the database. Each config includes deployment ID,
-// VM addresses for load balancing, and optional auth/validation configs.
+// [Service.AssignFrontlineRoutes] reassigns a set of frontline routes to a new
+// deployment by updating the deployment_id column in the frontline_routes table.
 //
 // # Usage
 //
-// Creating routing service:
+// Create a routing service:
 //
 //	routingSvc := routing.New(routing.Config{
 //		DB:            mainDB,
@@ -51,20 +34,6 @@
 //		DefaultDomain: "unkey.app",
 //	})
 //
-// Assign domains during deployment:
-//
-//	resp, err := routingSvc.AssignDomains(ctx, &hydrav1.AssignDomainsRequest{
-//		WorkspaceId:   "ws_123",
-//		ProjectId:     "proj_456",
-//		DeploymentId:  "dep_abc",
-//		Domains: []*hydrav1.DomainToAssign{
-//		{Name: "api.example.com", Sticky: hydrav1.DomainSticky_ENVIRONMENT},
-//	},
-//		IsRolledBack: false,
-//	})
-//
-// # Error Handling
-//
-// The service ensures atomic operations and provides detailed error
-// reporting for routing failures and domain conflicts.
+// Register with Restate and invoke via the generated client to reassign routes
+// during deployment promotion or rollback operations.
 package routing

@@ -1,46 +1,33 @@
-// Package storage provides S3-compatible storage for build artifacts.
+// Package s3 provides pre-signed URL generation for S3-compatible object storage.
 //
-// This package implements S3-compatible object storage for
-// container build artifacts. It supports multiple S3 endpoints
-// and provides pre-signed URL generation for secure artifact access.
+// The package supports separate internal and external S3 endpoints, which is
+// necessary when the service runs inside a Docker network but clients access
+// storage from outside. For example, the service may communicate with MinIO at
+// http://minio:9000 internally, while clients need URLs pointing to
+// http://localhost:9000.
 //
-// # Architecture
+// # Key Types
 //
-// The storage package provides:
-//   - S3 client abstraction for multiple providers
-//   - Pre-signed URL generation for secure artifact downloads
-//   - Upload functionality for build artifact storage
-//   - Integration with S3-compatible storage backends
-//
-// # Key Features
-//
-// - Multiple S3 provider support (AWS, MinIO, localstack, etc.)
-//   - Secure pre-signed URL generation with configurable TTL
-//   - Multipart upload support for large artifacts
-//   - Error handling with retry logic
-//   - Logging for storage operations debugging
+// [S3] is the main client that implements the [Storage] interface. Create one
+// with [NewS3] using [S3Config] for configuration.
 //
 // # Usage
 //
-// Creating S3 storage:
-//
-//	storage, err := storage.NewS3(storage.S3Config{
+//	s3Client, err := s3.NewS3(s3.S3Config{
 //		Logger:            logger,
-//		S3URL:             "https://s3.amazonaws.com",
-//		S3Bucket:          "build-artifacts",
+//		S3URL:             "http://minio:9000",
+//		S3PresignURL:      "http://localhost:9000",
+//		S3Bucket:          "artifacts",
 //		S3AccessKeyID:     "access-key",
 //		S3AccessKeySecret: "secret-key",
 //	})
+//	if err != nil {
+//		// Handle error - bucket creation or AWS config failed
+//	}
 //
-//	// Upload build artifact
-//	err = storage.Upload(ctx, "build-artifact.tar.gz", buildArtifactData)
+//	// Generate a URL for clients to upload an artifact
+//	uploadURL, err := s3Client.GenerateUploadURL(ctx, "builds/123/artifact.tar.gz", time.Hour)
 //
-//	// Generate download URL
-//	url, err := storage.GeneratePresignedURL(ctx, "build-artifact.tar.gz", time.Hour)
-//
-// # Error Handling
-//
-// The package provides comprehensive error handling for S3 operations
-// including network failures, permission errors, and invalid
-// configurations.
+//	// Generate a URL for clients to download an artifact
+//	downloadURL, err := s3Client.GenerateDownloadURL(ctx, "builds/123/artifact.tar.gz", time.Hour)
 package s3

@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "seed",
-    srcs = ["seed.go"],
+    srcs = [
+        "doc.go",
+        "seed.go",
+    ],
     importpath = "github.com/unkeyed/unkey/svc/api/internal/testutil/seed",
     visibility = ["//visibility:public"],
     deps = [

@@ -13,12 +13,16 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// Controller manages deployment ReplicaSets in a Kubernetes cluster.
+// Controller manages deployment ReplicaSets in a Kubernetes cluster by maintaining
+// bidirectional state synchronization with the control plane.
 //
-// It maintains bidirectional state synchronization with the control plane:
-// receiving desired state via WatchDeployments and reporting actual
-// state via ReportDeploymentStatus. The controller operates independently
-// from the SentinelController with its own version cursor and circuit breaker.
+// The controller receives desired state via the WatchDeployments stream and reports
+// actual state via ReportDeploymentStatus. It operates independently from the sentinel
+// controller with its own version cursor and circuit breaker, ensuring that failures
+// in one controller don't cascade to the other.
+//
+// Create a Controller with [New] and start it with [Controller.Start]. The controller
+// runs until the context is cancelled or [Controller.Stop] is called.
 type Controller struct {
 	clientSet       kubernetes.Interface
 	dynamicClient   dynamic.Interface
@@ -31,15 +35,34 @@ type Controller struct {
 }
 
 // Config holds the configuration required to create a new [Controller].
+//
+// All fields are required. The ClientSet and DynamicClient are used for Kubernetes
+// operations, while Cluster provides the control plane RPC client for state
+// synchronization. Region determines which deployments this controller manages.
 type Config struct {
-	ClientSet     kubernetes.Interface
+	// ClientSet provides typed Kubernetes API access for ReplicaSet and Pod operations.
+	ClientSet kubernetes.Interface
+
+	// DynamicClient provides unstructured Kubernetes API access for CiliumNetworkPolicy
+	// resources that don't have generated Go types.
 	DynamicClient dynamic.Interface
-	Logger        logging.Logger
-	Cluster       ctrlv1connect.ClusterServiceClient
-	Region        string
+
+	// Logger is the structured logger for controller operations.
+	Logger logging.Logger
+
+	// Cluster is the control plane RPC client for WatchDeployments and
+	// ReportDeploymentStatus calls.
+	Cluster ctrlv1connect.ClusterServiceClient
+
+	// Region identifies the cluster region for filtering deployment streams.
+	Region string
 }
 
 // New creates a [Controller] ready to be started with [Controller.Start].
+//
+// The controller initializes with versionLastSeen=0, meaning it will receive all
+// pending deployments on first connection. The circuit breaker starts in a closed
+// (healthy) state.
 func New(cfg Config) *Controller {
 	return &Controller{
 		clientSet:       cfg.ClientSet,
@@ -53,16 +76,12 @@ func New(cfg Config) *Controller {
 	}
 }
 
-// Start launches the three background control loops:
+// Start launches the three background control loops and blocks until they're initialized.
 //
-//   - [Controller.runDesiredStateApplyLoop]: Receives desired state from the
-//     control plane's SyncDeployments stream and applies it to Kubernetes.
-//
-//   - [Controller.runActualStateReportLoop]: Watches Kubernetes for ReplicaSet
-//     changes and reports actual state back to the control plane.
-//
-//   - [Controller.runResyncLoop]: Periodically re-queries the control plane for
-//     each existing ReplicaSet to ensure eventual consistency.
+// The method starts [Controller.runResyncLoop] and [Controller.runDesiredStateApplyLoop]
+// as background goroutines, and initializes [Controller.runActualStateReportLoop]'s
+// Kubernetes watch before returning. If watch initialization fails, Start returns
+// the error and no goroutines are left running.
 //
 // All loops continue until the context is cancelled or [Controller.Stop] is called.
 func (c *Controller) Start(ctx context.Context) error {
@@ -77,7 +96,8 @@ func (c *Controller) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop signals all background goroutines to terminate.
+// Stop signals all background goroutines to terminate by closing the done channel.
+// Returns nil; the error return exists for interface compatibility.
 func (c *Controller) Stop() error {
 	close(c.done)
 	return nil

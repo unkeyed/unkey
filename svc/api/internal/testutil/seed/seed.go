@@ -19,7 +19,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/vault"
 )
 
-// Resources represents seed data created for tests
+// Resources contains the baseline entities created during [Seeder.Seed]. These
+// represent the "system" workspace used for root keys and a user workspace for
+// test-specific data.
 type Resources struct {
 	RootWorkspace db.Workspace
 	RootKeySpace  db.KeyAuth
@@ -27,7 +29,8 @@ type Resources struct {
 	UserWorkspace db.Workspace
 }
 
-// Seeder provides methods to seed test data
+// Seeder provides methods to create test entities in the database. It ensures proper
+// foreign key relationships and generates unique IDs for all entities.
 type Seeder struct {
 	t         *testing.T
 	DB        db.Database
@@ -35,7 +38,8 @@ type Seeder struct {
 	Resources Resources
 }
 
-// New creates a new Seeder instance
+// New creates a Seeder with the given database and vault service. Call [Seeder.Seed]
+// after creation to populate baseline data.
 func New(t *testing.T, database db.Database, vault *vault.Service) *Seeder {
 	return &Seeder{
 		t:         t,
@@ -45,6 +49,8 @@ func New(t *testing.T, database db.Database, vault *vault.Service) *Seeder {
 	}
 }
 
+// CreateWorkspace creates a new workspace with auto-generated IDs for the workspace,
+// org, name, and slug.
 func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 	params := db.InsertWorkspaceParams{
 		ID:        uid.New("test_ws"),
@@ -63,7 +69,9 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 	return ws
 }
 
-// Seed initializes the database with test data
+// Seed initializes the database with baseline test data. This creates a root workspace
+// (for issuing root keys), a root API with its key space, and a user workspace for
+// test-specific entities. The created resources are stored in [Seeder.Resources].
 func (s *Seeder) Seed(ctx context.Context) {
 	s.Resources.UserWorkspace = s.CreateWorkspace(ctx)
 	s.Resources.RootWorkspace = s.CreateWorkspace(ctx)
@@ -81,6 +89,7 @@ func (s *Seeder) Seed(ctx context.Context) {
 	s.Resources.RootKeySpace = keySpace
 }
 
+// CreateApiRequest configures the API to create.
 type CreateApiRequest struct {
 	WorkspaceID   string
 	IpWhitelist   string
@@ -91,6 +100,9 @@ type CreateApiRequest struct {
 	DefaultBytes  *int32
 }
 
+// CreateAPI creates an API and its associated key space. The key space is created
+// first since the API references it. Returns the created API which includes the
+// KeyAuthID linking to the key space.
 func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 	keySpaceID := uid.New(uid.KeySpacePrefix)
 	err := db.Query.InsertKeySpace(ctx, s.DB.RW(), db.InsertKeySpaceParams{
@@ -121,6 +133,7 @@ func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 	return api
 }
 
+// CreateProjectRequest configures the project to create.
 type CreateProjectRequest struct {
 	ID               string
 	WorkspaceID      string
@@ -131,6 +144,8 @@ type CreateProjectRequest struct {
 	DeleteProtection bool
 }
 
+// CreateProject creates a project within a workspace. The ID should be generated
+// with [uid.New] using [uid.ProjectPrefix].
 func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db.Project {
 	err := db.Query.InsertProject(ctx, h.DB.RW(), db.InsertProjectParams{
 		ID:               req.ID,
@@ -166,6 +181,7 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 	}
 }
 
+// CreateEnvironmentRequest configures the environment to create.
 type CreateEnvironmentRequest struct {
 	ID               string
 	WorkspaceID      string
@@ -176,6 +192,8 @@ type CreateEnvironmentRequest struct {
 	DeleteProtection bool
 }
 
+// CreateEnvironment creates an environment within a project. If SentinelConfig is
+// nil or empty, it defaults to "{}".
 func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentRequest) db.Environment {
 	sentinelConfig := []byte("{}")
 	if len(req.SentinelConfig) > 0 {
@@ -211,7 +229,10 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 	}
 }
 
-// CreateRootKey creates a root key with optional permissions
+// CreateRootKey creates a root key that authorizes operations on the specified
+// workspace. The key is created in the root key space (from baseline seed data).
+// Pass permission names to grant; if a permission already exists, it reuses the
+// existing one. Returns the raw key value for use in Authorization headers.
 func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissions ...string) string {
 	key := uid.New("test_root_key")
 
@@ -277,6 +298,8 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 	return key
 }
 
+// CreateKeyRequest configures the key to create. WorkspaceID and KeySpaceID are
+// required. The key is enabled by default unless Disabled is true.
 type CreateKeyRequest struct {
 	Disabled       bool
 	WorkspaceID    string
@@ -287,7 +310,7 @@ type CreateKeyRequest struct {
 	Expires        *time.Time
 	Name           *string
 	Deleted        bool
-	ForWorkspaceID *string // For creating root keys that target a specific workspace
+	ForWorkspaceID *string
 
 	Recoverable bool
 
@@ -299,6 +322,8 @@ type CreateKeyRequest struct {
 	Ratelimits  []CreateRatelimitRequest
 }
 
+// CreateKeyResponse contains the created key's ID and raw value, plus the IDs of
+// any roles and permissions that were created and attached.
 type CreateKeyResponse struct {
 	KeyID string
 	Key   string
@@ -307,6 +332,10 @@ type CreateKeyResponse struct {
 	PermissionIds []string
 }
 
+// CreateKey creates a key with the specified configuration. If Permissions, Roles,
+// or Ratelimits are provided, they are created and linked to the key. If Deleted
+// is true, the key is soft-deleted after creation. If Recoverable is true and a
+// Vault service is configured, the key is encrypted and stored for recovery.
 func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyResponse {
 	keyID := uid.New(uid.KeyPrefix)
 	key := uid.New("")
@@ -399,6 +428,8 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 	return res
 }
 
+// CreateRatelimitRequest configures the rate limit to create. Either IdentityID or
+// KeyID must be set to attach the rate limit to an entity.
 type CreateRatelimitRequest struct {
 	Name        string
 	WorkspaceID string
@@ -409,6 +440,9 @@ type CreateRatelimitRequest struct {
 	KeyID       *string
 }
 
+// CreateRatelimit creates a rate limit attached to either a key or identity. The
+// rate limit allows Limit requests per Duration (in milliseconds). If AutoApply is
+// true, the rate limit is automatically applied during key verification.
 func (s *Seeder) CreateRatelimit(ctx context.Context, req CreateRatelimitRequest) db.Ratelimit {
 	ratelimitID := uid.New(uid.RatelimitPrefix)
 	createdAt := time.Now().UnixMilli()
@@ -458,6 +492,8 @@ func (s *Seeder) CreateRatelimit(ctx context.Context, req CreateRatelimitRequest
 	}
 }
 
+// CreateIdentityRequest configures the identity to create. ExternalID and
+// WorkspaceID are required.
 type CreateIdentityRequest struct {
 	WorkspaceID string
 	ExternalID  string
@@ -465,6 +501,9 @@ type CreateIdentityRequest struct {
 	Ratelimits  []CreateRatelimitRequest
 }
 
+// CreateIdentity creates an identity with optional rate limits attached. If Meta
+// is nil or empty, it defaults to "{}". Any rate limits in Ratelimits are created
+// and linked to this identity.
 func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) db.Identity {
 	metaBytes := []byte("{}")
 	if len(req.Meta) > 0 {
@@ -503,6 +542,7 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 	}
 }
 
+// CreateRoleRequest configures the role to create. Name and WorkspaceID are required.
 type CreateRoleRequest struct {
 	Name        string
 	Description *string
@@ -511,6 +551,8 @@ type CreateRoleRequest struct {
 	Permissions []CreatePermissionRequest
 }
 
+// CreateRole creates a role with optional permissions attached. Any permissions in
+// Permissions are created and linked to this role.
 func (s *Seeder) CreateRole(ctx context.Context, req CreateRoleRequest) db.Role {
 	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Role WorkspaceID must be set"))
 	require.NoError(s.t, assert.NotEmpty(req.Name, "Role Name must be set"))
@@ -549,6 +591,8 @@ func (s *Seeder) CreateRole(ctx context.Context, req CreateRoleRequest) db.Role 
 	}
 }
 
+// CreatePermissionRequest configures the permission to create. Name, Slug, and
+// WorkspaceID are required.
 type CreatePermissionRequest struct {
 	Name        string
 	Slug        string
@@ -556,6 +600,7 @@ type CreatePermissionRequest struct {
 	WorkspaceID string
 }
 
+// CreatePermission creates a permission that can be attached to keys or roles.
 func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionRequest) db.Permission {
 	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Permission WorkspaceID must be set"))
 	require.NoError(s.t, assert.NotEmpty(req.Name, "Permission Name must be set"))

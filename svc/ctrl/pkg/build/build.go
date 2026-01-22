@@ -29,22 +29,29 @@ import (
 )
 
 const (
-	// Cache policy constants for Depot projects
-	defaultCacheKeepGB   = 50
+	// defaultCacheKeepGB is the maximum cache size in gigabytes for new Depot
+	// projects. Depot evicts least-recently-used cache entries when exceeded.
+	defaultCacheKeepGB = 50
+
+	// defaultCacheKeepDays is the maximum age in days for cached build layers.
+	// Layers older than this are evicted regardless of cache size.
 	defaultCacheKeepDays = 14
 )
 
-// CreateBuild orchestrates the container image build process using Depot.
+// BuildDockerImage builds a container image using Depot and pushes it to the
+// configured registry.
 //
-// Steps:
+// The method retrieves or creates a Depot project for the Unkey project,
+// acquires a remote build machine, and executes the build. Build progress
+// is streamed to ClickHouse for observability. On success, returns the
+// fully-qualified image name and Depot metadata.
 //
-//	Get or create Depot project
-//	Register a new build with Depot
-//	Acquire a build machine
-//	Connect to the buildkit instance
-//	Prepare build context and configuration
-//	Execute the build with status logging
-//	Return build metadata
+// Required request fields: S3Url (build context), BuildContextPath, ProjectId,
+// DeploymentId, and DockerfilePath. All fields are validated; missing fields
+// result in a terminal error.
+//
+// Returns a terminal error for validation failures. Other errors may be
+// retried by Restate.
 func (s *Depot) BuildDockerImage(
 	ctx restate.Context,
 	req *hydrav1.BuildDockerImageRequest,
@@ -162,6 +169,9 @@ func (s *Depot) BuildDockerImage(
 	})
 }
 
+// buildSolverOptions constructs the buildkit solver configuration for a build.
+// It configures the dockerfile frontend, sets the platform and context URL,
+// attaches registry authentication, and configures image export with push.
 func (s *Depot) buildSolverOptions(
 	platform, contextURL, dockerfilePath, imageName string,
 ) client.SolveOpt {
@@ -199,13 +209,12 @@ func (s *Depot) buildSolverOptions(
 	}
 }
 
-// getOrCreateDepotProject retrieves or creates a Depot project for the given Unkey project.
+// getOrCreateDepotProject retrieves the Depot project ID for an Unkey project,
+// creating one if it doesn't exist. The mapping is persisted to the database
+// so subsequent builds reuse the same Depot project and its cache.
 //
-// Steps:
-//
-//	Check database for existing project mapping
-//	Create new Depot project if not found
-//	Store project mapping in database
+// New projects are named "unkey-{projectID}" and created in the region
+// specified by [DepotConfig.ProjectRegion] with the default cache policy.
 func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID string) (string, error) {
 	project, err := db.Query.FindProjectById(ctx, s.db.RO(), unkeyProjectID)
 	if err != nil {
@@ -268,6 +277,11 @@ func (s *Depot) getOrCreateDepotProject(ctx context.Context, unkeyProjectID stri
 	return depotProjectID, nil
 }
 
+// processBuildStatus consumes build status events from buildkit and writes
+// telemetry to ClickHouse. It tracks completed vertices (build steps) and
+// their logs, buffering them for batch insertion.
+//
+// This method runs in its own goroutine and exits when statusCh is closed.
 func (s *Depot) processBuildStatus(
 	statusCh <-chan *client.SolveStatus,
 	workspaceID, projectID, deploymentID string,

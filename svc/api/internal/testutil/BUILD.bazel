@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "testutil",
-    srcs = ["http.go"],
+    srcs = [
+        "doc.go",
+        "http.go",
+    ],
     importpath = "github.com/unkeyed/unkey/svc/api/internal/testutil",
     visibility = ["//svc/api:__subpackages__"],
     deps = [
