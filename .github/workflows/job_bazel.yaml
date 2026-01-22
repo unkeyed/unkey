@@ -41,5 +41,6 @@ jobs:
           echo "UNKEY_REGISTRY_PASSWORD=fake" >> ./dev/.env.depot
 
           docker compose -f ./dev/docker-compose.yaml up s3 clickhouse kafka mysql ctrl-api ctrl-worker restate -d --wait
+          sleep 10
       - name: Run tests
         run: bazel test //... --test_output=errors
