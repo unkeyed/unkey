@@ -22,6 +22,11 @@ type K8sValidatorConfig struct {
 	Clientset kubernetes.Interface
 }
 
+// K8sValidator validates service account tokens using Kubernetes TokenReview API.
+//
+// This validator authenticates requests by verifying that tokens belong to pods
+// annotated with the expected deployment ID. It provides Kubernetes-native
+// authentication without requiring external identity providers.
 type K8sValidator struct {
 	clientset kubernetes.Interface
 }

@@ -13,6 +13,8 @@ type request interface {
 	Header() http.Header
 }
 
+// authenticate validates the bearer token from the request's Authorization header.
+// Returns a connect.CodeUnauthenticated error if the token is missing, malformed, or invalid.
 func (s *Service) authenticate(req request) error {
 
 	header := req.Header().Get("Authorization")

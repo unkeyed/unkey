@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "integration",
+    srcs = ["harness.go"],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/integration",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/db",
+        "//pkg/otel/logging",
+        "//pkg/testutil/containers",
+        "//pkg/uid",
+        "//svc/ctrl/integration/seed",
+        "@com_github_stretchr_testify//require",
+    ],
+)

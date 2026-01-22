@@ -110,7 +110,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		PrometheusPort:     cmd.RequireInt("prometheus-port"),
 		ControlPlaneURL:    cmd.RequireString("control-plane-url"),
 		ControlPlaneBearer: cmd.RequireString("control-plane-bearer"),
-		ClusterID:          cmd.RequireString("cluster-id"),
 	}
 
 	// Validate configuration

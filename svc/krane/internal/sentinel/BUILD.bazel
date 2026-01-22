@@ -1,0 +1,51 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "sentinel",
+    srcs = [
+        "actual_state_report.go",
+        "apply.go",
+        "consts.go",
+        "controller.go",
+        "delete.go",
+        "desired_state_apply.go",
+        "doc.go",
+        "resync.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/krane/internal/sentinel",
+    visibility = ["//svc/krane:__subpackages__"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//pkg/assert",
+        "//pkg/circuitbreaker",
+        "//pkg/otel/logging",
+        "//pkg/ptr",
+        "//pkg/repeat",
+        "//svc/krane/pkg/labels",
+        "@com_connectrpc_connect//:connect",
+        "@io_k8s_api//apps/v1:apps",
+        "@io_k8s_api//core/v1:core",
+        "@io_k8s_apimachinery//pkg/api/errors",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
+        "@io_k8s_apimachinery//pkg/types",
+        "@io_k8s_apimachinery//pkg/util/intstr",
+        "@io_k8s_apimachinery//pkg/watch",
+        "@io_k8s_client_go//kubernetes",
+        "@io_k8s_sigs_controller_runtime//pkg/client",
+    ],
+)
+
+go_test(
+    name = "sentinel_test",
+    srcs = ["controller_test.go"],
+    embed = [":sentinel"],
+    deps = [
+        "//pkg/otel/logging",
+        "//svc/krane/internal/testutil",
+        "@com_github_stretchr_testify//require",
+        "@io_k8s_api//core/v1:core",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
+        "@io_k8s_client_go//kubernetes/fake",
+    ],
+)

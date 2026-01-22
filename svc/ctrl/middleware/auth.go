@@ -53,7 +53,7 @@ func NewAuthMiddleware(config AuthConfig) *AuthMiddleware {
 	}
 }
 
-// ConnectInterceptor returns a Connect interceptor for gRPC-like services.
+// ConnectInterceptor returns a Connect interceptor for Connect services.
 //
 // This method returns an interceptor function that validates Bearer tokens
 // on incoming requests. It skips authentication for health check endpoints

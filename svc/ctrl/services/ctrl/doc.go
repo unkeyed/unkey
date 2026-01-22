@@ -28,11 +28,11 @@
 //
 //	ctrlSvc := ctrl.New("ctrl-instance-001", database)
 //
-//	// Register with gRPC server
+//	// Register with Connect server
 //	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrlSvc))
 //
 // # Error Handling
 //
-// Uses standard Connect error codes for proper gRPC
+// Uses standard Connect error codes for proper
 // error transmission and client handling.
 package ctrl
