@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
+import { useParams } from "next/navigation";
 import type { ComponentType, ReactNode } from "react";
 import { ActiveDeploymentCard } from "../../../components/active-deployment-card";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
@@ -40,17 +41,18 @@ const baseConfig = {
   intervalMs: 60 * 60 * 1000,
 };
 
-const DEPLOYMENT_ID = "d_5VmWaBhBEn5jmAcZ";
-
 export default function DeploymentOverview() {
+  const params = useParams();
+  const deploymentId = params?.deploymentId as string;
+
   const { collections, setIsDetailsOpen, isDetailsOpen, projectId, liveDeploymentId } =
     useProject();
   const deployment = useLiveQuery(
     (q) =>
       q
         .from({ deployment: collections.deployments })
-        .where(({ deployment }) => eq(deployment.id, DEPLOYMENT_ID)),
-    [DEPLOYMENT_ID],
+        .where(({ deployment }) => eq(deployment.id, deploymentId)),
+    [deploymentId],
   );
   const deploymentStatus = deployment.data.at(0)?.status;
 
@@ -62,7 +64,7 @@ export default function DeploymentOverview() {
           title="Deployment"
         />
         <ActiveDeploymentCard
-          deploymentId={DEPLOYMENT_ID}
+          deploymentId={deploymentId}
           trailingContent={
             <div className="flex gap-1.5 items-center">
               <InfoChip icon={Bolt}>
@@ -302,7 +304,7 @@ type MetricCardProps = {
   onPercentileChange?: (value: string) => void;
 };
 
-export function MetricCard({
+function MetricCard({
   icon: Icon,
   metricType,
   currentValue,
