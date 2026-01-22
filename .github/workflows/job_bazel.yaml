@@ -33,6 +33,13 @@ jobs:
       # Running containers is temporary until we moved them inside of bazel,
       # at that point they are only created if they are actually needed
       - name: Start containers
-        run: docker compose -f ./dev/docker-compose.yaml up s3 clickhouse kafka mysql ctrl-api ctrl-worker restate -d --wait
+        run: |
+          echo "UNKEY_DEPOT_TOKEN=fake" >> ./dev/.env.depot
+          echo "UNKEY_BUILD_S3_URL=fake" >> ./dev/.env.depot
+          echo "UNKEY_BUILD_S3_ACCESS_KEY_ID=fake" >> ./dev/.env.depot
+          echo "UNKEY_BUILD_S3_ACCESS_KEY_SECRET=fake" >> ./dev/.env.depot
+          echo "UNKEY_REGISTRY_PASSWORD=fake" >> ./dev/.env.depot
+
+          docker compose -f ./dev/docker-compose.yaml up s3 clickhouse kafka mysql ctrl-api ctrl-worker restate -d --wait
       - name: Run tests
         run: bazel test //... --test_output=errors
