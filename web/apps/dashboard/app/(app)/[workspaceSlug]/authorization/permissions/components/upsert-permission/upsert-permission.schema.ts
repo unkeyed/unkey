@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const permissionNameSchema = z
   .string()
-  .min(1, { message: "Permission name must be at least 1 characters long" })
+  .min(1, { message: "Permission name must be at least 1 character long" })
   .max(512, { message: "Permission name cannot exceed 512 characters" })
   .refine((name) => !name.match(/^\s|\s$/), {
     message: "Permission name cannot start or end with whitespace",
