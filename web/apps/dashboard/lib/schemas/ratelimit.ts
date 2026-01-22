@@ -68,11 +68,3 @@ export const ratelimitSchema = z.object({
 // Type exports
 export type RatelimitItem = z.infer<typeof ratelimitItemSchema>;
 export type RatelimitFormValues = z.infer<typeof ratelimitSchema>;
-
-// Manual type for form context to avoid conditional schema union issues
-export type RatelimitFormContextValues = {
-  ratelimit: {
-    enabled: boolean;
-    data: RatelimitItem[];
-  };
-};

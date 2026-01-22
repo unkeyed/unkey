@@ -226,17 +226,15 @@ export const expirationValidationSchema = z.object({
 
 // Combined schemas for forms
 export const creditsSchema = z.object({
-  limit: createConditionalSchema("enabled", limitValidationSchema)
-    .optional()
-    .prefault({
-      enabled: false,
-      data: {
-        remaining: 100,
-        refill: {
-          interval: "none",
-        },
+  limit: createConditionalSchema("enabled", limitValidationSchema).prefault({
+    enabled: false,
+    data: {
+      remaining: 100,
+      refill: {
+        interval: "none",
       },
-    }),
+    },
+  }),
 });
 
 export const ratelimitSchema = z.object({
@@ -354,31 +352,7 @@ export type LimitData = z.infer<typeof limitDataSchema>;
 export type CreateKeyInput = z.infer<typeof createKeyInputSchema>;
 export type FormValues = z.infer<typeof formSchema>;
 
-export type FormValueTypes = {
-  bytes: number;
-  prefix?: string;
-  ownerId?: string;
-  name?: string;
-  environment?: string;
-  metadata: {
-    enabled: boolean;
-    data?: string;
-  };
-  limit?: {
-    enabled: boolean;
-    data?: LimitData;
-  };
-  ratelimit: {
-    enabled: boolean;
-    data: RatelimitItem[];
-  };
-  expiration: {
-    enabled: boolean;
-    data?: Date;
-  };
-};
-
-// Helper type exports
-export type RatelimitFormValues = Pick<FormValueTypes, "ratelimit">;
-export type CreditsFormValues = Pick<FormValueTypes, "limit">;
-export type ExpirationFormValues = Pick<FormValueTypes, "expiration">;
+// Helper type exports - infer directly from schemas for Zod v4 compatibility
+export type RatelimitFormValues = z.infer<typeof ratelimitSchema>;
+export type CreditsFormValues = z.infer<typeof creditsSchema>;
+export type ExpirationFormValues = z.infer<typeof expirationSchema>;

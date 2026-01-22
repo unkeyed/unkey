@@ -11,6 +11,7 @@ import {
 } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.utils";
 import { EXAMPLE_JSON, MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";
 import { RatelimitSetup } from "@/components/dashboard/ratelimits/ratelimit-setup";
+import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarClock, ChartPie, Code, Gauge, Key2, StackPerspective2 } from "@unkey/icons";
@@ -67,7 +68,9 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
   });
 
   const methods = useForm<FormValues & { apiName: string }>({
-    resolver: zodResolver(extendedFormSchema),
+    resolver: zodResolver(extendedFormSchema) as DiscriminatedUnionResolver<
+      typeof extendedFormSchema
+    >,
     mode: "onChange",
     shouldFocusError: true,
     shouldUnregister: true,
@@ -156,12 +159,24 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
                   defaultChecked={methods.watch("ratelimit.enabled")}
                   onCheckedChange={(checked) => {
                     const currentData = methods.getValues("ratelimit.data");
-                    methods.setValue(
-                      "ratelimit",
-                      checked
-                        ? { enabled: true, data: currentData as any }
-                        : ({ enabled: false } as any),
-                    );
+                    if (checked) {
+                      methods.setValue("ratelimit", {
+                        enabled: true,
+                        data:
+                          Array.isArray(currentData) && currentData.length > 0
+                            ? currentData
+                            : [
+                                {
+                                  name: "Default",
+                                  limit: 10,
+                                  refillInterval: 1000,
+                                  autoApply: true,
+                                },
+                              ],
+                      });
+                    } else {
+                      methods.setValue("ratelimit", { enabled: false });
+                    }
                     methods.trigger("ratelimit");
                   }}
                 >
@@ -176,13 +191,23 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
                   description="Set usage limits based on credits or quota to control consumption"
                   defaultChecked={methods.watch("limit.enabled")}
                   onCheckedChange={(checked) => {
-                    const currentData = methods.getValues("limit.data");
-                    methods.setValue(
-                      "limit",
-                      checked
-                        ? { enabled: true, data: currentData as any }
-                        : ({ enabled: false } as any),
-                    );
+                    const currentLimit = methods.getValues("limit");
+                    if (checked) {
+                      methods.setValue("limit", {
+                        enabled: true,
+                        data:
+                          currentLimit?.enabled && currentLimit.data?.remaining
+                            ? currentLimit.data
+                            : {
+                                remaining: 100,
+                                refill: {
+                                  interval: "none",
+                                },
+                              },
+                      });
+                    } else {
+                      methods.setValue("limit", { enabled: false });
+                    }
                     methods.trigger("limit");
                   }}
                 >
@@ -200,13 +225,16 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
                   defaultChecked={methods.watch("expiration.enabled")}
                   onCheckedChange={(checked) => {
                     if (checked) {
-                      const currentExpiryDate = methods.getValues("expiration.data");
+                      const currentExpiration = methods.getValues("expiration");
                       methods.setValue("expiration", {
                         enabled: true,
-                        data: currentExpiryDate || addDays(new Date(), 1),
-                      } as any);
+                        data:
+                          currentExpiration?.enabled && currentExpiration.data instanceof Date
+                            ? currentExpiration.data
+                            : addDays(new Date(), 1),
+                      });
                     } else {
-                      methods.setValue("expiration", { enabled: false } as any);
+                      methods.setValue("expiration", { enabled: false });
                     }
                     methods.trigger("expiration");
                   }}
@@ -223,13 +251,16 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
                   defaultChecked={methods.watch("metadata.enabled")}
                   onCheckedChange={(checked) => {
                     if (checked) {
-                      const currentMetadata = methods.getValues("metadata.data");
+                      const currentMetadata = methods.getValues("metadata");
                       methods.setValue("metadata", {
                         enabled: true,
-                        data: currentMetadata || JSON.stringify(EXAMPLE_JSON, null, 2),
-                      } as any);
+                        data:
+                          currentMetadata?.enabled && typeof currentMetadata.data === "string"
+                            ? currentMetadata.data
+                            : JSON.stringify(EXAMPLE_JSON, null, 2),
+                      });
                     } else {
-                      methods.setValue("metadata", { enabled: false } as any);
+                      methods.setValue("metadata", { enabled: false });
                     }
                     methods.trigger("metadata");
                   }}

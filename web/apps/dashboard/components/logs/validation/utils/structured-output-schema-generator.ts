@@ -2,19 +2,21 @@ import { z } from "zod";
 import type { FieldConfig } from "../filter.types";
 import { isNumberConfig, isStringConfig } from "./type-guards";
 
+interface FilterItem {
+  operator: string;
+  value: string | number;
+}
+
+interface FilterData {
+  field: string;
+  filters: FilterItem[];
+}
+
 export function createFilterOutputSchema<
-  TFieldEnum extends z.ZodEnum<any>,
-  TOperatorEnum extends z.ZodEnum<any>,
+  TFieldEnum extends z.ZodEnum<Readonly<Record<string, string>>>,
+  TOperatorEnum extends z.ZodEnum<Readonly<Record<string, string>>>,
   TConfig extends Record<z.infer<TFieldEnum>, FieldConfig<z.infer<TOperatorEnum>>>,
 >(fieldEnum: TFieldEnum, operatorEnum: TOperatorEnum, filterFieldConfig: TConfig) {
-  type FilterData = {
-    field: z.infer<TFieldEnum>;
-    filters: Array<{
-      operator: z.infer<TOperatorEnum>;
-      value: string | number;
-    }>;
-  };
-
   return z.object({
     filters: z.array(
       z
@@ -27,16 +29,17 @@ export function createFilterOutputSchema<
             }),
           ),
         })
-        .superRefine((data: any, ctx) => {
-          const typedData = data as FilterData;
+        .superRefine((data, ctx) => {
+          // Type assertion is safe here because the schema structure guarantees these properties exist
+          const typedData = data as unknown as FilterData;
           const config = filterFieldConfig[typedData.field as keyof TConfig];
-          typedData.filters.forEach((filter, index) => {
+          typedData.filters.forEach((filter, index: number) => {
             const isOperatorValid = config.operators.includes(
               filter.operator as z.infer<TOperatorEnum>,
             );
             if (!isOperatorValid) {
               ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: `Invalid operator "${filter.operator}" for field "${String(typedData.field)}"`,
                 path: ["filters", index, "operator"],
               });
@@ -49,7 +52,7 @@ export function createFilterOutputSchema<
             );
             if (!isValueValid) {
               ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: `Invalid value "${filter.value}" for field "${String(typedData.field)}"`,
                 path: ["filters", index, "value"],
               });

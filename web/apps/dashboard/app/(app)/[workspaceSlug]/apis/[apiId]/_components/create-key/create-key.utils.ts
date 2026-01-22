@@ -2,7 +2,6 @@ import { metadataSchema } from "@/lib/schemas/metadata";
 import { deepMerge } from "@/lib/utils";
 import {
   type CreateKeyInput,
-  type FormValueTypes,
   type FormValues,
   creditsSchema,
   expirationSchema,
@@ -98,14 +97,13 @@ export const getFieldsFromSchema = (schema: unknown, prefix = ""): string[] => {
   });
 };
 
-export const getDefaultValues = (
-  overrides?: Partial<FormValueTypes> | null,
-): Partial<FormValueTypes> => {
-  const defaults = {
+export const getDefaultValues = (overrides?: Partial<FormValues> | null): Partial<FormValues> => {
+  const defaults: Partial<FormValues> = {
     bytes: 16,
     prefix: "",
-    externalId: undefined,
-    identityId: undefined,
+    externalId: null,
+    identityId: null,
+    enabled: true,
     metadata: {
       enabled: false,
     },
@@ -136,6 +134,12 @@ export const getDefaultValues = (
     },
   };
 
-  // biome-ignore lint/suspicious/noExplicitAny: This will be merged with actual default, so its okay to use any
-  return overrides ? deepMerge(defaults, overrides as any) : defaults;
+  if (!overrides) {
+    return defaults;
+  }
+
+  return deepMerge(
+    defaults as Record<string, unknown>,
+    overrides as Record<string, unknown>,
+  ) as Partial<FormValues>;
 };

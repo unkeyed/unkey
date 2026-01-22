@@ -5,6 +5,7 @@ import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/sche
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, FormInput } from "@unkey/ui";
 import { useEffect } from "react";
+import type { Resolver } from "react-hook-form";
 import { FormProvider } from "react-hook-form";
 import { z } from "zod";
 import { useEditKeyName } from "./hooks/use-edit-key";
@@ -38,7 +39,7 @@ export const EditKeyName = ({ keyDetails, isOpen, onClose }: EditKeyNameProps) =
   const methods = usePersistedForm<EditNameFormValues>(
     `${EDIT_NAME_FORM_STORAGE_KEY}_${keyDetails.id}`,
     {
-      resolver: zodResolver(editNameFormSchema),
+      resolver: zodResolver(editNameFormSchema) as Resolver<EditNameFormValues>,
       mode: "onChange",
       shouldFocusError: true,
       shouldUnregister: true,

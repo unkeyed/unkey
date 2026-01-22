@@ -1,6 +1,29 @@
 import { z } from "zod";
 
-// Helper function for creating conditional schemas based on the "enabled" flag
+/**
+ * Creates a conditional schema that validates fields only when enabled is true.
+ * Uses Zod v4 discriminated unions for proper type inference with react-hook-form.
+ *
+ * This function leverages Zod v4's discriminated union feature, which is specifically
+ * designed for conditional validation scenarios. The discriminator field (typically "enabled")
+ * determines which branch of the union is validated, providing superior type safety and
+ * compatibility with form libraries like react-hook-form compared to loose object unions.
+ *
+ * The disabled branch uses passthrough() to allow additional properties (like default values)
+ * without validation, while the enabled branch enforces strict validation.
+ *
+ * @param enabledPath - The path to the boolean field that controls validation (default: "enabled")
+ * @param schema - The schema to apply when enabled is true (must include the enabledPath field set to z.literal(true))
+ * @returns A discriminated union schema compatible with zodResolver
+ *
+ * @example
+ * ```typescript
+ * const conditionalSchema = createConditionalSchema("enabled", z.object({
+ *   enabled: z.literal(true),
+ *   data: z.string(),
+ * }));
+ * ```
+ */
 export const createConditionalSchema = <
   T extends z.ZodRawShape,
   EnabledPath extends string = "enabled",
@@ -8,11 +31,14 @@ export const createConditionalSchema = <
   enabledPath: EnabledPath,
   schema: z.ZodObject<T>,
 ) => {
-  return z.union([
-    // When enabled is false, don't validate other fields
-    z.looseObject({
-      [enabledPath]: z.literal(false),
-    } as { [K in EnabledPath]: z.ZodLiteral<false> }),
+  return z.discriminatedUnion(enabledPath, [
+    // When enabled is false, allow additional properties without validation
+    // This enables default values to be set via prefault()
+    z
+      .object({
+        [enabledPath]: z.literal(false),
+      } as { [K in EnabledPath]: z.ZodLiteral<false> })
+      .passthrough(),
     // When enabled is true, apply all validations
     schema,
   ]);
