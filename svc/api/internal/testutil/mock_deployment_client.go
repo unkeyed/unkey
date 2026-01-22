@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"context"
+	"sync"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -15,7 +16,10 @@ var _ ctrlv1connect.DeploymentServiceClient = (*MockDeploymentClient)(nil)
 // Each method has an optional function field that tests can set to customize
 // behavior. If the function is nil, the method returns a sensible default.
 // The mock also records calls so tests can verify the correct requests were made.
+//
+// This mock is safe for concurrent use. All call recording is protected by a mutex.
 type MockDeploymentClient struct {
+	mu                     sync.Mutex
 	CreateS3UploadURLFunc  func(context.Context, *connect.Request[ctrlv1.CreateS3UploadURLRequest]) (*connect.Response[ctrlv1.CreateS3UploadURLResponse], error)
 	CreateDeploymentFunc   func(context.Context, *connect.Request[ctrlv1.CreateDeploymentRequest]) (*connect.Response[ctrlv1.CreateDeploymentResponse], error)
 	GetDeploymentFunc      func(context.Context, *connect.Request[ctrlv1.GetDeploymentRequest]) (*connect.Response[ctrlv1.GetDeploymentResponse], error)
@@ -29,7 +33,9 @@ type MockDeploymentClient struct {
 }
 
 func (m *MockDeploymentClient) CreateS3UploadURL(ctx context.Context, req *connect.Request[ctrlv1.CreateS3UploadURLRequest]) (*connect.Response[ctrlv1.CreateS3UploadURLResponse], error) {
+	m.mu.Lock()
 	m.CreateS3UploadURLCalls = append(m.CreateS3UploadURLCalls, req.Msg)
+	m.mu.Unlock()
 	if m.CreateS3UploadURLFunc != nil {
 		return m.CreateS3UploadURLFunc(ctx, req)
 	}
@@ -37,7 +43,9 @@ func (m *MockDeploymentClient) CreateS3UploadURL(ctx context.Context, req *conne
 }
 
 func (m *MockDeploymentClient) CreateDeployment(ctx context.Context, req *connect.Request[ctrlv1.CreateDeploymentRequest]) (*connect.Response[ctrlv1.CreateDeploymentResponse], error) {
+	m.mu.Lock()
 	m.CreateDeploymentCalls = append(m.CreateDeploymentCalls, req.Msg)
+	m.mu.Unlock()
 	if m.CreateDeploymentFunc != nil {
 		return m.CreateDeploymentFunc(ctx, req)
 	}
@@ -45,7 +53,9 @@ func (m *MockDeploymentClient) CreateDeployment(ctx context.Context, req *connec
 }
 
 func (m *MockDeploymentClient) GetDeployment(ctx context.Context, req *connect.Request[ctrlv1.GetDeploymentRequest]) (*connect.Response[ctrlv1.GetDeploymentResponse], error) {
+	m.mu.Lock()
 	m.GetDeploymentCalls = append(m.GetDeploymentCalls, req.Msg)
+	m.mu.Unlock()
 	if m.GetDeploymentFunc != nil {
 		return m.GetDeploymentFunc(ctx, req)
 	}
@@ -53,7 +63,9 @@ func (m *MockDeploymentClient) GetDeployment(ctx context.Context, req *connect.R
 }
 
 func (m *MockDeploymentClient) Rollback(ctx context.Context, req *connect.Request[ctrlv1.RollbackRequest]) (*connect.Response[ctrlv1.RollbackResponse], error) {
+	m.mu.Lock()
 	m.RollbackCalls = append(m.RollbackCalls, req.Msg)
+	m.mu.Unlock()
 	if m.RollbackFunc != nil {
 		return m.RollbackFunc(ctx, req)
 	}
@@ -61,7 +73,9 @@ func (m *MockDeploymentClient) Rollback(ctx context.Context, req *connect.Reques
 }
 
 func (m *MockDeploymentClient) Promote(ctx context.Context, req *connect.Request[ctrlv1.PromoteRequest]) (*connect.Response[ctrlv1.PromoteResponse], error) {
+	m.mu.Lock()
 	m.PromoteCalls = append(m.PromoteCalls, req.Msg)
+	m.mu.Unlock()
 	if m.PromoteFunc != nil {
 		return m.PromoteFunc(ctx, req)
 	}
