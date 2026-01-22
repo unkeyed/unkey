@@ -209,6 +209,9 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 			return db.BulkQuery.InsertDeploymentTopologies(txCtx, tx, topologies)
 		})
 	}, restate.WithName("insert deployment topologies"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to insert deployment topologies: %w", err)
+	}
 
 	// Ensure sentinels exist in each region for this deployment
 
