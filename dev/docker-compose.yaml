@@ -385,6 +385,9 @@ services:
       clickhouse:
         condition: service_healthy
         required: true
+      vault:
+        condition: service_healthy
+        required: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
@@ -401,12 +404,9 @@ services:
       UNKEY_RESTATE_REGISTER_AS: "http://ctrl-worker:9080"
       UNKEY_RESTATE_API_KEY: ""
 
-      # Vault - General secrets (env vars, API keys)
-      UNKEY_VAULT_S3_URL: "http://s3:3902"
-      UNKEY_VAULT_S3_BUCKET: "vault"
-      UNKEY_VAULT_S3_ACCESS_KEY_ID: "minio_root_user"
-      UNKEY_VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
-      UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
+      # Vault service for secret encryption
+      UNKEY_VAULT_URL: "http://vault:8060"
+      UNKEY_VAULT_TOKEN: "vault-test-token-123"
 
       # Build configuration (loaded from .env.depot)
       UNKEY_BUILD_S3_BUCKET: "build-contexts"
