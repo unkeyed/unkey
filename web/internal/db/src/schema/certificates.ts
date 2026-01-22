@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import { bigint, mysqlTable, text, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { longblob } from "./util/longblob";
 import { workspaces } from "./workspaces";
 
 export const certificates = mysqlTable(
@@ -11,6 +12,8 @@ export const certificates = mysqlTable(
     hostname: varchar("hostname", { length: 255 }).notNull(),
     certificate: text("certificate").notNull(),
     encryptedPrivateKey: text("encrypted_private_key").notNull(),
+    ocspStaple: longblob("ocsp_staple"),
+    ocspExpiresAt: bigint("ocsp_expires_at", { mode: "number" }),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
     updatedAt: bigint("updated_at", { mode: "number" }),
   },

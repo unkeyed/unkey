@@ -159,12 +159,19 @@ type Querier interface {
 	FindAuditLogTargetByID(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIDRow, error)
 	//FindCertificateByHostname
 	//
-	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
+	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, ocsp_staple, ocsp_expires_at, created_at, updated_at FROM certificates WHERE hostname = ?
 	FindCertificateByHostname(ctx context.Context, db DBTX, hostname string) (Certificate, error)
 	//FindCertificatesByHostnames
 	//
-	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname IN (/*SLICE:hostnames*/?)
+	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, ocsp_staple, ocsp_expires_at, created_at, updated_at FROM certificates WHERE hostname IN (/*SLICE:hostnames*/?)
 	FindCertificatesByHostnames(ctx context.Context, db DBTX, hostnames []string) ([]Certificate, error)
+	//FindCertificatesWithExpiringOCSP
+	//
+	//  SELECT pk, id, workspace_id, hostname, certificate, ocsp_staple, ocsp_expires_at
+	//  FROM certificates
+	//  WHERE ocsp_expires_at IS NULL OR ocsp_expires_at < ?
+	//  LIMIT 1000
+	FindCertificatesWithExpiringOCSP(ctx context.Context, db DBTX, ocspExpiresAt sql.NullInt64) ([]FindCertificatesWithExpiringOCSPRow, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
@@ -2121,6 +2128,12 @@ type Querier interface {
 	//  SET delete_protection = ?
 	//  WHERE id = ?
 	UpdateApiDeleteProtection(ctx context.Context, db DBTX, arg UpdateApiDeleteProtectionParams) error
+	//UpdateCertificateOCSP
+	//
+	//  UPDATE certificates
+	//  SET ocsp_staple = ?, ocsp_expires_at = ?, updated_at = ?
+	//  WHERE hostname = ?
+	UpdateCertificateOCSP(ctx context.Context, db DBTX, arg UpdateCertificateOCSPParams) error
 	//UpdateClickhouseWorkspaceSettingsLimits
 	//
 	//  UPDATE `clickhouse_workspace_settings`

@@ -18,6 +18,11 @@ service CertificateService {
   // This should be called periodically (e.g., daily via cron).
   // Key: "global" (single instance ensures no duplicate renewal runs)
   rpc RenewExpiringCertificates(RenewExpiringCertificatesRequest) returns (RenewExpiringCertificatesResponse) {}
+
+  // RefreshExpiringOCSPStaples refreshes OCSP staples for certificates expiring soon.
+  // This is a self-scheduling cron job that runs daily.
+  // Key: "global" (single instance ensures no duplicate runs)
+  rpc RefreshExpiringOCSPStaples(RefreshExpiringOCSPStaplesRequest) returns (RefreshExpiringOCSPStaplesResponse) {}
 }
 
 message ProcessChallengeRequest {
@@ -39,4 +44,15 @@ message RenewExpiringCertificatesResponse {
   int32 certificates_checked = 1;
   int32 renewals_triggered = 2;
   repeated string failed_domains = 3;
+}
+
+message RefreshExpiringOCSPStaplesRequest {
+  // Number of days before OCSP expiry to start refresh (default: 7)
+  int32 days_before_expiry = 1;
+}
+
+message RefreshExpiringOCSPStaplesResponse {
+  int32 certificates_checked = 1;
+  int32 refreshes_completed = 2;
+  repeated string failed_hostnames = 3;
 }

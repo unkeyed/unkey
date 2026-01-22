@@ -24,6 +24,10 @@ type CertificateServiceClient interface {
 	// This should be called periodically (e.g., daily via cron).
 	// Key: "global" (single instance ensures no duplicate renewal runs)
 	RenewExpiringCertificates(opts ...sdk_go.ClientOption) sdk_go.Client[*RenewExpiringCertificatesRequest, *RenewExpiringCertificatesResponse]
+	// RefreshExpiringOCSPStaples refreshes OCSP staples for certificates expiring soon.
+	// This is a self-scheduling cron job that runs daily.
+	// Key: "global" (single instance ensures no duplicate runs)
+	RefreshExpiringOCSPStaples(opts ...sdk_go.ClientOption) sdk_go.Client[*RefreshExpiringOCSPStaplesRequest, *RefreshExpiringOCSPStaplesResponse]
 }
 
 type certificateServiceClient struct {
@@ -56,6 +60,14 @@ func (c *certificateServiceClient) RenewExpiringCertificates(opts ...sdk_go.Clie
 	return sdk_go.WithRequestType[*RenewExpiringCertificatesRequest](sdk_go.Object[*RenewExpiringCertificatesResponse](c.ctx, "hydra.v1.CertificateService", c.key, "RenewExpiringCertificates", cOpts...))
 }
 
+func (c *certificateServiceClient) RefreshExpiringOCSPStaples(opts ...sdk_go.ClientOption) sdk_go.Client[*RefreshExpiringOCSPStaplesRequest, *RefreshExpiringOCSPStaplesResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RefreshExpiringOCSPStaplesRequest](sdk_go.Object[*RefreshExpiringOCSPStaplesResponse](c.ctx, "hydra.v1.CertificateService", c.key, "RefreshExpiringOCSPStaples", cOpts...))
+}
+
 // CertificateServiceIngressClient is the ingress client API for hydra.v1.CertificateService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -67,6 +79,10 @@ type CertificateServiceIngressClient interface {
 	// This should be called periodically (e.g., daily via cron).
 	// Key: "global" (single instance ensures no duplicate renewal runs)
 	RenewExpiringCertificates() ingress.Requester[*RenewExpiringCertificatesRequest, *RenewExpiringCertificatesResponse]
+	// RefreshExpiringOCSPStaples refreshes OCSP staples for certificates expiring soon.
+	// This is a self-scheduling cron job that runs daily.
+	// Key: "global" (single instance ensures no duplicate runs)
+	RefreshExpiringOCSPStaples() ingress.Requester[*RefreshExpiringOCSPStaplesRequest, *RefreshExpiringOCSPStaplesResponse]
 }
 
 type certificateServiceIngressClient struct {
@@ -93,6 +109,11 @@ func (c *certificateServiceIngressClient) RenewExpiringCertificates() ingress.Re
 	return ingress.NewRequester[*RenewExpiringCertificatesRequest, *RenewExpiringCertificatesResponse](c.client, c.serviceName, "RenewExpiringCertificates", &c.key, &codec)
 }
 
+func (c *certificateServiceIngressClient) RefreshExpiringOCSPStaples() ingress.Requester[*RefreshExpiringOCSPStaplesRequest, *RefreshExpiringOCSPStaplesResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RefreshExpiringOCSPStaplesRequest, *RefreshExpiringOCSPStaplesResponse](c.client, c.serviceName, "RefreshExpiringOCSPStaples", &c.key, &codec)
+}
+
 // CertificateServiceServer is the server API for hydra.v1.CertificateService service.
 // All implementations should embed UnimplementedCertificateServiceServer
 // for forward compatibility.
@@ -106,6 +127,10 @@ type CertificateServiceServer interface {
 	// This should be called periodically (e.g., daily via cron).
 	// Key: "global" (single instance ensures no duplicate renewal runs)
 	RenewExpiringCertificates(ctx sdk_go.ObjectContext, req *RenewExpiringCertificatesRequest) (*RenewExpiringCertificatesResponse, error)
+	// RefreshExpiringOCSPStaples refreshes OCSP staples for certificates expiring soon.
+	// This is a self-scheduling cron job that runs daily.
+	// Key: "global" (single instance ensures no duplicate runs)
+	RefreshExpiringOCSPStaples(ctx sdk_go.ObjectContext, req *RefreshExpiringOCSPStaplesRequest) (*RefreshExpiringOCSPStaplesResponse, error)
 }
 
 // UnimplementedCertificateServiceServer should be embedded to have
@@ -120,6 +145,9 @@ func (UnimplementedCertificateServiceServer) ProcessChallenge(ctx sdk_go.ObjectC
 }
 func (UnimplementedCertificateServiceServer) RenewExpiringCertificates(ctx sdk_go.ObjectContext, req *RenewExpiringCertificatesRequest) (*RenewExpiringCertificatesResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method RenewExpiringCertificates not implemented"), 501)
+}
+func (UnimplementedCertificateServiceServer) RefreshExpiringOCSPStaples(ctx sdk_go.ObjectContext, req *RefreshExpiringOCSPStaplesRequest) (*RefreshExpiringOCSPStaplesResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method RefreshExpiringOCSPStaples not implemented"), 501)
 }
 func (UnimplementedCertificateServiceServer) testEmbeddedByValue() {}
 
@@ -142,5 +170,6 @@ func NewCertificateServiceServer(srv CertificateServiceServer, opts ...sdk_go.Se
 	router := sdk_go.NewObject("hydra.v1.CertificateService", sOpts...)
 	router = router.Handler("ProcessChallenge", sdk_go.NewObjectHandler(srv.ProcessChallenge))
 	router = router.Handler("RenewExpiringCertificates", sdk_go.NewObjectHandler(srv.RenewExpiringCertificates))
+	router = router.Handler("RefreshExpiringOCSPStaples", sdk_go.NewObjectHandler(srv.RefreshExpiringOCSPStaples))
 	return router
 }

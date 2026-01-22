@@ -917,6 +917,8 @@ type Certificate struct {
 	Hostname            string        `db:"hostname"`
 	Certificate         string        `db:"certificate"`
 	EncryptedPrivateKey string        `db:"encrypted_private_key"`
+	OcspStaple          []byte        `db:"ocsp_staple"`
+	OcspExpiresAt       sql.NullInt64 `db:"ocsp_expires_at"`
 	CreatedAt           int64         `db:"created_at"`
 	UpdatedAt           sql.NullInt64 `db:"updated_at"`
 }

@@ -231,6 +231,111 @@ func (x *RenewExpiringCertificatesResponse) GetFailedDomains() []string {
 	return nil
 }
 
+type RefreshExpiringOCSPStaplesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Number of days before OCSP expiry to start refresh (default: 7)
+	DaysBeforeExpiry int32 `protobuf:"varint,1,opt,name=days_before_expiry,json=daysBeforeExpiry,proto3" json:"days_before_expiry,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *RefreshExpiringOCSPStaplesRequest) Reset() {
+	*x = RefreshExpiringOCSPStaplesRequest{}
+	mi := &file_hydra_v1_certificate_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshExpiringOCSPStaplesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshExpiringOCSPStaplesRequest) ProtoMessage() {}
+
+func (x *RefreshExpiringOCSPStaplesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_certificate_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshExpiringOCSPStaplesRequest.ProtoReflect.Descriptor instead.
+func (*RefreshExpiringOCSPStaplesRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_certificate_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *RefreshExpiringOCSPStaplesRequest) GetDaysBeforeExpiry() int32 {
+	if x != nil {
+		return x.DaysBeforeExpiry
+	}
+	return 0
+}
+
+type RefreshExpiringOCSPStaplesResponse struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	CertificatesChecked int32                  `protobuf:"varint,1,opt,name=certificates_checked,json=certificatesChecked,proto3" json:"certificates_checked,omitempty"`
+	RefreshesCompleted  int32                  `protobuf:"varint,2,opt,name=refreshes_completed,json=refreshesCompleted,proto3" json:"refreshes_completed,omitempty"`
+	FailedHostnames     []string               `protobuf:"bytes,3,rep,name=failed_hostnames,json=failedHostnames,proto3" json:"failed_hostnames,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *RefreshExpiringOCSPStaplesResponse) Reset() {
+	*x = RefreshExpiringOCSPStaplesResponse{}
+	mi := &file_hydra_v1_certificate_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshExpiringOCSPStaplesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshExpiringOCSPStaplesResponse) ProtoMessage() {}
+
+func (x *RefreshExpiringOCSPStaplesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_certificate_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshExpiringOCSPStaplesResponse.ProtoReflect.Descriptor instead.
+func (*RefreshExpiringOCSPStaplesResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_certificate_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *RefreshExpiringOCSPStaplesResponse) GetCertificatesChecked() int32 {
+	if x != nil {
+		return x.CertificatesChecked
+	}
+	return 0
+}
+
+func (x *RefreshExpiringOCSPStaplesResponse) GetRefreshesCompleted() int32 {
+	if x != nil {
+		return x.RefreshesCompleted
+	}
+	return 0
+}
+
+func (x *RefreshExpiringOCSPStaplesResponse) GetFailedHostnames() []string {
+	if x != nil {
+		return x.FailedHostnames
+	}
+	return nil
+}
+
 var File_hydra_v1_certificate_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_certificate_proto_rawDesc = "" +
@@ -247,10 +352,17 @@ const file_hydra_v1_certificate_proto_rawDesc = "" +
 	"!RenewExpiringCertificatesResponse\x121\n" +
 	"\x14certificates_checked\x18\x01 \x01(\x05R\x13certificatesChecked\x12-\n" +
 	"\x12renewals_triggered\x18\x02 \x01(\x05R\x11renewalsTriggered\x12%\n" +
-	"\x0efailed_domains\x18\x03 \x03(\tR\rfailedDomains2\xef\x01\n" +
+	"\x0efailed_domains\x18\x03 \x03(\tR\rfailedDomains\"Q\n" +
+	"!RefreshExpiringOCSPStaplesRequest\x12,\n" +
+	"\x12days_before_expiry\x18\x01 \x01(\x05R\x10daysBeforeExpiry\"\xb3\x01\n" +
+	"\"RefreshExpiringOCSPStaplesResponse\x121\n" +
+	"\x14certificates_checked\x18\x01 \x01(\x05R\x13certificatesChecked\x12/\n" +
+	"\x13refreshes_completed\x18\x02 \x01(\x05R\x12refreshesCompleted\x12)\n" +
+	"\x10failed_hostnames\x18\x03 \x03(\tR\x0ffailedHostnames2\xea\x02\n" +
 	"\x12CertificateService\x12[\n" +
 	"\x10ProcessChallenge\x12!.hydra.v1.ProcessChallengeRequest\x1a\".hydra.v1.ProcessChallengeResponse\"\x00\x12v\n" +
-	"\x19RenewExpiringCertificates\x12*.hydra.v1.RenewExpiringCertificatesRequest\x1a+.hydra.v1.RenewExpiringCertificatesResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x96\x01\n" +
+	"\x19RenewExpiringCertificates\x12*.hydra.v1.RenewExpiringCertificatesRequest\x1a+.hydra.v1.RenewExpiringCertificatesResponse\"\x00\x12y\n" +
+	"\x1aRefreshExpiringOCSPStaples\x12+.hydra.v1.RefreshExpiringOCSPStaplesRequest\x1a,.hydra.v1.RefreshExpiringOCSPStaplesResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x96\x01\n" +
 	"\fcom.hydra.v1B\x10CertificateProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -265,20 +377,24 @@ func file_hydra_v1_certificate_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_certificate_proto_rawDescData
 }
 
-var file_hydra_v1_certificate_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_hydra_v1_certificate_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_hydra_v1_certificate_proto_goTypes = []any{
-	(*ProcessChallengeRequest)(nil),           // 0: hydra.v1.ProcessChallengeRequest
-	(*ProcessChallengeResponse)(nil),          // 1: hydra.v1.ProcessChallengeResponse
-	(*RenewExpiringCertificatesRequest)(nil),  // 2: hydra.v1.RenewExpiringCertificatesRequest
-	(*RenewExpiringCertificatesResponse)(nil), // 3: hydra.v1.RenewExpiringCertificatesResponse
+	(*ProcessChallengeRequest)(nil),            // 0: hydra.v1.ProcessChallengeRequest
+	(*ProcessChallengeResponse)(nil),           // 1: hydra.v1.ProcessChallengeResponse
+	(*RenewExpiringCertificatesRequest)(nil),   // 2: hydra.v1.RenewExpiringCertificatesRequest
+	(*RenewExpiringCertificatesResponse)(nil),  // 3: hydra.v1.RenewExpiringCertificatesResponse
+	(*RefreshExpiringOCSPStaplesRequest)(nil),  // 4: hydra.v1.RefreshExpiringOCSPStaplesRequest
+	(*RefreshExpiringOCSPStaplesResponse)(nil), // 5: hydra.v1.RefreshExpiringOCSPStaplesResponse
 }
 var file_hydra_v1_certificate_proto_depIdxs = []int32{
 	0, // 0: hydra.v1.CertificateService.ProcessChallenge:input_type -> hydra.v1.ProcessChallengeRequest
 	2, // 1: hydra.v1.CertificateService.RenewExpiringCertificates:input_type -> hydra.v1.RenewExpiringCertificatesRequest
-	1, // 2: hydra.v1.CertificateService.ProcessChallenge:output_type -> hydra.v1.ProcessChallengeResponse
-	3, // 3: hydra.v1.CertificateService.RenewExpiringCertificates:output_type -> hydra.v1.RenewExpiringCertificatesResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	4, // 2: hydra.v1.CertificateService.RefreshExpiringOCSPStaples:input_type -> hydra.v1.RefreshExpiringOCSPStaplesRequest
+	1, // 3: hydra.v1.CertificateService.ProcessChallenge:output_type -> hydra.v1.ProcessChallengeResponse
+	3, // 4: hydra.v1.CertificateService.RenewExpiringCertificates:output_type -> hydra.v1.RenewExpiringCertificatesResponse
+	5, // 5: hydra.v1.CertificateService.RefreshExpiringOCSPStaples:output_type -> hydra.v1.RefreshExpiringOCSPStaplesResponse
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -295,7 +411,7 @@ func file_hydra_v1_certificate_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_certificate_proto_rawDesc), len(file_hydra_v1_certificate_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

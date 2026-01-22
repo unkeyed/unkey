@@ -49,6 +49,13 @@
                 "import": "github.com/unkeyed/unkey/pkg/db/types"
               },
               "nullable": true
+            },
+            {
+              "column": "certificates.ocsp_staple",
+              "go_type": {
+                "type": "[]byte"
+              },
+              "nullable": true
             }
           ]
         }

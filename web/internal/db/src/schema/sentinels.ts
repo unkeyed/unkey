@@ -46,7 +46,7 @@ export const sentinels = mysqlTable(
     // Version for state synchronization with edge agents.
     // Updated via Restate VersioningService on each mutation.
     // Edge agents track their last-seen version and request changes after it.
-    // Unique across all resources (shared global counter).
+    // Unique per region (composite index with region).
     version: bigint("version", { mode: "number", unsigned: true }).notNull(),
 
     ...lifecycleDates,

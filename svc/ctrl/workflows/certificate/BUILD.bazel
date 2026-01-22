@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "bootstrap_infra_certs.go",
         "doc.go",
+        "ocsp_refresh_handler.go",
         "process_challenge_handler.go",
         "renew_handler.go",
         "service.go",
@@ -24,5 +25,6 @@ go_library(
         "@com_github_go_acme_lego_v4//lego",
         "@com_github_restatedev_sdk_go//:sdk-go",
         "@com_github_restatedev_sdk_go//ingress",
+        "@org_golang_x_crypto//ocsp",
     ],
 )

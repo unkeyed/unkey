@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/vault"
@@ -21,6 +22,8 @@ type Config struct {
 	DB db.Database
 
 	Vault *vault.Service
+
+	Clock clock.Clock
 
 	TLSCertificateCache cache.Cache[string, tls.Certificate]
 }

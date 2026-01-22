@@ -159,6 +159,7 @@ func Run(ctx context.Context, cfg Config) error {
 			DB:                  db,
 			TLSCertificateCache: cache.TLSCertificates,
 			Vault:               vaultSvc,
+			Clock:               clk,
 		})
 	}
 
@@ -198,12 +199,27 @@ func Run(ctx context.Context, cfg Config) error {
 				return certManager.GetCertificate(context.Background(), hello.ServerName)
 			},
 			MinVersion: tls.VersionTLS12,
-			// Enable session resumption for faster subsequent connections
-			// Session tickets allow clients to skip the full TLS handshake
+			// Enable session resumption via session tickets for faster subsequent connections
+			// This allows clients to skip the full TLS handshake on reconnect
+			// Note: Session ID-based caching isn't implemented in Go's TLS server - tickets are preferred
 			SessionTicketsDisabled: false,
-			// Let Go's TLS implementation choose optimal cipher suites
-			// This prefers TLS 1.3 when available (1-RTT vs 2-RTT for TLS 1.2)
-			PreferServerCipherSuites: false,
+			// Explicit cipher suites for TLS 1.2 - excludes weak CBC ciphers
+			// TLS 1.3 cipher suites are always used when available and can't be configured
+			CipherSuites: []uint16{
+				// TLS 1.2 AEAD ciphers only (no CBC which is marked WEAK by SSL Labs)
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+			},
+			// Curve preferences for ECDHE key exchange
+			// X25519 is fastest and most secure, P256 is widely supported fallback
+			CurvePreferences: []tls.CurveID{
+				tls.X25519,
+				tls.CurveP256,
+			},
 		}
 	}
 
