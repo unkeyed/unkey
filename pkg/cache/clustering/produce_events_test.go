@@ -37,7 +37,7 @@ func TestClusterCache_ProducesInvalidationOnRemoveAndSetNull(t *testing.T) {
 
 	err = topic.EnsureExists(1, 1)
 	require.NoError(t, err)
-	defer topic.Close()
+	defer func() { require.NoError(t, topic.Close()) }()
 
 	// Wait for topic to be fully created in Kafka
 	ctx := context.Background()
@@ -48,7 +48,7 @@ func TestClusterCache_ProducesInvalidationOnRemoveAndSetNull(t *testing.T) {
 
 	// Create dispatcher with noop - we won't use it to consume, just need it for ClusterCache creation
 	dispatcher := clustering.NewNoopDispatcher()
-	defer dispatcher.Close()
+	defer func() { require.NoError(t, dispatcher.Close()) }()
 
 	// Create local cache
 	localCache, err := cache.New(cache.Config[string, string]{
@@ -77,7 +77,7 @@ func TestClusterCache_ProducesInvalidationOnRemoveAndSetNull(t *testing.T) {
 	var eventsMutex sync.Mutex
 
 	consumer := topic.NewConsumer()
-	defer consumer.Close()
+	defer func() { require.NoError(t, consumer.Close()) }()
 
 	consumerCtx, cancelConsumer := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancelConsumer()

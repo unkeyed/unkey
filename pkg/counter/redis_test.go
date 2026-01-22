@@ -23,7 +23,7 @@ func TestRedisCounter(t *testing.T) {
 		Logger:   logging.New(),
 	})
 	require.NoError(t, err)
-	defer ctr.Close()
+	defer func() { require.NoError(t, ctr.Close()) }()
 
 	// Test basic increment
 	t.Run("BasicIncrement", func(t *testing.T) {
@@ -333,7 +333,7 @@ func TestRedisCounterMultiGet(t *testing.T) {
 		Logger:   logging.New(),
 	})
 	require.NoError(t, err)
-	defer ctr.Close()
+	defer func() { require.NoError(t, ctr.Close()) }()
 
 	// Set up some test data
 	testData := map[string]int64{
@@ -455,7 +455,7 @@ func TestRedisCounterDecrement(t *testing.T) {
 		Logger:   logging.New(),
 	})
 	require.NoError(t, err)
-	defer ctr.Close()
+	defer func() { require.NoError(t, ctr.Close()) }()
 
 	t.Run("BasicDecrement", func(t *testing.T) {
 		key := uid.New(uid.TestPrefix)
@@ -547,7 +547,7 @@ func TestRedisCounterDecrementIfExists(t *testing.T) {
 		Logger:   logging.New(),
 	})
 	require.NoError(t, err)
-	defer ctr.Close()
+	defer func() { require.NoError(t, ctr.Close()) }()
 
 	t.Run("DecrementNonExistentKey", func(t *testing.T) {
 		key := uid.New(uid.TestPrefix)
@@ -659,7 +659,7 @@ func TestRedisCounterDelete(t *testing.T) {
 		Logger:   logger,
 	})
 	require.NoError(t, err)
-	defer ctr.Close()
+	defer func() { require.NoError(t, ctr.Close()) }()
 
 	t.Run("DeleteExistingKey", func(t *testing.T) {
 		key := fmt.Sprintf("test-delete-%d", time.Now().UnixNano())
@@ -739,7 +739,7 @@ func TestRedisCounterDecrementLogic(t *testing.T) {
 		Logger:   logger,
 	})
 	require.NoError(t, err)
-	defer ctr.Close()
+	defer func() { require.NoError(t, ctr.Close()) }()
 
 	t.Run("BasicDecrementLogic", func(t *testing.T) {
 		key := fmt.Sprintf("test-decrement-%d", time.Now().UnixNano())

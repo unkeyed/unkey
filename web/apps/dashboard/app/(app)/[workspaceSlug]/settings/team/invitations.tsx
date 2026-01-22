@@ -1,29 +1,23 @@
 "use client";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
+import type { Organization } from "@/lib/auth/types";
+import { getGradientForUser } from "@/lib/avatar-gradient";
 import { trpc } from "@/lib/trpc/client";
+import { Card, CardContent } from "@unkey/ui";
 import { Button, Empty, Loading, toast } from "@unkey/ui";
-import { memo } from "react";
-import { InviteButton } from "./invite";
+import { memo, useState } from "react";
 import { StatusBadge } from "./status-badge";
 
 type InvitationsProps = {
-  user: AuthenticatedUser;
   organization: Organization;
 };
 
-export const Invitations = memo<InvitationsProps>(({ user, organization }) => {
+export const Invitations = memo<InvitationsProps>(({ organization }) => {
   const { data: invitationsList, isLoading } = trpc.org.invitations.list.useQuery(organization.id);
   const invitations = invitationsList?.data;
   const utils = trpc.useUtils();
+  const [revokingInvitationId, setRevokingInvitationId] = useState<string | null>(null);
+
   const revokeInvitation = trpc.org.invitations.remove.useMutation({
     onSuccess: () => {
       // Invalidate the invitation list query to trigger a refetch
@@ -37,7 +31,7 @@ export const Invitations = memo<InvitationsProps>(({ user, organization }) => {
 
   if (isLoading) {
     return (
-      <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border p-8 text-center">
+      <div className="flex items-center justify-center py-12">
         <Loading />
       </div>
     );
@@ -47,53 +41,62 @@ export const Invitations = memo<InvitationsProps>(({ user, organization }) => {
     return (
       <Empty>
         <Empty.Title>No pending invitations</Empty.Title>
-        <Empty.Description>Invite members to your team</Empty.Description>
-        <InviteButton user={user} organization={organization} />
+        <Empty.Description>Invite members using the form above</Empty.Description>
       </Empty>
     );
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Email</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>{/*/ empty */}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {invitations.map((invitation) => (
-          <TableRow key={invitation.id}>
-            <TableCell>
-              <span className="text-content font-medium email">{invitation.email}</span>
-            </TableCell>
-            <TableCell>
-              <StatusBadge status={invitation.state} />
-            </TableCell>
-            <TableCell>
-              {invitation.state === "pending" && (
-                <Button
-                  variant="destructive"
-                  onClick={async () => {
-                    try {
-                      await revokeInvitation.mutateAsync({
-                        orgId: organization.id,
-                        invitationId: invitation.id,
-                      });
-                    } catch (error) {
-                      console.error("Error removing member:", error);
-                    }
+    <Card>
+      <CardContent className="p-0">
+        <div className="divide-y divide-border">
+          {invitations.map((invitation) => (
+            <div key={invitation.id} className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div
+                  className="h-8 w-8 rounded-full flex-shrink-0"
+                  style={{
+                    background: `linear-gradient(to bottom right, ${getGradientForUser(invitation.email).from}, ${getGradientForUser(invitation.email).to})`,
                   }}
-                >
-                  Revoke
-                </Button>
-              )}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+                />
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="text-sm text-content truncate">{invitation.email}</span>
+                  <div className="flex items-center">
+                    <StatusBadge status={invitation.state} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="ml-4">
+                {invitation.state === "pending" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={revokingInvitationId === invitation.id}
+                    loading={revokingInvitationId === invitation.id}
+                    onClick={async () => {
+                      setRevokingInvitationId(invitation.id);
+                      try {
+                        await revokeInvitation.mutateAsync({
+                          orgId: organization.id,
+                          invitationId: invitation.id,
+                        });
+                      } catch (error) {
+                        console.error("Error revoking invitation:", error);
+                      } finally {
+                        setRevokingInvitationId(null);
+                      }
+                    }}
+                  >
+                    Revoke
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 });
 

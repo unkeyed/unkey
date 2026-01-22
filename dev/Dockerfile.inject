@@ -2,6 +2,6 @@ FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
 
-COPY bin/inject /inject
+COPY bin/inject /ko-app/inject
 
-ENTRYPOINT ["/inject"]
+ENTRYPOINT ["/ko-app/inject"]

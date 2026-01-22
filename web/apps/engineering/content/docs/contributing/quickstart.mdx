@@ -138,11 +138,58 @@ cp ./dev/.env.depot.example ./.env.depot
 - **Tilt UI** at `http://localhost:10350` (unified development interface)
 - **Services** accessible on localhost ports:
   - API: `http://localhost:7070`
-  - Ctrl: `http://localhost:7091` 
+  - Ctrl: `http://localhost:7091`
   - Krane: `http://localhost:8070`
   - Dashboard: `http://localhost:3000`
 - **Hot reload** for Go services (automatic rebuild on code changes)
 - **Production-like** Kubernetes environment
+
+#### Local HTTPS with Frontline (Optional)
+
+To test the full request flow with TLS termination via Frontline, you can enable local HTTPS for `*.unkey.local` domains.
+
+**Prerequisites:**
+- [mkcert](https://github.com/FiloSottile/mkcert) - for generating trusted local certificates
+- DNS configured to resolve `*.unkey.local` to `127.0.0.1` (via `setup-wildcard-dns.sh`)
+
+**Setup:**
+
+<Steps>
+  <Step>
+    #### Configure Local DNS
+
+    Run the DNS setup script to route `*.unkey.local` to localhost:
+
+    ```bash
+    ./dev/setup-wildcard-dns.sh
+    ```
+  </Step>
+  <Step>
+    #### Start the Tunnel
+
+    In a separate terminal, start the minikube tunnel to bind ports 80/443:
+
+    ```bash
+    make tunnel
+    ```
+
+    Keep this running while developing.
+  </Step>
+  <Step>
+    #### Access via HTTPS
+
+    Once Tilt is running and the tunnel is active, access your local environment:
+
+    ```bash
+    open https://app.unkey.local
+    ```
+  </Step>
+</Steps>
+
+**How it works:**
+- Tilt automatically generates trusted TLS certificates using mkcert on first run
+- Frontline terminates TLS on port 443 and routes requests based on hostname
+- The minikube tunnel binds the LoadBalancer service to your host's ports 80/443
 
 #### Stop Development Environment
 

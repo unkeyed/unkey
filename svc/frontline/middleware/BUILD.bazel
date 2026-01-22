@@ -9,8 +9,10 @@ go_library(
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/otel/logging",
+        "//pkg/otel/tracing",
         "//pkg/zen",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_prometheus_client_golang//prometheus/promauto",
+        "@io_opentelemetry_go_otel//attribute",
     ],
 )

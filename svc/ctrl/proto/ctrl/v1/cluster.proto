@@ -13,21 +13,49 @@ package ctrl.v1;
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
+// Health represents the health state of a resource (sentinel, deployment instance, etc.)
+enum Health {
+  HEALTH_UNSPECIFIED = 0;
+  HEALTH_HEALTHY = 1;
+  HEALTH_UNHEALTHY = 2;
+  HEALTH_PAUSED = 3;
+}
+
 // ClusterService coordinates deployment and sentinel configurations across multiple clusters.
 //
-// Agents in each cluster establish a watch stream to receive configuration events
-// from the control plane. The service streams deployment and sentinel lifecycle events
-// (apply, delete) to the appropriate clusters based on their cluster_id and region.
+// Agents in each cluster establish watch streams to receive configuration events
+// from the control plane. The service provides separate streams for deployments and
+// sentinels, each with independent version cursors. This allows the two control loops
+// to operate independently with isolated failure domains.
 //
-// The watch connection is designed to be long-lived with automatic reconnection on failure.
-// When an agent reconnects, it should initiate reconciliation to ensure consistency.
+// The watch connections are designed to be long-lived with automatic reconnection on failure.
+// When an agent reconnects, it should resume from its last seen version for that resource type.
 service ClusterService {
-  rpc Watch(WatchRequest) returns (stream State);
-  rpc GetDesiredSentinelState(GetDesiredSentinelStateRequest) returns (SentinelState);
-  rpc UpdateSentinelState(UpdateSentinelStateRequest) returns (UpdateSentinelStateResponse);
+  // WatchDeployments streams deployment state changes from the control plane to agents.
+  // Each deployment controller maintains its own version cursor for resumable streaming.
+  // The agent applies received state to Kubernetes to converge actual state toward desired state.
+  rpc WatchDeployments(WatchDeploymentsRequest) returns (stream DeploymentState);
 
+  // WatchSentinels streams sentinel state changes from the control plane to agents.
+  // Each sentinel controller maintains its own version cursor for resumable streaming.
+  // The agent applies received state to Kubernetes to converge actual state toward desired state.
+  rpc WatchSentinels(WatchSentinelsRequest) returns (stream SentinelState);
+
+  // GetDesiredSentinelState returns the current desired state for a single sentinel.
+  // Used by the resync loop to verify consistency for existing resources.
+  rpc GetDesiredSentinelState(GetDesiredSentinelStateRequest) returns (SentinelState);
+
+  // ReportSentinelStatus reports actual sentinel state from the agent to the control plane.
+  // Called when K8s watch events indicate sentinel Deployment changes.
+  rpc ReportSentinelStatus(ReportSentinelStatusRequest) returns (ReportSentinelStatusResponse);
+
+  // GetDesiredDeploymentState returns the current desired state for a single deployment.
+  // Used by the resync loop to verify consistency for existing resources.
   rpc GetDesiredDeploymentState(GetDesiredDeploymentStateRequest) returns (DeploymentState);
-  rpc UpdateDeploymentState(UpdateDeploymentStateRequest) returns (UpdateDeploymentStateResponse);
+
+  // ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
+  // Called when K8s watch events indicate ReplicaSet changes.
+  rpc ReportDeploymentStatus(ReportDeploymentStatusRequest) returns (ReportDeploymentStatusResponse);
 }
 
 message GetDesiredSentinelStateRequest {
@@ -38,7 +66,9 @@ message GetDesiredDeploymentStateRequest {
   string deployment_id = 1;
 }
 
-message UpdateDeploymentStateRequest {
+// ReportDeploymentStatusRequest reports the actual state of a deployment from the agent.
+// Used by runActualStateReportLoop to inform the control plane of K8s cluster state.
+message ReportDeploymentStatusRequest {
   message Update {
     message Instance {
       enum Status {
@@ -67,39 +97,32 @@ message UpdateDeploymentStateRequest {
   }
 }
 
-message UpdateDeploymentStateResponse {}
+message ReportDeploymentStatusResponse {}
 
-message UpdateInstanceStateResponse {}
-
-message UpdateSentinelStateRequest {
+// ReportSentinelStatusRequest reports the actual state of a sentinel from the agent.
+// Used by runActualStateReportLoop to inform the control plane of K8s cluster state.
+message ReportSentinelStatusRequest {
   string k8s_name = 1;
   int32 available_replicas = 2;
+  Health health = 3;
 }
 
-message UpdateSentinelStateResponse {}
+message ReportSentinelStatusResponse {}
 
-// WatchRequest identifies the cluster requesting a watch stream.
-message WatchRequest {
-  // cluster_id uniquely identifies the client requesting the watch stream.
-  string cluster_id = 1;
-
-  string region = 2;
-
-  // live indicates whether the client wants live updates of changes
-  // if true, the stream never ends
-  bool live = 3;
-
-  // synthetic indicates whether the client wants synthetic events
-  // if true, the server generates synthetic events to replay the full current desired state.
-  bool synthetic = 4;
+// WatchDeploymentsRequest initiates a stream of deployment state changes.
+// The version_last_seen enables resumable streaming - the server will only send
+// events newer than this version. Independent of the sentinel stream version.
+message WatchDeploymentsRequest {
+  string region = 1;
+  uint64 version_last_seen = 2;
 }
 
-message State {
-  oneof kind {
-    DeploymentState deployment = 1;
-    SentinelState sentinel = 2;
-  }
-  optional string acknowledge_id = 3;
+// WatchSentinelsRequest initiates a stream of sentinel state changes.
+// The version_last_seen enables resumable streaming - the server will only send
+// events newer than this version. Independent of the deployment stream version.
+message WatchSentinelsRequest {
+  string region = 1;
+  uint64 version_last_seen = 2;
 }
 
 // SentinelState represents a lifecycle event for an API sentinel configuration.
@@ -108,6 +131,12 @@ message State {
 // and API management. The event follows a declarative model where the cluster agent ensures
 // the cluster state matches the desired configuration.
 message SentinelState {
+  // version is the sentinel-specific resource version for this state update.
+  // Clients should track the max version seen and use it when reconnecting to
+  // the WatchSentinels stream to resume from the correct position.
+  // When returned from GetDesiredSentinelState, this field is not set.
+  uint64 version = 3;
+
   // state contains the specific sentinel operation to perform.
   // Only one state type is set per message, determining the action the agent should take.
   oneof state {
@@ -128,6 +157,12 @@ message SentinelState {
 // that can be scaled horizontally. The event follows a declarative model where
 // the cluster agent ensures the cluster state matches the desired configuration.
 message DeploymentState {
+  // version is the deployment-specific resource version for this state update.
+  // Clients should track the max version seen and use it when reconnecting to
+  // the WatchDeployments stream to resume from the correct position.
+  // When returned from GetDesiredDeploymentState, this field is not set.
+  uint64 version = 3;
+
   // state contains the specific deployment operation to perform.
   // Only one state type is set per message, determining the action the agent should take.
   oneof state {
@@ -221,7 +256,10 @@ message ApplyDeployment {
 
   optional string build_id = 11;
   bytes encrypted_environment_variables = 12;
-  optional string readiness_id = 13;
+
+  // command is the container command override (e.g., ["./app", "serve"]).
+  // If empty, the container's default entrypoint/cmd from the Dockerfile is used.
+  repeated string command = 13;
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.

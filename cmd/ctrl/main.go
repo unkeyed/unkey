@@ -113,10 +113,6 @@ var Cmd = &cli.Command{
 		cli.Bool("acme-enabled", "Enable Let's Encrypt for acme challenges", cli.EnvVar("UNKEY_ACME_ENABLED")),
 		cli.String("acme-email-domain", "Domain for ACME registration emails (workspace_id@domain)", cli.Default("unkey.com"), cli.EnvVar("UNKEY_ACME_EMAIL_DOMAIN")),
 
-		// Cloudflare DNS provider
-		cli.Bool("acme-cloudflare-enabled", "Enable Cloudflare for wildcard certificates", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_ENABLED")),
-		cli.String("acme-cloudflare-api-token", "Cloudflare API token for Let's Encrypt", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_API_TOKEN")),
-
 		// Route53 DNS provider
 		cli.Bool("acme-route53-enabled", "Enable Route53 for DNS-01 challenges", cli.EnvVar("UNKEY_ACME_ROUTE53_ENABLED")),
 		cli.String("acme-route53-access-key-id", "AWS access key ID for Route53", cli.EnvVar("UNKEY_ACME_ROUTE53_ACCESS_KEY_ID")),
@@ -125,9 +121,10 @@ var Cmd = &cli.Command{
 		cli.String("acme-route53-hosted-zone-id", "Route53 hosted zone ID (bypasses auto-discovery, required when wildcard CNAMEs exist)", cli.EnvVar("UNKEY_ACME_ROUTE53_HOSTED_ZONE_ID")),
 
 		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
+		cli.String("regional-apex-domain", "Apex domain for cross-region frontline communication (e.g., unkey.cloud). Certs are provisioned for *.{region}.{regional-apex-domain}", cli.EnvVar("UNKEY_REGIONAL_APEX_DOMAIN")),
 
 		// Restate Configuration
-		cli.String("restate-frontline-url", "URL of the Restate frontline endpoint for invoking workflows. Example: http://restate:8080",
+		cli.String("restate-url", "URL of the Restate ingress endpoint for invoking workflows. Example: http://restate:8080",
 			cli.Default("http://restate:8080"), cli.EnvVar("UNKEY_RESTATE_INGRESS_URL")),
 		cli.String("restate-admin-url", "URL of the Restate admin endpoint for service registration. Example: http://restate:9070",
 			cli.Default("http://restate:9070"), cli.EnvVar("UNKEY_RESTATE_ADMIN_URL")),
@@ -135,12 +132,14 @@ var Cmd = &cli.Command{
 			cli.Default(9080), cli.EnvVar("UNKEY_RESTATE_HTTP_PORT")),
 		cli.String("restate-register-as", "URL of this service for self-registration with Restate. Example: http://ctrl:9080",
 			cli.EnvVar("UNKEY_RESTATE_REGISTER_AS")),
+		cli.String("restate-api-key", "API key for Restate ingress requests",
+			cli.EnvVar("UNKEY_RESTATE_API_KEY")),
 		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
 			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
 
 		// The image new sentinels get deployed with
 		cli.String("sentinel-image", "The image new sentinels get deployed with", cli.Default("ghcr.io/unkeyed/unkey:local"), cli.EnvVar("UNKEY_SENTINEL_IMAGE")),
-		cli.StringSlice("available-regions", "Available regions for deployment", cli.EnvVar("UNKEY_AVAILABLE_REGIONS"), cli.Default([]string{"dev:local"})),
+		cli.StringSlice("available-regions", "Available regions for deployment", cli.EnvVar("UNKEY_AVAILABLE_REGIONS"), cli.Default([]string{"local.dev"})),
 	},
 	Action: action,
 }
@@ -229,10 +228,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		Acme: ctrl.AcmeConfig{
 			Enabled:     cmd.Bool("acme-enabled"),
 			EmailDomain: cmd.String("acme-email-domain"),
-			Cloudflare: ctrl.CloudflareConfig{
-				Enabled:  cmd.Bool("acme-cloudflare-enabled"),
-				ApiToken: cmd.String("acme-cloudflare-api-token"),
-			},
 			Route53: ctrl.Route53Config{
 				Enabled:         cmd.Bool("acme-route53-enabled"),
 				AccessKeyID:     cmd.String("acme-route53-access-key-id"),
@@ -242,14 +237,16 @@ func action(ctx context.Context, cmd *cli.Command) error {
 			},
 		},
 
-		DefaultDomain: cmd.String("default-domain"),
+		DefaultDomain:      cmd.String("default-domain"),
+		RegionalApexDomain: cmd.String("regional-apex-domain"),
 
 		// Restate configuration
 		Restate: ctrl.RestateConfig{
-			FrontlineURL: cmd.String("restate-frontline-url"),
-			AdminURL:     cmd.String("restate-admin-url"),
-			HttpPort:     cmd.Int("restate-http-port"),
-			RegisterAs:   cmd.String("restate-register-as"),
+			URL:        cmd.String("restate-url"),
+			AdminURL:   cmd.String("restate-admin-url"),
+			HttpPort:   cmd.Int("restate-http-port"),
+			RegisterAs: cmd.String("restate-register-as"),
+			APIKey:     cmd.String("restate-api-key"),
 		},
 
 		// Clickhouse Configuration

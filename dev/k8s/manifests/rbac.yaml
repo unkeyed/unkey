@@ -57,7 +57,7 @@ rules:
 
   # Sentinel CRD management
   - apiGroups: ["kubernetes.unkey.com"]
-    resources: ["sentinels", "sentinels/status"]
+    resources: ["sentinel", "sentinel/status"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
   # Sentinel CRD management
@@ -79,6 +79,11 @@ rules:
   - apiGroups: ["authentication.k8s.io"]
     resources: ["tokenreviews"]
     verbs: ["create"]
+
+  # CiliumNetworkPolicy management for network isolation
+  - apiGroups: ["cilium.io"]
+    resources: ["ciliumnetworkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1

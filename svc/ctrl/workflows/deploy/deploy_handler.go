@@ -12,11 +12,42 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"google.golang.org/protobuf/proto"
 )
 
+const (
+	sentinelNamespace = "sentinel"
+	sentinelPort      = 8040
+)
+
+// Deploy executes a full deployment workflow for a new application version.
+//
+// This durable workflow orchestrates the complete deployment lifecycle: building
+// Docker images (if source is provided), provisioning containers across regions,
+// waiting for instances to become healthy, and configuring domain routing. The
+// workflow is idempotent and can safely resume from any step after a crash.
+//
+// The deployment request must specify either a build context path (to build from
+// source) or a pre-built Docker image. If BuildContextPath is set, the workflow
+// triggers a Docker build through the build service before deployment. Otherwise,
+// the provided DockerImage is deployed directly.
+//
+// The workflow creates deployment topologies for all configured regions, each with
+// its own version number for independent scaling and rollback. Sentinel containers
+// are automatically provisioned for environments that don't already have them,
+// with production environments getting 3 replicas and others getting 1.
+//
+// Domain routing is configured through frontline routes, with sticky domains
+// (branch and environment) automatically updating to point to the new deployment.
+// For production deployments, the project's live deployment pointer is updated
+// unless the project is in a rolled-back state.
+//
+// If any step fails, the deployment status is automatically set to failed via a
+// deferred cleanup handler, ensuring the database reflects the true deployment state.
+//
+// Returns terminal errors for validation failures (missing image/context) and
+// retryable errors for transient system failures.
 func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
 	finishedSuccessfully := false
 
@@ -82,7 +113,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}
 
 	var dockerImage string
-	var buildID *string
 
 	if req.GetBuildContextPath() != "" {
 		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusBuilding); err != nil {
@@ -116,7 +146,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 			return nil, fmt.Errorf("failed to build docker image: %w", err)
 		}
 		dockerImage = result.GetImageName()
-		buildID = ptr.P(result.GetBuildId())
 
 		err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
 			return db.Query.UpdateDeploymentBuildID(stepCtx, w.db.RW(), db.UpdateDeploymentBuildIDParams{
@@ -154,19 +183,31 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}
 
 	topologies := make([]db.InsertDeploymentTopologyParams, len(w.availableRegions))
+
 	for i, region := range w.availableRegions {
+		versioningClient := hydrav1.NewVersioningServiceClient(ctx, region)
+		versionResp, versionErr := restate.Run(ctx, func(runCtx restate.RunContext) (*hydrav1.NextVersionResponse, error) {
+			return versioningClient.NextVersion().Request(&hydrav1.NextVersionRequest{})
+		}, restate.WithName("get next version"))
+		if versionErr != nil {
+			return nil, fmt.Errorf("failed to get next version: %w", versionErr)
+		}
+
 		topologies[i] = db.InsertDeploymentTopologyParams{
 			WorkspaceID:     workspace.ID,
 			DeploymentID:    deployment.ID,
 			Region:          region,
 			DesiredReplicas: 1,
 			DesiredStatus:   db.DeploymentTopologyDesiredStatusStarting,
+			Version:         versionResp.GetVersion(),
 			CreatedAt:       time.Now().UnixMilli(),
 		}
 	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.BulkQuery.InsertDeploymentTopologies(runCtx, w.db.RW(), topologies)
+		return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			return db.BulkQuery.InsertDeploymentTopologies(txCtx, tx, topologies)
+		})
 	}, restate.WithName("insert deployment topologies"))
 
 	// Ensure sentinels exist in each region for this deployment
@@ -189,110 +230,50 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 				desiredReplicas = 3
 			}
 
-			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+			sentinelVersioningClient := hydrav1.NewVersioningServiceClient(ctx, topology.Region)
+			sentinelVersionResp, sentinelVersionErr := restate.Run(ctx, func(runCtx restate.RunContext) (*hydrav1.NextVersionResponse, error) {
+				return sentinelVersioningClient.NextVersion().Request(&hydrav1.NextVersionRequest{})
+			}, restate.WithName("get next version for sentinel"))
+			if sentinelVersionErr != nil {
+				return nil, fmt.Errorf("failed to get next version for sentinel: %w", sentinelVersionErr)
+			}
 
+			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 				sentinelID := uid.New(uid.SentinelPrefix)
 				sentinelK8sName := uid.DNS1035()
 
-				// we rely on the unique indess of environmendID + region here to create or noop
-				err = db.Query.InsertSentinel(runCtx, w.db.RW(), db.InsertSentinelParams{
-					ID:                sentinelID,
-					WorkspaceID:       workspace.ID,
-					EnvironmentID:     environment.ID,
-					ProjectID:         project.ID,
-					K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local", sentinelK8sName, workspace.K8sNamespace.String),
-					K8sName:           sentinelK8sName,
-					Region:            topology.Region,
-					Image:             w.sentinelImage,
-					Health:            db.SentinelsHealthUnknown,
-					DesiredReplicas:   desiredReplicas,
-					AvailableReplicas: 0,
-					CpuMillicores:     256,
-					MemoryMib:         256,
-					CreatedAt:         time.Now().UnixMilli(),
+				return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+					// we rely on the unique index of environmentID + region here to create or noop
+					err := db.Query.InsertSentinel(txCtx, tx, db.InsertSentinelParams{
+						ID:                sentinelID,
+						WorkspaceID:       workspace.ID,
+						EnvironmentID:     environment.ID,
+						ProjectID:         project.ID,
+						K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local:%d", sentinelK8sName, sentinelNamespace, sentinelPort),
+						K8sName:           sentinelK8sName,
+						Region:            topology.Region,
+						Image:             w.sentinelImage,
+						Health:            db.SentinelsHealthUnknown,
+						DesiredReplicas:   desiredReplicas,
+						AvailableReplicas: 0,
+						CpuMillicores:     256,
+						MemoryMib:         256,
+						Version:           sentinelVersionResp.GetVersion(),
+						CreatedAt:         time.Now().UnixMilli(),
+					})
+					if err != nil {
+						if db.IsDuplicateKeyError(err) {
+							return nil
+						}
+						return err
+					}
+					return nil
 				})
-				if err != nil && !db.IsDuplicateKeyError(err) {
-					return err
-				}
-				return nil
-
 			}, restate.WithName("ensure sentinel exists in db"))
 			if err != nil {
 				return nil, err
 			}
 
-		}
-
-		sentinels, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Sentinel, error) {
-			return db.Query.FindSentinelsByEnvironmentID(runCtx, w.db.RO(), environment.ID)
-		}, restate.WithName("find all sentinels"))
-		if err != nil {
-			return nil, err
-		}
-
-		for _, sentinel := range sentinels {
-			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				return w.cluster.EmitState(runCtx, sentinel.Region,
-					&ctrlv1.State{
-						AcknowledgeId: nil,
-						Kind: &ctrlv1.State_Sentinel{
-							Sentinel: &ctrlv1.SentinelState{
-								State: &ctrlv1.SentinelState_Apply{
-									Apply: &ctrlv1.ApplySentinel{
-										K8SName:       sentinel.K8sName,
-										WorkspaceId:   sentinel.WorkspaceID,
-										ProjectId:     sentinel.ProjectID,
-										EnvironmentId: sentinel.EnvironmentID,
-										SentinelId:    sentinel.ID,
-										Image:         w.sentinelImage,
-										Replicas:      sentinel.DesiredReplicas,
-										CpuMillicores: int64(sentinel.CpuMillicores),
-										MemoryMib:     int64(sentinel.MemoryMib),
-									},
-								},
-							},
-						},
-					})
-
-			}, restate.WithName(fmt.Sprintf("emit sentinel apply for %s in %s", sentinel.ID, sentinel.Region)))
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	for _, region := range topologies {
-		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return w.cluster.EmitState(runCtx, region.Region,
-				&ctrlv1.State{
-					AcknowledgeId: nil,
-					Kind: &ctrlv1.State_Deployment{
-						Deployment: &ctrlv1.DeploymentState{
-							State: &ctrlv1.DeploymentState_Apply{
-								Apply: &ctrlv1.ApplyDeployment{
-									K8SNamespace:                  workspace.K8sNamespace.String,
-									K8SName:                       deployment.K8sName,
-									WorkspaceId:                   workspace.ID,
-									ProjectId:                     deployment.ProjectID,
-									EnvironmentId:                 deployment.EnvironmentID,
-									DeploymentId:                  deployment.ID,
-									Image:                         dockerImage,
-									Replicas:                      region.DesiredReplicas,
-									CpuMillicores:                 int64(deployment.CpuMillicores),
-									MemoryMib:                     int64(deployment.MemoryMib),
-									BuildId:                       buildID,
-									EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
-									ReadinessId:                   ptr.P(deployment.ID),
-								},
-							},
-						},
-					},
-				},
-			)
-
-		}, restate.WithName(fmt.Sprintf("emit deployment apply %s in %s", deployment.ID, region.Region)))
-		if err != nil {
-			return nil, err
 		}
 
 	}

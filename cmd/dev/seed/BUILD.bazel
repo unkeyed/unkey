@@ -3,7 +3,6 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "seed",
     srcs = [
-        "ingress.go",
         "local.go",
         "run.go",
         "verifications.go",
@@ -11,7 +10,6 @@ go_library(
     importpath = "github.com/unkeyed/unkey/cmd/dev/seed",
     visibility = ["//visibility:public"],
     deps = [
-        "//gen/proto/vault/v1:vault",
         "//internal/services/keys",
         "//pkg/array",
         "//pkg/cli",
@@ -21,7 +19,5 @@ go_library(
         "//pkg/db/types",
         "//pkg/otel/logging",
         "//pkg/uid",
-        "//pkg/vault",
-        "//pkg/vault/storage",
     ],
 )

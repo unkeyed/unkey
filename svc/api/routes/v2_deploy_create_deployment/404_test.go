@@ -6,9 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/testutil"
-	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment"
 )
@@ -24,12 +23,13 @@ func TestNotFound(t *testing.T) {
 	}
 	h.Register(route)
 
-	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID)
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"project.*.create_deployment"},
+	})
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		"Authorization": {fmt.Sprintf("Bearer %s", setup.RootKey)},
 	}
 
 	t.Run("project not found", func(t *testing.T) {
@@ -46,26 +46,16 @@ func TestNotFound(t *testing.T) {
 		require.NoError(t, err, "failed to set image source")
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusInternalServerError, res.Status, "expected 500, received: %s", res.RawBody)
+		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/project_not_found", res.Body.Error.Type)
-		require.Equal(t, http.StatusInternalServerError, res.Body.Error.Status)
-		require.Equal(t, "Project not found.", res.Body.Error.Detail)
+		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
+		require.Equal(t, "The requested project does not exist or has been deleted.", res.Body.Error.Detail)
 	})
 
 	t.Run("environment not found", func(t *testing.T) {
-		projectID := uid.New(uid.ProjectPrefix)
-		projectName := "test-project"
-
-		h.CreateProject(seed.CreateProjectRequest{
-			WorkspaceID: workspace.ID,
-			Name:        projectName,
-			ID:          projectID,
-			Slug:        "production",
-		})
-
 		req := handler.Request{
-			ProjectId:       projectID,
+			ProjectId:       setup.Project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "nonexistent-env", // Non-existent environment
 		}
@@ -76,10 +66,10 @@ func TestNotFound(t *testing.T) {
 		require.NoError(t, err, "failed to set image source")
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusInternalServerError, res.Status, "expected , received: %s", res.RawBody)
+		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/project_not_found", res.Body.Error.Type)
-		require.Equal(t, http.StatusInternalServerError, res.Body.Error.Status)
+		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
 		require.Equal(t, "Project not found.", res.Body.Error.Detail)
 	})
 }

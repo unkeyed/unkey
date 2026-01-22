@@ -9,9 +9,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/testutil"
-	"github.com/unkeyed/unkey/pkg/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_migrate_keys"
 )
@@ -148,10 +148,11 @@ func TestMigrateKeysNotFound(t *testing.T) {
 			DefaultBytes:  nil,
 		})
 
-		db.Query.SoftDeleteApi(ctx, h.DB.RW(), db.SoftDeleteApiParams{
+		err := db.Query.SoftDeleteApi(ctx, h.DB.RW(), db.SoftDeleteApiParams{
 			Now:   sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			ApiID: deletedApi.ID,
 		})
+		require.NoError(t, err)
 
 		req := handler.Request{
 			ApiId: deletedApi.ID,

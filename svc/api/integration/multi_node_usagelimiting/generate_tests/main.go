@@ -134,7 +134,10 @@ func main() {
 			panic(err)
 		}
 
-		f.Close()
+		err = f.Close()
+		if err != nil {
+			panic(err)
+		}
 		fmt.Printf("Generated %s\n", testFile)
 	}
 

@@ -28,7 +28,7 @@ func TestKeyVerifications(t *testing.T) {
 
 	conn, err := ch.Open(opts)
 	require.NoError(t, err)
-	t.Cleanup(func() { conn.Close() })
+	t.Cleanup(func() { require.NoError(t, conn.Close()) })
 
 	err = conn.Ping(context.Background())
 	require.NoError(t, err)

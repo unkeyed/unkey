@@ -10,13 +10,13 @@ import (
 )
 
 const findSentinelByID = `-- name: FindSentinelByID :one
-SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
+SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM sentinels s
 WHERE id = ? LIMIT 1
 `
 
 // FindSentinelByID
 //
-//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
+//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM sentinels s
 //	WHERE id = ? LIMIT 1
 func (q *Queries) FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error) {
 	row := db.QueryRowContext(ctx, findSentinelByID, id)
@@ -37,6 +37,7 @@ func (q *Queries) FindSentinelByID(ctx context.Context, db DBTX, id string) (Sen
 		&i.AvailableReplicas,
 		&i.CpuMillicores,
 		&i.MemoryMib,
+		&i.Version,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

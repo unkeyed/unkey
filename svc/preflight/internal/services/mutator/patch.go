@@ -12,7 +12,7 @@ func (m *Mutator) buildInitContainer() corev1.Container {
 		Name:            "copy-inject",
 		Image:           m.injectImage,
 		ImagePullPolicy: corev1.PullPolicy(m.injectImagePullPolicy),
-		Command:         []string{"cp", "/inject", injectBinary},
+		Command:         []string{"cp", "/ko-app/inject", injectBinary},
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      injectVolumeName,

@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 )
 
 const insertDeployment = `-- name: InsertDeployment :exec
@@ -26,9 +27,10 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     git_commit_timestamp,
     openapi_spec,
     encrypted_environment_variables,
+    command,
     status,
     cpu_millicores,
-		memory_mib,
+    memory_mib,
     created_at,
     updated_at
 )
@@ -49,7 +51,8 @@ VALUES (
     ?,
     ?,
     ?,
-		?,
+    ?,
+    ?,
     ?,
     ?
 )
@@ -70,6 +73,7 @@ type InsertDeploymentParams struct {
 	GitCommitTimestamp            sql.NullInt64     `db:"git_commit_timestamp"`
 	OpenapiSpec                   sql.NullString    `db:"openapi_spec"`
 	EncryptedEnvironmentVariables []byte            `db:"encrypted_environment_variables"`
+	Command                       json.RawMessage   `db:"command"`
 	Status                        DeploymentsStatus `db:"status"`
 	CpuMillicores                 int32             `db:"cpu_millicores"`
 	MemoryMib                     int32             `db:"memory_mib"`
@@ -94,9 +98,10 @@ type InsertDeploymentParams struct {
 //	    git_commit_timestamp,
 //	    openapi_spec,
 //	    encrypted_environment_variables,
+//	    command,
 //	    status,
 //	    cpu_millicores,
-//			memory_mib,
+//	    memory_mib,
 //	    created_at,
 //	    updated_at
 //	)
@@ -117,7 +122,8 @@ type InsertDeploymentParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
-//			?,
+//	    ?,
+//	    ?,
 //	    ?,
 //	    ?
 //	)
@@ -137,6 +143,7 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.GitCommitTimestamp,
 		arg.OpenapiSpec,
 		arg.EncryptedEnvironmentVariables,
+		arg.Command,
 		arg.Status,
 		arg.CpuMillicores,
 		arg.MemoryMib,
