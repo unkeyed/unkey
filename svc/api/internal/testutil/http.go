@@ -61,7 +61,6 @@ type Harness struct {
 	Vault                      *vault.Service
 	AnalyticsConnectionManager analytics.ConnectionManager
 	CtrlDeploymentClient       ctrlv1connect.DeploymentServiceClient
-	CtrlBuildClient            ctrlv1connect.BuildServiceClient
 	seeder                     *seed.Seeder
 }
 
@@ -199,14 +198,6 @@ func NewHarness(t *testing.T) *Harness {
 		})),
 	)
 
-	ctrlBuildClient := ctrlv1connect.NewBuildServiceClient(
-		http.DefaultClient,
-		ctrlURL,
-		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-			"Authorization": fmt.Sprintf("Bearer %s", ctrlToken),
-		})),
-	)
-
 	audit, err := auditlogs.New(auditlogs.Config{
 		DB:     db,
 		Logger: logger,
@@ -228,7 +219,6 @@ func NewHarness(t *testing.T) *Harness {
 		Clock:                      clk,
 		AnalyticsConnectionManager: analyticsConnManager,
 		CtrlDeploymentClient:       ctrlDeploymentClient,
-		CtrlBuildClient:            ctrlBuildClient,
 		Auditlogs:                  audit,
 		Caches:                     caches,
 		middleware: []zen.Middleware{

@@ -30,8 +30,12 @@ func (s *Service) WatchSentinels(
 	if err := assert.NotEmpty(region, "region is required"); err != nil {
 		return connect.NewError(connect.CodeInvalidArgument, err)
 	}
-
 	versionCursor := req.Msg.GetVersionLastSeen()
+
+	s.logger.Info("krane watching sentinels",
+		"region", region,
+		"version", versionCursor,
+	)
 
 	for {
 		select {

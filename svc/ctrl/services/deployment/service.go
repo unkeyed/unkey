@@ -12,15 +12,16 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
 )
 
 type Service struct {
 	ctrlv1connect.UnimplementedDeploymentServiceHandler
 	db               db.Database
 	restate          *restateingress.Client
-	buildService     ctrlv1connect.BuildServiceClient
 	logger           logging.Logger
 	availableRegions []string
+	buildStorage     s3.Storage
 }
 
 // deploymentClient creates a typed Restate ingress client for the DeploymentService
@@ -32,9 +33,9 @@ func (s *Service) deploymentClient(projectID string) hydrav1.DeploymentServiceIn
 type Config struct {
 	Database         db.Database
 	Restate          *restateingress.Client
-	BuildService     ctrlv1connect.BuildServiceClient
 	Logger           logging.Logger
 	AvailableRegions []string
+	BuildStorage     s3.Storage
 }
 
 func New(cfg Config) *Service {
@@ -42,8 +43,8 @@ func New(cfg Config) *Service {
 		UnimplementedDeploymentServiceHandler: ctrlv1connect.UnimplementedDeploymentServiceHandler{},
 		db:                                    cfg.Database,
 		restate:                               cfg.Restate,
-		buildService:                          cfg.BuildService,
 		logger:                                cfg.Logger,
 		availableRegions:                      cfg.AvailableRegions,
+		buildStorage:                          cfg.BuildStorage,
 	}
 }

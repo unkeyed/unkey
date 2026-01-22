@@ -1,0 +1,189 @@
+package ctrl
+
+import (
+	"context"
+
+	"github.com/unkeyed/unkey/pkg/cli"
+	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/tls"
+	"github.com/unkeyed/unkey/pkg/uid"
+	ctrlapi "github.com/unkeyed/unkey/svc/ctrl/api"
+)
+
+// Cmd is the ctrl command that runs the Unkey control plane service for managing
+// infrastructure, deployments, builds, and service orchestration.
+var apiCmd = &cli.Command{
+	Version:     "",
+	Commands:    []*cli.Command{},
+	Aliases:     []string{},
+	Description: "",
+	Name:        "api",
+	Usage:       "Run the Unkey control plane service for managing infrastructure and services",
+	Flags: []cli.Flag{
+		// Server Configuration
+		cli.Int("http-port", "HTTP port for the control plane server to listen on. Default: 8080",
+			cli.Default(8080), cli.EnvVar("UNKEY_HTTP_PORT")),
+		cli.Int("prometheus-port", "Port for Prometheus metrics, set to 0 to disable.",
+			cli.Default(0), cli.EnvVar("UNKEY_PROMETHEUS_PORT")),
+		cli.Bool("color", "Enable colored log output. Default: true",
+			cli.Default(true), cli.EnvVar("UNKEY_LOGS_COLOR")),
+
+		// Instance Identification
+		cli.String("platform", "Cloud platform identifier for this node. Used for logging and metrics.",
+			cli.EnvVar("UNKEY_PLATFORM")),
+		cli.String("region", "Geographic region identifier. Used for logging and routing. Default: unknown",
+			cli.Default("unknown"), cli.EnvVar("UNKEY_REGION"), cli.EnvVar("AWS_REGION")),
+		cli.String("instance-id", "Unique identifier for this instance. Auto-generated if not provided.",
+			cli.Default(uid.New(uid.InstancePrefix, 4)), cli.EnvVar("UNKEY_INSTANCE_ID")),
+
+		// Database Configuration
+		cli.String("database-primary", "MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true",
+			cli.Required(), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
+
+		// Observability
+		cli.Bool("otel", "Enable OpenTelemetry tracing and metrics",
+			cli.EnvVar("UNKEY_OTEL")),
+		cli.Float("otel-trace-sampling-rate", "Sampling rate for OpenTelemetry traces (0.0-1.0). Only used when --otel is provided. Default: 0.25",
+			cli.Default(0.25), cli.EnvVar("UNKEY_OTEL_TRACE_SAMPLING_RATE")),
+
+		// TLS Configuration
+		cli.String("tls-cert-file", "Path to TLS certificate file for HTTPS. Both cert and key must be provided to enable HTTPS.",
+			cli.EnvVar("UNKEY_TLS_CERT_FILE")),
+		cli.String("tls-key-file", "Path to TLS key file for HTTPS. Both cert and key must be provided to enable HTTPS.",
+			cli.EnvVar("UNKEY_TLS_KEY_FILE")),
+
+		// Control Plane Specific
+		cli.String("auth-token", "Authentication token for control plane API access. Required for secure deployments.",
+			cli.EnvVar("UNKEY_AUTH_TOKEN")),
+		cli.String("spiffe-socket-path", "Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/agent/agent.sock",
+			cli.Default("/var/lib/spire/agent/agent.sock"), cli.EnvVar("UNKEY_SPIFFE_SOCKET_PATH")),
+
+		cli.String("vault-url", "Url where vault is availab;e",
+			cli.EnvVar("UNKEY_VAULT_URL"), cli.Default("https://vault.unkey.cloud")),
+
+		cli.String("vault-token", "Authentication for vault",
+			cli.EnvVar("UNKEY_VAULT_TOKEN")),
+
+		cli.Bool("acme-enabled", "Enable Let's Encrypt for acme challenges", cli.EnvVar("UNKEY_ACME_ENABLED")),
+		cli.String("acme-email-domain", "Domain for ACME registration emails (workspace_id@domain)", cli.Default("unkey.com"), cli.EnvVar("UNKEY_ACME_EMAIL_DOMAIN")),
+
+		// Route53 DNS provider
+		cli.Bool("acme-route53-enabled", "Enable Route53 for DNS-01 challenges", cli.EnvVar("UNKEY_ACME_ROUTE53_ENABLED")),
+		cli.String("acme-route53-access-key-id", "AWS access key ID for Route53", cli.EnvVar("UNKEY_ACME_ROUTE53_ACCESS_KEY_ID")),
+		cli.String("acme-route53-secret-access-key", "AWS secret access key for Route53", cli.EnvVar("UNKEY_ACME_ROUTE53_SECRET_ACCESS_KEY")),
+		cli.String("acme-route53-region", "AWS region for Route53", cli.Default("us-east-1"), cli.EnvVar("UNKEY_ACME_ROUTE53_REGION")),
+		cli.String("acme-route53-hosted-zone-id", "Route53 hosted zone ID (bypasses auto-discovery, required when wildcard CNAMEs exist)", cli.EnvVar("UNKEY_ACME_ROUTE53_HOSTED_ZONE_ID")),
+
+		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
+		cli.String("regional-apex-domain", "Apex domain for cross-region frontline communication (e.g., unkey.cloud). Certs are provisioned for *.{region}.{regional-apex-domain}", cli.EnvVar("UNKEY_REGIONAL_APEX_DOMAIN")),
+
+		// Restate Configuration
+		cli.String("restate-url", "URL of the Restate ingress endpoint for invoking workflows. Example: http://restate:8080",
+			cli.Default("http://restate:8080"), cli.EnvVar("UNKEY_RESTATE_INGRESS_URL")),
+		cli.String("restate-admin-url", "URL of the Restate admin endpoint for service registration. Example: http://restate:9070",
+			cli.Default("http://restate:9070"), cli.EnvVar("UNKEY_RESTATE_ADMIN_URL")),
+		cli.Int("restate-http-port", "Port where we listen for Restate HTTP requests. Example: 9080",
+			cli.Default(9080), cli.EnvVar("UNKEY_RESTATE_HTTP_PORT")),
+		cli.String("restate-register-as", "URL of this service for self-registration with Restate. Example: http://ctrl:9080",
+			cli.EnvVar("UNKEY_RESTATE_REGISTER_AS")),
+		cli.String("restate-api-key", "API key for Restate ingress requests",
+			cli.EnvVar("UNKEY_RESTATE_API_KEY")),
+		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
+			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
+
+		// Build S3 configuration
+		cli.String("build-s3-url", "S3 URL for build storage",
+			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_URL")),
+		cli.String("build-s3-external-url", "External S3 URL for presigned URLs",
+			cli.EnvVar("UNKEY_BUILD_S3_EXTERNAL_URL")),
+		cli.String("build-s3-bucket", "S3 bucket for build storage",
+			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_BUCKET")),
+		cli.String("build-s3-access-key-id", "S3 access key ID",
+			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_ACCESS_KEY_ID")),
+		cli.String("build-s3-access-key-secret", "S3 access key secret",
+			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_ACCESS_KEY_SECRET")),
+
+		// The image new sentinels get deployed with
+		cli.String("sentinel-image", "The image new sentinels get deployed with", cli.Default("ghcr.io/unkeyed/unkey:local"), cli.EnvVar("UNKEY_SENTINEL_IMAGE")),
+		cli.StringSlice("available-regions", "Available regions for deployment", cli.EnvVar("UNKEY_AVAILABLE_REGIONS"), cli.Default([]string{"local.dev"})),
+	},
+	Action: apiAction,
+}
+
+func apiAction(ctx context.Context, cmd *cli.Command) error {
+	// Check if TLS flags are properly set (both or none)
+	tlsCertFile := cmd.String("tls-cert-file")
+	tlsKeyFile := cmd.String("tls-key-file")
+	if (tlsCertFile == "" && tlsKeyFile != "") || (tlsCertFile != "" && tlsKeyFile == "") {
+		return cli.Exit("Both --tls-cert-file and --tls-key-file must be provided to enable HTTPS", 1)
+	}
+
+	// Initialize TLS config if TLS flags are provided
+	var tlsConfig *tls.Config
+	if tlsCertFile != "" && tlsKeyFile != "" {
+		var err error
+		tlsConfig, err = tls.NewFromFiles(tlsCertFile, tlsKeyFile)
+		if err != nil {
+			return cli.Exit("Failed to load TLS configuration: "+err.Error(), 1)
+		}
+	}
+
+	config := ctrlapi.Config{
+		// Basic configuration
+		Image:          cmd.String("image"),
+		HttpPort:       cmd.Int("http-port"),
+		PrometheusPort: cmd.Int("prometheus-port"),
+		Region:         cmd.String("region"),
+		InstanceID:     cmd.String("instance-id"),
+
+		// Database configuration
+		DatabasePrimary: cmd.String("database-primary"),
+
+		// Observability
+		OtelEnabled:           cmd.Bool("otel"),
+		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
+
+		// TLS Configuration
+		TLSConfig: tlsConfig,
+
+		// Control Plane Specific
+		AuthToken: cmd.String("auth-token"),
+
+		Vault: ctrlapi.VaultConfig{
+			Url:   cmd.RequireString("vault-url"),
+			Token: cmd.RequireString("vault-token"),
+		},
+
+		// Build configuration
+		BuildS3: ctrlapi.S3Config{
+			URL:             cmd.String("build-s3-url"),
+			ExternalURL:     cmd.String("build-s3-external-url"),
+			Bucket:          cmd.String("build-s3-bucket"),
+			AccessKeySecret: cmd.String("build-s3-access-key-secret"),
+			AccessKeyID:     cmd.String("build-s3-access-key-id"),
+		},
+
+		// Restate configuration
+		Restate: ctrlapi.RestateConfig{
+			URL:        cmd.String("restate-url"),
+			AdminURL:   cmd.String("restate-admin-url"),
+			HttpPort:   cmd.Int("restate-http-port"),
+			RegisterAs: cmd.String("restate-register-as"),
+			APIKey:     cmd.String("restate-api-key"),
+		},
+
+		// Common
+		Clock: clock.New(),
+
+		// Sentinel configuration
+		SentinelImage:    cmd.String("sentinel-image"),
+		AvailableRegions: cmd.RequireStringSlice("available-regions"),
+	}
+
+	err := config.Validate()
+	if err != nil {
+		return err
+	}
+
+	return ctrlapi.Run(ctx, config)
+}

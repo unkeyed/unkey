@@ -326,40 +326,38 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	// ---------------------------------------------------------------------------
 	// v2/deploy
 
-	if svc.CtrlBuildClient != nil {
-		// v2/deploy.createDeployment
-		srv.RegisterRoute(
-			defaultMiddlewares,
-			&v2DeployCreateDeployment.Handler{
-				Logger:     svc.Logger,
-				DB:         svc.Database,
-				Keys:       svc.Keys,
-				CtrlClient: svc.CtrlDeploymentClient,
-			},
-		)
+	// v2/deploy.createDeployment
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2DeployCreateDeployment.Handler{
+			Logger:     svc.Logger,
+			DB:         svc.Database,
+			Keys:       svc.Keys,
+			CtrlClient: svc.CtrlDeploymentClient,
+		},
+	)
 
-		// v2/deploy.getDeployment
-		srv.RegisterRoute(
-			defaultMiddlewares,
-			&v2DeployGetDeployment.Handler{
-				Logger:     svc.Logger,
-				DB:         svc.Database,
-				Keys:       svc.Keys,
-				CtrlClient: svc.CtrlDeploymentClient,
-			},
-		)
+	// v2/deploy.getDeployment
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2DeployGetDeployment.Handler{
+			Logger:     svc.Logger,
+			DB:         svc.Database,
+			Keys:       svc.Keys,
+			CtrlClient: svc.CtrlDeploymentClient,
+		},
+	)
 
-		// v2/deploy.generateUploadUrl
-		srv.RegisterRoute(
-			defaultMiddlewares,
-			&v2DeployGenerateUploadUrl.Handler{
-				Logger:     svc.Logger,
-				DB:         svc.Database,
-				Keys:       svc.Keys,
-				CtrlClient: svc.CtrlBuildClient,
-			},
-		)
-	}
+	// v2/deploy.generateUploadUrl
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2DeployGenerateUploadUrl.Handler{
+			Logger:     svc.Logger,
+			DB:         svc.Database,
+			Keys:       svc.Keys,
+			CtrlClient: svc.CtrlDeploymentClient,
+		},
+	)
 
 	// ---------------------------------------------------------------------------
 	// v2/permissions

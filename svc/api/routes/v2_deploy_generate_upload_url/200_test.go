@@ -17,7 +17,7 @@ func TestGenerateUploadUrlSuccessfully(t *testing.T) {
 		Logger:     h.Logger,
 		DB:         h.DB,
 		Keys:       h.Keys,
-		CtrlClient: h.CtrlBuildClient,
+		CtrlClient: h.CtrlDeploymentClient,
 	}
 	h.Register(route)
 
@@ -58,7 +58,7 @@ func TestGenerateUploadUrlWithWildcardPermission(t *testing.T) {
 		Logger:     h.Logger,
 		DB:         h.DB,
 		Keys:       h.Keys,
-		CtrlClient: h.CtrlBuildClient,
+		CtrlClient: h.CtrlDeploymentClient,
 	}
 	h.Register(route)
 
@@ -89,7 +89,7 @@ func TestGenerateUploadUrlWithSpecificProjectPermission(t *testing.T) {
 		Logger:     h.Logger,
 		DB:         h.DB,
 		Keys:       h.Keys,
-		CtrlClient: h.CtrlBuildClient,
+		CtrlClient: h.CtrlDeploymentClient,
 	}
 	h.Register(route)
 

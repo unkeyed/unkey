@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/cmd/preflight"
 	"github.com/unkeyed/unkey/cmd/sentinel"
 	"github.com/unkeyed/unkey/cmd/vault"
-	"github.com/unkeyed/unkey/cmd/worker"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
@@ -38,7 +37,6 @@ AVAILABLE SERVICES:
 
 EXAMPLES:
 unkey run api                                    # Run the API server
-unkey run ctrl                                   # Run the control plane
 unkey run frontline                                # Run the frontline service
 unkey run sentinel                                # Run the tenant sentinel service
 unkey run --help                                 # Show available services and their options
@@ -51,7 +49,6 @@ unkey run api --port 8080 --env production      # Run API server with custom con
 		sentinel.Cmd,
 		preflight.Cmd,
 		vault.Cmd,
-		worker.Cmd,
 	},
 	Action: runAction,
 }

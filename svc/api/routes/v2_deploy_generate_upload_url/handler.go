@@ -27,7 +27,7 @@ type Handler struct {
 	Logger     logging.Logger
 	DB         db.Database
 	Keys       keys.KeyService
-	CtrlClient ctrlv1connect.BuildServiceClient
+	CtrlClient ctrlv1connect.DeploymentServiceClient
 }
 
 func (h *Handler) Path() string {
@@ -86,13 +86,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	ctrlReq := &ctrlv1.GenerateUploadURLRequest{
+	ctrlResp, err := h.CtrlClient.CreateS3UploadURL(ctx, connect.NewRequest(&ctrlv1.CreateS3UploadURLRequest{
 		UnkeyProjectId: req.ProjectId,
-	}
-
-	connectReq := connect.NewRequest(ctrlReq)
-
-	ctrlResp, err := h.CtrlClient.GenerateUploadURL(ctx, connectReq)
+	}))
 	if err != nil {
 		return ctrlclient.HandleError(err, "generate upload URL")
 	}

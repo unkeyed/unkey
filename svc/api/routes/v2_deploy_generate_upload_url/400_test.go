@@ -18,7 +18,7 @@ func TestBadRequests(t *testing.T) {
 		Logger:     h.Logger,
 		DB:         h.DB,
 		Keys:       h.Keys,
-		CtrlClient: h.CtrlBuildClient,
+		CtrlClient: h.CtrlDeploymentClient,
 	}
 	h.Register(route)
 

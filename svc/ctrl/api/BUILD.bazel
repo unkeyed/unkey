@@ -1,0 +1,33 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "api",
+    srcs = [
+        "config.go",
+        "run.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/api",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//pkg/cache",
+        "//pkg/clock",
+        "//pkg/db",
+        "//pkg/otel",
+        "//pkg/otel/logging",
+        "//pkg/prometheus",
+        "//pkg/shutdown",
+        "//pkg/tls",
+        "//pkg/version",
+        "//svc/ctrl/pkg/s3",
+        "//svc/ctrl/services/acme",
+        "//svc/ctrl/services/cluster",
+        "//svc/ctrl/services/ctrl",
+        "//svc/ctrl/services/deployment",
+        "//svc/ctrl/services/openapi",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+        "@com_github_restatedev_sdk_go//ingress",
+        "@org_golang_x_net//http2",
+        "@org_golang_x_net//http2/h2c",
+    ],
+)
