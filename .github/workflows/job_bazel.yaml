@@ -32,8 +32,7 @@ jobs:
 
       # Running containers is temporary until we moved them inside of bazel,
       # at that point they are only created if they are actually needed
-      - name: Start for containers
+      - name: Start containers
         run: docker compose -f ./dev/docker-compose.yaml up s3 clickhouse kafka mysql ctrl-api restate -d --wait
-
       - name: Run tests
         run: bazel test //... --test_output=errors
