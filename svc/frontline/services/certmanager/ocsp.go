@@ -16,7 +16,7 @@ import (
 
 const (
 	ocspHTTPTimeout     = 5 * time.Second
-	ocspMaxResponseSize = 64 * 1024 // 64KB
+	ocspMaxResponseSize = 64 * 1024
 )
 
 // fetchOCSPStaple fetches OCSP response for the certificate.

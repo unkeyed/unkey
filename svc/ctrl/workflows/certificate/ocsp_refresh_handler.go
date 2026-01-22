@@ -23,8 +23,7 @@ const (
 	// ocspHTTPTimeout is the timeout for OCSP HTTP requests
 	ocspHTTPTimeout = 5 * time.Second
 
-	// ocspMaxResponseSize is the maximum size of an OCSP response
-	ocspMaxResponseSize = 64 * 1024 // 64KB
+	ocspMaxResponseSize = 64 * 1024
 )
 
 // RefreshExpiringOCSPStaples refreshes OCSP staples for certificates with expiring OCSP.

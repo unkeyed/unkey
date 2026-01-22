@@ -180,7 +180,7 @@ func WithObservability(logger logging.Logger, region string) zen.Middleware {
 						},
 					})
 				} else {
-					writeErr = s.HTML(pageInfo.Status, renderErrorHTMLFrontline(title, userMessage, string(code.URN())))
+					writeErr = s.HTML(pageInfo.Status, renderErrorHTMLFrontline(pageInfo.Status, title, userMessage, string(code.URN())))
 				}
 
 				if writeErr != nil {
@@ -257,7 +257,7 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 	}
 }
 
-func renderErrorHTMLFrontline(title, message, errorCode string) []byte {
+func renderErrorHTMLFrontline(statusCode int, title, message, errorCode string) []byte {
 	escapedTitle := html.EscapeString(title)
 	escapedMessage := html.EscapeString(message)
 	escapedErrorCode := html.EscapeString(errorCode)
@@ -267,18 +267,25 @@ func renderErrorHTMLFrontline(title, message, errorCode string) []byte {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>%s</title>
+    <title>%d - %s</title>
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 100px auto; padding: 20px; }
-        h1 { color: #333; }
-        p { color: #666; line-height: 1.6; }
-        .error-code { color: #999; font-size: 0.9em; margin-top: 20px; }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#fafafa;color:#111}
+        @media(prefers-color-scheme:dark){body{background:#111;color:#fafafa}.message{color:#888}.error-code{color:#555;border-color:#333}}
+        .container{text-align:center;padding:2rem}
+        .status{font-size:8rem;font-weight:700;line-height:1;letter-spacing:-0.05em}
+        .title{font-size:1.5rem;font-weight:500;margin-top:1rem}
+        .message{color:#666;margin-top:0.75rem;max-width:400px;line-height:1.6}
+        .error-code{display:inline-block;margin-top:2rem;padding:0.5rem 1rem;font-family:'SF Mono',Monaco,'Courier New',monospace;font-size:0.75rem;color:#999;border:1px solid #eee;border-radius:4px}
     </style>
 </head>
 <body>
-    <h1>%s</h1>
-    <p>%s</p>
-    <p class="error-code">Error: %s</p>
+    <div class="container">
+        <div class="status">%d</div>
+        <h1 class="title">%s</h1>
+        <p class="message">%s</p>
+        <div class="error-code">%s</div>
+    </div>
 </body>
-</html>`, escapedTitle, escapedTitle, escapedMessage, escapedErrorCode)
+</html>`, statusCode, escapedTitle, statusCode, escapedTitle, escapedMessage, escapedErrorCode)
 }
