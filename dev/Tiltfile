@@ -205,21 +205,11 @@ local_resource(
 )
 
 
-# Dashboard service - runs locally for fast HMR instead of in k8s
-# Note: Turbopack requires Next.js 15.4.1+ for Sentry compatibility and doesn't support esmExternals="loose"
+# Dashboard - runs locally with HMR (env loaded from web/apps/dashboard/.env)
 local_resource(
     'dashboard',
-    serve_cmd=' '.join([
-        'DATABASE_HOST=localhost:3900',
-        'CLICKHOUSE_URL=http://default:password@localhost:8123',
-        'AGENT_URL=http://localhost:8082',
-        'AGENT_TOKEN=agent-auth-secret',
-        'CTRL_URL=http://localhost:7091',
-        'CTRL_API_KEY=your-local-dev-key',
-        'AUTH_PROVIDER=local',
-        'cd ../web && pnpm --filter=@unkey/dashboard dev',
-    ]),
-    deps=[],  # Don't watch files - Next.js handles its own HMR
+    serve_cmd='cd ../web && pnpm --filter=@unkey/dashboard dev',
+    deps=[],
     resource_deps=['planetscale', 'clickhouse', 'agent', 'ctrl'],
     labels=['unkey'],
     auto_init=True,
