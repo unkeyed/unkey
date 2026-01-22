@@ -204,7 +204,7 @@ export const UpsertPermissionDialog = ({
                 className="[&_input:first-of-type]:h-[36px]"
                 label="Description"
                 placeholder="Allows user to create, update, and delete domain configurations and DNS records"
-                maxLength={128}
+                maxLength={512}
                 description="Add a detailed description to help others understand what this permission grants access to."
                 error={errors.description?.message}
                 optional

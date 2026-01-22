@@ -15,7 +15,7 @@ export const roleNameSchema = z
 export const roleDescriptionSchema = z
   .string()
   .trim()
-  .max(2048, { message: "Role description cannot exceed 2048 characters" })
+  .max(512, { message: "Role description cannot exceed 512 characters" })
   .optional();
 
 export const keyIdsSchema = z.array(z.string()).transform((ids) => [...new Set(ids)]);
