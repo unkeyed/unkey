@@ -3,6 +3,7 @@ package sentinel
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -24,6 +25,7 @@ type Controller struct {
 	cluster         ctrlv1connect.ClusterServiceClient
 	cb              circuitbreaker.CircuitBreaker[any]
 	done            chan struct{}
+	stopOnce        sync.Once
 	region          string
 	versionLastSeen uint64
 }
@@ -46,6 +48,7 @@ func New(cfg Config) *Controller {
 		done:            make(chan struct{}),
 		region:          cfg.Region,
 		versionLastSeen: 0,
+		stopOnce:        sync.Once{},
 	}
 }
 
@@ -75,7 +78,11 @@ func (c *Controller) Start(ctx context.Context) error {
 
 // Stop signals all background goroutines to terminate.
 func (c *Controller) Stop() error {
-	close(c.done)
+	c.stopOnce.Do(func() {
+		if c.done != nil {
+			close(c.done)
+		}
+	})
 	return nil
 }
 

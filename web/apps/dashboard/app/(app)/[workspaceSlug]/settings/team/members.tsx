@@ -1,19 +1,12 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
+import { getGradientForUser } from "@/lib/avatar-gradient";
 import { trpc } from "@/lib/trpc/client";
+import { Card, CardContent } from "@unkey/ui";
 import { Button, ConfirmPopover, Empty, Loading, toast } from "@unkey/ui";
 import { memo, useMemo, useState } from "react";
-import { InviteButton } from "./invite";
 import { RoleSwitcher } from "./role-switcher";
 
 type MembersProps = {
@@ -46,7 +39,7 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
 
   if (isLoading) {
     return (
-      <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border p-8 text-center">
+      <div className="flex items-center justify-center py-12">
         <Loading />
       </div>
     );
@@ -65,8 +58,7 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
     return (
       <Empty>
         <Empty.Title>No team members</Empty.Title>
-        <Empty.Description>Invite members to your team</Empty.Description>
-        {isAdmin && <InviteButton user={user} organization={organization} />}
+        <Empty.Description>Invite members using the form above</Empty.Description>
       </Empty>
     );
   }
@@ -95,65 +87,62 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
           }}
         />
       ) : null}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Member</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>{/*/ empty */}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {memberships.map((membership) => {
-            const { id, role, user: member } = membership;
-            return (
-              <TableRow key={id}>
-                <TableCell>
-                  <div className="flex w-full items-center gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
-                    <Avatar>
-                      <AvatarImage src={member.avatarUrl ?? undefined} />
-                      <AvatarFallback className="email">
-                        {member.fullName?.slice(0, 1) ?? member.email.slice(0, 1)}
-                      </AvatarFallback>
+
+      <Card>
+        <CardContent className="p-0">
+          <div className="divide-y divide-border">
+            {memberships.map((membership) => {
+              const { id, role, user: member } = membership;
+              const isCurrentUser = member.id === user.id;
+
+              return (
+                <div key={id} className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Avatar className="h-8 w-8">
+                      {member.avatarUrl && <AvatarImage src={member.avatarUrl} />}
+                      <AvatarFallback
+                        style={{
+                          background: `linear-gradient(to bottom right, ${getGradientForUser(member.email).from}, ${getGradientForUser(member.email).to})`,
+                        }}
+                      />
                     </Avatar>
-                    <div className="flex flex-col items-start">
-                      <span className="text-content font-medium email">
-                        {`${
-                          member.firstName ? member.firstName : member.email
-                        } ${member.lastName ? member.lastName : ""}`}
-                      </span>
-                      <span className="text-content-subtle text-xs email">
-                        {member.firstName ? member.email : ""}
-                      </span>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-content truncate">
+                          {member.firstName
+                            ? `${member.firstName}${member.lastName ? ` ${member.lastName}` : ""}`
+                            : member.email}
+                        </span>
+                      </div>
+                      {member.firstName && (
+                        <span className="text-sm text-content-subtle truncate">{member.email}</span>
+                      )}
                     </div>
                   </div>
-                </TableCell>
-                <TableCell>
-                  <RoleSwitcher
-                    member={{ id, role }}
-                    organization={organization}
-                    user={user}
-                    userMembership={userMembership}
-                  />
-                </TableCell>
-                <TableCell>
-                  {isAdmin && user && member.id !== user.id ? (
-                    <Button
-                      className="w-full"
-                      type="button"
-                      variant="default"
-                      size="lg"
-                      onClick={(event) => handleDeleteButtonClick(membership, event)}
-                    >
-                      Remove
-                    </Button>
-                  ) : null}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+
+                  <div className="flex items-center gap-3 ml-4">
+                    <RoleSwitcher
+                      member={{ id, role, userId: member.id }}
+                      organization={organization}
+                      user={user}
+                      userMembership={userMembership}
+                    />
+                    {isAdmin && !isCurrentUser && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(event) => handleDeleteButtonClick(membership, event)}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
     </>
   );
 });

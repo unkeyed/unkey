@@ -52,20 +52,6 @@ type S3Config struct {
 	ExternalURL string
 }
 
-// CloudflareConfig holds Cloudflare API configuration for ACME DNS-01 challenges.
-//
-// This configuration enables automatic DNS record creation for wildcard
-// TLS certificates through Cloudflare's DNS API.
-type CloudflareConfig struct {
-	// Enabled determines whether Cloudflare DNS-01 challenges are used.
-	// When true, wildcard certificates can be automatically obtained.
-	Enabled bool
-
-	// ApiToken is the Cloudflare API token for DNS management.
-	// Requires Zone:Read and DNS:Edit permissions for the target zones.
-	ApiToken string
-}
-
 // Route53Config holds AWS Route53 configuration for ACME DNS-01 challenges.
 //
 // This configuration enables automatic DNS record creation for wildcard
@@ -104,10 +90,6 @@ type AcmeConfig struct {
 	// Used for Let's Encrypt account registration and recovery.
 	// Example: "unkey.com" creates "admin@unkey.com" for ACME account.
 	EmailDomain string
-
-	// Cloudflare configures DNS-01 challenges through Cloudflare API.
-	// Enables wildcard certificates for domains hosted on Cloudflare.
-	Cloudflare CloudflareConfig
 
 	// Route53 configures DNS-01 challenges through AWS Route53 API.
 	// Enables wildcard certificates for domains hosted on Route53.
@@ -363,13 +345,6 @@ func (c Config) GetDepotConfig() DepotConfig {
 // Returns an error if required fields are missing, invalid, or inconsistent.
 // Provides detailed error messages to help identify configuration issues.
 func (c Config) Validate() error {
-	// Validate Cloudflare configuration if enabled
-	if c.Acme.Enabled && c.Acme.Cloudflare.Enabled {
-		if err := assert.NotEmpty(c.Acme.Cloudflare.ApiToken, "cloudflare API token is required when cloudflare is enabled"); err != nil {
-			return err
-		}
-	}
-
 	// Validate Route53 configuration if enabled
 	if c.Acme.Enabled && c.Acme.Route53.Enabled {
 		if err := assert.All(

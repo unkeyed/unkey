@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "certificate",
     srcs = [
+        "bootstrap_infra_certs.go",
         "doc.go",
         "process_challenge_handler.go",
         "renew_handler.go",
@@ -15,7 +16,6 @@ go_library(
         "//gen/proto/vault/v1:vault",
         "//pkg/db",
         "//pkg/otel/logging",
-        "//pkg/retry",
         "//pkg/uid",
         "//pkg/vault",
         "//svc/ctrl/services/acme",
@@ -23,5 +23,6 @@ go_library(
         "@com_github_go_acme_lego_v4//challenge",
         "@com_github_go_acme_lego_v4//lego",
         "@com_github_restatedev_sdk_go//:sdk-go",
+        "@com_github_restatedev_sdk_go//ingress",
     ],
 )

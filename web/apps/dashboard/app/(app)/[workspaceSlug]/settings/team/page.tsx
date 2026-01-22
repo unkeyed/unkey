@@ -17,7 +17,7 @@ export default async function SettingTeamPage() {
   return workspace ? (
     <>
       <WorkspaceNavbar activePage={{ href: "team", text: "Team" }} />
-      <div className="flex flex-col items-center justify-center w-full px-16 gap-4 mt-10">
+      <div className="flex flex-col w-full max-w-6xl mx-auto px-6 py-8">
         <TeamPageClient team={team} />
       </div>
     </>

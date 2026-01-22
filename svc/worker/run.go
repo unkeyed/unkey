@@ -259,19 +259,7 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("ACME HTTP-01 provider enabled")
 
 		// DNS-01 provider for wildcard domains (requires DNS provider config)
-		if cfg.Acme.Cloudflare.Enabled {
-			cfProvider, cfErr := providers.NewCloudflareProvider(providers.CloudflareConfig{
-				DB:          database,
-				Logger:      logger,
-				APIToken:    cfg.Acme.Cloudflare.ApiToken,
-				DomainCache: domainCache,
-			})
-			if cfErr != nil {
-				return fmt.Errorf("failed to create Cloudflare DNS provider: %w", cfErr)
-			}
-			dnsProvider = cfProvider
-			logger.Info("ACME Cloudflare DNS-01 provider enabled for wildcard certs")
-		} else if cfg.Acme.Route53.Enabled {
+		if cfg.Acme.Route53.Enabled {
 			r53Provider, r53Err := providers.NewRoute53Provider(providers.Route53Config{
 				DB:              database,
 				Logger:          logger,

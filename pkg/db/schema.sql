@@ -458,8 +458,8 @@ CREATE TABLE `deployment_topology` (
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployment_topology_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `deployment_topology_version_unique` UNIQUE(`version`),
-	CONSTRAINT `unique_region_per_deployment` UNIQUE(`deployment_id`,`region`)
+	CONSTRAINT `unique_region_per_deployment` UNIQUE(`deployment_id`,`region`),
+	CONSTRAINT `unique_version_per_region` UNIQUE(`region`,`version`)
 );
 
 CREATE TABLE `acme_users` (
@@ -525,8 +525,8 @@ CREATE TABLE `sentinels` (
 	CONSTRAINT `sentinels_id_unique` UNIQUE(`id`),
 	CONSTRAINT `sentinels_k8s_name_unique` UNIQUE(`k8s_name`),
 	CONSTRAINT `sentinels_k8s_address_unique` UNIQUE(`k8s_address`),
-	CONSTRAINT `sentinels_version_unique` UNIQUE(`version`),
-	CONSTRAINT `one_env_per_region` UNIQUE(`environment_id`,`region`)
+	CONSTRAINT `one_env_per_region` UNIQUE(`environment_id`,`region`),
+	CONSTRAINT `unique_version_per_region` UNIQUE(`region`,`version`)
 );
 
 CREATE TABLE `instances` (
@@ -608,7 +608,6 @@ CREATE INDEX `status_idx` ON `deployments` (`status`);
 CREATE INDEX `workspace_idx` ON `deployment_topology` (`workspace_id`);
 CREATE INDEX `region_idx` ON `deployment_topology` (`region`);
 CREATE INDEX `status_idx` ON `deployment_topology` (`desired_status`);
-CREATE INDEX `region_version_idx` ON `deployment_topology` (`region`,`version`);
 CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `custom_domains` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
