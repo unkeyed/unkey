@@ -1,16 +1,41 @@
 "use client";
 
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Bolt, Cloud, Grid, Harddrive, Layers2, LayoutRight } from "@unkey/icons";
-import { Button, InfoTooltip } from "@unkey/ui";
-import type { ReactNode } from "react";
+import {
+  Bolt,
+  ChevronExpandY,
+  Cloud,
+  Grid,
+  Harddrive,
+  type IconProps,
+  Layers2,
+  LayoutRight,
+  TimeClock,
+} from "@unkey/icons";
+import {
+  Button,
+  InfoTooltip,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@unkey/ui";
+import type { ComponentType, ReactNode } from "react";
 import { ActiveDeploymentCard } from "../../../components/active-deployment-card";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
 import { InfoChip } from "../../../components/info-chip";
 import { ProjectContentWrapper } from "../../../components/project-content-wrapper";
+import { Card } from "../../components/card";
 import { useProject } from "../../layout-provider";
 import { DeploymentNetworkView } from "./network/deployment-network-view";
-import { Card } from "../../components/card";
+import { LogsTimeseriesBarChart } from "./network/unkey-flow/components/overlay/node-details-panel/components/chart";
+import { generateRealisticChartData } from "./network/unkey-flow/components/overlay/node-details-panel/utils";
+
+const baseConfig = {
+  startTime: Date.now() - 24 * 60 * 60 * 1000 * 5,
+  intervalMs: 60 * 60 * 1000,
+};
 
 const DEPLOYMENT_ID = "d_5VmWaBhBEn5jmAcZ";
 
@@ -88,10 +113,84 @@ export default function DeploymentOverview() {
           icon={<Layers2 iconSize="md-regular" className="text-gray-9" />}
           title="Network"
         />
-
-        <Card className="rounded-[14px] flex justify-between flex-col overflow-hidden border-gray-4 h-[600px]">
-          <DeploymentNetworkView projectId={projectId} liveDeploymentId={liveDeploymentId} />
-        </Card>
+        <div className="flex gap-2 flex-col">
+          <Card className="rounded-[14px] flex justify-between flex-col overflow-hidden border-gray-4 h-[600px] gap-2">
+            <DeploymentNetworkView projectId={projectId} liveDeploymentId={liveDeploymentId} />
+          </Card>
+          <div className="flex gap-2">
+            <MetricCard
+              icon={TimeClock}
+              metricType="latency"
+              currentValue={3.1}
+              percentile="p50"
+              chartData={{
+                data: generateRealisticChartData({
+                  count: 80,
+                  baseValue: 3,
+                  variance: 2,
+                  trend: 0.01,
+                  spikeProbability: 0.25,
+                  dataKey: "latency",
+                  ...baseConfig,
+                }),
+                dataKey: "latency",
+              }}
+            />
+            <MetricCard
+              icon={Bolt}
+              metricType="cpu"
+              currentValue={32}
+              chartData={{
+                data: generateRealisticChartData({
+                  count: 80,
+                  baseValue: 32,
+                  variance: 10,
+                  trend: 0.02,
+                  spikeProbability: 0.15,
+                  dataKey: "cpu",
+                  ...baseConfig,
+                }),
+                dataKey: "cpu",
+              }}
+            />
+            <MetricCard
+              icon={Grid}
+              metricType="memory"
+              currentValue={24}
+              secondaryValue={{ numeric: 1.62, unit: "gb" }}
+              chartData={{
+                data: generateRealisticChartData({
+                  count: 80,
+                  baseValue: 24,
+                  variance: 8,
+                  trend: 0.01,
+                  spikeProbability: 0.1,
+                  dataKey: "memory",
+                  ...baseConfig,
+                }),
+                dataKey: "memory",
+              }}
+            />
+            <MetricCard
+              icon={Harddrive}
+              metricType="storage"
+              currentValue={32}
+              secondaryValue={{ numeric: 72.3, unit: "mb" }}
+              chartData={{
+                data: generateRealisticChartData({
+                  count: 80,
+                  baseValue: 32,
+                  variance: 5,
+                  trend: 0.005,
+                  spikeProbability: 0.05,
+                  dataKey: "storage",
+                  ...baseConfig,
+                }),
+                dataKey: "storage",
+              }}
+            />
+          </div>
+        </div>
       </Section>
     </ProjectContentWrapper>
   );
@@ -108,4 +207,143 @@ function SectionHeader({ icon, title }: { icon: ReactNode; title: string }) {
 
 function Section({ children }: { children: ReactNode }) {
   return <div className="flex flex-col gap-1">{children}</div>;
+}
+
+type MetricType = "latency" | "cpu" | "memory" | "storage";
+
+type MetricConfig = {
+  label: string;
+  color: string;
+  unit: string;
+  percentiles?: string[];
+};
+
+const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
+  latency: {
+    label: "Latency",
+    color: "hsl(var(--bronze-8))",
+    unit: "ms",
+    percentiles: ["p50", "p75", "p90", "p95", "p99"],
+  },
+  cpu: {
+    label: "CPU",
+    color: "hsl(var(--feature-8))",
+    unit: "%",
+  },
+  memory: {
+    label: "Memory",
+    color: "hsl(var(--info-8))",
+    unit: "%",
+  },
+  storage: {
+    label: "Storage",
+    color: "hsl(var(--cyan-8))",
+    unit: "%",
+  },
+};
+
+type MetricSelectProps = {
+  label: string;
+  value: string;
+  options: string[];
+  onValueChange?: (value: string) => void;
+};
+
+function MetricSelect({ label, value, options, onValueChange }: MetricSelectProps) {
+  return (
+    <Select defaultValue={value} onValueChange={onValueChange}>
+      <SelectTrigger
+        className="bg-transparent rounded-full flex items-center gap-1.5 border-0 h-auto !min-h-0 !p-0 focus:border-none focus:ring-0 hover:bg-grayA-2 transition-colors justify-normal "
+        rightIcon={<ChevronExpandY className="text-accent-8 size-3.5" />}
+      >
+        <span className="text-gray-11 text-xs">{label}</span>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent className="min-w-[80px]">
+        {options.map((option) => (
+          <SelectItem
+            key={option}
+            value={option}
+            className="cursor-pointer hover:bg-grayA-3 data-[highlighted]:bg-grayA-2 font-mono font-medium text-sm"
+          >
+            {option}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+type MetricCardProps = {
+  icon: ComponentType<IconProps>;
+  metricType: MetricType;
+  currentValue: number;
+  secondaryValue?: {
+    numeric: number;
+    unit: string;
+  };
+  chartData: any;
+  percentile?: string;
+  onPercentileChange?: (value: string) => void;
+};
+
+export function MetricCard({
+  icon: Icon,
+  metricType,
+  currentValue,
+  secondaryValue,
+  chartData,
+  percentile,
+  onPercentileChange,
+}: MetricCardProps) {
+  const config = METRIC_CONFIGS[metricType];
+
+  return (
+    <div className="border border-gray-4 w-full h-28 rounded-xl flex flex-col">
+      <div className="flex items-center w-full pt-[14px] px-[14px]">
+        <div className="flex items-center w-full gap-1">
+          <div className="flex items-center justify-center rounded-md bg-grayA-3 text-gray-12 size-5">
+            <Icon iconSize="sm-regular" className="shrink-0" />
+          </div>
+          {config.percentiles && percentile ? (
+            <MetricSelect
+              label={config.label}
+              value={percentile}
+              options={config.percentiles}
+              onValueChange={onPercentileChange}
+            />
+          ) : (
+            <span className="text-gray-11 text-xs">{config.label}</span>
+          )}
+        </div>
+        <div className="ml-auto tabular-nums">
+          <span className="text-grayA-12 font-medium text-xs">{currentValue}</span>
+          <span className="text-grayA-9 text-xs">{config.unit}</span>
+          {secondaryValue && (
+            <>
+              <span className="text-grayA-12 font-medium text-xs ml-1">
+                {secondaryValue.numeric}
+              </span>
+              <span className="text-grayA-9 text-xs">{secondaryValue.unit}</span>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="mt-1.5">
+        <LogsTimeseriesBarChart
+          chartContainerClassname="px-[14px] border-gray-4"
+          data={chartData.data}
+          config={{
+            [chartData.dataKey]: {
+              label: config.label,
+              color: config.color,
+            },
+          }}
+          height={48}
+          isLoading={false}
+          isError={false}
+        />
+      </div>
+    </div>
+  );
 }

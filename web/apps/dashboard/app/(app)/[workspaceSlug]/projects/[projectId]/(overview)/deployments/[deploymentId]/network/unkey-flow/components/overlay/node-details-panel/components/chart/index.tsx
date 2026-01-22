@@ -9,6 +9,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { cn } from "@unkey/ui/src/lib/utils";
 import { useMemo } from "react";
 import { Bar, BarChart } from "recharts";
 import { LogsChartError } from "./components/logs-chart-error";
@@ -20,6 +21,7 @@ type LogsTimeseriesBarChartProps = {
   height?: number;
   isLoading?: boolean;
   isError?: boolean;
+  chartContainerClassname?: string;
 };
 
 export function LogsTimeseriesBarChart({
@@ -28,6 +30,7 @@ export function LogsTimeseriesBarChart({
   height = 50,
   isLoading,
   isError,
+  chartContainerClassname,
 }: LogsTimeseriesBarChartProps) {
   // // Precompute timestamp-to-index mapping for O(1) lookup
   const timestampToIndexMap = useMemo(() => {
@@ -56,7 +59,7 @@ export function LogsTimeseriesBarChart({
   return (
     <ChartContainer
       config={config}
-      className="aspect-auto w-full border-b border-grayA-4"
+      className={cn("aspect-auto w-full border-b border-grayA-4", chartContainerClassname)}
       style={{ height }}
     >
       <BarChart data={data} margin={{ top: 0, right: 0, bottom: 0, left: 0 }} barCategoryGap={0.5}>

@@ -26,10 +26,7 @@ interface DeploymentNetworkViewProps {
   liveDeploymentId?: string | null;
 }
 
-export function DeploymentNetworkView({
-  projectId,
-  liveDeploymentId,
-}: DeploymentNetworkViewProps) {
+export function DeploymentNetworkView({ projectId, liveDeploymentId }: DeploymentNetworkViewProps) {
   const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(null);
   const [selectedNode, setSelectedNode] = useState<DeploymentNode | null>(null);
 

@@ -28,8 +28,7 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
       const subRouteIndex = projectsSegmentIndex + 3;
 
       const currentProjectActive =
-        projectsSegmentIndex !== -1 &&
-        segments.at(projectIdIndex) === project.id;
+        projectsSegmentIndex !== -1 && segments.at(projectIdIndex) === project.id;
 
       const currentSubRoute = segments.at(subRouteIndex);
 
