@@ -274,11 +274,15 @@ WITH
           tags,
           outcome
       FROM default.key_verifications_raw_v2
-      WHERE workspace_id = {workspaceId: String}
+      -- PREWHERE clause for indexed columns (workspace_id, key_space_id, time)
+      -- This filters rows before reading other columns, dramatically reducing I/O
+      PREWHERE workspace_id = {workspaceId: String}
           AND key_space_id = {keyspaceId: String}
           AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+      -- WHERE clause for non-indexed filters (keyIds, outcomes, tags)
+      WHERE
           -- Apply dynamic key ID filtering (equals or contains)
-          AND (${keyIdConditions})
+          (${keyIdConditions})
           -- Apply dynamic outcome filtering
           AND (${outcomeCondition})
           -- Apply dynamic tag filtering
