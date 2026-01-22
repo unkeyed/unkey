@@ -1,3 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: krane
+  namespace: unkey
+  labels:
+    app: krane
+    component: krane
+spec:
+  selector:
+    app: krane
+  ports:
+    - port: 8070
+      targetPort: 8070
+      protocol: TCP
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,8 +44,19 @@ spec:
           env:
             # Server configuration
             - name: UNKEY_REGION
-              value: "dev:local"
+              value: "local.dev"
             - name: "UNKEY_CONTROL_PLANE_URL"
               value: "http://ctrl:7091"
             - name: "UNKEY_CONTROL_PLANE_BEARER"
               value: "your-local-dev-key"
+            # Vault configuration for SecretsService
+            - name: UNKEY_VAULT_S3_URL
+              value: "http://s3:3902"
+            - name: UNKEY_VAULT_S3_BUCKET
+              value: "vault"
+            - name: UNKEY_VAULT_S3_ACCESS_KEY_ID
+              value: "minio_root_user"
+            - name: UNKEY_VAULT_S3_ACCESS_KEY_SECRET
+              value: "minio_root_password"
+            - name: UNKEY_VAULT_MASTER_KEYS
+              value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="

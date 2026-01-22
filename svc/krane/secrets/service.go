@@ -88,10 +88,11 @@ func (s *Service) DecryptSecretsBlob(
 		"environment_id", environmentID,
 	)
 
-	_, err := s.tokenValidator.Validate(ctx, requestToken, deploymentID)
+	_, err := s.tokenValidator.Validate(ctx, requestToken, deploymentID, environmentID)
 	if err != nil {
 		s.logger.Warn("token validation failed",
 			"deployment_id", deploymentID,
+			"environment_id", environmentID,
 			"error", err,
 		)
 		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("invalid or expired token: %w", err))
@@ -103,27 +104,19 @@ func (s *Service) DecryptSecretsBlob(
 		}), nil
 	}
 
-	decryptedBlobResp, err := s.vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-		Keyring:   environmentID,
-		Encrypted: string(Encrypted),
-	})
-	if err != nil {
-		s.logger.Error("failed to decrypt secrets blob",
-			"deployment_id", deploymentID,
-			"error", err,
-		)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to decrypt secrets blob"))
-	}
-
+	// The blob is JSON containing {key: encrypted_value} pairs.
+	// Individual values are vault-encrypted, the blob itself is not.
 	var secretsConfig ctrlv1.SecretsConfig
-	if err = protojson.Unmarshal([]byte(decryptedBlobResp.GetPlaintext()), &secretsConfig); err != nil {
+	if err := protojson.Unmarshal(Encrypted, &secretsConfig); err != nil {
 		s.logger.Error("failed to unmarshal secrets config",
 			"deployment_id", deploymentID,
+			"environment_id", environmentID,
 			"error", err,
 		)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to parse secrets config"))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to parse secrets config: %w", err))
 	}
 
+	// Decrypt each secret value individually
 	envVars := make(map[string]string, len(secretsConfig.GetSecrets()))
 	for key, encryptedValue := range secretsConfig.GetSecrets() {
 		decrypted, decryptErr := s.vault.Decrypt(ctx, &vaultv1.DecryptRequest{
@@ -133,10 +126,11 @@ func (s *Service) DecryptSecretsBlob(
 		if decryptErr != nil {
 			s.logger.Error("failed to decrypt env var",
 				"deployment_id", deploymentID,
+				"environment_id", environmentID,
 				"key", key,
 				"error", decryptErr,
 			)
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to decrypt env var %s", key))
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to decrypt env var %s: %w", key, decryptErr))
 		}
 		envVars[key] = decrypted.GetPlaintext()
 	}

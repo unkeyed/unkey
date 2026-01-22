@@ -1,6 +1,6 @@
-// Package services provides gRPC service implementations for the control plane.
+// Package services provides Connect service implementations for the control plane.
 //
-// This package contains all gRPC service handlers that implement
+// This package contains all Connect service handlers that implement
 // the public API surface of the unkey control plane. Each service
 // is responsible for a specific domain of functionality including deployment
 // orchestration, build operations, certificate management, routing,
@@ -23,7 +23,7 @@
 // # Architecture
 //
 // All services follow consistent patterns:
-//   - Implement gRPC handlers with proper error handling
+//   - Implement Connect handlers with proper error handling
 //   - Use database transactions for data consistency
 //   - Integrate with Restate workflows for complex operations
 //   - Include comprehensive logging and observability
@@ -49,13 +49,13 @@
 //		Logger: logger,
 //	})
 //
-//	// Register with gRPC server
+//	// Register with Connect server
 //	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deploymentSvc))
 //
 // # Error Handling
 //
 // All services use standardized error responses with appropriate
-// Connect error codes for gRPC transmission:
+// Connect error codes:
 //   - InvalidArgument: Bad request parameters
 //   - Unauthenticated: Missing or invalid authentication
 //   - Internal: Unexpected system failures

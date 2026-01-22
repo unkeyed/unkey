@@ -16,7 +16,7 @@ import (
 //	        "Insufficient account balance",
 //	    ))
 //	}
-func GreaterOrEqual[T ~int | ~int32 | ~int64 | ~float32 | ~float64](a, b T, message ...string) error {
+func GreaterOrEqual[T ~int | ~int32 | ~int64 | ~float32 | ~float64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64](a, b T, message ...string) error {
 	if a >= b {
 		return nil
 	}

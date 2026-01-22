@@ -407,6 +407,7 @@ CREATE TABLE `projects` (
 	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`default_branch` varchar(256) DEFAULT 'main',
 	`depot_project_id` varchar(255),
+	`command` json NOT NULL DEFAULT ('[]'),
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -436,6 +437,7 @@ CREATE TABLE `deployments` (
 	`memory_mib` int NOT NULL,
 	`desired_state` enum('running','standby','archived') NOT NULL DEFAULT 'running',
 	`encrypted_environment_variables` longblob NOT NULL,
+	`command` json NOT NULL DEFAULT ('[]'),
 	`status` enum('pending','building','deploying','network','ready','failed') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -451,11 +453,13 @@ CREATE TABLE `deployment_topology` (
 	`deployment_id` varchar(64) NOT NULL,
 	`region` varchar(64) NOT NULL,
 	`desired_replicas` int NOT NULL,
+	`version` bigint unsigned NOT NULL,
 	`desired_status` enum('starting','started','stopping','stopped') NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployment_topology_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `unique_region_per_deployment` UNIQUE(`deployment_id`,`region`)
+	CONSTRAINT `unique_region_per_deployment` UNIQUE(`deployment_id`,`region`),
+	CONSTRAINT `unique_version_per_region` UNIQUE(`region`,`version`)
 );
 
 CREATE TABLE `acme_users` (
@@ -514,12 +518,14 @@ CREATE TABLE `sentinels` (
 	`available_replicas` int NOT NULL,
 	`cpu_millicores` int NOT NULL,
 	`memory_mib` int NOT NULL,
+	`version` bigint unsigned NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `sentinels_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `sentinels_id_unique` UNIQUE(`id`),
 	CONSTRAINT `sentinels_k8s_name_unique` UNIQUE(`k8s_name`),
 	CONSTRAINT `sentinels_k8s_address_unique` UNIQUE(`k8s_address`),
+	CONSTRAINT `sentinels_version_unique` UNIQUE(`version`),
 	CONSTRAINT `one_env_per_region` UNIQUE(`environment_id`,`region`)
 );
 
@@ -530,7 +536,6 @@ CREATE TABLE `instances` (
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
 	`region` varchar(64) NOT NULL,
-	`cluster_id` varchar(64) NOT NULL,
 	`k8s_name` varchar(255) NOT NULL,
 	`address` varchar(255) NOT NULL,
 	`cpu_millicores` int NOT NULL,
@@ -538,8 +543,8 @@ CREATE TABLE `instances` (
 	`status` enum('inactive','pending','running','failed') NOT NULL,
 	CONSTRAINT `instances_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `instances_id_unique` UNIQUE(`id`),
-	CONSTRAINT `unique_address_per_cluster` UNIQUE(`address`,`cluster_id`),
-	CONSTRAINT `unique_k8s_name_per_cluster` UNIQUE(`k8s_name`,`cluster_id`)
+	CONSTRAINT `unique_address_per_region` UNIQUE(`address`,`region`),
+	CONSTRAINT `unique_k8s_name_per_region` UNIQUE(`k8s_name`,`region`)
 );
 
 CREATE TABLE `certificates` (
@@ -571,6 +576,16 @@ CREATE TABLE `frontline_routes` (
 	CONSTRAINT `frontline_routes_fully_qualified_domain_name_unique` UNIQUE(`fully_qualified_domain_name`)
 );
 
+CREATE TABLE `state_changes` (
+	`sequence` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`resource_type` enum('sentinel','deployment') NOT NULL,
+	`resource_id` varchar(256) NOT NULL,
+	`op` enum('upsert','delete') NOT NULL,
+	`region` varchar(64) NOT NULL,
+	`created_at` bigint unsigned NOT NULL,
+	CONSTRAINT `state_changes_sequence` PRIMARY KEY(`sequence`)
+);
+
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
@@ -579,7 +594,6 @@ CREATE INDEX `pending_migration_id_idx` ON `keys` (`pending_migration_id`);
 CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
-CREATE INDEX `name_idx` ON `ratelimits` (`name`);
 CREATE INDEX `workspace_id_idx` ON `audit_log` (`workspace_id`);
 CREATE INDEX `bucket_id_idx` ON `audit_log` (`bucket_id`);
 CREATE INDEX `bucket_idx` ON `audit_log` (`bucket`);
@@ -587,23 +601,24 @@ CREATE INDEX `event_idx` ON `audit_log` (`event`);
 CREATE INDEX `actor_id_idx` ON `audit_log` (`actor_id`);
 CREATE INDEX `time_idx` ON `audit_log` (`time`);
 CREATE INDEX `bucket` ON `audit_log_target` (`bucket`);
-CREATE INDEX `audit_log_id` ON `audit_log_target` (`audit_log_id`);
 CREATE INDEX `id_idx` ON `audit_log_target` (`id`);
-CREATE INDEX `workspace_idx` ON `projects` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `deployments` (`workspace_id`);
 CREATE INDEX `project_idx` ON `deployments` (`project_id`);
 CREATE INDEX `status_idx` ON `deployments` (`status`);
 CREATE INDEX `workspace_idx` ON `deployment_topology` (`workspace_id`);
-CREATE INDEX `deployment_idx` ON `deployment_topology` (`deployment_id`);
 CREATE INDEX `region_idx` ON `deployment_topology` (`region`);
 CREATE INDEX `status_idx` ON `deployment_topology` (`desired_status`);
+CREATE INDEX `region_version_idx` ON `deployment_topology` (`region`,`version`);
 CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `custom_domains` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
 CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
 CREATE INDEX `idx_environment_id` ON `sentinels` (`environment_id`);
+CREATE INDEX `region_version_idx` ON `sentinels` (`region`,`version`);
 CREATE INDEX `idx_deployment_id` ON `instances` (`deployment_id`);
 CREATE INDEX `idx_region` ON `instances` (`region`);
 CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);
 CREATE INDEX `deployment_id_idx` ON `frontline_routes` (`deployment_id`);
+CREATE INDEX `region_sequence` ON `state_changes` (`region`,`sequence`);
+CREATE INDEX `created_at` ON `state_changes` (`created_at`);
 

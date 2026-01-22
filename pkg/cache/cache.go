@@ -464,6 +464,104 @@ func (c *cache[K, V]) SWRMany(
 	return values, hits, nil
 }
 
+func (c *cache[K, V]) SWRWithFallback(
+	ctx context.Context,
+	candidates []K,
+	refreshFromOrigin func(context.Context) (V, K, error),
+	op func(error) Op,
+) (V, CacheHit, error) {
+	start := time.Now()
+	now := c.clock.Now()
+
+	// Check all candidate keys for cache hits
+	for _, key := range candidates {
+		e, ok := c.get(ctx, key)
+		if !ok {
+			continue
+		}
+
+		// Found in cache
+		if now.Before(e.Fresh) {
+			// Fresh - return immediately
+			debug.RecordCacheHit(ctx, c.resource, "FRESH", time.Since(start))
+			return e.Value, e.Hit, nil
+		}
+
+		if now.Before(e.Stale) {
+			// Stale - return but queue background revalidation with deduplication
+			c.inflightMu.Lock()
+			if !c.inflightRefreshes[key] {
+				c.inflightRefreshes[key] = true
+				dedupeKey := key // capture for closure
+				c.revalidateC <- func() {
+					c.revalidateWithCanonicalKey(context.WithoutCancel(ctx), dedupeKey, refreshFromOrigin, op)
+				}
+			}
+			c.inflightMu.Unlock()
+			debug.RecordCacheHit(ctx, c.resource, "STALE", time.Since(start))
+			return e.Value, e.Hit, nil
+		}
+
+		// Expired - delete and continue checking other candidates
+		c.otter.Delete(key)
+	}
+
+	// Cache miss on all candidates - fetch from origin
+	v, canonicalKey, err := refreshFromOrigin(ctx)
+	debug.RecordCacheHit(ctx, c.resource, "MISS", time.Since(start))
+
+	operation := op(err)
+
+	if err != nil {
+		var zero V
+		return zero, Miss, err
+	}
+
+	var hit CacheHit
+	switch operation {
+	case WriteValue:
+		c.Set(ctx, canonicalKey, v)
+		hit = Hit
+	case WriteNull:
+		c.SetNull(ctx, canonicalKey)
+		hit = Null
+	case Noop:
+		hit = Miss
+	}
+
+	return v, hit, nil
+}
+
+func (c *cache[K, V]) revalidateWithCanonicalKey(
+	ctx context.Context,
+	dedupeKey K,
+	refreshFromOrigin func(context.Context) (V, K, error),
+	op func(error) Op,
+) {
+	defer func() {
+		c.inflightMu.Lock()
+		delete(c.inflightRefreshes, dedupeKey)
+		c.inflightMu.Unlock()
+	}()
+
+	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
+	v, canonicalKey, err := refreshFromOrigin(ctx)
+
+	if err != nil && !db.IsNotFound(err) {
+		c.logger.Warn("failed to revalidate with canonical key", "error", err.Error())
+		return
+	}
+
+	switch op(err) {
+	case WriteValue:
+		c.Set(ctx, canonicalKey, v)
+	case WriteNull:
+		c.SetNull(ctx, canonicalKey)
+	case Noop:
+		break
+	}
+}
+
 func (c *cache[K, V]) revalidateMany(
 	ctx context.Context,
 	keys []K,

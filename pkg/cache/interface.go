@@ -42,6 +42,12 @@ type Cache[K comparable, V any] interface {
 	// refreshFromOrigin receives keys that need to be fetched and returns a map of values.
 	SWRMany(ctx context.Context, keys []K, refreshFromOrigin func(ctx context.Context, keys []K) (map[K]V, error), op func(error) Op) (values map[K]V, hits map[K]CacheHit, err error)
 
+	// SWRWithFallback checks multiple candidate keys in order, returning the first hit.
+	// On miss, calls refreshFromOrigin which returns the value AND the canonical key to cache under.
+	// This is useful for wildcard/fallback patterns where multiple lookups share a single cached value.
+	// Example: domains foo.example.com and bar.example.com both use wildcard cert *.example.com
+	SWRWithFallback(ctx context.Context, candidates []K, refreshFromOrigin func(ctx context.Context) (value V, canonicalKey K, err error), op func(error) Op) (value V, hit CacheHit, err error)
+
 	// Dump returns a serialized representation of the cache.
 	Dump(ctx context.Context) ([]byte, error)
 

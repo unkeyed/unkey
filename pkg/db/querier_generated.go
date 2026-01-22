@@ -29,7 +29,7 @@ type Querier interface {
 	//DeleteDeploymentInstances
 	//
 	//  DELETE FROM instances
-	//  WHERE deployment_id = ?  and cluster_id = ?
+	//  WHERE deployment_id = ? AND region = ?
 	DeleteDeploymentInstances(ctx context.Context, db DBTX, arg DeleteDeploymentInstancesParams) error
 	//DeleteIdentity
 	//
@@ -39,7 +39,7 @@ type Querier interface {
 	DeleteIdentity(ctx context.Context, db DBTX, arg DeleteIdentityParams) error
 	//DeleteInstance
 	//
-	//  DELETE FROM instances WHERE k8s_name = ? AND cluster_id = ? AND region = ?
+	//  DELETE FROM instances WHERE k8s_name = ? AND region = ?
 	DeleteInstance(ctx context.Context, db DBTX, arg DeleteInstanceParams) error
 	//DeleteKeyByID
 	//
@@ -194,14 +194,30 @@ type Querier interface {
 	//  FROM custom_domains
 	//  WHERE id = ?
 	FindCustomDomainById(ctx context.Context, db DBTX, id string) (CustomDomain, error)
+	//FindCustomDomainWithCertByDomain
+	//
+	//  SELECT
+	//      cd.pk, cd.id, cd.workspace_id, cd.domain, cd.challenge_type, cd.created_at, cd.updated_at,
+	//      c.id AS certificate_id
+	//  FROM custom_domains cd
+	//  LEFT JOIN certificates c ON c.hostname = cd.domain
+	//  WHERE cd.domain = ?
+	FindCustomDomainWithCertByDomain(ctx context.Context, db DBTX, domain string) (FindCustomDomainWithCertByDomainRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, status, created_at, updated_at FROM `deployments` WHERE id = ?
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, status, created_at, updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentByK8sName
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, status, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, status, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, db DBTX, k8sName string) (Deployment, error)
+	// Returns all regions where a deployment is configured.
+	// Used for fan-out: when a deployment changes, emit state_change to each region.
+	//
+	//  SELECT region
+	//  FROM `deployment_topology`
+	//  WHERE deployment_id = ?
+	FindDeploymentRegions(ctx context.Context, db DBTX, deploymentID string) ([]string, error)
 	//FindDeploymentTopologyByIDAndRegion
 	//
 	//  SELECT
@@ -354,21 +370,21 @@ type Querier interface {
 	//FindInstanceByPodName
 	//
 	//  SELECT
-	//   pk, id, deployment_id, workspace_id, project_id, region, cluster_id, k8s_name, address, cpu_millicores, memory_mib, status
+	//   pk, id, deployment_id, workspace_id, project_id, region, k8s_name, address, cpu_millicores, memory_mib, status
 	//  FROM instances
-	//    WHERE k8s_name = ? AND cluster_id = ? AND region = ?
+	//    WHERE k8s_name = ? AND region = ?
 	FindInstanceByPodName(ctx context.Context, db DBTX, arg FindInstanceByPodNameParams) (Instance, error)
 	//FindInstancesByDeploymentId
 	//
 	//  SELECT
-	//   pk, id, deployment_id, workspace_id, project_id, region, cluster_id, k8s_name, address, cpu_millicores, memory_mib, status
+	//   pk, id, deployment_id, workspace_id, project_id, region, k8s_name, address, cpu_millicores, memory_mib, status
 	//  FROM instances
 	//  WHERE deployment_id = ?
 	FindInstancesByDeploymentId(ctx context.Context, db DBTX, deploymentid string) ([]Instance, error)
 	//FindInstancesByDeploymentIdAndRegion
 	//
 	//  SELECT
-	//   pk, id, deployment_id, workspace_id, project_id, region, cluster_id, k8s_name, address, cpu_millicores, memory_mib, status
+	//   pk, id, deployment_id, workspace_id, project_id, region, k8s_name, address, cpu_millicores, memory_mib, status
 	//  FROM instances
 	//  WHERE deployment_id = ? AND region = ?
 	FindInstancesByDeploymentIdAndRegion(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionParams) ([]Instance, error)
@@ -813,7 +829,8 @@ type Querier interface {
 	//      is_rolled_back,
 	//      created_at,
 	//      updated_at,
-	//      depot_project_id
+	//      depot_project_id,
+	//      command
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (FindProjectByIdRow, error)
@@ -937,12 +954,12 @@ type Querier interface {
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
 	//FindSentinelByID
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM sentinels s
 	//  WHERE id = ? LIMIT 1
 	FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error)
 	//FindSentinelsByEnvironmentID
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels WHERE environment_id = ?
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM sentinels WHERE environment_id = ?
 	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Sentinel, error)
 	//FindWorkspaceByID
 	//
@@ -962,6 +979,20 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND deleted_at_m IS NULL
 	GetKeyAuthByID(ctx context.Context, db DBTX, id string) (GetKeyAuthByIDRow, error)
+	// GetMaxStateChangeSequence returns the highest sequence number for a region.
+	// Used during bootstrap to set the sequence boundary.
+	//
+	//  SELECT CAST(COALESCE(MAX(sequence), 0) AS UNSIGNED) AS max_sequence
+	//  FROM `state_changes`
+	//  WHERE region = ?
+	GetMaxStateChangeSequence(ctx context.Context, db DBTX, region string) (int64, error)
+	// Returns the lowest retained sequence for a region.
+	// Used to detect if a client's watermark is too old (requires full resync).
+	//
+	//  SELECT CAST(COALESCE(MIN(sequence), 0) AS UNSIGNED) AS min_sequence
+	//  FROM `state_changes`
+	//  WHERE region = ?
+	GetMinStateChangeSequence(ctx context.Context, db DBTX, region string) (int64, error)
 	//HardDeleteWorkspace
 	//
 	//  DELETE FROM `workspaces`
@@ -1136,9 +1167,10 @@ type Querier interface {
 	//      git_commit_timestamp,
 	//      openapi_spec,
 	//      encrypted_environment_variables,
+	//      command,
 	//      status,
 	//      cpu_millicores,
-	//  		memory_mib,
+	//      memory_mib,
 	//      created_at,
 	//      updated_at
 	//  )
@@ -1159,7 +1191,8 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//  		?,
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?
 	//  )
@@ -1172,8 +1205,10 @@ type Querier interface {
 	//      region,
 	//      desired_replicas,
 	//      desired_status,
+	//      version,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1550,8 +1585,10 @@ type Querier interface {
 	//      available_replicas,
 	//      cpu_millicores,
 	//      memory_mib,
+	//      version,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1568,6 +1605,22 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertSentinel(ctx context.Context, db DBTX, arg InsertSentinelParams) error
+	//InsertStateChange
+	//
+	//  INSERT INTO `state_changes` (
+	//      resource_type,
+	//      resource_id,
+	//      op,
+	//      region,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertStateChange(ctx context.Context, db DBTX, arg InsertStateChangeParams) (int64, error)
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (
@@ -1595,22 +1648,27 @@ type Querier interface {
 	//      true
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
-	//ListDesiredDeploymentTopology
+	// ListDeploymentTopologyByRegion returns deployment topologies for a region with version > after_version.
+	// Used by WatchDeployments to stream deployment state changes to krane agents.
 	//
 	//  SELECT
-	//      d.id as deployment_id,
-	//      d.k8s_name as k8s_name,
-	//      d.workspace_id,
-	//      d.project_id,
-	//      d.environment_id,
-	//      d.image,
-	//      dt.region,
-	//      d.cpu_millicores,
-	//      d.memory_mib,
-	//      dt.desired_replicas,
-	//      w.k8s_namespace as k8s_namespace,
-	//      d.build_id,
-	//      d.encrypted_environment_variables
+	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
+	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.openapi_spec, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.status, d.created_at, d.updated_at,
+	//      w.k8s_namespace
+	//  FROM `deployment_topology` dt
+	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
+	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
+	//  WHERE dt.region = ? AND dt.version > ?
+	//  ORDER BY dt.version ASC
+	//  LIMIT ?
+	ListDeploymentTopologyByRegion(ctx context.Context, db DBTX, arg ListDeploymentTopologyByRegionParams) ([]ListDeploymentTopologyByRegionRow, error)
+	// ListDesiredDeploymentTopology returns all deployment topologies matching the desired state for a region.
+	// Used during bootstrap to stream all running deployments to krane.
+	//
+	//  SELECT
+	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
+	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.openapi_spec, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.status, d.created_at, d.updated_at,
+	//      w.k8s_namespace
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
 	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
@@ -1620,9 +1678,10 @@ type Querier interface {
 	//  ORDER BY dt.deployment_id ASC
 	//  LIMIT ?
 	ListDesiredDeploymentTopology(ctx context.Context, db DBTX, arg ListDesiredDeploymentTopologyParams) ([]ListDesiredDeploymentTopologyRow, error)
-	//ListDesiredSentinels
+	// ListDesiredSentinels returns all sentinels matching the desired state for a region.
+	// Used during bootstrap to stream all running sentinels to krane.
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at
 	//  FROM `sentinels`
 	//  WHERE (? = '' OR region = ?)
 	//      AND desired_state = ?
@@ -1924,6 +1983,26 @@ type Querier interface {
 	//  WHERE kr.key_id = ?
 	//  ORDER BY r.name
 	ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]ListRolesByKeyIDRow, error)
+	// ListSentinelsByRegion returns sentinels for a region with version > after_version.
+	// Used by WatchSentinels to stream sentinel state changes to krane agents.
+	//
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM `sentinels`
+	//  WHERE region = ? AND version > ?
+	//  ORDER BY version ASC
+	//  LIMIT ?
+	ListSentinelsByRegion(ctx context.Context, db DBTX, arg ListSentinelsByRegionParams) ([]Sentinel, error)
+	// Returns state changes for watch loop. Includes 1-second visibility delay
+	// to handle AUTO_INCREMENT gaps where sequence N+1 commits before N.
+	// Clients filter by their region when fetching the actual resource.
+	//
+	//  SELECT sequence, resource_type, resource_id, op
+	//  FROM `state_changes`
+	//  WHERE region = ?
+	//    AND sequence > ?
+	//    AND created_at < (UNIX_TIMESTAMP() * 1000) - 1000
+	//  ORDER BY sequence ASC
+	//  LIMIT ?
+	ListStateChanges(ctx context.Context, db DBTX, arg ListStateChangesParams) ([]ListStateChangesRow, error)
 	//ListWorkspaces
 	//
 	//  SELECT
@@ -2279,7 +2358,6 @@ type Querier interface {
 	//  	workspace_id,
 	//  	project_id,
 	//  	region,
-	//  	cluster_id,
 	//  	k8s_name,
 	//  	address,
 	//  	cpu_millicores,
@@ -2287,7 +2365,6 @@ type Querier interface {
 	//  	status
 	//  )
 	//  VALUES (
-	//  	?,
 	//  	?,
 	//  	?,
 	//  	?,

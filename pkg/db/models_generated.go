@@ -616,6 +616,90 @@ func (ns NullSentinelsHealth) Value() (driver.Value, error) {
 	return string(ns.SentinelsHealth), nil
 }
 
+type StateChangesOp string
+
+const (
+	StateChangesOpUpsert StateChangesOp = "upsert"
+	StateChangesOpDelete StateChangesOp = "delete"
+)
+
+func (e *StateChangesOp) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = StateChangesOp(s)
+	case string:
+		*e = StateChangesOp(s)
+	default:
+		return fmt.Errorf("unsupported scan type for StateChangesOp: %T", src)
+	}
+	return nil
+}
+
+type NullStateChangesOp struct {
+	StateChangesOp StateChangesOp
+	Valid          bool // Valid is true if StateChangesOp is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullStateChangesOp) Scan(value interface{}) error {
+	if value == nil {
+		ns.StateChangesOp, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.StateChangesOp.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullStateChangesOp) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.StateChangesOp), nil
+}
+
+type StateChangesResourceType string
+
+const (
+	StateChangesResourceTypeSentinel   StateChangesResourceType = "sentinel"
+	StateChangesResourceTypeDeployment StateChangesResourceType = "deployment"
+)
+
+func (e *StateChangesResourceType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = StateChangesResourceType(s)
+	case string:
+		*e = StateChangesResourceType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for StateChangesResourceType: %T", src)
+	}
+	return nil
+}
+
+type NullStateChangesResourceType struct {
+	StateChangesResourceType StateChangesResourceType
+	Valid                    bool // Valid is true if StateChangesResourceType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullStateChangesResourceType) Scan(value interface{}) error {
+	if value == nil {
+		ns.StateChangesResourceType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.StateChangesResourceType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullStateChangesResourceType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.StateChangesResourceType), nil
+}
+
 type VercelBindingsEnvironment string
 
 const (
@@ -883,6 +967,7 @@ type Deployment struct {
 	MemoryMib                     int32                   `db:"memory_mib"`
 	DesiredState                  DeploymentsDesiredState `db:"desired_state"`
 	EncryptedEnvironmentVariables []byte                  `db:"encrypted_environment_variables"`
+	Command                       json.RawMessage         `db:"command"`
 	Status                        DeploymentsStatus       `db:"status"`
 	CreatedAt                     int64                   `db:"created_at"`
 	UpdatedAt                     sql.NullInt64           `db:"updated_at"`
@@ -894,6 +979,7 @@ type DeploymentTopology struct {
 	DeploymentID    string                          `db:"deployment_id"`
 	Region          string                          `db:"region"`
 	DesiredReplicas int32                           `db:"desired_replicas"`
+	Version         uint64                          `db:"version"`
 	DesiredStatus   DeploymentTopologyDesiredStatus `db:"desired_status"`
 	CreatedAt       int64                           `db:"created_at"`
 	UpdatedAt       sql.NullInt64                   `db:"updated_at"`
@@ -967,7 +1053,6 @@ type Instance struct {
 	WorkspaceID   string          `db:"workspace_id"`
 	ProjectID     string          `db:"project_id"`
 	Region        string          `db:"region"`
-	ClusterID     string          `db:"cluster_id"`
 	K8sName       string          `db:"k8s_name"`
 	Address       string          `db:"address"`
 	CpuMillicores int32           `db:"cpu_millicores"`
@@ -1063,19 +1148,20 @@ type Permission struct {
 }
 
 type Project struct {
-	Pk               uint64         `db:"pk"`
-	ID               string         `db:"id"`
-	WorkspaceID      string         `db:"workspace_id"`
-	Name             string         `db:"name"`
-	Slug             string         `db:"slug"`
-	GitRepositoryUrl sql.NullString `db:"git_repository_url"`
-	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
-	IsRolledBack     bool           `db:"is_rolled_back"`
-	DefaultBranch    sql.NullString `db:"default_branch"`
-	DepotProjectID   sql.NullString `db:"depot_project_id"`
-	DeleteProtection sql.NullBool   `db:"delete_protection"`
-	CreatedAt        int64          `db:"created_at"`
-	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+	Pk               uint64          `db:"pk"`
+	ID               string          `db:"id"`
+	WorkspaceID      string          `db:"workspace_id"`
+	Name             string          `db:"name"`
+	Slug             string          `db:"slug"`
+	GitRepositoryUrl sql.NullString  `db:"git_repository_url"`
+	LiveDeploymentID sql.NullString  `db:"live_deployment_id"`
+	IsRolledBack     bool            `db:"is_rolled_back"`
+	DefaultBranch    sql.NullString  `db:"default_branch"`
+	DepotProjectID   sql.NullString  `db:"depot_project_id"`
+	Command          json.RawMessage `db:"command"`
+	DeleteProtection sql.NullBool    `db:"delete_protection"`
+	CreatedAt        int64           `db:"created_at"`
+	UpdatedAt        sql.NullInt64   `db:"updated_at"`
 }
 
 type Quotum struct {
@@ -1161,8 +1247,18 @@ type Sentinel struct {
 	AvailableReplicas int32                 `db:"available_replicas"`
 	CpuMillicores     int32                 `db:"cpu_millicores"`
 	MemoryMib         int32                 `db:"memory_mib"`
+	Version           uint64                `db:"version"`
 	CreatedAt         int64                 `db:"created_at"`
 	UpdatedAt         sql.NullInt64         `db:"updated_at"`
+}
+
+type StateChange struct {
+	Sequence     uint64                   `db:"sequence"`
+	ResourceType StateChangesResourceType `db:"resource_type"`
+	ResourceID   string                   `db:"resource_id"`
+	Op           StateChangesOp           `db:"op"`
+	Region       string                   `db:"region"`
+	CreatedAt    uint64                   `db:"created_at"`
 }
 
 type VercelBinding struct {

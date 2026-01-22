@@ -37,6 +37,8 @@ go_library(
         "//pkg/zen/validation",
         "//svc/api/openapi",
         "@io_opentelemetry_go_otel//attribute",
+        "@org_golang_x_net//http2",
+        "@org_golang_x_net//http2/h2c",
     ],
 )
 
@@ -53,6 +55,7 @@ go_test(
         "session_bind_query_test.go",
         "session_body_limit_test.go",
         "session_body_read_error_test.go",
+        "writer_test.go",
     ],
     embed = [":zen"],
     deps = [

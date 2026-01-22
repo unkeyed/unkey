@@ -29,8 +29,16 @@ var Cmd = &cli.Command{
 		cli.Bool("tls-enabled", "Enable TLS termination for the frontline. Default: true",
 			cli.Default(true), cli.EnvVar("UNKEY_TLS_ENABLED")),
 
-		cli.String("region", "Geographic region identifier. Used for logging and routing. Default: unknown",
-			cli.Default("unknown"), cli.EnvVar("UNKEY_REGION"), cli.EnvVar("AWS_REGION")),
+		cli.String("tls-cert-file", "Path to TLS certificate file (dev mode)",
+			cli.EnvVar("UNKEY_TLS_CERT_FILE")),
+
+		cli.String("tls-key-file", "Path to TLS key file (dev mode)",
+			cli.EnvVar("UNKEY_TLS_KEY_FILE")),
+
+		cli.String("region", "The cloud region with platform, e.g. us-east-1.aws",
+			cli.Required(),
+			cli.EnvVar("UNKEY_REGION"),
+		),
 
 		cli.String("frontline-id", "Unique identifier for this instance. Auto-generated if not provided.",
 			cli.Default(uid.New("frontline", 4)), cli.EnvVar("UNKEY_GATE_ID")),
@@ -38,8 +46,8 @@ var Cmd = &cli.Command{
 		cli.String("default-cert-domain", "Domain to use for fallback TLS certificate when a domain has no cert configured",
 			cli.EnvVar("UNKEY_DEFAULT_CERT_DOMAIN")),
 
-		cli.String("base-domain", "Base domain for region routing. Cross-region requests forwarded to region.base-domain. Example: unkey.cloud",
-			cli.Default("unkey.cloud"), cli.EnvVar("UNKEY_BASE_DOMAIN")),
+		cli.String("apex-domain", "Apex domain for region routing. Cross-region requests forwarded to frontline.{region}.{apex-domain}. Example: unkey.cloud",
+			cli.Default("unkey.cloud"), cli.EnvVar("UNKEY_APEX_DOMAIN")),
 
 		// Database Configuration - Partitioned (for hostname lookups)
 		cli.String("database-primary", "MySQL connection string for partitioned primary database (frontline operations). Required. Example: user:pass@host:3306/unkey?parseTime=true",
@@ -99,9 +107,11 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		HttpsPort: cmd.Int("https-port"),
 
 		// TLS configuration
-		EnableTLS:  cmd.Bool("tls-enabled"),
-		BaseDomain: cmd.String("base-domain"),
-		MaxHops:    cmd.Int("max-hops"),
+		EnableTLS:   cmd.Bool("tls-enabled"),
+		TLSCertFile: cmd.String("tls-cert-file"),
+		TLSKeyFile:  cmd.String("tls-key-file"),
+		ApexDomain:  cmd.String("apex-domain"),
+		MaxHops:     cmd.Int("max-hops"),
 
 		// Control Plane Configuration
 		CtrlAddr: cmd.String("ctrl-addr"),

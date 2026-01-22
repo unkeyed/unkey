@@ -181,7 +181,7 @@ func (p *ProxyService) ForwardToNLB(ctx context.Context, region string, r *http.
     // Build target URL
     targetURL := fmt.Sprintf("https://%s.%s%s",
         region,           // e.g., "us-west-2"
-        p.BaseDomain, // e.g., "unkey.cloud"
+        p.ApexDomain, // e.g., "unkey.cloud"
         r.URL.Path,
     )
 

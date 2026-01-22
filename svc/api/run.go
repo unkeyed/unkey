@@ -130,14 +130,13 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		go func() {
-			var promListener net.Listener
-			promListener, err = net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
-			if err != nil {
-				panic(err)
+			promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+			if listenErr != nil {
+				panic(listenErr)
 			}
-			promListenErr := prom.Serve(ctx, promListener)
-			if promListenErr != nil {
-				panic(promListenErr)
+			serveErr := prom.Serve(ctx, promListener)
+			if serveErr != nil {
+				panic(serveErr)
 			}
 		}()
 	}
@@ -160,6 +159,7 @@ func Run(ctx context.Context, cfg Config) error {
 			TestMode: cfg.TestMode,
 		},
 		TLS:                cfg.TLSConfig,
+		EnableH2C:          false,
 		MaxRequestBodySize: cfg.MaxRequestBodySize,
 		ReadTimeout:        0,
 		WriteTimeout:       0,

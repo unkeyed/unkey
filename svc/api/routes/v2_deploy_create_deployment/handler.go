@@ -8,8 +8,11 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -36,7 +39,7 @@ func (h *Handler) Method() string {
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	_, emit, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
 	if err != nil {
 		return err
@@ -45,6 +48,42 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
+	}
+
+	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Project,
+			ResourceID:   "*",
+			Action:       rbac.CreateDeployment,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Project,
+			ResourceID:   req.ProjectId,
+			Action:       rbac.CreateDeployment,
+		}),
+	)))
+	if err != nil {
+		return err
+	}
+
+	// Verify project belongs to the authenticated workspace
+	project, err := db.Query.FindProjectById(ctx, h.DB.RO(), req.ProjectId)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("project not found",
+				fault.Code(codes.Data.Project.NotFound.URN()),
+				fault.Internal("project not found"),
+				fault.Public("The requested project does not exist or has been deleted."),
+			)
+		}
+		return fault.Wrap(err, fault.Internal("failed to find project"))
+	}
+	if project.WorkspaceID != auth.AuthorizedWorkspaceID {
+		return fault.New("wrong workspace",
+			fault.Code(codes.Data.Project.NotFound.URN()),
+			fault.Internal("wrong workspace, masking as 404"),
+			fault.Public("The requested project does not exist or has been deleted."),
+		)
 	}
 
 	// nolint: exhaustruct // optional proto fields, only setting whats provided

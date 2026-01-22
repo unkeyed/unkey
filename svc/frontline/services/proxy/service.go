@@ -2,7 +2,9 @@ package proxy
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -14,16 +16,18 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"golang.org/x/net/http2"
 )
 
 type service struct {
-	logger      logging.Logger
-	frontlineID string
-	region      string
-	baseDomain  string
-	clock       clock.Clock
-	transport   *http.Transport
-	maxHops     int
+	logger       logging.Logger
+	frontlineID  string
+	region       string
+	apexDomain   string
+	clock        clock.Clock
+	transport    *http.Transport
+	h2cTransport *http2.Transport
+	maxHops      int
 }
 
 var _ Service = (*service)(nil)
@@ -38,14 +42,26 @@ func New(cfg Config) (*service, error) {
 	if cfg.Transport != nil {
 		transport = cfg.Transport
 	} else {
+		//nolint:exhaustruct
 		transport = &http.Transport{
-			Proxy:                 http.ProxyFromEnvironment,
+			Proxy:             http.ProxyFromEnvironment,
+			ForceAttemptHTTP2: true,
+			// TCP KeepAlive for detecting dead connections and keeping connections alive through NAT/firewalls
+			DialContext: (&net.Dialer{
+				Timeout:   10 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
 			MaxIdleConns:          200,
 			MaxIdleConnsPerHost:   100,
 			IdleConnTimeout:       90 * time.Second,
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 			ResponseHeaderTimeout: 40 * time.Second, // Longer than sentinel timeout (30s) to receive its error response
+			// Enable TLS session resumption for faster cross-region forwarding
+			TLSClientConfig: &tls.Config{
+				MinVersion:         tls.VersionTLS12,
+				ClientSessionCache: tls.NewLRUClientSessionCache(100),
+			},
 		}
 
 		if cfg.MaxIdleConns > 0 {
@@ -65,14 +81,29 @@ func New(cfg Config) (*service, error) {
 		}
 	}
 
+	// Create h2c transport for HTTP/2 cleartext connections to sentinel
+	//nolint:exhaustruct
+	h2cTransport := &http2.Transport{
+		AllowHTTP: true,
+		DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
+			// For h2c, we dial plain TCP (not TLS)
+			d := net.Dialer{
+				Timeout:   10 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}
+			return d.DialContext(ctx, network, addr)
+		},
+	}
+
 	return &service{
-		logger:      cfg.Logger,
-		frontlineID: cfg.FrontlineID,
-		region:      cfg.Region,
-		baseDomain:  cfg.BaseDomain,
-		clock:       cfg.Clock,
-		transport:   transport,
-		maxHops:     maxHops,
+		logger:       cfg.Logger,
+		frontlineID:  cfg.FrontlineID,
+		region:       cfg.Region,
+		apexDomain:   cfg.ApexDomain,
+		clock:        cfg.Clock,
+		transport:    transport,
+		h2cTransport: h2cTransport,
+		maxHops:      maxHops,
 	}, nil
 }
 
@@ -92,6 +123,7 @@ func (s *service) ForwardToSentinel(ctx context.Context, sess *zen.Session, sent
 		startTime:    startTime,
 		directorFunc: s.makeSentinelDirector(sess, deploymentID, startTime),
 		logTarget:    "sentinel",
+		transport:    s.h2cTransport,
 	})
 }
 
@@ -114,7 +146,7 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 		}
 	}
 
-	targetURL, err := url.Parse(fmt.Sprintf("https://%s.%s", targetRegion, s.baseDomain))
+	targetURL, err := url.Parse(fmt.Sprintf("https://frontline.%s.%s", targetRegion, s.apexDomain))
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
@@ -127,5 +159,6 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 		startTime:    startTime,
 		directorFunc: s.makeRegionDirector(sess, startTime),
 		logTarget:    "region",
+		transport:    s.transport,
 	})
 }

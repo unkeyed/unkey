@@ -40,12 +40,12 @@ func (c Config) Validate() error {
 	}
 
 	validRegions := []string{
-		"dev:local",
-		"aws:us-east-1",
-		"aws:us-east-2",
-		"aws:us-west-1",
-		"aws:us-west-2",
-		"aws:eu-central-1",
+		"local.dev",
+		"us-east-1.aws",
+		"us-east-2.aws",
+		"us-west-1.aws",
+		"us-west-2.aws",
+		"eu-central-1.aws",
 	}
 
 	if !slices.Contains(validRegions, c.Region) {

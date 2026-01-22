@@ -53,20 +53,6 @@ type S3Config struct {
 	ExternalURL string
 }
 
-// CloudflareConfig holds Cloudflare API configuration for ACME DNS-01 challenges.
-//
-// This configuration enables automatic DNS record creation for wildcard
-// TLS certificates through Cloudflare's DNS API.
-type CloudflareConfig struct {
-	// Enabled determines whether Cloudflare DNS-01 challenges are used.
-	// When true, wildcard certificates can be automatically obtained.
-	Enabled bool
-
-	// ApiToken is the Cloudflare API token for DNS management.
-	// Requires Zone:Read and DNS:Edit permissions for the target zones.
-	ApiToken string
-}
-
 // Route53Config holds AWS Route53 configuration for ACME DNS-01 challenges.
 //
 // This configuration enables automatic DNS record creation for wildcard
@@ -95,7 +81,7 @@ type Route53Config struct {
 // AcmeConfig holds configuration for ACME TLS certificate management.
 //
 // This configuration enables automatic certificate issuance and renewal
-// through ACME protocol with support for multiple DNS providers.
+// through ACME protocol with Route53 for DNS-01 challenges.
 type AcmeConfig struct {
 	// Enabled determines whether ACME certificate management is active.
 	// When true, certificates are automatically obtained and renewed.
@@ -105,10 +91,6 @@ type AcmeConfig struct {
 	// Used for Let's Encrypt account registration and recovery.
 	// Example: "unkey.com" creates "admin@unkey.com" for ACME account.
 	EmailDomain string
-
-	// Cloudflare configures DNS-01 challenges through Cloudflare API.
-	// Enables wildcard certificates for domains hosted on Cloudflare.
-	Cloudflare CloudflareConfig
 
 	// Route53 configures DNS-01 challenges through AWS Route53 API.
 	// Enables wildcard certificates for domains hosted on Route53.
@@ -120,10 +102,10 @@ type AcmeConfig struct {
 // This configuration enables asynchronous workflow execution through
 // the Restate distributed system for deployment and certificate operations.
 type RestateConfig struct {
-	// FrontlineURL is the Restate frontline endpoint URL for workflow invocation.
+	// URL is the Restate ingress endpoint URL for workflow invocation.
 	// Used by clients to start and interact with workflow executions.
 	// Example: "http://restate:8080".
-	FrontlineURL string
+	URL string
 
 	// AdminURL is the Restate admin endpoint URL for service registration.
 	// Used by the control plane to register its workflow services.
@@ -138,6 +120,10 @@ type RestateConfig struct {
 	// Allows other Restate services to discover and invoke this control plane.
 	// Example: "http://ctrl:9080".
 	RegisterAs string
+
+	// APIKey is the authentication key for Restate ingress requests.
+	// If set, this key will be sent with all requests to the Restate ingress.
+	APIKey string
 }
 
 // DepotConfig holds configuration for Depot.dev build service integration.
@@ -277,6 +263,11 @@ type Config struct {
 	// Used for sentinel deployment and automatic certificate bootstrapping.
 	DefaultDomain string
 
+	// RegionalApexDomain is the base domain for cross-region frontline communication.
+	// Certs are provisioned for *.{region}.{RegionalApexDomain} for each available region.
+	// Example: "unkey.cloud" results in certs for "*.us-west-2.aws.unkey.cloud", etc.
+	RegionalApexDomain string
+
 	// Restate configures workflow engine integration.
 	// Enables asynchronous deployment and certificate renewal workflows.
 	Restate RestateConfig
@@ -312,7 +303,7 @@ type Config struct {
 	SentinelImage string
 
 	// AvailableRegions is a list of available regions for deployments.
-	// typically in the format "provider:region", ie "aws:us-east-1", "dev:local"
+	// typically in the format "region.provider", ie "us-east-1.aws", "local.dev"
 	AvailableRegions []string
 }
 
@@ -403,13 +394,6 @@ func (c Config) GetDepotConfig() DepotConfig {
 // Returns an error if required fields are missing, invalid, or inconsistent.
 // Provides detailed error messages to help identify configuration issues.
 func (c Config) Validate() error {
-	// Validate Cloudflare configuration if enabled
-	if c.Acme.Enabled && c.Acme.Cloudflare.Enabled {
-		if err := assert.NotEmpty(c.Acme.Cloudflare.ApiToken, "cloudflare API token is required when cloudflare is enabled"); err != nil {
-			return err
-		}
-	}
-
 	// Validate Route53 configuration if enabled
 	if c.Acme.Enabled && c.Acme.Route53.Enabled {
 		if err := assert.All(
