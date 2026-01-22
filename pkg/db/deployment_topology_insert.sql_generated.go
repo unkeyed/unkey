@@ -16,8 +16,10 @@ INSERT INTO ` + "`" + `deployment_topology` + "`" + ` (
     region,
     desired_replicas,
     desired_status,
+    version,
     created_at
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -33,6 +35,7 @@ type InsertDeploymentTopologyParams struct {
 	Region          string                          `db:"region"`
 	DesiredReplicas int32                           `db:"desired_replicas"`
 	DesiredStatus   DeploymentTopologyDesiredStatus `db:"desired_status"`
+	Version         uint64                          `db:"version"`
 	CreatedAt       int64                           `db:"created_at"`
 }
 
@@ -44,8 +47,10 @@ type InsertDeploymentTopologyParams struct {
 //	    region,
 //	    desired_replicas,
 //	    desired_status,
+//	    version,
 //	    created_at
 //	) VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -60,6 +65,7 @@ func (q *Queries) InsertDeploymentTopology(ctx context.Context, db DBTX, arg Ins
 		arg.Region,
 		arg.DesiredReplicas,
 		arg.DesiredStatus,
+		arg.Version,
 		arg.CreatedAt,
 	)
 	return err

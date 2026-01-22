@@ -10,6 +10,14 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
+// GetDesiredDeploymentState returns the target state for a deployment in the caller's region.
+// Krane agents use this to determine whether to apply or delete a deployment. The response
+// contains either an ApplyDeployment (for running state) or DeleteDeployment (for archived
+// or standby states) based on the deployment's desired_state in the database.
+//
+// Requires bearer token authentication and the X-Krane-Region header to identify the
+// requesting agent's region. Returns CodeNotFound if the deployment doesn't exist in
+// the specified region, or CodeInvalidArgument if the region header is missing.
 func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredDeploymentStateRequest]) (*connect.Response[ctrlv1.DeploymentState], error) {
 
 	if err := s.authenticate(req); err != nil {
@@ -64,7 +72,6 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 					CpuMillicores:                 int64(deployment.CpuMillicores),
 					MemoryMib:                     int64(deployment.MemoryMib),
 					EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
-					ReadinessId:                   nil,
 					BuildId:                       buildID,
 				},
 			},

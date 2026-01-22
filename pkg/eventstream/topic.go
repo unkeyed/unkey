@@ -129,7 +129,7 @@ func (t *Topic[T]) EnsureExists(partitions int, replicationFactor int) error {
 			lastErr = err
 			continue // Try next broker
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		// Successfully connected, create the topic
 		err = conn.CreateTopics(kafka.TopicConfig{
@@ -168,7 +168,7 @@ func (t *Topic[T]) WaitUntilReady(ctx context.Context) error {
 				}
 
 				partitions, err := conn.ReadPartitions(t.topic)
-				conn.Close()
+				_ = conn.Close()
 
 				if err == nil && len(partitions) > 0 {
 					// Topic exists and has partitions

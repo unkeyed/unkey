@@ -72,7 +72,11 @@ func (d *Docker) CreateBuild(
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to create docker client: %w", err))
 	}
-	defer dockerClient.Close()
+	defer func() {
+		if err := dockerClient.Close(); err != nil {
+			d.logger.Error("failed to close docker client", "error", err)
+		}
+	}()
 
 	// Docker requires lowercase repository names
 	imageName := strings.ToLower(fmt.Sprintf("%s-%s",
@@ -111,7 +115,11 @@ func (d *Docker) CreateBuild(
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to start build: %w", err))
 	}
-	defer buildResponse.Body.Close()
+	defer func() {
+		if err := buildResponse.Body.Close(); err != nil {
+			d.logger.Error("failed to close build response body", "error", err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(buildResponse.Body)
 	var buildError error

@@ -74,7 +74,7 @@ func Run(ctx context.Context, cfg Config) error {
 		grafanaErr := otel.InitGrafana(
 			ctx,
 			otel.Config{
-				Application:     "gate",
+				Application:     "frontline",
 				Version:         version.Version,
 				InstanceID:      cfg.FrontlineID,
 				CloudRegion:     cfg.Region,
@@ -97,10 +97,9 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		go func() {
-			var promListener net.Listener
-			promListener, err = net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
-			if err != nil {
-				panic(err)
+			promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+			if listenErr != nil {
+				panic(listenErr)
 			}
 			promListenErr := prom.Serve(ctx, promListener)
 			if promListenErr != nil {
@@ -181,7 +180,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:      logger,
 		FrontlineID: cfg.FrontlineID,
 		Region:      cfg.Region,
-		BaseDomain:  cfg.BaseDomain,
+		ApexDomain:  cfg.ApexDomain,
 		Clock:       clk,
 		MaxHops:     cfg.MaxHops,
 		// Use defaults for transport settings (200 max idle conns, 90s timeout, etc.)
@@ -190,15 +189,35 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create proxy service: %w", err)
 	}
 
-	// Create TLS config with dynamic certificate loading
+	// Create TLS config - either from static files (dev mode) or dynamic certificates (production)
 	var tlsConfig *pkgtls.Config
-	if cfg.EnableTLS && certManager != nil {
-		//nolint:exhaustruct
-		tlsConfig = &tls.Config{
-			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-				return certManager.GetCertificate(context.Background(), hello.ServerName)
-			},
-			MinVersion: tls.VersionTLS12,
+	if cfg.EnableTLS {
+		if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
+			// Dev mode: static file-based certificate
+			fileTLSConfig, tlsErr := pkgtls.NewFromFiles(cfg.TLSCertFile, cfg.TLSKeyFile)
+			if tlsErr != nil {
+				return fmt.Errorf("failed to load TLS certificate from files: %w", tlsErr)
+			}
+			tlsConfig = fileTLSConfig
+			logger.Info("TLS configured with static certificate files",
+				"certFile", cfg.TLSCertFile,
+				"keyFile", cfg.TLSKeyFile)
+		} else if certManager != nil {
+			// Production mode: dynamic certificates from database/vault
+			//nolint:exhaustruct
+			tlsConfig = &tls.Config{
+				GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+					return certManager.GetCertificate(context.Background(), hello.ServerName)
+				},
+				MinVersion: tls.VersionTLS12,
+				// Enable session resumption for faster subsequent connections
+				// Session tickets allow clients to skip the full TLS handshake
+				SessionTicketsDisabled: false,
+				// Let Go's TLS implementation choose optimal cipher suites
+				// This prefers TLS 1.3 when available (1-RTT vs 2-RTT for TLS 1.2)
+				PreferServerCipherSuites: false,
+			}
+			logger.Info("TLS configured with dynamic certificate manager")
 		}
 	}
 
@@ -223,6 +242,7 @@ func Run(ctx context.Context, cfg Config) error {
 			ReadTimeout:        30 * time.Second,
 			WriteTimeout:       60 * time.Second,
 			Flags:              nil,
+			EnableH2C:          false,
 			MaxRequestBodySize: 0,
 		})
 		if httpsErr != nil {
@@ -253,6 +273,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Logger:             logger,
 			TLS:                nil,
 			Flags:              nil,
+			EnableH2C:          false,
 			MaxRequestBodySize: 0,
 			ReadTimeout:        0,
 			WriteTimeout:       0,
@@ -279,7 +300,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}()
 	}
 
-	logger.Info("Frontline server initialized", "region", cfg.Region, "baseDomain", cfg.BaseDomain)
+	logger.Info("Frontline server initialized", "region", cfg.Region, "apexDomain", cfg.ApexDomain)
 
 	// Wait for either OS signals or context cancellation, then shutdown
 	if err := shutdowns.WaitForSignal(ctx, 0); err != nil {

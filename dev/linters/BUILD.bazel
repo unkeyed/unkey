@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+# This file makes dev/linters a Bazel package for go.work support.
+# See go.mod in this directory for linter dependencies.
+
+exports_files([
+    "go.mod",
+    "go.sum",
+])
+
+go_library(
+    name = "linters",
+    srcs = ["doc.go"],
+    importpath = "github.com/unkeyed/unkey/dev/linters",
+    visibility = ["//visibility:public"],
+)

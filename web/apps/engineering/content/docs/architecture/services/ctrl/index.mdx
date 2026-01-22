@@ -33,13 +33,13 @@ The ctrl service is built on Connect RPC for service-to-service communication us
 
 ### Cluster Service
 
-The cluster service implements the pull-based infrastructure orchestration model, enabling the control plane to coordinate deployments across multiple regions through event streaming. It maintains persistent connections with Krane agents deployed in each region, distributing deployment and sentinel events while collecting status updates.
+The cluster service implements version-based synchronization for coordinating deployments across multiple regions. Rather than pushing events to connected agents, it exposes `WatchDeployments` and `WatchSentinels` RPCs that Krane instances use to stream state changes. This design makes the control plane stateless with respect to connected clients.
 
-The service provides four key RPCs. `Watch` establishes long-lived streaming connections with agents for real-time event delivery. `GetDesiredState` streams the complete desired infrastructure state for reconciliation. `UpdateInstance` receives pod status updates from agents. `UpdateSentinel` receives sentinel health and status updates.
+The service provides these key RPCs. `WatchDeployments` and `WatchSentinels` establish server-streaming connections for receiving deployment and sentinel state changes respectively. For fresh connections (version=0), they first stream the complete desired state as a bootstrap, then switch to incremental mode. `GetDesiredDeploymentState` and `GetDesiredSentinelState` return current desired state for individual resources. `ReportDeploymentStatus` and `ReportSentinelStatus` receive pod status updates from agents.
 
-This pull-based architecture ensures resilience during network partitions, as agents continue operating autonomously and reconcile when connectivity returns. The service uses label-based routing to distribute events to appropriate regions and shards without requiring direct addressing.
+When resources are created, updated, or deleted, the deploy workflow updates the resource with a monotonically increasing version number. Krane instances watching that region receive the change and apply it locally. This decouples the control plane from connection management and enables reliable at-least-once delivery through version-based resumption.
 
-[Read detailed ClusterService docs →](./cluster-service)
+[Read detailed Pull-Based Provisioning docs →](./pull-based-infra)
 
 ### Build Service
 
@@ -83,12 +83,14 @@ Workflows are implemented as Restate services for durable execution. The Deploym
 
 ## Database Schema
 
-The ctrl service uses a single MySQL database (`unkey`) that stores all data: projects, environments, and workspaces, along with deployments and deployment history, deployment topology for regional distribution, instances tracking individual pods, domains and SSL certificates, ACME users and challenges, sentinel configurations as JSON blobs, and certificate storage in PEM format. The new pull-based architecture adds the `deployment_topology` table for multi-region deployments and enhanced `instances` table for pod-level tracking.
+The ctrl service uses a single MySQL database (`unkey`) that stores all data: projects, environments, and workspaces, along with deployments and deployment history, deployment topology for regional distribution, instances tracking individual pods, domains and SSL certificates, ACME users and challenges, sentinel configurations, and certificate storage in PEM format.
+
+Resource tables (deployment_topology, sentinels) include a `version` column that drives Krane synchronization. Each mutation updates the version via the VersioningService singleton, providing a monotonically increasing version across all resources. Krane instances stream changes via `WatchDeployments` and `WatchSentinels` RPCs to receive incremental updates. Rows are indexed by `(region, version)` for efficient streaming.
 
 ## Monitoring
 
-The ctrl service exposes metrics and logs through OpenTelemetry. Key metrics include deployment duration broken down by phase, build success and failure rates, the number of Krane poll iterations required for deployments to become ready, domain assignment latency, ACME challenge success rates, connected Krane agents by region, event distribution latency, and instance status update processing time.
+The ctrl service exposes metrics and logs through OpenTelemetry. Key metrics include deployment duration broken down by phase, build success and failure rates, the number of Krane poll iterations required for deployments to become ready, domain assignment latency, ACME challenge success rates, state change processing latency, and instance status update processing time.
 
-All operations include structured logging fields for correlation and debugging. Common fields include `deployment_id`, `project_id`, and `workspace_id` across all operations. Build operations add `build_id` and `depot_project_id`. ClusterService operations add `agent_id`, `region`, and `shard` for tracking agent connections. System-level logs include `instance_id`, `region`, and `platform` to identify which ctrl instance handled the operation.
+All operations include structured logging fields for correlation and debugging. Common fields include `deployment_id`, `project_id`, and `workspace_id` across all operations. Build operations add `build_id` and `depot_project_id`. ClusterService operations add `region` and `sequence` for tracking sync progress. System-level logs include `instance_id`, `region`, and `platform` to identify which ctrl instance handled the operation.
 
 Logs are shipped to Grafana Loki in production for centralized log aggregation and querying.
