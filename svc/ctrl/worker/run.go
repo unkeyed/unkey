@@ -12,11 +12,13 @@ import (
 	"os"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/go-acme/lego/v4/challenge"
 	restate "github.com/restatedev/sdk-go"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	restateServer "github.com/restatedev/sdk-go/server"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -24,10 +26,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/retry"
+	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/shutdown"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/vault"
-	"github.com/unkeyed/unkey/pkg/vault/storage"
 
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/build"
@@ -78,54 +79,17 @@ func Run(ctx context.Context, cfg Config) error {
 		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
 	}
 
-	// Create vault service for general secrets (env vars, API keys, etc.)
-	var vaultSvc *vault.Service
-	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3.URL != "" {
-		vaultStorage, vaultStorageErr := storage.NewS3(storage.S3Config{
-			Logger:            logger,
-			S3URL:             cfg.VaultS3.URL,
-			S3Bucket:          cfg.VaultS3.Bucket,
-			S3AccessKeyID:     cfg.VaultS3.AccessKeyID,
-			S3AccessKeySecret: cfg.VaultS3.AccessKeySecret,
-		})
-		if vaultStorageErr != nil {
-			return fmt.Errorf("unable to create vault storage: %w", vaultStorageErr)
-		}
-
-		vaultSvc, err = vault.New(vault.Config{
-			Logger:     logger,
-			Storage:    vaultStorage,
-			MasterKeys: cfg.VaultMasterKeys,
-		})
-		if err != nil {
-			return fmt.Errorf("unable to create vault service: %w", err)
-		}
-		logger.Info("Vault service initialized", "bucket", cfg.VaultS3.Bucket)
-	}
-
-	// Create separate vault service for ACME certificates
-	var acmeVaultSvc *vault.Service
-	if len(cfg.AcmeVaultMasterKeys) > 0 && cfg.AcmeVaultS3.URL != "" {
-		acmeVaultStorage, acmeStorageErr := storage.NewS3(storage.S3Config{
-			Logger:            logger,
-			S3URL:             cfg.AcmeVaultS3.URL,
-			S3Bucket:          cfg.AcmeVaultS3.Bucket,
-			S3AccessKeyID:     cfg.AcmeVaultS3.AccessKeyID,
-			S3AccessKeySecret: cfg.AcmeVaultS3.AccessKeySecret,
-		})
-		if acmeStorageErr != nil {
-			return fmt.Errorf("unable to create ACME vault storage: %w", acmeStorageErr)
-		}
-
-		acmeVaultSvc, err = vault.New(vault.Config{
-			Logger:     logger,
-			Storage:    acmeVaultStorage,
-			MasterKeys: cfg.AcmeVaultMasterKeys,
-		})
-		if err != nil {
-			return fmt.Errorf("unable to create ACME vault service: %w", err)
-		}
-		logger.Info("ACME vault service initialized", "bucket", cfg.AcmeVaultS3.Bucket)
+	// Create vault client for remote vault service
+	var vaultClient vaultv1connect.VaultServiceClient
+	if cfg.VaultURL != "" {
+		vaultClient = vaultv1connect.NewVaultServiceClient(
+			http.DefaultClient,
+			cfg.VaultURL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": "Bearer " + cfg.VaultToken,
+			})),
+		)
+		logger.Info("Vault client initialized", "url", cfg.VaultURL)
 	}
 
 	// Initialize database
@@ -185,7 +149,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:           logger,
 		DB:               database,
 		DefaultDomain:    cfg.DefaultDomain,
-		Vault:            vaultSvc,
+		Vault:            vaultClient,
 		SentinelImage:    cfg.SentinelImage,
 		AvailableRegions: cfg.AvailableRegions,
 		BuildStorage:     imageStore,
@@ -253,7 +217,7 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
 		Logger:        logger,
 		DB:            database,
-		Vault:         acmeVaultSvc,
+		Vault:         vaultClient,
 		EmailDomain:   cfg.Acme.EmailDomain,
 		DefaultDomain: cfg.DefaultDomain,
 		DNSProvider:   dnsProvider,

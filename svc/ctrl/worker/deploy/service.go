@@ -2,9 +2,9 @@ package deploy
 
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/vault"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
 )
 
@@ -24,7 +24,7 @@ type Workflow struct {
 	logger logging.Logger
 
 	defaultDomain    string
-	vault            *vault.Service
+	vault            vaultv1connect.VaultServiceClient
 	sentinelImage    string
 	availableRegions []string
 	buildStorage     s3.Storage
@@ -44,7 +44,7 @@ type Config struct {
 	DefaultDomain string
 
 	// Vault provides encryption/decryption services for secrets.
-	Vault *vault.Service
+	Vault vaultv1connect.VaultServiceClient
 
 	// SentinelImage is the Docker image used for sentinel containers.
 	SentinelImage string

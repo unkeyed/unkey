@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/lego"
 	restate "github.com/restatedev/sdk-go"
@@ -293,10 +294,10 @@ func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.Custom
 	}
 
 	// Encrypt the private key before storage
-	encryptResp, err := s.vault.Encrypt(ctx, &vaultv1.EncryptRequest{
+	encryptResp, err := s.vault.Encrypt(ctx, connect.NewRequest(&vaultv1.EncryptRequest{
 		Keyring: dom.WorkspaceID,
 		Data:    string(certificates.PrivateKey),
-	})
+	}))
 	if err != nil {
 		return EncryptedCertificate{}, fmt.Errorf("failed to encrypt private key: %w", err)
 	}
@@ -304,7 +305,7 @@ func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.Custom
 	return EncryptedCertificate{
 		CertificateID:       uid.New(uid.CertificatePrefix),
 		Certificate:         string(certificates.Certificate),
-		EncryptedPrivateKey: encryptResp.GetEncrypted(),
+		EncryptedPrivateKey: encryptResp.Msg.GetEncrypted(),
 		ExpiresAt:           expiresAt,
 	}, nil
 }

@@ -195,21 +195,13 @@ type Config struct {
 	// Used for both read and write operations to persistent storage.
 	DatabasePrimary string
 
-	// VaultMasterKeys are encryption keys for the general vault service.
-	// Used for encrypting/decrypting environment variables, API keys, etc.
-	VaultMasterKeys []string
+	// VaultURL is the URL of the remote vault service for secret encryption.
+	// Example: "https://vault.unkey.cloud".
+	VaultURL string
 
-	// VaultS3 configures S3 storage for the general vault.
-	// Stores encrypted secrets data with the provided master keys.
-	VaultS3 S3Config
-
-	// AcmeVaultMasterKeys are encryption keys for the ACME vault service.
-	// Separate vault for TLS certificate storage and ACME account data.
-	AcmeVaultMasterKeys []string
-
-	// AcmeVaultS3 configures S3 storage for the ACME vault.
-	// Stores encrypted TLS certificates and ACME challenge data.
-	AcmeVaultS3 S3Config
+	// VaultToken is the authentication token for the remote vault service.
+	// Used for bearer authentication when calling vault RPCs.
+	VaultToken string
 
 	// Acme configures automatic TLS certificate management.
 	// Enables Let's Encrypt integration for domain certificates.

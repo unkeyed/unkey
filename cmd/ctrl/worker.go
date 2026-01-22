@@ -126,25 +126,9 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		// Database configuration
 		DatabasePrimary: cmd.String("database-primary"),
 
-		// Vault configuration - General secrets
-		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
-		VaultS3: worker.S3Config{
-			URL:             cmd.String("vault-s3-url"),
-			Bucket:          cmd.String("vault-s3-bucket"),
-			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
-			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
-			ExternalURL:     "",
-		},
-
-		// ACME Vault configuration - Let's Encrypt certificates
-		AcmeVaultMasterKeys: cmd.StringSlice("acme-vault-master-keys"),
-		AcmeVaultS3: worker.S3Config{
-			URL:             cmd.String("acme-vault-s3-url"),
-			Bucket:          cmd.String("acme-vault-s3-bucket"),
-			AccessKeyID:     cmd.String("acme-vault-s3-access-key-id"),
-			AccessKeySecret: cmd.String("acme-vault-s3-access-key-secret"),
-			ExternalURL:     "",
-		},
+		// Vault configuration
+		VaultURL:   cmd.String("vault-url"),
+		VaultToken: cmd.String("vault-token"),
 
 		// Build configuration
 		BuildBackend: worker.BuildBackend(cmd.String("build-backend")),

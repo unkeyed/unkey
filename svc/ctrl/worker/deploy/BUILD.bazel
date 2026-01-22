@@ -16,10 +16,10 @@ go_library(
     deps = [
         "//gen/proto/ctrl/v1:ctrl",
         "//gen/proto/hydra/v1:hydra",
+        "//gen/proto/vault/v1/vaultv1connect",
         "//pkg/db",
         "//pkg/otel/logging",
         "//pkg/uid",
-        "//pkg/vault",
         "//svc/ctrl/pkg/s3",
         "@com_github_restatedev_sdk_go//:sdk-go",
     ],
