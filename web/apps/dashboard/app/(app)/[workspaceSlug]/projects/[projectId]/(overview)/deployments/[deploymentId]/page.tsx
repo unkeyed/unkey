@@ -9,6 +9,7 @@ import {
   Harddrive,
   type IconProps,
   Layers2,
+  Layers3,
   LayoutRight,
   TimeClock,
 } from "@unkey/icons";
@@ -28,6 +29,8 @@ import { InfoChip } from "../../../components/info-chip";
 import { ProjectContentWrapper } from "../../../components/project-content-wrapper";
 import { Card } from "../../components/card";
 import { useProject } from "../../layout-provider";
+import { SentinelLogsTable } from "../../sentinel-logs/components/table/sentinel-logs-table";
+import { SentinelLogsProvider } from "../../sentinel-logs/context/sentinel-logs-provider";
 import { DeploymentNetworkView } from "./network/deployment-network-view";
 import { LogsTimeseriesBarChart } from "./network/unkey-flow/components/overlay/node-details-panel/components/chart";
 import { generateRealisticChartData } from "./network/unkey-flow/components/overlay/node-details-panel/utils";
@@ -191,6 +194,18 @@ export default function DeploymentOverview() {
             />
           </div>
         </div>
+      </Section>
+
+      <Section>
+        <SectionHeader
+          icon={<Layers3 iconSize="md-regular" className="text-gray-9" />}
+          title="Logs"
+        />
+        <Card className="rounded-[14px] flex justify-between flex-col overflow-hidden border-gray-4 h-[600px] gap-2">
+          <SentinelLogsProvider>
+            <SentinelLogsTable />
+          </SentinelLogsProvider>
+        </Card>
       </Section>
     </ProjectContentWrapper>
   );

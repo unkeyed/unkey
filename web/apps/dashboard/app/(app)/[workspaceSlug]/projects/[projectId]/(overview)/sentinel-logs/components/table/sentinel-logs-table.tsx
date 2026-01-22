@@ -2,6 +2,7 @@
 
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { BookBookmark, TriangleWarning2 } from "@unkey/icons";
@@ -44,11 +45,9 @@ export const SentinelLogsTable = () => {
         countInfoText: (
           <div className="flex gap-2">
             <span>Showing</span>{" "}
-            <span className="text-accent-12">
-              {new Intl.NumberFormat().format(historicalLogs.length)}
-            </span>
+            <span className="text-accent-12">{formatNumber(historicalLogs.length)}</span>
             <span>of</span>
-            {new Intl.NumberFormat().format(total)}
+            {formatNumber(total)}
             <span>requests</span>
           </div>
         ),
