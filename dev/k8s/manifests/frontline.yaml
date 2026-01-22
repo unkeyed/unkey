@@ -38,7 +38,7 @@ spec:
             - name: UNKEY_TLS_KEY_FILE
               value: "/certs/unkey.local.key"
             - name: UNKEY_REGION
-              value: "local"
+              value: "local.dev"
             - name: UNKEY_APEX_DOMAIN
               value: "unkey.local"
             - name: UNKEY_DATABASE_PRIMARY
