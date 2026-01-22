@@ -19,7 +19,9 @@ import { workspaces } from "./workspaces";
 export const sentinels = mysqlTable(
   "sentinels",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true })
+      .autoincrement()
+      .primaryKey(),
     id: varchar("id", { length: 64 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
@@ -53,7 +55,6 @@ export const sentinels = mysqlTable(
   },
   (table) => [
     index("idx_environment_id").on(table.environmentId),
-    index("region_version_idx").on(table.region, table.version),
     uniqueIndex("one_env_per_region").on(table.environmentId, table.region),
     uniqueIndex("unique_version_per_region").on(table.region, table.version),
   ],

@@ -15,7 +15,9 @@ import { workspaces } from "./workspaces";
 export const deploymentTopology = mysqlTable(
   "deployment_topology",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true })
+      .autoincrement()
+      .primaryKey(),
     workspaceId: varchar("workspace_id", { length: 64 }).notNull(),
     deploymentId: varchar("deployment_id", { length: 64 }).notNull(),
 
@@ -39,21 +41,26 @@ export const deploymentTopology = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
-    uniqueIndex("unique_region_per_deployment").on(table.deploymentId, table.region),
+    uniqueIndex("unique_region_per_deployment").on(
+      table.deploymentId,
+      table.region,
+    ),
     uniqueIndex("unique_version_per_region").on(table.region, table.version),
     index("workspace_idx").on(table.workspaceId),
-    index("region_idx").on(table.region),
     index("status_idx").on(table.desiredStatus),
   ],
 );
 
-export const deploymentTopologyRelations = relations(deploymentTopology, ({ one }) => ({
-  workspace: one(workspaces, {
-    fields: [deploymentTopology.workspaceId],
-    references: [workspaces.id],
+export const deploymentTopologyRelations = relations(
+  deploymentTopology,
+  ({ one }) => ({
+    workspace: one(workspaces, {
+      fields: [deploymentTopology.workspaceId],
+      references: [workspaces.id],
+    }),
+    delpoyment: one(deployments, {
+      fields: [deploymentTopology.deploymentId],
+      references: [deployments.id],
+    }),
   }),
-  delpoyment: one(deployments, {
-    fields: [deploymentTopology.deploymentId],
-    references: [deployments.id],
-  }),
-}));
+);
