@@ -42,11 +42,20 @@ export const sentinels = mysqlTable(
     availableReplicas: int("available_replicas").notNull(),
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),
+
+    // Version for state synchronization with edge agents.
+    // Updated via Restate VersioningService on each mutation.
+    // Edge agents track their last-seen version and request changes after it.
+    // Unique across all resources (shared global counter).
+    version: bigint("version", { mode: "number", unsigned: true }).notNull(),
+
     ...lifecycleDates,
   },
   (table) => [
-    index("idx_desired_state_region").on(table.desiredState, table.region),
+    index("idx_environment_id").on(table.environmentId),
+    index("region_version_idx").on(table.region, table.version),
     uniqueIndex("one_env_per_region").on(table.environmentId, table.region),
+    uniqueIndex("unique_version_per_region").on(table.region, table.version),
   ],
 );
 

@@ -13,9 +13,8 @@
 //  3. Certificate issuance from Certificate Authorities
 //  4. Certificate persistence and renewal management
 //
-// It integrates with multiple DNS providers:
+// It integrates with DNS providers:
 //   - HTTP-01 challenges for regular domains via local HTTP service
-//   - DNS-01 challenges for wildcard domains via Cloudflare API
 //   - DNS-01 challenges for wildcard domains via AWS Route53 API
 //
 // # Key Components

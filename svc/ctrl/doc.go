@@ -9,7 +9,7 @@
 // # Architecture
 //
 // The control plane consists of several integrated components:
-//   - HTTP/2 gRPC server for API endpoints
+//   - HTTP/2 Connect server for API endpoints
 //   - Restate workflow engine for asynchronous operations
 //   - Vault services for secrets and certificate encryption
 //   - Database layer for persistent storage
@@ -28,9 +28,8 @@
 //
 // # ACME Integration
 //
-// The system supports multiple ACME challenge providers:
+// The system supports ACME challenge providers:
 //   - HTTP-01 challenges for regular domains
-//   - DNS-01 challenges through Cloudflare for wildcard certificates
 //   - DNS-01 challenges through AWS Route53 for wildcard certificates
 //
 // # Configuration
@@ -67,9 +66,11 @@
 //		Acme: ctrl.AcmeConfig{
 //			Enabled: true,
 //			EmailDomain: "unkey.com",
-//			Cloudflare: ctrl.CloudflareConfig{
-//				Enabled:  true,
-//				ApiToken: "cf-token",
+//			Route53: ctrl.Route53Config{
+//				Enabled:         true,
+//				AccessKeyID:     "aws-key",
+//				SecretAccessKey: "aws-secret",
+//				Region:          "us-east-1",
 //			},
 //		},
 //	}
@@ -79,7 +80,7 @@
 //  1. Initialize all services (database, vault, build backend, etc.)
 //  2. Start Restate workflow engine with all service bindings
 //  3. Register with Restate admin API for service discovery
-//  4. Start HTTP/2 gRPC server on configured port
+//  4. Start HTTP/2 Connect server on configured port
 //  5. Handle graceful shutdown on context cancellation
 //
 // # Observability

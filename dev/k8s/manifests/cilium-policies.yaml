@@ -102,6 +102,49 @@ spec:
             - port: "8080"
               protocol: TCP
 ---
+# 5b. Allow sentinel egress to MySQL and ClickHouse
+# Sentinels need database access for routing and state management
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: allow-sentinel-egress
+spec:
+  description: "Allow sentinel pods to reach MySQL and resolve DNS"
+  endpointSelector:
+    matchLabels:
+      io.kubernetes.pod.namespace: sentinel
+      app.kubernetes.io/component: sentinel
+  egress:
+    # DNS resolution via kube-dns
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    # MySQL in unkey namespace
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: unkey
+            app: mysql
+      toPorts:
+        - ports:
+            - port: "3306"
+              protocol: TCP
+    # ClickHouse in unkey namespace (HTTP and native protocols)
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: unkey
+            app: clickhouse
+      toPorts:
+        - ports:
+            - port: "8123"
+              protocol: TCP
+            - port: "9000"
+              protocol: TCP
+---
 # 6. Allow customer pods to reach Krane for secret decryption
 # Customer pods need to call Krane's DecryptSecretsBlob RPC during init (inject container)
 apiVersion: cilium.io/v2
