@@ -188,10 +188,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		Acme: worker.AcmeConfig{
 			Enabled:     cmd.Bool("acme-enabled"),
 			EmailDomain: cmd.String("acme-email-domain"),
-			Cloudflare: worker.CloudflareConfig{
-				Enabled:  cmd.Bool("acme-cloudflare-enabled"),
-				ApiToken: cmd.String("acme-cloudflare-api-token"),
-			},
 			Route53: worker.Route53Config{
 				Enabled:         cmd.Bool("acme-route53-enabled"),
 				AccessKeyID:     cmd.String("acme-route53-access-key-id"),
