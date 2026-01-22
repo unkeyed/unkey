@@ -94,6 +94,10 @@ test: ## Run tests with bazel
 clean-docker-test: ## Clean up dangling test containers
 	@docker rm -vf $$(docker ps -q -f label="owner=dockertest") > /dev/null 2>&1 || true
 
+.PHONY: tunnel
+tunnel: ## Forward ports 80/443 to frontline for *.unkey.local (run in separate terminal)
+	@sudo kubectl port-forward -n unkey svc/frontline 443:443 80:80
+
 .PHONY: dev
 dev: ## Start dev environment
 	@# Make sure you have ./dev/.env.depot populated, or you will get some funny errors
