@@ -20,7 +20,7 @@ SELECT
   namespace_id,
   identifier,
   maxSimpleState(time) as time
-FROM ratelimits.raw_ratelimits_v1
+FROM ratelimits.raw_ratelimits_v2
 GROUP BY
   workspace_id,
   namespace_id,
