@@ -61,7 +61,7 @@ var apiCmd = &cli.Command{
 		cli.String("spiffe-socket-path", "Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/agent/agent.sock",
 			cli.Default("/var/lib/spire/agent/agent.sock"), cli.EnvVar("UNKEY_SPIFFE_SOCKET_PATH")),
 
-		cli.String("vault-url", "Url where vault is availab;e",
+		cli.String("vault-url", "URL where Vault is available",
 			cli.EnvVar("UNKEY_VAULT_URL"), cli.Default("https://vault.unkey.cloud")),
 
 		cli.String("vault-token", "Authentication for vault",
