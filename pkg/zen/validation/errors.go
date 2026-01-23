@@ -133,16 +133,13 @@ func buildLocation(prefix, instanceLocation, keywordLocation string) string {
 
 // buildLocationWithKeyword creates a user-friendly location string using pre-extracted values
 func buildLocationWithKeyword(prefix, instanceLocation, keyword, fieldName string) string {
-	// If we're at root and this is a required/additionalProperties error,
-	// include the field name in the location
-	if instanceLocation == "" || instanceLocation == "/" {
-		if keyword == "required" || keyword == "additionalProperties" {
-			if fieldName != "" {
-				return prefix + "." + fieldName
-			}
-		}
+	loc := FormatLocation(prefix, instanceLocation)
+	// For required/additionalProperties errors, append the field name to the location
+	// This applies at any level, not just root
+	if (keyword == "required" || keyword == "additionalProperties") && fieldName != "" {
+		return loc + "." + fieldName
 	}
-	return FormatLocation(prefix, instanceLocation)
+	return loc
 }
 
 // suggestFix provides helpful suggestions based on the error type

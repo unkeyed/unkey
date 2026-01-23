@@ -3,6 +3,7 @@ package validation
 import (
 	"bytes"
 	"context"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -33,7 +34,7 @@ func BenchmarkValidateSingleRequest(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest("POST", "/v2/keys.setRoles", strings.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer test_key_abc123")
 		_, _ = v.Validate(context.Background(), req)
@@ -54,7 +55,7 @@ func BenchmarkValidateParallel(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			req := httptest.NewRequest("POST", "/v2/keys.setRoles", strings.NewReader(body))
+			req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", strings.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("Authorization", "Bearer test_key_abc123")
 			_, _ = v.Validate(context.Background(), req)
@@ -101,7 +102,7 @@ func benchmarkWithBody(b *testing.B, v *Validator, body string) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest("POST", "/v2/keys.setRoles", strings.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer test_key_abc123")
 		_, _ = v.Validate(context.Background(), req)
@@ -180,7 +181,7 @@ func BenchmarkSecurityValidation(b *testing.B) {
 	b.Run("ValidBearer", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			req := httptest.NewRequest("GET", "/test", nil)
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
 			req.Header.Set("Authorization", "Bearer valid_token_abc123")
 			_ = ValidateSecurity(req, requirements, schemes, "req-123")
 		}
@@ -189,7 +190,7 @@ func BenchmarkSecurityValidation(b *testing.B) {
 	b.Run("MissingAuth", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			req := httptest.NewRequest("GET", "/test", nil)
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
 			_ = ValidateSecurity(req, requirements, schemes, "req-123")
 		}
 	})
@@ -240,7 +241,7 @@ func BenchmarkErrorTransform(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest("POST", "/v2/keys.setRoles", bytes.NewReader([]byte(invalidBody)))
+		req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", bytes.NewReader([]byte(invalidBody)))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer test_key_abc123")
 		_, _ = v.Validate(context.Background(), req)
@@ -259,7 +260,7 @@ func BenchmarkContentTypeValidation(b *testing.B) {
 	b.Run("ValidContentType", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			req := httptest.NewRequest("POST", "/v2/keys.setRoles", strings.NewReader(body))
+			req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", strings.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("Authorization", "Bearer test_key_abc123")
 			_, _ = v.Validate(context.Background(), req)
@@ -269,7 +270,7 @@ func BenchmarkContentTypeValidation(b *testing.B) {
 	b.Run("ContentTypeWithCharset", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			req := httptest.NewRequest("POST", "/v2/keys.setRoles", strings.NewReader(body))
+			req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", strings.NewReader(body))
 			req.Header.Set("Content-Type", "application/json; charset=utf-8")
 			req.Header.Set("Authorization", "Bearer test_key_abc123")
 			_, _ = v.Validate(context.Background(), req)
@@ -306,7 +307,7 @@ func BenchmarkFullValidationPipeline(b *testing.B) {
 		b.Run(tc.name, func(b *testing.B) {
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
-				req := httptest.NewRequest("POST", "/v2/keys.setRoles", strings.NewReader(tc.body))
+				req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", strings.NewReader(tc.body))
 				req.Header.Set("Content-Type", "application/json")
 				req.Header.Set("Authorization", "Bearer test_key_abc123")
 				_, _ = v.Validate(context.Background(), req)

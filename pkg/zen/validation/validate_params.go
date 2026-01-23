@@ -44,6 +44,36 @@ func (v *Validator) validateQueryParams(r *http.Request, params []CompiledParame
 	query := r.URL.Query()
 
 	for _, param := range params {
+		// Special handling for deepObject style parameters
+		// DeepObject params use format like filter[name]=foo&filter[age]=30
+		// so they won't be found by direct query[param.Name] lookup
+		if param.Style == "deepObject" {
+			parsedValue := ParseByStyle(param.Style, param.Explode, nil, param.SchemaType, query, param.Name)
+
+			// Check required - for deepObject, nil means no matching keys found
+			if param.Required && parsedValue == nil {
+				errors = append(errors, openapi.ValidationError{
+					Location: "query." + param.Name,
+					Message:  "required parameter is missing",
+					Fix:      ptr.P("Add the required query parameter: " + param.Name),
+				})
+				continue
+			}
+
+			// Skip validation if not present and not required
+			if parsedValue == nil {
+				continue
+			}
+
+			// Validate against schema
+			if param.Schema != nil {
+				if err := param.Schema.Validate(parsedValue); err != nil {
+					errors = append(errors, v.transformParamError(err, "query", param.Name)...)
+				}
+			}
+			continue
+		}
+
 		values, exists := query[param.Name]
 
 		// Check required
