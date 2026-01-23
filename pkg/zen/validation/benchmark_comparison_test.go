@@ -20,11 +20,13 @@ import (
 // BenchmarkComparison provides benchmarks for the new validator implementation.
 //
 // Run these benchmarks:
-//   bazel run //pkg/zen/validation:validation_test -- -test.bench=BenchmarkComparison -test.benchmem
+//
+//	bazel run //pkg/zen/validation:validation_test -- -test.bench=BenchmarkComparison -test.benchmem
 //
 // Expected output format:
-//   BenchmarkComparison/new/init-10           1000    1234567 ns/op    123456 B/op    1234 allocs/op
-//   BenchmarkComparison/new/validate-10      50000      23456 ns/op      1234 B/op      12 allocs/op
+//
+//	BenchmarkComparison/new/init-10           1000    1234567 ns/op    123456 B/op    1234 allocs/op
+//	BenchmarkComparison/new/validate-10      50000      23456 ns/op      1234 B/op      12 allocs/op
 func BenchmarkComparison(b *testing.B) {
 	b.Run("new/init", benchNewInit)
 	b.Run("new/validate_simple", benchNewValidateSimple)

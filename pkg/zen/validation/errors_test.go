@@ -344,11 +344,11 @@ func TestExtractFieldFromKeywordLocation(t *testing.T) {
 
 func TestBuildLocation(t *testing.T) {
 	tests := []struct {
-		name            string
-		prefix          string
-		instanceLoc     string
-		keywordLoc      string
-		expected        string
+		name        string
+		prefix      string
+		instanceLoc string
+		keywordLoc  string
+		expected    string
 	}{
 		{
 			name:        "required at root",
