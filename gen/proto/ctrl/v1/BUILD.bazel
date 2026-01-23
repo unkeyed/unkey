@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
@@ -19,3 +20,26 @@ go_library(
         "@org_golang_google_protobuf//runtime/protoimpl",
     ],
 )
+||||||| parent of 022ef85f2 (some more changes)
+=======
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "ctrl",
+    srcs = [
+        "acme.pb.go",
+        "cluster.pb.go",
+        "deployment.pb.go",
+        "environment.pb.go",
+        "openapi.pb.go",
+        "secrets.pb.go",
+        "service.pb.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/gen/proto/ctrl/v1",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+    ],
+)
+>>>>>>> 022ef85f2 (some more changes)

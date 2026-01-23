@@ -10,7 +10,6 @@ import (
 
 func TestIntegration_RateLimit_Nodes03_Limit0010_Duration000060000_Load01_50_Windows010(t *testing.T) {
 
-
 	h := integration.New(t, integration.Config{
 		NumNodes: 3,
 	})
@@ -18,10 +17,10 @@ func TestIntegration_RateLimit_Nodes03_Limit0010_Duration000060000_Load01_50_Win
 	run.RunRateLimitTest(
 		t,
 		h,
-		10,            // limit
-		60000,         // duration
-		10,      // window count
-		1.5,       // load factor
-		3,        // node count
+		10,    // limit
+		60000, // duration
+		10,    // window count
+		1.5,   // load factor
+		3,     // node count
 	)
 }
