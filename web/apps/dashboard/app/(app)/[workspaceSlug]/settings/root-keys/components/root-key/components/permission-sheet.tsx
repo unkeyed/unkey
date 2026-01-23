@@ -11,7 +11,7 @@ import { PermissionContentList } from "./permission-list";
 import { SearchPermissions } from "./search-permissions";
 
 type PermissionSheetProps = {
-  children: ReactElement;
+  children: ReactElement<any>;
   apis: { id: string; name: string }[];
   selectedPermissions: UnkeyPermission[];
   onChange: (permissions: UnkeyPermission[]) => void;

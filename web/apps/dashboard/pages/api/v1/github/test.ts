@@ -1,3 +1,5 @@
+import type { NextApiRequest, NextApiResponse } from "next";
+
 export async function main() {
   const WEBHOOK_PAYLOAD = [
     {
@@ -21,4 +23,14 @@ export async function main() {
   const response = await request.json();
   // console.log(response);
   return response;
+}
+
+// biome-ignore lint/style/noDefaultExport: Required by next.js
+export default async function handler(request: NextApiRequest, response: NextApiResponse) {
+  try {
+    const result = await main();
+    return response.status(200).json(result);
+  } catch (error) {
+    return response.status(500).json({ error: "Internal Server Error" });
+  }
 }

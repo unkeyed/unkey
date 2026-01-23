@@ -51,7 +51,6 @@ export function generateMetadata(): Metadata {
 
 const Feedback = dynamic(
   () => import("@/components/dashboard/feedback-component").then((mod) => mod.Feedback),
-  { ssr: false },
 );
 
 export default function RootLayout({

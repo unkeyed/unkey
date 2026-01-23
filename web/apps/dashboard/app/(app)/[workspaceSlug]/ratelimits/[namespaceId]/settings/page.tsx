@@ -1,17 +1,19 @@
-"use client";
+"use client";;
+import { use } from "react";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { NamespaceNavbar } from "../namespace-navbar";
 import { SettingsClient } from "./components/settings-client";
 
 type Props = {
-  params: {
+  params: Promise<{
     namespaceId: string;
-  };
+  }>;
 };
 
 export default function SettingsPage(props: Props) {
-  const namespaceId = props.params.namespaceId;
+  const params = use(props.params);
+  const namespaceId = params.namespaceId;
   const workspace = useWorkspaceNavigation();
 
   return (

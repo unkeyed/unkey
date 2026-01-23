@@ -36,7 +36,7 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
   const { filters, updateFilters } = useFiltersHook();
   const [searchText, setSearchText] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
-  const debounceRef = useRef<NodeJS.Timeout>();
+  const debounceRef = useRef<NodeJS.Timeout>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
   const previousFilterValueRef = useRef<string>("");
 

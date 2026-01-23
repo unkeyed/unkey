@@ -1,6 +1,8 @@
-"use client";
+"use client";;
 import { ChevronLeft, ChevronRight } from "@unkey/icons";
 import { Button, CircleProgress, Separator } from "@unkey/ui";
+
+import type { JSX } from "react";
 
 export type OnboardingStep = {
   /** Display name of the step shown in the navigation */

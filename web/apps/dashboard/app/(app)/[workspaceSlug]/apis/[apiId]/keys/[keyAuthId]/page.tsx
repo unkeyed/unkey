@@ -1,18 +1,20 @@
-"use client";
+"use client";;
+import { use } from "react";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { ApisNavbar } from "../../api-id-navbar";
 import { KeysClient } from "./_components/keys-client";
 
 export default function APIKeysPage(props: {
-  params: {
+  params: Promise<{
     apiId: string;
     keyAuthId: string;
-  };
+  }>;
 }) {
-  const apiId = props.params.apiId;
+  const params = use(props.params);
+  const apiId = params.apiId;
   const workspace = useWorkspaceNavigation();
 
-  const keyspaceId = props.params.keyAuthId;
+  const keyspaceId = params.keyAuthId;
 
   return (
     <div>

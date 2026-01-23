@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Check, ChevronExpandY } from "@unkey/icons";
 import type React from "react";
-import { useState } from "react";
+import { useState, type JSX } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { setSessionCookie } from "@/lib/auth/cookies";

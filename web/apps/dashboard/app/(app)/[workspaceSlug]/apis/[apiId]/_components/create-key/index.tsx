@@ -180,7 +180,7 @@ export const CreateKeyDialog = ({
                 items={SECTIONS.map((section) => ({
                   id: section.id,
                   label: <SectionLabel label={section.label} validState={validSteps[section.id]} />,
-                  icon: section.icon as FC<IconProps>,
+                  icon: section.icon,
                 }))}
                 onNavigate={handleSectionNavigation}
                 initialSelectedId="general"

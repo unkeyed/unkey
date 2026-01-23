@@ -45,7 +45,7 @@ type UseDeploymentLogsReturn = {
   handleScroll: (e: React.UIEvent<HTMLDivElement>) => void;
   handleFilterChange: (filter: LogFilter) => void;
   handleSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  scrollRef: React.RefObject<HTMLDivElement>;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
 };
 
 export function useDeploymentLogs({

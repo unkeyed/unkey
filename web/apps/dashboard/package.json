@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest run",
     "typecheck": "tsc"
   },
@@ -80,15 +80,15 @@
     "geist": "1.3.1",
     "input-otp": "1.2.4",
     "ms": "2.1.3",
-    "next": "14.2.35",
+    "next": "16.1.4",
     "next-themes": "0.3.0",
     "nuqs": "1.17.6",
     "openai": "4.78.1",
     "postcss": "8.4.38",
     "postcss-focus-visible": "9.0.1",
-    "react": "18.2.0",
+    "react": "19.2.3",
     "react-day-picker": "8.10.1",
-    "react-dom": "18.2.0",
+    "react-dom": "19.2.3",
     "react-hook-form": "7.51.3",
     "recharts": "2.12.7",
     "slugify": "1.6.6",
@@ -109,13 +109,21 @@
     "@testing-library/react-hooks": "8.0.1",
     "@types/ms": "0.7.34",
     "@types/node": "22.14.0",
-    "@types/react": "18.3.11",
-    "@types/react-dom": "18.3.0",
+    "@types/react": "19.2.9",
+    "@types/react-dom": "19.2.3",
     "autoprefixer": "10.4.19",
+    "eslint": "^9.39.2",
+    "eslint-config-next": "16.1.4",
     "jsdom": "26.0.0",
     "postcss": "8.4.38",
     "tailwindcss": "3.4.3",
     "typescript": "5.1.3",
     "vitest": "1.6.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "19.2.9",
+      "@types/react-dom": "19.2.3"
+    }
   }
 }

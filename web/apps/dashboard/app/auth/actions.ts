@@ -24,12 +24,12 @@ import {
 import { requireEmailMatch } from "@/lib/auth/utils";
 import { env } from "@/lib/env";
 import { Ratelimit } from "@unkey/ratelimit";
-import { cookies, headers } from "next/headers";
+import { cookies, headers, type UnsafeUnwrappedHeaders } from "next/headers";
 import { redirect } from "next/navigation";
 
 // Helper to extract request metadata for Radar
 function getRequestMetadata() {
-  const headersList = headers();
+  const headersList = (headers() as unknown as UnsafeUnwrappedHeaders);
   const ipAddress =
     headersList.get("x-forwarded-for")?.split(",")[0].trim() ||
     headersList.get("x-real-ip") ||
@@ -285,7 +285,7 @@ export async function resendAuthCode(email: string): Promise<EmailAuthResult> {
 }
 
 export async function signIntoWorkspace(orgId: string): Promise<VerificationResult> {
-  const pendingToken = cookies().get(PENDING_SESSION_COOKIE)?.value;
+  const pendingToken = (await cookies()).get(PENDING_SESSION_COOKIE)?.value;
 
   if (!pendingToken) {
     return {
@@ -345,7 +345,7 @@ export async function completeOAuthSignIn(request: Request): Promise<OAuthResult
 export async function completeOrgSelection(
   orgId: string,
 ): Promise<NavigationResponse | AuthErrorResponse> {
-  const tempSession = cookies().get(PENDING_SESSION_COOKIE);
+  const tempSession = (await cookies()).get(PENDING_SESSION_COOKIE);
   if (!tempSession) {
     return {
       success: false,
@@ -361,9 +361,9 @@ export async function completeOrgSelection(
   });
 
   if (result.success) {
-    cookies().delete(PENDING_SESSION_COOKIE);
+    (await cookies()).delete(PENDING_SESSION_COOKIE);
     for (const cookie of result.cookies) {
-      cookies().set(cookie.name, cookie.value, cookie.options);
+      (await cookies()).set(cookie.name, cookie.value, cookie.options);
     }
     // Store the last used organization ID in a cookie for auto-selection on next login
     try {
@@ -493,6 +493,6 @@ export async function verifyTurnstileAndRetry(params: {
  * This is needed because PENDING_SESSION_COOKIE is HttpOnly and not accessible from client
  */
 export async function hasPendingSession(): Promise<boolean> {
-  const pendingToken = cookies().get(PENDING_SESSION_COOKIE);
+  const pendingToken = (await cookies()).get(PENDING_SESSION_COOKIE);
   return !!pendingToken?.value;
 }

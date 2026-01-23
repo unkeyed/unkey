@@ -1,7 +1,7 @@
 import { ExternalIdField } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/external-id-field";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Button, ConfirmPopover, DialogContainer } from "@unkey/ui";
-import { useRef, useState } from "react";
+import { useRef, useState, type JSX } from "react";
 import { useBatchEditExternalId } from "../../actions/components/hooks/use-edit-external-id";
 
 type BatchEditExternalIdProps = {
