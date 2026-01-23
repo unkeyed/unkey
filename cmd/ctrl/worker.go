@@ -35,19 +35,18 @@ var workerCmd = &cli.Command{
 		cli.String("database-primary", "MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true",
 			cli.Required(), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
 
-		// Authentication
-		cli.String("auth-token", "Authentication token for worker API access.",
-			cli.EnvVar("UNKEY_AUTH_TOKEN")),
-
 		cli.String("vault-url", "Url where vault is available",
-			cli.EnvVar("UNKEY_VAULT_URL"), cli.Default("https://vault.unkey.cloud")),
+			cli.Required(),
+			cli.EnvVar("UNKEY_VAULT_URL"),
+			cli.Default("https://vault.unkey.cloud"),
+		),
 
 		cli.String("vault-token", "Authentication for vault",
-			cli.EnvVar("UNKEY_VAULT_TOKEN")),
+			cli.Required(),
+			cli.EnvVar("UNKEY_VAULT_TOKEN"),
+		),
 
 		// Build Configuration
-		cli.String("build-backend", "Build backend to use: 'docker' for local, 'depot' for production. Default: depot",
-			cli.Default("depot"), cli.EnvVar("UNKEY_BUILD_BACKEND")),
 		cli.String("build-s3-url", "S3 Compatible Endpoint URL for build contexts",
 			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_URL")),
 		cli.String("build-s3-bucket", "S3 bucket name for build contexts",
@@ -91,8 +90,6 @@ var workerCmd = &cli.Command{
 		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
 
 		// Restate Configuration
-		cli.String("restate-url", "URL of the Restate ingress endpoint for invoking workflows. Example: http://restate:8080",
-			cli.Default("http://restate:8080"), cli.EnvVar("UNKEY_RESTATE_INGRESS_URL")),
 		cli.String("restate-admin-url", "URL of the Restate admin endpoint for service registration. Example: http://restate:9070",
 			cli.Default("http://restate:9070"), cli.EnvVar("UNKEY_RESTATE_ADMIN_URL")),
 		cli.Int("restate-http-port", "Port where we listen for Restate HTTP requests. Example: 9080",

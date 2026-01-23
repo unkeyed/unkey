@@ -57,25 +57,22 @@ var apiCmd = &cli.Command{
 
 		// Control Plane Specific
 		cli.String("auth-token", "Authentication token for control plane API access. Required for secure deployments.",
+			cli.Required(),
 			cli.EnvVar("UNKEY_AUTH_TOKEN")),
-		cli.String("spiffe-socket-path", "Path to SPIFFE agent socket for mTLS authentication. Default: /var/lib/spire/agent/agent.sock",
-			cli.Default("/var/lib/spire/agent/agent.sock"), cli.EnvVar("UNKEY_SPIFFE_SOCKET_PATH")),
 
-		cli.String("vault-url", "Url where vault is availab;e",
-			cli.EnvVar("UNKEY_VAULT_URL"), cli.Default("https://vault.unkey.cloud")),
+		cli.String("vault-url", "URL where Vault is available",
+			cli.Required(),
+			cli.EnvVar("UNKEY_VAULT_URL"),
+			cli.Default("https://vault.unkey.cloud"),
+		),
 
 		cli.String("vault-token", "Authentication for vault",
-			cli.EnvVar("UNKEY_VAULT_TOKEN")),
+			cli.Required(),
+			cli.EnvVar("UNKEY_VAULT_TOKEN"),
+		),
 
 		cli.Bool("acme-enabled", "Enable Let's Encrypt for acme challenges", cli.EnvVar("UNKEY_ACME_ENABLED")),
 		cli.String("acme-email-domain", "Domain for ACME registration emails (workspace_id@domain)", cli.Default("unkey.com"), cli.EnvVar("UNKEY_ACME_EMAIL_DOMAIN")),
-
-		// Route53 DNS provider
-		cli.Bool("acme-route53-enabled", "Enable Route53 for DNS-01 challenges", cli.EnvVar("UNKEY_ACME_ROUTE53_ENABLED")),
-		cli.String("acme-route53-access-key-id", "AWS access key ID for Route53", cli.EnvVar("UNKEY_ACME_ROUTE53_ACCESS_KEY_ID")),
-		cli.String("acme-route53-secret-access-key", "AWS secret access key for Route53", cli.EnvVar("UNKEY_ACME_ROUTE53_SECRET_ACCESS_KEY")),
-		cli.String("acme-route53-region", "AWS region for Route53", cli.Default("us-east-1"), cli.EnvVar("UNKEY_ACME_ROUTE53_REGION")),
-		cli.String("acme-route53-hosted-zone-id", "Route53 hosted zone ID (bypasses auto-discovery, required when wildcard CNAMEs exist)", cli.EnvVar("UNKEY_ACME_ROUTE53_HOSTED_ZONE_ID")),
 
 		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
 		cli.String("regional-apex-domain", "Apex domain for cross-region frontline communication (e.g., unkey.cloud). Certs are provisioned for *.{region}.{regional-apex-domain}", cli.EnvVar("UNKEY_REGIONAL_APEX_DOMAIN")),
@@ -83,12 +80,6 @@ var apiCmd = &cli.Command{
 		// Restate Configuration
 		cli.String("restate-url", "URL of the Restate ingress endpoint for invoking workflows. Example: http://restate:8080",
 			cli.Default("http://restate:8080"), cli.EnvVar("UNKEY_RESTATE_INGRESS_URL")),
-		cli.String("restate-admin-url", "URL of the Restate admin endpoint for service registration. Example: http://restate:9070",
-			cli.Default("http://restate:9070"), cli.EnvVar("UNKEY_RESTATE_ADMIN_URL")),
-		cli.Int("restate-http-port", "Port where we listen for Restate HTTP requests. Example: 9080",
-			cli.Default(9080), cli.EnvVar("UNKEY_RESTATE_HTTP_PORT")),
-		cli.String("restate-register-as", "URL of this service for self-registration with Restate. Example: http://ctrl:9080",
-			cli.EnvVar("UNKEY_RESTATE_REGISTER_AS")),
 		cli.String("restate-api-key", "API key for Restate ingress requests",
 			cli.EnvVar("UNKEY_RESTATE_API_KEY")),
 		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
