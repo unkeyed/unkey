@@ -4,6 +4,7 @@ package validation
 
 import (
 	"context"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -58,7 +59,7 @@ func benchNewValidateSimple(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest("POST", "/v2/keys.setRoles", strings.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer test_key_abc123")
 		_, _ = v.Validate(context.Background(), req)
@@ -85,7 +86,7 @@ func benchNewValidateComplex(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest("POST", "/v2/keys.setRoles", strings.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer test_key_abc123")
 		_, _ = v.Validate(context.Background(), req)
@@ -105,7 +106,7 @@ func benchNewParallel(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			req := httptest.NewRequest("POST", "/v2/keys.setRoles", strings.NewReader(body))
+			req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", strings.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("Authorization", "Bearer test_key_abc123")
 			_, _ = v.Validate(context.Background(), req)
@@ -126,7 +127,7 @@ func benchNewInvalidRequest(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest("POST", "/v2/keys.setRoles", strings.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer test_key_abc123")
 		_, _ = v.Validate(context.Background(), req)
@@ -145,7 +146,7 @@ func benchNewMissingAuth(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest("POST", "/v2/keys.setRoles", strings.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		// No Authorization header
 		_, _ = v.Validate(context.Background(), req)
@@ -166,7 +167,7 @@ func BenchmarkComparisonMemory(b *testing.B) {
 		b.ResetTimer()
 
 		for i := 0; i < b.N; i++ {
-			req := httptest.NewRequest("POST", "/v2/keys.setRoles", strings.NewReader(body))
+			req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", strings.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("Authorization", "Bearer test_key_abc123")
 			_, _ = v.Validate(context.Background(), req)
@@ -197,7 +198,7 @@ func BenchmarkComparisonThroughput(b *testing.B) {
 			i := 0
 			for pb.Next() {
 				body := bodies[i%len(bodies)]
-				req := httptest.NewRequest("POST", "/v2/keys.setRoles", strings.NewReader(body))
+				req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", strings.NewReader(body))
 				req.Header.Set("Content-Type", "application/json")
 				req.Header.Set("Authorization", "Bearer test_key_abc123")
 				_, _ = v.Validate(context.Background(), req)
@@ -221,7 +222,7 @@ func BenchmarkComparisonLatency(b *testing.B) {
 		b.ResetTimer()
 
 		for i := 0; i < b.N; i++ {
-			req := httptest.NewRequest("POST", "/v2/keys.setRoles", strings.NewReader(body))
+			req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", strings.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("Authorization", "Bearer test_key_abc123")
 			_, _ = v.Validate(context.Background(), req)

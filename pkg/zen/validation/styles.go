@@ -5,6 +5,12 @@ import (
 	"strings"
 )
 
+// Schema type constants
+const (
+	schemaTypeArray  = "array"
+	schemaTypeObject = "object"
+)
+
 // GetDefaultStyle returns the default style for a parameter location
 func GetDefaultStyle(location ParameterLocation) string {
 	switch location {
@@ -69,12 +75,12 @@ func parseFormStyle(values []string, explode bool, schemaType string) any {
 		return nil
 	}
 
-	if schemaType != "array" && schemaType != "object" {
+	if schemaType != schemaTypeArray && schemaType != schemaTypeObject {
 		// Primitive type - just return the first value coerced
 		return coerceValue(values[0], schemaType)
 	}
 
-	if schemaType == "array" {
+	if schemaType == schemaTypeArray {
 		if explode {
 			// Each value is a separate array element: ?id=3&id=4&id=5
 			result := make([]any, len(values))
@@ -117,11 +123,11 @@ func parseSimpleStyle(value string, explode bool, schemaType string) any {
 		return nil
 	}
 
-	if schemaType != "array" && schemaType != "object" {
+	if schemaType != schemaTypeArray && schemaType != schemaTypeObject {
 		return coerceValue(value, schemaType)
 	}
 
-	if schemaType == "array" {
+	if schemaType == schemaTypeArray {
 		parts := strings.Split(value, ",")
 		result := make([]any, len(parts))
 		for i, p := range parts {
@@ -163,11 +169,11 @@ func parseLabelStyle(value string, explode bool, schemaType string) any {
 		return nil
 	}
 
-	if schemaType != "array" && schemaType != "object" {
+	if schemaType != schemaTypeArray && schemaType != schemaTypeObject {
 		return coerceValue(value, schemaType)
 	}
 
-	if schemaType == "array" {
+	if schemaType == schemaTypeArray {
 		parts := strings.Split(value, ".")
 		result := make([]any, len(parts))
 		for i, p := range parts {
@@ -211,7 +217,7 @@ func parseMatrixStyle(value string, explode bool, schemaType string) any {
 		return nil
 	}
 
-	if schemaType != "array" && schemaType != "object" {
+	if schemaType != schemaTypeArray && schemaType != schemaTypeObject {
 		// Primitive: ;id=5 -> parse "id=5" and return value
 		parts := strings.SplitN(value, "=", 2)
 		if len(parts) == 2 {
@@ -220,7 +226,7 @@ func parseMatrixStyle(value string, explode bool, schemaType string) any {
 		return coerceValue(value, schemaType)
 	}
 
-	if schemaType == "array" {
+	if schemaType == schemaTypeArray {
 		if explode {
 			// ;id=3;id=4;id=5
 			segments := strings.Split(value, ";")
@@ -278,7 +284,7 @@ func parseSpaceDelimited(value string, schemaType string) any {
 	if value == "" {
 		return nil
 	}
-	if schemaType != "array" {
+	if schemaType != schemaTypeArray {
 		return coerceValue(value, schemaType)
 	}
 	parts := strings.Split(value, " ")
@@ -295,7 +301,7 @@ func parsePipeDelimited(value string, schemaType string) any {
 	if value == "" {
 		return nil
 	}
-	if schemaType != "array" {
+	if schemaType != schemaTypeArray {
 		return coerceValue(value, schemaType)
 	}
 	parts := strings.Split(value, "|")
@@ -309,7 +315,7 @@ func parsePipeDelimited(value string, schemaType string) any {
 // parseDeepObject parses deep object style parameters
 // ?filter[name]=foo&filter[age]=30 -> {"name": "foo", "age": 30}
 func parseDeepObject(query url.Values, paramName string, schemaType string) any {
-	if schemaType != "object" {
+	if schemaType != schemaTypeObject {
 		return nil
 	}
 
