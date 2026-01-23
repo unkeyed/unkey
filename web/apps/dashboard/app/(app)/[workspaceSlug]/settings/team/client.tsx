@@ -3,7 +3,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
-import { Button, Empty, Loading } from "@unkey/ui";
+import { Button, Empty, InfoTooltip, Loading } from "@unkey/ui";
 import Link from "next/link";
 import { Suspense, useMemo, useState } from "react";
 import { Invitations } from "./invitations";
@@ -84,12 +84,20 @@ export function TeamPageClient({ team }: { team: boolean }) {
           >
             Team Members
           </TabsTrigger>
-          <TabsTrigger
-            value="invitations"
-            className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:bg-transparent data-[state=active]:border-content data-[state=active]:shadow-none"
-          >
-            Pending Invitations
-          </TabsTrigger>
+          {isAdmin ? (
+            <TabsTrigger
+              value="invitations"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:bg-transparent data-[state=active]:border-content data-[state=active]:shadow-none"
+            >
+              Pending Invitations
+            </TabsTrigger>
+          ) : (
+            <InfoTooltip content="Admin access required to manage invitations">
+              <div className="rounded-none border-b-2 border-transparent px-4 py-2 text-content-subtle opacity-50 cursor-not-allowed">
+                Pending Invitations
+              </div>
+            </InfoTooltip>
+          )}
         </TabsList>
 
         {isLoading ? (
@@ -106,7 +114,7 @@ export function TeamPageClient({ team }: { team: boolean }) {
               />
             </TabsContent>
             <TabsContent value="invitations" className="mt-6 min-h-[400px]">
-              <Invitations organization={organization} />
+              <Invitations organization={organization} isAdmin={isAdmin} />
             </TabsContent>
           </>
         )}
