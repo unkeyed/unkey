@@ -180,10 +180,6 @@ type Config struct {
 	// Used for logging, tracing, and cluster coordination.
 	InstanceID string
 
-	// Image specifies the container image identifier including repository and tag.
-	// Used for control plane deployment and sentinel image configuration.
-	Image string
-
 	// Region is the geographic region where this control plane instance runs.
 	// Used for logging, tracing, and region-aware routing decisions.
 	Region string

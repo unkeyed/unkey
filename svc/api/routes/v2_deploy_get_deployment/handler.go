@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -116,5 +115,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 }
 
 func dbStatusToOpenAPI(status db.DeploymentsStatus) openapi.V2DeployGetDeploymentResponseDataStatus {
-	return openapi.V2DeployGetDeploymentResponseDataStatus(strings.ToUpper(string(status)))
+	switch status {
+	case db.DeploymentsStatusPending:
+		return openapi.PENDING
+	case db.DeploymentsStatusBuilding:
+		return openapi.BUILDING
+	case db.DeploymentsStatusDeploying:
+		return openapi.DEPLOYING
+	case db.DeploymentsStatusNetwork:
+		return openapi.NETWORK
+	case db.DeploymentsStatusReady:
+		return openapi.READY
+	case db.DeploymentsStatusFailed:
+		return openapi.FAILED
+	default:
+		return openapi.UNSPECIFIED
+	}
 }

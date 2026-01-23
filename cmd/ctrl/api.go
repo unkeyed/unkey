@@ -128,7 +128,6 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 
 	config := ctrlapi.Config{
 		// Basic configuration
-		Image:          cmd.String("image"),
 		HttpPort:       cmd.Int("http-port"),
 		PrometheusPort: cmd.Int("prometheus-port"),
 		Region:         cmd.String("region"),
