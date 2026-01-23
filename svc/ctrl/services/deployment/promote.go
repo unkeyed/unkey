@@ -10,7 +10,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
-// Promote reassigns all domains to a deployment and removes the rolled back state via Restate workflow
+// Promote reassigns all domains to the target deployment via a Restate workflow.
+// This is typically used after a rollback to restore the original deployment, or
+// to switch traffic to a new deployment that was previously in a preview state.
+// The workflow runs synchronously (blocking until complete) and is keyed by
+// project ID to prevent concurrent promotion operations on the same project.
 func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.PromoteRequest]) (*connect.Response[ctrlv1.PromoteResponse], error) {
 	s.logger.Info("initiating promotion via Restate",
 		"target", req.Msg.GetTargetDeploymentId(),

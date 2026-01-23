@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+service BuildService {
+  option (dev.restate.sdk.go.service_type) = SERVICE;
+
+  rpc BuildDockerImage(BuildDockerImageRequest) returns (BuildDockerImageResponse) {}
+}
+
+message BuildDockerImageRequest {
+  string s3_url = 1;
+  string build_context_path = 2;
+  string dockerfile_path = 3;
+  string project_id = 4;
+  string deployment_id = 5;
+  string workspace_id = 6;
+}
+message BuildDockerImageResponse {
+  string depot_project_id = 1;
+  string depot_build_id = 2;
+  string image_name = 3;
+}
