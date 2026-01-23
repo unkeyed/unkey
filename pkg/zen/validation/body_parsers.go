@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/url"
@@ -111,10 +112,9 @@ func (p *MultipartFormParser) ParseMultipartValues(values url.Values, files map[
 // parseMultipartBytes attempts to parse multipart data from raw bytes
 // This is a simplified parser for validation purposes
 func (p *MultipartFormParser) parseMultipartBytes(body []byte, schema map[string]any) (any, error) {
-	// For a proper implementation, we would need the boundary from the Content-Type header
+	// For multipart data, we need the boundary from the Content-Type header
 	// Without it, we can't reliably parse multipart data
-	// Return an empty map to indicate we couldn't parse but don't fail
-	return make(map[string]any), nil
+	return nil, fmt.Errorf("multipart parsing requires boundary; use ParseMultipartRequest instead")
 }
 
 // extractPropertySchemas extracts property type information from a JSON schema

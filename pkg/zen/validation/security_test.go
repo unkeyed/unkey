@@ -54,13 +54,13 @@ func TestSecurityScheme_HTTP_Basic(t *testing.T) {
 func TestSecurityScheme_APIKey_Header(t *testing.T) {
 	scheme := SecurityScheme{
 		Type: SecurityTypeAPIKey,
-		Name: "X-API-Key",
+		Name: "X-Api-Key",
 		In:   LocationHeader,
 	}
 
 	// Valid API key in header
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	req.Header.Set("X-API-Key", "my-api-key")
+	req.Header.Set("X-Api-Key", "my-api-key")
 	require.True(t, validateAPIKeyScheme(req, scheme))
 
 	// Missing header
@@ -119,7 +119,7 @@ func TestSecurityRequirement_ORLogic(t *testing.T) {
 		},
 		"apiKey": {
 			Type: SecurityTypeAPIKey,
-			Name: "X-API-Key",
+			Name: "X-Api-Key",
 			In:   LocationHeader,
 		},
 	}
@@ -138,7 +138,7 @@ func TestSecurityRequirement_ORLogic(t *testing.T) {
 
 	// Request with API key
 	req = httptest.NewRequest(http.MethodGet, "/test", nil)
-	req.Header.Set("X-API-Key", "my-key")
+	req.Header.Set("X-Api-Key", "my-key")
 	err = ValidateSecurity(req, requirements, schemes, "test-req-id")
 	require.Nil(t, err, "API key should satisfy requirements")
 
@@ -156,7 +156,7 @@ func TestSecurityRequirement_ANDLogic(t *testing.T) {
 		},
 		"apiKey": {
 			Type: SecurityTypeAPIKey,
-			Name: "X-API-Key",
+			Name: "X-Api-Key",
 			In:   LocationHeader,
 		},
 	}
@@ -172,7 +172,7 @@ func TestSecurityRequirement_ANDLogic(t *testing.T) {
 	// Request with both
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	req.Header.Set("Authorization", "Bearer valid_token")
-	req.Header.Set("X-API-Key", "my-key")
+	req.Header.Set("X-Api-Key", "my-key")
 	err := ValidateSecurity(req, requirements, schemes, "test-req-id")
 	require.Nil(t, err, "both auths should satisfy requirements")
 
@@ -184,7 +184,7 @@ func TestSecurityRequirement_ANDLogic(t *testing.T) {
 
 	// Request with only API key
 	req = httptest.NewRequest(http.MethodGet, "/test", nil)
-	req.Header.Set("X-API-Key", "my-key")
+	req.Header.Set("X-Api-Key", "my-key")
 	err = ValidateSecurity(req, requirements, schemes, "test-req-id")
 	require.NotNil(t, err, "only API key should fail AND requirements")
 }

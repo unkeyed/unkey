@@ -91,7 +91,7 @@ func (v *Validator) validateContentType(r *http.Request, compiledOp *CompiledOpe
 }
 
 // validateBody validates the request body against the schema
-func (v *Validator) validateBody(ctx context.Context, r *http.Request, op *Operation, compiledOp *CompiledOperation) (openapi.BadRequestErrorResponse, bool) {
+func (v *Validator) validateBody(ctx context.Context, r *http.Request, compiledOp *CompiledOperation) (openapi.BadRequestErrorResponse, bool) {
 	requestID := ctxutil.GetRequestId(ctx)
 
 	// Check if body is required
