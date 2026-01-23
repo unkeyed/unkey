@@ -50,6 +50,40 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
+		// The OpenAPI schema validator catches this with a generic schema validation error
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+	})
+
+	t.Run("both build and image provided", func(t *testing.T) {
+		req := handler.Request{
+			ProjectId:       setup.Project.ID,
+			Branch:          "main",
+			EnvironmentSlug: "production",
+		}
+
+		// Manually set both build and image in the union by merging both types
+		// This tests that the OpenAPI oneOf validation rejects requests with both sources
+		_ = req.FromV2DeployBuildSource(openapi.V2DeployBuildSource{
+			Build: struct {
+				Context    string  "json:\"context\""
+				Dockerfile *string "json:\"dockerfile,omitempty\""
+			}{
+				Context: "/app",
+			},
+		})
+		_ = req.MergeV2DeployImageSource(openapi.V2DeployImageSource{
+			Image: "nginx:latest",
+		})
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+
+		require.Equal(t, 400, res.Status, "expected 400 when both build and image are provided, sent: %+v, received: %s", req, res.RawBody)
+		require.NotNil(t, res.Body)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
+		// The OpenAPI schema validator catches this with a generic schema validation error
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})

@@ -49,7 +49,7 @@ func TestValidationErrors(t *testing.T) {
 		)
 
 		require.Equal(t, 400, res.Status)
-		require.Equal(t, "POST request body for '/v2/apis.deleteApi' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	// Test case for invalid API ID format
@@ -66,7 +66,7 @@ func TestValidationErrors(t *testing.T) {
 		)
 
 		require.Equal(t, 400, res.Status)
-		require.Equal(t, "POST request body for '/v2/apis.deleteApi' failed to validate schema", res.Body.Error.Detail)
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 }

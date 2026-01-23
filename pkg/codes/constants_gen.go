@@ -6,11 +6,11 @@ type URN string
 
 // Error code constants for use in switch statements for exhaustive checking
 const (
-	// ----------------
-	// UserErrors
-	// ----------------
+// ----------------
+// UserErrors
+// ----------------
 
-	// BadRequest
+// BadRequest
 
 	// MissingRequiredHeader indicates a required HTTP header is missing from the request.
 	UserErrorsBadRequestMissingRequiredHeader URN = "err:user:bad_request:missing_required_header"
@@ -35,7 +35,7 @@ const (
 	// QueryRangeExceedsRetention indicates the query attempts to access data older than the workspace's retention period.
 	UserErrorsBadRequestQueryRangeExceedsRetention URN = "err:user:bad_request:query_range_exceeds_retention"
 
-	// UnprocessableEntity
+// UnprocessableEntity
 
 	// QueryExecutionTimeout indicates the query exceeded the maximum execution time limit.
 	UserErrorsUnprocessableEntityQueryExecutionTimeout URN = "err:user:unprocessable_entity:query_execution_timeout"
@@ -44,16 +44,16 @@ const (
 	// QueryRowsLimitExceeded indicates the query exceeded the maximum rows to read limit.
 	UserErrorsUnprocessableEntityQueryRowsLimitExceeded URN = "err:user:unprocessable_entity:query_rows_limit_exceeded"
 
-	// TooManyRequests
+// TooManyRequests
 
 	// QueryQuotaExceeded indicates the workspace has exceeded their query quota for the current window.
 	UserErrorsTooManyRequestsQueryQuotaExceeded URN = "err:user:too_many_requests:query_quota_exceeded"
 
-	// ----------------
-	// UnkeyAuthErrors
-	// ----------------
+// ----------------
+// UnkeyAuthErrors
+// ----------------
 
-	// Authentication
+// Authentication
 
 	// Missing indicates authentication credentials were not provided.
 	UnkeyAuthErrorsAuthenticationMissing URN = "err:unkey:authentication:missing"
@@ -62,7 +62,7 @@ const (
 	// KeyNotFound indicates the authentication key was not found.
 	UnkeyAuthErrorsAuthenticationKeyNotFound URN = "err:unkey:authentication:key_not_found"
 
-	// Authorization
+// Authorization
 
 	// InsufficientPermissions indicates the authenticated entity lacks
 	// sufficient permissions for the requested operation.
@@ -74,123 +74,123 @@ const (
 	// WorkspaceDisabled indicates the associated workspace is disabled.
 	UnkeyAuthErrorsAuthorizationWorkspaceDisabled URN = "err:unkey:authorization:workspace_disabled"
 
-	// ----------------
-	// UnkeyDataErrors
-	// ----------------
+// ----------------
+// UnkeyDataErrors
+// ----------------
 
-	// Key
+// Key
 
 	// NotFound indicates the requested key was not found.
 	UnkeyDataErrorsKeyNotFound URN = "err:unkey:data:key_not_found"
 
-	// Workspace
+// Workspace
 
 	// NotFound indicates the requested workspace was not found.
 	UnkeyDataErrorsWorkspaceNotFound URN = "err:unkey:data:workspace_not_found"
 
-	// Api
+// Api
 
 	// NotFound indicates the requested API was not found.
 	UnkeyDataErrorsApiNotFound URN = "err:unkey:data:api_not_found"
 
-	// Project
+// Project
 
 	// NotFound indicates the requested project was not found.
 	UnkeyDataErrorsProjectNotFound URN = "err:unkey:data:project_not_found"
 
-	// Migration
+// Migration
 
 	// NotFound indicates the requested migration was not found.
 	UnkeyDataErrorsMigrationNotFound URN = "err:unkey:data:migration_not_found"
 
-	// KeySpace
+// KeySpace
 
 	// NotFound indicates the requested key space was not found.
 	UnkeyDataErrorsKeySpaceNotFound URN = "err:unkey:data:key_space_not_found"
 
-	// Permission
+// Permission
 
 	// Duplicate indicates the requested permission already exists.
 	UnkeyDataErrorsPermissionDuplicate URN = "err:unkey:data:permission_already_exists"
 	// NotFound indicates the requested permission was not found.
 	UnkeyDataErrorsPermissionNotFound URN = "err:unkey:data:permission_not_found"
 
-	// Role
+// Role
 
 	// Duplicate indicates the requested role already exists.
 	UnkeyDataErrorsRoleDuplicate URN = "err:unkey:data:role_already_exists"
 	// NotFound indicates the requested role was not found.
 	UnkeyDataErrorsRoleNotFound URN = "err:unkey:data:role_not_found"
 
-	// KeyAuth
+// KeyAuth
 
 	// NotFound indicates the requested key authentication was not found.
 	UnkeyDataErrorsKeyAuthNotFound URN = "err:unkey:data:key_auth_not_found"
 
-	// RatelimitNamespace
+// RatelimitNamespace
 
 	// NotFound indicates the requested rate limit namespace was not found.
 	UnkeyDataErrorsRatelimitNamespaceNotFound URN = "err:unkey:data:ratelimit_namespace_not_found"
 	// Gone indicates the requested rate limit namespace was deleted and is no longer available.
 	UnkeyDataErrorsRatelimitNamespaceGone URN = "err:unkey:data:ratelimit_namespace_gone"
 
-	// RatelimitOverride
+// RatelimitOverride
 
 	// NotFound indicates the requested rate limit override was not found.
 	UnkeyDataErrorsRatelimitOverrideNotFound URN = "err:unkey:data:ratelimit_override_not_found"
 
-	// Identity
+// Identity
 
 	// NotFound indicates the requested identity was not found.
 	UnkeyDataErrorsIdentityNotFound URN = "err:unkey:data:identity_not_found"
 	// Duplicate indicates the requested identity already exists.
 	UnkeyDataErrorsIdentityDuplicate URN = "err:unkey:data:identity_already_exists"
 
-	// AuditLog
+// AuditLog
 
 	// NotFound indicates the requested audit log was not found.
 	UnkeyDataErrorsAuditLogNotFound URN = "err:unkey:data:audit_log_not_found"
 
-	// Analytics
+// Analytics
 
 	// NotConfigured indicates analytics is not configured for the workspace.
 	UnkeyDataErrorsAnalyticsNotConfigured URN = "err:unkey:data:analytics_not_configured"
 	// ConnectionFailed indicates the connection to the analytics database failed.
 	UnkeyDataErrorsAnalyticsConnectionFailed URN = "err:unkey:data:analytics_connection_failed"
 
-	// ----------------
-	// UnkeyAppErrors
-	// ----------------
+// ----------------
+// UnkeyAppErrors
+// ----------------
 
-	// Internal
+// Internal
 
 	// UnexpectedError represents an unhandled or unexpected error condition.
 	UnkeyAppErrorsInternalUnexpectedError URN = "err:unkey:application:unexpected_error"
 	// ServiceUnavailable indicates a service is temporarily unavailable.
 	UnkeyAppErrorsInternalServiceUnavailable URN = "err:unkey:application:service_unavailable"
 
-	// Validation
+// Validation
 
 	// InvalidInput indicates a client provided input that failed validation.
 	UnkeyAppErrorsValidationInvalidInput URN = "err:unkey:application:invalid_input"
 	// AssertionFailed indicates a runtime assertion or invariant check failed.
 	UnkeyAppErrorsValidationAssertionFailed URN = "err:unkey:application:assertion_failed"
 
-	// Protection
+// Protection
 
 	// ProtectedResource indicates an attempt to modify a protected resource.
 	UnkeyAppErrorsProtectionProtectedResource URN = "err:unkey:application:protected_resource"
 
-	// Precondition
+// Precondition
 
 	// PreconditionFailed indicates a precondition check failed.
 	UnkeyAppErrorsPreconditionPreconditionFailed URN = "err:unkey:application:precondition_failed"
 
-	// ----------------
-	// UnkeyFrontlineErrors
-	// ----------------
+// ----------------
+// UnkeyFrontlineErrors
+// ----------------
 
-	// Proxy
+// Proxy
 
 	// BadGateway represents a 502 error - invalid response from upstream server
 	UnkeyFrontlineErrorsProxyBadGateway URN = "err:unkey:bad_gateway:bad_gateway"
@@ -201,7 +201,7 @@ const (
 	// ProxyForwardFailed represents a 502 error - failed to forward request to backend
 	UnkeyFrontlineErrorsProxyProxyForwardFailed URN = "err:unkey:bad_gateway:proxy_forward_failed"
 
-	// Routing
+// Routing
 
 	// ConfigNotFound represents a 404 error - no configuration found for the requested hostname
 	UnkeyFrontlineErrorsRoutingConfigNotFound URN = "err:unkey:not_found:config_not_found"
@@ -212,7 +212,7 @@ const (
 	// NoRunningInstances represents a 503 error - no deployments have running instances
 	UnkeyFrontlineErrorsRoutingNoRunningInstances URN = "err:unkey:service_unavailable:no_running_instances"
 
-	// Internal
+// Internal
 
 	// InternalServerError represents a 500 error - internal server error
 	UnkeyFrontlineErrorsInternalInternalServerError URN = "err:unkey:internal_server_error:internal_server_error"
@@ -220,4 +220,5 @@ const (
 	UnkeyFrontlineErrorsInternalConfigLoadFailed URN = "err:unkey:internal_server_error:config_load_failed"
 	// InstanceLoadFailed represents a 500 error - failed to load instance information
 	UnkeyFrontlineErrorsInternalInstanceLoadFailed URN = "err:unkey:internal_server_error:instance_load_failed"
+
 )
