@@ -1,0 +1,33 @@
+-- Create "sentinel_requests_raw_v1" table
+CREATE TABLE `default`.`sentinel_requests_raw_v1` (
+  `request_id` String,
+  `time` Int64 CODEC(Delta(8), LZ4),
+  `workspace_id` String,
+  `environment_id` String,
+  `project_id` String,
+  `sentinel_id` String,
+  `deployment_id` String,
+  `instance_id` String,
+  `instance_address` String,
+  `region` LowCardinality(String),
+  `method` LowCardinality(String),
+  `host` String,
+  `path` String,
+  `query_string` String,
+  `query_params` Map(String, Array(String)),
+  `request_headers` Array(String),
+  `request_body` String,
+  `response_status` Int32,
+  `response_headers` Array(String),
+  `response_body` String,
+  `error` String,
+  `user_agent` String,
+  `ip_address` String,
+  `service_latency` Int64,
+  `instance_latency` Int64,
+  `sentinel_processing_latency` Int64,
+  INDEX `idx_deployment_id` ((deployment_id)) TYPE bloom_filter GRANULARITY 1,
+  INDEX `idx_instance_id` ((instance_id)) TYPE bloom_filter GRANULARITY 1,
+  INDEX `idx_request_id` ((request_id)) TYPE bloom_filter GRANULARITY 1
+) ENGINE = MergeTree
+PRIMARY KEY (`workspace_id`, `project_id`, `deployment_id`, `time`) ORDER BY (`workspace_id`, `project_id`, `deployment_id`, `time`) TTL toDateTime(fromUnixTimestamp64Milli(time)) + toIntervalDay(30) SETTINGS index_granularity = 8192, non_replicated_deduplication_window = 10000;

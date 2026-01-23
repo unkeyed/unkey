@@ -122,3 +122,35 @@ type BuildStepLogV1 struct {
 	StepID       string `ch:"step_id" json:"step_id"`
 	Message      string `ch:"message" json:"message"`
 }
+
+// SentinelRequest represents the v1 sentinel request raw table structure.
+// This tracks requests routed through sentinel proxy to deployment instances
+// with deployment routing, performance breakdown, and error categorization.
+type SentinelRequest struct {
+	RequestID                 string              `ch:"request_id" json:"request_id"`
+	Time                      int64               `ch:"time" json:"time"`
+	WorkspaceID               string              `ch:"workspace_id" json:"workspace_id"`
+	EnvironmentID             string              `ch:"environment_id" json:"environment_id"`
+	ProjectID                 string              `ch:"project_id" json:"project_id"`
+	SentinelID                string              `ch:"sentinel_id" json:"sentinel_id"`
+	DeploymentID              string              `ch:"deployment_id" json:"deployment_id"`
+	InstanceID                string              `ch:"instance_id" json:"instance_id"`
+	InstanceAddress           string              `ch:"instance_address" json:"instance_address"`
+	Region                    string              `ch:"region" json:"region"`
+	Method                    string              `ch:"method" json:"method"`
+	Host                      string              `ch:"host" json:"host"`
+	Path                      string              `ch:"path" json:"path"`
+	QueryString               string              `ch:"query_string" json:"query_string"`
+	QueryParams               map[string][]string `ch:"query_params" json:"query_params"`
+	RequestHeaders            []string            `ch:"request_headers" json:"request_headers"`
+	RequestBody               string              `ch:"request_body" json:"request_body"`
+	ResponseStatus            int32               `ch:"response_status" json:"response_status"`
+	ResponseHeaders           []string            `ch:"response_headers" json:"response_headers"`
+	ResponseBody              string              `ch:"response_body" json:"response_body"`
+	Error                     string              `ch:"error" json:"error"`
+	UserAgent                 string              `ch:"user_agent" json:"user_agent"`
+	IPAddress                 string              `ch:"ip_address" json:"ip_address"`
+	ServiceLatency            int64               `ch:"service_latency" json:"service_latency"`
+	InstanceLatency           int64               `ch:"instance_latency" json:"instance_latency"`
+	SentinelProcessingLatency int64               `ch:"sentinel_processing_latency" json:"sentinel_processing_latency"`
+}

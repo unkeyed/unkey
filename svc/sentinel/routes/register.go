@@ -54,10 +54,14 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&proxy.Handler{
-			Logger:        svc.Logger,
-			RouterService: svc.RouterService,
-			Clock:         svc.Clock,
-			Transport:     transport,
+			Logger:             svc.Logger,
+			RouterService:      svc.RouterService,
+			Clock:              svc.Clock,
+			Transport:          transport,
+			ClickHouse:         svc.ClickHouse,
+			SentinelID:         svc.SentinelID,
+			Region:             svc.Region,
+			MaxRequestBodySize: svc.MaxRequestBodySize,
 		},
 	)
 }

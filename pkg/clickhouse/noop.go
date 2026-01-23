@@ -40,6 +40,11 @@ func (n *noop) BufferBuildStepLog(req schema.BuildStepLogV1) {
 	// Intentionally empty - discards the event
 }
 
+// BufferSentinelRequest implements the Bufferer interface but discards the event.
+func (n *noop) BufferSentinelRequest(req schema.SentinelRequest) {
+	// Intentionally empty - discards the event
+}
+
 // GetBillableVerifications implements the Bufferer interface but always returns 0.
 func (n *noop) GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error) {
 	return 0, nil
