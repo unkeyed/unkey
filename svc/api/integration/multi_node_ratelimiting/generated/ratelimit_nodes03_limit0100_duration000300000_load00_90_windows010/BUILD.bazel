@@ -1,0 +1,10 @@
+load("@rules_go//go:def.bzl", "go_test")
+
+go_test(
+    name = "ratelimit_nodes03_limit0100_duration000300000_load00_90_windows010_test",
+    srcs = ["generated_test.go"],
+    deps = [
+        "//svc/api/integration",
+        "//svc/api/integration/multi_node_ratelimiting",
+    ],
+)

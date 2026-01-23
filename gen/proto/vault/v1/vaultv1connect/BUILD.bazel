@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "vaultv1connect",
+    srcs = ["service.connect.go"],
+    importpath = "github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/vault/v1:vault",
+        "@com_connectrpc_connect//:connect",
+    ],
+)

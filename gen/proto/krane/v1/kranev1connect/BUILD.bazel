@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "kranev1connect",
+    srcs = ["secrets.connect.go"],
+    importpath = "github.com/unkeyed/unkey/gen/proto/krane/v1/kranev1connect",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/krane/v1:krane",
+        "@com_connectrpc_connect//:connect",
+    ],
+)
