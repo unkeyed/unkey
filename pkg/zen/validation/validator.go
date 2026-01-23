@@ -1,21 +1,17 @@
 package validation
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"io"
 	"net/http"
 	"strings"
 
-	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/unkeyed/unkey/pkg/ctxutil"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
+// OpenAPIValidator defines the interface for validating HTTP requests against an OpenAPI spec
 type OpenAPIValidator interface {
 	// Validate reads the request and validates it against the OpenAPI spec
 	//
@@ -25,11 +21,14 @@ type OpenAPIValidator interface {
 	Validate(ctx context.Context, r *http.Request) (openapi.BadRequestErrorResponse, bool)
 }
 
+// Validator implements OpenAPIValidator using a parsed and compiled OpenAPI spec
 type Validator struct {
-	matcher *PathMatcher
-	schemas map[string]*jsonschema.Schema // operationID -> compiled schema
+	matcher         *PathMatcher
+	compiler        *SchemaCompiler
+	securitySchemes map[string]SecurityScheme
 }
 
+// New creates a new Validator from the embedded OpenAPI spec
 func New() (*Validator, error) {
 	parser, err := NewSpecParser(openapi.Spec)
 	if err != nil {
@@ -43,183 +42,114 @@ func New() (*Validator, error) {
 
 	matcher := NewPathMatcher(parser.Operations())
 
-	// Build the schemas map from the compiler
-	schemas := make(map[string]*jsonschema.Schema)
-	for _, op := range parser.Operations() {
-		if schema := compiler.Get(op.OperationID); schema != nil {
-			schemas[op.OperationID] = schema
-		}
-	}
-
 	return &Validator{
-		matcher: matcher,
-		schemas: schemas,
+		matcher:         matcher,
+		compiler:        compiler,
+		securitySchemes: parser.SecuritySchemes(),
 	}, nil
 }
 
+// Validate validates an HTTP request against the OpenAPI spec
 func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadRequestErrorResponse, bool) {
 	_, validationSpan := tracing.Start(ctx, "openapi.Validate")
 	defer validationSpan.End()
 
+	requestID := ctxutil.GetRequestID(ctx)
+
 	// 1. Match request to operation
-	op, found := v.matcher.Match(r.Method, r.URL.Path)
+	matchResult, found := v.matcher.Match(r.Method, r.URL.Path)
 	if !found {
 		// No matching operation - pass through (let the router handle 404)
 		// nolint:exhaustruct
 		return openapi.BadRequestErrorResponse{}, true
 	}
 
-	// 2. Validate Authorization header if operation requires bearer auth
-	if op.RequiresBearerAuth {
-		if errResp, valid := validateAuthorizationHeader(r, ctxutil.GetRequestID(ctx)); !valid {
-			return errResp, false
+	op := matchResult.Operation
+
+	// 2. Validate security (fail fast)
+	if err := v.validateSecurity(r, op.Security, requestID); err != nil {
+		return *err, false
+	}
+
+	// 3. Get compiled operation schemas
+	compiledOp := v.compiler.GetOperation(op.OperationID)
+
+	// 4. Validate content-type for requests with body
+	if r.ContentLength > 0 || r.Body != nil {
+		if err := v.validateContentType(r, compiledOp, requestID); err != nil {
+			return *err, false
 		}
 	}
 
-	// 3. Get the compiled schema for this operation
-	schema, ok := v.schemas[op.OperationID]
-	if !ok || schema == nil {
-		// No request body schema for this operation - pass through
-		// nolint:exhaustruct
-		return openapi.BadRequestErrorResponse{}, true
+	// 5. Validate parameters (aggregate errors)
+	var paramErrors []openapi.ValidationError
+	if compiledOp != nil {
+		// Validate path parameters
+		if len(compiledOp.Parameters.Path) > 0 && matchResult.PathParams != nil {
+			paramErrors = append(paramErrors, v.validatePathParams(matchResult.PathParams, compiledOp.Parameters.Path)...)
+		}
+		if len(compiledOp.Parameters.Query) > 0 {
+			paramErrors = append(paramErrors, v.validateQueryParams(r, compiledOp.Parameters.Query)...)
+		}
+		if len(compiledOp.Parameters.Header) > 0 {
+			paramErrors = append(paramErrors, v.validateHeaderParams(r, compiledOp.Parameters.Header)...)
+		}
+		if len(compiledOp.Parameters.Cookie) > 0 {
+			paramErrors = append(paramErrors, v.validateCookieParams(r, compiledOp.Parameters.Cookie)...)
+		}
 	}
 
-	// 4. Read the request body
-	if r.Body == nil {
-		// No body provided but schema exists - validate empty
-		// nolint:exhaustruct
-		return openapi.BadRequestErrorResponse{}, true
-	}
-
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
+	if len(paramErrors) > 0 {
+		detail := "One or more parameters failed validation"
+		if len(paramErrors) == 1 {
+			detail = paramErrors[0].Message
+		}
 		return openapi.BadRequestErrorResponse{
 			Meta: openapi.Meta{
-				RequestId: ctxutil.GetRequestID(ctx),
+				RequestId: requestID,
 			},
 			Error: openapi.BadRequestErrorDetails{
 				Title:  "Bad Request",
-				Detail: "Failed to read request body",
+				Detail: detail,
 				Status: http.StatusBadRequest,
 				Type:   "https://unkey.com/docs/errors/unkey/application/invalid_input",
-				Errors: []openapi.ValidationError{},
+				Errors: paramErrors,
 			},
 		}, false
 	}
 
-	// Reset body for downstream handlers
-	r.Body = io.NopCloser(bytes.NewReader(body))
-
-	// Empty body - some operations may allow this
-	if len(body) == 0 {
-		// nolint:exhaustruct
-		return openapi.BadRequestErrorResponse{}, true
-	}
-
-	// 5. Unmarshal the body
-	var data any
-	if err := json.Unmarshal(body, &data); err != nil {
-		return openapi.BadRequestErrorResponse{
-			Meta: openapi.Meta{
-				RequestId: ctxutil.GetRequestID(ctx),
-			},
-			Error: openapi.BadRequestErrorDetails{
-				Title:  "Bad Request",
-				Detail: "Invalid JSON in request body",
-				Status: http.StatusBadRequest,
-				Type:   "https://unkey.com/docs/errors/unkey/application/invalid_input",
-				Errors: []openapi.ValidationError{
-					{
-						Location: "body",
-						Message:  err.Error(),
-						Fix:      ptr.P("Ensure the request body is valid JSON"),
-					},
-				},
-			},
-		}, false
-	}
-
-	// 6. Validate against the schema
-	if err := schema.Validate(data); err != nil {
-		return TransformErrors(err, ctxutil.GetRequestID(ctx)), false
-	}
-
-	// nolint:exhaustruct
-	return openapi.BadRequestErrorResponse{}, true
+	// 6. Validate body
+	return v.validateBody(ctx, r, op, compiledOp)
 }
 
-// validateAuthorizationHeader checks that the Authorization header exists and uses Bearer scheme
-func validateAuthorizationHeader(r *http.Request, requestID string) (openapi.BadRequestErrorResponse, bool) {
-	authHeader := r.Header.Get("Authorization")
-
-	// Check if Authorization header is present
-	if authHeader == "" {
-		return openapi.BadRequestErrorResponse{
-			Meta: openapi.Meta{
-				RequestId: requestID,
-			},
-			Error: openapi.BadRequestErrorDetails{
-				Title:  "Bad Request",
-				Detail: "Authorization header is required but was not provided",
-				Status: http.StatusBadRequest,
-				Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
-				Errors: []openapi.ValidationError{
-					{
-						Location: "header.Authorization",
-						Message:  "Authorization header is missing",
-						Fix:      ptr.P("Add an Authorization header with format: Bearer <your-api-key>"),
-					},
-				},
-			},
-		}, false
+// validateSecurity validates security requirements for the operation
+func (v *Validator) validateSecurity(r *http.Request, requirements []SecurityRequirement, requestID string) *openapi.BadRequestErrorResponse {
+	// If no security requirements defined, the operation is public
+	if len(requirements) == 0 {
+		return nil
 	}
 
-	// Check for Bearer scheme (case-insensitive)
-	const bearerPrefix = "bearer "
-	if len(authHeader) < len(bearerPrefix) || !strings.EqualFold(authHeader[:len(bearerPrefix)], bearerPrefix) {
-		return openapi.BadRequestErrorResponse{
-			Meta: openapi.Meta{
-				RequestId: requestID,
-			},
-			Error: openapi.BadRequestErrorDetails{
-				Title:  "Bad Request",
-				Detail: "Authorization header must use Bearer scheme",
-				Status: http.StatusBadRequest,
-				Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
-				Errors: []openapi.ValidationError{
-					{
-						Location: "header.Authorization",
-						Message:  "Authorization header must start with 'Bearer '",
-						Fix:      ptr.P("Use format: Bearer <your-api-key>"),
-					},
-				},
-			},
-		}, false
+	// For bearer auth, provide detailed error messages
+	if v.requiresBearerAuth(requirements) {
+		return ValidateBearerAuth(r, requestID)
 	}
 
-	// Check that there's actually a token after "Bearer "
-	token := strings.TrimSpace(authHeader[len(bearerPrefix):])
-	if token == "" {
-		return openapi.BadRequestErrorResponse{
-			Meta: openapi.Meta{
-				RequestId: requestID,
-			},
-			Error: openapi.BadRequestErrorDetails{
-				Title:  "Bad Request",
-				Detail: "Authorization header must use Bearer scheme",
-				Status: http.StatusBadRequest,
-				Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
-				Errors: []openapi.ValidationError{
-					{
-						Location: "header.Authorization",
-						Message:  "Bearer token is empty",
-						Fix:      ptr.P("Provide a valid API key after 'Bearer '"),
-					},
-				},
-			},
-		}, false
-	}
+	// For other auth types, use generic validation
+	return ValidateSecurity(r, requirements, v.securitySchemes, requestID)
+}
 
-	// nolint:exhaustruct
-	return openapi.BadRequestErrorResponse{}, true
+// requiresBearerAuth checks if the security requirements include HTTP bearer auth
+func (v *Validator) requiresBearerAuth(requirements []SecurityRequirement) bool {
+	for _, req := range requirements {
+		for schemeName := range req.Schemes {
+			scheme, exists := v.securitySchemes[schemeName]
+			if !exists {
+				continue
+			}
+			if scheme.Type == SecurityTypeHTTP && strings.ToLower(scheme.Scheme) == "bearer" {
+				return true
+			}
+		}
+	}
+	return false
 }
