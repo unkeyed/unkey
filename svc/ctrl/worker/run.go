@@ -257,7 +257,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 			req.Header.Set("Content-Type", "application/json")
 
-			resp, doErr := http.DefaultClient.Do(req)
+			client := &http.Client{Timeout: 30 * time.Second}
+			resp, doErr := client.Do(req)
 			if doErr != nil {
 				return fmt.Errorf("failed to register with Restate: %w", doErr)
 			}
