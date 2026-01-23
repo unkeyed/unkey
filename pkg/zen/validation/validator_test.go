@@ -1,16 +1,234 @@
 package validation
 
 import (
+	"bytes"
+	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestSchemaIsValid(t *testing.T) {
+func TestNew(t *testing.T) {
+	v, err := New()
+	require.NoError(t, err)
+	require.NotNil(t, v)
+	require.NotNil(t, v.matcher)
+	require.NotNil(t, v.schemas)
+}
+
+func TestValidate_ValidRequest(t *testing.T) {
 	v, err := New()
 	require.NoError(t, err)
 
-	valid, errors := v.validator.ValidateDocument()
+	// Test with a valid keys.setRoles request
+	body := `{"keyId": "key_123abc", "roles": ["admin", "user"]}`
+	req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer test_key")
+
+	resp, valid := v.Validate(context.Background(), req)
+	require.True(t, valid, "expected valid request, got errors: %+v", resp.Error)
+}
+
+func TestValidate_InvalidRequest_MissingRequired(t *testing.T) {
+	v, err := New()
+	require.NoError(t, err)
+
+	// Missing required 'keyId' field
+	body := `{"roles": ["admin"]}`
+	req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer test_key")
+
+	resp, valid := v.Validate(context.Background(), req)
+	require.False(t, valid, "expected invalid request")
+	require.Equal(t, "Bad Request", resp.Error.Title)
+	require.NotEmpty(t, resp.Error.Errors)
+}
+
+func TestValidate_InvalidRequest_WrongType(t *testing.T) {
+	v, err := New()
+	require.NoError(t, err)
+
+	// keyId should be string, not number
+	body := `{"keyId": 123, "roles": ["admin"]}`
+	req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer test_key")
+
+	resp, valid := v.Validate(context.Background(), req)
+	require.False(t, valid, "expected invalid request")
+	require.Equal(t, "Bad Request", resp.Error.Title)
+	require.NotEmpty(t, resp.Error.Errors)
+}
+
+func TestValidate_InvalidJSON(t *testing.T) {
+	v, err := New()
+	require.NoError(t, err)
+
+	body := `{invalid json}`
+	req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer test_key")
+
+	resp, valid := v.Validate(context.Background(), req)
+	require.False(t, valid, "expected invalid request")
+	require.Equal(t, "Bad Request", resp.Error.Title)
+	require.Contains(t, resp.Error.Detail, "Invalid JSON")
+}
+
+func TestValidate_UnknownPath_PassThrough(t *testing.T) {
+	v, err := New()
+	require.NoError(t, err)
+
+	// Unknown path should pass through (let router handle 404)
+	body := `{"foo": "bar"}`
+	req := httptest.NewRequest(http.MethodPost, "/unknown/path", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+
+	_, valid := v.Validate(context.Background(), req)
+	require.True(t, valid, "unknown path should pass through")
+}
+
+func TestValidate_EmptyBody_PassThrough(t *testing.T) {
+	v, err := New()
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", nil)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer test_key")
+
+	_, valid := v.Validate(context.Background(), req)
+	require.True(t, valid, "empty body should pass through")
+}
+
+func TestValidate_BodyResetForDownstream(t *testing.T) {
+	v, err := New()
+	require.NoError(t, err)
+
+	body := `{"keyId": "key_123abc", "roles": ["admin"]}`
+	req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer test_key")
+
+	_, valid := v.Validate(context.Background(), req)
 	require.True(t, valid)
-	require.Len(t, errors, 0)
+
+	// Body should be readable again after validation
+	readBody, err := io.ReadAll(req.Body)
+	require.NoError(t, err)
+	require.Equal(t, body, string(readBody))
+}
+
+func TestPathMatcher(t *testing.T) {
+	ops := map[string]*Operation{
+		"POST /v2/keys.setRoles": {
+			Method:      "POST",
+			Path:        "/v2/keys.setRoles",
+			OperationID: "keys.setRoles",
+		},
+	}
+
+	matcher := NewPathMatcher(ops)
+
+	op, found := matcher.Match("POST", "/v2/keys.setRoles")
+	require.True(t, found)
+	require.Equal(t, "keys.setRoles", op.OperationID)
+
+	op, found = matcher.Match("post", "/v2/keys.setRoles") // lowercase
+	require.True(t, found)
+	require.Equal(t, "keys.setRoles", op.OperationID)
+
+	_, found = matcher.Match("GET", "/v2/keys.setRoles")
+	require.False(t, found)
+
+	_, found = matcher.Match("POST", "/unknown")
+	require.False(t, found)
+}
+
+func TestFormatLocation(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"", "body"},
+		{"/", "body"},
+		{"/keyId", "body.keyId"},
+		{"/roles", "body.roles"},
+		{"/roles/0", "body.roles[0]"},
+		{"/roles/0/name", "body.roles[0].name"},
+		{"/data/items/1/value", "body.data.items[1].value"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := formatLocation(tt.input)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestValidate_AdditionalProperties(t *testing.T) {
+	v, err := New()
+	require.NoError(t, err)
+
+	// V2KeysSetRolesRequestBody has additionalProperties: false
+	body := `{"keyId": "key_123abc", "roles": ["admin"], "unknownField": "value"}`
+	req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer test_key")
+
+	resp, valid := v.Validate(context.Background(), req)
+	require.False(t, valid, "expected invalid request due to additional properties")
+	require.Equal(t, "Bad Request", resp.Error.Title)
+}
+
+func TestValidate_MissingAuthorizationHeader(t *testing.T) {
+	v, err := New()
+	require.NoError(t, err)
+
+	body := `{"keyId": "key_123abc", "roles": ["admin"]}`
+	req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	// No Authorization header
+
+	resp, valid := v.Validate(context.Background(), req)
+	require.False(t, valid, "expected invalid request due to missing auth")
+	require.Equal(t, "Bad Request", resp.Error.Title)
+	require.Contains(t, resp.Error.Detail, "Authorization header")
+	require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/missing", resp.Error.Type)
+}
+
+func TestValidate_MalformedAuthorizationHeader(t *testing.T) {
+	v, err := New()
+	require.NoError(t, err)
+
+	body := `{"keyId": "key_123abc", "roles": ["admin"]}`
+	req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Basic abc123") // Wrong scheme
+
+	resp, valid := v.Validate(context.Background(), req)
+	require.False(t, valid, "expected invalid request due to wrong auth scheme")
+	require.Equal(t, "Bad Request", resp.Error.Title)
+	require.Contains(t, resp.Error.Detail, "Bearer")
+	require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/malformed", resp.Error.Type)
+}
+
+func TestValidate_EmptyBearerToken(t *testing.T) {
+	v, err := New()
+	require.NoError(t, err)
+
+	body := `{"keyId": "key_123abc", "roles": ["admin"]}`
+	req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer ")
+
+	resp, valid := v.Validate(context.Background(), req)
+	require.False(t, valid, "expected invalid request due to empty token")
+	require.Equal(t, "Bad Request", resp.Error.Title)
+	require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/malformed", resp.Error.Type)
 }
