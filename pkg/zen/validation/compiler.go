@@ -222,8 +222,9 @@ func compileParameterSchema(compiler *jsonschema.Compiler, operationID, location
 
 // compileOperationSchema compiles the request schema for an operation
 func compileOperationSchema(compiler *jsonschema.Compiler, op *Operation) (*jsonschema.Schema, error) {
-	// If the schema has a $ref to a component schema, compile from the full spec
-	if ref, ok := op.RequestSchema["$ref"].(string); ok {
+	// If the schema has ONLY a $ref to a component schema (no siblings), compile from the full spec
+	// If there are sibling keys alongside $ref, we need to process the inline schema
+	if ref, ok := op.RequestSchema["$ref"].(string); ok && len(op.RequestSchema) == 1 {
 		// Transform "#/components/schemas/Name" to "file:///openapi.json#/components/schemas/Name"
 		if strings.HasPrefix(ref, "#/") {
 			resourceURL := "file:///openapi.json" + ref

@@ -134,7 +134,7 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 
 	// 6. Validate body
 	_, bodySpan := tracing.Start(ctx, "validation.ValidateBody")
-	result, valid := v.validateBody(ctx, r, op, compiledOp)
+	result, valid := v.validateBody(ctx, r, compiledOp)
 	bodySpan.End()
 	return result, valid
 }
