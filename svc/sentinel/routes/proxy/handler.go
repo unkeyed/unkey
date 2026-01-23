@@ -89,41 +89,41 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 	defer func() {
 		endTime := h.Clock.Now()
-		serviceLatency := endTime.Sub(startTime).Milliseconds()
+		totalLatency := endTime.Sub(startTime).Milliseconds()
 		var instanceLatency int64
-		var sentinelProcessingLatency int64
+		var sentinelLatency int64
 		if !instanceStart.IsZero() && !instanceEnd.IsZero() {
 			instanceLatency = instanceEnd.Sub(instanceStart).Milliseconds()
-			sentinelProcessingLatency = serviceLatency - instanceLatency
+			sentinelLatency = totalLatency - instanceLatency
 		}
 
 		h.ClickHouse.BufferSentinelRequest(schema.SentinelRequest{
-			RequestID:                 requestID,
-			Time:                      startTime.UnixMilli(),
-			WorkspaceID:               deployment.WorkspaceID,
-			EnvironmentID:             deployment.EnvironmentID,
-			ProjectID:                 deployment.ProjectID,
-			SentinelID:                h.SentinelID,
-			DeploymentID:              deploymentID,
-			InstanceID:                instance.ID,
-			InstanceAddress:           instance.Address,
-			Region:                    h.Region,
-			Method:                    strings.ToUpper(req.Method),
-			Host:                      req.Host,
-			Path:                      req.URL.Path,
-			QueryString:               req.URL.RawQuery,
-			QueryParams:               req.URL.Query(),
-			RequestHeaders:            formatHeaders(req.Header),
-			RequestBody:               string(requestBody),
-			ResponseStatus:            responseStatus,
-			ResponseHeaders:           responseHeaders,
-			ResponseBody:              string(responseBody),
-			Error:                     errorMsg,
-			UserAgent:                 req.UserAgent(),
-			IPAddress:                 getClientIP(req),
-			ServiceLatency:            serviceLatency,
-			InstanceLatency:           instanceLatency,
-			SentinelProcessingLatency: sentinelProcessingLatency,
+			RequestID:       requestID,
+			Time:            startTime.UnixMilli(),
+			WorkspaceID:     deployment.WorkspaceID,
+			EnvironmentID:   deployment.EnvironmentID,
+			ProjectID:       deployment.ProjectID,
+			SentinelID:      h.SentinelID,
+			DeploymentID:    deploymentID,
+			InstanceID:      instance.ID,
+			InstanceAddress: instance.Address,
+			Region:          h.Region,
+			Method:          strings.ToUpper(req.Method),
+			Host:            req.Host,
+			Path:            req.URL.Path,
+			QueryString:     req.URL.RawQuery,
+			QueryParams:     req.URL.Query(),
+			RequestHeaders:  formatHeaders(req.Header),
+			RequestBody:     string(requestBody),
+			ResponseStatus:  responseStatus,
+			ResponseHeaders: responseHeaders,
+			ResponseBody:    string(responseBody),
+			Error:           errorMsg,
+			UserAgent:       req.UserAgent(),
+			IPAddress:       getClientIP(req),
+			TotalLatency:    totalLatency,
+			InstanceLatency: instanceLatency,
+			SentinelLatency: sentinelLatency,
 		})
 	}()
 
@@ -214,6 +214,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	proxy.ServeHTTP(wrapper, req)
 
 	if err := wrapper.Error(); err != nil {
+		errorMsg = err.Error()
 		urn, message := categorizeProxyError(err)
 		return fault.Wrap(err,
 			fault.Code(urn),

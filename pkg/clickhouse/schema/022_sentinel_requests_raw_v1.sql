@@ -29,12 +29,12 @@ CREATE TABLE sentinel_requests_raw_v1 (
   error String,
   user_agent String,
   ip_address String,
-  -- Milliseconds - total latency
-  service_latency Int64,
+  -- Milliseconds - total end-to-end latency
+  total_latency Int64,
   -- Milliseconds - instance processing time
   instance_latency Int64,
   -- Milliseconds - sentinel overhead
-  sentinel_processing_latency Int64,
+  sentinel_latency Int64,
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_deployment_id (deployment_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_instance_id (instance_id) TYPE bloom_filter GRANULARITY 1

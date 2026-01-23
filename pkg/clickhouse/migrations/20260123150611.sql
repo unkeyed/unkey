@@ -23,9 +23,9 @@ CREATE TABLE `default`.`sentinel_requests_raw_v1` (
   `error` String,
   `user_agent` String,
   `ip_address` String,
-  `service_latency` Int64,
+  `total_latency` Int64,
   `instance_latency` Int64,
-  `sentinel_processing_latency` Int64,
+  `sentinel_latency` Int64,
   INDEX `idx_deployment_id` ((deployment_id)) TYPE bloom_filter GRANULARITY 1,
   INDEX `idx_instance_id` ((instance_id)) TYPE bloom_filter GRANULARITY 1,
   INDEX `idx_request_id` ((request_id)) TYPE bloom_filter GRANULARITY 1
