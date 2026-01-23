@@ -10,7 +10,6 @@ import (
 
 func TestIntegration_UsageLimit_Nodes01_Credits0100_Cost01_Load02_00_Duration030(t *testing.T) {
 
-
 	h := integration.New(t, integration.Config{
 		NumNodes: 1,
 	})
@@ -18,10 +17,10 @@ func TestIntegration_UsageLimit_Nodes01_Credits0100_Cost01_Load02_00_Duration030
 	run.RunUsageLimitTest(
 		t,
 		h,
-		100,           // total credits
-		1,         // cost per request
-		2,             // load factor
-		1,              // node count
-		30,    // test duration seconds
+		100, // total credits
+		1,   // cost per request
+		2,   // load factor
+		1,   // node count
+		30,  // test duration seconds
 	)
 }
