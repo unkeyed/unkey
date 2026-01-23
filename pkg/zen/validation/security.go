@@ -228,7 +228,7 @@ func ValidateBearerAuth(r *http.Request, requestID string) *openapi.BadRequestEr
 			},
 			Error: openapi.BadRequestErrorDetails{
 				Title:  "Bad Request",
-				Detail: "Authorization header must use Bearer scheme",
+				Detail: "You must provide a valid root key in the Authorization header in the format 'Bearer ROOT_KEY'. Your authorization header is missing the 'Bearer ' prefix.",
 				Status: http.StatusBadRequest,
 				Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
 				Errors: []openapi.ValidationError{

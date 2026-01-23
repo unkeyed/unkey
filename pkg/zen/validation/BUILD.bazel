@@ -45,24 +45,26 @@ go_test(
 )
 
 # Comparison benchmark test target (with old libopenapi validator)
-# Run with: bazel test //pkg/zen/validation:validation_comparison_test --test_arg=-test.bench=. --test_arg=-test.benchmem
-go_test(
-    name = "validation_comparison_test",
-    size = "medium",
-    srcs = [
-        "benchmark_comparison_old_test.go",
-        "benchmark_test.go",
-        "errors_test.go",
-        "matcher_test.go",
-        "security_test.go",
-        "validator_old.go",
-        "validator_test.go",
-    ],
-    embed = [":validation"],
-    gotags = ["benchmark_comparison"],
-    deps = [
-        "@com_github_pb33f_libopenapi//:libopenapi",
-        "@com_github_pb33f_libopenapi_validator//:libopenapi-validator",
-        "@com_github_stretchr_testify//require",
-    ],
-)
+# This target is DISABLED because libopenapi is not included as a dependency.
+# To run comparison benchmarks, see instructions in benchmark_comparison_old_test.go
+#
+# go_test(
+#     name = "validation_comparison_test",
+#     size = "medium",
+#     srcs = [
+#         "benchmark_comparison_old_test.go",
+#         "benchmark_test.go",
+#         "errors_test.go",
+#         "matcher_test.go",
+#         "security_test.go",
+#         "validator_old.go",
+#         "validator_test.go",
+#     ],
+#     embed = [":validation"],
+#     gotags = ["benchmark_comparison"],
+#     deps = [
+#         "@com_github_pb33f_libopenapi//:libopenapi",
+#         "@com_github_pb33f_libopenapi_validator//:libopenapi-validator",
+#         "@com_github_stretchr_testify//require",
+#     ],
+# )

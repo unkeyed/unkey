@@ -18,6 +18,7 @@ var openAPIKeywords = map[string]bool{
 	"readOnly":      true, // OpenAPI marks as read-only
 	"writeOnly":     true, // OpenAPI marks as write-only
 	"deprecated":    true, // OpenAPI deprecation flag
+	"nullable":      true, // OpenAPI 3.0 only - replaced by type: ["string", "null"] in 3.1
 }
 
 // CompiledOperation holds compiled schemas for an operation

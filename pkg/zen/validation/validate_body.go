@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/ctxutil"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -189,7 +190,10 @@ func (v *Validator) validateBody(ctx context.Context, r *http.Request, op *Opera
 	}
 
 	// Validate against the schema
-	if err := schema.Validate(data); err != nil {
+	_, schemaSpan := tracing.Start(ctx, "validation.SchemaValidate")
+	err = schema.Validate(data)
+	schemaSpan.End()
+	if err != nil {
 		return TransformErrors(err, requestID), false
 	}
 

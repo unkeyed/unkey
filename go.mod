@@ -62,8 +62,6 @@ require (
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/oasdiff/oasdiff v1.11.8
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/pb33f/libopenapi v0.21.12
-	github.com/pb33f/libopenapi-validator v0.4.2
 	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/restatedev/sdk-go v0.23.0
@@ -189,6 +187,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
+	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.4 // indirect
 	github.com/docker/go-units v0.5.0 // indirect

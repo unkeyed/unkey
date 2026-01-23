@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -56,9 +57,20 @@ func collectErrors(output *jsonschema.OutputUnit) []openapi.ValidationError {
 
 	// Process this unit's error if present
 	if output.Error != nil && !output.Valid {
-		location := FormatLocation("body", output.InstanceLocation)
+		// Extract keyword and field name once for reuse
+		keyword := extractKeyword(output.KeywordLocation)
 		message := output.Error.String()
-		fix := suggestFix(output.KeywordLocation, message)
+
+		// Try to get field name from KeywordLocation first, then from message
+		fieldName := extractFieldFromKeywordLocation(output.KeywordLocation)
+		if fieldName == "" {
+			// For required/additionalProperties errors, field name is in the message
+			fieldName = extractFieldFromMessage(keyword, message)
+		}
+
+		// Build location - append field name if at root for required/additionalProperties
+		location := buildLocationWithKeyword("body", output.InstanceLocation, keyword, fieldName)
+		fix := suggestFixWithKeyword(keyword, message, fieldName)
 
 		errors = append(errors, openapi.ValidationError{
 			Location: location,
@@ -86,53 +98,143 @@ func isArrayIndex(s string) bool {
 	return len(s) > 0
 }
 
-// suggestFix provides helpful suggestions based on the error type
-func suggestFix(keywordLocation, message string) *string {
-	// Extract the keyword from the location
-	// e.g., "/properties/keyId/type" -> "type"
+// extractKeyword extracts the keyword from a jsonschema keyword location
+// e.g., "/properties/keyId/type" -> "type"
+func extractKeyword(keywordLocation string) string {
 	parts := strings.Split(keywordLocation, "/")
-	keyword := ""
 	if len(parts) > 0 {
-		keyword = parts[len(parts)-1]
+		return parts[len(parts)-1]
 	}
+	return ""
+}
+
+// extractFieldFromKeywordLocation extracts the field name from a jsonschema keyword location
+// e.g., "/properties/query/required" -> "query"
+// e.g., "/properties/items/0/properties/name/type" -> "name"
+func extractFieldFromKeywordLocation(keywordLocation string) string {
+	parts := strings.Split(keywordLocation, "/")
+	// Look for "properties" and take the next segment (last occurrence)
+	lastFieldName := ""
+	for i, part := range parts {
+		if part == "properties" && i+1 < len(parts) {
+			lastFieldName = parts[i+1]
+		}
+	}
+	return lastFieldName
+}
+
+// buildLocation creates a user-friendly location string
+// For required errors at root level, includes the missing field name
+func buildLocation(prefix, instanceLocation, keywordLocation string) string {
+	keyword := extractKeyword(keywordLocation)
+	fieldName := extractFieldFromKeywordLocation(keywordLocation)
+	return buildLocationWithKeyword(prefix, instanceLocation, keyword, fieldName)
+}
+
+// buildLocationWithKeyword creates a user-friendly location string using pre-extracted values
+func buildLocationWithKeyword(prefix, instanceLocation, keyword, fieldName string) string {
+	// If we're at root and this is a required/additionalProperties error,
+	// include the field name in the location
+	if instanceLocation == "" || instanceLocation == "/" {
+		if keyword == "required" || keyword == "additionalProperties" {
+			if fieldName != "" {
+				return prefix + "." + fieldName
+			}
+		}
+	}
+	return FormatLocation(prefix, instanceLocation)
+}
+
+// suggestFix provides helpful suggestions based on the error type
+func suggestFix(keywordLocation, message, fieldName string) *string {
+	return suggestFixWithKeyword(extractKeyword(keywordLocation), message, fieldName)
+}
+
+// suggestFixWithKeyword provides helpful suggestions using a pre-extracted keyword
+func suggestFixWithKeyword(keyword, message, fieldName string) *string {
 
 	var fix string
 
 	switch keyword {
 	case "required":
-		// Extract field name from message if possible
-		fix = "Add the missing required field to your request"
+		if fieldName != "" {
+			fix = fmt.Sprintf("Add the '%s' field to your request body", fieldName)
+		} else {
+			fix = "Add the missing required field to your request"
+		}
 
 	case "type":
-		fix = "Ensure the field has the correct data type"
+		expectedType := extractExpectedType(message)
+		if fieldName != "" && expectedType != "" {
+			fix = fmt.Sprintf("The '%s' field must be a %s", fieldName, expectedType)
+		} else if fieldName != "" {
+			fix = fmt.Sprintf("The '%s' field has an incorrect data type", fieldName)
+		} else {
+			fix = "Ensure the field has the correct data type"
+		}
 
 	case "minLength":
-		fix = "Provide a longer value"
+		if fieldName != "" {
+			fix = fmt.Sprintf("The '%s' field value is too short", fieldName)
+		} else {
+			fix = "Provide a longer value"
+		}
 
 	case "maxLength":
-		fix = "Provide a shorter value"
+		if fieldName != "" {
+			fix = fmt.Sprintf("The '%s' field value is too long", fieldName)
+		} else {
+			fix = "Provide a shorter value"
+		}
 
 	case "pattern":
-		fix = "Ensure the value matches the required format"
+		if fieldName != "" {
+			fix = fmt.Sprintf("The '%s' field does not match the required format", fieldName)
+		} else {
+			fix = "Ensure the value matches the required format"
+		}
 
 	case "enum":
-		fix = "Use one of the allowed values"
+		if fieldName != "" {
+			fix = fmt.Sprintf("The '%s' field must be one of the allowed values", fieldName)
+		} else {
+			fix = "Use one of the allowed values"
+		}
 
 	case "minimum":
-		fix = "Provide a larger value"
+		if fieldName != "" {
+			fix = fmt.Sprintf("The '%s' field value is too small", fieldName)
+		} else {
+			fix = "Provide a larger value"
+		}
 
 	case "maximum":
-		fix = "Provide a smaller value"
+		if fieldName != "" {
+			fix = fmt.Sprintf("The '%s' field value is too large", fieldName)
+		} else {
+			fix = "Provide a smaller value"
+		}
 
 	case "minItems":
-		fix = "Add more items to the array"
+		if fieldName != "" {
+			fix = fmt.Sprintf("The '%s' array has too few items", fieldName)
+		} else {
+			fix = "Add more items to the array"
+		}
 
 	case "maxItems":
-		fix = "Remove some items from the array"
+		if fieldName != "" {
+			fix = fmt.Sprintf("The '%s' array has too many items", fieldName)
+		} else {
+			fix = "Remove some items from the array"
+		}
 
 	case "additionalProperties":
-		// Try to extract the unknown field name
-		fix = "Remove the unknown field from your request"
+		if fieldName != "" {
+			fix = fmt.Sprintf("Remove the '%s' field - it is not allowed", fieldName)
+		} else {
+			fix = "Remove the unknown field from your request"
+		}
 
 	default:
 		// Don't provide a fix for unknown keywords
@@ -140,6 +242,52 @@ func suggestFix(keywordLocation, message string) *string {
 	}
 
 	return &fix
+}
+
+// extractFieldFromMessage extracts a field name from error messages
+// e.g., "missing property 'query'" -> "query"
+// e.g., "additionalProperties 'foo' not allowed" -> "foo"
+func extractFieldFromMessage(keyword, message string) string {
+	switch keyword {
+	case "required":
+		// Handle "missing property 'fieldName'" format
+		if idx := strings.Index(message, "'"); idx != -1 {
+			end := strings.Index(message[idx+1:], "'")
+			if end != -1 {
+				return message[idx+1 : idx+1+end]
+			}
+		}
+	case "additionalProperties":
+		// Handle "additionalProperties 'fieldName' not allowed" format
+		if idx := strings.Index(message, "'"); idx != -1 {
+			end := strings.Index(message[idx+1:], "'")
+			if end != -1 {
+				return message[idx+1 : idx+1+end]
+			}
+		}
+	}
+	return ""
+}
+
+// extractExpectedType extracts the expected type from an error message
+// e.g., "expected string, got number" -> "string"
+// e.g., "got string, want number" -> "number"
+func extractExpectedType(message string) string {
+	// Handle "expected X, got Y" format
+	if strings.HasPrefix(message, "expected ") {
+		parts := strings.SplitN(message, ",", 2)
+		if len(parts) >= 1 {
+			return strings.TrimPrefix(parts[0], "expected ")
+		}
+	}
+	// Handle "got X, want Y" format
+	if strings.Contains(message, ", want ") {
+		parts := strings.SplitN(message, ", want ", 2)
+		if len(parts) == 2 {
+			return parts[1]
+		}
+	}
+	return ""
 }
 
 // FormatLocation formats a JSON pointer with an optional prefix for consistent location strings
