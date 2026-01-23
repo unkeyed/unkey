@@ -1,15 +1,17 @@
-//go:build benchmark_comparison
+//go:build ignore
 
 package validation
 
 // This file contains the old libopenapi-based validator implementation.
-// It is excluded from normal builds (requires -tags=benchmark_comparison).
+// It is IGNORED by default and kept only as documentation/reference.
 //
-// To run comparison benchmarks:
-//   bazel run //pkg/zen/validation:validation_test -- -test.bench=BenchmarkComparison -test.benchmem -tags=benchmark_comparison
-//
-// Or with go test directly:
-//   go test -bench=BenchmarkComparison -benchmem -tags=benchmark_comparison
+// To run comparison benchmarks, you must:
+// 1. Change the build tag above from "ignore" to "benchmark_comparison"
+// 2. Add libopenapi to go.mod:
+//      go get github.com/pb33f/libopenapi@v0.21.12
+//      go get github.com/pb33f/libopenapi-validator@v0.4.2
+// 3. Uncomment the validation_comparison_test target in BUILD.bazel
+// 4. Run: bazel run //pkg/zen/validation:validation_comparison_test -- -test.bench=. -test.benchmem
 
 import (
 	"bytes"

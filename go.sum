@@ -565,10 +565,6 @@ github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b/go.mo
 github.com/paulmach/orb v0.12.0 h1:z+zOwjmG3MyEEqzv92UN49Lg1JFYx0L9GpGKNVDKk1s=
 github.com/paulmach/orb v0.12.0/go.mod h1:5mULz1xQfs3bmQm63QEJA6lNGujuRafwA5S/EnuLaLU=
 github.com/paulmach/protoscan v0.2.1/go.mod h1:SpcSwydNLrxUGSDvXvO0P7g7AuhJ7lcKfDlhJCDw2gY=
-github.com/pb33f/libopenapi v0.21.12 h1:ityKYYWjiirJlz+slNaVF2NGfVF4Zn32H6CQEcrZQhg=
-github.com/pb33f/libopenapi v0.21.12/go.mod h1:utT5sD2/mnN7YK68FfZT5yEPbI1wwRBpSS4Hi0oOrBU=
-github.com/pb33f/libopenapi-validator v0.4.2 h1:PIeAFIx4dKbsEYplGRnUeJh92M0edixNRKEVtYsdcwo=
-github.com/pb33f/libopenapi-validator v0.4.2/go.mod h1:U2TUsVSmZ54WxvJc4jCktGJgnSQpZZgMmjQnnyIRCjs=
 github.com/pelletier/go-toml v1.9.5 h1:4yBQzkHv+7BHq2PQUZF3Mx0IYxG7LsP222s7Agd3ve8=
 github.com/pelletier/go-toml v1.9.5/go.mod h1:u1nR/EPcESfeI/szUZKdtJ0xRNbUoANCkoOuaOx1Y+c=
 github.com/pelletier/go-toml/v2 v2.2.4 h1:mye9XuhQ6gvn5h28+VilKrrPoQVanw5PMw/TB0t5Ec4=

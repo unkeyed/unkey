@@ -185,7 +185,13 @@ func collectParamErrors(output *jsonschema.OutputUnit, location, paramName strin
 		loc := FormatLocation(location+"."+paramName, output.InstanceLocation)
 
 		message := output.Error.String()
-		fix := suggestFix(output.KeywordLocation, message)
+		// For parameter errors, we use the paramName as the field name
+		// or extract from KeywordLocation if nested
+		fieldName := extractFieldFromKeywordLocation(output.KeywordLocation)
+		if fieldName == "" {
+			fieldName = paramName
+		}
+		fix := suggestFix(output.KeywordLocation, message, fieldName)
 
 		errors = append(errors, openapi.ValidationError{
 			Location: loc,
