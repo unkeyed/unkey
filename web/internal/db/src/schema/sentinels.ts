@@ -19,9 +19,7 @@ import { workspaces } from "./workspaces";
 export const sentinels = mysqlTable(
   "sentinels",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true })
-      .autoincrement()
-      .primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: varchar("id", { length: 64 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
