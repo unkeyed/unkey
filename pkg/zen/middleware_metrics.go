@@ -2,7 +2,6 @@ package zen
 
 import (
 	"context"
-	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -42,6 +41,22 @@ func redact(in []byte) []byte {
 	return b
 }
 
+var skipHeaders = map[string]bool{
+	"x-forwarded-proto": true,
+	"x-forwarded-port":  true,
+	"x-forwarded-for":   true,
+	"x-amzn-trace-id":   true,
+}
+
+func formatHeader(key, value string) string {
+	var b strings.Builder
+	b.Grow(len(key) + 2 + len(value))
+	b.WriteString(key)
+	b.WriteString(": ")
+	b.WriteString(value)
+	return b.String()
+}
+
 // WithMetrics returns middleware that collects metrics about each request,
 // including request counts, latencies, and status codes.
 //
@@ -64,23 +79,21 @@ func WithMetrics(eventBuffer EventBuffer, info InstanceInfo) Middleware {
 			if s.ShouldLogRequestToClickHouse() {
 				requestHeaders := []string{}
 				for k, vv := range s.r.Header {
-					if strings.ToLower(k) == "authorization" {
-						requestHeaders = append(requestHeaders, fmt.Sprintf("%s: %s", k, "[REDACTED]"))
+					lk := strings.ToLower(k)
+					if skipHeaders[lk] {
+						continue
+					}
+
+					if lk == "authorization" {
+						requestHeaders = append(requestHeaders, formatHeader(k, "[REDACTED]"))
 					} else {
-						requestHeaders = append(requestHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
+						requestHeaders = append(requestHeaders, formatHeader(k, strings.Join(vv, ",")))
 					}
 				}
 
 				responseHeaders := []string{}
 				for k, vv := range s.w.Header() {
-					responseHeaders = append(responseHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
-				}
-
-				// https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/x-forwarded-headers.html#x-forwarded-for
-				ips := strings.Split(s.r.Header.Get("X-Forwarded-For"), ",")
-				ipAddress := ""
-				if len(ips) > 0 {
-					ipAddress = ips[0]
+					responseHeaders = append(responseHeaders, formatHeader(k, strings.Join(vv, ",")))
 				}
 
 				eventBuffer.BufferApiRequest(schema.ApiRequest{
@@ -100,10 +113,11 @@ func WithMetrics(eventBuffer EventBuffer, info InstanceInfo) Middleware {
 					Error:           s.InternalError(),
 					ServiceLatency:  serviceLatency.Milliseconds(),
 					UserAgent:       s.r.Header.Get("User-Agent"),
-					IpAddress:       ipAddress,
+					IpAddress:       s.Location(),
 					Region:          info.Region,
 				})
 			}
+
 			return nextErr
 		}
 	}

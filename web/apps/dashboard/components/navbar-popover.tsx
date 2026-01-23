@@ -56,14 +56,14 @@ export const QuickNavPopover = ({
   // Only apply scrolling if items exceed threshold
   const shouldScroll = items.length > 6;
 
-  const rowVirtualizer = useVirtual
-    ? useVirtualizer({
-        count: items.length,
-        getScrollElement: () => listRef.current,
-        estimateSize: () => 32,
-        overscan: 5,
-      })
-    : null;
+  // Always call useVirtualizer unconditionally (Rules of Hooks)
+  // We'll use the useVirtual boolean to determine whether to use its result
+  const rowVirtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => listRef.current,
+    estimateSize: () => 32,
+    overscan: 5,
+  });
 
   useKeyboardShortcut(`option+shift+${shortcutKey}`, () => {
     setOpen((prev) => !prev);
@@ -123,10 +123,10 @@ export const QuickNavPopover = ({
 
   // Scroll to focused item when using virtualization
   useEffect(() => {
-    if (focusedIndex !== null && rowVirtualizer) {
+    if (focusedIndex !== null && useVirtual && rowVirtualizer) {
       rowVirtualizer.scrollToIndex(focusedIndex, { align: "auto" });
     }
-  }, [focusedIndex, rowVirtualizer]);
+  }, [focusedIndex, useVirtual, rowVirtualizer]);
 
   // Set initial focus when opening popover
   useEffect(() => {
