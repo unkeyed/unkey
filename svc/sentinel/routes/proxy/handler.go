@@ -74,7 +74,6 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		return err
 	}
 
-	// Capture request body for logging (zen already applied size limit in session.Init)
 	if req.Body != nil {
 		requestBody, err = io.ReadAll(req.Body)
 		if err != nil {
