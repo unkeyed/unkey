@@ -12,7 +12,7 @@ const (
 	runtimeClassGvisor = "gvisor"
 
 	// fieldManagerKrane identifies krane as the server-side apply field manager,
-	// enabling conflict-free concurrent updates from multiple sources.
+	// so field ownership/conflict detection is tracked per manager.
 	fieldManagerKrane = "krane"
 
 	// CustomerNodeClass is the Karpenter nodepool name for untrusted customer
