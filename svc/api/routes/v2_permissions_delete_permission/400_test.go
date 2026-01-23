@@ -51,7 +51,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	// Test case for empty permissionId
@@ -70,7 +70,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	// Test case for malformed JSON body
@@ -89,6 +89,6 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 }

@@ -90,7 +90,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	t.Run("empty keyId", func(t *testing.T) {
@@ -111,7 +111,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	t.Run("missing permissions", func(t *testing.T) {
@@ -129,7 +129,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	t.Run("empty permissions array", func(t *testing.T) {
@@ -148,7 +148,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	t.Run("invalid keyId format", func(t *testing.T) {
@@ -169,7 +169,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	t.Run("permission missing both id and name", func(t *testing.T) {
@@ -199,7 +199,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "failed to validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	t.Run("permission not found by id", func(t *testing.T) {

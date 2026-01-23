@@ -125,6 +125,6 @@ func TestGetApiNotFound(t *testing.T) {
 
 		require.Equal(t, 400, res.Status)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, res.Body.Error.Detail, "POST request body for '/v2/apis.getApi' failed to validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 }

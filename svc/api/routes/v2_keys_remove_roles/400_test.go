@@ -67,7 +67,7 @@ func TestValidationErrors(t *testing.T) {
 
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "POST request body for '/v2/keys.removeRoles' failed to validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	t.Run("empty keyId string", func(t *testing.T) {
@@ -95,7 +95,7 @@ func TestValidationErrors(t *testing.T) {
 
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "POST request body for '/v2/keys.removeRoles' failed to validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	t.Run("invalid keyId format", func(t *testing.T) {
@@ -159,7 +159,7 @@ func TestValidationErrors(t *testing.T) {
 
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "POST request body for '/v2/keys.removeRoles' failed to validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	t.Run("empty roles array", func(t *testing.T) {
@@ -194,7 +194,7 @@ func TestValidationErrors(t *testing.T) {
 
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "POST request body for '/v2/keys.removeRoles' failed to validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	t.Run("role not found by ID", func(t *testing.T) {

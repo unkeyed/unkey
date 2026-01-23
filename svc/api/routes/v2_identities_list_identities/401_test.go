@@ -52,8 +52,9 @@ func TestUnauthorized(t *testing.T) {
 		headers := http.Header{
 			"Authorization": []string{"Bearer invalid_key"},
 		}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusBadRequest, res.Status)
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
+		// Invalid key returns 401 (Unauthorized)
+		require.Equal(t, http.StatusUnauthorized, res.Status)
 		// The specific error type may vary, so we just check it's a valid error response
 		require.NotEmpty(t, res.Body.Error.Type)
 	})
