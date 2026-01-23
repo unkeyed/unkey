@@ -598,7 +598,6 @@ CREATE INDEX `status_idx` ON `deployments` (`status`);
 CREATE INDEX `workspace_idx` ON `deployment_topology` (`workspace_id`);
 CREATE INDEX `region_idx` ON `deployment_topology` (`region`);
 CREATE INDEX `status_idx` ON `deployment_topology` (`desired_status`);
-CREATE INDEX `region_version_idx` ON `deployment_topology` (`region`,`version`);
 CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `custom_domains` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);

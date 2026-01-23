@@ -4,7 +4,6 @@ go_library(
     name = "ctrl",
     srcs = [
         "acme.pb.go",
-        "build.pb.go",
         "cluster.pb.go",
         "deployment.pb.go",
         "environment.pb.go",

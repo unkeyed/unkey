@@ -4,9 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"connectrpc.com/connect"
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -14,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -24,10 +20,9 @@ type (
 )
 
 type Handler struct {
-	Logger     logging.Logger
-	DB         db.Database
-	Keys       keys.KeyService
-	CtrlClient ctrlv1connect.DeploymentServiceClient
+	Logger logging.Logger
+	DB     db.Database
+	Keys   keys.KeyService
 }
 
 func (h *Handler) Path() string {
@@ -50,7 +45,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	dbDeployment, err := db.Query.FindDeploymentById(ctx, h.DB.RO(), req.DeploymentId)
+	deployment, err := db.Query.FindDeploymentById(ctx, h.DB.RO(), req.DeploymentId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("deployment not found",
@@ -63,7 +58,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Verify deployment belongs to the authenticated workspace
-	if dbDeployment.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if deployment.WorkspaceID != auth.AuthorizedWorkspaceID {
 		return fault.New("wrong workspace",
 			fault.Code(codes.Data.Project.NotFound.URN()),
 			fault.Internal("wrong workspace, masking as 404"),
@@ -72,7 +67,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Extract projectID from deployment
-	projectID := dbDeployment.ProjectID
+	projectID := deployment.ProjectID
 
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
@@ -90,74 +85,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	ctrlReq := &ctrlv1.GetDeploymentRequest{
-		DeploymentId: req.DeploymentId,
-	}
-	connectReq := connect.NewRequest(ctrlReq)
-
-	ctrlResp, err := h.CtrlClient.GetDeployment(ctx, connectReq)
-	if err != nil {
-		return ctrlclient.HandleError(err, "get deployment")
-	}
-
-	deployment := ctrlResp.Msg.GetDeployment()
-
-	// Transform status enum to string
-	statusStr := deploymentStatusToString(deployment.GetStatus())
-
-	// Transform steps
-	var steps *[]openapi.V2DeployDeploymentStep
-	if deployment.GetSteps() != nil {
-		stepsSlice := make([]openapi.V2DeployDeploymentStep, len(deployment.GetSteps()))
-		for i, protoStep := range deployment.GetSteps() {
-			step := openapi.V2DeployDeploymentStep{
-				ErrorMessage: nil,
-				CreatedAt:    nil,
-				Message:      nil,
-				Status:       nil,
-			}
-
-			if protoStep.GetStatus() != "" {
-				status := protoStep.GetStatus()
-				step.Status = &status
-			}
-			if protoStep.GetMessage() != "" {
-				message := protoStep.GetMessage()
-				step.Message = &message
-			}
-			if protoStep.GetErrorMessage() != "" {
-				errMessage := protoStep.GetErrorMessage()
-				step.ErrorMessage = &errMessage
-			}
-			if protoStep.GetCreatedAt() != 0 {
-				createdAt := protoStep.GetCreatedAt()
-				step.CreatedAt = &createdAt
-			}
-			stepsSlice[i] = step
-		}
-		steps = &stepsSlice
-	}
-
+	// Build response directly from database model
 	responseData := openapi.V2DeployGetDeploymentResponseData{
-		Id:           deployment.GetId(),
-		Status:       openapi.V2DeployGetDeploymentResponseDataStatus(statusStr),
+		Id:           deployment.ID,
+		Status:       dbStatusToOpenAPI(deployment.Status),
 		Steps:        nil,
 		ErrorMessage: nil,
 		Hostnames:    nil,
 	}
 
-	if deployment.GetErrorMessage() != "" {
-		errorMessage := deployment.GetErrorMessage()
-		responseData.ErrorMessage = &errorMessage
-	}
-
-	if len(deployment.GetHostnames()) > 0 {
-		hostnames := deployment.GetHostnames()
+	// Fetch hostnames from frontline routes
+	routes, routesErr := db.Query.FindFrontlineRoutesByDeploymentID(ctx, h.DB.RO(), req.DeploymentId)
+	if routesErr != nil {
+		h.Logger.Warn("failed to fetch frontline routes for deployment", "error", routesErr, "deployment_id", deployment.ID)
+	} else if len(routes) > 0 {
+		hostnames := make([]string, len(routes))
+		for i, route := range routes {
+			hostnames[i] = route.FullyQualifiedDomainName
+		}
 		responseData.Hostnames = &hostnames
-	}
-
-	if steps != nil {
-		responseData.Steps = steps
 	}
 
 	return s.JSON(http.StatusOK, Response{
@@ -168,23 +114,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-func deploymentStatusToString(status ctrlv1.DeploymentStatus) string {
+func dbStatusToOpenAPI(status db.DeploymentsStatus) openapi.V2DeployGetDeploymentResponseDataStatus {
 	switch status {
-	case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED:
-		return "UNSPECIFIED"
-	case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING:
-		return "PENDING"
-	case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_BUILDING:
-		return "BUILDING"
-	case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_DEPLOYING:
-		return "DEPLOYING"
-	case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_NETWORK:
-		return "NETWORK"
-	case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY:
-		return "READY"
-	case ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED:
-		return "FAILED"
+	case db.DeploymentsStatusPending:
+		return openapi.PENDING
+	case db.DeploymentsStatusBuilding:
+		return openapi.BUILDING
+	case db.DeploymentsStatusDeploying:
+		return openapi.DEPLOYING
+	case db.DeploymentsStatusNetwork:
+		return openapi.NETWORK
+	case db.DeploymentsStatusReady:
+		return openapi.READY
+	case db.DeploymentsStatusFailed:
+		return openapi.FAILED
 	default:
-		return "UNSPECIFIED"
+		return openapi.UNSPECIFIED
 	}
 }
