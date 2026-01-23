@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "prometheus",
-    srcs = ["server.go"],
+    srcs = [
+        "doc.go",
+        "server.go",
+    ],
     importpath = "github.com/unkeyed/unkey/pkg/prometheus",
     visibility = ["//visibility:public"],
     deps = [
