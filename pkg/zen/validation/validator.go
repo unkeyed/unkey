@@ -51,7 +51,7 @@ func New() (*Validator, error) {
 
 // Validate validates an HTTP request against the OpenAPI spec
 func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadRequestErrorResponse, bool) {
-	_, validationSpan := tracing.Start(ctx, "openapi.Validate")
+	ctx, validationSpan := tracing.Start(ctx, "openapi.Validate")
 	defer validationSpan.End()
 
 	requestID := ctxutil.GetRequestID(ctx)
@@ -67,8 +67,11 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 	op := matchResult.Operation
 
 	// 2. Validate security (fail fast)
-	if err := v.validateSecurity(r, op.Security, requestID); err != nil {
-		return *err, false
+	_, secSpan := tracing.Start(ctx, "validation.ValidateSecurity")
+	secErr := v.validateSecurity(r, op.Security, requestID)
+	secSpan.End()
+	if secErr != nil {
+		return *secErr, false
 	}
 
 	// 3. Get compiled operation schemas
@@ -76,8 +79,11 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 
 	// 4. Validate content-type for requests with body
 	if r.ContentLength > 0 || r.Body != nil {
-		if err := v.validateContentType(r, compiledOp, requestID); err != nil {
-			return *err, false
+		_, ctSpan := tracing.Start(ctx, "validation.ValidateContentType")
+		ctErr := v.validateContentType(r, compiledOp, requestID)
+		ctSpan.End()
+		if ctErr != nil {
+			return *ctErr, false
 		}
 	}
 
@@ -86,16 +92,24 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 	if compiledOp != nil {
 		// Validate path parameters
 		if len(compiledOp.Parameters.Path) > 0 && matchResult.PathParams != nil {
+			_, pathSpan := tracing.Start(ctx, "validation.ValidatePathParams")
 			paramErrors = append(paramErrors, v.validatePathParams(matchResult.PathParams, compiledOp.Parameters.Path)...)
+			pathSpan.End()
 		}
 		if len(compiledOp.Parameters.Query) > 0 {
+			_, querySpan := tracing.Start(ctx, "validation.ValidateQueryParams")
 			paramErrors = append(paramErrors, v.validateQueryParams(r, compiledOp.Parameters.Query)...)
+			querySpan.End()
 		}
 		if len(compiledOp.Parameters.Header) > 0 {
+			_, headerSpan := tracing.Start(ctx, "validation.ValidateHeaders")
 			paramErrors = append(paramErrors, v.validateHeaderParams(r, compiledOp.Parameters.Header)...)
+			headerSpan.End()
 		}
 		if len(compiledOp.Parameters.Cookie) > 0 {
+			_, cookieSpan := tracing.Start(ctx, "validation.ValidateCookies")
 			paramErrors = append(paramErrors, v.validateCookieParams(r, compiledOp.Parameters.Cookie)...)
+			cookieSpan.End()
 		}
 	}
 
@@ -119,7 +133,10 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 	}
 
 	// 6. Validate body
-	return v.validateBody(ctx, r, op, compiledOp)
+	_, bodySpan := tracing.Start(ctx, "validation.ValidateBody")
+	result, valid := v.validateBody(ctx, r, op, compiledOp)
+	bodySpan.End()
+	return result, valid
 }
 
 // validateSecurity validates security requirements for the operation

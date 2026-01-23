@@ -39,7 +39,7 @@ func Bearer(s *Session) (string, error) {
 	header = strings.TrimSpace(header)
 	if !strings.HasPrefix(header, "Bearer ") {
 		return "", fault.New("invalid format", fault.Code(codes.Auth.Authentication.Malformed.URN()),
-			fault.Internal("missing bearer prefix"), fault.Public("Your authorization header is missing the 'Bearer ' prefix."))
+			fault.Internal("missing bearer prefix"), fault.Public("You must provide a valid root key in the Authorization header in the format 'Bearer ROOT_KEY'. Your authorization header is missing the 'Bearer ' prefix."))
 	}
 
 	bearer := strings.TrimPrefix(header, "Bearer ")
