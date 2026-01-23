@@ -39,7 +39,7 @@ var workerCmd = &cli.Command{
 		cli.String("auth-token", "Authentication token for worker API access.",
 			cli.EnvVar("UNKEY_AUTH_TOKEN")),
 
-		cli.String("vault-url", "Url where vault is availab;e",
+		cli.String("vault-url", "Url where vault is available",
 			cli.EnvVar("UNKEY_VAULT_URL"), cli.Default("https://vault.unkey.cloud")),
 
 		cli.String("vault-token", "Authentication for vault",
