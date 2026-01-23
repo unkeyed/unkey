@@ -2,7 +2,6 @@ package validation
 
 import (
 	"net/http"
-	"regexp"
 	"strings"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
@@ -57,7 +56,7 @@ func collectErrors(output *jsonschema.OutputUnit) []openapi.ValidationError {
 
 	// Process this unit's error if present
 	if output.Error != nil && !output.Valid {
-		location := formatLocation(output.InstanceLocation)
+		location := FormatLocation("body", output.InstanceLocation)
 		message := output.Error.String()
 		fix := suggestFix(output.KeywordLocation, message)
 
@@ -75,41 +74,6 @@ func collectErrors(output *jsonschema.OutputUnit) []openapi.ValidationError {
 	}
 
 	return errors
-}
-
-// formatLocation converts JSON pointer format to dot notation
-// e.g., "/roles/0/name" -> "body.roles[0].name"
-func formatLocation(jsonPointer string) string {
-	if jsonPointer == "" || jsonPointer == "/" {
-		return "body"
-	}
-
-	// Remove leading slash
-	path := strings.TrimPrefix(jsonPointer, "/")
-
-	// Split by slashes
-	parts := strings.Split(path, "/")
-
-	var result strings.Builder
-	result.WriteString("body")
-
-	for _, part := range parts {
-		if part == "" {
-			continue
-		}
-
-		// Check if it's an array index (pure digits)
-		if isArrayIndex(part) {
-			result.WriteString("[")
-			result.WriteString(part)
-			result.WriteString("]")
-		} else {
-			result.WriteString(".")
-			result.WriteString(part)
-		}
-	}
-
-	return result.String()
 }
 
 // isArrayIndex checks if a string represents an array index
@@ -178,13 +142,34 @@ func suggestFix(keywordLocation, message string) *string {
 	return &fix
 }
 
-// extractFieldFromMessage attempts to extract a field name from an error message
-var requiredFieldRegex = regexp.MustCompile(`missing properties: '([^']+)'`)
-
-func extractFieldFromMessage(message string) string {
-	matches := requiredFieldRegex.FindStringSubmatch(message)
-	if len(matches) > 1 {
-		return matches[1]
+// FormatLocation formats a JSON pointer with an optional prefix for consistent location strings
+// e.g., FormatLocation("query", "/0") -> "query[0]"
+// e.g., FormatLocation("body", "/roles/0/name") -> "body.roles[0].name"
+func FormatLocation(prefix, jsonPointer string) string {
+	if jsonPointer == "" || jsonPointer == "/" {
+		return prefix
 	}
-	return ""
+
+	// Remove leading slash
+	path := strings.TrimPrefix(jsonPointer, "/")
+	parts := strings.Split(path, "/")
+
+	var result strings.Builder
+	result.WriteString(prefix)
+
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+		if isArrayIndex(part) {
+			result.WriteString("[")
+			result.WriteString(part)
+			result.WriteString("]")
+		} else {
+			result.WriteString(".")
+			result.WriteString(part)
+		}
+	}
+
+	return result.String()
 }
