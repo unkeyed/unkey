@@ -42,6 +42,14 @@ func redact(in []byte) []byte {
 	return b
 }
 
+// Headers to skip when logging - these are infrastructure headers that add noise
+var skipHeaders = map[string]bool{
+	"x-forwarded-proto": true,
+	"x-forwarded-port":  true,
+	"x-forwarded-for":   true, // Already extracted as IpAddress
+	"x-amzn-trace-id":   true,
+}
+
 // WithMetrics returns middleware that collects metrics about each request,
 // including request counts, latencies, and status codes.
 //
@@ -64,7 +72,11 @@ func WithMetrics(eventBuffer EventBuffer, info InstanceInfo) Middleware {
 			if s.ShouldLogRequestToClickHouse() {
 				requestHeaders := []string{}
 				for k, vv := range s.r.Header {
-					if strings.ToLower(k) == "authorization" {
+					lk := strings.ToLower(k)
+					if skipHeaders[lk] {
+						continue
+					}
+					if lk == "authorization" {
 						requestHeaders = append(requestHeaders, fmt.Sprintf("%s: %s", k, "[REDACTED]"))
 					} else {
 						requestHeaders = append(requestHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
@@ -76,12 +88,7 @@ func WithMetrics(eventBuffer EventBuffer, info InstanceInfo) Middleware {
 					responseHeaders = append(responseHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
 				}
 
-				// https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/x-forwarded-headers.html#x-forwarded-for
-				ips := strings.Split(s.r.Header.Get("X-Forwarded-For"), ",")
-				ipAddress := ""
-				if len(ips) > 0 {
-					ipAddress = ips[0]
-				}
+				ipAddress := s.Location()
 
 				eventBuffer.BufferApiRequest(schema.ApiRequest{
 					WorkspaceID:     s.WorkspaceID,
