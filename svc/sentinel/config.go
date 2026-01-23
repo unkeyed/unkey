@@ -24,6 +24,8 @@ type Config struct {
 	DatabasePrimary         string
 	DatabaseReadonlyReplica string
 
+	ClickhouseURL string
+
 	OtelEnabled           bool
 	OtelTraceSamplingRate float64
 	PrometheusPort        int

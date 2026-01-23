@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/svc/sentinel/services/router"
@@ -13,4 +14,5 @@ type Services struct {
 	Clock         clock.Clock
 	EnvironmentID string
 	Region        string
+	ClickHouse    clickhouse.ClickHouse
 }

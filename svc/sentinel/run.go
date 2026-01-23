@@ -7,6 +7,7 @@ import (
 	"net"
 	"runtime/debug"
 
+	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel"
@@ -103,6 +104,18 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	shutdowns.Register(database.Close)
 
+	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
+	if cfg.ClickhouseURL != "" {
+		ch, err = clickhouse.New(clickhouse.Config{
+			URL:    cfg.ClickhouseURL,
+			Logger: logger,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create clickhouse: %w", err)
+		}
+		shutdowns.Register(ch.Close)
+	}
+
 	routerSvc, err := router.New(router.Config{
 		Logger:        logger,
 		DB:            database,
@@ -120,6 +133,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clock:         clk,
 		EnvironmentID: cfg.EnvironmentID,
 		Region:        cfg.Region,
+		ClickHouse:    ch,
 	}
 
 	srv, err := zen.New(zen.Config{
