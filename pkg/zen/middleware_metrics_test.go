@@ -368,64 +368,64 @@ func TestWithMetrics_IPAddressExtraction(t *testing.T) {
 	logger := logging.New()
 
 	tests := []struct {
-		name           string
-		xForwardedFor  string
-		remoteAddr     string
-		expectedIP     string
+		name          string
+		xForwardedFor string
+		remoteAddr    string
+		expectedIP    string
 	}{
 		{
-			name:           "X-Forwarded-For with single IP (no port)",
-			xForwardedFor:  "192.168.1.1",
-			remoteAddr:     "10.0.0.1:12345",
-			expectedIP:     "192.168.1.1",
+			name:          "X-Forwarded-For with single IP (no port)",
+			xForwardedFor: "192.168.1.1",
+			remoteAddr:    "10.0.0.1:12345",
+			expectedIP:    "192.168.1.1",
 		},
 		{
-			name:           "X-Forwarded-For with IP:port format strips port",
-			xForwardedFor:  "192.168.1.1:8080",
-			remoteAddr:     "10.0.0.1:12345",
-			expectedIP:     "192.168.1.1",
+			name:          "X-Forwarded-For with IP:port format strips port",
+			xForwardedFor: "192.168.1.1:8080",
+			remoteAddr:    "10.0.0.1:12345",
+			expectedIP:    "192.168.1.1",
 		},
 		{
-			name:           "X-Forwarded-For with multiple IPs (comma-separated)",
-			xForwardedFor:  "192.168.1.1, 10.0.0.2, 172.16.0.3",
-			remoteAddr:     "10.0.0.1:12345",
-			expectedIP:     "192.168.1.1",
+			name:          "X-Forwarded-For with multiple IPs (comma-separated)",
+			xForwardedFor: "192.168.1.1, 10.0.0.2, 172.16.0.3",
+			remoteAddr:    "10.0.0.1:12345",
+			expectedIP:    "192.168.1.1",
 		},
 		{
-			name:           "X-Forwarded-For with whitespace around IPs",
-			xForwardedFor:  "  192.168.1.1  ,  10.0.0.2  ",
-			remoteAddr:     "10.0.0.1:12345",
-			expectedIP:     "192.168.1.1",
+			name:          "X-Forwarded-For with whitespace around IPs",
+			xForwardedFor: "  192.168.1.1  ,  10.0.0.2  ",
+			remoteAddr:    "10.0.0.1:12345",
+			expectedIP:    "192.168.1.1",
 		},
 		{
-			name:           "Fallback to RemoteAddr when X-Forwarded-For is empty",
-			xForwardedFor:  "",
-			remoteAddr:     "192.168.1.100:54321",
-			expectedIP:     "192.168.1.100",
+			name:          "Fallback to RemoteAddr when X-Forwarded-For is empty",
+			xForwardedFor: "",
+			remoteAddr:    "192.168.1.100:54321",
+			expectedIP:    "192.168.1.100",
 		},
 		{
-			name:           "RemoteAddr with port gets port stripped",
-			xForwardedFor:  "",
-			remoteAddr:     "10.20.30.40:12345",
-			expectedIP:     "10.20.30.40",
+			name:          "RemoteAddr with port gets port stripped",
+			xForwardedFor: "",
+			remoteAddr:    "10.20.30.40:12345",
+			expectedIP:    "10.20.30.40",
 		},
 		{
-			name:           "IPv6 address in X-Forwarded-For",
-			xForwardedFor:  "2001:db8::1",
-			remoteAddr:     "10.0.0.1:12345",
-			expectedIP:     "2001:db8::1",
+			name:          "IPv6 address in X-Forwarded-For",
+			xForwardedFor: "2001:db8::1",
+			remoteAddr:    "10.0.0.1:12345",
+			expectedIP:    "2001:db8::1",
 		},
 		{
-			name:           "IPv6 with brackets and port in RemoteAddr",
-			xForwardedFor:  "",
-			remoteAddr:     "[2001:db8::1]:8080",
-			expectedIP:     "2001:db8::1",
+			name:          "IPv6 with brackets and port in RemoteAddr",
+			xForwardedFor: "",
+			remoteAddr:    "[2001:db8::1]:8080",
+			expectedIP:    "2001:db8::1",
 		},
 		{
-			name:           "RemoteAddr without port",
-			xForwardedFor:  "",
-			remoteAddr:     "192.168.1.1",
-			expectedIP:     "192.168.1.1",
+			name:          "RemoteAddr without port",
+			xForwardedFor: "",
+			remoteAddr:    "192.168.1.1",
+			expectedIP:    "192.168.1.1",
 		},
 	}
 
