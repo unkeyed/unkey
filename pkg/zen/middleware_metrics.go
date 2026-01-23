@@ -2,7 +2,6 @@ package zen
 
 import (
 	"context"
-	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -42,12 +41,20 @@ func redact(in []byte) []byte {
 	return b
 }
 
-// Headers to skip when logging - these are infrastructure headers that add noise
 var skipHeaders = map[string]bool{
 	"x-forwarded-proto": true,
 	"x-forwarded-port":  true,
-	"x-forwarded-for":   true, // Already extracted as IpAddress
+	"x-forwarded-for":   true,
 	"x-amzn-trace-id":   true,
+}
+
+func formatHeader(key, value string) string {
+	var b strings.Builder
+	b.Grow(len(key) + 2 + len(value))
+	b.WriteString(key)
+	b.WriteString(": ")
+	b.WriteString(value)
+	return b.String()
 }
 
 // WithMetrics returns middleware that collects metrics about each request,
@@ -76,19 +83,18 @@ func WithMetrics(eventBuffer EventBuffer, info InstanceInfo) Middleware {
 					if skipHeaders[lk] {
 						continue
 					}
+
 					if lk == "authorization" {
-						requestHeaders = append(requestHeaders, fmt.Sprintf("%s: %s", k, "[REDACTED]"))
+						requestHeaders = append(requestHeaders, formatHeader(k, "[REDACTED]"))
 					} else {
-						requestHeaders = append(requestHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
+						requestHeaders = append(requestHeaders, formatHeader(k, strings.Join(vv, ",")))
 					}
 				}
 
 				responseHeaders := []string{}
 				for k, vv := range s.w.Header() {
-					responseHeaders = append(responseHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
+					responseHeaders = append(responseHeaders, formatHeader(k, strings.Join(vv, ",")))
 				}
-
-				ipAddress := s.Location()
 
 				eventBuffer.BufferApiRequest(schema.ApiRequest{
 					WorkspaceID:     s.WorkspaceID,
@@ -107,10 +113,11 @@ func WithMetrics(eventBuffer EventBuffer, info InstanceInfo) Middleware {
 					Error:           s.InternalError(),
 					ServiceLatency:  serviceLatency.Milliseconds(),
 					UserAgent:       s.r.Header.Get("User-Agent"),
-					IpAddress:       ipAddress,
+					IpAddress:       s.Location(),
 					Region:          info.Region,
 				})
 			}
+
 			return nextErr
 		}
 	}
