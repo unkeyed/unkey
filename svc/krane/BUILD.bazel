@@ -14,7 +14,7 @@ go_library(
         "//pkg/clock",
         "//pkg/otel/logging",
         "//pkg/prometheus",
-        "//pkg/shutdown",
+        "//pkg/runner",
         "//pkg/vault",
         "//pkg/vault/storage",
         "//pkg/version",
