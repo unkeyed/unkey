@@ -20,9 +20,18 @@ var openAPIKeywords = map[string]bool{
 	"deprecated":    true, // OpenAPI deprecation flag
 }
 
+// CompiledOperation holds compiled schemas for an operation
+type CompiledOperation struct {
+	BodySchema   *jsonschema.Schema
+	BodyRequired bool
+	ContentTypes []string
+	Parameters   CompiledParameterSet
+}
+
 // SchemaCompiler compiles and caches JSON schemas for validation
 type SchemaCompiler struct {
-	schemas map[string]*jsonschema.Schema // operationID -> compiled schema
+	operations map[string]*CompiledOperation // operationID -> compiled operation
+	compiler   *jsonschema.Compiler
 }
 
 // NewSchemaCompiler creates a new schema compiler from a SpecParser
@@ -59,22 +68,155 @@ func NewSchemaCompiler(parser *SpecParser, specBytes []byte) (*SchemaCompiler, e
 	}
 
 	// Compile schemas for each operation
-	schemas := make(map[string]*jsonschema.Schema)
+	operations := make(map[string]*CompiledOperation)
 
 	for _, op := range parser.Operations() {
-		if op.RequestSchema == nil {
-			continue
+		compiledOp := &CompiledOperation{
+			BodySchema:   nil,
+			BodyRequired: op.RequestBodyRequired,
+			ContentTypes: op.RequestContentTypes,
+			Parameters: CompiledParameterSet{
+				Query:  nil,
+				Header: nil,
+				Cookie: nil,
+				Path:   nil,
+			},
 		}
 
-		compiledSchema, err := compileOperationSchema(compiler, op)
+		// Compile request body schema
+		if op.RequestSchema != nil {
+			bodySchema, err := compileOperationSchema(compiler, op)
+			if err != nil {
+				return nil, fmt.Errorf("failed to compile body schema for %s: %w", op.OperationID, err)
+			}
+			compiledOp.BodySchema = bodySchema
+		}
+
+		// Compile parameter schemas
+		compiledOp.Parameters, err = compileParameterSchemas(compiler, op.OperationID, op.Parameters)
 		if err != nil {
-			return nil, fmt.Errorf("failed to compile schema for %s: %w", op.OperationID, err)
+			return nil, fmt.Errorf("failed to compile parameter schemas for %s: %w", op.OperationID, err)
 		}
 
-		schemas[op.OperationID] = compiledSchema
+		operations[op.OperationID] = compiledOp
 	}
 
-	return &SchemaCompiler{schemas: schemas}, nil
+	return &SchemaCompiler{
+		operations: operations,
+		compiler:   compiler,
+	}, nil
+}
+
+// compileParameterSchemas compiles schemas for all parameters in a ParameterSet
+func compileParameterSchemas(compiler *jsonschema.Compiler, operationID string, params ParameterSet) (CompiledParameterSet, error) {
+	result := CompiledParameterSet{
+		Query:  nil,
+		Header: nil,
+		Cookie: nil,
+		Path:   nil,
+	}
+
+	// Compile query parameters
+	for _, param := range params.Query {
+		compiled, err := compileParameterSchema(compiler, operationID, "query", param)
+		if err != nil {
+			return result, err
+		}
+		result.Query = append(result.Query, compiled)
+	}
+
+	// Compile header parameters
+	for _, param := range params.Header {
+		compiled, err := compileParameterSchema(compiler, operationID, "header", param)
+		if err != nil {
+			return result, err
+		}
+		result.Header = append(result.Header, compiled)
+	}
+
+	// Compile cookie parameters
+	for _, param := range params.Cookie {
+		compiled, err := compileParameterSchema(compiler, operationID, "cookie", param)
+		if err != nil {
+			return result, err
+		}
+		result.Cookie = append(result.Cookie, compiled)
+	}
+
+	// Compile path parameters
+	for _, param := range params.Path {
+		compiled, err := compileParameterSchema(compiler, operationID, "path", param)
+		if err != nil {
+			return result, err
+		}
+		result.Path = append(result.Path, compiled)
+	}
+
+	return result, nil
+}
+
+// compileParameterSchema compiles a single parameter's schema
+func compileParameterSchema(compiler *jsonschema.Compiler, operationID, location string, param Parameter) (CompiledParameter, error) {
+	// Determine style with defaults
+	style := param.Style
+	if style == "" {
+		style = GetDefaultStyle(param.In)
+	}
+
+	// Determine explode with defaults
+	explode := GetDefaultExplode(style)
+	if param.Explode != nil {
+		explode = *param.Explode
+	}
+
+	compiled := CompiledParameter{
+		Name:            param.Name,
+		In:              param.In,
+		Required:        param.Required,
+		Schema:          nil,
+		SchemaType:      extractSchemaType(param.Schema),
+		Style:           style,
+		Explode:         explode,
+		AllowEmptyValue: param.AllowEmptyValue,
+		AllowReserved:   param.AllowReserved,
+	}
+
+	if param.Schema == nil {
+		return compiled, nil
+	}
+
+	// Transform refs to be absolute
+	transformedSchema := transformRefs(param.Schema)
+
+	// Clean OpenAPI-specific keywords
+	cleanedAny := cleanForJSONSchema(transformedSchema)
+	cleanedSchema, ok := cleanedAny.(map[string]any)
+	if !ok {
+		return compiled, fmt.Errorf("cleaned parameter schema is not a map")
+	}
+
+	schemaJSON, err := json.Marshal(cleanedSchema)
+	if err != nil {
+		return compiled, fmt.Errorf("failed to marshal parameter schema: %w", err)
+	}
+
+	schemaDoc, err := jsonschema.UnmarshalJSON(strings.NewReader(string(schemaJSON)))
+	if err != nil {
+		return compiled, fmt.Errorf("failed to unmarshal parameter schema: %w", err)
+	}
+
+	resourceURL := fmt.Sprintf("file:///operations/%s/parameters/%s/%s", operationID, location, param.Name)
+	if err := compiler.AddResource(resourceURL, schemaDoc); err != nil {
+		return compiled, fmt.Errorf("failed to add parameter schema resource: %w", err)
+	}
+
+	compiledSchema, err := compiler.Compile(resourceURL)
+	if err != nil {
+		return compiled, fmt.Errorf("failed to compile parameter schema: %w", err)
+	}
+
+	compiled.Schema = compiledSchema
+	return compiled, nil
 }
 
 // compileOperationSchema compiles the request schema for an operation
@@ -158,15 +300,51 @@ func transformRefsArray(arr []any) []any {
 	return result
 }
 
-// Get returns the compiled schema for an operation ID
+// Get returns the compiled body schema for an operation ID (for backwards compatibility)
 func (c *SchemaCompiler) Get(operationID string) *jsonschema.Schema {
-	return c.schemas[operationID]
+	if op, ok := c.operations[operationID]; ok {
+		return op.BodySchema
+	}
+	return nil
+}
+
+// GetOperation returns the full compiled operation
+func (c *SchemaCompiler) GetOperation(operationID string) *CompiledOperation {
+	return c.operations[operationID]
 }
 
 // Has returns true if a compiled schema exists for the operation ID
 func (c *SchemaCompiler) Has(operationID string) bool {
-	_, ok := c.schemas[operationID]
+	_, ok := c.operations[operationID]
 	return ok
+}
+
+// extractSchemaType extracts the type from a parameter schema for value coercion
+func extractSchemaType(schema map[string]any) string {
+	if schema == nil {
+		return "string"
+	}
+
+	typeVal, ok := schema["type"]
+	if !ok {
+		return "string"
+	}
+
+	// Handle single type
+	if typeStr, ok := typeVal.(string); ok {
+		return typeStr
+	}
+
+	// Handle type array (e.g., ["string", "null"])
+	if typeArr, ok := typeVal.([]any); ok {
+		for _, t := range typeArr {
+			if typeStr, ok := t.(string); ok && typeStr != "null" {
+				return typeStr
+			}
+		}
+	}
+
+	return "string"
 }
 
 // cleanForJSONSchema removes OpenAPI-specific keywords and transforms structures

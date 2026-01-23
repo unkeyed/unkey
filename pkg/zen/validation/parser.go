@@ -10,25 +10,42 @@ import (
 
 // Operation represents an OpenAPI operation with its request schema
 type Operation struct {
-	Method             string
-	Path               string
-	OperationID        string
-	RequestSchema      map[string]any // JSON Schema for request body
-	RequiresBearerAuth bool           // Whether the operation requires Bearer auth
+	Method      string
+	Path        string
+	OperationID string
+
+	// Request body schema
+	RequestSchema map[string]any
+
+	// RequestBodyRequired indicates if a request body is required
+	RequestBodyRequired bool
+
+	// RequestContentTypes are the supported content types for the request body
+	RequestContentTypes []string
+
+	// Parameters grouped by location
+	Parameters ParameterSet
+
+	// Security requirements (empty = no auth required, multiple = OR logic)
+	Security []SecurityRequirement
 }
 
 // SpecParser parses an OpenAPI specification and extracts operations and schemas
 type SpecParser struct {
-	operations map[string]*Operation // "POST /v2/keys.setRoles" -> Operation
-	schemas    map[string]any        // component schemas for $ref resolution
+	operations      map[string]*Operation     // "POST /v2/keys.setRoles" -> Operation
+	schemas         map[string]any            // component schemas for $ref resolution
+	securitySchemes map[string]SecurityScheme // component security schemes
+	globalSecurity  []SecurityRequirement     // default security requirements
 }
 
 // openAPISpec represents the structure of an OpenAPI 3.1 document
 type openAPISpec struct {
 	Components struct {
-		Schemas map[string]any `yaml:"schemas"`
+		Schemas         map[string]any            `yaml:"schemas"`
+		SecuritySchemes map[string]map[string]any `yaml:"securitySchemes"`
 	} `yaml:"components"`
-	Paths map[string]map[string]any `yaml:"paths"`
+	Paths    map[string]map[string]any `yaml:"paths"`
+	Security []map[string]any          `yaml:"security"`
 }
 
 // NewSpecParser creates a new parser from OpenAPI spec bytes
@@ -39,9 +56,17 @@ func NewSpecParser(specBytes []byte) (*SpecParser, error) {
 	}
 
 	parser := &SpecParser{
-		operations: make(map[string]*Operation),
-		schemas:    spec.Components.Schemas,
+		operations:      make(map[string]*Operation),
+		schemas:         spec.Components.Schemas,
+		securitySchemes: make(map[string]SecurityScheme),
+		globalSecurity:  nil,
 	}
+
+	// Parse security schemes
+	parser.parseSecuritySchemes(spec.Components.SecuritySchemes)
+
+	// Parse global security requirements
+	parser.globalSecurity = parser.parseSecurityRequirements(spec.Security)
 
 	// Extract operations from paths
 	for path, pathItem := range spec.Paths {
@@ -67,6 +92,65 @@ func NewSpecParser(specBytes []byte) (*SpecParser, error) {
 	return parser, nil
 }
 
+// parseSecuritySchemes parses security scheme definitions from components
+func (p *SpecParser) parseSecuritySchemes(schemes map[string]map[string]any) {
+	for name, schemeData := range schemes {
+		schemeType, _ := schemeData["type"].(string)
+
+		scheme := SecurityScheme{
+			Type:   SecuritySchemeType(schemeType),
+			Scheme: "",
+			Name:   "",
+			In:     "",
+		}
+
+		switch scheme.Type {
+		case SecurityTypeHTTP:
+			scheme.Scheme, _ = schemeData["scheme"].(string)
+		case SecurityTypeAPIKey:
+			scheme.Name, _ = schemeData["name"].(string)
+			in, _ := schemeData["in"].(string)
+			scheme.In = ParameterLocation(in)
+		case SecurityTypeOAuth2, SecurityTypeOpenIDConnect:
+			// OAuth2 and OpenIDConnect are recognized but don't need additional parsing
+			// for presence-only validation
+		}
+
+		p.securitySchemes[name] = scheme
+	}
+}
+
+// parseSecurityRequirements parses a list of security requirements
+func (p *SpecParser) parseSecurityRequirements(securityList []map[string]any) []SecurityRequirement {
+	if len(securityList) == 0 {
+		return nil
+	}
+
+	requirements := make([]SecurityRequirement, 0, len(securityList))
+
+	for _, reqData := range securityList {
+		req := SecurityRequirement{
+			Schemes: make(map[string][]string),
+		}
+
+		for schemeName, scopesRaw := range reqData {
+			scopes := make([]string, 0)
+			if scopesArr, ok := scopesRaw.([]any); ok {
+				for _, s := range scopesArr {
+					if str, ok := s.(string); ok {
+						scopes = append(scopes, str)
+					}
+				}
+			}
+			req.Schemes[schemeName] = scopes
+		}
+
+		requirements = append(requirements, req)
+	}
+
+	return requirements
+}
+
 // parseOperation extracts operation details from raw YAML data
 func (p *SpecParser) parseOperation(method, path string, opData any) (*Operation, error) {
 	opMap, ok := opData.(map[string]any)
@@ -84,12 +168,26 @@ func (p *SpecParser) parseOperation(method, path string, opData any) (*Operation
 	}
 
 	op := &Operation{
-		Method:             method,
-		Path:               path,
-		OperationID:        operationID,
-		RequestSchema:      nil,
-		RequiresBearerAuth: requiresBearerAuth(opMap),
+		Method:              method,
+		Path:                path,
+		OperationID:         operationID,
+		RequestSchema:       nil,
+		RequestBodyRequired: false,
+		RequestContentTypes: nil,
+		Parameters: ParameterSet{
+			Query:  nil,
+			Header: nil,
+			Cookie: nil,
+			Path:   nil,
+		},
+		Security: nil,
 	}
+
+	// Parse security requirements
+	op.Security = p.parseOperationSecurity(opMap)
+
+	// Parse parameters
+	op.Parameters = p.parseParameters(opMap)
 
 	// Extract request body schema
 	reqBody, ok := opMap["requestBody"].(map[string]any)
@@ -97,9 +195,19 @@ func (p *SpecParser) parseOperation(method, path string, opData any) (*Operation
 		return op, nil // No request body
 	}
 
+	// Parse required field
+	if required, ok := reqBody["required"].(bool); ok {
+		op.RequestBodyRequired = required
+	}
+
 	content, ok := reqBody["content"].(map[string]any)
 	if !ok {
 		return op, nil
+	}
+
+	// Extract all supported content types
+	for contentType := range content {
+		op.RequestContentTypes = append(op.RequestContentTypes, contentType)
 	}
 
 	jsonContent, ok := content["application/json"].(map[string]any)
@@ -112,20 +220,126 @@ func (p *SpecParser) parseOperation(method, path string, opData any) (*Operation
 		return op, nil
 	}
 
-	// Resolve $ref if present
-	resolvedSchema, err := p.resolveSchema(schema)
-	if err != nil {
-		return nil, err
-	}
-	op.RequestSchema = resolvedSchema
+	// The compiler handles $ref resolution, so we just store the schema as-is
+	op.RequestSchema = schema
 
 	return op, nil
 }
 
-// resolveSchema just returns the schema as-is
-// The compiler handles $ref resolution
-func (p *SpecParser) resolveSchema(schema map[string]any) (map[string]any, error) {
-	return schema, nil
+// parseOperationSecurity parses security requirements for an operation
+func (p *SpecParser) parseOperationSecurity(opMap map[string]any) []SecurityRequirement {
+	// Check for operation-level security
+	securityRaw, hasOperationSecurity := opMap["security"]
+
+	if !hasOperationSecurity {
+		// No operation-level security defined, use global security
+		return p.globalSecurity
+	}
+
+	// Check for explicit empty array (no auth required)
+	securityArr, ok := securityRaw.([]any)
+	if !ok {
+		// Invalid security definition, fall back to global
+		return p.globalSecurity
+	}
+
+	// Empty array means no auth required
+	if len(securityArr) == 0 {
+		return []SecurityRequirement{}
+	}
+
+	// Convert []any to []map[string]any for parseSecurityRequirements
+	securityList := make([]map[string]any, 0, len(securityArr))
+	for _, item := range securityArr {
+		if m, ok := item.(map[string]any); ok {
+			securityList = append(securityList, m)
+		}
+	}
+
+	return p.parseSecurityRequirements(securityList)
+}
+
+// parseParameters parses parameters from an operation
+func (p *SpecParser) parseParameters(opMap map[string]any) ParameterSet {
+	paramSet := ParameterSet{
+		Query:  nil,
+		Header: nil,
+		Cookie: nil,
+		Path:   nil,
+	}
+
+	paramsRaw, ok := opMap["parameters"].([]any)
+	if !ok {
+		return paramSet
+	}
+
+	for _, paramRaw := range paramsRaw {
+		paramMap, ok := paramRaw.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		param := Parameter{
+			Name:            "",
+			In:              "",
+			Required:        false,
+			Schema:          nil,
+			Style:           "",
+			Explode:         nil,
+			AllowEmptyValue: false,
+			AllowReserved:   false,
+		}
+
+		if name, ok := paramMap["name"].(string); ok {
+			param.Name = name
+		}
+
+		if in, ok := paramMap["in"].(string); ok {
+			param.In = ParameterLocation(in)
+		}
+
+		if required, ok := paramMap["required"].(bool); ok {
+			param.Required = required
+		}
+
+		if schema, ok := paramMap["schema"].(map[string]any); ok {
+			param.Schema = schema
+		}
+
+		// Parse style (OpenAPI 3.x parameter serialization)
+		if style, ok := paramMap["style"].(string); ok {
+			param.Style = style
+		}
+
+		// Parse explode (defaults depend on style)
+		if explode, ok := paramMap["explode"].(bool); ok {
+			param.Explode = &explode
+		}
+
+		// Parse allowEmptyValue (query params only)
+		if allowEmpty, ok := paramMap["allowEmptyValue"].(bool); ok {
+			param.AllowEmptyValue = allowEmpty
+		}
+
+		// Parse allowReserved (query params only)
+		if allowReserved, ok := paramMap["allowReserved"].(bool); ok {
+			param.AllowReserved = allowReserved
+		}
+
+		// Add to appropriate list based on location
+		switch param.In {
+		case LocationQuery:
+			paramSet.Query = append(paramSet.Query, param)
+		case LocationHeader:
+			paramSet.Header = append(paramSet.Header, param)
+		case LocationCookie:
+			paramSet.Cookie = append(paramSet.Cookie, param)
+		case LocationPath:
+			paramSet.Path = append(paramSet.Path, param)
+		}
+	}
+
+	return paramSet
 }
 
 // Operations returns all parsed operations
@@ -136,6 +350,11 @@ func (p *SpecParser) Operations() map[string]*Operation {
 // Schemas returns all component schemas
 func (p *SpecParser) Schemas() map[string]any {
 	return p.schemas
+}
+
+// SecuritySchemes returns all security schemes
+func (p *SpecParser) SecuritySchemes() map[string]SecurityScheme {
+	return p.securitySchemes
 }
 
 // GetSchemaJSON returns a schema as JSON bytes
@@ -154,35 +373,4 @@ func (p *SpecParser) GetFullSpecAsJSON(specBytes []byte) ([]byte, error) {
 		return nil, err
 	}
 	return json.Marshal(spec)
-}
-
-// requiresBearerAuth checks if an operation requires bearer authentication
-// by examining the security requirements
-func requiresBearerAuth(opMap map[string]any) bool {
-	// Check operation-level security
-	security, ok := opMap["security"].([]any)
-	if !ok {
-		// No security defined at operation level - assume it requires auth
-		// (global security would apply, which typically requires rootKey)
-		return true
-	}
-
-	// Empty security array means no auth required
-	if len(security) == 0 {
-		return false
-	}
-
-	// Check if any security requirement uses rootKey (bearer auth)
-	for _, req := range security {
-		reqMap, ok := req.(map[string]any)
-		if !ok {
-			continue
-		}
-		// If rootKey is in the requirements, bearer auth is required
-		if _, hasRootKey := reqMap["rootKey"]; hasRootKey {
-			return true
-		}
-	}
-
-	return false
 }

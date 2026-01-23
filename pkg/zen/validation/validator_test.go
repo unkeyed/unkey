@@ -16,7 +16,8 @@ func TestNew(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, v)
 	require.NotNil(t, v.matcher)
-	require.NotNil(t, v.schemas)
+	require.NotNil(t, v.compiler)
+	require.NotNil(t, v.securitySchemes)
 }
 
 func TestValidate_ValidRequest(t *testing.T) {
@@ -93,16 +94,30 @@ func TestValidate_UnknownPath_PassThrough(t *testing.T) {
 	require.True(t, valid, "unknown path should pass through")
 }
 
-func TestValidate_EmptyBody_PassThrough(t *testing.T) {
+func TestValidate_EmptyBody_RequiredBodyFails(t *testing.T) {
 	v, err := New()
 	require.NoError(t, err)
 
+	// keys.setRoles has required: true on requestBody
 	req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer test_key")
 
+	resp, valid := v.Validate(context.Background(), req)
+	require.False(t, valid, "empty body should fail for required request body")
+	require.Contains(t, resp.Error.Detail, "required")
+}
+
+func TestValidate_UnknownPath_EmptyBodyPassThrough(t *testing.T) {
+	v, err := New()
+	require.NoError(t, err)
+
+	// Unknown paths should pass through regardless of body
+	req := httptest.NewRequest(http.MethodPost, "/unknown/path", nil)
+	req.Header.Set("Content-Type", "application/json")
+
 	_, valid := v.Validate(context.Background(), req)
-	require.True(t, valid, "empty body should pass through")
+	require.True(t, valid, "unknown path should pass through")
 }
 
 func TestValidate_BodyResetForDownstream(t *testing.T) {
@@ -121,54 +136,6 @@ func TestValidate_BodyResetForDownstream(t *testing.T) {
 	readBody, err := io.ReadAll(req.Body)
 	require.NoError(t, err)
 	require.Equal(t, body, string(readBody))
-}
-
-func TestPathMatcher(t *testing.T) {
-	ops := map[string]*Operation{
-		"POST /v2/keys.setRoles": {
-			Method:      "POST",
-			Path:        "/v2/keys.setRoles",
-			OperationID: "keys.setRoles",
-		},
-	}
-
-	matcher := NewPathMatcher(ops)
-
-	op, found := matcher.Match("POST", "/v2/keys.setRoles")
-	require.True(t, found)
-	require.Equal(t, "keys.setRoles", op.OperationID)
-
-	op, found = matcher.Match("post", "/v2/keys.setRoles") // lowercase
-	require.True(t, found)
-	require.Equal(t, "keys.setRoles", op.OperationID)
-
-	_, found = matcher.Match("GET", "/v2/keys.setRoles")
-	require.False(t, found)
-
-	_, found = matcher.Match("POST", "/unknown")
-	require.False(t, found)
-}
-
-func TestFormatLocation(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{"", "body"},
-		{"/", "body"},
-		{"/keyId", "body.keyId"},
-		{"/roles", "body.roles"},
-		{"/roles/0", "body.roles[0]"},
-		{"/roles/0/name", "body.roles[0].name"},
-		{"/data/items/1/value", "body.data.items[1].value"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			result := formatLocation(tt.input)
-			require.Equal(t, tt.expected, result)
-		})
-	}
 }
 
 func TestValidate_AdditionalProperties(t *testing.T) {
@@ -231,4 +198,17 @@ func TestValidate_EmptyBearerToken(t *testing.T) {
 	require.False(t, valid, "expected invalid request due to empty token")
 	require.Equal(t, "Bad Request", resp.Error.Title)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/malformed", resp.Error.Type)
+}
+
+func TestValidate_ContentTypeWithCharset(t *testing.T) {
+	v, err := New()
+	require.NoError(t, err)
+
+	body := `{"keyId": "key_123abc", "roles": ["admin"]}`
+	req := httptest.NewRequest(http.MethodPost, "/v2/keys.setRoles", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.Header.Set("Authorization", "Bearer test_key")
+
+	resp, valid := v.Validate(context.Background(), req)
+	require.True(t, valid, "expected valid request with charset, got errors: %+v", resp.Error)
 }

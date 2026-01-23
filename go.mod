@@ -62,6 +62,8 @@ require (
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/oasdiff/oasdiff v1.11.8
 	github.com/opencontainers/go-digest v1.0.0
+	github.com/pb33f/libopenapi v0.21.12
+	github.com/pb33f/libopenapi-validator v0.4.2
 	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/restatedev/sdk-go v0.23.0
@@ -187,12 +189,11 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.4 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dolthub/maphash v0.1.0 // indirect
-	github.com/dprotaso/go-yit v0.0.0-20220510233725-9ba8df137936 // indirect
+	github.com/dprotaso/go-yit v0.0.0-20240618133044-5a0af90af097 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.8.4 // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
@@ -319,7 +320,7 @@ require (
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
-	github.com/speakeasy-api/jsonpath v0.6.0 // indirect
+	github.com/speakeasy-api/jsonpath v0.6.2 // indirect
 	github.com/speakeasy-api/openapi-overlay v0.10.2 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
@@ -349,7 +350,7 @@ require (
 	github.com/wI2L/jsondiff v0.7.0 // indirect
 	github.com/wasilibs/go-pgquery v0.0.0-20250409022910-10ac41983c07 // indirect
 	github.com/wasilibs/wazero-helpers v0.0.0-20240620070341-3dff1577cd52 // indirect
-	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
+	github.com/wk8/go-ordered-map/v2 v2.1.9-0.20240815153524-6ea36470d1bd // indirect
 	github.com/woodsbury/decimal128 v1.3.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/yargevad/filepathx v1.0.0 // indirect
