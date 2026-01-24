@@ -1,58 +1,38 @@
 type: object
 properties:
-  keyId:
-    type: string
-    minLength: 3
-    maxLength: 255 # Reasonable upper bound for database identifiers
-    pattern: "^[a-zA-Z0-9_]+$"
-    description: |
-      Specifies which key to retrieve using the database identifier returned from `keys.createKey`.
-      Do not confuse this with the actual API key string that users include in requests.
-      Key data includes metadata, permissions, usage statistics, and configuration but never the plaintext key value unless `decrypt=true`.
-      Find this ID in creation responses, key listings, dashboard, or verification responses.
-    example: key_1234abcd
-  decrypt:
-    type: boolean
-    default: false
-    description: |
-      Controls whether to include the plaintext key value in the response for recovery purposes.
-      Only works for keys created with `recoverable=true` and requires the `decrypt_key` permission.
-      Returned keys must be handled securely, never logged, cached, or stored insecurely.
+    keyId:
+        type: string
+        minLength: 3
+        maxLength: 255 # Reasonable upper bound for database identifiers
+        pattern: "^[a-zA-Z0-9_]+$"
+        description: |
+            Specifies which key to retrieve using the database identifier returned from `keys.createKey`.
+            Do not confuse this with the actual API key string that users include in requests.
+            Key data includes metadata, permissions, usage statistics, and configuration but never the plaintext key value unless `decrypt=true`.
+            Find this ID in creation responses, key listings, dashboard, or verification responses.
+        example: key_1234abcd
+    decrypt:
+        type: boolean
+        default: false
+        description: |
+            Controls whether to include the plaintext key value in the response for recovery purposes.
+            Only works for keys created with `recoverable=true` and requires the `decrypt_key` permission.
+            Returned keys must be handled securely, never logged, cached, or stored insecurely.
 
-      Use only for legitimate recovery scenarios like user password resets or emergency access.
-      Most applications should keep this false to maintain security best practices and avoid accidental key exposure.
-      Decryption requests are audited and may trigger security alerts in enterprise environments.
+            Use only for legitimate recovery scenarios like user password resets or emergency access.
+            Most applications should keep this false to maintain security best practices and avoid accidental key exposure.
+            Decryption requests are audited and may trigger security alerts in enterprise environments.
 additionalProperties: false
 required:
-  - keyId
+    - keyId
 examples:
-  dashboardKeyDetails:
-    summary: Dashboard key information display
-    description: Retrieve key metadata for dashboard display without decrypting the actual key value
-    value:
-      keyId: key_1234abcd
+    - keyId: key_1234abcd
       decrypt: false
-  apiPlaygroundDecrypt:
-    summary: API playground with key decryption
-    description: Decrypt a recoverable key for testing API calls directly in the dashboard
-    value:
-      keyId: key_5678efgh
+    - keyId: key_5678efgh
       decrypt: true
-  supportKeyLookup:
-    summary: Support lookup by actual key string
-    description: Look up key details when provided the actual key string (useful for support scenarios)
-    value:
-      key: sk_1234abcdef5678
+    - key: sk_1234abcdef5678
       decrypt: false
-  keyManagementOverview:
-    summary: Key management interface data
-    description: Retrieve all key information including permissions and roles for management interfaces
-    value:
-      keyId: key_9876zyxw
+    - keyId: key_9876zyxw
       decrypt: false
-  developmentKeyRecovery:
-    summary: Development key recovery
-    description: Recover a development key for testing purposes with full decryption
-    value:
-      keyId: key_dev_test
+    - keyId: key_dev_test
       decrypt: true

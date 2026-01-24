@@ -347,23 +347,9 @@ func (p *SpecParser) Operations() map[string]*Operation {
 	return p.operations
 }
 
-// Schemas returns all component schemas
-func (p *SpecParser) Schemas() map[string]any {
-	return p.schemas
-}
-
 // SecuritySchemes returns all security schemes
 func (p *SpecParser) SecuritySchemes() map[string]SecurityScheme {
 	return p.securitySchemes
-}
-
-// GetSchemaJSON returns a schema as JSON bytes
-func (p *SpecParser) GetSchemaJSON(name string) ([]byte, error) {
-	schema, ok := p.schemas[name]
-	if !ok {
-		return nil, fmt.Errorf("schema not found: %s", name)
-	}
-	return json.Marshal(schema)
 }
 
 // GetFullSpecAsJSON returns the full spec with schemas as JSON for the compiler

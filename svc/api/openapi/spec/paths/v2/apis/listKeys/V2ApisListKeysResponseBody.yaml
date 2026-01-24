@@ -1,23 +1,19 @@
 type: object
 required:
-  - meta
-  - data
+    - meta
+    - data
 properties:
-  meta:
-    "$ref": "../../../../common/Meta.yaml"
-  data:
-    "$ref": "./V2ApisListKeysResponseData.yaml"
-  pagination:
-    "$ref": "../../../../common/Pagination.yaml"
-    x-go-type-skip-optional-pointer: true
-    x-go-type-skip-optional-pointer-with-omitzero: true
+    meta:
+        "$ref": "../../../../common/Meta.yaml"
+    data:
+        "$ref": "./V2ApisListKeysResponseData.yaml"
+    pagination:
+        "$ref": "../../../../common/Pagination.yaml"
+        x-go-type-skip-optional-pointer: true
+        x-go-type-skip-optional-pointer-with-omitzero: true
 additionalProperties: false
 examples:
-  dashboardKeyList:
-    summary: Dashboard key management display
-    description: Typical response for displaying user keys in a dashboard interface
-    value:
-      meta:
+    - meta:
         requestId: req_1234abcd
       data:
         - keyId: key_1234abcd
@@ -38,14 +34,14 @@ examples:
           credits:
             remaining: 8500
             refill:
-              amount: 10000
-              interval: monthly
-              refillDay: 1
+                amount: 10000
+                interval: monthly
+                refillDay: 1
           identity:
             externalId: user_5678
             meta:
-              plan: premium
-              signupDate: "2024-01-15"
+                plan: premium
+                signupDate: "2024-01-15"
         - keyId: key_5678efgh
           start: sk_dev
           enabled: true
@@ -60,11 +56,7 @@ examples:
       pagination:
         cursor: key_5678efgh
         hasMore: false
-  paginatedResponse:
-    summary: Paginated key listing with more results
-    description: Response showing pagination when there are more keys than the requested limit
-    value:
-      meta:
+    - meta:
         requestId: req_5678efgh
       data:
         - keyId: key_1111aaaa
@@ -90,21 +82,13 @@ examples:
       pagination:
         cursor: key_2222bbbb
         hasMore: true
-  emptyResponse:
-    summary: Empty key list
-    description: Response when no keys match the filter criteria or API has no keys
-    value:
-      meta:
+    - meta:
         requestId: req_9876zyxw
       data: []
       pagination:
         cursor: null
         hasMore: false
-  decryptedKeyList:
-    summary: Key list with plaintext values
-    description: Administrative response including decrypted key values for recovery purposes
-    value:
-      meta:
+    - meta:
         requestId: req_admin_decrypt
       data:
         - keyId: key_admin_123
