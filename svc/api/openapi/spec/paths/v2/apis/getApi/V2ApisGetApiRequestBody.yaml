@@ -1,40 +1,20 @@
 type: object
 required:
-  - apiId
+    - apiId
 properties:
-  apiId:
-    type: string
-    minLength: 8
-    maxLength: 255
-    pattern: "^[a-zA-Z0-9_]+$"
-    description: |
-      Specifies which API to retrieve by its unique identifier.
-      Must be a valid API ID that begins with 'api_' and exists within your workspace.
-    example: api_1234abcd
+    apiId:
+        type: string
+        minLength: 8
+        maxLength: 255
+        pattern: "^[a-zA-Z0-9_]+$"
+        description: |
+            Specifies which API to retrieve by its unique identifier.
+            Must be a valid API ID that begins with 'api_' and exists within your workspace.
+        example: api_1234abcd
 additionalProperties: false
 examples:
-  basicLookup:
-    summary: Basic API information retrieval
-    description: Retrieve basic information about an API by its ID
-    value:
-      apiId: api_1234abcd
-  verifyAccess:
-    summary: Verify API access
-    description: Check if you have access to a specific API namespace
-    value:
-      apiId: api_prod_5678
-  developmentApi:
-    summary: Development API lookup
-    description: Retrieve information about a development environment API
-    value:
-      apiId: api_dev_9876
-  stagingApi:
-    summary: Staging API lookup
-    description: Get details for a staging environment API
-    value:
-      apiId: api_staging_abcd
-  troubleshooting:
-    summary: Troubleshooting API lookup
-    description: Verify API exists during debugging or support scenarios
-    value:
-      apiId: api_support_case
+    - apiId: api_1234abcd
+    - apiId: api_prod_5678
+    - apiId: api_dev_9876
+    - apiId: api_staging_abcd
+    - apiId: api_support_case

@@ -302,23 +302,9 @@ func transformRefsArray(arr []any) []any {
 	return result
 }
 
-// Get returns the compiled body schema for an operation ID (for backwards compatibility)
-func (c *SchemaCompiler) Get(operationID string) *jsonschema.Schema {
-	if op, ok := c.operations[operationID]; ok {
-		return op.BodySchema
-	}
-	return nil
-}
-
 // GetOperation returns the full compiled operation
 func (c *SchemaCompiler) GetOperation(operationID string) *CompiledOperation {
 	return c.operations[operationID]
-}
-
-// Has returns true if a compiled schema exists for the operation ID
-func (c *SchemaCompiler) Has(operationID string) bool {
-	_, ok := c.operations[operationID]
-	return ok
 }
 
 // extractSchemaType extracts the type from a parameter schema for value coercion

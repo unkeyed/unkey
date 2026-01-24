@@ -1,33 +1,29 @@
 type: object
 properties:
-  migrationId:
-    type: string
-    minLength: 3
-    maxLength: 255
-    description: Identifier of the configured migration provider/strategy to use (e.g., "your_company"). You will receive this from Unkey's support staff.
-    example: your_company
-  apiId:
-    type: string
-    minLength: 3
-    maxLength: 255
-    description: The ID of the API that the keys should be inserted into
-    example: api_123456789
-  keys:
-    type: array
-    minItems: 1
-    items:
-      $ref: "./V2KeysMigrateKeyData.yaml"
+    migrationId:
+        type: string
+        minLength: 3
+        maxLength: 255
+        description: Identifier of the configured migration provider/strategy to use (e.g., "your_company"). You will receive this from Unkey's support staff.
+        example: your_company
+    apiId:
+        type: string
+        minLength: 3
+        maxLength: 255
+        description: The ID of the API that the keys should be inserted into
+        example: api_123456789
+    keys:
+        type: array
+        minItems: 1
+        items:
+            $ref: "./V2KeysMigrateKeyData.yaml"
 additionalProperties: false
 required:
-  - migrationId
-  - apiId
-  - keys
+    - migrationId
+    - apiId
+    - keys
 examples:
-  basic:
-    summary: Basic migration example
-    description: A simple migration example with a single key
-    value:
-      migrationId: your_company
+    - migrationId: your_company
       apiId: api_123456789
       keys:
         - hash: c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64

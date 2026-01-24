@@ -3,7 +3,6 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "validation",
     srcs = [
-        "body_parsers.go",
         "compiler.go",
         "errors.go",
         "matcher.go",
@@ -35,6 +34,7 @@ go_test(
     srcs = [
         "benchmark_comparison_test.go",
         "benchmark_test.go",
+        "comprehensive_test.go",
         "errors_test.go",
         "matcher_test.go",
         "security_test.go",

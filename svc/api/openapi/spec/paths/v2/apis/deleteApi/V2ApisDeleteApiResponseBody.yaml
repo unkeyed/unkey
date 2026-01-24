@@ -1,18 +1,14 @@
 type: object
 required:
-  - meta
-  - data
+    - meta
+    - data
 properties:
-  meta:
-    $ref: "../../../../common/Meta.yaml"
-  data:
-    $ref: "../../../../common/EmptyResponse.yaml"
+    meta:
+        $ref: "../../../../common/Meta.yaml"
+    data:
+        $ref: "../../../../common/EmptyResponse.yaml"
 additionalProperties: false
 examples:
-  successfulDeletion:
-    summary: Successful API deletion
-    description: Standard response after successfully deleting an API namespace
-    value:
-      meta:
+    - meta:
         requestId: req_1234abcd
       data: {}

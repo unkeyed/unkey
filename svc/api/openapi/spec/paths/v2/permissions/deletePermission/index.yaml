@@ -36,30 +36,30 @@ post:
     "400":
       description: Bad Request
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/BadRequestErrorResponse.yaml"
     "401":
       description: Unauthorized
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
       description: Forbidden
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
       description: Not Found - The specified permission does not exist
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
     "500":
       description: Internal Server Error
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/InternalServerErrorResponse.yaml"
