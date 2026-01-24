@@ -1,0 +1,10 @@
+load("@rules_go//go:def.bzl", "go_test")
+
+go_test(
+    name = "identities_listIdentities_test",
+    srcs = ["generated_test.go"],
+    tags = ["docker"],
+    deps = [
+        "//svc/api/integration/openapi",
+    ],
+)

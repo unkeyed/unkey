@@ -1,18 +1,14 @@
 type: object
 required:
-  - meta
-  - data
+    - meta
+    - data
 properties:
-  meta:
-    "$ref": "../../../../common/Meta.yaml"
-  data:
-    "$ref": "./V2KeysRerollKeyResponseData.yaml"
+    meta:
+        "$ref": "../../../../common/Meta.yaml"
+    data:
+        "$ref": "./V2KeysRerollKeyResponseData.yaml"
 examples:
-  rerollKey:
-    summary: Key rerolled successfully
-    description: Successfully rerolled a key
-    value:
-      meta:
+    - meta:
         requestId: req_abc123def456
       data:
         keyId: key_2cGKbMxRyIzhCxo1Idjz8q

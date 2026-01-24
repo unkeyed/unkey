@@ -31,7 +31,7 @@ func TestValidate_ValidRequest(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer test_key")
 
 	resp, valid := v.Validate(context.Background(), req)
-	require.True(t, valid, "expected valid request, got errors: %+v", resp.Error)
+	require.True(t, valid, "expected valid request, got errors: %+v", resp)
 }
 
 func TestValidate_InvalidRequest_MissingRequired(t *testing.T) {
@@ -46,8 +46,10 @@ func TestValidate_InvalidRequest_MissingRequired(t *testing.T) {
 
 	resp, valid := v.Validate(context.Background(), req)
 	require.False(t, valid, "expected invalid request")
-	require.Equal(t, "Bad Request", resp.Error.Title)
-	require.NotEmpty(t, resp.Error.Errors)
+	badReq, ok := resp.(*BadRequestError)
+	require.True(t, ok, "expected BadRequestError")
+	require.Equal(t, "Bad Request", badReq.Error.Title)
+	require.NotEmpty(t, badReq.Error.Errors)
 }
 
 func TestValidate_InvalidRequest_WrongType(t *testing.T) {
@@ -62,8 +64,10 @@ func TestValidate_InvalidRequest_WrongType(t *testing.T) {
 
 	resp, valid := v.Validate(context.Background(), req)
 	require.False(t, valid, "expected invalid request")
-	require.Equal(t, "Bad Request", resp.Error.Title)
-	require.NotEmpty(t, resp.Error.Errors)
+	badReq, ok := resp.(*BadRequestError)
+	require.True(t, ok, "expected BadRequestError")
+	require.Equal(t, "Bad Request", badReq.Error.Title)
+	require.NotEmpty(t, badReq.Error.Errors)
 }
 
 func TestValidate_InvalidJSON(t *testing.T) {
@@ -77,8 +81,10 @@ func TestValidate_InvalidJSON(t *testing.T) {
 
 	resp, valid := v.Validate(context.Background(), req)
 	require.False(t, valid, "expected invalid request")
-	require.Equal(t, "Bad Request", resp.Error.Title)
-	require.Contains(t, resp.Error.Detail, "Invalid JSON")
+	badReq, ok := resp.(*BadRequestError)
+	require.True(t, ok, "expected BadRequestError")
+	require.Equal(t, "Bad Request", badReq.Error.Title)
+	require.Contains(t, badReq.Error.Detail, "Invalid JSON")
 }
 
 func TestValidate_UnknownPath_PassThrough(t *testing.T) {
@@ -105,7 +111,9 @@ func TestValidate_EmptyBody_RequiredBodyFails(t *testing.T) {
 
 	resp, valid := v.Validate(context.Background(), req)
 	require.False(t, valid, "empty body should fail for required request body")
-	require.Contains(t, resp.Error.Detail, "required")
+	badReq, ok := resp.(*BadRequestError)
+	require.True(t, ok, "expected BadRequestError")
+	require.Contains(t, badReq.Error.Detail, "required")
 }
 
 func TestValidate_UnknownPath_EmptyBodyPassThrough(t *testing.T) {
@@ -150,7 +158,9 @@ func TestValidate_AdditionalProperties(t *testing.T) {
 
 	resp, valid := v.Validate(context.Background(), req)
 	require.False(t, valid, "expected invalid request due to additional properties")
-	require.Equal(t, "Bad Request", resp.Error.Title)
+	badReq, ok := resp.(*BadRequestError)
+	require.True(t, ok, "expected BadRequestError")
+	require.Equal(t, "Bad Request", badReq.Error.Title)
 }
 
 func TestValidate_MissingAuthorizationHeader(t *testing.T) {
@@ -164,9 +174,12 @@ func TestValidate_MissingAuthorizationHeader(t *testing.T) {
 
 	resp, valid := v.Validate(context.Background(), req)
 	require.False(t, valid, "expected invalid request due to missing auth")
-	require.Equal(t, "Bad Request", resp.Error.Title)
-	require.Contains(t, resp.Error.Detail, "Authorization header")
-	require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/missing", resp.Error.Type)
+	unauthResp, ok := resp.(*UnauthorizedError)
+	require.True(t, ok, "expected UnauthorizedError")
+	require.Equal(t, "Unauthorized", unauthResp.Error.Title)
+	require.Equal(t, http.StatusUnauthorized, unauthResp.Error.Status)
+	require.Contains(t, unauthResp.Error.Detail, "Authorization header")
+	require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/missing", unauthResp.Error.Type)
 }
 
 func TestValidate_MalformedAuthorizationHeader(t *testing.T) {
@@ -180,9 +193,12 @@ func TestValidate_MalformedAuthorizationHeader(t *testing.T) {
 
 	resp, valid := v.Validate(context.Background(), req)
 	require.False(t, valid, "expected invalid request due to wrong auth scheme")
-	require.Equal(t, "Bad Request", resp.Error.Title)
-	require.Contains(t, resp.Error.Detail, "Bearer")
-	require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/malformed", resp.Error.Type)
+	unauthResp, ok := resp.(*UnauthorizedError)
+	require.True(t, ok, "expected UnauthorizedError")
+	require.Equal(t, "Unauthorized", unauthResp.Error.Title)
+	require.Equal(t, http.StatusUnauthorized, unauthResp.Error.Status)
+	require.Contains(t, unauthResp.Error.Detail, "Bearer")
+	require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/malformed", unauthResp.Error.Type)
 }
 
 func TestValidate_EmptyBearerToken(t *testing.T) {
@@ -196,8 +212,11 @@ func TestValidate_EmptyBearerToken(t *testing.T) {
 
 	resp, valid := v.Validate(context.Background(), req)
 	require.False(t, valid, "expected invalid request due to empty token")
-	require.Equal(t, "Bad Request", resp.Error.Title)
-	require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/malformed", resp.Error.Type)
+	unauthResp, ok := resp.(*UnauthorizedError)
+	require.True(t, ok, "expected UnauthorizedError")
+	require.Equal(t, "Unauthorized", unauthResp.Error.Title)
+	require.Equal(t, http.StatusUnauthorized, unauthResp.Error.Status)
+	require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/malformed", unauthResp.Error.Type)
 }
 
 func TestValidate_ContentTypeWithCharset(t *testing.T) {
@@ -210,5 +229,5 @@ func TestValidate_ContentTypeWithCharset(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer test_key")
 
 	resp, valid := v.Validate(context.Background(), req)
-	require.True(t, valid, "expected valid request with charset, got errors: %+v", resp.Error)
+	require.True(t, valid, "expected valid request with charset, got errors: %+v", resp)
 }

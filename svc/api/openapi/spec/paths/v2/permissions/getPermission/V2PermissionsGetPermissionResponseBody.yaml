@@ -1,19 +1,15 @@
 type: object
 required:
-  - meta
-  - data
+    - meta
+    - data
 properties:
-  meta:
-    "$ref": "../../../../common/Meta.yaml"
-  data:
-    "$ref": "../../../../common/Permission.yaml"
+    meta:
+        "$ref": "../../../../common/Meta.yaml"
+    data:
+        "$ref": "../../../../common/Permission.yaml"
 additionalProperties: false
 examples:
-  success:
-    summary: Permission retrieved successfully
-    description: Standard successful permission retrieval response
-    value:
-      meta:
+    - meta:
         requestId: req_1234abcd
       data:
         id: perm_1234567890abcdef

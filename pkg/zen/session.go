@@ -451,6 +451,23 @@ func (s *Session) JSON(status int, body any) error {
 	return s.send(status, b)
 }
 
+// ProblemJSON sends a JSON error response with application/problem+json content type.
+// This follows RFC 7807 (Problem Details for HTTP APIs).
+// Use this for error responses (4xx, 5xx status codes).
+func (s *Session) ProblemJSON(status int, body any) error {
+	b, err := json.Marshal(body)
+	if err != nil {
+		return fault.Wrap(
+			err,
+			fault.Internal("json marshal failed"),
+			fault.Public("The response body could not be marshalled to JSON."),
+		)
+	}
+
+	s.ResponseWriter().Header().Add("Content-Type", "application/problem+json")
+	return s.send(status, b)
+}
+
 // HTML sends an HTML response with the given status code.
 func (s *Session) HTML(status int, body []byte) error {
 	s.w.Header().Set("Content-Type", "text/html")
