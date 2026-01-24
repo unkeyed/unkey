@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "openapi",
+    srcs = ["runner.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/integration/openapi",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//svc/api/integration",
+        "//svc/api/openapi",
+        "@com_github_stretchr_testify//require",
+    ],
+)

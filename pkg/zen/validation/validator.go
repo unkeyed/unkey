@@ -11,14 +11,20 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
+// ValidationErrorResponse is an interface for error responses returned by validation
+type ValidationErrorResponse interface {
+	GetStatus() int
+	SetRequestID(requestID string)
+}
+
 // OpenAPIValidator defines the interface for validating HTTP requests against an OpenAPI spec
 type OpenAPIValidator interface {
 	// Validate reads the request and validates it against the OpenAPI spec
 	//
-	// Returns a BadRequestError if the request is invalid that should be
+	// Returns an error response if the request is invalid that should be
 	// marshalled and returned to the client.
 	// The second return value is a boolean that is true if the request is valid.
-	Validate(ctx context.Context, r *http.Request) (openapi.BadRequestErrorResponse, bool)
+	Validate(ctx context.Context, r *http.Request) (ValidationErrorResponse, bool)
 }
 
 // Validator implements OpenAPIValidator using a parsed and compiled OpenAPI spec
@@ -49,8 +55,34 @@ func New() (*Validator, error) {
 	}, nil
 }
 
+// BadRequestError wraps BadRequestErrorResponse to implement ValidationErrorResponse
+type BadRequestError struct {
+	openapi.BadRequestErrorResponse
+}
+
+func (e *BadRequestError) GetStatus() int {
+	return e.Error.Status
+}
+
+func (e *BadRequestError) SetRequestID(requestID string) {
+	e.Meta.RequestId = requestID
+}
+
+// UnauthorizedError wraps UnauthorizedErrorResponse to implement ValidationErrorResponse
+type UnauthorizedError struct {
+	openapi.UnauthorizedErrorResponse
+}
+
+func (e *UnauthorizedError) GetStatus() int {
+	return e.Error.Status
+}
+
+func (e *UnauthorizedError) SetRequestID(requestID string) {
+	e.Meta.RequestId = requestID
+}
+
 // Validate validates an HTTP request against the OpenAPI spec
-func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadRequestErrorResponse, bool) {
+func (v *Validator) Validate(ctx context.Context, r *http.Request) (ValidationErrorResponse, bool) {
 	ctx, validationSpan := tracing.Start(ctx, "openapi.Validate")
 	defer validationSpan.End()
 
@@ -60,8 +92,7 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 	matchResult, found := v.matcher.Match(r.Method, r.URL.Path)
 	if !found {
 		// No matching operation - pass through (let the router handle 404)
-		// nolint:exhaustruct
-		return openapi.BadRequestErrorResponse{}, true
+		return nil, true
 	}
 
 	op := matchResult.Operation
@@ -71,7 +102,7 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 	secErr := v.validateSecurity(r, op.Security, requestID)
 	secSpan.End()
 	if secErr != nil {
-		return *secErr, false
+		return secErr, false
 	}
 
 	// 3. Get compiled operation schemas
@@ -83,7 +114,7 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 		ctErr := v.validateContentType(r, compiledOp, requestID)
 		ctSpan.End()
 		if ctErr != nil {
-			return *ctErr, false
+			return ctErr, false
 		}
 	}
 
@@ -118,16 +149,18 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 		if len(paramErrors) == 1 {
 			detail = paramErrors[0].Message
 		}
-		return openapi.BadRequestErrorResponse{
-			Meta: openapi.Meta{
-				RequestId: requestID,
-			},
-			Error: openapi.BadRequestErrorDetails{
-				Title:  "Bad Request",
-				Detail: detail,
-				Status: http.StatusBadRequest,
-				Type:   "https://unkey.com/docs/errors/unkey/application/invalid_input",
-				Errors: paramErrors,
+		return &BadRequestError{
+			BadRequestErrorResponse: openapi.BadRequestErrorResponse{
+				Meta: openapi.Meta{
+					RequestId: requestID,
+				},
+				Error: openapi.BadRequestErrorDetails{
+					Title:  "Bad Request",
+					Detail: detail,
+					Status: http.StatusBadRequest,
+					Type:   "https://unkey.com/docs/errors/unkey/application/invalid_input",
+					Errors: paramErrors,
+				},
 			},
 		}, false
 	}
@@ -140,7 +173,7 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 }
 
 // validateSecurity validates security requirements for the operation
-func (v *Validator) validateSecurity(r *http.Request, requirements []SecurityRequirement, requestID string) *openapi.BadRequestErrorResponse {
+func (v *Validator) validateSecurity(r *http.Request, requirements []SecurityRequirement, requestID string) *UnauthorizedError {
 	// If no security requirements defined, the operation is public
 	if len(requirements) == 0 {
 		return nil

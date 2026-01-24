@@ -1,18 +1,14 @@
 type: object
 required:
-  - meta
-  - data
+    - meta
+    - data
 properties:
-  meta:
-    "$ref": "../../../../common/Meta.yaml"
-  data:
-    "$ref": "../../../../common/KeyResponseData.yaml"
+    meta:
+        "$ref": "../../../../common/Meta.yaml"
+    data:
+        "$ref": "../../../../common/KeyResponseData.yaml"
 examples:
-  dashboardKeyDetails:
-    summary: Dashboard key information for display
-    description: Typical response for displaying key details in a dashboard without decryption
-    value:
-      meta:
+    - meta:
         requestId: req_1234abcd
       data:
         keyId: key_1234abcd
@@ -22,31 +18,27 @@ examples:
         createdAt: 1704067200000
         expires: 1735689600000
         meta:
-          plan: premium
-          userId: user_5678
-          environment: production
+            plan: premium
+            userId: user_5678
+            environment: production
         permissions:
-          - documents.read
-          - documents.write
+            - documents.read
+            - documents.write
         roles:
-          - editor
+            - editor
         credits:
-          remaining: 8500
-          refill:
-            amount: 10000
-            interval: monthly
-            refillDay: 1
+            remaining: 8500
+            refill:
+                amount: 10000
+                interval: monthly
+                refillDay: 1
         ratelimits:
-          - id: rl_1234
-            name: api_requests
-            limit: 1000
-            duration: 60000
-            autoApply: true
-  apiPlaygroundWithDecryption:
-    summary: Decrypted key for API playground
-    description: Response including plaintext key for testing API calls in the dashboard
-    value:
-      meta:
+            - id: rl_1234
+              name: api_requests
+              limit: 1000
+              duration: 60000
+              autoApply: true
+    - meta:
         requestId: req_5678efgh
       data:
         keyId: key_5678efgh
@@ -56,23 +48,19 @@ examples:
         plaintext: sk_test_1234abcdef5678
         createdAt: 1704067200000
         meta:
-          environment: development
-          team: backend
+            environment: development
+            team: backend
         permissions:
-          - documents.read
+            - documents.read
         credits:
-          remaining: 500
+            remaining: 500
         ratelimits:
-          - id: rl_5678
-            name: dev_requests
-            limit: 100
-            duration: 60000
-            autoApply: true
-  keyWithIdentity:
-    summary: Key with associated identity information
-    description: Response showing key linked to an identity with shared rate limits
-    value:
-      meta:
+            - id: rl_5678
+              name: dev_requests
+              limit: 100
+              duration: 60000
+              autoApply: true
+    - meta:
         requestId: req_9876zyxw
       data:
         keyId: key_9876zyxw
@@ -81,29 +69,25 @@ examples:
         name: User Mobile App Key
         createdAt: 1704067200000
         meta:
-          device: mobile
-          platform: ios
+            device: mobile
+            platform: ios
         identity:
-          externalId: user_9876
-          meta:
-            plan: pro
-            signupDate: "2024-01-15"
-          ratelimits:
-            - id: rl_identity_1
-              name: user_requests
-              limit: 5000
-              duration: 3600000
-              autoApply: true
+            externalId: user_9876
+            meta:
+                plan: pro
+                signupDate: "2024-01-15"
+            ratelimits:
+                - id: rl_identity_1
+                  name: user_requests
+                  limit: 5000
+                  duration: 3600000
+                  autoApply: true
         permissions:
-          - profile.read
-          - profile.update
+            - profile.read
+            - profile.update
         credits:
-          remaining: 2500
-  expiredKey:
-    summary: Expired key information
-    description: Response for a key that has passed its expiration date
-    value:
-      meta:
+            remaining: 2500
+    - meta:
         requestId: req_expired
       data:
         keyId: key_expired_123
@@ -113,9 +97,9 @@ examples:
         createdAt: 1672531200000
         expires: 1703980800000
         meta:
-          plan: legacy
-          migrationRequired: true
+            plan: legacy
+            migrationRequired: true
         permissions:
-          - legacy.read
+            - legacy.read
         credits:
-          remaining: 0
+            remaining: 0

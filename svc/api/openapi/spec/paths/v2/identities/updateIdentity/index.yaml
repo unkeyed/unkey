@@ -45,19 +45,19 @@ post:
     "400":
       description: Bad request
       content:
-        application/json:
+        application/problem+json:
           schema:
             $ref: "../../../../error/BadRequestErrorResponse.yaml"
     "401":
       description: Unauthorized
       content:
-        application/json:
+        application/problem+json:
           schema:
             $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
       description: Forbidden - Insufficient permissions (requires `identity.*.update_identity`)
       content:
-        application/json:
+        application/problem+json:
           schema:
             $ref: "../../../../error/ForbiddenErrorResponse.yaml"
           examples:
@@ -74,7 +74,7 @@ post:
     "404":
       description: Not Found - Identity with the specified ID or externalId doesn't exist
       content:
-        application/json:
+        application/problem+json:
           schema:
             $ref: "../../../../error/NotFoundErrorResponse.yaml"
           examples:
@@ -91,6 +91,6 @@ post:
     "500":
       description: Internal server error
       content:
-        application/json:
+        application/problem+json:
           schema:
             $ref: "../../../../error/InternalServerErrorResponse.yaml"

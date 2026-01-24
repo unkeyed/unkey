@@ -28,7 +28,6 @@ components:
                 - error
             type: object
         BaseError:
-            additionalProperties: false
             description: Base error structure following Problem Details for HTTP APIs (RFC 7807). This provides a standardized way to carry machine-readable details of errors in HTTP response content.
             properties:
                 detail:
@@ -869,16 +868,8 @@ components:
         V2ApisCreateApiRequestBody:
             additionalProperties: false
             examples:
-                basic:
-                    description: Create an API for a payment service
-                    summary: Basic API creation
-                    value:
-                        name: payment-service-prod
-                withEnvironment:
-                    description: Create separate APIs for different environments
-                    summary: Environment-specific API
-                    value:
-                        name: user-api-dev
+                - name: payment-service-prod
+                - name: user-api-dev
             properties:
                 name:
                     description: |
@@ -895,30 +886,18 @@ components:
         V2ApisCreateApiResponseBody:
             additionalProperties: false
             examples:
-                developmentApi:
-                    description: API namespace created for development and testing purposes
-                    summary: Development environment API created
-                    value:
-                        data:
-                            apiId: api_5678efgh
-                        meta:
-                            requestId: req_def456ghi789
-                microserviceApi:
-                    description: Isolated API namespace for a user management microservice
-                    summary: Microservice-specific API created
-                    value:
-                        data:
-                            apiId: api_9012ijkl
-                        meta:
-                            requestId: req_ghi789jkl012
-                productionApi:
-                    description: Successfully created a production API namespace for a payment service
-                    summary: Production API namespace created
-                    value:
-                        data:
-                            apiId: api_1234abcd
-                        meta:
-                            requestId: req_abc123def456
+                - data:
+                    apiId: api_1234abcd
+                  meta:
+                    requestId: req_abc123def456
+                - data:
+                    apiId: api_5678efgh
+                  meta:
+                    requestId: req_def456ghi789
+                - data:
+                    apiId: api_9012ijkl
+                  meta:
+                    requestId: req_ghi789jkl012
             properties:
                 data:
                     $ref: '#/components/schemas/V2ApisCreateApiResponseData'
@@ -955,11 +934,7 @@ components:
         V2ApisDeleteApiRequestBody:
             additionalProperties: false
             examples:
-                delete:
-                    description: Remove API an API by providing its id
-                    summary: Delete an API
-                    value:
-                        apiId: api_abcd1234
+                - apiId: api_abcd1234
             properties:
                 apiId:
                     description: |
@@ -978,13 +953,9 @@ components:
         V2ApisDeleteApiResponseBody:
             additionalProperties: false
             examples:
-                successfulDeletion:
-                    description: Standard response after successfully deleting an API namespace
-                    summary: Successful API deletion
-                    value:
-                        data: {}
-                        meta:
-                            requestId: req_1234abcd
+                - data: {}
+                  meta:
+                    requestId: req_1234abcd
             properties:
                 data:
                     $ref: '#/components/schemas/EmptyResponse'
@@ -997,31 +968,11 @@ components:
         V2ApisGetApiRequestBody:
             additionalProperties: false
             examples:
-                basicLookup:
-                    description: Retrieve basic information about an API by its ID
-                    summary: Basic API information retrieval
-                    value:
-                        apiId: api_1234abcd
-                developmentApi:
-                    description: Retrieve information about a development environment API
-                    summary: Development API lookup
-                    value:
-                        apiId: api_dev_9876
-                stagingApi:
-                    description: Get details for a staging environment API
-                    summary: Staging API lookup
-                    value:
-                        apiId: api_staging_abcd
-                troubleshooting:
-                    description: Verify API exists during debugging or support scenarios
-                    summary: Troubleshooting API lookup
-                    value:
-                        apiId: api_support_case
-                verifyAccess:
-                    description: Check if you have access to a specific API namespace
-                    summary: Verify API access
-                    value:
-                        apiId: api_prod_5678
+                - apiId: api_1234abcd
+                - apiId: api_prod_5678
+                - apiId: api_dev_9876
+                - apiId: api_staging_abcd
+                - apiId: api_support_case
             properties:
                 apiId:
                     description: |
@@ -1038,51 +989,31 @@ components:
         V2ApisGetApiResponseBody:
             additionalProperties: false
             examples:
-                basicApiInfo:
-                    description: Standard response showing API ID and name
-                    summary: Basic API information
-                    value:
-                        data:
-                            id: api_1234abcd
-                            name: Payment Service Production
-                        meta:
-                            requestId: req_1234abcd
-                descriptiveApi:
-                    description: Response for an API with a longer descriptive name
-                    summary: Descriptive API name
-                    value:
-                        data:
-                            id: api_desc_efgh
-                            name: User Management Microservice Production
-                        meta:
-                            requestId: req_desc_efgh
-                developmentApi:
-                    description: Response for a development environment API
-                    summary: Development API information
-                    value:
-                        data:
-                            id: api_dev_5678
-                            name: Payment Service Development
-                        meta:
-                            requestId: req_dev_5678
-                simpleApi:
-                    description: Response for an API with a simple name
-                    summary: Simple API name
-                    value:
-                        data:
-                            id: api_simple_abcd
-                            name: Analytics API
-                        meta:
-                            requestId: req_simple_abcd
-                stagingApi:
-                    description: Response for a staging environment API
-                    summary: Staging API information
-                    value:
-                        data:
-                            id: api_staging_9876
-                            name: Payment Service Staging
-                        meta:
-                            requestId: req_staging_9876
+                - data:
+                    id: api_1234abcd
+                    name: Payment Service Production
+                  meta:
+                    requestId: req_1234abcd
+                - data:
+                    id: api_dev_5678
+                    name: Payment Service Development
+                  meta:
+                    requestId: req_dev_5678
+                - data:
+                    id: api_staging_9876
+                    name: Payment Service Staging
+                  meta:
+                    requestId: req_staging_9876
+                - data:
+                    id: api_simple_abcd
+                    name: Analytics API
+                  meta:
+                    requestId: req_simple_abcd
+                - data:
+                    id: api_desc_efgh
+                    name: User Management Microservice Production
+                  meta:
+                    requestId: req_desc_efgh
             properties:
                 data:
                     $ref: '#/components/schemas/V2ApisGetApiResponseData'
@@ -1123,18 +1054,10 @@ components:
         V2ApisListKeysRequestBody:
             additionalProperties: false
             examples:
-                basic:
-                    description: List all keys in an API namespace
-                    summary: List all keys
-                    value:
-                        apiId: api_1234abcd
-                filterByUser:
-                    description: Filter keys by external ID to show user-specific keys
-                    summary: List keys for specific user
-                    value:
-                        apiId: api_1234abcd
-                        externalId: user_1234abcd
-                        limit: 50
+                - apiId: api_1234abcd
+                - apiId: api_1234abcd
+                  externalId: user_1234abcd
+                  limit: 50
             properties:
                 apiId:
                     description: |
@@ -1190,114 +1113,98 @@ components:
         V2ApisListKeysResponseBody:
             additionalProperties: false
             examples:
-                dashboardKeyList:
-                    description: Typical response for displaying user keys in a dashboard interface
-                    summary: Dashboard key management display
-                    value:
-                        data:
-                            - createdAt: 1704067200000
-                              credits:
-                                refill:
-                                    amount: 10000
-                                    interval: monthly
-                                    refillDay: 1
-                                remaining: 8500
-                              enabled: true
-                              expires: 1735689600000
-                              identity:
-                                externalId: user_5678
-                                meta:
-                                    plan: premium
-                                    signupDate: "2024-01-15"
-                              keyId: key_1234abcd
-                              meta:
-                                environment: production
-                                plan: premium
-                                userId: user_5678
-                              name: Production API Key
-                              permissions:
-                                - documents.read
-                                - documents.write
-                              roles:
-                                - editor
-                              start: sk_prod
-                            - createdAt: 1704153600000
-                              credits:
-                                remaining: 500
-                              enabled: true
-                              keyId: key_5678efgh
-                              meta:
-                                environment: development
-                              name: Development Key
-                              permissions:
-                                - documents.read
-                              start: sk_dev
+                - data:
+                    - createdAt: 1704067200000
+                      credits:
+                        refill:
+                            amount: 10000
+                            interval: monthly
+                            refillDay: 1
+                        remaining: 8500
+                      enabled: true
+                      expires: 1735689600000
+                      identity:
+                        externalId: user_5678
                         meta:
-                            requestId: req_1234abcd
-                        pagination:
-                            cursor: key_5678efgh
-                            hasMore: false
-                decryptedKeyList:
-                    description: Administrative response including decrypted key values for recovery purposes
-                    summary: Key list with plaintext values
-                    value:
-                        data:
-                            - createdAt: 1704067200000
-                              enabled: true
-                              keyId: key_admin_123
-                              meta:
-                                purpose: emergency_access
-                                recoverable: true
-                              name: Admin Recovery Key
-                              permissions:
-                                - admin.all
-                              plaintext: sk_admin_1234abcdef5678
-                              start: sk_admin
-                        meta:
-                            requestId: req_admin_decrypt
-                        pagination:
-                            cursor: null
-                            hasMore: false
-                emptyResponse:
-                    description: Response when no keys match the filter criteria or API has no keys
-                    summary: Empty key list
-                    value:
-                        data: []
-                        meta:
-                            requestId: req_9876zyxw
-                        pagination:
-                            cursor: null
-                            hasMore: false
-                paginatedResponse:
-                    description: Response showing pagination when there are more keys than the requested limit
-                    summary: Paginated key listing with more results
-                    value:
-                        data:
-                            - createdAt: 1704067200000
-                              enabled: true
-                              identity:
-                                externalId: user_mobile_123
-                              keyId: key_1111aaaa
-                              name: User Mobile Key
-                              permissions:
-                                - profile.read
-                                - profile.update
-                              start: sk_user
-                            - createdAt: 1704153600000
-                              enabled: true
-                              identity:
-                                externalId: user_mobile_123
-                              keyId: key_2222bbbb
-                              name: Web Dashboard Key
-                              permissions:
-                                - profile.read
-                                - documents.read
-                              start: sk_web
-                        meta:
-                            requestId: req_5678efgh
-                        pagination:
-                            cursor: key_2222bbbb
-                            hasMore: true
+                            plan: premium
+                            signupDate: "2024-01-15"
+                      keyId: key_1234abcd
+                      meta:
+                        environment: production
+                        plan: premium
+                        userId: user_5678
+                      name: Production API Key
+                      permissions:
+                        - documents.read
+                        - documents.write
+                      roles:
+                        - editor
+                      start: sk_prod
+                    - createdAt: 1704153600000
+                      credits:
+                        remaining: 500
+                      enabled: true
+                      keyId: key_5678efgh
+                      meta:
+                        environment: development
+                      name: Development Key
+                      permissions:
+                        - documents.read
+                      start: sk_dev
+                  meta:
+                    requestId: req_1234abcd
+                  pagination:
+                    cursor: key_5678efgh
+                    hasMore: false
+                - data:
+                    - createdAt: 1704067200000
+                      enabled: true
+                      identity:
+                        externalId: user_mobile_123
+                      keyId: key_1111aaaa
+                      name: User Mobile Key
+                      permissions:
+                        - profile.read
+                        - profile.update
+                      start: sk_user
+                    - createdAt: 1704153600000
+                      enabled: true
+                      identity:
+                        externalId: user_mobile_123
+                      keyId: key_2222bbbb
+                      name: Web Dashboard Key
+                      permissions:
+                        - profile.read
+                        - documents.read
+                      start: sk_web
+                  meta:
+                    requestId: req_5678efgh
+                  pagination:
+                    cursor: key_2222bbbb
+                    hasMore: true
+                - data: []
+                  meta:
+                    requestId: req_9876zyxw
+                  pagination:
+                    cursor: null
+                    hasMore: false
+                - data:
+                    - createdAt: 1704067200000
+                      enabled: true
+                      keyId: key_admin_123
+                      meta:
+                        purpose: emergency_access
+                        recoverable: true
+                      name: Admin Recovery Key
+                      permissions:
+                        - admin.all
+                      plaintext: sk_admin_1234abcdef5678
+                      start: sk_admin
+                  meta:
+                    requestId: req_admin_decrypt
+                  pagination:
+                    cursor: null
+                    hasMore: false
             properties:
                 data:
                     $ref: '#/components/schemas/V2ApisListKeysResponseData'
@@ -1787,32 +1694,24 @@ components:
         V2KeysCreateKeyRequestBody:
             additionalProperties: false
             examples:
-                basic:
-                    description: Create a simple key for user authentication
-                    summary: Basic key creation
-                    value:
-                        apiId: api_1234abcd
-                        externalId: user_123
-                        name: User API key
-                withPermissions:
-                    description: Create a key with specific permissions, rate limits, and credits
-                    summary: Key with permissions and limits
-                    value:
-                        apiId: api_1234abcd
-                        credits:
-                            remaining: 1000
-                        externalId: service_456
-                        meta:
-                            service: document_processor
-                            version: "1.0"
-                        name: Service API key
-                        permissions:
-                            - documents.read
-                            - documents.write
-                        ratelimits:
-                            - duration: 60000
-                              limit: 100
-                              name: api_requests
+                - apiId: api_1234abcd
+                  externalId: user_123
+                  name: User API key
+                - apiId: api_1234abcd
+                  credits:
+                    remaining: 1000
+                  externalId: service_456
+                  meta:
+                    service: document_processor
+                    version: "1.0"
+                  name: Service API key
+                  permissions:
+                    - documents.read
+                    - documents.write
+                  ratelimits:
+                    - duration: 60000
+                      limit: 100
+                      name: api_requests
             properties:
                 apiId:
                     description: |
@@ -1978,33 +1877,21 @@ components:
             type: object
         V2KeysCreateKeyResponseBody:
             examples:
-                enterpriseKey:
-                    description: Successfully created a key for enterprise customer with custom permissions
-                    summary: Enterprise key created successfully
-                    value:
-                        data:
-                            key: sk_9012ijkl34567890
-                            keyId: key_9012ijkl
-                        meta:
-                            requestId: req_ghi789jkl012
-                freeTierKey:
-                    description: Successfully created a key for a free tier user with limited credits
-                    summary: Free tier key created successfully
-                    value:
-                        data:
-                            key: sk_1234abcdef567890
-                            keyId: key_1234abcd
-                        meta:
-                            requestId: req_abc123def456
-                paidTierKey:
-                    description: Successfully created a key for a paid subscriber with higher limits
-                    summary: Paid tier key created successfully
-                    value:
-                        data:
-                            key: sk_5678efgh90123456
-                            keyId: key_5678efgh
-                        meta:
-                            requestId: req_def456ghi789
+                - data:
+                    key: sk_1234abcdef567890
+                    keyId: key_1234abcd
+                  meta:
+                    requestId: req_abc123def456
+                - data:
+                    key: sk_5678efgh90123456
+                    keyId: key_5678efgh
+                  meta:
+                    requestId: req_def456ghi789
+                - data:
+                    key: sk_9012ijkl34567890
+                    keyId: key_9012ijkl
+                  meta:
+                    requestId: req_ghi789jkl012
             properties:
                 data:
                     $ref: '#/components/schemas/V2KeysCreateKeyResponseData'
@@ -2033,34 +1920,14 @@ components:
         V2KeysDeleteKeyRequestBody:
             additionalProperties: false
             examples:
-                accountDeletion:
-                    description: Remove keys during complete account deletion workflow
-                    summary: User deletes their account
-                    value:
-                        keyId: key_5678efgh
-                        permanent: false
-                keyRotation:
-                    description: Remove previous key after successful key rotation
-                    summary: Delete old key during rotation
-                    value:
-                        keyId: key_old_5678
-                        permanent: false
-                permanentCleanup:
-                    description: Permanently remove key for GDPR compliance or security requirements
-                    summary: Permanent deletion for compliance
-                    value:
-                        keyId: key_9876wxyz
-                        permanent: true
-                testKeyCleanup:
-                    description: Remove test or development keys that are no longer needed
-                    summary: Clean up development keys
-                    value:
-                        keyId: key_test_abcd
-                userRequestedDeletion:
-                    description: Delete key when user clicks "Delete" in your dashboard
-                    summary: User requests key deletion
-                    value:
-                        keyId: key_1234abcd
+                - keyId: key_1234abcd
+                - keyId: key_5678efgh
+                  permanent: false
+                - keyId: key_9876wxyz
+                  permanent: true
+                - keyId: key_test_abcd
+                - keyId: key_old_5678
+                  permanent: false
             properties:
                 keyId:
                     description: |
@@ -2091,34 +1958,18 @@ components:
         V2KeysDeleteKeyResponseBody:
             additionalProperties: false
             examples:
-                accountDeletionSuccess:
-                    description: Key removed during account deletion workflow
-                    summary: Account deletion completed
-                    value:
-                        data: {}
-                        meta:
-                            requestId: req_account_delete_5678
-                basicDeletionSuccess:
-                    description: Basic successful key deletion response
-                    summary: Standard deletion completed
-                    value:
-                        data: {}
-                        meta:
-                            requestId: req_delete_abcd
-                permanentDeletionSuccess:
-                    description: Key permanently removed from system
-                    summary: Permanent deletion completed
-                    value:
-                        data: {}
-                        meta:
-                            requestId: req_permanent_9876
-                userDeletionSuccess:
-                    description: Key successfully deleted after user requested removal
-                    summary: User-requested deletion completed
-                    value:
-                        data: {}
-                        meta:
-                            requestId: req_user_delete_1234
+                - data: {}
+                  meta:
+                    requestId: req_user_delete_1234
+                - data: {}
+                  meta:
+                    requestId: req_account_delete_5678
+                - data: {}
+                  meta:
+                    requestId: req_permanent_9876
+                - data: {}
+                  meta:
+                    requestId: req_delete_abcd
             properties:
                 data:
                     $ref: '#/components/schemas/EmptyResponse'
@@ -2131,36 +1982,16 @@ components:
         V2KeysGetKeyRequestBody:
             additionalProperties: false
             examples:
-                apiPlaygroundDecrypt:
-                    description: Decrypt a recoverable key for testing API calls directly in the dashboard
-                    summary: API playground with key decryption
-                    value:
-                        decrypt: true
-                        keyId: key_5678efgh
-                dashboardKeyDetails:
-                    description: Retrieve key metadata for dashboard display without decrypting the actual key value
-                    summary: Dashboard key information display
-                    value:
-                        decrypt: false
-                        keyId: key_1234abcd
-                developmentKeyRecovery:
-                    description: Recover a development key for testing purposes with full decryption
-                    summary: Development key recovery
-                    value:
-                        decrypt: true
-                        keyId: key_dev_test
-                keyManagementOverview:
-                    description: Retrieve all key information including permissions and roles for management interfaces
-                    summary: Key management interface data
-                    value:
-                        decrypt: false
-                        keyId: key_9876zyxw
-                supportKeyLookup:
-                    description: Look up key details when provided the actual key string (useful for support scenarios)
-                    summary: Support lookup by actual key string
-                    value:
-                        decrypt: false
-                        key: sk_1234abcdef5678
+                - decrypt: false
+                  keyId: key_1234abcd
+                - decrypt: true
+                  keyId: key_5678efgh
+                - decrypt: false
+                  key: sk_1234abcdef5678
+                - decrypt: false
+                  keyId: key_9876zyxw
+                - decrypt: true
+                  keyId: key_dev_test
             properties:
                 decrypt:
                     default: false
@@ -2189,117 +2020,101 @@ components:
             type: object
         V2KeysGetKeyResponseBody:
             examples:
-                apiPlaygroundWithDecryption:
-                    description: Response including plaintext key for testing API calls in the dashboard
-                    summary: Decrypted key for API playground
-                    value:
-                        data:
-                            createdAt: 1704067200000
-                            credits:
-                                remaining: 500
-                            enabled: true
-                            keyId: key_5678efgh
-                            meta:
-                                environment: development
-                                team: backend
-                            name: Development Testing Key
-                            permissions:
-                                - documents.read
-                            plaintext: sk_test_1234abcdef5678
-                            ratelimits:
-                                - autoApply: true
-                                  duration: 60000
-                                  id: rl_5678
-                                  limit: 100
-                                  name: dev_requests
-                            start: sk_test
+                - data:
+                    createdAt: 1704067200000
+                    credits:
+                        refill:
+                            amount: 10000
+                            interval: monthly
+                            refillDay: 1
+                        remaining: 8500
+                    enabled: true
+                    expires: 1735689600000
+                    keyId: key_1234abcd
+                    meta:
+                        environment: production
+                        plan: premium
+                        userId: user_5678
+                    name: Production API Key
+                    permissions:
+                        - documents.read
+                        - documents.write
+                    ratelimits:
+                        - autoApply: true
+                          duration: 60000
+                          id: rl_1234
+                          limit: 1000
+                          name: api_requests
+                    roles:
+                        - editor
+                    start: sk_prod
+                  meta:
+                    requestId: req_1234abcd
+                - data:
+                    createdAt: 1704067200000
+                    credits:
+                        remaining: 500
+                    enabled: true
+                    keyId: key_5678efgh
+                    meta:
+                        environment: development
+                        team: backend
+                    name: Development Testing Key
+                    permissions:
+                        - documents.read
+                    plaintext: sk_test_1234abcdef5678
+                    ratelimits:
+                        - autoApply: true
+                          duration: 60000
+                          id: rl_5678
+                          limit: 100
+                          name: dev_requests
+                    start: sk_test
+                  meta:
+                    requestId: req_5678efgh
+                - data:
+                    createdAt: 1704067200000
+                    credits:
+                        remaining: 2500
+                    enabled: true
+                    identity:
+                        externalId: user_9876
                         meta:
-                            requestId: req_5678efgh
-                dashboardKeyDetails:
-                    description: Typical response for displaying key details in a dashboard without decryption
-                    summary: Dashboard key information for display
-                    value:
-                        data:
-                            createdAt: 1704067200000
-                            credits:
-                                refill:
-                                    amount: 10000
-                                    interval: monthly
-                                    refillDay: 1
-                                remaining: 8500
-                            enabled: true
-                            expires: 1735689600000
-                            keyId: key_1234abcd
-                            meta:
-                                environment: production
-                                plan: premium
-                                userId: user_5678
-                            name: Production API Key
-                            permissions:
-                                - documents.read
-                                - documents.write
-                            ratelimits:
-                                - autoApply: true
-                                  duration: 60000
-                                  id: rl_1234
-                                  limit: 1000
-                                  name: api_requests
-                            roles:
-                                - editor
-                            start: sk_prod
-                        meta:
-                            requestId: req_1234abcd
-                expiredKey:
-                    description: Response for a key that has passed its expiration date
-                    summary: Expired key information
-                    value:
-                        data:
-                            createdAt: 1672531200000
-                            credits:
-                                remaining: 0
-                            enabled: false
-                            expires: 1703980800000
-                            keyId: key_expired_123
-                            meta:
-                                migrationRequired: true
-                                plan: legacy
-                            name: Legacy API Key
-                            permissions:
-                                - legacy.read
-                            start: sk_old
-                        meta:
-                            requestId: req_expired
-                keyWithIdentity:
-                    description: Response showing key linked to an identity with shared rate limits
-                    summary: Key with associated identity information
-                    value:
-                        data:
-                            createdAt: 1704067200000
-                            credits:
-                                remaining: 2500
-                            enabled: true
-                            identity:
-                                externalId: user_9876
-                                meta:
-                                    plan: pro
-                                    signupDate: "2024-01-15"
-                                ratelimits:
-                                    - autoApply: true
-                                      duration: 3600000
-                                      id: rl_identity_1
-                                      limit: 5000
-                                      name: user_requests
-                            keyId: key_9876zyxw
-                            meta:
-                                device: mobile
-                                platform: ios
-                            name: User Mobile App Key
-                            permissions:
-                                - profile.read
-                                - profile.update
-                            start: sk_user
-                        meta:
-                            requestId: req_9876zyxw
+                            plan: pro
+                            signupDate: "2024-01-15"
+                        ratelimits:
+                            - autoApply: true
+                              duration: 3600000
+                              id: rl_identity_1
+                              limit: 5000
+                              name: user_requests
+                    keyId: key_9876zyxw
+                    meta:
+                        device: mobile
+                        platform: ios
+                    name: User Mobile App Key
+                    permissions:
+                        - profile.read
+                        - profile.update
+                    start: sk_user
+                  meta:
+                    requestId: req_9876zyxw
+                - data:
+                    createdAt: 1672531200000
+                    credits:
+                        remaining: 0
+                    enabled: false
+                    expires: 1703980800000
+                    keyId: key_expired_123
+                    meta:
+                        migrationRequired: true
+                        plan: legacy
+                    name: Legacy API Key
+                    permissions:
+                        - legacy.read
+                    start: sk_old
+                  meta:
+                    requestId: req_expired
             properties:
                 data:
                     $ref: '#/components/schemas/KeyResponseData'
@@ -2312,28 +2127,24 @@ components:
         V2KeysMigrateKeyData:
             additionalProperties: false
             examples:
-                basicKey:
-                    description: Migrate this basic key
-                    summary: Basic key
-                    value:
-                        enabled: true
-                        expires: 1735689600000
-                        externalId: user_abc123
-                        hash: c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64
-                        meta:
-                            plan: enterprise
-                            tier: production
-                        name: Production API Key
-                        permissions:
-                            - api.read
-                            - api.write
-                        ratelimits:
-                            - autoApply: true
-                              duration: 60000
-                              limit: 100
-                              name: requests
-                        roles:
-                            - admin
+                - enabled: true
+                  expires: 1735689600000
+                  externalId: user_abc123
+                  hash: c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64
+                  meta:
+                    plan: enterprise
+                    tier: production
+                  name: Production API Key
+                  permissions:
+                    - api.read
+                    - api.write
+                  ratelimits:
+                    - autoApply: true
+                      duration: 60000
+                      limit: 100
+                      name: requests
+                  roles:
+                    - admin
             properties:
                 credits:
                     $ref: '#/components/schemas/KeyCreditsData'
@@ -2476,16 +2287,12 @@ components:
         V2KeysMigrateKeysRequestBody:
             additionalProperties: false
             examples:
-                basic:
-                    description: A simple migration example with a single key
-                    summary: Basic migration example
-                    value:
-                        apiId: api_123456789
-                        keys:
-                            - enabled: true
-                              hash: c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64
-                              name: Production API Key
-                        migrationId: your_company
+                - apiId: api_123456789
+                  keys:
+                    - enabled: true
+                      hash: c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64
+                      name: Production API Key
+                  migrationId: your_company
             properties:
                 apiId:
                     description: The ID of the API that the keys should be inserted into
@@ -2695,15 +2502,11 @@ components:
             type: object
         V2KeysRerollKeyResponseBody:
             examples:
-                rerollKey:
-                    description: Successfully rerolled a key
-                    summary: Key rerolled successfully
-                    value:
-                        data:
-                            key: prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT
-                            keyId: key_2cGKbMxRyIzhCxo1Idjz8q
-                        meta:
-                            requestId: req_abc123def456
+                - data:
+                    key: prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT
+                    keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+                  meta:
+                    requestId: req_abc123def456
             properties:
                 data:
                     $ref: '#/components/schemas/V2KeysRerollKeyResponseData'
@@ -2873,48 +2676,24 @@ components:
         V2KeysUpdateCreditsRequestBody:
             additionalProperties: false
             examples:
-                billingCycleReset:
-                    description: Refresh user's monthly credit allocation
-                    summary: Reset monthly quota at billing cycle
-                    value:
-                        keyId: key_cycle_abcd
-                        operation: set
-                        value: 25000
-                creditPurchase:
-                    description: User bought additional credits to add to their current quota
-                    summary: Add purchased credits to existing balance
-                    value:
-                        keyId: key_5678efgh
-                        operation: increment
-                        value: 5000
-                planUpgrade:
-                    description: Increase credits when user upgrades to a higher-tier plan
-                    summary: Upgrade user to higher credit tier
-                    value:
-                        keyId: key_1234abcd
-                        operation: set
-                        value: 10000
-                policyViolation:
-                    description: Subtract credits as penalty for terms of service violation
-                    summary: Reduce credits for policy violation
-                    value:
-                        keyId: key_violation_123
-                        operation: decrement
-                        value: 1000
-                refundCredits:
-                    description: Remove credits when processing a partial refund
-                    summary: Refund unused credits
-                    value:
-                        keyId: key_refund_789
-                        operation: decrement
-                        value: 3000
-                unlimitedUpgrade:
-                    description: Remove credit restrictions for enterprise tier users
-                    summary: Upgrade to unlimited usage plan
-                    value:
-                        keyId: key_9876wxyz
-                        operation: set
-                        value: null
+                - keyId: key_1234abcd
+                  operation: set
+                  value: 10000
+                - keyId: key_5678efgh
+                  operation: increment
+                  value: 5000
+                - keyId: key_9876wxyz
+                  operation: set
+                  value: null
+                - keyId: key_cycle_abcd
+                  operation: set
+                  value: 25000
+                - keyId: key_violation_123
+                  operation: decrement
+                  value: 1000
+                - keyId: key_refund_789
+                  operation: decrement
+                  value: 3000
             properties:
                 keyId:
                     description: The ID of the key to update (begins with `key_`). This is the database reference ID for the key, not the actual API key string that users authenticate with. This ID uniquely identifies which key's credits will be updated.
@@ -2952,51 +2731,35 @@ components:
         V2KeysUpdateCreditsResponseBody:
             additionalProperties: false
             examples:
-                billingResetSuccess:
-                    description: Monthly quota refreshed at billing cycle
-                    summary: Billing cycle reset completed
-                    value:
-                        data:
-                            refill:
-                                amount: 25000
-                                interval: monthly
-                                refillDay: 1
-                            remaining: 25000
-                        meta:
-                            requestId: req_reset_abcd
-                creditPurchaseSuccess:
-                    description: Additional credits added to user's balance
-                    summary: Credit purchase completed
-                    value:
-                        data:
-                            refill:
-                                amount: 5000
-                                interval: monthly
-                                refillDay: 15
-                            remaining: 8500
-                        meta:
-                            requestId: req_purchase_5678
-                planUpgradeSuccess:
-                    description: Credits updated after user upgraded to higher tier
-                    summary: Plan upgrade completed
-                    value:
-                        data:
-                            refill:
-                                amount: 10000
-                                interval: monthly
-                                refillDay: 1
-                            remaining: 10000
-                        meta:
-                            requestId: req_upgrade_1234
-                unlimitedUpgradeSuccess:
-                    description: User upgraded to unlimited usage plan
-                    summary: Unlimited upgrade completed
-                    value:
-                        data:
-                            refill: null
-                            remaining: null
-                        meta:
-                            requestId: req_unlimited_9876
+                - data:
+                    refill:
+                        amount: 10000
+                        interval: monthly
+                        refillDay: 1
+                    remaining: 10000
+                  meta:
+                    requestId: req_upgrade_1234
+                - data:
+                    refill:
+                        amount: 5000
+                        interval: monthly
+                        refillDay: 15
+                    remaining: 8500
+                  meta:
+                    requestId: req_purchase_5678
+                - data:
+                    refill: null
+                    remaining: null
+                  meta:
+                    requestId: req_unlimited_9876
+                - data:
+                    refill:
+                        amount: 25000
+                        interval: monthly
+                        refillDay: 1
+                    remaining: 25000
+                  meta:
+                    requestId: req_reset_abcd
             properties:
                 data:
                     $ref: '#/components/schemas/KeyCreditsData'
@@ -3009,93 +2772,69 @@ components:
         V2KeysUpdateKeyRequestBody:
             additionalProperties: false
             examples:
-                planDowngrade:
-                    description: Reduce limits when user cancels paid subscription
-                    summary: Downgrade user to free tier
-                    value:
-                        credits:
-                            refill:
-                                amount: 1000
-                                interval: monthly
-                                refillDay: 1
-                            remaining: 1000
-                        keyId: key_5678efgh
-                        meta:
-                            downgradeDate: "2024-01-15T10:30:00Z"
-                            plan: free
-                            reason: subscription_cancelled
-                        ratelimits:
-                            - autoApply: true
-                              duration: 60000
-                              limit: 100
-                              name: requests
-                planUpgrade:
-                    description: Update key when user upgrades to paid plan with higher limits
-                    summary: Upgrade user from free to paid plan
-                    value:
-                        credits:
-                            refill:
-                                amount: 10000
-                                interval: monthly
-                                refillDay: 15
-                            remaining: 10000
-                        keyId: key_1234abcd
-                        meta:
-                            billingCycle: monthly
-                            plan: paid
-                            upgradeDate: "2024-01-15T10:30:00Z"
-                        ratelimits:
-                            - autoApply: true
-                              duration: 60000
-                              limit: 1000
-                              name: requests
-                removeExpiration:
-                    description: Remove expiration from a key that was initially created with time limits
-                    summary: Make temporary key permanent
-                    value:
-                        expires: null
-                        keyId: key_temp_789
-                        meta:
-                            convertedDate: "2024-01-15T10:30:00Z"
-                            originalExpiry: "2024-02-15T10:30:00Z"
-                            status: permanent
-                roleChange:
-                    description: Modify key permissions when user's role changes in your system
-                    summary: Update user permissions after role change
-                    value:
-                        externalId: user_admin_456
-                        keyId: key_9876wxyz
-                        meta:
-                            promotedDate: "2024-01-15T10:30:00Z"
-                            role: admin
-                        permissions:
-                            - users.read
-                            - users.write
-                            - admin.dashboard
-                            - billing.view
-                        roles:
-                            - admin
-                suspendAccount:
-                    description: Disable key when user account is suspended for policy violations
-                    summary: Temporarily disable key for suspended account
-                    value:
-                        enabled: false
-                        keyId: key_suspended_123
-                        meta:
-                            reason: policy_violation
-                            status: suspended
-                            suspendedBy: support_agent_789
-                            suspendedDate: "2024-01-15T10:30:00Z"
-                updateIdentity:
-                    description: Update key association when user changes their identifier
-                    summary: Link key to different user identity
-                    value:
-                        externalId: new_user_id_789
-                        keyId: key_identity_456
-                        meta:
-                            previousId: old_user_id_123
-                            transferredDate: "2024-01-15T10:30:00Z"
-                        name: Production API Key - New User
+                - credits:
+                    refill:
+                        amount: 10000
+                        interval: monthly
+                        refillDay: 15
+                    remaining: 10000
+                  keyId: key_1234abcd
+                  meta:
+                    billingCycle: monthly
+                    plan: paid
+                    upgradeDate: "2024-01-15T10:30:00Z"
+                  ratelimits:
+                    - autoApply: true
+                      duration: 60000
+                      limit: 1000
+                      name: requests
+                - credits:
+                    refill:
+                        amount: 1000
+                        interval: monthly
+                        refillDay: 1
+                    remaining: 1000
+                  keyId: key_5678efgh
+                  meta:
+                    downgradeDate: "2024-01-15T10:30:00Z"
+                    plan: free
+                    reason: subscription_cancelled
+                  ratelimits:
+                    - autoApply: true
+                      duration: 60000
+                      limit: 100
+                      name: requests
+                - externalId: user_admin_456
+                  keyId: key_9876wxyz
+                  meta:
+                    promotedDate: "2024-01-15T10:30:00Z"
+                    role: admin
+                  permissions:
+                    - users.read
+                    - users.write
+                    - admin.dashboard
+                    - billing.view
+                  roles:
+                    - admin
+                - enabled: false
+                  keyId: key_suspended_123
+                  meta:
+                    reason: policy_violation
+                    status: suspended
+                    suspendedBy: support_agent_789
+                    suspendedDate: "2024-01-15T10:30:00Z"
+                - externalId: new_user_id_789
+                  keyId: key_identity_456
+                  meta:
+                    previousId: old_user_id_123
+                    transferredDate: "2024-01-15T10:30:00Z"
+                  name: Production API Key - New User
+                - expires: null
+                  keyId: key_temp_789
+                  meta:
+                    convertedDate: "2024-01-15T10:30:00Z"
+                    originalExpiry: "2024-02-15T10:30:00Z"
+                    status: permanent
             properties:
                 credits:
                     $ref: '#/components/schemas/UpdateKeyCreditsData'
@@ -3237,13 +2976,9 @@ components:
         V2KeysUpdateKeyResponseBody:
             additionalProperties: false
             examples:
-                basicUpdateSuccess:
-                    description: Standard successful update response
-                    summary: Successful basic update
-                    value:
-                        data: {}
-                        meta:
-                            requestId: req_abcd1234
+                - data: {}
+                  meta:
+                    requestId: req_abcd1234
             properties:
                 data:
                     $ref: '#/components/schemas/EmptyResponse'
@@ -3256,19 +2991,11 @@ components:
         V2KeysVerifyKeyRequestBody:
             additionalProperties: false
             examples:
-                basic:
-                    description: Check if a key is valid
-                    summary: Basic verification
-                    value:
-                        apiId: api_1234abcd
-                        key: sk_1234abcdef
-                withPermissions:
-                    description: Verify key has required permissions
-                    summary: Check permissions
-                    value:
-                        apiId: api_1234abcd
-                        key: sk_1234abcdef
-                        permissions: documents.read
+                - apiId: api_1234abcd
+                  key: sk_1234abcdef
+                - apiId: api_1234abcd
+                  key: sk_1234abcdef
+                  permissions: documents.read
             properties:
                 credits:
                     $ref: '#/components/schemas/KeysVerifyKeyCredits'
@@ -3332,68 +3059,52 @@ components:
         V2KeysVerifyKeyResponseBody:
             additionalProperties: false
             examples:
-                expiredKey:
-                    description: Key verification failed due to expiration
-                    summary: Expired key verification
-                    value:
-                        data:
-                            code: EXPIRED
-                            enabled: true
-                            expires: 1704067200000
-                            keyId: key_5678efgh
-                            name: temporary-access-key
-                            valid: false
-                        meta:
-                            requestId: req_def456ghi789
-                insufficientCredits:
-                    description: Key verification failed due to insufficient remaining credits
-                    summary: Credit exhaustion failure
-                    value:
-                        data:
-                            code: USAGE_EXCEEDED
-                            credits: 0
-                            enabled: true
-                            keyId: key_9012ijkl
-                            valid: false
-                        meta:
-                            requestId: req_ghi789jkl012
-                permissionDenied:
-                    description: Key lacks the required permissions for the requested operation
-                    summary: Permission verification failure
-                    value:
-                        data:
-                            code: FORBIDDEN
-                            enabled: true
-                            keyId: key_3456mnop
-                            permissions:
-                                - documents.read
-                            valid: false
-                        meta:
-                            requestId: req_jkl012mno345
-                validKey:
-                    description: Successful verification returning complete key information
-                    summary: Valid key with full details
-                    value:
-                        data:
-                            code: VALID
-                            credits: 950
-                            enabled: true
-                            expires: 1735689600000
-                            keyId: key_1234abcd
-                            meta:
-                                plan: premium
-                                region: us-east-1
-                                userId: user_12345
-                            name: user-dashboard-key
-                            permissions:
-                                - documents.read
-                                - documents.write
-                                - users.view
-                            roles:
-                                - editor
-                            valid: true
-                        meta:
-                            requestId: req_abc123def456
+                - data:
+                    code: VALID
+                    credits: 950
+                    enabled: true
+                    expires: 1735689600000
+                    keyId: key_1234abcd
+                    meta:
+                        plan: premium
+                        region: us-east-1
+                        userId: user_12345
+                    name: user-dashboard-key
+                    permissions:
+                        - documents.read
+                        - documents.write
+                        - users.view
+                    roles:
+                        - editor
+                    valid: true
+                  meta:
+                    requestId: req_abc123def456
+                - data:
+                    code: EXPIRED
+                    enabled: true
+                    expires: 1704067200000
+                    keyId: key_5678efgh
+                    name: temporary-access-key
+                    valid: false
+                  meta:
+                    requestId: req_def456ghi789
+                - data:
+                    code: USAGE_EXCEEDED
+                    credits: 0
+                    enabled: true
+                    keyId: key_9012ijkl
+                    valid: false
+                  meta:
+                    requestId: req_ghi789jkl012
+                - data:
+                    code: FORBIDDEN
+                    enabled: true
+                    keyId: key_3456mnop
+                    permissions:
+                        - documents.read
+                    valid: false
+                  meta:
+                    requestId: req_jkl012mno345
             properties:
                 data:
                     $ref: '#/components/schemas/V2KeysVerifyKeyResponseData'
@@ -3523,11 +3234,7 @@ components:
         V2KeysWhoamiRequestBody:
             additionalProperties: false
             examples:
-                playground:
-                    description: Look up key details when provided the actual key string
-                    summary: Lookup by actual key string
-                    value:
-                        key: sk_1234abcdef5678
+                - key: sk_1234abcdef5678
             properties:
                 key:
                     description: |
@@ -3543,117 +3250,101 @@ components:
             type: object
         V2KeysWhoamiResponseBody:
             examples:
-                apiPlaygroundWithDecryption:
-                    description: Response including plaintext key for testing API calls in the dashboard
-                    summary: Decrypted key for API playground
-                    value:
-                        data:
-                            createdAt: 1704067200000
-                            credits:
-                                remaining: 500
-                            enabled: true
-                            keyId: key_5678efgh
-                            meta:
-                                environment: development
-                                team: backend
-                            name: Development Testing Key
-                            permissions:
-                                - documents.read
-                            plaintext: sk_test_1234abcdef5678
-                            ratelimits:
-                                - autoApply: true
-                                  duration: 60000
-                                  id: rl_5678
-                                  limit: 100
-                                  name: dev_requests
-                            start: sk_test
+                - data:
+                    createdAt: 1704067200000
+                    credits:
+                        refill:
+                            amount: 10000
+                            interval: monthly
+                            refillDay: 1
+                        remaining: 8500
+                    enabled: true
+                    expires: 1735689600000
+                    keyId: key_1234abcd
+                    meta:
+                        environment: production
+                        plan: premium
+                        userId: user_5678
+                    name: Production API Key
+                    permissions:
+                        - documents.read
+                        - documents.write
+                    ratelimits:
+                        - autoApply: true
+                          duration: 60000
+                          id: rl_1234
+                          limit: 1000
+                          name: api_requests
+                    roles:
+                        - editor
+                    start: sk_prod
+                  meta:
+                    requestId: req_1234abcd
+                - data:
+                    createdAt: 1704067200000
+                    credits:
+                        remaining: 500
+                    enabled: true
+                    keyId: key_5678efgh
+                    meta:
+                        environment: development
+                        team: backend
+                    name: Development Testing Key
+                    permissions:
+                        - documents.read
+                    plaintext: sk_test_1234abcdef5678
+                    ratelimits:
+                        - autoApply: true
+                          duration: 60000
+                          id: rl_5678
+                          limit: 100
+                          name: dev_requests
+                    start: sk_test
+                  meta:
+                    requestId: req_5678efgh
+                - data:
+                    createdAt: 1704067200000
+                    credits:
+                        remaining: 2500
+                    enabled: true
+                    identity:
+                        externalId: user_9876
                         meta:
-                            requestId: req_5678efgh
-                dashboardKeyDetails:
-                    description: Typical response for displaying key details in a dashboard without decryption
-                    summary: Dashboard key information for display
-                    value:
-                        data:
-                            createdAt: 1704067200000
-                            credits:
-                                refill:
-                                    amount: 10000
-                                    interval: monthly
-                                    refillDay: 1
-                                remaining: 8500
-                            enabled: true
-                            expires: 1735689600000
-                            keyId: key_1234abcd
-                            meta:
-                                environment: production
-                                plan: premium
-                                userId: user_5678
-                            name: Production API Key
-                            permissions:
-                                - documents.read
-                                - documents.write
-                            ratelimits:
-                                - autoApply: true
-                                  duration: 60000
-                                  id: rl_1234
-                                  limit: 1000
-                                  name: api_requests
-                            roles:
-                                - editor
-                            start: sk_prod
-                        meta:
-                            requestId: req_1234abcd
-                expiredKey:
-                    description: Response for a key that has passed its expiration date
-                    summary: Expired key information
-                    value:
-                        data:
-                            createdAt: 1672531200000
-                            credits:
-                                remaining: 0
-                            enabled: false
-                            expires: 1703980800000
-                            keyId: key_expired_123
-                            meta:
-                                migrationRequired: true
-                                plan: legacy
-                            name: Legacy API Key
-                            permissions:
-                                - legacy.read
-                            start: sk_old
-                        meta:
-                            requestId: req_expired
-                keyWithIdentity:
-                    description: Response showing key linked to an identity with shared rate limits
-                    summary: Key with associated identity information
-                    value:
-                        data:
-                            createdAt: 1704067200000
-                            credits:
-                                remaining: 2500
-                            enabled: true
-                            identity:
-                                externalId: user_9876
-                                meta:
-                                    plan: pro
-                                    signupDate: "2024-01-15"
-                                ratelimits:
-                                    - autoApply: true
-                                      duration: 3600000
-                                      id: rl_identity_1
-                                      limit: 5000
-                                      name: user_requests
-                            keyId: key_9876zyxw
-                            meta:
-                                device: mobile
-                                platform: ios
-                            name: User Mobile App Key
-                            permissions:
-                                - profile.read
-                                - profile.update
-                            start: sk_user
-                        meta:
-                            requestId: req_9876zyxw
+                            plan: pro
+                            signupDate: "2024-01-15"
+                        ratelimits:
+                            - autoApply: true
+                              duration: 3600000
+                              id: rl_identity_1
+                              limit: 5000
+                              name: user_requests
+                    keyId: key_9876zyxw
+                    meta:
+                        device: mobile
+                        platform: ios
+                    name: User Mobile App Key
+                    permissions:
+                        - profile.read
+                        - profile.update
+                    start: sk_user
+                  meta:
+                    requestId: req_9876zyxw
+                - data:
+                    createdAt: 1672531200000
+                    credits:
+                        remaining: 0
+                    enabled: false
+                    expires: 1703980800000
+                    keyId: key_expired_123
+                    meta:
+                        migrationRequired: true
+                        plan: legacy
+                    name: Legacy API Key
+                    permissions:
+                        - legacy.read
+                    start: sk_old
+                  meta:
+                    requestId: req_expired
             properties:
                 data:
                     $ref: '#/components/schemas/KeyResponseData'
@@ -3686,19 +3377,11 @@ components:
         V2PermissionsCreatePermissionRequestBody:
             additionalProperties: false
             examples:
-                withDescription:
-                    description: Standard permission creation with documentation
-                    summary: Create permission with description
-                    value:
-                        description: Allows reading document resources
-                        name: documents.read
-                        slug: documents-read
-                withoutDescription:
-                    description: Minimal permission creation when description is optional
-                    summary: Create permission without description
-                    value:
-                        name: files.upload
-                        slug: files-upload
+                - description: Allows reading document resources
+                  name: documents.read
+                  slug: documents-read
+                - name: files.upload
+                  slug: files-upload
             properties:
                 description:
                     description: |
@@ -3713,7 +3396,7 @@ components:
                         - Any conditions or limitations
                         - Related permissions that might be needed
                     example: Grants read-only access to user profile information, account settings, and subscription status.
-                    maxLength: 512
+                    maxLength: 128
                     type: string
                 name:
                     description: |
@@ -3748,14 +3431,10 @@ components:
         V2PermissionsCreatePermissionResponseBody:
             additionalProperties: false
             examples:
-                success:
-                    description: Standard successful permission creation response
-                    summary: Permission created successfully
-                    value:
-                        data:
-                            permissionId: perm_5678efgh9012wxyz
-                        meta:
-                            requestId: req_1234abcd
+                - data:
+                    permissionId: perm_5678efgh9012wxyz
+                  meta:
+                    requestId: req_1234abcd
             properties:
                 data:
                     $ref: '#/components/schemas/V2PermissionsCreatePermissionResponseData'
@@ -3785,18 +3464,10 @@ components:
         V2PermissionsCreateRoleRequestBody:
             additionalProperties: false
             examples:
-                adminRole:
-                    description: Create a role for administrative users
-                    summary: Create admin role
-                    value:
-                        description: Full administrative access to all resources
-                        name: admin
-                editorRole:
-                    description: Create a role for content editors
-                    summary: Create editor role
-                    value:
-                        description: Can create and edit content but not manage users
-                        name: editor
+                - description: Full administrative access to all resources
+                  name: admin
+                - description: Can create and edit content but not manage users
+                  name: editor
             properties:
                 description:
                     description: |
@@ -3812,7 +3483,7 @@ components:
                         - Any security considerations or limitations
                         - Related roles that might be used together
                     example: Provides read-only access for customer support representatives. Includes permissions to view user accounts, support tickets, and basic analytics. Does not include access to billing, admin functions, or data modification capabilities.
-                    maxLength: 512
+                    maxLength: 2048
                     type: string
                 name:
                     description: |
@@ -3830,14 +3501,10 @@ components:
         V2PermissionsCreateRoleResponseBody:
             additionalProperties: false
             examples:
-                success:
-                    description: Standard successful role creation response
-                    summary: Role created successfully
-                    value:
-                        data:
-                            roleId: role_5678efgh9012wxyz
-                        meta:
-                            requestId: req_1234abcd
+                - data:
+                    roleId: role_5678efgh9012wxyz
+                  meta:
+                    requestId: req_1234abcd
             properties:
                 data:
                     $ref: '#/components/schemas/V2PermissionsCreateRoleResponseData'
@@ -3942,11 +3609,7 @@ components:
         V2PermissionsGetPermissionRequestBody:
             additionalProperties: false
             examples:
-                basic:
-                    description: Get information about a specific permission
-                    summary: Retrieve permission details
-                    value:
-                        permissionId: perm_1234567890abcdef
+                - permissionId: perm_1234567890abcdef
             properties:
                 permission:
                     description: |
@@ -3962,18 +3625,14 @@ components:
         V2PermissionsGetPermissionResponseBody:
             additionalProperties: false
             examples:
-                success:
-                    description: Standard successful permission retrieval response
-                    summary: Permission retrieved successfully
-                    value:
-                        data:
-                            createdAt: 1640995200000
-                            description: Allows reading document resources
-                            id: perm_1234567890abcdef
-                            name: documents.read
-                            slug: documents-read
-                        meta:
-                            requestId: req_1234abcd
+                - data:
+                    createdAt: 1640995200000
+                    description: Allows reading document resources
+                    id: perm_1234567890abcdef
+                    name: documents.read
+                    slug: documents-read
+                  meta:
+                    requestId: req_1234abcd
             properties:
                 data:
                     $ref: '#/components/schemas/Permission'
@@ -4769,13 +4428,13 @@ paths:
                     description: Events successfully queued for processing
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Invalid request body or malformed events
                 "529":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Service overloaded, unable to process events
@@ -4807,13 +4466,13 @@ paths:
                     description: Events successfully queued for processing
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Invalid request body or malformed events
                 "529":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Service overloaded, unable to process events
@@ -4845,13 +4504,13 @@ paths:
                     description: Events successfully queued for processing
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Invalid request body or malformed events
                 "529":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Service overloaded, unable to process events
@@ -4882,49 +4541,49 @@ paths:
                     description: Query executed successfully
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Invalid SQL query or blocked operation
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Missing or invalid authentication
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Insufficient permissions
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Referenced API or identity not found
                 "422":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
                     description: Query exceeds resource limits (timeout, memory, rows scanned, or result size)
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Query quota exceeded
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Query execution failed
                 "503":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ServiceUnavailableErrorResponse'
                     description: Connection to the database failed
@@ -4964,25 +4623,25 @@ paths:
                         API namespace created successfully. The response contains the unique API ID for referencing this namespace in key operations.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -5024,37 +4683,37 @@ paths:
                     description: API namespace deleted successfully. All associated keys are immediately invalidated and will fail verification with `code=NOT_FOUND`.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
                 "412":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/PreconditionFailedErrorResponse'
                     description: Delete protection is enabled. Disable protection through the dashboard or API configuration, then retry the deletion.
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -5092,31 +4751,31 @@ paths:
                     description: API information retrieved successfully. Contains the unique API ID and human-readable name.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -5163,31 +4822,31 @@ paths:
                         Successfully retrieved paginated keys. Use the pagination cursor for additional results when `hasMore: true`.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -5222,31 +4881,31 @@ paths:
                     description: Deployment created successfully
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -5282,31 +4941,31 @@ paths:
                     description: Deployment retrieved successfully
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -5368,19 +5027,19 @@ paths:
                                 $ref: '#/components/schemas/V2IdentitiesCreateIdentityResponseBody'
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             examples:
                                 missingPermission:
                                     summary: Missing required permission
@@ -5397,7 +5056,7 @@ paths:
                     description: Forbidden - Insufficient permissions (requires `identity.*.create_identity`)
                 "409":
                     content:
-                        application/json:
+                        application/problem+json:
                             examples:
                                 identityExists:
                                     summary: Identity already exists
@@ -5414,7 +5073,7 @@ paths:
                     description: Conflict - Identity with this externalId already exists
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -5565,19 +5224,19 @@ paths:
                     description: Successfully retrieved the identity information
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             examples:
                                 missingPermission:
                                     summary: Missing required permission
@@ -5594,7 +5253,7 @@ paths:
                     description: Forbidden - Insufficient permissions (requires `identity.*.read_identity`)
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             examples:
                                 identityNotFound:
                                     summary: Identity not found
@@ -5611,7 +5270,7 @@ paths:
                     description: Not Found - Identity with the specified externalId doesn't exist
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -5684,19 +5343,19 @@ paths:
                     description: Successfully retrieved the list of identities
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad Request - Invalid parameters
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized - Missing or invalid authentication
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             examples:
                                 missingPermission:
                                     summary: Missing required permission
@@ -5713,7 +5372,7 @@ paths:
                     description: Forbidden - Insufficient permissions (requires `identity.*.read_identity`)
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
@@ -5772,19 +5431,19 @@ paths:
                                     requestId: req_2cGKbMxRyIzhCxo1Idjz8q
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             examples:
                                 missingPermission:
                                     summary: Missing required permission
@@ -5801,7 +5460,7 @@ paths:
                     description: Forbidden - Insufficient permissions (requires `identity.*.update_identity`)
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             examples:
                                 identityNotFound:
                                     summary: Identity not found
@@ -5818,7 +5477,7 @@ paths:
                     description: Not Found - Identity with the specified ID or externalId doesn't exist
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -5862,31 +5521,31 @@ paths:
                     description: Permissions added successfully. Returns all permissions currently assigned to the key.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -5930,31 +5589,31 @@ paths:
                     description: Roles added successfully. Returns all roles currently assigned to the key.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -5999,31 +5658,31 @@ paths:
                     description: 'Successfully created a new API key. The response includes both the keyId (for reference in your system) and the full key string. IMPORTANT: This is the only time the complete key is available - it cannot be retrieved later. You must securely provide this key to your end user immediately.'
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -6064,31 +5723,31 @@ paths:
                         Key deleted successfully. Verification fails immediately with up to 30-second edge propagation.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -6132,31 +5791,31 @@ paths:
                         Successfully retrieved key information. When `decrypt: true`, includes plaintext key value for recoverable keys.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -6191,31 +5850,31 @@ paths:
                     description: Successfully migrated keys.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -6259,31 +5918,31 @@ paths:
                     description: Permissions removed successfully. Returns all permissions currently assigned to the key.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -6327,31 +5986,31 @@ paths:
                     description: Roles removed successfully. Returns all roles currently assigned to the key.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -6412,31 +6071,31 @@ paths:
                     description: Key rerolled successfully.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -6480,31 +6139,31 @@ paths:
                     description: Permissions set successfully. Returns all permissions currently assigned to the key.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -6548,31 +6207,31 @@ paths:
                     description: Roles set successfully. Returns all roles currently assigned to the key.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -6617,31 +6276,31 @@ paths:
                         Credits updated successfully. Response includes updated remaining credits and refill settings.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -6693,31 +6352,31 @@ paths:
                         Key updated successfully. Changes take effect immediately with up to 30-second edge propagation.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -6771,7 +6430,7 @@ paths:
                         The response also includes identity information when the key is associated with an identity, providing additional context about the key holder and any identity-specific rate limits or metadata that may apply to the verification.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             examples:
                                 permissionsQuerySyntaxError:
                                     summary: Invalid permissions query syntax
@@ -6792,26 +6451,26 @@ paths:
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
                         Forbidden. Returned when the root key has no verify permissions at all (neither `api.*.verify_key` nor `api.<api_id>.verify_key` for any API).
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -6850,31 +6509,31 @@ paths:
                         Successfully retrieved key information.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -6917,7 +6576,7 @@ paths:
                         Service is healthy and ready to process requests. Returns 'OK' message for normal operation.
                 "412":
                     content:
-                        application/json:
+                        application/problem+json:
                             examples:
                                 degraded:
                                     summary: Service in degraded state
@@ -6933,7 +6592,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             examples:
                                 unhealthy:
                                     summary: Service unhealthy
@@ -6984,31 +6643,31 @@ paths:
                     description: Permission created successfully
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad Request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "409":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ConflictErrorResponse'
                     description: Conflict - permission with that name already exists
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
@@ -7055,31 +6714,31 @@ paths:
                     description: Role created successfully
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad Request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "409":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ConflictErrorResponse'
                     description: Conflict - A role with this name already exists
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
@@ -7121,31 +6780,31 @@ paths:
                     description: Permission deleted successfully
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad Request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found - The specified permission does not exist
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
@@ -7182,25 +6841,25 @@ paths:
                     description: Role deleted successfully
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad Request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
@@ -7235,31 +6894,31 @@ paths:
                     description: Permission retrieved successfully
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad Request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
@@ -7294,31 +6953,31 @@ paths:
                     description: Role retrieved successfully
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad Request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
@@ -7354,25 +7013,25 @@ paths:
                     description: Permissions retrieved successfully
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad Request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
@@ -7408,31 +7067,31 @@ paths:
                     description: Roles retrieved successfully
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad Request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
@@ -7486,19 +7145,19 @@ paths:
                                     requestId: req_2cGKbMxRyIzhCxo1Idjz8q
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             examples:
                                 missingPermission:
                                     summary: Missing required permission
@@ -7515,7 +7174,7 @@ paths:
                     description: Forbidden - Insufficient permissions (requires `ratelimit.*.delete_override`)
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             examples:
                                 overrideNotFound:
                                     summary: Override not found
@@ -7532,7 +7191,7 @@ paths:
                     description: Not Found - Override or namespace not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
@@ -7591,19 +7250,19 @@ paths:
                                     requestId: req_2cGKbMxRyIzhCxo1Idjz8q
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             examples:
                                 missingPermission:
                                     summary: Missing required permission
@@ -7620,7 +7279,7 @@ paths:
                     description: Forbidden - Insufficient permissions (requires `ratelimit.*.read_override`)
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             examples:
                                 overrideNotFound:
                                     summary: Override not found
@@ -7637,7 +7296,7 @@ paths:
                     description: Not Found - Override or namespace not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
@@ -7733,37 +7392,37 @@ paths:
                         Rate limit check completed successfully. Check the `success` field to determine if the request is allowed.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
                 "410":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/GoneErrorResponse'
                     description: Gone - Namespace has been deleted
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -7835,19 +7494,19 @@ paths:
                                     requestId: req_2cGKbMxRyIzhCxo1Idjz8q
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             examples:
                                 missingPermission:
                                     summary: Missing required permission
@@ -7864,13 +7523,13 @@ paths:
                     description: Forbidden - Insufficient permissions (requires `ratelimit.*.read_override`)
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Error
@@ -8009,37 +7668,37 @@ paths:
                         All rate limit checks completed successfully. Check the `success` field in each result to determine if the corresponding request is allowed.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
                 "410":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/GoneErrorResponse'
                     description: Gone - Namespace has been deleted
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -8098,19 +7757,19 @@ paths:
                                     requestId: req_2cGKbMxRyIzhCxo1Idjz8q
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             examples:
                                 missingPermission:
                                     summary: Missing required permission
@@ -8127,7 +7786,7 @@ paths:
                     description: Forbidden - Insufficient permissions (requires `ratelimit.*.set_override`)
                 "404":
                     content:
-                        application/json:
+                        application/problem+json:
                             examples:
                                 namespaceNotFound:
                                     summary: Namespace not found
@@ -8144,7 +7803,7 @@ paths:
                     description: Not Found - Namespace not found
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
