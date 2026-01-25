@@ -14,11 +14,12 @@ import (
 
 // TestEndpoint represents an endpoint to generate a test for
 type TestEndpoint struct {
-	Path        string // e.g., "/v2/apis.createApi"
-	Method      string // e.g., "POST"
-	OperationID string // e.g., "createApi"
-	PackageName string // e.g., "apis_createApi"
-	TestName    string // e.g., "TestOpenAPI_ApisCreateApi"
+	Path         string // e.g., "/v2/apis.createApi"
+	Method       string // e.g., "POST"
+	OperationID  string // e.g., "createApi"
+	PackageName  string // e.g., "apis_createApi"
+	TestName     string // e.g., "TestOpenAPI_ApisCreateApi"
+	RoutePackage string // e.g., "//svc/api/routes/v2_apis_create_api"
 }
 
 // OpenAPISpec represents the structure we need from the spec
@@ -42,15 +43,20 @@ func {{ .TestName }}(t *testing.T) {
 }
 `
 
+// BUILD template uses data attribute instead of deps for route dependency.
+// The # keep comment prevents gazelle from removing the route dependency.
+// The API binary is included as a runtime dependency for subprocess execution.
 const buildTemplate = `load("@rules_go//go:def.bzl", "go_test")
 
 go_test(
     name = "{{ .PackageName }}_test",
     srcs = ["generated_test.go"],
     tags = ["docker"],
-    deps = [
-        "//svc/api/integration/openapi",
+    data = [
+        "//svc/api/cmd:api",  # API binary for subprocess execution
+        "{{ .RoutePackage }}",  # keep - Route handler dependency for Bazel invalidation
     ],
+    deps = ["//svc/api/integration/openapi"],
 )
 `
 
@@ -176,13 +182,15 @@ func parseOpenAPISpec(specPath string) ([]TestEndpoint, error) {
 
 			packageName := generatePackageName(path)
 			testName := generateTestName(path)
+			routePackage := generateRoutePackage(path)
 
 			endpoints = append(endpoints, TestEndpoint{
-				Path:        path,
-				Method:      method,
-				OperationID: operationID,
-				PackageName: packageName,
-				TestName:    testName,
+				Path:         path,
+				Method:       method,
+				OperationID:  operationID,
+				PackageName:  packageName,
+				TestName:     testName,
+				RoutePackage: routePackage,
 			})
 		}
 	}
@@ -213,4 +221,39 @@ func generateTestName(path string) string {
 	}
 
 	return "TestOpenAPI_" + strings.Join(parts, "")
+}
+
+func generateRoutePackage(path string) string {
+	// /v2/apis.createApi -> //svc/api/routes/v2_apis_create_api
+	// /v2/liveness -> //svc/api/routes/v2_liveness
+
+	// Remove leading slash
+	name := strings.TrimPrefix(path, "/")
+
+	// Replace dots with underscores: v2/apis.createApi -> v2/apis_createApi
+	name = strings.ReplaceAll(name, ".", "_")
+
+	// Replace slashes with underscores: v2/apis_createApi -> v2_apis_createApi
+	name = strings.ReplaceAll(name, "/", "_")
+
+	// Convert camelCase to snake_case
+	name = camelToSnake(name)
+
+	return "//svc/api/routes/" + name
+}
+
+func camelToSnake(s string) string {
+	var result strings.Builder
+	for i, r := range s {
+		if r >= 'A' && r <= 'Z' {
+			// Don't add underscore at the start or after an underscore
+			if i > 0 && s[i-1] != '_' {
+				result.WriteByte('_')
+			}
+			result.WriteRune(r + 32) // Convert to lowercase
+		} else {
+			result.WriteRune(r)
+		}
+	}
+	return result.String()
 }
