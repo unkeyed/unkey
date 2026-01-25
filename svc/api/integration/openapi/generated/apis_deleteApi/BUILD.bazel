@@ -3,8 +3,10 @@ load("@rules_go//go:def.bzl", "go_test")
 go_test(
     name = "apis_deleteApi_test",
     srcs = ["generated_test.go"],
-    tags = ["docker"],
-    deps = [
-        "//svc/api/integration/openapi",
+    data = [
+        "//svc/api/cmd:api",  # API binary for subprocess execution
+        "//svc/api/routes/v2_apis_delete_api",  # keep - Route handler dependency for Bazel invalidation
     ],
+    tags = ["docker"],
+    deps = ["//svc/api/integration/openapi"],
 )
