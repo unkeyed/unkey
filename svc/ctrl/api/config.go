@@ -96,6 +96,16 @@ type Config struct {
 	// AvailableRegions is a list of available regions for deployments.
 	// Typically in the format "region.provider", ie "us-east-1.aws", "local.dev"
 	AvailableRegions []string
+
+	// DefaultDomain is the fallback domain for system operations.
+	// Used for wildcard certificate bootstrapping. When set, the API will
+	// ensure a wildcard certificate exists for *.{DefaultDomain}.
+	DefaultDomain string
+
+	// RegionalApexDomain is the base domain for cross-region communication
+	// between frontline instances. Combined with AvailableRegions to create
+	// per-region wildcard certificates like *.{region}.{RegionalApexDomain}.
+	RegionalApexDomain string
 }
 
 // Validate checks the configuration for required fields and logical consistency.

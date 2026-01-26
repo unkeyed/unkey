@@ -84,11 +84,6 @@ type AcmeConfig struct {
 // This configuration enables asynchronous workflow execution through
 // the Restate distributed system for deployment and certificate operations.
 type RestateConfig struct {
-	// URL is the Restate ingress endpoint URL for workflow invocation.
-	// Used by clients to start and interact with workflow executions.
-	// Example: "http://restate:8080".
-	URL string
-
 	// AdminURL is the Restate admin endpoint URL for service registration.
 	// Used by the worker to register its workflow services.
 	// Example: "http://restate:9070".
@@ -103,9 +98,12 @@ type RestateConfig struct {
 	// Example: "http://worker:9080".
 	RegisterAs string
 
-	// APIKey is the authentication key for Restate ingress requests.
-	// If set, this key will be sent with all requests to the Restate ingress.
-	APIKey string
+	// IdentityKeys are public keys for validating request identity from Restate.
+	// When set, the worker will verify that incoming requests are signed by Restate
+	// using one of these keys. This should be enabled in production environments.
+	// Leave empty to disable identity verification (for local development).
+	// See: https://docs.restate.dev/develop/go/serving#validating-request-identity
+	IdentityKeys []string
 }
 
 // DepotConfig holds configuration for Depot.dev build service integration.
@@ -164,10 +162,6 @@ type Config struct {
 	// InstanceID is the unique identifier for this worker instance.
 	// Used for logging, tracing, and cluster coordination.
 	InstanceID string
-
-	// HttpPort defines the HTTP port for the health check endpoint.
-	// Default: 7092. Cannot be 0.
-	HttpPort int
 
 	// PrometheusPort specifies the port for exposing Prometheus metrics.
 	// Set to 0 to disable metrics exposure. When enabled, metrics are served

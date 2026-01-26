@@ -22,8 +22,6 @@ var workerCmd = &cli.Command{
 	Usage:       "Run the Unkey Restate worker service for background jobs and workflows",
 	Flags: []cli.Flag{
 		// Server Configuration
-		cli.Int("http-port", "HTTP port for the health endpoint. Default: 7092",
-			cli.Default(7092), cli.EnvVar("UNKEY_WORKER_HTTP_PORT")),
 		cli.Int("prometheus-port", "Port for Prometheus metrics, set to 0 to disable.",
 			cli.Default(0), cli.EnvVar("UNKEY_PROMETHEUS_PORT")),
 
@@ -98,8 +96,8 @@ var workerCmd = &cli.Command{
 			cli.Default(9080), cli.EnvVar("UNKEY_RESTATE_HTTP_PORT")),
 		cli.String("restate-register-as", "URL of this service for self-registration with Restate. Example: http://worker:9080",
 			cli.EnvVar("UNKEY_RESTATE_REGISTER_AS")),
-		cli.String("restate-api-key", "API key for Restate ingress requests",
-			cli.EnvVar("UNKEY_RESTATE_API_KEY")),
+		cli.StringSlice("restate-identity-keys", "Public keys for validating Restate request identity (production only)",
+			cli.EnvVar("UNKEY_RESTATE_IDENTITY_KEYS")),
 
 		// ClickHouse Configuration
 		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Required. Example: clickhouse://user:pass@host:9000/unkey",
@@ -118,7 +116,6 @@ var workerCmd = &cli.Command{
 func workerAction(ctx context.Context, cmd *cli.Command) error {
 	config := worker.Config{
 		// Basic configuration
-		HttpPort:       cmd.Int("http-port"),
 		PrometheusPort: cmd.Int("prometheus-port"),
 		InstanceID:     cmd.String("instance-id"),
 
@@ -167,11 +164,10 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 
 		// Restate configuration
 		Restate: worker.RestateConfig{
-			URL:        cmd.String("restate-url"),
-			AdminURL:   cmd.String("restate-admin-url"),
-			HttpPort:   cmd.Int("restate-http-port"),
-			RegisterAs: cmd.String("restate-register-as"),
-			APIKey:     cmd.String("restate-api-key"),
+			AdminURL:     cmd.String("restate-admin-url"),
+			HttpPort:     cmd.Int("restate-http-port"),
+			RegisterAs:   cmd.String("restate-register-as"),
+			IdentityKeys: cmd.StringSlice("restate-identity-keys"),
 		},
 
 		// Clickhouse Configuration
