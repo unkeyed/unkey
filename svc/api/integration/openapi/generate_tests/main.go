@@ -45,7 +45,7 @@ func {{ .TestName }}(t *testing.T) {
 
 // BUILD template uses data attribute instead of deps for route dependency.
 // The # keep comment prevents gazelle from removing the route dependency.
-// The API binary is included as a runtime dependency for subprocess execution.
+// The unkey binary is included as a runtime dependency for subprocess execution.
 const buildTemplate = `load("@rules_go//go:def.bzl", "go_test")
 
 go_test(
@@ -53,7 +53,7 @@ go_test(
     srcs = ["generated_test.go"],
     tags = ["docker"],
     data = [
-        "//svc/api/cmd:api",  # API binary for subprocess execution
+        "//:unkey",  # Unkey binary for subprocess execution (runs: unkey run api)
         "{{ .RoutePackage }}",  # keep - Route handler dependency for Bazel invalidation
     ],
     deps = ["//svc/api/integration/openapi"],
