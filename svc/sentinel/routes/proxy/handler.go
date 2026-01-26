@@ -11,7 +11,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"strings"
 	"syscall"
 
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -137,7 +136,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 			if tracking != nil {
 				tracking.InstanceEnd = h.Clock.Now()
 				tracking.ResponseStatus = int32(resp.StatusCode)
-				tracking.ResponseHeaders = formatHeaders(resp.Header)
+				tracking.ResponseHeaders = resp.Header
 
 				// Capture response body for logging
 				if resp.Body != nil {
@@ -269,28 +268,4 @@ func categorizeProxyError(err error) (codes.URN, string) {
 
 	return codes.Sentinel.Proxy.BadGateway.URN(),
 		"Unable to connect to an instance. Please try again in a few moments."
-}
-
-func formatHeader(key, value string) string {
-	var b strings.Builder
-	b.Grow(len(key) + 2 + len(value))
-	b.WriteString(key)
-	b.WriteString(": ")
-	b.WriteString(value)
-	return b.String()
-}
-
-func formatHeaders(headers http.Header) []string {
-	result := make([]string, 0, len(headers))
-	for key, values := range headers {
-		lk := strings.ToLower(key)
-		if lk == "authorization" {
-			result = append(result, formatHeader(key, "[REDACTED]"))
-		} else {
-			for _, value := range values {
-				result = append(result, formatHeader(key, value))
-			}
-		}
-	}
-	return result
 }

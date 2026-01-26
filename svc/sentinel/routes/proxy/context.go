@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -24,7 +25,7 @@ type SentinelRequestTracking struct {
 	// Set by proxy ModifyResponse/ErrorHandler callbacks
 	InstanceEnd     time.Time
 	ResponseStatus  int32
-	ResponseHeaders []string
+	ResponseHeaders http.Header
 	ResponseBody    []byte
 }
 
