@@ -3,21 +3,21 @@
 -- by allowing queries to scan ~10K rows instead of 150M+ rows
 --
 -- IMPORTANT: Stores ONE row per key (latest verification regardless of outcome).
--- The query uses this to find top 50 keys, then aggregates ALL outcomes from raw table.
+-- ORDER BY prioritizes time for efficient "most recently used keys" queries.
 
 -- Target table that stores the latest verification per key
 CREATE TABLE IF NOT EXISTS default.keys_last_used_v2
 (
     workspace_id String,
     key_space_id String,
-    key_id String,
     time Int64 CODEC(Delta, LZ4),
+    key_id String,
     request_id String,
     outcome LowCardinality(String),
     tags Array(String) DEFAULT []
 )
 ENGINE = ReplacingMergeTree(time)
-ORDER BY (workspace_id, key_space_id, key_id, time)
+ORDER BY (workspace_id, key_space_id, time, key_id)
 TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 90 DAY DELETE;
 
 -- Materialized view that automatically populates the table from new inserts
