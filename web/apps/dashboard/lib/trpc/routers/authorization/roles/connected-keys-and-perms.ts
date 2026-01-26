@@ -49,6 +49,7 @@ export const getConnectedKeysAndPerms = workspaceProcedure
           name: roles.name,
           description: roles.description,
           updated_at_m: roles.updatedAtM,
+          created_at_m: roles.createdAtM,
         })
         .from(roles)
         .where(and(eq(roles.id, roleId), eq(roles.workspaceId, workspaceId)))
@@ -92,7 +93,7 @@ export const getConnectedKeysAndPerms = workspaceProcedure
         roleId: role.id,
         name: role.name,
         description: role.description,
-        lastUpdated: Number(role.updated_at_m),
+        lastUpdated: Number(role.updated_at_m ?? role.created_at_m),
         keys: keyResults.map((row) => {
           return {
             id: row.id,
