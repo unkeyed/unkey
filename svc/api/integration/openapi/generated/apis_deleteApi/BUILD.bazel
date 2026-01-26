@@ -4,7 +4,7 @@ go_test(
     name = "apis_deleteApi_test",
     srcs = ["generated_test.go"],
     data = [
-        "//svc/api/cmd:api",  # API binary for subprocess execution
+        "//:unkey",  # Unkey binary for subprocess execution (runs: unkey run api)
         "//svc/api/routes/v2_apis_delete_api",  # keep - Route handler dependency for Bazel invalidation
     ],
     tags = ["docker"],

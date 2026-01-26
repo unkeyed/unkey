@@ -79,8 +79,8 @@ func RunSchemathesisWithConfig(t *testing.T, cfg Config) {
 		t.Skip("Docker not available, skipping schemathesis test")
 	}
 
-	// Get API binary path from runfiles
-	apiBinaryPath := findAPIBinary(t)
+	// Get unkey binary path from runfiles
+	unkeyBinaryPath := findUnkeyBinary(t)
 
 	// Setup containers and database
 	mysqlCfg := containers.MySQL(t)
@@ -147,28 +147,31 @@ func RunSchemathesisWithConfig(t *testing.T, cfg Config) {
 	port := listener.Addr().(*net.TCPAddr).Port
 	_ = listener.Close()
 
-	// Prepare environment for the API subprocess
-	env := []string{
-		fmt.Sprintf("HTTP_PORT=%d", port),
-		fmt.Sprintf("DATABASE_PRIMARY=%s", mysqlDSN),
-		fmt.Sprintf("CLICKHOUSE_URL=%s", clickhouseDSN),
-		fmt.Sprintf("REDIS_URL=%s", redisURL),
-		fmt.Sprintf("KAFKA_BROKERS=%s", strings.Join(kafkaBrokers, ",")),
-		"TEST_MODE=true",
-		"REGION=test",
-		"INSTANCE_ID=subprocess-test",
-		"PLATFORM=test",
-		"IMAGE=test",
-		"DEBUG_CACHE_HEADERS=true",
+	// Build command args for unkey run api
+	cmdArgs := []string{
+		"run", "api",
+		"--http-port", fmt.Sprintf("%d", port),
+		"--database-primary", mysqlDSN,
+		"--clickhouse-url", clickhouseDSN,
+		"--redis-url", redisURL,
+		"--test-mode",
+		"--region", "test",
+		"--instance-id", "subprocess-test",
+		"--platform", "test",
+		"--image", "test",
+		"--debug-cache-headers",
 		// Vault test key from docker-compose
-		"VAULT_MASTER_KEYS=Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U=",
-		"CTRL_URL=http://ctrl:7091",
-		"CTRL_TOKEN=your-local-dev-key",
+		"--vault-master-keys", "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U=",
+	}
+
+	// Add Kafka brokers if available
+	if len(kafkaBrokers) > 0 {
+		cmdArgs = append(cmdArgs, "--kafka-brokers", strings.Join(kafkaBrokers, ","))
 	}
 
 	// Start the API subprocess
-	cmd := exec.CommandContext(ctx, apiBinaryPath)
-	cmd.Env = append(os.Environ(), env...)
+	cmd := exec.CommandContext(ctx, unkeyBinaryPath, cmdArgs...)
+	cmd.Env = os.Environ()
 
 	var apiStdout, apiStderr bytes.Buffer
 	cmd.Stdout = &apiStdout
@@ -227,21 +230,20 @@ func RunSchemathesisWithConfig(t *testing.T, cfg Config) {
 	}
 }
 
-// findAPIBinary locates the API binary from Bazel runfiles or a fallback path
-func findAPIBinary(t *testing.T) string {
+// findUnkeyBinary locates the unkey binary from Bazel runfiles or a fallback path
+func findUnkeyBinary(t *testing.T) string {
 	// Try Bazel runfiles first
 	runfilesDir := os.Getenv("RUNFILES_DIR")
 	if runfilesDir != "" {
 		// Standard Bazel runfiles path
 		candidates := []string{
-			filepath.Join(runfilesDir, "_main/svc/api/cmd/api_/api"),
-			filepath.Join(runfilesDir, "unkey/svc/api/cmd/api_/api"),
-			filepath.Join(runfilesDir, "_main/svc/api/cmd/api"),
-			filepath.Join(runfilesDir, "unkey/svc/api/cmd/api"),
+			filepath.Join(runfilesDir, "_main/unkey_/unkey"),
+			filepath.Join(runfilesDir, "unkey/unkey_/unkey"),
+			filepath.Join(runfilesDir, "_main/unkey"),
 		}
 		for _, path := range candidates {
 			if _, err := os.Stat(path); err == nil {
-				t.Logf("Found API binary at: %s", path)
+				t.Logf("Found unkey binary at: %s", path)
 				return path
 			}
 		}
@@ -251,12 +253,12 @@ func findAPIBinary(t *testing.T) string {
 	testSrcDir := os.Getenv("TEST_SRCDIR")
 	if testSrcDir != "" {
 		candidates := []string{
-			filepath.Join(testSrcDir, "_main/svc/api/cmd/api_/api"),
-			filepath.Join(testSrcDir, "unkey/svc/api/cmd/api_/api"),
+			filepath.Join(testSrcDir, "_main/unkey_/unkey"),
+			filepath.Join(testSrcDir, "unkey/unkey_/unkey"),
 		}
 		for _, path := range candidates {
 			if _, err := os.Stat(path); err == nil {
-				t.Logf("Found API binary at: %s", path)
+				t.Logf("Found unkey binary at: %s", path)
 				return path
 			}
 		}
@@ -265,28 +267,28 @@ func findAPIBinary(t *testing.T) string {
 	// Try relative path from workspace root (for local development)
 	workspaceDir := os.Getenv("BUILD_WORKSPACE_DIRECTORY")
 	if workspaceDir != "" {
-		path := filepath.Join(workspaceDir, "bazel-bin/svc/api/cmd/api_/api")
+		path := filepath.Join(workspaceDir, "bazel-bin/unkey_/unkey")
 		if _, err := os.Stat(path); err == nil {
-			t.Logf("Found API binary at: %s", path)
+			t.Logf("Found unkey binary at: %s", path)
 			return path
 		}
 	}
 
 	// Try common Bazel output paths
 	commonPaths := []string{
-		"bazel-bin/svc/api/cmd/api_/api",
-		"../../../bazel-bin/svc/api/cmd/api_/api",
-		"../../../../bazel-bin/svc/api/cmd/api_/api",
+		"bazel-bin/unkey_/unkey",
+		"../../../bazel-bin/unkey_/unkey",
+		"../../../../bazel-bin/unkey_/unkey",
 	}
 	for _, path := range commonPaths {
 		if _, err := os.Stat(path); err == nil {
 			absPath, _ := filepath.Abs(path)
-			t.Logf("Found API binary at: %s", absPath)
+			t.Logf("Found unkey binary at: %s", absPath)
 			return absPath
 		}
 	}
 
-	t.Fatal("Could not find API binary. Make sure to build it with: bazel build //svc/api/cmd:api")
+	t.Fatal("Could not find unkey binary. Make sure to build it with: bazel build //:unkey")
 	return ""
 }
 
