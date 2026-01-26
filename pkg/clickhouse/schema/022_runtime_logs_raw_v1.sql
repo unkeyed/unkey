@@ -6,8 +6,8 @@ CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
     -- Timestamp (milliseconds since epoch)
     `time` Int64 CODEC(Delta, LZ4),
 
-    -- When log was inserted into ClickHouse (for debugging ingestion lag)
-    `inserted_at` DateTime64(3) DEFAULT now64(3),
+    -- When log was inserted into ClickHouse (milliseconds, for debugging ingestion lag)
+    `inserted_at` Int64 DEFAULT toUnixTimestamp64Milli(now64(3)),
 
     -- Log content
     `severity` LowCardinality(String),
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
     INDEX idx_attributes_text attributes_text TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 1
 )
 ENGINE = MergeTree()
-PARTITION BY toDate(inserted_at)
-ORDER BY (workspace_id, deployment_id, time)
+PARTITION BY toDate(fromUnixTimestamp64Milli(inserted_at))
+ORDER BY (workspace_id, project_id, environment_id, deployment_id, time)
 TTL expires_at + INTERVAL 7 DAY
 SETTINGS index_granularity = 8192, ttl_only_drop_parts = 1;

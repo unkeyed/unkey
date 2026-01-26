@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
 (
     `time` Int64 CODEC(Delta, LZ4),
-    `inserted_at` DateTime64(3) DEFAULT now64(3),
+    `inserted_at` Int64 DEFAULT toUnixTimestamp64Milli(now64(3)),
     `severity` LowCardinality(String),
     `message` String CODEC(ZSTD(1)),
     `workspace_id` String CODEC(ZSTD(1)),
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
     INDEX idx_attributes_text attributes_text TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 1
 )
 ENGINE = MergeTree()
-PARTITION BY toDate(inserted_at)
-ORDER BY (workspace_id, deployment_id, time)
+PARTITION BY toDate(fromUnixTimestamp64Milli(inserted_at))
+ORDER BY (workspace_id, project_id, environment_id, deployment_id, time)
 TTL expires_at + INTERVAL 7 DAY
 SETTINGS index_granularity = 8192, ttl_only_drop_parts = 1;
