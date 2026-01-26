@@ -15,15 +15,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/retry"
 )
 
+// restateRegistration handles self-registration with the Restate admin API.
+// This is only needed when running outside of environments where registration
+// is handled externally (e.g., local development).
 type restateRegistration struct {
-	logger        logging.Logger
-	adminURL      string
-	registerAs    string
-	acmeEnabled   bool
-	dnsEnabled    bool
-	defaultDomain string
-	database      db.Database
-	restateClient hydrav1.CertificateServiceIngressClient
+	logger     logging.Logger
+	adminURL   string
+	registerAs string
 }
 
 func (r *restateRegistration) register(ctx context.Context) {
@@ -36,7 +34,6 @@ func (r *restateRegistration) register(ctx context.Context) {
 	}
 
 	r.logger.Info("Successfully registered with Restate")
-	r.bootstrapCertificates(ctx)
 }
 
 func (r *restateRegistration) doRegister(ctx context.Context) error {
@@ -84,20 +81,28 @@ func (r *restateRegistration) sendRegistrationRequest(ctx context.Context, url, 
 	return fmt.Errorf("registration returned status %d", resp.StatusCode)
 }
 
-func (r *restateRegistration) bootstrapCertificates(ctx context.Context) {
-	if !r.acmeEnabled || !r.dnsEnabled {
-		return
-	}
-
-	if r.defaultDomain != "" {
-		bootstrapWildcardDomain(ctx, r.database, r.logger, r.defaultDomain)
-	}
-
-	r.startCertRenewalCron(ctx)
+// certificateBootstrap handles ACME certificate bootstrapping and renewal.
+// This runs independently of Restate registration.
+type certificateBootstrap struct {
+	logger        logging.Logger
+	database      db.Database
+	defaultDomain string
+	restateClient hydrav1.CertificateServiceIngressClient
 }
 
-func (r *restateRegistration) startCertRenewalCron(ctx context.Context) {
-	_, err := r.restateClient.RenewExpiringCertificates().Send(
+func (c *certificateBootstrap) run(ctx context.Context) {
+	// Wait for the restate server to be ready
+	time.Sleep(2 * time.Second)
+
+	if c.defaultDomain != "" {
+		bootstrapWildcardDomain(ctx, c.database, c.logger, c.defaultDomain)
+	}
+
+	c.startCertRenewalCron(ctx)
+}
+
+func (c *certificateBootstrap) startCertRenewalCron(ctx context.Context) {
+	_, err := c.restateClient.RenewExpiringCertificates().Send(
 		ctx,
 		&hydrav1.RenewExpiringCertificatesRequest{
 			DaysBeforeExpiry: 30,
@@ -105,8 +110,8 @@ func (r *restateRegistration) startCertRenewalCron(ctx context.Context) {
 		restate.WithIdempotencyKey("cert-renewal-cron-startup"),
 	)
 	if err != nil {
-		r.logger.Warn("failed to start certificate renewal cron", "error", err)
+		c.logger.Warn("failed to start certificate renewal cron", "error", err)
 		return
 	}
-	r.logger.Info("Certificate renewal cron job started")
+	c.logger.Info("Certificate renewal cron job started")
 }

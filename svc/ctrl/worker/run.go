@@ -229,20 +229,27 @@ func Run(ctx context.Context, cfg Config) error {
 	}()
 
 	// Register with Restate admin API (only if RegisterAs is configured)
+	// In k8s environments, registration is handled externally
 	if cfg.Restate.RegisterAs != "" {
 		reg := &restateRegistration{
-			logger:        logger,
-			adminURL:      cfg.Restate.AdminURL,
-			registerAs:    cfg.Restate.RegisterAs,
-			acmeEnabled:   cfg.Acme.Enabled,
-			dnsEnabled:    dnsProvider != nil,
-			defaultDomain: cfg.DefaultDomain,
-			database:      database,
-			restateClient: hydrav1.NewCertificateServiceIngressClient(restateClient, "global"),
+			logger:     logger,
+			adminURL:   cfg.Restate.AdminURL,
+			registerAs: cfg.Restate.RegisterAs,
 		}
 		go reg.register(ctx)
 	} else {
 		logger.Info("Skipping Restate registration (restate-register-as not configured)")
+	}
+
+	// Bootstrap certificates independently of registration
+	if cfg.Acme.Enabled && dnsProvider != nil {
+		certBootstrap := &certificateBootstrap{
+			logger:        logger,
+			database:      database,
+			defaultDomain: cfg.DefaultDomain,
+			restateClient: hydrav1.NewCertificateServiceIngressClient(restateClient, "global"),
+		}
+		go certBootstrap.run(ctx)
 	}
 
 	// Create zen health server
