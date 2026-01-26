@@ -1,7 +1,5 @@
 import { ClickHouse } from "@unkey/clickhouse";
 import { mysqlDrizzle, schema } from "@unkey/db";
-import { Resend } from "@unkey/resend";
-import { WorkOS } from "@workos-inc/node";
 import mysql from "mysql2/promise";
 import { z } from "zod";
 async function main() {
@@ -16,11 +14,6 @@ async function main() {
   await conn.ping();
   const db = mysqlDrizzle(conn, { schema, mode: "default" });
 
-  const workos = new WorkOS(process.env.WORKOS_API_KEY);
-
-  const resend = new Resend({
-    apiKey: process.env.RESEND_API_KEY,
-  });
   console.log("starting");
 
   const rows = await ch.querier.query({
@@ -32,7 +25,7 @@ async function main() {
     WHERE startsWith(path, '/v1/')
     AND workspace_id != ''
     AND workspace_id != 'ws_2vUFz88G6TuzMQHZaUhXADNyZWMy' // filter out special workspaces
-    AND time >= (now() - INTERVAL 30 DAY)
+    AND time >= (now() - INTERVAL 7 DAY)
     GROUP BY workspace_id, path`,
     schema: z.object({
       workspace_id: z.string(),
@@ -43,8 +36,6 @@ async function main() {
     console.error(rows.err);
     process.exit(1);
   }
-
-  let emailsSent = 0;
 
   console.log(
     `Found ${
@@ -61,15 +52,9 @@ async function main() {
     workspaceToPaths.set(row.workspace_id, paths);
   }
 
-  for (const [workspaceId, paths] of workspaceToPaths.entries()) {
-    if (paths.includes("/v1/analytics.getVerifications")) {
-      console.warn(
-        `Skipping workspace ${workspaceId} due to analytics endpoint: ${paths.join(", ")}`,
-      );
-      continue;
-    }
-    console.log(workspaceId, paths);
+  const workspaces = [];
 
+  for (const [workspaceId, paths] of workspaceToPaths.entries()) {
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { eq }) => eq(table.id, workspaceId),
     });
@@ -77,29 +62,14 @@ async function main() {
       console.error(`Workspace ${workspaceId} not found`);
       continue;
     }
-
-    console.log(workspace.name);
-
-    const members = await workos.userManagement.listOrganizationMemberships({
-      organizationId: workspace.orgId,
-      limit: 100,
+    workspaces.push({
+      id: workspace.id,
+      name: workspace.name,
+      sub: workspace.stripeSubscriptionId,
     });
-
-    for (const member of members.data) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      const user = await workos.userManagement.getUser(member.userId);
-      console.log(`User: ${user.email}`);
-      await resend.sendApiV1MigrationEmail({
-        email: user.email,
-        name: user.firstName,
-        workspace: workspace.name,
-        deprecatedEndpoints: paths,
-      });
-      emailsSent++;
-    }
   }
 
-  console.info(`Emails sent: ${emailsSent}`);
+  console.table(workspaces);
 }
 
 main();
