@@ -35,9 +35,9 @@ CREATE TABLE sentinel_requests_raw_v1 (
   sentinel_latency Int64,
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_deployment_id (deployment_id) TYPE bloom_filter GRANULARITY 1,
-  INDEX idx_instance_id (instance_id) TYPE bloom_filter GRANULARITY 1
+  INDEX idx_instance_id (instance_id) TYPE bloom_filter GRANULARITY 1,
+  INDEX idx_sentinel_id (sentinel_id) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = MergeTree()
-ORDER BY
-  (workspace_id, project_id, deployment_id, time)
-TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 30 DAY DELETE
-SETTINGS non_replicated_deduplication_window = 10000;
+ORDER BY (`workspace_id`, `project_id`, `environment_id`, `time`, `deployment_id`) 
+TTL toDateTime(fromUnixTimestamp64Milli(time)) + toIntervalDay(30) 
+SETTINGS index_granularity = 8192, non_replicated_deduplication_window = 10000;
