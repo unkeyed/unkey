@@ -57,8 +57,7 @@ var workerCmd = &cli.Command{
 			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_ACCESS_KEY_SECRET")),
 		cli.String("build-platform", "Run builds on this platform ('dynamic', 'linux/amd64', 'linux/arm64')",
 			cli.Default("linux/amd64"), cli.EnvVar("UNKEY_BUILD_PLATFORM")),
-		cli.String("build-backend", "Build backend to use ('docker' or 'depot')",
-			cli.Required(), cli.EnvVar("UNKEY_BUILD_BACKEND")),
+
 
 		// Registry Configuration
 		cli.String("registry-url", "URL of the container registry for pulling images. Example: registry.depot.dev",
@@ -130,7 +129,6 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		VaultToken: cmd.String("vault-token"),
 
 		// Build configuration
-		BuildBackend: worker.BuildBackend(cmd.String("build-backend")),
 		BuildS3: worker.S3Config{
 			URL:             cmd.String("build-s3-url"),
 			Bucket:          cmd.String("build-s3-bucket"),

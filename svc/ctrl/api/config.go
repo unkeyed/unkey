@@ -5,23 +5,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/tls"
 )
 
-// BuildBackend specifies the container image build backend system.
-//
-// Determines which service will be used for building container images
-// from application source code. Each backend has different capabilities
-// and integration requirements.
-type BuildBackend string
-
-const (
-	// BuildBackendDepot uses Depot.dev for container builds.
-	// Provides optimized cloud-native builds with caching and
-	// integrated registry management.
-	BuildBackendDepot BuildBackend = "depot"
-	// BuildBackendDocker uses local Docker daemon for builds.
-	// Provides on-premises builds with direct Docker integration.
-	BuildBackendDocker BuildBackend = "docker"
-)
-
 // S3Config holds S3 configuration for storage backends.
 //
 // This configuration is used by vault, build storage, and other services
