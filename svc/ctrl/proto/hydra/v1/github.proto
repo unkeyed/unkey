@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+service GitHubService {
+  option (dev.restate.sdk.go.service_type) = WORKFLOW;
+
+  rpc HandlePush(HandlePushRequest) returns (HandlePushResponse) {}
+}
+
+message HandlePushRequest {
+  string installation_id = 1;
+  string repository_full_name = 2;
+  string ref = 3;
+  string commit_sha = 4;
+  string project_id = 5;
+
+  optional GitCommitInfo git_commit = 6;
+}
+
+message GitCommitInfo {
+  string commit_sha = 1;
+  string commit_message = 2;
+  string author_handle = 3;
+  string author_avatar_url = 4;
+  int64 timestamp = 5;
+  string branch = 6;
+}
+
+message HandlePushResponse {
+  string deployment_id = 1;
+}

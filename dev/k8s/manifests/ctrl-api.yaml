@@ -91,6 +91,24 @@ spec:
             - name: UNKEY_AUTH_TOKEN
               value: "your-local-dev-key"
 
+            # GitHub App Configuration (from github-app-credentials secret)
+            - name: UNKEY_GITHUB_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: github-app-credentials
+                  key: UNKEY_GITHUB_APP_ID
+            - name: UNKEY_GITHUB_APP_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: github-app-credentials
+                  key: UNKEY_GITHUB_APP_PRIVATE_KEY
+            - name: UNKEY_GITHUB_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: github-app-credentials
+                  key: UNKEY_GITHUB_WEBHOOK_SECRET
+                  optional: true
+
       initContainers:
         - name: wait-for-dependencies
           image: busybox:1.36

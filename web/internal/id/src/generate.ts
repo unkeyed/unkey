@@ -31,6 +31,7 @@ const prefixes = {
   environment: "env",
   environmentVariable: "evr",
   project: "proj",
+  github: "gh",
 } as const;
 
 export function newId<TPrefix extends keyof typeof prefixes>(prefix: TPrefix) {

@@ -30,14 +30,19 @@ import (
 	"github.com/unkeyed/unkey/pkg/shutdown"
 	"github.com/unkeyed/unkey/pkg/uid"
 
+	"github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/build"
+	"github.com/unkeyed/unkey/svc/ctrl/pkg/repofetch"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
+	githubworkflow "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/versioning"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 // Run starts the Restate worker service with the provided configuration.
@@ -162,6 +167,43 @@ func Run(ctx context.Context, cfg Config) error {
 	}), restate.WithIngressPrivate(true)))
 
 	restateSrv.Bind(hydrav1.NewVersioningServiceServer(versioning.New(), restate.WithIngressPrivate(true)))
+
+	// Bind GitHub workflow if configured
+	if cfg.GitHub.Enabled() {
+		githubClient, githubErr := github.NewClient(github.Config{
+			AppID:         cfg.GitHub.AppID,
+			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
+			WebhookSecret: "", // Not needed for workflow, only for webhook handler
+		})
+		if githubErr != nil {
+			return fmt.Errorf("failed to create github client: %w", githubErr)
+		}
+
+		// Create k8s client for spawning fetch jobs
+		inClusterConfig, k8sConfigErr := rest.InClusterConfig()
+		if k8sConfigErr != nil {
+			return fmt.Errorf("failed to create k8s in-cluster config: %w", k8sConfigErr)
+		}
+		k8sClient, k8sClientErr := kubernetes.NewForConfig(inClusterConfig)
+		if k8sClientErr != nil {
+			return fmt.Errorf("failed to create k8s client: %w", k8sClientErr)
+		}
+
+		fetchClient := repofetch.NewClient(repofetch.Config{
+			ClientSet: k8sClient,
+			Logger:    logger,
+			Image:     cfg.RepoFetchImage,
+		})
+
+		restateSrv.Bind(hydrav1.NewGitHubServiceServer(githubworkflow.New(githubworkflow.Config{
+			Logger:       logger,
+			DB:           database,
+			GitHub:       githubClient,
+			BuildStorage: imageStore,
+			FetchClient:  fetchClient,
+		})))
+		logger.Info("GitHub workflow service registered")
+	}
 
 	// Initialize domain cache for ACME providers
 	clk := clock.New()

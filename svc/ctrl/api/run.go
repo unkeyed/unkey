@@ -24,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 	"github.com/unkeyed/unkey/svc/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/svc/ctrl/services/deployment"
+	githubsvc "github.com/unkeyed/unkey/svc/ctrl/services/github"
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -171,6 +172,29 @@ func Run(ctx context.Context, cfg Config) error {
 		ChallengeCache: challengeCache,
 	})))
 	mux.Handle(ctrlv1connect.NewClusterServiceHandler(c))
+
+	// Register GitHub webhook handler only if ALL required config is present.
+	// This fail-closed approach ensures we never expose an insecure endpoint.
+	if cfg.GitHub.Enabled() {
+		githubService, githubErr := githubsvc.New(githubsvc.Config{
+			DB:            database,
+			Logger:        logger,
+			Restate:       restateClient,
+			WebhookSecret: cfg.GitHub.WebhookSecret,
+		})
+		if githubErr != nil {
+			return fmt.Errorf("failed to create github webhook service: %w", githubErr)
+		}
+		mux.Handle("/github/webhook", githubService.WebhookHandler())
+		logger.Info("GitHub webhook handler registered", "path", "/github/webhook")
+	} else if cfg.GitHub.AppID != "" || cfg.GitHub.PrivateKeyPEM != "" || cfg.GitHub.WebhookSecret != "" {
+		// Partial config provided - warn but don't register (fail closed)
+		logger.Warn("GitHub webhook handler NOT registered: incomplete configuration",
+			"has_app_id", cfg.GitHub.AppID != "",
+			"has_private_key", cfg.GitHub.PrivateKeyPEM != "",
+			"has_webhook_secret", cfg.GitHub.WebhookSecret != "",
+		)
+	}
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)

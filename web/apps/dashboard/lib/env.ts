@@ -81,6 +81,18 @@ const vercelIntegrationParsed = vercelIntegrationSchema.safeParse(process.env);
 export const vercelIntegrationEnv = () =>
   vercelIntegrationParsed.success ? vercelIntegrationParsed.data : null;
 
+export const githubAppSchema = z.object({
+  GITHUB_APP_ID: z.string(),
+  GITHUB_APP_CLIENT_ID: z.string(),
+  GITHUB_APP_CLIENT_SECRET: z.string(),
+  GITHUB_APP_PRIVATE_KEY: z.string().transform((s) => s.replace(/\\n/g, "\n")),
+  GITHUB_APP_WEBHOOK_SECRET: z.string(),
+  GITHUB_APP_BASE_URL: z.string().url(),
+});
+
+const githubAppParsed = githubAppSchema.safeParse(process.env);
+export const githubAppEnv = () => (githubAppParsed.success ? githubAppParsed.data : null);
+
 const stripeSchema = z.object({
   STRIPE_SECRET_KEY: z.string(),
   // The product ids, comma separated, from lowest to highest, pro first, and then enterprise plans

@@ -8,23 +8,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 )
 
-// BuildBackend specifies the container image build backend system.
-//
-// Determines which service will be used for building container images
-// from application source code. Each backend has different capabilities
-// and integration requirements.
-type BuildBackend string
-
-const (
-	// BuildBackendDepot uses Depot.dev for container builds.
-	// Provides optimized cloud-native builds with caching and
-	// integrated registry management.
-	BuildBackendDepot BuildBackend = "depot"
-	// BuildBackendDocker uses local Docker daemon for builds.
-	// Provides on-premises builds with direct Docker integration.
-	BuildBackendDocker BuildBackend = "docker"
-)
-
 // S3Config holds S3 configuration for storage backends.
 //
 // This configuration is used by vault, build storage, and other services
@@ -215,10 +198,6 @@ type Config struct {
 	// Enables asynchronous deployment and certificate renewal workflows.
 	Restate RestateConfig
 
-	// BuildBackend selects the container build system.
-	// Options: BuildBackendDepot or BuildBackendDocker.
-	BuildBackend BuildBackend
-
 	// BuildS3 configures storage for build artifacts and outputs.
 	// Used by both Depot and Docker build backends.
 	BuildS3 S3Config
@@ -258,6 +237,28 @@ type Config struct {
 	// Clock provides time operations for testing and scheduling.
 	// Use clock.RealClock{} for production deployments.
 	Clock clock.Clock
+
+	// GitHub configures GitHub App integration for webhook-triggered deployments.
+	GitHub GitHubConfig
+
+	// RepoFetchImage is the container image used for GitHub tarball fetch jobs.
+	// These jobs run with gVisor isolation in the builds namespace.
+	RepoFetchImage string
+}
+
+// GitHubConfig holds configuration for GitHub App integration.
+type GitHubConfig struct {
+	// AppID is the GitHub App ID for authentication.
+	AppID string
+
+	// PrivateKeyPEM is the GitHub App private key in PEM format.
+	PrivateKeyPEM string
+}
+
+// Enabled returns true only if ALL required GitHub App fields are configured.
+// This ensures we never register the workflow with partial/insecure config.
+func (c GitHubConfig) Enabled() bool {
+	return c.AppID != "" && c.PrivateKeyPEM != ""
 }
 
 // parseBuildPlatform validates and parses a build platform string.
@@ -351,37 +352,18 @@ func (c Config) Validate() error {
 	// Validate build platform format
 	_, platformErr := parseBuildPlatform(c.BuildPlatform)
 
-	// Validate registry configuration
-	registryErr := assert.All(
+	// Validate build configuration (Depot backend)
+	return assert.All(
+		platformErr,
 		assert.NotEmpty(c.RegistryURL, "registry URL is required"),
 		assert.NotEmpty(c.RegistryUsername, "registry username is required"),
 		assert.NotEmpty(c.RegistryPassword, "registry password is required"),
+		assert.NotEmpty(c.BuildPlatform, "build platform is required"),
+		assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required"),
+		assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required"),
+		assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required"),
+		assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required"),
+		assert.NotEmpty(c.Depot.APIUrl, "Depot API URL is required"),
+		assert.NotEmpty(c.Depot.ProjectRegion, "Depot project region is required"),
 	)
-
-	switch c.BuildBackend {
-	case BuildBackendDepot:
-		return assert.All(
-			platformErr,
-			registryErr,
-			assert.NotEmpty(c.BuildPlatform, "build platform is required"),
-			assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required when using Depot backend"),
-			assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required when using Depot backend"),
-			assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required when using Depot backend"),
-			assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required when using Depot backend"),
-			assert.NotEmpty(c.Depot.APIUrl, "Depot API URL is required when using Depot backend"),
-			assert.NotEmpty(c.Depot.ProjectRegion, "Depot project region is required when using Depot backend"),
-		)
-	case BuildBackendDocker:
-		return assert.All(
-			platformErr,
-			assert.NotEmpty(c.BuildPlatform, "build platform is required"),
-			assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required when using Docker backend"),
-			assert.NotEmpty(c.BuildS3.ExternalURL, "build S3 external URL is required when using Docker backend"),
-			assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required when using Docker backend"),
-			assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required when using Docker backend"),
-			assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required when using Docker backend"),
-		)
-	default:
-		return fmt.Errorf("build backend must be either 'depot' or 'docker', got: %s", c.BuildBackend)
-	}
 }

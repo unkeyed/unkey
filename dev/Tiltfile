@@ -31,10 +31,24 @@ local_resource(
 )
 
 local_resource(
+  'builds-namespace',
+  'kubectl apply -f k8s/manifests/builds.yaml',
+  labels=['setup'],
+)
+
+local_resource(
     'depot-credentials',
     'kubectl -n unkey create secret generic depot-credentials --from-env-file=./.env.depot -o yaml --dry-run=client | kubectl apply -f -',
     resource_deps=['namespace'],
     deps=['./.env.depot'],
+    labels=['setup'],
+)
+
+local_resource(
+    'github-app-credentials',
+    'kubectl -n unkey create secret generic github-app-credentials --from-env-file=./.env.github -o yaml --dry-run=client | kubectl apply -f -',
+    resource_deps=['namespace'],
+    deps=['./.env.github'],
     labels=['setup'],
 )
 
@@ -141,7 +155,7 @@ k8s_yaml('k8s/manifests/ctrl-api.yaml')
 k8s_resource(
   'ctrl-api',
   port_forwards='7091:7091',
-  resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey', 'depot-credentials'],
+  resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey', 'depot-credentials', 'github-app-credentials'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -152,7 +166,7 @@ k8s_yaml('k8s/manifests/ctrl-worker.yaml')
 k8s_resource(
   'ctrl-worker',
   port_forwards=['7092:7092'],
-  resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey', 'depot-credentials'],
+  resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey', 'depot-credentials', 'github-app-credentials'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -175,7 +189,7 @@ k8s_yaml('k8s/manifests/krane.yaml')
 k8s_resource(
   'krane',
   port_forwards='8070:8070',
-  resource_deps=['ctrl-api', 'build-unkey', 'rbac', 'namespace', 'sentinel', 'cilium-policies', 'build-sentinel-image'],
+  resource_deps=['ctrl-api', 'build-unkey', 'rbac', 'namespace', 'sentinel', 'cilium-policies', 'build-sentinel-image', 'builds-namespace', 'build-repofetch'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -191,6 +205,15 @@ local_resource(
     'build-inject',
     'cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=$(minikube ssh -- uname -m | sed "s/x86_64/amd64/" | sed "s/aarch64/arm64/" | tr -d "\\r") go build -o bin/inject ./cmd/inject && docker build -t inject:latest -f dev/Dockerfile.inject . && minikube image load inject:latest',
     deps=['../cmd/inject', '../pkg/secrets', '../pkg/cli'],
+    allow_parallel=True,
+    labels=['build'],
+)
+
+# Build repofetch binary and image for GitHub tarball fetch jobs
+local_resource(
+    'build-repofetch',
+    'cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=$(minikube ssh -- uname -m | sed "s/x86_64/amd64/" | sed "s/aarch64/arm64/" | tr -d "\\r") go build -o bin/repofetch ./cmd/repofetch && docker build -t repofetch:latest -f dev/Dockerfile.repofetch . && minikube image load repofetch:latest',
+    deps=['../cmd/repofetch', '../pkg/fault', '../pkg/assert'],
     allow_parallel=True,
     labels=['build'],
 )

@@ -3,7 +3,7 @@ import type { NavItem } from "@/components/navigation/sidebar/workspace-navigati
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { useLiveQuery } from "@tanstack/react-db";
-import { Cloud, Connections, GridCircle, Layers3 } from "@unkey/icons";
+import { Cloud, Connections, Github, GridCircle, Layers3 } from "@unkey/icons";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 
@@ -49,6 +49,12 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
           href: `${basePath}/${project.id}/openapi-diff`,
           label: "Open API Diff",
           active: currentProjectActive && segments.at(pIndex + 2) === "openapi-diff",
+        },
+        {
+          icon: Github,
+          href: `${basePath}/${project.id}/github`,
+          label: "GitHub",
+          active: currentProjectActive && segments.at(pIndex + 2) === "github",
         },
       ];
 

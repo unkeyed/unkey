@@ -25,6 +25,7 @@ go_library(
         "//svc/ctrl/services/cluster",
         "//svc/ctrl/services/ctrl",
         "//svc/ctrl/services/deployment",
+        "//svc/ctrl/services/github",
         "//svc/ctrl/services/openapi",
         "@com_github_restatedev_sdk_go//:sdk-go",
         "@com_github_restatedev_sdk_go//ingress",

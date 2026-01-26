@@ -98,6 +98,7 @@ go_library(
         "environment_upsert.sql_generated.go",
         "environment_variables_find_by_environment_id.sql_generated.go",
         "generate.go",
+        "github_installation_find_by_repo.sql_generated.go",
         "handle_err_deadlock.go",
         "handle_err_duplicate_key.go",
         "handle_err_no_rows.go",

@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "repofetch",
+    srcs = [
+        "client.go",
+        "status.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/pkg/repofetch",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "//pkg/ptr",
+        "//pkg/uid",
+        "@io_k8s_api//batch/v1:batch",
+        "@io_k8s_api//core/v1:core",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
+        "@io_k8s_client_go//kubernetes",
+    ],
+)

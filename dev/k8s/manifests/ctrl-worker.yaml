@@ -17,11 +17,6 @@ spec:
         app: ctrl-worker
     spec:
       serviceAccountName: unkey-serviceaccount
-      volumes:
-        - name: docker-socket
-          hostPath:
-            path: /var/run/docker.sock
-            type: Socket
       containers:
         - name: ctrl-worker
           image: unkey/go:latest
@@ -52,20 +47,12 @@ spec:
               value: "false"
 
             # Vault Configuration (required)
-            - name: UNKEY_VAULT_MASTER_KEYS
-              value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
-            - name: UNKEY_VAULT_S3_URL
-              value: "http://s3:3902"
-            - name: UNKEY_VAULT_S3_BUCKET
-              value: "acme-vault"
-            - name: UNKEY_VAULT_S3_ACCESS_KEY_ID
-              value: "minio_root_user"
-            - name: UNKEY_VAULT_S3_ACCESS_KEY_SECRET
-              value: "minio_root_password"
+            - name: UNKEY_VAULT_URL
+              value: "http://vault:8060"
+            - name: UNKEY_VAULT_TOKEN
+              value: "vault-test-token-123"
 
             # Build Configuration
-            - name: UNKEY_BUILD_BACKEND
-              value: "depot"
             - name: UNKEY_BUILD_PLATFORM
               value: "linux/arm64"
             # Build S3 Storage (from depot-credentials secret)
@@ -133,9 +120,20 @@ spec:
 
             - name: UNKEY_SENTINEL_IMAGE
               value: "unkey/sentinel:latest"
-          volumeMounts:
-            - name: docker-socket
-              mountPath: /var/run/docker.sock
+            - name: UNKEY_REPO_FETCH_IMAGE
+              value: "repofetch:latest"
+
+            # GitHub App Configuration (from github-app-credentials secret)
+            - name: UNKEY_GITHUB_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: github-app-credentials
+                  key: UNKEY_GITHUB_APP_ID
+            - name: UNKEY_GITHUB_APP_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: github-app-credentials
+                  key: UNKEY_GITHUB_APP_PRIVATE_KEY
       initContainers:
         - name: wait-for-dependencies
           image: busybox:1.36

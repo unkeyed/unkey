@@ -1034,6 +1034,18 @@ type FrontlineRoute struct {
 	UpdatedAt                sql.NullInt64         `db:"updated_at"`
 }
 
+type GithubAppInstallation struct {
+	Pk                 uint64        `db:"pk"`
+	ID                 string        `db:"id"`
+	ProjectID          string        `db:"project_id"`
+	InstallationID     string        `db:"installation_id"`
+	RepositoryID       string        `db:"repository_id"`
+	RepositoryFullName string        `db:"repository_full_name"`
+	CreatedAtM         int64         `db:"created_at_m"`
+	UpdatedAtM         sql.NullInt64 `db:"updated_at_m"`
+	DeletedAtM         sql.NullInt64 `db:"deleted_at_m"`
+}
+
 type Identity struct {
 	Pk          uint64        `db:"pk"`
 	ID          string        `db:"id"`

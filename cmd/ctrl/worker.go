@@ -106,6 +106,13 @@ var workerCmd = &cli.Command{
 		// Sentinel configuration
 		cli.String("sentinel-image", "The image new sentinels get deployed with", cli.Default("ghcr.io/unkeyed/unkey:local"), cli.EnvVar("UNKEY_SENTINEL_IMAGE")),
 		cli.StringSlice("available-regions", "Available regions for deployment", cli.EnvVar("UNKEY_AVAILABLE_REGIONS"), cli.Default([]string{"local.dev"})),
+
+		// GitHub App configuration (optional)
+		cli.String("github-app-id", "GitHub App ID for webhook-triggered deployments", cli.EnvVar("UNKEY_GITHUB_APP_ID")),
+		cli.String("github-app-private-key", "GitHub App private key (PEM format)", cli.EnvVar("UNKEY_GITHUB_APP_PRIVATE_KEY")),
+
+		// Repo fetch configuration
+		cli.String("repo-fetch-image", "Container image for GitHub tarball fetch jobs", cli.Default("repofetch:latest"), cli.EnvVar("UNKEY_REPO_FETCH_IMAGE")),
 	},
 	Action: workerAction,
 }
@@ -128,7 +135,6 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		VaultToken: cmd.String("vault-token"),
 
 		// Build configuration
-		BuildBackend: worker.BuildBackend(cmd.String("build-backend")),
 		BuildS3: worker.S3Config{
 			URL:             cmd.String("build-s3-url"),
 			Bucket:          cmd.String("build-s3-bucket"),
@@ -182,6 +188,15 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		// Sentinel configuration
 		SentinelImage:    cmd.String("sentinel-image"),
 		AvailableRegions: cmd.RequireStringSlice("available-regions"),
+
+		// GitHub App configuration (optional)
+		GitHub: worker.GitHubConfig{
+			AppID:         cmd.String("github-app-id"),
+			PrivateKeyPEM: cmd.String("github-app-private-key"),
+		},
+
+		// Repo fetch configuration
+		RepoFetchImage: cmd.String("repo-fetch-image"),
 	}
 
 	err := config.Validate()

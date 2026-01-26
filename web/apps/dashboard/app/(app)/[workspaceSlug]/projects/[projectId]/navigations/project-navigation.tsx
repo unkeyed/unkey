@@ -79,6 +79,12 @@ export const ProjectNavigation = ({
       href: `${basePath}/${projectId}/openapi-diff`,
       segment: "openapi-diff",
     },
+    {
+      id: "github",
+      label: "GitHub",
+      href: `${basePath}/${projectId}/github`,
+      segment: "github",
+    },
   ];
 
   const anchorRef = useRef<HTMLDivElement | null>(null);

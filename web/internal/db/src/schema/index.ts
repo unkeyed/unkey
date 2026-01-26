@@ -28,3 +28,4 @@ export * from "./certificates";
 export * from "./frontline_routes";
 
 export * from "./state_changes";
+export * from "./github_app";
