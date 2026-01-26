@@ -46,7 +46,7 @@ spec:
             - name: UNKEY_REGION
               value: "local.dev"
             - name: "UNKEY_CONTROL_PLANE_URL"
-              value: "http://ctrl:7091"
+              value: "http://ctrl-api:7091"
             - name: "UNKEY_CONTROL_PLANE_BEARER"
               value: "your-local-dev-key"
             # Vault configuration for SecretsService

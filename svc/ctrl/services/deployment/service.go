@@ -1,9 +1,3 @@
-// Package deployment manages the full deployment lifecycle including creation,
-// promotion, and rollback operations. All operations are keyed by project ID
-// in Restate to ensure only one operation runs per project at a time.
-//
-// Supports two deployment sources: build from source (with build context and
-// Dockerfile path) or prebuilt Docker images.
 package deployment
 
 import (
@@ -12,15 +6,19 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
 )
 
+// Service implements the DeploymentService ConnectRPC API. It coordinates
+// deployment operations by persisting state to the database and delegating
+// workflow execution to Restate.
 type Service struct {
 	ctrlv1connect.UnimplementedDeploymentServiceHandler
 	db               db.Database
 	restate          *restateingress.Client
-	buildService     ctrlv1connect.BuildServiceClient
 	logger           logging.Logger
 	availableRegions []string
+	buildStorage     s3.Storage
 }
 
 // deploymentClient creates a typed Restate ingress client for the DeploymentService
@@ -29,21 +27,29 @@ func (s *Service) deploymentClient(projectID string) hydrav1.DeploymentServiceIn
 	return hydrav1.NewDeploymentServiceIngressClient(s.restate, projectID)
 }
 
+// Config holds the configuration for creating a new [Service].
 type Config struct {
-	Database         db.Database
-	Restate          *restateingress.Client
-	BuildService     ctrlv1connect.BuildServiceClient
-	Logger           logging.Logger
+	// Database provides read/write access to deployment metadata.
+	Database db.Database
+	// Restate is the ingress client for triggering durable workflows.
+	Restate *restateingress.Client
+	// Logger is used for structured logging throughout the service.
+	Logger logging.Logger
+	// AvailableRegions lists the regions where deployments can be created.
 	AvailableRegions []string
+	// BuildStorage provides presigned URL generation for build context uploads.
+	BuildStorage s3.Storage
 }
 
+// New creates a new [Service] with the given configuration. All fields in
+// [Config] are required.
 func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedDeploymentServiceHandler: ctrlv1connect.UnimplementedDeploymentServiceHandler{},
 		db:                                    cfg.Database,
 		restate:                               cfg.Restate,
-		buildService:                          cfg.BuildService,
 		logger:                                cfg.Logger,
 		availableRegions:                      cfg.AvailableRegions,
+		buildStorage:                          cfg.BuildStorage,
 	}
 }

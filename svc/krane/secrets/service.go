@@ -9,8 +9,8 @@ import (
 	kranev1 "github.com/unkeyed/unkey/gen/proto/krane/v1"
 	"github.com/unkeyed/unkey/gen/proto/krane/v1/kranev1connect"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/vault"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/unkeyed/unkey/svc/krane/secrets/token"
@@ -18,16 +18,15 @@ import (
 
 // Config holds configuration for the secrets service.
 //
-// This configuration provides the vault service for decryption operations
+// This configuration provides the vault client for decryption operations
 // and token validator for request authentication.
 type Config struct {
 	// Logger for secrets operations and security events.
 	// Should include correlation information for audit trails.
 	Logger logging.Logger
 
-	// Vault provides secure decryption services for encrypted secrets.
-	// Must be initialized with appropriate master keys and storage backend.
-	Vault *vault.Service
+	// Vault provides secure decryption services for encrypted secrets via the vault API.
+	Vault vaultv1connect.VaultServiceClient
 
 	// TokenValidator validates Kubernetes service account tokens
 	// to ensure requests originate from authorized deployments.
@@ -37,7 +36,7 @@ type Config struct {
 type Service struct {
 	kranev1connect.UnimplementedSecretsServiceHandler
 	logger         logging.Logger
-	vault          *vault.Service
+	vault          vaultv1connect.VaultServiceClient
 	tokenValidator token.Validator
 }
 
@@ -119,10 +118,10 @@ func (s *Service) DecryptSecretsBlob(
 	// Decrypt each secret value individually
 	envVars := make(map[string]string, len(secretsConfig.GetSecrets()))
 	for key, encryptedValue := range secretsConfig.GetSecrets() {
-		decrypted, decryptErr := s.vault.Decrypt(ctx, &vaultv1.DecryptRequest{
+		decrypted, decryptErr := s.vault.Decrypt(ctx, connect.NewRequest(&vaultv1.DecryptRequest{
 			Keyring:   environmentID,
 			Encrypted: encryptedValue,
-		})
+		}))
 		if decryptErr != nil {
 			s.logger.Error("failed to decrypt env var",
 				"deployment_id", deploymentID,
@@ -132,7 +131,7 @@ func (s *Service) DecryptSecretsBlob(
 			)
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to decrypt env var %s: %w", key, decryptErr))
 		}
-		envVars[key] = decrypted.GetPlaintext()
+		envVars[key] = decrypted.Msg.GetPlaintext()
 	}
 
 	s.logger.Info("decrypted secrets blob",

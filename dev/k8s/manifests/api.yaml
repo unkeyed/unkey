@@ -71,7 +71,7 @@ spec:
               value: "chproxy-test-token-123"
             # Control Plane Configuration
             - name: UNKEY_CTRL_URL
-              value: "http://ctrl:7091"
+              value: "http://ctrl-api:7091"
             - name: UNKEY_CTRL_TOKEN
               value: "your-local-dev-key"
             # Request Body Configuration

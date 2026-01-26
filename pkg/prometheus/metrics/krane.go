@@ -188,7 +188,7 @@ var (
 
 	// KraneResyncCorrectionsTotal counts corrections made by the periodic resync loop.
 	// High values indicate the streaming path is missing events and resync is compensating.
-	// This is a canary metric for streaming reliability.
+	// This is a proxy metric for streaming reliability.
 	//
 	// Labels:
 	//   - "controller": The controller type ("deployments" or "sentinels")

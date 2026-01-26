@@ -18,11 +18,26 @@ import (
 )
 
 const (
-	maxCommitMessageLength      = 10240
+	// maxCommitMessageLength limits commit messages to prevent oversized database entries.
+	maxCommitMessageLength = 10240
+	// maxCommitAuthorHandleLength limits author handles (e.g., GitHub usernames).
 	maxCommitAuthorHandleLength = 256
+	// maxCommitAuthorAvatarLength limits avatar URL length.
 	maxCommitAuthorAvatarLength = 512
 )
 
+// CreateDeployment creates a new deployment record and initiates an async Restate
+// workflow. The deployment source must be either a build context (S3 path to a
+// tar.gz archive with an optional Dockerfile path) or a prebuilt Docker image.
+//
+// The method looks up the project to infer the workspace, validates the
+// environment exists, fetches environment variables, and persists the deployment
+// with status "pending" before triggering the workflow. Git commit metadata is
+// optional but validated when provided: timestamps must be Unix epoch milliseconds
+// and cannot be more than one hour in the future.
+//
+// The workflow runs asynchronously keyed by project ID, so only one deployment
+// per project executes at a time. Returns the deployment ID and initial status.
 func (s *Service) CreateDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateDeploymentRequest],
@@ -259,6 +274,8 @@ func (s *Service) CreateDeployment(
 	return res, nil
 }
 
+// trimLength truncates s to the specified number of characters. Note this
+// operates on bytes, not runes, so multi-byte UTF-8 characters may be split.
 func trimLength(s string, characters int) string {
 	if len(s) > characters {
 		return s[:characters]

@@ -30,6 +30,16 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create the connect handler
 	mux := http.NewServeMux()
+
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		if err := r.Body.Close(); err != nil {
+			logger.Error("failed to close request body", "error", err)
+		}
+		if _, err := w.Write([]byte("OK")); err != nil {
+			logger.Error("failed to write response", "error", err)
+		}
+	})
+
 	s3, err := storage.NewS3(storage.S3Config{
 		S3URL:             cfg.S3URL,
 		S3Bucket:          cfg.S3Bucket,

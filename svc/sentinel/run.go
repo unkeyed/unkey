@@ -7,6 +7,7 @@ import (
 	"net"
 	"runtime/debug"
 
+	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel"
@@ -19,6 +20,8 @@ import (
 	"github.com/unkeyed/unkey/svc/sentinel/services/router"
 )
 
+// maxRequestBodySize This will be moved to cfg in a later PR.
+const maxRequestBodySize = 1024 * 1024 // 1MB limit for logging request bodies
 func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
@@ -90,6 +93,18 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(database.Close)
 
+	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
+	if cfg.ClickhouseURL != "" {
+		ch, err = clickhouse.New(clickhouse.Config{
+			URL:    cfg.ClickhouseURL,
+			Logger: logger,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create clickhouse: %w", err)
+		}
+		r.Defer(ch.Close)
+	}
+
 	routerSvc, err := router.New(router.Config{
 		Logger:        logger,
 		DB:            database,
@@ -102,11 +117,15 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	svcs := &routes.Services{
-		Logger:        logger,
-		RouterService: routerSvc,
-		Clock:         clk,
-		EnvironmentID: cfg.EnvironmentID,
-		Region:        cfg.Region,
+		Logger:             logger,
+		RouterService:      routerSvc,
+		Clock:              clk,
+		WorkspaceID:        cfg.WorkspaceID,
+		EnvironmentID:      cfg.EnvironmentID,
+		SentinelID:         cfg.SentinelID,
+		Region:             cfg.Region,
+		ClickHouse:         ch,
+		MaxRequestBodySize: maxRequestBodySize,
 	}
 
 	srv, err := zen.New(zen.Config{
@@ -114,7 +133,7 @@ func Run(ctx context.Context, cfg Config) error {
 		TLS:                nil,
 		Flags:              nil,
 		EnableH2C:          true,
-		MaxRequestBodySize: 0,
+		MaxRequestBodySize: maxRequestBodySize,
 		ReadTimeout:        0,
 		WriteTimeout:       0,
 	})

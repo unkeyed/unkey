@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "routing",
+    srcs = [
+        "assign_domains_handler.go",
+        "doc.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/routing",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/db",
+        "//pkg/otel/logging",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)

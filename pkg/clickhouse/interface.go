@@ -33,6 +33,10 @@ type Bufferer interface {
 	// BufferRatelimit adds a ratelimit event to the buffer.
 	// These represent API ratelimit operations with their outcome.
 	BufferBuildStepLog(schema.BuildStepLogV1)
+
+	// BufferSentinelRequest adds a sentinel request event to the buffer.
+	// These represent requests routed through sentinel to deployment instances.
+	BufferSentinelRequest(schema.SentinelRequest)
 }
 
 type Querier interface {

@@ -9,6 +9,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
+// GetDeployment retrieves a deployment by ID including its current status,
+// git metadata, and associated hostnames. Returns [connect.CodeNotFound] if the
+// deployment does not exist. Hostnames are fetched separately from frontline
+// routes; if that lookup fails, the response still succeeds but with an empty
+// hostname list.
 func (s *Service) GetDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.GetDeploymentRequest],
@@ -88,6 +93,8 @@ func (s *Service) GetDeployment(
 	return res, nil
 }
 
+// convertDbStatusToProto maps database deployment status to the proto enum.
+// Returns DEPLOYMENT_STATUS_UNSPECIFIED for unknown status values.
 func convertDbStatusToProto(status db.DeploymentsStatus) ctrlv1.DeploymentStatus {
 	switch status {
 	case db.DeploymentsStatusPending:
