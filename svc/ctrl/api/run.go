@@ -150,7 +150,7 @@ func Run(ctx context.Context, cfg Config) error {
 	mux := http.NewServeMux()
 
 	// Health check endpoint for load balancers and orchestrators
-	mux.HandleFunc("/v1/liveness", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 

@@ -327,7 +327,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	healthServer.RegisterRoute(
 		nil,
-		zen.NewRoute("GET", "/v1/liveness", func(_ context.Context, sess *zen.Session) error {
+		zen.NewRoute("GET", "/health", func(_ context.Context, sess *zen.Session) error {
+
 			return sess.Send(http.StatusOK, nil)
 		}),
 	)
