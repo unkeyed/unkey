@@ -2,6 +2,7 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
+import { syncSubscriptionFromStripe } from "@/lib/stripe/sync";
 import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -74,29 +75,35 @@ export const createSubscription = workspaceProcedure
 
       proration_behavior: "always_invoice",
     });
-    await db
-      .update(schema.workspaces)
-      .set({
-        stripeSubscriptionId: sub.id,
-      })
-      .where(eq(schema.workspaces.id, ctx.workspace.id));
-    await db
-      .insert(schema.quotas)
-      .values({
-        workspaceId: ctx.workspace.id,
-        requestsPerMonth: Number.parseInt(product.metadata.quota_requests_per_month),
-        logsRetentionDays: Number.parseInt(product.metadata.quota_logs_retention_days),
-        auditLogsRetentionDays: Number.parseInt(product.metadata.quota_audit_logs_retention_days),
-        team: true,
-      })
-      .onDuplicateKeyUpdate({
-        set: {
-          requestsPerMonth: Number.parseInt(product.metadata.quota_requests_per_month),
-          logsRetentionDays: Number.parseInt(product.metadata.quota_logs_retention_days),
-          auditLogsRetentionDays: Number.parseInt(product.metadata.quota_audit_logs_retention_days),
-          team: true,
-        },
+
+    if (sub.status === "incomplete" || sub.status === "past_due") {
+      await stripe.subscriptions.cancel(sub.id);
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message:
+          "Payment failed. Please update your payment method and try again, or stay on the free plan.",
       });
+    }
+
+    const result = await fault(async () => {
+      await db
+        .update(schema.workspaces)
+        .set({
+          stripeSubscriptionId: sub.id,
+        })
+        .where(eq(schema.workspaces.id, ctx.workspace.id));
+
+      await syncSubscriptionFromStripe(stripe, ctx.workspace.id);
+    });
+
+    if (result instanceof Error) {
+      // Attempt to rollback subscription ID on failure
+      await db
+        .update(schema.workspaces)
+        .set({ stripeSubscriptionId: null })
+        .where(eq(schema.workspaces.id, ctx.workspace.id));
+      throw result;
+    }
 
     await insertAuditLogs(db, {
       workspaceId: ctx.workspace.id,
@@ -113,9 +120,6 @@ export const createSubscription = workspaceProcedure
       },
     });
 
-    // Invalidate workspace cache after subscription creation
     await invalidateWorkspaceCache(ctx.tenant.id);
-
-    // Also clear the tRPC workspace cache to ensure fresh data on next request
     clearWorkspaceCache(ctx.tenant.id);
   });

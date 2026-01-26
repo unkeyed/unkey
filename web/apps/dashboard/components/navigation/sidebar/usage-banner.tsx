@@ -58,7 +58,7 @@ export const UsageBanner: React.FC<Props> = ({ quotas }) => {
           href: `/${workspace.slug}/settings/billing`,
           label: `Usage ${Math.round(percentage).toLocaleString()}%`,
           tag: shouldUpgrade ? (
-            <Link href="/settings/billing">
+            <Link href={`/${workspace.slug}/settings/billing`}>
               <Button variant="primary" size="sm">
                 Upgrade
               </Button>

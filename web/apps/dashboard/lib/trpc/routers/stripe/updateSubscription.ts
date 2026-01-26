@@ -1,6 +1,7 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
+import { syncSubscriptionFromStripe } from "@/lib/stripe/sync";
 import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -94,34 +95,17 @@ export const updateSubscription = workspaceProcedure
       });
     }
 
-    await db
-      .update(schema.workspaces)
-      .set({
-        tier: newProduct.name,
-      })
-      .where(eq(schema.workspaces.id, ctx.workspace.id));
+    const updatedSub = await stripe.subscriptions.retrieve(sub.id);
 
-    await db
-      .insert(schema.quotas)
-      .values({
-        workspaceId: ctx.workspace.id,
-        requestsPerMonth: Number.parseInt(newProduct.metadata.quota_requests_per_month),
-        logsRetentionDays: Number.parseInt(newProduct.metadata.quota_logs_retention_days),
-        auditLogsRetentionDays: Number.parseInt(
-          newProduct.metadata.quota_audit_logs_retention_days,
-        ),
-        team: true,
-      })
-      .onDuplicateKeyUpdate({
-        set: {
-          requestsPerMonth: Number.parseInt(newProduct.metadata.quota_requests_per_month),
-          logsRetentionDays: Number.parseInt(newProduct.metadata.quota_logs_retention_days),
-          auditLogsRetentionDays: Number.parseInt(
-            newProduct.metadata.quota_audit_logs_retention_days,
-          ),
-          team: true,
-        },
+    if (updatedSub.status === "incomplete" || updatedSub.status === "past_due") {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message:
+          "Payment failed. Please update your payment method and try again, or stay on your current plan.",
       });
+    }
+
+    await syncSubscriptionFromStripe(stripe, ctx.workspace.id);
 
     await insertAuditLogs(db, {
       workspaceId: ctx.workspace.id,
@@ -138,6 +122,5 @@ export const updateSubscription = workspaceProcedure
       },
     });
 
-    // Invalidate workspace cache after subscription update
     await invalidateWorkspaceCache(ctx.tenant.id);
   });

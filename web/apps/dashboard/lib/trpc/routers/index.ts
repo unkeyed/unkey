@@ -134,6 +134,7 @@ import { getCheckoutSession } from "./stripe/getCheckoutSession";
 import { getCustomer } from "./stripe/getCustomer";
 import { getProducts } from "./stripe/getProducts";
 import { getSetupIntent } from "./stripe/getSetupIntent";
+import { syncSubscription } from "./stripe/syncSubscription";
 import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateCustomer } from "./stripe/updateCustomer";
 import { updateSubscription } from "./stripe/updateSubscription";
@@ -235,6 +236,7 @@ export const router = t.router({
     updateSubscription,
     cancelSubscription,
     uncancelSubscription,
+    syncSubscription,
     getBillingInfo,
     updateCustomer,
     getCheckoutSession,

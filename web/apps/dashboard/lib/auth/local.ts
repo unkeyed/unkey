@@ -290,6 +290,18 @@ export class LocalAuthProvider extends BaseAuthProvider {
     throw new Error(`Membership ${membershipId} not found`);
   }
 
+  async deactivateMembership(membershipId: string): Promise<Membership> {
+    if (!membershipId) {
+      throw new Error("Membership Id is required");
+    }
+
+    // Cannot deactivate the only membership
+    if (membershipId === this.membership.id) {
+      throw new Error("Cannot deactivate the default membership");
+    }
+    throw new Error(`Membership ${membershipId} not found`);
+  }
+
   // Invitation Management - No-op methods
   async inviteMember(params: OrgInviteParams): Promise<Invitation> {
     const { orgId, email } = params;

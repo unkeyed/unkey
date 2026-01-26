@@ -1,5 +1,6 @@
 "use client";
 
+import { PaymentFailureModal } from "@/components/payment-failure-modal";
 import type { AuthenticatedUser } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
@@ -16,6 +17,8 @@ import {
   useEffect,
   useMemo,
 } from "react";
+
+const GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 interface WorkspaceContextType {
   user: AuthenticatedUser | null;
@@ -39,7 +42,6 @@ export const useWorkspace = () => {
 export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const pathname = usePathname();
 
-  // Get user state first
   const userQuery = trpc.user.getCurrentUser.useQuery(undefined, {
     ...baseQueryOptions,
     retry: createRetryFn(2),
@@ -60,10 +62,6 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
 
   const { data: workspace, isLoading: workspaceLoading, error: workspaceError } = workspaceQuery;
 
-  /**
-   *
-   * fetches the userQuery on login redirect.
-   */
   useEffect(() => {
     const isOnApisRoute = pathname === "/apis";
 
@@ -101,5 +99,23 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
     refetch,
   ]);
 
-  return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
+  const isInGracePeriod =
+    workspace?.paymentFailedAt &&
+    Date.now() - workspace.paymentFailedAt < GRACE_PERIOD_MS;
+
+  const gracePeriodEndsAt = workspace?.paymentFailedAt
+    ? workspace.paymentFailedAt + GRACE_PERIOD_MS
+    : undefined;
+
+  return (
+    <WorkspaceContext.Provider value={value}>
+      {children}
+      {isInGracePeriod && gracePeriodEndsAt && workspace?.slug && (
+        <PaymentFailureModal
+          gracePeriodEndsAt={gracePeriodEndsAt}
+          workspaceSlug={workspace.slug}
+        />
+      )}
+    </WorkspaceContext.Provider>
+  );
 };

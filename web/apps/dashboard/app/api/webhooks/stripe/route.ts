@@ -1,10 +1,7 @@
-import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatPrice } from "@/lib/fmt";
-import { freeTierQuotas } from "@/lib/quotas";
 import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/paymentUtils";
-import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import {
   isAutomatedBillingRenewal,
   isCardUpdateOnly,
@@ -86,28 +83,75 @@ export const POST = async (req: Request): Promise<Response> => {
 
         const previousAttributes = event.data.previous_attributes;
 
-        // Skip database updates and notifications for automated billing renewals
         if (isAutomatedBillingRenewal(sub, previousAttributes)) {
-          return new Response("OK", { status: 201 });
+          return new Response("OK", { status: 200 });
         }
 
-        // Skip database updates and notifications for payment failure related updates
-        // Payment failures are handled by the invoice.payment_failed webhook
         if (isPaymentFailureRelatedUpdate(sub, previousAttributes)) {
-          return new Response("OK", { status: 201 });
+          return new Response("OK", { status: 200 });
         }
 
-        // Skip database updates and notifications for payment recovery scenarios
-        // Payment recoveries are handled by the invoice.payment_succeeded webhook
         const isRecovery = await isPaymentRecoveryUpdate(stripe, sub, previousAttributes, event);
         if (isRecovery) {
-          return new Response("OK", { status: 201 });
+          return new Response("OK", { status: 200 });
         }
 
-        // Skip database updates and notifications for card/payment method updates only
-        // These don't affect subscription pricing, quotas, or other business logic
         if (isCardUpdateOnly(sub, previousAttributes)) {
-          return new Response("OK", { status: 201 });
+          return new Response("OK", { status: 200 });
+        }
+
+        // Map Stripe status to allowed database values
+        const allowedStatuses = [
+          "active",
+          "past_due",
+          "canceled",
+          "unpaid",
+          "trialing",
+          "incomplete",
+          "incomplete_expired",
+        ] as const;
+        type AllowedStatus = (typeof allowedStatuses)[number];
+        const isAllowedStatus = (value: unknown): value is AllowedStatus =>
+          allowedStatuses.includes(value as AllowedStatus);
+        const subscriptionStatus = isAllowedStatus(sub.status) ? sub.status : "canceled";
+
+        await db
+          .update(schema.workspaces)
+          .set({
+            subscriptionStatus,
+          })
+          .where(eq(schema.workspaces.id, ws.id));
+
+        if (sub.cancel_at) {
+          if (!sub.items?.data?.[0]?.price?.id || !sub.customer) {
+            return new Response("OK");
+          }
+
+          const [price, customer] = await Promise.all([
+            stripe.prices.retrieve(sub.items.data[0].price.id),
+            stripe.customers.retrieve(
+              typeof sub.customer === "string" ? sub.customer : sub.customer.id,
+            ),
+          ]);
+
+          if (!price.product || price.unit_amount === null || price.unit_amount === undefined) {
+            return new Response("OK");
+          }
+
+          const product = await stripe.products.retrieve(
+            typeof price.product === "string" ? price.product : price.product.id,
+          );
+
+          if (customer && !customer.deleted && customer.email) {
+            const formattedPrice = formatPrice(price.unit_amount);
+            await alertIsCancellingSubscription(
+              product.name,
+              formattedPrice,
+              customer.email,
+              customer.name || "Unknown",
+            );
+          }
+          return new Response("OK");
         }
 
         if (!sub.items?.data?.[0]?.price?.id || !sub.customer) {
@@ -129,79 +173,6 @@ export const POST = async (req: Request): Promise<Response> => {
           typeof price.product === "string" ? price.product : price.product.id,
         );
 
-        /**
-         * In our case, when a user cancels their subscription, it's not in effect until the beginning of the next month.
-         * So we get a subscription updated event, which we should handle accordingly.
-         */
-        if (sub.cancel_at) {
-          if (customer && !customer.deleted && customer.email) {
-            const formattedPrice = formatPrice(price.unit_amount);
-            await alertIsCancellingSubscription(
-              product.name,
-              formattedPrice,
-              customer.email,
-              customer.name || "Unknown",
-            );
-
-            return new Response("OK");
-          }
-        }
-
-        // Validate and parse quotas
-        const quotas = validateAndParseQuotas(product);
-        if (!quotas.valid) {
-          return new Response("OK", { status: 200 });
-        }
-
-        const { requestsPerMonth, logsRetentionDays, auditLogsRetentionDays } = quotas;
-
-        // Update quotas and workspace tier
-        await db.transaction(async (tx) => {
-          await tx
-            .update(schema.workspaces)
-            .set({
-              tier: product.name,
-            })
-            .where(eq(schema.workspaces.id, ws.id));
-
-          await tx
-            .insert(schema.quotas)
-            .values({
-              workspaceId: ws.id,
-              requestsPerMonth,
-              logsRetentionDays,
-              auditLogsRetentionDays,
-              team: true,
-            })
-            .onDuplicateKeyUpdate({
-              set: {
-                requestsPerMonth,
-                logsRetentionDays,
-                auditLogsRetentionDays,
-                team: true,
-              },
-            });
-
-          await insertAuditLogs(tx, {
-            workspaceId: ws.id,
-            actor: {
-              type: "system",
-              id: "stripe",
-            },
-            event: "workspace.update",
-            description: `Subscription updated to ${product.name} plan.`,
-            resources: [],
-            context: {
-              location: "",
-              userAgent: undefined,
-            },
-          });
-        });
-
-        /**
-         * To make the updates more useful, we detect if they are downgrading or upgrading their subscription
-         * We can then send a good or bad update based upon it.
-         */
         let changeType = "updated";
         let previousTier: string | undefined;
 
@@ -220,7 +191,6 @@ export const POST = async (req: Request): Promise<Response> => {
 
               previousTier = previousProduct.name;
 
-              // Compare amounts to determine upgrade/downgrade
               const currentAmount = price.unit_amount;
               const previousAmount = previousPrice.unit_amount;
 
@@ -241,7 +211,6 @@ export const POST = async (req: Request): Promise<Response> => {
           }
         }
 
-        // Send notification for subscription update
         if (customer && !customer.deleted && customer.email) {
           const formattedPrice = formatPrice(price.unit_amount);
 
@@ -286,40 +255,14 @@ export const POST = async (req: Request): Promise<Response> => {
           });
           return new Response("OK", { status: 200 });
         }
+
         await db
           .update(schema.workspaces)
           .set({
-            stripeSubscriptionId: null,
-            tier: "Free",
+            subscriptionStatus: "canceled",
           })
           .where(eq(schema.workspaces.id, ws.id));
 
-        await db
-          .insert(schema.quotas)
-          .values({
-            workspaceId: ws.id,
-            ...freeTierQuotas,
-          })
-          .onDuplicateKeyUpdate({
-            set: freeTierQuotas,
-          });
-
-        await insertAuditLogs(db, {
-          workspaceId: ws.id,
-          actor: {
-            type: "system",
-            id: "stripe",
-          },
-          event: "workspace.update",
-          description: "Cancelled subscription.",
-          resources: [],
-          context: {
-            location: "",
-            userAgent: undefined,
-          },
-        });
-
-        // Send notification for subscription cancellation
         if (sub.customer) {
           try {
             const customer = await stripe.customers.retrieve(
@@ -335,7 +278,6 @@ export const POST = async (req: Request): Promise<Response> => {
               subscriptionId: sub.id,
               eventId: event.id,
             });
-            // Continue without sending alert rather than failing
           }
         }
       } catch (error) {
@@ -363,26 +305,10 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK");
         }
 
-        const [price, customer] = await Promise.all([
-          stripe.prices.retrieve(sub.items.data[0].price.id),
-          stripe.customers.retrieve(
-            typeof sub.customer === "string" ? sub.customer : sub.customer.id,
-          ),
-        ]);
-
-        if (!price.product || price.unit_amount === null || price.unit_amount === undefined) {
-          return new Response("OK");
+        if (sub.status === "incomplete" || sub.status === "incomplete_expired") {
+          return new Response("OK", { status: 200 });
         }
 
-        const product = await stripe.products.retrieve(
-          typeof price.product === "string" ? price.product : price.product.id,
-        );
-
-        if (customer.deleted || !customer.email) {
-          return new Response("OK");
-        }
-
-        // Find workspace by stripe customer ID
         const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
         const ws = await db.query.workspaces.findFirst({
           where: (table, { and, eq, isNull }) =>
@@ -397,57 +323,44 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK", { status: 200 });
         }
 
-        // Validate and parse quotas
-        const quotas = validateAndParseQuotas(product);
-        if (!quotas.valid) {
-          return new Response("OK", { status: 200 });
+        // Map Stripe status to allowed database values
+        const allowedStatuses = [
+          "active",
+          "past_due",
+          "canceled",
+          "unpaid",
+          "trialing",
+          "incomplete",
+          "incomplete_expired",
+        ] as const;
+        type AllowedStatus = (typeof allowedStatuses)[number];
+        const isAllowedStatus = (value: unknown): value is AllowedStatus =>
+          allowedStatuses.includes(value as AllowedStatus);
+        const subscriptionStatus = isAllowedStatus(sub.status) ? sub.status : "canceled";
+
+        await db
+          .update(schema.workspaces)
+          .set({
+            subscriptionStatus,
+          })
+          .where(eq(schema.workspaces.id, ws.id));
+
+        const [price, customer] = await Promise.all([
+          stripe.prices.retrieve(sub.items.data[0].price.id),
+          stripe.customers.retrieve(customerId),
+        ]);
+
+        if (!price.product || price.unit_amount === null || price.unit_amount === undefined) {
+          return new Response("OK");
         }
 
-        const { requestsPerMonth, logsRetentionDays, auditLogsRetentionDays } = quotas;
+        const product = await stripe.products.retrieve(
+          typeof price.product === "string" ? price.product : price.product.id,
+        );
 
-        // Update workspace, quotas, and audit log in a transaction
-        await db.transaction(async (tx) => {
-          await tx
-            .update(schema.workspaces)
-            .set({
-              stripeSubscriptionId: sub.id,
-              tier: product.name,
-            })
-            .where(eq(schema.workspaces.id, ws.id));
-
-          await tx
-            .insert(schema.quotas)
-            .values({
-              workspaceId: ws.id,
-              requestsPerMonth,
-              logsRetentionDays,
-              auditLogsRetentionDays,
-              team: true,
-            })
-            .onDuplicateKeyUpdate({
-              set: {
-                requestsPerMonth,
-                logsRetentionDays,
-                auditLogsRetentionDays,
-                team: true,
-              },
-            });
-
-          await insertAuditLogs(tx, {
-            workspaceId: ws.id,
-            actor: {
-              type: "system",
-              id: "stripe",
-            },
-            event: "workspace.update",
-            description: `Subscription created for ${product.name} plan.`,
-            resources: [],
-            context: {
-              location: "",
-              userAgent: undefined,
-            },
-          });
-        });
+        if (customer.deleted || !customer.email) {
+          return new Response("OK");
+        }
 
         const formattedPrice = formatPrice(price.unit_amount);
 
@@ -479,13 +392,11 @@ export const POST = async (req: Request): Promise<Response> => {
       try {
         const invoice = event.data.object as Stripe.Invoice;
 
-        // Validate invoice data structure
         if (!invoice || typeof invoice !== "object") {
           console.error("Payment failed event received with invalid invoice data structure");
           return new Response("Invalid event data", { status: 400 });
         }
 
-        // Extract customer information from the invoice
         if (!invoice.customer) {
           console.warn("Payment failed event received without customer information", {
             invoiceId: invoice.id,
@@ -494,22 +405,35 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK", { status: 200 });
         }
 
+        const customerId =
+          typeof invoice.customer === "string" ? invoice.customer : invoice.customer.id;
+
+        const ws = await db.query.workspaces.findFirst({
+          where: (table, { and, eq, isNull }) =>
+            and(eq(table.stripeCustomerId, customerId), isNull(table.deletedAtM)),
+        });
+
+        if (ws) {
+          await db
+            .update(schema.workspaces)
+            .set({
+              paymentFailedAt: Date.now(),
+              subscriptionStatus: "past_due",
+            })
+            .where(eq(schema.workspaces.id, ws.id));
+        }
+
         let customer: Stripe.Customer | Stripe.DeletedCustomer;
 
         try {
-          // Get customer details from Stripe with timeout handling
-          customer = await stripe.customers.retrieve(
-            typeof invoice.customer === "string" ? invoice.customer : invoice.customer.id,
-          );
+          customer = await stripe.customers.retrieve(customerId);
         } catch (customerError) {
           console.error("Failed to retrieve customer for payment failure event:", {
             error: customerError,
-            customerId:
-              typeof invoice.customer === "string" ? invoice.customer : invoice.customer.id,
+            customerId,
             invoiceId: invoice.id,
             eventId: event.id,
           });
-          // Continue processing without customer details rather than failing completely
           return new Response("OK", { status: 200 });
         }
 
@@ -517,11 +441,9 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK", { status: 200 });
         }
 
-        // Extract payment failure details with validation
         const amount = invoice.amount_due || 0;
         const currency = invoice.currency || "usd";
 
-        // Validate amount and currency
         if (amount < 0) {
           console.warn("Payment failed event with negative amount", {
             amount,
@@ -531,7 +453,6 @@ export const POST = async (req: Request): Promise<Response> => {
         }
 
         try {
-          // Send payment failure alert without triggering subscription updates
           const customerEmail = (customer as Stripe.Customer).email;
           if (customerEmail) {
             await alertPaymentFailed(
@@ -548,11 +469,9 @@ export const POST = async (req: Request): Promise<Response> => {
             invoiceId: invoice.id,
             eventId: event.id,
           });
-          // Don't fail the webhook if alert fails - return success to prevent retries
           return new Response("Alert failed but event processed", { status: 200 });
         }
 
-        // Return success immediately to prevent fall-through to other webhook handlers
         return new Response("OK", { status: 200 });
       } catch (error) {
         console.error("Error processing payment failure webhook:", {
@@ -568,8 +487,6 @@ export const POST = async (req: Request): Promise<Response> => {
           eventType: event.type,
         });
 
-        // Return 200 to prevent Stripe from retrying, but log the error
-        // This ensures payment processing errors don't affect other webhook types
         return new Response("Error processing payment failure", { status: 200 });
       }
     }
@@ -578,13 +495,11 @@ export const POST = async (req: Request): Promise<Response> => {
       try {
         const invoice = event.data.object as Stripe.Invoice;
 
-        // Validate invoice data structure
         if (!invoice || typeof invoice !== "object") {
           console.error("Payment success event received with invalid invoice data structure");
           return new Response("Invalid event data", { status: 400 });
         }
 
-        // Extract customer information from the invoice
         if (!invoice.customer) {
           console.warn("Payment success event received without customer information", {
             invoiceId: invoice.id,
@@ -593,22 +508,56 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK", { status: 200 });
         }
 
+        const customerId =
+          typeof invoice.customer === "string" ? invoice.customer : invoice.customer.id;
+
+        const ws = await db.query.workspaces.findFirst({
+          where: (table, { and, eq, isNull }) =>
+            and(eq(table.stripeCustomerId, customerId), isNull(table.deletedAtM)),
+        });
+
+        if (ws && invoice.subscription) {
+          const subscriptionId =
+            typeof invoice.subscription === "string"
+              ? invoice.subscription
+              : invoice.subscription.id;
+
+          let subscription: Stripe.Subscription;
+          try {
+            subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          } catch (subError) {
+            console.error("Failed to retrieve subscription for payment success event:", {
+              error: subError,
+              subscriptionId,
+              invoiceId: invoice.id,
+              eventId: event.id,
+            });
+            return new Response("OK", { status: 200 });
+          }
+
+          if (subscription.status === "active") {
+            await db
+              .update(schema.workspaces)
+              .set({
+                paymentFailedAt: null,
+                paymentFailureNotifiedAt: null,
+                subscriptionStatus: "active",
+              })
+              .where(eq(schema.workspaces.id, ws.id));
+          }
+        }
+
         let customer: Stripe.Customer | Stripe.DeletedCustomer;
 
         try {
-          // Get customer details from Stripe with timeout handling
-          customer = await stripe.customers.retrieve(
-            typeof invoice.customer === "string" ? invoice.customer : invoice.customer.id,
-          );
+          customer = await stripe.customers.retrieve(customerId);
         } catch (customerError) {
           console.error("Failed to retrieve customer for payment success event:", {
             error: customerError,
-            customerId:
-              typeof invoice.customer === "string" ? invoice.customer : invoice.customer.id,
+            customerId,
             invoiceId: invoice.id,
             eventId: event.id,
           });
-          // Continue processing without customer details rather than failing completely
           return new Response("OK", { status: 200 });
         }
 
@@ -619,7 +568,6 @@ export const POST = async (req: Request): Promise<Response> => {
         let isRecovery = false;
 
         try {
-          // Use recovery detection logic to determine if success follows failure
           isRecovery = await isPaymentRecovery(stripe, event);
         } catch (recoveryError) {
           console.error("Failed to determine payment recovery status:", {
@@ -628,16 +576,13 @@ export const POST = async (req: Request): Promise<Response> => {
             eventId: event.id,
             customerEmail: customer.email,
           });
-          // Assume not a recovery if detection fails to avoid false positives
           isRecovery = false;
         }
 
-        // Send recovery alert only when appropriate (after previous failures)
         if (isRecovery) {
           const amount = invoice.amount_paid || 0;
           const currency = invoice.currency || "usd";
 
-          // Validate amount and currency
           if (amount < 0) {
             console.warn("Payment success event with negative amount", {
               amount,
@@ -662,13 +607,11 @@ export const POST = async (req: Request): Promise<Response> => {
                 invoiceId: invoice.id,
                 eventId: event.id,
               });
-              // Don't fail the webhook if alert fails - return success to prevent retries
               return new Response("Alert failed but event processed", { status: 200 });
             }
           }
         }
 
-        // Return success immediately to prevent fall-through to other webhook handlers
         return new Response("OK", { status: 200 });
       } catch (error) {
         console.error("Error processing payment success webhook:", {
@@ -684,8 +627,6 @@ export const POST = async (req: Request): Promise<Response> => {
           eventType: event.type,
         });
 
-        // Return 200 to prevent Stripe from retrying, but log the error
-        // This ensures payment processing errors don't affect other webhook types
         return new Response("Error processing payment success", { status: 200 });
       }
     }

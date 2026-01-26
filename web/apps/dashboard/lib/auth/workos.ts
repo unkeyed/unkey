@@ -481,6 +481,79 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
+  async deactivateMembership(membershipId: string): Promise<Membership> {
+    if (!membershipId) {
+      throw new Error("Membership Id is required");
+    }
+
+    try {
+      // Fetch current membership to check status
+      const currentMembership = await this.provider.userManagement.getOrganizationMembership(
+        membershipId,
+      );
+
+      // If membership is pending, delete it instead of deactivating
+      if (currentMembership.status === "pending") {
+        await this.provider.userManagement.deleteOrganizationMembership(membershipId);
+        
+        // Get related data
+        const [org, user] = await Promise.all([
+          this.getOrg(currentMembership.organizationId),
+          this.getUser(currentMembership.userId),
+        ]);
+
+        if (!org) {
+          throw new Error(`Organization ${currentMembership.organizationId} not found`);
+        }
+
+        if (!user) {
+          throw new Error(`User ${currentMembership.userId} not found`);
+        }
+
+        return {
+          id: currentMembership.id,
+          user,
+          organization: org,
+          role: currentMembership.role.slug,
+          createdAt: currentMembership.createdAt,
+          updatedAt: currentMembership.updatedAt,
+          status: currentMembership.status,
+        };
+      }
+
+      // For active memberships, deactivate normally
+      const membership = await this.provider.userManagement.deactivateOrganizationMembership(
+        membershipId,
+      );
+
+      // Get related data
+      const [org, user] = await Promise.all([
+        this.getOrg(membership.organizationId),
+        this.getUser(membership.userId),
+      ]);
+
+      if (!org) {
+        throw new Error(`Organization ${membership.organizationId} not found`);
+      }
+
+      if (!user) {
+        throw new Error(`User ${membership.userId} not found`);
+      }
+
+      return {
+        id: membership.id,
+        user,
+        organization: org,
+        role: membership.role.slug,
+        createdAt: membership.createdAt,
+        updatedAt: membership.updatedAt,
+        status: membership.status,
+      };
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   // Invitation Management
   async inviteMember(params: OrgInviteParams): Promise<Invitation> {
     const { orgId, email, role = "basic_member" } = params;

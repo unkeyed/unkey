@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth/server";
 import { getStripeClient } from "@/lib/stripe";
+import { syncSubscriptionFromStripe } from "@/lib/stripe/sync";
 import { TRPCError } from "@trpc/server";
 import { workspaceProcedure } from "../../trpc";
 
@@ -37,4 +38,6 @@ export const cancelSubscription = workspaceProcedure.mutation(async ({ ctx }) =>
   await stripe.subscriptions.update(ctx.workspace.stripeSubscriptionId, {
     cancel_at_period_end: true,
   });
+
+  await syncSubscriptionFromStripe(stripe, ctx.workspace.id);
 });

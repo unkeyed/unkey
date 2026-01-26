@@ -233,6 +233,14 @@ export abstract class BaseAuthProvider {
   abstract removeMembership(membershipId: string): Promise<void>;
 
   /**
+   * Deactivates a user's membership in an organization (soft delete).
+   *
+   * @param membershipId - The ID of the membership to deactivate
+   * @returns The deactivated membership object
+   */
+  abstract deactivateMembership(membershipId: string): Promise<Membership>;
+
+  /**
    * Invites a new user to join an organization.
    *
    * @param params - Parameters containing the organization ID, email, and role

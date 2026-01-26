@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/expire-grace-periods",
+      "schedule": "0 */6 * * *"
+    }
+  ]
+}

@@ -37,6 +37,7 @@ export const PlanSelectionModal = ({
   );
   const [isLoading, setIsLoading] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const router = useRouter();
   const trpcUtils = trpc.useUtils();
 
@@ -61,30 +62,62 @@ export const PlanSelectionModal = ({
     ]);
   }, [trpcUtils]);
 
+  const syncSubscription = trpc.stripe.syncSubscription.useMutation();
+
   const createSubscription = trpc.stripe.createSubscription.useMutation({
     onSuccess: async () => {
-      handleOpenChange(false);
-      setIsLoading(false);
+      setPaymentError(null);
       toast.success("Plan activated successfully!");
-      await revalidateData();
-      router.push(`/${workspaceSlug}/settings/billing`);
+      
+      try {
+        await syncSubscription.mutateAsync();
+        await revalidateData();
+        handleOpenChange(false);
+        router.push(`/${workspaceSlug}/settings/billing`);
+      } catch (err) {
+        setIsLoading(false);
+        const errorMessage = err instanceof Error ? err.message : "Failed to sync subscription";
+        toast.error(errorMessage);
+        setPaymentError(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
     },
     onError: (err) => {
       setIsLoading(false);
-      toast.error(err.message);
+      if (err.data?.code === "PRECONDITION_FAILED" || err.message?.toLowerCase().includes("payment")) {
+        setPaymentError(err.message);
+      } else {
+        toast.error(err.message);
+      }
     },
   });
 
   const updateSubscription = trpc.stripe.updateSubscription.useMutation({
     onSuccess: async () => {
       handleOpenChange(false);
-      setIsLoading(false);
+      setPaymentError(null);
       toast.success("Plan changed successfully!");
-      await revalidateData();
+      
+      try {
+        await syncSubscription.mutateAsync();
+        await revalidateData();
+      } catch (err) {
+        setIsLoading(false);
+        const errorMessage = err instanceof Error ? err.message : "Failed to sync subscription";
+        toast.error(errorMessage);
+        setPaymentError(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
     },
     onError: (err) => {
       setIsLoading(false);
-      toast.error(err.message);
+      if (err.data?.code === "PRECONDITION_FAILED" || err.message?.toLowerCase().includes("payment")) {
+        setPaymentError(err.message);
+      } else {
+        toast.error(err.message);
+      }
     },
   });
 
@@ -94,18 +127,27 @@ export const PlanSelectionModal = ({
     }
 
     setIsLoading(true);
+    setPaymentError(null);
     if (isChangingPlan && currentProductId) {
-      // Update existing subscription
       await updateSubscription.mutateAsync({
         oldProductId: currentProductId,
         newProductId: selectedProductId,
       });
     } else {
-      // Create new subscription
       await createSubscription.mutateAsync({
         productId: selectedProductId,
       });
     }
+  };
+
+  const handleUpdatePaymentMethod = () => {
+    setPaymentError(null);
+    router.push(`/${workspaceSlug}/settings/billing/stripe/portal`);
+  };
+
+  const handleStayOnFreePlan = () => {
+    setPaymentError(null);
+    handleOpenChange(false);
   };
 
   const handleSkip = async () => {
@@ -151,45 +193,79 @@ export const PlanSelectionModal = ({
     <DialogContainer
       isOpen={isOpen}
       onOpenChange={handleOpenChange}
-      title={isChangingPlan ? "Change Your Plan" : "Choose Your Plan"}
+      title={paymentError ? "Payment Failed" : isChangingPlan ? "Change Your Plan" : "Choose Your Plan"}
       subTitle={
-        isChangingPlan
-          ? "Select a new plan to switch to"
-          : "Select a plan to get started with your new payment method"
+        paymentError
+          ? "There was an issue processing your payment"
+          : isChangingPlan
+            ? "Select a new plan to switch to"
+            : "Select a plan to get started with your new payment method"
       }
       showCloseWarning={true}
       onAttemptClose={handleSkip}
       footer={
-        <div className="w-full flex flex-col gap-6">
-          <Button
-            type="button"
-            variant="primary"
-            size="lg"
-            loading={isLoading}
-            disabled={!selectedProductId || isLoading}
-            className="w-full"
-            onClick={handleSelectPlan}
-          >
-            {selectedProduct
-              ? `${isChangingPlan ? "Change to" : "Start"} ${
-                  selectedProduct.name
-                } Plan - $${selectedProduct.dollar}/mo`
-              : "Select a plan first"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            disabled={isLoading}
-            className="w-full text-gray-11 hover:text-gray-12"
-            onClick={handleSkip}
-          >
-            {isChangingPlan ? "Cancel" : "Skip for now - Stay on Free Plan"}
-          </Button>
-        </div>
+        paymentError ? (
+          <div className="w-full flex flex-col gap-3">
+            <Button
+              type="button"
+              variant="primary"
+              size="lg"
+              className="w-full"
+              onClick={handleUpdatePaymentMethod}
+            >
+              Update Payment Method
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="w-full text-gray-11 hover:text-gray-12"
+              onClick={handleStayOnFreePlan}
+            >
+              Stay on Free Plan
+            </Button>
+          </div>
+        ) : (
+          <div className="w-full flex flex-col gap-6">
+            <Button
+              type="button"
+              variant="primary"
+              size="lg"
+              loading={isLoading}
+              disabled={!selectedProductId || isLoading}
+              className="w-full"
+              onClick={handleSelectPlan}
+            >
+              {selectedProduct
+                ? `${isChangingPlan ? "Change to" : "Start"} ${
+                    selectedProduct.name
+                  } Plan - $${selectedProduct.dollar}/mo`
+                : "Select a plan first"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              disabled={isLoading}
+              className="w-full text-gray-11 hover:text-gray-12"
+              onClick={handleSkip}
+            >
+              {isChangingPlan ? "Cancel" : "Skip for now - Stay on Free Plan"}
+            </Button>
+          </div>
+        )
       }
     >
-      <div className="space-y-4">
+      {paymentError ? (
+        <div className="space-y-4 p-4 bg-error-2 border border-error-6 rounded-lg">
+          <p className="text-sm text-error-11">{paymentError}</p>
+          <p className="text-sm text-gray-11">
+            You can update your payment method in the Stripe billing portal or stay on the free
+            plan.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
         <div className="space-y-3">
           {/* Paid Plans */}
           {products.map((product) => (
@@ -261,6 +337,7 @@ export const PlanSelectionModal = ({
           </p>
         </div>
       </div>
+      )}
     </DialogContainer>
   );
 };

@@ -1,9 +1,12 @@
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
+import { syncSubscriptionFromStripe } from "@/lib/stripe/sync";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { mapProduct } from "../utils/stripe";
+
+const GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 const productSchema = z.object({
   id: z.string(),
@@ -28,6 +31,8 @@ const billingInfoSchema = z.object({
   subscription: subscriptionSchema,
   hasPreviousSubscriptions: z.boolean(),
   currentProductId: z.string().optional(),
+  isInGracePeriod: z.boolean(),
+  gracePeriodEndsAt: z.number().optional(),
 });
 
 export const getBillingInfo = workspaceProcedure
@@ -41,6 +46,10 @@ export const getBillingInfo = workspaceProcedure
         code: "INTERNAL_SERVER_ERROR",
         message: "Stripe is not configured",
       });
+    }
+
+    if (ctx.workspace.stripeSubscriptionId) {
+      await syncSubscriptionFromStripe(stripe, ctx.workspace.id);
     }
 
     const [subscription, hasPreviousSubscriptions] = await Promise.all([
@@ -58,7 +67,6 @@ export const getBillingInfo = workspaceProcedure
         : false,
     ]);
 
-    // Check if user has an active enterprise subscription
     let enterpriseProductId: string | undefined;
     try {
       const currentProductId = subscription?.items.data.at(0)?.plan.product?.toString();
@@ -66,7 +74,6 @@ export const getBillingInfo = workspaceProcedure
         enterpriseProductId = currentProductId;
       }
     } catch (error) {
-      // If subscription retrieval fails, default to showing only Pro products
       console.error("Error checking enterprise subscription:", error);
     }
 
@@ -83,6 +90,16 @@ export const getBillingInfo = workspaceProcedure
       })
       .then((res) => res.data.map(mapProduct).sort((a, b) => a.dollar - b.dollar));
 
+    const now = Date.now();
+    const isInGracePeriod =
+      ctx.workspace.paymentFailedAt !== null &&
+      ctx.workspace.paymentFailedAt !== undefined &&
+      now - ctx.workspace.paymentFailedAt < GRACE_PERIOD_MS;
+
+    const gracePeriodEndsAt = ctx.workspace.paymentFailedAt
+      ? ctx.workspace.paymentFailedAt + GRACE_PERIOD_MS
+      : undefined;
+
     return {
       products,
       subscription: subscription
@@ -94,5 +111,7 @@ export const getBillingInfo = workspaceProcedure
         : undefined,
       hasPreviousSubscriptions,
       currentProductId: subscription?.items.data.at(0)?.plan.product?.toString() ?? undefined,
+      isInGracePeriod,
+      gracePeriodEndsAt,
     };
   });

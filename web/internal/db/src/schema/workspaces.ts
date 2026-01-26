@@ -1,6 +1,6 @@
 import type { Subscriptions } from "@unkey/billing";
 import { relations } from "drizzle-orm";
-import { boolean, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, boolean, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { certificates } from "./certificates";
 import { clickhouseWorkspaceSettings } from "./clickhouse_workspace_settings";
@@ -39,6 +39,17 @@ export const workspaces = mysqlTable("workspaces", {
   // stripe
   stripeCustomerId: varchar("stripe_customer_id", { length: 256 }),
   stripeSubscriptionId: varchar("stripe_subscription_id", { length: 256 }),
+  subscriptionStatus: mysqlEnum("subscription_status", [
+    "active",
+    "past_due",
+    "canceled",
+    "unpaid",
+    "trialing",
+    "incomplete",
+    "incomplete_expired",
+  ]),
+  paymentFailedAt: bigint("payment_failed_at", { mode: "number" }),
+  paymentFailureNotifiedAt: bigint("payment_failure_notified_at", { mode: "number" }),
 
   /**
    * feature flags

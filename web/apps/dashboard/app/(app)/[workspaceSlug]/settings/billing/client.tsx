@@ -89,6 +89,7 @@ export const Client: React.FC = () => {
           <SubscriptionStatus
             workspaceSlug={workspace.slug}
             status={subscription.status as Stripe.Subscription.Status}
+            gracePeriodEndsAt={billingInfo.gracePeriodEndsAt}
           />
         ) : null}
 
