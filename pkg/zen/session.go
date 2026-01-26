@@ -451,9 +451,28 @@ func (s *Session) JSON(status int, body any) error {
 	return s.send(status, b)
 }
 
-// ProblemJSON sends a JSON error response with application/problem+json content type.
-// This follows RFC 7807 (Problem Details for HTTP APIs).
+// ProblemJSON sends a JSON error response following RFC 7807 (Problem Details for HTTP APIs).
 // Use this for error responses (4xx, 5xx status codes).
+//
+// # Content Negotiation
+//
+// This method uses content negotiation to maintain backwards compatibility with older SDKs:
+//
+//   - If the client sends "Accept: application/problem+json", the response uses
+//     Content-Type: application/problem+json (RFC 7807 compliant)
+//   - Otherwise, the response uses Content-Type: application/json for backwards
+//     compatibility with older SDKs that expect application/json for all responses
+//
+// The response body structure follows RFC 7807 in both cases - only the Content-Type
+// header changes based on what the client accepts.
+//
+// # Example
+//
+//	// Client sends: Accept: application/json
+//	// Response: Content-Type: application/json (backwards compatible)
+//
+//	// Client sends: Accept: application/problem+json
+//	// Response: Content-Type: application/problem+json (RFC 7807 compliant)
 func (s *Session) ProblemJSON(status int, body any) error {
 	b, err := json.Marshal(body)
 	if err != nil {
@@ -464,7 +483,16 @@ func (s *Session) ProblemJSON(status int, body any) error {
 		)
 	}
 
-	s.ResponseWriter().Header().Add("Content-Type", "application/problem+json")
+	// Content negotiation for backwards compatibility with older SDKs.
+	// Older SDKs send "Accept: application/json" and expect that content type back.
+	// Newer clients can opt-in to RFC 7807 by sending "Accept: application/problem+json".
+	accept := s.Request().Header.Get("Accept")
+	if strings.Contains(accept, "application/problem+json") {
+		s.ResponseWriter().Header().Set("Content-Type", "application/problem+json")
+	} else {
+		s.ResponseWriter().Header().Set("Content-Type", "application/json")
+	}
+
 	return s.send(status, b)
 }
 
