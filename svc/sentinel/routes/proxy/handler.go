@@ -51,7 +51,6 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	startTime := h.Clock.Now()
 	var instanceStart, instanceEnd time.Time
 	var responseStatus int32
-	var errorMsg string
 	var requestBody, responseBody []byte
 	var responseHeaders []string
 
@@ -117,7 +116,6 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 			ResponseStatus:  responseStatus,
 			ResponseHeaders: responseHeaders,
 			ResponseBody:    string(responseBody),
-			Error:           errorMsg,
 			UserAgent:       req.UserAgent(),
 			IPAddress:       getClientIP(req),
 			TotalLatency:    totalLatency,
@@ -213,8 +211,20 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	proxy.ServeHTTP(wrapper, req)
 
 	if err := wrapper.Error(); err != nil {
-		errorMsg = err.Error()
 		urn, message := categorizeProxyError(err)
+
+		// If responseStatus is 0, it means ModifyResponse never ran. No response received from user code.
+		// Set a status code based on error type for CH logging.
+		if responseStatus == 0 {
+			if errors.Is(err, context.Canceled) {
+				responseStatus = 499 // Client Closed Request like nginx
+			} else if errors.Is(err, context.DeadlineExceeded) || os.IsTimeout(err) {
+				responseStatus = 504 // Gateway Timeout
+			} else {
+				responseStatus = 502 // Bad Gateway
+			}
+		}
+
 		return fault.Wrap(err,
 			fault.Code(urn),
 			fault.Internal(fmt.Sprintf("proxy error forwarding to instance %s", instance.Address)),
@@ -272,7 +282,7 @@ func categorizeProxyError(err error) (codes.URN, string) {
 	}
 
 	return codes.Sentinel.Proxy.BadGateway.URN(),
-		"Unable to connect to a instance. Please try again in a few moments."
+		"Unable to connect to an instance. Please try again in a few moments."
 }
 
 func formatHeaders(headers http.Header) []string {

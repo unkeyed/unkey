@@ -147,7 +147,6 @@ type SentinelRequest struct {
 	ResponseStatus  int32               `ch:"response_status" json:"response_status"`
 	ResponseHeaders []string            `ch:"response_headers" json:"response_headers"`
 	ResponseBody    string              `ch:"response_body" json:"response_body"`
-	Error           string              `ch:"error" json:"error"`
 	UserAgent       string              `ch:"user_agent" json:"user_agent"`
 	IPAddress       string              `ch:"ip_address" json:"ip_address"`
 	TotalLatency    int64               `ch:"total_latency" json:"total_latency"`
