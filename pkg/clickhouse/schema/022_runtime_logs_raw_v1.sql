@@ -6,6 +6,9 @@ CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
     -- Timestamp (milliseconds since epoch)
     `time` Int64 CODEC(Delta, LZ4),
 
+    -- When log was inserted into ClickHouse (for debugging ingestion lag)
+    `inserted_at` DateTime64(3) DEFAULT now64(3),
+
     -- Log content
     `severity` LowCardinality(String),
     `message` String CODEC(ZSTD(1)),
@@ -23,15 +26,23 @@ CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
     `region` LowCardinality(String),
 
     -- Structured log attributes (parsed from JSON or key=value logs)
-    `attributes` Map(String, String) CODEC(ZSTD(1)),
+    -- Using JSON type for nested attribute support
+    `attributes` JSON CODEC(ZSTD(1)),
 
-    -- Indexes for fast filtering
-    INDEX idx_workspace_id workspace_id TYPE bloom_filter GRANULARITY 1,
-    INDEX idx_deployment_id deployment_id TYPE bloom_filter GRANULARITY 1,
-    INDEX idx_message message TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 1
+    -- Materialized column for full-text search on attribute values
+    `attributes_text` String MATERIALIZED toJSONString(attributes) CODEC(ZSTD(1)),
+
+    -- Per-row TTL for tiered retention (default: 90 days from insert time)
+    `expires_at` DateTime64(3) DEFAULT now64(3) + INTERVAL 90 DAY,
+
+    -- Indexes for fast filtering (0.001 = low false positive rate)
+    INDEX idx_workspace_id workspace_id TYPE bloom_filter(0.001) GRANULARITY 1,
+    INDEX idx_deployment_id deployment_id TYPE bloom_filter(0.001) GRANULARITY 1,
+    INDEX idx_message message TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 1,
+    INDEX idx_attributes_text attributes_text TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 1
 )
 ENGINE = MergeTree()
-PARTITION BY toYYYYMM(fromUnixTimestamp64Milli(time))
+PARTITION BY toDate(inserted_at)
 ORDER BY (workspace_id, deployment_id, time)
-TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 90 DAY
-SETTINGS index_granularity = 8192;
+TTL expires_at + INTERVAL 7 DAY
+SETTINGS index_granularity = 8192, ttl_only_drop_parts = 1;

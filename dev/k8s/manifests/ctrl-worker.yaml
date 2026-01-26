@@ -52,16 +52,10 @@ spec:
               value: "false"
 
             # Vault Configuration (required)
-            - name: UNKEY_VAULT_MASTER_KEYS
-              value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
-            - name: UNKEY_VAULT_S3_URL
-              value: "http://s3:3902"
-            - name: UNKEY_VAULT_S3_BUCKET
-              value: "acme-vault"
-            - name: UNKEY_VAULT_S3_ACCESS_KEY_ID
-              value: "minio_root_user"
-            - name: UNKEY_VAULT_S3_ACCESS_KEY_SECRET
-              value: "minio_root_password"
+            - name: UNKEY_VAULT_URL
+              value: http://vault:8060
+            - name: UNKEY_VAULT_TOKEN
+              value: vault-test-token-123
 
             # Build Configuration
             - name: UNKEY_BUILD_BACKEND
@@ -143,7 +137,7 @@ spec:
             [
               "sh",
               "-c",
-              "until nc -z mysql 3306 && nc -z s3 3902 && nc -z restate 8080; do echo waiting for dependencies; sleep 2; done;",
+              "until nc -z mysql 3306 && nc -z s3 3902 && nc -z restate 8080 && nc -z vault 8060; do echo waiting for dependencies; sleep 2; done;",
             ]
 
 ---

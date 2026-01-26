@@ -95,27 +95,13 @@ type AcmeConfig struct {
 
 // RestateConfig holds configuration for Restate workflow engine integration.
 //
-// This configuration enables asynchronous workflow execution through
-// the Restate distributed system for deployment and certificate operations.
+// The API is a Restate client that invokes workflows. It only needs the
+// ingress URL and optional API key for authentication.
 type RestateConfig struct {
 	// URL is the Restate ingress endpoint URL for workflow invocation.
 	// Used by clients to start and interact with workflow executions.
 	// Example: "http://restate:8080".
 	URL string
-
-	// AdminURL is the Restate admin endpoint URL for service registration.
-	// Used by the control plane to register its workflow services.
-	// Example: "http://restate:9070".
-	AdminURL string
-
-	// HttpPort is the port where the control plane listens for Restate requests.
-	// This is the internal Restate server port, not the main API port.
-	HttpPort int
-
-	// RegisterAs is the service URL used for self-registration with Restate.
-	// Allows other Restate services to discover and invoke this control plane.
-	// Example: "http://ctrl:9080".
-	RegisterAs string
 
 	// APIKey is the authentication key for Restate ingress requests.
 	// If set, this key will be sent with all requests to the Restate ingress.
