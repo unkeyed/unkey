@@ -2,15 +2,22 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "middleware",
-    srcs = ["observability.go"],
+    srcs = [
+        "logging.go",
+        "observability.go",
+    ],
     importpath = "github.com/unkeyed/unkey/svc/sentinel/middleware",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/clickhouse",
+        "//pkg/clickhouse/schema",
+        "//pkg/clock",
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/otel/logging",
         "//pkg/otel/tracing",
         "//pkg/zen",
+        "//svc/sentinel/routes/proxy",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_prometheus_client_golang//prometheus/promauto",
         "@io_opentelemetry_go_otel//attribute",
