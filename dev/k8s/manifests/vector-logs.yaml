@@ -1,0 +1,211 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vector-logs
+  namespace: unkey
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: vector-logs
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces", "pods", "nodes"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: vector-logs
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: vector-logs
+subjects:
+  - kind: ServiceAccount
+    name: vector-logs
+    namespace: unkey
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vector-logs-config
+  namespace: unkey
+data:
+  vector.toml: |
+    # Vector configuration for collecting Krane-managed deployment logs (local dev)
+
+    data_dir = "/var/lib/vector"
+
+    # Source: Kubernetes Logs
+    [sources.kubernetes_logs]
+    type = "kubernetes_logs"
+    auto_partial_merge = true
+    extra_label_selector = "app.kubernetes.io/managed-by=krane,app.kubernetes.io/component=deployment"
+
+    # Filter out init container logs (copy-inject)
+    [transforms.filter_init_containers]
+    type = "filter"
+    inputs = ["kubernetes_logs"]
+    condition = '.kubernetes.container_name == "deployment"'
+
+    # Extract labels and parse structured logs
+    [transforms.extract_labels]
+    type = "remap"
+    inputs = ["filter_init_containers"]
+    source = '''
+    # Extract Unkey-specific labels from pod (|| for null coalescing)
+    .workspace_id = .kubernetes.pod_labels."unkey.com/workspace.id" || ""
+    .project_id = .kubernetes.pod_labels."unkey.com/project.id" || ""
+    .environment_id = .kubernetes.pod_labels."unkey.com/environment.id" || ""
+    .deployment_id = .kubernetes.pod_labels."unkey.com/deployment.id" || ""
+
+    # Keep k8s metadata
+    .k8s_pod_name = .kubernetes.pod_name || ""
+
+    # Initialize attributes as empty object
+    .attributes = {}
+
+    # Try to parse structured logs (JSON or key=value)
+    raw_message = string!(.message)
+    parsed, err = parse_json(raw_message)
+    if err == null && is_object(parsed) {
+        # JSON structured log - keep nested structure
+        .message = parsed.msg || parsed.message || raw_message
+        .severity = parsed.level || parsed.severity || "info"
+
+        # Store all attributes
+        .attributes = parsed
+        del(.attributes.msg)
+        del(.attributes.message)
+        del(.attributes.level)
+        del(.attributes.severity)
+    } else {
+        # Try key=value format (logfmt) - but validate it's real structured data
+        parsed, err = parse_key_value(raw_message)
+        has_log_keys = exists(parsed.level) || exists(parsed.msg) || exists(parsed.message) || exists(parsed.severity)
+        if err == null && is_object(parsed) && has_log_keys {
+            .message = parsed.msg || parsed.message || raw_message
+            .severity = parsed.level || parsed.severity || "info"
+
+            .attributes = parsed
+            del(.attributes.msg)
+            del(.attributes.message)
+            del(.attributes.level)
+            del(.attributes.severity)
+        } else {
+            # Plain text log - default to info (can't reliably determine severity)
+            .severity = "info"
+        }
+    }
+
+    # Normalize severity (downcase! makes it infallible)
+    .severity = downcase!(.severity) || "info"
+
+    # Set region
+    .region = "local"
+
+    # Convert timestamp (handle potential error)
+    .time, err = to_unix_timestamp(.timestamp, unit: "milliseconds")
+    if err != null { .time = to_unix_timestamp(now(), unit: "milliseconds") }
+
+    # Clean up
+    del(.kubernetes)
+    del(.stream)
+    del(.file)
+    del(.source_type)
+    del(.timestamp)
+    '''
+
+    # Deduplicate identical logs
+    [transforms.dedupe]
+    type = "dedupe"
+    inputs = ["extract_labels"]
+    fields.match = ["message", "workspace_id", "deployment_id", "severity"]
+    cache.num_events = 5000
+
+    # Sink: ClickHouse (local)
+    [sinks.clickhouse]
+    type = "clickhouse"
+    inputs = ["dedupe"]
+    endpoint = "http://clickhouse:8123"
+    database = "default"
+    table = "runtime_logs_raw_v1"
+    compression = "gzip"
+    skip_unknown_fields = true
+    healthcheck.enabled = true
+
+    auth.strategy = "basic"
+    auth.user = "default"
+    auth.password = "password"
+
+      [sinks.clickhouse.batch]
+      max_bytes = 10485760
+      timeout_secs = 10
+
+      [sinks.clickhouse.encoding]
+      timestamp_format = "unix_ms"
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: vector-logs
+  namespace: unkey
+  labels:
+    app: vector-logs
+spec:
+  selector:
+    matchLabels:
+      app: vector-logs
+  template:
+    metadata:
+      labels:
+        app: vector-logs
+    spec:
+      serviceAccountName: vector-logs
+      containers:
+        - name: vector
+          image: timberio/vector:0.43.1-alpine
+          args: ["--config-dir", "/etc/vector"]
+          env:
+            - name: VECTOR_LOG
+              value: "info"
+            - name: VECTOR_SELF_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: config
+              mountPath: /etc/vector
+              readOnly: true
+            - name: var-log
+              mountPath: /var/log
+              readOnly: true
+            - name: var-lib-docker
+              mountPath: /var/lib/docker
+              readOnly: true
+            - name: data
+              mountPath: /var/lib/vector
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+      volumes:
+        - name: config
+          configMap:
+            name: vector-logs-config
+        - name: var-log
+          hostPath:
+            path: /var/log
+        - name: var-lib-docker
+          hostPath:
+            path: /var/lib/docker
+        - name: data
+          hostPath:
+            path: /var/lib/vector
+            type: DirectoryOrCreate
+      terminationGracePeriodSeconds: 30

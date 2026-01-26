@@ -160,13 +160,10 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 			AccessKeyID:     cmd.String("build-s3-access-key-id"),
 		},
 
-		// Restate configuration
+		// Restate configuration (API is a client, only needs ingress URL)
 		Restate: ctrlapi.RestateConfig{
-			URL:        cmd.String("restate-url"),
-			AdminURL:   cmd.String("restate-admin-url"),
-			HttpPort:   cmd.Int("restate-http-port"),
-			RegisterAs: cmd.String("restate-register-as"),
-			APIKey:     cmd.String("restate-api-key"),
+			URL:    cmd.String("restate-url"),
+			APIKey: cmd.String("restate-api-key"),
 		},
 
 		// Common

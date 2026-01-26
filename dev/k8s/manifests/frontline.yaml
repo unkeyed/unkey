@@ -44,7 +44,7 @@ spec:
             - name: UNKEY_DATABASE_PRIMARY
               value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
             - name: UNKEY_CTRL_ADDR
-              value: "http://ctrl:7091"
+              value: "http://ctrl-api:7091"
             - name: UNKEY_VAULT_MASTER_KEYS
               value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
             - name: UNKEY_VAULT_S3_URL
@@ -74,7 +74,7 @@ spec:
       initContainers:
         - name: wait-for-dependencies
           image: busybox:1.36
-          command: ["sh", "-c", "until nc -z mysql 3306 && nc -z ctrl 7091; do sleep 2; done"]
+          command: ["sh", "-c", "until nc -z mysql 3306 && nc -z ctrl-api 7091; do sleep 2; done"]
 ---
 apiVersion: v1
 kind: Service
