@@ -34,22 +34,11 @@ spec:
             # Server Configuration
             - name: UNKEY_WORKER_HTTP_PORT
               value: "7092"
-            - name: UNKEY_LOGS_COLOR
-              value: "true"
-            # Instance Identification
-            - name: UNKEY_PLATFORM
-              value: "kubernetes"
-            - name: UNKEY_REGION
-              value: "local"
             - name: UNKEY_INSTANCE_ID
               value: "worker-dev"
             # Database Configuration
             - name: UNKEY_DATABASE_PRIMARY
               value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
-
-            # Observability - DISABLED for development
-            - name: UNKEY_OTEL
-              value: "false"
 
             # Vault Configuration (required)
             - name: UNKEY_VAULT_URL
@@ -58,8 +47,6 @@ spec:
               value: vault-test-token-123
 
             # Build Configuration
-            - name: UNKEY_BUILD_BACKEND
-              value: "depot"
             - name: UNKEY_BUILD_PLATFORM
               value: "linux/arm64"
             # Build S3 Storage (from depot-credentials secret)
@@ -116,10 +103,6 @@ spec:
               value: "http://ctrl-worker:9080"
             - name: UNKEY_RESTATE_API_KEY
               value: ""
-
-            # API Key for cluster service
-            - name: UNKEY_AUTH_TOKEN
-              value: "your-local-dev-key"
 
             # ClickHouse Configuration
             - name: UNKEY_CLICKHOUSE_URL
