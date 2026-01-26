@@ -33,6 +33,9 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
+	// DeploymentServiceCreateS3UploadURLProcedure is the fully-qualified name of the
+	// DeploymentService's CreateS3UploadURL RPC.
+	DeploymentServiceCreateS3UploadURLProcedure = "/ctrl.v1.DeploymentService/CreateS3UploadURL"
 	// DeploymentServiceCreateDeploymentProcedure is the fully-qualified name of the DeploymentService's
 	// CreateDeployment RPC.
 	DeploymentServiceCreateDeploymentProcedure = "/ctrl.v1.DeploymentService/CreateDeployment"
@@ -49,6 +52,7 @@ const (
 
 // DeploymentServiceClient is a client for the ctrl.v1.DeploymentService service.
 type DeploymentServiceClient interface {
+	CreateS3UploadURL(context.Context, *connect.Request[v1.CreateS3UploadURLRequest]) (*connect.Response[v1.CreateS3UploadURLResponse], error)
 	// Create a new deployment
 	CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error)
 	// Get deployment details
@@ -70,6 +74,12 @@ func NewDeploymentServiceClient(httpClient connect.HTTPClient, baseURL string, o
 	baseURL = strings.TrimRight(baseURL, "/")
 	deploymentServiceMethods := v1.File_ctrl_v1_deployment_proto.Services().ByName("DeploymentService").Methods()
 	return &deploymentServiceClient{
+		createS3UploadURL: connect.NewClient[v1.CreateS3UploadURLRequest, v1.CreateS3UploadURLResponse](
+			httpClient,
+			baseURL+DeploymentServiceCreateS3UploadURLProcedure,
+			connect.WithSchema(deploymentServiceMethods.ByName("CreateS3UploadURL")),
+			connect.WithClientOptions(opts...),
+		),
 		createDeployment: connect.NewClient[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse](
 			httpClient,
 			baseURL+DeploymentServiceCreateDeploymentProcedure,
@@ -99,10 +109,16 @@ func NewDeploymentServiceClient(httpClient connect.HTTPClient, baseURL string, o
 
 // deploymentServiceClient implements DeploymentServiceClient.
 type deploymentServiceClient struct {
-	createDeployment *connect.Client[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse]
-	getDeployment    *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
-	rollback         *connect.Client[v1.RollbackRequest, v1.RollbackResponse]
-	promote          *connect.Client[v1.PromoteRequest, v1.PromoteResponse]
+	createS3UploadURL *connect.Client[v1.CreateS3UploadURLRequest, v1.CreateS3UploadURLResponse]
+	createDeployment  *connect.Client[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse]
+	getDeployment     *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
+	rollback          *connect.Client[v1.RollbackRequest, v1.RollbackResponse]
+	promote           *connect.Client[v1.PromoteRequest, v1.PromoteResponse]
+}
+
+// CreateS3UploadURL calls ctrl.v1.DeploymentService.CreateS3UploadURL.
+func (c *deploymentServiceClient) CreateS3UploadURL(ctx context.Context, req *connect.Request[v1.CreateS3UploadURLRequest]) (*connect.Response[v1.CreateS3UploadURLResponse], error) {
+	return c.createS3UploadURL.CallUnary(ctx, req)
 }
 
 // CreateDeployment calls ctrl.v1.DeploymentService.CreateDeployment.
@@ -127,6 +143,7 @@ func (c *deploymentServiceClient) Promote(ctx context.Context, req *connect.Requ
 
 // DeploymentServiceHandler is an implementation of the ctrl.v1.DeploymentService service.
 type DeploymentServiceHandler interface {
+	CreateS3UploadURL(context.Context, *connect.Request[v1.CreateS3UploadURLRequest]) (*connect.Response[v1.CreateS3UploadURLResponse], error)
 	// Create a new deployment
 	CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error)
 	// Get deployment details
@@ -144,6 +161,12 @@ type DeploymentServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewDeploymentServiceHandler(svc DeploymentServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	deploymentServiceMethods := v1.File_ctrl_v1_deployment_proto.Services().ByName("DeploymentService").Methods()
+	deploymentServiceCreateS3UploadURLHandler := connect.NewUnaryHandler(
+		DeploymentServiceCreateS3UploadURLProcedure,
+		svc.CreateS3UploadURL,
+		connect.WithSchema(deploymentServiceMethods.ByName("CreateS3UploadURL")),
+		connect.WithHandlerOptions(opts...),
+	)
 	deploymentServiceCreateDeploymentHandler := connect.NewUnaryHandler(
 		DeploymentServiceCreateDeploymentProcedure,
 		svc.CreateDeployment,
@@ -170,6 +193,8 @@ func NewDeploymentServiceHandler(svc DeploymentServiceHandler, opts ...connect.H
 	)
 	return "/ctrl.v1.DeploymentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case DeploymentServiceCreateS3UploadURLProcedure:
+			deploymentServiceCreateS3UploadURLHandler.ServeHTTP(w, r)
 		case DeploymentServiceCreateDeploymentProcedure:
 			deploymentServiceCreateDeploymentHandler.ServeHTTP(w, r)
 		case DeploymentServiceGetDeploymentProcedure:
@@ -186,6 +211,10 @@ func NewDeploymentServiceHandler(svc DeploymentServiceHandler, opts ...connect.H
 
 // UnimplementedDeploymentServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedDeploymentServiceHandler struct{}
+
+func (UnimplementedDeploymentServiceHandler) CreateS3UploadURL(context.Context, *connect.Request[v1.CreateS3UploadURLRequest]) (*connect.Response[v1.CreateS3UploadURLResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeploymentService.CreateS3UploadURL is not implemented"))
+}
 
 func (UnimplementedDeploymentServiceHandler) CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeploymentService.CreateDeployment is not implemented"))

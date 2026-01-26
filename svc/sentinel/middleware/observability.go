@@ -58,7 +58,6 @@ type errorPageInfo struct {
 }
 
 func getErrorPageInfo(urn codes.URN) errorPageInfo {
-
 	//nolint:exhaustive
 	switch urn {
 	// Sentinel Routing Errors
@@ -92,7 +91,7 @@ func getErrorPageInfo(urn codes.URN) errorPageInfo {
 	case codes.Sentinel.Proxy.BadGateway.URN():
 		return errorPageInfo{
 			Status:  http.StatusBadGateway,
-			Message: "Unable to connect to a instance. Please try again in a few moments.",
+			Message: "Unable to connect to an instance. Please try again in a few moments.",
 		}
 	case codes.Sentinel.Proxy.ProxyForwardFailed.URN():
 		return errorPageInfo{

@@ -4,7 +4,6 @@ go_library(
     name = "ctrlv1connect",
     srcs = [
         "acme.connect.go",
-        "build.connect.go",
         "cluster.connect.go",
         "deployment.connect.go",
         "environment.connect.go",
