@@ -166,9 +166,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
 			if tracking != nil {
 				tracking.InstanceEnd = h.Clock.Now()
-			}
 
-			if tracking != nil {
 				sentinelDuration := h.Clock.Now().Sub(tracking.StartTime)
 				sess.ResponseWriter().Header().Set("X-Unkey-Sentinel-Time", fmt.Sprintf("%dms", sentinelDuration.Milliseconds()))
 
