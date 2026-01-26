@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "middleware",
     srcs = [
+        "error_handling.go",
         "logging.go",
         "observability.go",
     ],

@@ -25,8 +25,7 @@ func WithSentinelLogging(ch clickhouse.ClickHouse, clk clock.Clock, sentinelID, 
 
 			err := next(ctx, s)
 
-			// Only log if deployment/instance data was set
-			if tracking.Deployment != nil && tracking.Instance != nil {
+			if s.ShouldLogRequestToClickHouse() && tracking.Deployment != nil && tracking.Instance != nil {
 				endTime := clk.Now()
 				totalLatency := endTime.Sub(tracking.StartTime).Milliseconds()
 

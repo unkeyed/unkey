@@ -139,15 +139,14 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 				if resp.Body != nil {
 					responseBody, err := io.ReadAll(resp.Body)
 					if err != nil {
-						h.Logger.Warn("failed to read response body for logging",
-							"error", err.Error(),
-							"deploymentID", deploymentID,
-							"instanceID", instance.ID,
+						return fault.Wrap(err,
+							fault.Code(codes.Sentinel.Proxy.BadGateway.URN()),
+							fault.Internal("failed to read response body for logging"),
+							fault.Public("Failed to process backend response"),
 						)
-					} else {
-						tracking.ResponseBody = responseBody
-						resp.Body = io.NopCloser(bytes.NewReader(responseBody))
 					}
+					tracking.ResponseBody = responseBody
+					resp.Body = io.NopCloser(bytes.NewReader(responseBody))
 				}
 			}
 
@@ -178,13 +177,6 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 			if ecw, ok := w.(*zen.ErrorCapturingWriter); ok {
 				ecw.SetError(err)
-
-				h.Logger.Warn("proxy error",
-					"deploymentID", deploymentID,
-					"instanceID", instance.ID,
-					"target", instance.Address,
-					"error", err.Error(),
-				)
 			}
 		},
 	}
