@@ -11,10 +11,21 @@ import (
 )
 
 var (
+	// PanicsTotal tracks panics recovered by HTTP handler middleware.
+	// Use this counter to monitor application stability and identify handlers
+	// that are prone to panicking.
+	//
+	// Labels:
+	//   - "caller": The function or handler that panicked
+	//   - "path": The HTTP request path that triggered the panic
+	//
+	// Example usage:
+	//   metrics.PanicsTotal.WithLabelValues("handleVerifyKey", "/v1/keys.verifyKey").Inc()
 	PanicsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "unkey",
-		Subsystem: "internal",
-		Name:      "panics_total",
-		Help:      "Counter to track panics across http handlers",
+		Namespace:   "unkey",
+		Subsystem:   "internal",
+		Name:        "panics_total",
+		Help:        "Total number of panics recovered in HTTP handlers.",
+		ConstLabels: constLabels,
 	}, []string{"caller", "path"})
 )

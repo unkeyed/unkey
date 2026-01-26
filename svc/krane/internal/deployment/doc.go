@@ -1,44 +1,52 @@
-// Package deployment provides the DeploymentController for managing user workload
-// ReplicaSets in Kubernetes.
+// Package deployment manages user workload ReplicaSets in Kubernetes as part of
+// krane's split control loop architecture.
 //
-// The DeploymentController is one half of krane's split control loop architecture.
-// It operates independently from the SentinelController, with its own:
-//   - Control plane sync stream (SyncDeployments)
-//   - Version cursor for resumable streaming
-//   - Circuit breaker for failure isolation
-//   - Kubernetes watch and refresh loops
+// The package provides [Controller], which operates independently from the sentinel
+// controller with its own control plane stream, version cursor, and circuit breaker.
+// This separation ensures deployment reconciliation continues even when sentinel
+// reconciliation experiences failures.
 //
 // # Architecture
 //
-// The controller runs three loops for reliability:
+// The controller runs three concurrent loops for reliability:
 //
-//   - [Controller.runDesiredStateApplyLoop]: Receives desired state from the
-//     control plane's SyncDeployments stream and applies it to Kubernetes.
+// [Controller.runDesiredStateApplyLoop] streams desired state from the control plane's
+// WatchDeployments RPC and applies changes to Kubernetes. It uses a version cursor
+// for resumable streaming and automatically reconnects with jittered backoff on errors.
 //
-//   - [Controller.runActualStateReportLoop]: Watches Kubernetes for ReplicaSet
-//     changes and reports actual state back to the control plane.
+// [Controller.runActualStateReportLoop] watches Kubernetes for ReplicaSet changes and
+// reports actual state back to the control plane via ReportDeploymentStatus. This keeps
+// the control plane's routing tables synchronized with what's actually running.
 //
-//   - [Controller.runResyncLoop]: Periodically re-queries the control plane
-//     for each existing ReplicaSet to ensure eventual consistency.
+// [Controller.runResyncLoop] runs every minute as a consistency safety net. While the
+// other loops handle real-time events, they can miss updates during network partitions,
+// controller restarts, or buffer overflows. The resync loop queries the control plane
+// for each existing ReplicaSet and applies any drift.
 //
-// # Failure Isolation
+// # Security
 //
-// By running as an independent controller, deployment reconciliation continues
-// even if sentinel reconciliation is experiencing failures. Each controller
-// has its own circuit breaker, so errors in one don't affect the other.
+// All user workloads run with gVisor isolation (RuntimeClass "gvisor") since they
+// execute untrusted code. Each namespace gets a CiliumNetworkPolicy that restricts
+// ingress to only sentinels with matching workspace and environment IDs.
+//
+// # Scheduling
+//
+// Deployment pods are spread across availability zones using TopologySpreadConstraints
+// with maxSkew=1 for high availability. Pod affinity prefers scheduling in the same
+// zone as the environment's sentinels to minimize cross-AZ latency.
 //
 // # Usage
 //
 //	ctrl := deployment.New(deployment.Config{
 //	    ClientSet:     kubeClient,
 //	    DynamicClient: dynamicClient,
-//	    Logger:        logger.With("controller", "deployments"),
+//	    Logger:        logger,
 //	    Cluster:       clusterClient,
 //	    Region:        "us-east-1",
 //	})
 //
 //	if err := ctrl.Start(ctx); err != nil {
-//	    return fmt.Errorf("failed to start deployment controller: %w", err)
+//	    return fmt.Errorf("start deployment controller: %w", err)
 //	}
 //	defer ctrl.Stop()
 package deployment

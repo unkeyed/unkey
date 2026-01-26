@@ -2,7 +2,12 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "ctrl",
-    srcs = ["main.go"],
+    srcs = [
+        "api.go",
+        "doc.go",
+        "main.go",
+        "worker.go",
+    ],
     importpath = "github.com/unkeyed/unkey/cmd/ctrl",
     visibility = ["//visibility:public"],
     deps = [
@@ -10,6 +15,7 @@ go_library(
         "//pkg/clock",
         "//pkg/tls",
         "//pkg/uid",
-        "//svc/ctrl",
+        "//svc/ctrl/api",
+        "//svc/ctrl/worker",
     ],
 )

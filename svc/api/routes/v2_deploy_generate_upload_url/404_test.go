@@ -1,11 +1,14 @@
 package handler_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
 
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -16,10 +19,17 @@ func TestNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Logger:     h.Logger,
-		DB:         h.DB,
-		Keys:       h.Keys,
-		CtrlClient: h.CtrlBuildClient,
+		Logger: h.Logger,
+		DB:     h.DB,
+		Keys:   h.Keys,
+		CtrlClient: &testutil.MockDeploymentClient{
+			CreateS3UploadURLFunc: func(ctx context.Context, req *connect.Request[ctrlv1.CreateS3UploadURLRequest]) (*connect.Response[ctrlv1.CreateS3UploadURLResponse], error) {
+				return connect.NewResponse(&ctrlv1.CreateS3UploadURLResponse{
+					UploadUrl:        "https://s3.example.com/upload",
+					BuildContextPath: "s3://bucket/path/to/context.tar.gz",
+				}), nil
+			},
+		},
 	}
 	h.Register(route)
 

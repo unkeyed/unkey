@@ -12,8 +12,11 @@ import (
 // DeleteDeployment removes a user workload's ReplicaSet from the cluster.
 //
 // Not-found errors are ignored since the desired end state (resource gone) is
-// already achieved. After deletion, the method notifies the control plane so it
-// can update routing tables and stop sending traffic to this deployment.
+// already achieved. After deletion, the method reports the deletion to the control
+// plane so it can update routing tables and stop sending traffic to this deployment.
+//
+// The method is idempotent: calling it multiple times for the same deployment
+// succeeds without error.
 func (c *Controller) DeleteDeployment(ctx context.Context, req *ctrlv1.DeleteDeployment) error {
 	c.logger.Info("deleting deployment",
 		"namespace", req.GetK8SNamespace(),
