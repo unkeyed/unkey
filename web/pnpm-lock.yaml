@@ -344,8 +344,8 @@ importers:
         specifier: 16.1.4
         version: 16.1.4(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.3)(react@19.2.3)
       next-themes:
-        specifier: 0.3.0
-        version: 0.3.0(react-dom@19.2.3)(react@19.2.3)
+        specifier: 0.4.6
+        version: 0.4.6(react-dom@19.2.3)(react@19.2.3)
       nuqs:
         specifier: 1.17.6
         version: 1.17.6(next@16.1.4)
@@ -19675,16 +19675,6 @@ packages:
       - supports-color
       - unified
     dev: true
-
-  /next-themes@0.3.0(react-dom@19.2.3)(react@19.2.3):
-    resolution: {integrity: sha512-/QHIrsYpd6Kfk7xakK4svpDI5mmXP0gfvCoJdGpZQ2TOrQZmsW0QxjaiLn8wbIKjtm4BTSqLoix4lxYYOnLJ/w==}
-    peerDependencies:
-      react: ^16.8 || ^17 || ^18
-      react-dom: ^16.8 || ^17 || ^18
-    dependencies:
-      react: 19.2.3
-      react-dom: 19.2.3(react@19.2.3)
-    dev: false
 
   /next-themes@0.4.6(react-dom@18.3.1)(react@18.3.1):
     resolution: {integrity: sha512-pZvgD5L0IEvX5/9GWyHMf3m8BKiVQwsCMHfoFosXtXBMnaS0ZnIJ9ST4b4NqLVKDEm8QBxoNNGNaBv2JNF6XNA==}

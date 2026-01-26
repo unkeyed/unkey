@@ -1,6 +1,8 @@
 import { CommandMenu } from "@/components/dashboard/command-menu";
 import { WorkspaceProvider } from "@/providers/workspace-provider";
 import { Toaster } from "@unkey/ui";
+import { GeistSans } from 'geist/font/sans';
+import { GeistMono } from 'geist/font/mono';
 import "@/styles/tailwind/tailwind.css";
 import "@unkey/ui/css";
 import * as Sentry from "@sentry/nextjs";
@@ -10,7 +12,6 @@ import type React from "react";
 import { Suspense } from "react";
 import { ReactQueryProvider } from "./react-query-provider";
 import { ThemeProvider } from "./theme-provider";
-import { Geist, Geist_Mono } from 'next/font/google';
 
 export function generateMetadata(): Metadata {
   return {
@@ -52,15 +53,7 @@ const Feedback = dynamic(() =>
   import("@/components/dashboard/feedback-component").then((mod) => mod.Feedback),
 );
 
-const geist = Geist({
-  subsets: ['latin'],
-  display: 'swap',
-});
 
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-  display: "swap"
-})
 
 export default function RootLayout({
   children,
@@ -70,10 +63,15 @@ export default function RootLayout({
 
  
   return (
-    <html lang="en" className={`${geist.className} ${geistMono.className}`}>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
       <body className="min-h-full antialiased">
         <ReactQueryProvider>
-          <ThemeProvider attribute="class">
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
             <WorkspaceProvider>
               <Toaster />
               {children}

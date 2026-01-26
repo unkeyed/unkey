@@ -37,7 +37,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
   } = useForm<z.infer<typeof formSchema>>({
     ...createApiFormConfig(formSchema),
     defaultValues: {
-      defaultPrefix: keyAuth.defaultPrefix ?? undefined,
+      defaultPrefix: keyAuth.defaultPrefix ?? "",
       keyAuthId: keyAuth.id,
     },
   });
