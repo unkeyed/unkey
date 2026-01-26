@@ -23,8 +23,6 @@ go_library(
         "//pkg/retry",
         "//pkg/rpc/interceptor",
         "//pkg/shutdown",
-        "//pkg/uid",
-        "//pkg/zen",
         "//svc/ctrl/pkg/build",
         "//svc/ctrl/pkg/s3",
         "//svc/ctrl/services/acme/providers",
@@ -35,7 +33,6 @@ go_library(
         "@com_connectrpc_connect//:connect",
         "@com_github_go_acme_lego_v4//challenge",
         "@com_github_restatedev_sdk_go//:sdk-go",
-        "@com_github_restatedev_sdk_go//ingress",
         "@com_github_restatedev_sdk_go//server",
     ],
 )

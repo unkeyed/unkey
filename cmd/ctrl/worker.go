@@ -22,8 +22,6 @@ var workerCmd = &cli.Command{
 	Usage:       "Run the Unkey Restate worker service for background jobs and workflows",
 	Flags: []cli.Flag{
 		// Server Configuration
-		cli.Int("http-port", "HTTP port for the health endpoint. Default: 7092",
-			cli.Default(7092), cli.EnvVar("UNKEY_WORKER_HTTP_PORT")),
 		cli.Int("prometheus-port", "Port for Prometheus metrics, set to 0 to disable.",
 			cli.Default(0), cli.EnvVar("UNKEY_PROMETHEUS_PORT")),
 
@@ -76,10 +74,6 @@ var workerCmd = &cli.Command{
 		cli.Bool("acme-enabled", "Enable Let's Encrypt for acme challenges", cli.EnvVar("UNKEY_ACME_ENABLED")),
 		cli.String("acme-email-domain", "Domain for ACME registration emails (workspace_id@domain)", cli.Default("unkey.com"), cli.EnvVar("UNKEY_ACME_EMAIL_DOMAIN")),
 
-		// Cloudflare DNS provider
-		cli.Bool("acme-cloudflare-enabled", "Enable Cloudflare for wildcard certificates", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_ENABLED")),
-		cli.String("acme-cloudflare-api-token", "Cloudflare API token for Let's Encrypt", cli.EnvVar("UNKEY_ACME_CLOUDFLARE_API_TOKEN")),
-
 		// Route53 DNS provider
 		cli.Bool("acme-route53-enabled", "Enable Route53 for DNS-01 challenges", cli.EnvVar("UNKEY_ACME_ROUTE53_ENABLED")),
 		cli.String("acme-route53-access-key-id", "AWS access key ID for Route53", cli.EnvVar("UNKEY_ACME_ROUTE53_ACCESS_KEY_ID")),
@@ -90,16 +84,12 @@ var workerCmd = &cli.Command{
 		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
 
 		// Restate Configuration
-		cli.String("restate-url", "URL of the Restate ingress endpoint for invoking workflows. Example: http://restate:8080",
-			cli.Default("http://restate:8080"), cli.EnvVar("UNKEY_RESTATE_INGRESS_URL")),
 		cli.String("restate-admin-url", "URL of the Restate admin endpoint for service registration. Example: http://restate:9070",
 			cli.Default("http://restate:9070"), cli.EnvVar("UNKEY_RESTATE_ADMIN_URL")),
 		cli.Int("restate-http-port", "Port where we listen for Restate HTTP requests. Example: 9080",
 			cli.Default(9080), cli.EnvVar("UNKEY_RESTATE_HTTP_PORT")),
 		cli.String("restate-register-as", "URL of this service for self-registration with Restate. Example: http://worker:9080",
 			cli.EnvVar("UNKEY_RESTATE_REGISTER_AS")),
-		cli.String("restate-api-key", "API key for Restate ingress requests",
-			cli.EnvVar("UNKEY_RESTATE_API_KEY")),
 
 		// ClickHouse Configuration
 		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Required. Example: clickhouse://user:pass@host:9000/unkey",
@@ -118,7 +108,6 @@ var workerCmd = &cli.Command{
 func workerAction(ctx context.Context, cmd *cli.Command) error {
 	config := worker.Config{
 		// Basic configuration
-		HttpPort:       cmd.Int("http-port"),
 		PrometheusPort: cmd.Int("prometheus-port"),
 		InstanceID:     cmd.String("instance-id"),
 
@@ -167,11 +156,9 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 
 		// Restate configuration
 		Restate: worker.RestateConfig{
-			URL:        cmd.String("restate-url"),
 			AdminURL:   cmd.String("restate-admin-url"),
 			HttpPort:   cmd.Int("restate-http-port"),
 			RegisterAs: cmd.String("restate-register-as"),
-			APIKey:     cmd.String("restate-api-key"),
 		},
 
 		// Clickhouse Configuration
