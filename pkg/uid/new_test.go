@@ -6,7 +6,7 @@ import (
 )
 
 // TestNano verifies that Nano generates strings with correct format and length.
-func TestNano(t *testing.T) {
+func TestNew(t *testing.T) {
 	tests := []struct {
 		name    string
 		length  []int
@@ -41,17 +41,17 @@ func TestNano(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			id := Nano("", tt.length...)
+			id := New("", tt.length...)
 
 			// Check total length
 			if len(id) != tt.wantLen {
-				t.Errorf("Nano() length = %v, want %v", len(id), tt.wantLen)
+				t.Errorf("New() length = %v, want %v", len(id), tt.wantLen)
 			}
 
 			// Check that all characters are valid
 			for _, char := range id {
-				if !strings.ContainsRune(nanoAlphabet, char) {
-					t.Errorf("Nano() contains invalid character: %c", char)
+				if !strings.ContainsRune(defaultAlphabet, char) {
+					t.Errorf("New() contains invalid character: %c", char)
 				}
 			}
 		})
@@ -65,7 +65,7 @@ func TestNanoUniqueness(t *testing.T) {
 	seen := make(map[string]bool)
 
 	for range iterations {
-		id := Nano("") // Using default length
+		id := New("") // Using default length
 		if seen[id] {
 			t.Errorf("Duplicate ID generated: %v", id)
 		}
@@ -76,7 +76,7 @@ func TestNanoUniqueness(t *testing.T) {
 // TestNanoWithPrefix demonstrates how to use Nano with manual prefixing.
 func TestNanoWithPrefix(t *testing.T) {
 	// Example of using Nano with a manual prefix
-	id := Nano(KeyPrefix)
+	id := New(KeyPrefix)
 
 	if !strings.HasPrefix(id, string(KeyPrefix)) {
 		t.Errorf("Expected ID to start with prefix %v, got %v", KeyPrefix, id)

@@ -42,7 +42,7 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 	_, masterKey, err := keys.GenerateMasterKey()
 	require.NoError(t, err)
 
-	bearer := uid.Nano("")
+	bearer := "bearer"
 
 	v, err := vault.New(vault.Config{
 		Storage:     storage,
@@ -93,7 +93,7 @@ func TestIndividualDEKsPerKeyring(t *testing.T) {
 
 	_, masterKey, err := keys.GenerateMasterKey()
 	require.NoError(t, err)
-	bearer := uid.Nano("")
+	bearer := "bearer"
 
 	v, err := vault.New(vault.Config{
 		Storage:     storage,
