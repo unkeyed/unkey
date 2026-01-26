@@ -8,7 +8,6 @@ go_library(
     deps = [
         "//pkg/cli",
         "//pkg/uid",
-        "//pkg/vault/storage",
         "//svc/frontline",
     ],
 )

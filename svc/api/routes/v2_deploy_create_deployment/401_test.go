@@ -1,10 +1,13 @@
 package handler_test
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment"
@@ -14,10 +17,14 @@ func TestUnauthorizedAccess(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Logger:     h.Logger,
-		DB:         h.DB,
-		Keys:       h.Keys,
-		CtrlClient: h.CtrlDeploymentClient,
+		Logger: h.Logger,
+		DB:     h.DB,
+		Keys:   h.Keys,
+		CtrlClient: &testutil.MockDeploymentClient{
+			CreateDeploymentFunc: func(ctx context.Context, req *connect.Request[ctrlv1.CreateDeploymentRequest]) (*connect.Response[ctrlv1.CreateDeploymentResponse], error) {
+				return connect.NewResponse(&ctrlv1.CreateDeploymentResponse{DeploymentId: "test-deployment-id"}), nil
+			},
+		},
 	}
 	h.Register(route)
 

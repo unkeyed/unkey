@@ -11,12 +11,20 @@ import (
 )
 
 // WatchDeployments streams deployment state changes from the control plane to agents.
-// Each deployment controller maintains its own version cursor for resumable streaming.
-// The agent applies received state to Kubernetes to converge actual state toward desired state.
+// This is the primary mechanism for agents to receive desired state updates for their region.
+// Agents apply received state to Kubernetes to converge actual state toward desired state.
 //
-// This is a long-lived streaming RPC. The server polls the database for new deployment
-// versions and streams them to the client. The client should track the max version seen
-// and reconnect with that version to resume from where it left off.
+// The stream uses version-based cursors for resumability. The client provides version_last_seen
+// in the request, and the server streams all deployments with versions greater than that cursor.
+// Clients should track the maximum version received and use it to reconnect without replaying
+// history. When no new versions are available, the server polls the database every second.
+//
+// Each poll fetches up to 100 deployment topology rows ordered by version. The desired_status
+// field determines whether to send an ApplyDeployment (for started/starting states) or
+// DeleteDeployment (for stopped/stopping states). Rows with unhandled statuses are logged
+// and skipped.
+//
+// Returns when the context is cancelled, or on database or stream errors.
 func (s *Service) WatchDeployments(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.WatchDeploymentsRequest],
@@ -61,6 +69,9 @@ func (s *Service) WatchDeployments(
 	}
 }
 
+// fetchDeploymentStates queries the database for deployment topologies in the given region
+// with versions greater than afterVersion, returning up to 100 results. Rows that fail
+// conversion are logged and skipped rather than failing the entire batch.
 func (s *Service) fetchDeploymentStates(ctx context.Context, region string, afterVersion uint64) ([]*ctrlv1.DeploymentState, error) {
 	rows, err := db.Query.ListDeploymentTopologyByRegion(ctx, s.db.RO(), db.ListDeploymentTopologyByRegionParams{
 		Region:       region,
@@ -84,6 +95,9 @@ func (s *Service) fetchDeploymentStates(ctx context.Context, region string, afte
 	return states, nil
 }
 
+// deploymentRowToState converts a database row to a proto DeploymentState message. Returns
+// a DeleteDeployment for stopped/stopping statuses and an ApplyDeployment for started/starting
+// statuses. Returns (nil, nil) for unhandled statuses, which the caller should skip.
 func (s *Service) deploymentRowToState(row db.ListDeploymentTopologyByRegionRow) (*ctrlv1.DeploymentState, error) {
 	switch row.DeploymentTopology.DesiredStatus {
 	case db.DeploymentTopologyDesiredStatusStopped, db.DeploymentTopologyDesiredStatusStopping:
