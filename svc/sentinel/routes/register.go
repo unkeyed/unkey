@@ -12,15 +12,23 @@ import (
 )
 
 func Register(srv *zen.Server, svc *Services) {
-	withLogging := zen.WithLogging(svc.Logger)
+	// Create instance info for metrics correlation
+	info := zen.InstanceInfo{
+		ID:     svc.EnvironmentID,
+		Region: svc.Region,
+	}
+
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
+	withMetrics := zen.WithMetrics(svc.ClickHouse, info)
+	withLogging := zen.WithLogging(svc.Logger)
 	withObservability := middleware.WithObservability(svc.Logger, svc.EnvironmentID, svc.Region)
 	withTimeout := zen.WithTimeout(5 * time.Minute)
 
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
-		withLogging,
 		withObservability,
+		withMetrics,
+		withLogging,
 		withTimeout,
 	}
 
@@ -46,10 +54,14 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&proxy.Handler{
-			Logger:        svc.Logger,
-			RouterService: svc.RouterService,
-			Clock:         svc.Clock,
-			Transport:     transport,
+			Logger:             svc.Logger,
+			RouterService:      svc.RouterService,
+			Clock:              svc.Clock,
+			Transport:          transport,
+			ClickHouse:         svc.ClickHouse,
+			SentinelID:         svc.SentinelID,
+			Region:             svc.Region,
+			MaxRequestBodySize: svc.MaxRequestBodySize,
 		},
 	)
 }
