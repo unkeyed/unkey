@@ -28,15 +28,6 @@ func (r *restateRegistration) register(ctx context.Context) {
 	// Wait a moment for the restate server to be ready
 	time.Sleep(2 * time.Second)
 
-	if err := r.doRegister(ctx); err != nil {
-		r.logger.Error("failed to register with Restate after retries", "error", err)
-		return
-	}
-
-	r.logger.Info("Successfully registered with Restate")
-}
-
-func (r *restateRegistration) doRegister(ctx context.Context) error {
 	registerURL := fmt.Sprintf("%s/deployments", r.adminURL)
 	payload := fmt.Sprintf(`{"uri": "%s"}`, r.registerAs)
 
@@ -49,9 +40,15 @@ func (r *restateRegistration) doRegister(ctx context.Context) error {
 		}),
 	)
 
-	return retrier.Do(func() error {
+	err := retrier.Do(func() error {
 		return r.sendRegistrationRequest(ctx, registerURL, payload)
 	})
+	if err != nil {
+		r.logger.Error("failed to register with Restate after retries", "error", err)
+		return
+	}
+
+	r.logger.Info("Successfully registered with Restate")
 }
 
 func (r *restateRegistration) sendRegistrationRequest(ctx context.Context, url, payload string) error {
