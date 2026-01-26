@@ -58,7 +58,6 @@ var workerCmd = &cli.Command{
 		cli.String("build-platform", "Run builds on this platform ('dynamic', 'linux/amd64', 'linux/arm64')",
 			cli.Default("linux/amd64"), cli.EnvVar("UNKEY_BUILD_PLATFORM")),
 
-
 		// Registry Configuration
 		cli.String("registry-url", "URL of the container registry for pulling images. Example: registry.depot.dev",
 			cli.EnvVar("UNKEY_REGISTRY_URL")),
