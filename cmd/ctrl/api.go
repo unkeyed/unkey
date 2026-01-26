@@ -64,6 +64,7 @@ var apiCmd = &cli.Command{
 			cli.Default("http://restate:8080"), cli.EnvVar("UNKEY_RESTATE_INGRESS_URL")),
 		cli.String("restate-api-key", "API key for Restate ingress requests",
 			cli.EnvVar("UNKEY_RESTATE_API_KEY")),
+
 		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
 			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
 
@@ -80,6 +81,10 @@ var apiCmd = &cli.Command{
 			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_ACCESS_KEY_SECRET")),
 
 		cli.StringSlice("available-regions", "Available regions for deployment", cli.EnvVar("UNKEY_AVAILABLE_REGIONS"), cli.Default([]string{"local.dev"})),
+
+		// Certificate bootstrap configuration
+		cli.String("default-domain", "Default domain for wildcard certificate bootstrapping (e.g., unkey.app)", cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
+		cli.String("regional-apex-domain", "Apex domain for cross-region communication. Per-region wildcards created as *.{region}.{apex} (e.g., unkey.cloud)", cli.EnvVar("UNKEY_REGIONAL_APEX_DOMAIN")),
 	},
 	Action: apiAction,
 }
@@ -142,6 +147,10 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 		},
 
 		AvailableRegions: cmd.RequireStringSlice("available-regions"),
+
+		// Certificate bootstrap
+		DefaultDomain:      cmd.String("default-domain"),
+		RegionalApexDomain: cmd.String("regional-apex-domain"),
 	}
 
 	err := config.Validate()

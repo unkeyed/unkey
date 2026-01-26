@@ -89,6 +89,10 @@ spec:
             - name: UNKEY_AUTH_TOKEN
               value: "your-local-dev-key"
 
+            # Certificate bootstrap
+            - name: UNKEY_DEFAULT_DOMAIN
+              value: "unkey.local"
+
       initContainers:
         - name: wait-for-dependencies
           image: busybox:1.36
