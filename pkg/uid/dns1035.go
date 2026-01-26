@@ -2,7 +2,7 @@ package uid
 
 import (
 	"math/rand/v2"
-	"unsafe"
+	"strings"
 )
 
 const (
@@ -27,11 +27,12 @@ func DNS1035(length ...int) string {
 		return ""
 	}
 
-	buf := make([]byte, n)
-	buf[0] = dns1035Alpha[rand.IntN(len(dns1035Alpha))]
+	var id strings.Builder
+	id.Grow(n)
+	id.WriteByte(dns1035Alpha[rand.IntN(len(dns1035Alpha))])
 	for i := 1; i < n; i++ {
-		buf[i] = dns1035AlphaNum[rand.IntN(len(dns1035AlphaNum))]
+		id.WriteByte(dns1035AlphaNum[rand.IntN(len(dns1035AlphaNum))])
 	}
 
-	return unsafe.String(&buf[0], n)
+	return id.String()
 }

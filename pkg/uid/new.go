@@ -2,7 +2,7 @@ package uid
 
 import (
 	"math/rand/v2"
-	"unsafe"
+	"strings"
 )
 
 const defaultAlphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -27,19 +27,20 @@ func New(prefix Prefix, length ...int) string {
 		return ""
 	}
 
+	var id strings.Builder
 	if prefix == "" {
-		buf := make([]byte, n)
-		for i := range buf {
-			buf[i] = defaultAlphabet[rand.IntN(len(defaultAlphabet))]
+		id.Grow(n)
+		for i := 0; i < n; i++ {
+			id.WriteByte(defaultAlphabet[rand.IntN(len(defaultAlphabet))])
 		}
-		return unsafe.String(&buf[0], n)
+		return id.String()
 	}
 
-	buf := make([]byte, len(prefix)+1+n)
-	copy(buf, prefix)
-	buf[len(prefix)] = '_'
-	for i := len(prefix) + 1; i < len(buf); i++ {
-		buf[i] = defaultAlphabet[rand.IntN(len(defaultAlphabet))]
+	id.Grow(len(prefix) + 1 + n)
+	id.WriteString(string(prefix))
+	id.WriteByte('_')
+	for i := 0; i < n; i++ {
+		id.WriteByte(defaultAlphabet[rand.IntN(len(defaultAlphabet))])
 	}
-	return unsafe.String(&buf[0], len(buf))
+	return id.String()
 }

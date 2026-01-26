@@ -17,7 +17,7 @@ go_test(
     size = "small",
     srcs = [
         "benchmark_test.go",
-        "bew_test.go",
+        "new_test.go",
     ],
     embed = [":uid"],
 )
