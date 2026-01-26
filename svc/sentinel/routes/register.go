@@ -15,6 +15,7 @@ func Register(srv *zen.Server, svc *Services) {
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
 	withObservability := middleware.WithObservability(svc.Logger, svc.EnvironmentID, svc.Region)
 	withSentinelLogging := middleware.WithSentinelLogging(svc.ClickHouse, svc.Clock, svc.SentinelID, svc.Region)
+	withProxyErrorHandling := middleware.WithProxyErrorHandling()
 	withLogging := zen.WithLogging(svc.Logger)
 	withTimeout := zen.WithTimeout(5 * time.Minute)
 
@@ -22,6 +23,7 @@ func Register(srv *zen.Server, svc *Services) {
 		withPanicRecovery,
 		withObservability,
 		withSentinelLogging,
+		withProxyErrorHandling,
 		withLogging,
 		withTimeout,
 	}
