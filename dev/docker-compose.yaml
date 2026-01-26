@@ -336,15 +336,21 @@ services:
       clickhouse:
         condition: service_healthy
         required: true
+      vault:
+        condition: service_healthy
+        required: true
     environment:
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
       # Control plane configuration
       UNKEY_HTTP_PORT: "7091"
 
+      # Vault configuration (required)
+      UNKEY_VAULT_URL: "http://vault:8060"
+      UNKEY_VAULT_TOKEN: "vault-test-token-123"
+
       # Restate configuration (ctrl api only needs ingress client, not server)
       UNKEY_RESTATE_INGRESS_URL: "http://restate:8080"
-      UNKEY_RESTATE_ADMIN_URL: "http://restate:9070"
       UNKEY_RESTATE_API_KEY: ""
 
       # Build configuration (for presigned URLs)

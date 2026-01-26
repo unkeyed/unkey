@@ -79,11 +79,9 @@ spec:
             # --docker-password=xxx \
             # --namespace=unkey
 
-            # Restate Configuration (ctrl only needs ingress client)
+            # Restate Configuration (ctrl-api only needs ingress client)
             - name: UNKEY_RESTATE_INGRESS_URL
               value: "http://restate:8080"
-            - name: UNKEY_RESTATE_ADMIN_URL
-              value: "http://restate:9070"
             - name: UNKEY_RESTATE_API_KEY
               value: ""
 
@@ -98,7 +96,7 @@ spec:
             [
               "sh",
               "-c",
-              "until nc -z mysql 3306 && nc -z s3 3902 && nc -z restate 8080; do echo waiting for dependencies; sleep 2; done;",
+              "until nc -z mysql 3306 && nc -z s3 3902 && nc -z restate 8080 && nc -z vault 8060; do echo waiting for dependencies; sleep 2; done;",
             ]
 
 ---

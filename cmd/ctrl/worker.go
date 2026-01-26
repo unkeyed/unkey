@@ -128,7 +128,6 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		VaultToken: cmd.String("vault-token"),
 
 		// Build configuration
-		BuildBackend: worker.BuildBackend(cmd.String("build-backend")),
 		BuildS3: worker.S3Config{
 			URL:             cmd.String("build-s3-url"),
 			Bucket:          cmd.String("build-s3-bucket"),
