@@ -228,12 +228,9 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 				desiredReplicas = 3
 			}
 
-			sentinelVersioningClient := hydrav1.NewVersioningServiceClient(ctx, topology.Region)
-			sentinelVersionResp, sentinelVersionErr := restate.Run(ctx, func(runCtx restate.RunContext) (*hydrav1.NextVersionResponse, error) {
-				return sentinelVersioningClient.NextVersion().Request(&hydrav1.NextVersionRequest{})
-			}, restate.WithName("get next version for sentinel"))
-			if sentinelVersionErr != nil {
-				return nil, fmt.Errorf("failed to get next version for sentinel: %w", sentinelVersionErr)
+			sentinelVersion, err := hydrav1.NewVersioningServiceClient(ctx, topology.Region).NextVersion().Request(&hydrav1.NextVersionRequest{})
+			if err != nil {
+				return nil, fmt.Errorf("failed to get next version for sentinel: %w", err)
 			}
 
 			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
@@ -256,7 +253,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 						AvailableReplicas: 0,
 						CpuMillicores:     256,
 						MemoryMib:         256,
-						Version:           sentinelVersionResp.GetVersion(),
+						Version:           sentinelVersion.GetVersion(),
 						CreatedAt:         time.Now().UnixMilli(),
 					})
 					if err != nil {
