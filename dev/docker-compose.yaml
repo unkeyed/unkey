@@ -277,6 +277,9 @@ services:
     volumes:
       # Mount Docker socket for Docker backend support
       - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      vault:
+        condition: service_healthy
     environment:
       # Server configuration
       UNKEY_REGION: "local.dev" # currently required to receive filtered events from ctrl
@@ -286,6 +289,10 @@ services:
       # Backend configuration - use Docker backend for development
       UNKEY_KRANE_BACKEND: "docker"
       UNKEY_DOCKER_SOCKET: "/var/run/docker.sock"
+
+      # Vault configuration for secrets decryption
+      UNKEY_VAULT_URL: "http://vault:8060"
+      UNKEY_VAULT_TOKEN: "vault-test-token-123"
 
       UNKEY_REGISTRY_URL: "${UNKEY_REGISTRY_URL:-}"
       UNKEY_REGISTRY_USERNAME: "${UNKEY_REGISTRY_USERNAME:-}"
