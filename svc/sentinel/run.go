@@ -13,7 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
-	"github.com/unkeyed/unkey/pkg/shutdown"
+	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/sentinel/routes"
@@ -47,15 +47,15 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	defer func() {
-		if r := recover(); r != nil {
+		if rec := recover(); rec != nil {
 			logger.Error("panic",
-				"panic", r,
+				"panic", rec,
 				"stack", string(debug.Stack()),
 			)
 		}
 	}()
 
-	shutdowns := shutdown.New()
+	r := runner.New()
 
 	clk := clock.New()
 
@@ -69,7 +69,7 @@ func Run(ctx context.Context, cfg Config) error {
 				CloudRegion:     cfg.Region,
 				TraceSampleRate: cfg.OtelTraceSamplingRate,
 			},
-			shutdowns,
+			r,
 		)
 
 		if grafanaErr != nil {
@@ -78,22 +78,9 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	if cfg.PrometheusPort > 0 {
-		prom, promErr := prometheus.New(prometheus.Config{
-			Logger: logger,
+		r.Go(func(ctx context.Context) error {
+			return prometheus.Serve(fmt.Sprintf(":%d", cfg.PrometheusPort))
 		})
-		if promErr != nil {
-			return fmt.Errorf("unable to start prometheus: %w", promErr)
-		}
-
-		go func() {
-			promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
-			if listenErr != nil {
-				panic(listenErr)
-			}
-			if serveErr := prom.Serve(ctx, promListener); serveErr != nil {
-				panic(serveErr)
-			}
-		}()
 	}
 
 	database, err := db.New(db.Config{
@@ -104,7 +91,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
-	shutdowns.Register(database.Close)
+	r.Defer(database.Close)
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	if cfg.ClickhouseURL != "" {
@@ -115,7 +102,7 @@ func Run(ctx context.Context, cfg Config) error {
 		if err != nil {
 			return fmt.Errorf("unable to create clickhouse: %w", err)
 		}
-		shutdowns.Register(ch.Close)
+		r.Defer(ch.Close)
 	}
 
 	routerSvc, err := router.New(router.Config{
@@ -153,7 +140,14 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
 	}
-	shutdowns.RegisterCtx(srv.Shutdown)
+
+	r.RegisterHealth(srv.Mux())
+
+	r.AddReadinessCheck("database", func(ctx context.Context) error {
+		return database.RW().PingContext(ctx)
+	})
+
+	r.DeferCtx(srv.Shutdown)
 
 	routes.Register(srv, svcs)
 
@@ -162,14 +156,12 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create listener: %w", err)
 	}
 
-	go func() {
+	r.Go(func(ctx context.Context) error {
 		logger.Info("Sentinel server started", "addr", listener.Addr().String())
-		if serveErr := srv.Serve(ctx, listener); serveErr != nil {
-			logger.Error("Server error", "error", serveErr)
-		}
-	}()
+		return srv.Serve(ctx, listener)
+	})
 
-	if err := shutdowns.WaitForSignal(ctx, 0); err != nil {
+	if err := r.Wait(ctx); err != nil {
 		return fmt.Errorf("shutdown failed: %w", err)
 	}
 

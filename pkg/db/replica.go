@@ -145,6 +145,11 @@ func (r *Replica) QueryRowContext(ctx context.Context, query string, args ...any
 	return row
 }
 
+// PingContext verifies the database connection is still alive.
+func (r *Replica) PingContext(ctx context.Context) error {
+	return r.db.PingContext(ctx)
+}
+
 // Begin starts a transaction and returns it.
 // This method provides a way to use the Replica in transaction-based operations.
 func (r *Replica) Begin(ctx context.Context) (DBTx, error) {
