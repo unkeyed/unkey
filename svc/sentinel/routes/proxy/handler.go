@@ -117,7 +117,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 			ResponseHeaders: responseHeaders,
 			ResponseBody:    string(responseBody),
 			UserAgent:       req.UserAgent(),
-			IPAddress:       getClientIP(req),
+			IPAddress:       sess.Location(),
 			TotalLatency:    totalLatency,
 			InstanceLatency: instanceLatency,
 			SentinelLatency: sentinelLatency,
@@ -285,11 +285,25 @@ func categorizeProxyError(err error) (codes.URN, string) {
 		"Unable to connect to an instance. Please try again in a few moments."
 }
 
+func formatHeader(key, value string) string {
+	var b strings.Builder
+	b.Grow(len(key) + 2 + len(value))
+	b.WriteString(key)
+	b.WriteString(": ")
+	b.WriteString(value)
+	return b.String()
+}
+
 func formatHeaders(headers http.Header) []string {
 	result := make([]string, 0, len(headers))
 	for key, values := range headers {
-		for _, value := range values {
-			result = append(result, fmt.Sprintf("%s: %s", key, value))
+		lk := strings.ToLower(key)
+		if lk == "authorization" {
+			result = append(result, formatHeader(key, "[REDACTED]"))
+		} else {
+			for _, value := range values {
+				result = append(result, formatHeader(key, value))
+			}
 		}
 	}
 	return result
