@@ -15,22 +15,67 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 )
 
+// Services aggregates all dependencies required by API route handlers. It acts
+// as a dependency injection container, allowing [Register] to wire up handlers
+// without exposing individual dependencies throughout the codebase.
+//
+// This struct is constructed during server startup and passed to [Register].
+// All fields except the optional configuration fields (ChproxyToken, Pprof*)
+// must be non-nil for the API to function correctly.
 type Services struct {
-	Logger                     logging.Logger
-	Database                   db.Database
-	Keys                       keys.KeyService
-	ClickHouse                 clickhouse.ClickHouse
-	Validator                  *validation.Validator
-	Ratelimit                  ratelimit.Service
-	Auditlogs                  auditlogs.AuditLogService
-	Caches                     caches.Caches
-	Vault                      *vault.Service
-	ChproxyToken               string
-	CtrlDeploymentClient       ctrlv1connect.DeploymentServiceClient
-	CtrlBuildClient            ctrlv1connect.BuildServiceClient
-	PprofEnabled               bool
-	PprofUsername              string
-	PprofPassword              string
-	UsageLimiter               usagelimiter.Service
+	// Logger provides structured logging for all route handlers.
+	Logger logging.Logger
+
+	// Database provides access to the primary MySQL database for persistence.
+	Database db.Database
+
+	// Keys handles API key authentication, verification, and authorization
+	// checks for incoming requests.
+	Keys keys.KeyService
+
+	// ClickHouse stores analytics data including verification events,
+	// rate limit events, and request metrics.
+	ClickHouse clickhouse.ClickHouse
+
+	// Validator performs request payload validation using struct tags.
+	Validator *validation.Validator
+
+	// Ratelimit provides distributed rate limiting across API requests.
+	Ratelimit ratelimit.Service
+
+	// Auditlogs records security-relevant events for compliance and debugging.
+	Auditlogs auditlogs.AuditLogService
+
+	// Caches holds various cache instances for performance optimization,
+	// including API metadata, key data, and rate limit namespace caches.
+	Caches caches.Caches
+
+	// Vault provides encrypted storage for sensitive key material.
+	Vault *vault.Service
+
+	// ChproxyToken authenticates requests to internal chproxy endpoints.
+	// When empty, chproxy routes are not registered.
+	ChproxyToken string
+
+	// CtrlDeploymentClient communicates with the control plane for deployment
+	// operations like creating and managing deployments.
+	CtrlDeploymentClient ctrlv1connect.DeploymentServiceClient
+
+	// PprofEnabled controls whether pprof profiling endpoints are registered.
+	PprofEnabled bool
+
+	// PprofUsername is the HTTP basic auth username for pprof endpoints.
+	// Required when PprofEnabled is true.
+	PprofUsername string
+
+	// PprofPassword is the HTTP basic auth password for pprof endpoints.
+	// Required when PprofEnabled is true.
+	PprofPassword string
+
+	// UsageLimiter tracks and enforces usage limits on API keys.
+	UsageLimiter usagelimiter.Service
+
+	// AnalyticsConnectionManager manages connections to analytics backends
+	// for retrieving verification and usage data.
 	AnalyticsConnectionManager analytics.ConnectionManager
 }

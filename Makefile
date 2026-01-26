@@ -56,7 +56,7 @@ pull: ## Pull latest Docker images for services
 
 .PHONY: up
 up: pull ## Start all infrastructure services
-	@docker compose -f ./dev/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka restate ctrl --wait
+	@docker compose -f ./dev/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka restate ctrl-api --wait
 
 .PHONY: clean
 clean: ## Stop and remove all services with volumes
@@ -86,7 +86,7 @@ generate: generate-sql ## Generate code from protobuf and other sources
 
 .PHONY: test
 test: ## Run tests with bazel
-	docker compose -f ./dev/docker-compose.yaml up -d mysql clickhouse s3 kafka restate ctrl --wait
+	docker compose -f ./dev/docker-compose.yaml up -d mysql clickhouse s3 kafka --wait
 	bazel test //...
 	make clean-docker-test
 

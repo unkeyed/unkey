@@ -151,7 +151,17 @@ message PromoteRequest {
 
 message PromoteResponse {}
 
+message CreateS3UploadURLRequest {
+  string unkey_project_id = 1;
+}
+
+message CreateS3UploadURLResponse {
+  string upload_url = 1; // Presigned PUT URL
+  string build_context_path = 2; // S3 key to use in CreateBuild
+}
+
 service DeploymentService {
+  rpc CreateS3UploadURL(CreateS3UploadURLRequest) returns (CreateS3UploadURLResponse) {}
   // Create a new deployment
   rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse) {}
 

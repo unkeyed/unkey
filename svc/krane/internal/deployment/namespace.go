@@ -17,13 +17,20 @@ import (
 )
 
 const (
-	// NamespaceSentinel is the namespace where sentinel pods run.
+	// NamespaceSentinel is the namespace where all sentinel pods run, separate
+	// from customer deployment namespaces for isolation.
 	NamespaceSentinel = "sentinel"
 )
 
-// ensureNamespaceExists creates the namespace if it doesn't already exist.
-// For customer namespaces (non-sentinel), it also creates a CiliumNetworkPolicy
-// to allow ingress only from the matching sentinel.
+// ensureNamespaceExists creates the namespace if it doesn't already exist and
+// configures network policies for customer workloads.
+//
+// For customer namespaces (anything except "sentinel"), the method also applies
+// a CiliumNetworkPolicy that restricts ingress to only sentinels with matching
+// workspace and environment IDs. This ensures customer code can only be reached
+// by its designated sentinel, not by other tenants' workloads.
+//
+// The method is idempotent: calling it for an existing namespace succeeds without error.
 func (c *Controller) ensureNamespaceExists(ctx context.Context, namespace, workspaceID, environmentID string) error {
 	_, err := c.clientSet.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -43,8 +50,14 @@ func (c *Controller) ensureNamespaceExists(ctx context.Context, namespace, works
 	return nil
 }
 
-// applyCiliumPolicyForNamespace creates a CiliumNetworkPolicy that allows ingress
-// only from sentinels with matching workspace and environment IDs.
+// applyCiliumPolicyForNamespace creates or updates a CiliumNetworkPolicy that
+// restricts ingress to pods matching specific labels.
+//
+// The policy allows TCP traffic on [DeploymentPort] only from pods in the "sentinel"
+// namespace with matching workspace and environment ID labels. This isolates each
+// tenant's deployments from other tenants' sentinels and from direct external access.
+//
+// The method uses server-side apply, making it safe to call repeatedly.
 //
 //nolint:exhaustruct
 func (c *Controller) applyCiliumPolicyForNamespace(ctx context.Context, namespace, workspaceID, environmentID string) error {
@@ -117,6 +130,9 @@ func (c *Controller) applyCiliumPolicyForNamespace(ctx context.Context, namespac
 	return err
 }
 
+// toUnstructured converts a typed Kubernetes object to an unstructured representation
+// for use with the dynamic client. This is needed for CRDs like CiliumNetworkPolicy
+// that may not have generated client types available.
 func toUnstructured(obj any) (*unstructured.Unstructured, error) {
 	data, err := json.Marshal(obj)
 	if err != nil {

@@ -4,6 +4,7 @@ go_library(
     name = "deployment",
     srcs = [
         "create_deployment.go",
+        "create_s3_upload_url.go",
         "doc.go",
         "get_deployment.go",
         "promote.go",
@@ -19,6 +20,7 @@ go_library(
         "//pkg/db",
         "//pkg/otel/logging",
         "//pkg/uid",
+        "//svc/ctrl/pkg/s3",
         "@com_connectrpc_connect//:connect",
         "@com_github_restatedev_sdk_go//ingress",
         "@org_golang_google_protobuf//encoding/protojson",

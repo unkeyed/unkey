@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "v2_deploy_generate_upload_url",
-    srcs = ["handler.go"],
+    srcs = [
+        "doc.go",
+        "handler.go",
+    ],
     importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_generate_upload_url",
     visibility = ["//visibility:public"],
     deps = [
@@ -32,9 +35,11 @@ go_test(
     ],
     deps = [
         ":v2_deploy_generate_upload_url",
+        "//gen/proto/ctrl/v1:ctrl",
         "//pkg/uid",
         "//svc/api/internal/testutil",
         "//svc/api/openapi",
+        "@com_connectrpc_connect//:connect",
         "@com_github_stretchr_testify//require",
     ],
 )
