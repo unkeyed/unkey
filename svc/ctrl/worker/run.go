@@ -121,12 +121,6 @@ func Run(ctx context.Context, cfg Config) error {
 	// Restate Server
 	restateSrv := restateServer.NewRestate().WithLogger(logging.Handler(), false)
 
-	// Enable request identity validation in production when keys are configured
-	if len(cfg.Restate.IdentityKeys) > 0 {
-		restateSrv = restateSrv.WithIdentityV1(cfg.Restate.IdentityKeys...)
-		logger.Info("Restate request identity validation enabled", "keyCount", len(cfg.Restate.IdentityKeys))
-	}
-
 	restateSrv.Bind(hydrav1.NewBuildServiceServer(build.New(build.Config{
 		InstanceID:     cfg.InstanceID,
 		DB:             database,

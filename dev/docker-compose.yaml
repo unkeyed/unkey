@@ -379,8 +379,13 @@ services:
     env_file:
       - .env.depot
     ports:
-      - "7092:7092"
       - "9080:9080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/health"]
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+      interval: 5s
     depends_on:
       mysql:
         condition: service_healthy

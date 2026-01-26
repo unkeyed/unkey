@@ -88,16 +88,12 @@ var workerCmd = &cli.Command{
 		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
 
 		// Restate Configuration
-		cli.String("restate-url", "URL of the Restate ingress endpoint for invoking workflows. Example: http://restate:8080",
-			cli.Default("http://restate:8080"), cli.EnvVar("UNKEY_RESTATE_INGRESS_URL")),
 		cli.String("restate-admin-url", "URL of the Restate admin endpoint for service registration. Example: http://restate:9070",
 			cli.Default("http://restate:9070"), cli.EnvVar("UNKEY_RESTATE_ADMIN_URL")),
 		cli.Int("restate-http-port", "Port where we listen for Restate HTTP requests. Example: 9080",
 			cli.Default(9080), cli.EnvVar("UNKEY_RESTATE_HTTP_PORT")),
 		cli.String("restate-register-as", "URL of this service for self-registration with Restate. Example: http://worker:9080",
 			cli.EnvVar("UNKEY_RESTATE_REGISTER_AS")),
-		cli.StringSlice("restate-identity-keys", "Public keys for validating Restate request identity (production only)",
-			cli.EnvVar("UNKEY_RESTATE_IDENTITY_KEYS")),
 
 		// ClickHouse Configuration
 		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Required. Example: clickhouse://user:pass@host:9000/unkey",
@@ -164,10 +160,9 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 
 		// Restate configuration
 		Restate: worker.RestateConfig{
-			AdminURL:     cmd.String("restate-admin-url"),
-			HttpPort:     cmd.Int("restate-http-port"),
-			RegisterAs:   cmd.String("restate-register-as"),
-			IdentityKeys: cmd.StringSlice("restate-identity-keys"),
+			AdminURL:   cmd.String("restate-admin-url"),
+			HttpPort:   cmd.Int("restate-http-port"),
+			RegisterAs: cmd.String("restate-register-as"),
 		},
 
 		// Clickhouse Configuration

@@ -97,13 +97,6 @@ type RestateConfig struct {
 	// Allows Restate to discover and invoke this worker's services.
 	// Example: "http://worker:9080".
 	RegisterAs string
-
-	// IdentityKeys are public keys for validating request identity from Restate.
-	// When set, the worker will verify that incoming requests are signed by Restate
-	// using one of these keys. This should be enabled in production environments.
-	// Leave empty to disable identity verification (for local development).
-	// See: https://docs.restate.dev/develop/go/serving#validating-request-identity
-	IdentityKeys []string
 }
 
 // DepotConfig holds configuration for Depot.dev build service integration.

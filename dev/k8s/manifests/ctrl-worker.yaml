@@ -28,8 +28,19 @@ spec:
           args: ["run", "ctrl", "worker"]
           imagePullPolicy: Never # Use local images
           ports:
-            - containerPort: 7092
             - containerPort: 9080
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9080
+            initialDelaySeconds: 5
+            periodSeconds: 5
           env:
             # Server Configuration
             - name: UNKEY_INSTANCE_ID
