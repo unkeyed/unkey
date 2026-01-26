@@ -30,6 +30,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/versioning"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
 // Run starts the Restate worker service with the provided configuration.
@@ -222,10 +224,26 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 	mux.Handle("/", restateHandler)
 
+	h2cHandler := h2c.NewHandler(mux, &http2.Server{
+		MaxHandlers:                  0,
+		MaxConcurrentStreams:         0,
+		MaxDecoderHeaderTableSize:    0,
+		MaxEncoderHeaderTableSize:    0,
+		MaxReadFrameSize:             0,
+		PermitProhibitedCipherSuites: false,
+		IdleTimeout:                  0,
+		ReadIdleTimeout:              0,
+		PingTimeout:                  0,
+		WriteByteTimeout:             0,
+		MaxUploadBufferPerConnection: 0,
+		MaxUploadBufferPerStream:     0,
+		NewWriteScheduler:            nil,
+		CountError:                   nil,
+	})
 	addr := fmt.Sprintf(":%d", cfg.Restate.HttpPort)
 	server := &http.Server{
 		Addr:              addr,
-		Handler:           mux,
+		Handler:           h2cHandler,
 		ReadHeaderTimeout: 30 * time.Second,
 	}
 
