@@ -23,6 +23,12 @@ export const deploymentTopology = mysqlTable(
 
     desiredReplicas: int("desired_replicas").notNull(),
 
+    // Version for state synchronization with edge agents.
+    // Updated via Restate VersioningService on each mutation.
+    // Edge agents track their last-seen version and request changes after it.
+    // Unique per region (composite index with region).
+    version: bigint("version", { mode: "number", unsigned: true }).notNull(),
+
     // Deployment status
     desiredStatus: mysqlEnum("desired_status", [
       "starting",
@@ -34,8 +40,8 @@ export const deploymentTopology = mysqlTable(
   },
   (table) => [
     uniqueIndex("unique_region_per_deployment").on(table.deploymentId, table.region),
+    uniqueIndex("unique_version_per_region").on(table.region, table.version),
     index("workspace_idx").on(table.workspaceId),
-    index("region_idx").on(table.region),
     index("status_idx").on(table.desiredStatus),
   ],
 );

@@ -28,18 +28,26 @@ type Route53Config struct {
 // function to prevent lego from following wildcard CNAMEs and failing zone lookup.
 // This should be done once at application startup (see run.go).
 //
-// HostedZoneID should be provided to explicitly specify which Route53 zone to use,
-// bypassing zone auto-discovery.
+// HostedZoneID is optional - if empty, lego will auto-discover the hosted zone
+// based on the domain. Provide it only if auto-discovery fails (e.g., due to CNAMEs).
 func NewRoute53Provider(cfg Route53Config) (*Provider, error) {
-
 	config := route53.NewDefaultConfig()
 	config.PropagationTimeout = time.Minute * 5
 	config.TTL = 60 * 10 // 10 minutes
 	config.AccessKeyID = cfg.AccessKeyID
 	config.SecretAccessKey = cfg.SecretAccessKey
 	config.Region = cfg.Region
-	config.HostedZoneID = cfg.HostedZoneID
 	config.WaitForRecordSetsChanged = true
+
+	// Only set HostedZoneID if provided - otherwise let lego auto-discover
+	if cfg.HostedZoneID != "" {
+		config.HostedZoneID = cfg.HostedZoneID
+	}
+
+	cfg.Logger.Info("Route53 provider configured",
+		"region", cfg.Region,
+		"hosted_zone_id", cfg.HostedZoneID,
+	)
 
 	dns, err := route53.NewDNSProviderConfig(config)
 	if err != nil {

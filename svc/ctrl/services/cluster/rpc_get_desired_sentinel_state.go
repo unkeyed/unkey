@@ -10,6 +10,17 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
+// GetDesiredSentinelState returns the target state for a single sentinel resource. This is
+// a point query alternative to [Service.WatchSentinels] for cases where an agent needs to
+// fetch state for a specific sentinel rather than streaming all changes.
+//
+// The response contains either an ApplySentinel (for running state) or DeleteSentinel
+// (for archived or standby states) based on the sentinel's desired_state in the database.
+// Unhandled desired states result in CodeInternal.
+//
+// Returns CodeUnauthenticated if bearer token is invalid, CodeInvalidArgument if the
+// X-Krane-Region header is missing, CodeNotFound if no sentinel exists with the given ID,
+// or CodeInternal for database errors or unhandled states.
 func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredSentinelStateRequest]) (*connect.Response[ctrlv1.SentinelState], error) {
 
 	if err := s.authenticate(req); err != nil {

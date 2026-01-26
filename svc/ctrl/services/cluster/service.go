@@ -1,63 +1,43 @@
 package cluster
 
 import (
-	"sync"
-
-	"connectrpc.com/connect"
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/db"
-
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
-type client struct {
-	clusterID string
-	connID    string
-	region    string
-	stream    *connect.ServerStream[ctrlv1.State]
-}
-
-func newClient(clusterID string, connID string, region string, stream *connect.ServerStream[ctrlv1.State]) *client {
-	return &client{
-		clusterID: clusterID,
-		connID:    connID,
-		region:    region,
-		stream:    stream,
-	}
-}
-
+// Service implements [ctrlv1connect.ClusterServiceHandler] to synchronize desired state
+// between the control plane and krane agents. It provides streaming RPCs for watching
+// deployment and sentinel changes, point queries for fetching individual resource states,
+// and status reporting endpoints for agents to report observed state back to the control plane.
 type Service struct {
 	ctrlv1connect.UnimplementedClusterServiceHandler
 	db     db.Database
 	logger logging.Logger
-
-	// Maps regions to open clients
-	clientsMu sync.RWMutex
-	// clusterID -> connID -> client
-	clients map[string]map[string]*client
-
-	// static bearer token for authentication
 	bearer string
 }
 
+// Config holds the configuration for creating a new cluster [Service].
 type Config struct {
+	// Database provides read and write access for querying and updating resource state.
 	Database db.Database
-	Logger   logging.Logger
-	Bearer   string
+
+	// Logger is used for structured logging throughout the service.
+	Logger logging.Logger
+
+	// Bearer is the authentication token that agents must provide in the Authorization header.
+	Bearer string
 }
 
+// New creates a new cluster [Service] with the given configuration. The returned service
+// is ready to be registered with a Connect server.
 func New(cfg Config) *Service {
-	s := &Service{
+	return &Service{
 		UnimplementedClusterServiceHandler: ctrlv1connect.UnimplementedClusterServiceHandler{},
 		db:                                 cfg.Database,
 		logger:                             cfg.Logger,
-		clientsMu:                          sync.RWMutex{},
-		clients:                            make(map[string]map[string]*client),
 		bearer:                             cfg.Bearer,
 	}
-
-	return s
 }
 
 var _ ctrlv1connect.ClusterServiceHandler = (*Service)(nil)

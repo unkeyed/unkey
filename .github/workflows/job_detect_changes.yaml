@@ -2,9 +2,6 @@ name: Detect Changes
 on:
   workflow_call:
     outputs:
-      api:
-        description: "Whether API has changed"
-        value: ${{ jobs.build.outputs.api }}
       dashboard:
         description: "Whether Dashboard has changed"
         value: ${{ jobs.build.outputs.dashboard }}
@@ -52,16 +49,6 @@ jobs:
         with:
           filters: |
             # API application and its direct dependencies
-            api:
-              - 'web/apps/api/**'
-              - 'web/internal/db/**'
-              - 'web/internal/encoding/**'
-              - 'web/internal/encryption/**'
-              - 'web/internal/hash/**'
-              - 'web/internal/id/**'
-              - 'web/internal/keys/**'
-              - 'web/internal/validation/**'
-              - 'web/internal/vault/**'
 
             # Dashboard application and its dependencies
             dashboard:

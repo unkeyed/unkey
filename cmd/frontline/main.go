@@ -29,6 +29,12 @@ var Cmd = &cli.Command{
 		cli.Bool("tls-enabled", "Enable TLS termination for the frontline. Default: true",
 			cli.Default(true), cli.EnvVar("UNKEY_TLS_ENABLED")),
 
+		cli.String("tls-cert-file", "Path to TLS certificate file (dev mode)",
+			cli.EnvVar("UNKEY_TLS_CERT_FILE")),
+
+		cli.String("tls-key-file", "Path to TLS key file (dev mode)",
+			cli.EnvVar("UNKEY_TLS_KEY_FILE")),
+
 		cli.String("region", "The cloud region with platform, e.g. us-east-1.aws",
 			cli.Required(),
 			cli.EnvVar("UNKEY_REGION"),
@@ -101,9 +107,11 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		HttpsPort: cmd.Int("https-port"),
 
 		// TLS configuration
-		EnableTLS:  cmd.Bool("tls-enabled"),
-		ApexDomain: cmd.String("apex-domain"),
-		MaxHops:    cmd.Int("max-hops"),
+		EnableTLS:   cmd.Bool("tls-enabled"),
+		TLSCertFile: cmd.String("tls-cert-file"),
+		TLSKeyFile:  cmd.String("tls-key-file"),
+		ApexDomain:  cmd.String("apex-domain"),
+		MaxHops:     cmd.Int("max-hops"),
 
 		// Control Plane Configuration
 		CtrlAddr: cmd.String("ctrl-addr"),

@@ -38,7 +38,7 @@
 //
 //	openapiSvc := openapi.New(database, logger)
 //
-//	// Register with gRPC server
+//	// Register with Connect server
 //	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapiSvc))
 //
 // # Integration

@@ -1,0 +1,27 @@
+---
+title: Accounts
+description: Overview of infrastructure accounts and services with login links
+---
+
+## Cloud Providers
+
+| Service | Description                  | Login                                                        | Auth         |
+| ------- | ---------------------------- | ------------------------------------------------------------ | ------------ |
+| AWS     | Primary cloud infrastructure | [unkey.awsapps.com/start/](https://unkey.awsapps.com/start/) | Google OAuth |
+
+## EKS Clusters
+
+| Account       | Cluster                 | Description   | Region       | AWS Console                                                                                               | Argo CD                                                     |
+| ------------- | ----------------------- | ------------- | ------------ | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| unkey-sandbox | staging-eu-central-1    | Staging       | eu-central-1 | [View](https://eu-central-1.console.aws.amazon.com/eks/clusters/staging-eu-central-1?region=eu-central-1) | [Dashboard](https://argocd.eu-central-1.unkey-staging.com/) |
+| production001 | production001-us-east-1 | Control Plane | us-east-1    | [View](https://us-east-1.console.aws.amazon.com/eks/clusters/production001-us-east-1?region=us-east-1)    | [Dashboard](https://argocd.us-east-1.unkey.cloud/)          |
+
+## SaaS Services
+
+| Service     | Description        | Login                                      | Auth         |
+| ----------- | ------------------ | ------------------------------------------ | ------------ |
+| Cloudflare  | DNS, CDN, Workers  | [Dashboard](https://dash.cloudflare.com/)  | Google OAuth |
+| Stripe      | Payment processing | [Dashboard](https://dashboard.stripe.com/) | Google OAuth |
+| PlanetScale | MySQL database     | [Dashboard](https://app.planetscale.com/)  | Google OAuth |
+| Resend      | Email delivery     | [Dashboard](https://resend.com/overview)   | Google OAuth |
+| Vercel      | Frontend hosting   | [Dashboard](https://vercel.com/)           | Google OAuth |

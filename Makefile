@@ -56,7 +56,7 @@ pull: ## Pull latest Docker images for services
 
 .PHONY: up
 up: pull ## Start all infrastructure services
-	@docker compose -f ./dev/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka restate ctrl --wait
+	@docker compose -f ./dev/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel kafka restate ctrl-api --wait
 
 .PHONY: clean
 clean: ## Stop and remove all services with volumes
@@ -86,13 +86,17 @@ generate: generate-sql ## Generate code from protobuf and other sources
 
 .PHONY: test
 test: ## Run tests with bazel
-	docker compose -f ./dev/docker-compose.yaml up -d mysql clickhouse s3 kafka restate ctrl --wait
-	bazel test //... --test_output=errors
+	docker compose -f ./dev/docker-compose.yaml up -d mysql clickhouse s3 kafka --wait
+	bazel test //...
 	make clean-docker-test
 
 .PHONY: clean-docker-test
 clean-docker-test: ## Clean up dangling test containers
 	@docker rm -vf $$(docker ps -q -f label="owner=dockertest") > /dev/null 2>&1 || true
+
+.PHONY: tunnel
+tunnel: ## Forward ports 80/443 to frontline for *.unkey.local (run in separate terminal)
+	@sudo kubectl port-forward -n unkey svc/frontline 443:443 80:80
 
 .PHONY: dev
 dev: ## Start dev environment

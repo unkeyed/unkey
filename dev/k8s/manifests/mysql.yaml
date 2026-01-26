@@ -21,6 +21,8 @@ metadata:
     app: mysql
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: mysql
@@ -29,6 +31,20 @@ spec:
       labels:
         app: mysql
     spec:
+      terminationGracePeriodSeconds: 60
+      initContainers:
+        - name: remove-stale-locks
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              echo "Checking for stale MySQL lock files..."
+              rm -f /var/lib/mysql/*.pid /var/lib/mysql/mysql.sock.lock 2>/dev/null || true
+              echo "Cleanup complete"
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
       containers:
         - name: mysql
           image: unkey/mysql:local

@@ -38,6 +38,13 @@ local_resource(
     labels=['setup'],
 )
 
+# Frontline TLS certificates - generates certs with mkcert if they don't exist
+local_resource(
+    'frontline-certs',
+    'if [ ! -f ./certs/unkey.local.crt ]; then echo "Generating TLS certificates..." && command -v mkcert >/dev/null || { echo "ERROR: mkcert not found. Install with: brew install mkcert"; exit 1; } && mkcert -install && mkdir -p ./certs && mkcert -cert-file ./certs/unkey.local.crt -key-file ./certs/unkey.local.key "*.unkey.local" "unkey.local" "localhost" && echo "*.crt" > ./certs/.gitignore && echo "*.key" >> ./certs/.gitignore; fi && kubectl -n unkey create configmap frontline-certs --from-file=./certs/unkey.local.crt --from-file=./certs/unkey.local.key -o yaml --dry-run=client | kubectl apply -f -',
+    resource_deps=['namespace'],
+    labels=['setup'],
+)
 
 # Redis service
 k8s_yaml('k8s/manifests/redis.yaml')
@@ -61,6 +68,7 @@ k8s_resource('s3', port_forwards=['3902:3902', '3903:3903'], resource_deps=[], l
 k8s_yaml('k8s/manifests/planetscale.yaml')
 k8s_resource(
     'planetscale',
+    port_forwards='3900:3900',
     resource_deps=['mysql'],
     labels=['database']
 )
@@ -129,9 +137,9 @@ k8s_resource(
 )
 
 # Ctrl service
-k8s_yaml('k8s/manifests/ctrl.yaml')
+k8s_yaml('k8s/manifests/ctrl-api.yaml')
 k8s_resource(
-  'ctrl',
+  'ctrl-api',
   port_forwards='7091:7091',
   resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey', 'depot-credentials'],
   labels=['unkey'],
@@ -139,12 +147,35 @@ k8s_resource(
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
+# Worker service (Restate workflow handlers)
+k8s_yaml('k8s/manifests/ctrl-worker.yaml')
+k8s_resource(
+  'ctrl-worker',
+  port_forwards=['7092:7092'],
+  resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey', 'depot-credentials'],
+  labels=['unkey'],
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_AUTO
+)
+
+# Frontline service (TLS termination proxy for *.unkey.local)
+k8s_yaml('k8s/manifests/frontline.yaml')
+k8s_resource(
+  'frontline',
+  port_forwards=['9443:7443', '9080:7070'],
+  resource_deps=['mysql', 'ctrl-api', 'vault', 'build-unkey', 'frontline-certs'],
+  labels=['unkey'],
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_AUTO,
+  links=['https://app.unkey.local'],
+)
+
 # Krane service
 k8s_yaml('k8s/manifests/krane.yaml')
 k8s_resource(
   'krane',
   port_forwards='8070:8070',
-  resource_deps=['ctrl', 'build-unkey', 'rbac', 'namespace', 'sentinel', 'cilium-policies', 'build-sentinel-image'],
+  resource_deps=['ctrl-api', 'build-unkey', 'rbac', 'namespace', 'sentinel', 'cilium-policies', 'build-sentinel-image'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -185,25 +216,16 @@ local_resource(
 )
 
 
-# Dashboard service
-docker_build(
-  'unkey/dashboard:latest',
-  '..',
-  dockerfile='../web/apps/dashboard/Dockerfile',
-  live_update=[
-      sync('../web/apps/dashboard', '/unkey/web/apps/dashboard'),
-      run('cd /unkey/web/apps/dashboard && pnpm build', trigger=['**/*.tsx', '**/*.ts', '**/*.css']),
-  ]
-)
-k8s_yaml('k8s/manifests/dashboard.yaml')
-
-k8s_resource(
+# Dashboard - runs locally with HMR (env loaded from web/apps/dashboard/.env)
+local_resource(
     'dashboard',
-    port_forwards='3000:3000',
-    resource_deps=['mysql', 'clickhouse'],
+    serve_cmd='cd ../web && pnpm --filter=@unkey/dashboard dev',
+    deps=[],
+    resource_deps=['planetscale', 'clickhouse', 'agent', 'ctrl'],
     labels=['unkey'],
     auto_init=True,
-    trigger_mode=TRIGGER_MODE_MANUAL
+    readiness_probe=probe(http_get=http_get_action(port=3000, path='/'), period_secs=5, failure_threshold=30),
+    links=['http://localhost:3000'],
 )
 
 print("""
@@ -217,5 +239,9 @@ Tips:
 - Press 'r' to manually trigger rebuilds
 - Use 'tilt down' to stop all services
 - Use 'tilt logs <service>' to view specific service logs
+
+Frontline (HTTPS on *.unkey.local):
+- Run 'sudo minikube tunnel' in a separate terminal to bind ports 80/443
+- Then access https://app.unkey.local (requires DNS setup via setup-wildcard-dns.sh)
 
 """)

@@ -10,8 +10,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
-// Rollback performs a rollback to a previous deployment via Restate workflow
-// This is the main rollback implementation that the dashboard will call
+// Rollback switches traffic from the source deployment to a previous target
+// deployment via a Restate workflow. This is typically called from the dashboard
+// when a deployment needs to be reverted. The workflow runs synchronously
+// (blocking until complete) and is keyed by project ID to prevent concurrent
+// rollback operations on the same project.
 func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.RollbackRequest]) (*connect.Response[ctrlv1.RollbackResponse], error) {
 	s.logger.Info("initiating rollback via Restate",
 		"source", req.Msg.GetSourceDeploymentId(),

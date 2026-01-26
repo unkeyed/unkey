@@ -189,21 +189,35 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create proxy service: %w", err)
 	}
 
-	// Create TLS config with dynamic certificate loading
+	// Create TLS config - either from static files (dev mode) or dynamic certificates (production)
 	var tlsConfig *pkgtls.Config
-	if cfg.EnableTLS && certManager != nil {
-		//nolint:exhaustruct
-		tlsConfig = &tls.Config{
-			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-				return certManager.GetCertificate(context.Background(), hello.ServerName)
-			},
-			MinVersion: tls.VersionTLS12,
-			// Enable session resumption for faster subsequent connections
-			// Session tickets allow clients to skip the full TLS handshake
-			SessionTicketsDisabled: false,
-			// Let Go's TLS implementation choose optimal cipher suites
-			// This prefers TLS 1.3 when available (1-RTT vs 2-RTT for TLS 1.2)
-			PreferServerCipherSuites: false,
+	if cfg.EnableTLS {
+		if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
+			// Dev mode: static file-based certificate
+			fileTLSConfig, tlsErr := pkgtls.NewFromFiles(cfg.TLSCertFile, cfg.TLSKeyFile)
+			if tlsErr != nil {
+				return fmt.Errorf("failed to load TLS certificate from files: %w", tlsErr)
+			}
+			tlsConfig = fileTLSConfig
+			logger.Info("TLS configured with static certificate files",
+				"certFile", cfg.TLSCertFile,
+				"keyFile", cfg.TLSKeyFile)
+		} else if certManager != nil {
+			// Production mode: dynamic certificates from database/vault
+			//nolint:exhaustruct
+			tlsConfig = &tls.Config{
+				GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+					return certManager.GetCertificate(context.Background(), hello.ServerName)
+				},
+				MinVersion: tls.VersionTLS12,
+				// Enable session resumption for faster subsequent connections
+				// Session tickets allow clients to skip the full TLS handshake
+				SessionTicketsDisabled: false,
+				// Let Go's TLS implementation choose optimal cipher suites
+				// This prefers TLS 1.3 when available (1-RTT vs 2-RTT for TLS 1.2)
+				PreferServerCipherSuites: false,
+			}
+			logger.Info("TLS configured with dynamic certificate manager")
 		}
 	}
 

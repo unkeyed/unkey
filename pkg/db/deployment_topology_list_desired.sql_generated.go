@@ -12,19 +12,9 @@ import (
 
 const listDesiredDeploymentTopology = `-- name: ListDesiredDeploymentTopology :many
 SELECT
-    d.id as deployment_id,
-    d.k8s_name as k8s_name,
-    d.workspace_id,
-    d.project_id,
-    d.environment_id,
-    d.image,
-    dt.region,
-    d.cpu_millicores,
-    d.memory_mib,
-    dt.desired_replicas,
-    w.k8s_namespace as k8s_namespace,
-    d.build_id,
-    d.encrypted_environment_variables
+    dt.pk, dt.workspace_id, dt.deployment_id, dt.region, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
+    d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.openapi_spec, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.status, d.created_at, d.updated_at,
+    w.k8s_namespace
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `deployments` + "`" + ` d ON dt.deployment_id = d.id
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
@@ -43,37 +33,18 @@ type ListDesiredDeploymentTopologyParams struct {
 }
 
 type ListDesiredDeploymentTopologyRow struct {
-	DeploymentID                  string         `db:"deployment_id"`
-	K8sName                       string         `db:"k8s_name"`
-	WorkspaceID                   string         `db:"workspace_id"`
-	ProjectID                     string         `db:"project_id"`
-	EnvironmentID                 string         `db:"environment_id"`
-	Image                         sql.NullString `db:"image"`
-	Region                        string         `db:"region"`
-	CpuMillicores                 int32          `db:"cpu_millicores"`
-	MemoryMib                     int32          `db:"memory_mib"`
-	DesiredReplicas               int32          `db:"desired_replicas"`
-	K8sNamespace                  sql.NullString `db:"k8s_namespace"`
-	BuildID                       sql.NullString `db:"build_id"`
-	EncryptedEnvironmentVariables []byte         `db:"encrypted_environment_variables"`
+	DeploymentTopology DeploymentTopology `db:"deployment_topology"`
+	Deployment         Deployment         `db:"deployment"`
+	K8sNamespace       sql.NullString     `db:"k8s_namespace"`
 }
 
-// ListDesiredDeploymentTopology
+// ListDesiredDeploymentTopology returns all deployment topologies matching the desired state for a region.
+// Used during bootstrap to stream all running deployments to krane.
 //
 //	SELECT
-//	    d.id as deployment_id,
-//	    d.k8s_name as k8s_name,
-//	    d.workspace_id,
-//	    d.project_id,
-//	    d.environment_id,
-//	    d.image,
-//	    dt.region,
-//	    d.cpu_millicores,
-//	    d.memory_mib,
-//	    dt.desired_replicas,
-//	    w.k8s_namespace as k8s_namespace,
-//	    d.build_id,
-//	    d.encrypted_environment_variables
+//	    dt.pk, dt.workspace_id, dt.deployment_id, dt.region, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
+//	    d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.openapi_spec, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.status, d.created_at, d.updated_at,
+//	    w.k8s_namespace
 //	FROM `deployment_topology` dt
 //	INNER JOIN `deployments` d ON dt.deployment_id = d.id
 //	INNER JOIN `workspaces` w ON d.workspace_id = w.id
@@ -98,19 +69,40 @@ func (q *Queries) ListDesiredDeploymentTopology(ctx context.Context, db DBTX, ar
 	for rows.Next() {
 		var i ListDesiredDeploymentTopologyRow
 		if err := rows.Scan(
-			&i.DeploymentID,
-			&i.K8sName,
-			&i.WorkspaceID,
-			&i.ProjectID,
-			&i.EnvironmentID,
-			&i.Image,
-			&i.Region,
-			&i.CpuMillicores,
-			&i.MemoryMib,
-			&i.DesiredReplicas,
+			&i.DeploymentTopology.Pk,
+			&i.DeploymentTopology.WorkspaceID,
+			&i.DeploymentTopology.DeploymentID,
+			&i.DeploymentTopology.Region,
+			&i.DeploymentTopology.DesiredReplicas,
+			&i.DeploymentTopology.Version,
+			&i.DeploymentTopology.DesiredStatus,
+			&i.DeploymentTopology.CreatedAt,
+			&i.DeploymentTopology.UpdatedAt,
+			&i.Deployment.Pk,
+			&i.Deployment.ID,
+			&i.Deployment.K8sName,
+			&i.Deployment.WorkspaceID,
+			&i.Deployment.ProjectID,
+			&i.Deployment.EnvironmentID,
+			&i.Deployment.Image,
+			&i.Deployment.BuildID,
+			&i.Deployment.GitCommitSha,
+			&i.Deployment.GitBranch,
+			&i.Deployment.GitCommitMessage,
+			&i.Deployment.GitCommitAuthorHandle,
+			&i.Deployment.GitCommitAuthorAvatarUrl,
+			&i.Deployment.GitCommitTimestamp,
+			&i.Deployment.SentinelConfig,
+			&i.Deployment.OpenapiSpec,
+			&i.Deployment.CpuMillicores,
+			&i.Deployment.MemoryMib,
+			&i.Deployment.DesiredState,
+			&i.Deployment.EncryptedEnvironmentVariables,
+			&i.Deployment.Command,
+			&i.Deployment.Status,
+			&i.Deployment.CreatedAt,
+			&i.Deployment.UpdatedAt,
 			&i.K8sNamespace,
-			&i.BuildID,
-			&i.EncryptedEnvironmentVariables,
 		); err != nil {
 			return nil, err
 		}

@@ -1,0 +1,164 @@
+package deployment
+
+import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"strconv"
+
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+)
+
+// ApplyDeployment creates or updates a user workload as a Kubernetes ReplicaSet.
+//
+// The method uses server-side apply to create or update the ReplicaSet, enabling
+// concurrent modifications from different sources without conflicts. After applying,
+// it queries the resulting pods and reports their addresses and status to the control
+// plane so the routing layer knows where to send traffic.
+//
+// ApplyDeployment validates all required fields and returns an error if any are missing
+// or invalid: WorkspaceId, ProjectId, EnvironmentId, DeploymentId, K8sNamespace, K8sName,
+// and Image must be non-empty; Replicas must be >= 0; CpuMillicores and MemoryMib must be > 0.
+//
+// The namespace is created automatically if it doesn't exist, along with a
+// CiliumNetworkPolicy restricting ingress to matching sentinels. Pods run with gVisor
+// isolation (RuntimeClass "gvisor") since they execute untrusted user code, and are
+// scheduled on Karpenter-managed untrusted nodes with zone-spread constraints.
+func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) error {
+	c.logger.Info("applying deployment",
+		"namespace", req.GetK8SNamespace(),
+		"name", req.GetK8SName(),
+		"deployment_id", req.GetDeploymentId(),
+	)
+
+	err := assert.All(
+		assert.NotEmpty(req.GetWorkspaceId(), "Workspace ID is required"),
+		assert.NotEmpty(req.GetProjectId(), "Project ID is required"),
+		assert.NotEmpty(req.GetEnvironmentId(), "Environment ID is required"),
+		assert.NotEmpty(req.GetDeploymentId(), "Deployment ID is required"),
+		assert.NotEmpty(req.GetK8SNamespace(), "Namespace is required"),
+		assert.NotEmpty(req.GetK8SName(), "K8s CRD name is required"),
+		assert.NotEmpty(req.GetImage(), "Image is required"),
+		assert.GreaterOrEqual(req.GetReplicas(), int32(0), "Replicas must be greater than or equal to 0"),
+		assert.Greater(req.GetCpuMillicores(), int64(0), "CPU millicores must be greater than 0"),
+		assert.Greater(req.GetMemoryMib(), int64(0), "MemoryMib must be greater than 0"),
+	)
+	if err != nil {
+		return err
+	}
+
+	if err := c.ensureNamespaceExists(ctx, req.GetK8SNamespace(), req.GetWorkspaceId(), req.GetEnvironmentId()); err != nil {
+		return err
+	}
+
+	usedLabels := labels.New().
+		WorkspaceID(req.GetWorkspaceId()).
+		ProjectID(req.GetProjectId()).
+		EnvironmentID(req.GetEnvironmentId()).
+		DeploymentID(req.GetDeploymentId()).
+		BuildID(req.GetBuildId()).
+		ManagedByKrane().
+		ComponentDeployment().
+		Inject()
+
+	desired := &appsv1.ReplicaSet{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "apps/v1",
+			Kind:       "ReplicaSet",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      req.GetK8SName(),
+			Namespace: req.GetK8SNamespace(),
+			Labels:    usedLabels,
+		},
+		Spec: appsv1.ReplicaSetSpec{
+			Replicas: ptr.P(req.GetReplicas()),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels.New().DeploymentID(req.GetDeploymentId()),
+			},
+			MinReadySeconds: 30,
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: fmt.Sprintf("%s-", req.GetK8SName()),
+					Labels:       usedLabels,
+				},
+				Spec: corev1.PodSpec{
+					RuntimeClassName:          ptr.P(runtimeClassGvisor),
+					RestartPolicy:             corev1.RestartPolicyAlways,
+					Tolerations:               []corev1.Toleration{untrustedToleration},
+					TopologySpreadConstraints: deploymentTopologySpread(req.GetDeploymentId()),
+					Affinity:                  deploymentAffinity(req.GetEnvironmentId()),
+					Containers: []corev1.Container{{
+						Image:           req.GetImage(),
+						Name:            "deployment",
+						ImagePullPolicy: corev1.PullIfNotPresent,
+						Command:         req.GetCommand(),
+						Env:             buildDeploymentEnv(req),
+						Ports: []corev1.ContainerPort{{
+							ContainerPort: DeploymentPort,
+							Name:          "deployment",
+						}},
+						Resources: corev1.ResourceRequirements{},
+					}},
+				},
+			},
+		},
+	}
+
+	client := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace())
+
+	patch, err := json.Marshal(desired)
+	if err != nil {
+		return fmt.Errorf("failed to marshal replicaset: %w", err)
+	}
+
+	applied, err := client.Patch(ctx, req.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
+		FieldManager: fieldManagerKrane,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to apply replicaset: %w", err)
+	}
+
+	status, err := c.buildDeploymentStatus(ctx, applied)
+	if err != nil {
+		return err
+	}
+
+	err = c.reportDeploymentStatus(ctx, status)
+	if err != nil {
+		c.logger.Error("failed to report deployment status", "deployment_id", req.GetDeploymentId(), "error", err)
+		return err
+	}
+
+	return nil
+}
+
+// buildDeploymentEnv constructs the environment variables injected into deployment
+// containers. It includes the PORT, workspace/project/environment/deployment IDs,
+// and optionally the base64-encoded encrypted environment variables if present.
+func buildDeploymentEnv(req *ctrlv1.ApplyDeployment) []corev1.EnvVar {
+	env := []corev1.EnvVar{
+		{Name: "PORT", Value: strconv.Itoa(DeploymentPort)},
+		{Name: "UNKEY_WORKSPACE_ID", Value: req.GetWorkspaceId()},
+		{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
+		{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
+		{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
+	}
+
+	if len(req.GetEncryptedEnvironmentVariables()) > 0 {
+		env = append(env, corev1.EnvVar{
+			Name:  "UNKEY_ENCRYPTED_ENV",
+			Value: base64.StdEncoding.EncodeToString(req.GetEncryptedEnvironmentVariables()),
+		})
+	}
+
+	return env
+}

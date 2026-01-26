@@ -11,50 +11,6 @@ concurrency:
 jobs:
   detect_changes:
     uses: ./.github/workflows/job_detect_changes.yaml
-  api_local_test:
-    name: Test API
-    uses: ./.github/workflows/job_test_api_local.yaml
-  api_preview_deployment:
-    needs:
-      - api_local_test
-    uses: ./.github/workflows/job_deploy_api_staging.yaml
-    secrets:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-  api_preview_test:
-    needs:
-      - api_preview_deployment
-    uses: ./.github/workflows/job_test_api_staging.yaml
-    with:
-      UNKEY_BASE_URL: https://preview-api.unkey.dev
-    secrets:
-      DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
-      DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
-      DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
-      CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
-  api_canary_deployment:
-    needs:
-      - api_local_test
-      - api_preview_test
-    uses: ./.github/workflows/job_deploy_api_canary.yaml
-    secrets:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-  api_canary_test:
-    needs:
-      - api_canary_deployment
-    uses: ./.github/workflows/job_test_api_canary.yaml
-    with:
-      UNKEY_BASE_URL: https://canary.unkey.dev
-    secrets:
-      DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
-      DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
-      DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
-      CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
-  api_production_deployment:
-    needs:
-      - api_canary_test
-    uses: ./.github/workflows/job_deploy_api_production.yaml
-    secrets:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   mintlify_deployment:
     runs-on: depot-ubuntu-24.04-4
     needs:
