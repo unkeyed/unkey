@@ -9,7 +9,7 @@ import { RootKeyDialog } from "./root-key-dialog";
 
 type Props = {
   className?: string;
-  triggerRef?: RefObject<HTMLButtonElement | null>;
+  triggerRef?: RefObject<HTMLButtonElement>;
 } & React.ComponentProps<typeof Button>;
 
 const CreateRootKeyButton = ({ className, triggerRef, onClick, ...props }: Props) => {

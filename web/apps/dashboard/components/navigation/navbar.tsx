@@ -83,7 +83,8 @@ const Breadcrumbs = React.forwardRef<HTMLElement, BaseProps & { icon: React.Reac
             }
             if (child.type === Breadcrumbs.Link) {
               return React.cloneElement(child, {
-                ...child.props,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                ...(child.props as any),
                 isLast: index === childrenArray.length - 1,
                 key: child.key || `breadcrumb-${index}`,
               });

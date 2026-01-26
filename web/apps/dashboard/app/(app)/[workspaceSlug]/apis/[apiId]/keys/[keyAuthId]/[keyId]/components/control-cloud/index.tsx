@@ -1,6 +1,6 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
-import type { FilterValue } from "@unkey/ui/src/validation/filter.types";
 import { ControlCloud } from "@unkey/ui";
+import type { FilterValue } from "@unkey/ui/src/validation/filter.types";
 import type { KeyDetailsFilterValue } from "../../filters.schema";
 import { useFilters } from "../../hooks/use-filters";
 
@@ -27,7 +27,9 @@ export const KeysDetailsLogsControlCloud = () => {
       formatFieldName={formatFieldName}
       filters={filters as FilterValue[]}
       removeFilter={removeFilter}
-      updateFilters={(newFilters: FilterValue[]) => updateFilters(newFilters as KeyDetailsFilterValue[])}
+      updateFilters={(newFilters: FilterValue[]) =>
+        updateFilters(newFilters as KeyDetailsFilterValue[])
+      }
     />
   );
 };

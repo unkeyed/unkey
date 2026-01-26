@@ -31,7 +31,7 @@ interface BaseCheckboxFilterProps<
   checkPath: keyof TItem;
   className?: string;
   showScroll?: boolean;
-  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
+  scrollContainerRef?: React.RefObject<HTMLDivElement>;
   renderBottomGradient?: () => React.ReactNode;
   renderOptionContent?: (option: TItem) => React.ReactNode;
   createFilterValue: (option: TItem) => {

@@ -1,7 +1,7 @@
-"use client";;
-import { use } from "react";
+"use client";
 import { LogsClient } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/logs-client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { use } from "react";
 import { ApisNavbar } from "./api-id-navbar";
 
 export default function ApiPage(props: { params: Promise<{ apiId: string }> }) {

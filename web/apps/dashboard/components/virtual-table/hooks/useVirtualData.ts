@@ -16,7 +16,7 @@ export const useVirtualData = ({
   config: TableConfig;
   onLoadMore?: () => void;
   isFetchingNextPage?: boolean;
-  parentRef: React.RefObject<HTMLDivElement | null>;
+  parentRef: React.RefObject<HTMLDivElement>;
 }) => {
   const throttledFn = useMemo(
     () =>

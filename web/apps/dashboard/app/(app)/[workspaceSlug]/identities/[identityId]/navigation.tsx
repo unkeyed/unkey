@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { Fingerprint } from "@unkey/icons";

@@ -60,7 +60,7 @@ export function ProximityPrefetch({
   const containerRef = useRef<HTMLDivElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const hasTriggered = useRef(false);
-  const debounceTimeout = useRef<NodeJS.Timeout>(undefined);
+  const debounceTimeout = useRef<NodeJS.Timeout>();
 
   const checkProximity = useCallback(() => {
     // Skip if element doesn't exist or already triggered

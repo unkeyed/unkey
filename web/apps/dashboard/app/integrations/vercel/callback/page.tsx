@@ -51,7 +51,11 @@ export default async function Page(props: Props) {
     });
 
   if (!integration) {
-    const { val, err } = await exchangeCode((await props.searchParams).code);
+    const searchParams = await props.searchParams;
+    if (!searchParams.code) {
+      return <div>no code</div>;
+    }
+    const { val, err } = await exchangeCode(searchParams.code);
     if (err) {
       return <div>error: {JSON.stringify(err, null, 2)}</div>;
     }
@@ -106,11 +110,15 @@ export default async function Page(props: Props) {
       </Empty>
     );
   }
+  const searchParams = await props.searchParams;
+  if (!searchParams.next) {
+    return <div>no next</div>;
+  }
   return (
     <Client
       projects={projects.val}
       apis={workspace.apis}
-      returnUrl={(await props.searchParams).next}
+      returnUrl={searchParams.next}
       integrationId={integration.id}
       accessToken={integration.accessToken}
       vercelTeamId={integration.vercelTeamId}

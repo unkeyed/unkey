@@ -23,7 +23,7 @@ export const ResizablePanel = ({
 }>) => {
   const [isDragging, setIsDragging] = useState(false);
   const [width, setWidth] = useState<string>(String(style?.width));
-  const panelRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
 
   useOnClickOutside(panelRef, onClose);
 

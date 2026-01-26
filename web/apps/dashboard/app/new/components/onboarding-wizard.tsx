@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { ChevronLeft, ChevronRight } from "@unkey/icons";
 import { Button, CircleProgress, Separator } from "@unkey/ui";
 

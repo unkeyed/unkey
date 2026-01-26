@@ -1,6 +1,6 @@
-"use client";;
-import { use } from "react";
+"use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { use } from "react";
 import { ApisNavbar } from "../../api-id-navbar";
 import { KeysClient } from "./_components/keys-client";
 

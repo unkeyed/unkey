@@ -10,10 +10,9 @@
  * https://nucleoapp.com/license
  */
 
-import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const Fingerprint: React.FC<IconProps> = ({ iconSize = "xl-medium", ...props }) => {
+export function Fingerprint({ iconSize = "xl-medium", ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
@@ -68,4 +67,4 @@ export const Fingerprint: React.FC<IconProps> = ({ iconSize = "xl-medium", ...pr
       </g>
     </svg>
   );
-};
+}

@@ -5,7 +5,6 @@ import { Navbar } from "@/components/navigation/navbar";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
-import type { IconProps } from "@unkey/icons/src/props";
 import {
   Button,
   Loading,
@@ -17,7 +16,7 @@ import {
   NavigableDialogRoot,
   toast,
 } from "@unkey/ui";
-import { type FC, Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
 import { KeyCreatedSuccessDialog } from "./components/key-created-success-dialog";
 import { SectionLabel } from "./components/section-label";

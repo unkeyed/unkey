@@ -24,12 +24,12 @@ import {
 import { requireEmailMatch } from "@/lib/auth/utils";
 import { env } from "@/lib/env";
 import { Ratelimit } from "@unkey/ratelimit";
-import { cookies, headers, type UnsafeUnwrappedHeaders } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 // Helper to extract request metadata for Radar
-function getRequestMetadata() {
-  const headersList = (headers() as unknown as UnsafeUnwrappedHeaders);
+async function getRequestMetadata() {
+  const headersList = await headers();
   const ipAddress =
     headersList.get("x-forwarded-for")?.split(",")[0].trim() ||
     headersList.get("x-real-ip") ||

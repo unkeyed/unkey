@@ -9,10 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
+
 import { type IconProps, sizeMap } from "../props";
 
-export const XMark: React.FC<IconProps> = ({ iconSize = "xl-thin", ...rest }) => {
+export function XMark({ iconSize = "xl-thin", ...rest }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
   return (
     <svg
@@ -48,4 +48,4 @@ export const XMark: React.FC<IconProps> = ({ iconSize = "xl-thin", ...rest }) =>
       </g>
     </svg>
   );
-};
+}

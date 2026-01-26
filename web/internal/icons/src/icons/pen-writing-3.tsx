@@ -9,10 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
+
 import { type IconProps, sizeMap } from "../props";
 
-export const PenWriting3: React.FC<IconProps> = ({ iconSize = "xl-thin", ...props }) => {
+export function PenWriting3({ iconSize = "xl-thin", ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
   return (
     <svg
@@ -42,4 +42,4 @@ export const PenWriting3: React.FC<IconProps> = ({ iconSize = "xl-thin", ...prop
       </g>
     </svg>
   );
-};
+}

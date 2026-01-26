@@ -4,14 +4,13 @@ import { Toaster } from "@unkey/ui";
 import "@/styles/tailwind/tailwind.css";
 import "@unkey/ui/css";
 import * as Sentry from "@sentry/nextjs";
-import { GeistMono } from "geist/font/mono";
-import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import type React from "react";
 import { Suspense } from "react";
 import { ReactQueryProvider } from "./react-query-provider";
 import { ThemeProvider } from "./theme-provider";
+import { Geist, Geist_Mono } from 'next/font/google';
 
 export function generateMetadata(): Metadata {
   return {
@@ -49,17 +48,29 @@ export function generateMetadata(): Metadata {
   };
 }
 
-const Feedback = dynamic(
-  () => import("@/components/dashboard/feedback-component").then((mod) => mod.Feedback),
+const Feedback = dynamic(() =>
+  import("@/components/dashboard/feedback-component").then((mod) => mod.Feedback),
 );
+
+const geist = Geist({
+  subsets: ['latin'],
+  display: 'swap',
+});
+
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  display: "swap"
+})
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+
+ 
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang="en" className={`${geist.className} ${geistMono.className}`}>
       <body className="min-h-full antialiased">
         <ReactQueryProvider>
           <ThemeProvider attribute="class">
