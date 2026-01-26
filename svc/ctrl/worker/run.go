@@ -1,11 +1,9 @@
 package worker
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"fmt"
-	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -25,11 +23,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
-	"github.com/unkeyed/unkey/pkg/retry"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/shutdown"
 	"github.com/unkeyed/unkey/pkg/uid"
-
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/build"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
@@ -133,7 +129,7 @@ func Run(ctx context.Context, cfg Config) error {
 		restateClientOpts = append(restateClientOpts, restate.WithAuthKey(cfg.Restate.APIKey))
 	}
 	restateClient := restateIngress.NewClient(cfg.Restate.URL, restateClientOpts...)
-	restateSrv := restateServer.NewRestate()
+	restateSrv := restateServer.NewRestate().WithLogger(logging.Handler(), false)
 
 	restateSrv.Bind(hydrav1.NewBuildServiceServer(build.New(build.Config{
 		InstanceID:     cfg.InstanceID,
@@ -232,84 +228,29 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}()
 
-	// Register with Restate admin API
-	go func() {
-		// Wait a moment for the restate server to be ready
-		time.Sleep(2 * time.Second)
-
-		registerURL := fmt.Sprintf("%s/deployments", cfg.Restate.AdminURL)
-		payload := fmt.Sprintf(`{"uri": "%s"}`, cfg.Restate.RegisterAs)
-
-		logger.Info("Registering with Restate", "admin_url", registerURL, "service_uri", cfg.Restate.RegisterAs)
-
-		retrier := retry.New(
-			retry.Attempts(10),
-			retry.Backoff(func(n int) time.Duration {
-				return 5 * time.Second
-			}),
-		)
-
-		retryErr := retrier.Do(func() error {
-			req, reqErr := http.NewRequestWithContext(ctx, http.MethodPost, registerURL, bytes.NewBufferString(payload))
-			if reqErr != nil {
-				return fmt.Errorf("failed to create registration request: %w", reqErr)
-			}
-
-			req.Header.Set("Content-Type", "application/json")
-
-			client := &http.Client{Timeout: 30 * time.Second}
-			resp, doErr := client.Do(req)
-			if doErr != nil {
-				return fmt.Errorf("failed to register with Restate: %w", doErr)
-			}
-
-			body, err := io.ReadAll(resp.Body)
-			status := resp.StatusCode
-			closeErr := resp.Body.Close()
-			if closeErr != nil {
-				return fmt.Errorf("failed to close response body: %w", closeErr)
-			}
-			if err != nil {
-				return fmt.Errorf("failed to read body: %w", err)
-			}
-
-			if status >= 200 && status < 300 {
-				return nil
-			}
-
-			logger.Info("restate register response", "body", string(body))
-			return fmt.Errorf("registration returned status %d", status)
-		})
-
-		if retryErr != nil {
-			logger.Error("failed to register with Restate after retries", "error", retryErr.Error())
-		} else {
-			logger.Info("Successfully registered with Restate")
-
-			// Bootstrap wildcard certificate for default domain if ACME is enabled
-			if cfg.Acme.Enabled && dnsProvider != nil && cfg.DefaultDomain != "" {
-				bootstrapWildcardDomain(ctx, database, logger, cfg.DefaultDomain)
-			}
-
-			// Start the certificate renewal cron job if ACME is enabled
-			// Use Send with idempotency key so multiple restarts don't create duplicate crons
-			if cfg.Acme.Enabled && dnsProvider != nil {
-				certClient := hydrav1.NewCertificateServiceIngressClient(restateClient, "global")
-				_, startErr := certClient.RenewExpiringCertificates().Send(
-					ctx,
-					&hydrav1.RenewExpiringCertificatesRequest{
-						DaysBeforeExpiry: 30,
-					},
-					restate.WithIdempotencyKey("cert-renewal-cron-startup"),
-				)
-				if startErr != nil {
-					logger.Warn("failed to start certificate renewal cron", "error", startErr)
-				} else {
-					logger.Info("Certificate renewal cron job started")
-				}
-			}
+	// Register with Restate admin API (only if RegisterAs is configured)
+	// In k8s environments, registration is handled externally
+	if cfg.Restate.RegisterAs != "" {
+		reg := &restateRegistration{
+			logger:     logger,
+			adminURL:   cfg.Restate.AdminURL,
+			registerAs: cfg.Restate.RegisterAs,
 		}
-	}()
+		go reg.register(ctx)
+	} else {
+		logger.Info("Skipping Restate registration (restate-register-as not configured)")
+	}
+
+	// Bootstrap certificates independently of registration
+	if cfg.Acme.Enabled && dnsProvider != nil {
+		certBootstrap := &certificateBootstrap{
+			logger:        logger,
+			database:      database,
+			defaultDomain: cfg.DefaultDomain,
+			restateClient: hydrav1.NewCertificateServiceIngressClient(restateClient, "global"),
+		}
+		go certBootstrap.run(ctx)
+	}
 
 	// Create zen health server
 	healthServer, err := zen.New(zen.Config{
