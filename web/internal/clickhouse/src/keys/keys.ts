@@ -265,7 +265,28 @@ export function getKeysOverviewLogs(ch: Querier) {
     const query = ch.query({
       query: `
 WITH
-    -- First CTE: Filter raw verification records based on conditions from client
+    -- First CTE: Find top 50 most recently used keys from materialized view
+    -- This scans ~10K rows instead of 150M+ rows
+    top_keys AS (
+      SELECT DISTINCT
+          key_id,
+          argMax(time, time) as last_time,
+          argMax(request_id, time) as last_request_id,
+          argMax(tags, time) as last_tags
+      FROM default.keys_last_used_v2
+      WHERE workspace_id = {workspaceId: String}
+          AND key_space_id = {keyspaceId: String}
+          AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+          -- Apply key ID filters (key_id is in ORDER BY, so this is efficient)
+          AND (${keyIdConditions})
+          -- Cursor-based pagination
+          ${cursorCondition}
+      GROUP BY key_id
+      ORDER BY last_time ${timeDirection}
+      LIMIT {limit: Int}
+    ),
+    -- Second CTE: Filter raw verification records for the top 50 keys
+    -- This scans only rows for those 50 keys instead of all keys
     filtered_keys AS (
       SELECT
           request_id,
@@ -274,41 +295,35 @@ WITH
           tags,
           outcome
       FROM default.key_verifications_raw_v2
-      -- PREWHERE clause for indexed columns (workspace_id, key_space_id, time)
-      -- This filters rows before reading other columns, dramatically reducing I/O
-      PREWHERE workspace_id = {workspaceId: String}
+      WHERE workspace_id = {workspaceId: String}
           AND key_space_id = {keyspaceId: String}
           AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-      -- WHERE clause for non-indexed filters (keyIds, outcomes, tags)
-      WHERE
-          -- Apply dynamic key ID filtering (equals or contains)
-          (${keyIdConditions})
-          -- Apply dynamic outcome filtering
+          AND key_id IN (SELECT key_id FROM top_keys)
+          -- Apply outcome filters on raw table for accurate data
           AND (${outcomeCondition})
-          -- Apply dynamic tag filtering
+          -- Apply tag filters on raw table for accurate data
           AND (${tagConditions})
-          -- Handle pagination using only time as cursor
-          ${cursorCondition}
     ),
-    -- Second CTE: Calculate per-key aggregated metrics
+    -- Third CTE: Calculate per-key aggregated metrics
     -- This groups all verifications by key_id to get summary counts and most recent activity
     aggregated_data AS (
       SELECT
           key_id,
-          -- Find the timestamp of the latest verification for this key
-          max(time) as last_request_time,
-          -- Get the request_id of the latest verification (based on time)
-          argMax(request_id, time) as last_request_id,
-          -- Get the tags from the latest verification (based on time)
-          argMax(tags, time) as tags,
+          -- Use the last_time from top_keys CTE (from materialized view)
+          any(t.last_time) as last_request_time,
+          -- Use the last_request_id from top_keys CTE (from materialized view)
+          any(t.last_request_id) as last_request_id,
+          -- Use the last_tags from top_keys CTE (from materialized view)
+          any(t.last_tags) as tags,
           -- Count valid verifications
           countIf(outcome = 'VALID') as valid_count,
           -- Count all non-valid verifications
           countIf(outcome != 'VALID') as error_count
-      FROM filtered_keys
-      GROUP BY key_id
+      FROM filtered_keys f
+      INNER JOIN top_keys t ON f.key_id = t.key_id
+      GROUP BY f.key_id
     ),
-    -- Third CTE: Build detailed outcome distribution
+    -- Fourth CTE: Build detailed outcome distribution
     -- This provides a breakdown of the exact counts for each outcome type
     outcome_counts AS (
       SELECT
@@ -340,8 +355,8 @@ WITH
       a.tags,
       a.valid_count,
       a.error_count
-    -- Sort results with most recent verification first
-    ORDER BY ${orderByClause}
+    -- Sort results by time from materialized view
+    ORDER BY time ${timeDirection}
     -- Limit results for pagination
     LIMIT {limit: Int}
 `,

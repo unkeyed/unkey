@@ -1,6 +1,9 @@
 -- Materialized view to track the last verification time for each key
 -- This dramatically improves query performance for the dashboard's "API Requests" page
 -- by allowing queries to scan ~10K rows instead of 150M+ rows
+--
+-- IMPORTANT: Stores ONE row per key (latest verification regardless of outcome).
+-- The query uses this to find top 50 keys, then aggregates ALL outcomes from raw table.
 
 -- Target table that stores the latest verification per key
 CREATE TABLE IF NOT EXISTS default.keys_last_used_v2
