@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "config.go",
         "doc.go",
+        "restate.go",
         "run.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/worker",
