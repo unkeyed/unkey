@@ -121,6 +121,13 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
 	}
+
+	r.RegisterHealth(srv.Mux())
+
+	r.AddReadinessCheck("database", func(ctx context.Context) error {
+		return database.RW().PingContext(ctx)
+	})
+
 	r.DeferCtx(srv.Shutdown)
 
 	routes.Register(srv, svcs)
@@ -135,7 +142,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return srv.Serve(ctx, listener)
 	})
 
-	if err := r.Run(ctx); err != nil {
+	if err := r.Wait(ctx); err != nil {
 		return fmt.Errorf("shutdown failed: %w", err)
 	}
 

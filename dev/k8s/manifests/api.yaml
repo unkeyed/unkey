@@ -77,18 +77,25 @@ spec:
             # Request Body Configuration
             - name: UNKEY_MAX_REQUEST_BODY_SIZE
               value: "10485760"
-          readinessProbe:
+          startupProbe:
             httpGet:
-              path: /v2/liveness
+              path: /health/startup
               port: 7070
-            initialDelaySeconds: 10
+            initialDelaySeconds: 5
             periodSeconds: 5
+            failureThreshold: 30
           livenessProbe:
             httpGet:
-              path: /v2/liveness
+              path: /health/live
               port: 7070
-            initialDelaySeconds: 30
             periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 7070
+            periodSeconds: 5
+            failureThreshold: 3
       initContainers:
         - name: wait-for-dependencies
           image: busybox:1.36

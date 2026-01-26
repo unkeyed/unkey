@@ -61,12 +61,25 @@ spec:
             - name: tls-certs
               mountPath: /certs
               readOnly: true
-          readinessProbe:
+          startupProbe:
             httpGet:
-              path: /_unkey/internal/health
+              path: /health/startup
               port: 7070
             initialDelaySeconds: 5
             periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 7070
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 7070
+            periodSeconds: 5
+            failureThreshold: 3
       volumes:
         - name: tls-certs
           configMap:

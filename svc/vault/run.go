@@ -54,6 +54,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	mux.Handle(vaultv1connect.NewVaultServiceHandler(v))
 
+	r.RegisterHealth(mux)
+
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)
 	server := &http.Server{
 		Addr:              addr,
@@ -77,7 +79,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Wait for signal and handle shutdown
 	logger.Info("vault server started successfully")
-	if err := r.Run(ctx); err != nil {
+	if err := r.Wait(ctx); err != nil {
 		logger.Error("Shutdown failed", "error", err)
 		return err
 	}

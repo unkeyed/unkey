@@ -266,6 +266,12 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 		r.DeferCtx(httpSrv.Shutdown)
 
+		// Register health endpoints for Kubernetes probes
+		r.RegisterHealth(httpSrv.Mux())
+		r.AddReadinessCheck("database", func(ctx context.Context) error {
+			return db.RW().PingContext(ctx)
+		})
+
 		// Register only ACME challenge routes on HTTP server
 		routes.RegisterChallengeServer(httpSrv, svcs)
 
@@ -283,7 +289,7 @@ func Run(ctx context.Context, cfg Config) error {
 	logger.Info("Frontline server initialized", "region", cfg.Region, "apexDomain", cfg.ApexDomain)
 
 	// Wait for either OS signals or context cancellation, then shutdown
-	if err := r.Run(ctx); err != nil {
+	if err := r.Wait(ctx); err != nil {
 		return fmt.Errorf("shutdown failed: %w", err)
 	}
 

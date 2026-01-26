@@ -22,47 +22,62 @@ type ShutdownFunc func(ctx context.Context) error
 type CloseFunc func() error
 
 // Runner manages long-running goroutines and cleanup handlers.
-// It starts all registered goroutines, waits for OS signals or errors,
-// then triggers cleanup in reverse registration order.
+// Goroutines registered with Go() start immediately.
+// Run() blocks until OS signals or errors, then triggers cleanup.
 type Runner struct {
 	mu           sync.Mutex
-	tasks        []RunFunc
 	cleanups     []ShutdownFunc
 	running      bool
 	shuttingDown bool
+	health       *healthState
+
+	wg     sync.WaitGroup
+	errCh  chan error
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // New creates a new Runner.
 func New() *Runner {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &Runner{
 		mu:           sync.Mutex{},
-		tasks:        nil,
 		cleanups:     nil,
 		running:      false,
 		shuttingDown: false,
+		health:       newHealthState(),
+		wg:           sync.WaitGroup{},
+		errCh:        make(chan error, 1),
+		ctx:          ctx,
+		cancel:       cancel,
 	}
 }
 
-// Go registers a long-running goroutine to be started when Run is called.
+// Go starts a long-running goroutine immediately.
 // The function should return nil on clean exit or an error to trigger shutdown.
 // It must respect ctx cancellation for graceful stopping.
 func (r *Runner) Go(fn RunFunc) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.running || r.shuttingDown {
+	if r.shuttingDown {
 		return
 	}
-	r.tasks = append(r.tasks, fn)
+
+	r.wg.Go(func() {
+		err := fn(r.ctx)
+		if err != nil && !errors.Is(err, context.Canceled) {
+			select {
+			case r.errCh <- err:
+			default:
+			}
+		}
+	})
+
 }
 
 // Defer adds cleanup functions to be called during shutdown.
 // They are called in reverse order of registration.
 func (r *Runner) Defer(fns ...CloseFunc) {
-	r.Register(fns...)
-}
-
-// Register is an alias for Defer for compatibility with other interfaces.
-func (r *Runner) Register(fns ...CloseFunc) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.shuttingDown {
@@ -101,8 +116,9 @@ func (r *Runner) RegisterCtx(fns ...func(ctx context.Context) error) {
 
 // RunConfig configures the Run behavior.
 type RunConfig struct {
-	Timeout time.Duration
-	Signals []os.Signal
+	Timeout          time.Duration
+	Signals          []os.Signal
+	ReadinessTimeout time.Duration
 }
 
 // RunOption configures Run.
@@ -122,17 +138,18 @@ func WithSignals(sigs ...os.Signal) RunOption {
 	}
 }
 
-// Run starts all registered goroutines and blocks until:
+// Wait blocks until:
 // - An OS signal is received, OR
 // - The parent context is canceled, OR
 // - Any goroutine returns a non-nil error
 //
 // It then cancels all goroutines, runs cleanup handlers in reverse order,
 // and returns any errors.
-func (r *Runner) Run(ctx context.Context, opts ...RunOption) error {
+func (r *Runner) Wait(ctx context.Context, opts ...RunOption) error {
 	cfg := RunConfig{
-		Timeout: 30 * time.Second,
-		Signals: []os.Signal{syscall.SIGINT, syscall.SIGTERM},
+		Timeout:          30 * time.Second,
+		Signals:          []os.Signal{syscall.SIGINT, syscall.SIGTERM},
+		ReadinessTimeout: 0,
 	}
 	for _, o := range opts {
 		o(&cfg)
@@ -144,46 +161,29 @@ func (r *Runner) Run(ctx context.Context, opts ...RunOption) error {
 		return errors.New("runner is already running")
 	}
 	r.running = true
-	tasks := make([]RunFunc, len(r.tasks))
-	copy(tasks, r.tasks)
+	r.health.started.Store(true)
+	if cfg.ReadinessTimeout > 0 {
+		r.health.checkTimeout = cfg.ReadinessTimeout
+	}
 	r.mu.Unlock()
 
 	sigCtx, stop := signal.NotifyContext(ctx, cfg.Signals...)
 	defer stop()
 
-	runCtx, cancel := context.WithCancel(sigCtx)
-	defer cancel()
-
-	errCh := make(chan error, 1)
-	var wg sync.WaitGroup
-
-	for _, task := range tasks {
-		wg.Add(1)
-		go func(fn RunFunc) {
-			defer wg.Done()
-			if err := fn(runCtx); err != nil && !errors.Is(err, context.Canceled) {
-				select {
-				case errCh <- err:
-				default:
-				}
-			}
-		}(task)
-	}
-
 	var cause error
 	select {
 	case <-sigCtx.Done():
-	case cause = <-errCh:
+	case cause = <-r.errCh:
 	}
 
-	cancel()
+	r.cancel()
 
 	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), cfg.Timeout)
 	defer cancelShutdown()
 
 	shutdownErrs := r.shutdown(shutdownCtx)
 
-	wg.Wait()
+	r.wg.Wait()
 
 	if cause != nil && len(shutdownErrs) > 0 {
 		return errors.Join(append([]error{cause}, shutdownErrs...)...)
@@ -204,6 +204,7 @@ func (r *Runner) shutdown(ctx context.Context) []error {
 		return nil
 	}
 	r.shuttingDown = true
+	r.health.shuttingDown.Store(true)
 	cleanups := make([]ShutdownFunc, len(r.cleanups))
 	copy(cleanups, r.cleanups)
 	r.mu.Unlock()

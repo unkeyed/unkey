@@ -40,22 +40,25 @@ spec:
               value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
             - name: UNKEY_BEARER_TOKEN
               value: "vault-test-token-123"
-          livenessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - "wget --header='Content-Type: application/json' --post-data='{}' -qO- http://localhost:8060/vault.v1.VaultService/Liveness"
+          startupProbe:
+            httpGet:
+              path: /health/startup
+              port: 8060
             initialDelaySeconds: 5
-            periodSeconds: 10
-          readinessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - "wget --header='Content-Type: application/json' --post-data='{}' -qO- http://localhost:8060/vault.v1.VaultService/Liveness"
-            initialDelaySeconds: 2
             periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8060
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8060
+            periodSeconds: 5
+            failureThreshold: 3
           resources:
             requests:
               memory: "64Mi"

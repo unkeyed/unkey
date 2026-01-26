@@ -34,7 +34,7 @@ func TestRun_ExecutesTasks(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- r.Run(ctx, WithTimeout(100*time.Millisecond))
+		done <- r.Wait(ctx, WithTimeout(100*time.Millisecond))
 	}()
 
 	require.Eventually(t, func() bool {
@@ -63,7 +63,7 @@ func TestRun_StopsOnContextCancel(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- r.Run(ctx, WithTimeout(100*time.Millisecond))
+		done <- r.Wait(ctx, WithTimeout(100*time.Millisecond))
 	}()
 
 	time.Sleep(20 * time.Millisecond)
@@ -96,7 +96,7 @@ func TestRun_StopsOnTaskError(t *testing.T) {
 		return nil
 	})
 
-	err := r.Run(context.Background(), WithTimeout(time.Second))
+	err := r.Wait(context.Background(), WithTimeout(time.Second))
 
 	require.ErrorIs(t, err, taskErr)
 
@@ -116,12 +116,12 @@ func TestRun_CanOnlyRunOnce(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- r.Run(ctx, WithTimeout(100*time.Millisecond))
+		done <- r.Wait(ctx, WithTimeout(100*time.Millisecond))
 	}()
 
 	time.Sleep(20 * time.Millisecond)
 
-	err := r.Run(ctx, WithTimeout(100*time.Millisecond))
+	err := r.Wait(ctx, WithTimeout(100*time.Millisecond))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "already running")
 
@@ -137,7 +137,7 @@ func TestRun_EmptyRunner(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := r.Run(ctx, WithTimeout(100*time.Millisecond))
+	err := r.Wait(ctx, WithTimeout(100*time.Millisecond))
 	require.NoError(t, err)
 }
 
@@ -174,7 +174,7 @@ func TestRun_CleanupsExecutedInReverseOrder(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := r.Run(ctx, WithTimeout(100*time.Millisecond))
+	err := r.Wait(ctx, WithTimeout(100*time.Millisecond))
 	require.NoError(t, err)
 	require.Equal(t, []int{3, 2, 1}, order)
 }
@@ -193,7 +193,7 @@ func TestRun_CleanupsReceiveContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := r.Run(ctx, WithTimeout(500*time.Millisecond))
+	err := r.Wait(ctx, WithTimeout(500*time.Millisecond))
 	require.NoError(t, err)
 	require.NotNil(t, receivedCtx)
 }
@@ -231,7 +231,7 @@ func TestRun_ContinuesOnCleanupError(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := r.Run(ctx, WithTimeout(100*time.Millisecond))
+	err := r.Wait(ctx, WithTimeout(100*time.Millisecond))
 	require.Error(t, err)
 
 	mu.Lock()
@@ -255,7 +255,7 @@ func TestWithTimeout_SetsTimeout(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := r.Run(ctx, WithTimeout(50*time.Millisecond))
+	err := r.Wait(ctx, WithTimeout(50*time.Millisecond))
 	require.ErrorIs(t, err, context.DeadlineExceeded)
 
 	deadline, ok := cleanupCtx.Deadline()

@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "runner",
-    srcs = ["runner.go"],
+    srcs = [
+        "health.go",
+        "runner.go",
+    ],
     importpath = "github.com/unkeyed/unkey/pkg/runner",
     visibility = ["//visibility:public"],
 )
@@ -12,6 +15,7 @@ go_test(
     srcs = [
         "concurrency_test.go",
         "error_test.go",
+        "health_test.go",
         "run_test.go",
         "runner_test.go",
     ],

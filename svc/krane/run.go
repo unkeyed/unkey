@@ -139,10 +139,8 @@ func Run(ctx context.Context, cfg Config) error {
 	// Create the connect handler
 	mux := http.NewServeMux()
 
-	// Health check endpoint for load balancers and orchestrators
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	// Register health endpoints for Kubernetes probes
+	r.RegisterHealth(mux)
 
 	tokenValidator := token.NewK8sValidator(token.K8sValidatorConfig{
 		Clientset: clientset,
@@ -191,7 +189,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Wait for signal and handle shutdown
 	logger.Info("Krane server started successfully")
-	if err := r.Run(ctx); err != nil {
+	if err := r.Wait(ctx); err != nil {
 		logger.Error("Shutdown failed", "error", err)
 		return err
 	}

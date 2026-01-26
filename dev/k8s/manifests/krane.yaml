@@ -60,3 +60,22 @@ spec:
               value: "minio_root_password"
             - name: UNKEY_VAULT_MASTER_KEYS
               value: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
+          startupProbe:
+            httpGet:
+              path: /health/startup
+              port: 8070
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8070
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8070
+            periodSeconds: 5
+            failureThreshold: 3

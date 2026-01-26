@@ -20,7 +20,6 @@ go_library(
         "//pkg/otel/logging",
         "//pkg/prometheus",
         "//pkg/retry",
-        "//pkg/shutdown",
         "//pkg/tls",
         "//pkg/vault",
         "//pkg/vault/storage",

@@ -150,6 +150,14 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create server: %w", err)
 	}
 
+	// Register health endpoints early so probes work during init
+	r.RegisterHealth(srv.Mux())
+
+	// Add readiness check for database
+	r.AddReadinessCheck("database", func(ctx context.Context) error {
+		return db.RW().PingContext(ctx)
+	})
+
 	r.DeferCtx(srv.Shutdown)
 
 	validator, err := validation.New()
@@ -347,7 +355,7 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	// Wait for either OS signals or context cancellation, then shutdown
-	if err := r.Run(ctx, runner.WithTimeout(time.Minute)); err != nil {
+	if err := r.Wait(ctx, runner.WithTimeout(time.Minute)); err != nil {
 		logger.Error("Shutdown failed", "error", err)
 		return fmt.Errorf("shutdown failed: %w", err)
 	}
