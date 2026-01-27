@@ -11,6 +11,7 @@ go_library(
         "parser.go",
         "security.go",
         "styles.go",
+        "types.go",
         "validate_body.go",
         "validate_params.go",
         "validator.go",

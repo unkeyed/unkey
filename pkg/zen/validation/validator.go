@@ -3,7 +3,6 @@ package validation
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	"github.com/unkeyed/unkey/pkg/ctxutil"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -179,27 +178,6 @@ func (v *Validator) validateSecurity(r *http.Request, requirements []SecurityReq
 		return nil
 	}
 
-	// For bearer auth, provide detailed error messages
-	if v.requiresBearerAuth(requirements) {
-		return ValidateBearerAuth(r, requestID)
-	}
-
-	// For other auth types, use generic validation
+	// ValidateSecurity handles OR/AND semantics and provides detailed error messages
 	return ValidateSecurity(r, requirements, v.securitySchemes, requestID)
-}
-
-// requiresBearerAuth checks if the security requirements include HTTP bearer auth
-func (v *Validator) requiresBearerAuth(requirements []SecurityRequirement) bool {
-	for _, req := range requirements {
-		for schemeName := range req.Schemes {
-			scheme, exists := v.securitySchemes[schemeName]
-			if !exists {
-				continue
-			}
-			if scheme.Type == SecurityTypeHTTP && strings.ToLower(scheme.Scheme) == "bearer" {
-				return true
-			}
-		}
-	}
-	return false
 }
