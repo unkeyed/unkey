@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "clickhouseuser",
+    srcs = [
+        "configure_user_handler.go",
+        "doc.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//gen/proto/vault/v1:vault",
+        "//gen/proto/vault/v1/vaultv1connect",
+        "//pkg/clickhouse",
+        "//pkg/db",
+        "//pkg/otel/logging",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)

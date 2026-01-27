@@ -27,6 +27,7 @@ go_library(
         "//svc/ctrl/pkg/s3",
         "//svc/ctrl/services/acme/providers",
         "//svc/ctrl/worker/certificate",
+        "//svc/ctrl/worker/clickhouseuser",
         "//svc/ctrl/worker/deploy",
         "//svc/ctrl/worker/routing",
         "//svc/ctrl/worker/versioning",

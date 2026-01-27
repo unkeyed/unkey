@@ -27,6 +27,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/versioning"
@@ -211,6 +212,24 @@ func Run(ctx context.Context, cfg Config) error {
 		DNSProvider:   dnsProvider,
 		HTTPProvider:  httpProvider,
 	}), restate.WithInactivityTimeout(15*time.Minute)))
+
+	// ClickHouse user provisioning service (optional - requires admin URL)
+	if cfg.ClickhouseAdminURL != "" {
+		chAdmin, chAdminErr := clickhouse.New(clickhouse.Config{
+			URL:    cfg.ClickhouseAdminURL,
+			Logger: logger,
+		})
+		if chAdminErr != nil {
+			return fmt.Errorf("unable to create clickhouse admin client: %w", chAdminErr)
+		}
+		restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseuser.New(clickhouseuser.Config{
+			DB:         database,
+			Vault:      vaultClient,
+			Clickhouse: chAdmin,
+			Logger:     logger,
+		})))
+		logger.Info("ClickhouseUserService enabled")
+	}
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()
