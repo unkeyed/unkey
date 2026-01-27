@@ -1,12 +1,11 @@
 "use client";
 
 import { NavbarActionButton } from "@/components/navigation/action-button";
-import { collection } from "@/lib/collections";
+import { queryClient, trpcClient } from "@/lib/collections/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DuplicateKeyError } from "@tanstack/react-db";
 import { Plus } from "@unkey/icons";
-import { Button, DialogContainer, FormInput } from "@unkey/ui";
-import { useState } from "react";
+import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
+import { useState, useTransition } from "react";
 import type React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -29,6 +28,7 @@ export const CreateNamespaceButton = ({
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const {
     register,
@@ -42,21 +42,35 @@ export const CreateNamespaceButton = ({
   });
 
   const onSubmit = (values: FormValues) => {
-    try {
-      collection.ratelimitNamespaces.insert({
-        id: new Date().toISOString(),
-        name: values.name,
-      });
-      reset();
-      setIsOpen(false);
-    } catch (error) {
-      if (error instanceof DuplicateKeyError) {
-        setError("name", {
-          type: "custom",
-          message: "Namespace already exists",
+    startTransition(async () => {
+      try {
+        const mutation = trpcClient.ratelimit.namespace.create.mutate({
+          name: values.name,
         });
+
+        toast.promise(mutation, {
+          loading: "Creating namespace...",
+          success: "Namespace created",
+          error: (err) => ({
+            message: "Failed to create namespace",
+            description: err.message,
+          }),
+        });
+
+        await mutation;
+        await queryClient.invalidateQueries({ queryKey: ["ratelimitNamespaces"] });
+
+        reset();
+        setIsOpen(false);
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("already exists")) {
+          setError("name", {
+            type: "custom",
+            message: "Namespace already exists",
+          });
+        }
       }
-    }
+    });
   };
 
   return (
@@ -82,10 +96,10 @@ export const CreateNamespaceButton = ({
               form="create-namespace-form"
               variant="primary"
               size="xlg"
-              disabled={!isValid}
+              disabled={!isValid || isPending}
               className="w-full rounded-lg"
             >
-              Create Namespace
+              {isPending ? "Creating..." : "Create Namespace"}
             </Button>
             <div className="text-gray-9 text-xs">
               Namespaces can be used to separate different rate limiting concerns
