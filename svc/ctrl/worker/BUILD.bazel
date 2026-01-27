@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "config.go",
         "doc.go",
+        "restate.go",
         "run.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/worker",
@@ -23,8 +24,6 @@ go_library(
         "//pkg/retry",
         "//pkg/rpc/interceptor",
         "//pkg/shutdown",
-        "//pkg/uid",
-        "//pkg/zen",
         "//svc/ctrl/pkg/build",
         "//svc/ctrl/pkg/repofetch",
         "//svc/ctrl/pkg/s3",
@@ -37,9 +36,10 @@ go_library(
         "@com_connectrpc_connect//:connect",
         "@com_github_go_acme_lego_v4//challenge",
         "@com_github_restatedev_sdk_go//:sdk-go",
-        "@com_github_restatedev_sdk_go//ingress",
         "@com_github_restatedev_sdk_go//server",
         "@io_k8s_client_go//kubernetes",
         "@io_k8s_client_go//rest",
+        "@org_golang_x_net//http2",
+        "@org_golang_x_net//http2/h2c",
     ],
 )

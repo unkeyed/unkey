@@ -2,6 +2,7 @@ package zen
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -11,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	"encoding/json"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -345,7 +345,6 @@ func (s *Session) BindQuery(dst interface{}) error {
 					switch sliceType {
 					case reflect.String:
 						{
-
 							slice.Index(j).SetString(val)
 						}
 					case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:

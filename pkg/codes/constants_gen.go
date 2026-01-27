@@ -210,7 +210,7 @@ const (
 	// DeploymentDisabled represents a 503 error - all deployments are currently disabled
 	UnkeyFrontlineErrorsRoutingDeploymentDisabled URN = "err:unkey:service_unavailable:deployment_disabled"
 	// NoRunningInstances represents a 503 error - no deployments have running instances
-	UnkeyFrontlineErrorsRoutingNoRunningInstances URN = "err:unkey:service_unavailable:no_running_instances"
+	nkeyFrontlineErrorsRoutingNoRunningInstances URN = "err:unkey:service_unavailable:no_running_instances"
 
 	// Internal
 

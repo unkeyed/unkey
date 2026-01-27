@@ -1,4 +1,4 @@
-package main
+package repofetch
 
 import (
 	"archive/tar"
@@ -11,16 +11,18 @@ import (
 	"os"
 	"strings"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
-const defaultMaxSizeBytes = 10 * 1024 * 1024 * 1024 // 10GB
+const maxSizeBytes = 10 * 1024 * 1024 * 1024 // 10GB
 
 var Cmd = &cli.Command{
 	Name:        "repofetch",
 	Usage:       "Fetch a GitHub repository tarball and upload to S3",
-	Description: "Fetches a tarball from GitHub, strips the top-level directory, and streams to an S3 presigned URL.",
+	Description: "Fetches a tarball from GitHub and streams to an S3 presigned URL.",
 	Aliases:     []string{},
 	Version:     "",
 	Commands:    []*cli.Command{},
@@ -30,7 +32,6 @@ var Cmd = &cli.Command{
 		cli.String("repo", "GitHub repository (owner/repo)", cli.Required()),
 		cli.String("sha", "Git commit SHA or ref", cli.Required()),
 		cli.String("upload-url", "S3 presigned upload URL", cli.Required()),
-		cli.Int64("max-size-bytes", "Maximum tarball size in bytes", cli.Default(fmt.Sprintf("%d", defaultMaxSizeBytes))),
 	},
 	Action: runAction,
 }
@@ -42,11 +43,28 @@ func runAction(ctx context.Context, cmd *cli.Command) error {
 	repo := cmd.RequireString("repo")
 	sha := cmd.RequireString("sha")
 	uploadURL := cmd.RequireString("upload-url")
-	maxSizeBytes := cmd.Int64("max-size-bytes")
-	if maxSizeBytes == 0 {
-		maxSizeBytes = defaultMaxSizeBytes
-	}
 
+	pr, pw := io.Pipe()
+	defer func() {
+		if err := pw.Close(); err != nil {
+			logger.Error("unable to close write pipe", "error", err)
+		}
+	}()
+
+	eg, egCtx := errgroup.WithContext(ctx)
+
+	eg.Go(func() error {
+		return downloadAndRepackage(egCtx, logger, githubToken, repo, sha, pw)
+	})
+
+	eg.Go(func() error {
+		return uploadToS3(egCtx, logger, uploadURL, pr)
+	})
+
+	return eg.Wait()
+}
+
+func downloadAndRepackage(ctx context.Context, logger *slog.Logger, token, repo, sha string, dst io.Writer) error {
 	tarballURL := fmt.Sprintf("https://api.github.com/repos/%s/tarball/%s", repo, sha)
 	logger.Info("fetching tarball", "repo", repo, "sha", sha)
 
@@ -54,57 +72,44 @@ func runAction(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return fault.Wrap(err, fault.Internal("failed to create github request"))
 	}
-	req.Header.Set("Authorization", "Bearer "+githubToken)
+	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 
-	ghResp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fault.Wrap(err, fault.Internal("failed to fetch tarball from github"))
 	}
-	defer func() { _ = ghResp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
-	if ghResp.StatusCode != http.StatusOK {
-		return fault.New(fmt.Sprintf("github returned status %d", ghResp.StatusCode))
+	if resp.StatusCode != http.StatusOK {
+		return fault.New(fmt.Sprintf("github returned status %d", resp.StatusCode))
 	}
 
 	logger.Info("repackaging tarball to strip top-level directory")
+	return repackageTarball(resp.Body, dst, maxSizeBytes)
+}
 
-	pr, pw := io.Pipe()
-
-	errCh := make(chan error, 1)
-	go func() {
-		defer func() { _ = pw.Close() }()
-		if repackErr := repackageTarball(ghResp.Body, pw, maxSizeBytes); repackErr != nil {
-			errCh <- repackErr
-			return
-		}
-		errCh <- nil
-	}()
-
+func uploadToS3(ctx context.Context, logger *slog.Logger, uploadURL string, src io.Reader) error {
 	logger.Info("streaming repackaged tarball to s3")
 
-	uploadReq, err := http.NewRequestWithContext(ctx, http.MethodPut, uploadURL, pr)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, uploadURL, src)
 	if err != nil {
 		return fault.Wrap(err, fault.Internal("failed to create upload request"))
 	}
-	uploadReq.Header.Set("Content-Type", "application/gzip")
+	req.Header.Set("Content-Type", "application/gzip")
 
-	uploadResp, err := http.DefaultClient.Do(uploadReq)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fault.Wrap(err, fault.Internal("failed to upload to s3"))
 	}
-	defer func() { _ = uploadResp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
-	if repackErr := <-errCh; repackErr != nil {
-		return repackErr
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fault.New(fmt.Sprintf("s3 upload returned status %d", resp.StatusCode))
 	}
 
-	if uploadResp.StatusCode < 200 || uploadResp.StatusCode >= 300 {
-		return fault.New(fmt.Sprintf("s3 upload returned status %d", uploadResp.StatusCode))
-	}
-
-	logger.Info("upload complete", "status", uploadResp.StatusCode)
+	logger.Info("upload complete", "status", resp.StatusCode)
 	return nil
 }
 

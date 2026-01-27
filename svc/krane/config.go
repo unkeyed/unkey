@@ -4,28 +4,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 )
 
-// S3Config holds S3 configuration for vault storage.
-//
-// This configuration is used when the vault service needs to store encrypted
-// secrets in S3 for persistence and cross-node synchronization.
-type S3Config struct {
-	// URL is the S3 endpoint URL including protocol and region.
-	// Examples: "https://s3.amazonaws.com" or "https://s3.us-west-2.amazonaws.com".
-	URL string
-
-	// Bucket is the S3 bucket name where encrypted vault data is stored.
-	// The bucket must exist and be accessible with the provided credentials.
-	Bucket string
-
-	// AccessKeyID is the AWS access key ID for S3 authentication.
-	// Must have permissions to read and write objects in the specified bucket.
-	AccessKeyID string
-
-	// AccessKeySecret is the AWS secret access key for S3 authentication.
-	// Should be stored securely and rotated regularly.
-	AccessKeySecret string
-}
-
 // Config holds configuration for the krane agent server.
 //
 // This configuration defines how the krane agent connects to Kubernetes,
@@ -67,14 +45,13 @@ type Config struct {
 	// on all interfaces (0.0.0.0) on the specified port.
 	PrometheusPort int
 
-	// VaultMasterKeys are the encryption keys for vault operations.
-	// Required for decrypting environment variable secrets. At least one key
-	// must be provided when vault functionality is enabled.
-	VaultMasterKeys []string
+	// VaultURL is the URL of the remote vault service (e.g., http://vault:8080).
+	// Required for decrypting environment variable secrets.
+	VaultURL string
 
-	// VaultS3 configures S3 storage for encrypted vault data.
-	// Required when VaultMasterKeys are provided for persistent secrets storage.
-	VaultS3 S3Config
+	// VaultToken is the authentication token for the vault service.
+	// Used to authenticate requests to the vault API.
+	VaultToken string
 
 	// RPCPort specifies the port for the gRPC server that exposes krane APIs.
 	// The SchedulerService and optionally SecretsService are served on this port.

@@ -11,6 +11,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -151,7 +152,7 @@ func Run(ctx context.Context, cfg Config) error {
 	mux := http.NewServeMux()
 
 	// Health check endpoint for load balancers and orchestrators
-	mux.HandleFunc("/v1/liveness", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
@@ -245,6 +246,19 @@ func Run(ctx context.Context, cfg Config) error {
 			logger.Error("Server failed", "error", err)
 		}
 	}()
+
+	// Bootstrap certificates (wildcard domain and renewal cron)
+	if cfg.DefaultDomain != "" {
+		certBootstrap := &certificateBootstrap{
+			logger:             logger,
+			database:           database,
+			defaultDomain:      cfg.DefaultDomain,
+			regionalApexDomain: cfg.RegionalApexDomain,
+			regions:            cfg.AvailableRegions,
+			restateClient:      hydrav1.NewCertificateServiceIngressClient(restateClient, "global"),
+		}
+		go certBootstrap.run(ctx)
+	}
 
 	if cfg.PrometheusPort > 0 {
 		prom, promErr := prometheus.New(prometheus.Config{

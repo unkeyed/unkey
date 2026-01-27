@@ -21,5 +21,6 @@ func (h *Handler) Path() string {
 
 // Handle returns a simple 200 OK response for health checks
 func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
+	sess.DisableClickHouseLogging()
 	return sess.Plain(200, []byte("OK"))
 }
