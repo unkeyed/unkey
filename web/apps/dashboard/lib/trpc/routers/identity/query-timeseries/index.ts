@@ -17,8 +17,8 @@ import {
 // Note: granularity is auto-computed based on time range, not provided by caller
 export const identityTimeseriesPayload = z.object({
   identityId: z.string(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  startTime: z.int(),
+  endTime: z.int(),
   since: z.string().optional(),
   tags: z
     .array(

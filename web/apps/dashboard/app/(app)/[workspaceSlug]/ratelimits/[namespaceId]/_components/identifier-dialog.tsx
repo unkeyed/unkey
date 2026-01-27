@@ -7,6 +7,7 @@ import { DuplicateKeyError } from "@tanstack/react-db";
 import { Badge, Button, DialogContainer, FormInput } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type { PropsWithChildren } from "react";
+import type { Resolver } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import type { OverrideDetails } from "../types";
@@ -52,7 +53,7 @@ export const IdentifierDialog = ({
     formState: { errors, isSubmitting },
     setError,
   } = useForm<FormValues>({
-    resolver: zodResolver(overrideValidationSchema),
+    resolver: zodResolver(overrideValidationSchema) as Resolver<FormValues>,
     defaultValues: {
       identifier,
       limit: overrideDetails?.limit ?? 10,

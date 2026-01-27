@@ -16,8 +16,8 @@ import {
   NavigableDialogRoot,
   toast,
 } from "@unkey/ui";
-import { Suspense, useEffect, useState } from "react";
-import { FormProvider } from "react-hook-form";
+import { type FC, Suspense, useEffect, useState } from "react";
+import { FormProvider, type Resolver } from "react-hook-form";
 import { KeyCreatedSuccessDialog } from "./components/key-created-success-dialog";
 import { SectionLabel } from "./components/section-label";
 import { type DialogSectionName, SECTIONS } from "./create-key.constants";
@@ -55,7 +55,7 @@ export const CreateKeyDialog = ({
   const methods = usePersistedForm<FormValues>(
     FORM_STORAGE_KEY,
     {
-      resolver: zodResolver(formSchema),
+      resolver: zodResolver(formSchema) as Resolver<FormValues>,
       mode: "onChange",
       shouldFocusError: true,
       shouldUnregister: true,

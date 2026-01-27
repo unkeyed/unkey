@@ -42,9 +42,7 @@ if (allFilterFieldNames.length === 0) {
   throw new Error("keysListFilterFieldConfig must contain at least one field definition.");
 }
 
-const [firstFieldName, ...restFieldNames] = allFilterFieldNames;
-
-export const keysListFilterFieldEnum = z.enum([firstFieldName, ...restFieldNames]);
+export const keysListFilterFieldEnum = z.enum(["keyIds", "names", "identities", "tags"]);
 
 export const keysListFilterFieldNames = allFilterFieldNames;
 

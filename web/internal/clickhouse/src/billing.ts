@@ -21,11 +21,11 @@ export function getBillableRatelimits(ch: Querier) {
     `,
       params: z.object({
         workspaceId: z.string(),
-        year: z.number().int(),
-        month: z.number().int().min(1).max(12),
+        year: z.int(),
+        month: z.int().min(1).max(12),
       }),
       schema: z.object({
-        count: z.number().int(),
+        count: z.int(),
       }),
     });
 
@@ -56,11 +56,11 @@ export function getBillableVerifications(ch: Querier) {
     `,
       params: z.object({
         workspaceId: z.string(),
-        year: z.number().int(),
-        month: z.number().int().min(1).max(12),
+        year: z.int(),
+        month: z.int().min(1).max(12),
       }),
       schema: z.object({
-        count: z.number().int(),
+        count: z.int(),
       }),
     });
 

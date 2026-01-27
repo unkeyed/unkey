@@ -31,7 +31,7 @@ export const namespaceListInputSchema = z
   .object({
     cursor: cursor.optional(),
   })
-  .merge(z.object(filterFields));
+  .extend(z.object(filterFields).shape);
 
 export type NamespaceListInputSchema = z.infer<typeof namespaceListInputSchema>;
 

@@ -2,9 +2,9 @@ import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
 
 export const keyDetailsLogsPayload = z.object({
-  limit: z.number().int(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  limit: z.int(),
+  startTime: z.int(),
+  endTime: z.int(),
   keyspaceId: z.string(),
   keyId: z.string(),
   since: z.string(),

@@ -2,9 +2,9 @@ import { z } from "zod";
 import { ratelimitFilterOperatorEnum } from "../../filters.schema";
 
 export const ratelimitQueryLogsPayload = z.object({
-  limit: z.number().int(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  limit: z.int(),
+  startTime: z.int(),
+  endTime: z.int(),
   namespaceId: z.string(),
   since: z.string(),
   identifiers: z

@@ -20,9 +20,11 @@ export function UpdateWorkspaceName() {
     workspaceName: z
       .string()
       .trim()
-      .min(3, { message: "Workspace name must be at least 3 characters long" })
+      .min(3, {
+        error: "Workspace name must be at least 3 characters long",
+      })
       .max(50, {
-        message: "Workspace name must be less than 50 characters long",
+        error: "Workspace name must be less than 50 characters long",
       }),
   });
 

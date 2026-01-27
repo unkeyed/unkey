@@ -4,14 +4,14 @@ import { z } from "zod";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 const SearchWithRelationsInput = z.object({
-  search: z.string().optional().default(""),
-  limit: z.number().optional().default(50),
+  search: z.string().optional().prefault(""),
+  limit: z.number().optional().prefault(50),
 });
 
 const IdentityWithRelationsSchema = z.object({
   id: z.string(),
   externalId: z.string(),
-  meta: z.record(z.unknown()).nullable(),
+  meta: z.record(z.string(), z.unknown()).nullable(),
   ratelimits: z.array(
     z.object({
       id: z.string(),
