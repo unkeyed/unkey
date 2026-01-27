@@ -2,7 +2,6 @@
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Cloud, Earth, FolderCloud, Page2 } from "@unkey/icons";
-import type { ReactNode } from "react";
 import { DeploymentLogsContent } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-content";
 import { DeploymentLogsTrigger } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-trigger";
 import { DeploymentLogsProvider } from "./(overview)/details/active-deployment-card-logs/providers/deployment-logs-provider";
@@ -12,6 +11,7 @@ import { useProject } from "./(overview)/layout-provider";
 import { ActiveDeploymentCard } from "./components/active-deployment-card";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import { ProjectContentWrapper } from "./components/project-content-wrapper";
+import { Section, SectionHeader } from "./components/section";
 
 export default function ProjectDetails() {
   const { projectId, collections } = useProject();
@@ -111,17 +111,4 @@ export default function ProjectDetails() {
       </Section>
     </ProjectContentWrapper>
   );
-}
-
-function SectionHeader({ icon, title }: { icon: ReactNode; title: string }) {
-  return (
-    <div className="flex items-center gap-2.5 py-1.5 px-2">
-      {icon}
-      <div className="text-accent-12 font-medium text-[13px] leading-4">{title}</div>
-    </div>
-  );
-}
-
-function Section({ children }: { children: ReactNode }) {
-  return <div className="flex flex-col gap-1">{children}</div>;
 }

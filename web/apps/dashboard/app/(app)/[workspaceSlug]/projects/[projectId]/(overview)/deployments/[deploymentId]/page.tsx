@@ -3,36 +3,26 @@
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import {
   Bolt,
-  ChevronExpandY,
   Cloud,
   Grid,
   Harddrive,
-  type IconProps,
   Layers2,
   Layers3,
   LayoutRight,
   TimeClock,
 } from "@unkey/icons";
-import {
-  Button,
-  InfoTooltip,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@unkey/ui";
+import { Button, InfoTooltip } from "@unkey/ui";
 import { useParams } from "next/navigation";
-import type { ComponentType, ReactNode } from "react";
 import { ActiveDeploymentCard } from "../../../components/active-deployment-card";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
 import { InfoChip } from "../../../components/info-chip";
 import { ProjectContentWrapper } from "../../../components/project-content-wrapper";
+import { Section, SectionHeader } from "../../../components/section";
 import { Card } from "../../components/card";
 import { useProject } from "../../layout-provider";
+import { MetricCard } from "./(overview)/components/metrics/metric-card";
 import { DeploymentSentinelLogsTable } from "./(overview)/components/table/deployment-sentinel-logs-table";
 import { DeploymentNetworkView } from "./network/deployment-network-view";
-import { LogsTimeseriesBarChart } from "./network/unkey-flow/components/overlay/node-details-panel/components/chart";
 import { generateRealisticChartData } from "./network/unkey-flow/components/overlay/node-details-panel/utils";
 
 const baseConfig = {
@@ -207,157 +197,5 @@ export default function DeploymentOverview() {
         </Card>
       </Section>
     </ProjectContentWrapper>
-  );
-}
-
-function SectionHeader({ icon, title }: { icon: ReactNode; title: string }) {
-  return (
-    <div className="flex items-center gap-2.5 py-1.5 px-2">
-      {icon}
-      <div className="text-accent-12 font-medium text-[13px] leading-4">{title}</div>
-    </div>
-  );
-}
-
-function Section({ children }: { children: ReactNode }) {
-  return <div className="flex flex-col gap-1">{children}</div>;
-}
-
-type MetricType = "latency" | "cpu" | "memory" | "storage";
-
-type MetricConfig = {
-  label: string;
-  color: string;
-  unit: string;
-  percentiles?: string[];
-};
-
-const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
-  latency: {
-    label: "Latency",
-    color: "hsl(var(--bronze-8))",
-    unit: "ms",
-    percentiles: ["p50", "p75", "p90", "p95", "p99"],
-  },
-  cpu: {
-    label: "CPU",
-    color: "hsl(var(--feature-8))",
-    unit: "%",
-  },
-  memory: {
-    label: "Memory",
-    color: "hsl(var(--info-8))",
-    unit: "%",
-  },
-  storage: {
-    label: "Storage",
-    color: "hsl(var(--cyan-8))",
-    unit: "%",
-  },
-};
-
-type MetricSelectProps = {
-  label: string;
-  value: string;
-  options: string[];
-  onValueChange?: (value: string) => void;
-};
-
-function MetricSelect({ label, value, options, onValueChange }: MetricSelectProps) {
-  return (
-    <Select defaultValue={value} onValueChange={onValueChange}>
-      <SelectTrigger
-        className="bg-transparent rounded-full flex items-center gap-1.5 border-0 h-auto !min-h-0 !p-0 focus:border-none focus:ring-0 hover:bg-grayA-2 transition-colors justify-normal "
-        rightIcon={<ChevronExpandY className="text-accent-8 size-3.5" />}
-      >
-        <span className="text-gray-11 text-xs">{label}</span>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent className="min-w-[80px]">
-        {options.map((option) => (
-          <SelectItem
-            key={option}
-            value={option}
-            className="cursor-pointer hover:bg-grayA-3 data-[highlighted]:bg-grayA-2 font-mono font-medium text-sm"
-          >
-            {option}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
-type MetricCardProps = {
-  icon: ComponentType<IconProps>;
-  metricType: MetricType;
-  currentValue: number;
-  secondaryValue?: {
-    numeric: number;
-    unit: string;
-  };
-  chartData: any;
-  percentile?: string;
-  onPercentileChange?: (value: string) => void;
-};
-
-function MetricCard({
-  icon: Icon,
-  metricType,
-  currentValue,
-  secondaryValue,
-  chartData,
-  percentile,
-  onPercentileChange,
-}: MetricCardProps) {
-  const config = METRIC_CONFIGS[metricType];
-
-  return (
-    <div className="border border-gray-4 w-full h-28 rounded-xl flex flex-col">
-      <div className="flex items-center w-full pt-[14px] px-[14px]">
-        <div className="flex items-center w-full gap-1">
-          <div className="flex items-center justify-center rounded-md bg-grayA-3 text-gray-12 size-5">
-            <Icon iconSize="sm-regular" className="shrink-0" />
-          </div>
-          {config.percentiles && percentile ? (
-            <MetricSelect
-              label={config.label}
-              value={percentile}
-              options={config.percentiles}
-              onValueChange={onPercentileChange}
-            />
-          ) : (
-            <span className="text-gray-11 text-xs">{config.label}</span>
-          )}
-        </div>
-        <div className="ml-auto tabular-nums">
-          <span className="text-grayA-12 font-medium text-xs">{currentValue}</span>
-          <span className="text-grayA-9 text-xs">{config.unit}</span>
-          {secondaryValue && (
-            <>
-              <span className="text-grayA-12 font-medium text-xs ml-1">
-                {secondaryValue.numeric}
-              </span>
-              <span className="text-grayA-9 text-xs">{secondaryValue.unit}</span>
-            </>
-          )}
-        </div>
-      </div>
-      <div className="mt-1.5">
-        <LogsTimeseriesBarChart
-          chartContainerClassname="px-[14px] border-gray-4"
-          data={chartData.data}
-          config={{
-            [chartData.dataKey]: {
-              label: config.label,
-              color: config.color,
-            },
-          }}
-          height={48}
-          isLoading={false}
-          isError={false}
-        />
-      </div>
-    </div>
   );
 }
