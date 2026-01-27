@@ -36,12 +36,12 @@ message ConfigureUserRequest {
   string workspace_id = 1;
 
   // Optional quota overrides - if not set, uses defaults from service
-  optional int32 quota_duration_seconds = 2;       // default: 3600 (1 hour)
-  optional int32 max_queries_per_window = 3;       // default: 1000
+  optional int32 quota_duration_seconds = 2; // default: 3600 (1 hour)
+  optional int32 max_queries_per_window = 3; // default: 1000
   optional int32 max_execution_time_per_window = 4; // default: 1800 (30 min)
-  optional int32 max_query_execution_time = 5;     // default: 30 (seconds)
-  optional int64 max_query_memory_bytes = 6;       // default: 1000000000 (1GB)
-  optional int32 max_query_result_rows = 7;        // default: 10000000
+  optional int32 max_query_execution_time = 5; // default: 30 (seconds)
+  optional int64 max_query_memory_bytes = 6; // default: 1000000000 (1GB)
+  optional int32 max_query_result_rows = 7; // default: 10000000
 }
 
 message ConfigureUserResponse {
