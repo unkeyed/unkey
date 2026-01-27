@@ -82,12 +82,13 @@ export const vercelIntegrationEnv = () =>
   vercelIntegrationParsed.success ? vercelIntegrationParsed.data : null;
 
 export const githubAppSchema = z.object({
-  GITHUB_APP_ID: z.string(),
+  GITHUB_APP_ID: z.string(), // needs to be a single line, with \n
   GITHUB_APP_PRIVATE_KEY: z.string().transform((s) => s.replace(/\\n/g, "\n")),
 });
 
 const githubAppParsed = githubAppSchema.safeParse(process.env);
-export const githubAppEnv = () => (githubAppParsed.success ? githubAppParsed.data : null);
+export const githubAppEnv = () =>
+  githubAppParsed.success ? githubAppParsed.data : null;
 
 const stripeSchema = z.object({
   STRIPE_SECRET_KEY: z.string(),
@@ -98,4 +99,5 @@ const stripeSchema = z.object({
 });
 
 const stripeParsed = stripeSchema.safeParse(process.env);
-export const stripeEnv = () => (stripeParsed.success ? stripeParsed.data : null);
+export const stripeEnv = () =>
+  stripeParsed.success ? stripeParsed.data : null;
