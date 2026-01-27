@@ -49,7 +49,7 @@ spec:
             - name: UNKEY_REGION
               value: "local"
             - name: CTRL_URL
-              value: "http://ctrl:7091"
+              value: "http://ctrl-api:7091"
             - name: CTRL_API_KEY
               value: "your-local-dev-key"
             # Agent configuration

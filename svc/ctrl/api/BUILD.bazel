@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "api",
     srcs = [
+        "certificate.go",
         "config.go",
         "doc.go",
         "run.go",
@@ -11,6 +12,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//gen/proto/hydra/v1:hydra",
         "//pkg/cache",
         "//pkg/clock",
         "//pkg/db",
@@ -19,6 +21,7 @@ go_library(
         "//pkg/prometheus",
         "//pkg/shutdown",
         "//pkg/tls",
+        "//pkg/uid",
         "//pkg/version",
         "//svc/ctrl/pkg/s3",
         "//svc/ctrl/services/acme",
