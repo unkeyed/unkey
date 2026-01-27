@@ -1,81 +1,54 @@
 type: object
 required:
-  - keyId
-  - operation
+    - keyId
+    - operation
 properties:
-  keyId:
-    type: string
-    description: The ID of the key to update (begins with `key_`). This is the
-      database reference ID for the key, not the actual API key string that
-      users authenticate with. This ID uniquely identifies which key's credits
-      will be updated.
-    example: key_2cGKbMxRyIzhCxo1Idjz8q
-    minLength: 3
-  value:
-    type:
-      - integer
-      - "null"
-    format: int64
-    minimum: 0
-    maximum: 9223372036854775807
-    description: |
-      The credit value to use with the specified operation. The meaning depends on the operation: for 'set', this becomes the new remaining credits value; for 'increment', this amount is added to current credits; for 'decrement', this amount is subtracted from current credits.
+    keyId:
+        type: string
+        description: The ID of the key to update (begins with `key_`). This is the database reference ID for the key, not the actual API key string that users authenticate with. This ID uniquely identifies which key's credits will be updated.
+        example: key_2cGKbMxRyIzhCxo1Idjz8q
+        minLength: 3
+    value:
+        type:
+            - integer
+            - "null"
+        format: int64
+        minimum: 0
+        maximum: 9223372036854775807
+        description: |
+            The credit value to use with the specified operation. The meaning depends on the operation: for 'set', this becomes the new remaining credits value; for 'increment', this amount is added to current credits; for 'decrement', this amount is subtracted from current credits.
 
-      Set to null when using 'set' operation to make the key unlimited (removes usage restrictions entirely). When decrementing, if the result would be negative, remaining credits are automatically set to zero. Credits are consumed during successful key verification, and when credits reach zero, verification fails with `code=USAGE_EXCEEDED`.
+            Set to null when using 'set' operation to make the key unlimited (removes usage restrictions entirely). When decrementing, if the result would be negative, remaining credits are automatically set to zero. Credits are consumed during successful key verification, and when credits reach zero, verification fails with `code=USAGE_EXCEEDED`.
 
-      Required when using 'increment' or 'decrement' operations. Optional for 'set' operation (null creates unlimited usage).
-    example: 1000
-  operation:
-    type: string
-    enum:
-      - set
-      - increment
-      - decrement
-    x-speakeasy-unknown-values: allow
-    description: |
-      Defines how to modify the key's remaining credits. Use 'set' to replace current credits with a specific value or unlimited usage, 'increment' to add credits for plan upgrades or credit purchases, and 'decrement' to reduce credits for refunds or policy violations.
-    example: set
+            Required when using 'increment' or 'decrement' operations. Optional for 'set' operation (null creates unlimited usage).
+        example: 1000
+    operation:
+        type: string
+        enum:
+            - set
+            - increment
+            - decrement
+        x-speakeasy-unknown-values: allow
+        description: |
+            Defines how to modify the key's remaining credits. Use 'set' to replace current credits with a specific value or unlimited usage, 'increment' to add credits for plan upgrades or credit purchases, and 'decrement' to reduce credits for refunds or policy violations.
+        example: set
 additionalProperties: false
 examples:
-  planUpgrade:
-    summary: Upgrade user to higher credit tier
-    description: Increase credits when user upgrades to a higher-tier plan
-    value:
-      keyId: key_1234abcd
+    - keyId: key_1234abcd
       operation: set
       value: 10000
-  creditPurchase:
-    summary: Add purchased credits to existing balance
-    description: User bought additional credits to add to their current quota
-    value:
-      keyId: key_5678efgh
+    - keyId: key_5678efgh
       operation: increment
       value: 5000
-  unlimitedUpgrade:
-    summary: Upgrade to unlimited usage plan
-    description: Remove credit restrictions for enterprise tier users
-    value:
-      keyId: key_9876wxyz
+    - keyId: key_9876wxyz
       operation: set
       value: null
-  billingCycleReset:
-    summary: Reset monthly quota at billing cycle
-    description: Refresh user's monthly credit allocation
-    value:
-      keyId: key_cycle_abcd
+    - keyId: key_cycle_abcd
       operation: set
       value: 25000
-  policyViolation:
-    summary: Reduce credits for policy violation
-    description: Subtract credits as penalty for terms of service violation
-    value:
-      keyId: key_violation_123
+    - keyId: key_violation_123
       operation: decrement
       value: 1000
-  refundCredits:
-    summary: Refund unused credits
-    description: Remove credits when processing a partial refund
-    value:
-      keyId: key_refund_789
+    - keyId: key_refund_789
       operation: decrement
       value: 3000

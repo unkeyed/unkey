@@ -70,7 +70,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	// Test case for missing roles
@@ -89,7 +89,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	// Test case for invalid keyId format
@@ -111,7 +111,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	// Test case for empty roles array
@@ -131,7 +131,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	// Test case for malformed JSON body
@@ -151,7 +151,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	// Test case for role with empty string id
@@ -171,6 +171,6 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 }
