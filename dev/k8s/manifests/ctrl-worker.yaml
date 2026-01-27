@@ -115,6 +115,7 @@ spec:
               value: "repofetch:latest"
 
             # GitHub App Configuration (from github-app-credentials secret)
+            # ctrl-worker needs app ID and private key to generate installation tokens
             - name: UNKEY_GITHUB_APP_ID
               valueFrom:
                 secretKeyRef:

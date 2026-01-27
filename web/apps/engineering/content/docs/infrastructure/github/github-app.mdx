@@ -189,13 +189,22 @@ For local development:
 
 The control plane (ctrl-api and ctrl-worker) handles GitHub push webhooks to trigger automatic deployments.
 
-### Environment Variables (ctrl-api / ctrl-worker)
+### Environment Variables
+
+**ctrl-api** (webhook receiver):
+
+| Variable | Description |
+|----------|-------------|
+| `GITHUB_APP_WEBHOOK_SECRET` | Secret for verifying webhook signatures |
+
+**ctrl-worker** (workflow executor):
 
 | Variable | Description |
 |----------|-------------|
 | `GITHUB_APP_ID` | The GitHub App's numeric ID |
 | `GITHUB_APP_PRIVATE_KEY` | The private key (PEM format) |
-| `GITHUB_APP_WEBHOOK_SECRET` | Secret for verifying webhook signatures |
+
+ctrl-api only verifies webhook signatures—it doesn't call the GitHub API. ctrl-worker generates JWTs to authenticate with GitHub and fetch installation access tokens.
 
 ### Webhook Flow
 

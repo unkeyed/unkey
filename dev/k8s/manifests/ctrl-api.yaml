@@ -90,16 +90,7 @@ spec:
               value: "your-local-dev-key"
 
             # GitHub App Configuration (from github-app-credentials secret)
-            - name: UNKEY_GITHUB_APP_ID
-              valueFrom:
-                secretKeyRef:
-                  name: github-app-credentials
-                  key: UNKEY_GITHUB_APP_ID
-            - name: UNKEY_GITHUB_APP_PRIVATE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: github-app-credentials
-                  key: UNKEY_GITHUB_APP_PRIVATE_KEY
+            # ctrl-api only needs the webhook secret for signature verification
             - name: UNKEY_GITHUB_WEBHOOK_SECRET
               valueFrom:
                 secretKeyRef:
