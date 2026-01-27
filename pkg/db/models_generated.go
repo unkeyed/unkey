@@ -954,8 +954,8 @@ type GithubAppInstallation struct {
 	Pk                 uint64        `db:"pk"`
 	ID                 string        `db:"id"`
 	ProjectID          string        `db:"project_id"`
-	InstallationID     string        `db:"installation_id"`
-	RepositoryID       string        `db:"repository_id"`
+	InstallationID     int64         `db:"installation_id"`
+	RepositoryID       int64         `db:"repository_id"`
 	RepositoryFullName string        `db:"repository_full_name"`
 	CreatedAt          int64         `db:"created_at"`
 	UpdatedAt          sql.NullInt64 `db:"updated_at"`

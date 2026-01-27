@@ -3,23 +3,126 @@ package github
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
 
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/github"
+	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
-// maxWebhookBodySize limits webhook payload size to prevent DoS attacks.
-// GitHub webhook payloads are typically small (under 100KB), so 2MB is generous.
 const maxWebhookBodySize = 2 * 1024 * 1024 // 2 MB
 
-// PushPayload represents the GitHub push event payload.
-type PushPayload struct {
-	Ref        string `json:"ref"`
-	After      string `json:"after"`
+// Webhook handles GitHub webhook HTTP requests and triggers Restate workflows.
+type Webhook struct {
+	db            db.Database
+	logger        logging.Logger
+	restate       *restateingress.Client
+	webhookSecret string
+}
+
+// WebhookConfig holds the configuration for creating a new GitHub webhook service.
+type WebhookConfig struct {
+	DB            db.Database
+	Logger        logging.Logger
+	Restate       *restateingress.Client
+	WebhookSecret string
+}
+
+// NewWebhook creates a new GitHub webhook service.
+func NewWebhook(cfg WebhookConfig) (*Webhook, error) {
+	if cfg.WebhookSecret == "" {
+		return nil, errors.New("webhook secret is required")
+	}
+	return &Webhook{
+		db:            cfg.DB,
+		logger:        cfg.Logger,
+		restate:       cfg.Restate,
+		webhookSecret: cfg.WebhookSecret,
+	}, nil
+}
+
+// Handler returns an http.Handler that processes GitHub webhook events.
+func (s *Webhook) Handler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.logger.Info("GitHub webhook request received",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"remote_addr", r.RemoteAddr,
+		)
+
+		if r.Method != http.MethodPost {
+			s.logger.Warn("GitHub webhook rejected: method not allowed", "method", r.Method)
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		event := r.Header.Get("X-GitHub-Event")
+		if event == "" {
+			http.Error(w, "missing X-GitHub-Event header", http.StatusBadRequest)
+			return
+		}
+
+		signature := r.Header.Get("X-Hub-Signature-256")
+		if signature == "" {
+			s.logger.Warn("GitHub webhook rejected: missing signature header")
+			http.Error(w, "missing X-Hub-Signature-256 header", http.StatusUnauthorized)
+			return
+		}
+
+		r.Body = http.MaxBytesReader(w, r.Body, maxWebhookBodySize)
+
+		body := make([]byte, 0, 64*1024)
+		buf := make([]byte, 32*1024)
+		for {
+			n, err := r.Body.Read(buf)
+			if n > 0 {
+				body = append(body, buf[:n]...)
+			}
+			if err != nil {
+				if err.Error() == "http: request body too large" {
+					s.logger.Warn("GitHub webhook rejected: payload too large")
+					http.Error(w, "payload too large", http.StatusRequestEntityTooLarge)
+					return
+				}
+				break
+			}
+		}
+
+		if !VerifyWebhookSignature(body, signature, s.webhookSecret) {
+			s.logger.Warn("GitHub webhook rejected: invalid signature")
+			http.Error(w, "invalid signature", http.StatusUnauthorized)
+			return
+		}
+
+		s.logger.Info("GitHub webhook signature verified", "event", event)
+
+		switch event {
+		case "push":
+			s.handlePush(r.Context(), w, body)
+		case "installation":
+			s.logger.Info("Installation event received")
+			w.WriteHeader(http.StatusOK)
+		default:
+			s.logger.Info("Unhandled event type", "event", event)
+			w.WriteHeader(http.StatusOK)
+		}
+	})
+}
+
+func (s *Webhook) githubClient(projectID string) hydrav1.GitHubServiceIngressClient {
+	return hydrav1.NewGitHubServiceIngressClient(s.restate, projectID)
+}
+
+type pushPayload struct {
+	Ref          string `json:"ref"`
+	After        string `json:"after"`
+	Installation struct {
+		ID int64 `json:"id"`
+	} `json:"installation"`
 	Repository struct {
 		ID       int64  `json:"id"`
 		FullName string `json:"full_name"`
@@ -48,79 +151,8 @@ type PushPayload struct {
 	} `json:"sender"`
 }
 
-// WebhookHandler returns an http.Handler that processes GitHub webhook events.
-// All requests MUST have a valid X-Hub-Signature-256 header - unsigned requests are rejected.
-func (s *Service) WebhookHandler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.logger.Info("GitHub webhook request received",
-			"method", r.Method,
-			"path", r.URL.Path,
-			"remote_addr", r.RemoteAddr,
-		)
-
-		if r.Method != http.MethodPost {
-			s.logger.Warn("GitHub webhook rejected: method not allowed", "method", r.Method)
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		event := r.Header.Get("X-GitHub-Event")
-		if event == "" {
-			http.Error(w, "missing X-GitHub-Event header", http.StatusBadRequest)
-			return
-		}
-
-		signature := r.Header.Get("X-Hub-Signature-256")
-		if signature == "" {
-			s.logger.Warn("GitHub webhook rejected: missing signature header")
-			http.Error(w, "missing X-Hub-Signature-256 header", http.StatusUnauthorized)
-			return
-		}
-
-		// Limit body size to prevent DoS attacks
-		r.Body = http.MaxBytesReader(w, r.Body, maxWebhookBodySize)
-
-		body := make([]byte, 0, 64*1024) // Pre-allocate 64KB, typical payload size
-		buf := make([]byte, 32*1024)
-		for {
-			n, err := r.Body.Read(buf)
-			if n > 0 {
-				body = append(body, buf[:n]...)
-			}
-			if err != nil {
-				if err.Error() == "http: request body too large" {
-					s.logger.Warn("GitHub webhook rejected: payload too large")
-					http.Error(w, "payload too large", http.StatusRequestEntityTooLarge)
-					return
-				}
-				break // EOF or other error
-			}
-		}
-
-		// Always verify signature - this is mandatory, not optional
-		if !github.VerifyWebhookSignature(body, signature, s.webhookSecret) {
-			s.logger.Warn("GitHub webhook rejected: invalid signature")
-			http.Error(w, "invalid signature", http.StatusUnauthorized)
-			return
-		}
-
-		s.logger.Info("GitHub webhook signature verified", "event", event)
-
-		switch event {
-		case "push":
-			s.handlePush(r.Context(), w, body)
-		case "installation":
-			s.logger.Info("Installation event received")
-			w.WriteHeader(http.StatusOK)
-		default:
-			s.logger.Info("Unhandled event type", "event", event)
-			w.WriteHeader(http.StatusOK)
-		}
-	})
-}
-
-func (s *Service) handlePush(ctx context.Context, w http.ResponseWriter, body []byte) {
-	var payload PushPayload
+func (s *Webhook) handlePush(ctx context.Context, w http.ResponseWriter, body []byte) {
+	var payload pushPayload
 	if err := json.Unmarshal(body, &payload); err != nil {
 		s.logger.Error("failed to parse push payload", "error", err)
 		http.Error(w, "failed to parse push payload", http.StatusBadRequest)
@@ -134,7 +166,10 @@ func (s *Service) handlePush(ctx context.Context, w http.ResponseWriter, body []
 		return
 	}
 
-	installation, err := db.Query.FindGithubInstallationByRepo(ctx, s.db.RO(), payload.Repository.FullName)
+	installation, err := db.Query.FindGithubInstallationByRepo(ctx, s.db.RO(), db.FindGithubInstallationByRepoParams{
+		InstallationID: payload.Installation.ID,
+		RepositoryID:   payload.Repository.ID,
+	})
 	if err != nil {
 		if db.IsNotFound(err) {
 			s.logger.Info("No installation found for repository", "repository", payload.Repository.FullName)
@@ -158,8 +193,6 @@ func (s *Service) handlePush(ctx context.Context, w http.ResponseWriter, body []
 		return
 	}
 
-	commitSHA := payload.After
-
 	defaultBranch := "main"
 	if project.DefaultBranch.Valid && project.DefaultBranch.String != "" {
 		defaultBranch = project.DefaultBranch.String
@@ -168,20 +201,18 @@ func (s *Service) handlePush(ctx context.Context, w http.ResponseWriter, body []
 	s.logger.Info("Starting deployment workflow for push",
 		"repository", payload.Repository.FullName,
 		"projectId", project.ID,
-		"commitSha", commitSHA,
+		"commitSha", payload.After,
 		"branch", branch,
 		"default_branch", defaultBranch,
 	)
-
-	gitCommit := buildGitCommitInfo(&payload, branch)
 
 	req := &hydrav1.HandlePushRequest{
 		InstallationId:     installation.InstallationID,
 		RepositoryFullName: payload.Repository.FullName,
 		Ref:                payload.Ref,
-		CommitSha:          commitSHA,
+		CommitSha:          payload.After,
 		ProjectId:          project.ID,
-		GitCommit:          gitCommit,
+		GitCommit:          s.buildGitCommitInfo(&payload, branch),
 		DefaultBranch:      defaultBranch,
 	}
 
@@ -196,7 +227,7 @@ func (s *Service) handlePush(ctx context.Context, w http.ResponseWriter, body []
 		"invocation_id", invocation.Id,
 		"project_id", project.ID,
 		"repository", payload.Repository.FullName,
-		"commit_sha", commitSHA,
+		"commit_sha", payload.After,
 	)
 
 	w.WriteHeader(http.StatusOK)
@@ -210,7 +241,7 @@ func extractBranchFromRef(ref string) string {
 	return strings.TrimPrefix(ref, prefix)
 }
 
-func buildGitCommitInfo(payload *PushPayload, branch string) *hydrav1.GitCommitInfo {
+func (s *Webhook) buildGitCommitInfo(payload *pushPayload, branch string) *hydrav1.GitCommitInfo {
 	headCommit := payload.HeadCommit
 	if headCommit == nil && len(payload.Commits) > 0 {
 		c := payload.Commits[0]

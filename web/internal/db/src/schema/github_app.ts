@@ -7,8 +7,8 @@ export const githubAppInstallations = mysqlTable("github_app_installations", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
   id: varchar("id", { length: 256 }).notNull().unique(),
   projectId: varchar("project_id", { length: 64 }).notNull().unique(),
-  installationId: varchar("installation_id", { length: 256 }).notNull(),
-  repositoryId: varchar("repository_id", { length: 256 }).notNull(),
+  installationId: bigint("installation_id", { mode: "number" }).notNull(),
+  repositoryId: bigint("repository_id", { mode: "number" }).notNull(),
   repositoryFullName: varchar("repository_full_name", {
     length: 500,
   }).notNull(),

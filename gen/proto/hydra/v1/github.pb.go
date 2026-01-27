@@ -24,8 +24,9 @@ const (
 
 type HandlePushRequest struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
-	InstallationId     string                 `protobuf:"bytes,1,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
-	RepositoryFullName string                 `protobuf:"bytes,2,opt,name=repository_full_name,json=repositoryFullName,proto3" json:"repository_full_name,omitempty"`
+	InstallationId     int64                  `protobuf:"varint,1,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
+	RepositoryId       int64                  `protobuf:"varint,2,opt,name=repository_id,json=repositoryId,proto3" json:"repository_id,omitempty"`
+	RepositoryFullName string                 `protobuf:"bytes,8,opt,name=repository_full_name,json=repositoryFullName,proto3" json:"repository_full_name,omitempty"`
 	Ref                string                 `protobuf:"bytes,3,opt,name=ref,proto3" json:"ref,omitempty"`
 	CommitSha          string                 `protobuf:"bytes,4,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"`
 	ProjectId          string                 `protobuf:"bytes,5,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
@@ -65,11 +66,18 @@ func (*HandlePushRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_github_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *HandlePushRequest) GetInstallationId() string {
+func (x *HandlePushRequest) GetInstallationId() int64 {
 	if x != nil {
 		return x.InstallationId
 	}
-	return ""
+	return 0
+}
+
+func (x *HandlePushRequest) GetRepositoryId() int64 {
+	if x != nil {
+		return x.RepositoryId
+	}
+	return 0
 }
 
 func (x *HandlePushRequest) GetRepositoryFullName() string {
@@ -246,10 +254,11 @@ var File_hydra_v1_github_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_github_proto_rawDesc = "" +
 	"\n" +
-	"\x15hydra/v1/github.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xb1\x02\n" +
+	"\x15hydra/v1/github.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xd6\x02\n" +
 	"\x11HandlePushRequest\x12'\n" +
-	"\x0finstallation_id\x18\x01 \x01(\tR\x0einstallationId\x120\n" +
-	"\x14repository_full_name\x18\x02 \x01(\tR\x12repositoryFullName\x12\x10\n" +
+	"\x0finstallation_id\x18\x01 \x01(\x03R\x0einstallationId\x12#\n" +
+	"\rrepository_id\x18\x02 \x01(\x03R\frepositoryId\x120\n" +
+	"\x14repository_full_name\x18\b \x01(\tR\x12repositoryFullName\x12\x10\n" +
 	"\x03ref\x18\x03 \x01(\tR\x03ref\x12\x1d\n" +
 	"\n" +
 	"commit_sha\x18\x04 \x01(\tR\tcommitSha\x12\x1d\n" +

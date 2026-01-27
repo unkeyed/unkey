@@ -20,12 +20,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/shutdown"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
+	githubsvc "github.com/unkeyed/unkey/svc/ctrl/internal/github"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 	"github.com/unkeyed/unkey/svc/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/svc/ctrl/services/deployment"
-	githubsvc "github.com/unkeyed/unkey/svc/ctrl/services/github"
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -177,7 +177,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Register GitHub webhook handler only if ALL required config is present.
 	// This fail-closed approach ensures we never expose an insecure endpoint.
 	if cfg.GitHub.Enabled() {
-		githubService, githubErr := githubsvc.New(githubsvc.Config{
+		githubService, githubErr := githubsvc.NewWebhook(githubsvc.WebhookConfig{
 			DB:            database,
 			Logger:        logger,
 			Restate:       restateClient,
@@ -186,7 +186,7 @@ func Run(ctx context.Context, cfg Config) error {
 		if githubErr != nil {
 			return fmt.Errorf("failed to create github webhook service: %w", githubErr)
 		}
-		mux.Handle("/webhooks/github", githubService.WebhookHandler())
+		mux.Handle("/webhooks/github", githubService.Handler())
 		logger.Info("GitHub webhook handler registered", "path", "/webhooks/github")
 	} else if cfg.GitHub.AppID != "" || cfg.GitHub.PrivateKeyPEM != "" || cfg.GitHub.WebhookSecret != "" {
 		// Partial config provided - warn but don't register (fail closed)

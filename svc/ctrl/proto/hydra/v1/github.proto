@@ -13,8 +13,9 @@ service GitHubService {
 }
 
 message HandlePushRequest {
-  string installation_id = 1;
-  string repository_full_name = 2;
+  int64 installation_id = 1;
+  int64 repository_id = 2;
+  string repository_full_name = 8;
   string ref = 3;
   string commit_sha = 4;
   string project_id = 5;

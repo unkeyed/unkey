@@ -17,15 +17,19 @@ SELECT
     repository_id,
     repository_full_name
 FROM github_app_installations
-WHERE repository_full_name = ?
-  AND deleted_at_m IS NULL
+WHERE installation_id = ? AND repository_id = ?
 `
+
+type FindGithubInstallationByRepoParams struct {
+	InstallationID int64 `db:"installation_id"`
+	RepositoryID   int64 `db:"repository_id"`
+}
 
 type FindGithubInstallationByRepoRow struct {
 	ID                 string `db:"id"`
 	ProjectID          string `db:"project_id"`
-	InstallationID     string `db:"installation_id"`
-	RepositoryID       string `db:"repository_id"`
+	InstallationID     int64  `db:"installation_id"`
+	RepositoryID       int64  `db:"repository_id"`
 	RepositoryFullName string `db:"repository_full_name"`
 }
 
@@ -38,10 +42,9 @@ type FindGithubInstallationByRepoRow struct {
 //	    repository_id,
 //	    repository_full_name
 //	FROM github_app_installations
-//	WHERE repository_full_name = ?
-//	  AND deleted_at_m IS NULL
-func (q *Queries) FindGithubInstallationByRepo(ctx context.Context, db DBTX, repositoryFullName string) (FindGithubInstallationByRepoRow, error) {
-	row := db.QueryRowContext(ctx, findGithubInstallationByRepo, repositoryFullName)
+//	WHERE installation_id = ? AND repository_id = ?
+func (q *Queries) FindGithubInstallationByRepo(ctx context.Context, db DBTX, arg FindGithubInstallationByRepoParams) (FindGithubInstallationByRepoRow, error) {
+	row := db.QueryRowContext(ctx, findGithubInstallationByRepo, arg.InstallationID, arg.RepositoryID)
 	var i FindGithubInstallationByRepoRow
 	err := row.Scan(
 		&i.ID,

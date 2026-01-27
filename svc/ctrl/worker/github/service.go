@@ -3,8 +3,8 @@ package github
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/github"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/repofetch"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
 )

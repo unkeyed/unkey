@@ -24,7 +24,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/shutdown"
 
-	"github.com/unkeyed/unkey/pkg/github"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/github"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/build"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/repofetch"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"

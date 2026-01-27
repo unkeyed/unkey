@@ -3,16 +3,15 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "github",
     srcs = [
-        "doc.go",
-        "service.go",
-        "webhook_handler.go",
+        "github.go",
+        "webhook.go",
     ],
-    importpath = "github.com/unkeyed/unkey/svc/ctrl/services/github",
-    visibility = ["//visibility:public"],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/internal/github",
+    visibility = ["//svc/ctrl:__subpackages__"],
     deps = [
         "//gen/proto/hydra/v1:hydra",
         "//pkg/db",
-        "//pkg/github",
+        "//pkg/fault",
         "//pkg/otel/logging",
         "@com_github_restatedev_sdk_go//ingress",
     ],

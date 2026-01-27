@@ -12,9 +12,9 @@ go_library(
     deps = [
         "//gen/proto/hydra/v1:hydra",
         "//pkg/db",
-        "//pkg/github",
         "//pkg/otel/logging",
         "//pkg/uid",
+        "//svc/ctrl/internal/github",
         "//svc/ctrl/pkg/repofetch",
         "//svc/ctrl/pkg/s3",
         "@com_github_restatedev_sdk_go//:sdk-go",

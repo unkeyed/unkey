@@ -120,13 +120,13 @@ type InstallationToken struct {
 }
 
 // GetInstallationToken retrieves an access token for a specific installation.
-func (c *Client) GetInstallationToken(installationID string) (*InstallationToken, error) {
+func (c *Client) GetInstallationToken(installationID int64) (*InstallationToken, error) {
 	jwt, err := c.generateJWT()
 	if err != nil {
 		return nil, err
 	}
 
-	url := fmt.Sprintf("https://api.github.com/app/installations/%s/access_tokens", installationID)
+	url := fmt.Sprintf("https://api.github.com/app/installations/%d/access_tokens", installationID)
 	req, err := http.NewRequest(http.MethodPost, url, nil)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to create request"))
@@ -158,7 +158,7 @@ func (c *Client) GetInstallationToken(installationID string) (*InstallationToken
 }
 
 // DownloadRepoTarball downloads a repository tarball for a specific ref.
-func (c *Client) DownloadRepoTarball(installationID, repoFullName, ref string) ([]byte, error) {
+func (c *Client) DownloadRepoTarball(installationID int64, repoFullName, ref string) ([]byte, error) {
 	token, err := c.GetInstallationToken(installationID)
 	if err != nil {
 		return nil, err

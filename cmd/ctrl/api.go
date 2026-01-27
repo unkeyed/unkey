@@ -85,7 +85,7 @@ var apiCmd = &cli.Command{
 		// GitHub App configuration (optional)
 		cli.String("github-app-id", "GitHub App ID for webhook-triggered deployments", cli.EnvVar("UNKEY_GITHUB_APP_ID")),
 		cli.String("github-app-private-key", "GitHub App private key (PEM format)", cli.EnvVar("UNKEY_GITHUB_APP_PRIVATE_KEY")),
-		cli.String("github-webhook-secret", "GitHub webhook secret for signature verification", cli.EnvVar("UNKEY_GITHUB_WEBHOOK_SECRET")),
+		cli.String("github-app-webhook-secret", "GitHub webhook secret for signature verification", cli.EnvVar("UNKEY_GITHUB_APP_WEBHOOK_SECRET")),
 
 		// Certificate bootstrap configuration
 		cli.String("default-domain", "Default domain for wildcard certificate bootstrapping (e.g., unkey.app)", cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
@@ -157,7 +157,7 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 		GitHub: ctrlapi.GitHubConfig{
 			AppID:         cmd.String("github-app-id"),
 			PrivateKeyPEM: cmd.String("github-app-private-key"),
-			WebhookSecret: cmd.String("github-webhook-secret"),
+			WebhookSecret: cmd.String("github-app-webhook-secret"),
 		},
 
 		// Certificate bootstrap

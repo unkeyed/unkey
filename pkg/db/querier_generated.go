@@ -313,9 +313,8 @@ type Querier interface {
 	//      repository_id,
 	//      repository_full_name
 	//  FROM github_app_installations
-	//  WHERE repository_full_name = ?
-	//    AND deleted_at_m IS NULL
-	FindGithubInstallationByRepo(ctx context.Context, db DBTX, repositoryFullName string) (FindGithubInstallationByRepoRow, error)
+	//  WHERE installation_id = ? AND repository_id = ?
+	FindGithubInstallationByRepo(ctx context.Context, db DBTX, arg FindGithubInstallationByRepoParams) (FindGithubInstallationByRepoRow, error)
 	//FindIdentities
 	//
 	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
