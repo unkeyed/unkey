@@ -16,7 +16,7 @@ import {
   NavigableDialogRoot,
   toast,
 } from "@unkey/ui";
-import { type FC, Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { FormProvider, type Resolver } from "react-hook-form";
 import { KeyCreatedSuccessDialog } from "./components/key-created-success-dialog";
 import { SectionLabel } from "./components/section-label";
