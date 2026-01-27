@@ -213,8 +213,12 @@ func Run(ctx context.Context, cfg Config) error {
 		HTTPProvider:  httpProvider,
 	}), restate.WithInactivityTimeout(15*time.Minute)))
 
-	// ClickHouse user provisioning service (optional - requires admin URL)
-	if cfg.ClickhouseAdminURL != "" {
+	// ClickHouse user provisioning service (optional - requires admin URL and vault)
+	if cfg.ClickhouseAdminURL == "" {
+		logger.Info("ClickhouseUserService disabled: CLICKHOUSE_ADMIN_URL not configured")
+	} else if vaultClient == nil {
+		logger.Warn("ClickhouseUserService disabled: vault not configured")
+	} else {
 		chAdmin, chAdminErr := clickhouse.New(clickhouse.Config{
 			URL:    cfg.ClickhouseAdminURL,
 			Logger: logger,
