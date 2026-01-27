@@ -1,8 +1,8 @@
 -- Creates a dedicated admin user for workspace ClickHouse user provisioning.
 --
--- This user has minimal permissions to manage other users without access to data:
+-- This user has permissions to manage workspace users:
 -- - CREATE/ALTER/DROP USER, QUOTA, ROW POLICY, SETTINGS PROFILE
--- - GRANT OPTION on analytics tables (to grant SELECT to workspace users)
+-- - SELECT with GRANT OPTION on default.* (to grant SELECT to workspace users)
 --
 -- This migration runs as part of the ClickHouse image build.
 
@@ -21,5 +21,5 @@ GRANT CREATE ROW POLICY, ALTER ROW POLICY, DROP ROW POLICY ON *.* TO unkey_user_
 -- Settings profile management permissions
 GRANT CREATE SETTINGS PROFILE, ALTER SETTINGS PROFILE, DROP SETTINGS PROFILE ON *.* TO unkey_user_admin;
 
--- Grant OPTION on all tables in default database (allows granting SELECT to workspace users, without having SELECT itself)
-GRANT GRANT OPTION(SELECT) ON default.* TO unkey_user_admin;
+-- Grant SELECT with GRANT OPTION on default database (allows granting SELECT to workspace users)
+GRANT SELECT ON default.* TO unkey_user_admin WITH GRANT OPTION;
