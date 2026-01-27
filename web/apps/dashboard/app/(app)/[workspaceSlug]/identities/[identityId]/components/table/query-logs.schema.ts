@@ -3,9 +3,9 @@ import { z } from "zod";
 
 export const identityLogsPayload = z.object({
   identityId: z.string(),
-  limit: z.number().int(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  limit: z.int(),
+  startTime: z.int(),
+  endTime: z.int(),
   since: z.string(),
   cursor: z.number().nullable().optional().nullable(),
   tags: z

@@ -5,7 +5,7 @@ import { z } from "zod";
 
 const workspaceDetailsInput = z.object({
   namespaceId: z.string(),
-  includeOverrides: z.boolean().optional().default(false),
+  includeOverrides: z.boolean().optional().prefault(false),
 });
 
 const namespaceSchema = z.object({

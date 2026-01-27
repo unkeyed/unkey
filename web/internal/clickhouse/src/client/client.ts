@@ -24,7 +24,7 @@ export class Client implements Querier, Inserter {
   }
 
   // biome-ignore lint/suspicious/noExplicitAny: Safe to leave
-  public query<TIn extends z.ZodSchema<any>, TOut extends z.ZodSchema<unknown>>(req: {
+  public query<TIn extends z.ZodType<any>, TOut extends z.ZodType<unknown>>(req: {
     // The SQL query to run.
     // Use {paramName: Type} to define parameters
     // Example: `SELECT * FROM table WHERE id = {id: String}`
@@ -63,7 +63,7 @@ export class Client implements Querier, Inserter {
     };
   }
 
-  public insert<TSchema extends z.ZodSchema<unknown>>(req: {
+  public insert<TSchema extends z.ZodType<unknown>>(req: {
     table: string;
     schema: TSchema;
   }): (

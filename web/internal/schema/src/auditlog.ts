@@ -72,16 +72,16 @@ export const auditLogSchemaV1 = z.object({
   auditLogId: z.string(),
   event: z.string(),
   description: z.string().optional(),
-  time: z.number().default(() => Date.now()),
+  time: z.number().prefault(() => Date.now()),
   meta: z
-    .record(z.union([z.string(), z.number(), z.boolean(), z.null(), z.undefined()]))
+    .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null(), z.undefined()]))
     .optional(),
   actor: z.object({
     type: z.string(),
     id: z.string(),
     name: z.string().optional(),
     meta: z
-      .record(z.union([z.string(), z.number(), z.boolean(), z.null(), z.undefined()]))
+      .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null(), z.undefined()]))
       .optional(),
   }),
   resources: z.array(
@@ -90,7 +90,7 @@ export const auditLogSchemaV1 = z.object({
       id: z.string(),
       name: z.string().optional(),
       meta: z
-        .record(z.union([z.string(), z.number(), z.boolean(), z.null(), z.undefined()]))
+        .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null(), z.undefined()]))
         .optional(),
     }),
   ),

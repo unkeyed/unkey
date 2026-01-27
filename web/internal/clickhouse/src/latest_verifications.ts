@@ -5,7 +5,7 @@ const params = z.object({
   workspaceId: z.string(),
   keySpaceId: z.string(),
   keyId: z.string(),
-  limit: z.number().int().positive().default(50).nullish(),
+  limit: z.int().positive().prefault(50).nullish(),
 });
 
 export function getLatestVerifications(ch: Querier) {

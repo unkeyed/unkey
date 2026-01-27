@@ -22,7 +22,7 @@ const permissionsResponse = z.object({
   permissions: z.array(permissions),
   hasMore: z.boolean(),
   total: z.number(),
-  nextCursor: z.number().int().nullish(),
+  nextCursor: z.int().nullish(),
 });
 
 export const queryPermissions = workspaceProcedure

@@ -3,15 +3,123 @@ import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+// Schema for keyAuth object
+const KeyAuthSchema = z.object({
+  pk: z.number(),
+  id: z.string(),
+  workspaceId: z.string(),
+  createdAtM: z.number(),
+  updatedAtM: z.number().nullable(),
+  deletedAtM: z.number().nullable(),
+  storeEncryptedKeys: z.boolean(),
+  defaultPrefix: z.string().nullable(),
+  defaultBytes: z.number().nullable(),
+  sizeApprox: z.number(),
+  sizeLastUpdatedAt: z.number(),
+});
+
+// Schema for permission object
+const PermissionSchema = z.object({
+  pk: z.number(),
+  keyId: z.string(),
+  permissionId: z.string(),
+  workspaceId: z.string(),
+  createdAtM: z.number(),
+  updatedAtM: z.number().nullable(),
+  tempId: z.number().nullable(),
+});
+
+// Schema for role with nested permissions
+const RoleWithPermissionsSchema = z.object({
+  pk: z.number(),
+  keyId: z.string(),
+  roleId: z.string(),
+  workspaceId: z.string(),
+  createdAtM: z.number(),
+  updatedAtM: z.number().nullable(),
+  role: z.object({
+    pk: z.number(),
+    id: z.string(),
+    workspaceId: z.string(),
+    name: z.string(),
+    description: z.string().nullable(),
+    createdAtM: z.number(),
+    updatedAtM: z.number().nullable(),
+    permissions: z.array(
+      z.object({
+        pk: z.number(),
+        roleId: z.string(),
+        permissionId: z.string(),
+        workspaceId: z.string(),
+        createdAtM: z.number(),
+        updatedAtM: z.number().nullable(),
+        permission: z.object({
+          pk: z.number(),
+          id: z.string(),
+          workspaceId: z.string(),
+          name: z.string(),
+          slug: z.string(),
+          description: z.string().nullable(),
+          createdAtM: z.number(),
+          updatedAtM: z.number().nullable(),
+        }),
+      }),
+    ),
+  }),
+});
+
+// Schema for workspace roles
+const WorkspaceRoleSchema = z.object({
+  pk: z.number(),
+  id: z.string(),
+  workspaceId: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  createdAtM: z.number(),
+  updatedAtM: z.number().nullable(),
+  permissions: z.array(
+    z.object({
+      pk: z.number(),
+      roleId: z.string(),
+      permissionId: z.string(),
+      workspaceId: z.string(),
+      createdAtM: z.number(),
+      updatedAtM: z.number().nullable(),
+    }),
+  ),
+});
+
+// Schema for workspace permissions
+const WorkspacePermissionSchema = z.object({
+  pk: z.number(),
+  id: z.string(),
+  workspaceId: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  description: z.string().nullable(),
+  createdAtM: z.number(),
+  updatedAtM: z.number().nullable(),
+  roles: z.array(
+    z.object({
+      pk: z.number(),
+      roleId: z.string(),
+      permissionId: z.string(),
+      workspaceId: z.string(),
+      createdAtM: z.number(),
+      updatedAtM: z.number().nullable(),
+    }),
+  ),
+});
+
 const KeyPermissionsResponseSchema = z.object({
   keyId: z.string(),
-  keyAuth: z.any(),
-  roles: z.array(z.any()),
-  directPermissions: z.array(z.any()),
+  keyAuth: KeyAuthSchema,
+  roles: z.array(RoleWithPermissionsSchema),
+  directPermissions: z.array(PermissionSchema),
   workspace: z.object({
-    roles: z.array(z.any()),
+    roles: z.array(WorkspaceRoleSchema),
     permissions: z.object({
-      roles: z.array(z.any()),
+      roles: z.array(WorkspacePermissionSchema),
     }),
   }),
   remainingCredit: z.number().nullish(),

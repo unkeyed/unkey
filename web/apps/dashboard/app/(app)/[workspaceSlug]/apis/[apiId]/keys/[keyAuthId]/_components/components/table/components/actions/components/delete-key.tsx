@@ -11,7 +11,7 @@ import { KeyInfo } from "./key-info";
 
 const deleteKeyFormSchema = z.object({
   confirmDeletion: z.boolean().refine((val) => val === true, {
-    message: "Please confirm that you want to permanently delete this key",
+    error: "Please confirm that you want to permanently delete this key",
   }),
 });
 
