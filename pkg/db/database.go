@@ -41,21 +41,11 @@ func open(dsn string, logger logging.Logger) (db *sql.DB, err error) {
 		return nil, fault.New("DSN must contain parseTime=true, see https://stackoverflow.com/questions/29341590/how-to-parse-time-from-database/29343013#29343013")
 	}
 
-	err = retry.New(
-		retry.Attempts(3),
-		retry.Backoff(func(n int) time.Duration {
-			return time.Duration(n) * time.Second
-		}),
-	).Do(func() error {
-		db, err = sql.Open("mysql", dsn)
-		if err != nil {
-			logger.Info("mysql not ready yet, retrying...", "error", err.Error())
-		}
-
-		return err
-	})
+	// sql.Open only validates the DSN, it doesn't actually connect.
+	// We need to call Ping() to verify connectivity.
+	db, err = sql.Open("mysql", dsn)
 	if err != nil {
-		return nil, err
+		return nil, fault.Wrap(err, fault.Internal("failed to open database"))
 	}
 
 	// Configure connection pool for better performance
@@ -65,15 +55,26 @@ func open(dsn string, logger logging.Logger) (db *sql.DB, err error) {
 	db.SetConnMaxLifetime(5 * time.Minute) // Refresh connections every 5 min (PlanetScale recommendation)
 	db.SetConnMaxIdleTime(1 * time.Minute) // Close idle connections after 1 min of inactivity
 
-	// Verify connectivity at startup - this establishes at least one connection
+	// Verify connectivity at startup with retries - this establishes at least one connection
 	// so the first request doesn't pay the connection establishment cost
-	if err := db.Ping(); err != nil {
-		logger.Warn("failed to ping database on startup", "error", err.Error())
-		// Don't fail - the connection might succeed later
-	} else {
-		logger.Info("database connection pool initialized successfully")
+	err = retry.New(
+		retry.Attempts(5),
+		retry.Backoff(func(n int) time.Duration {
+			return time.Duration(n) * time.Second
+		}),
+	).Do(func() error {
+		pingErr := db.Ping()
+		if pingErr != nil {
+			logger.Info("mysql not ready yet, retrying...", "error", pingErr.Error())
+		}
+		return pingErr
+	})
+	if err != nil {
+		db.Close()
+		return nil, fault.Wrap(err, fault.Internal("failed to ping database after retries"))
 	}
 
+	logger.Info("database connection pool initialized successfully")
 	return db, nil
 }
 
