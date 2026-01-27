@@ -192,6 +192,9 @@ func (s *Service) ConfigureUser(
 	return &hydrav1.ConfigureUserResponse{}, nil
 }
 
+// resolveQuotaSettings applies defaults to unset quota fields.
+// Note: We intentionally reject 0 values (which ClickHouse treats as "unlimited")
+// to prevent unbounded resource consumption.
 func resolveQuotaSettings(req *hydrav1.ConfigureUserRequest) quotaSettings {
 	return quotaSettings{
 		quotaDurationSeconds:      ptr.PositiveOr(req.QuotaDurationSeconds, defaultQuotaDurationSeconds),
