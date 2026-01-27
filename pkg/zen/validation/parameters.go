@@ -22,10 +22,11 @@ type Parameter struct {
 	In              ParameterLocation
 	Required        bool
 	Schema          map[string]any
-	Style           string // "form", "simple", "label", "matrix", "spaceDelimited", "pipeDelimited", "deepObject"
-	Explode         *bool  // nil = use default for style
-	AllowEmptyValue bool   // query params only
-	AllowReserved   bool   // query params only
+	TypedSchema     *TypedSchema
+	Style           string
+	Explode         *bool
+	AllowEmptyValue bool
+	AllowReserved   bool
 }
 
 // ParameterSet groups parameters by their location
@@ -42,11 +43,12 @@ type CompiledParameter struct {
 	In              ParameterLocation
 	Required        bool
 	Schema          *jsonschema.Schema
-	SchemaType      string // Original schema type for coercion: "string", "integer", "number", "boolean", "array", "object"
-	Style           string // "form", "simple", "label", "matrix", "spaceDelimited", "pipeDelimited", "deepObject"
-	Explode         bool   // Whether to explode arrays/objects
-	AllowEmptyValue bool   // query params only
-	AllowReserved   bool   // query params only
+	SchemaType      SchemaType
+	TypedSchema     *TypedSchema
+	Style           string
+	Explode         bool
+	AllowEmptyValue bool
+	AllowReserved   bool
 }
 
 // CompiledParameterSet groups compiled parameters by their location
@@ -58,21 +60,22 @@ type CompiledParameterSet struct {
 }
 
 // coerceValue attempts to coerce a string value to the appropriate type based on schema type
-func coerceValue(value string, schemaType string) any {
+func coerceValue(value string, schemaType SchemaType) CoercedValue {
 	switch schemaType {
-	case "integer":
+	case SchemaTypeInteger:
 		if i, err := strconv.ParseInt(value, 10, 64); err == nil {
-			return i
+			return IntegerValue(i)
 		}
-	case "number":
+	case SchemaTypeNumber:
 		if f, err := strconv.ParseFloat(value, 64); err == nil {
-			return f
+			return NumberValue(f)
 		}
-	case "boolean":
+	case SchemaTypeBoolean:
 		if b, err := strconv.ParseBool(value); err == nil {
-			return b
+			return BooleanValue(b)
 		}
+	case SchemaTypeUnknown, SchemaTypeString, SchemaTypeArray, SchemaTypeObject:
+		// These types return as string
 	}
-	// Default: return as string
-	return value
+	return StringValue(value)
 }

@@ -47,8 +47,8 @@ func ValidateSecurity(r *http.Request, requirements []SecurityRequirement, schem
 	}
 
 	// None of the requirements were satisfied
-	// Return an error based on what kind of auth is expected
-	return buildSecurityError(requirements, schemes, requestID)
+	// Return a detailed error based on what kind of auth is expected and what's wrong
+	return buildSecurityError(r, requirements, schemes, requestID)
 }
 
 // satisfiesRequirement checks if a request satisfies a security requirement
@@ -139,8 +139,9 @@ func validateAPIKeyScheme(r *http.Request, scheme SecurityScheme) bool {
 }
 
 // buildSecurityError creates an appropriate error response based on the expected security
-func buildSecurityError(requirements []SecurityRequirement, schemes map[string]SecurityScheme, requestID string) *UnauthorizedError {
-	// Find the first HTTP bearer scheme to provide a helpful error message
+// It inspects the request to provide detailed error messages about what's wrong
+func buildSecurityError(r *http.Request, requirements []SecurityRequirement, schemes map[string]SecurityScheme, requestID string) *UnauthorizedError {
+	// Check for bearer auth schemes and provide detailed errors
 	for _, req := range requirements {
 		for schemeName := range req.Schemes {
 			scheme, exists := schemes[schemeName]
@@ -148,19 +149,13 @@ func buildSecurityError(requirements []SecurityRequirement, schemes map[string]S
 				continue
 			}
 			if scheme.Type == SecurityTypeHTTP && strings.ToLower(scheme.Scheme) == "bearer" {
-				return &UnauthorizedError{
-					UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
-						Meta: openapi.Meta{
-							RequestId: requestID,
-						},
-						Error: openapi.BaseError{
-							Title:  "Unauthorized",
-							Detail: "Authorization header is required but was not provided",
-							Status: http.StatusUnauthorized,
-							Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
-						},
-					},
-				}
+				return buildBearerAuthError(r, requestID)
+			}
+			if scheme.Type == SecurityTypeHTTP && strings.ToLower(scheme.Scheme) == "basic" {
+				return buildBasicAuthError(r, requestID)
+			}
+			if scheme.Type == SecurityTypeAPIKey {
+				return buildAPIKeyError(scheme, requestID)
 			}
 		}
 	}
@@ -174,6 +169,176 @@ func buildSecurityError(requirements []SecurityRequirement, schemes map[string]S
 			Error: openapi.BaseError{
 				Title:  "Unauthorized",
 				Detail: "Authentication is required",
+				Status: http.StatusUnauthorized,
+				Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
+			},
+		},
+	}
+}
+
+// buildBearerAuthError creates a detailed error for bearer auth failures
+func buildBearerAuthError(r *http.Request, requestID string) *UnauthorizedError {
+	authHeader := r.Header.Get("Authorization")
+
+	if authHeader == "" {
+		return &UnauthorizedError{
+			UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+				Meta: openapi.Meta{
+					RequestId: requestID,
+				},
+				Error: openapi.BaseError{
+					Title:  "Unauthorized",
+					Detail: "Authorization header is required but was not provided",
+					Status: http.StatusUnauthorized,
+					Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
+				},
+			},
+		}
+	}
+
+	const bearerPrefix = "bearer "
+	if len(authHeader) < len(bearerPrefix) || !strings.EqualFold(authHeader[:len(bearerPrefix)], bearerPrefix) {
+		return &UnauthorizedError{
+			UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+				Meta: openapi.Meta{
+					RequestId: requestID,
+				},
+				Error: openapi.BaseError{
+					Title:  "Unauthorized",
+					Detail: "Authorization header must use Bearer scheme",
+					Status: http.StatusUnauthorized,
+					Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
+				},
+			},
+		}
+	}
+
+	token := strings.TrimSpace(authHeader[len(bearerPrefix):])
+	if token == "" {
+		return &UnauthorizedError{
+			UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+				Meta: openapi.Meta{
+					RequestId: requestID,
+				},
+				Error: openapi.BaseError{
+					Title:  "Unauthorized",
+					Detail: "Bearer token is empty",
+					Status: http.StatusUnauthorized,
+					Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
+				},
+			},
+		}
+	}
+
+	// Fallback - shouldn't reach here if validateHTTPScheme works correctly
+	return &UnauthorizedError{
+		UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+			Meta: openapi.Meta{
+				RequestId: requestID,
+			},
+			Error: openapi.BaseError{
+				Title:  "Unauthorized",
+				Detail: "Bearer authentication failed",
+				Status: http.StatusUnauthorized,
+				Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
+			},
+		},
+	}
+}
+
+// buildBasicAuthError creates a detailed error for basic auth failures
+func buildBasicAuthError(r *http.Request, requestID string) *UnauthorizedError {
+	authHeader := r.Header.Get("Authorization")
+
+	if authHeader == "" {
+		return &UnauthorizedError{
+			UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+				Meta: openapi.Meta{
+					RequestId: requestID,
+				},
+				Error: openapi.BaseError{
+					Title:  "Unauthorized",
+					Detail: "Authorization header is required but was not provided",
+					Status: http.StatusUnauthorized,
+					Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
+				},
+			},
+		}
+	}
+
+	const basicPrefix = "basic "
+	if len(authHeader) < len(basicPrefix) || !strings.EqualFold(authHeader[:len(basicPrefix)], basicPrefix) {
+		return &UnauthorizedError{
+			UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+				Meta: openapi.Meta{
+					RequestId: requestID,
+				},
+				Error: openapi.BaseError{
+					Title:  "Unauthorized",
+					Detail: "Authorization header must use Basic scheme",
+					Status: http.StatusUnauthorized,
+					Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
+				},
+			},
+		}
+	}
+
+	credentials := strings.TrimSpace(authHeader[len(basicPrefix):])
+	if credentials == "" {
+		return &UnauthorizedError{
+			UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+				Meta: openapi.Meta{
+					RequestId: requestID,
+				},
+				Error: openapi.BaseError{
+					Title:  "Unauthorized",
+					Detail: "Basic credentials are empty",
+					Status: http.StatusUnauthorized,
+					Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
+				},
+			},
+		}
+	}
+
+	return &UnauthorizedError{
+		UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+			Meta: openapi.Meta{
+				RequestId: requestID,
+			},
+			Error: openapi.BaseError{
+				Title:  "Unauthorized",
+				Detail: "Basic authentication failed",
+				Status: http.StatusUnauthorized,
+				Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
+			},
+		},
+	}
+}
+
+// buildAPIKeyError creates a detailed error for API key auth failures
+func buildAPIKeyError(scheme SecurityScheme, requestID string) *UnauthorizedError {
+	var location string
+	switch scheme.In {
+	case LocationHeader:
+		location = "header"
+	case LocationQuery:
+		location = "query parameter"
+	case LocationCookie:
+		location = "cookie"
+	case LocationPath:
+		location = "path"
+	default:
+		location = "request"
+	}
+
+	return &UnauthorizedError{
+		UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+			Meta: openapi.Meta{
+				RequestId: requestID,
+			},
+			Error: openapi.BaseError{
+				Title:  "Unauthorized",
+				Detail: "API key is required in " + location + " '" + scheme.Name + "'",
 				Status: http.StatusUnauthorized,
 				Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
 			},
