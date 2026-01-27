@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useProject } from "../../../layout-provider";
 
 const REFETCH_INTERVAL_MS = 5000;
-const LAST_HOUR_MS = 1000 * 60 * 60
+const LAST_HOUR_MS = 1000 * 60 * 60;
 
 export function useDeploymentSentinelLogsQuery() {
   const params = useParams();

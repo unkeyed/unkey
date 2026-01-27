@@ -1,9 +1,6 @@
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
-import {
-  sentinelLogsRequestSchema,
-  sentinelLogsResponseSchema,
-} from "@/lib/schemas/sentinel-logs";
+import { sentinelLogsRequestSchema, sentinelLogsResponseSchema } from "@/lib/schemas/sentinel-logs";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { transformSentinelLogsFilters } from "./utils";
@@ -33,7 +30,6 @@ export const querySentinelLogs = workspaceProcedure
         workspaceId: ctx.workspace.id,
         ...transformedInputs,
       });
-
 
       if (result.err) {
         throw new TRPCError({

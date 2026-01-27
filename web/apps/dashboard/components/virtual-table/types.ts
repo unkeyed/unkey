@@ -73,6 +73,10 @@ export type VirtualTableProps<TTableData> = {
    * Callback when mouse leaves a row
    */
   onRowMouseLeave?: () => void;
+  /**
+   * Additional className for the table container
+   */
+  className?: string;
 };
 
 export type SeparatorItem = {

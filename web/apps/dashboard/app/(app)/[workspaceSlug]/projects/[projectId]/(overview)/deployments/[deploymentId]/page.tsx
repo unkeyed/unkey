@@ -202,7 +202,7 @@ export default function DeploymentOverview() {
           icon={<Layers3 iconSize="md-regular" className="text-gray-9" />}
           title="Logs"
         />
-        <Card className="rounded-[14px] flex justify-between flex-col overflow-hidden border-gray-4 max-h-[600px] h-full gap-2">
+        <Card className="rounded-[14px] overflow-hidden border-gray-4 min-h-[600px] flex flex-col">
           <DeploymentSentinelLogsTable />
         </Card>
       </Section>

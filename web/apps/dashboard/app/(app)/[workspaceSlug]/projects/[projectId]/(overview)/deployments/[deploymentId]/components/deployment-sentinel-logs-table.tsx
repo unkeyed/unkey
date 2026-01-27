@@ -6,92 +6,35 @@ import { cn } from "@/lib/utils";
 import type { SentinelResponse } from "@unkey/clickhouse/src/sentinel";
 import { BookBookmark, TriangleWarning2 } from "@unkey/icons";
 import { Badge, Button, Empty, TimestampInfo } from "@unkey/ui";
-import { useState } from "react";
 import {
   WARNING_ICON_STYLES,
   getStatusStyle,
 } from "../../../sentinel-logs/components/table/utils/get-row-class";
 import { useDeploymentSentinelLogsQuery } from "../hooks/use-deployment-sentinel-logs-query";
+import {
+  extractResponseField,
+  formatLatency,
+  getLatencyStyle,
+} from "./deployment-sentinel-logs-table.utils";
 
-type ResponseBody = {
-  keyId: string;
-  valid: boolean;
-  meta: Record<string, unknown>;
-  enabled: boolean;
-  permissions: string[];
-  code:
-  | "VALID"
-  | "RATE_LIMITED"
-  | "EXPIRED"
-  | "USAGE_EXCEEDED"
-  | "DISABLED"
-  | "FORBIDDEN"
-  | "INSUFFICIENT_PERMISSIONS";
-};
 
-const extractResponseField = <K extends keyof ResponseBody>(
-  log: SentinelResponse,
-  fieldName: K,
-): ResponseBody[K] | null => {
-  if (!log?.response_body) {
-    return null;
-  }
-
-  try {
-    const parsedBody = JSON.parse(log.response_body) as ResponseBody;
-    return parsedBody[fieldName];
-  } catch {
-    return null;
-  }
-};
-
-const getSelectedClassName = (log: SentinelResponse, isSelected: boolean) => {
-  if (!isSelected) {
-    return "";
-  }
-  const style = getStatusStyle(log.response_status);
-  return style.selected;
-};
-
-const getRowClassName = (log: SentinelResponse, selectedLog: SentinelResponse | null): string => {
+const getRowClassName = (log: SentinelResponse): string => {
   if (!log?.request_id) {
     throw new Error("Log must have a valid request_id");
   }
 
-  if (
-    !Number.isInteger(log.response_status) ||
-    log.response_status < 100 ||
-    log.response_status > 599
-  ) {
-    throw new Error(
-      `Invalid response_status: ${log.response_status}. Must be a valid HTTP status code.`,
-    );
-  }
-
   const style = getStatusStyle(log.response_status);
-  const isSelected = Boolean(selectedLog?.request_id === log.request_id);
 
   const baseClasses = [
     style.base,
     style.hover,
     "group rounded-md",
-    "focus:outline-none focus:ring-1 focus:ring-opacity-40",
     style.focusRing,
   ];
-
-  const conditionalClasses = [
-    isSelected && style.selected,
-    selectedLog && {
-      "opacity-50 z-0": !isSelected,
-      "opacity-100 z-10": isSelected,
-    },
-  ].filter(Boolean);
-
-  return cn(...baseClasses, ...conditionalClasses);
+  return cn(...baseClasses);
 };
 
 export const DeploymentSentinelLogsTable = () => {
-  const [selectedLog, setSelectedLog] = useState<SentinelResponse | null>(null);
   const { logs, isLoading } = useDeploymentSentinelLogsQuery();
 
   return (
@@ -99,11 +42,9 @@ export const DeploymentSentinelLogsTable = () => {
       data={logs}
       isLoading={isLoading}
       columns={columns}
-      onRowClick={setSelectedLog}
-      selectedItem={selectedLog}
       keyExtractor={(log) => log.request_id}
-      rowClassName={(log) => getRowClassName(log, selectedLog)}
-      selectedClassName={getSelectedClassName}
+      rowClassName={(log) => getRowClassName(log)}
+      className="h-full"
       emptyState={
         <div className="w-full flex justify-center items-center h-full">
           <Empty className="w-[400px] flex items-start">
@@ -144,6 +85,21 @@ const WarningIcon = ({ status }: { status: number }) => (
   />
 );
 
+
+const LatencyBadge = ({ log }: { log: SentinelResponse }) => {
+  const style = getLatencyStyle(log.total_latency);
+  const tooltipText = `Total: ${log.total_latency}ms | Instance: ${log.instance_latency}ms | Sentinel: ${log.sentinel_latency}ms`;
+
+  return (
+    <Badge
+      className={cn("px-[6px] rounded-md font-mono whitespace-nowrap tabular-nums", style)}
+      title={tooltipText}
+    >
+      {formatLatency(log.total_latency)}
+    </Badge>
+  );
+};
+
 const columns: Column<SentinelResponse>[] = [
   {
     key: "time",
@@ -182,12 +138,12 @@ const columns: Column<SentinelResponse>[] = [
     },
   },
   {
-    key: "host",
-    header: "Hostname",
-    width: "200px",
+    key: "region",
+    header: "Region",
+    width: "100px",
     render: (log) => (
-      <div className="font-mono pr-4 truncate" title={log.host}>
-        {log.host}
+      <div className="font-mono pr-4 truncate uppercase" title={log.region}>
+        {log.region}
       </div>
     ),
   },
@@ -207,6 +163,16 @@ const columns: Column<SentinelResponse>[] = [
     ),
   },
   {
+    key: "host",
+    header: "Hostname",
+    width: "200px",
+    render: (log) => (
+      <div className="font-mono pr-4 truncate" title={log.host}>
+        {log.host}
+      </div>
+    ),
+  },
+  {
     key: "path",
     header: "Path",
     width: "250px",
@@ -215,6 +181,32 @@ const columns: Column<SentinelResponse>[] = [
         {log.path}
       </div>
     ),
+  },
+  {
+    key: "ip_address",
+    header: "IP Address",
+    width: "140px",
+    render: (log) => (
+      <div className="font-mono pr-4 truncate" title={log.ip_address}>
+        {log.ip_address}
+      </div>
+    ),
+  },
+  {
+    key: "user_agent",
+    header: "User Agent",
+    width: "200px",
+    render: (log) => (
+      <div className="font-mono pr-4 truncate" title={log.user_agent}>
+        {log.user_agent}
+      </div>
+    ),
+  },
+  {
+    key: "latency",
+    header: "Latency",
+    width: "150px",
+    render: (log) => <LatencyBadge log={log} />,
   },
   {
     key: "response_body",
