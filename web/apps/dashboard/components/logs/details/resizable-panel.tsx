@@ -23,7 +23,7 @@ export const ResizablePanel = ({
 }>) => {
   const [isDragging, setIsDragging] = useState(false);
   const [width, setWidth] = useState<string>(String(style?.width));
-  const panelRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
 
   useOnClickOutside(panelRef, onClose);
 
@@ -36,6 +36,7 @@ export const ResizablePanel = ({
     setIsDragging(false);
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: panelRef is stable and shouldn't be in deps
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (!isDragging || !panelRef.current) {

@@ -137,19 +137,19 @@ export async function getAllKeys({
     }
 
     // Helper function to build the filter conditions (without cursor)
-    // biome-ignore lint/suspicious/noExplicitAny: Leave it as is for now
-    const buildFilterConditions = (key: any, { and, isNull, eq, sql }: any): SQL<unknown> => {
-      const conditions = [eq(key.keyAuthId, keyspaceId), isNull(key.deletedAtM)];
+    // biome-ignore lint/suspicious/noExplicitAny: Drizzle query builder types are complex and vary between schema and query contexts
+    const buildFilterConditions = (key: any, helpers: any): SQL<unknown> => {
+      const conditions = [helpers.eq(key.keyAuthId, keyspaceId), helpers.isNull(key.deletedAtM)];
 
       // Apply tag-based key filtering if we have filtered key IDs
       if (tagFilteredKeyIds !== null) {
         if (tagFilteredKeyIds.length === 0) {
-          conditions.push(sql`1 = 0`);
+          conditions.push(helpers.sql`1 = 0`);
         } else {
           conditions.push(
-            sql`${key.id} IN (${sql.join(
-              tagFilteredKeyIds.map((id) => sql`${id}`),
-              sql`, `,
+            helpers.sql`${key.id} IN (${helpers.sql.join(
+              tagFilteredKeyIds.map((id) => helpers.sql`${id}`),
+              helpers.sql`, `,
             )})`,
           );
         }
@@ -165,21 +165,21 @@ export async function getAllKeys({
           }
           switch (filter.operator) {
             case "is":
-              nameConditions.push(eq(key.name, value));
+              nameConditions.push(helpers.eq(key.name, value));
               break;
             case "contains":
-              nameConditions.push(sql`${key.name} LIKE ${`%${value}%`}`);
+              nameConditions.push(helpers.sql`${key.name} LIKE ${`%${value}%`}`);
               break;
             case "startsWith":
-              nameConditions.push(sql`${key.name} LIKE ${`${value}%`}`);
+              nameConditions.push(helpers.sql`${key.name} LIKE ${`${value}%`}`);
               break;
             case "endsWith":
-              nameConditions.push(sql`${key.name} LIKE ${`%${value}`}`);
+              nameConditions.push(helpers.sql`${key.name} LIKE ${`%${value}`}`);
               break;
           }
         }
         if (nameConditions.length > 0) {
-          conditions.push(sql`(${sql.join(nameConditions, sql` OR `)})`);
+          conditions.push(helpers.sql`(${helpers.sql.join(nameConditions, helpers.sql` OR `)})`);
         }
       }
 
@@ -193,21 +193,21 @@ export async function getAllKeys({
           }
           switch (filter.operator) {
             case "is":
-              keyIdConditions.push(eq(key.id, value));
+              keyIdConditions.push(helpers.eq(key.id, value));
               break;
             case "contains":
-              keyIdConditions.push(sql`${key.id} LIKE ${`%${value}%`}`);
+              keyIdConditions.push(helpers.sql`${key.id} LIKE ${`%${value}%`}`);
               break;
             case "startsWith":
-              keyIdConditions.push(sql`${key.id} LIKE ${`${value}%`}`);
+              keyIdConditions.push(helpers.sql`${key.id} LIKE ${`${value}%`}`);
               break;
             case "endsWith":
-              keyIdConditions.push(sql`${key.id} LIKE ${`%${value}`}`);
+              keyIdConditions.push(helpers.sql`${key.id} LIKE ${`%${value}`}`);
               break;
           }
         }
         if (keyIdConditions.length > 0) {
-          conditions.push(sql`(${sql.join(keyIdConditions, sql` OR `)})`);
+          conditions.push(helpers.sql`(${helpers.sql.join(keyIdConditions, helpers.sql` OR `)})`);
         }
       }
 
@@ -222,40 +222,40 @@ export async function getAllKeys({
           let ownerIdCondition: SQL<unknown>;
           switch (filter.operator) {
             case "is":
-              ownerIdCondition = eq(key.ownerId, value);
+              ownerIdCondition = helpers.eq(key.ownerId, value);
               break;
             case "contains":
-              ownerIdCondition = like(key.ownerId, `%${value}%`);
+              ownerIdCondition = helpers.like(key.ownerId, `%${value}%`);
               break;
             case "startsWith":
-              ownerIdCondition = like(key.ownerId, `${value}%`);
+              ownerIdCondition = helpers.like(key.ownerId, `${value}%`);
               break;
             case "endsWith":
-              ownerIdCondition = like(key.ownerId, `%${value}`);
+              ownerIdCondition = helpers.like(key.ownerId, `%${value}`);
               break;
             default:
-              ownerIdCondition = eq(key.ownerId, value);
+              ownerIdCondition = helpers.eq(key.ownerId, value);
           }
 
-          const combinedCheckForThisFilter = or(
-            sql`EXISTS (
+          const combinedCheckForThisFilter = helpers.or(
+            helpers.sql`EXISTS (
                 SELECT 1 FROM ${identities} -- Use schema object for table name is fine
-                WHERE ${sql.raw("identities.id")} = ${
+                WHERE ${helpers.sql.raw("identities.id")} = ${
                   key.identityId
                 } -- Use raw 'identities.id'; use schema 'key.identityId' for outer ref
                   AND ${(() => {
-                    const rawExternalIdColumn = sql.raw("identities.external_id");
+                    const rawExternalIdColumn = helpers.sql.raw("identities.external_id");
                     switch (filter.operator) {
                       case "is":
-                        return sql`${rawExternalIdColumn} = ${value}`;
+                        return helpers.sql`${rawExternalIdColumn} = ${value}`;
                       case "contains":
-                        return sql`${rawExternalIdColumn} LIKE ${`%${value}%`}`;
+                        return helpers.sql`${rawExternalIdColumn} LIKE ${`%${value}%`}`;
                       case "startsWith":
-                        return sql`${rawExternalIdColumn} LIKE ${`${value}%`}`;
+                        return helpers.sql`${rawExternalIdColumn} LIKE ${`${value}%`}`;
                       case "endsWith":
-                        return sql`${rawExternalIdColumn} LIKE ${`%${value}`}`;
+                        return helpers.sql`${rawExternalIdColumn} LIKE ${`%${value}`}`;
                       default:
-                        return sql`${rawExternalIdColumn} = ${value}`;
+                        return helpers.sql`${rawExternalIdColumn} = ${value}`;
                     }
                   })()}
             )`,
@@ -270,14 +270,14 @@ export async function getAllKeys({
         }
       }
 
-      return and(...conditions);
+      return helpers.and(...conditions);
     };
 
     // Get the total count using a proper COUNT query instead of fetching all rows
     const [countResult] = await db
       .select({ count: count() })
       .from(keysSchema)
-      .where(buildFilterConditions(keysSchema, { and, isNull, eq, sql }));
+      .where(buildFilterConditions(keysSchema, { and, isNull, eq, sql, like, or }));
 
     const totalCount = countResult?.count ?? 0;
     const keysQuery = await db.query.keys.findMany({

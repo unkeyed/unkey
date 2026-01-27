@@ -2,7 +2,7 @@ import { ExternalIdField } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_compo
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { Button, ConfirmPopover, DialogContainer } from "@unkey/ui";
-import { useRef, useState } from "react";
+import { type JSX, useRef, useState } from "react";
 import { useEditExternalId } from "../hooks/use-edit-external-id";
 import { KeyInfo } from "../key-info";
 

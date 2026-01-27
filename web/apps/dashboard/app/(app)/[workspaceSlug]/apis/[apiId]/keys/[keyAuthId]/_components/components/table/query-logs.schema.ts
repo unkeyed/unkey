@@ -18,7 +18,7 @@ const baseKeysSchema = z.object({
 
 export const keysQueryListPayload = baseKeysSchema.extend({
   cursor: z.string().nullish(),
-  limit: z.number().default(PAGINATION_LIMIT),
+  limit: z.number().prefault(PAGINATION_LIMIT),
 });
 
 export type KeysQueryListPayload = z.infer<typeof keysQueryListPayload>;

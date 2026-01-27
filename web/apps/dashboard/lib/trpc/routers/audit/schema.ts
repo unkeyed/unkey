@@ -68,10 +68,10 @@ export type AuditLogWithTargets = {
 
 export const auditQueryLogsParamsSchema = z.object({
   workspaceId: z.string(),
-  bucket: z.string().default(AUDIT_LOG_BUCKET),
-  limit: z.number().int(),
-  startTime: z.number().int().optional(),
-  endTime: z.number().int().optional(),
+  bucket: z.string().prefault(AUDIT_LOG_BUCKET),
+  limit: z.int(),
+  startTime: z.int().optional(),
+  endTime: z.int().optional(),
   events: z
     .array(
       z.object({
@@ -96,7 +96,7 @@ export const auditQueryLogsParamsSchema = z.object({
       }),
     )
     .nullable(),
-  cursor: z.number().int().nullable().optional(),
+  cursor: z.int().nullable().optional(),
 });
 
 export type AuditQueryLogsParams = z.infer<typeof auditQueryLogsParamsSchema>;

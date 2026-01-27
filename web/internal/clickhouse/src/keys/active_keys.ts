@@ -6,8 +6,8 @@ export const activeKeysTimeseriesParams = z.object({
   workspaceId: z.string(),
   keyspaceId: z.string(),
   keyId: z.string().optional(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  startTime: z.int(),
+  endTime: z.int(),
   names: z
     .array(
       z.object({
@@ -43,9 +43,9 @@ export const activeKeysTimeseriesParams = z.object({
 });
 
 export const activeKeysTimeseriesDataPoint = z.object({
-  x: z.number().int(),
+  x: z.int(),
   y: z.object({
-    keys: z.number().int().default(0),
+    keys: z.int().prefault(0),
   }),
   key_ids: z.array(z.string()).optional(),
 });

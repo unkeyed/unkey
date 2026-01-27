@@ -18,9 +18,9 @@ import { Client } from "./client";
 export const dynamic = "force-dynamic";
 
 type Props = {
-  searchParams: {
+  searchParams: Promise<{
     configurationId?: string;
-  };
+  }>;
 };
 
 export default async function Page(props: Props) {
@@ -46,9 +46,9 @@ export default async function Page(props: Props) {
     console.warn("no workspace");
     return notFound();
   }
-
-  const integration = props.searchParams.configurationId
-    ? workspace.vercelIntegrations.find((i) => i.id === props.searchParams.configurationId)
+  const searchConfig = (await props.searchParams).configurationId;
+  const integration = (await props.searchParams).configurationId
+    ? workspace.vercelIntegrations.find((i) => i.id === searchConfig)
     : workspace.vercelIntegrations.at(0);
 
   if (!integration) {

@@ -5,8 +5,8 @@ import { permissions, roles, rolesPermissions } from "@unkey/db/src/schema";
 import { z } from "zod";
 
 const resolvePermissionSlugsInput = z.object({
-  roleIds: z.array(z.string()).default([]),
-  permissionIds: z.array(z.string()).default([]),
+  roleIds: z.array(z.string()).prefault([]),
+  permissionIds: z.array(z.string()).prefault([]),
 });
 
 const resolvePermissionSlugsResponse = z.object({

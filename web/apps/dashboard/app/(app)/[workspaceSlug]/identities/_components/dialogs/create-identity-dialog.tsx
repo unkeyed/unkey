@@ -1,6 +1,7 @@
 "use client";
 
 import { NavbarActionButton } from "@/components/navigation/action-button";
+import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
@@ -24,7 +25,7 @@ export function CreateIdentityDialog() {
   const utils = trpc.useUtils();
 
   const methods = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as DiscriminatedUnionResolver<typeof formSchema>,
     mode: "onChange",
     defaultValues: getDefaultValues(),
   });

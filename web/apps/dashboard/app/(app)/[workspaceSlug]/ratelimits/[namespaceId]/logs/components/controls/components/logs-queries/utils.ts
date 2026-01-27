@@ -2,7 +2,7 @@ import type { QuerySearchParams } from "@/app/(app)/[workspaceSlug]/audit/filter
 import { iconsPerField } from "@/components/logs/queries/utils";
 import { ChartActivity2 } from "@unkey/icons";
 import { format } from "date-fns";
-import React from "react";
+import React, { type JSX } from "react";
 
 export function formatFilterValues(
   filters: QuerySearchParams,

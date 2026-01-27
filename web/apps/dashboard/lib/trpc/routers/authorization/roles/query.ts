@@ -19,7 +19,7 @@ const rolesResponse = z.object({
   roles: z.array(roleBasic),
   hasMore: z.boolean(),
   total: z.number(),
-  nextCursor: z.number().int().nullish(),
+  nextCursor: z.int().nullish(),
 });
 
 export const queryRoles = workspaceProcedure

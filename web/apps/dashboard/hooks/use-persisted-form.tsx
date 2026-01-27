@@ -19,7 +19,7 @@ const memoryStorage = new Map<string, string>();
  * @param formOptions - Standard useForm options
  * @param storageType - Where to persist data: "memory", "session", or "local"
  */
-export function usePersistedForm<TFormValues extends Record<string, unknown>>(
+export function usePersistedForm<TFormValues extends FieldValues>(
   storageKey: string,
   formOptions: UseFormProps<TFormValues>,
   storageType: StorageType = "session",

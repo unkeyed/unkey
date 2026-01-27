@@ -12,7 +12,7 @@ const nameSchema = z
   .string()
   .min(3)
   .regex(/^[a-zA-Z0-9_:\-\.\*]+$/, {
-    message:
+    error:
       "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
   });
 

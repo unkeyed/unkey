@@ -34,10 +34,10 @@ export const invalidateWorkspaceCache = async (orgId?: string) => {
 
   if (orgId) {
     // Invalidate specific org's workspace cache
-    revalidateTag(`workspace-${orgId}`);
+    revalidateTag(`workspace-${orgId}`, "max");
   } else {
     // Invalidate all workspace caches
-    revalidateTag("workspace");
+    revalidateTag("workspace", "max");
   }
 };
 
@@ -66,6 +66,6 @@ export const invalidateMultipleWorkspaceCaches = async (orgIds: string[]) => {
   const { revalidateTag } = await import("next/cache");
 
   for (const orgId of orgIds) {
-    revalidateTag(`workspace-${orgId}`);
+    revalidateTag(`workspace-${orgId}`, "max");
   }
 };
