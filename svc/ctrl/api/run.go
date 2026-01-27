@@ -187,7 +187,7 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("failed to create github webhook service: %w", githubErr)
 		}
 		mux.Handle("/webhooks/github", githubService.WebhookHandler())
-				logger.Info("GitHub webhook handler registered", "path", "/webhooks/github")
+		logger.Info("GitHub webhook handler registered", "path", "/webhooks/github")
 	} else if cfg.GitHub.AppID != "" || cfg.GitHub.PrivateKeyPEM != "" || cfg.GitHub.WebhookSecret != "" {
 		// Partial config provided - warn but don't register (fail closed)
 		logger.Warn("GitHub webhook handler NOT registered: incomplete configuration",

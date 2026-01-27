@@ -576,16 +576,6 @@ CREATE TABLE `frontline_routes` (
 	CONSTRAINT `frontline_routes_fully_qualified_domain_name_unique` UNIQUE(`fully_qualified_domain_name`)
 );
 
-CREATE TABLE `state_changes` (
-	`sequence` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`resource_type` enum('sentinel','deployment') NOT NULL,
-	`resource_id` varchar(256) NOT NULL,
-	`op` enum('upsert','delete') NOT NULL,
-	`region` varchar(64) NOT NULL,
-	`created_at` bigint unsigned NOT NULL,
-	CONSTRAINT `state_changes_sequence` PRIMARY KEY(`sequence`)
-);
-
 CREATE TABLE `github_app_installations` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
@@ -593,9 +583,8 @@ CREATE TABLE `github_app_installations` (
 	`installation_id` varchar(256) NOT NULL,
 	`repository_id` varchar(256) NOT NULL,
 	`repository_full_name` varchar(500) NOT NULL,
-	`created_at_m` bigint NOT NULL DEFAULT 0,
-	`updated_at_m` bigint,
-	`deleted_at_m` bigint,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
 	CONSTRAINT `github_app_installations_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `github_app_installations_id_unique` UNIQUE(`id`),
 	CONSTRAINT `github_app_installations_project_id_unique` UNIQUE(`project_id`)
@@ -631,6 +620,4 @@ CREATE INDEX `idx_deployment_id` ON `instances` (`deployment_id`);
 CREATE INDEX `idx_region` ON `instances` (`region`);
 CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);
 CREATE INDEX `deployment_id_idx` ON `frontline_routes` (`deployment_id`);
-CREATE INDEX `region_sequence` ON `state_changes` (`region`,`sequence`);
-CREATE INDEX `created_at` ON `state_changes` (`created_at`);
 
