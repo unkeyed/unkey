@@ -54,7 +54,15 @@ export const getBillingInfo = workspaceProcedure
 
     const [subscription, hasPreviousSubscriptions] = await Promise.all([
       ctx.workspace.stripeSubscriptionId
-        ? await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId)
+        ? await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId).catch((error) => {
+            if (error instanceof Error && "code" in error && error.code === "resource_missing") {
+              console.warn(
+                `Subscription ${ctx.workspace.stripeSubscriptionId} not found in Stripe for workspace ${ctx.workspace.id}`,
+              );
+              return undefined;
+            }
+            throw error;
+          })
         : undefined,
 
       ctx.workspace.stripeCustomerId

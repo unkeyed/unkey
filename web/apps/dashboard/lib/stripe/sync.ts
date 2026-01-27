@@ -7,15 +7,26 @@ export async function syncSubscriptionFromStripe(
   workspaceId: string,
 ): Promise<void> {
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.id, workspaceId), isNull(table.deletedAtM)),
+    where: (table, { and, eq, isNull }) => and(eq(table.id, workspaceId), isNull(table.deletedAtM)),
   });
 
   if (!workspace?.stripeSubscriptionId) {
     return;
   }
 
-  const subscription = await stripe.subscriptions.retrieve(workspace.stripeSubscriptionId);
+  let subscription: Stripe.Subscription;
+  try {
+    subscription = await stripe.subscriptions.retrieve(workspace.stripeSubscriptionId);
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "resource_missing") {
+      console.warn(
+        `Subscription ${workspace.stripeSubscriptionId} not found in Stripe, cleaning up workspace ${workspaceId}`,
+      );
+      await syncCanceledSubscription(workspaceId);
+      return;
+    }
+    throw error;
+  }
 
   const priceId = subscription.items.data[0]?.price?.id;
   if (!priceId) {
@@ -44,13 +55,28 @@ export async function syncSubscriptionFromStripe(
   const wasFailedPayment = workspace.paymentFailedAt !== null;
 
   // Map Stripe status to allowed database values
-  type SubscriptionStatus = "active" | "past_due" | "canceled" | "unpaid" | "trialing" | "incomplete" | "incomplete_expired";
-  const allowedStatuses: readonly string[] = ["active", "past_due", "canceled", "unpaid", "trialing", "incomplete", "incomplete_expired"];
-  
+  type SubscriptionStatus =
+    | "active"
+    | "past_due"
+    | "canceled"
+    | "unpaid"
+    | "trialing"
+    | "incomplete"
+    | "incomplete_expired";
+  const allowedStatuses: readonly string[] = [
+    "active",
+    "past_due",
+    "canceled",
+    "unpaid",
+    "trialing",
+    "incomplete",
+    "incomplete_expired",
+  ];
+
   function isSubscriptionStatus(value: unknown): value is SubscriptionStatus {
     return typeof value === "string" && allowedStatuses.includes(value);
   }
-  
+
   const subscriptionStatus: SubscriptionStatus = isSubscriptionStatus(subscription.status)
     ? subscription.status
     : "canceled";
@@ -61,7 +87,12 @@ export async function syncSubscriptionFromStripe(
       .set({
         tier: product.name,
         subscriptionStatus,
-        paymentFailedAt: isFailedPayment && !wasFailedPayment ? Date.now() : wasFailedPayment && !isFailedPayment ? null : workspace.paymentFailedAt,
+        paymentFailedAt:
+          isFailedPayment && !wasFailedPayment
+            ? Date.now()
+            : wasFailedPayment && !isFailedPayment
+              ? null
+              : workspace.paymentFailedAt,
       })
       .where(eq(schema.workspaces.id, workspaceId));
 
