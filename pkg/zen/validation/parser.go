@@ -284,6 +284,7 @@ func (p *SpecParser) parseParameters(opMap map[string]any) ParameterSet {
 			In:              "",
 			Required:        false,
 			Schema:          nil,
+			TypedSchema:     nil,
 			Style:           "",
 			Explode:         nil,
 			AllowEmptyValue: false,
@@ -304,6 +305,8 @@ func (p *SpecParser) parseParameters(opMap map[string]any) ParameterSet {
 
 		if schema, ok := paramMap["schema"].(map[string]any); ok {
 			param.Schema = schema
+			// Parse typed schema for type-safe handling
+			param.TypedSchema, _ = ParseTypedSchema(schema)
 		}
 
 		// Parse style (OpenAPI 3.x parameter serialization)
