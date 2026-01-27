@@ -1,11 +1,8 @@
 package worker
 
 import (
-	"bytes"
 	"context"
-	"database/sql"
 	"fmt"
-	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -15,7 +12,6 @@ import (
 	"connectrpc.com/connect"
 	"github.com/go-acme/lego/v4/challenge"
 	restate "github.com/restatedev/sdk-go"
-	restateIngress "github.com/restatedev/sdk-go/ingress"
 	restateServer "github.com/restatedev/sdk-go/server"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
@@ -25,12 +21,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
-	"github.com/unkeyed/unkey/pkg/retry"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/shutdown"
-	"github.com/unkeyed/unkey/pkg/uid"
-
-	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/build"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
@@ -38,6 +30,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/versioning"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
 // Run starts the Restate worker service with the provided configuration.
@@ -51,9 +45,8 @@ import (
 //  5. Initializes ACME caches and providers (HTTP-01, DNS-01)
 //  6. Starts Restate server with workflow service bindings
 //  7. Registers with Restate admin API for service discovery
-//  8. Bootstraps wildcard domain and starts certificate renewal cron
-//  9. Starts health check endpoint
-//  10. Optionally starts Prometheus metrics server
+//  8. Starts health check endpoint
+//  9. Optionally starts Prometheus metrics server
 //
 // The worker handles graceful shutdown when context is cancelled, properly
 // closing all services and database connections.
@@ -127,13 +120,8 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	// Restate Client and Server
-	restateClientOpts := []restate.IngressClientOption{}
-	if cfg.Restate.APIKey != "" {
-		restateClientOpts = append(restateClientOpts, restate.WithAuthKey(cfg.Restate.APIKey))
-	}
-	restateClient := restateIngress.NewClient(cfg.Restate.URL, restateClientOpts...)
-	restateSrv := restateServer.NewRestate()
+	// Restate Server
+	restateSrv := restateServer.NewRestate().WithLogger(logging.Handler(), false)
 
 	restateSrv.Bind(hydrav1.NewBuildServiceServer(build.New(build.Config{
 		InstanceID:     cfg.InstanceID,
@@ -224,129 +212,62 @@ func Run(ctx context.Context, cfg Config) error {
 		HTTPProvider:  httpProvider,
 	}), restate.WithInactivityTimeout(15*time.Minute)))
 
-	go func() {
-		addr := fmt.Sprintf(":%d", cfg.Restate.HttpPort)
-		logger.Info("Starting Restate server", "addr", addr)
-		if startErr := restateSrv.Start(ctx, addr); startErr != nil {
-			logger.Error("failed to start restate server", "error", startErr.Error())
-		}
-	}()
-
-	// Register with Restate admin API
-	go func() {
-		// Wait a moment for the restate server to be ready
-		time.Sleep(2 * time.Second)
-
-		registerURL := fmt.Sprintf("%s/deployments", cfg.Restate.AdminURL)
-		payload := fmt.Sprintf(`{"uri": "%s"}`, cfg.Restate.RegisterAs)
-
-		logger.Info("Registering with Restate", "admin_url", registerURL, "service_uri", cfg.Restate.RegisterAs)
-
-		retrier := retry.New(
-			retry.Attempts(10),
-			retry.Backoff(func(n int) time.Duration {
-				return 5 * time.Second
-			}),
-		)
-
-		retryErr := retrier.Do(func() error {
-			req, reqErr := http.NewRequestWithContext(ctx, http.MethodPost, registerURL, bytes.NewBufferString(payload))
-			if reqErr != nil {
-				return fmt.Errorf("failed to create registration request: %w", reqErr)
-			}
-
-			req.Header.Set("Content-Type", "application/json")
-
-			client := &http.Client{Timeout: 30 * time.Second}
-			resp, doErr := client.Do(req)
-			if doErr != nil {
-				return fmt.Errorf("failed to register with Restate: %w", doErr)
-			}
-
-			body, err := io.ReadAll(resp.Body)
-			status := resp.StatusCode
-			closeErr := resp.Body.Close()
-			if closeErr != nil {
-				return fmt.Errorf("failed to close response body: %w", closeErr)
-			}
-			if err != nil {
-				return fmt.Errorf("failed to read body: %w", err)
-			}
-
-			if status >= 200 && status < 300 {
-				return nil
-			}
-
-			logger.Info("restate register response", "body", string(body))
-			return fmt.Errorf("registration returned status %d", status)
-		})
-
-		if retryErr != nil {
-			logger.Error("failed to register with Restate after retries", "error", retryErr.Error())
-		} else {
-			logger.Info("Successfully registered with Restate")
-
-			// Bootstrap wildcard certificate for default domain if ACME is enabled
-			if cfg.Acme.Enabled && dnsProvider != nil && cfg.DefaultDomain != "" {
-				bootstrapWildcardDomain(ctx, database, logger, cfg.DefaultDomain)
-			}
-
-			// Start the certificate renewal cron job if ACME is enabled
-			// Use Send with idempotency key so multiple restarts don't create duplicate crons
-			if cfg.Acme.Enabled && dnsProvider != nil {
-				certClient := hydrav1.NewCertificateServiceIngressClient(restateClient, "global")
-				_, startErr := certClient.RenewExpiringCertificates().Send(
-					ctx,
-					&hydrav1.RenewExpiringCertificatesRequest{
-						DaysBeforeExpiry: 30,
-					},
-					restate.WithIdempotencyKey("cert-renewal-cron-startup"),
-				)
-				if startErr != nil {
-					logger.Warn("failed to start certificate renewal cron", "error", startErr)
-				} else {
-					logger.Info("Certificate renewal cron job started")
-				}
-			}
-		}
-	}()
-
-	// Create zen health server
-	healthServer, err := zen.New(zen.Config{
-		Logger:             logger,
-		TLS:                nil,
-		Flags:              nil,
-		EnableH2C:          false,
-		MaxRequestBodySize: 0,
-		ReadTimeout:        0,
-		WriteTimeout:       0,
-	})
+	// Get the Restate handler and mount it on a mux with health endpoint
+	restateHandler, err := restateSrv.Handler()
 	if err != nil {
-		return fmt.Errorf("failed to create health server: %w", err)
+		return fmt.Errorf("failed to get restate handler: %w", err)
 	}
 
-	healthServer.RegisterRoute(
-		nil,
-		zen.NewRoute("GET", "/health", func(_ context.Context, sess *zen.Session) error {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.Handle("/", restateHandler)
 
-			return sess.Send(http.StatusOK, nil)
-		}),
-	)
+	h2cHandler := h2c.NewHandler(mux, &http2.Server{
+		MaxHandlers:                  0,
+		MaxConcurrentStreams:         0,
+		MaxDecoderHeaderTableSize:    0,
+		MaxEncoderHeaderTableSize:    0,
+		MaxReadFrameSize:             0,
+		PermitProhibitedCipherSuites: false,
+		IdleTimeout:                  0,
+		ReadIdleTimeout:              0,
+		PingTimeout:                  0,
+		WriteByteTimeout:             0,
+		MaxUploadBufferPerConnection: 0,
+		MaxUploadBufferPerStream:     0,
+		NewWriteScheduler:            nil,
+		CountError:                   nil,
+	})
+	addr := fmt.Sprintf(":%d", cfg.Restate.HttpPort)
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           h2cHandler,
+		ReadHeaderTimeout: 30 * time.Second,
+	}
 
 	go func() {
-		healthAddr := fmt.Sprintf(":%d", cfg.HttpPort)
-		ln, lnErr := net.Listen("tcp", healthAddr)
-		if lnErr != nil {
-			logger.Error("failed to listen on health port", "error", lnErr, "port", cfg.HttpPort)
-			return
-		}
-		logger.Info("Starting health server", "addr", healthAddr)
-		if serveErr := healthServer.Serve(ctx, ln); serveErr != nil {
-			logger.Error("health server failed", "error", serveErr)
+		logger.Info("Starting worker server", "addr", addr)
+		if serveErr := server.ListenAndServe(); serveErr != nil && serveErr != http.ErrServerClosed {
+			logger.Error("server failed", "error", serveErr)
 		}
 	}()
 
-	shutdowns.RegisterCtx(healthServer.Shutdown)
+	shutdowns.RegisterCtx(server.Shutdown)
+
+	// Register with Restate admin API (only if RegisterAs is configured)
+	// In k8s environments, registration is handled externally
+	if cfg.Restate.RegisterAs != "" {
+		reg := &restateRegistration{
+			logger:     logger,
+			adminURL:   cfg.Restate.AdminURL,
+			registerAs: cfg.Restate.RegisterAs,
+		}
+		go reg.register(ctx)
+	} else {
+		logger.Info("Skipping Restate registration (restate-register-as not configured)")
+	}
 
 	if cfg.PrometheusPort > 0 {
 		prom, promErr := prometheus.New(prometheus.Config{
@@ -378,70 +299,4 @@ func Run(ctx context.Context, cfg Config) error {
 
 	logger.Info("Worker shut down successfully")
 	return nil
-}
-
-// bootstrapWildcardDomain ensures a wildcard domain and ACME challenge exist for the default domain.
-//
-// This helper function creates the necessary database records for automatic
-// wildcard certificate issuance during startup. It checks if the wildcard
-// domain already exists and creates both the custom domain record and
-// ACME challenge record if needed.
-//
-// The function uses "unkey_internal" as the workspace ID for
-// platform-managed resources, ensuring separation from user workspaces.
-//
-// This is called during worker startup when ACME is enabled and
-// a default domain is configured, allowing the renewal cron job to
-// automatically issue wildcard certificates without manual intervention.
-func bootstrapWildcardDomain(ctx context.Context, database db.Database, logger logging.Logger, defaultDomain string) {
-	wildcardDomain := "*." + defaultDomain
-
-	// Check if the wildcard domain already exists
-	_, err := db.Query.FindCustomDomainByDomain(ctx, database.RO(), wildcardDomain)
-	if err == nil {
-		logger.Info("Wildcard domain already exists", "domain", wildcardDomain)
-		return
-	}
-	if !db.IsNotFound(err) {
-		logger.Error("Failed to check for existing wildcard domain", "error", err, "domain", wildcardDomain)
-		return
-	}
-
-	// Create the custom domain record
-	domainID := uid.New(uid.DomainPrefix)
-	now := time.Now().UnixMilli()
-
-	// Use "unkey_internal" as the workspace for platform-managed resources
-	workspaceID := "unkey_internal"
-	err = db.Query.UpsertCustomDomain(ctx, database.RW(), db.UpsertCustomDomainParams{
-		ID:            domainID,
-		WorkspaceID:   workspaceID,
-		Domain:        wildcardDomain,
-		ChallengeType: db.CustomDomainsChallengeTypeDNS01,
-		CreatedAt:     now,
-		UpdatedAt:     sql.NullInt64{Int64: now, Valid: true},
-	})
-	if err != nil {
-		logger.Error("Failed to create wildcard domain", "error", err, "domain", wildcardDomain)
-		return
-	}
-
-	// Create the ACME challenge record with status 'waiting' so the renewal cron picks it up
-	err = db.Query.InsertAcmeChallenge(ctx, database.RW(), db.InsertAcmeChallengeParams{
-		WorkspaceID:   workspaceID,
-		DomainID:      domainID,
-		Token:         "",
-		Authorization: "",
-		Status:        db.AcmeChallengesStatusWaiting,
-		ChallengeType: db.AcmeChallengesChallengeTypeDNS01,
-		CreatedAt:     now,
-		UpdatedAt:     sql.NullInt64{Int64: now, Valid: true},
-		ExpiresAt:     0, // Will be set when certificate is issued
-	})
-	if err != nil {
-		logger.Error("Failed to create ACME challenge for wildcard domain", "error", err, "domain", wildcardDomain)
-		return
-	}
-
-	logger.Info("Bootstrapped wildcard domain for certificate issuance", "domain", wildcardDomain)
 }

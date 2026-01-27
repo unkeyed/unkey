@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/tls"
 	"github.com/unkeyed/unkey/pkg/uid"
 	ctrlapi "github.com/unkeyed/unkey/svc/ctrl/api"
@@ -60,28 +59,12 @@ var apiCmd = &cli.Command{
 			cli.Required(),
 			cli.EnvVar("UNKEY_AUTH_TOKEN")),
 
-		cli.String("vault-url", "URL where Vault is available",
-			cli.Required(),
-			cli.EnvVar("UNKEY_VAULT_URL"),
-			cli.Default("https://vault.unkey.cloud"),
-		),
-
-		cli.String("vault-token", "Authentication for vault",
-			cli.Required(),
-			cli.EnvVar("UNKEY_VAULT_TOKEN"),
-		),
-
-		cli.Bool("acme-enabled", "Enable Let's Encrypt for acme challenges", cli.EnvVar("UNKEY_ACME_ENABLED")),
-		cli.String("acme-email-domain", "Domain for ACME registration emails (workspace_id@domain)", cli.Default("unkey.com"), cli.EnvVar("UNKEY_ACME_EMAIL_DOMAIN")),
-
-		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
-		cli.String("regional-apex-domain", "Apex domain for cross-region frontline communication (e.g., unkey.cloud). Certs are provisioned for *.{region}.{regional-apex-domain}", cli.EnvVar("UNKEY_REGIONAL_APEX_DOMAIN")),
-
 		// Restate Configuration
 		cli.String("restate-url", "URL of the Restate ingress endpoint for invoking workflows. Example: http://restate:8080",
 			cli.Default("http://restate:8080"), cli.EnvVar("UNKEY_RESTATE_INGRESS_URL")),
 		cli.String("restate-api-key", "API key for Restate ingress requests",
 			cli.EnvVar("UNKEY_RESTATE_API_KEY")),
+
 		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
 			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
 
@@ -97,9 +80,11 @@ var apiCmd = &cli.Command{
 		cli.String("build-s3-access-key-secret", "S3 access key secret",
 			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_ACCESS_KEY_SECRET")),
 
-		// The image new sentinels get deployed with
-		cli.String("sentinel-image", "The image new sentinels get deployed with", cli.Default("ghcr.io/unkeyed/unkey:local"), cli.EnvVar("UNKEY_SENTINEL_IMAGE")),
 		cli.StringSlice("available-regions", "Available regions for deployment", cli.EnvVar("UNKEY_AVAILABLE_REGIONS"), cli.Default([]string{"local.dev"})),
+
+		// Certificate bootstrap configuration
+		cli.String("default-domain", "Default domain for wildcard certificate bootstrapping (e.g., unkey.app)", cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
+		cli.String("regional-apex-domain", "Apex domain for cross-region communication. Per-region wildcards created as *.{region}.{apex} (e.g., unkey.cloud)", cli.EnvVar("UNKEY_REGIONAL_APEX_DOMAIN")),
 	},
 	Action: apiAction,
 }
@@ -146,11 +131,6 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 		// Control Plane Specific
 		AuthToken: cmd.String("auth-token"),
 
-		Vault: ctrlapi.VaultConfig{
-			Url:   cmd.RequireString("vault-url"),
-			Token: cmd.RequireString("vault-token"),
-		},
-
 		// Build configuration
 		BuildS3: ctrlapi.S3Config{
 			URL:             cmd.String("build-s3-url"),
@@ -166,12 +146,11 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 			APIKey: cmd.String("restate-api-key"),
 		},
 
-		// Common
-		Clock: clock.New(),
-
-		// Sentinel configuration
-		SentinelImage:    cmd.String("sentinel-image"),
 		AvailableRegions: cmd.RequireStringSlice("available-regions"),
+
+		// Certificate bootstrap
+		DefaultDomain:      cmd.String("default-domain"),
+		RegionalApexDomain: cmd.String("regional-apex-domain"),
 	}
 
 	err := config.Validate()

@@ -979,20 +979,6 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND deleted_at_m IS NULL
 	GetKeyAuthByID(ctx context.Context, db DBTX, id string) (GetKeyAuthByIDRow, error)
-	// GetMaxStateChangeSequence returns the highest sequence number for a region.
-	// Used during bootstrap to set the sequence boundary.
-	//
-	//  SELECT CAST(COALESCE(MAX(sequence), 0) AS UNSIGNED) AS max_sequence
-	//  FROM `state_changes`
-	//  WHERE region = ?
-	GetMaxStateChangeSequence(ctx context.Context, db DBTX, region string) (int64, error)
-	// Returns the lowest retained sequence for a region.
-	// Used to detect if a client's watermark is too old (requires full resync).
-	//
-	//  SELECT CAST(COALESCE(MIN(sequence), 0) AS UNSIGNED) AS min_sequence
-	//  FROM `state_changes`
-	//  WHERE region = ?
-	GetMinStateChangeSequence(ctx context.Context, db DBTX, region string) (int64, error)
 	//HardDeleteWorkspace
 	//
 	//  DELETE FROM `workspaces`
@@ -1605,22 +1591,6 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertSentinel(ctx context.Context, db DBTX, arg InsertSentinelParams) error
-	//InsertStateChange
-	//
-	//  INSERT INTO `state_changes` (
-	//      resource_type,
-	//      resource_id,
-	//      op,
-	//      region,
-	//      created_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertStateChange(ctx context.Context, db DBTX, arg InsertStateChangeParams) (int64, error)
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (
@@ -1991,18 +1961,6 @@ type Querier interface {
 	//  ORDER BY version ASC
 	//  LIMIT ?
 	ListSentinelsByRegion(ctx context.Context, db DBTX, arg ListSentinelsByRegionParams) ([]Sentinel, error)
-	// Returns state changes for watch loop. Includes 1-second visibility delay
-	// to handle AUTO_INCREMENT gaps where sequence N+1 commits before N.
-	// Clients filter by their region when fetching the actual resource.
-	//
-	//  SELECT sequence, resource_type, resource_id, op
-	//  FROM `state_changes`
-	//  WHERE region = ?
-	//    AND sequence > ?
-	//    AND created_at < (UNIX_TIMESTAMP() * 1000) - 1000
-	//  ORDER BY sequence ASC
-	//  LIMIT ?
-	ListStateChanges(ctx context.Context, db DBTX, arg ListStateChangesParams) ([]ListStateChangesRow, error)
 	//ListWorkspaces
 	//
 	//  SELECT

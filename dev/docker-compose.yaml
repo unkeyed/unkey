@@ -277,6 +277,9 @@ services:
     volumes:
       # Mount Docker socket for Docker backend support
       - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      vault:
+        condition: service_healthy
     environment:
       # Server configuration
       UNKEY_REGION: "local.dev" # currently required to receive filtered events from ctrl
@@ -286,6 +289,10 @@ services:
       # Backend configuration - use Docker backend for development
       UNKEY_KRANE_BACKEND: "docker"
       UNKEY_DOCKER_SOCKET: "/var/run/docker.sock"
+
+      # Vault configuration for secrets decryption
+      UNKEY_VAULT_URL: "http://vault:8060"
+      UNKEY_VAULT_TOKEN: "vault-test-token-123"
 
       UNKEY_REGISTRY_URL: "${UNKEY_REGISTRY_URL:-}"
       UNKEY_REGISTRY_USERNAME: "${UNKEY_REGISTRY_USERNAME:-}"
@@ -336,18 +343,11 @@ services:
       clickhouse:
         condition: service_healthy
         required: true
-      vault:
-        condition: service_healthy
-        required: true
     environment:
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
       # Control plane configuration
       UNKEY_HTTP_PORT: "7091"
-
-      # Vault configuration (required)
-      UNKEY_VAULT_URL: "http://vault:8060"
-      UNKEY_VAULT_TOKEN: "vault-test-token-123"
 
       # Restate configuration (ctrl api only needs ingress client, not server)
       UNKEY_RESTATE_INGRESS_URL: "http://restate:8080"
@@ -363,6 +363,9 @@ services:
       # API key for simple authentication
       UNKEY_AUTH_TOKEN: "your-local-dev-key"
 
+      # Certificate bootstrap
+      UNKEY_DEFAULT_DOMAIN: "unkey.local"
+
   ctrl-worker:
     networks:
       - default
@@ -376,8 +379,13 @@ services:
     env_file:
       - .env.depot
     ports:
-      - "7092:7092"
       - "9080:9080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/health"]
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+      interval: 5s
     depends_on:
       mysql:
         condition: service_healthy
@@ -399,16 +407,13 @@ services:
     environment:
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
-      # Worker configuration
-      UNKEY_WORKER_HTTP_PORT: "7092"
+      # Domain configuration (used by deploy and routing services)
       UNKEY_DEFAULT_DOMAIN: "unkey.local"
 
       # Restate configuration
-      UNKEY_RESTATE_INGRESS_URL: "http://restate:8080"
       UNKEY_RESTATE_ADMIN_URL: "http://restate:9070"
       UNKEY_RESTATE_HTTP_PORT: "9080"
       UNKEY_RESTATE_REGISTER_AS: "http://ctrl-worker:9080"
-      UNKEY_RESTATE_API_KEY: ""
 
       # Vault service for secret encryption
       UNKEY_VAULT_URL: "http://vault:8060"
@@ -417,8 +422,7 @@ services:
       # Build configuration (loaded from .env.depot)
       UNKEY_BUILD_S3_BUCKET: "build-contexts"
 
-      # Build backend configuration
-      UNKEY_BUILD_BACKEND: "depot"
+      # Build configuration
       UNKEY_BUILD_PLATFORM: "linux/amd64"
 
       # Registry configuration (UNKEY_REGISTRY_PASSWORD loaded from .env.depot)
@@ -432,89 +436,8 @@ services:
       # ClickHouse
       UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
 
-      # API key for authentication
-      UNKEY_AUTH_TOKEN: "your-local-dev-key"
-
       # Sentinel image for deployments
       UNKEY_SENTINEL_IMAGE: "unkey/sentinel:latest"
-
-  worker:
-    networks:
-      - default
-    build:
-      context: ../
-      dockerfile: Dockerfile
-      args:
-        VERSION: "latest"
-    container_name: worker
-    command: ["run", "worker"]
-    ports:
-      - "7092:7092" # Health endpoint
-      - "9080:9080" # Restate workflow service port
-    depends_on:
-      mysql:
-        condition: service_healthy
-        required: true
-      s3:
-        condition: service_healthy
-        required: true
-      restate:
-        condition: service_healthy
-        required: true
-      clickhouse:
-        condition: service_healthy
-        required: true
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
-
-      # Worker configuration
-      UNKEY_WORKER_HTTP_PORT: "7092"
-      UNKEY_DEFAULT_DOMAIN: "unkey.local"
-
-      # Restate configuration
-      UNKEY_RESTATE_INGRESS_URL: "http://restate:8080"
-      UNKEY_RESTATE_ADMIN_URL: "http://restate:9070"
-      UNKEY_RESTATE_HTTP_PORT: "9080"
-      UNKEY_RESTATE_REGISTER_AS: "http://worker:9080"
-      UNKEY_RESTATE_API_KEY: ""
-
-      # Vault - General secrets (env vars, API keys)
-      UNKEY_VAULT_S3_URL: "http://s3:3902"
-      UNKEY_VAULT_S3_BUCKET: "vault"
-      UNKEY_VAULT_S3_ACCESS_KEY_ID: "minio_root_user"
-      UNKEY_VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
-      UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
-      # ACME Vault - Let's Encrypt certificates
-      UNKEY_ACME_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
-      UNKEY_ACME_VAULT_S3_URL: "http://s3:3902"
-      UNKEY_ACME_VAULT_S3_BUCKET: "acme-vault"
-      UNKEY_ACME_VAULT_S3_ACCESS_KEY_ID: "minio_root_user"
-      UNKEY_ACME_VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
-
-      # Build configuration
-      UNKEY_BUILD_S3_URL: "${UNKEY_BUILD_S3_URL:-http://s3:3902}"
-      UNKEY_BUILD_S3_BUCKET: "build-contexts"
-      UNKEY_BUILD_S3_ACCESS_KEY_ID: "${UNKEY_BUILD_S3_ACCESS_KEY_ID:-minio_root_user}"
-      UNKEY_BUILD_S3_ACCESS_KEY_SECRET: "${UNKEY_BUILD_S3_ACCESS_KEY_SECRET:-minio_root_password}"
-
-      # Build backend configuration
-      UNKEY_BUILD_BACKEND: "${UNKEY_BUILD_BACKEND:-docker}"
-      UNKEY_BUILD_PLATFORM: "linux/amd64"
-      UNKEY_DOCKER_SOCKET: "/var/run/docker.sock"
-      # Registry configuration (used by both Docker and Depot backends)
-      UNKEY_REGISTRY_URL: "${UNKEY_REGISTRY_URL:-registry.depot.dev}"
-      UNKEY_REGISTRY_USERNAME: "${UNKEY_REGISTRY_USERNAME:-x-token}"
-      UNKEY_REGISTRY_PASSWORD: "${UNKEY_REGISTRY_PASSWORD:-${DEPOT_TOKEN:-}}"
-      # Depot-specific configuration (only needed when UNKEY_BUILD_BACKEND=depot)
-      UNKEY_DEPOT_API_URL: "https://api.depot.dev"
-      UNKEY_DEPOT_PROJECT_REGION: "us-east-1"
-
-      UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
-
-      # API key for cluster service
-      UNKEY_AUTH_TOKEN: "your-local-dev-key"
 
   otel:
     networks:
