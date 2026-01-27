@@ -124,7 +124,9 @@ func writeTemplate(filePath string, tmpl *template.Template, data any) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	return tmpl.Execute(file, data)
 }
