@@ -42,7 +42,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.Equal(t, 400, res.Body.Error.Status)
-		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
@@ -62,7 +61,6 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.Equal(t, 400, res.Body.Error.Status)
-		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
