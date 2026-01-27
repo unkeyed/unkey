@@ -75,7 +75,15 @@ curl -X POST "http://restate:8080/hydra.v1.ClickhouseUserService/ws_abc123/Confi
 3. Get your API key:
    - From AWS Secrets Manager, or
    - Create one in Restate Cloud → Developers → API Keys
-4. Invoke the workflow:
+
+### Via UI
+
+1. Find `hydra.v1.ClickhouseUserService` and click **Playground**
+2. Enter your API key in the **Auth** section
+3. Set `key` to the workspace ID in **Parameters**
+4. Click **Send API Request**
+
+### Via curl
 
 ```bash
 curl -X POST "https://<environment-id>.env.<region>.restate.cloud:8080/hydra.v1.ClickhouseUserService/ws_abc123/ConfigureUser" \

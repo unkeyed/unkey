@@ -1,12 +1,7 @@
--- Creates a dedicated admin user for workspace ClickHouse user provisioning.
+-- LOCAL DEVELOPMENT ONLY - DO NOT USE IN PRODUCTION
 --
--- This user has permissions to manage workspace users:
--- - CREATE/ALTER/DROP USER, QUOTA, ROW POLICY, SETTINGS PROFILE
--- - SELECT with GRANT OPTION on default.* (to grant SELECT to workspace users)
---
--- This migration runs as part of the ClickHouse image build.
-
--- Create the admin user with SHA256 password authentication
+-- Creates admin user for ClickHouse user provisioning with a hardcoded password.
+-- For production/self-hosted: create this user manually with a secure password.
 CREATE USER IF NOT EXISTS unkey_user_admin IDENTIFIED WITH sha256_password BY 'C57RqT5EPZBqCJkMxN9mEZZEzMPcw9yBlwhIizk99t7kx6uLi9rYmtWObsXzdl';
 
 -- User management permissions
