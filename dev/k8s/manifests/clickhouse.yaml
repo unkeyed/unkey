@@ -21,6 +21,8 @@ metadata:
     app: clickhouse
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: clickhouse
@@ -29,6 +31,7 @@ spec:
       labels:
         app: clickhouse
     spec:
+      terminationGracePeriodSeconds: 60
       containers:
         - name: clickhouse
           image: unkey/clickhouse:local
@@ -47,6 +50,13 @@ spec:
           volumeMounts:
             - name: clickhouse-storage
               mountPath: /bitnami/clickhouse
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - clickhouse-client --user default --password password --query "SYSTEM SHUTDOWN" || sleep 30
           readinessProbe:
             exec:
               command:

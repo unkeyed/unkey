@@ -36,6 +36,12 @@ func SetHandler(h slog.Handler) {
 	handler = h
 }
 
+// Handler returns the current slog.Handler used by the logging package.
+// This is useful for integrating with libraries that accept a slog.Handler.
+func Handler() slog.Handler {
+	return handler
+}
+
 // logSkip logs with correct source location by skipping wrapper frames
 func (l *logger) logSkip(ctx context.Context, level slog.Level, msg string, args ...any) {
 	if !l.logger.Enabled(ctx, level) {

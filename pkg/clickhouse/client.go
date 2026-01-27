@@ -30,6 +30,7 @@ type clickhouse struct {
 	ratelimits       *batch.BatchProcessor[schema.Ratelimit]
 	buildSteps       *batch.BatchProcessor[schema.BuildStepV1]
 	buildStepLogs    *batch.BatchProcessor[schema.BuildStepLogV1]
+	sentinelRequests *batch.BatchProcessor[schema.SentinelRequest]
 }
 
 var (
@@ -127,6 +128,7 @@ func New(config Config) (*clickhouse, error) {
 		ratelimits:       nil,
 		buildSteps:       nil,
 		buildStepLogs:    nil,
+		sentinelRequests: nil,
 	}
 
 	c.apiRequests = batch.New(batch.Config[schema.ApiRequest]{
@@ -198,6 +200,21 @@ func New(config Config) (*clickhouse, error) {
 		Consumers:     1,
 		Flush: func(ctx context.Context, rows []schema.BuildStepLogV1) {
 			table := "default.build_step_logs_v1"
+			if err := flush(c, ctx, table, rows); err != nil {
+				c.logger.Error("failed to flush batch", "table", table, "error", err.Error())
+			}
+		},
+	})
+
+	c.sentinelRequests = batch.New(batch.Config[schema.SentinelRequest]{
+		Name:          "sentinel_requests_v1",
+		Drop:          true,
+		BatchSize:     50_000,
+		BufferSize:    200_000,
+		FlushInterval: 5 * time.Second,
+		Consumers:     2,
+		Flush: func(ctx context.Context, rows []schema.SentinelRequest) {
+			table := "default.sentinel_requests_raw_v1"
 			if err := flush(c, ctx, table, rows); err != nil {
 				c.logger.Error("failed to flush batch", "table", table, "error", err.Error())
 			}
@@ -298,6 +315,10 @@ func (c *clickhouse) BufferBuildStepLog(req schema.BuildStepLogV1) {
 	c.buildStepLogs.Buffer(req)
 }
 
+func (c *clickhouse) BufferSentinelRequest(req schema.SentinelRequest) {
+	c.sentinelRequests.Buffer(req)
+}
+
 func (c *clickhouse) Conn() ch.Conn {
 	return c.conn
 }
@@ -360,6 +381,9 @@ func (c *clickhouse) Close() error {
 	c.apiRequests.Close()
 	c.keyVerifications.Close()
 	c.ratelimits.Close()
+	c.buildSteps.Close()
+	c.buildStepLogs.Close()
+	c.sentinelRequests.Close()
 
 	err := c.conn.Close()
 	if err != nil {
