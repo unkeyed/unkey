@@ -65,9 +65,9 @@ func ValidateContentMediaType(mediaType string, data any) error {
 
 // ContentValidator contains metadata about content validation for a schema property
 type ContentValidator struct {
-	Path        string // JSON path to the property
-	MediaType   string // contentMediaType value
-	Encoding    string // contentEncoding value
+	Path      string // JSON path to the property
+	MediaType string // contentMediaType value
+	Encoding  string // contentEncoding value
 }
 
 // ExtractContentValidators walks a schema and extracts contentMediaType/contentEncoding metadata
