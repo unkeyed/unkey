@@ -1,11 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  boolean,
-  json,
-  mysqlEnum,
-  mysqlTable,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { boolean, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { certificates } from "./certificates";
 import { clickhouseWorkspaceSettings } from "./clickhouse_workspace_settings";
