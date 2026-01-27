@@ -17,11 +17,6 @@ spec:
         app: ctrl-worker
     spec:
       serviceAccountName: unkey-serviceaccount
-      volumes:
-        - name: docker-socket
-          hostPath:
-            path: /var/run/docker.sock
-            type: Socket
       containers:
         - name: ctrl-worker
           image: unkey/go:latest
@@ -51,9 +46,9 @@ spec:
 
             # Vault Configuration (required)
             - name: UNKEY_VAULT_URL
-              value: http://vault:8060
+              value: "http://vault:8060"
             - name: UNKEY_VAULT_TOKEN
-              value: vault-test-token-123
+              value: "vault-test-token-123"
 
             # Build Configuration
             - name: UNKEY_BUILD_PLATFORM
@@ -116,9 +111,21 @@ spec:
 
             - name: UNKEY_SENTINEL_IMAGE
               value: "unkey/sentinel:latest"
-          volumeMounts:
-            - name: docker-socket
-              mountPath: /var/run/docker.sock
+            - name: UNKEY_REPO_FETCH_IMAGE
+              value: "repofetch:latest"
+
+            # GitHub App Configuration (from github-app-credentials secret)
+            # ctrl-worker needs app ID and private key to generate installation tokens
+            - name: UNKEY_GITHUB_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: github-app-credentials
+                  key: UNKEY_GITHUB_APP_ID
+            - name: UNKEY_GITHUB_APP_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: github-app-credentials
+                  key: UNKEY_GITHUB_APP_PRIVATE_KEY
       initContainers:
         - name: wait-for-dependencies
           image: busybox:1.36

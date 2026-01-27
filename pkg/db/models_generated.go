@@ -616,90 +616,6 @@ func (ns NullSentinelsHealth) Value() (driver.Value, error) {
 	return string(ns.SentinelsHealth), nil
 }
 
-type StateChangesOp string
-
-const (
-	StateChangesOpUpsert StateChangesOp = "upsert"
-	StateChangesOpDelete StateChangesOp = "delete"
-)
-
-func (e *StateChangesOp) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = StateChangesOp(s)
-	case string:
-		*e = StateChangesOp(s)
-	default:
-		return fmt.Errorf("unsupported scan type for StateChangesOp: %T", src)
-	}
-	return nil
-}
-
-type NullStateChangesOp struct {
-	StateChangesOp StateChangesOp
-	Valid          bool // Valid is true if StateChangesOp is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullStateChangesOp) Scan(value interface{}) error {
-	if value == nil {
-		ns.StateChangesOp, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.StateChangesOp.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullStateChangesOp) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.StateChangesOp), nil
-}
-
-type StateChangesResourceType string
-
-const (
-	StateChangesResourceTypeSentinel   StateChangesResourceType = "sentinel"
-	StateChangesResourceTypeDeployment StateChangesResourceType = "deployment"
-)
-
-func (e *StateChangesResourceType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = StateChangesResourceType(s)
-	case string:
-		*e = StateChangesResourceType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for StateChangesResourceType: %T", src)
-	}
-	return nil
-}
-
-type NullStateChangesResourceType struct {
-	StateChangesResourceType StateChangesResourceType
-	Valid                    bool // Valid is true if StateChangesResourceType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullStateChangesResourceType) Scan(value interface{}) error {
-	if value == nil {
-		ns.StateChangesResourceType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.StateChangesResourceType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullStateChangesResourceType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.StateChangesResourceType), nil
-}
-
 type VercelBindingsEnvironment string
 
 const (
@@ -1034,6 +950,17 @@ type FrontlineRoute struct {
 	UpdatedAt                sql.NullInt64         `db:"updated_at"`
 }
 
+type GithubAppInstallation struct {
+	Pk                 uint64        `db:"pk"`
+	ID                 string        `db:"id"`
+	ProjectID          string        `db:"project_id"`
+	InstallationID     string        `db:"installation_id"`
+	RepositoryID       string        `db:"repository_id"`
+	RepositoryFullName string        `db:"repository_full_name"`
+	CreatedAt          int64         `db:"created_at"`
+	UpdatedAt          sql.NullInt64 `db:"updated_at"`
+}
+
 type Identity struct {
 	Pk          uint64        `db:"pk"`
 	ID          string        `db:"id"`
@@ -1250,15 +1177,6 @@ type Sentinel struct {
 	Version           uint64                `db:"version"`
 	CreatedAt         int64                 `db:"created_at"`
 	UpdatedAt         sql.NullInt64         `db:"updated_at"`
-}
-
-type StateChange struct {
-	Sequence     uint64                   `db:"sequence"`
-	ResourceType StateChangesResourceType `db:"resource_type"`
-	ResourceID   string                   `db:"resource_id"`
-	Op           StateChangesOp           `db:"op"`
-	Region       string                   `db:"region"`
-	CreatedAt    uint64                   `db:"created_at"`
 }
 
 type VercelBinding struct {

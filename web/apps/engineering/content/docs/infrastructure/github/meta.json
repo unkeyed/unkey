@@ -1,0 +1,6 @@
+{
+  "title": "GitHub",
+  "description": "GitHub integrations for Unkey",
+  "root": false,
+  "pages": ["index", "github-app", "secret-scanning"]
+}

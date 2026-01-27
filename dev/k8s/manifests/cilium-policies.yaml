@@ -166,3 +166,43 @@ spec:
         - ports:
             - port: "8070"
               protocol: TCP
+---
+# 7. Restrict repofetch job egress to DNS, GitHub API, and Minio (S3)
+# Repofetch jobs download tarballs from GitHub and upload to S3
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: repofetch-egress
+spec:
+  description: "Allow repofetch jobs to reach DNS, GitHub API, and Minio only"
+  endpointSelector:
+    matchLabels:
+      io.kubernetes.pod.namespace: builds
+      app.kubernetes.io/component: repo-fetch
+      app.kubernetes.io/managed-by: ctrl-worker
+  egress:
+    # DNS resolution via kube-dns
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    # GitHub API (api.github.com)
+    - toFQDNs:
+        - matchName: "api.github.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    # Minio (local S3) in unkey namespace
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: unkey
+            app: minio
+      toPorts:
+        - ports:
+            - port: "9000"
+              protocol: TCP

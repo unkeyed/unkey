@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "github",
+    srcs = ["github.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/github",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/fault"],
+)

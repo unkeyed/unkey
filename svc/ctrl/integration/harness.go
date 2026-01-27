@@ -69,14 +69,6 @@ func (h *Harness) Resources() seed.Resources {
 	return h.Seed.Resources
 }
 
-// InsertStateChange inserts a state change record for testing.
-// Returns the auto-generated sequence number.
-func (h *Harness) InsertStateChange(ctx context.Context, params db.InsertStateChangeParams) int64 {
-	seq, err := db.Query.InsertStateChange(ctx, h.DB.RW(), params)
-	require.NoError(h.t, err)
-	return seq
-}
-
 // Now returns current time in milliseconds.
 func (h *Harness) Now() int64 {
 	return time.Now().UnixMilli()

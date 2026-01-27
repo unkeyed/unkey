@@ -89,6 +89,14 @@ spec:
             - name: UNKEY_AUTH_TOKEN
               value: "your-local-dev-key"
 
+            # GitHub App Configuration (from github-app-credentials secret)
+            # ctrl-api only needs the webhook secret for signature verification
+            - name: UNKEY_GITHUB_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: github-app-credentials
+                  key: UNKEY_GITHUB_WEBHOOK_SECRET
+                  optional: true
             # Certificate bootstrap
             - name: UNKEY_DEFAULT_DOMAIN
               value: "unkey.local"

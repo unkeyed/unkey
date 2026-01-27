@@ -43,6 +43,30 @@ type RestateConfig struct {
 	APIKey string
 }
 
+// GitHubConfig holds configuration for GitHub App integration.
+//
+// This configuration enables receiving GitHub webhooks and authenticating
+// with the GitHub API to download repository tarballs for deployment.
+type GitHubConfig struct {
+	// AppID is the GitHub App ID for authentication.
+	// Found in the GitHub App settings page.
+	AppID string
+
+	// PrivateKeyPEM is the GitHub App private key in PEM format.
+	// Used for generating JWTs to authenticate as the GitHub App.
+	PrivateKeyPEM string
+
+	// WebhookSecret is the secret used to verify webhook signatures.
+	// Configured in the GitHub App webhook settings.
+	WebhookSecret string
+}
+
+// Enabled returns true only if ALL required GitHub App fields are configured.
+// This ensures we never register the webhook handler with partial/insecure config.
+func (c GitHubConfig) Enabled() bool {
+	return c.AppID != "" && c.PrivateKeyPEM != "" && c.WebhookSecret != ""
+}
+
 // Config holds configuration for the control plane API server.
 //
 // The API server handles Connect RPC requests and delegates workflow
@@ -96,6 +120,10 @@ type Config struct {
 	// AvailableRegions is a list of available regions for deployments.
 	// Typically in the format "region.provider", ie "us-east-1.aws", "local.dev"
 	AvailableRegions []string
+
+	// GitHub configures GitHub App integration for webhook-triggered deployments.
+	// When configured, enables receiving push events and triggering deployments.
+	GitHub GitHubConfig
 
 	// DefaultDomain is the fallback domain for system operations.
 	// Used for wildcard certificate bootstrapping. When set, the API will
