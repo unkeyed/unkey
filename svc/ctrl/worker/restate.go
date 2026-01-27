@@ -8,9 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	restate "github.com/restatedev/sdk-go"
-	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/retry"
 )
@@ -76,39 +73,4 @@ func (r *restateRegistration) sendRegistrationRequest(ctx context.Context, url, 
 
 	r.logger.Info("restate register response", "body", string(body))
 	return fmt.Errorf("registration returned status %d", resp.StatusCode)
-}
-
-// certificateBootstrap handles ACME certificate bootstrapping and renewal.
-// This runs independently of Restate registration.
-type certificateBootstrap struct {
-	logger        logging.Logger
-	database      db.Database
-	defaultDomain string
-	restateClient hydrav1.CertificateServiceIngressClient
-}
-
-func (c *certificateBootstrap) run(ctx context.Context) {
-	// Wait for the restate server to be ready
-	time.Sleep(2 * time.Second)
-
-	if c.defaultDomain != "" {
-		bootstrapWildcardDomain(ctx, c.database, c.logger, c.defaultDomain)
-	}
-
-	c.startCertRenewalCron(ctx)
-}
-
-func (c *certificateBootstrap) startCertRenewalCron(ctx context.Context) {
-	_, err := c.restateClient.RenewExpiringCertificates().Send(
-		ctx,
-		&hydrav1.RenewExpiringCertificatesRequest{
-			DaysBeforeExpiry: 30,
-		},
-		restate.WithIdempotencyKey("cert-renewal-cron-startup"),
-	)
-	if err != nil {
-		c.logger.Warn("failed to start certificate renewal cron", "error", err)
-		return
-	}
-	c.logger.Info("Certificate renewal cron job started")
 }
