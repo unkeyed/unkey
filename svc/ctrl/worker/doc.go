@@ -22,9 +22,8 @@
 // # Configuration
 //
 // Configuration is provided through the [Config] struct, which validates all settings on startup.
-// The worker supports two build backends ([BuildBackendDepot] for cloud builds and
-// [BuildBackendDocker] for local builds), each with different requirements validated by
-// [Config.Validate].
+// The worker supports two build backends ("depot" for cloud builds and "docker" for local builds),
+// each with different requirements validated by [Config.Validate].
 //
 // # Usage
 //
@@ -35,7 +34,6 @@
 //	    InstanceID:      "worker-1",
 //	    HttpPort:        7092,
 //	    DatabasePrimary: "mysql://...",
-//	    BuildBackend:    worker.BuildBackendDepot,
 //	    // ... additional configuration
 //	}
 //

@@ -11,7 +11,7 @@ data:
     scrape_configs:
       - job_name: 'unkey-services'
         static_configs:
-          - targets: ['ctrl:8084']
+          - targets: ['ctrl-api:8084']
         metrics_path: /metrics
         scrape_interval: 5s
 

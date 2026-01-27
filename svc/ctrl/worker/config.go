@@ -8,23 +8,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 )
 
-// BuildBackend specifies the container image build backend system.
-//
-// Determines which service will be used for building container images
-// from application source code. Each backend has different capabilities
-// and integration requirements.
-type BuildBackend string
-
-const (
-	// BuildBackendDepot uses Depot.dev for container builds.
-	// Provides optimized cloud-native builds with caching and
-	// integrated registry management.
-	BuildBackendDepot BuildBackend = "depot"
-	// BuildBackendDocker uses local Docker daemon for builds.
-	// Provides on-premises builds with direct Docker integration.
-	BuildBackendDocker BuildBackend = "docker"
-)
-
 // S3Config holds S3 configuration for storage backends.
 //
 // This configuration is used by vault, build storage, and other services
@@ -101,11 +84,6 @@ type AcmeConfig struct {
 // This configuration enables asynchronous workflow execution through
 // the Restate distributed system for deployment and certificate operations.
 type RestateConfig struct {
-	// URL is the Restate ingress endpoint URL for workflow invocation.
-	// Used by clients to start and interact with workflow executions.
-	// Example: "http://restate:8080".
-	URL string
-
 	// AdminURL is the Restate admin endpoint URL for service registration.
 	// Used by the worker to register its workflow services.
 	// Example: "http://restate:9070".
@@ -119,10 +97,6 @@ type RestateConfig struct {
 	// Allows Restate to discover and invoke this worker's services.
 	// Example: "http://worker:9080".
 	RegisterAs string
-
-	// APIKey is the authentication key for Restate ingress requests.
-	// If set, this key will be sent with all requests to the Restate ingress.
-	APIKey string
 }
 
 // DepotConfig holds configuration for Depot.dev build service integration.
@@ -182,10 +156,6 @@ type Config struct {
 	// Used for logging, tracing, and cluster coordination.
 	InstanceID string
 
-	// HttpPort defines the HTTP port for the health check endpoint.
-	// Default: 7092. Cannot be 0.
-	HttpPort int
-
 	// PrometheusPort specifies the port for exposing Prometheus metrics.
 	// Set to 0 to disable metrics exposure. When enabled, metrics are served
 	// on all interfaces (0.0.0.0) on the specified port.
@@ -215,10 +185,6 @@ type Config struct {
 	// Enables asynchronous deployment and certificate renewal workflows.
 	Restate RestateConfig
 
-	// BuildBackend selects the container build system.
-	// Options: BuildBackendDepot or BuildBackendDocker.
-	BuildBackend BuildBackend
-
 	// BuildS3 configures storage for build artifacts and outputs.
 	// Used by both Depot and Docker build backends.
 	BuildS3 S3Config
@@ -228,7 +194,6 @@ type Config struct {
 	BuildPlatform string
 
 	// Depot configures Depot.dev build service integration.
-	// Required when using BuildBackendDepot.
 	Depot DepotConfig
 
 	// RegistryURL is the container registry URL for pulling images.
@@ -358,30 +323,8 @@ func (c Config) Validate() error {
 		assert.NotEmpty(c.RegistryPassword, "registry password is required"),
 	)
 
-	switch c.BuildBackend {
-	case BuildBackendDepot:
-		return assert.All(
-			platformErr,
-			registryErr,
-			assert.NotEmpty(c.BuildPlatform, "build platform is required"),
-			assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required when using Depot backend"),
-			assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required when using Depot backend"),
-			assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required when using Depot backend"),
-			assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required when using Depot backend"),
-			assert.NotEmpty(c.Depot.APIUrl, "Depot API URL is required when using Depot backend"),
-			assert.NotEmpty(c.Depot.ProjectRegion, "Depot project region is required when using Depot backend"),
-		)
-	case BuildBackendDocker:
-		return assert.All(
-			platformErr,
-			assert.NotEmpty(c.BuildPlatform, "build platform is required"),
-			assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required when using Docker backend"),
-			assert.NotEmpty(c.BuildS3.ExternalURL, "build S3 external URL is required when using Docker backend"),
-			assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required when using Docker backend"),
-			assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required when using Docker backend"),
-			assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required when using Docker backend"),
-		)
-	default:
-		return fmt.Errorf("build backend must be either 'depot' or 'docker', got: %s", c.BuildBackend)
-	}
+	return assert.All(
+		platformErr,
+		registryErr,
+	)
 }
