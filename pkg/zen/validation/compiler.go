@@ -83,9 +83,10 @@ func NewSchemaCompiler(parser *SpecParser, specBytes []byte) (*SchemaCompiler, e
 
 	for _, op := range parser.Operations() {
 		compiledOp := &CompiledOperation{
-			BodySchema:   nil,
-			BodyRequired: op.RequestBodyRequired,
-			ContentTypes: op.RequestContentTypes,
+			BodySchema:    nil,
+			BodyRequired:  op.RequestBodyRequired,
+			ContentTypes:  op.RequestContentTypes,
+			Discriminator: nil,
 			Parameters: CompiledParameterSet{
 				Query:  nil,
 				Header: nil,
