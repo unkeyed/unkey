@@ -1,0 +1,124 @@
+---
+title: Provisioning ClickHouse Users
+description: How to set up analytics API access for workspaces
+---
+
+This runbook explains how to provision a ClickHouse user for a workspace. This is required before a workspace can use the analytics API - the API uses these credentials to query ClickHouse on the workspace's behalf with proper row-level security.
+
+## Prerequisites
+
+- `ctrl-worker` running with `UNKEY_CLICKHOUSE_ADMIN_URL` configured
+- Restate accessible
+
+## Provisioning a New User
+
+Call the `ConfigureUser` endpoint via Restate:
+
+```bash
+curl -X POST "http://restate:8080/hydra.v1.ClickhouseUserService/ws_abc123/ConfigureUser" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+That's it. The workflow will:
+
+1. Generate a secure password
+2. Encrypt it via Vault
+3. Store credentials in MySQL
+4. Create the ClickHouse user with row-level security
+
+## Customizing Quotas
+
+Override the defaults by passing quota parameters:
+
+```bash
+curl -X POST "http://restate:8080/hydra.v1.ClickhouseUserService/ws_abc123/ConfigureUser" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "max_queries_per_window": 500,
+    "max_query_execution_time": 60
+  }'
+```
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `quota_duration_seconds` | 3600 | Window for rate limits (1 hour) |
+| `max_queries_per_window` | 1000 | Queries allowed per window |
+| `max_execution_time_per_window` | 1800 | Total query time per window (30 min) |
+| `max_query_execution_time` | 30 | Single query timeout (seconds) |
+| `max_query_memory_bytes` | 1GB | Memory limit per query |
+| `max_query_result_rows` | 10M | Max rows returned |
+
+## Updating an Existing User
+
+Same endpoint. The workflow detects the user exists and updates quotas while preserving the password.
+
+```bash
+curl -X POST "http://restate:8080/hydra.v1.ClickhouseUserService/ws_abc123/ConfigureUser" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "max_queries_per_window": 2000
+  }'
+```
+
+## Via Restate UI (Local)
+
+1. Open Restate UI (`http://localhost:8080/ui` in dev)
+2. Find `hydra.v1.ClickhouseUserService`
+3. Enter the workspace ID as the key
+4. Call `ConfigureUser`
+
+## Via Restate Cloud (Production)
+
+1. Go to [cloud.restate.dev/accounts](https://cloud.restate.dev/accounts)
+2. Login with Google Auth → select **unkey** team
+3. Get your API key:
+   - From AWS Secrets Manager, or
+   - Create one in Restate Cloud → Developers → API Keys
+4. Invoke the workflow:
+
+```bash
+curl -X POST "https://<environment-id>.env.<region>.restate.cloud:8080/hydra.v1.ClickhouseUserService/ws_abc123/ConfigureUser" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your-api-key>" \
+  -d '{}'
+```
+
+Find `<environment-id>` and `<region>` in your Restate Cloud dashboard.
+
+## What Gets Created
+
+For workspace `ws_abc123`, the workflow creates:
+
+- **User**: `ws_abc123` with encrypted password
+- **Row policies**: One per table, filtering to `workspace_id = 'ws_abc123'` and retention window
+- **Quota**: Rate limits on queries and execution time
+- **Settings profile**: Memory and result size limits
+
+## Troubleshooting
+
+### "Service not found"
+
+The `ClickhouseUserService` is optional. Check:
+- `UNKEY_CLICKHOUSE_ADMIN_URL` is set in ctrl-worker
+- ctrl-worker logs for connection errors
+
+### "Quota exceeded" errors for user
+
+Re-run `ConfigureUser` with higher quota values.
+
+### Password issues
+
+If a user can't authenticate, their ClickHouse password may be out of sync with MySQL. Delete from both and re-run the workflow:
+
+```sql
+-- ClickHouse
+DROP USER IF EXISTS ws_abc123;
+```
+
+```sql
+-- MySQL
+DELETE FROM clickhouse_workspace_settings WHERE workspace_id = 'ws_abc123';
+```
+
+Then call `ConfigureUser` again to generate fresh credentials.

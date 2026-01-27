@@ -47,7 +47,7 @@ func (s *Service) ConfigureUser(
 	ctx restate.ObjectContext,
 	req *hydrav1.ConfigureUserRequest,
 ) (*hydrav1.ConfigureUserResponse, error) {
-	workspaceID := req.GetWorkspaceId()
+	workspaceID := restate.Key(ctx)
 	s.logger.Info("configuring clickhouse user", "workspace_id", workspaceID)
 
 	quotas := resolveQuotaSettings(req)
