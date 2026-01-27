@@ -21,13 +21,23 @@ var openAPIKeywords = map[string]bool{
 	"nullable":      true, // OpenAPI 3.0 only - replaced by type: ["string", "null"] in 3.1
 }
 
+// DiscriminatorInfo holds metadata about a discriminator for oneOf/anyOf optimization
+type DiscriminatorInfo struct {
+	PropertyName string            // The property used for discrimination (e.g., "type")
+	Mapping      map[string]string // Discriminator value -> schema ref mapping
+}
+
 // CompiledOperation holds compiled schemas for an operation
 type CompiledOperation struct {
-	BodySchema   *jsonschema.Schema
-	BodyRequired bool
-	ContentTypes []string
-	Parameters   CompiledParameterSet
+	BodySchema    *jsonschema.Schema
+	BodyRequired  bool
+	ContentTypes  []string
+	Parameters    CompiledParameterSet
+	Discriminator *DiscriminatorInfo // Optional discriminator for oneOf/anyOf schemas
 }
+
+// SchemaRefResolver is a function that resolves a $ref to its schema
+type SchemaRefResolver func(ref string) map[string]any
 
 // SchemaCompiler compiles and caches JSON schemas for validation
 type SchemaCompiler struct {
@@ -86,6 +96,10 @@ func NewSchemaCompiler(parser *SpecParser, specBytes []byte) (*SchemaCompiler, e
 
 		// Compile request body schema
 		if op.RequestSchema != nil {
+			// Extract discriminator info before cleaning (it's stripped during cleaning)
+			// Pass the parser's ref resolver to handle $ref schemas
+			compiledOp.Discriminator = extractDiscriminator(op.RequestSchema, parser.ResolveSchemaRef)
+
 			bodySchema, err := compileOperationSchema(compiler, op)
 			if err != nil {
 				return nil, fmt.Errorf("failed to compile body schema for %s: %w", op.OperationID, err)
@@ -222,11 +236,12 @@ func compileParameterSchema(compiler *jsonschema.Compiler, operationID, location
 
 // compileOperationSchema compiles the request schema for an operation
 func compileOperationSchema(compiler *jsonschema.Compiler, op *Operation) (*jsonschema.Schema, error) {
-	// If the schema has ONLY a $ref to a component schema (no siblings), compile from the full spec
-	// If there are sibling keys alongside $ref, we need to process the inline schema
-	if ref, ok := op.RequestSchema["$ref"].(string); ok && len(op.RequestSchema) == 1 {
-		// Transform "#/components/schemas/Name" to "file:///openapi.json#/components/schemas/Name"
-		if strings.HasPrefix(ref, "#/") {
+	// Fast-path: If the schema is exactly a lone $ref with no sibling keys,
+	// we can compile directly from the full spec without transformation.
+	// Any sibling constraints (description, type, allOf, etc.) require the full
+	// transformRefs + cleanForJSONSchema flow to preserve them.
+	if len(op.RequestSchema) == 1 {
+		if ref, ok := op.RequestSchema["$ref"].(string); ok && strings.HasPrefix(ref, "#/") {
 			resourceURL := "file:///openapi.json" + ref
 			return compiler.Compile(resourceURL)
 		}
@@ -342,9 +357,50 @@ func cleanForJSONSchema(data any) any {
 	case map[string]any:
 		result := make(map[string]any)
 
+		// First pass: handle nullable conversion before processing other keys
+		// This must happen before we skip the nullable keyword
+		if nullable, ok := v["nullable"].(bool); ok && nullable {
+			if existingType, hasType := v["type"]; hasType {
+				switch t := existingType.(type) {
+				case string:
+					result["type"] = []any{t, "null"}
+				case []any:
+					hasNull := false
+					for _, tv := range t {
+						if tv == "null" || tv == nil {
+							hasNull = true
+							break
+						}
+					}
+					if !hasNull {
+						result["type"] = append(t, "null")
+					} else {
+						// Just fix any nil values
+						fixedArr := make([]any, len(t))
+						for i, item := range t {
+							if item == nil {
+								fixedArr[i] = "null"
+							} else {
+								fixedArr[i] = item
+							}
+						}
+						result["type"] = fixedArr
+					}
+				}
+			} else {
+				// No type specified, just add null type
+				result["type"] = []any{"null"}
+			}
+		}
+
 		for key, value := range v {
 			// Skip OpenAPI-specific keywords that aren't valid JSON Schema
 			if openAPIKeywords[key] {
+				continue
+			}
+
+			// Skip type if we already handled it via nullable conversion
+			if key == "type" && result["type"] != nil {
 				continue
 			}
 
@@ -401,5 +457,73 @@ func cleanForJSONSchema(data any) any {
 
 	default:
 		return v
+	}
+}
+
+// extractDiscriminator extracts discriminator information from a schema that uses oneOf/anyOf.
+// If the schema is a $ref, it will be resolved using the provided resolver.
+// Returns nil if no discriminator is present.
+func extractDiscriminator(schema map[string]any, resolver SchemaRefResolver) *DiscriminatorInfo {
+	// If the schema is just a $ref, resolve it first
+	if ref, ok := schema["$ref"].(string); ok && len(schema) == 1 && resolver != nil {
+		resolved := resolver(ref)
+		if resolved != nil {
+			schema = resolved
+		}
+	}
+
+	discriminator, ok := schema["discriminator"].(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	propertyName, _ := discriminator["propertyName"].(string)
+	if propertyName == "" {
+		return nil
+	}
+
+	mapping := make(map[string]string)
+
+	// Check for explicit mapping
+	if m, ok := discriminator["mapping"].(map[string]any); ok {
+		for k, v := range m {
+			if ref, ok := v.(string); ok {
+				mapping[k] = ref
+			}
+		}
+	}
+
+	// If no explicit mapping, try to infer from oneOf/anyOf schemas
+	if len(mapping) == 0 {
+		for _, keyword := range []string{"oneOf", "anyOf"} {
+			if arr, ok := schema[keyword].([]any); ok {
+				for _, item := range arr {
+					if itemSchema, ok := item.(map[string]any); ok {
+						if ref, ok := itemSchema["$ref"].(string); ok {
+							// Extract schema name from ref for implicit mapping
+							// e.g., "#/components/schemas/Dog" -> "Dog"
+							parts := strings.Split(ref, "/")
+							if len(parts) > 0 {
+								name := parts[len(parts)-1]
+								mapping[name] = ref
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if len(mapping) == 0 {
+		// No mapping could be determined
+		return &DiscriminatorInfo{
+			PropertyName: propertyName,
+			Mapping:      nil,
+		}
+	}
+
+	return &DiscriminatorInfo{
+		PropertyName: propertyName,
+		Mapping:      mapping,
 	}
 }

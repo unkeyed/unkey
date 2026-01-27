@@ -7,6 +7,7 @@ import (
 )
 
 func TestFormatLocation_Body(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input    string
 		expected string
@@ -22,6 +23,7 @@ func TestFormatLocation_Body(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
+			t.Parallel()
 			result := FormatLocation("body", tt.input)
 			require.Equal(t, tt.expected, result)
 		})
@@ -29,6 +31,7 @@ func TestFormatLocation_Body(t *testing.T) {
 }
 
 func TestFormatLocation_Params(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		prefix   string
 		pointer  string
@@ -46,6 +49,7 @@ func TestFormatLocation_Params(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.prefix+"_"+tt.pointer, func(t *testing.T) {
+			t.Parallel()
 			result := FormatLocation(tt.prefix, tt.pointer)
 			require.Equal(t, tt.expected, result)
 		})
@@ -53,6 +57,7 @@ func TestFormatLocation_Params(t *testing.T) {
 }
 
 func TestFormatLocation_ComplexPaths(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		prefix   string
 		pointer  string
@@ -65,6 +70,7 @@ func TestFormatLocation_ComplexPaths(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.expected, func(t *testing.T) {
+			t.Parallel()
 			result := FormatLocation(tt.prefix, tt.pointer)
 			require.Equal(t, tt.expected, result)
 		})
@@ -72,6 +78,7 @@ func TestFormatLocation_ComplexPaths(t *testing.T) {
 }
 
 func TestSuggestFix(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		keywordLocation string
 		message         string
@@ -263,6 +270,7 @@ func TestSuggestFix(t *testing.T) {
 			name += "_no_field"
 		}
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			fix := suggestFix(tt.keywordLocation, tt.message, tt.fieldName)
 			if tt.expectNil {
 				require.Nil(t, fix)
@@ -275,6 +283,7 @@ func TestSuggestFix(t *testing.T) {
 }
 
 func TestIsArrayIndex(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input    string
 		expected bool
@@ -292,6 +301,7 @@ func TestIsArrayIndex(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
+			t.Parallel()
 			result := isArrayIndex(tt.input)
 			require.Equal(t, tt.expected, result)
 		})
@@ -299,6 +309,7 @@ func TestIsArrayIndex(t *testing.T) {
 }
 
 func TestExtractKeyword(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input    string
 		expected string
@@ -313,6 +324,7 @@ func TestExtractKeyword(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
+			t.Parallel()
 			result := extractKeyword(tt.input)
 			require.Equal(t, tt.expected, result)
 		})
@@ -320,6 +332,7 @@ func TestExtractKeyword(t *testing.T) {
 }
 
 func TestExtractFieldFromKeywordLocation(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input    string
 		expected string
@@ -336,6 +349,7 @@ func TestExtractFieldFromKeywordLocation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
+			t.Parallel()
 			result := extractFieldFromKeywordLocation(tt.input)
 			require.Equal(t, tt.expected, result)
 		})
@@ -343,6 +357,7 @@ func TestExtractFieldFromKeywordLocation(t *testing.T) {
 }
 
 func TestBuildLocation(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		prefix      string
@@ -392,10 +407,32 @@ func TestBuildLocation(t *testing.T) {
 			keywordLoc:  "/properties/query/type",
 			expected:    "body",
 		},
+		{
+			name:        "nested required in array item",
+			prefix:      "body",
+			instanceLoc: "/items/0",
+			keywordLoc:  "/properties/items/items/properties/name/required",
+			expected:    "body.items[0].name",
+		},
+		{
+			name:        "nested additionalProperties in array item",
+			prefix:      "body",
+			instanceLoc: "/roles/0",
+			keywordLoc:  "/properties/roles/items/properties/extra/additionalProperties",
+			expected:    "body.roles[0].extra",
+		},
+		{
+			name:        "deeply nested required",
+			prefix:      "body",
+			instanceLoc: "/data/users/0/profile",
+			keywordLoc:  "/properties/data/properties/users/items/properties/profile/properties/email/required",
+			expected:    "body.data.users[0].profile.email",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := buildLocation(tt.prefix, tt.instanceLoc, tt.keywordLoc)
 			require.Equal(t, tt.expected, result)
 		})
@@ -403,6 +440,7 @@ func TestBuildLocation(t *testing.T) {
 }
 
 func TestExtractExpectedType(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		message  string
 		expected string
@@ -418,6 +456,7 @@ func TestExtractExpectedType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.message, func(t *testing.T) {
+			t.Parallel()
 			result := extractExpectedType(tt.message)
 			require.Equal(t, tt.expected, result)
 		})
@@ -425,6 +464,7 @@ func TestExtractExpectedType(t *testing.T) {
 }
 
 func TestExtractFieldFromMessage(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		keyword  string
 		message  string
@@ -446,6 +486,7 @@ func TestExtractFieldFromMessage(t *testing.T) {
 			name = "empty"
 		}
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			result := extractFieldFromMessage(tt.keyword, tt.message)
 			require.Equal(t, tt.expected, result)
 		})
