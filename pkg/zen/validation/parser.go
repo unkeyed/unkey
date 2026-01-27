@@ -360,3 +360,24 @@ func (p *SpecParser) GetFullSpecAsJSON(specBytes []byte) ([]byte, error) {
 	}
 	return json.Marshal(spec)
 }
+
+// ResolveSchemaRef resolves a $ref to its actual schema from components/schemas.
+// Returns nil if the ref cannot be resolved.
+func (p *SpecParser) ResolveSchemaRef(ref string) map[string]any {
+	// Only handle local refs to components/schemas
+	const prefix = "#/components/schemas/"
+	if !strings.HasPrefix(ref, prefix) {
+		return nil
+	}
+
+	schemaName := strings.TrimPrefix(ref, prefix)
+	if schema, ok := p.schemas[schemaName].(map[string]any); ok {
+		return schema
+	}
+	return nil
+}
+
+// Schemas returns the component schemas map
+func (p *SpecParser) Schemas() map[string]any {
+	return p.schemas
+}

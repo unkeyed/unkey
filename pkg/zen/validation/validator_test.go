@@ -12,6 +12,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
+	t.Parallel()
 	v, err := New()
 	require.NoError(t, err)
 	require.NotNil(t, v)
@@ -21,6 +22,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestValidate_ValidRequest(t *testing.T) {
+	t.Parallel()
 	v, err := New()
 	require.NoError(t, err)
 
@@ -35,6 +37,7 @@ func TestValidate_ValidRequest(t *testing.T) {
 }
 
 func TestValidate_InvalidRequest_MissingRequired(t *testing.T) {
+	t.Parallel()
 	v, err := New()
 	require.NoError(t, err)
 
@@ -53,6 +56,7 @@ func TestValidate_InvalidRequest_MissingRequired(t *testing.T) {
 }
 
 func TestValidate_InvalidRequest_WrongType(t *testing.T) {
+	t.Parallel()
 	v, err := New()
 	require.NoError(t, err)
 
@@ -71,6 +75,7 @@ func TestValidate_InvalidRequest_WrongType(t *testing.T) {
 }
 
 func TestValidate_InvalidJSON(t *testing.T) {
+	t.Parallel()
 	v, err := New()
 	require.NoError(t, err)
 
@@ -88,6 +93,7 @@ func TestValidate_InvalidJSON(t *testing.T) {
 }
 
 func TestValidate_UnknownPath_PassThrough(t *testing.T) {
+	t.Parallel()
 	v, err := New()
 	require.NoError(t, err)
 
@@ -101,6 +107,7 @@ func TestValidate_UnknownPath_PassThrough(t *testing.T) {
 }
 
 func TestValidate_EmptyBody_RequiredBodyFails(t *testing.T) {
+	t.Parallel()
 	v, err := New()
 	require.NoError(t, err)
 
@@ -117,6 +124,7 @@ func TestValidate_EmptyBody_RequiredBodyFails(t *testing.T) {
 }
 
 func TestValidate_UnknownPath_EmptyBodyPassThrough(t *testing.T) {
+	t.Parallel()
 	v, err := New()
 	require.NoError(t, err)
 
@@ -129,6 +137,7 @@ func TestValidate_UnknownPath_EmptyBodyPassThrough(t *testing.T) {
 }
 
 func TestValidate_BodyResetForDownstream(t *testing.T) {
+	t.Parallel()
 	v, err := New()
 	require.NoError(t, err)
 
@@ -147,6 +156,7 @@ func TestValidate_BodyResetForDownstream(t *testing.T) {
 }
 
 func TestValidate_AdditionalProperties(t *testing.T) {
+	t.Parallel()
 	v, err := New()
 	require.NoError(t, err)
 
@@ -164,6 +174,7 @@ func TestValidate_AdditionalProperties(t *testing.T) {
 }
 
 func TestValidate_MissingAuthorizationHeader(t *testing.T) {
+	t.Parallel()
 	v, err := New()
 	require.NoError(t, err)
 
@@ -183,6 +194,7 @@ func TestValidate_MissingAuthorizationHeader(t *testing.T) {
 }
 
 func TestValidate_MalformedAuthorizationHeader(t *testing.T) {
+	t.Parallel()
 	v, err := New()
 	require.NoError(t, err)
 
@@ -202,6 +214,7 @@ func TestValidate_MalformedAuthorizationHeader(t *testing.T) {
 }
 
 func TestValidate_EmptyBearerToken(t *testing.T) {
+	t.Parallel()
 	v, err := New()
 	require.NoError(t, err)
 
@@ -220,6 +233,7 @@ func TestValidate_EmptyBearerToken(t *testing.T) {
 }
 
 func TestValidate_ContentTypeWithCharset(t *testing.T) {
+	t.Parallel()
 	v, err := New()
 	require.NoError(t, err)
 
