@@ -70,7 +70,7 @@ func open(dsn string, logger logging.Logger) (db *sql.DB, err error) {
 		return pingErr
 	})
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fault.Wrap(err, fault.Internal("failed to ping database after retries"))
 	}
 
