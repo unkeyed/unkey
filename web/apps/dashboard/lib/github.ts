@@ -45,7 +45,7 @@ function generateAppJWT(): string {
 }
 
 export async function getInstallationAccessToken(
-  installationId: string,
+  installationId: number,
 ): Promise<InstallationAccessToken> {
   const jwt = generateAppJWT();
 
@@ -70,7 +70,7 @@ export async function getInstallationAccessToken(
 }
 
 export async function getInstallationRepositories(
-  installationId: string,
+  installationId: number,
 ): Promise<GitHubRepository[]> {
   const { token } = await getInstallationAccessToken(installationId);
 

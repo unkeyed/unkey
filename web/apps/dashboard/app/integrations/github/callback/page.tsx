@@ -56,17 +56,22 @@ export default async function Page(props: Props) {
     where: eq(schema.githubAppInstallations.projectId, projectId),
   });
 
+  const installationIdNum = Number.parseInt(installation_id, 10);
+  if (Number.isNaN(installationIdNum)) {
+    return <div>Invalid installation_id</div>;
+  }
+
   if (existingInstallation) {
     await db
       .update(schema.githubAppInstallations)
-      .set({ installationId: installation_id })
+      .set({ installationId: installationIdNum })
       .where(eq(schema.githubAppInstallations.projectId, projectId));
   } else {
     await db.insert(schema.githubAppInstallations).values({
       id: newId("github"),
       projectId,
-      installationId: installation_id,
-      repositoryId: "",
+      installationId: installationIdNum,
+      repositoryId: 0,
       repositoryFullName: "",
       createdAt: Date.now(),
       updatedAt: null,
