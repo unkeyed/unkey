@@ -16,6 +16,7 @@ go_library(
         "//pkg/clickhouse",
         "//pkg/db",
         "//pkg/otel/logging",
+        "//pkg/ptr",
         "@com_connectrpc_connect//:connect",
         "@com_github_restatedev_sdk_go//:sdk-go",
     ],
