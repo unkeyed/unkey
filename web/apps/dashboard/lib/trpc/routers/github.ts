@@ -14,10 +14,7 @@ export const githubRouter = t.router({
     .query(async ({ ctx, input }) => {
       const project = await db.query.projects.findFirst({
         where: (table, { and, eq }) =>
-          and(
-            eq(table.id, input.projectId),
-            eq(table.workspaceId, ctx.workspace.id),
-          ),
+          and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
       });
 
       if (!project) {
@@ -54,10 +51,7 @@ export const githubRouter = t.router({
     .query(async ({ ctx, input }) => {
       const project = await db.query.projects.findFirst({
         where: (table, { and, eq }) =>
-          and(
-            eq(table.id, input.projectId),
-            eq(table.workspaceId, ctx.workspace.id),
-          ),
+          and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
       });
 
       if (!project) {
@@ -78,9 +72,7 @@ export const githubRouter = t.router({
         });
       }
 
-      const repositories = await getInstallationRepositories(
-        installation.installationId,
-      );
+      const repositories = await getInstallationRepositories(installation.installationId);
 
       return {
         repositories: repositories.map((repo) => ({
@@ -104,10 +96,7 @@ export const githubRouter = t.router({
     .mutation(async ({ ctx, input }) => {
       const project = await db.query.projects.findFirst({
         where: (table, { and, eq }) =>
-          and(
-            eq(table.id, input.projectId),
-            eq(table.workspaceId, ctx.workspace.id),
-          ),
+          and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
       });
 
       if (!project) {
@@ -147,10 +136,7 @@ export const githubRouter = t.router({
     .mutation(async ({ ctx, input }) => {
       const project = await db.query.projects.findFirst({
         where: (table, { and, eq }) =>
-          and(
-            eq(table.id, input.projectId),
-            eq(table.workspaceId, ctx.workspace.id),
-          ),
+          and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
       });
 
       if (!project) {

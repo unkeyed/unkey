@@ -200,6 +200,11 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+
+		w.logger.Info("creating topologies",
+			"topologies", fmt.Sprintf("%+v", topologies),
+		)
+
 		return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 			return db.BulkQuery.InsertDeploymentTopologies(txCtx, tx, topologies)
 		})

@@ -11,8 +11,6 @@ import (
 	"os"
 	"strings"
 
-	"golang.org/x/sync/errgroup"
-
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
@@ -22,16 +20,16 @@ const maxSizeBytes = 10 * 1024 * 1024 * 1024 // 10GB
 var Cmd = &cli.Command{
 	Name:        "repofetch",
 	Usage:       "Fetch a GitHub repository tarball and upload to S3",
-	Description: "Fetches a tarball from GitHub and streams to an S3 presigned URL.",
+	Description: "Fetches a tarball from GitHub and uploads to an S3 presigned URL.",
 	Aliases:     []string{},
 	Version:     "",
 	Commands:    []*cli.Command{},
 	AcceptsArgs: false,
 	Flags: []cli.Flag{
-		cli.String("github-token", "GitHub API token", cli.Required()),
-		cli.String("repo", "GitHub repository (owner/repo)", cli.Required()),
-		cli.String("sha", "Git commit SHA or ref", cli.Required()),
-		cli.String("upload-url", "S3 presigned upload URL", cli.Required()),
+		cli.String("github-token", "GitHub API token", cli.Required(), cli.EnvVar("UNKEY_GITHUB_TOKEN")),
+		cli.String("repo", "GitHub repository (owner/repo)", cli.Required(), cli.EnvVar("UNKEY_REPO")),
+		cli.String("sha", "Git commit SHA or ref", cli.Required(), cli.EnvVar("UNKEY_SHA")),
+		cli.String("upload-url", "S3 presigned upload URL", cli.Required(), cli.EnvVar("UNKEY_UPLOAD_URL")),
 	},
 	Action: runAction,
 }
@@ -44,27 +42,27 @@ func runAction(ctx context.Context, cmd *cli.Command) error {
 	sha := cmd.RequireString("sha")
 	uploadURL := cmd.RequireString("upload-url")
 
-	pr, pw := io.Pipe()
+	tmpFile, err := os.CreateTemp("/tmp", "repofetch-*.tar.gz")
+	if err != nil {
+		return fault.Wrap(err, fault.Internal("failed to create temp file"))
+	}
 	defer func() {
-		if err := pw.Close(); err != nil {
-			logger.Error("unable to close write pipe", "error", err)
-		}
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpFile.Name())
 	}()
 
-	eg, egCtx := errgroup.WithContext(ctx)
+	if err := downloadAndRepackage(ctx, logger, githubToken, repo, sha, tmpFile); err != nil {
+		return err
+	}
 
-	eg.Go(func() error {
-		return downloadAndRepackage(egCtx, logger, githubToken, repo, sha, pw)
-	})
+	if err := uploadToS3(ctx, logger, uploadURL, tmpFile); err != nil {
+		return err
+	}
 
-	eg.Go(func() error {
-		return uploadToS3(egCtx, logger, uploadURL, pr)
-	})
-
-	return eg.Wait()
+	return nil
 }
 
-func downloadAndRepackage(ctx context.Context, logger *slog.Logger, token, repo, sha string, dst io.Writer) error {
+func downloadAndRepackage(ctx context.Context, logger *slog.Logger, token, repo, sha string, dst *os.File) error {
 	tarballURL := fmt.Sprintf("https://api.github.com/repos/%s/tarball/%s", repo, sha)
 	logger.Info("fetching tarball", "repo", repo, "sha", sha)
 
@@ -90,14 +88,24 @@ func downloadAndRepackage(ctx context.Context, logger *slog.Logger, token, repo,
 	return repackageTarball(resp.Body, dst, maxSizeBytes)
 }
 
-func uploadToS3(ctx context.Context, logger *slog.Logger, uploadURL string, src io.Reader) error {
-	logger.Info("streaming repackaged tarball to s3")
+func uploadToS3(ctx context.Context, logger *slog.Logger, uploadURL string, src *os.File) error {
+	stat, err := src.Stat()
+	if err != nil {
+		return fault.Wrap(err, fault.Internal("failed to stat temp file"))
+	}
+
+	if _, err := src.Seek(0, io.SeekStart); err != nil {
+		return fault.Wrap(err, fault.Internal("failed to seek temp file"))
+	}
+
+	logger.Info("uploading tarball to s3", "size_bytes", stat.Size())
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, uploadURL, src)
 	if err != nil {
 		return fault.Wrap(err, fault.Internal("failed to create upload request"))
 	}
 	req.Header.Set("Content-Type", "application/gzip")
+	req.ContentLength = stat.Size()
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

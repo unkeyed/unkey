@@ -18,7 +18,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // Config holds GitHub App configuration.
@@ -33,10 +35,11 @@ type Client struct {
 	config     Config
 	httpClient *http.Client
 	privateKey *rsa.PrivateKey
+	logger     logging.Logger
 }
 
 // NewClient creates a new GitHub App client.
-func NewClient(config Config) (*Client, error) {
+func NewClient(config Config, logger logging.Logger) (*Client, error) {
 	// Handle escaped newlines and surrounding quotes in PEM (common in env vars)
 	pemData := strings.ReplaceAll(config.PrivateKeyPEM, "\\n", "\n")
 	pemData = strings.Trim(pemData, "\"")
@@ -63,6 +66,7 @@ func NewClient(config Config) (*Client, error) {
 		config:     config,
 		httpClient: &http.Client{Timeout: 30 * time.Second},
 		privateKey: key,
+		logger:     logger,
 	}, nil
 }
 
@@ -121,12 +125,29 @@ type InstallationToken struct {
 
 // GetInstallationToken retrieves an access token for a specific installation.
 func (c *Client) GetInstallationToken(installationID int64) (*InstallationToken, error) {
+
+	if err := assert.NotNilAndNotZero(installationID, "installationID must be provided"); err != nil {
+		return nil, err
+	}
+
+	c.logger.Info("Getting GitHub installation token", "installation_id", installationID)
+
 	jwt, err := c.generateJWT()
 	if err != nil {
 		return nil, err
 	}
 
+	// Log JWT safely - just show first/last few characters for debugging
+	jwtPreview := ""
+	if len(jwt) > 20 {
+		jwtPreview = jwt[:8] + "..." + jwt[len(jwt)-8:]
+	} else {
+		jwtPreview = "<too_short>"
+	}
+	c.logger.Info("Generated JWT for GitHub API", "jwt_preview", jwtPreview)
+
 	url := fmt.Sprintf("https://api.github.com/app/installations/%d/access_tokens", installationID)
+	c.logger.Info("Calling GitHub API", "url", url)
 	req, err := http.NewRequest(http.MethodPost, url, nil)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to create request"))
@@ -144,6 +165,12 @@ func (c *Client) GetInstallationToken(installationID int64) (*InstallationToken,
 
 	if resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
+		c.logger.Error("GitHub API returned unexpected status",
+			"status_code", resp.StatusCode,
+			"installation_id", installationID,
+			"response_body", string(body),
+			"url", url,
+		)
 		return nil, fault.New("failed to get installation token",
 			fault.Internal(fmt.Sprintf("status %d: %s", resp.StatusCode, string(body))),
 		)

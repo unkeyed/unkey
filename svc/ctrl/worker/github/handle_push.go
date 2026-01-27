@@ -51,58 +51,54 @@ func (w *Workflow) HandlePush(ctx restate.WorkflowSharedContext, req *hydrav1.Ha
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	buildContextPath := fmt.Sprintf("%s/%s.tar.gz", req.GetProjectId(), uid.New("build"))
 
-	// Get GitHub installation token (short-lived, ~1 hour)
-	githubToken, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+	// Fetch tarball: get credentials, spawn job, and wait for completion.
+	// Bundled into one Run block so that if the job fails, we retry with fresh credentials.
+	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		// Get GitHub installation token (short-lived, ~1 hour)
 		token, tokenErr := w.github.GetInstallationToken(req.GetInstallationId())
 		if tokenErr != nil {
-			return "", tokenErr
+			return fmt.Errorf("failed to get installation token: %w", tokenErr)
 		}
-		return token.Token, nil
-	}, restate.WithName("get github installation token"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get installation token: %w", err)
-	}
 
-	// Generate S3 presigned upload URL (short-lived, 15 min)
-	uploadURL, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-		return w.buildStorage.GenerateUploadURL(runCtx, buildContextPath, 15*time.Minute)
-	}, restate.WithName("generate s3 upload url"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate upload URL: %w", err)
-	}
+		// Generate S3 presigned upload URL (short-lived, 15 min)
+		uploadURL, urlErr := w.buildStorage.GenerateUploadURL(runCtx, buildContextPath, 15*time.Minute)
+		if urlErr != nil {
+			return fmt.Errorf("failed to generate upload URL: %w", urlErr)
+		}
 
-	// Spawn the fetch job (runs in gVisor-isolated container)
-	jobName, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-		return w.fetchClient.SpawnFetchJob(runCtx, repofetch.FetchParams{
+		// Spawn the fetch job (runs in gVisor-isolated container)
+		jobName, spawnErr := w.fetchClient.SpawnFetchJob(runCtx, repofetch.FetchParams{
 			DeploymentID: deploymentID,
 			ProjectID:    req.GetProjectId(),
 			Repo:         req.GetRepositoryFullName(),
 			SHA:          req.GetCommitSha(),
-			GitHubToken:  githubToken,
+			GitHubToken:  token.Token,
 			UploadURL:    uploadURL,
 		})
-	}, restate.WithName("spawn fetch job"))
+		if spawnErr != nil {
+			return fmt.Errorf("failed to spawn fetch job: %w", spawnErr)
+		}
+
+		w.logger.Info("Fetch job spawned",
+			"job_name", jobName,
+			"deployment_id", deploymentID,
+		)
+
+		// Poll for job completion
+		if waitErr := w.waitForJobCompletion(runCtx, jobName); waitErr != nil {
+			return fmt.Errorf("fetch job failed: %w", waitErr)
+		}
+
+		w.logger.Info("Fetch job completed",
+			"job_name", jobName,
+			"build_context_path", buildContextPath,
+		)
+
+		return nil
+	}, restate.WithName("fetch tarball"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to spawn fetch job: %w", err)
+		return nil, err
 	}
-
-	w.logger.Info("Fetch job spawned",
-		"job_name", jobName,
-		"deployment_id", deploymentID,
-	)
-
-	// Poll for job completion
-	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return w.waitForJobCompletion(runCtx, jobName)
-	}, restate.WithName("wait for fetch job"))
-	if err != nil {
-		return nil, fmt.Errorf("fetch job failed: %w", err)
-	}
-
-	w.logger.Info("Fetch job completed",
-		"job_name", jobName,
-		"build_context_path", buildContextPath,
-	)
 
 	// Find project and environment
 	project, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindProjectByIdRow, error) {
@@ -221,10 +217,11 @@ func (w *Workflow) waitForJobCompletion(ctx restate.RunContext, jobName string) 
 		case repofetch.JobStatusFailed:
 			return fmt.Errorf("fetch job failed")
 		case repofetch.JobStatusPending, repofetch.JobStatusRunning:
-			time.Sleep(jobPollInterval)
+			// do nothing
 		case repofetch.JobStatusUnknown:
 			return fmt.Errorf("fetch job status unknown")
 		}
+		time.Sleep(jobPollInterval)
 	}
 }
 

@@ -30,15 +30,13 @@ export default function GitHubPage() {
     },
   );
 
-  const { data: reposData, isLoading: isLoadingRepos } =
-    trpc.github.listRepositories.useQuery(
-      { projectId },
-      {
-        enabled:
-          !!installationData?.installation &&
-          !installationData.installation.repositoryFullName,
-      },
-    );
+  const { data: reposData, isLoading: isLoadingRepos } = trpc.github.listRepositories.useQuery(
+    { projectId },
+    {
+      enabled:
+        !!installationData?.installation && !installationData.installation.repositoryFullName,
+    },
+  );
 
   const filteredRepos = useMemo(() => {
     if (!reposData?.repositories) {
@@ -48,9 +46,7 @@ export default function GitHubPage() {
       return reposData.repositories;
     }
     const query = searchQuery.toLowerCase();
-    return reposData.repositories.filter((repo) =>
-      repo.fullName.toLowerCase().includes(query),
-    );
+    return reposData.repositories.filter((repo) => repo.fullName.toLowerCase().includes(query));
   }, [reposData?.repositories, searchQuery]);
 
   const selectRepoMutation = trpc.github.selectRepository.useMutation({
@@ -86,9 +82,7 @@ export default function GitHubPage() {
     if (!selectedRepo) {
       return;
     }
-    const repo = reposData?.repositories.find(
-      (r) => r.fullName === selectedRepo,
-    );
+    const repo = reposData?.repositories.find((r) => r.fullName === selectedRepo);
     if (!repo) {
       return;
     }
@@ -153,9 +147,7 @@ export default function GitHubPage() {
             <Github className="text-accent-11" />
           </Empty.Icon>
           <Empty.Title>Select a Repository</Empty.Title>
-          <Empty.Description>
-            Choose which repository to connect to this project.
-          </Empty.Description>
+          <Empty.Description>Choose which repository to connect to this project.</Empty.Description>
           <div className="mt-4 w-full max-w-md">
             {isLoadingRepos ? (
               <Loading />
@@ -179,11 +171,7 @@ export default function GitHubPage() {
                         }`}
                       >
                         <span className="text-gray-12">{repo.fullName}</span>
-                        {repo.private && (
-                          <span className="text-xs text-gray-9 ml-2">
-                            private
-                          </span>
-                        )}
+                        {repo.private && <span className="text-xs text-gray-9 ml-2">private</span>}
                       </button>
                     ))
                   ) : (

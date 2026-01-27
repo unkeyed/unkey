@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/cmd/frontline"
 	"github.com/unkeyed/unkey/cmd/krane"
 	"github.com/unkeyed/unkey/cmd/preflight"
+	"github.com/unkeyed/unkey/cmd/repofetch"
 	"github.com/unkeyed/unkey/cmd/sentinel"
 	"github.com/unkeyed/unkey/cmd/vault"
 	"github.com/unkeyed/unkey/pkg/cli"
@@ -49,6 +50,7 @@ unkey run api --port 8080 --env production      # Run API server with custom con
 		sentinel.Cmd,
 		preflight.Cmd,
 		vault.Cmd,
+		repofetch.Cmd,
 	},
 	Action: runAction,
 }

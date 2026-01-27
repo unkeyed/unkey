@@ -145,16 +145,27 @@ func (c *Client) buildJobSpec(jobName string, params FetchParams) *batchv1.Job {
 							Type: corev1.SeccompProfileTypeRuntimeDefault,
 						},
 					},
+					Volumes: []corev1.Volume{{
+						Name: "tmp",
+						VolumeSource: corev1.VolumeSource{
+							EmptyDir: &corev1.EmptyDirVolumeSource{},
+						},
+					}},
 					Containers: []corev1.Container{{
 						Name:            "fetch",
 						Image:           c.image,
 						ImagePullPolicy: corev1.PullIfNotPresent,
-						Args: []string{
-							"--github-token", params.GitHubToken,
-							"--repo", params.Repo,
-							"--sha", params.SHA,
-							"--upload-url", params.UploadURL,
+						Args:            []string{"run", "repofetch"},
+						Env: []corev1.EnvVar{
+							{Name: "UNKEY_GITHUB_TOKEN", Value: params.GitHubToken},
+							{Name: "UNKEY_REPO", Value: params.Repo},
+							{Name: "UNKEY_SHA", Value: params.SHA},
+							{Name: "UNKEY_UPLOAD_URL", Value: params.UploadURL},
 						},
+						VolumeMounts: []corev1.VolumeMount{{
+							Name:      "tmp",
+							MountPath: "/tmp",
+						}},
 						SecurityContext: &corev1.SecurityContext{
 							AllowPrivilegeEscalation: ptr.P(false),
 							ReadOnlyRootFilesystem:   ptr.P(true),

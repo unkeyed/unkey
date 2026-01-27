@@ -104,7 +104,7 @@ var workerCmd = &cli.Command{
 		cli.String("github-app-private-key", "GitHub App private key (PEM format)", cli.EnvVar("UNKEY_GITHUB_APP_PRIVATE_KEY")),
 
 		// Repo fetch configuration
-		cli.String("repo-fetch-image", "Container image for GitHub tarball fetch jobs", cli.Default("repofetch:latest"), cli.EnvVar("UNKEY_REPO_FETCH_IMAGE")),
+		cli.String("repo-fetch-image", "Container image for GitHub tarball fetch jobs", cli.Default("ghcr.io/unkeyed/unkey:latest"), cli.EnvVar("UNKEY_REPO_FETCH_IMAGE")),
 	},
 	Action: workerAction,
 }

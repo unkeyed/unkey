@@ -11,6 +11,7 @@ go_library(
         "//cmd/frontline",
         "//cmd/krane",
         "//cmd/preflight",
+        "//cmd/repofetch",
         "//cmd/sentinel",
         "//cmd/vault",
         "//pkg/cli",

@@ -8,6 +8,5 @@ go_library(
     deps = [
         "//pkg/cli",
         "//pkg/fault",
-        "@org_golang_x_sync//errgroup",
     ],
 )

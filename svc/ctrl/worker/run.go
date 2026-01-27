@@ -163,7 +163,7 @@ func Run(ctx context.Context, cfg Config) error {
 			AppID:         cfg.GitHub.AppID,
 			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
 			WebhookSecret: "", // Not needed for workflow, only for webhook handler
-		})
+		}, logger)
 		if githubErr != nil {
 			return fmt.Errorf("failed to create github client: %w", githubErr)
 		}

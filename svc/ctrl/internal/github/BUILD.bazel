@@ -10,6 +10,7 @@ go_library(
     visibility = ["//svc/ctrl:__subpackages__"],
     deps = [
         "//gen/proto/hydra/v1:hydra",
+        "//pkg/assert",
         "//pkg/db",
         "//pkg/fault",
         "//pkg/otel/logging",
