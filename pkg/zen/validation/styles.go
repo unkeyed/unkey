@@ -22,47 +22,58 @@ func GetDefaultExplode(style string) bool {
 	return style == "form"
 }
 
+// getPropertyType returns the type for a property, defaulting to SchemaTypeString if not found
+func getPropertyType(propertyTypes map[string]SchemaType, key string) SchemaType {
+	if propertyTypes != nil {
+		if t, ok := propertyTypes[key]; ok {
+			return t
+		}
+	}
+	return SchemaTypeString
+}
+
 // ParseByStyle parses parameter values based on the OpenAPI style and explode settings
-func ParseByStyle(style string, explode bool, values []string, schemaType SchemaType, query url.Values, paramName string) CoercedValue {
+// itemType is used for array element coercion, propertyTypes maps property names to their types for objects
+func ParseByStyle(style string, explode bool, values []string, schemaType SchemaType, query url.Values, paramName string, itemType SchemaType, propertyTypes map[string]SchemaType) CoercedValue {
 	switch style {
 	case "form":
-		return parseFormStyle(values, explode, schemaType)
+		return parseFormStyle(values, explode, schemaType, itemType, propertyTypes)
 	case "simple":
 		if len(values) == 0 {
 			return NilValue()
 		}
-		return parseSimpleStyle(values[0], explode, schemaType)
+		return parseSimpleStyle(values[0], explode, schemaType, itemType, propertyTypes)
 	case "label":
 		if len(values) == 0 {
 			return NilValue()
 		}
-		return parseLabelStyle(values[0], explode, schemaType)
+		return parseLabelStyle(values[0], explode, schemaType, itemType, propertyTypes)
 	case "matrix":
 		if len(values) == 0 {
 			return NilValue()
 		}
-		return parseMatrixStyle(values[0], explode, schemaType)
+		return parseMatrixStyle(values[0], explode, schemaType, itemType, propertyTypes)
 	case "spaceDelimited":
 		if len(values) == 0 {
 			return NilValue()
 		}
-		return parseSpaceDelimited(values[0], schemaType)
+		return parseSpaceDelimited(values[0], schemaType, itemType)
 	case "pipeDelimited":
 		if len(values) == 0 {
 			return NilValue()
 		}
-		return parsePipeDelimited(values[0], schemaType)
+		return parsePipeDelimited(values[0], schemaType, itemType)
 	case "deepObject":
-		return parseDeepObject(query, paramName, schemaType)
+		return parseDeepObject(query, paramName, schemaType, propertyTypes)
 	default:
-		return parseFormStyle(values, explode, schemaType)
+		return parseFormStyle(values, explode, schemaType, itemType, propertyTypes)
 	}
 }
 
 // parseFormStyle parses form-style parameters (default for query and cookie)
-// With explode=true: ?id=3&id=4&id=5
-// With explode=false: ?id=3,4,5
-func parseFormStyle(values []string, explode bool, schemaType SchemaType) CoercedValue {
+// With explode=true: ?id=3&id=4&id=5 (arrays) or ?role=admin&firstName=Alex (objects)
+// With explode=false: ?id=3,4,5 (arrays) or ?id=role,admin,firstName,Alex (objects)
+func parseFormStyle(values []string, explode bool, schemaType SchemaType, itemType SchemaType, propertyTypes map[string]SchemaType) CoercedValue {
 	if len(values) == 0 {
 		return NilValue()
 	}
@@ -75,25 +86,41 @@ func parseFormStyle(values []string, explode bool, schemaType SchemaType) Coerce
 		if explode {
 			result := make([]CoercedValue, len(values))
 			for i, v := range values {
-				result[i] = coerceValue(v, SchemaTypeString)
+				result[i] = coerceValue(v, itemType)
 			}
 			return ArrayValue(result)
 		}
 		parts := strings.Split(values[0], ",")
 		result := make([]CoercedValue, len(parts))
 		for i, p := range parts {
-			result[i] = coerceValue(strings.TrimSpace(p), SchemaTypeString)
+			result[i] = coerceValue(strings.TrimSpace(p), itemType)
 		}
 		return ArrayValue(result)
 	}
 
+	// Object type
 	if explode {
-		return coerceValue(values[0], schemaType)
+		// Exploded objects: each value is "key=value"
+		result := make(map[string]CoercedValue)
+		for _, v := range values {
+			kv := strings.SplitN(v, "=", 2)
+			if len(kv) == 2 {
+				key := strings.TrimSpace(kv[0])
+				val := strings.TrimSpace(kv[1])
+				propType := getPropertyType(propertyTypes, key)
+				result[key] = coerceValue(val, propType)
+			}
+		}
+		return ObjectValue(result)
 	}
+	// Non-exploded objects: key,value,key,value
 	parts := strings.Split(values[0], ",")
 	result := make(map[string]CoercedValue)
 	for i := 0; i+1 < len(parts); i += 2 {
-		result[strings.TrimSpace(parts[i])] = coerceValue(strings.TrimSpace(parts[i+1]), SchemaTypeString)
+		key := strings.TrimSpace(parts[i])
+		val := strings.TrimSpace(parts[i+1])
+		propType := getPropertyType(propertyTypes, key)
+		result[key] = coerceValue(val, propType)
 	}
 	return ObjectValue(result)
 }
@@ -102,7 +129,7 @@ func parseFormStyle(values []string, explode bool, schemaType SchemaType) Coerce
 // Arrays: 3,4,5
 // Objects (explode=false): role,admin,firstName,Alex
 // Objects (explode=true): role=admin,firstName=Alex
-func parseSimpleStyle(value string, explode bool, schemaType SchemaType) CoercedValue {
+func parseSimpleStyle(value string, explode bool, schemaType SchemaType, itemType SchemaType, propertyTypes map[string]SchemaType) CoercedValue {
 	if value == "" {
 		return NilValue()
 	}
@@ -115,7 +142,7 @@ func parseSimpleStyle(value string, explode bool, schemaType SchemaType) Coerced
 		parts := strings.Split(value, ",")
 		result := make([]CoercedValue, len(parts))
 		for i, p := range parts {
-			result[i] = coerceValue(strings.TrimSpace(p), SchemaTypeString)
+			result[i] = coerceValue(strings.TrimSpace(p), itemType)
 		}
 		return ArrayValue(result)
 	}
@@ -126,7 +153,10 @@ func parseSimpleStyle(value string, explode bool, schemaType SchemaType) Coerced
 		for _, part := range parts {
 			kv := strings.SplitN(part, "=", 2)
 			if len(kv) == 2 {
-				result[strings.TrimSpace(kv[0])] = coerceValue(strings.TrimSpace(kv[1]), SchemaTypeString)
+				key := strings.TrimSpace(kv[0])
+				val := strings.TrimSpace(kv[1])
+				propType := getPropertyType(propertyTypes, key)
+				result[key] = coerceValue(val, propType)
 			}
 		}
 		return ObjectValue(result)
@@ -134,7 +164,10 @@ func parseSimpleStyle(value string, explode bool, schemaType SchemaType) Coerced
 	parts := strings.Split(value, ",")
 	result := make(map[string]CoercedValue)
 	for i := 0; i+1 < len(parts); i += 2 {
-		result[strings.TrimSpace(parts[i])] = coerceValue(strings.TrimSpace(parts[i+1]), SchemaTypeString)
+		key := strings.TrimSpace(parts[i])
+		val := strings.TrimSpace(parts[i+1])
+		propType := getPropertyType(propertyTypes, key)
+		result[key] = coerceValue(val, propType)
 	}
 	return ObjectValue(result)
 }
@@ -143,7 +176,7 @@ func parseSimpleStyle(value string, explode bool, schemaType SchemaType) Coerced
 // Arrays: .3.4.5
 // Objects (explode=false): .role.admin.firstName.Alex
 // Objects (explode=true): .role=admin.firstName=Alex
-func parseLabelStyle(value string, explode bool, schemaType SchemaType) CoercedValue {
+func parseLabelStyle(value string, explode bool, schemaType SchemaType, itemType SchemaType, propertyTypes map[string]SchemaType) CoercedValue {
 	value = strings.TrimPrefix(value, ".")
 	if value == "" {
 		return NilValue()
@@ -157,7 +190,7 @@ func parseLabelStyle(value string, explode bool, schemaType SchemaType) CoercedV
 		parts := strings.Split(value, ".")
 		result := make([]CoercedValue, len(parts))
 		for i, p := range parts {
-			result[i] = coerceValue(strings.TrimSpace(p), SchemaTypeString)
+			result[i] = coerceValue(strings.TrimSpace(p), itemType)
 		}
 		return ArrayValue(result)
 	}
@@ -168,7 +201,10 @@ func parseLabelStyle(value string, explode bool, schemaType SchemaType) CoercedV
 		for _, part := range parts {
 			kv := strings.SplitN(part, "=", 2)
 			if len(kv) == 2 {
-				result[strings.TrimSpace(kv[0])] = coerceValue(strings.TrimSpace(kv[1]), SchemaTypeString)
+				key := strings.TrimSpace(kv[0])
+				val := strings.TrimSpace(kv[1])
+				propType := getPropertyType(propertyTypes, key)
+				result[key] = coerceValue(val, propType)
 			}
 		}
 		return ObjectValue(result)
@@ -176,7 +212,10 @@ func parseLabelStyle(value string, explode bool, schemaType SchemaType) CoercedV
 	parts := strings.Split(value, ".")
 	result := make(map[string]CoercedValue)
 	for i := 0; i+1 < len(parts); i += 2 {
-		result[strings.TrimSpace(parts[i])] = coerceValue(strings.TrimSpace(parts[i+1]), SchemaTypeString)
+		key := strings.TrimSpace(parts[i])
+		val := strings.TrimSpace(parts[i+1])
+		propType := getPropertyType(propertyTypes, key)
+		result[key] = coerceValue(val, propType)
 	}
 	return ObjectValue(result)
 }
@@ -187,7 +226,7 @@ func parseLabelStyle(value string, explode bool, schemaType SchemaType) CoercedV
 // Arrays (explode=true): ;id=3;id=4;id=5
 // Objects (explode=false): ;id=role,admin,firstName,Alex
 // Objects (explode=true): ;role=admin;firstName=Alex
-func parseMatrixStyle(value string, explode bool, schemaType SchemaType) CoercedValue {
+func parseMatrixStyle(value string, explode bool, schemaType SchemaType, itemType SchemaType, propertyTypes map[string]SchemaType) CoercedValue {
 	value = strings.TrimPrefix(value, ";")
 	if value == "" {
 		return NilValue()
@@ -208,7 +247,7 @@ func parseMatrixStyle(value string, explode bool, schemaType SchemaType) Coerced
 			for _, seg := range segments {
 				kv := strings.SplitN(seg, "=", 2)
 				if len(kv) == 2 {
-					result = append(result, coerceValue(kv[1], SchemaTypeString))
+					result = append(result, coerceValue(kv[1], itemType))
 				}
 			}
 			return ArrayValue(result)
@@ -220,7 +259,7 @@ func parseMatrixStyle(value string, explode bool, schemaType SchemaType) Coerced
 		items := strings.Split(parts[1], ",")
 		result := make([]CoercedValue, len(items))
 		for i, item := range items {
-			result[i] = coerceValue(strings.TrimSpace(item), SchemaTypeString)
+			result[i] = coerceValue(strings.TrimSpace(item), itemType)
 		}
 		return ArrayValue(result)
 	}
@@ -231,7 +270,10 @@ func parseMatrixStyle(value string, explode bool, schemaType SchemaType) Coerced
 		for _, seg := range segments {
 			kv := strings.SplitN(seg, "=", 2)
 			if len(kv) == 2 {
-				result[strings.TrimSpace(kv[0])] = coerceValue(strings.TrimSpace(kv[1]), SchemaTypeString)
+				key := strings.TrimSpace(kv[0])
+				val := strings.TrimSpace(kv[1])
+				propType := getPropertyType(propertyTypes, key)
+				result[key] = coerceValue(val, propType)
 			}
 		}
 		return ObjectValue(result)
@@ -243,14 +285,17 @@ func parseMatrixStyle(value string, explode bool, schemaType SchemaType) Coerced
 	items := strings.Split(parts[1], ",")
 	result := make(map[string]CoercedValue)
 	for i := 0; i+1 < len(items); i += 2 {
-		result[strings.TrimSpace(items[i])] = coerceValue(strings.TrimSpace(items[i+1]), SchemaTypeString)
+		key := strings.TrimSpace(items[i])
+		val := strings.TrimSpace(items[i+1])
+		propType := getPropertyType(propertyTypes, key)
+		result[key] = coerceValue(val, propType)
 	}
 	return ObjectValue(result)
 }
 
 // parseSpaceDelimited parses space-delimited array parameters
 // ?id=3%204%205 -> [3, 4, 5]
-func parseSpaceDelimited(value string, schemaType SchemaType) CoercedValue {
+func parseSpaceDelimited(value string, schemaType SchemaType, itemType SchemaType) CoercedValue {
 	if value == "" {
 		return NilValue()
 	}
@@ -260,14 +305,14 @@ func parseSpaceDelimited(value string, schemaType SchemaType) CoercedValue {
 	parts := strings.Split(value, " ")
 	result := make([]CoercedValue, len(parts))
 	for i, p := range parts {
-		result[i] = coerceValue(strings.TrimSpace(p), SchemaTypeString)
+		result[i] = coerceValue(strings.TrimSpace(p), itemType)
 	}
 	return ArrayValue(result)
 }
 
 // parsePipeDelimited parses pipe-delimited array parameters
 // ?id=3|4|5 -> [3, 4, 5]
-func parsePipeDelimited(value string, schemaType SchemaType) CoercedValue {
+func parsePipeDelimited(value string, schemaType SchemaType, itemType SchemaType) CoercedValue {
 	if value == "" {
 		return NilValue()
 	}
@@ -277,14 +322,14 @@ func parsePipeDelimited(value string, schemaType SchemaType) CoercedValue {
 	parts := strings.Split(value, "|")
 	result := make([]CoercedValue, len(parts))
 	for i, p := range parts {
-		result[i] = coerceValue(strings.TrimSpace(p), SchemaTypeString)
+		result[i] = coerceValue(strings.TrimSpace(p), itemType)
 	}
 	return ArrayValue(result)
 }
 
 // parseDeepObject parses deep object style parameters
 // ?filter[name]=foo&filter[age]=30 -> {"name": "foo", "age": 30}
-func parseDeepObject(query url.Values, paramName string, schemaType SchemaType) CoercedValue {
+func parseDeepObject(query url.Values, paramName string, schemaType SchemaType, propertyTypes map[string]SchemaType) CoercedValue {
 	if schemaType != SchemaTypeObject {
 		return NilValue()
 	}
@@ -299,7 +344,8 @@ func parseDeepObject(query url.Values, paramName string, schemaType SchemaType) 
 		propName := strings.TrimPrefix(key, prefix)
 		propName = strings.TrimSuffix(propName, "]")
 		if propName != "" && len(values) > 0 {
-			result[propName] = coerceValue(values[0], SchemaTypeString)
+			propType := getPropertyType(propertyTypes, propName)
+			result[propName] = coerceValue(values[0], propType)
 		}
 	}
 

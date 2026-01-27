@@ -8,6 +8,31 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
+// extractTypeInfo extracts itemType and propertyTypes from a TypedSchema for use with ParseByStyle
+func extractTypeInfo(ts *TypedSchema) (itemType SchemaType, propertyTypes map[string]SchemaType) {
+	itemType = SchemaTypeString // default for array items
+	propertyTypes = nil
+
+	if ts == nil {
+		return
+	}
+
+	if ts.Items != nil {
+		itemType = ts.Items.Type
+	}
+
+	if ts.Properties != nil {
+		propertyTypes = make(map[string]SchemaType)
+		for name, prop := range ts.Properties {
+			if prop != nil {
+				propertyTypes[name] = prop.Type
+			}
+		}
+	}
+
+	return
+}
+
 // validatePathParams validates path parameters against their schemas
 func (v *Validator) validatePathParams(pathParams map[string]string, params []CompiledParameter) []openapi.ValidationError {
 	var errors []openapi.ValidationError
@@ -25,7 +50,8 @@ func (v *Validator) validatePathParams(pathParams map[string]string, params []Co
 		}
 
 		if param.Schema != nil {
-			parsedValue := ParseByStyle(param.Style, param.Explode, []string{value}, param.SchemaType, nil, param.Name)
+			itemType, propertyTypes := extractTypeInfo(param.TypedSchema)
+			parsedValue := ParseByStyle(param.Style, param.Explode, []string{value}, param.SchemaType, nil, param.Name, itemType, propertyTypes)
 			if err := param.Schema.Validate(parsedValue.ToAny()); err != nil {
 				errors = append(errors, v.transformParamError(err, "path", param.Name)...)
 			}
@@ -43,7 +69,8 @@ func (v *Validator) validateQueryParams(r *http.Request, params []CompiledParame
 	for _, param := range params {
 		// DeepObject params use format like filter[name]=foo&filter[age]=30
 		if param.Style == "deepObject" {
-			parsedValue := ParseByStyle(param.Style, param.Explode, nil, param.SchemaType, query, param.Name)
+			itemType, propertyTypes := extractTypeInfo(param.TypedSchema)
+			parsedValue := ParseByStyle(param.Style, param.Explode, nil, param.SchemaType, query, param.Name, itemType, propertyTypes)
 
 			if param.Required && parsedValue.IsNil() {
 				errors = append(errors, openapi.ValidationError{
@@ -91,7 +118,8 @@ func (v *Validator) validateQueryParams(r *http.Request, params []CompiledParame
 		}
 
 		if param.Schema != nil {
-			parsedValue := ParseByStyle(param.Style, param.Explode, values, param.SchemaType, query, param.Name)
+			itemType, propertyTypes := extractTypeInfo(param.TypedSchema)
+			parsedValue := ParseByStyle(param.Style, param.Explode, values, param.SchemaType, query, param.Name, itemType, propertyTypes)
 			if err := param.Schema.Validate(parsedValue.ToAny()); err != nil {
 				errors = append(errors, v.transformParamError(err, "query", param.Name)...)
 			}
@@ -122,7 +150,8 @@ func (v *Validator) validateHeaderParams(r *http.Request, params []CompiledParam
 		}
 
 		if param.Schema != nil {
-			parsedValue := ParseByStyle(param.Style, param.Explode, []string{value}, param.SchemaType, nil, param.Name)
+			itemType, propertyTypes := extractTypeInfo(param.TypedSchema)
+			parsedValue := ParseByStyle(param.Style, param.Explode, []string{value}, param.SchemaType, nil, param.Name, itemType, propertyTypes)
 			if err := param.Schema.Validate(parsedValue.ToAny()); err != nil {
 				errors = append(errors, v.transformParamError(err, "header", param.Name)...)
 			}
@@ -157,7 +186,8 @@ func (v *Validator) validateCookieParams(r *http.Request, params []CompiledParam
 		}
 
 		if param.Schema != nil {
-			parsedValue := ParseByStyle(param.Style, param.Explode, []string{value}, param.SchemaType, nil, param.Name)
+			itemType, propertyTypes := extractTypeInfo(param.TypedSchema)
+			parsedValue := ParseByStyle(param.Style, param.Explode, []string{value}, param.SchemaType, nil, param.Name, itemType, propertyTypes)
 			if err := param.Schema.Validate(parsedValue.ToAny()); err != nil {
 				errors = append(errors, v.transformParamError(err, "cookie", param.Name)...)
 			}
