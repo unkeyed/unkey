@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "errors",
+    srcs = ["errors.go"],
+    importpath = "github.com/unkeyed/unkey/cmd/deploy/internal/errors",
+    visibility = ["//cmd/deploy:__pkg__"],
+    deps = [
+        "@com_github_unkeyed_sdks_api_go_v2//models/apierrors",
+        "@com_github_unkeyed_sdks_api_go_v2//models/components",
+    ],
+)
+
+go_test(
+    name = "errors_test",
+    srcs = ["errors_test.go"],
+    embed = [":errors"],
+    deps = [
+        "@com_github_stretchr_testify//require",
+        "@com_github_unkeyed_sdks_api_go_v2//models/apierrors",
+        "@com_github_unkeyed_sdks_api_go_v2//models/components",
+    ],
+)
