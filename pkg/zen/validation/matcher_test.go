@@ -7,6 +7,7 @@ import (
 )
 
 func TestPathMatcher(t *testing.T) {
+	t.Parallel()
 	ops := map[string]*Operation{
 		"POST /v2/keys.setRoles": {
 			Method:      "POST",
@@ -35,6 +36,7 @@ func TestPathMatcher(t *testing.T) {
 }
 
 func TestPathMatcher_TemplateMatching(t *testing.T) {
+	t.Parallel()
 	ops := map[string]*Operation{
 		"GET /users/{userId}": {
 			Method:      "GET",
@@ -90,6 +92,7 @@ func TestPathMatcher_TemplateMatching(t *testing.T) {
 }
 
 func TestPathMatcher_SpecialCharactersInPath(t *testing.T) {
+	t.Parallel()
 	ops := map[string]*Operation{
 		"GET /api/v2/keys.getKey": {
 			Method:      "GET",

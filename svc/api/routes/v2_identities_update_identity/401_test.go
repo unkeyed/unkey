@@ -36,11 +36,10 @@ func TestUnauthorized(t *testing.T) {
 		headers := http.Header{
 			"Content-Type": {"application/json"},
 		}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusBadRequest, res.Status)
-		// Auth error type may vary - just check we got an appropriate error
-		require.NotEmpty(t, res.Body.Error.Type)
-		require.NotEmpty(t, res.Body.Error.Detail)
+		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusUnauthorized, res.Status)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/missing", res.Body.Error.Type)
+		require.Contains(t, res.Body.Error.Detail, "Authorization header")
 	})
 
 	t.Run("malformed Authorization header", func(t *testing.T) {

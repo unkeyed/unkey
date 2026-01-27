@@ -9,6 +9,7 @@ import (
 )
 
 func TestSecurityScheme_HTTP_Bearer(t *testing.T) {
+	t.Parallel()
 	scheme := SecurityScheme{
 		Type:   SecurityTypeHTTP,
 		Scheme: "bearer",
@@ -35,6 +36,7 @@ func TestSecurityScheme_HTTP_Bearer(t *testing.T) {
 }
 
 func TestSecurityScheme_HTTP_Basic(t *testing.T) {
+	t.Parallel()
 	scheme := SecurityScheme{
 		Type:   SecurityTypeHTTP,
 		Scheme: "basic",
@@ -52,6 +54,7 @@ func TestSecurityScheme_HTTP_Basic(t *testing.T) {
 }
 
 func TestSecurityScheme_APIKey_Header(t *testing.T) {
+	t.Parallel()
 	scheme := SecurityScheme{
 		Type: SecurityTypeAPIKey,
 		Name: "X-Api-Key",
@@ -69,6 +72,7 @@ func TestSecurityScheme_APIKey_Header(t *testing.T) {
 }
 
 func TestSecurityScheme_APIKey_Query(t *testing.T) {
+	t.Parallel()
 	scheme := SecurityScheme{
 		Type: SecurityTypeAPIKey,
 		Name: "api_key",
@@ -85,6 +89,7 @@ func TestSecurityScheme_APIKey_Query(t *testing.T) {
 }
 
 func TestSecurityScheme_APIKey_Cookie(t *testing.T) {
+	t.Parallel()
 	scheme := SecurityScheme{
 		Type: SecurityTypeAPIKey,
 		Name: "session",
@@ -102,6 +107,7 @@ func TestSecurityScheme_APIKey_Cookie(t *testing.T) {
 }
 
 func TestSecurityScheme_OAuth2(t *testing.T) {
+	t.Parallel()
 	// OAuth2 only checks for presence of Authorization header
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	req.Header.Set("Authorization", "Bearer oauth_token")
@@ -112,6 +118,7 @@ func TestSecurityScheme_OAuth2(t *testing.T) {
 }
 
 func TestSecurityRequirement_ORLogic(t *testing.T) {
+	t.Parallel()
 	schemes := map[string]SecurityScheme{
 		"bearerAuth": {
 			Type:   SecurityTypeHTTP,
@@ -149,6 +156,7 @@ func TestSecurityRequirement_ORLogic(t *testing.T) {
 }
 
 func TestSecurityRequirement_ANDLogic(t *testing.T) {
+	t.Parallel()
 	schemes := map[string]SecurityScheme{
 		"bearerAuth": {
 			Type:   SecurityTypeHTTP,
@@ -190,6 +198,7 @@ func TestSecurityRequirement_ANDLogic(t *testing.T) {
 }
 
 func TestSecurityRequirement_Empty(t *testing.T) {
+	t.Parallel()
 	schemes := map[string]SecurityScheme{}
 	requirements := []SecurityRequirement{}
 
@@ -199,6 +208,7 @@ func TestSecurityRequirement_Empty(t *testing.T) {
 }
 
 func TestValidateBearerAuth_Detailed(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		authHeader  string
@@ -237,6 +247,7 @@ func TestValidateBearerAuth_Detailed(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			req := httptest.NewRequest(http.MethodGet, "/test", nil)
 			if tt.authHeader != "" {
 				req.Header.Set("Authorization", tt.authHeader)
