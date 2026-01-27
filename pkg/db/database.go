@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"strings"
 	"time"
@@ -63,7 +64,9 @@ func open(dsn string, logger logging.Logger) (db *sql.DB, err error) {
 			return time.Duration(n) * time.Second
 		}),
 	).Do(func() error {
-		pingErr := db.Ping()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		pingErr := db.PingContext(ctx)
 		if pingErr != nil {
 			logger.Info("mysql not ready yet, retrying...", "error", pingErr.Error())
 		}
