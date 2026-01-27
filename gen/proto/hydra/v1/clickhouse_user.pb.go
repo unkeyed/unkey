@@ -24,17 +24,15 @@ const (
 
 type ConfigureUserRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// workspace_id is also the Restate object key
+	// workspace_id is also the Restate object key and the ClickHouse username
 	WorkspaceId string `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
-	// Optional: custom username (defaults to workspace_id)
-	Username *string `protobuf:"bytes,2,opt,name=username,proto3,oneof" json:"username,omitempty"`
 	// Optional quota overrides - if not set, uses defaults from service
-	QuotaDurationSeconds      *int32 `protobuf:"varint,3,opt,name=quota_duration_seconds,json=quotaDurationSeconds,proto3,oneof" json:"quota_duration_seconds,omitempty"`                    // default: 3600 (1 hour)
-	MaxQueriesPerWindow       *int32 `protobuf:"varint,4,opt,name=max_queries_per_window,json=maxQueriesPerWindow,proto3,oneof" json:"max_queries_per_window,omitempty"`                     // default: 1000
-	MaxExecutionTimePerWindow *int32 `protobuf:"varint,5,opt,name=max_execution_time_per_window,json=maxExecutionTimePerWindow,proto3,oneof" json:"max_execution_time_per_window,omitempty"` // default: 1800 (30 min)
-	MaxQueryExecutionTime     *int32 `protobuf:"varint,6,opt,name=max_query_execution_time,json=maxQueryExecutionTime,proto3,oneof" json:"max_query_execution_time,omitempty"`               // default: 30 (seconds)
-	MaxQueryMemoryBytes       *int64 `protobuf:"varint,7,opt,name=max_query_memory_bytes,json=maxQueryMemoryBytes,proto3,oneof" json:"max_query_memory_bytes,omitempty"`                     // default: 1000000000 (1GB)
-	MaxQueryResultRows        *int32 `protobuf:"varint,8,opt,name=max_query_result_rows,json=maxQueryResultRows,proto3,oneof" json:"max_query_result_rows,omitempty"`                        // default: 10000000
+	QuotaDurationSeconds      *int32 `protobuf:"varint,2,opt,name=quota_duration_seconds,json=quotaDurationSeconds,proto3,oneof" json:"quota_duration_seconds,omitempty"`                    // default: 3600 (1 hour)
+	MaxQueriesPerWindow       *int32 `protobuf:"varint,3,opt,name=max_queries_per_window,json=maxQueriesPerWindow,proto3,oneof" json:"max_queries_per_window,omitempty"`                     // default: 1000
+	MaxExecutionTimePerWindow *int32 `protobuf:"varint,4,opt,name=max_execution_time_per_window,json=maxExecutionTimePerWindow,proto3,oneof" json:"max_execution_time_per_window,omitempty"` // default: 1800 (30 min)
+	MaxQueryExecutionTime     *int32 `protobuf:"varint,5,opt,name=max_query_execution_time,json=maxQueryExecutionTime,proto3,oneof" json:"max_query_execution_time,omitempty"`               // default: 30 (seconds)
+	MaxQueryMemoryBytes       *int64 `protobuf:"varint,6,opt,name=max_query_memory_bytes,json=maxQueryMemoryBytes,proto3,oneof" json:"max_query_memory_bytes,omitempty"`                     // default: 1000000000 (1GB)
+	MaxQueryResultRows        *int32 `protobuf:"varint,7,opt,name=max_query_result_rows,json=maxQueryResultRows,proto3,oneof" json:"max_query_result_rows,omitempty"`                        // default: 10000000
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
 }
@@ -72,13 +70,6 @@ func (*ConfigureUserRequest) Descriptor() ([]byte, []int) {
 func (x *ConfigureUserRequest) GetWorkspaceId() string {
 	if x != nil {
 		return x.WorkspaceId
-	}
-	return ""
-}
-
-func (x *ConfigureUserRequest) GetUsername() string {
-	if x != nil && x.Username != nil {
-		return *x.Username
 	}
 	return ""
 }
@@ -126,13 +117,7 @@ func (x *ConfigureUserRequest) GetMaxQueryResultRows() int32 {
 }
 
 type ConfigureUserResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Status of the operation: "success" or "failed"
-	Status string `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
-	// Username of the configured ClickHouse user
-	Username string `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
-	// Error message if status is "failed"
-	Error         string `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -167,52 +152,26 @@ func (*ConfigureUserResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_clickhouse_user_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ConfigureUserResponse) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-func (x *ConfigureUserResponse) GetUsername() string {
-	if x != nil {
-		return x.Username
-	}
-	return ""
-}
-
-func (x *ConfigureUserResponse) GetError() string {
-	if x != nil {
-		return x.Error
-	}
-	return ""
-}
-
 var File_hydra_v1_clickhouse_user_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_clickhouse_user_proto_rawDesc = "" +
 	"\n" +
-	"\x1ehydra/v1/clickhouse_user.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xfd\x04\n" +
+	"\x1ehydra/v1/clickhouse_user.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xcf\x04\n" +
 	"\x14ConfigureUserRequest\x12!\n" +
-	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1f\n" +
-	"\busername\x18\x02 \x01(\tH\x00R\busername\x88\x01\x01\x129\n" +
-	"\x16quota_duration_seconds\x18\x03 \x01(\x05H\x01R\x14quotaDurationSeconds\x88\x01\x01\x128\n" +
-	"\x16max_queries_per_window\x18\x04 \x01(\x05H\x02R\x13maxQueriesPerWindow\x88\x01\x01\x12E\n" +
-	"\x1dmax_execution_time_per_window\x18\x05 \x01(\x05H\x03R\x19maxExecutionTimePerWindow\x88\x01\x01\x12<\n" +
-	"\x18max_query_execution_time\x18\x06 \x01(\x05H\x04R\x15maxQueryExecutionTime\x88\x01\x01\x128\n" +
-	"\x16max_query_memory_bytes\x18\a \x01(\x03H\x05R\x13maxQueryMemoryBytes\x88\x01\x01\x126\n" +
-	"\x15max_query_result_rows\x18\b \x01(\x05H\x06R\x12maxQueryResultRows\x88\x01\x01B\v\n" +
-	"\t_usernameB\x19\n" +
+	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x129\n" +
+	"\x16quota_duration_seconds\x18\x02 \x01(\x05H\x00R\x14quotaDurationSeconds\x88\x01\x01\x128\n" +
+	"\x16max_queries_per_window\x18\x03 \x01(\x05H\x01R\x13maxQueriesPerWindow\x88\x01\x01\x12E\n" +
+	"\x1dmax_execution_time_per_window\x18\x04 \x01(\x05H\x02R\x19maxExecutionTimePerWindow\x88\x01\x01\x12<\n" +
+	"\x18max_query_execution_time\x18\x05 \x01(\x05H\x03R\x15maxQueryExecutionTime\x88\x01\x01\x128\n" +
+	"\x16max_query_memory_bytes\x18\x06 \x01(\x03H\x04R\x13maxQueryMemoryBytes\x88\x01\x01\x126\n" +
+	"\x15max_query_result_rows\x18\a \x01(\x05H\x05R\x12maxQueryResultRows\x88\x01\x01B\x19\n" +
 	"\x17_quota_duration_secondsB\x19\n" +
 	"\x17_max_queries_per_windowB \n" +
 	"\x1e_max_execution_time_per_windowB\x1b\n" +
 	"\x19_max_query_execution_timeB\x19\n" +
 	"\x17_max_query_memory_bytesB\x18\n" +
-	"\x16_max_query_result_rows\"a\n" +
-	"\x15ConfigureUserResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status\x12\x1a\n" +
-	"\busername\x18\x02 \x01(\tR\busername\x12\x14\n" +
-	"\x05error\x18\x03 \x01(\tR\x05error2q\n" +
+	"\x16_max_query_result_rows\"\x17\n" +
+	"\x15ConfigureUserResponse2q\n" +
 	"\x15ClickhouseUserService\x12R\n" +
 	"\rConfigureUser\x12\x1e.hydra.v1.ConfigureUserRequest\x1a\x1f.hydra.v1.ConfigureUserResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x99\x01\n" +
 	"\fcom.hydra.v1B\x13ClickhouseUserProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"

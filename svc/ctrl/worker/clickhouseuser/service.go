@@ -50,9 +50,9 @@ type Config struct {
 func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedClickhouseUserServiceServer: hydrav1.UnimplementedClickhouseUserServiceServer{},
-		db:         cfg.DB,
-		vault:      cfg.Vault,
-		clickhouse: cfg.Clickhouse,
-		logger:     cfg.Logger,
+		db:                                       cfg.DB,
+		vault:                                    cfg.Vault,
+		clickhouse:                               cfg.Clickhouse,
+		logger:                                   cfg.Logger,
 	}
 }

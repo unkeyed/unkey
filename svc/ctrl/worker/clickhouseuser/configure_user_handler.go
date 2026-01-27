@@ -1,7 +1,6 @@
 package clickhouseuser
 
 import (
-	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
@@ -14,9 +13,9 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
-// Default quota values matching the original script
 const (
 	defaultQuotaDurationSeconds      = 3600       // 1 hour
 	defaultMaxQueriesPerWindow       = 1000       // queries
@@ -24,218 +23,13 @@ const (
 	defaultMaxQueryExecutionTime     = 30         // seconds
 	defaultMaxQueryMemoryBytes       = 1000000000 // 1 GB
 	defaultMaxQueryResultRows        = 10000000   // 10 million rows
-	passwordLength                   = 64         // characters
+	passwordLength                   = 64
 )
 
-// ConfigureUser creates or updates a ClickHouse user for a workspace.
-//
-// This is a Restate virtual object handler keyed by workspace_id, ensuring only one
-// user provisioning runs per workspace at any time. The workflow consists of durable
-// steps that survive process restarts: checking existing settings, generating/retrieving
-// password, encrypting/decrypting via vault, storing in MySQL, and configuring ClickHouse.
-//
-// For new users, the workflow generates a secure password, encrypts it via the vault API,
-// stores it in MySQL, and creates the ClickHouse user with permissions and quotas.
-//
-// For existing users, the workflow retrieves and decrypts the existing password,
-// updates quota settings in MySQL, and reapplies the ClickHouse configuration to ensure
-// consistency (quotas, row policies, settings profile).
-//
-// Security: Plaintext passwords are never journaled by Restate. Password generation,
-// encryption, and decryption happen within single restate.Run blocks that only return
-// non-sensitive data (encrypted passwords or success indicators).
-//
-// Returns a response with Status "success" and the username on success, or Status
-// "failed" with an error message on failure.
-func (s *Service) ConfigureUser(
-	ctx restate.ObjectContext,
-	req *hydrav1.ConfigureUserRequest,
-) (*hydrav1.ConfigureUserResponse, error) {
-	workspaceID := req.GetWorkspaceId()
-	s.logger.Info("starting clickhouse user configuration", "workspace_id", workspaceID)
-
-	// Resolve username (default to workspace_id if not provided)
-	username := req.GetUsername()
-	if username == "" {
-		username = workspaceID
-	}
-
-	// Resolve quota settings with defaults
-	quotaSettings := resolveQuotaSettings(req)
-
-	// Step 1: Check if user already exists in MySQL
-	existing, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
-		return db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(stepCtx, s.db.RO(), workspaceID)
-	}, restate.WithName("check existing user"))
-
-	isNewUser := err != nil && db.IsNotFound(err)
-	if err != nil && !isNewUser {
-		return nil, fmt.Errorf("failed to check existing user: %w", err)
-	}
-
-	var encryptedPassword string
-	var retentionDays int32
-
-	if isNewUser {
-		// New user flow
-		s.logger.Info("creating new clickhouse user", "workspace_id", workspaceID, "username", username)
-
-		// Step 2a: Fetch quota for retention days
-		quota, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Quotum, error) {
-			return db.Query.FindQuotaByWorkspaceID(stepCtx, s.db.RO(), workspaceID)
-		}, restate.WithName("fetch quota"))
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch workspace quota: %w", err)
-		}
-		retentionDays = quota.LogsRetentionDays
-
-		// Step 2b: Generate password, encrypt it, and store in MySQL
-		// All in one step so plaintext password is never journaled by Restate.
-		//
-		// This step is idempotent: if a previous attempt inserted to MySQL but crashed
-		// before Restate journaled the result, we detect the existing record and return
-		// its encrypted password instead of generating a new one.
-		encryptedPassword, err = restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
-			// Generate secure password (ephemeral - not journaled)
-			password, genErr := generateSecurePassword(passwordLength)
-			if genErr != nil {
-				return "", fmt.Errorf("failed to generate password: %w", genErr)
-			}
-
-			// Encrypt password via vault API
-			resp, encErr := s.vault.Encrypt(stepCtx, connect.NewRequest(&vaultv1.EncryptRequest{
-				Keyring: workspaceID,
-				Data:    password,
-			}))
-			if encErr != nil {
-				return "", fmt.Errorf("failed to encrypt password: %w", encErr)
-			}
-			encrypted := resp.Msg.GetEncrypted()
-
-			// Insert settings to MySQL
-			now := time.Now().UnixMilli()
-			insertErr := db.Query.InsertClickhouseWorkspaceSettings(stepCtx, s.db.RW(), db.InsertClickhouseWorkspaceSettingsParams{
-				WorkspaceID:               workspaceID,
-				Username:                  username,
-				PasswordEncrypted:         encrypted,
-				QuotaDurationSeconds:      quotaSettings.quotaDurationSeconds,
-				MaxQueriesPerWindow:       quotaSettings.maxQueriesPerWindow,
-				MaxExecutionTimePerWindow: quotaSettings.maxExecutionTimePerWindow,
-				MaxQueryExecutionTime:     quotaSettings.maxQueryExecutionTime,
-				MaxQueryMemoryBytes:       quotaSettings.maxQueryMemoryBytes,
-				MaxQueryResultRows:        quotaSettings.maxQueryResultRows,
-				CreatedAt:                 now,
-				UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
-			})
-			if insertErr != nil {
-				// Check if this is a duplicate key error (previous attempt succeeded but wasn't journaled)
-				// If so, fetch the existing record and return its encrypted password for consistency
-				if db.IsDuplicateKeyError(insertErr) {
-					existing, fetchErr := db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(stepCtx, s.db.RO(), workspaceID)
-					if fetchErr != nil {
-						return "", fmt.Errorf("failed to fetch existing settings after duplicate: %w", fetchErr)
-					}
-					return existing.ClickhouseWorkspaceSetting.PasswordEncrypted, nil
-				}
-				return "", fmt.Errorf("failed to insert settings: %w", insertErr)
-			}
-
-			// Only return encrypted password - plaintext stays ephemeral
-			return encrypted, nil
-		}, restate.WithName("generate and store credentials"))
-		if err != nil {
-			return nil, err
-		}
-
-		s.logger.Info("stored credentials in database", "workspace_id", workspaceID)
-
-	} else {
-		// Existing user flow - update quotas only, preserve password
-		s.logger.Info("updating existing clickhouse user", "workspace_id", workspaceID, "username", existing.ClickhouseWorkspaceSetting.Username)
-		username = existing.ClickhouseWorkspaceSetting.Username
-		retentionDays = existing.Quotas.LogsRetentionDays
-		encryptedPassword = existing.ClickhouseWorkspaceSetting.PasswordEncrypted
-
-		// Step 3: Update limits in MySQL
-		now := time.Now().UnixMilli()
-		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.UpdateClickhouseWorkspaceSettingsLimits(stepCtx, s.db.RW(), db.UpdateClickhouseWorkspaceSettingsLimitsParams{
-				WorkspaceID:               workspaceID,
-				QuotaDurationSeconds:      quotaSettings.quotaDurationSeconds,
-				MaxQueriesPerWindow:       quotaSettings.maxQueriesPerWindow,
-				MaxExecutionTimePerWindow: quotaSettings.maxExecutionTimePerWindow,
-				MaxQueryExecutionTime:     quotaSettings.maxQueryExecutionTime,
-				MaxQueryMemoryBytes:       quotaSettings.maxQueryMemoryBytes,
-				MaxQueryResultRows:        quotaSettings.maxQueryResultRows,
-				UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
-			})
-		}, restate.WithName("update limits"))
-		if err != nil {
-			return nil, fmt.Errorf("failed to update settings: %w", err)
-		}
-
-		s.logger.Info("updated quotas in database", "workspace_id", workspaceID)
-	}
-
-	// Step 4: Configure ClickHouse user with permissions, quotas, and settings
-	// Decrypt password inside this step so plaintext is never journaled
-	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		// Decrypt password (ephemeral - not journaled)
-		resp, decErr := s.vault.Decrypt(stepCtx, connect.NewRequest(&vaultv1.DecryptRequest{
-			Keyring:   workspaceID,
-			Encrypted: encryptedPassword,
-		}))
-		if decErr != nil {
-			return restate.Void{}, fmt.Errorf("failed to decrypt password: %w", decErr)
-		}
-		password := resp.Msg.GetPlaintext()
-
-		// Configure ClickHouse user
-		return restate.Void{}, s.clickhouse.ConfigureUser(stepCtx, clickhouse.UserConfig{
-			WorkspaceID:               workspaceID,
-			Username:                  username,
-			Password:                  password,
-			AllowedTables:             clickhouse.DefaultAllowedTables(),
-			QuotaDurationSeconds:      quotaSettings.quotaDurationSeconds,
-			MaxQueriesPerWindow:       quotaSettings.maxQueriesPerWindow,
-			MaxExecutionTimePerWindow: quotaSettings.maxExecutionTimePerWindow,
-			MaxQueryExecutionTime:     quotaSettings.maxQueryExecutionTime,
-			MaxQueryMemoryBytes:       quotaSettings.maxQueryMemoryBytes,
-			MaxQueryResultRows:        quotaSettings.maxQueryResultRows,
-			RetentionDays:             retentionDays,
-		})
-	}, restate.WithName("configure clickhouse user"))
-	if err != nil {
-		return &hydrav1.ConfigureUserResponse{
-			Status:   "failed",
-			Username: username,
-			Error:    fmt.Sprintf("failed to configure clickhouse user: %v", err),
-		}, nil
-	}
-
-	s.logger.Info("clickhouse user configuration completed successfully",
-		"workspace_id", workspaceID,
-		"username", username,
-		"retention_days", retentionDays,
-	)
-
-	return &hydrav1.ConfigureUserResponse{
-		Status:   "success",
-		Username: username,
-	}, nil
-}
-
-// decryptPassword is a helper that decrypts a password using the vault service.
-// This is used outside of restate.Run when we need the password but don't want to journal it.
-func (s *Service) decryptPassword(ctx context.Context, workspaceID, encryptedPassword string) (string, error) {
-	resp, err := s.vault.Decrypt(ctx, connect.NewRequest(&vaultv1.DecryptRequest{
-		Keyring:   workspaceID,
-		Encrypted: encryptedPassword,
-	}))
-	if err != nil {
-		return "", err
-	}
-	return resp.Msg.GetPlaintext(), nil
+// existingUserResult wraps the DB lookup to avoid Restate error serialization issues.
+type existingUserResult struct {
+	Row   db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow
+	Found bool
 }
 
 // quotaSettings holds resolved quota configuration with defaults applied.
@@ -248,44 +42,170 @@ type quotaSettings struct {
 	maxQueryResultRows        int32
 }
 
-// resolveQuotaSettings extracts quota settings from the request, applying defaults where not specified.
-func resolveQuotaSettings(req *hydrav1.ConfigureUserRequest) quotaSettings {
-	settings := quotaSettings{
-		quotaDurationSeconds:      defaultQuotaDurationSeconds,
-		maxQueriesPerWindow:       defaultMaxQueriesPerWindow,
-		maxExecutionTimePerWindow: defaultMaxExecutionTimePerWindow,
-		maxQueryExecutionTime:     defaultMaxQueryExecutionTime,
-		maxQueryMemoryBytes:       defaultMaxQueryMemoryBytes,
-		maxQueryResultRows:        defaultMaxQueryResultRows,
+// ConfigureUser creates or updates a ClickHouse user for a workspace.
+func (s *Service) ConfigureUser(
+	ctx restate.ObjectContext,
+	req *hydrav1.ConfigureUserRequest,
+) (*hydrav1.ConfigureUserResponse, error) {
+	workspaceID := req.GetWorkspaceId()
+	s.logger.Info("configuring clickhouse user", "workspace_id", workspaceID)
+
+	quotas := resolveQuotaSettings(req)
+
+	// Check if user exists
+	result, err := restate.Run(ctx, func(rc restate.RunContext) (existingUserResult, error) {
+		row, err := db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(rc, s.db.RO(), workspaceID)
+		if db.IsNotFound(err) {
+			return existingUserResult{}, nil
+		}
+
+		if err != nil {
+			return existingUserResult{}, err
+		}
+
+		return existingUserResult{Row: row, Found: true}, nil
+	}, restate.WithName("check existing"))
+	if err != nil {
+		return nil, fmt.Errorf("check existing user: %w", err)
 	}
 
-	if req.QuotaDurationSeconds != nil {
-		settings.quotaDurationSeconds = *req.QuotaDurationSeconds
-	}
-	if req.MaxQueriesPerWindow != nil {
-		settings.maxQueriesPerWindow = *req.MaxQueriesPerWindow
-	}
-	if req.MaxExecutionTimePerWindow != nil {
-		settings.maxExecutionTimePerWindow = *req.MaxExecutionTimePerWindow
-	}
-	if req.MaxQueryExecutionTime != nil {
-		settings.maxQueryExecutionTime = *req.MaxQueryExecutionTime
-	}
-	if req.MaxQueryMemoryBytes != nil {
-		settings.maxQueryMemoryBytes = *req.MaxQueryMemoryBytes
-	}
-	if req.MaxQueryResultRows != nil {
-		settings.maxQueryResultRows = *req.MaxQueryResultRows
+	var encryptedPassword string
+	var retentionDays int32
+
+	if !result.Found {
+		s.logger.Info("creating new user", "workspace_id", workspaceID)
+
+		// Fetch retention days from workspace quota
+		quota, err := restate.Run(ctx, func(rc restate.RunContext) (db.Quotum, error) {
+			return db.Query.FindQuotaByWorkspaceID(rc, s.db.RO(), workspaceID)
+		}, restate.WithName("fetch quota"))
+		if err != nil {
+			return nil, fmt.Errorf("fetch quota: %w", err)
+		}
+		retentionDays = quota.LogsRetentionDays
+
+		// Generate, encrypt, and store credentials in one step to avoid journaling plaintext
+		encryptedPassword, err = restate.Run(ctx, func(rc restate.RunContext) (string, error) {
+			password, err := generateSecurePassword(passwordLength)
+			if err != nil {
+				return "", fmt.Errorf("generate password: %w", err)
+			}
+
+			resp, err := s.vault.Encrypt(rc, connect.NewRequest(&vaultv1.EncryptRequest{
+				Keyring: workspaceID,
+				Data:    password,
+			}))
+			if err != nil {
+				return "", fmt.Errorf("encrypt password: %w", err)
+			}
+			encrypted := resp.Msg.GetEncrypted()
+
+			now := time.Now().UnixMilli()
+			err = db.Query.InsertClickhouseWorkspaceSettings(rc, s.db.RW(), db.InsertClickhouseWorkspaceSettingsParams{
+				WorkspaceID:               workspaceID,
+				Username:                  workspaceID,
+				PasswordEncrypted:         encrypted,
+				QuotaDurationSeconds:      quotas.quotaDurationSeconds,
+				MaxQueriesPerWindow:       quotas.maxQueriesPerWindow,
+				MaxExecutionTimePerWindow: quotas.maxExecutionTimePerWindow,
+				MaxQueryExecutionTime:     quotas.maxQueryExecutionTime,
+				MaxQueryMemoryBytes:       quotas.maxQueryMemoryBytes,
+				MaxQueryResultRows:        quotas.maxQueryResultRows,
+				CreatedAt:                 now,
+				UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
+			})
+			if err != nil {
+				// Handle crash-recovery: if we inserted but didn't journal, fetch existing
+				if db.IsDuplicateKeyError(err) {
+					existing, err := db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(rc, s.db.RO(), workspaceID)
+					if err != nil {
+						return "", fmt.Errorf("fetch after duplicate: %w", err)
+					}
+
+					return existing.ClickhouseWorkspaceSetting.PasswordEncrypted, nil
+				}
+
+				return "", fmt.Errorf("insert settings: %w", err)
+			}
+
+			return encrypted, nil
+		}, restate.WithName("store credentials"))
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+		s.logger.Info("updating existing user", "workspace_id", workspaceID)
+		retentionDays = result.Row.Quotas.LogsRetentionDays
+		encryptedPassword = result.Row.ClickhouseWorkspaceSetting.PasswordEncrypted
+
+		now := time.Now().UnixMilli()
+		_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+			return restate.Void{}, db.Query.UpdateClickhouseWorkspaceSettingsLimits(rc, s.db.RW(), db.UpdateClickhouseWorkspaceSettingsLimitsParams{
+				WorkspaceID:               workspaceID,
+				QuotaDurationSeconds:      quotas.quotaDurationSeconds,
+				MaxQueriesPerWindow:       quotas.maxQueriesPerWindow,
+				MaxExecutionTimePerWindow: quotas.maxExecutionTimePerWindow,
+				MaxQueryExecutionTime:     quotas.maxQueryExecutionTime,
+				MaxQueryMemoryBytes:       quotas.maxQueryMemoryBytes,
+				MaxQueryResultRows:        quotas.maxQueryResultRows,
+				UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
+			})
+		}, restate.WithName("update limits"))
+		if err != nil {
+			return nil, fmt.Errorf("update limits: %w", err)
+		}
 	}
 
-	return settings
+	// Configure ClickHouse - decrypt inside step to avoid journaling plaintext
+	_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+		resp, err := s.vault.Decrypt(rc, connect.NewRequest(&vaultv1.DecryptRequest{
+			Keyring:   workspaceID,
+			Encrypted: encryptedPassword,
+		}))
+		if err != nil {
+			return restate.Void{}, fmt.Errorf("decrypt password: %w", err)
+		}
+
+		return restate.Void{}, s.clickhouse.ConfigureUser(rc, clickhouse.UserConfig{
+			WorkspaceID:               workspaceID,
+			Username:                  workspaceID,
+			Password:                  resp.Msg.GetPlaintext(),
+			AllowedTables:             clickhouse.DefaultAllowedTables(),
+			QuotaDurationSeconds:      quotas.quotaDurationSeconds,
+			MaxQueriesPerWindow:       quotas.maxQueriesPerWindow,
+			MaxExecutionTimePerWindow: quotas.maxExecutionTimePerWindow,
+			MaxQueryExecutionTime:     quotas.maxQueryExecutionTime,
+			MaxQueryMemoryBytes:       quotas.maxQueryMemoryBytes,
+			MaxQueryResultRows:        quotas.maxQueryResultRows,
+			RetentionDays:             retentionDays,
+		})
+	}, restate.WithName("configure clickhouse"))
+	if err != nil {
+		return nil, fmt.Errorf("configure clickhouse: %w", err)
+	}
+
+	s.logger.Info("configured clickhouse user", "workspace_id", workspaceID, "retention_days", retentionDays)
+
+	return &hydrav1.ConfigureUserResponse{}, nil
 }
 
-// generateSecurePassword creates a cryptographically secure random password.
+func resolveQuotaSettings(req *hydrav1.ConfigureUserRequest) quotaSettings {
+	return quotaSettings{
+		quotaDurationSeconds:      ptr.PositiveOr(req.QuotaDurationSeconds, defaultQuotaDurationSeconds),
+		maxQueriesPerWindow:       ptr.PositiveOr(req.MaxQueriesPerWindow, defaultMaxQueriesPerWindow),
+		maxExecutionTimePerWindow: ptr.PositiveOr(req.MaxExecutionTimePerWindow, defaultMaxExecutionTimePerWindow),
+		maxQueryExecutionTime:     ptr.PositiveOr(req.MaxQueryExecutionTime, defaultMaxQueryExecutionTime),
+		maxQueryMemoryBytes:       ptr.PositiveOr(req.MaxQueryMemoryBytes, defaultMaxQueryMemoryBytes),
+		maxQueryResultRows:        ptr.PositiveOr(req.MaxQueryResultRows, defaultMaxQueryResultRows),
+	}
+}
+
 func generateSecurePassword(length int) (string, error) {
-	bytes := make([]byte, length)
-	if _, err := rand.Read(bytes); err != nil {
+	b := make([]byte, length)
+	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
-	return base64.RawURLEncoding.EncodeToString(bytes)[:length], nil
+
+	return base64.RawURLEncoding.EncodeToString(b)[:length], nil
 }

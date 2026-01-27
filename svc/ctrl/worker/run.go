@@ -220,15 +220,18 @@ func Run(ctx context.Context, cfg Config) error {
 			Logger: logger,
 		})
 		if chAdminErr != nil {
-			return fmt.Errorf("unable to create clickhouse admin client: %w", chAdminErr)
+			logger.Warn("ClickhouseUserService disabled: failed to connect to admin",
+				"error", chAdminErr,
+			)
+		} else {
+			restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseuser.New(clickhouseuser.Config{
+				DB:         database,
+				Vault:      vaultClient,
+				Clickhouse: chAdmin,
+				Logger:     logger,
+			})))
+			logger.Info("ClickhouseUserService enabled")
 		}
-		restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseuser.New(clickhouseuser.Config{
-			DB:         database,
-			Vault:      vaultClient,
-			Clickhouse: chAdmin,
-			Logger:     logger,
-		})))
-		logger.Info("ClickhouseUserService enabled")
 	}
 
 	// Get the Restate handler and mount it on a mux with health endpoint

@@ -21,14 +21,5 @@ GRANT CREATE ROW POLICY, ALTER ROW POLICY, DROP ROW POLICY ON *.* TO unkey_user_
 -- Settings profile management permissions
 GRANT CREATE SETTINGS PROFILE, ALTER SETTINGS PROFILE, DROP SETTINGS PROFILE ON *.* TO unkey_user_admin;
 
--- Grant OPTION on analytics tables (allows granting SELECT to workspace users)
--- Key verifications tables
-GRANT SELECT ON default.key_verifications_raw_v2 TO unkey_user_admin WITH GRANT OPTION;
-GRANT SELECT ON default.key_verifications_per_minute_v2 TO unkey_user_admin WITH GRANT OPTION;
-GRANT SELECT ON default.key_verifications_per_minute_v3 TO unkey_user_admin WITH GRANT OPTION;
-GRANT SELECT ON default.key_verifications_per_hour_v2 TO unkey_user_admin WITH GRANT OPTION;
-GRANT SELECT ON default.key_verifications_per_hour_v3 TO unkey_user_admin WITH GRANT OPTION;
-GRANT SELECT ON default.key_verifications_per_day_v2 TO unkey_user_admin WITH GRANT OPTION;
-GRANT SELECT ON default.key_verifications_per_day_v3 TO unkey_user_admin WITH GRANT OPTION;
-GRANT SELECT ON default.key_verifications_per_month_v2 TO unkey_user_admin WITH GRANT OPTION;
-GRANT SELECT ON default.key_verifications_per_month_v3 TO unkey_user_admin WITH GRANT OPTION;
+-- Grant OPTION on all tables in default database (allows granting SELECT to workspace users, without having SELECT itself)
+GRANT GRANT OPTION(SELECT) ON default.* TO unkey_user_admin;
